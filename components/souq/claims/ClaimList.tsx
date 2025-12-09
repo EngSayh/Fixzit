@@ -1,3 +1,4 @@
+'use client';
 "use client";
 
 import { useState, useEffect, type ComponentType } from "react";

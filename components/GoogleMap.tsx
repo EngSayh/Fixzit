@@ -1,3 +1,4 @@
+'use client';
 "use client";
 import { logger } from "@/lib/logger";
 /// <reference types="google.maps" />

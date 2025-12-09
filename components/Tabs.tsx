@@ -1,3 +1,4 @@
+'use client';
 // components/Tabs.tsx
 "use client";
 
