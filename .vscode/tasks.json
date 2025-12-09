@@ -6,6 +6,77 @@
       "type": "shell",
       "command": "echo 'Problems cleared'",
       "problemMatcher": []
+    },
+    {
+      "label": "AI Memory: Chunk Repository",
+      "type": "shell",
+      "command": "node tools/smart-chunker.js",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Create batches of repository files for AI memory processing"
+    },
+    {
+      "label": "AI Memory: Merge Outputs",
+      "type": "shell",
+      "command": "node tools/merge-memory.js",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Merge AI-generated outputs into master-index.json"
+    },
+    {
+      "label": "AI Memory: Selfcheck",
+      "type": "shell",
+      "command": "node tools/memory-selfcheck.js",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "Verify AI memory system configuration"
+    },
+    {
+      "label": "AI Memory: Selfcheck (Fix)",
+      "type": "shell",
+      "command": "node tools/memory-selfcheck.js --fix",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "Verify and auto-fix AI memory system configuration"
+    },
+    {
+      "label": "Build: Typecheck",
+      "type": "shell",
+      "command": "pnpm typecheck",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$tsc"],
+      "detail": "Run TypeScript type checking"
+    },
+    {
+      "label": "Build: Lint",
+      "type": "shell",
+      "command": "pnpm lint",
+      "group": "build",
+      "problemMatcher": ["$eslint-stylish"],
+      "detail": "Run ESLint on the codebase"
+    },
+    {
+      "label": "Test: Unit Tests",
+      "type": "shell",
+      "command": "pnpm test",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "Run all unit tests with vitest"
+    },
+    {
+      "label": "Dev: Start Server",
+      "type": "shell",
+      "command": "pnpm dev",
+      "group": "none",
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "Start Next.js development server"
     }
   ]
 }

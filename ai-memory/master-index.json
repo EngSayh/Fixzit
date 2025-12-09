@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "created": "2025-01-01T00:00:00.000Z",
+  "updated": "2025-01-01T00:00:00.000Z",
+  "entries": [],
+  "metadata": {
+    "totalEntries": 0,
+    "lastMerge": null,
+    "sources": [],
+    "description": "Master index for Fixzit AI memory system. Contains extracted knowledge from codebase analysis."
+  }
+}

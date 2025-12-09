@@ -54,57 +54,30 @@ describe("SMS Queue - Provider utilities", () => {
   });
 
   describe("buildProviderCandidates", () => {
-    it("filters disabled providers and respects supportedTypes", () => {
+    it("uses Taqnyat when env is configured", () => {
+      process.env.TAQNYAT_BEARER_TOKEN = "test-token";
+      process.env.TAQNYAT_SENDER_NAME = "TestSender";
+
       const settings = {
-        defaultProvider: "TWILIO",
-        providers: [
-          { provider: "TWILIO", enabled: true, priority: 2, fromNumber: "+1", accountId: "a", encryptedApiKey: "k" },
-          { provider: "UNIFONIC", enabled: false, priority: 1, fromNumber: "+1", accountId: "a", encryptedApiKey: "k" },
-          { provider: "LOCAL", enabled: true, priority: 3, supportedTypes: ["ALERT"] },
-        ],
+        defaultProvider: "TAQNYAT",
+        providers: [],
       } as any;
 
       const candidates = buildProviderCandidates(settings, "OTP");
-      expect(candidates.map((c) => c.name)).toEqual(["TWILIO"]);
-    });
-
-    it("prefers defaultProvider when sorting", () => {
-      const settings = {
-        defaultProvider: "UNIFONIC",
-        providers: [
-          { provider: "TWILIO", enabled: true, priority: 1, fromNumber: "+1", accountId: "a", encryptedApiKey: "k" },
-          { provider: "UNIFONIC", enabled: true, priority: 5, fromNumber: "+2", accountId: "b", encryptedApiKey: "v1:k" },
-        ],
-      } as any;
-
-      const candidates = buildProviderCandidates(settings, "OTP");
-      expect(candidates[0].name).toBe("UNIFONIC");
-      expect(candidates[1].name).toBe("TWILIO");
-      // Ensure decryption applied
-      expect(candidates[0].authToken).toBe("decrypted:k");
-    });
-
-    it("adds env Twilio fallback with priority 999", () => {
-      process.env.TWILIO_ACCOUNT_SID = "sid";
-      process.env.TWILIO_AUTH_TOKEN = "token";
-      process.env.TWILIO_PHONE_NUMBER = "+123";
-
-      const settings = { defaultProvider: "UNIFONIC", providers: [] } as any;
-      const candidates = buildProviderCandidates(settings, "OTP");
-
-      const fallback = candidates.find((c) => c.name === "TWILIO");
-      expect(fallback).toBeDefined();
-      expect(fallback?.priority).toBe(999);
-      expect(fallback?.accountSid).toBe("sid");
-      expect(fallback?.authToken).toBe("token");
+      expect(candidates.length).toBeGreaterThan(0);
+      expect(candidates[0].name).toBe("TAQNYAT");
+      expect(candidates[0].bearerToken).toBe("test-token");
     });
 
     it("filters out providers missing required credentials", () => {
+      // Clear Taqnyat env
+      delete process.env.TAQNYAT_BEARER_TOKEN;
+      delete process.env.TAQNYAT_SENDER_NAME;
+
       const settings = {
-        defaultProvider: "TWILIO",
+        defaultProvider: "TAQNYAT",
         providers: [
-          { provider: "TWILIO", enabled: true, priority: 1, fromNumber: "", accountId: "a", encryptedApiKey: "k" },
-          { provider: "UNIFONIC", enabled: true, priority: 2, fromNumber: "+1", accountId: "a", encryptedApiKey: "" },
+          { provider: "TAQNYAT", enabled: true, priority: 1, fromNumber: "", encryptedApiKey: "" },
         ],
       } as any;
 

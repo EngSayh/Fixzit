@@ -70,12 +70,10 @@ const maskPhone = (to: string | undefined) => {
 
 /**
  * Map provider names to circuit breaker names.
+ * NOTE: Only Taqnyat is supported in production
  */
 const PROVIDER_TO_BREAKER: Partial<Record<NonNullable<SMSProviderOptions["provider"]>, CircuitBreakerName>> = {
-  TWILIO: "twilio",
-  UNIFONIC: "unifonic",
-  AWS_SNS: "aws-sns",
-  NEXMO: "nexmo",
+  TAQNYAT: "taqnyat",
 };
 
 /**
@@ -95,55 +93,51 @@ function isProviderCircuitOpen(providerName: SMSProviderOptions["provider"]): bo
 
 
 /**
- * Select provider candidates honoring defaultProvider, priority, supportedTypes,
- * and fall back to env Twilio creds when org settings are unusable.
+ * Select provider candidates for Taqnyat (ONLY supported production provider).
+ * Falls back to env Taqnyat creds when org settings are unusable.
  */
 function buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings.getEffectiveSettings>>, messageType: string): ProviderCandidate[] {
   const candidates: ProviderCandidate[] = [];
 
+  // Check if Taqnyat is configured via environment
+  const hasEnvTaqnyat = Boolean(
+    process.env.TAQNYAT_BEARER_TOKEN && process.env.TAQNYAT_SENDER_NAME
+  );
+
+  // Add env-based Taqnyat if configured and circuit is not open
+  if (hasEnvTaqnyat && !isProviderCircuitOpen("TAQNYAT")) {
+    candidates.push({
+      name: "TAQNYAT",
+      provider: "TAQNYAT",
+      from: process.env.TAQNYAT_SENDER_NAME,
+      bearerToken: process.env.TAQNYAT_BEARER_TOKEN,
+      priority: 1,
+    });
+  }
+
+  // Check org-specific settings for Taqnyat config
   for (const p of settings.providers || []) {
     if (!p.enabled) continue;
-    // 🔒 CIRCUIT BREAKER: Skip providers with open circuit breakers
-    if (isProviderCircuitOpen(p.provider as SMSProviderOptions["provider"])) {
-      logger.info("[SMS Queue] Skipping provider with open circuit breaker", { provider: p.provider, messageType });
+    if (p.provider !== "TAQNYAT") continue; // Only support Taqnyat
+    if (isProviderCircuitOpen("TAQNYAT")) {
+      logger.info("[SMS Queue] Skipping Taqnyat with open circuit breaker", { messageType });
       continue;
     }
     if (p.supportedTypes?.length && !p.supportedTypes.includes(messageType as TSMSType)) continue;
+    
     candidates.push({
-      name: p.provider as ProviderCandidate["name"],
-      provider: p.provider as ProviderCandidate["provider"],
+      name: "TAQNYAT",
+      provider: "TAQNYAT",
       from: p.fromNumber,
-      accountSid: p.accountId,
-      authToken: decryptProviderToken(p.encryptedApiKey),
-      priority: typeof p.priority === "number" ? p.priority : 99,
+      bearerToken: decryptProviderToken(p.encryptedApiKey),
+      priority: typeof p.priority === "number" ? p.priority : 1,
       supportedTypes: p.supportedTypes,
     });
   }
 
-  candidates.sort((a, b) => {
-    const aDefault = a.name === settings.defaultProvider;
-    const bDefault = b.name === settings.defaultProvider;
-    if (aDefault && !bDefault) return -1;
-    if (bDefault && !aDefault) return 1;
-    return (a.priority ?? 99) - (b.priority ?? 99);
-  });
-
-  const hasEnvTwilio =
-    Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER);
-  if (hasEnvTwilio && !isProviderCircuitOpen("TWILIO")) {
-    candidates.push({
-      name: "TWILIO",
-      provider: "TWILIO",
-      from: process.env.TWILIO_PHONE_NUMBER,
-      accountSid: process.env.TWILIO_ACCOUNT_SID,
-      authToken: process.env.TWILIO_AUTH_TOKEN,
-      priority: 999,
-    });
-  }
-
-  // Filter out providers missing any required credential
+  // Filter out providers missing required credentials
   return candidates.filter(
-    (c) => Boolean(c.from) && Boolean(c.accountSid) && Boolean(c.authToken),
+    (c) => Boolean(c.from) && Boolean(c.bearerToken),
   );
 }
 
@@ -551,7 +545,7 @@ async function processSMSJob(messageId: string): Promise<void> {
 
     let lastError = "Unknown SMS failure";
     for (const candidate of candidates) {
-      if (!candidate.accountSid || !candidate.authToken || !candidate.from) {
+      if (!candidate.bearerToken || !candidate.from) {
         lastError = `Provider ${candidate.name} missing credentials`;
         logger.warn("[SMS Queue] Skipping provider due to missing credentials", {
           messageId,
@@ -563,8 +557,7 @@ async function processSMSJob(messageId: string): Promise<void> {
       const result = await sendSMS(message.to, message.message, {
         provider: candidate.provider,
         from: candidate.from,
-        accountSid: candidate.accountSid,
-        authToken: candidate.authToken,
+        bearerToken: candidate.bearerToken,
       });
 
       const durationMs = Date.now() - startTime;
