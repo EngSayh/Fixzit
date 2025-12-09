@@ -21,28 +21,25 @@ type ValidationOptions = {
 
 /**
  * Validate SMS provider configuration
+ * 
+ * IMPORTANT: This system uses TAQNYAT ONLY as the SMS provider (CITC-compliant for Saudi Arabia).
+ * Legacy providers (Twilio, Unifonic, Nexmo, SNS) have been removed.
  */
 export function validateSMSConfig(options: ValidationOptions = {}): EnvValidationResult {
   const strict = options.strict !== false;
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Check for at least one SMS provider
-  const hasTwilio = Boolean(
-    process.env.TWILIO_ACCOUNT_SID &&
-    process.env.TWILIO_AUTH_TOKEN &&
-    process.env.TWILIO_PHONE_NUMBER
-  );
-  // Unifonic is now a first-class implemented provider
-  const hasUnifonic = Boolean(
-    process.env.UNIFONIC_APP_SID &&
-    process.env.UNIFONIC_SENDER_ID
+  // Check for Taqnyat SMS provider (CITC-compliant for Saudi Arabia)
+  const hasTaqnyat = Boolean(
+    process.env.TAQNYAT_BEARER_TOKEN &&
+    process.env.TAQNYAT_SENDER_NAME
   );
   const smsDevMode = process.env.SMS_DEV_MODE === "true";
 
-  if (!hasTwilio && !hasUnifonic && !smsDevMode) {
+  if (!hasTaqnyat && !smsDevMode) {
     const msg =
-      "No SMS provider configured. Configure TWILIO_* (ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER) or UNIFONIC_* (APP_SID, SENDER_ID) or set SMS_DEV_MODE=true.";
+      "No SMS provider configured. Configure TAQNYAT_BEARER_TOKEN and TAQNYAT_SENDER_NAME, or set SMS_DEV_MODE=true.";
     if (process.env.NODE_ENV === "production" && strict) {
       errors.push(msg);
     } else {
@@ -50,25 +47,12 @@ export function validateSMSConfig(options: ValidationOptions = {}): EnvValidatio
     }
   }
 
-  // Validate Twilio config completeness
-  if (hasTwilio) {
-    if (!process.env.TWILIO_ACCOUNT_SID) {
-      errors.push("TWILIO_ACCOUNT_SID is missing");
-    }
-    if (!process.env.TWILIO_AUTH_TOKEN) {
-      errors.push("TWILIO_AUTH_TOKEN is missing");
-    }
-    if (!process.env.TWILIO_PHONE_NUMBER) {
-      errors.push("TWILIO_PHONE_NUMBER is missing");
-    }
+  // Validate Taqnyat config completeness (partial config is a warning)
+  if (process.env.TAQNYAT_BEARER_TOKEN && !process.env.TAQNYAT_SENDER_NAME) {
+    warnings.push("TAQNYAT_BEARER_TOKEN is set but TAQNYAT_SENDER_NAME is missing; Taqnyat SMS will fail.");
   }
-
-  // Validate Unifonic config completeness (partial config is a warning)
-  if (process.env.UNIFONIC_APP_SID && !process.env.UNIFONIC_SENDER_ID) {
-    warnings.push("UNIFONIC_APP_SID is set but UNIFONIC_SENDER_ID is missing; Unifonic SMS will fail.");
-  }
-  if (process.env.UNIFONIC_SENDER_ID && !process.env.UNIFONIC_APP_SID) {
-    warnings.push("UNIFONIC_SENDER_ID is set but UNIFONIC_APP_SID is missing; Unifonic SMS will fail.");
+  if (process.env.TAQNYAT_SENDER_NAME && !process.env.TAQNYAT_BEARER_TOKEN) {
+    warnings.push("TAQNYAT_SENDER_NAME is set but TAQNYAT_BEARER_TOKEN is missing; Taqnyat SMS will fail.");
   }
 
   return {
