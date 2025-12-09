@@ -15,6 +15,7 @@ const zatcaBreaker = createBreaker("zatca", 60_000);
 const unifonicBreaker = createBreaker("unifonic", 20_000);
 const awsSnsBreaker = createBreaker("aws-sns", 20_000);
 const nexmoBreaker = createBreaker("nexmo", 20_000);
+const sendgridBreaker = createBreaker("sendgrid", 30_000);
 
 export const serviceCircuitBreakers = {
   paytabs: paytabsBreaker,
@@ -24,6 +25,7 @@ export const serviceCircuitBreakers = {
   unifonic: unifonicBreaker,
   "aws-sns": awsSnsBreaker,
   nexmo: nexmoBreaker,
+  sendgrid: sendgridBreaker,
 } as const;
 
 export type CircuitBreakerName = keyof typeof serviceCircuitBreakers;

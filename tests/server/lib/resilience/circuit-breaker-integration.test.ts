@@ -1,0 +1,139 @@
+/**
+ * Circuit Breaker Integration Tests
+ * 
+ * Tests the circuit breaker pattern integration with SMS and Email providers.
+ * Validates isOpen(), getState(), and provider selection logic.
+ */
+
+import { describe, it, expect, beforeEach } from "vitest";
+import { CircuitBreaker } from "@/lib/resilience/circuit-breaker";
+
+describe("CircuitBreaker", () => {
+  let breaker: CircuitBreaker;
+
+  beforeEach(() => {
+    breaker = new CircuitBreaker({
+      name: "test-breaker",
+      failureThreshold: 3,
+      successThreshold: 2,
+      cooldownMs: 100, // Short cooldown for testing
+    });
+  });
+
+  describe("isOpen()", () => {
+    it("should return false when breaker is closed", () => {
+      expect(breaker.isOpen()).toBe(false);
+      expect(breaker.getState()).toBe("closed");
+    });
+
+    it("should return true after failure threshold reached", async () => {
+      // Cause failures to open the breaker
+      for (let i = 0; i < 3; i++) {
+        try {
+          await breaker.run(async () => {
+            throw new Error("Test failure");
+          });
+        } catch {
+          // Expected
+        }
+      }
+
+      expect(breaker.isOpen()).toBe(true);
+      expect(breaker.getState()).toBe("open");
+    });
+
+    it("should return false after cooldown expires", async () => {
+      // Open the breaker
+      for (let i = 0; i < 3; i++) {
+        try {
+          await breaker.run(async () => {
+            throw new Error("Test failure");
+          });
+        } catch {
+          // Expected
+        }
+      }
+
+      expect(breaker.isOpen()).toBe(true);
+
+      // Wait for cooldown
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // Should be ready to try again (half-open)
+      expect(breaker.isOpen()).toBe(false);
+    });
+  });
+
+  describe("getState()", () => {
+    it("should start in closed state", () => {
+      expect(breaker.getState()).toBe("closed");
+    });
+
+    it("should transition to open after failures", async () => {
+      for (let i = 0; i < 3; i++) {
+        try {
+          await breaker.run(async () => {
+            throw new Error("Test failure");
+          });
+        } catch {
+          // Expected
+        }
+      }
+
+      expect(breaker.getState()).toBe("open");
+    });
+  });
+
+  describe("run()", () => {
+    it("should execute operation when closed", async () => {
+      const result = await breaker.run(async () => "success");
+      expect(result).toBe("success");
+    });
+
+    it("should throw CircuitBreakerOpenError when open", async () => {
+      // Open the breaker
+      for (let i = 0; i < 3; i++) {
+        try {
+          await breaker.run(async () => {
+            throw new Error("Test failure");
+          });
+        } catch {
+          // Expected
+        }
+      }
+
+      // Should throw immediately without executing
+      await expect(breaker.run(async () => "should not run")).rejects.toThrow(
+        /Circuit breaker "test-breaker" is open/
+      );
+    });
+  });
+});
+
+describe("Service Circuit Breakers", () => {
+  it("should have all expected breakers configured", async () => {
+    const { serviceCircuitBreakers } = await import(
+      "@/lib/resilience/service-circuit-breakers"
+    );
+
+    expect(serviceCircuitBreakers).toHaveProperty("twilio");
+    expect(serviceCircuitBreakers).toHaveProperty("unifonic");
+    expect(serviceCircuitBreakers).toHaveProperty("aws-sns");
+    expect(serviceCircuitBreakers).toHaveProperty("nexmo");
+    expect(serviceCircuitBreakers).toHaveProperty("sendgrid");
+    expect(serviceCircuitBreakers).toHaveProperty("paytabs");
+    expect(serviceCircuitBreakers).toHaveProperty("meilisearch");
+    expect(serviceCircuitBreakers).toHaveProperty("zatca");
+  });
+
+  it("should return breaker instances with isOpen method", async () => {
+    const { getCircuitBreaker } = await import(
+      "@/lib/resilience/service-circuit-breakers"
+    );
+
+    const twilioBreaker = getCircuitBreaker("twilio");
+    expect(typeof twilioBreaker.isOpen).toBe("function");
+    expect(typeof twilioBreaker.getState).toBe("function");
+    expect(typeof twilioBreaker.run).toBe("function");
+  });
+});

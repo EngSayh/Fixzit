@@ -1,10 +1,14 @@
 /**
  * Email Service Utility
- * Wrapper for SendGrid email functionality
+ * Wrapper for SendGrid email functionality with circuit breaker protection
  */
 
 import { logger } from "@/lib/logger";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
+import { getCircuitBreaker } from "@/lib/resilience";
+
+// Circuit breaker for SendGrid
+const sendgridBreaker = getCircuitBreaker("sendgrid");
 
 export interface EmailResult {
   success: boolean;
@@ -44,7 +48,8 @@ export async function sendEmail(
     const sgMail = (await import("@sendgrid/mail")).default;
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-    const result = await sgMail.send({
+    // Use circuit breaker to protect against SendGrid failures
+    const result = await sendgridBreaker.run(async () => sgMail.send({
       to,
       from:
         options?.from ||
@@ -69,7 +74,7 @@ export async function sendEmail(
           </p>
         </div>
       `,
-    });
+    }));
 
     const messageId =
       result?.[0]?.headers?.["x-message-id"] ||

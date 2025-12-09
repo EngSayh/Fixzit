@@ -14,6 +14,10 @@
  */
 
 import { logger } from "@/lib/logger";
+import { getCircuitBreaker } from "@/lib/resilience";
+
+// Circuit breaker for AWS SNS
+const awsSnsBreaker = getCircuitBreaker("aws-sns");
 import { formatSaudiPhoneNumber, isValidSaudiPhone } from "./phone-utils";
 import type {
   SMSProvider,
@@ -146,7 +150,7 @@ export class AWSSNSProvider implements SMSProvider {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await (client as any).send(command);
+      const response = await awsSnsBreaker.run(async () => (client as any).send(command));
 
       logger.info("[AWS SNS] SMS sent successfully", {
         messageId: response.MessageId,

@@ -13,6 +13,10 @@
  */
 
 import { logger } from "@/lib/logger";
+import { getCircuitBreaker } from "@/lib/resilience";
+
+// Circuit breaker for Nexmo
+const nexmoBreaker = getCircuitBreaker("nexmo");
 import { formatSaudiPhoneNumber, isValidSaudiPhone } from "./phone-utils";
 import type {
   SMSProvider,
@@ -125,13 +129,13 @@ export class NexmoProvider implements SMSProvider {
         params.append("callback", this.config.webhookUrl);
       }
 
-      const response = await fetch(`${this.baseUrl}/sms/json`, {
+      const response = await nexmoBreaker.run(async () => fetch(`${this.baseUrl}/sms/json`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: params.toString(),
-      });
+      }));
 
       if (!response.ok) {
         throw new Error(`Nexmo API error: ${response.status} ${response.statusText}`);
