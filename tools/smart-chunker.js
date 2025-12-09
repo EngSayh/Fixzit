@@ -7,18 +7,17 @@
  * What it does:
  * 1. Scans the repo from CWD.
  * 2. Categorizes files (routes, models, components, utils, core).
- * 3. Chunks them into batches of ~150k characters (safe for Copilot context).
- * 4. For each batch, writes ai-memory/batches/<category>-batch-XXX.xml
- *    with an embedded prompt that tells Claude/Copilot what JSON to produce.
+ * 3. Chunks them into batches of ~100k characters (safe for Copilot context + output).
+ * 4. Writes ai-memory/batches/<category>-batch-XXX.xml
+ *    Each batch embeds a SYSTEM PROMPT so you don't have to retype it.
  */
 
 const fs = require("fs");
 const path = require("path");
 
-// Approximate safe limit for one batch.
-// ~150k chars ≈ ~35–45k tokens for code (depends on density).
-// Leaves room for instructions + model's reply inside Copilot's context.
-const BATCH_CHAR_LIMIT = 150_000;
+// ~100k chars ≈ ~25k tokens for code.
+// Leaves room for prompt + reply inside Copilot's ~128k window.
+const BATCH_CHAR_LIMIT = 100_000;
 
 const OUTPUT_DIR = path.join(process.cwd(), "ai-memory", "batches");
 
@@ -27,19 +26,25 @@ const IGNORE = [
   ".git",
   "node_modules",
   "dist",
-  ".next",
   "build",
   "coverage",
+  ".next",
   ".turbo",
   ".vercel",
   ".vscode",
-  "ai-memory",        // avoid re-ingesting memory files
+  "ai-memory",       // don't re-chunk memory
+  "tools",           // don't re-chunk scripts
   ".DS_Store",
   ".artifacts",
+  "_artifacts",
   "playwright-report",
   "test-results",
-  "_artifacts",
+  "pnpm-lock.yaml",  // lock files are too large
+  "package-lock.json",
 ];
+
+// Maximum file size to include (skip very large files like lock files)
+const MAX_FILE_SIZE = 50_000; // 50KB
 
 // Extensions to include
 const INCLUDE = [
@@ -51,15 +56,17 @@ const INCLUDE = [
   ".prisma",
   ".sql",
   ".py",
+  ".md",
+  ".css",
 ];
 
-// Embedded prompt used for ALL batches in a category.
-// We use XML-style tags so the model can clearly see structure.
+// Embedded SYSTEM PROMPT for each batch
 const PROMPT_HEADER = (category) => `
-You are the "Fixzit Memory Builder" for category: ${category}.
+You are the "Fixzit Memory Builder" for category: "${category}".
 
-You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags.
-Each <file> has a "path" attribute with the repository-relative file path.
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
 
 YOUR TASK:
 1. Read ALL files in <batch_content>.
@@ -76,7 +83,8 @@ YOUR TASK:
 ]
 
 RULES:
-- Return ONLY a valid JSON array, with NO markdown, NO backticks, NO comments.
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
 - Include an entry for every file in this batch.
 - If a file has no exports, use "exports": [].
 - If a file has no imports, use "dependencies": [].
@@ -88,7 +96,12 @@ RULES:
  * Recursively walk the repo and collect candidate files.
  */
 function getFiles(dir, collected = []) {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return collected;
+  }
 
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
@@ -106,6 +119,10 @@ function getFiles(dir, collected = []) {
       const ext = path.extname(entry.name).toLowerCase();
       if (INCLUDE.includes(ext)) {
         const size = fs.statSync(fullPath).size;
+        // Skip very large files (like lock files, bundled assets)
+        if (size > MAX_FILE_SIZE) {
+          continue;
+        }
         collected.push({ path: fullPath, size });
       }
     }
@@ -118,9 +135,12 @@ function getFiles(dir, collected = []) {
  * Classify files into coarse categories.
  */
 function getCategory(absPath) {
-  const rel = path.relative(process.cwd(), absPath).replace(/\\/g, "/").toLowerCase();
+  const rel = path
+    .relative(process.cwd(), absPath)
+    .replace(/\\/g, "/")
+    .toLowerCase();
 
-  if (rel.includes("/api/") || rel.includes("/routes/") || rel.endsWith("/route.ts")) {
+  if (rel.includes("/api/") || rel.includes("/routes/") || rel.includes("route")) {
     return "routes";
   }
   if (
@@ -148,6 +168,13 @@ function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
+}
+
+/**
+ * Escape CDATA closing sequences to avoid breaking XML.
+ */
+function safeXML(content) {
+  return content.replace(/]]>/g, "]]]]><![CDATA[>");
 }
 
 /**
@@ -194,13 +221,18 @@ function run() {
     let batchIndex = 1;
 
     for (const file of files) {
-      const rel = path.relative(process.cwd(), file.path).replace(/\\/g, "/");
+      const rel = path
+        .relative(process.cwd(), file.path)
+        .replace(/\\/g, "/");
       const content = fs.readFileSync(file.path, "utf8");
 
-      const entry = `\n<file path="${rel}">\n${content}\n</file>\n`;
+      const entry =
+        `\n<file path="${rel}">\n<![CDATA[\n` +
+        safeXML(content) +
+        `\n]]>\n</file>\n`;
       const entrySize = entry.length;
 
-      // If adding this file would exceed our limit, flush current batch.
+      // HALT: if adding this file exceeds the safe limit, flush the batch.
       if (
         currentBatchSize > 0 &&
         currentBatchSize + entrySize > BATCH_CHAR_LIMIT

@@ -1,72 +1,55 @@
-# Fixzit Agents Instructions
+# AGENTS.md – Fixzit Coding Agents
 
-You are an AI agent working on the Fixzit codebase in VS Code or on GitHub.
+You are an AI coding agent working on the Fixzit codebase.
 
-## Project Summary
+## Setup
 
-- **Project**: Fixzit – multi-tenant facility management + marketplace platform
-- **Stack**: Next.js 15, TypeScript, Node.js, MongoDB (Mongoose), Tailwind, shadcn/ui
-- **Goals**: Production-grade, modular architecture with strict governance, no placeholders, and clear domain boundaries
+- Install dependencies: `pnpm install`
+- Run dev server: `pnpm dev`
+- Run tests: `pnpm test` (and any E2E scripts if defined)
+- Type check: `pnpm typecheck`
+- Lint: `pnpm lint`
 
-## Build & Test Commands
+## Project Context
 
-```bash
-# Install dependencies
-pnpm install
-
-# Development server
-pnpm dev
-
-# Type checking
-pnpm typecheck
-
-# Linting
-pnpm lint
-
-# Unit tests
-pnpm test
-
-# E2E tests (Playwright)
-pnpm test:e2e
-
-# Build for production
-pnpm build
-```
-
-## Core Behaviour
-
-- Treat `ai-memory/master-index.json` as the **primary map** of the system
-- Use it *before* scanning raw code for:
-  - Architectural questions
-  - Large refactors
-  - Multi-file changes
+- Multi-tenant facility management + marketplace platform.
+- Core domains:
+  - Facility Management / Work Orders
+  - Real Estate / Aqar marketplace
+  - Shared Services (Finance, HR, CRM, Admin, Support)
+- Tech stack: Next.js (App Router), TypeScript, Node.js, MongoDB (Mongoose), Tailwind, shadcn/ui.
 
 ## Memory-Aware Workflow
 
-When assigned a task (e.g., "refactor auth login" or "add new work order status"):
+This repo maintains an external "brain" at `ai-memory/master-index.json`.
 
-1. **Read** `ai-memory/master-index.json`
-2. **Identify** all relevant files based on:
-   - `category` (routes, models, components, utils, core)
-   - `file` paths
-   - `summary`, `exports`, `dependencies`
-3. **Open** or fetch only those files as context
-4. **Propose** a plan with:
-   - Steps
-   - Files to touch
-   - Potential side effects
-5. **Execute** edits step by step, keeping changes consistent with existing patterns
-6. **Test** - Add or update tests where possible
+When you are assigned a task such as:
+- "Refactor the login/auth flow"
+- "Add a new work order status end-to-end"
+- "Clean up duplicated customer models"
+
+You MUST:
+
+1. **Read** `ai-memory/master-index.json`.
+2. Use it to:
+   - Find the relevant files and categories,
+   - Understand high-level responsibilities and dependencies.
+3. Only then open or fetch those specific files from the codebase for detailed work.
+4. Work in small, verifiable steps:
+   - Plan the change,
+   - Apply edits,
+   - Run tests where applicable,
+   - Summarize what changed and why.
 
 ## File Categories
 
-| Category | Path Patterns | Purpose |
-|----------|---------------|---------|
-| routes | `app/api/**`, `**/route.ts` | API endpoints |
-| models | `server/models/**`, `**/schema.ts` | Database schemas |
-| components | `components/**`, `app/**/*.tsx` | React components |
-| utils | `lib/**`, `utils/**`, `helpers/**` | Utility functions |
-| core | Everything else | Config, types, constants |
+| Category   | Path Patterns                              | Purpose              |
+|------------|--------------------------------------------|--------------------- |
+| routes     | `app/api/**`, `**/route.ts`                | API endpoints        |
+| models     | `server/models/**`, `**/schema.ts`         | Database schemas     |
+| components | `components/**`, `app/**/*.tsx`            | React components     |
+| utils      | `lib/**`, `utils/**`, `helpers/**`         | Utility functions    |
+| core       | Everything else                            | Config, types, constants |
 
 ## Domain Boundaries (STRICT)
 
@@ -79,14 +62,16 @@ When assigned a task (e.g., "refactor auth login" or "add new work order status"
 
 Do NOT mix domain logic across boundaries without explicit architectural justification.
 
-## Constraints
+## Constraints & Expectations
 
-- **Never assume the entire repo is in context** - Use the memory index to load only what is needed
-- **Keep diffs minimal and focused** - Small, atomic changes
-- **No placeholders** - No "TODO", "TBD", or fake data
-- **Do not remove or rewrite domain logic without clear reason**
-- **Respect tenant isolation** - All queries must include `orgId` scoping
-- **Use `tenantIsolationPlugin`** - For all tenant-scoped Mongoose models
+- Do not scan the entire repo blindly; always start from the memory index.
+- Keep pull requests / changesets narrowly focused.
+- Do not remove or rewrite domain logic without a clear reason.
+- Preserve existing coding style and naming conventions.
+- Add or update tests when behavior changes.
+- **No placeholders** - No "TODO", "TBD", or fake data.
+- **Respect tenant isolation** - All queries must include `orgId` scoping.
+- **Use `tenantIsolationPlugin`** - For all tenant-scoped Mongoose models.
 
 ## Multi-Tenancy Rules
 
@@ -101,6 +86,16 @@ Do NOT mix domain logic across boundaries without explicit architectural justifi
 - Use `requireAbility()` for work order permissions
 - Never trust client-side role checks
 - Follow role hierarchy: SUPER_ADMIN > ADMIN > MANAGER > USER
+
+## When the Memory is Stale
+
+If you detect that `ai-memory/master-index.json` is missing many new files or does not match the current structure:
+
+- Suggest re-running the memory pipeline:
+  - `node tools/smart-chunker.js`
+  - Process new batches via Inline Chat (Ctrl+I / Cmd+I)
+  - `node tools/merge-memory.js`
+- Then retry the task with the updated index.
 
 ## Testing Requirements
 
@@ -120,5 +115,5 @@ Do NOT mix domain logic across boundaries without explicit architectural justifi
 
 ---
 
-**Version**: 1.0  
+**Version**: 2.0  
 **Last Updated**: 2025-12-09

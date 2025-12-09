@@ -4,8 +4,10 @@
  * Usage:
  *   node tools/merge-memory.js
  *
- * Merges all ai-memory/outputs/*.json into ai-memory/master-index.json
- * and deduplicates by (file, category).
+ * Merges all ai-memory/outputs/*.json into ai-memory/master-index.json:
+ * - Extracts the JSON array between first '[' and last ']'
+ * - Skips invalid/garbage outputs
+ * - Deduplicates by (file, category)
  */
 
 const fs = require("fs");
@@ -15,10 +17,8 @@ const OUTPUT_DIR = path.join(process.cwd(), "ai-memory", "outputs");
 const MASTER_PATH = path.join(process.cwd(), "ai-memory", "master-index.json");
 
 if (!fs.existsSync(OUTPUT_DIR)) {
-  console.log("📁 Creating ai-memory/outputs/ directory...");
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-  console.log("ℹ️  No JSON files to merge yet. Run smart-chunker + process batches first.");
-  process.exit(0);
+  console.error("❌ ai-memory/outputs/ does not exist. Run the Inline Chat loop first.");
+  process.exit(1);
 }
 
 const files = fs
@@ -26,12 +26,21 @@ const files = fs
   .filter((f) => f.endsWith(".json"));
 
 if (!files.length) {
-  console.log("ℹ️  No JSON files found in ai-memory/outputs/");
-  console.log("   Run smart-chunker, then process each batch with Copilot Inline Chat.");
-  process.exit(0);
+  console.error("❌ No JSON files found in ai-memory/outputs/");
+  process.exit(1);
 }
 
 let master = [];
+const seen = new Set();
+
+function validateItem(item) {
+  if (!item || typeof item !== "object") return false;
+  if (!item.file || typeof item.file !== "string") return false;
+  if (!item.category || typeof item.category !== "string") return false;
+  if (!Array.isArray(item.exports)) return false;
+  if (!Array.isArray(item.dependencies)) return false;
+  return true;
+}
 
 for (const f of files) {
   const full = path.join(OUTPUT_DIR, f);
@@ -39,33 +48,48 @@ for (const f of files) {
 
   if (!raw) continue;
 
-  // Clean any markdown fences if Copilot added them
-  const cleaned = raw
+  // Strip markdown fences if Copilot added them
+  let cleaned = raw
     .replace(/```json/gi, "")
     .replace(/```/g, "")
     .trim();
 
+  // Extract array between first '[' and last ']'
+  const start = cleaned.indexOf("[");
+  const end = cleaned.lastIndexOf("]");
+
+  if (start === -1 || end === -1) {
+    console.warn(`⚠️ No JSON array found in ${f}, skipping.`);
+    continue;
+  }
+
+  cleaned = cleaned.substring(start, end + 1);
+
   try {
     const data = JSON.parse(cleaned);
-    if (Array.isArray(data)) {
-      master.push(...data);
-      console.log(`✅ Loaded ${f} (${data.length} entries)`);
-    } else {
+    if (!Array.isArray(data)) {
       console.warn(`⚠️ ${f} did not contain a JSON array, skipping.`);
+      continue;
     }
+
+    let validCount = 0;
+
+    for (const item of data) {
+      if (!validateItem(item)) {
+        continue;
+      }
+      const key = `${item.file}::${item.category}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      master.push(item);
+      validCount++;
+    }
+
+    console.log(`✅ Loaded ${f}: ${validCount} valid entries.`);
   } catch (e) {
-    console.error(`❌ Failed to parse ${f}:`, e.message);
+    console.error(`❌ Failed to parse ${f}: ${e.message}`);
   }
 }
-
-// Deduplicate by (file, category)
-const seen = new Set();
-master = master.filter((item) => {
-  const key = `${item.file || ""}::${item.category || ""}`;
-  if (seen.has(key)) return false;
-  seen.add(key);
-  return true;
-});
 
 // Sort by file path
 master.sort((a, b) => (a.file || "").localeCompare(b.file || ""));
