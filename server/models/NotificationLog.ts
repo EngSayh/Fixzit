@@ -64,7 +64,7 @@ const dlqTtlDays = parseValidTtl(process.env.NOTIFICATION_DLQ_TTL_DAYS, 30, 'NOT
 
 const NotificationLogSchema = new Schema(
   {
-    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
+    orgId: { type: Schema.Types.ObjectId, required: true }, // index via compound { orgId: 1, notificationId: 1 }
     notificationId: { type: String, required: true },
     event: { type: String, required: true },
     recipients: { type: [NotificationRecipientSchema], default: [] },

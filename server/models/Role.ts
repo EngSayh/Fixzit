@@ -21,20 +21,18 @@ const RoleSchema = new Schema(
     orgId: {
       type: Schema.Types.ObjectId,
       required: true,
-      index: true,
+      // index via compounds: { orgId: 1, slug: 1 }, { orgId: 1, name: 1 }, etc.
     },
     name: {
       type: String,
-      unique: true,
-      index: true,
+      unique: true, // unique implies index
       required: true,
       trim: true,
       // Examples: "Super Admin", "Property Owner", "Finance Manager"
     },
     slug: {
       type: String,
-      unique: true,
-      index: true,
+      unique: true, // unique implies index
       required: true,
       trim: true,
       lowercase: true,
@@ -51,7 +49,7 @@ const RoleSchema = new Schema(
     wildcard: {
       type: Boolean,
       default: false,
-      index: true,
+      // index via compound { orgId: 1, wildcard: 1 }
     },
     // Reference to Permission documents
     permissions: [
@@ -64,13 +62,13 @@ const RoleSchema = new Schema(
     systemReserved: {
       type: Boolean,
       default: false,
-      index: true,
+      // index via compound { orgId: 1, systemReserved: 1 }
     },
     // Optional: role hierarchy level (higher = more permissions)
     level: {
       type: Number,
       default: 0,
-      index: true,
+      // index via compound { orgId: 1, level: -1 }
     },
   },
   {

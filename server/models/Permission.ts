@@ -17,8 +17,7 @@ const PermissionSchema = new Schema(
   {
     key: {
       type: String,
-      unique: true,
-      index: true,
+      unique: true, // unique implies index, no separate index needed
       required: true,
       trim: true,
       // Format: module:action (e.g., "workorders:create")
@@ -31,7 +30,7 @@ const PermissionSchema = new Schema(
     },
     module: {
       type: String,
-      index: true,
+      // index via compound { module: 1, action: 1 }
       required: true,
       trim: true,
       lowercase: true,
