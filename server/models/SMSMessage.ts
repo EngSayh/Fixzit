@@ -4,6 +4,8 @@
  * Tracks all outbound SMS messages with status, retry history, and SLA compliance.
  * Supports queue-based retry with exponential backoff.
  *
+ * IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
+ *
  * @module server/models/SMSMessage
  */
 
@@ -22,7 +24,8 @@ export const SMSStatus = [
 ] as const;
 export type TSMSStatus = (typeof SMSStatus)[number];
 
-export const SMSProvider = ["TWILIO", "UNIFONIC", "AWS_SNS", "NEXMO", "LOCAL"] as const;
+// TAQNYAT is the only production provider, LOCAL is for development/testing
+export const SMSProvider = ["TAQNYAT", "LOCAL"] as const;
 export type TSMSProvider = (typeof SMSProvider)[number];
 
 export const SMSType = [

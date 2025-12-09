@@ -2,12 +2,18 @@
  * SMS Provider Type Definitions
  *
  * Shared types for all SMS provider implementations.
+ * 
+ * IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
+ * - Taqnyat is CITC-compliant for Saudi Arabia
+ * - Mock provider is available for development/testing only
  */
 
 /**
  * Supported SMS provider types
+ * - taqnyat: Production provider (CITC-compliant for KSA)
+ * - mock: Development/testing only
  */
-export type SMSProviderType = "twilio" | "unifonic" | "aws_sns" | "nexmo" | "mock";
+export type SMSProviderType = "taqnyat" | "mock";
 
 /**
  * SMS delivery status codes

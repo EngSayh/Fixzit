@@ -4,6 +4,8 @@
  * Stores SMS SLA configuration and provider settings per organization.
  * Superadmin can configure global defaults, orgs can override.
  *
+ * IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
+ *
  * @module server/models/SMSSettings
  */
 
@@ -112,7 +114,7 @@ const SMSSettingsSchema = new Schema<ISMSSettings>(
     defaultProvider: {
       type: String,
       enum: SMSProvider,
-      default: "TWILIO",
+      default: "TAQNYAT",
     },
     defaultMaxRetries: { type: Number, default: 3 },
     defaultExpiresAfterMs: {

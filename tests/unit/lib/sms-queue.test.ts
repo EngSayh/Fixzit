@@ -84,27 +84,31 @@ describe("SMS Queue - Provider utilities", () => {
       expect(candidates[0].authToken).toBe("decrypted:k");
     });
 
-    it("adds env Twilio fallback with priority 999", () => {
-      process.env.TWILIO_ACCOUNT_SID = "sid";
-      process.env.TWILIO_AUTH_TOKEN = "token";
-      process.env.TWILIO_PHONE_NUMBER = "+123";
+    it("adds env Taqnyat fallback with priority 999", () => {
+      // Taqnyat is the ONLY production SMS provider for Fixzit
+      process.env.TAQNYAT_BEARER_TOKEN = "token";
+      process.env.TAQNYAT_SENDER_NAME = "FIXZIT";
 
-      const settings = { defaultProvider: "UNIFONIC", providers: [] } as any;
+      const settings = { defaultProvider: "TAQNYAT", providers: [] } as any;
       const candidates = buildProviderCandidates(settings, "OTP");
 
-      const fallback = candidates.find((c) => c.name === "TWILIO");
+      const fallback = candidates.find((c) => c.name === "TAQNYAT");
       expect(fallback).toBeDefined();
       expect(fallback?.priority).toBe(999);
-      expect(fallback?.accountSid).toBe("sid");
       expect(fallback?.authToken).toBe("token");
+      expect(fallback?.from).toBe("FIXZIT");
+
+      // Clean up
+      delete process.env.TAQNYAT_BEARER_TOKEN;
+      delete process.env.TAQNYAT_SENDER_NAME;
     });
 
     it("filters out providers missing required credentials", () => {
       const settings = {
-        defaultProvider: "TWILIO",
+        defaultProvider: "TAQNYAT",
         providers: [
-          { provider: "TWILIO", enabled: true, priority: 1, fromNumber: "", accountId: "a", encryptedApiKey: "k" },
-          { provider: "UNIFONIC", enabled: true, priority: 2, fromNumber: "+1", accountId: "a", encryptedApiKey: "" },
+          { provider: "TAQNYAT", enabled: true, priority: 1, fromNumber: "", accountId: "a", encryptedApiKey: "k" },
+          { provider: "TAQNYAT", enabled: true, priority: 2, fromNumber: "+1", accountId: "a", encryptedApiKey: "" },
         ],
       } as any;
 

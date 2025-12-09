@@ -11,8 +11,8 @@ import type { messaging } from "firebase-admin";
 
 // Dynamic imports for heavy packages to reduce TypeScript server memory usage
 // - firebase-admin: 51 type definition files
-// - twilio: 678 type definition files (biggest contributor to TS server OOM)
 // - @sendgrid/mail: ~20 type definition files
+// Note: Twilio has been removed. SMS is now handled via Taqnyat (CITC-compliant)
 type FirebaseAdmin = typeof import("firebase-admin");
 type SendGridMail = typeof import("@sendgrid/mail");
 
@@ -33,7 +33,9 @@ async function resolveModuleDefault<T>(
 
 /**
  * External Notification Service Integrations
- * Implements SendGrid, Twilio, WhatsApp Business API, and Firebase Cloud Messaging
+ * Implements SendGrid, Taqnyat (SMS), WhatsApp Business API, and Firebase Cloud Messaging
+ * 
+ * IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
  */
 
 export interface BulkNotificationIssue {
@@ -404,53 +406,25 @@ function buildEmailHTML(
 }
 
 // =============================================================================
-// Twilio - SMS Notifications
+// Taqnyat - SMS Notifications (CITC-compliant for Saudi Arabia)
 // =============================================================================
+// IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
+// All other providers (Twilio, Unifonic, AWS SNS, Nexmo) have been removed.
 
-// Twilio client type (using Twilio's actual types would be ideal, but any is acceptable here for dynamic import)
-let twilioClient: ReturnType<typeof import("twilio")> | null = null;
-
-async function initializeTwilio() {
-  if (twilioClient) return twilioClient;
-
-  try {
-    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-      logger.warn("[Twilio] Credentials not configured");
-      throw new Error("Twilio not configured");
-    }
-
-    const TwilioClient = await resolveModuleDefault<typeof import("twilio")>(
-      import("twilio"),
-    );
-    twilioClient = TwilioClient(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN,
-    );
-
-    logger.info("[Twilio] Initialized successfully");
-    return twilioClient;
-  } catch (_error) {
-    const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
-    logger.error("[Twilio] Initialization failed", { error });
-    throw error;
-  }
-}
+import { TaqnyatProvider, isTaqnyatConfigured } from "@/lib/sms-providers";
 
 export async function sendSMSNotification(
   recipient: NotificationRecipient,
   notification: NotificationPayload,
 ): Promise<void> {
   try {
-    await initializeTwilio();
-
-    if (!twilioClient) {
-      logger.warn("[Twilio] Skipping SMS notification (not initialized)");
-      throw new Error("Twilio SMS not configured");
+    if (!isTaqnyatConfigured()) {
+      logger.warn("[Taqnyat] Skipping SMS notification (not configured)");
+      throw new Error("Taqnyat SMS not configured");
     }
 
     if (!recipient.phone) {
-      logger.warn("[Twilio] No phone number for recipient", {
+      logger.warn("[Taqnyat] No phone number for recipient", {
         userId: recipient.userId,
       });
       return;
@@ -461,33 +435,22 @@ export async function sendSMSNotification(
     const truncatedMessage =
       message.length > 160 ? message.substring(0, 157) + "..." : message;
 
-    // Send SMS
-    const response = await twilioClient.messages.create({
-      body: truncatedMessage,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: recipient.phone,
-      statusCallback: `${process.env.NEXTAUTH_URL}/api/webhooks/twilio/status`,
-    });
+    // Send SMS via Taqnyat
+    const taqnyatProvider = new TaqnyatProvider();
+    const result = await taqnyatProvider.sendSMS(recipient.phone, truncatedMessage);
 
-    logger.info("[Twilio] SMS sent successfully", {
-      to: recipient.phone,
-      sid: response.sid,
-      status: response.status,
-    });
+    if (result.success) {
+      logger.info("[Taqnyat] SMS sent successfully", {
+        to: recipient.phone,
+        messageId: result.messageId,
+      });
+    } else {
+      throw new Error(result.error || "Taqnyat SMS failed");
+    }
   } catch (_error: unknown) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
-    const details =
-      typeof error === "object" && error !== null
-        ? (error as { message?: string; code?: unknown; status?: unknown })
-        : undefined;
-
-    logger.error("[Twilio] Failed to send SMS", {
-      error:
-        details?.message ??
-        (error instanceof Error ? error.message : String(error)),
-      code: details?.code,
-      status: details?.status,
+    logger.error("[Taqnyat] Failed to send SMS", {
+      error: error.message,
     });
     throw error;
   }

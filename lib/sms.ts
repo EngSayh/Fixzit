@@ -1,5 +1,9 @@
 /**
- * SMS Service - Twilio Integration for Saudi Market
+ * SMS Service - Taqnyat Integration for Saudi Market
+ *
+ * IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
+ * - CITC-compliant for Saudi Arabia
+ * - All other providers have been removed
  *
  * Provides SMS functionality for notifications, OTP, and alerts.
  * Supports Saudi Arabian phone number formats.
@@ -16,25 +20,15 @@ import {
   formatSaudiPhoneNumber,
   isValidSaudiPhone,
 } from "@/lib/sms-providers/phone-utils";
-import { UnifonicProvider } from "@/lib/sms-providers/unifonic";
-import { AWSSNSProvider } from "@/lib/sms-providers/aws-sns";
-import { NexmoProvider } from "@/lib/sms-providers/nexmo";
+import { TaqnyatProvider, isTaqnyatConfigured } from "@/lib/sms-providers";
 
 const NODE_ENV = process.env.NODE_ENV || "development";
 const SMS_DEV_MODE_ENABLED =
   process.env.SMS_DEV_MODE === "true" ||
   (NODE_ENV !== "production" && process.env.SMS_DEV_MODE !== "false");
 
-const twilioBreaker = getCircuitBreaker("twilio");
-const twilioResilience = SERVICE_RESILIENCE.twilio;
-
-function hasTwilioConfiguration(): boolean {
-  return Boolean(
-    process.env.TWILIO_ACCOUNT_SID &&
-      process.env.TWILIO_AUTH_TOKEN &&
-      process.env.TWILIO_PHONE_NUMBER,
-  );
-}
+const taqnyatBreaker = getCircuitBreaker("taqnyat");
+const taqnyatResilience = SERVICE_RESILIENCE.taqnyat;
 
 interface SMSResult {
   success: boolean;
@@ -42,64 +36,54 @@ interface SMSResult {
   error?: string;
 }
 
-export type TwilioOperationLabel =
+export type TaqnyatOperationLabel =
   | "sms-send"
   | "sms-status"
   | "sms-config-test"
-  | "whatsapp-send";
+  | "sms-balance";
 
-export async function withTwilioResilience<T>(
-  label: TwilioOperationLabel,
+export async function withTaqnyatResilience<T>(
+  label: TaqnyatOperationLabel,
   operation: () => Promise<T>,
 ): Promise<T> {
   const timeoutMs =
     label === "sms-status"
-      ? twilioResilience.timeouts.statusMs
-      : twilioResilience.timeouts.smsSendMs;
+      ? taqnyatResilience.timeouts.statusMs
+      : taqnyatResilience.timeouts.smsSendMs;
 
   return executeWithRetry(
     () =>
-      twilioBreaker.run(() =>
+      taqnyatBreaker.run(() =>
         withTimeout(() => operation(), {
           timeoutMs,
         }),
       ),
     {
-      maxAttempts: twilioResilience.retries.maxAttempts,
-      baseDelayMs: twilioResilience.retries.baseDelayMs,
-      label: `twilio-${label}`,
+      maxAttempts: taqnyatResilience.retries.maxAttempts,
+      baseDelayMs: taqnyatResilience.retries.baseDelayMs,
+      label: `taqnyat-${label}`,
     },
   );
 }
 
-// Note: formatSaudiPhoneNumber and isValidSaudiPhone are now imported from phone-utils
-// and re-exported at the end of this file for backward compatibility
-
 /**
  * SMS provider options for org-specific configuration
- * 🔒 SECURITY: Allows per-org SMS provider settings (Twilio, Unifonic, etc.)
  */
 export interface SMSProviderOptions {
-  provider?: 'TWILIO' | 'UNIFONIC' | 'AWS_SNS' | 'NEXMO';
-  from?: string;         // Override sender number
-  accountSid?: string;   // Provider account ID
-  authToken?: string;    // Provider auth token (decrypted)
+  provider?: 'TAQNYAT' | 'LOCAL';
+  bearerToken?: string;
+  senderName?: string;
 }
 
 /**
- * Send SMS via configured provider (default: Twilio)
- * 🔒 SECURITY: Supports per-org provider configuration via options parameter
+ * Send SMS via Taqnyat (the ONLY production SMS provider)
  */
 export async function sendSMS(
   to: string, 
   message: string,
   options?: SMSProviderOptions
 ): Promise<SMSResult> {
-  const provider = options?.provider || 'TWILIO';
-  const fromNumber = options?.from || process.env.TWILIO_PHONE_NUMBER;
-  const accountSid = options?.accountSid || process.env.TWILIO_ACCOUNT_SID;
-  const authToken = options?.authToken || process.env.TWILIO_AUTH_TOKEN;
-
+  const provider = options?.provider || 'TAQNYAT';
   const formattedPhone = formatSaudiPhoneNumber(to);
 
   if (!isValidSaudiPhone(formattedPhone)) {
@@ -108,134 +92,44 @@ export async function sendSMS(
     return { success: false, error };
   }
 
-  // Check if we have valid credentials for the selected provider
-  const hasCredentials = provider === 'TWILIO' 
-    ? Boolean(accountSid && authToken && fromNumber)
-    : false; // Other providers not yet implemented
-
-  if (!hasCredentials && !SMS_DEV_MODE_ENABLED) {
-    const error = `SMS provider ${provider} not configured. Missing credentials.`;
+  if (!isTaqnyatConfigured() && !SMS_DEV_MODE_ENABLED) {
+    const error = "SMS provider Taqnyat not configured. Missing TAQNYAT_BEARER_TOKEN or TAQNYAT_SENDER_NAME.";
     logger.warn("[SMS] Configuration missing", { to: formattedPhone, provider });
     return { success: false, error };
   }
 
-  if (SMS_DEV_MODE_ENABLED) {
-    const messageSid = `dev-${provider.toLowerCase()}-${Date.now()}`;
+  if (SMS_DEV_MODE_ENABLED && !isTaqnyatConfigured()) {
+    const messageSid = `dev-taqnyat-${Date.now()}`;
     logger.info("[SMS] Dev mode enabled - SMS not sent", {
       to: formattedPhone,
       preview: message,
       messageSid,
       provider,
-      from: fromNumber,
     });
     return { success: true, messageSid };
   }
 
-  // Route to appropriate provider
-  switch (provider) {
-    case 'TWILIO':
-      return sendViaTwilio(formattedPhone, message, fromNumber!, accountSid!, authToken!);
-    
-    case 'UNIFONIC': {
-      // Use Unifonic provider for Saudi market
-      const unifonicProvider = new UnifonicProvider();
-      if (!unifonicProvider.isConfigured()) {
-        logger.warn("[SMS] Unifonic not configured, falling back to Twilio");
-        if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
-          return sendViaTwilio(
-            formattedPhone,
-            message,
-            process.env.TWILIO_PHONE_NUMBER,
-            process.env.TWILIO_ACCOUNT_SID,
-            process.env.TWILIO_AUTH_TOKEN
-          );
-        }
-        return { success: false, error: 'Unifonic not configured and Twilio fallback not available' };
-      }
-      
-      const result = await unifonicProvider.sendSMS(formattedPhone, message);
-      return {
-        success: result.success,
-        messageSid: result.messageId,
-        error: result.error,
-      };
-    }
-    
-    case 'AWS_SNS': {
-      // AWS SNS SMS provider implementation
-      const snsProvider = new AWSSNSProvider({
-        region: process.env.AWS_REGION || 'me-south-1',
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      });
-      const snsResult = await snsProvider.sendSMS(formattedPhone, message);
-      return {
-        success: snsResult.success,
-        messageSid: snsResult.messageId,
-        error: snsResult.error,
-      };
-    }
-    
-    case 'NEXMO': {
-      // Nexmo/Vonage SMS provider implementation
-      const nexmoProvider = new NexmoProvider({
-        apiKey: process.env.NEXMO_API_KEY || '',
-        apiSecret: process.env.NEXMO_API_SECRET || '',
-        from: process.env.NEXMO_FROM_NUMBER || 'Fixzit',
-      });
-      const nexmoResult = await nexmoProvider.sendSMS(formattedPhone, message);
-      return {
-        success: nexmoResult.success,
-        messageSid: nexmoResult.messageId,
-        error: nexmoResult.error,
-      };
-    }
-    
-    default:
-      return { success: false, error: `Unknown SMS provider: ${provider}` };
-  }
-}
-
-/**
- * Send SMS via Twilio
- * 🔒 SECURITY: Accepts credentials as params for per-org config
- */
-async function sendViaTwilio(
-  to: string,
-  message: string,
-  from: string,
-  accountSid: string,
-  authToken: string
-): Promise<SMSResult> {
   try {
-    const { default: twilio } = await import("twilio");
-    const client = twilio(accountSid, authToken);
-
-    const result = await withTwilioResilience("sms-send", () =>
-      client.messages.create({
-        body: message,
-        from,
-        to,
-      }),
-    );
-
-    logger.info("[SMS] Message sent successfully via Twilio", {
-      to,
-      messageSid: result.sid,
-      status: result.status,
+    const taqnyatProvider = new TaqnyatProvider({
+      timeoutMs: taqnyatResilience.timeouts.smsSendMs,
+      maxRetries: taqnyatResilience.retries.maxAttempts,
     });
 
+    const result = await withTaqnyatResilience("sms-send", () =>
+      taqnyatProvider.sendSMS(formattedPhone, message)
+    );
+
     return {
-      success: true,
-      messageSid: result.sid,
+      success: result.success,
+      messageSid: result.messageId,
+      error: result.error,
     };
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[SMS] Twilio send failed", {
+    const errorMessage = error.message;
+    logger.error("[SMS] Taqnyat send failed", {
       error: errorMessage,
-      to,
+      to: formattedPhone,
     });
 
     return {
@@ -249,50 +143,85 @@ async function sendViaTwilio(
  * Send OTP (One-Time Password) via SMS
  */
 export async function sendOTP(to: string, code: string): Promise<SMSResult> {
-  const message = `Your Fixzit verification code is: ${code}. Valid for 5 minutes. Do not share this code.`;
+  const message = `رمز التحقق الخاص بك هو: ${code}. صالح لمدة 5 دقائق.
+Your Fixzit verification code is: ${code}. Valid for 5 minutes. Do not share this code.`;
   return sendSMS(to, message);
 }
 
 /**
  * Send bulk SMS (e.g., for marketing campaigns)
- * Rate-limited to prevent API abuse
+ * Uses Taqnyat bulk API (max 1000 recipients per request)
  */
 export async function sendBulkSMS(
   recipients: string[],
   message: string,
-  options?: { delayMs?: number },
+  _options?: { delayMs?: number },
 ): Promise<{ sent: number; failed: number; results: SMSResult[] }> {
-  const results: SMSResult[] = [];
-  let sent = 0;
-  let failed = 0;
-
-  for (const recipient of recipients) {
-    const result = await sendSMS(recipient, message);
-    results.push(result);
-
-    if (result.success) {
-      sent++;
-    } else {
-      failed++;
-    }
-
-    // Add delay between messages to avoid rate limiting
-    if (options?.delayMs) {
-      await new Promise((resolve) => setTimeout(resolve, options.delayMs));
-    }
+  if (!isTaqnyatConfigured() && !SMS_DEV_MODE_ENABLED) {
+    return {
+      sent: 0,
+      failed: recipients.length,
+      results: recipients.map(() => ({
+        success: false,
+        error: "Taqnyat not configured",
+      })),
+    };
   }
 
-  logger.info("[SMS] Bulk send completed", {
-    total: recipients.length,
-    sent,
-    failed,
-  });
+  if (SMS_DEV_MODE_ENABLED && !isTaqnyatConfigured()) {
+    logger.info("[SMS] Dev mode - bulk SMS simulated", {
+      total: recipients.length,
+    });
+    return {
+      sent: recipients.length,
+      failed: 0,
+      results: recipients.map(() => ({
+        success: true,
+        messageSid: `dev-bulk-${Date.now()}`,
+      })),
+    };
+  }
 
-  return { sent, failed, results };
+  try {
+    const taqnyatProvider = new TaqnyatProvider();
+    const formattedRecipients = recipients.map(formatSaudiPhoneNumber);
+    
+    const result = await withTaqnyatResilience("sms-send", () =>
+      taqnyatProvider.sendBulk(formattedRecipients, message)
+    );
+
+    logger.info("[SMS] Bulk send completed", {
+      total: recipients.length,
+      sent: result.sent,
+      failed: result.failed,
+    });
+
+    return {
+      sent: result.sent,
+      failed: result.failed,
+      results: result.results.map(r => ({
+        success: r.success,
+        messageSid: r.messageId,
+        error: r.error,
+      })),
+    };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error("[SMS] Bulk send failed", { error: error.message });
+    return {
+      sent: 0,
+      failed: recipients.length,
+      results: recipients.map(() => ({
+        success: false,
+        error: error.message,
+      })),
+    };
+  }
 }
 
 /**
- * Get SMS delivery status from Twilio
+ * Get SMS delivery status
+ * Note: Taqnyat uses webhooks for delivery reports
  */
 export async function getSMSStatus(messageSid: string): Promise<{
   status: string;
@@ -301,69 +230,66 @@ export async function getSMSStatus(messageSid: string): Promise<{
   errorCode?: number;
   errorMessage?: string;
 } | null> {
-  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-    logger.warn("[SMS] Cannot check status - Twilio not configured");
+  if (!isTaqnyatConfigured()) {
+    logger.warn("[SMS] Cannot check status - Taqnyat not configured");
     return null;
   }
 
-  try {
-    const { default: twilio } = await import("twilio");
-    const client = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN,
-    );
-
-    const message = await withTwilioResilience("sms-status", () =>
-      client.messages(messageSid).fetch(),
-    );
-
-    return {
-      status: message.status,
-      dateCreated: new Date(message.dateCreated),
-      dateSent: message.dateSent ? new Date(message.dateSent) : undefined,
-      errorCode: message.errorCode || undefined,
-      errorMessage: message.errorMessage || undefined,
-    };
-  } catch (_error) {
-    const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
-    logger.error("[SMS] Status check failed", { error, messageSid });
-    return null;
-  }
+  // Taqnyat uses webhooks for delivery status
+  // For now, return unknown status
+  void messageSid;
+  return {
+    status: "unknown",
+    dateCreated: new Date(),
+  };
 }
 
 /**
  * Test SMS configuration
  */
 export async function testSMSConfiguration(): Promise<boolean> {
-  if (!hasTwilioConfiguration()) {
+  if (!isTaqnyatConfigured()) {
     logger.error("[SMS] Configuration test failed - missing credentials");
     return false;
   }
 
   try {
-    const { default: twilio } = await import("twilio");
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    if (!accountSid || !authToken) {
-      logger.error("[SMS] Configuration test failed - missing credentials");
-      return false;
-    }
-
-    const client = twilio(accountSid, authToken);
-
-    // Validate credentials by fetching account info
-    await withTwilioResilience("sms-config-test", () =>
-      client.api.accounts(accountSid).fetch(),
+    const taqnyatProvider = new TaqnyatProvider();
+    const isValid = await withTaqnyatResilience("sms-config-test", () =>
+      taqnyatProvider.testConfiguration()
     );
 
-    logger.info("[SMS] Configuration test passed");
-    return true;
+    if (isValid) {
+      logger.info("[SMS] Configuration test passed (Taqnyat)");
+    } else {
+      logger.error("[SMS] Configuration test failed (Taqnyat)");
+    }
+    return isValid;
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
-    logger.error("[SMS] Configuration test failed", { error });
+    logger.error("[SMS] Configuration test failed", { error: error.message });
     return false;
+  }
+}
+
+/**
+ * Get Taqnyat account balance
+ */
+export async function getSMSBalance(): Promise<{ balance: number; currency: string } | null> {
+  if (!isTaqnyatConfigured()) {
+    logger.warn("[SMS] Cannot check balance - Taqnyat not configured");
+    return null;
+  }
+
+  try {
+    const taqnyatProvider = new TaqnyatProvider();
+    return await withTaqnyatResilience("sms-balance", () =>
+      taqnyatProvider.getBalance()
+    );
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error("[SMS] Balance check failed", { error: error.message });
+    return null;
   }
 }
 

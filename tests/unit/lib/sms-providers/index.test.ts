@@ -71,11 +71,13 @@ describe("SMS Provider Factory", () => {
     it("should return info for all providers", () => {
       const info = getProvidersInfo();
 
-      expect(info.unifonic).toBeDefined();
-      expect(info.twilio).toBeDefined();
+      // Only Taqnyat and Mock providers are available
+      // Unifonic, Twilio, AWS SNS, and Nexmo have been removed
+      expect(info.taqnyat).toBeDefined();
       expect(info.mock).toBeDefined();
 
-      expect(info.unifonic.recommended).toBe(true);
+      expect(info.taqnyat.recommended).toBe(true);
+      expect(info.taqnyat.notes).toContain("CITC-compliant");
       expect(info.mock.configured).toBe(true);
     });
   });

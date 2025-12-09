@@ -17,14 +17,16 @@ export const SERVICE_RESILIENCE = {
       baseDelayMs: toNumber(process.env.PAYTABS_RETRY_DELAY_MS, 750),
     },
   },
-  twilio: {
+  taqnyat: {
+    // Taqnyat SMS provider - CITC-compliant for Saudi Arabia
+    // This is the ONLY production SMS provider for Fixzit
     timeouts: {
-      smsSendMs: toNumber(process.env.TWILIO_TIMEOUT_MS, 10_000),
-      statusMs: toNumber(process.env.TWILIO_STATUS_TIMEOUT_MS, 5_000),
+      smsSendMs: toNumber(process.env.TAQNYAT_TIMEOUT_MS, 30_000),
+      statusMs: toNumber(process.env.TAQNYAT_STATUS_TIMEOUT_MS, 10_000),
     },
     retries: {
-      maxAttempts: toNumber(process.env.TWILIO_MAX_ATTEMPTS, 3),
-      baseDelayMs: toNumber(process.env.TWILIO_RETRY_DELAY_MS, 500),
+      maxAttempts: toNumber(process.env.TAQNYAT_MAX_ATTEMPTS, 2),
+      baseDelayMs: toNumber(process.env.TAQNYAT_RETRY_DELAY_MS, 1_000),
     },
   },
   meilisearch: {
@@ -48,17 +50,6 @@ export const SERVICE_RESILIENCE = {
     retries: {
       maxAttempts: 3,
       baseDelayMs: 1_000,
-    },
-  },
-  unifonic: {
-    // Unifonic SMS provider - recommended for Saudi Arabia/MENA
-    timeouts: {
-      smsSendMs: toNumber(process.env.UNIFONIC_TIMEOUT_MS, 10_000),
-      statusMs: toNumber(process.env.UNIFONIC_STATUS_TIMEOUT_MS, 5_000),
-    },
-    retries: {
-      maxAttempts: toNumber(process.env.UNIFONIC_MAX_ATTEMPTS, 3),
-      baseDelayMs: toNumber(process.env.UNIFONIC_RETRY_DELAY_MS, 500),
     },
   },
 } as const;

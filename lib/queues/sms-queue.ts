@@ -13,7 +13,7 @@ import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { SMSMessage, TSMSType, TSMSPriority, TSMSProvider, type ISMSMessage } from "@/server/models/SMSMessage";
 import { SMSSettings } from "@/server/models/SMSSettings";
-import { sendSMS, type SMSProviderOptions } from "@/lib/sms";
+import { sendSMS } from "@/lib/sms";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { decryptField } from "@/lib/security/encryption";
 
@@ -53,8 +53,12 @@ function decryptProviderToken(encrypted?: string): string | undefined {
   }
 }
 
-type ProviderCandidate = SMSProviderOptions & {
-  name: SMSProviderOptions["provider"];
+// Provider candidate for Taqnyat-only configuration
+type ProviderCandidate = {
+  name: 'TAQNYAT' | 'LOCAL';
+  provider: 'TAQNYAT' | 'LOCAL';
+  senderName?: string;
+  bearerToken?: string;
   priority: number;
   supportedTypes?: string[];
 };
@@ -68,7 +72,9 @@ const maskPhone = (to: string | undefined) => {
 
 /**
  * Select provider candidates honoring defaultProvider, priority, supportedTypes,
- * and fall back to env Twilio creds when org settings are unusable.
+ * and fall back to env Taqnyat creds when org settings are unusable.
+ * 
+ * IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
  */
 function buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings.getEffectiveSettings>>, messageType: string): ProviderCandidate[] {
   const candidates: ProviderCandidate[] = [];
@@ -76,12 +82,13 @@ function buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings
   for (const p of settings.providers || []) {
     if (!p.enabled) continue;
     if (p.supportedTypes?.length && !p.supportedTypes.includes(messageType as TSMSType)) continue;
+    // Only include TAQNYAT or LOCAL providers
+    if (p.provider !== 'TAQNYAT' && p.provider !== 'LOCAL') continue;
     candidates.push({
       name: p.provider as ProviderCandidate["name"],
       provider: p.provider as ProviderCandidate["provider"],
-      from: p.fromNumber,
-      accountSid: p.accountId,
-      authToken: decryptProviderToken(p.encryptedApiKey),
+      senderName: p.fromNumber,
+      bearerToken: decryptProviderToken(p.encryptedApiKey),
       priority: typeof p.priority === "number" ? p.priority : 99,
       supportedTypes: p.supportedTypes,
     });
@@ -95,22 +102,22 @@ function buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings
     return (a.priority ?? 99) - (b.priority ?? 99);
   });
 
-  const hasEnvTwilio =
-    Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER);
-  if (hasEnvTwilio) {
+  // Fall back to env Taqnyat credentials
+  const hasEnvTaqnyat =
+    Boolean(process.env.TAQNYAT_BEARER_TOKEN && process.env.TAQNYAT_SENDER_NAME);
+  if (hasEnvTaqnyat) {
     candidates.push({
-      name: "TWILIO",
-      provider: "TWILIO",
-      from: process.env.TWILIO_PHONE_NUMBER,
-      accountSid: process.env.TWILIO_ACCOUNT_SID,
-      authToken: process.env.TWILIO_AUTH_TOKEN,
+      name: "TAQNYAT",
+      provider: "TAQNYAT",
+      senderName: process.env.TAQNYAT_SENDER_NAME,
+      bearerToken: process.env.TAQNYAT_BEARER_TOKEN,
       priority: 999,
     });
   }
 
   // Filter out providers missing any required credential
   return candidates.filter(
-    (c) => Boolean(c.from) && Boolean(c.accountSid) && Boolean(c.authToken),
+    (c) => Boolean(c.senderName) && Boolean(c.bearerToken),
   );
 }
 
@@ -518,7 +525,7 @@ async function processSMSJob(messageId: string): Promise<void> {
 
     let lastError = "Unknown SMS failure";
     for (const candidate of candidates) {
-      if (!candidate.accountSid || !candidate.authToken || !candidate.from) {
+      if (!candidate.bearerToken || !candidate.senderName) {
         lastError = `Provider ${candidate.name} missing credentials`;
         logger.warn("[SMS Queue] Skipping provider due to missing credentials", {
           messageId,
@@ -529,9 +536,8 @@ async function processSMSJob(messageId: string): Promise<void> {
 
       const result = await sendSMS(message.to, message.message, {
         provider: candidate.provider,
-        from: candidate.from,
-        accountSid: candidate.accountSid,
-        authToken: candidate.authToken,
+        bearerToken: candidate.bearerToken,
+        senderName: candidate.senderName,
       });
 
       const durationMs = Date.now() - startTime;
