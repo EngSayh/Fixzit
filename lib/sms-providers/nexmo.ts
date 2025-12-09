@@ -24,6 +24,7 @@ import type {
   SMSResult,
   SMSStatusResult,
   SMSDeliveryStatus,
+  BulkSMSResult,
 } from "./types";
 
 export interface NexmoConfig {
@@ -227,16 +228,16 @@ export class NexmoProvider implements SMSProvider {
   async sendBulk(
     recipients: string[],
     message: string
-  ): Promise<{ success: boolean; sent: number; failed: number; results: SMSResult[] }> {
+  ): Promise<BulkSMSResult> {
     const results: SMSResult[] = [];
-    let sent = 0;
+    let successful = 0;
     let failed = 0;
 
     for (const recipient of recipients) {
       const result = await this.sendSMS(recipient, message);
       results.push(result);
       if (result.success) {
-        sent++;
+        successful++;
       } else {
         failed++;
       }
@@ -245,8 +246,9 @@ export class NexmoProvider implements SMSProvider {
     }
 
     return {
-      success: failed === 0,
-      sent,
+      total: recipients.length,
+      successful,
+      sent: successful,
       failed,
       results,
     };

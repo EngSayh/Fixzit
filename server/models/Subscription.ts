@@ -83,7 +83,7 @@ const SubscriptionSchema = new Schema(
     next_billing_date: {
       type: Date,
       required: false,
-      index: true,
+      // index via compound index below
     },
     current_period_start: {
       type: Date,
