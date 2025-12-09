@@ -288,6 +288,19 @@ const nextConfig = {
             const ensureNftStubs = () => {
               const appDir = path.join(serverDir, 'app');
               if (!fs.existsSync(appDir)) return;
+
+              // Ensure critical not-found nft stub exists to prevent trace ENOENT during clean builds
+              const notFoundNft = path.join(appDir, '_not-found', 'page.js.nft.json');
+              const notFoundDir = path.dirname(notFoundNft);
+              if (!fs.existsSync(notFoundDir)) fs.mkdirSync(notFoundDir, { recursive: true });
+              if (!fs.existsSync(notFoundNft)) {
+                fs.writeFileSync(
+                  notFoundNft,
+                  JSON.stringify({ version: 1, files: [], warnings: [] }),
+                  'utf8',
+                );
+              }
+
               const stack = [appDir];
               while (stack.length) {
                 const current = stack.pop();

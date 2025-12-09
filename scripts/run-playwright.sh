@@ -48,6 +48,10 @@ if [[ "${PW_USE_BUILD:-true}" == "true" ]]; then
     fi
   fi
 
+  # Relax instrumentation/env validation for Playwright runs
+  export PLAYWRIGHT_TESTS="true"
+  export SKIP_ENV_VALIDATION="${SKIP_ENV_VALIDATION:-true}"
+
   # Next.js with output: standalone cannot use `next start`.
   # Serve the standalone bundle directly and ensure static assets are present.
   STANDALONE_DIR="$ROOT_DIR/.next/standalone"
@@ -59,12 +63,13 @@ if [[ "${PW_USE_BUILD:-true}" == "true" ]]; then
     cp -R "$STATIC_SRC" "$STATIC_DEST"
   fi
 
-  export PORT="${PORT:-3000}"
+  # Use a non-standard default port to avoid conflicts with dev servers
+  export PORT="${PORT:-3100}"
   export HOSTNAME="$DEFAULT_HOST"
   export PW_WEB_SERVER="cd \"$ROOT_DIR\" && HOSTNAME=$HOSTNAME PORT=$PORT node \"$STANDALONE_DIR/server.js\""
   export PW_WEB_URL="${PW_WEB_URL:-http://$HOSTNAME:$PORT}"
 else
-  export PORT="${PORT:-3000}"
+  export PORT="${PORT:-3100}"
   export HOSTNAME="$DEFAULT_HOST"
   export PW_WEB_SERVER="${PW_WEB_SERVER:-cd \"$ROOT_DIR\" && pnpm dev:webpack --hostname $HOSTNAME --port $PORT}"
 fi

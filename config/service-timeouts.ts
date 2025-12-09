@@ -4,18 +4,6 @@ const toNumber = (value: string | undefined, fallback: number): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const defaultResilience = {
-  timeouts: {
-    smsSendMs: toNumber(process.env.SMS_TIMEOUT_MS, 10_000),
-    statusMs: toNumber(process.env.SMS_STATUS_TIMEOUT_MS, 5_000),
-    balanceMs: toNumber(process.env.SMS_BALANCE_TIMEOUT_MS, 5_000),
-  },
-  retries: {
-    maxAttempts: toNumber(process.env.SMS_MAX_ATTEMPTS, 3),
-    baseDelayMs: toNumber(process.env.SMS_RETRY_DELAY_MS, 500),
-  },
-};
-
 export const SERVICE_RESILIENCE = {
   paytabs: {
     timeouts: {
