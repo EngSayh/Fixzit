@@ -1,12 +1,97 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-12-09  
-**Version**: 1.7  
-**Scope**: Database index management, security audits, observability
+**Last Updated**: 2025-12-10  
+**Version**: 1.8  
+**Scope**: Database index management, security audits, observability, SMS infrastructure
 
 ---
 
-## Recent Additions (2025-12-09)
+## Recent Additions (2025-12-10)
+
+### ISSUE-SMS-001: SMS Provider Consolidation to Taqnyat-Only
+
+**Severity**: 🟩 Informational  
+**Category**: Infrastructure, Compliance, Technical Debt Reduction  
+**Status**: ✅ COMPLETED  
+**PR**: #500
+
+**Description**: Complete SMS provider consolidation to Taqnyat-only (CITC-compliant for Saudi Arabia).
+
+**Changes Made**:
+- **Created**: `lib/sms-providers/taqnyat.ts` - Full Taqnyat provider implementation
+- **Rewrote**: `lib/sms-providers/index.ts` - Simplified to Taqnyat + Mock only
+- **Rewrote**: `lib/sms.ts` - Taqnyat integration with circuit breaker support
+- **Updated**: `lib/sms-providers/types.ts` - Added 'taqnyat' provider type
+- **Updated**: `server/models/SMSMessage.ts` - SMSProvider enum now `["TAQNYAT", "LOCAL"]` only
+- **Updated**: `lib/queues/sms-queue.ts` - Taqnyat-only provider logic
+- **Updated**: `config/service-timeouts.ts` - Replaced twilio/unifonic with taqnyat config
+- **Updated**: `lib/resilience/service-circuit-breakers.ts` - Removed old SMS breakers, kept taqnyat
+
+**Deleted Files** (technical debt eliminated):
+- `lib/sms-providers/twilio.ts`
+- `lib/sms-providers/unifonic.ts`
+- `lib/sms-providers/aws-sns.ts`
+- `lib/sms-providers/nexmo.ts`
+- `tests/unit/lib/sms-providers/twilio.test.ts`
+- `tests/unit/lib/sms-providers/unifonic.test.ts`
+- `tests/unit/lib/sms-providers/aws-sns.test.ts`
+- `tests/unit/lib/sms-providers/nexmo.test.ts`
+
+**Environment Variables Required**:
+- `TAQNYAT_API_KEY` - API authentication token
+- `TAQNYAT_SENDER_ID` - Registered sender ID
+
+**Rationale**: Taqnyat is the only CITC-compliant SMS provider for Saudi Arabia. Maintaining multiple providers added complexity without benefit.
+
+---
+
+### ISSUE-AI-001: AI Memory System Implementation
+
+**Severity**: 🟩 Informational  
+**Category**: Developer Experience, AI Tooling  
+**Status**: ✅ COMPLETED  
+**PR**: #500
+
+**Description**: Implemented AI Memory System v4.0 for persistent codebase knowledge.
+
+**Files Created**:
+- `tools/smart-chunker.js` - Chunks codebase into 100k batches for AI analysis
+- `tools/merge-memory.js` - Merges AI outputs into master index
+- `tools/memory-selfcheck.js` - Validates memory system integrity
+
+**Usage**:
+```bash
+node tools/smart-chunker.js    # Create batches
+node tools/merge-memory.js     # Merge AI outputs
+node tools/memory-selfcheck.js # Validate system
+```
+
+---
+
+### ISSUE-PR-001: PR Cleanup and Consolidation
+
+**Severity**: 🟩 Informational  
+**Category**: Repository Hygiene  
+**Status**: ✅ COMPLETED
+
+**Description**: Consolidated and cleaned up open PRs.
+
+**PRs Merged**:
+- #481 - Fixed 96 duplicate 'use client' directives
+- #482 - Redis-aware readiness + SMS worker hardening
+- #484 - Remove redundant inline indexes
+- #486 - Security audit and observability
+- #500 - Complete system consolidation
+
+**PRs Closed** (superseded or WIP):
+- #485, #487, #488 - Superseded by #500
+- #495, #496, #497, #498, #499 - WIP/duplicates
+
+**Verification**: All 2008 tests passing, TypeScript and ESLint clean.
+
+---
+
+## Additions (2025-12-09)
 
 ### ISSUE-SEC-001: Security Audit Completed
 
