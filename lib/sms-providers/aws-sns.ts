@@ -17,9 +17,15 @@ import { logger } from "@/lib/logger";
 import { formatSaudiPhoneNumber, isValidSaudiPhone } from "./phone-utils";
 import type { SMSResult, SMSStatusResult, SMSDeliveryStatus } from "./types";
 
-// AWS SDK v3 imports (tree-shakeable)
-let SNSClient: typeof import("@aws-sdk/client-sns").SNSClient | undefined;
-let PublishCommand: typeof import("@aws-sdk/client-sns").PublishCommand | undefined;
+// AWS SDK v3 - lazy loaded at runtime
+// Using 'unknown' types to avoid compile-time module resolution
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SNSClientType = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PublishCommandType = any;
+
+let SNSClient: SNSClientType | undefined;
+let PublishCommand: PublishCommandType | undefined;
 
 async function getAWSSDK() {
   if (!SNSClient || !PublishCommand) {
@@ -43,7 +49,8 @@ export interface AWSSNSConfig {
 
 export class AWSSNSProvider {
   private config: AWSSNSConfig;
-  private client: InstanceType<typeof import("@aws-sdk/client-sns").SNSClient> | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private client: any = null;
 
   constructor(config?: Partial<AWSSNSConfig>) {
     this.config = {
