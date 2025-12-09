@@ -9,9 +9,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendSMS, testSMSConfiguration } from "@/lib/sms";
 import { logger } from "@/lib/logger";
 import { auth } from "@/auth";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = getClientIP(req);
+    // Strict rate limit for SMS test: 5 requests per minute
+    const rl = await smartRateLimit(`/api/sms/test:${clientIp}:POST`, 5, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     const session = await auth();
 
     if (!session?.user) {
