@@ -19,6 +19,8 @@ import type {
 } from "./types";
 import { createTwilioProvider } from "./twilio";
 import { createUnifonicProvider } from "./unifonic";
+import { AWSSNSProvider } from "./aws-sns";
+import { NexmoProvider } from "./nexmo";
 
 // Re-export types for convenience
 export type {
@@ -61,6 +63,26 @@ function isTwilioConfigured(): boolean {
     process.env.TWILIO_ACCOUNT_SID &&
       process.env.TWILIO_AUTH_TOKEN &&
       process.env.TWILIO_PHONE_NUMBER,
+  );
+}
+
+/**
+ * Check if AWS SNS is configured
+ */
+function isAWSSNSConfigured(): boolean {
+  return Boolean(
+    process.env.AWS_SNS_ACCESS_KEY_ID && process.env.AWS_SNS_SECRET_ACCESS_KEY,
+  );
+}
+
+/**
+ * Check if Nexmo/Vonage is configured
+ */
+function isNexmoConfigured(): boolean {
+  return Boolean(
+    process.env.NEXMO_API_KEY &&
+      process.env.NEXMO_API_SECRET &&
+      process.env.NEXMO_FROM_NUMBER,
   );
 }
 
@@ -126,23 +148,39 @@ class MockProvider implements SMSProvider {
 
 /**
  * Detect the best available provider
- * Priority: Explicit config > Unifonic (for KSA) > Twilio > Mock
+ * Priority: Explicit config > AWS SNS > Nexmo > Unifonic (for KSA) > Twilio > Mock
  */
 function detectProvider(): SMSProviderType {
   // If explicitly configured, use that
-  if (SMS_PROVIDER && ["twilio", "unifonic", "mock"].includes(SMS_PROVIDER)) {
+  if (
+    SMS_PROVIDER &&
+    ["twilio", "unifonic", "aws_sns", "nexmo", "mock"].includes(SMS_PROVIDER)
+  ) {
     return SMS_PROVIDER;
   }
 
   // In development mode, prefer mock unless explicitly configured
   if (SMS_DEV_MODE_ENABLED) {
     // If any provider is configured, still use it for testing
+    if (isAWSSNSConfigured()) return "aws_sns";
+    if (isNexmoConfigured()) return "nexmo";
     if (isUnifonicConfigured()) return "unifonic";
     if (isTwilioConfigured()) return "twilio";
     return "mock";
   }
 
-  // Production: prefer Unifonic for KSA support
+  // Production: check all providers in order of preference
+  if (isAWSSNSConfigured()) {
+    logger.info("[SMS] Using AWS SNS provider");
+    return "aws_sns";
+  }
+
+  if (isNexmoConfigured()) {
+    logger.info("[SMS] Using Nexmo/Vonage provider");
+    return "nexmo";
+  }
+
+  // Prefer Unifonic for KSA support
   if (isUnifonicConfigured()) {
     logger.info("[SMS] Using Unifonic provider (recommended for KSA)");
     return "unifonic";
@@ -170,6 +208,10 @@ export function createSMSProvider(
   const providerType = type || detectProvider();
 
   switch (providerType) {
+    case "aws_sns":
+      return new AWSSNSProvider();
+    case "nexmo":
+      return new NexmoProvider();
     case "unifonic":
       return createUnifonicProvider(options);
     case "twilio":

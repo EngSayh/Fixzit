@@ -181,6 +181,55 @@ export class AWSSNSProvider implements SMSProvider {
   }
 
   /**
+   * Send OTP verification code via AWS SNS
+   * @param to Recipient phone number
+   * @param code The OTP code to send
+   * @param expiresInMinutes How long the code is valid (default: 5)
+   */
+  async sendOTP(
+    to: string,
+    code: string,
+    expiresInMinutes: number = 5,
+  ): Promise<SMSResult> {
+    const message = `Your Fixzit verification code is: ${code}. Valid for ${expiresInMinutes} minutes. Do not share this code.`;
+    return this.sendSMS(to, message);
+  }
+
+  /**
+   * Send bulk SMS messages via AWS SNS
+   * @param recipients Array of phone numbers
+   * @param message SMS message content
+   */
+  async sendBulk(
+    recipients: string[],
+    message: string,
+  ): Promise<{ total: number; successful: number; sent: number; failed: number; results: SMSResult[] }> {
+    const results: SMSResult[] = [];
+    let successful = 0;
+    let failed = 0;
+
+    for (const recipient of recipients) {
+      const result = await this.sendSMS(recipient, message);
+      results.push(result);
+      if (result.success) {
+        successful++;
+      } else {
+        failed++;
+      }
+      // Small delay to avoid rate limiting
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+
+    return {
+      total: recipients.length,
+      successful,
+      sent: successful,
+      failed,
+      results,
+    };
+  }
+
+  /**
    * Get SMS delivery status (AWS SNS requires CloudWatch for delivery tracking)
    * Note: AWS SNS doesn't provide direct message status API - status comes via webhooks
    */

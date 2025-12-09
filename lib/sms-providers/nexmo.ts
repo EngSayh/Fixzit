@@ -193,6 +193,21 @@ export class NexmoProvider implements SMSProvider {
   }
 
   /**
+   * Send OTP verification code via Nexmo
+   * @param to Recipient phone number
+   * @param code The OTP code to send
+   * @param expiresInMinutes How long the code is valid (default: 5)
+   */
+  async sendOTP(
+    to: string,
+    code: string,
+    expiresInMinutes: number = 5,
+  ): Promise<SMSResult> {
+    const message = `Your Fixzit verification code is: ${code}. Valid for ${expiresInMinutes} minutes. Do not share this code.`;
+    return this.sendSMS(to, message);
+  }
+
+  /**
    * Get SMS delivery status
    * Note: Nexmo provides delivery receipts via webhook, not polling API
    */
