@@ -75,12 +75,12 @@ const priceTierSchema = new Schema<IPriceTier>(
     orgId: {
       type: Schema.Types.ObjectId,
       required: false,
-      index: true,
+      // index via compound { orgId: 1, moduleId: 1, seatsMin: 1, seatsMax: 1, currency: 1 }
     },
     isGlobal: {
       type: Boolean,
       default: false,
-      index: true,
+      // index via compound { isGlobal: 1, moduleId: 1, seatsMin: 1, seatsMax: 1, currency: 1 }
     },
   },
   {

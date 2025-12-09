@@ -105,10 +105,9 @@ const TestingUserSchema = new Schema<ITestingUser>(
     email: {
       type: String,
       required: true,
-      unique: true,
+      unique: true, // unique implies index
       lowercase: true,
       trim: true,
-      index: true,
     },
     username: {
       type: String,
@@ -134,13 +133,13 @@ const TestingUserSchema = new Schema<ITestingUser>(
       enum: TestingUserStatus,
       required: true,
       default: "ACTIVE",
-      index: true,
+      // index via compounds { status: 1, expiresAt: 1 }, { orgId: 1, status: 1 }
     },
     statusReason: { type: String },
     statusChangedAt: { type: Date },
     statusChangedBy: { type: String },
 
-    expiresAt: { type: Date, index: true },
+    expiresAt: { type: Date }, // index via compound { status: 1, expiresAt: 1 }
     allowedIPs: { type: [String] },
     allowedEnvironments: { type: [String] },
     maxSessionsPerDay: { type: Number },
@@ -159,7 +158,7 @@ const TestingUserSchema = new Schema<ITestingUser>(
       },
     },
 
-    orgId: { type: String, index: true },
+    orgId: { type: String }, // index via compound { orgId: 1, status: 1 }
     accessibleOrgIds: { type: [String] },
 
     purpose: { type: String, required: true },

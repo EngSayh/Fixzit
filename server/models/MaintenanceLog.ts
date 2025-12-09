@@ -72,33 +72,33 @@ const MaintenanceLogSchema = new Schema<IMaintenanceLog>(
       type: Schema.Types.ObjectId,
       ref: "Unit",
       required: true,
-      index: true,
+      // index via compound { org_id: 1, unit_id: 1, date: -1 }
     },
     property_id: {
       type: Schema.Types.ObjectId,
       ref: "Property",
       required: true,
-      index: true,
+      // index via compound { org_id: 1, property_id: 1, date: -1 }
     },
     org_id: {
       type: Schema.Types.ObjectId,
       ref: "Organization",
       required: true,
-      index: true,
+      // index via all compound indexes
     },
     work_order_id: {
       type: Schema.Types.ObjectId,
       ref: "WorkOrder",
-      index: true,
+      index: true, // standalone needed for work order lookups
     },
 
     // Maintenance details
-    date: { type: Date, required: true, index: true },
+    date: { type: Date, required: true, index: true }, // standalone needed for date-only queries
     type: {
       type: String,
       enum: ["PREVENTIVE", "CORRECTIVE", "EMERGENCY", "INSPECTION", "OTHER"],
       required: true,
-      index: true,
+      index: true, // standalone needed for type filtering
     },
     category: {
       type: String,
@@ -115,7 +115,7 @@ const MaintenanceLogSchema = new Schema<IMaintenanceLog>(
         "OTHER",
       ],
       required: true,
-      index: true,
+      // index via compound { org_id: 1, category: 1, date: -1 }
     },
     description: { type: String, required: true },
     notes: String,
@@ -139,7 +139,7 @@ const MaintenanceLogSchema = new Schema<IMaintenanceLog>(
       type: String,
       enum: ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED"],
       default: "SCHEDULED",
-      index: true,
+      // index via compound { org_id: 1, status: 1, date: -1 }
     },
     completedAt: Date,
     scheduledDate: Date,

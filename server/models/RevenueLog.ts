@@ -73,38 +73,38 @@ const RevenueLogSchema = new Schema<IRevenueLog>(
       type: Schema.Types.ObjectId,
       ref: "Unit",
       required: true,
-      index: true,
+      // index via compound { org_id: 1, unit_id: 1, date: -1 }
     },
     property_id: {
       type: Schema.Types.ObjectId,
       ref: "Property",
       required: true,
-      index: true,
+      // index via compound { org_id: 1, property_id: 1, date: -1 }
     },
     org_id: {
       type: Schema.Types.ObjectId,
       ref: "Organization",
       required: true,
-      index: true,
+      // index via all compound indexes
     },
     tenant_id: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      index: true,
+      // index via compound { org_id: 1, tenant_id: 1, date: -1 }
     },
     tenancy_id: {
       type: Schema.Types.ObjectId,
       ref: "Tenancy",
-      index: true,
+      index: true, // standalone needed - not covered by compounds
     },
     invoice_id: {
       type: Schema.Types.ObjectId,
       ref: "Invoice",
-      index: true,
+      index: true, // standalone needed - not covered by compounds
     },
 
     // Revenue details
-    date: { type: Date, required: true, index: true },
+    date: { type: Date, required: true, index: true }, // standalone needed for date-only queries
     type: {
       type: String,
       enum: [
@@ -118,7 +118,7 @@ const RevenueLogSchema = new Schema<IRevenueLog>(
         "OTHER",
       ],
       required: true,
-      index: true,
+      // index via compound { org_id: 1, type: 1, date: -1 }
     },
     description: String,
 
@@ -147,9 +147,9 @@ const RevenueLogSchema = new Schema<IRevenueLog>(
       type: String,
       enum: ["PENDING", "RECEIVED", "PARTIAL", "OVERDUE", "REFUNDED", "CANCELLED"],
       default: "PENDING",
-      index: true,
+      // index via compound { org_id: 1, status: 1, dueDate: 1 }
     },
-    dueDate: { type: Date, index: true },
+    dueDate: { type: Date }, // index via compound { org_id: 1, status: 1, dueDate: 1 }
     receivedAmount: { type: Number, default: 0, min: 0 },
     outstandingAmount: { type: Number, default: 0, min: 0 },
 

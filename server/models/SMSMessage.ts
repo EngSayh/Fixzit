@@ -134,7 +134,7 @@ const SMSMessageSchema = new Schema<ISMSMessage>(
       enum: SMSStatus,
       required: true,
       default: "PENDING",
-      index: true,
+      // index via compounds: { status: 1, nextRetryAt: 1 }, { status: 1, createdAt: -1 }, etc.
     },
     provider: { type: String, enum: SMSProvider },
     providerMessageId: { type: String, index: true },
@@ -153,7 +153,7 @@ const SMSMessageSchema = new Schema<ISMSMessage>(
     slaBreached: { type: Boolean, default: false, index: true },
     slaBreachAt: { type: Date },
 
-    orgId: { type: String, index: true },
+    orgId: { type: String }, // index via compound { orgId: 1, createdAt: -1 }
     userId: { type: String },
     referenceType: { type: String },
     referenceId: { type: String, index: true },
