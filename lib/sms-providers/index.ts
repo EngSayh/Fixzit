@@ -21,6 +21,7 @@ import { createTwilioProvider } from "./twilio";
 import { createUnifonicProvider } from "./unifonic";
 import { AWSSNSProvider } from "./aws-sns";
 import { NexmoProvider } from "./nexmo";
+import { TaqnyatProvider, isTaqnyatConfigured } from "./taqnyat";
 
 // Re-export types for convenience
 export type {
@@ -38,6 +39,7 @@ export { TwilioProvider, createTwilioProvider } from "./twilio";
 export { UnifonicProvider, createUnifonicProvider } from "./unifonic";
 export { AWSSNSProvider } from "./aws-sns";
 export { NexmoProvider } from "./nexmo";
+export { TaqnyatProvider, isTaqnyatConfigured, getTaqnyatProvider } from "./taqnyat";
 
 /**
  * Environment configuration
@@ -148,13 +150,13 @@ class MockProvider implements SMSProvider {
 
 /**
  * Detect the best available provider
- * Priority: Explicit config > AWS SNS > Nexmo > Unifonic (for KSA) > Twilio > Mock
+ * Priority: Explicit config > Taqnyat > AWS SNS > Nexmo > Unifonic (for KSA) > Twilio > Mock
  */
 function detectProvider(): SMSProviderType {
   // If explicitly configured, use that
   if (
     SMS_PROVIDER &&
-    ["twilio", "unifonic", "aws_sns", "nexmo", "mock"].includes(SMS_PROVIDER)
+    ["twilio", "unifonic", "aws_sns", "nexmo", "taqnyat", "mock"].includes(SMS_PROVIDER)
   ) {
     return SMS_PROVIDER;
   }
@@ -162,6 +164,7 @@ function detectProvider(): SMSProviderType {
   // In development mode, prefer mock unless explicitly configured
   if (SMS_DEV_MODE_ENABLED) {
     // If any provider is configured, still use it for testing
+    if (isTaqnyatConfigured()) return "taqnyat";
     if (isAWSSNSConfigured()) return "aws_sns";
     if (isNexmoConfigured()) return "nexmo";
     if (isUnifonicConfigured()) return "unifonic";
@@ -170,6 +173,12 @@ function detectProvider(): SMSProviderType {
   }
 
   // Production: check all providers in order of preference
+  // Taqnyat is preferred for Saudi Arabia (CITC compliant)
+  if (isTaqnyatConfigured()) {
+    logger.info("[SMS] Using Taqnyat provider (CITC compliant for KSA)");
+    return "taqnyat";
+  }
+
   if (isAWSSNSConfigured()) {
     logger.info("[SMS] Using AWS SNS provider");
     return "aws_sns";
@@ -208,6 +217,8 @@ export function createSMSProvider(
   const providerType = type || detectProvider();
 
   switch (providerType) {
+    case "taqnyat":
+      return new TaqnyatProvider(options);
     case "aws_sns":
       return new AWSSNSProvider();
     case "nexmo":
@@ -237,6 +248,11 @@ export function getProvidersInfo(): Record<
   { configured: boolean; recommended: boolean; notes: string }
 > {
   return {
+    taqnyat: {
+      configured: isTaqnyatConfigured(),
+      recommended: true,
+      notes: "CITC compliant - Recommended for Saudi Arabia",
+    },
     unifonic: {
       configured: isUnifonicConfigured(),
       recommended: true,
