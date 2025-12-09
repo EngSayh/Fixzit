@@ -16,6 +16,7 @@ const unifonicBreaker = createBreaker("unifonic", 20_000);
 const awsSnsBreaker = createBreaker("aws-sns", 20_000);
 const nexmoBreaker = createBreaker("nexmo", 20_000);
 const sendgridBreaker = createBreaker("sendgrid", 30_000);
+const taqnyatBreaker = createBreaker("taqnyat", 20_000);
 
 export const serviceCircuitBreakers = {
   paytabs: paytabsBreaker,
@@ -26,6 +27,7 @@ export const serviceCircuitBreakers = {
   "aws-sns": awsSnsBreaker,
   nexmo: nexmoBreaker,
   sendgrid: sendgridBreaker,
+  taqnyat: taqnyatBreaker,
 } as const;
 
 export type CircuitBreakerName = keyof typeof serviceCircuitBreakers;
@@ -48,4 +50,12 @@ export function getAllCircuitBreakerStats() {
  */
 export function hasOpenCircuitBreakers(): boolean {
   return Object.values(serviceCircuitBreakers).some(breaker => breaker.isOpen());
+}
+
+/**
+ * Reset all circuit breakers to closed state.
+ * @internal Only use in test code to prevent state bleeding between tests.
+ */
+export function resetAllCircuitBreakers(): void {
+  Object.values(serviceCircuitBreakers).forEach(breaker => breaker.reset());
 }

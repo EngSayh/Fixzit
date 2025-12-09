@@ -5,6 +5,7 @@
  */
 
 import { vi, describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { resetAllCircuitBreakers } from '@/lib/resilience/service-circuit-breakers';
 
  // We will dynamically import the module under test using a relative path guess.
  // Update the import below to match your actual module path if different.
@@ -29,6 +30,11 @@ async function loadModule(): Promise<PayTabsHelpers> {
     throw new Error(`Could not resolve module for PayTabs helpers at "${PAYTABS_HELPERS_MODULE_PATH}". Please adjust PAYTABS_HELPERS_MODULE_PATH in qa/tests/lib-paytabs.spec.ts`);
   }
 }
+
+// Reset circuit breakers before each test to prevent state bleeding
+beforeEach(() => {
+  resetAllCircuitBreakers();
+});
 
 // Lazy-load once for all tests
 beforeAll(async () => {

@@ -112,8 +112,10 @@ export class CircuitBreaker {
     });
 
     this.failureCount += 1;
+    // FIX: Was "this.failureThreshold >= this.failureThreshold" (always true!)
+    // Now correctly checks if failure count has reached threshold
     if (
-      this.failureThreshold >= this.failureThreshold ||
+      this.failureCount >= this.failureThreshold ||
       this.state === "half-open"
     ) {
       this.open();
@@ -139,6 +141,17 @@ export class CircuitBreaker {
       component: "circuit-breaker",
       action: "close",
     });
+  }
+
+  /**
+   * Reset the circuit breaker to initial closed state.
+   * @internal Only use in test code to prevent state bleeding between tests.
+   */
+  reset(): void {
+    this.state = "closed";
+    this.failureCount = 0;
+    this.successCount = 0;
+    this.nextAttemptTimestamp = 0;
   }
 
   /**
