@@ -13,6 +13,7 @@ import { dbConnect } from "@/lib/mongodb-unified";
 import LedgerEntry from "@/server/models/finance/LedgerEntry";
 import ChartAccount from "@/server/models/finance/ChartAccount";
 import { Types } from "mongoose";
+import { forbiddenError, handleApiError } from "@/server/utils/errorResponses";
 
 interface LedgerEntryDocument {
   _id: Types.ObjectId;
@@ -242,14 +243,9 @@ export async function GET(
     );
 
     if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
+      return forbiddenError("Access denied to account activity");
     }
 
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Internal server error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

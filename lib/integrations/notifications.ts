@@ -8,6 +8,7 @@ import type {
   NotificationRecipient,
 } from "@/lib/fm-notifications";
 import type { messaging } from "firebase-admin";
+import { sendSMS } from "@/lib/sms";
 
 // Dynamic imports for heavy packages to reduce TypeScript server memory usage
 // - firebase-admin: 51 type definition files
@@ -404,53 +405,16 @@ function buildEmailHTML(
 }
 
 // =============================================================================
-// Twilio - SMS Notifications
+// Taqnyat - SMS Notifications (CITC-compliant for Saudi Arabia)
 // =============================================================================
-
-// Twilio client type (using Twilio's actual types would be ideal, but any is acceptable here for dynamic import)
-let twilioClient: ReturnType<typeof import("twilio")> | null = null;
-
-async function initializeTwilio() {
-  if (twilioClient) return twilioClient;
-
-  try {
-    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-      logger.warn("[Twilio] Credentials not configured");
-      throw new Error("Twilio not configured");
-    }
-
-    const TwilioClient = await resolveModuleDefault<typeof import("twilio")>(
-      import("twilio"),
-    );
-    twilioClient = TwilioClient(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN,
-    );
-
-    logger.info("[Twilio] Initialized successfully");
-    return twilioClient;
-  } catch (_error) {
-    const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
-    logger.error("[Twilio] Initialization failed", { error });
-    throw error;
-  }
-}
 
 export async function sendSMSNotification(
   recipient: NotificationRecipient,
   notification: NotificationPayload,
 ): Promise<void> {
   try {
-    await initializeTwilio();
-
-    if (!twilioClient) {
-      logger.warn("[Twilio] Skipping SMS notification (not initialized)");
-      throw new Error("Twilio SMS not configured");
-    }
-
     if (!recipient.phone) {
-      logger.warn("[Twilio] No phone number for recipient", {
+      logger.warn("[SMS] No phone number for recipient", {
         userId: recipient.userId,
       });
       return;
@@ -461,33 +425,26 @@ export async function sendSMSNotification(
     const truncatedMessage =
       message.length > 160 ? message.substring(0, 157) + "..." : message;
 
-    // Send SMS
-    const response = await twilioClient.messages.create({
-      body: truncatedMessage,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: recipient.phone,
-      statusCallback: `${process.env.NEXTAUTH_URL}/api/webhooks/twilio/status`,
-    });
+    // Send SMS via Taqnyat
+    const result = await sendSMS(recipient.phone, truncatedMessage);
 
-    logger.info("[Twilio] SMS sent successfully", {
-      to: recipient.phone,
-      sid: response.sid,
-      status: response.status,
-    });
+    if (result.success) {
+      logger.info("[SMS] Sent successfully via Taqnyat", {
+        to: recipient.phone,
+        messageSid: result.messageSid,
+      });
+    } else {
+      logger.warn("[SMS] Send failed", {
+        to: recipient.phone,
+        error: result.error,
+      });
+      throw new Error(result.error || "SMS send failed");
+    }
   } catch (_error: unknown) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
-    const details =
-      typeof error === "object" && error !== null
-        ? (error as { message?: string; code?: unknown; status?: unknown })
-        : undefined;
-
-    logger.error("[Twilio] Failed to send SMS", {
-      error:
-        details?.message ??
-        (error instanceof Error ? error.message : String(error)),
-      code: details?.code,
-      status: details?.status,
+    logger.error("[SMS] Failed to send notification", {
+      error: error.message,
+      recipient: recipient.userId,
     });
     throw error;
   }

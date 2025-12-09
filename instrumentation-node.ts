@@ -15,12 +15,21 @@ import { logger } from "@/lib/logger";
 export async function registerNode(): Promise<void> {
   logger.info("[Instrumentation] Starting Node.js server initialization...");
 
+  const isPlaywright =
+    process.env.PLAYWRIGHT_TESTS === "true" ||
+    process.env.NEXT_PUBLIC_E2E === "true" ||
+    process.env.PW_WEB_SERVER !== undefined;
+  const strictValidation =
+    process.env.NODE_ENV === "production" &&
+    process.env.SKIP_ENV_VALIDATION !== "true" &&
+    !isPlaywright;
+
   try {
     // Validate environment variables
     const { validateAllEnv } = await import("@/lib/env-validation");
-    const envResult = validateAllEnv();
+    const envResult = validateAllEnv({ strict: strictValidation });
 
-    if (!envResult.valid && process.env.NODE_ENV === "production") {
+    if (!envResult.valid && strictValidation) {
       logger.error("[Instrumentation] Environment validation failed", {
         errors: envResult.errors,
       });

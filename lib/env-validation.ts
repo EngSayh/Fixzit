@@ -15,10 +15,15 @@ export interface EnvValidationResult {
   warnings: string[];
 }
 
+type ValidationOptions = {
+  strict?: boolean;
+};
+
 /**
  * Validate SMS provider configuration
  */
-export function validateSMSConfig(): EnvValidationResult {
+export function validateSMSConfig(options: ValidationOptions = {}): EnvValidationResult {
+  const strict = options.strict !== false;
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -36,9 +41,13 @@ export function validateSMSConfig(): EnvValidationResult {
   const smsDevMode = process.env.SMS_DEV_MODE === "true";
 
   if (!hasTwilio && !hasUnifonic && !smsDevMode) {
-    errors.push(
-      "No SMS provider configured. Configure TWILIO_* (ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER) or UNIFONIC_* (APP_SID, SENDER_ID) or set SMS_DEV_MODE=true."
-    );
+    const msg =
+      "No SMS provider configured. Configure TWILIO_* (ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER) or UNIFONIC_* (APP_SID, SENDER_ID) or set SMS_DEV_MODE=true.";
+    if (process.env.NODE_ENV === "production" && strict) {
+      errors.push(msg);
+    } else {
+      warnings.push(msg);
+    }
   }
 
   // Validate Twilio config completeness
@@ -72,12 +81,13 @@ export function validateSMSConfig(): EnvValidationResult {
 /**
  * Validate job/cron secrets (used by scheduled endpoints)
  */
-export function validateJobSecrets(): EnvValidationResult {
+export function validateJobSecrets(options: ValidationOptions = {}): EnvValidationResult {
+  const strict = options.strict !== false;
   const errors: string[] = [];
   const warnings: string[] = [];
 
   if (!process.env.CRON_SECRET) {
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV === "production" && strict) {
       errors.push("CRON_SECRET is required for secured cron endpoints.");
     } else {
       warnings.push("CRON_SECRET not set. Cron job endpoints will reject secret auth.");
@@ -94,14 +104,15 @@ export function validateJobSecrets(): EnvValidationResult {
 /**
  * Validate encryption configuration
  */
-export function validateEncryptionConfig(): EnvValidationResult {
+export function validateEncryptionConfig(options: ValidationOptions = {}): EnvValidationResult {
+  const strict = options.strict !== false;
   const errors: string[] = [];
   const warnings: string[] = [];
 
   const encryptionKey = process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY;
 
   if (!encryptionKey) {
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV === "production" && strict) {
       errors.push(
         "ENCRYPTION_KEY is required in production. PII data cannot be encrypted without it."
       );
@@ -126,12 +137,13 @@ export function validateEncryptionConfig(): EnvValidationResult {
 /**
  * Validate authentication configuration
  */
-export function validateAuthConfig(): EnvValidationResult {
+export function validateAuthConfig(options: ValidationOptions = {}): EnvValidationResult {
+  const strict = options.strict !== false;
   const errors: string[] = [];
   const warnings: string[] = [];
 
   if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV === "production" && strict) {
       errors.push("AUTH_SECRET or NEXTAUTH_SECRET is required in production.");
     } else {
       warnings.push("AUTH_SECRET not set. Using ephemeral secret in non-production.");
@@ -139,7 +151,7 @@ export function validateAuthConfig(): EnvValidationResult {
   }
 
   if (!process.env.JWT_SECRET) {
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV === "production" && strict) {
       errors.push("JWT_SECRET is required in production.");
     } else {
       warnings.push("JWT_SECRET not set. Using ephemeral secret in non-production.");
@@ -156,12 +168,17 @@ export function validateAuthConfig(): EnvValidationResult {
 /**
  * Validate database configuration
  */
-export function validateDatabaseConfig(): EnvValidationResult {
+export function validateDatabaseConfig(options: ValidationOptions = {}): EnvValidationResult {
+  const strict = options.strict !== false;
   const errors: string[] = [];
   const warnings: string[] = [];
 
   if (!process.env.MONGODB_URI) {
-    errors.push("MONGODB_URI is required. Database connection will fail.");
+    if (process.env.NODE_ENV === "production" && strict) {
+      errors.push("MONGODB_URI is required. Database connection will fail.");
+    } else {
+      warnings.push("MONGODB_URI is required. Database connection will fail.");
+    }
   }
 
   if (!process.env.REDIS_URL && !process.env.UPSTASH_REDIS_REST_URL) {
@@ -180,7 +197,8 @@ export function validateDatabaseConfig(): EnvValidationResult {
 /**
  * Validate payment gateway configuration (PayTabs, Tap)
  */
-export function validatePaymentConfig(): EnvValidationResult {
+export function validatePaymentConfig(options: ValidationOptions = {}): EnvValidationResult {
+  const strict = options.strict !== false;
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -189,22 +207,20 @@ export function validatePaymentConfig(): EnvValidationResult {
     Boolean(process.env.PAYTABS_PROFILE_ID);
   const hasTap = Boolean(process.env.TAP_WEBHOOK_SECRET);
 
-  if (!hasPaytabs) {
+  if (!hasPaytabs && !hasTap) {
     const msg =
-      "PayTabs credentials missing (PAYTABS_SERVER_KEY, PAYTABS_PROFILE_ID)";
-    if (process.env.NODE_ENV === "production") {
+      "Payment gateway not configured. Configure Tap (TAP_WEBHOOK_SECRET) or PayTabs (PAYTABS_SERVER_KEY, PAYTABS_PROFILE_ID).";
+    if (process.env.NODE_ENV === "production" && strict) {
       errors.push(msg);
     } else {
       warnings.push(msg);
     }
-  }
-
-  if (!hasTap) {
-    const msg = "Tap webhook secret missing (TAP_WEBHOOK_SECRET)";
-    if (process.env.NODE_ENV === "production") {
-      errors.push(msg);
-    } else {
-      warnings.push(msg);
+  } else {
+    if (!hasTap) {
+      warnings.push("Tap webhook secret missing (TAP_WEBHOOK_SECRET) - Tap callbacks will be rejected.");
+    }
+    if (!hasPaytabs) {
+      warnings.push("PayTabs credentials missing (PAYTABS_SERVER_KEY, PAYTABS_PROFILE_ID) - PayTabs disabled.");
     }
   }
 
@@ -219,14 +235,15 @@ export function validatePaymentConfig(): EnvValidationResult {
  * Validate all critical environment variables
  * Call this on application startup
  */
-export function validateAllEnv(): EnvValidationResult {
+export function validateAllEnv(options: ValidationOptions = {}): EnvValidationResult {
+  const strict = options.strict !== false;
   const results: EnvValidationResult[] = [
-    validateSMSConfig(),
-    validateJobSecrets(),
-    validatePaymentConfig(),
-    validateEncryptionConfig(),
-    validateAuthConfig(),
-    validateDatabaseConfig(),
+    validateSMSConfig({ strict }),
+    validateJobSecrets({ strict }),
+    validatePaymentConfig({ strict }),
+    validateEncryptionConfig({ strict }),
+    validateAuthConfig({ strict }),
+    validateDatabaseConfig({ strict }),
   ];
 
   const allErrors = results.flatMap((r) => r.errors);
@@ -259,7 +276,7 @@ export function validateAllEnv(): EnvValidationResult {
     });
 
     // In production, throw to prevent startup with invalid config
-    if (process.env.NODE_ENV === "production" && allErrors.length > 0) {
+    if (strict && process.env.NODE_ENV === "production" && allErrors.length > 0) {
       throw new Error(
         `Environment validation failed: ${allErrors.join("; ")}`
       );

@@ -45,6 +45,25 @@
 
 ---
 
+### ISSUE-AUTH-004: Mongo URI Guard Caused Production 500s on /login
+
+**Severity**: 🟥 Critical  
+**Category**: Availability, Configuration, Auth  
+**Status**: ✅ RESOLVED (2025-12-09)  
+
+**Description**: Atlas-only enforcement and missing env alias for `MONGODB_URI` caused Mongo bootstrap to throw during module load, crashing all routes (/login, /api/health) in production when the connection string used `DATABASE_URL` or a non-SRV URI.
+
+**Fix**:
+- Added aliases for `MONGODB_URI` to pick up `DATABASE_URL`/`MONGODB_URL`/`MONGO_URL` (lib/env.ts).
+- Relaxed Atlas-only guard to allow non-SRV URIs with TLS (lib/mongo.ts) and converted bootstrap errors to rejected promises instead of synchronous throws.
+- Removed unused SMS fallback block to keep lint clean (config/service-timeouts.ts).
+
+**Follow-ups**:
+- Ensure production Mongo connections enforce TLS; set `ALLOW_NON_SRV_MONGODB=true` only when TLS is verified.
+- Keep `MONGODB_URI` defined in Vercel env; avoid relying on deleted Nexmo/Twilio webhook routes.
+
+---
+
 ### ISSUE-AI-001: AI Memory System Implementation
 
 **Severity**: 🟩 Informational  

@@ -5,6 +5,7 @@ import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { balanceSheet } from "@/server/finance/reporting.service";
 import { logger } from "@/lib/logger";
+import { forbiddenError, handleApiError } from "@/server/utils/errorResponses";
 
 export async function GET(req: NextRequest) {
   try {
@@ -53,11 +54,8 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     logger.error("GET /api/finance/reports/balance-sheet error:", error);
     if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
+      return forbiddenError("Access denied to balance sheet report");
     }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

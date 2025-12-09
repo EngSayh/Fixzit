@@ -7,6 +7,7 @@ import { incomeStatement } from "@/server/finance/reporting.service";
 import { decimal128ToMinor } from "@/server/lib/money";
 import { Types } from "mongoose";
 import { logger } from "@/lib/logger";
+import { forbiddenError, handleApiError } from "@/server/utils/errorResponses";
 
 export async function GET(req: NextRequest) {
   try {
@@ -86,11 +87,8 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     logger.error("GET /api/finance/reports/income-statement error:", error);
     if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
+      return forbiddenError("Access denied to income statement report");
     }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

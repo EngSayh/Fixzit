@@ -34,6 +34,8 @@ const ENV_ALIASES: Record<string, string[]> = {
   // Google OAuth - alternative naming
   GOOGLE_CLIENT_ID: ["OAUTH_CLIENT_GOOGLE_ID"],
   GOOGLE_CLIENT_SECRET: ["OAUTH_CLIENT_GOOGLE_SECRET", "OAUTH_CLIENT_GOOGLE"],
+  // MongoDB connection string aliases (some environments expose DATABASE_URL instead)
+  MONGODB_URI: ["DATABASE_URL", "MONGODB_URL", "MONGO_URL"],
 };
 
 /**

@@ -129,11 +129,21 @@ function assertNotLocalhostInProd(uri: string): void {
 
 function assertAtlasUriInProd(uri: string): void {
   if (!isProd || allowLocalMongo || disableMongoForBuild) return;
-  if (!uri.startsWith("mongodb+srv://")) {
+  if (uri.startsWith("mongodb+srv://")) return;
+
+  const allowNonSrv = isTruthy(process.env.ALLOW_NON_SRV_MONGODB);
+  const tlsEnabled = isTlsEnabled(uri);
+
+  if (!allowNonSrv && !tlsEnabled) {
     throw new Error(
-      "FATAL: Production deployments require a MongoDB Atlas connection string (mongodb+srv://).",
+      "FATAL: Production MongoDB URIs must enable TLS. Add tls=true/ssl=true or set ALLOW_NON_SRV_MONGODB=true after confirming TLS is enforced.",
     );
   }
+
+  logger.warn(
+    "[Mongo] Non-SRV Mongo URI detected in production. Ensure TLS is enforced and access is restricted.",
+    { allowNonSrv, tlsEnabled },
+  );
 }
 
 export const isMockDB = false; // Always use real MongoDB
@@ -168,82 +178,102 @@ function createOfflineHandle(): DatabaseHandle {
 }
 
 if (!conn) {
-  if (disableMongoForBuild) {
-    logger.warn(
-      "[Mongo] DISABLE_MONGODB_FOR_BUILD enabled – returning stub database handle",
-    );
-    conn = globalObj._mongoose = Promise.resolve({
-      collection: () => {
-        throw new Error("MongoDB disabled via DISABLE_MONGODB_FOR_BUILD");
-      },
-    } as DatabaseHandle);
-  } else {
-    const connectionUri = resolveMongoUri();
-    validateMongoUri(connectionUri);
-    assertNotLocalhostInProd(connectionUri);
-    assertAtlasUriInProd(connectionUri);
+  try {
+    if (disableMongoForBuild) {
+      logger.warn(
+        "[Mongo] DISABLE_MONGODB_FOR_BUILD enabled – returning stub database handle",
+      );
+      conn = globalObj._mongoose = Promise.resolve({
+        collection: () => {
+          throw new Error("MongoDB disabled via DISABLE_MONGODB_FOR_BUILD");
+        },
+      } as DatabaseHandle);
+    } else {
+      const connectionUri = resolveMongoUri();
+      validateMongoUri(connectionUri);
+      assertNotLocalhostInProd(connectionUri);
+      assertAtlasUriInProd(connectionUri);
 
-    conn = globalObj._mongoose = mongoose
-      .connect(connectionUri, {
-        dbName,
-        autoIndex: true,
-        maxPoolSize: 10,
-        minPoolSize: 2, // Maintain minimum connections for faster response
-        maxIdleTimeMS: 30000, // Close idle connections after 30s
-        serverSelectionTimeoutMS: 8000,
-        connectTimeoutMS: 8000,
-        socketTimeoutMS: 45000, // Socket timeout for long-running queries
-        retryWrites: true,
-        retryReads: true, // Enable read retries
-        tls: isTlsEnabled(connectionUri),
-        w: "majority",
-        // Vercel-optimized settings
-        compressors: ["zlib"], // Enable compression for bandwidth savings
-      })
-      .then(async (m) => {
-        // Attach database pool for Vercel Functions optimization
-        // This ensures proper cleanup when functions suspend and resume
-        const pool = await loadAttachDatabasePool();
-        if (pool && m.connection.getClient) {
-          try {
-            const client = m.connection.getClient();
-            if (client) {
-              pool(client);
-              logger.info(
-                "[Mongo] ✅ Vercel database pool attached for optimal serverless performance",
+      conn = globalObj._mongoose = mongoose
+        .connect(connectionUri, {
+          dbName,
+          autoIndex: true,
+          maxPoolSize: 10,
+          minPoolSize: 2, // Maintain minimum connections for faster response
+          maxIdleTimeMS: 30000, // Close idle connections after 30s
+          serverSelectionTimeoutMS: 8000,
+          connectTimeoutMS: 8000,
+          socketTimeoutMS: 45000, // Socket timeout for long-running queries
+          retryWrites: true,
+          retryReads: true, // Enable read retries
+          tls: isTlsEnabled(connectionUri),
+          w: "majority",
+          // Vercel-optimized settings
+          compressors: ["zlib"], // Enable compression for bandwidth savings
+        })
+        .then(async (m) => {
+          // Attach database pool for Vercel Functions optimization
+          // This ensures proper cleanup when functions suspend and resume
+          const pool = await loadAttachDatabasePool();
+          if (pool && m.connection.getClient) {
+            try {
+              const client = m.connection.getClient();
+              if (client) {
+                pool(client);
+                logger.info(
+                  "[Mongo] ✅ Vercel database pool attached for optimal serverless performance",
+                );
+              }
+            } catch (poolError) {
+              // Non-critical: Log but don't fail if pool attachment fails
+              logger.warn(
+                "[Mongo] Could not attach database pool (non-critical):",
+                {
+                  error:
+                    poolError instanceof Error
+                      ? poolError.message
+                      : String(poolError),
+                },
               );
             }
-          } catch (poolError) {
-            // Non-critical: Log but don't fail if pool attachment fails
-            logger.warn(
-              "[Mongo] Could not attach database pool (non-critical):",
-              {
-                error:
-                  poolError instanceof Error
-                    ? poolError.message
-                    : String(poolError),
-              },
-            );
           }
-        }
 
-        logger.info("[Mongo] ✅ Connected successfully to MongoDB");
-        return m.connection.db as unknown as DatabaseHandle;
-      })
-      .catch((err) => {
-        const errorObj = err instanceof Error ? err : new Error(String(err));
-        logger.error("ERROR: mongoose.connect() failed", errorObj);
-        if (allowOfflineMongo && !isProd) {
-          logger.warn(
-            "[Mongo] Offline fallback enabled – continuing without database connection",
+          logger.info("[Mongo] ✅ Connected successfully to MongoDB");
+          return m.connection.db as unknown as DatabaseHandle;
+        })
+        .catch((err) => {
+          const errorObj = err instanceof Error ? err : new Error(String(err));
+          logger.error("ERROR: mongoose.connect() failed", errorObj);
+          if (allowOfflineMongo && !isProd) {
+            logger.warn(
+              "[Mongo] Offline fallback enabled – continuing without database connection",
+            );
+            return createOfflineHandle();
+          }
+          throw new Error(
+            `MongoDB connection failed: ${err?.message || err}. Please ensure MongoDB is running.`,
           );
-          return createOfflineHandle();
-        }
-        throw new Error(
-          `MongoDB connection failed: ${err?.message || err}. Please ensure MongoDB is running.`,
-        );
-      });
+        });
+    }
+  } catch (err) {
+    const errorObj = err instanceof Error ? err : new Error(String(err));
+    logger.error(
+      "[Mongo] Configuration error during bootstrap - rejecting connection promise",
+      errorObj,
+    );
+    conn = globalObj._mongoose = Promise.reject(errorObj);
   }
+}
+
+if (conn) {
+  conn.catch((err) => {
+    if (process.env.NODE_ENV !== "test") {
+      logger.error(
+        "[Mongo] Connection promise rejected",
+        err instanceof Error ? err : new Error(String(err)),
+      );
+    }
+  });
 }
 
 export const db = conn;
