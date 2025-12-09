@@ -23,7 +23,10 @@ import type {
   BulkSMSResult,
   SMSProviderOptions,
 } from "./types";
-import { formatSaudiPhoneNumber } from "./phone-utils";
+import { formatSaudiPhoneNumber, validateAndFormatPhone } from "./phone-utils";
+
+// Maximum recipients for bulk SMS to prevent rate limit exhaustion
+const MAX_BULK_RECIPIENTS = 1000;
 
 // Configuration from environment
 const UNIFONIC_APP_SID = process.env.UNIFONIC_APP_SID || "";
@@ -141,6 +144,15 @@ export class UnifonicProvider implements SMSProvider {
   async sendSMS(to: string, message: string): Promise<SMSResult> {
     const formattedPhone = formatSaudiPhoneNumber(to);
     const timestamp = new Date();
+
+    // Validate phone number and warn if invalid
+    const validation = validateAndFormatPhone(to);
+    if (!validation.isValid) {
+      logger.warn("[Unifonic] Phone validation warning", {
+        error: validation.error,
+        to: formattedPhone.replace(/\d(?=\d{4})/g, "*"),
+      });
+    }
 
     // Development mode - simulate sending
     if (this.devMode) {
@@ -278,6 +290,26 @@ export class UnifonicProvider implements SMSProvider {
    * Send bulk SMS messages
    */
   async sendBulk(recipients: string[], message: string): Promise<BulkSMSResult> {
+    // Enforce maximum recipients limit
+    if (recipients.length > MAX_BULK_RECIPIENTS) {
+      logger.error("[Unifonic] Bulk SMS exceeds maximum recipients", {
+        requested: recipients.length,
+        max: MAX_BULK_RECIPIENTS,
+      });
+      return {
+        total: recipients.length,
+        successful: 0,
+        sent: 0,
+        failed: recipients.length,
+        results: [{
+          success: false,
+          error: `Bulk SMS exceeds maximum of ${MAX_BULK_RECIPIENTS} recipients`,
+          provider: this.name,
+          timestamp: new Date(),
+        }],
+      };
+    }
+
     const results: SMSResult[] = [];
     let successful = 0;
     let failed = 0;

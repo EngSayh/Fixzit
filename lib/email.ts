@@ -26,6 +26,18 @@ function maskEmailAddress(address: string): string {
 }
 
 /**
+ * Sanitize text for safe HTML insertion (XSS prevention)
+ */
+function sanitizeForHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
  * Send email via SendGrid
  */
 export async function sendEmail(
@@ -62,10 +74,10 @@ export async function sendEmail(
         `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #333; border-bottom: 2px solid #0070f3; padding-bottom: 10px;">
-            ${subject}
+            ${sanitizeForHtml(subject)}
           </h2>
           <div style="margin: 20px 0; line-height: 1.6; color: #666;">
-            ${body.replace(/\n/g, "<br>")}
+            ${sanitizeForHtml(body).replace(/\n/g, "<br>")}
           </div>
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
           <p style="color: #999; font-size: 12px; text-align: center;">

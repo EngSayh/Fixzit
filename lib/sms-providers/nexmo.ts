@@ -17,7 +17,7 @@ import { getCircuitBreaker } from "@/lib/resilience";
 
 // Circuit breaker for Nexmo
 const nexmoBreaker = getCircuitBreaker("nexmo");
-import { formatSaudiPhoneNumber, isValidSaudiPhone } from "./phone-utils";
+import { formatSaudiPhoneNumber, isValidSaudiPhone, validateAndFormatPhone } from "./phone-utils";
 import type {
   SMSProvider,
   SMSProviderType,
@@ -26,6 +26,9 @@ import type {
   SMSDeliveryStatus,
   BulkSMSResult,
 } from "./types";
+
+// Maximum recipients for bulk SMS to prevent rate limit exhaustion
+const MAX_BULK_RECIPIENTS = 1000;
 
 export interface NexmoConfig {
   apiKey: string;
@@ -97,20 +100,31 @@ export class NexmoProvider implements SMSProvider {
    * Send SMS via Nexmo/Vonage
    */
   async sendSMS(to: string, message: string): Promise<SMSResult> {
-    if (!this.isConfigured()) {
-      return {
-        success: false,
-        error: "Nexmo/Vonage not configured",
-        provider: this.name,
-      };
-    }
-
-    // Format phone number (remove + for Nexmo)
+    // Format phone number first for consistent error responses
     let formattedPhone = isValidSaudiPhone(to)
       ? formatSaudiPhoneNumber(to)
       : to.startsWith("+")
         ? to
         : `+${to}`;
+
+    // Validate phone and warn if invalid
+    const validation = validateAndFormatPhone(to);
+    if (!validation.isValid) {
+      logger.warn("[Nexmo] Phone validation warning", {
+        error: validation.error,
+        to: formattedPhone.replace(/\d(?=\d{4})/g, "*"),
+      });
+    }
+
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        error: "Nexmo/Vonage not configured",
+        provider: this.name,
+        to: formattedPhone,
+        timestamp: new Date(),
+      };
+    }
     
     // Nexmo prefers numbers without + prefix
     formattedPhone = formattedPhone.replace(/^\+/, "");
@@ -229,6 +243,26 @@ export class NexmoProvider implements SMSProvider {
     recipients: string[],
     message: string
   ): Promise<BulkSMSResult> {
+    // Enforce maximum recipients limit
+    if (recipients.length > MAX_BULK_RECIPIENTS) {
+      logger.error("[Nexmo] Bulk SMS exceeds maximum recipients", {
+        requested: recipients.length,
+        max: MAX_BULK_RECIPIENTS,
+      });
+      return {
+        total: recipients.length,
+        successful: 0,
+        sent: 0,
+        failed: recipients.length,
+        results: [{
+          success: false,
+          error: `Bulk SMS exceeds maximum of ${MAX_BULK_RECIPIENTS} recipients`,
+          provider: this.name,
+          timestamp: new Date(),
+        }],
+      };
+    }
+
     const results: SMSResult[] = [];
     let successful = 0;
     let failed = 0;

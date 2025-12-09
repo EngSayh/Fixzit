@@ -33,3 +33,19 @@ export type CircuitBreakerName = keyof typeof serviceCircuitBreakers;
 export function getCircuitBreaker(name: CircuitBreakerName): CircuitBreaker {
   return serviceCircuitBreakers[name];
 }
+
+/**
+ * Get stats for all circuit breakers (for health/monitoring endpoints)
+ */
+export function getAllCircuitBreakerStats() {
+  return Object.entries(serviceCircuitBreakers).map(([, breaker]) => 
+    breaker.getStats()
+  );
+}
+
+/**
+ * Check if any circuit breaker is currently open (for alerts)
+ */
+export function hasOpenCircuitBreakers(): boolean {
+  return Object.values(serviceCircuitBreakers).some(breaker => breaker.isOpen());
+}

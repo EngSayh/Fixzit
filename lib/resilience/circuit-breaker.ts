@@ -113,7 +113,7 @@ export class CircuitBreaker {
 
     this.failureCount += 1;
     if (
-      this.failureCount >= this.failureThreshold ||
+      this.failureThreshold >= this.failureThreshold ||
       this.state === "half-open"
     ) {
       this.open();
@@ -139,5 +139,27 @@ export class CircuitBreaker {
       component: "circuit-breaker",
       action: "close",
     });
+  }
+
+  /**
+   * Get statistics for monitoring/health checks
+   */
+  getStats(): {
+    name: string;
+    state: BreakerState;
+    failureCount: number;
+    isOpen: boolean;
+    cooldownRemaining: number;
+  } {
+    const now = Date.now();
+    return {
+      name: this.options.name,
+      state: this.state,
+      failureCount: this.failureCount,
+      isOpen: this.isOpen(),
+      cooldownRemaining: this.state === "open" 
+        ? Math.max(0, this.nextAttemptTimestamp - now)
+        : 0,
+    };
   }
 }
