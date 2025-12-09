@@ -302,6 +302,95 @@ Resolves ISSUE-SEC-003
 
 ---
 
-**Last Updated**: 2025-11-09  
+## AI Memory System
+
+### Overview
+
+The Fixzit repository uses an AI memory system to maintain persistent knowledge about the codebase.
+This enables more consistent and informed AI-assisted development.
+
+### Memory Pipeline
+
+1. **Chunk**: `node tools/smart-chunker.js`
+   - Scans git-tracked files
+   - Creates 100k character batches in `ai-memory/batches/`
+   - Prioritizes core business logic first
+
+2. **Process**: Manual AI analysis
+   - Open each batch file
+   - Use Inline Chat to analyze and extract knowledge
+   - Save outputs to `ai-memory/outputs/` as JSON
+
+3. **Merge**: `node tools/merge-memory.js`
+   - Validates JSON structure
+   - Deduplicates entries
+   - Updates `ai-memory/master-index.json`
+   - Archives processed files
+
+4. **Verify**: `node tools/memory-selfcheck.js`
+   - Checks environment configuration
+   - Validates master index integrity
+   - Run with `--fix` to auto-repair
+
+### Memory Entry Format
+
+```json
+{
+  "id": "unique-identifier",
+  "type": "pattern|convention|architecture|api|component|hook|util|model|route|config",
+  "content": {
+    "title": "Short descriptive title",
+    "description": "Detailed description",
+    "examples": ["Optional code examples"],
+    "files": ["Related file paths"],
+    "tags": ["optional", "tags"]
+  },
+  "confidence": 0.9
+}
+```
+
+### When to Update Memory
+
+- After major refactoring
+- When adding new modules
+- When establishing new patterns
+- Weekly maintenance (recommended)
+
+### VS Code Tasks
+
+Use Command Palette (Cmd+Shift+P) > Tasks: Run Task:
+- `AI Memory: Chunk Repository`
+- `AI Memory: Merge Outputs`
+- `AI Memory: Selfcheck`
+
+### Memory-First Workflow
+
+Before starting complex tasks:
+1. Check `ai-memory/master-index.json` for relevant patterns
+2. Search for existing conventions
+3. Follow established patterns
+
+---
+
+## SMS Provider Configuration
+
+### Taqnyat-Only SMS
+
+This system uses **Taqnyat** as the sole SMS provider (CITC compliant for Saudi Arabia).
+
+**Environment Variables:**
+- `TAQNYAT_BEARER_TOKEN` - API authentication token
+- `TAQNYAT_SENDER_NAME` - Registered sender ID
+
+**API Details:**
+- Base URL: `https://api.taqnyat.sa/`
+- Phone format: International without 00/+ prefix (e.g., `966500000000`)
+- Max recipients per bulk: 1000
+
+**No other SMS providers are supported. Do not add Twilio, Unifonic, Nexmo, or AWS SNS.**
+
+---
+
+**Last Updated**: 2025-01-01  
 **Maintained By**: Engineering Team  
-**Version**: 2.0
+**Version**: 2.1

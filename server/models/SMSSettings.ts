@@ -114,7 +114,7 @@ const SMSSettingsSchema = new Schema<ISMSSettings>(
     defaultProvider: {
       type: String,
       enum: SMSProvider,
-      default: "TWILIO",
+      default: "TAQNYAT",
     },
     defaultMaxRetries: { type: Number, default: 3 },
     defaultExpiresAfterMs: {

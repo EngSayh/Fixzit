@@ -71,11 +71,11 @@ describe("SMS Provider Factory", () => {
     it("should return info for all providers", () => {
       const info = getProvidersInfo();
 
-      expect(info.unifonic).toBeDefined();
-      expect(info.twilio).toBeDefined();
+      // Only Taqnyat and Mock are supported
+      expect(info.taqnyat).toBeDefined();
       expect(info.mock).toBeDefined();
 
-      expect(info.unifonic.recommended).toBe(true);
+      expect(info.taqnyat.recommended).toBe(true);
       expect(info.mock.configured).toBe(true);
     });
   });

@@ -2,9 +2,9 @@
  * SMS Provider Factory
  *
  * Factory for creating SMS providers based on configuration.
- * Supports Twilio, Unifonic, and mock providers.
- *
- * For Saudi Arabia (KSA), Unifonic is recommended as Twilio has limited support.
+ * 
+ * NOTE: Fixzit uses Taqnyat as the ONLY production SMS provider
+ * (CITC-compliant for Saudi Arabia market). Other providers have been removed.
  */
 
 import { logger } from "@/lib/logger";
@@ -17,10 +17,7 @@ import type {
   SMSDeliveryStatus,
   BulkSMSResult,
 } from "./types";
-import { createTwilioProvider } from "./twilio";
-import { createUnifonicProvider } from "./unifonic";
-import { AWSSNSProvider } from "./aws-sns";
-import { NexmoProvider } from "./nexmo";
+import { TaqnyatProvider } from "./taqnyat";
 
 // Re-export types for convenience
 export type {
@@ -33,56 +30,23 @@ export type {
   BulkSMSResult,
 };
 
-// Re-export providers
-export { TwilioProvider, createTwilioProvider } from "./twilio";
-export { UnifonicProvider, createUnifonicProvider } from "./unifonic";
-export { AWSSNSProvider } from "./aws-sns";
-export { NexmoProvider } from "./nexmo";
+// Re-export Taqnyat provider
+export { TaqnyatProvider, createTaqnyatProvider } from "./taqnyat";
 
 /**
  * Environment configuration
  */
-const SMS_PROVIDER = process.env.SMS_PROVIDER as SMSProviderType | undefined;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const SMS_DEV_MODE_ENABLED =
   process.env.SMS_DEV_MODE === "true" ||
   (NODE_ENV !== "production" && process.env.SMS_DEV_MODE !== "false");
 
 /**
- * Check if Unifonic is configured
+ * Check if Taqnyat is configured
  */
-function isUnifonicConfigured(): boolean {
-  return Boolean(process.env.UNIFONIC_APP_SID && process.env.UNIFONIC_SENDER_ID);
-}
-
-/**
- * Check if Twilio is configured
- */
-function isTwilioConfigured(): boolean {
+function isTaqnyatConfigured(): boolean {
   return Boolean(
-    process.env.TWILIO_ACCOUNT_SID &&
-      process.env.TWILIO_AUTH_TOKEN &&
-      process.env.TWILIO_PHONE_NUMBER,
-  );
-}
-
-/**
- * Check if AWS SNS is configured
- */
-function isAWSSNSConfigured(): boolean {
-  return Boolean(
-    process.env.AWS_SNS_ACCESS_KEY_ID && process.env.AWS_SNS_SECRET_ACCESS_KEY,
-  );
-}
-
-/**
- * Check if Nexmo/Vonage is configured
- */
-function isNexmoConfigured(): boolean {
-  return Boolean(
-    process.env.NEXMO_API_KEY &&
-      process.env.NEXMO_API_SECRET &&
-      process.env.NEXMO_FROM_NUMBER,
+    process.env.TAQNYAT_BEARER_TOKEN && process.env.TAQNYAT_SENDER_NAME
   );
 }
 
@@ -148,74 +112,39 @@ class MockProvider implements SMSProvider {
 
 /**
  * Detect the best available provider
- * Priority: Explicit config > AWS SNS > Nexmo > Unifonic (for KSA) > Twilio > Mock
+ * Priority: Taqnyat (if configured) > Mock
  */
 function detectProvider(): SMSProviderType {
-  // If explicitly configured, use that
-  if (
-    SMS_PROVIDER &&
-    ["twilio", "unifonic", "aws_sns", "nexmo", "mock"].includes(SMS_PROVIDER)
-  ) {
-    return SMS_PROVIDER;
-  }
-
-  // In development mode, prefer mock unless explicitly configured
-  if (SMS_DEV_MODE_ENABLED) {
-    // If any provider is configured, still use it for testing
-    if (isAWSSNSConfigured()) return "aws_sns";
-    if (isNexmoConfigured()) return "nexmo";
-    if (isUnifonicConfigured()) return "unifonic";
-    if (isTwilioConfigured()) return "twilio";
+  // In development mode, prefer mock unless Taqnyat is explicitly configured
+  if (SMS_DEV_MODE_ENABLED && !isTaqnyatConfigured()) {
     return "mock";
   }
 
-  // Production: check all providers in order of preference
-  if (isAWSSNSConfigured()) {
-    logger.info("[SMS] Using AWS SNS provider");
-    return "aws_sns";
-  }
-
-  if (isNexmoConfigured()) {
-    logger.info("[SMS] Using Nexmo/Vonage provider");
-    return "nexmo";
-  }
-
-  // Prefer Unifonic for KSA support
-  if (isUnifonicConfigured()) {
-    logger.info("[SMS] Using Unifonic provider (recommended for KSA)");
-    return "unifonic";
-  }
-
-  if (isTwilioConfigured()) {
-    logger.info("[SMS] Using Twilio provider");
-    return "twilio";
+  // Production: use Taqnyat if configured
+  if (isTaqnyatConfigured()) {
+    logger.info("[SMS] Using Taqnyat provider (CITC-compliant for Saudi Arabia)");
+    return "taqnyat";
   }
 
   // Fallback to mock if nothing configured
-  logger.warn("[SMS] No provider configured - using mock provider");
+  logger.warn("[SMS] Taqnyat not configured - using mock provider");
   return "mock";
 }
 
 /**
  * Create an SMS provider instance
  * @param type Optional provider type (auto-detects if not specified)
- * @param options Optional provider options
+ * @param _options Optional provider options (reserved for future use)
  */
 export function createSMSProvider(
   type?: SMSProviderType,
-  options?: SMSProviderOptions,
+  _options?: SMSProviderOptions,
 ): SMSProvider {
   const providerType = type || detectProvider();
 
   switch (providerType) {
-    case "aws_sns":
-      return new AWSSNSProvider();
-    case "nexmo":
-      return new NexmoProvider();
-    case "unifonic":
-      return createUnifonicProvider(options);
-    case "twilio":
-      return createTwilioProvider(options);
+    case "taqnyat":
+      return new TaqnyatProvider();
     case "mock":
     default:
       return new MockProvider();
@@ -237,25 +166,10 @@ export function getProvidersInfo(): Record<
   { configured: boolean; recommended: boolean; notes: string }
 > {
   return {
-    unifonic: {
-      configured: isUnifonicConfigured(),
+    taqnyat: {
+      configured: isTaqnyatConfigured(),
       recommended: true,
-      notes: "Recommended for Saudi Arabia and MENA region",
-    },
-    twilio: {
-      configured: isTwilioConfigured(),
-      recommended: false,
-      notes: "Limited support for Saudi Arabia",
-    },
-    aws_sns: {
-      configured: Boolean(process.env.AWS_SNS_ACCESS_KEY_ID && process.env.AWS_SNS_SECRET_ACCESS_KEY),
-      recommended: false,
-      notes: "AWS SNS for enterprise SMS delivery",
-    },
-    nexmo: {
-      configured: Boolean(process.env.NEXMO_API_KEY && process.env.NEXMO_API_SECRET),
-      recommended: false,
-      notes: "Vonage/Nexmo for global SMS delivery",
+      notes: "CITC-compliant SMS provider for Saudi Arabia - ONLY production provider",
     },
     mock: {
       configured: true,

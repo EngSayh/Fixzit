@@ -116,10 +116,8 @@ describe("Service Circuit Breakers", () => {
       "@/lib/resilience/service-circuit-breakers"
     );
 
-    expect(serviceCircuitBreakers).toHaveProperty("twilio");
-    expect(serviceCircuitBreakers).toHaveProperty("unifonic");
-    expect(serviceCircuitBreakers).toHaveProperty("aws-sns");
-    expect(serviceCircuitBreakers).toHaveProperty("nexmo");
+    // Only Taqnyat is supported for SMS (CITC-compliant for Saudi Arabia)
+    expect(serviceCircuitBreakers).toHaveProperty("taqnyat");
     expect(serviceCircuitBreakers).toHaveProperty("sendgrid");
     expect(serviceCircuitBreakers).toHaveProperty("paytabs");
     expect(serviceCircuitBreakers).toHaveProperty("meilisearch");
@@ -131,9 +129,9 @@ describe("Service Circuit Breakers", () => {
       "@/lib/resilience/service-circuit-breakers"
     );
 
-    const twilioBreaker = getCircuitBreaker("twilio");
-    expect(typeof twilioBreaker.isOpen).toBe("function");
-    expect(typeof twilioBreaker.getState).toBe("function");
-    expect(typeof twilioBreaker.run).toBe("function");
+    const taqnyatBreaker = getCircuitBreaker("taqnyat");
+    expect(typeof taqnyatBreaker.isOpen).toBe("function");
+    expect(typeof taqnyatBreaker.getState).toBe("function");
+    expect(typeof taqnyatBreaker.run).toBe("function");
   });
 });

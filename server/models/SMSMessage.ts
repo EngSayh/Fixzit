@@ -22,7 +22,8 @@ export const SMSStatus = [
 ] as const;
 export type TSMSStatus = (typeof SMSStatus)[number];
 
-export const SMSProvider = ["TWILIO", "UNIFONIC", "AWS_SNS", "NEXMO", "LOCAL"] as const;
+// NOTE: Taqnyat is the ONLY production SMS provider (CITC-compliant for Saudi Arabia)
+export const SMSProvider = ["TAQNYAT", "LOCAL"] as const;
 export type TSMSProvider = (typeof SMSProvider)[number];
 
 export const SMSType = [
