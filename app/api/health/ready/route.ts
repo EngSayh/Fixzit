@@ -7,6 +7,9 @@
  *
  * Use this endpoint for k8s readinessProbe configuration.
  * For liveness checks, use /api/health (lighter weight).
+ * 
+ * PERFORMANCE: Results are cached for short TTL to prevent health check storms
+ * from multiple load balancers or K8s pods. Configure via READY_CACHE_TTL_MS.
  *
  * @module api/health/ready
  */
@@ -16,6 +19,7 @@ import { db } from "@/lib/mongo";
 import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { withTimeout } from "@/lib/resilience";
+import { getCachedReady, setCachedReady } from "@/lib/health-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -33,9 +37,17 @@ interface ReadinessStatus {
     redis?: number;
   };
   timestamp: string;
+  cached?: boolean;
 }
 
 export async function GET(): Promise<NextResponse> {
+  // Check cache first to prevent health check storms
+  const cached = getCachedReady<ReadinessStatus>();
+  if (cached) {
+    const response = { ...cached, cached: true };
+    return NextResponse.json(response, { status: cached.ready ? 200 : 503 });
+  }
+
   const status: ReadinessStatus = {
     ready: false,
     checks: {
@@ -101,6 +113,9 @@ export async function GET(): Promise<NextResponse> {
 
     // Ready if MongoDB is OK (Redis is optional)
     status.ready = status.checks.mongodb === "ok";
+
+    // Cache the result
+    setCachedReady(status);
 
     if (status.ready) {
       return NextResponse.json(status, { status: 200 });

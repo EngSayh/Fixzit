@@ -195,6 +195,11 @@ export function getProvidersInfo(): Record<
   { configured: boolean; recommended: boolean; notes: string }
 > {
   return {
+    taqnyat: {
+      configured: Boolean(process.env.TAQNYAT_BEARER_TOKEN && process.env.TAQNYAT_SENDER_ID),
+      recommended: true,
+      notes: "CITC compliant SMS provider for Saudi Arabia",
+    },
     unifonic: {
       configured: isUnifonicConfigured(),
       recommended: true,

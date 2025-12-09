@@ -6,8 +6,14 @@
 
 /**
  * Supported SMS provider types
+ * - taqnyat: CITC compliant SMS provider for Saudi Arabia (production)
+ * - twilio: International SMS provider
+ * - unifonic: Middle East SMS provider
+ * - aws_sns: AWS Simple Notification Service
+ * - nexmo: Vonage SMS provider
+ * - mock: Development/testing only
  */
-export type SMSProviderType = "twilio" | "unifonic" | "aws_sns" | "nexmo" | "mock";
+export type SMSProviderType = "taqnyat" | "twilio" | "unifonic" | "aws_sns" | "nexmo" | "mock";
 
 /**
  * SMS delivery status codes
