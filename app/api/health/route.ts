@@ -122,6 +122,7 @@ export async function GET(request: NextRequest) {
           },
           environment: process.env.NODE_ENV || "development",
           version: process.env.npm_package_version || "unknown",
+          commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || process.env.GIT_COMMIT_SHA?.slice(0, 7) || "unknown",
         },
       }),
     };

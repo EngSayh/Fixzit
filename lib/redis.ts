@@ -159,7 +159,9 @@ export function getRedisClient(): RedisInstance | null {
     metrics.connectionAttempts++;
     metrics.currentStatus = "connecting";
 
+    const connectTimeout = Number(process.env.REDIS_CONNECT_TIMEOUT_MS) || 5000;
     redis = new RedisCtorLocal(redisUrl, {
+      connectTimeout,
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
       enableOfflineQueue: false, // Fail fast if Redis is down
