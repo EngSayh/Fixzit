@@ -159,7 +159,7 @@ const TestingUserSchema = new Schema<ITestingUser>(
       },
     },
 
-    orgId: { type: String, index: true },
+    orgId: { type: String },
     accessibleOrgIds: { type: [String] },
 
     purpose: { type: String, required: true },

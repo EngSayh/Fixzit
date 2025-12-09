@@ -47,7 +47,7 @@ export interface IOnboardingCase {
 
 const OnboardingCaseSchema = new Schema<IOnboardingCase>(
   {
-    orgId: { type: Schema.Types.ObjectId, ref: 'Organization', index: true }, // AUDIT-2025-11-29: Changed from org_id
+    orgId: { type: Schema.Types.ObjectId, ref: 'Organization' }, // AUDIT-2025-11-29: Changed from org_id
     role: { type: String, enum: ONBOARDING_ROLES, required: true },
     status: { type: String, enum: ONBOARDING_STATUSES, default: 'DRAFT', index: true },
     current_step: { type: Number, min: 1, max: 4, default: 1 },

@@ -1,4 +1,5 @@
 import { defineConfig, defineProject } from "vitest/config";
+import tsconfigPaths from "vite-tsconfig-paths";
 import path from "node:path";
 
 const baseExcludes = [
@@ -42,6 +43,7 @@ const sharedViteConfig = {
       "next/server": "next/server.js",
     },
   },
+  plugins: [tsconfigPaths()],
 };
 
 export default defineConfig({

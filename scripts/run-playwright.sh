@@ -28,6 +28,7 @@ export AUTH_SALT="${AUTH_SALT:-authjs.session-token}"
 
 # Prefer running against a built server to avoid dev-mode manifest gaps
 if [[ "${PW_USE_BUILD:-true}" == "true" ]]; then
+  export NEXT_OUTPUT="${NEXT_OUTPUT:-standalone}"
   if [[ "${PW_SKIP_BUILD:-false}" == "true" ]]; then
     echo "🔄 Skipping pnpm build (PW_SKIP_BUILD=true); using existing .next output"
   else

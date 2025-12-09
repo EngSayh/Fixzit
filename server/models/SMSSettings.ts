@@ -103,8 +103,8 @@ const ProviderConfigSchema = new Schema<IProviderConfig>(
 
 const SMSSettingsSchema = new Schema<ISMSSettings>(
   {
-    orgId: { type: String, index: true, sparse: true },
-    isGlobal: { type: Boolean, default: false, index: true },
+    orgId: { type: String, sparse: true },
+    isGlobal: { type: Boolean, default: false },
 
     slaConfigs: { type: [SLAConfigSchema], default: [] },
     providers: { type: [ProviderConfigSchema], default: [] },
@@ -112,7 +112,7 @@ const SMSSettingsSchema = new Schema<ISMSSettings>(
     defaultProvider: {
       type: String,
       enum: SMSProvider,
-      default: "TWILIO",
+      default: "TAQNYAT",
     },
     defaultMaxRetries: { type: Number, default: 3 },
     defaultExpiresAfterMs: {
@@ -193,7 +193,7 @@ SMSSettingsSchema.statics.getEffectiveSettings = async function (orgId?: string)
       isGlobal: true,
       slaConfigs: getDefaultSLAConfigs(),
       providers: [],
-      defaultProvider: "TWILIO" as TSMSProvider,
+      defaultProvider: "TAQNYAT" as TSMSProvider,
       defaultMaxRetries: 3,
       defaultExpiresAfterMs: 24 * 60 * 60 * 1000,
       globalRateLimitPerMinute: 60,
@@ -243,7 +243,7 @@ SMSSettingsSchema.statics.ensureGlobalSettings = async function (): Promise<ISMS
       isGlobal: true,
       slaConfigs: getDefaultSLAConfigs(),
       providers: [],
-      defaultProvider: "TWILIO",
+      defaultProvider: "TAQNYAT",
       defaultMaxRetries: 3,
       defaultExpiresAfterMs: 24 * 60 * 60 * 1000,
       globalRateLimitPerMinute: 60,

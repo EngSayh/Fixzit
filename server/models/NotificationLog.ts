@@ -64,7 +64,7 @@ const dlqTtlDays = parseValidTtl(process.env.NOTIFICATION_DLQ_TTL_DAYS, 30, 'NOT
 
 const NotificationLogSchema = new Schema(
   {
-    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
+    orgId: { type: Schema.Types.ObjectId, required: true },
     notificationId: { type: String, required: true },
     event: { type: String, required: true },
     recipients: { type: [NotificationRecipientSchema], default: [] },
@@ -145,7 +145,7 @@ export const NotificationLogModel =
 
 const NotificationDeadLetterSchema = new Schema(
   {
-    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
+    orgId: { type: Schema.Types.ObjectId, required: true },
     notificationId: { type: String, required: true, index: true },
     event: { type: String, required: true },
     channel: { type: String, enum: ['push', 'email', 'sms', 'whatsapp'], required: true },

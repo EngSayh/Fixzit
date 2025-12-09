@@ -4,7 +4,7 @@
  */
 
 import { logger } from "@/lib/logger";
-import { redactIdentifier, hashIdentifier } from "@/lib/otp-utils";
+import { redactIdentifier, hashIdentifier } from "../otp-utils";
 
 // Rate limit event tracking
 const rateLimitHits = new Map<string, number[]>();

@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import { redactIdentifier, redactMetadata } from "@/lib/otp-utils";
+import { redactIdentifier, redactMetadata } from "../otp-utils";
 import {
   trackAuthFailure,
   trackCorsViolation,

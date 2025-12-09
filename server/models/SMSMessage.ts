@@ -22,7 +22,11 @@ export const SMSStatus = [
 ] as const;
 export type TSMSStatus = (typeof SMSStatus)[number];
 
-export const SMSProvider = ["TWILIO", "UNIFONIC", "AWS_SNS", "NEXMO", "LOCAL"] as const;
+/**
+ * SMS Provider enum - Taqnyat is the only production provider (CITC-compliant for Saudi Arabia).
+ * MOCK is used for development/testing only.
+ */
+export const SMSProvider = ["TAQNYAT", "MOCK"] as const;
 export type TSMSProvider = (typeof SMSProvider)[number];
 
 export const SMSType = [
@@ -153,7 +157,7 @@ const SMSMessageSchema = new Schema<ISMSMessage>(
     slaBreached: { type: Boolean, default: false, index: true },
     slaBreachAt: { type: Date },
 
-    orgId: { type: String, index: true },
+    orgId: { type: String },
     userId: { type: String },
     referenceType: { type: String },
     referenceId: { type: String, index: true },
