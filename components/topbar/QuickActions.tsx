@@ -1,4 +1,3 @@
-'use client';
 "use client";
 
 import { useTopBar } from "@/contexts/TopBarContext";

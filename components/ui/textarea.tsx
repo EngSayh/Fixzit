@@ -1,4 +1,3 @@
-'use client';
 "use client";
 
 import React, { useRef, useEffect, useLayoutEffect, forwardRef } from "react";

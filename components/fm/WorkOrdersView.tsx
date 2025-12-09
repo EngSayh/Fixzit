@@ -1,4 +1,3 @@
-'use client';
 "use client";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
