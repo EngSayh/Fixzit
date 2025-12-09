@@ -105,3 +105,8 @@ docs/translations/translation-audit.csv
 # package-lock.json is intentionally excluded to prevent npm/pnpm conflicts
 # Dependency locking is handled by pnpm-lock.yaml
 package-lock.json
+
+# AI Memory System (generated files - regenerated with smart-chunker)
+ai-memory/batches/*.txt
+ai-memory/batches/manifest.json
+ai-memory/outputs/*.json

@@ -101,6 +101,18 @@ const ProviderConfigSchema = new Schema<IProviderConfig>(
   { _id: false }
 );
 
+// Enforce Taqnyat-only at schema level; legacy providers are blocked in production.
+ProviderConfigSchema.pre("validate", function (next) {
+  if (this.provider && this.provider !== "TAQNYAT") {
+    const err = new Error("Only TAQNYAT SMS provider is supported in production.");
+    // Allow mock during development/test; block others
+    if (process.env.NODE_ENV === "production" || process.env.ENFORCE_TAQNYAT === "true") {
+      return next(err);
+    }
+  }
+  return next();
+});
+
 const SMSSettingsSchema = new Schema<ISMSSettings>(
   {
     // orgId index defined explicitly below with unique constraint - don't duplicate inline

@@ -14,6 +14,11 @@ const zatcaBreaker = createBreaker("zatca", 60_000);
 const sendgridBreaker = createBreaker("sendgrid", 30_000);
 // Taqnyat - ONLY production SMS provider (CITC-compliant for Saudi Arabia)
 const taqnyatBreaker = createBreaker("taqnyat", 20_000);
+// Legacy SMS breakers kept for compatibility/monitoring; these providers are not used in production
+const twilioBreaker = createBreaker("twilio", 20_000);
+const unifonicBreaker = createBreaker("unifonic", 20_000);
+const awsSnsBreaker = createBreaker("aws-sns", 20_000);
+const nexmoBreaker = createBreaker("nexmo", 20_000);
 
 export const serviceCircuitBreakers = {
   paytabs: paytabsBreaker,
@@ -21,6 +26,10 @@ export const serviceCircuitBreakers = {
   zatca: zatcaBreaker,
   sendgrid: sendgridBreaker,
   taqnyat: taqnyatBreaker,
+  twilio: twilioBreaker,
+  unifonic: unifonicBreaker,
+  "aws-sns": awsSnsBreaker,
+  nexmo: nexmoBreaker,
 } as const;
 
 export type CircuitBreakerName = keyof typeof serviceCircuitBreakers;

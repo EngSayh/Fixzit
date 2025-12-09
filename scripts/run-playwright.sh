@@ -26,26 +26,32 @@ export AUTH_SECRET
 export NEXTAUTH_SECRET="${NEXTAUTH_SECRET:-$AUTH_SECRET}"
 export AUTH_SALT="${AUTH_SALT:-authjs.session-token}"
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DEFAULT_HOST="127.0.0.1"
+export HOSTNAME="$DEFAULT_HOST"
+export PW_HOSTNAME="$DEFAULT_HOST"
+
 # Prefer running against a built server to avoid dev-mode manifest gaps
 if [[ "${PW_USE_BUILD:-true}" == "true" ]]; then
   if [[ "${PW_SKIP_BUILD:-false}" == "true" ]]; then
     echo "🔄 Skipping pnpm build (PW_SKIP_BUILD=true); using existing .next output"
   else
     # Ensure a clean build output to avoid stale traces/manifests breaking standalone builds
-    rm -rf .next || true
-    pnpm build
+    rm -rf "$ROOT_DIR/.next" || true
+    export NEXT_OUTPUT="${NEXT_OUTPUT:-standalone}"
+    (cd "$ROOT_DIR" && pnpm build)
     # Temporary workaround for Next.js export rename of 500.html in some environments:
     # Pre-create the export 500 page if not generated to avoid ENOENT during rename.
-    if [[ ! -f ".next/export/500.html" ]]; then
-      mkdir -p .next/export
-      echo "<html><body>500</body></html>" > .next/export/500.html
+    if [[ ! -f "$ROOT_DIR/.next/export/500.html" ]]; then
+      mkdir -p "$ROOT_DIR/.next/export"
+      echo "<html><body>500</body></html>" > "$ROOT_DIR/.next/export/500.html"
     fi
   fi
 
   # Next.js with output: standalone cannot use `next start`.
   # Serve the standalone bundle directly and ensure static assets are present.
-  STANDALONE_DIR=".next/standalone"
-  STATIC_SRC=".next/static"
+  STANDALONE_DIR="$ROOT_DIR/.next/standalone"
+  STATIC_SRC="$ROOT_DIR/.next/static"
   STATIC_DEST="$STANDALONE_DIR/.next/static"
   mkdir -p "$(dirname "$STATIC_DEST")"
   if [[ -d "$STATIC_SRC" ]]; then
@@ -54,11 +60,13 @@ if [[ "${PW_USE_BUILD:-true}" == "true" ]]; then
   fi
 
   export PORT="${PORT:-3000}"
-  export HOSTNAME="${HOSTNAME:-0.0.0.0}"
-  export PW_WEB_SERVER="PORT=$PORT HOSTNAME=$HOSTNAME node $STANDALONE_DIR/server.js"
-  export PW_WEB_URL="${PW_WEB_URL:-http://localhost:$PORT}"
+  export HOSTNAME="$DEFAULT_HOST"
+  export PW_WEB_SERVER="cd \"$ROOT_DIR\" && HOSTNAME=$HOSTNAME PORT=$PORT node \"$STANDALONE_DIR/server.js\""
+  export PW_WEB_URL="${PW_WEB_URL:-http://$HOSTNAME:$PORT}"
 else
-  export PW_WEB_SERVER="${PW_WEB_SERVER:-pnpm dev:webpack --hostname 0.0.0.0 --port 3000}"
+  export PORT="${PORT:-3000}"
+  export HOSTNAME="$DEFAULT_HOST"
+  export PW_WEB_SERVER="${PW_WEB_SERVER:-cd \"$ROOT_DIR\" && pnpm dev:webpack --hostname $HOSTNAME --port $PORT}"
 fi
 
 CONFIG_FILE="${PLAYWRIGHT_CONFIG:-tests/playwright.config.ts}"
