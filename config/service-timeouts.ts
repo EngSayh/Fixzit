@@ -64,10 +64,15 @@ export const SERVICE_RESILIENCE = {
       baseDelayMs: 1_000,
     },
   },
-  twilio: defaultResilience,
-  unifonic: defaultResilience,
-  "aws-sns": defaultResilience,
-  nexmo: defaultResilience,
+  sendgrid: {
+    timeouts: {
+      sendMs: toNumber(process.env.SENDGRID_TIMEOUT_MS, 10_000),
+    },
+    retries: {
+      maxAttempts: toNumber(process.env.SENDGRID_MAX_ATTEMPTS, 3),
+      baseDelayMs: toNumber(process.env.SENDGRID_RETRY_DELAY_MS, 500),
+    },
+  },
 } as const;
 
 export type ServiceResilienceKey = keyof typeof SERVICE_RESILIENCE;
