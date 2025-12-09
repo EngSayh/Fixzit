@@ -33,6 +33,7 @@ interface ReadinessStatus {
     redis?: number;
   };
   timestamp: string;
+  requiresRedis?: boolean;
 }
 
 export async function GET(): Promise<NextResponse> {
@@ -77,6 +78,7 @@ export async function GET(): Promise<NextResponse> {
     }
 
     // Check Redis (optional - if configured)
+    const redisConfigured = Boolean(process.env.REDIS_URL);
     const redisClient = getRedisClient();
     if (redisClient) {
       const redisStart = Date.now();
@@ -99,8 +101,12 @@ export async function GET(): Promise<NextResponse> {
       }
     }
 
-    // Ready if MongoDB is OK (Redis is optional)
-    status.ready = status.checks.mongodb === "ok";
+    // Ready if MongoDB is OK and Redis is OK when configured
+    // This gates readiness on Redis when it's configured to prevent traffic
+    // routing to pods that can't reach the Redis dependency
+    const redisOk = !redisConfigured || status.checks.redis === "ok";
+    status.ready = status.checks.mongodb === "ok" && redisOk;
+    status.requiresRedis = redisConfigured;
 
     if (status.ready) {
       return NextResponse.json(status, { status: 200 });

@@ -624,9 +624,17 @@ export function startSMSWorker(): Worker<ISMSJobData> | null {
   // Worker throughput limit: configurable via env, default 120/min to accommodate multiple orgs
   // Per-org limits are enforced separately via checkOrgRateLimit (default 60/org/min)
   // Global worker limit should be >= max expected concurrent orgs * per-org limit
-  const workerMaxPerMinute = process.env.SMS_WORKER_MAX_PER_MIN
-    ? Math.max(30, Number(process.env.SMS_WORKER_MAX_PER_MIN))
+  const parsedLimit = Number(process.env.SMS_WORKER_MAX_PER_MIN);
+  const workerMaxPerMinute = Number.isFinite(parsedLimit) && parsedLimit > 0
+    ? Math.max(30, parsedLimit)
     : 120;
+
+  if (process.env.SMS_WORKER_MAX_PER_MIN && !Number.isFinite(parsedLimit)) {
+    logger.warn("[SMS Worker] Invalid SMS_WORKER_MAX_PER_MIN value, using default", {
+      value: process.env.SMS_WORKER_MAX_PER_MIN,
+      default: 120,
+    });
+  }
 
   smsWorker = new Worker<ISMSJobData>(
     SMS_QUEUE_NAME,
