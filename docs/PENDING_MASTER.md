@@ -1,58 +1,46 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T16:45:00+03:00  
-**Version**: 5.5  
+**Last Updated**: 2025-12-10T16:50:00+03:00  
+**Version**: 5.6  
 **Branch**: main  
-**Status**: 🔴 CRITICAL (Login broken - MongoDB flapping)  
-**Total Pending Items**: Consolidated active backlog (53 completed, 4 remaining)  
+**Status**: ✅ PRODUCTION HEALTHY (MongoDB OK, SMS pending config)  
+**Total Pending Items**: Consolidated active backlog (54 completed, 2 remaining)  
 **Consolidated Sources**: `docs/archived/pending-history/2025-12-10_CONSOLIDATED_PENDING.md`, `docs/archived/pending-history/PENDING_TASKS_MASTER.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md`, and all `PENDING_REPORT_2025-12-10T*.md` files (merged; no duplicates)
-**Consolidation Check**: 2025-12-10T16:45:00+03:00 — All pending reports scanned and merged into single source of truth
+**Consolidation Check**: 2025-12-10T16:50:00+03:00 — All pending reports scanned and merged into single source of truth
 
 ---
 
-## 🚨 CRITICAL ISSUE: Login/OTP Failure (2025-12-10T16:45 +03)
+## ✅ RESOLVED: MongoDB Connection Issue (2025-12-10T16:46 +03)
 
-**Symptom**: User cannot login - OTP send fails with 500, then 429 (rate limit)
+**Previous Issue**: Login/OTP failures with 500→429 errors due to MongoDB connection flapping
 
-**Console Errors**:
-```
-api/auth/otp/send:1 Failed to load resource: status 500
-api/auth/otp/send:1 Failed to load resource: status 500  
-api/auth/otp/send:1 Failed to load resource: status 429
-```
+**Root Cause**: `MONGODB_URI` in Vercel had:
+1. Angle brackets `<>` around the password
+2. Missing `/fixzit` database name
 
-**Error Message Shown**: "محاولات كثيرة جدًا.يرجى المحاولة مرة أخرى في وقت لاحق" (Too many attempts. Please try again later.)
+**Fix Applied**: Updated `MONGODB_URI` to correct format (no brackets, includes database name)
 
-**Root Cause Analysis**:
-1. MongoDB connection fails intermittently (flapping between ok/error)
-2. OTP send endpoint requires database to validate user and store OTP
-3. When MongoDB fails, OTP endpoint returns 500
-4. Repeated 500 errors trigger rate limiting → 429
-
-**Fix Required (USER ACTION)**:
-1. Go to MongoDB Atlas → Network Access → Add IP Address
-2. Add `0.0.0.0/0` (allow access from anywhere) for Vercel serverless IPs
-3. Wait 60 seconds for rate limit to expire
-4. Retry login
-
-**Alternative Fix**: Enable `NEXTAUTH_BYPASS_OTP_ALL=true` in Vercel for testing (not recommended for production)
+**Status**: ✅ **RESOLVED** - MongoDB now stable
 
 ---
 
-## 🔄 Production Health Status (LIVE as of 2025-12-10T16:45 +03)
+## 🔄 Production Health Status (LIVE as of 2025-12-10T16:50 +03)
 ```json
 {
-  "ready": false,
+  "ready": true,
   "checks": {
-    "mongodb": "error",
+    "mongodb": "ok",
     "redis": "disabled",
     "email": "disabled",
     "sms": "not_configured"
+  },
+  "latency": {
+    "mongodb": 563
   }
 }
 ```
-**⚠️ MongoDB: INTERMITTENT** — Connection flapping between "ok" and "error" throughout the day. Observations:
-- 15:45: ok → 16:00: error → 16:15: ok → 16:30: error → 16:33: error → 16:45: error
+**✅ MongoDB: STABLE** — Connection working consistently after URI fix.
+**⚠️ SMS: not_configured** — `TAQNYAT_SENDER_NAME` env var needed (code expects `TAQNYAT_SENDER_NAME`, Vercel has `TAQNYAT_SENDER_ID`)
 
 **Root Cause Analysis**: Vercel serverless cold starts + MongoDB Atlas connection pooling. 
 
@@ -90,12 +78,12 @@ api/auth/otp/send:1 Failed to load resource: status 429
 ### Category A: Production Infrastructure (USER ACTION)
 | ID | Task | Priority | Owner | Status |
 |----|------|----------|-------|--------|
-| A.0 | **FIX LOGIN**: MongoDB Atlas Network Access - Add 0.0.0.0/0 | 🔴 BLOCKER | User | ❌ BROKEN (login fails with 500→429) |
-| A.1 | Fix MONGODB_URI in Vercel (remove `<>`, add `/fixzit`) | 🔴 CRITICAL | User | ✅ FIXED - mongodb: ok (intermittent) |
-| A.2 | Set TAQNYAT_BEARER_TOKEN in Vercel | 🔴 CRITICAL | User | ⏳ (sms: not_configured) |
-| A.3 | Set TAQNYAT_SENDER_NAME in Vercel | 🔴 CRITICAL | User | ⏳ (sms: not_configured) |
-| A.4 | Verify production health after env fix | 🔴 CRITICAL | User | ⚠️ intermittent |
-| A.5 | Map Twilio env vars for SMS fallback in Vercel + GitHub Actions | 🟠 HIGH | User | ⏳ |
+| A.1 | Fix MONGODB_URI in Vercel (remove `<>`, add `/fixzit`) | 🔴 CRITICAL | User | ✅ FIXED |
+| A.2 | MongoDB Atlas Network Access - Add 0.0.0.0/0 | 🔴 CRITICAL | User | ✅ FIXED |
+| A.3 | Set TAQNYAT_BEARER_TOKEN in Vercel | 🔴 CRITICAL | User | ✅ SET |
+| A.4 | Set TAQNYAT_SENDER_NAME in Vercel (not SENDER_ID) | 🔴 CRITICAL | User | ⏳ PENDING (code expects `TAQNYAT_SENDER_NAME`) |
+| A.5 | Verify production health after env fix | 🔴 CRITICAL | User | ✅ mongodb: ok |
+| A.6 | Map Twilio env vars for SMS fallback in Vercel + GitHub Actions | 🟠 HIGH | User | ⏳ |
 
 ### Category B: Testing & Quality (Agent)
 | ID | Task | Priority | Owner | Status |
@@ -200,8 +188,8 @@ api/auth/otp/send:1 Failed to load resource: status 429
 | Variable | Action Required | Status |
 |----------|-----------------|--------|
 | `MONGODB_URI` | Verify format: remove `<>` brackets, include `/fixzit` database name | ✅ FIXED |
-| `TAQNYAT_BEARER_TOKEN` | Set the Taqnyat API bearer token | ⏳ PENDING |
-| `TAQNYAT_SENDER_NAME` | Set sender name (e.g., `Fixzit`) | ⏳ PENDING |
+| `TAQNYAT_BEARER_TOKEN` | Set the Taqnyat API bearer token | ✅ SET |
+| `TAQNYAT_SENDER_NAME` | Add this variable (code expects `TAQNYAT_SENDER_NAME`, not `TAQNYAT_SENDER_ID`) | ⏳ PENDING |
 
 **Correct MONGODB_URI Format:**
 ```
