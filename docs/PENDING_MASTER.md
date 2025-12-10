@@ -26,11 +26,16 @@
 **✅ MongoDB: FIXED** — Database connection now working in production!
 
 ## 🔄 Imported OPS Pending (synced 2025-12-10 14:24 +03)
-- **ISSUE-OPS-001 – Production Infrastructure Manual Setup Required** (Critical, Pending Manual Action): set `MONGODB_URI`, `TAQNYAT_SENDER_NAME`, `TAQNYAT_BEARER_TOKEN` in Vercel; set `HEALTH_CHECK_TOKEN` in GitHub Secrets; verify `/api/health` and `/api/health/sms`.
-- **ISSUE-OPS-002 – Production Database Connection Error** (Critical, Pending Merge): merge PR #508 to `main`, then verify `https://fixzit.co/api/health/ready`.
+- **ISSUE-OPS-001 – Production Infrastructure Manual Setup Required** (Critical, Pending Manual Action): ~~set `MONGODB_URI`~~, set `TAQNYAT_SENDER_NAME`, `TAQNYAT_BEARER_TOKEN` in Vercel; set `HEALTH_CHECK_TOKEN` in GitHub Secrets; verify `/api/health` and `/api/health/sms`.
+- **ISSUE-OPS-002 – Production Database Connection Error** (Critical, ✅ RESOLVED): MongoDB now showing "ok" in production health check.
 - **ISSUE-CI-001 – GitHub Actions Workflows Failing** (High, Pending Investigation): check runners, secrets per `docs/GITHUB_SECRETS_SETUP.md`, review workflow syntax.
 - **ISSUE-005 – Mixed orgId Storage in Souq Payouts/Withdrawals** (Major, Pending Migration - Ops): run `npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts` (dry-run then execute).
 - **Pending Operational Checks (Auth & Email Domain)**: set `EMAIL_DOMAIN` (and expose `window.EMAIL_DOMAIN`) before demos/public pages; run `npx tsx scripts/test-api-endpoints.ts --endpoint=auth --BASE_URL=<env-url>`; run E2E auth suites `qa/tests/e2e-auth-unified.spec.ts` and `qa/tests/auth-flows.spec.ts`.
+
+## 🔓 Open Pull Requests
+| PR | Title | Branch | Status |
+|----|-------|--------|--------|
+| #510 | fix(theme): Remove legacy Business.sa and Almarai theme conflicts | fix/ejar-theme-cleanup | 🔲 Draft - awaiting review |
 
 ## 📋 ACTION PLAN BY CATEGORY
 
@@ -125,34 +130,31 @@
 
 ### ISSUE-VERCEL-001: Production Environment Variables
 
-**Status**: ⏳ PENDING USER ACTION
+**Status**: ⚠️ PARTIAL - MongoDB FIXED, SMS still pending
 
-**Current Production Health** (as of 2025-12-10T11:24 UTC):
+**Current Production Health** (as of 2025-12-10T14:24 +03):
 ```json
 {
   "ready": true,
-  "mongodb": "ok",
-  "sms": "not_configured",
-  "redis": "disabled",
-  "email": "disabled",
-  "latency": { "mongodb": 974 }
+  "checks": {
+    "mongodb": "ok",       // ✅ FIXED
+    "sms": "not_configured", // ⏳ PENDING
+    "redis": "disabled",
+    "email": "disabled"
+  },
+  "latency": { "mongodb": 84 }
 }
 ```
 
 **Required Actions in Vercel Dashboard → Settings → Environment Variables:**
 
-| Variable | Action Required |
-|----------|-----------------|
-| `MONGODB_URI` | Remove `<>` placeholder brackets, add `/fixzit` database name |
-| `TAQNYAT_BEARER_TOKEN` | Set the Taqnyat API bearer token |
-| `TAQNYAT_SENDER_NAME` | Set sender name (e.g., `Fixzit`) |
+| Variable | Action Required | Status |
+|----------|-----------------|--------|
+| `MONGODB_URI` | ~~Remove `<>` placeholder brackets, add `/fixzit` database name~~ | ✅ FIXED |
+| `TAQNYAT_BEARER_TOKEN` | Set the Taqnyat API bearer token | ⏳ PENDING |
+| `TAQNYAT_SENDER_NAME` | Set sender name (e.g., `Fixzit`) | ⏳ PENDING |
 
-**Correct MONGODB_URI Format:**
-```
-mongodb+srv://fixzitadmin:REAL_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
-```
-
-**Verification Commands After Fix:**
+**Verification Commands After SMS Fix:**
 ```bash
 curl -s https://fixzit.co/api/health/ready | jq '.checks'
 # Expected: {"mongodb":"ok","redis":"disabled","email":"disabled","sms":"ok"}
@@ -180,7 +182,12 @@ curl -s https://fixzit.co/api/health
 | 11 | Lint | ✅ | 0 errors |
 | 12 | API Tests | ✅ | 1885/1885 passing |
 | 13 | Model Tests | ✅ | 91/91 passing |
-| 14 | Ejar Font Inheritance Fix | ✅ | PR created for font fixes |
+| 14 | Ejar Font Inheritance Fix | ✅ | PR #509 merged |
+| 15 | Production MongoDB Fix | ✅ | `mongodb: "ok"` in production health check |
+| 16 | Ejar Theme Cleanup | ✅ | PR #510 - Removed legacy Business.sa/Almarai conflicts |
+| 17 | Brand Colors Migration | ✅ | `#0061A8` → `#118158` (Ejar Saudi Green) |
+| 18 | Font CSS Variables | ✅ | Removed hardcoded Almarai, use `--font-tajawal` |
+| 19 | Brand Tokens Update | ✅ | `configs/brand.tokens.json` updated with Ejar palette |
 
 ---
 
