@@ -31,7 +31,7 @@
     "customer.ticketing": "Ticketing"
   },
   "ar": {
-    "Customer": "[AR] Customer",
+    "Customer": "عميل",
     "customer.buyer": "مشتري",
     "customer.caseManagement": "إدارة الحالة",
     "customer.client": "عميل",

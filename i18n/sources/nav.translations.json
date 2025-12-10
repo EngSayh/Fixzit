@@ -120,7 +120,7 @@
     "nav.workOrders.trackAssign": "Track & Assign"
   },
   "ar": {
-    "nav.admin": "[AR] Admin",
+    "nav.admin": "الإدارة",
     "nav.admin.assets": "إدارة الأصول",
     "nav.admin.doa": "تفويض الصلاحيات",
     "nav.admin.facilitiesFleet": "المرافق والأسطول",

@@ -245,7 +245,7 @@
     "careers.resumeScanStatus": "Resume Scan الحالة",
     "careers.resumeSize": "حجم الملف يجب أن يكون أقل من 5 ميجابايت",
     "careers.resumeType": "نوع الملف غير صحيح. يُسمح فقط بـ PDF وDOC وDOCX",
-    "careers.resumeUploadNote": "[AR] Resume Upload Note",
+    "careers.resumeUploadNote": "ملاحظة رفع السيرة الذاتية",
     "careers.salary": "الراتب",
     "careers.skills": "المهارات",
     "careers.skillsHint": "افصل بين المهارات بفواصل",
