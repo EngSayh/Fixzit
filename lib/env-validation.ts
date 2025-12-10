@@ -8,6 +8,7 @@
  */
 
 import { logger } from "@/lib/logger";
+import { getEnv } from "@/lib/env";
 
 export interface EnvValidationResult {
   valid: boolean;
@@ -157,11 +158,13 @@ export function validateDatabaseConfig(options: ValidationOptions = {}): EnvVali
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  if (!process.env.MONGODB_URI) {
+  const mongoUri = getEnv("MONGODB_URI");
+
+  if (!mongoUri) {
     if (process.env.NODE_ENV === "production" && strict) {
-      errors.push("MONGODB_URI is required. Database connection will fail.");
+      errors.push("MONGODB_URI (or alias DATABASE_URL/MONGODB_URL/MONGO_URL) is required. Database connection will fail.");
     } else {
-      warnings.push("MONGODB_URI is required. Database connection will fail.");
+      warnings.push("MONGODB_URI not set. Database connection will fail.");
     }
   }
 
@@ -275,15 +278,18 @@ export function validateAllEnv(options: ValidationOptions = {}): EnvValidationRe
  */
 export function getConfigStatus(): Record<string, { configured: boolean; details?: string }> {
   return {
-    twilio: {
+    taqnyat: {
       configured: Boolean(
-        process.env.TWILIO_ACCOUNT_SID &&
-        process.env.TWILIO_AUTH_TOKEN &&
-        process.env.TWILIO_PHONE_NUMBER
+        process.env.TAQNYAT_BEARER_TOKEN &&
+        process.env.TAQNYAT_SENDER_NAME
       ),
     },
-    unifonic: {
-      configured: Boolean(process.env.UNIFONIC_APP_SID && process.env.UNIFONIC_SENDER_ID),
+    legacySmsProviders: {
+      configured: Boolean(
+        process.env.TWILIO_ACCOUNT_SID ||
+        process.env.UNIFONIC_APP_SID
+      ),
+      details: "Legacy SMS providers detected; Taqnyat is the only supported provider.",
     },
     encryption: {
       configured: Boolean(
@@ -291,7 +297,7 @@ export function getConfigStatus(): Record<string, { configured: boolean; details
       ),
     },
     mongodb: {
-      configured: Boolean(process.env.MONGODB_URI),
+      configured: Boolean(getEnv("MONGODB_URI")),
     },
     redis: {
       configured: Boolean(
