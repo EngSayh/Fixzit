@@ -1,8 +1,11 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock jose BEFORE importing context
-const mockJwtVerify = vi.fn();
+// Mock jose with factory - use vi.hoisted for proper hoisting
+const { mockJwtVerify } = vi.hoisted(() => {
+  return { mockJwtVerify: vi.fn() };
+});
+
 vi.mock("jose", () => ({
   jwtVerify: mockJwtVerify,
 }));

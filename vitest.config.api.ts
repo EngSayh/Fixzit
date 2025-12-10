@@ -27,6 +27,12 @@ const mongoRequiredTests = [
   "tests/unit/finance/**",
 ];
 
+// Tests that require Node.js environment (not jsdom)
+const nodeOnlyTests = [
+  "tests/unit/middleware.test.ts",
+  "tests/unit/marketplace/context.test.ts",
+];
+
 const sharedProjectConfig = {
   globals: true,
   reporters: ["default"],
@@ -68,7 +74,18 @@ export default defineConfig({
           environment: "jsdom",
           setupFiles: ["./tests/setup.ts"],
           include: ["**/*.test.ts", "**/*.test.tsx"],
-          exclude: [...baseExcludes, ...mongoRequiredTests, "tests/**/api/**/*.test.{ts,tsx}"],
+          exclude: [...baseExcludes, ...mongoRequiredTests, ...nodeOnlyTests, "tests/**/api/**/*.test.{ts,tsx}"],
+        },
+      }),
+      defineProject({
+        ...sharedViteConfig,
+        test: {
+          ...sharedProjectConfig,
+          name: "server",
+          environment: "node",
+          setupFiles: ["./vitest.setup.ts"],
+          include: nodeOnlyTests,
+          exclude: baseExcludes,
         },
       }),
       defineProject({
