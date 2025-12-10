@@ -12,14 +12,14 @@ export default function WorkOrdersPage() {
 
   if (!effectiveOrgId) {
     return (
-      <div className="p-6">
+      <div className="space-y-4">
         <OrgContextPrompt canImpersonate={canImpersonate} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 p-6">
+    <div className="space-y-4">
       {supportOrg && (
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
           {t("fm.org.supportContext", "Support context: {{name}}", {

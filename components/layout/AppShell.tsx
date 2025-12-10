@@ -29,6 +29,7 @@ export function AppShell({
         header={<TopBar />}
         sidebar={<Sidebar badgeCounts={badgeCounts} />}
         showSidebarToggle
+        contentClassName="px-0 py-0"
       >
         <main
           id="main-content"

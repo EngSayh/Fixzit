@@ -17,6 +17,7 @@ interface ResponsiveLayoutProps {
   header?: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
+  contentClassName?: string;
 }
 
 /**
@@ -36,6 +37,7 @@ export default function ResponsiveLayout({
   header,
   footer,
   className = "",
+  contentClassName,
 }: ResponsiveLayoutProps) {
   const { screenInfo, responsiveClasses } = useResponsiveLayout();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -106,7 +108,7 @@ export default function ResponsiveLayout({
             ${sidebar && (screenInfo.isDesktop || screenInfo.isLarge) ? `md:ms-64` : "ms-0"}
           `}
         >
-          <div className={`${responsiveClasses.container} py-6`}>
+          <div className={contentClassName || `${responsiveClasses.container} py-6`}>
             {children}
           </div>
         </main>

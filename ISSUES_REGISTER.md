@@ -405,7 +405,7 @@ Remove ALL index definitions from `server/models/Property.ts` (lines 246-260). K
 
 **Severity**: 🟧 MAJOR  
 **Category**: Data integrity, Performance, Tenant isolation  
-**Status**: OPEN  
+**Status**: ⏳ PENDING MIGRATION (Ops)  
 
 **Description**:  
 `souq_payouts` historically stored `orgId` as ObjectId while `souq_settlements` and current code paths write `orgId` as string. This mixed storage forces `$in` queries with dual types, reduces index selectivity, and can duplicate tenant rows. Withdrawals reference payouts by `orgId`, so drift causes lookup misses and uneven performance.
@@ -414,6 +414,15 @@ Remove ALL index definitions from `server/models/Property.ts` (lines 246-260). K
 - `services/souq/settlements/payout-processor.ts` (uses `$in` for mixed types; canonical writes now string)  
 - `services/souq/settlements/balance-service.ts` (withdrawal lookups with `$in`)  
 - Migration added: `scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts`
+
+**Required Action (Ops Team)**:
+```bash
+# Dry run first
+npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts --dry-run
+
+# Then execute
+npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts
+```
 
 **Impact**:  
 - Index scans and poor selectivity on `orgId` in payouts/withdrawals.  
@@ -806,7 +815,15 @@ const WorkOrderSchema = new Schema(
 
 **Severity**: 🟨 MODERATE  
 **Category**: Testing, Reliability  
-**Status**: OPEN
+**Status**: ✅ RESOLVED (2025-12-10)
+
+**Resolution**: Created `tests/unit/lib/db/index-coverage.test.ts` with 15 tests verifying:
+- Critical collection indexes are defined (users, properties, work_orders, invoices, vendors)
+- Souq marketplace indexes exist (sellers, orders, payouts)
+- Index naming conventions followed (named indexes with collection prefix)
+- Background index creation used
+- Tenant isolation indexes enforced (org-scoped unique indexes)
+- Legacy global unique indexes are dropped
 
 **Description**:  
 There is no automated test that verifies:

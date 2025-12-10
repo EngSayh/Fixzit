@@ -116,8 +116,8 @@ export default function HRDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">{stat.title}</p>
-                  <p className="text-2xl font-bold mt-1">{stat.value}</p>
+                  <p className="text-[13px] text-[var(--color-text-secondary)]">{stat.title}</p>
+                  <p className="text-[24px] font-bold mt-1 text-[var(--color-text-primary)]">{stat.value}</p>
                 </div>
                 <div className={`${stat.bgColor} ${stat.color} p-3 rounded-lg`}>
                   <stat.icon className="h-6 w-6" />

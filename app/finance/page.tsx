@@ -100,7 +100,7 @@ export default function FinancePage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">
+        <h1 className="text-[24px] font-bold text-[var(--color-text-primary)]">
           {t("finance.title", "Finance — Invoices")}
         </h1>
         <CreateInvoice orgId={orgId} onCreated={() => mutate()} />
@@ -144,19 +144,21 @@ export default function FinancePage() {
               <Card key={inv.id}>
                 <CardContent className="p-4 space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="font-semibold">{inv.number}</div>
-                    <span className="text-xs rounded-full px-2 py-1 border">
+                    <div className="font-semibold text-[var(--color-text-primary)]">
+                      {inv.number}
+                    </div>
+                    <span className="text-xs rounded-full px-2 py-1 border border-[var(--color-border-subtle)] bg-[var(--color-brand-primary-surface)] text-[var(--color-brand-primary)]">
                       {inv.status}
                     </span>
                   </div>
-                  <div className="text-sm text-slate-600">
+                  <div className="text-sm text-[var(--color-text-secondary)]">
                     {t("finance.issue", "Issue")}:{" "}
                     <ClientDate date={inv.issueDate} format="date-only" /> •{" "}
                     {t("finance.due", "Due")}:{" "}
                     <ClientDate date={inv.dueDate} format="date-only" />
                   </div>
                   <Separator />
-                  <div className="text-sm">
+                  <div className="text-sm text-[var(--color-text-primary)]">
                     {t("finance.total", "Total")}: {inv.total} {inv.currency} (
                     {t("finance.vat", "VAT")} {inv.vatAmount})
                   </div>
