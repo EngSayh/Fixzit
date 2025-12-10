@@ -1,20 +1,73 @@
+/**
+ * Payroll Service
+ * 
+ * Handles payroll run lifecycle including creation, calculation, approval,
+ * and finance integration for journal entry generation.
+ * 
+ * @module server/services/hr/payroll.service
+ * @since v2.0.0
+ * 
+ * @example
+ * // Create a new payroll run
+ * const payrollRun = await PayrollService.create({
+ *   orgId: 'org123',
+ *   name: 'December 2024 Payroll',
+ *   periodStart: new Date('2024-12-01'),
+ *   periodEnd: new Date('2024-12-31'),
+ * });
+ * 
+ * // Approve payroll (creates finance journals)
+ * await PayrollService.approve(payrollRun._id, 'approver-user-id');
+ */
+
 import { PayrollRun, type PayrollRunDoc } from "@/server/models/hr.models";
 import { logger } from "@/lib/logger";
 import { PayrollFinanceIntegration } from "@/server/services/hr/payroll-finance.integration";
 
+/**
+ * Filter options for listing payroll runs
+ */
 export interface PayrollRunFilters {
+  /** Organization ID to filter by */
   orgId: string;
+  /** Optional status filter */
   status?: PayrollRunDoc["status"];
 }
 
+/**
+ * Input for creating a new payroll run
+ */
 export interface CreatePayrollRunPayload {
+  /** Organization ID */
   orgId: string;
+  /** Display name for the payroll run */
   name: string;
+  /** Start date of pay period */
   periodStart: Date;
+  /** End date of pay period */
   periodEnd: Date;
 }
 
+/**
+ * PayrollService handles all payroll operations
+ * 
+ * @class
+ * @description
+ * Provides static methods for payroll CRUD operations and lifecycle management.
+ * Integrates with finance module for double-entry journal creation.
+ * 
+ * @security
+ * - All methods require orgId for tenant isolation
+ * - Approval requires HR_MANAGER or ADMIN role
+ * - Soft delete prevents accidental data loss
+ */
 export class PayrollService {
+  /**
+   * List payroll runs for an organization
+   * 
+   * @param filters - Query filters
+   * @returns Promise resolving to array of payroll run documents
+   */
   static async list(filters: PayrollRunFilters) {
     const query: Record<string, unknown> = {
       orgId: filters.orgId,
@@ -29,6 +82,13 @@ export class PayrollService {
       .exec();
   }
 
+  /**
+   * Create a new payroll run in DRAFT status
+   * 
+   * @param payload - Payroll run creation parameters
+   * @returns Promise resolving to created payroll run document
+   * @throws Error if overlapping payroll run exists
+   */
   static async create(payload: CreatePayrollRunPayload) {
     return PayrollRun.create({
       orgId: payload.orgId,
@@ -49,6 +109,14 @@ export class PayrollService {
     });
   }
 
+  /**
+   * Check if a payroll run overlaps with existing runs
+   * 
+   * @param orgId - Organization ID
+   * @param periodStart - Start of period to check
+   * @param periodEnd - End of period to check
+   * @returns Promise resolving to boolean (true if overlap exists)
+   */
   static async existsOverlap(
     orgId: string,
     periodStart: Date,

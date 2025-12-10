@@ -1,16 +1,43 @@
+/**
+ * Escalation Service
+ * 
+ * Resolves escalation contacts for issues, tickets, and support requests.
+ * Implements role-based authorization to determine appropriate contacts.
+ * 
+ * @module server/services/escalation.service
+ * @since v2.0.0
+ * 
+ * @example
+ * // Resolve escalation contact for a user
+ * const contact = await resolveEscalationContact(sessionUser, 'work-order-123');
+ * console.log(contact.email); // admin@org.com or support@fixzit.co
+ */
+
 import { Types } from 'mongoose';
 import type { SessionUser } from '@/server/middleware/withAuthRbac';
 import { connectMongo } from '@/lib/mongo';
 import { logger } from '@/lib/logger';
 import { EMAIL_DOMAINS } from '@/lib/config/domains';
 
+/**
+ * Contact information for escalation routing
+ */
 export type EscalationContact = {
+  /** Role of the contact person */
   role: string;
+  /** Display name of the contact */
   name?: string;
+  /** Email address for escalation */
   email?: string;
+  /** User ID if internal user */
   user_id?: string;
 };
 
+/**
+ * Roles that can trigger escalation lookups
+ * Ordered by priority (highest first)
+ * @internal
+ */
 const PRIORITY_ROLES = [
   'SUPER_ADMIN',
   'CORPORATE_ADMIN',
@@ -21,6 +48,10 @@ const PRIORITY_ROLES = [
   'MARKETPLACE_ADMIN',
 ];
 
+/**
+ * User-like interface for display name derivation
+ * @internal
+ */
 interface UserLike {
   username?: string;
   name?: string;
@@ -30,6 +61,13 @@ interface UserLike {
   };
 }
 
+/**
+ * Derive display name from user object
+ * Tries: username > name > firstName + lastName
+ * @param user - User object to derive name from
+ * @returns Display name or undefined if none found
+ * @internal
+ */
 function deriveDisplayName(user: UserLike | null | undefined): string | undefined {
   return (
     user?.username ||
@@ -39,6 +77,30 @@ function deriveDisplayName(user: UserLike | null | undefined): string | undefine
   );
 }
 
+/**
+ * Resolve the appropriate escalation contact for a user
+ * 
+ * This function determines who should be contacted for escalation
+ * based on the user's organization hierarchy and role.
+ * 
+ * @param user - Session user requesting escalation
+ * @param context - Optional context string (e.g., ticket ID, work order ID)
+ * @returns Promise resolving to escalation contact information
+ * 
+ * @example
+ * // For a tenant user, returns their property manager or admin
+ * const contact = await resolveEscalationContact(tenantUser);
+ * 
+ * @example
+ * // For unauthorized roles, returns default support
+ * const contact = await resolveEscalationContact(guestUser);
+ * // contact.email === 'support@fixzit.co'
+ * 
+ * @security
+ * - Only authorized roles can query organization contacts
+ * - Unauthorized users receive generic support fallback
+ * - Does not expose internal org structure to unauthorized users
+ */
 export async function resolveEscalationContact(
   user: SessionUser,
   context?: string,

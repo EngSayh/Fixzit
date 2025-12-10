@@ -1,5 +1,26 @@
-// Subscription Billing Service
-// Handles recurring billing, trial management, and subscription lifecycle
+/**
+ * Subscription Billing Service
+ * 
+ * Handles recurring billing, trial management, and subscription lifecycle
+ * for corporate and owner subscriptions.
+ * 
+ * @module server/services/subscriptionBillingService
+ * @since v2.0.0
+ * 
+ * @example
+ * // Create a new subscription
+ * const subscription = await createSubscriptionFromCheckout({
+ *   subscriberType: 'CORPORATE',
+ *   priceBookId: '507f1f77bcf86cd799439011',
+ *   modules: ['fm', 'hr'],
+ *   seats: 10,
+ *   billingCycle: 'MONTHLY',
+ *   currency: 'SAR',
+ * });
+ * 
+ * // Charge recurring billing
+ * await chargeRecurringBilling(subscription._id, payTabsClient);
+ */
 
 import { Types } from "mongoose";
 import Subscription from "../models/Subscription";
@@ -7,15 +28,31 @@ import PriceBook from "../models/PriceBook";
 import { connectToDatabase } from "../../lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 
+/**
+ * Result from PayTabs recurring charge API
+ */
 export interface PayTabsChargeResult {
+  /** Transaction reference from PayTabs */
   tran_ref: string;
+  /** Charge status */
   status: "SUCCESS" | "FAILED";
+  /** Error message if charge failed */
   error_message?: string;
+  /** Amount charged */
   amount: number;
+  /** Currency code (e.g., SAR, USD) */
   currency: string;
 }
 
+/**
+ * PayTabs client interface for recurring charges
+ */
 export interface PayTabsClient {
+  /**
+   * Charge a saved card token for recurring billing
+   * @param payload - Charge parameters
+   * @returns Promise resolving to charge result
+   */
   chargeRecurring(_payload: {
     profileId: string;
     token: string;
@@ -26,18 +63,37 @@ export interface PayTabsClient {
   }): Promise<PayTabsChargeResult>;
 }
 
+/**
+ * Input parameters for creating a new subscription
+ */
 export interface CreateSubscriptionInput {
+  /** Type of subscriber (corporate org or individual owner) */
   subscriberType: "CORPORATE" | "OWNER";
+  /** Tenant/Organization ID for corporate subscriptions */
   tenantId?: string;
+  /** User ID for owner subscriptions */
   ownerUserId?: string;
+  /** Price book ID defining pricing tiers */
   priceBookId: string;
+  /** List of module slugs to enable */
   modules: string[];
+  /** Number of user seats */
   seats: number;
+  /** Billing frequency */
   billingCycle: "MONTHLY" | "ANNUAL";
+  /** Billing currency */
   currency: "USD" | "SAR";
+  /** Whether to auto-renew at period end */
   autoRenew?: boolean;
 }
 
+/**
+ * Calculate billing period dates based on start date and cycle
+ * @param from - Start date of the billing period
+ * @param cycle - Billing cycle (monthly or annual)
+ * @returns Object containing period dates
+ * @internal
+ */
 function addBillingPeriod(
   from: Date,
   cycle: "MONTHLY" | "ANNUAL",
@@ -51,6 +107,25 @@ function addBillingPeriod(
 type SubscriptionDocument = Awaited<ReturnType<typeof Subscription.findById>>;
 type SubscriptionNonNull = NonNullable<SubscriptionDocument>;
 
+/**
+ * Create a new subscription from checkout flow
+ * 
+ * @param input - Subscription creation parameters
+ * @returns Promise resolving to created subscription document
+ * @throws Error if price book ID is invalid
+ * 
+ * @example
+ * const sub = await createSubscriptionFromCheckout({
+ *   subscriberType: 'CORPORATE',
+ *   tenantId: 'org123',
+ *   priceBookId: 'price456',
+ *   modules: ['fm', 'hr', 'finance'],
+ *   seats: 25,
+ *   billingCycle: 'ANNUAL',
+ *   currency: 'SAR',
+ *   autoRenew: true,
+ * });
+ */
 export async function createSubscriptionFromCheckout(
   input: CreateSubscriptionInput,
 ): Promise<SubscriptionNonNull> {
