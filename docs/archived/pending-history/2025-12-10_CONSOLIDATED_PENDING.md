@@ -1,9 +1,9 @@
-# Consolidated Pending Report — 2025-12-10T13:40 +03
+# Master Pending Report — 2025-12-10T11:07:28Z (UTC)
 
-**Generated**: December 10, 2025, 13:40 +03:00  
+**Generated/Updated**: December 10, 2025, 11:07:28 UTC  
 **Branch**: main (after PR #508 merge)  
-**Agent Session**: Continuation session  
-**Status**: Active execution in progress
+**Agent Session**: Continuation session (all prior pending reports merged)  
+**Status**: Active execution in progress — master list (do NOT create duplicate pending reports)
 
 ---
 
@@ -35,6 +35,8 @@
 |---|-------|-------------|--------|-------|
 | C.1 | MONGODB_URI Format | Password may have `<>` brackets (placeholder markers), missing `/fixzit` database name | Update in Vercel Dashboard | **USER** |
 | C.2 | Verify Production Health | After Vercel update | `curl https://fixzit.co/api/health` should return `healthy` | **USER** |
+| C.3 | SMS Queue Retry Ceiling | BullMQ attempts not aligned to `maxRetries`; `processSMSJob` does not short-circuit when `retryCount >= maxRetries` → risk of duplicate/over-budget sends | Align attempts to `maxRetries`; add guard before send loop | **AGENT** |
+| C.4 | SLA Monitor Auth Guard | `app/api/jobs/sms-sla-monitor/route.ts` uses `isSuperAdmin` flag + cron header without enforcing canonical SUPER_ADMIN or mandatory `CRON_SECRET` when no session | Enforce STRICT v4.1 role check + required `CRON_SECRET` header path | **AGENT** |
 
 ### Correct MONGODB_URI Format
 ```
@@ -50,6 +52,7 @@ mongodb+srv://fixzitadmin:REAL_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryW
 | H.1 | E2E Tests | 🔲 NOT STARTED | `USE_DEV_SERVER=true pnpm test:e2e` - requires stable dev server |
 | H.2 | GitHub Actions | ⚠️ EXTERNAL | All workflows fail in 2-6s - runner/secrets issue |
 | H.3 | Production SMS Health | ⏳ PENDING DB FIX | `curl https://fixzit.co/api/health/sms` |
+| H.4 | Twilio Env Mapping | ⚠️ MISSING | `TWILIO_*` envs used for SMS fallback not mapped in GitHub Actions/Vercel; add secrets to workflows and project envs |
 
 ---
 
@@ -60,6 +63,9 @@ mongodb+srv://fixzitadmin:REAL_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryW
 | M.1 | AI Memory Population | 🔲 NOT STARTED | 353 batches in `ai-memory/batches/`, master-index has 0 entries |
 | M.2 | Dynamic Translation Keys | ⚠️ DOCUMENTED | 4 files use `t(\`${expr}\`)` - cannot be statically audited |
 | M.3 | TAQNYAT_SENDER_NAME | ⚠️ CHECK VERCEL | Verify env var name matches code expectations |
+| M.4 | SMS Index Coverage | ⚠️ PERFORMANCE | Add compound indexes on `{orgId, status, createdAt}` and `{orgId, status, nextRetryAt}` to match admin list/retry filters |
+| M.5 | Bulk Retry Clamp | ⚠️ SAFETY | `retry-all-failed` POST lacks limit cap (GET clamps to 500); cap to 500 to avoid massive requeues |
+| M.6 | Env Validation Coverage | ⚠️ GAP | Add `CRON_SECRET` and `UNIFONIC_APP_TOKEN` checks to `lib/env-validation.ts` (SLA cron + SMS) |
 
 ### Dynamic Translation Key Files (Manual Review)
 1. `app/fm/properties/leases/page.tsx`
@@ -78,6 +84,7 @@ mongodb+srv://fixzitadmin:REAL_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryW
 | L.3 | Test Speed Optimization | Faster CI | Add `--bail 1` |
 | L.4 | setupTestDb Helper | Less boilerplate | Create shared helper |
 | L.5 | 3-Tier Health Status | Better observability | healthy/degraded/unhealthy |
+| L.6 | SMS Worker Start Guard | Hygiene | In `instrumentation.ts`, consider honoring `queueEnabled` before auto-starting SMS worker when Redis exists |
 
 ---
 
@@ -87,7 +94,7 @@ mongodb+srv://fixzitadmin:REAL_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryW
 |---|------|-------------|
 | P.1 | Pre-commit Hooks | Add translation audit |
 | P.2 | CI/CD Health Smoke | Add production health check after deploy |
-| P.3 | Environment Validation | Add startup script to validate env vars |
+| P.3 | Environment Validation | Add startup script to validate env vars (include `CRON_SECRET`, Unifonic token) |
 | P.4 | Database Connection Retry | Add exponential backoff for cold starts |
 
 ---
@@ -102,7 +109,7 @@ mongodb+srv://fixzitadmin:REAL_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryW
     "redis": "disabled",
     "email": "disabled"
   },
-  "timestamp": "2025-12-10T10:36:54.075Z"
+  "timestamp": "2025-12-10T11:07:28Z (last known; update after next health check)"
 }
 ```
 
@@ -149,12 +156,13 @@ mongodb+srv://fixzitadmin:REAL_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryW
 - `tests/unit/lib/otp-utils.test.ts` - Test fix
 - `ISSUES_REGISTER.md` - Updated to v2.2
 - `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_SESSION_2.md`
+- `lib/queues/sms-queue.ts` / `lib/env-validation.ts` / `app/api/jobs/sms-sla-monitor/route.ts` / `.github/workflows/*` — pending fixes listed above (not yet applied)
 
 ---
 
 ## 🔗 PREVIOUS PENDING REPORTS (Consolidated)
 
-These reports have been merged into this document:
+These reports have been merged into this master document (do NOT create new pending files):
 - `docs/archived/PENDING_REPORT_2025-12-10T10-20-55Z.md`
 - `docs/archived/PENDING_REPORT_2025-12-10T10-26-13Z.md`
 - `docs/archived/PENDING_REPORT_2025-12-10T10-34-18Z.md`

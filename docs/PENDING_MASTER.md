@@ -58,8 +58,8 @@
 | E.1 | RTL CSS audit (`pnpm lint:rtl`) | 🟢 LOW | Agent | ✅ PASS |
 | E.2 | Console.log cleanup | 🟢 LOW | Agent | ✅ No issues found |
 | E.3 | setupTestDb helper creation | 🟢 LOW | Agent | 🔲 |
-| E.4 | 3-tier health status implementation | 🟢 LOW | Agent | 🔲 |
-| E.5 | Centralized phone masking | 🟢 LOW | Agent | 🔲 |
+| E.4 | 3-tier health status implementation | 🟢 LOW | Agent | ✅ Already implemented (ok/error/timeout) |
+| E.5 | Centralized phone masking | 🟢 LOW | Agent | ✅ Consolidated to redactPhoneNumber |
 
 ### Category F: Process Improvements (Agent)
 | ID | Task | Priority | Owner | Status |
