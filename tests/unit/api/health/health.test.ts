@@ -12,6 +12,10 @@ vi.mock("@/lib/mongo", () => ({
   db: Promise.resolve({
     command: vi.fn().mockResolvedValue({ ok: 1 }),
   }),
+  pingDatabase: vi.fn().mockResolvedValue({
+    ok: true,
+    latencyMs: 5,
+  }),
 }));
 
 vi.mock("@/lib/redis", () => ({
@@ -60,6 +64,33 @@ describe("Health Endpoints", () => {
 
   describe("GET /api/health/ready", () => {
     it("returns 200 when MongoDB is healthy and Redis not configured", async () => {
+      vi.resetModules();
+      
+      vi.doMock("@/lib/mongo", () => ({
+        db: Promise.resolve({
+          command: vi.fn().mockResolvedValue({ ok: 1 }),
+        }),
+        pingDatabase: vi.fn().mockResolvedValue({
+          ok: true,
+          latencyMs: 5,
+        }),
+      }));
+
+      vi.doMock("@/lib/redis", () => ({
+        getRedisClient: vi.fn(() => null),
+      }));
+
+      vi.doMock("@/lib/resilience", () => ({
+        withTimeout: vi.fn(async (fn: (signal: AbortSignal) => Promise<unknown>) => {
+          const controller = new AbortController();
+          return fn(controller.signal);
+        }),
+      }));
+
+      vi.doMock("@/lib/logger", () => ({
+        logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      }));
+
       const { GET: getReady } = await import("@/app/api/health/ready/route");
       const response = await getReady();
       const json = await response.json();
@@ -77,6 +108,11 @@ describe("Health Endpoints", () => {
       vi.doMock("@/lib/mongo", () => ({
         db: Promise.resolve({
           command: vi.fn().mockRejectedValue(new Error("Connection refused")),
+        }),
+        pingDatabase: vi.fn().mockResolvedValue({
+          ok: false,
+          latencyMs: 3000,
+          error: "Connection refused",
         }),
       }));
 
@@ -112,6 +148,10 @@ describe("Health Endpoints", () => {
       vi.doMock("@/lib/mongo", () => ({
         db: Promise.resolve({
           command: vi.fn().mockResolvedValue({ ok: 1 }),
+        }),
+        pingDatabase: vi.fn().mockResolvedValue({
+          ok: true,
+          latencyMs: 5,
         }),
       }));
 
@@ -150,6 +190,10 @@ describe("Health Endpoints", () => {
       vi.doMock("@/lib/mongo", () => ({
         db: Promise.resolve({
           command: vi.fn().mockResolvedValue({ ok: 1 }),
+        }),
+        pingDatabase: vi.fn().mockResolvedValue({
+          ok: true,
+          latencyMs: 5,
         }),
       }));
 
