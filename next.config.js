@@ -215,17 +215,19 @@ const nextConfig = {
               path.join(nextDir, 'build-manifest.json'),
               path.join(nextDir, 'app-build-manifest.json'),
               path.join(nextDir, 'prerender-manifest.json'),
+              path.join(nextDir, 'middleware-manifest.json'),
               path.join(nextDir, 'required-server-files.json'),
               path.join(nextDir, 'BUILD_ID'),
               path.join(serverDir, 'pages-manifest.json'),
               path.join(serverDir, 'app-paths-manifest.json'),
               path.join(serverDir, 'app-build-manifest.json'),
+              path.join(serverDir, 'middleware-manifest.json'),
               path.join(serverDir, 'next-font-manifest.json'),
+              path.join(serverDir, 'pages', '_app.js.nft.json'),
+              path.join(serverDir, 'pages', '_error.js.nft.json'),
+              path.join(serverDir, 'pages', 'index.js.nft.json'),
             ];
             const stubs = [
-              path.join(serverDir, 'pages', '_document.js'),
-              path.join(serverDir, 'pages', '_app.js'),
-              path.join(serverDir, 'app', 'page.js'),
               path.join(serverDir, 'vendor-chunks', '@auth+core@0.41.0.js'),
             ];
 

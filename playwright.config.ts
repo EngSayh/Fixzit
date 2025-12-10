@@ -162,7 +162,7 @@ export default defineConfig({
     command: WEB_COMMAND,
     url: WEB_URL,
     reuseExistingServer: !process.env.CI,
-    timeout: 180 * 1000, // Increased to 3 minutes for slower builds
+    timeout: 420 * 1000, // Allow longer startup in dev-server mode
     stdout: 'pipe',
     stderr: 'pipe',
     env: {

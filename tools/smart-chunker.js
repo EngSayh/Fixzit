@@ -112,8 +112,8 @@ function getGitTrackedFiles() {
     const output = execSync('git ls-files', { encoding: 'utf-8' });
     return output.trim().split('\n').filter(Boolean);
   } catch (error) {
-    console.error('Error getting git files:', error.message);
-    process.exit(1);
+    console.warn('git ls-files failed, falling back to recursive scan');
+    return [];
   }
 }
 
