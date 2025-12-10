@@ -289,7 +289,9 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const retriedCount = await retryFailedMessages(orgId, limit || 100);
+        // Cap bulk retry to 500 to avoid massive requeues
+        const safeLimit = Math.min(limit || 100, 500);
+        const retriedCount = await retryFailedMessages(orgId, safeLimit);
 
         logger.info("[Admin SMS] Bulk retry triggered", {
           orgId,

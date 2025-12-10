@@ -2,31 +2,42 @@
 > **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Created**: 2025-11-12  
-**Last Updated**: 2025-12-10T11:07:05Z  
+**Last Updated**: 2025-12-10T11:28:16Z  
 **Status**: IN PROGRESS  
 **Target**: 100% COMPLETION - NO EXCEPTIONS
 
 ---
 
-## 🔄 Latest Pending Snapshot — 2025-12-10T11:07:05Z (UTC)
+## 🔄 Latest Pending Snapshot — 2025-12-10T11:28:16Z (UTC)
 
 **Critical/Blockers**
-- Playwright E2E still failing/timeouts; needs stable run against production build (`PW_USE_BUILD=true`, clean `.next`, shard/extend timeouts).
-- `pnpm build` failure: `.next/server/webpack-runtime.js` missing `./34223.js`; investigate artifact generation before E2E.
+- Playwright E2E not stable; `pnpm build` still missing `.next/server/webpack-runtime.js` chunk (`./34223.js`) even after cleaning. Run with `PW_USE_BUILD=true`, clean `.next`, and investigate artifact generation before rerunning suites.
+- `MONGODB_URI` in Vercel likely still has placeholder brackets and lacks `/fixzit`; update secret, then recheck `/api/health` for healthy response.
+- SMS queue retry ceiling: BullMQ attempts not aligned to `maxRetries`; guard in `processSMSJob` may allow extra sends beyond budget.
+- SLA monitor auth guard: `app/api/jobs/sms-sla-monitor/route.ts` relies on cron header without enforcing canonical `SUPER_ADMIN` or required `CRON_SECRET`.
 
 **High**
-- Add mock-based Mongo TLS dry-run to assert `tls: true` and `retryWrites: true` for non-SRV URIs (no regression test yet).
-- Audit logging parity: admin notifications `config/history/send` should mirror audit trail added to `test` endpoint.
+- Add mock-based Mongo TLS dry-run to assert `tls: true` and `retryWrites: true` for non-SRV URIs; add regression test.
+- Audit logging parity: admin notifications `config/history/send` should mirror audit trail on `test` endpoint.
 - Regenerate OpenAPI/contracts to include sanitized `/api/admin/notifications/test` errors and finance 401/403 helpers (`npm run openapi:build`).
+- GitHub Actions workflows failing in 2-6s (runner/secrets issue); restore CI baseline.
+- Production SMS health: validate `/api/health/sms` once secrets are fixed.
+- Twilio env mapping: add `TWILIO_*` secrets to GitHub Actions and Vercel for SMS fallback.
 
 **Medium**
-- DX/CI: shared fetch/auth mock helpers for route unit tests; enable Playwright browser cache and predefined sharding to reduce timeouts.
-- Update Playwright strategy to run against build artifacts or split by tag (`@smoke` vs remainder).
+- DX/CI: add shared fetch/auth mock helpers for route unit tests; enable Playwright browser cache and sharding to reduce timeouts.
+- Playwright strategy: run against build artifacts or split suites by tag (`@smoke` vs remainder) to reduce runtime/flakiness.
+- AI memory population: 353 batches present; master-index has 0 entries—run ingestion to hydrate index.
+- Dynamic translation keys need manual review (cannot auto-audit): `app/fm/properties/leases/page.tsx`, `app/fm/properties/page.tsx`, `app/reports/page.tsx`, `components/admin/RoleBadge.tsx`.
+- `TAQNYAT_SENDER_NAME` env: confirm name matches code expectations (Vercel + CI).
+- SMS indexes: add `{orgId, status, createdAt}` and `{orgId, status, nextRetryAt}` to match admin list/retry filters.
+- Bulk retry clamp: cap POST retry-all-failed to 500 to avoid mass requeues.
+- Env validation coverage: add `CRON_SECRET` and `UNIFONIC_APP_TOKEN` checks to `lib/env-validation.ts`.
 
 **Carry-over**
 - `approveQuotation` tool still missing in `server/copilot/tools.ts` (add implementation + switch/intent wiring).
 
-> Consolidated from all existing pending reports to maintain a single master record without duplication.
+> Consolidated from existing pending reports (PENDING_ITEMS_REPORT.md, 2025-12-10_CONSOLIDATED_PENDING.md, PENDING_REPORT_2025-12-10T10-2x/10-3xZ) to maintain a single master record without duplication.
 
 ---
 

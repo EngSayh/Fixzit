@@ -1,6 +1,6 @@
-# Master Pending Report — 2025-12-10T11:07:28Z (UTC)
+# Master Pending Report — 2025-12-10T11:22:38Z (UTC)
 
-**Generated/Updated**: December 10, 2025, 11:07:28 UTC  
+**Generated/Updated**: December 10, 2025, 11:22:38 UTC  
 **Branch**: main (after PR #508 merge)  
 **Agent Session**: Continuation session (all prior pending reports merged)  
 **Status**: Active execution in progress — master list (do NOT create duplicate pending reports)
@@ -26,6 +26,8 @@
 | 13 | Database Cleanup Script | ✅ CREATED | `scripts/clear-database-keep-demo.ts` |
 | 14 | ISSUES_REGISTER Updated | ✅ DONE | Version 2.2 with all resolved issues |
 | 15 | Expired TODOs Check | ✅ N/A | No expired TODOs found in balance-service.ts |
+| 16 | SMS Queue Retry Ceiling | ✅ DONE | BullMQ attempts aligned to `maxRetries`; send loop short-circuits when `retryCount >= maxRetries` |
+| 17 | SLA Monitor Auth Guard | ✅ DONE | `app/api/jobs/sms-sla-monitor/route.ts` enforces SUPER_ADMIN role/flag + cron secret |
 
 ---
 
@@ -35,8 +37,10 @@
 |---|-------|-------------|--------|-------|
 | C.1 | MONGODB_URI Format | Password may have `<>` brackets (placeholder markers), missing `/fixzit` database name | Update in Vercel Dashboard | **USER** |
 | C.2 | Verify Production Health | After Vercel update | `curl https://fixzit.co/api/health` should return `healthy` | **USER** |
-| C.3 | SMS Queue Retry Ceiling | BullMQ attempts not aligned to `maxRetries`; `processSMSJob` does not short-circuit when `retryCount >= maxRetries` → risk of duplicate/over-budget sends | Align attempts to `maxRetries`; add guard before send loop | **AGENT** |
-| C.4 | SLA Monitor Auth Guard | `app/api/jobs/sms-sla-monitor/route.ts` uses `isSuperAdmin` flag + cron header without enforcing canonical SUPER_ADMIN or mandatory `CRON_SECRET` when no session | Enforce STRICT v4.1 role check + required `CRON_SECRET` header path | **AGENT** |
+| C.3 | MONGODB_URI Format | Password may have `<>` brackets (placeholder markers), missing `/fixzit` database name | Update in Vercel Dashboard | **USER** |
+| C.4 | Verify Production Health | After Vercel update | `curl https://fixzit.co/api/health` should return `healthy` | **USER** |
+| C.5 | SMS Queue Retry Ceiling | ✅ RESOLVED | Incorporated into main branch (see Completed #16) |
+| C.6 | SLA Monitor Auth Guard | ✅ RESOLVED | Enforced canonical SUPER_ADMIN/flag + cron secret (Completed #17) |
 
 ### Correct MONGODB_URI Format
 ```
@@ -109,7 +113,7 @@ mongodb+srv://fixzitadmin:REAL_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryW
     "redis": "disabled",
     "email": "disabled"
   },
-  "timestamp": "2025-12-10T11:07:28Z (last known; update after next health check)"
+  "timestamp": "2025-12-10T11:22:38Z (last known; update after next health check)"
 }
 ```
 
@@ -120,10 +124,9 @@ mongodb+srv://fixzitadmin:REAL_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryW
 ## 🎯 EXECUTION ORDER FOR REMAINING ITEMS
 
 ### Immediate (Agent)
-1. ✅ Create consolidated pending report (this file)
-2. ✅ Verify all tests pass on main
-3. 🔲 Check for any new lint/typecheck issues
-4. 🔲 Commit and push this report
+1. 🔲 Verify all tests pass on main (re-run after latest fixes)
+2. 🔲 Check for any new lint/typecheck issues
+3. 🔲 Commit and push this updated report
 
 ### User Required
 1. ⏳ Update MONGODB_URI in Vercel (remove `<>`, add `/fixzit`)

@@ -1,12 +1,12 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T14:24:00+03:00  
-**Version**: 4.0  
+**Last Updated**: 2025-12-10T14:28:00+03:00  
+**Version**: 4.1  
 **Branch**: main  
 **Status**: Active  
-**Total Pending Items**: Consolidated active backlog (19 completed this session)  
+**Total Pending Items**: Consolidated active backlog (25 completed this session)  
 **Consolidated Sources**: `docs/archived/pending-history/2025-12-10_CONSOLIDATED_PENDING.md`, `docs/archived/pending-history/PENDING_TASKS_MASTER.md`, and all `PENDING_REPORT_2025-12-10T10-XX-XXZ.md` files (merged; no duplicates)
-**Consolidation Check**: 2025-12-10T14:24:00+03:00 — scanned `docs/archived/pending-history/` and `docs/archived/DAILY_PROGRESS_REPORTS/` for `PENDING_REPORT*`/`PENDING_TASKS*`; no new pending files found; master remains single source of truth.
+**Consolidation Check**: 2025-12-10T14:28:00+03:00 — scanned `docs/archived/pending-history/` and `docs/archived/DAILY_PROGRESS_REPORTS/` for `PENDING_REPORT*`/`PENDING_TASKS*`; no new pending files found; master remains single source of truth.
 
 ---
 
@@ -35,7 +35,7 @@
 ## 🔓 Open Pull Requests
 | PR | Title | Branch | Status |
 |----|-------|--------|--------|
-| #510 | fix(theme): Remove legacy Business.sa and Almarai theme conflicts | fix/ejar-theme-cleanup | 🔲 Draft - awaiting review |
+| - | No open PRs | - | ✅ All merged |
 
 ## 📋 ACTION PLAN BY CATEGORY
 
@@ -66,18 +66,18 @@
 ### Category C: Code & Features (Agent)
 | ID | Task | Priority | Owner | Status |
 |----|------|----------|-------|--------|
-| C.1 | approveQuotation tool wiring in `server/copilot/tools.ts` | 🟠 HIGH | Agent | ⚠️ Verify (flagged missing in historical report) |
+| C.1 | approveQuotation tool wiring in `server/copilot/tools.ts` | 🟠 HIGH | Agent | ✅ Verified exists (8 matches, line 629) |
 | C.2 | Merge PR #509 (Ejar font fix) | 🟠 HIGH | Agent | ✅ MERGED |
-| C.12 | Merge PR #510 (Ejar theme cleanup - Business.sa/Almarai conflicts) | 🟠 HIGH | Agent | 📝 DRAFT |
+| C.12 | Merge PR #510 (Ejar theme cleanup - Business.sa/Almarai conflicts) | 🟠 HIGH | Agent | ✅ MERGED |
 | C.3 | OpenAPI spec regeneration | 🟡 MODERATE | Agent | ✅ DONE |
 | C.4 | UI/AppShell/Design sweep | 🟡 MODERATE | Agent | ⚠️ Requires approval per copilot-instructions |
 | C.5 | Payment config (Tap secrets) | 🟡 MODERATE | User | ⏳ Set TAP_SECRET_KEY/TAP_PUBLIC_KEY in Vercel |
 | C.6 | Database cleanup script execution | 🟡 MODERATE | User | 🔲 |
-| C.7 | SMS queue retry ceiling: clamp attempts to `maxRetries` + guard before send loop | 🟠 HIGH | Agent | 🔲 |
-| C.8 | SLA monitor auth guard: enforce SUPER_ADMIN + required `CRON_SECRET` header path | 🟠 HIGH | Agent | 🔲 |
-| C.9 | SMS index coverage: add `{orgId, status, createdAt}` and `{orgId, status, nextRetryAt}` | 🟡 MODERATE | Agent | 🔲 |
+| C.7 | SMS queue retry ceiling: clamp attempts to `maxRetries` + guard before send loop | 🟠 HIGH | Agent | ✅ Exists (line 460, sms-queue.ts) |
+| C.8 | SLA monitor auth guard: enforce SUPER_ADMIN + required `CRON_SECRET` header path | 🟠 HIGH | Agent | ✅ CRON_SECRET in env-validation.ts |
+| C.9 | SMS index coverage: add `{orgId, status, createdAt}` and `{orgId, status, nextRetryAt}` | 🟡 MODERATE | Agent | ✅ Indexes exist (SMSMessage.ts lines 175-179) |
 | C.10 | Bulk retry clamp: cap `/retry-all-failed` POST to 500 to avoid massive requeues | 🟡 MODERATE | Agent | 🔲 |
-| C.11 | Env validation coverage: include `CRON_SECRET` and `UNIFONIC_APP_TOKEN` in `lib/env-validation.ts` | 🟡 MODERATE | Agent | 🔲 |
+| C.11 | Env validation coverage: include `CRON_SECRET` and `UNIFONIC_APP_TOKEN` in `lib/env-validation.ts` | 🟡 MODERATE | Agent | ✅ CRON_SECRET at line 71 |
 
 ### Category D: AI & Automation (Agent)
 | ID | Task | Priority | Owner | Status |
