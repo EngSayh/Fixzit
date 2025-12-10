@@ -1,10 +1,10 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T14:17:00+03:00  
-**Version**: 3.5  
+**Last Updated**: 2025-12-10T14:22:00+03:00  
+**Version**: 3.6  
 **Branch**: main  
 **Status**: Active  
-**Total Pending Items**: 25 actionable + historical backlog (14 completed this session)
+**Total Pending Items**: 25 actionable + historical backlog (18 completed this session)
 
 ---
 
@@ -32,8 +32,8 @@
 | B.2 | Investigate GitHub Actions failures | 🟠 HIGH | Agent | ⚠️ External - runner/permissions issue |
 | B.3 | Auth/JWT secret alignment across envs | 🟠 HIGH | Agent | ✅ Aligned in .env.local and .env.test |
 | B.4 | Add Mongo TLS dry-run test | 🟡 MODERATE | Agent | 🔲 |
-| B.5 | Add Taqnyat unit tests | 🟢 LOW | Agent | 🔲 |
-| B.6 | Add OTP failure path tests | 🟢 LOW | Agent | 🔲 |
+| B.5 | Add Taqnyat unit tests | 🟢 LOW | Agent | ✅ Already exists (258 lines, passing) |
+| B.6 | Add OTP failure path tests | 🟢 LOW | Agent | ✅ Already exists (otp-utils, otp-store-redis) |
 | B.7 | Test speed optimization (`--bail 1`) | 🟢 LOW | Agent | 🔲 |
 
 ### Category C: Code & Features (Agent)
@@ -42,8 +42,8 @@
 | C.1 | Add approveQuotation tool to copilot | 🟠 HIGH | Agent | ✅ Already exists |
 | C.2 | Merge PR #509 (Ejar font fix) | 🟠 HIGH | Agent | ✅ MERGED |
 | C.3 | OpenAPI spec regeneration | 🟡 MODERATE | Agent | ✅ DONE |
-| C.4 | UI/AppShell/Design sweep | 🟡 MODERATE | Agent | 🔲 |
-| C.5 | Payment config (Tap secrets) | 🟡 MODERATE | Agent | 🔲 |
+| C.4 | UI/AppShell/Design sweep | 🟡 MODERATE | Agent | ⚠️ Requires approval per copilot-instructions |
+| C.5 | Payment config (Tap secrets) | 🟡 MODERATE | User | ⏳ Set TAP_SECRET_KEY/TAP_PUBLIC_KEY in Vercel |
 | C.6 | Database cleanup script execution | 🟡 MODERATE | User | 🔲 |
 
 ### Category D: AI & Automation (Agent)
@@ -57,7 +57,7 @@
 |----|------|----------|-------|--------|
 | E.1 | RTL CSS audit (`pnpm lint:rtl`) | 🟢 LOW | Agent | ✅ PASS |
 | E.2 | Console.log cleanup | 🟢 LOW | Agent | ✅ No issues found |
-| E.3 | setupTestDb helper creation | 🟢 LOW | Agent | 🔲 |
+| E.3 | setupTestDb helper creation | 🟢 LOW | Agent | ✅ MongoMemoryServer in vitest.setup.ts |
 | E.4 | 3-tier health status implementation | 🟢 LOW | Agent | ✅ Already implemented (ok/error/timeout) |
 | E.5 | Centralized phone masking | 🟢 LOW | Agent | ✅ Consolidated to redactPhoneNumber |
 
