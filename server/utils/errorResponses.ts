@@ -26,6 +26,32 @@ export class ApiError extends Error {
 }
 
 /**
+ * Determine whether an error represents a forbidden/authorization failure without relying on brittle message substring checks.
+ */
+export function isForbidden(error: unknown): boolean {
+  if (!error) return false;
+
+  if (error instanceof ApiError && error.statusCode === 403) {
+    return true;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyErr = error as any;
+  if (anyErr?.status === 403 || anyErr?.code === "FORBIDDEN") {
+    return true;
+  }
+
+  if (error instanceof Error) {
+    const normalized = (error.message || "").toLowerCase();
+    if (normalized.includes("forbidden") || normalized.includes("permission denied")) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Create a standardized error response with security headers
  */
 export function createErrorResponse(

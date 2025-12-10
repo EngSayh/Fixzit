@@ -194,6 +194,16 @@ if (!conn) {
       assertNotLocalhostInProd(connectionUri);
       assertAtlasUriInProd(connectionUri);
 
+      const isSrvUri = connectionUri.includes("mongodb+srv://");
+      const hasExplicitTlsParam =
+        connectionUri.includes("tls=true") || connectionUri.includes("ssl=true");
+      // For non-SRV URIs, enforce TLS by default unless explicitly disabled via local allowances.
+      const enforceTls =
+        !isSrvUri &&
+        !hasExplicitTlsParam &&
+        !allowLocalMongo &&
+        !disableMongoForBuild;
+
       conn = globalObj._mongoose = mongoose
         .connect(connectionUri, {
           dbName,
@@ -206,7 +216,7 @@ if (!conn) {
           socketTimeoutMS: 45000, // Socket timeout for long-running queries
           retryWrites: true,
           retryReads: true, // Enable read retries
-          tls: isTlsEnabled(connectionUri),
+          tls: enforceTls || isTlsEnabled(connectionUri),
           w: "majority",
           // Vercel-optimized settings
           compressors: ["zlib"], // Enable compression for bandwidth savings
