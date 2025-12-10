@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { MongoClient } from "mongodb";
+import { db } from "@/lib/mongo";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -39,7 +40,10 @@ export async function GET(_request: NextRequest) {
     name: mongoose.connection.name || "not connected",
   };
 
-  // Test 3: Try to connect via mongoose if not connected
+  // Test 3: Try to await the db promise from lib/mongo.ts
+  diagnostics.libMongoDb = await testLibMongoDb();
+
+  // Test 4: Try to connect via mongoose if not connected
   if (mongoose.connection.readyState !== 1) {
     diagnostics.mongooseConnect = await testMongooseConnect();
   }
@@ -127,6 +131,38 @@ async function testMongooseConnect(): Promise<Record<string, unknown>> {
       success: false,
       latencyMs: Date.now() - start,
       error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function testLibMongoDb(): Promise<Record<string, unknown>> {
+  const start = Date.now();
+  try {
+    // Try to await the db promise from lib/mongo.ts
+    const database = await db;
+    const latency = Date.now() - start;
+    
+    if (database && typeof database.collection === "function") {
+      return {
+        success: true,
+        latencyMs: latency,
+        hasCollectionMethod: true,
+        mongooseReadyState: mongoose.connection.readyState,
+      };
+    }
+    
+    return {
+      success: false,
+      latencyMs: latency,
+      note: "db resolved but no collection method",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      latencyMs: Date.now() - start,
+      error: error instanceof Error ? error.message : String(error),
+      errorName: error instanceof Error ? error.name : "Unknown",
+      errorStack: error instanceof Error ? error.stack?.split('\n').slice(0, 3).join('\n') : undefined,
     };
   }
 }
