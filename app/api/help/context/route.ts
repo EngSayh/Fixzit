@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
 
   const escalation = await resolveEscalationContact(user, moduleNormalized);
 
-  // TODO: integrate KnowledgeBase collection for contextual articles
+  // ROADMAP: Integrate KnowledgeBase collection for contextual articles
+  // Currently returns empty articles array with escalation contact only
   return NextResponse.json({ articles: [], escalation }, { status: 200 });
 }

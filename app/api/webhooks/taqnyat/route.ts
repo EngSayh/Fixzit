@@ -55,7 +55,8 @@ function verifyWebhookSignature(
     return true;
   }
 
-  // TODO: Implement signature verification when Taqnyat provides documentation
+  // ROADMAP: Implement signature verification when Taqnyat provides HMAC documentation
+  // Taqnyat API currently doesn't document webhook signatures. Monitor their API updates.
   // const signature = request.headers.get("x-taqnyat-signature");
   // return verifyHMAC(signature, JSON.stringify(payload), webhookSecret);
   

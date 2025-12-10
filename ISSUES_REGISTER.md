@@ -1,12 +1,78 @@
 # Issues Register - Fixzit Index Management System
 
 **Last Updated**: 2025-12-10  
-**Version**: 1.9  
+**Version**: 2.0  
 **Scope**: Database index management, security audits, observability, SMS infrastructure
 
 ---
 
 ## Recent Additions (2025-12-10)
+
+### ISSUE-SEC-005: Per-Phone SMS Rate Limiting
+
+**Severity**: 🟩 Informational  
+**Category**: Security, SMS  
+**Status**: ✅ COMPLETED  
+**Commit**: 72ff2e47e
+
+**Description**: Added per-phone rate limiting to prevent SMS bombing attacks.
+
+**Changes Made**:
+- **Added**: Per-phone rate limiting in `app/api/auth/otp/send/route.ts`
+- **Fixed**: Taqnyat error message format to wrap network errors
+- **Updated**: TODO comments to ROADMAP with tracking references
+
+**Test Coverage**:
+- 43 SMS tests pass
+- 55 security tests pass
+- 91 model tests pass
+
+---
+
+### ISSUE-OPS-001: Production Infrastructure Manual Setup Required
+
+**Severity**: 🟥 Critical  
+**Category**: Operations, Infrastructure  
+**Status**: ⏳ PENDING MANUAL ACTION
+
+**Description**: Production health check shows database error. Requires Vercel environment configuration.
+
+**Required Actions**:
+1. Set `MONGODB_URI` in Vercel → Settings → Environment Variables
+2. Set `TAQNYAT_SENDER_NAME` in Vercel for SMS functionality
+3. Set `TAQNYAT_BEARER_TOKEN` in Vercel for SMS functionality
+4. Set `HEALTH_CHECK_TOKEN` in GitHub Secrets for smoke tests
+
+**Verification**:
+- `/api/health` should return `{"status":"healthy"}`
+- `/api/health/sms` should return `{"status":"ok"}`
+
+---
+
+### ISSUE-CI-001: GitHub Actions Workflows Failing
+
+**Severity**: 🟠 High  
+**Category**: CI/CD, Infrastructure  
+**Status**: ⏳ PENDING INVESTIGATION
+
+**Description**: All GitHub Actions workflows fail immediately (2-6s elapsed, 0 steps).
+
+**Symptoms**:
+- Workflows show X (failed) status
+- Run duration: 2-6 seconds
+- No steps executed
+
+**Possible Causes**:
+- Missing GitHub Secrets (see `docs/GITHUB_SECRETS_SETUP.md`)
+- Self-hosted runner offline
+- Workflow syntax errors
+
+**Investigation Steps**:
+1. Check GitHub Settings → Actions → Runners
+2. Verify all secrets from `docs/GITHUB_SECRETS_SETUP.md` are configured
+3. Review workflow files for syntax errors
+
+---
 
 ### ISSUE-SMS-002: Legacy SMS Provider Dead Code Cleanup
 
@@ -339,7 +405,7 @@ Remove ALL index definitions from `server/models/Property.ts` (lines 246-260). K
 
 **Severity**: 🟧 MAJOR  
 **Category**: Data integrity, Performance, Tenant isolation  
-**Status**: OPEN  
+**Status**: ⏳ PENDING MIGRATION (Ops)  
 
 **Description**:  
 `souq_payouts` historically stored `orgId` as ObjectId while `souq_settlements` and current code paths write `orgId` as string. This mixed storage forces `$in` queries with dual types, reduces index selectivity, and can duplicate tenant rows. Withdrawals reference payouts by `orgId`, so drift causes lookup misses and uneven performance.
@@ -348,6 +414,15 @@ Remove ALL index definitions from `server/models/Property.ts` (lines 246-260). K
 - `services/souq/settlements/payout-processor.ts` (uses `$in` for mixed types; canonical writes now string)  
 - `services/souq/settlements/balance-service.ts` (withdrawal lookups with `$in`)  
 - Migration added: `scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts`
+
+**Required Action (Ops Team)**:
+```bash
+# Dry run first
+npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts --dry-run
+
+# Then execute
+npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts
+```
 
 **Impact**:  
 - Index scans and poor selectivity on `orgId` in payouts/withdrawals.  
@@ -740,7 +815,15 @@ const WorkOrderSchema = new Schema(
 
 **Severity**: 🟨 MODERATE  
 **Category**: Testing, Reliability  
-**Status**: OPEN
+**Status**: ✅ RESOLVED (2025-12-10)
+
+**Resolution**: Created `tests/unit/lib/db/index-coverage.test.ts` with 15 tests verifying:
+- Critical collection indexes are defined (users, properties, work_orders, invoices, vendors)
+- Souq marketplace indexes exist (sellers, orders, payouts)
+- Index naming conventions followed (named indexes with collection prefix)
+- Background index creation used
+- Tenant isolation indexes enforced (org-scoped unique indexes)
+- Legacy global unique indexes are dropped
 
 **Description**:  
 There is no automated test that verifies:

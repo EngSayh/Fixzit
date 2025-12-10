@@ -113,15 +113,15 @@ export class TaqnyatProvider implements SMSProvider {
         rawResponse: process.env.NODE_ENV === "production" ? undefined : data,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const rawError = error instanceof Error ? error.message : String(error);
       logger.error("[Taqnyat] SMS send exception", {
-        error: errorMessage,
+        error: rawError,
         to: maskedTo,
       });
 
       return {
         success: false,
-        error: "Taqnyat SMS send failed",
+        error: `Taqnyat SMS send failed: ${rawError}`,
         provider: this.name,
         to: normalizedTo,
         timestamp: new Date(),

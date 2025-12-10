@@ -14,7 +14,8 @@ import { useFMPermissions } from "@/hooks/useFMPermissions";
 import { SubmoduleKey } from "@/domain/fm/fm-lite";
 
 // Document management - will be linked to properties
-// TODO: Implement dedicated /api/fm/documents endpoint for full document management
+// ROADMAP: Implement dedicated /api/fm/documents endpoint for full document management
+// See ISSUES_REGISTER.md for tracking. Currently shows documents from property attachments.
 
 export default function PropertiesDocumentsPage() {
   const { t } = useTranslation();

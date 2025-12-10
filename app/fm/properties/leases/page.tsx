@@ -14,7 +14,8 @@ import { useFMPermissions } from "@/hooks/useFMPermissions";
 import { SubmoduleKey } from "@/domain/fm/fm-lite";
 
 // Lease data derived from property records
-// TODO: Implement dedicated /api/fm/leases endpoint for full lease management
+// ROADMAP: Implement dedicated /api/fm/leases endpoint for full lease management
+// See ISSUES_REGISTER.md for tracking. Current implementation uses property lease fields.
 
 export default function PropertiesLeasesPage() {
   const { t } = useTranslation();

@@ -788,6 +788,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 9b. SECURITY: Per-phone rate limiting to prevent SMS bombing
+    // Limits OTP sends to the same phone number regardless of which user account
+    const phoneRateLimitKey = `otp-phone:${userPhone}`;
+    const phoneRateLimit = await checkRateLimit(phoneRateLimitKey);
+    if (!phoneRateLimit.allowed) {
+      logger.warn("[OTP] Phone rate limit exceeded", {
+        phone: `****${userPhone.slice(-4)}`,
+        userId: user._id?.toString?.() || loginIdentifier,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Too many OTP requests to this phone. Please try again later.",
+        },
+        { status: 429 },
+      );
+    }
+
     // 10. Generate OTP
     const otp = generateOTP();
     const expiresAt = Date.now() + OTP_EXPIRY_MS;

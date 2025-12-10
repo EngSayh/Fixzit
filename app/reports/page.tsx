@@ -4,6 +4,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import StatusPill from "@/components/ui/status-pill";
 
 type ReportTab = "dashboard" | "builder" | "viewer";
 
@@ -18,25 +21,10 @@ interface ReportRow {
   disableActions?: boolean;
 }
 
-const statusAppearance: Record<
-  ReportRow["status"],
-  { className: string; titleKey: string; fallback: string }
-> = {
-  ready: {
-    className: "text-success",
-    titleKey: "reports.status.ready",
-    fallback: "Ready",
-  },
-  running: {
-    className: "text-warning",
-    titleKey: "reports.status.running",
-    fallback: "Running",
-  },
-  error: {
-    className: "text-destructive",
-    titleKey: "reports.status.error",
-    fallback: "Error",
-  },
+const pillMap: Record<ReportRow["status"], { status: "success" | "warning" | "danger"; label: string }> = {
+  ready: { status: "success", label: "جاهز" },
+  running: { status: "warning", label: "قيد التنفيذ" },
+  error: { status: "danger", label: "خطأ" },
 };
 
 export default function Reports() {
@@ -78,220 +66,140 @@ export default function Reports() {
     },
   ];
 
+  const downloadReport = () => {
+    toast.info(
+      t("reports.toast.newReportComingSoon", "New Report feature coming soon"),
+    );
+  };
+
+  const handleRowAction = (row: ReportRow) => {
+    if (row.disableActions) return;
+    toast.info(
+      t("reports.toast.newReportComingSoon", "New Report feature coming soon"),
+    );
+  };
+
   return (
-    <>
-      <div className="fxz-topbar">
-        <div className="fxz-brand">{t("reports.page.title", "Reports")}</div>
-        <div className="fxz-top-actions">
-          <button
-            type="button"
-            className="fxz-btn primary"
-            onClick={() =>
-              toast.info(
-                t(
-                  "reports.toast.newReportComingSoon",
-                  "New Report feature coming soon",
-                ),
-              )
-            }
-          >
-            {t("reports.actions.newReport", "+ New Report")}
-          </button>
-          <button
-            type="button"
-            className="fxz-btn secondary"
-            onClick={toggleLanguage}
-          >
-            {t("reports.actions.langToggle", "EN / عربي")}
-          </button>
+    <div className="space-y-6">
+      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h1 className="text-[24px] font-bold text-[var(--color-text-primary)]">
+            {t("reports.page.title", "Reports")}
+          </h1>
+          <p className="text-[13px] text-[var(--color-text-secondary)]">
+            {t("reports.page.subtitle", "Dashboards, builders, and exports")}
+          </p>
         </div>
-      </div>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={downloadReport}>
+            {t("reports.actions.newReport", "+ New Report")}
+          </Button>
+          <Button variant="secondary" onClick={toggleLanguage}>
+            {t("reports.actions.langToggle", "EN / عربي")}
+          </Button>
+        </div>
+      </header>
 
-      <div className="fxz-app">
-        <aside className="fxz-sidebar">
-          <div className="fxz-sidehead">
-            {t("sidebar.category.core", "Core")}
+      <Card>
+        <CardHeader className="border-b border-ejar-border">
+          <CardTitle className="text-[16px] font-bold">
+            {t("reports.tabs.title", "Report Workspace")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4 space-y-4">
+          <div className="flex flex-wrap gap-3">
+            {(["dashboard", "builder", "viewer"] as ReportTab[]).map((tab) => (
+              <Button
+                key={tab}
+                variant={activeTab === tab ? "default" : "ghost"}
+                onClick={() => setActiveTab(tab)}
+              >
+                {t(`reports.tabs.${tab}`, tab)}
+              </Button>
+            ))}
           </div>
-          <nav className="fxz-nav">
-            <Link href="/dashboard">
-              🏠 <span>{t("nav.dashboard", "Dashboard")}</span>
-            </Link>
-            <Link href="/work-orders">
-              🧰 <span>{t("nav.work-orders", "Work Orders")}</span>
-            </Link>
-            <Link href="/properties">
-              🏢 <span>{t("nav.properties", "Properties")}</span>
-            </Link>
-            <Link href="/finance">
-              💳 <span>{t("nav.finance", "Finance")}</span>
-            </Link>
-            <Link href="/hr">
-              👥 <span>{t("nav.hr", "HR")}</span>
-            </Link>
-          </nav>
-          <div className="fxz-sidehead">
-            {t("sidebar.category.business", "Business")}
-          </div>
-          <nav className="fxz-nav">
-            <Link href="/crm">
-              📇 <span>{t("nav.crm", "CRM")}</span>
-            </Link>
-            <Link href="/marketplace">
-              🛍️ <span>{t("nav.marketplace", "Marketplace")}</span>
-            </Link>
-            <Link href="/support">
-              🎧 <span>{t("nav.support", "Support")}</span>
-            </Link>
-            <Link href="/compliance">
-              🛡️ <span>{t("nav.compliance", "Compliance")}</span>
-            </Link>
-            <Link href="/reports" className="active">
-              📊 <span>{t("nav.reports", "Reports")}</span>
-            </Link>
-            <Link href="/system">
-              ⚙️ <span>{t("nav.system", "System Mgmt.")}</span>
-            </Link>
-          </nav>
-        </aside>
 
-        <main className="fxz-main">
-          <div className="fxz-content">
-            <h2 style={{ margin: "0 0 6px" }}>
-              {t("reports.page.title", "Reports")}
-            </h2>
-            <div className="fxz-pills" data-tabs="reports">
-              <button
-                type="button"
-                className={`fxz-pill ${activeTab === "dashboard" ? "active" : ""}`}
-                onClick={() => setActiveTab("dashboard")}
-                data-tab="dashboard"
-              >
-                {t("nav.dashboard", "Dashboard")}
-              </button>
-              <button
-                type="button"
-                className={`fxz-pill ${activeTab === "builder" ? "active" : ""}`}
-                onClick={() => setActiveTab("builder")}
-                data-tab="builder"
-              >
-                {t("reports.tabs.builder", "Report Builder")}
-              </button>
-              <button
-                type="button"
-                className={`fxz-pill ${activeTab === "viewer" ? "active" : ""}`}
-                onClick={() => setActiveTab("viewer")}
-                data-tab="viewer"
-              >
-                {t("reports.tabs.viewer", "Report Viewer")}
-              </button>
-            </div>
-
-            <div data-panels="reports">
-              <section
-                data-panel="dashboard"
-                className={activeTab === "dashboard" ? "" : "fxz-hidden"}
-              >
-                <table className="fxz-table">
-                  <thead>
-                    <tr>
-                      <th>{t("reports.table.reportName", "Report Name")}</th>
-                      <th>{t("reports.table.type", "Type")}</th>
-                      <th>{t("reports.table.lastRun", "Last Run")}</th>
-                      <th>{t("reports.table.status", "Status")}</th>
-                      <th>{t("reports.table.actions", "Actions")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportRows.map((row) => (
-                      <tr key={`${row.name}-${row.lastRun}`}>
-                        <td>{row.name}</td>
-                        <td>{row.type}</td>
-                        <td>{row.lastRun}</td>
-                        <td className={statusAppearance[row.status].className}>
-                          {t(
-                            statusAppearance[row.status].titleKey,
-                            statusAppearance[row.status].fallback,
-                          )}
-                        </td>
-                        <td>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-[var(--color-app-background)] text-right">
+                  <th className="px-4 py-3 text-[13px] text-[var(--color-text-secondary)] font-medium border-b border-ejar-border">
+                    {t("reports.table.name", "Name")}
+                  </th>
+                  <th className="px-4 py-3 text-[13px] text-[var(--color-text-secondary)] font-medium border-b border-ejar-border">
+                    {t("reports.table.type", "Type")}
+                  </th>
+                  <th className="px-4 py-3 text-[13px] text-[var(--color-text-secondary)] font-medium border-b border-ejar-border">
+                    {t("reports.table.lastRun", "Last run")}
+                  </th>
+                  <th className="px-4 py-3 text-[13px] text-[var(--color-text-secondary)] font-medium border-b border-ejar-border">
+                    {t("reports.table.status", "Status")}
+                  </th>
+                  <th className="px-4 py-3 text-[13px] text-[var(--color-text-secondary)] font-medium border-b border-ejar-border">
+                    {t("reports.table.actions", "Actions")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportRows.map((row) => {
+                  const pill = pillMap[row.status];
+                  return (
+                    <tr key={row.name} className="border-b border-ejar-border">
+                      <td className="px-4 py-3 text-[var(--color-text-primary)] text-right">
+                        {row.name}
+                      </td>
+                      <td className="px-4 py-3 text-[var(--color-text-secondary)] text-right">
+                        {row.type}
+                      </td>
+                      <td className="px-4 py-3 text-[var(--color-text-secondary)] text-right">
+                        {row.lastRun}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <StatusPill status={pill.status} label={pill.label} />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center gap-2 justify-end">
                           {row.actionType === "download" ? (
-                            <>
-                              <button
-                                className="fxz-btn secondary"
-                                style={{ padding: "4px 8px", fontSize: "12px" }}
-                                disabled={row.disableActions}
-                              >
-                                {t("common.view", "View")}
-                              </button>
-                              <button
-                                className="fxz-btn primary"
-                                style={{
-                                  padding: "4px 8px",
-                                  fontSize: "12px",
-                                  marginInlineStart: "4px",
-                                }}
-                                disabled={row.disableActions}
-                              >
-                                {t("common.download", "Download")}
-                              </button>
-                            </>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              disabled={row.disableActions}
+                              onClick={() => handleRowAction(row)}
+                            >
+                              {t("reports.actions.download", "Download")}
+                            </Button>
                           ) : (
-                            <>
-                              <button
-                                className="fxz-btn secondary"
-                                style={{ padding: "4px 8px", fontSize: "12px" }}
-                              >
-                                {t("common.retry", "Retry")}
-                              </button>
-                              <button
-                                className="fxz-btn primary"
-                                style={{
-                                  padding: "4px 8px",
-                                  fontSize: "12px",
-                                  marginInlineStart: "4px",
-                                }}
-                              >
-                                {t("common.edit", "Edit")}
-                              </button>
-                            </>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                toast.error(
+                                  t(
+                                    "reports.actions.retrying",
+                                    "Retrying report...",
+                                  ),
+                                )
+                              }
+                            >
+                              {t("reports.actions.retry", "Retry")}
+                            </Button>
                           )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </section>
-
-              <section
-                className={activeTab === "builder" ? "" : "fxz-hidden"}
-                data-panel="builder"
-              >
-                <div className="fxz-card">
-                  {t(
-                    "reports.builder.placeholder",
-                    "Drag-and-drop report builder interface",
-                  )}
-                </div>
-              </section>
-
-              <section
-                className={activeTab === "viewer" ? "" : "fxz-hidden"}
-                data-panel="viewer"
-              >
-                <div className="fxz-card">
-                  {t(
-                    "reports.viewer.placeholder",
-                    "Report viewer with export options",
-                  )}
-                </div>
-              </section>
-            </div>
+                          <Link
+                            href="#"
+                            className="text-[13px] text-[#118158] hover:underline"
+                          >
+                            {t("reports.actions.view", "View")}
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-          <div className="fxz-footer">
-            {t("reports.footer", "© 2025 Fixzit Enterprise — Version 1.0")}
-          </div>
-        </main>
-      </div>
-    </>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

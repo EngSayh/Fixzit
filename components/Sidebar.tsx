@@ -261,8 +261,8 @@ export default function Sidebar({
       : ChevronLeft;
 
   const asideBase = isMobile
-    ? `fixed inset-y-0 z-50 ${asideWidth} transform transition-transform duration-300 ease-in-out start-0`
-    : `sticky top-16 ${asideWidth} h-[calc(100vh-4rem)] transition-[width] duration-300 ease-in-out`;
+    ? `fixed inset-y-0 z-50 ${asideWidth} transform transition-transform duration-300 ease-in-out rtl:right-0 ltr:left-0`
+    : `sticky top-16 ${asideWidth} h-[calc(100vh-4rem)] transition-[width] duration-300 ease-in-out rtl:right-0 ltr:left-0`;
 
   const handleNavigate = useCallback(() => {
     if (isMobile && onNavigate) {
@@ -288,7 +288,7 @@ export default function Sidebar({
     <aside
       className={cn(
         asideBase,
-        "fxz-sidebar overflow-y-auto flex flex-col",
+        "fxz-sidebar overflow-y-auto flex flex-col bg-[#1D2B36] text-white",
         className,
       )}
       role="navigation"

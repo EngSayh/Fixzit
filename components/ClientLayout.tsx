@@ -7,13 +7,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import TopBar from "./TopBar";
-import Sidebar from "./Sidebar";
+import _Sidebar from "./Sidebar";
 import Footer from "./Footer";
 import AutoFixInitializer from "./AutoFixInitializer";
-import ResponsiveLayout from "./ResponsiveLayout";
 import HtmlAttrs from "./HtmlAttrs";
 import PreferenceBroadcast from "./PreferenceBroadcast";
 import TrialBanner from "./TrialBanner";
+import { AppShell } from "@/components/layout/AppShell";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useTranslation } from "@/contexts/TranslationContext";
 import {
@@ -425,26 +425,16 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <HtmlAttrs />
-      <div className="min-h-screen bg-muted/30">
+      <div className="min-h-screen bg-[var(--color-app-background)]">
         <AutoFixInitializer />
-        <ResponsiveLayout
-          header={<TopBar />}
-          sidebar={
-            <Sidebar
-              key={`sidebar-${language}-${isRTL}`}
-              badgeCounts={badgeCounts}
-            />
-          }
-          showSidebarToggle={true}
-          footer={<Footer />}
-        >
+        <AppShell badgeCounts={badgeCounts}>
           <div className="relative min-h-full">
             {children}
             {!subLoading && !isActive && (
               <TrialBanner subscriptionStatus={subscriptionStatus ?? null} />
             )}
           </div>
-        </ResponsiveLayout>
+        </AppShell>
         <PreferenceBroadcast />
         <CopilotWidget />
         <AutoIncidentReporter />
