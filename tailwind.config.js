@@ -104,12 +104,10 @@ const config = {
         "fixzit-orange": "hsl(var(--accent))",
       },
       fontFamily: {
-        /* Ejar Theme Typography */
-        /* Primary: Tajawal for Arabic-first design, DM Sans for Latin */
         sans: ["var(--font-tajawal)", "var(--font-sans)", "Segoe UI", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
-        arabic: ["var(--font-tajawal)", "var(--font-arabic)", "Tahoma", "Arial", "sans-serif"],
-        display: ["var(--font-display)", "Bricolage Grotesque", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "Space Mono", "monospace"],
+        arabic: ["var(--font-tajawal)", "var(--font-noto-sans-arabic)", "Tahoma", "Arial", "sans-serif"],
+        display: ["var(--font-bricolage)", "Bricolage Grotesque", "system-ui", "sans-serif"],
+        mono: ["var(--font-space-mono)", "Space Mono", "monospace"],
       },
       boxShadow: {
         fxz: "var(--shadow-card)",

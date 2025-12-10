@@ -1,7 +1,10 @@
 {
   "colors": {
-    "primary": "#0061A8",
-    "secondary": "#00A859",
-    "accent": "#FFB400"
+    "primary": "#118158",
+    "primaryHover": "#0D6645",
+    "primaryActive": "#094D34",
+    "primarySurface": "#E7F2EE",
+    "secondary": "#C7B27C",
+    "secondaryHover": "#B09B66"
   }
 }

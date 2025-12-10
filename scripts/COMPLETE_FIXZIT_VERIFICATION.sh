@@ -168,26 +168,26 @@ if [ -n "$HTML_FILE" ]; then
         "grep -q 'dir=\"rtl\"\|html\[dir=\"rtl\"\]' '$HTML_FILE'" \
         "Missing RTL support"
     
-    # YOUR BRAND COLORS
-    check "Primary Blue (#0061A8)" \
-        "grep -q '#0061A8' '$HTML_FILE'" \
-        "Missing primary blue color"
+    # EJAR BRAND COLORS (Saudi Green Theme)
+    check "Primary Green (#118158)" \
+        "grep -q '#118158' '$HTML_FILE'" \
+        "Missing Ejar primary green color"
     
-    check "Orange (#F6851F)" \
-        "grep -q '#F6851F' '$HTML_FILE'" \
-        "Missing orange color"
+    check "Primary Hover (#0D6645)" \
+        "grep -q '#0D6645' '$HTML_FILE'" \
+        "Missing primary hover color"
     
-    check "Dark Blue (#023047)" \
-        "grep -q '#023047' '$HTML_FILE'" \
-        "Missing dark blue color"
+    check "Secondary Gold (#C7B27C)" \
+        "grep -q '#C7B27C' '$HTML_FILE'" \
+        "Missing secondary gold color"
     
-    check "Green (#00A859)" \
-        "grep -q '#00A859' '$HTML_FILE'" \
-        "Missing green color"
+    check "Success Green (#28A745)" \
+        "grep -q '#28A745' '$HTML_FILE'" \
+        "Missing success green color"
     
-    check "Yellow (#FFB400)" \
-        "grep -q '#FFB400' '$HTML_FILE'" \
-        "Missing yellow color"
+    check "Warning Yellow (#FFC107)" \
+        "grep -q '#FFC107' '$HTML_FILE'" \
+        "Missing warning yellow color"
 else
     echo "❌ No frontend HTML file found!"
 fi

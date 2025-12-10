@@ -2,7 +2,7 @@
 
 - [ ] Layout Freeze respected (single header/sidebar)
 - [ ] Sidebar baseline maintained
-- [ ] Brand tokens used (#0061A8, #00A859, #FFB400)
+- [ ] Ejar brand tokens used (#118158, #C7B27C)
 - [ ] Language selector standards met
 - [ ] Artifacts attached
 
