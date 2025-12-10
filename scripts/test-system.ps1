@@ -1,5 +1,18 @@
 $ErrorActionPreference = "Stop"
 
+# 🔒 SECURITY: Block execution in production
+if ($env:NODE_ENV -eq "production") {
+  Write-Error "❌ This script is not allowed in production environment"
+  exit 1
+}
+
+# 🔐 Get test password from environment variable
+$TEST_PASSWORD = if ($env:TEST_PASSWORD) { $env:TEST_PASSWORD } elseif ($env:DEMO_DEFAULT_PASSWORD) { $env:DEMO_DEFAULT_PASSWORD } else { $null }
+if (-not $TEST_PASSWORD) {
+  Write-Error "❌ TEST_PASSWORD or DEMO_DEFAULT_PASSWORD environment variable required"
+  exit 1
+}
+
 $testPages = @(
   '/',
   '/login',
@@ -64,7 +77,7 @@ Write-Host "Testing APIs:" -ForegroundColor Yellow
 foreach ($api in $testApis) {
   try {
     if ($api -eq '/api/auth/login') {
-      $body = '{"email":"admin@fixzit.co","password":"Admin@123"}'
+      $body = '{"email":"admin@fixzit.co","password":"' + $TEST_PASSWORD + '"}'
       $response = Invoke-WebRequest -Uri "http://localhost:3000$api" -Method POST -ContentType "application/json" -Body $body -TimeoutSec 10
     } else {
       $response = Invoke-WebRequest -Uri "http://localhost:3000$api" -Method GET -TimeoutSec 10
@@ -81,7 +94,7 @@ foreach ($api in $testApis) {
 # Test authentication flow
 Write-Host "Testing Authentication:" -ForegroundColor Yellow
 try {
-  $loginBody = '{"email":"admin@fixzit.co","password":"Admin@123"}'
+  $loginBody = '{"email":"admin@fixzit.co","password":"' + $TEST_PASSWORD + '"}'
   $loginResponse = Invoke-WebRequest -Uri "http://localhost:3000/api/auth/login" -Method POST -ContentType "application/json" -Body $loginBody -TimeoutSec 10
 
   if ($loginResponse.StatusCode -eq 200) {

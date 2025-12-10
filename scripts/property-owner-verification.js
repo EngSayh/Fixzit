@@ -5,6 +5,19 @@ const BASE_URL = "http://localhost:5000";
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
+// 🔒 SECURITY: Block execution in production
+if (process.env.NODE_ENV === "production") {
+  console.error("❌ This script is not allowed in production environment");
+  process.exit(1);
+}
+
+// 🔐 Get test password from environment variable
+const TEST_PASSWORD = process.env.TEST_PASSWORD || process.env.DEMO_DEFAULT_PASSWORD;
+if (!TEST_PASSWORD) {
+  console.error("❌ TEST_PASSWORD or DEMO_DEFAULT_PASSWORD environment variable required");
+  process.exit(1);
+}
+
 const colors = {
   red: "\x1b[31m",
   green: "\x1b[32m",
@@ -17,7 +30,7 @@ async function getAuthToken() {
   try {
     const res = await axios.post(`${BASE_URL}/api/auth/login`, {
       email: `admin@${EMAIL_DOMAIN}`,
-      password: "Admin@1234",
+      password: TEST_PASSWORD,
     });
     return res.data.token;
   } catch (_e) {

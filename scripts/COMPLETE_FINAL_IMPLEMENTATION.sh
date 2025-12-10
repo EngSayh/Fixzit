@@ -1,4 +1,18 @@
 #!/bin/bash
+
+# 🔒 SECURITY: Block execution in production
+if [ "$NODE_ENV" = "production" ]; then
+  echo "❌ This script is not allowed in production environment"
+  exit 1
+fi
+
+# 🔐 Get test password from environment variable
+TEST_PASSWORD="${TEST_PASSWORD:-${DEMO_DEFAULT_PASSWORD}}"
+if [ -z "$TEST_PASSWORD" ]; then
+  echo "❌ TEST_PASSWORD or DEMO_DEFAULT_PASSWORD environment variable required"
+  exit 1
+fi
+
 echo "🚀 FIXZIT SOUQ - COMPLETE IMPLEMENTATION FROM CHAT HISTORY"
 echo "================================================"
 
@@ -199,7 +213,7 @@ RESPONSE=$(curl -s -X POST http://localhost:5000/api/auth/register-organization 
   -d '{
     "organizationName": "Test Company",
     "adminEmail": "admin@test.com",
-    "adminPassword": "password123",
+    "adminPassword": "'"$TEST_PASSWORD"'",
     "adminPhone": "0501234567",
     "plan": "trial"
   }')

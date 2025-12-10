@@ -68,14 +68,18 @@
   <body>
     <div class="container">
       <h1>Fixzit Login Test</h1>
+      <!-- ⚠️ LOCAL DEVELOPMENT ONLY - Do not expose in production -->
+      <div class="demo" style="background: #fff3cd; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+        <strong>⚠️ Development testing page only. Use environment-configured credentials.</strong>
+      </div>
       <form id="loginForm">
         <div class="form-group">
           <label for="email">Email:</label>
-          <input type="email" id="email" value="admin@fixzit.co" required />
+          <input type="email" id="email" placeholder="Enter test email" required />
         </div>
         <div class="form-group">
           <label for="password">Password:</label>
-          <input type="password" id="password" value="password123" required />
+          <input type="password" id="password" placeholder="Enter test password" required />
         </div>
         <button type="submit" id="submitBtn">Sign In</button>
       </form>
@@ -83,10 +87,11 @@
       <div id="result"></div>
 
       <div class="demo">
-        <h3>Demo Credentials:</h3>
-        <p><strong>Admin:</strong> admin@fixzit.co / password123</p>
-        <p><strong>Vendor:</strong> vendor@fixzit.co / password123</p>
-        <p><strong>Customer:</strong> customer@fixzit.co / password123</p>
+        <h3>Test Credentials:</h3>
+        <p><em>Use credentials from your local .env file (DEMO_DEFAULT_PASSWORD)</em></p>
+        <p><strong>Admin:</strong> admin@[EMAIL_DOMAIN]</p>
+        <p><strong>Vendor:</strong> vendor@[EMAIL_DOMAIN]</p>
+        <p><strong>Tenant:</strong> tenant@[EMAIL_DOMAIN]</p>
       </div>
     </div>
 

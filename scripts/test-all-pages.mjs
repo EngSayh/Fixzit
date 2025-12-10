@@ -3,10 +3,26 @@ import puppeteer from "puppeteer";
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
+// 🔒 SECURITY: Block execution in production
+if (process.env.NODE_ENV === "production") {
+  console.error("❌ This script is not allowed in production environment");
+  process.exit(1);
+}
+
+// 🔐 Get test passwords from environment variables
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.DEMO_DEFAULT_PASSWORD;
+const TENANT_PASSWORD = process.env.TENANT_PASSWORD || process.env.DEMO_DEFAULT_PASSWORD;
+const VENDOR_PASSWORD = process.env.VENDOR_PASSWORD || process.env.DEMO_DEFAULT_PASSWORD;
+
+if (!ADMIN_PASSWORD) {
+  console.error("❌ Password environment variables required (ADMIN_PASSWORD, TENANT_PASSWORD, VENDOR_PASSWORD or DEMO_DEFAULT_PASSWORD)");
+  process.exit(1);
+}
+
 const users = [
-  { email: `admin@${EMAIL_DOMAIN}`, password: "Admin@123", role: "SUPER_ADMIN" },
-  { email: `tenant@${EMAIL_DOMAIN}`, password: "Tenant@123", role: "TENANT" },
-  { email: `vendor@${EMAIL_DOMAIN}`, password: "Vendor@123", role: "VENDOR" },
+  { email: `admin@${EMAIL_DOMAIN}`, password: ADMIN_PASSWORD, role: "SUPER_ADMIN" },
+  { email: `tenant@${EMAIL_DOMAIN}`, password: TENANT_PASSWORD, role: "TENANT" },
+  { email: `vendor@${EMAIL_DOMAIN}`, password: VENDOR_PASSWORD, role: "VENDOR" },
 ];
 
 const pages = [

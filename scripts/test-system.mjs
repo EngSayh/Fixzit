@@ -1,6 +1,19 @@
 // 🔐 Use configurable email domain for Business.sa rebrand compatibility
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 
+// 🔒 SECURITY: Block execution in production
+if (process.env.NODE_ENV === "production") {
+  console.error("❌ This script is not allowed in production environment");
+  process.exit(1);
+}
+
+// 🔐 Get test password from environment variable
+const TEST_PASSWORD = process.env.TEST_PASSWORD || process.env.DEMO_DEFAULT_PASSWORD;
+if (!TEST_PASSWORD) {
+  console.error("❌ TEST_PASSWORD or DEMO_DEFAULT_PASSWORD environment variable required");
+  process.exit(1);
+}
+
 const testPages = [
   "/",
   "/login",
@@ -84,7 +97,7 @@ async function testSystem() {
         body: api.includes("login")
           ? JSON.stringify({
               email: `admin@${EMAIL_DOMAIN}`,
-              password: "Admin@123",
+              password: TEST_PASSWORD,
             })
           : undefined,
         timeout: 10000,
@@ -111,7 +124,7 @@ async function testSystem() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: `admin@${EMAIL_DOMAIN}`,
-        password: "Admin@123",
+        password: TEST_PASSWORD,
       }),
     });
 
