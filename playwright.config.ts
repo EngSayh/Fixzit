@@ -33,7 +33,7 @@ const resolvedAuthSecret = (() => {
 const useBuild = process.env.PW_USE_BUILD === 'true';
 const ROOT_DIR = path.resolve(__dirname);
 const DEFAULT_HOST = process.env.PW_HOSTNAME || '127.0.0.1';
-const DEFAULT_PORT = process.env.PW_PORT || '3000';
+const DEFAULT_PORT = process.env.PW_PORT || '3100';
 const WEB_COMMAND = process.env.PW_WEB_SERVER
   ? process.env.PW_WEB_SERVER
   : useBuild
@@ -102,7 +102,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:3000',
+    baseURL: WEB_URL,
     storageState: 'tests/state/superadmin.json',
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -168,12 +168,12 @@ export default defineConfig({
     env: {
       PLAYWRIGHT: 'true',
       NODE_ENV: useBuild ? 'production' : 'test',
-      PORT: process.env.PW_PORT || '3000',
-      HOSTNAME: process.env.PW_HOSTNAME || '0.0.0.0',
+      PORT: process.env.PW_PORT || DEFAULT_PORT,
+      HOSTNAME: process.env.PW_HOSTNAME || DEFAULT_HOST,
       NEXTAUTH_SECRET: resolvedAuthSecret,
       AUTH_SECRET: resolvedAuthSecret,
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-      CORS_ORIGINS: process.env.CORS_ORIGINS || 'http://localhost:3000',
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL || WEB_URL,
+      CORS_ORIGINS: process.env.CORS_ORIGINS || WEB_URL,
       // Pass Google OAuth credentials to prevent warning logs
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
       GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',

@@ -79,18 +79,19 @@ export async function retrieveKnowledge(
     ? new Types.ObjectId(session.tenantId)
     : null;
 
-  const docs = await CopilotKnowledge.find({
-    $and: [
-      {
-        $or: [
+  // Enforce tenant isolation: guests only see global/public docs; authenticated users see their org + global
+  const orgFilters =
+    session.role === "GUEST"
+      ? [{ orgId: null }, { orgId: GLOBAL_KNOWLEDGE_ORG }]
+      : [
           { orgId: session.tenantId },
           ...(tenantObjectId ? [{ orgId: tenantObjectId }] : []),
           { orgId: null },
           { orgId: GLOBAL_KNOWLEDGE_ORG },
-        ],
-      },
-      { locale: { $in: [session.locale, "en"] } },
-    ],
+        ];
+
+  const docs = await CopilotKnowledge.find({
+    $and: [{ $or: orgFilters }, { locale: { $in: [session.locale, "en"] } }],
   }).lean<KnowledgeDoc[]>();
 
   const filtered = docs.filter((doc) => {
