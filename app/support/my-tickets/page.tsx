@@ -8,6 +8,8 @@ import { TableSkeleton } from "@/components/skeletons";
 import ClientDate from "@/components/ClientDate";
 import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { Button } from "@/components/ui/button";
+import StatusPill from "@/components/ui/status-pill";
 interface TicketMessage {
   from: string;
   text: string;
@@ -114,26 +116,25 @@ export default function MyTicketsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h1 className="text-[24px] font-bold text-[var(--color-text-primary)]">
             {auto("My Support Tickets", "header.title")}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-[13px] text-[var(--color-text-secondary)]">
             {auto("View and manage your support requests", "header.subtitle")}
           </p>
         </div>
-        <button
+        <Button
           onClick={() => {
             const footer = document.querySelector("footer");
             const supportBtn = footer?.querySelector("button");
             supportBtn?.click();
           }}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors"
         >
           {auto("New Ticket", "actions.newTicket")}
-        </button>
+        </Button>
       </div>
 
       {isLoading ? (
@@ -142,9 +143,9 @@ export default function MyTicketsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Tickets List */}
           <div className="lg:col-span-1">
-            <div className="bg-card rounded-2xl shadow-md border border-border">
+            <div className="bg-card rounded-md shadow-card border border-border">
               <div className="p-4 border-b border-border">
-                <h2 className="font-semibold text-foreground">
+                <h2 className="font-semibold text-[var(--color-text-primary)]">
                   {auto("Your Tickets", "tickets.list.title")}
                 </h2>
               </div>
@@ -158,34 +159,29 @@ export default function MyTicketsPage() {
                     <div
                       key={ticket.id}
                       onClick={() => setSelectedTicket(ticket)}
-                      className={`p-4 cursor-pointer hover:bg-muted ${
-                        selectedTicket?.id === ticket.id ? "bg-primary/10" : ""
+                      className={`p-4 cursor-pointer hover:bg-[var(--color-brand-primary-surface)] transition-colors ${
+                        selectedTicket?.id === ticket.id ? "bg-[var(--color-brand-primary-surface)]" : "bg-card"
                       }`}
                     >
                       <div className="flex justify-between items-start mb-1">
-                        <p className="font-medium text-foreground text-sm">
+                        <p className="font-medium text-[var(--color-text-primary)] text-sm">
                           {ticket.code}
                         </p>
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full ${
-                            ticket.status === "New"
-                              ? "bg-primary/10 text-primary"
-                              : ticket.status === "Open"
-                                ? "bg-accent/10 text-accent-foreground"
-                                : ticket.status === "Waiting"
-                                  ? "bg-secondary/10 text-secondary"
-                                  : ticket.status === "Resolved"
-                                    ? "bg-success/10 text-success"
-                                    : "bg-muted text-foreground"
-                          }`}
-                        >
-                          {ticket.status}
-                        </span>
+                        <StatusPill
+                          status={
+                            ticket.status === "Resolved"
+                              ? "success"
+                              : ticket.status === "Open" || ticket.status === "Waiting"
+                                ? "warning"
+                                : "info"
+                          }
+                          label={ticket.status}
+                        />
                       </div>
-                      <p className="text-sm font-medium text-foreground">
+                      <p className="text-sm font-medium text-[var(--color-text-primary)]">
                         {ticket.subject}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-[var(--color-text-secondary)] mt-1">
                         <ClientDate
                           date={ticket.createdAt}
                           format="date-only"
@@ -201,34 +197,33 @@ export default function MyTicketsPage() {
           {/* Ticket Details */}
           <div className="lg:col-span-2">
             {selectedTicket ? (
-              <div className="bg-card rounded-2xl shadow-md border border-border">
+              <div className="bg-card rounded-md shadow-card border border-border">
                 <div className="p-4 border-b border-border">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h2 className="font-semibold text-foreground">
+                      <h2 className="font-semibold text-[var(--color-text-primary)]">
                         {selectedTicket.subject}
                       </h2>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-[var(--color-text-secondary)]">
                         {selectedTicket.code} • {selectedTicket.module} •{" "}
                         {selectedTicket.type}
                       </p>
                     </div>
-                    <span
-                      className={`text-xs px-3 py-1 rounded-full ${
+                    <StatusPill
+                      status={
                         selectedTicket.priority === "Urgent"
-                          ? "bg-destructive/10 text-destructive"
+                          ? "danger"
                           : selectedTicket.priority === "High"
-                            ? "bg-warning/10 text-warning-foreground"
+                            ? "warning"
                             : selectedTicket.priority === "Medium"
-                              ? "bg-accent/10 text-accent-foreground"
-                              : "bg-muted text-foreground"
-                      }`}
-                    >
-                      {auto(
+                              ? "info"
+                              : "neutral"
+                      }
+                      label={auto(
                         "{{priority}} Priority",
                         "tickets.details.priority",
                       ).replace("{{priority}}", selectedTicket.priority)}
-                    </span>
+                    />
                   </div>
                 </div>
 
