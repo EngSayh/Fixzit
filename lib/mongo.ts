@@ -184,7 +184,22 @@ function createOfflineHandle(): DatabaseHandle {
   };
 }
 
-if (!conn) {
+// Check if we need to create a new connection
+// If conn is undefined or null, we need to connect
+// Also, if the previous connection failed, we should retry
+let shouldConnect = !conn;
+
+// In serverless, we need to ensure we don't have a stale rejected promise
+if (conn && typeof conn.then === 'function') {
+  // Check if the promise was rejected previously
+  conn.catch(() => {
+    // If we catch an error here, the promise was rejected
+    // Clear the cache so next request will retry
+    globalObj._mongoose = undefined;
+  });
+}
+
+if (shouldConnect) {
   try {
     if (getDisableMongoForBuild()) {
       logger.warn(
