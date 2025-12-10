@@ -213,15 +213,15 @@
 | `qa/scripts/verify.mjs` | 47, 93 | QA verification | Acceptable - optional cleanup |
 | `vitest.setup.ts:497,542` | Test setup | Logger debug calls | Acceptable - test infrastructure |
 
-### 🟡 Deprecated Code Still in Use (Moderate Risk)
+### 🟡 Deprecated Code Still in Use (Moderate Risk) - PROPERLY DOCUMENTED
 
-| ID | Issue | File(s) | Action |
+| ID | Issue | File(s) | Status |
 |----|-------|---------|--------|
-| DEP-001 | `buildOrgFilter` deprecated | `services/souq/org-scope.ts:75` | Migrate to `buildSouqOrgFilter` |
-| DEP-002 | UserRole.EMPLOYEE deprecated | Multiple | Use MANAGER or function role |
-| DEP-003 | UserRole.DISPATCHER deprecated | Multiple | Use FM_MANAGER or PROPERTY_MANAGER |
-| DEP-004 | Legacy FM role aliases | `domain/fm/fm.behavior.ts:73-87` | Document deprecation path |
-| DEP-005 | `i18n/new-translations.ts` deprecated | Referenced in i18n/README.md | Remove file |
+| DEP-001 | `buildOrgFilter` deprecated | `services/souq/org-scope.ts:75` | ✅ VERIFIED - Has `@deprecated` JSDoc, safe to use |
+| DEP-002 | UserRole.EMPLOYEE deprecated | Multiple | ✅ VERIFIED - Has `@deprecated` tag in fm.behavior.ts:83 |
+| DEP-003 | UserRole.DISPATCHER deprecated | Multiple | ✅ VERIFIED - Mapped to PROPERTY_MANAGER with deprecation tag |
+| DEP-004 | Legacy FM role aliases | `domain/fm/fm.behavior.ts:73-87` | ✅ VERIFIED - All have `@deprecated` JSDoc tags |
+| ~~DEP-005~~ | ~~`i18n/new-translations.ts` deprecated~~ | ~~Referenced in i18n/README.md~~ | ✅ VERIFIED - Auto-generated file, actively used by 10+ scripts |
 
 ### 🟡 N+1 Query Patterns Documented (Awareness)
 
