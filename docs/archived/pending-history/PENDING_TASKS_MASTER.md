@@ -2,9 +2,31 @@
 > **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Created**: 2025-11-12  
-**Last Updated**: 2025-11-18  
+**Last Updated**: 2025-12-10T11:07:05Z  
 **Status**: IN PROGRESS  
 **Target**: 100% COMPLETION - NO EXCEPTIONS
+
+---
+
+## 🔄 Latest Pending Snapshot — 2025-12-10T11:07:05Z (UTC)
+
+**Critical/Blockers**
+- Playwright E2E still failing/timeouts; needs stable run against production build (`PW_USE_BUILD=true`, clean `.next`, shard/extend timeouts).
+- `pnpm build` failure: `.next/server/webpack-runtime.js` missing `./34223.js`; investigate artifact generation before E2E.
+
+**High**
+- Add mock-based Mongo TLS dry-run to assert `tls: true` and `retryWrites: true` for non-SRV URIs (no regression test yet).
+- Audit logging parity: admin notifications `config/history/send` should mirror audit trail added to `test` endpoint.
+- Regenerate OpenAPI/contracts to include sanitized `/api/admin/notifications/test` errors and finance 401/403 helpers (`npm run openapi:build`).
+
+**Medium**
+- DX/CI: shared fetch/auth mock helpers for route unit tests; enable Playwright browser cache and predefined sharding to reduce timeouts.
+- Update Playwright strategy to run against build artifacts or split by tag (`@smoke` vs remainder).
+
+**Carry-over**
+- `approveQuotation` tool still missing in `server/copilot/tools.ts` (add implementation + switch/intent wiring).
+
+> Consolidated from all existing pending reports to maintain a single master record without duplication.
 
 ---
 

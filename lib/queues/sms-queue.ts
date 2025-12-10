@@ -14,6 +14,7 @@ import { logger } from "@/lib/logger";
 import { SMSMessage, TSMSType, TSMSPriority, TSMSProvider, type ISMSMessage } from "@/server/models/SMSMessage";
 import { SMSSettings } from "@/server/models/SMSSettings";
 import { sendSMS, type SMSProviderOptions } from "@/lib/sms";
+import { redactPhoneNumber } from "@/lib/sms-providers/phone-utils";
 import { getCircuitBreaker } from "@/lib/resilience";
 import type { CircuitBreakerName } from "@/lib/resilience/service-circuit-breakers";
 import { connectToDatabase } from "@/lib/mongodb-unified";
@@ -59,13 +60,6 @@ type ProviderCandidate = SMSProviderOptions & {
   name: SMSProviderOptions["provider"];
   priority: number;
   supportedTypes?: string[];
-};
-
-const maskPhone = (to: string | undefined) => {
-  if (!to) return undefined;
-  const digits = to.replace(/\D/g, "");
-  if (digits.length <= 4) return "***";
-  return `${"*".repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`;
 };
 
 /**
@@ -312,7 +306,7 @@ export async function queueSMS(options: {
     logger.info("[SMS Queue] Queue disabled, sending immediately", {
       messageId: smsMessage._id.toString(),
       orgId,
-      toMasked: maskPhone(to),
+      toMasked: to ? redactPhoneNumber(to) : undefined,
     });
     await processSMSJob(smsMessage._id.toString());
     return { messageId: smsMessage._id.toString(), queued: false };
@@ -353,7 +347,7 @@ export async function queueSMS(options: {
   logger.info("[SMS Queue] Message queued", {
     messageId: smsMessage._id.toString(),
     orgId,
-    toMasked: maskPhone(to),
+    toMasked: to ? redactPhoneNumber(to) : undefined,
     type,
     priority,
     delay,
@@ -427,7 +421,7 @@ export async function enqueueExistingSMS(
   logger.info("[SMS Queue] Existing message queued", {
     messageId,
     orgId: message.orgId,
-    toMasked: maskPhone(message.to),
+    toMasked: message.to ? redactPhoneNumber(message.to) : undefined,
     priority: message.priority,
   });
 }
@@ -575,7 +569,7 @@ async function processSMSJob(messageId: string): Promise<void> {
         logger.info("[SMS Queue] Message sent successfully", {
           messageId,
           orgId: message.orgId,
-          toMasked: maskPhone(message.to),
+          toMasked: message.to ? redactPhoneNumber(message.to) : undefined,
           provider: candidate.name,
           messageSid: result.messageSid,
           durationMs,
@@ -587,7 +581,7 @@ async function processSMSJob(messageId: string): Promise<void> {
       logger.warn("[SMS Queue] Provider failed, trying next candidate", {
         messageId,
         orgId: message.orgId,
-        toMasked: maskPhone(message.to),
+        toMasked: message.to ? redactPhoneNumber(message.to) : undefined,
         providerTried: candidate.name,
         error: lastError,
       });
@@ -624,7 +618,7 @@ async function processSMSJob(messageId: string): Promise<void> {
     logger.error("[SMS Queue] Send failed", {
       messageId,
       orgId: message.orgId,
-      toMasked: maskPhone(message.to),
+      toMasked: message.to ? redactPhoneNumber(message.to) : undefined,
       error: errorMessage,
       durationMs,
       retryCount: message.retryCount + 1,
