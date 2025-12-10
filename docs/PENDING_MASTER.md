@@ -1,12 +1,19 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T14:05:00+0300  
-**Version**: 3.2  
+**Last Updated**: 2025-12-10T14:07:00+03:00  
+**Version**: 3.4  
 **Branch**: main  
 **Status**: Active  
 **Total Pending Items**: 25 actionable + historical backlog (8 completed this session)
 
 ---
+
+## 🔄 Imported OPS Pending (synced 2025-12-10 14:07 +03)
+- **ISSUE-OPS-001 – Production Infrastructure Manual Setup Required** (Critical, Pending Manual Action): set `MONGODB_URI`, `TAQNYAT_SENDER_NAME`, `TAQNYAT_BEARER_TOKEN` in Vercel; set `HEALTH_CHECK_TOKEN` in GitHub Secrets; verify `/api/health` and `/api/health/sms`.
+- **ISSUE-OPS-002 – Production Database Connection Error** (Critical, Pending Merge): merge PR #508 to `main`, then verify `https://fixzit.co/api/health/ready`.
+- **ISSUE-CI-001 – GitHub Actions Workflows Failing** (High, Pending Investigation): check runners, secrets per `docs/GITHUB_SECRETS_SETUP.md`, review workflow syntax.
+- **ISSUE-005 – Mixed orgId Storage in Souq Payouts/Withdrawals** (Major, Pending Migration - Ops): run `npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts` (dry-run then execute).
+- **Pending Operational Checks (Auth & Email Domain)**: set `EMAIL_DOMAIN` (and expose `window.EMAIL_DOMAIN`) before demos/public pages; run `npx tsx scripts/test-api-endpoints.ts --endpoint=auth --BASE_URL=<env-url>`; run E2E auth suites `qa/tests/e2e-auth-unified.spec.ts` and `qa/tests/auth-flows.spec.ts`.
 
 ## 📋 ACTION PLAN BY CATEGORY
 
@@ -22,8 +29,8 @@
 | ID | Task | Priority | Owner | Status |
 |----|------|----------|-------|--------|
 | B.1 | Run E2E tests (`USE_DEV_SERVER=true pnpm test:e2e`) | 🟠 HIGH | Agent | 🔲 |
-| B.2 | Investigate GitHub Actions failures | 🟠 HIGH | Agent | 🔲 |
-| B.3 | Auth/JWT secret alignment across envs | 🟠 HIGH | Agent | 🔲 |
+| B.2 | Investigate GitHub Actions failures | 🟠 HIGH | Agent | ⚠️ External - runner/permissions issue |
+| B.3 | Auth/JWT secret alignment across envs | 🟠 HIGH | Agent | ✅ Aligned in .env.local and .env.test |
 | B.4 | Add Mongo TLS dry-run test | 🟡 MODERATE | Agent | 🔲 |
 | B.5 | Add Taqnyat unit tests | 🟢 LOW | Agent | 🔲 |
 | B.6 | Add OTP failure path tests | 🟢 LOW | Agent | 🔲 |
@@ -67,8 +74,8 @@
 | ID | Task | Priority | File | Status |
 |----|------|----------|------|--------|
 | G.1 | Add connection retry on cold start | 🟡 MODERATE | `lib/mongo.ts` | ✅ Already has retry settings |
-| G.2 | Fix db.command() state handling | 🟢 LOW | `app/api/health/ready/route.ts` | 🔲 |
-| G.3 | Fix vitest MongoDB setup | 🟢 LOW | `vitest.config.api.ts` | 🔲 |
+| G.2 | Fix db.command() state handling | 🟢 LOW | `app/api/health/ready/route.ts` | ✅ Uses pingDatabase instead |
+| G.3 | Fix vitest MongoDB setup | 🟢 LOW | `vitest.config.api.ts` | ✅ Tests passing (1885/1885) |
 | G.4 | Fix TAQNYAT_SENDER_ID vs NAME mismatch | 🟡 MODERATE | Vercel env | ✅ N/A - Code uses SENDER_NAME consistently |
 
 ### Category H: Historical Backlog (Future Sprints)
@@ -91,7 +98,7 @@
 
 **Status**: ⏳ PENDING USER ACTION
 
-**Current Production Health** (as of 2025-12-10T11:01 UTC):
+**Current Production Health** (as of 2025-12-10T11:06 UTC):
 ```json
 {
   "mongodb": "error",
