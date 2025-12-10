@@ -2,10 +2,12 @@
  * SMS Service Health Check Endpoint
  * GET /api/health/sms
  *
- * Returns SMS/Twilio health status with configuration details
+ * Returns SMS/Taqnyat health status with configuration details
  * SECURITY: Detailed config is only exposed to authorized internal tools using
  * the X-Health-Token header (redacted otherwise). Preview/Dev environments are
  * treated as non-prod for dev-mode SMS.
+ *
+ * NOTE: This system uses Taqnyat as the ONLY SMS provider (CITC-compliant for Saudi Arabia).
  */
 import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
@@ -16,7 +18,7 @@ import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 
 export const dynamic = "force-dynamic";
 
-const TWILIO_TIMEOUT_MS = 3_000;
+const TAQNYAT_TIMEOUT_MS = 3_000;
 const REDIS_TIMEOUT_MS = 1_500;
 
 /**
@@ -34,27 +36,46 @@ function resolveEnvironment() {
   return { isProd, isPreview, vercelEnv, nodeEnv };
 }
 
-async function checkTwilioReachability(twilioConfigured: boolean) {
-  if (!twilioConfigured) {
-    return { reachable: false, latencyMs: null, error: "Twilio not configured" };
+/**
+ * Check Taqnyat API reachability
+ * Uses the balance endpoint as a lightweight health check
+ */
+async function checkTaqnyatReachability(taqnyatConfigured: boolean) {
+  if (!taqnyatConfigured) {
+    return { reachable: false, latencyMs: null, error: "Taqnyat not configured" };
   }
 
   try {
-    const { default: twilio } = await import("twilio");
-    const client = twilio(
-      process.env.TWILIO_ACCOUNT_SID!,
-      process.env.TWILIO_AUTH_TOKEN!,
-    );
-
     const start = Date.now();
-    await withTimeout(
-      () => client.api.accounts(process.env.TWILIO_ACCOUNT_SID!).fetch(),
-      { timeoutMs: TWILIO_TIMEOUT_MS },
+    const response = await withTimeout(
+      async () => {
+        const res = await fetch("https://api.taqnyat.sa/v1/messages/status", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${process.env.TAQNYAT_BEARER_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+        });
+        return res;
+      },
+      { timeoutMs: TAQNYAT_TIMEOUT_MS },
     );
 
-    return { reachable: true, latencyMs: Date.now() - start, error: null };
+    // Any response (including 401/403) means the API is reachable
+    // We're just checking connectivity, not credentials validity
+    const latencyMs = Date.now() - start;
+
+    if (response.ok || response.status < 500) {
+      return { reachable: true, latencyMs, error: null };
+    }
+
+    return {
+      reachable: false,
+      latencyMs,
+      error: `Taqnyat API returned ${response.status}`,
+    };
   } catch (error) {
-    logger.warn("[SMS Health Check] Twilio reachability failed", { error });
+    logger.warn("[SMS Health Check] Taqnyat reachability failed", { error });
     return {
       reachable: false,
       latencyMs: null,
@@ -101,10 +122,9 @@ export async function GET(request: NextRequest) {
       request.headers.get("X-Health-Deep") !== "0" &&
       request.headers.get("x-health-deep") !== "0";
 
-    const twilioConfigured = Boolean(
-      process.env.TWILIO_ACCOUNT_SID &&
-        process.env.TWILIO_AUTH_TOKEN &&
-        process.env.TWILIO_PHONE_NUMBER,
+    // Check for Taqnyat configuration (ONLY supported SMS provider)
+    const taqnyatConfigured = Boolean(
+      process.env.TAQNYAT_BEARER_TOKEN && process.env.TAQNYAT_SENDER_NAME,
     );
 
     // Only allow dev-mode SMS in non-production to avoid silent OTP loss in prod
@@ -125,20 +145,20 @@ export async function GET(request: NextRequest) {
       (process.env.ALLOW_DEMO_LOGIN === "true" || nodeEnv === "development");
 
     // Optional deep checks (only when authorized to avoid unnecessary external calls)
-    const twilioReachability = deepCheckRequested
-      ? await checkTwilioReachability(twilioConfigured)
+    const taqnyatReachability = deepCheckRequested
+      ? await checkTaqnyatReachability(taqnyatConfigured)
       : { reachable: null, latencyMs: null, error: null };
 
     const redisReachability = deepCheckRequested
       ? await checkRedisReachability(redisConfigured)
       : { reachable: null, latencyMs: null, error: null };
 
-    // In production, require Twilio to be configured; in non-prod allow dev mode fallback.
+    // In production, require Taqnyat to be configured; in non-prod allow dev mode fallback.
     // When a deep check ran, prefer its result for health determination.
-    const twilioHealthy =
-      twilioReachability.reachable ?? (twilioConfigured || smsDevMode);
+    const taqnyatHealthy =
+      taqnyatReachability.reachable ?? (taqnyatConfigured || smsDevMode);
 
-    const statusHealthy = isProd ? twilioHealthy : twilioHealthy || smsDevMode;
+    const statusHealthy = isProd ? taqnyatHealthy : taqnyatHealthy || smsDevMode;
     const healthStatus = statusHealthy ? "healthy" : "unhealthy";
 
     // SECURITY: Only expose detailed config to authorized internal tools.
@@ -163,14 +183,15 @@ export async function GET(request: NextRequest) {
         isPreview,
       },
       sms: {
-        twilioConfigured,
+        provider: "taqnyat",
+        providerNote: "CITC-compliant for Saudi Arabia",
+        configured: taqnyatConfigured,
         smsDevMode,
-        twilioReachable: twilioReachability.reachable,
-        twilioLatencyMs: twilioReachability.latencyMs,
-        twilioError: twilioReachability.error,
-        // Do not expose credentials in responses (mask even in non-prod)
-        accountSidPrefix: null,
-        phoneConfigured: Boolean(process.env.TWILIO_PHONE_NUMBER),
+        reachable: taqnyatReachability.reachable,
+        latencyMs: taqnyatReachability.latencyMs,
+        error: taqnyatReachability.error,
+        // Do not expose credentials in responses
+        senderConfigured: Boolean(process.env.TAQNYAT_SENDER_NAME),
       },
       otp: {
         redisConfigured,
@@ -186,24 +207,24 @@ export async function GET(request: NextRequest) {
       diagnostics: {
         message: (() => {
           if (statusHealthy) {
-            if (twilioReachability.reachable === false) {
-              return "Twilio configured but unreachable (check credentials/network)";
+            if (taqnyatReachability.reachable === false) {
+              return "Taqnyat configured but unreachable (check credentials/network)";
             }
-            if (twilioConfigured) {
-              return "Twilio configured and ready";
+            if (taqnyatConfigured) {
+              return "Taqnyat configured and ready";
             }
             if (smsDevMode) {
               return "SMS Dev Mode enabled - OTPs logged to console only";
             }
             return "Healthy";
           }
-          if (!twilioConfigured) {
-            return "Twilio not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER (SMS_DEV_MODE ignored in production)";
+          if (!taqnyatConfigured) {
+            return "Taqnyat not configured. Set TAQNYAT_BEARER_TOKEN and TAQNYAT_SENDER_NAME (SMS_DEV_MODE ignored in production)";
           }
-          if (twilioReachability.reachable === false) {
-            return "Twilio configured but unreachable. Verify credentials and network.";
+          if (taqnyatReachability.reachable === false) {
+            return "Taqnyat configured but unreachable. Verify credentials and network.";
           }
-          return "Twilio health indeterminate";
+          return "SMS health indeterminate";
         })(),
       },
     };
