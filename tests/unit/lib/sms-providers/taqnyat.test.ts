@@ -110,7 +110,8 @@ describe("TaqnyatProvider", () => {
       const result = await provider.sendSMS("966500000000", "Test message");
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Network error");
+      // Error message is sanitized for security - doesn't expose internal details
+      expect(result.error).toContain("Taqnyat SMS send failed");
     });
   });
 
