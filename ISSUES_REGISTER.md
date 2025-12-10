@@ -1,8 +1,38 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-12-10  
-**Version**: 2.2  
+**Last Updated**: 2025-12-10T13:45+03  
+**Version**: 2.3  
 **Scope**: Database index management, security audits, observability, SMS infrastructure, test infrastructure, i18n
+
+---
+
+## 🚨 URGENT: Production Environment Variables (USER ACTION REQUIRED)
+
+### ISSUE-VERCEL-001: Production MongoDB & SMS Not Configured
+
+**Severity**: 🟥 Critical  
+**Category**: Operations, Infrastructure  
+**Status**: ⏳ PENDING USER ACTION
+
+**Current Production Status** (2025-12-10T10:42 UTC):
+```json
+{
+  "mongodb": "error",
+  "sms": "not_configured"
+}
+```
+
+**Required Actions in Vercel Dashboard**:
+1. **MONGODB_URI**: Remove `<>` placeholder brackets, add `/fixzit` database name
+   - Correct format: `mongodb+srv://fixzitadmin:PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit`
+2. **TAQNYAT_BEARER_TOKEN**: Set the Taqnyat API token
+3. **TAQNYAT_SENDER_NAME**: Set the sender name (e.g., `Fixzit`)
+
+**Verification After Fix**:
+```bash
+curl -s https://fixzit.co/api/health/ready | jq '.checks'
+# Expected: {"mongodb":"ok","redis":"disabled","email":"disabled","sms":"ok"}
+```
 
 ---
 
@@ -12,9 +42,10 @@
 
 **Severity**: 🟥 Critical  
 **Category**: Operations, Infrastructure  
-**Status**: ✅ COMPLETED  
+**Status**: ✅ COMPLETED & MERGED
 **Branch**: fix/test-failures-and-code-cleanup  
 **Commits**: a838f3f28, 1c67a31ac
+**PR**: #508 ✅ MERGED to main
 
 **Description**: Production `/api/health` returns `database: error` because environment variables were read at module load time, before Vercel serverless functions had injected them.
 
@@ -24,7 +55,7 @@
 - **Changed**: `lib/mongo.ts` - Converted module-level constants to lazy getter functions
 - **Created**: `scripts/clear-database-keep-demo.ts` - Database cleanup script (dry-run tested)
 
-**PR**: #508 (Pending merge to main)
+**Note**: Code fix deployed. Production still shows error because MONGODB_URI env var in Vercel has placeholder `<>` brackets or missing database name. See ISSUE-VERCEL-001.
 
 ---
 
