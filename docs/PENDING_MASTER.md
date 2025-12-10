@@ -1,13 +1,13 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T18:50:00+03:00  
+**Last Updated**: 2025-12-10T20:50:00+03:00  
 **Version**: 6.2  
 **Branch**: main  
 **Status**: ⚠️ PRODUCTION INTERMITTENT (MongoDB cold start issues, SMS ok)  
-**Total Pending Items**: 74 identified + 145 hardcoded values (1 Critical, 10 Major, 30 Moderate, 39 Minor)  
+**Total Pending Items**: 83 identified (4 Critical, 16 Major, 24 Moderate, 39 Minor)  
 **Completed Items**: 56+ tasks completed this session  
 **Consolidated Sources**: `docs/archived/pending-history/2025-12-10_CONSOLIDATED_PENDING.md`, `docs/archived/pending-history/PENDING_TASKS_MASTER.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_16-51-05_POST_STABILIZATION_AUDIT.md`, and all `PENDING_REPORT_2025-12-10T*.md` files (merged; no duplicates)
-**Consolidation Check**: 2025-12-10T18:50:00+03:00 — All pending reports scanned, hardcoded values audit completed, merged into single source of truth
+**Consolidation Check**: 2025-12-10T20:50:00+03:00 — All pending reports scanned, deep dive completed, hardcoded issues scan added, merged into single source of truth
 
 ---
 
@@ -31,19 +31,24 @@
 
 ---
 
-## 📊 DEEP DIVE EXECUTIVE SUMMARY (2025-12-10T18:36 +03)
+## 📊 DEEP DIVE EXECUTIVE SUMMARY (2025-12-10T20:50 +03)
 
 | Category | Critical | Major | Moderate | Minor | Total |
 |----------|----------|-------|----------|-------|-------|
 | Production Issues | 1 | 2 | 3 | 4 | 10 |
+| **Hardcoded Issues** | **3** | **7** | **0** | **0** | **10** |
 | Code Quality | 0 | 3 | 8 | 12 | 23 |
 | Testing Gaps | 0 | 2 | 5 | 8 | 15 |
 | Security | 0 | 1 | 2 | 4 | 7 |
 | Performance | 0 | 1 | 4 | 6 | 11 |
 | Documentation | 0 | 0 | 2 | 5 | 7 |
-| **TOTAL** | **1** | **9** | **24** | **39** | **73** |
+| **TOTAL** | **4** | **16** | **24** | **39** | **83** |
 
-**🔴 CRITICAL**: MongoDB intermittent cold start connection failure (CRIT-001)
+**🔴 CRITICAL (4)**: 
+- CRIT-001: MongoDB intermittent cold start connection failure
+- HC-CRIT-001: Hardcoded phone number in fulfillment-service.ts:250
+- HC-CRIT-002: Hardcoded ZATCA VAT number in payment callbacks
+- HC-CRIT-003: Test passwords exposed in version control
 
 ---
 
@@ -103,6 +108,67 @@
 | ID | Issue | File(s) | Risk | Action |
 |----|-------|---------|------|--------|
 | CRIT-001 | **MongoDB Intermittent Cold Start Failure** | `lib/mongo.ts` | Production down on cold starts | Fix connection promise caching - clear rejected promises on failure, add retry logic |
+
+---
+
+## 🔧 HARDCODED ISSUES SCAN (2025-12-10T20:50 +03)
+
+Comprehensive scan for values that should be moved to environment variables or configuration.
+
+### 🔴 HC-CRITICAL (3 Items) - Immediate Action Required
+
+| ID | Issue | File(s) | Risk | Action |
+|----|-------|---------|------|--------|
+| HC-CRIT-001 | **Hardcoded Phone Number** | `services/souq/fulfillment-service.ts:250` | Invalid phone causes shipping failures | Replace `+966123456789` with `process.env.FULFILLMENT_CENTER_PHONE` |
+| HC-CRIT-002 | **Hardcoded ZATCA VAT Number** | Payment callback routes | Tax compliance violation | Use `ZATCA_VAT_NUMBER` and `ZATCA_SELLER_NAME` env vars |
+| HC-CRIT-003 | **Test Passwords in Scripts** | `scripts/test-data.js:7`, `scripts/setup-test-env.ts:23`, `scripts/test-auth.ts:12` | Security exposure | Ensure guarded by `NODE_ENV !== 'production'` |
+
+### 🟠 HC-MAJOR (7 Items) - Should Address Soon
+
+| ID | Issue | File(s) | Risk | Action |
+|----|-------|---------|------|--------|
+| HC-MAJ-001 | Placeholder URL | `services/souq/seller-kyc-service.ts:479` | Invalid document link | Replace `https://example.com/placeholder.pdf` |
+| HC-MAJ-002 | Hardcoded Warehouse Address | `services/souq/fulfillment-service.ts:249-256` | Config inflexibility | Move entire warehouse config to env vars |
+| HC-MAJ-003 | Test Email in KYC Service | `services/souq/seller-kyc-service.ts:445,655` | Test data in prod | Ensure `temp-kyc@fixzit.test` only in test flows |
+| HC-MAJ-004 | Hardcoded Test Phones | `scripts/update-test-users-phone.ts:22-26` | Config inflexibility | Move to `TEST_PHONE_NUMBER` env var |
+| HC-MAJ-005 | Hardcoded VAT Rate | `app/api/souq/orders/route.ts`, `lib/pricing.ts` | Rate change requires code change | Create `SAUDI_VAT_RATE` env var |
+| HC-MAJ-006 | Brand Name in Notifications | `services/notifications/seller-notification-service.ts:60-208` | White-label incompatible | Use i18n keys or brand config |
+| HC-MAJ-007 | Placeholder Support Phone | `lib/config/constants.ts:301` | Invalid contact | Replace with real phone |
+
+### 📋 Environment Variables to Add
+
+```bash
+# Fulfillment Center Configuration
+FULFILLMENT_CENTER_NAME="Fixzit Fulfillment Center"
+FULFILLMENT_CENTER_PHONE="+966XXXXXXXXX"
+FULFILLMENT_CENTER_EMAIL="fulfillment@fixzit.co"
+FULFILLMENT_CENTER_STREET="King Fahd Road"
+FULFILLMENT_CENTER_CITY="Riyadh"
+FULFILLMENT_CENTER_POSTAL="11564"
+FULFILLMENT_CENTER_COUNTRY="SA"
+
+# ZATCA Configuration
+ZATCA_SELLER_NAME="Fixzit Enterprise"
+ZATCA_VAT_NUMBER="300XXXXXXXXXXXX"
+
+# Tax Configuration
+SAUDI_VAT_RATE="0.15"
+
+# Brand Configuration (White-label)
+BRAND_NAME="Fixzit"
+BRAND_TAGLINE="Fixzit Marketplace"
+```
+
+### ✅ Acceptable Hardcoding (No Action Required)
+- Test file data (vitest configs, test setup)
+- `.env.example` documentation
+- Government reference URLs (HRSD, GOSI)
+- Enum constants and role definitions
+- Standard pagination defaults (20, 50, 100, 200)
+- Currency defaults (`SAR` for Saudi Arabia)
+- File size/image dimension limits
+
+---
 
 ### 🟠 MAJOR ISSUES (9 Items) - Should Address Soon
 
