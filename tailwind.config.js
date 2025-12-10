@@ -104,8 +104,8 @@ const config = {
         "fixzit-orange": "hsl(var(--accent))",
       },
       fontFamily: {
-        sans: ["Almarai", "Roboto", "Segoe UI", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
-        arabic: ["Almarai", "Roboto", "Tahoma", "Arial", "sans-serif"],
+        sans: ["var(--font-tajawal)", "var(--font-sans)", "Segoe UI", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        arabic: ["var(--font-tajawal)", "var(--font-noto-sans-arabic)", "Tahoma", "Arial", "sans-serif"],
         display: ["var(--font-bricolage)", "Bricolage Grotesque", "system-ui", "sans-serif"],
         mono: ["var(--font-space-mono)", "Space Mono", "monospace"],
       },

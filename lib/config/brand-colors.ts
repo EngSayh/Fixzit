@@ -1,7 +1,7 @@
 /**
  * Centralized Brand Color Configuration
  *
- * This file contains all brand colors for the Business.sa rebrand (2025).
+ * This file contains all brand colors for the Ejar.sa design system.
  * Use these constants instead of hardcoding hex values throughout the codebase.
  *
  * @module lib/config/brand-colors
@@ -9,7 +9,7 @@
  */
 
 /**
- * Business.sa Primary Brand Colors
+ * Ejar.sa Primary Brand Colors
  *
  * These colors should be used for:
  * - Primary buttons and CTAs
@@ -18,32 +18,32 @@
  * - Brand identity elements
  */
 export const BRAND_COLORS = {
-  /** Primary blue - main brand color */
-  primary: "#0061A8",
+  /** Primary Saudi Green - main brand color */
+  primary: "#118158",
 
-  /** Dark blue - headers, sidebar, footer */
-  primaryDark: "#1a365d",
+  /** Dark green - headers, sidebar, footer */
+  primaryDark: "#0D6645",
 
-  /** Light blue - hover states, backgrounds */
-  primaryLight: "#e6f0f7",
+  /** Light green surface - hover states, backgrounds */
+  primaryLight: "#E7F2EE",
 
-  /** Secondary blue - supporting elements */
-  secondary: "#0e7490",
+  /** Secondary gold - supporting elements */
+  secondary: "#C7B27C",
 
-  /** Accent teal - call-to-actions, highlights */
-  accent: "#00c4cc",
+  /** Secondary gold hover */
+  secondaryHover: "#B09B66",
 
   /** Success green */
-  success: "#22c55e",
+  success: "#28A745",
 
   /** Warning amber */
-  warning: "#f97316",
+  warning: "#FFC107",
 
   /** Error/Destructive red */
-  error: "#dc2626",
+  error: "#DC3545",
 
   /** Info blue */
-  info: "#0070f3",
+  info: "#17A2B8",
 } as const;
 
 /**
@@ -139,7 +139,7 @@ export const CHART_COLORS = {
   series2: BRAND_COLORS.secondary,
 
   /** Tertiary data series */
-  series3: BRAND_COLORS.accent,
+  series3: BRAND_COLORS.primaryDark,
 
   /** Quaternary data series */
   series4: "#8b5cf6", // Purple
@@ -151,7 +151,7 @@ export const CHART_COLORS = {
   palette: [
     BRAND_COLORS.primary,
     BRAND_COLORS.secondary,
-    BRAND_COLORS.accent,
+    BRAND_COLORS.primaryDark,
     "#8b5cf6",
     "#ec4899",
     "#f59e0b",
