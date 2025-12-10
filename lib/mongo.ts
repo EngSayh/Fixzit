@@ -405,12 +405,15 @@ export async function pingDatabase(timeoutMs = 2000): Promise<{
   
   try {
     // Wait for connection to be established
-    await db;
+    const dbHandle = await db;
+    
+    // Log for debugging
+    const afterAwaitState = mongoose.connection.readyState;
     
     // Give Mongoose a moment to update readyState after connection
     // This fixes a race condition in Vercel serverless cold starts
     if (mongoose.connection.readyState !== 1) {
-      // Wait up to 500ms for connection state to stabilize
+      // Wait up to 2000ms for connection state to stabilize (increased from 500ms)
       await new Promise<void>((resolve) => {
         const checkInterval = setInterval(() => {
           if (mongoose.connection.readyState === 1) {
@@ -418,11 +421,11 @@ export async function pingDatabase(timeoutMs = 2000): Promise<{
             resolve();
           }
         }, 50);
-        // Timeout after 500ms
+        // Timeout after 2000ms
         setTimeout(() => {
           clearInterval(checkInterval);
           resolve();
-        }, 500);
+        }, 2000);
       });
     }
     
@@ -433,7 +436,7 @@ export async function pingDatabase(timeoutMs = 2000): Promise<{
       return {
         ok: false,
         latencyMs: Date.now() - start,
-        error: `Connection not ready (state: ${connection?.readyState ?? 'undefined'})`,
+        error: `Connection not ready (state after await: ${afterAwaitState}, current: ${connection?.readyState ?? 'undefined'}, dbHandle: ${!!dbHandle})`,
       };
     }
     
