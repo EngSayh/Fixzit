@@ -3,6 +3,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import { MongoClient, ObjectId, type Db } from "mongodb";
 import { NextRequest } from "next/server";
 import { UserRole } from "@/types/user";
+import type { SessionUser } from "@/types/session";
 import {
   WORK_ORDERS_ENTITY_LEGACY,
   WORK_ORDERS_ENTITY,
@@ -11,7 +12,7 @@ import {
 let db: Db;
 let client: MongoClient;
 let mongo: MongoMemoryServer;
-let mockSession: any;
+let mockSession: SessionUser | null;
 
 vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: async () => ({ connection: { db } }),

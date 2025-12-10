@@ -1449,19 +1449,20 @@ class ReturnsService {
       throw new Error('orgId is required to auto-complete returns');
     }
 
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const autoCompleteDays = parseInt(process.env.AUTO_COMPLETE_RETURNS_DAYS || "7", 10);
+    const autoCompleteAgo = new Date(Date.now() - autoCompleteDays * 24 * 60 * 60 * 1000);
     const jobId = `auto-complete-${Date.now()}`;  // Unique job identifier for tracking
 
     // Build query with optional orgId scoping (string/ObjectId safe)
     const baseOrgFilter = buildOrgFilter(orgId);
     const baseQuery: Record<string, unknown> = {
       status: 'received',
-      updatedAt: { $lt: sevenDaysAgo },
+      updatedAt: { $lt: autoCompleteAgo },
       autoProcessingJobId: { $exists: false },  // Not already claimed by another job
       ...baseOrgFilter,
     };
     
-    logger.info(`[ReturnsService] Auto-completing received returns for org ${orgId}`);
+    logger.info(`[ReturnsService] Auto-completing received returns for org ${orgId} (${autoCompleteDays} days threshold)`);
 
     // ATOMIC BATCH CLAIM: Mark eligible RMAs as being processed by this job instance
     // This prevents concurrent job runs from picking up the same RMAs

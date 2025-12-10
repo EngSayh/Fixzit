@@ -24,7 +24,15 @@ import { withMeiliResilience } from "@/lib/meilisearch-resilience";
 
 const BATCH_SIZE = 1000;
 
-// Temporary type definitions (replace with actual types once souq types are defined)
+/**
+ * Search index document types - simplified for indexing operations
+ * Note: These are intentionally simpler than IListing/IProduct/ISeller from
+ * server/models/souq/* to avoid ObjectId vs string type mismatches during
+ * search index operations. The actual MongoDB queries use Document type.
+ * @see server/models/souq/Listing.ts for full IListing interface
+ * @see server/models/souq/Product.ts for full IProduct interface
+ * @see server/models/souq/Seller.ts for full ISeller interface
+ */
 interface SouqListing {
   listingId: string;
   productId: string;
