@@ -2,6 +2,7 @@
  * Environment Validation Tests
  *
  * Tests for lib/env-validation.ts config status functions.
+ * Updated for Taqnyat-only SMS provider (CITC-compliant for Saudi Arabia).
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -17,74 +18,48 @@ describe("Environment Validation", () => {
   });
 
   describe("getConfigStatus", () => {
-    describe("Unifonic configuration", () => {
+    describe("Taqnyat configuration", () => {
       it("returns configured: false when neither key is set", async () => {
-        vi.stubEnv("UNIFONIC_APP_SID", "");
-        vi.stubEnv("UNIFONIC_SENDER_ID", "");
+        vi.stubEnv("TAQNYAT_BEARER_TOKEN", "");
+        vi.stubEnv("TAQNYAT_SENDER_NAME", "");
         
         const { getConfigStatus } = await import("@/lib/env-validation");
         const status = getConfigStatus();
         
-        expect(status.unifonic.configured).toBe(false);
+        expect(status.taqnyat.configured).toBe(false);
       });
 
-      it("returns configured: false when only APP_SID is set", async () => {
-        vi.stubEnv("UNIFONIC_APP_SID", "test-app-sid");
-        vi.stubEnv("UNIFONIC_SENDER_ID", "");
+      it("returns configured: false when only BEARER_TOKEN is set", async () => {
+        vi.stubEnv("TAQNYAT_BEARER_TOKEN", "test-bearer-token");
+        vi.stubEnv("TAQNYAT_SENDER_NAME", "");
         
         vi.resetModules();
         const { getConfigStatus } = await import("@/lib/env-validation");
         const status = getConfigStatus();
         
-        expect(status.unifonic.configured).toBe(false);
+        expect(status.taqnyat.configured).toBe(false);
       });
 
-      it("returns configured: false when only SENDER_ID is set", async () => {
-        vi.stubEnv("UNIFONIC_APP_SID", "");
-        vi.stubEnv("UNIFONIC_SENDER_ID", "test-sender-id");
+      it("returns configured: false when only SENDER_NAME is set", async () => {
+        vi.stubEnv("TAQNYAT_BEARER_TOKEN", "");
+        vi.stubEnv("TAQNYAT_SENDER_NAME", "FIXZIT");
         
         vi.resetModules();
         const { getConfigStatus } = await import("@/lib/env-validation");
         const status = getConfigStatus();
         
-        expect(status.unifonic.configured).toBe(false);
+        expect(status.taqnyat.configured).toBe(false);
       });
 
       it("returns configured: true when BOTH keys are set", async () => {
-        vi.stubEnv("UNIFONIC_APP_SID", "test-app-sid");
-        vi.stubEnv("UNIFONIC_SENDER_ID", "test-sender-id");
+        vi.stubEnv("TAQNYAT_BEARER_TOKEN", "test-bearer-token");
+        vi.stubEnv("TAQNYAT_SENDER_NAME", "FIXZIT");
         
         vi.resetModules();
         const { getConfigStatus } = await import("@/lib/env-validation");
         const status = getConfigStatus();
         
-        expect(status.unifonic.configured).toBe(true);
-      });
-    });
-
-    describe("Twilio configuration", () => {
-      it("returns configured: false when any key is missing", async () => {
-        vi.stubEnv("TWILIO_ACCOUNT_SID", "test-sid");
-        vi.stubEnv("TWILIO_AUTH_TOKEN", "");
-        vi.stubEnv("TWILIO_PHONE_NUMBER", "+1234567890");
-        
-        vi.resetModules();
-        const { getConfigStatus } = await import("@/lib/env-validation");
-        const status = getConfigStatus();
-        
-        expect(status.twilio.configured).toBe(false);
-      });
-
-      it("returns configured: true when all three keys are set", async () => {
-        vi.stubEnv("TWILIO_ACCOUNT_SID", "test-sid");
-        vi.stubEnv("TWILIO_AUTH_TOKEN", "test-token");
-        vi.stubEnv("TWILIO_PHONE_NUMBER", "+1234567890");
-        
-        vi.resetModules();
-        const { getConfigStatus } = await import("@/lib/env-validation");
-        const status = getConfigStatus();
-        
-        expect(status.twilio.configured).toBe(true);
+        expect(status.taqnyat.configured).toBe(true);
       });
     });
 
