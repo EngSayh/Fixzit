@@ -187,7 +187,7 @@ function createOfflineHandle(): DatabaseHandle {
 // Check if we need to create a new connection
 // If conn is undefined or null, we need to connect
 // Also, if the previous connection failed, we should retry
-let shouldConnect = !conn;
+const shouldConnect = !conn;
 
 // In serverless, we need to ensure we don't have a stale rejected promise
 if (conn && typeof conn.then === 'function') {
