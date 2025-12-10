@@ -61,6 +61,10 @@ export async function GET(
       contentEn: footerContent.contentEn,
       contentAr: footerContent.contentAr,
       updatedAt: footerContent.updatedAt,
+    }, {
+      headers: {
+        "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+      },
     });
   } catch (error) {
     logger.error(`[GET /api/public/footer/${params.page}] Error`, error as Error);

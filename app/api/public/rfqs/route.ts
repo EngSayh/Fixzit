@@ -187,6 +187,10 @@ export async function GET(req: NextRequest) {
           tenantId,
         },
       },
+    }, {
+      headers: {
+        "Cache-Control": "public, max-age=60, stale-while-revalidate=120",
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

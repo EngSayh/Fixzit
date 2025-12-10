@@ -213,6 +213,10 @@ export async function GET(request: NextRequest) {
         hasMore: offset + limit < total,
       },
       correlationId,
+    }, {
+      headers: {
+        "Cache-Control": "public, max-age=60, stale-while-revalidate=120",
+      },
     });
   } catch (error) {
     logger.error("PUBLIC_API_LISTINGS_FAILED", {

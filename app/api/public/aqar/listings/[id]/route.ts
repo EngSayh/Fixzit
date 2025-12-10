@@ -136,6 +136,10 @@ export async function GET(
       ok: true,
       listing,
       correlationId,
+    }, {
+      headers: {
+        "Cache-Control": "public, max-age=30, stale-while-revalidate=60",
+      },
     });
   } catch (error) {
     logger.error("PUBLIC_API_LISTING_DETAIL_FAILED", {
