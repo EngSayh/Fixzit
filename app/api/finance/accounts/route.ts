@@ -17,7 +17,7 @@ import { Types } from "mongoose";
 import { z } from "zod";
 
 import { logger } from "@/lib/logger";
-import { forbiddenError, handleApiError } from "@/server/utils/errorResponses";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
     // Auth check
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     // Authorization check
@@ -145,7 +145,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     logger.error("GET /api/finance/accounts error:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
+    if (isForbidden(error)) {
       return forbiddenError("Access denied to accounts");
     }
 
@@ -240,7 +240,7 @@ export async function POST(req: NextRequest) {
     // Auth check
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     // Authorization check
@@ -332,7 +332,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     logger.error("POST /api/finance/accounts error:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
+    if (isForbidden(error)) {
       return forbiddenError("Access denied to create account");
     }
 

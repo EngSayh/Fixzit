@@ -55,7 +55,6 @@ describe("POST /api/finance/payments/[id]/complete", () => {
     const res = await POST(makeReq(), { params: { id: "bad-id" } });
     expect(res.status).toBe(400);
     await expect(res.json()).resolves.toMatchObject({
-      success: false,
       error: "Invalid payment ID",
     });
     expect(mockFindOne).not.toHaveBeenCalled();
@@ -66,8 +65,7 @@ describe("POST /api/finance/payments/[id]/complete", () => {
     const res = await POST(makeReq(), { params: { id: "65d2d2d2d2d2d2d2d2d2d2d2" } });
     expect(res.status).toBe(401);
     await expect(res.json()).resolves.toMatchObject({
-      success: false,
-      error: "Unauthorized",
+      error: expect.stringContaining("Authentication"),
     });
   });
 
@@ -76,8 +74,7 @@ describe("POST /api/finance/payments/[id]/complete", () => {
     const res = await POST(makeReq(), { params: { id: "65d2d2d2d2d2d2d2d2d2d2d2" } });
     expect(res.status).toBe(404);
     await expect(res.json()).resolves.toMatchObject({
-      success: false,
-      error: "Payment not found",
+      error: expect.stringContaining("not found"),
     });
   });
 
@@ -96,7 +93,6 @@ describe("POST /api/finance/payments/[id]/complete", () => {
     const res = await POST(makeReq(), { params: { id: "65d2d2d2d2d2d2d2d2d2d2d2" } });
     expect(res.status).toBe(400);
     await expect(res.json()).resolves.toMatchObject({
-      success: false,
       error: "Payment is already completed",
     });
     expect(payment.save).not.toHaveBeenCalled();
@@ -118,7 +114,6 @@ describe("POST /api/finance/payments/[id]/complete", () => {
     const res = await POST(makeReq(), { params: { id: "65d2d2d2d2d2d2d2d2d2d2d2" } });
     expect(res.status).toBe(400);
     await expect(res.json()).resolves.toMatchObject({
-      success: false,
       error: "Payment must be in POSTED status before it can be marked as completed",
     });
     expect(payment.save).not.toHaveBeenCalled();

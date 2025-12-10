@@ -12,8 +12,8 @@ import { sendSMS } from "@/lib/sms";
 
 // Dynamic imports for heavy packages to reduce TypeScript server memory usage
 // - firebase-admin: 51 type definition files
-// - twilio: 678 type definition files (biggest contributor to TS server OOM)
 // - @sendgrid/mail: ~20 type definition files
+// SMS handled via lightweight Taqnyat client in lib/sms-providers/taqnyat.ts
 type FirebaseAdmin = typeof import("firebase-admin");
 type SendGridMail = typeof import("@sendgrid/mail");
 
@@ -34,7 +34,7 @@ async function resolveModuleDefault<T>(
 
 /**
  * External Notification Service Integrations
- * Implements SendGrid, Twilio, WhatsApp Business API, and Firebase Cloud Messaging
+ * Implements SendGrid, Taqnyat (SMS), WhatsApp Business API, and Firebase Cloud Messaging
  */
 
 export interface BulkNotificationIssue {

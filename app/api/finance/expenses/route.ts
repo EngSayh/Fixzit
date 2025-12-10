@@ -12,6 +12,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { Types } from "mongoose";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
 
 import { logger } from "@/lib/logger";
 // Validation schemas
@@ -125,10 +126,7 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return unauthorizedError();
     }
 
     // Authorization check
@@ -218,18 +216,8 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     logger.error("Error creating expense:", error);
 
-    if (error instanceof Error && error.message.includes("Unauthorized")) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
-    if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 403 },
-      );
+    if (isForbidden(error)) {
+      return forbiddenError("Access denied to expenses");
     }
 
     if (error instanceof z.ZodError) {
@@ -243,14 +231,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to create expense",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -262,10 +243,7 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return unauthorizedError();
     }
 
     // Authorization check
@@ -355,27 +333,10 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     logger.error("Error fetching expenses:", error);
 
-    if (error instanceof Error && error.message.includes("Unauthorized")) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+    if (isForbidden(error)) {
+      return forbiddenError("Access denied to expenses");
     }
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 403 },
-      );
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to fetch expenses",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

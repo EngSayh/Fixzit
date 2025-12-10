@@ -13,7 +13,7 @@ import { dbConnect } from "@/lib/mongodb-unified";
 import LedgerEntry from "@/server/models/finance/LedgerEntry";
 import ChartAccount from "@/server/models/finance/ChartAccount";
 import { Types } from "mongoose";
-import { forbiddenError, handleApiError } from "@/server/utils/errorResponses";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError, notFoundError } from "@/server/utils/errorResponses";
 
 interface LedgerEntryDocument {
   _id: Types.ObjectId;
@@ -57,7 +57,7 @@ export async function GET(
     // Auth check
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     // Authorization check
@@ -73,10 +73,7 @@ export async function GET(
 
     // Validate account ID
     if (!Types.ObjectId.isValid((await params).accountId)) {
-      return NextResponse.json(
-        { error: "Invalid account ID" },
-        { status: 400 },
-      );
+      return validationError("Invalid account ID");
     }
 
     // Execute with proper context
@@ -95,10 +92,7 @@ export async function GET(
         });
 
         if (!account) {
-          return NextResponse.json(
-            { error: "Account not found" },
-            { status: 404 },
-          );
+          return notFoundError("Account");
         }
 
         // Parse query parameters
@@ -242,7 +236,7 @@ export async function GET(
       error,
     );
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
+    if (isForbidden(error)) {
       return forbiddenError("Access denied to account activity");
     }
 

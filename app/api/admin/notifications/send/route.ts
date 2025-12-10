@@ -15,6 +15,7 @@ import { sendEmail } from "@/lib/email";
 import { sendSMS } from "@/lib/sms";
 import { logCommunication } from "@/lib/communication-logger";
 import { logger } from "@/lib/logger";
+import { audit } from "@/lib/audit";
 
 interface NotificationRequest {
   recipients: {
@@ -65,6 +66,13 @@ export async function POST(req: NextRequest) {
     const session = await auth();
 
     if (!session?.user) {
+      await audit({
+        actorId: "anonymous",
+        actorEmail: "anonymous",
+        action: "admin.notifications.send.unauthenticated",
+        orgId: "unknown",
+        success: false,
+      });
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 },
@@ -99,6 +107,14 @@ export async function POST(req: NextRequest) {
         role,
         permissionsCount: permissions.length,
         userEmail: session.user.email,
+      });
+      await audit({
+        actorId: session.user.id || "unknown",
+        actorEmail: session.user.email || "unknown",
+        actorRole: role,
+        action: "admin.notifications.send.forbidden",
+        orgId: (session.user as { orgId?: string }).orgId || "unknown",
+        success: false,
       });
       return NextResponse.json(
         { success: false, error: "Forbidden: broadcast permission required" },
@@ -151,6 +167,14 @@ export async function POST(req: NextRequest) {
       : null;
 
     if (!orgId) {
+      await audit({
+        actorId: session.user.id || "unknown",
+        actorEmail: session.user.email || "unknown",
+        actorRole: role,
+        action: "admin.notifications.send.missingOrg",
+        orgId: orgIdString || "unknown",
+        success: false,
+      });
       return NextResponse.json(
         { success: false, error: "Unauthorized: org context required" },
         { status: 401 },
@@ -539,6 +563,22 @@ export async function POST(req: NextRequest) {
 
     await flushLogs();
 
+    await audit({
+      actorId: session.user.id || "unknown",
+      actorEmail: session.user.email || "unknown",
+      actorRole: role,
+      action: "admin.notifications.send.success",
+      orgId: orgId.toString(),
+      meta: {
+        broadcastId: broadcastId.toString(),
+        channels,
+        recipientsType: recipients.type,
+        recipientCount: targetContacts.length,
+        results,
+      },
+      success: true,
+    });
+
     return NextResponse.json({
       success: true,
       message: "Notifications sent successfully",
@@ -547,6 +587,14 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     logger.error("[Admin Notification] Send failed", error as Error);
     await flushLogs();
+    await audit({
+      actorId: "system",
+      actorEmail: "system",
+      action: "admin.notifications.send.error",
+      orgId: "unknown",
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       {
         success: false,

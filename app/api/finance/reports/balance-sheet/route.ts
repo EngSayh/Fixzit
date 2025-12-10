@@ -5,7 +5,7 @@ import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { balanceSheet } from "@/server/finance/reporting.service";
 import { logger } from "@/lib/logger";
-import { forbiddenError, handleApiError } from "@/server/utils/errorResponses";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
     const user = await getSessionUser(req);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     requirePermission(user.role, "finance.reports.balance-sheet");
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     );
   } catch (error) {
     logger.error("GET /api/finance/reports/balance-sheet error:", error);
-    if (error instanceof Error && error.message.includes("Forbidden")) {
+    if (isForbidden(error)) {
       return forbiddenError("Access denied to balance sheet report");
     }
     return handleApiError(error);

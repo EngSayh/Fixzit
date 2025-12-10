@@ -12,11 +12,12 @@ import { Expense } from "@/server/models/finance/Expense";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError, notFoundError } from "@/server/utils/errorResponses";
 
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);
   if (!user || !user.id || !user.orgId) {
-    throw new Error("Unauthorized: Invalid session");
+    return null;
   }
   return {
     userId: user.id,
@@ -37,6 +38,15 @@ export async function GET(
 ) {
   try {
     const user = await getUserSession(req);
+    if (!user) {
+      return unauthorizedError();
+    }
+    if (!user) {
+      return unauthorizedError();
+    }
+    if (!user) {
+      return unauthorizedError();
+    }
 
     // Authorization check
     requirePermission(user.role, "finance.expenses.read");
@@ -45,10 +55,7 @@ export async function GET(
     const _params = await Promise.resolve(context.params);
 
     if (!Types.ObjectId.isValid(_params.id)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid expense ID" },
-        { status: 400 },
-      );
+      return validationError("Invalid expense ID");
     }
 
     // Execute with proper context
@@ -60,16 +67,13 @@ export async function GET(
         timestamp: new Date(),
       },
       async () => {
-        const expense = await Expense.findOne({
-          _id: _params.id,
-          orgId: user.orgId,
-        });
+          const expense = await Expense.findOne({
+            _id: _params.id,
+            orgId: user.orgId,
+          });
 
         if (!expense) {
-          return NextResponse.json(
-            { success: false, error: "Expense not found" },
-            { status: 404 },
-          );
+          return notFoundError("Expense");
         }
 
         return NextResponse.json({
@@ -81,21 +85,11 @@ export async function GET(
   } catch (error) {
     logger.error("Error fetching expense:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 403 },
-      );
+    if (isForbidden(error)) {
+      return forbiddenError("Access denied to expense");
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to fetch expense",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -130,6 +124,9 @@ export async function PUT(
 ) {
   try {
     const user = await getUserSession(req);
+    if (!user) {
+      return unauthorizedError();
+    }
 
     // Authorization check
     requirePermission(user.role, "finance.expenses.update");
@@ -138,10 +135,7 @@ export async function PUT(
     const _params = await Promise.resolve(context.params);
 
     if (!Types.ObjectId.isValid(_params.id)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid expense ID" },
-        { status: 400 },
-      );
+      return validationError("Invalid expense ID");
     }
 
     const body = await req.json();
@@ -191,11 +185,8 @@ export async function PUT(
   } catch (error) {
     logger.error("Error updating expense:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 403 },
-      );
+    if (isForbidden(error)) {
+      return forbiddenError("Access denied to expense");
     }
 
     if (error instanceof z.ZodError) {
@@ -209,14 +200,7 @@ export async function PUT(
       );
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to update expense",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -230,6 +214,9 @@ export async function DELETE(
 ) {
   try {
     const user = await getUserSession(req);
+    if (!user) {
+      return unauthorizedError();
+    }
 
     // Authorization check
     requirePermission(user.role, "finance.expenses.delete");
@@ -238,10 +225,7 @@ export async function DELETE(
     const _params = await Promise.resolve(context.params);
 
     if (!Types.ObjectId.isValid(_params.id)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid expense ID" },
-        { status: 400 },
-      );
+      return validationError("Invalid expense ID");
     }
 
     // Execute with proper context
@@ -259,10 +243,7 @@ export async function DELETE(
         });
 
         if (!expense) {
-          return NextResponse.json(
-            { success: false, error: "Expense not found" },
-            { status: 404 },
-          );
+          return notFoundError("Expense");
         }
 
         // Only allow cancellation for non-PAID expenses
@@ -286,20 +267,10 @@ export async function DELETE(
   } catch (error) {
     logger.error("Error cancelling expense:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 403 },
-      );
+    if (isForbidden(error)) {
+      return forbiddenError("Access denied to expense");
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to cancel expense",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

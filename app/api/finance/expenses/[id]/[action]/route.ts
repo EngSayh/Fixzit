@@ -12,11 +12,12 @@ import { Expense } from "@/server/models/finance/Expense";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError, notFoundError } from "@/server/utils/errorResponses";
 
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);
   if (!user || !user.id || !user.orgId) {
-    throw new Error("Unauthorized: Invalid session");
+    return null;
   }
   return {
     userId: user.id,
@@ -41,15 +42,15 @@ export async function POST(
 ) {
   try {
     const user = await getUserSession(req);
+    if (!user) {
+      return unauthorizedError();
+    }
 
     // Resolve params (Next.js 15 provides params as a Promise)
     const _params = await Promise.resolve(context.params);
 
     if (!Types.ObjectId.isValid(_params.id)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid expense ID" },
-        { status: 400 },
-      );
+      return validationError("Invalid expense ID");
     }
 
     // Use typed action parameter from route context
@@ -84,10 +85,7 @@ export async function POST(
         });
 
         if (!expense) {
-          return NextResponse.json(
-            { success: false, error: "Expense not found" },
-            { status: 404 },
-          );
+          return notFoundError("Expense");
         }
 
         if (action === "submit") {
@@ -173,11 +171,8 @@ export async function POST(
   } catch (error) {
     logger.error("Error processing expense action:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 403 },
-      );
+    if (isForbidden(error)) {
+      return forbiddenError("Access denied to expense");
     }
 
     if (error instanceof z.ZodError) {
@@ -191,15 +186,6 @@ export async function POST(
       );
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to process expense action",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

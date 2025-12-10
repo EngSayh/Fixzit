@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { randomUUID } from "crypto";
 import { logger } from "@/lib/logger";
 import * as svc from "@/server/finance/invoice.service";
@@ -10,6 +10,7 @@ import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import {
   zodValidationError,
   rateLimitError,
+  unauthorizedError,
 } from "@/server/utils/errorResponses";
 import { z } from "zod";
 import { canEditInvoices, canViewInvoices } from "@/lib/auth/role-guards";
@@ -98,10 +99,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!user?.orgId) {
-      return NextResponse.json(
-        { error: "Unauthorized", message: "Missing tenant context" },
-        { status: 401 },
-      );
+      return unauthorizedError("Missing tenant context");
     }
 
     // Role-based access control - only finance roles can view invoices
@@ -160,10 +158,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!user?.orgId) {
-      return NextResponse.json(
-        { error: "Unauthorized", message: "Missing tenant context" },
-        { status: 401 },
-      );
+      return unauthorizedError("Missing tenant context");
     }
 
     // Role-based access control - only finance roles can create invoices

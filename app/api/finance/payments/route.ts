@@ -12,6 +12,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { Types } from "mongoose";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError } from "@/server/utils/errorResponses";
 
 import { logger } from "@/lib/logger";
 const PaymentAllocationSchema = z.object({
@@ -73,7 +74,7 @@ const CreatePaymentSchema = z.object({
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);
   if (!user || !user.id || !user.orgId) {
-    throw new Error("Unauthorized: Invalid session");
+    return null;
   }
   return {
     userId: user.id,
@@ -89,6 +90,9 @@ async function getUserSession(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await getUserSession(req);
+    if (!user) {
+      return unauthorizedError();
+    }
 
     // Authorization check
     requirePermission(user.role, "finance.payments.create");
@@ -120,12 +124,8 @@ export async function POST(req: NextRequest) {
           const invalidIds = invoiceIds.filter((id) => !validIds.has(id));
 
           if (invalidIds.length > 0) {
-            return NextResponse.json(
-              {
-                success: false,
-                error: `Invalid invoice IDs: ${invalidIds.join(", ")}`,
-              },
-              { status: 400 },
+            return validationError(
+              `Invalid invoice IDs: ${invalidIds.join(", ")}`,
             );
           }
         }
@@ -159,11 +159,8 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     logger.error("Error creating payment:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 403 },
-      );
+    if (isForbidden(error)) {
+      return forbiddenError("Access denied to payments");
     }
 
     if (error instanceof z.ZodError) {
@@ -177,14 +174,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to create payment",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -195,6 +185,9 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const user = await getUserSession(req);
+    if (!user) {
+      return unauthorizedError();
+    }
 
     // Authorization check
     requirePermission(user.role, "finance.payments.read");
@@ -285,20 +278,10 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     logger.error("Error fetching payments:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 403 },
-      );
+    if (isForbidden(error)) {
+      return forbiddenError("Access denied to payments");
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to fetch payments",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

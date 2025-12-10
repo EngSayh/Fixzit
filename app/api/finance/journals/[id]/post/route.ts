@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
 
 import { dbConnect } from "@/lib/mongodb-unified";
 import Journal from "@/server/models/finance/Journal";
@@ -52,7 +53,7 @@ export async function POST(
     // Auth check
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     // Authorization check
@@ -119,19 +120,10 @@ export async function POST(
   } catch (error) {
     logger.error("POST /api/finance/journals/[id]/post error:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 403 },
-      );
+    if (isForbidden(error)) {
+      return forbiddenError("Access denied to journals");
     }
 
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to post journal",
-      },
-      { status: 400 },
-    );
+    return handleApiError(error);
   }
 }
