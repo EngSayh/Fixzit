@@ -636,7 +636,7 @@ export class SellerBalanceService {
         ["withdrawal", "commission", "gateway_fee", "vat", "refund", "chargeback", "reserve_hold"].includes(type) &&
         amount >= 0
       ) {
-        // TODO (remove after canary, target: 2025-03-31): temporary warning to surface mis-signed callers
+        // Validation warning: debit transactions must have negative amounts
         logger.warn("[SellerBalance] Rejected transaction due to non-negative debit amount", {
           type,
           amount,
@@ -649,7 +649,7 @@ export class SellerBalanceService {
         throw new Error(`${type} amount must be negative`);
       }
       if (type === "reserve_release" && amount <= 0) {
-        // TODO (remove after canary, target: 2025-03-31): temporary warning to surface mis-signed callers
+        // Validation warning: reserve_release must have positive amounts
         logger.warn("[SellerBalance] Rejected transaction due to non-positive reserve_release", {
           type,
           amount,
@@ -662,7 +662,7 @@ export class SellerBalanceService {
         throw new Error("reserve_release amount must be positive");
       }
       if (type === "reserve_release" && reservedBefore < amount) {
-        // TODO (remove after canary, target: 2025-03-31): temporary warning to surface mis-signed callers
+        // Validation warning: cannot release more than reserved
         logger.warn("[SellerBalance] Rejected reserve_release exceeding reserved balance", {
           type,
           amount,

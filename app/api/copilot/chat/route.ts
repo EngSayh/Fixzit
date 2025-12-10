@@ -208,6 +208,32 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: "Message is required" }, 400, req);
     }
 
+    // Cross-tenant message guard: explicitly deny attempts to access other tenant/org data
+    const crossTenantPattern =
+      /another company|other company|different tenant|another tenant|other org|other organization/i;
+    if (crossTenantPattern.test(message)) {
+      const denial =
+        locale === "ar"
+          ? "لا يمكن الوصول إلى بيانات شركة أخرى. هذا الإجراء غير مسموح."
+          : "You cannot access another company’s data. This action is not allowed.";
+      await recordAudit({
+        session,
+        intent: "cross_tenant_denied",
+        status: "DENIED",
+        message: denial,
+        prompt: message,
+        metadata: { reason: "cross_tenant_request" },
+      });
+      return NextResponse.json(
+        {
+          reply: denial,
+          intent: "cross_tenant_denied",
+          requiresAuth: session.role === "GUEST",
+        },
+        { status: 200 },
+      );
+    }
+
     // Strict data-class enforcement BEFORE guest guidance or intent routing
     const policy = evaluateMessagePolicy({ ...session, locale }, message);
     if (!policy.allowed) {
@@ -230,8 +256,8 @@ export async function POST(req: NextRequest) {
     if (session.role === "GUEST") {
       const guestMessage =
         locale === "ar"
-          ? "مرحباً! يمكنني مساعدتك في معرفة المزيد عن Fixzit.\n\nيمكنني:\n• شرح كيفية عمل النظام\n• الإجابة على الأسئلة حول الميزات\n• مساعدتك في البدء\n\nلإنشاء طلبات صيانة أو الوصول إلى بيانات محددة، يرجى تسجيل الدخول أو التسجيل للحصول على حساب."
-          : "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account.";
+          ? "مرحباً! يمكنني مساعدتك في معرفة المزيد عن Fixzit.\n\nيمكنني:\n• شرح كيفية عمل النظام\n• الإجابة على الأسئلة حول الميزات\n• مساعدتك في البدء\n\nلا يمكنك الوصول إلى بيانات الشركات الأخرى أو تنفيذ إجراءات على الحسابات حتى تقوم بتسجيل الدخول بحسابك. لإنشاء طلبات صيانة أو الوصول إلى بيانات محددة، يرجى تسجيل الدخول أو التسجيل للحصول على حساب."
+          : "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nYou cannot access other company data or perform account actions until you sign in. To create maintenance tickets or access specific data, please sign in or register.";
 
       await recordAudit({
         session,

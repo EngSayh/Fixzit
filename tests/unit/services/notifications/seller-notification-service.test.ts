@@ -1,6 +1,58 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { ObjectId } from "mongodb";
 
+// In-memory stores for test isolation
+const sellersStore = new Map<string, Record<string, unknown>>();
+const notificationsStore = new Map<string, Record<string, unknown>>();
+
+// Helper to check if a value matches a query filter (supports $in operator)
+function matchesFilter(docValue: unknown, filterValue: unknown): boolean {
+  if (filterValue && typeof filterValue === "object" && "$in" in (filterValue as Record<string, unknown>)) {
+    const inValues = (filterValue as Record<string, unknown[]>).$in;
+    return inValues.some((v) => {
+      const docStr = docValue?.toString?.() ?? String(docValue);
+      const valStr = v?.toString?.() ?? String(v);
+      return docStr === valStr;
+    });
+  }
+  const docStr = docValue?.toString?.() ?? String(docValue);
+  const valStr = filterValue?.toString?.() ?? String(filterValue);
+  return docStr === valStr;
+}
+
+// Mock mongodb-unified BEFORE any imports that use it
+vi.mock("@/lib/mongodb-unified", () => ({
+  getDatabase: vi.fn().mockResolvedValue({
+    collection: (name: string) => {
+      const store = name === "souq_sellers" ? sellersStore : notificationsStore;
+      return {
+        insertOne: vi.fn(async (doc: Record<string, unknown>) => {
+          const id = new ObjectId().toHexString();
+          store.set(id, { ...doc, _id: id });
+          return { insertedId: id };
+        }),
+        findOne: vi.fn(async (filter: Record<string, unknown>) => {
+          for (const doc of store.values()) {
+            let match = true;
+            for (const [key, val] of Object.entries(filter)) {
+              if (!matchesFilter(doc[key], val)) {
+                match = false;
+                break;
+              }
+            }
+            if (match) return doc;
+          }
+          return null;
+        }),
+        deleteMany: vi.fn(async () => {
+          store.clear();
+          return { deletedCount: store.size };
+        }),
+      };
+    },
+  }),
+}));
+
 vi.mock("@/lib/env", () => ({
   getEnv: vi.fn(),
 }));

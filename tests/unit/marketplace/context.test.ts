@@ -1,10 +1,10 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
-import { resolveMarketplaceContext } from "@/lib/marketplace/context";
 
+// Mock jose BEFORE importing context
+const mockJwtVerify = vi.fn();
 vi.mock("jose", () => ({
-  jwtVerify: vi.fn(),
+  jwtVerify: mockJwtVerify,
 }));
 vi.mock("next/headers", () => ({
   headers: () => ({
@@ -17,13 +17,15 @@ vi.mock("next/cookies", () => ({
   }),
 }));
 
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+
 describe("resolveMarketplaceContext", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockJwtVerify.mockReset();
     process.env.MARKETPLACE_PUBLIC_ORGS = "";
     process.env.MARKETPLACE_DEFAULT_TENANT = "";
     process.env.JWT_SECRET = "test-secret";
-    (jwtVerify as unknown as vi.Mock).mockReset();
   });
 
   it("denies unauthenticated headers when allowlist is empty", async () => {
@@ -47,7 +49,7 @@ describe("resolveMarketplaceContext", () => {
   });
 
   it("prioritizes token org over headers even when allowlist empty", async () => {
-    (jwtVerify as unknown as vi.Mock).mockResolvedValueOnce({
+    mockJwtVerify.mockResolvedValueOnce({
       payload: {
         orgId: "507f191e810c19729de860ea",
         tenantId: "507f191e810c19729de860eb",
