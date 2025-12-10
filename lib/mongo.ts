@@ -228,14 +228,15 @@ if (shouldConnect) {
         !getDisableMongoForBuild();
 
       // Build connection options - don't set tls for SRV URIs as it's handled automatically
+      // Increased timeouts for Vercel serverless cold starts
       const connectionOptions: Parameters<typeof mongoose.connect>[1] = {
         dbName: getDbName(),
         autoIndex: true,
         maxPoolSize: 10,
-        minPoolSize: 2, // Maintain minimum connections for faster response
+        minPoolSize: 1, // Reduced for faster cold starts
         maxIdleTimeMS: 30000, // Close idle connections after 30s
-        serverSelectionTimeoutMS: 8000,
-        connectTimeoutMS: 8000,
+        serverSelectionTimeoutMS: 15000, // Increased from 8s for cold starts
+        connectTimeoutMS: 15000, // Increased from 8s for cold starts
         socketTimeoutMS: 45000, // Socket timeout for long-running queries
         retryWrites: true,
         retryReads: true, // Enable read retries
