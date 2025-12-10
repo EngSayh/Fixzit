@@ -1,16 +1,45 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T16:33:03+03:00  
-**Version**: 5.4  
+**Last Updated**: 2025-12-10T16:45:00+03:00  
+**Version**: 5.5  
 **Branch**: main  
-**Status**: ⚠️ PRODUCTION INTERMITTENT (MongoDB flapping)  
-**Total Pending Items**: Consolidated active backlog (53 completed, 3 remaining)  
+**Status**: 🔴 CRITICAL (Login broken - MongoDB flapping)  
+**Total Pending Items**: Consolidated active backlog (53 completed, 4 remaining)  
 **Consolidated Sources**: `docs/archived/pending-history/2025-12-10_CONSOLIDATED_PENDING.md`, `docs/archived/pending-history/PENDING_TASKS_MASTER.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md`, and all `PENDING_REPORT_2025-12-10T*.md` files (merged; no duplicates)
-**Consolidation Check**: 2025-12-10T16:33:03+03:00 — All pending reports scanned and merged into single source of truth
+**Consolidation Check**: 2025-12-10T16:45:00+03:00 — All pending reports scanned and merged into single source of truth
 
 ---
 
-## 🔄 Production Health Status (LIVE as of 2025-12-10T16:33 +03)
+## 🚨 CRITICAL ISSUE: Login/OTP Failure (2025-12-10T16:45 +03)
+
+**Symptom**: User cannot login - OTP send fails with 500, then 429 (rate limit)
+
+**Console Errors**:
+```
+api/auth/otp/send:1 Failed to load resource: status 500
+api/auth/otp/send:1 Failed to load resource: status 500  
+api/auth/otp/send:1 Failed to load resource: status 429
+```
+
+**Error Message Shown**: "محاولات كثيرة جدًا.يرجى المحاولة مرة أخرى في وقت لاحق" (Too many attempts. Please try again later.)
+
+**Root Cause Analysis**:
+1. MongoDB connection fails intermittently (flapping between ok/error)
+2. OTP send endpoint requires database to validate user and store OTP
+3. When MongoDB fails, OTP endpoint returns 500
+4. Repeated 500 errors trigger rate limiting → 429
+
+**Fix Required (USER ACTION)**:
+1. Go to MongoDB Atlas → Network Access → Add IP Address
+2. Add `0.0.0.0/0` (allow access from anywhere) for Vercel serverless IPs
+3. Wait 60 seconds for rate limit to expire
+4. Retry login
+
+**Alternative Fix**: Enable `NEXTAUTH_BYPASS_OTP_ALL=true` in Vercel for testing (not recommended for production)
+
+---
+
+## 🔄 Production Health Status (LIVE as of 2025-12-10T16:45 +03)
 ```json
 {
   "ready": false,
@@ -23,7 +52,7 @@
 }
 ```
 **⚠️ MongoDB: INTERMITTENT** — Connection flapping between "ok" and "error" throughout the day. Observations:
-- 15:45: ok → 16:00: error → 16:15: ok → 16:30: error → 16:33: error
+- 15:45: ok → 16:00: error → 16:15: ok → 16:30: error → 16:33: error → 16:45: error
 
 **Root Cause Analysis**: Vercel serverless cold starts + MongoDB Atlas connection pooling. 
 
@@ -61,10 +90,11 @@
 ### Category A: Production Infrastructure (USER ACTION)
 | ID | Task | Priority | Owner | Status |
 |----|------|----------|-------|--------|
-| A.1 | Fix MONGODB_URI in Vercel (remove `<>`, add `/fixzit`) | 🔴 CRITICAL | User | ✅ FIXED - mongodb: ok |
+| A.0 | **FIX LOGIN**: MongoDB Atlas Network Access - Add 0.0.0.0/0 | 🔴 BLOCKER | User | ❌ BROKEN (login fails with 500→429) |
+| A.1 | Fix MONGODB_URI in Vercel (remove `<>`, add `/fixzit`) | 🔴 CRITICAL | User | ✅ FIXED - mongodb: ok (intermittent) |
 | A.2 | Set TAQNYAT_BEARER_TOKEN in Vercel | 🔴 CRITICAL | User | ⏳ (sms: not_configured) |
 | A.3 | Set TAQNYAT_SENDER_NAME in Vercel | 🔴 CRITICAL | User | ⏳ (sms: not_configured) |
-| A.4 | Verify production health after env fix | 🔴 CRITICAL | User | ✅ ready: true |
+| A.4 | Verify production health after env fix | 🔴 CRITICAL | User | ⚠️ intermittent |
 | A.5 | Map Twilio env vars for SMS fallback in Vercel + GitHub Actions | 🟠 HIGH | User | ⏳ |
 
 ### Category B: Testing & Quality (Agent)
