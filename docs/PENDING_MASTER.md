@@ -1,33 +1,33 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T15:35:00+03:00  
-**Version**: 4.3  
+**Last Updated**: 2025-12-10T14:55:00+03:00  
+**Version**: 4.4  
 **Branch**: main  
 **Status**: Active  
-**Total Pending Items**: Consolidated active backlog (33 completed this session)  
-**Consolidated Sources**: `docs/archived/pending-history/2025-12-10_CONSOLIDATED_PENDING.md`, `docs/archived/pending-history/PENDING_TASKS_MASTER.md`, and all `PENDING_REPORT_2025-12-10T10-XX-XXZ.md` files (merged; no duplicates)
-**Consolidation Check**: 2025-12-10T14:28:00+03:00 — scanned `docs/archived/pending-history/` and `docs/archived/DAILY_PROGRESS_REPORTS/` for `PENDING_REPORT*`/`PENDING_TASKS*`; no new pending files found; master remains single source of truth.
+**Total Pending Items**: Consolidated active backlog (33 completed, 12 remaining)  
+**Consolidated Sources**: `docs/archived/pending-history/2025-12-10_CONSOLIDATED_PENDING.md`, `docs/archived/pending-history/PENDING_TASKS_MASTER.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md`, and all `PENDING_REPORT_2025-12-10T*.md` files (merged; no duplicates)
+**Consolidation Check**: 2025-12-10T14:55:00+03:00 — scanned all pending-related files; master remains single source of truth.
 
 ---
 
-## 🔄 Production Health Status (LIVE as of 2025-12-10T14:24 +03)
+## 🔄 Production Health Status (LIVE as of 2025-12-10T14:53 +03)
 ```json
 {
-  "ready": true,
+  "ready": false,
   "checks": {
-    "mongodb": "ok",
+    "mongodb": "error",
     "redis": "disabled",
     "email": "disabled",
     "sms": "not_configured"
   },
-  "latency": { "mongodb": 84 }
+  "latency": { "mongodb": 0 }
 }
 ```
-**✅ MongoDB: FIXED** — Database connection now working in production!
+**🔴 MongoDB: ERROR** — Database connection issue detected again. User needs to verify MONGODB_URI in Vercel.
 
-## 🔄 Imported OPS Pending (synced 2025-12-10 14:24 +03)
-- **ISSUE-OPS-001 – Production Infrastructure Manual Setup Required** (Critical, Pending Manual Action): ~~set `MONGODB_URI`~~, set `TAQNYAT_SENDER_NAME`, `TAQNYAT_BEARER_TOKEN` in Vercel; set `HEALTH_CHECK_TOKEN` in GitHub Secrets; verify `/api/health` and `/api/health/sms`.
-- **ISSUE-OPS-002 – Production Database Connection Error** (Critical, ✅ RESOLVED): MongoDB now showing "ok" in production health check.
+## 🔄 Imported OPS Pending (synced 2025-12-10 14:55 +03)
+- **ISSUE-OPS-001 – Production Infrastructure Manual Setup Required** (Critical, Pending Manual Action): set `MONGODB_URI` correctly, set `TAQNYAT_SENDER_NAME`, `TAQNYAT_BEARER_TOKEN` in Vercel; set `HEALTH_CHECK_TOKEN` in GitHub Secrets; verify `/api/health` and `/api/health/sms`.
+- **ISSUE-OPS-002 – Production Database Connection Error** (Critical, ⚠️ RECURRING): MongoDB showing "error" again in production health check. User needs to verify/fix MONGODB_URI.
 - **ISSUE-CI-001 – GitHub Actions Workflows Failing** (High, Pending Investigation): check runners, secrets per `docs/GITHUB_SECRETS_SETUP.md`, review workflow syntax.
 - **ISSUE-005 – Mixed orgId Storage in Souq Payouts/Withdrawals** (Major, Pending Migration - Ops): run `npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts` (dry-run then execute).
 - **Pending Operational Checks (Auth & Email Domain)**: set `EMAIL_DOMAIN` (and expose `window.EMAIL_DOMAIN`) before demos/public pages; run `npx tsx scripts/test-api-endpoints.ts --endpoint=auth --BASE_URL=<env-url>`; run E2E auth suites `qa/tests/e2e-auth-unified.spec.ts` and `qa/tests/auth-flows.spec.ts`.
@@ -42,10 +42,10 @@
 ### Category A: Production Infrastructure (USER ACTION)
 | ID | Task | Priority | Owner | Status |
 |----|------|----------|-------|--------|
-| A.1 | Fix MONGODB_URI in Vercel (remove `<>`, add `/fixzit`) | 🔴 CRITICAL | User | ✅ FIXED (mongodb: ok) |
+| A.1 | Fix MONGODB_URI in Vercel (remove `<>`, add `/fixzit`) | 🔴 CRITICAL | User | ⚠️ ERROR RECURRING - needs verification |
 | A.2 | Set TAQNYAT_BEARER_TOKEN in Vercel | 🔴 CRITICAL | User | ⏳ (sms: not_configured) |
 | A.3 | Set TAQNYAT_SENDER_NAME in Vercel | 🔴 CRITICAL | User | ⏳ (sms: not_configured) |
-| A.4 | Verify production health after env fix | 🔴 CRITICAL | User | ✅ ready: true, mongodb: ok |
+| A.4 | Verify production health after env fix | 🔴 CRITICAL | User | ⚠️ ready: false, mongodb: error |
 | A.5 | Map Twilio env vars for SMS fallback in Vercel + GitHub Actions | 🟠 HIGH | User | ⏳ |
 
 ### Category B: Testing & Quality (Agent)
@@ -130,19 +130,19 @@
 
 ### ISSUE-VERCEL-001: Production Environment Variables
 
-**Status**: ⚠️ PARTIAL - MongoDB FIXED, SMS still pending
+**Status**: ⚠️ MongoDB ERROR RECURRING, SMS still pending
 
-**Current Production Health** (as of 2025-12-10T14:24 +03):
+**Current Production Health** (as of 2025-12-10T14:53 +03):
 ```json
 {
-  "ready": true,
+  "ready": false,
   "checks": {
-    "mongodb": "ok",       // ✅ FIXED
+    "mongodb": "error",       // ⚠️ ERROR RECURRING
     "sms": "not_configured", // ⏳ PENDING
     "redis": "disabled",
     "email": "disabled"
   },
-  "latency": { "mongodb": 84 }
+  "latency": { "mongodb": 0 }
 }
 ```
 
@@ -150,9 +150,14 @@
 
 | Variable | Action Required | Status |
 |----------|-----------------|--------|
-| `MONGODB_URI` | ~~Remove `<>` placeholder brackets, add `/fixzit` database name~~ | ✅ FIXED |
+| `MONGODB_URI` | Verify format: remove `<>` brackets, include `/fixzit` database name | ⚠️ ERROR RECURRING |
 | `TAQNYAT_BEARER_TOKEN` | Set the Taqnyat API bearer token | ⏳ PENDING |
 | `TAQNYAT_SENDER_NAME` | Set sender name (e.g., `Fixzit`) | ⏳ PENDING |
+
+**Correct MONGODB_URI Format:**
+```
+mongodb+srv://fixzitadmin:Lp8p7A4aG4031Pln@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
+```
 
 **Verification Commands After SMS Fix:**
 ```bash
@@ -277,8 +282,8 @@ curl -s https://fixzit.co/api/health
 
 ## 🎯 EXECUTION ORDER
 
-### Immediate (USER Required)
-1. ⏳ Update `MONGODB_URI` in Vercel Dashboard
+### Immediate (USER Required) - 🔴 CRITICAL
+1. ⚠️ **FIX `MONGODB_URI` in Vercel Dashboard** (recurring error - verify format)
 2. ⏳ Set `TAQNYAT_BEARER_TOKEN` and `TAQNYAT_SENDER_NAME`
 3. ⏳ Verify production health: `curl https://fixzit.co/api/health`
 
@@ -332,8 +337,10 @@ This report supersedes and consolidates:
 - `docs/archived/PENDING_REPORT_2025-12-10T10-35-17Z.md`
 - `docs/archived/PENDING_REPORT_2025-12-10T10-35-34Z.md`
 - `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_CONSOLIDATED_PENDING.md`
+- `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md`
 - `docs/archived/DAILY_PROGRESS_REPORTS/PENDING_TASKS_MASTER.md`
 - `docs/audits/PENDING_TASKS_REPORT.md`
+- `reports/MASTER_PENDING_REPORT.md` (stub pointer)
 
 ---
 
