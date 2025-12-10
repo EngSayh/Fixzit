@@ -22,6 +22,7 @@ import {
   redactIdentifier,
 } from "@/lib/otp-utils";
 import { isTruthy } from "@/lib/utils/env";
+import { redactPhoneNumber } from "@/lib/sms-providers/phone-utils";
 import {
   DEMO_EMAILS,
   DEMO_EMPLOYEE_IDS,
@@ -776,7 +777,7 @@ export async function POST(request: NextRequest) {
     if (!isValidSaudiPhone(userPhone)) {
       logger.error("[OTP] Invalid phone number format", {
         userId: user._id?.toString?.() || loginIdentifier,
-        phone: userPhone ? `****${userPhone.slice(-4)}` : 'UNKNOWN',
+        phone: redactPhoneNumber(userPhone),
       });
       return NextResponse.json(
         {
@@ -859,6 +860,7 @@ export async function POST(request: NextRequest) {
       logger.error("[OTP] Failed to send SMS", {
         userId: user._id?.toString?.() || loginIdentifier,
         error: smsResult.error,
+        phone: redactPhoneNumber(userPhone),
       });
       return NextResponse.json(
         {
@@ -872,7 +874,7 @@ export async function POST(request: NextRequest) {
     logger.info("[OTP] OTP sent successfully", {
       userId: user._id?.toString?.() || redactIdentifier(loginIdentifier),
       identifier: redactIdentifier(otpKey),
-      phone: userPhone.slice(-4),
+      phone: redactPhoneNumber(userPhone),
     });
 
     // 13. Return success response (mask phone number)

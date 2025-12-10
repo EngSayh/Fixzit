@@ -116,16 +116,14 @@ if [ -n "$SENDGRID_API_KEY" ]; then
     [ -n "$SENDGRID_FROM_NAME" ] && echo "$SENDGRID_FROM_NAME" | vercel env add SENDGRID_FROM_NAME production --force 2>&1 | grep -E "(Added|Updated)" || true
 fi
 
-# Twilio
-TWILIO_ACCOUNT_SID=$(grep "^TWILIO_ACCOUNT_SID=" .env.local 2>/dev/null | cut -d'=' -f2) || true
-TWILIO_AUTH_TOKEN=$(grep "^TWILIO_AUTH_TOKEN=" .env.local 2>/dev/null | cut -d'=' -f2) || true
-TWILIO_PHONE_NUMBER=$(grep "^TWILIO_PHONE_NUMBER=" .env.local 2>/dev/null | cut -d'=' -f2) || true
+# Taqnyat
+TAQNYAT_BEARER_TOKEN=$(grep "^TAQNYAT_BEARER_TOKEN=" .env.local 2>/dev/null | cut -d'=' -f2) || true
+TAQNYAT_SENDER_NAME=$(grep "^TAQNYAT_SENDER_NAME=" .env.local 2>/dev/null | cut -d'=' -f2) || true
 
-if [ -n "$TWILIO_ACCOUNT_SID" ]; then
-    echo "Setting Twilio..."
-    echo "$TWILIO_ACCOUNT_SID" | vercel env add TWILIO_ACCOUNT_SID production --force 2>&1 | grep -E "(Added|Updated)" || true
-    echo "$TWILIO_AUTH_TOKEN" | vercel env add TWILIO_AUTH_TOKEN production --force 2>&1 | grep -E "(Added|Updated)" || true
-    echo "$TWILIO_PHONE_NUMBER" | vercel env add TWILIO_PHONE_NUMBER production --force 2>&1 | grep -E "(Added|Updated)" || true
+if [ -n "$TAQNYAT_BEARER_TOKEN" ]; then
+    echo "Setting Taqnyat..."
+    echo "$TAQNYAT_BEARER_TOKEN" | vercel env add TAQNYAT_BEARER_TOKEN production --force 2>&1 | grep -E "(Added|Updated)" || true
+    echo "$TAQNYAT_SENDER_NAME" | vercel env add TAQNYAT_SENDER_NAME production --force 2>&1 | grep -E "(Added|Updated)" || true
 fi
 
 # Firebase

@@ -1,8 +1,10 @@
 # SMS OTP Login Enhancement - Implementation Guide
 
+> **Provider Update:** SMS OTP now uses **Taqnyat** as the sole provider. Twilio references below are legacy and retained for historical context only.
+
 ## Overview
 
-Enhanced the login flow with SMS OTP (One-Time Password) verification using Twilio. Users must now verify their identity via SMS after entering valid credentials, adding an extra layer of security.
+Enhanced the login flow with SMS OTP (One-Time Password) verification using Taqnyat. Users must now verify their identity via SMS after entering valid credentials, adding an extra layer of security.
 
 ## Flow Diagram
 

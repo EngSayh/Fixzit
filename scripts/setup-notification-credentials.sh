@@ -80,18 +80,16 @@ update_env_var "SENDGRID_FROM_EMAIL" "$sendgrid_from"
 update_env_var "SENDGRID_FROM_NAME" "Fixzit Notifications"
 
 echo ""
-echo "📱 STEP 3: Twilio SMS (Optional)"
-echo "--------------------------------"
-echo "Get credentials from: https://console.twilio.com"
+echo "📱 STEP 3: Taqnyat SMS (Required for production SMS)"
+echo "----------------------------------------------------"
+echo "Get credentials from: https://www.taqnyat.sa"
 echo ""
 
-read -p "Enter TWILIO_ACCOUNT_SID (starts with AC, or press Enter to skip): " twilio_sid
-read -p "Enter TWILIO_AUTH_TOKEN: " twilio_token
-read -p "Enter TWILIO_PHONE_NUMBER (format: +15551234567): " twilio_phone
+read -p "Enter TAQNYAT_BEARER_TOKEN (or press Enter to skip): " taqnyat_token
+read -p "Enter TAQNYAT_SENDER_NAME (registered sender ID): " taqnyat_sender
 
-update_env_var "TWILIO_ACCOUNT_SID" "$twilio_sid"
-update_env_var "TWILIO_AUTH_TOKEN" "$twilio_token"
-update_env_var "TWILIO_PHONE_NUMBER" "$twilio_phone"
+update_env_var "TAQNYAT_BEARER_TOKEN" "$taqnyat_token"
+update_env_var "TAQNYAT_SENDER_NAME" "$taqnyat_sender"
 
 echo ""
 echo "🔔 STEP 4: Firebase Push (Optional)"

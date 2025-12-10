@@ -5,8 +5,8 @@
  * SUPER_ADMIN only - Test SMS and WhatsApp notifications
  *
  * Features:
- * - Send test SMS via Twilio
- * - Send test WhatsApp via Twilio
+ * - Send test SMS via Taqnyat
+ * - Send test WhatsApp via Meta Business API
  * - View delivery status
  * - Check configuration status
  *
@@ -212,7 +212,7 @@ export default function NotificationTestPage() {
             <div className="p-4 rounded-lg bg-muted/50">
               <div className="flex items-center gap-2 mb-2">
                 <Phone className="h-5 w-5" />
-                <span className="font-medium">SMS (Twilio)</span>
+                <span className="font-medium">SMS (Taqnyat)</span>
               </div>
               {configStatus?.sms?.configured ? (
                 <div className="flex items-center gap-2 text-green-600">
@@ -447,17 +447,18 @@ export default function NotificationTestPage() {
         </h3>
         <ul className="text-sm text-muted-foreground space-y-1">
           <li>
-            • SMS requires: <code className="bg-muted px-1 rounded">TWILIO_ACCOUNT_SID</code>,{" "}
-            <code className="bg-muted px-1 rounded">TWILIO_AUTH_TOKEN</code>,{" "}
-            <code className="bg-muted px-1 rounded">TWILIO_PHONE_NUMBER</code>
+            • SMS (Taqnyat) requires:{" "}
+            <code className="bg-muted px-1 rounded">TAQNYAT_BEARER_TOKEN</code>,{" "}
+            <code className="bg-muted px-1 rounded">TAQNYAT_SENDER_NAME</code>
           </li>
           <li>
             • WhatsApp requires:{" "}
-            <code className="bg-muted px-1 rounded">TWILIO_WHATSAPP_NUMBER</code>{" "}
-            (same Twilio credentials)
+            <code className="bg-muted px-1 rounded">WHATSAPP_BUSINESS_API_KEY</code>{" "}
+            and{" "}
+            <code className="bg-muted px-1 rounded">WHATSAPP_PHONE_NUMBER_ID</code>
           </li>
           <li>
-            • For WhatsApp sandbox, recipient must first message the Twilio number
+            • For WhatsApp sandbox, ensure recipients are allowed in your WhatsApp Business setup
           </li>
         </ul>
       </div>

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { sendSMS } from "@/lib/sms";
 import { handleApiError } from "@/server/utils/errorResponses";
 import { audit } from "@/lib/audit";
+import { redactPhoneNumber } from "@/lib/sms-providers/phone-utils";
 
 const TestNotificationSchema = z.object({
   phoneNumber: z.string().min(10).regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format"),
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     // Ensure phone number has country code
     const formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
-    const maskedPhone = formattedPhone.replace(/\d{6}$/, "******");
+    const maskedPhone = redactPhoneNumber(formattedPhone);
     const orgId = session.user.orgId || "global";
 
     if (channel === "sms") {

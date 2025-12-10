@@ -44,11 +44,10 @@ const CHANNEL_ENV: Record<CliChannel, { label: string; required: string[] }> = {
     required: ["SENDGRID_API_KEY", "SENDGRID_FROM_EMAIL", "SENDGRID_FROM_NAME"],
   },
   sms: {
-    label: "SMS (Twilio)",
+    label: "SMS (Taqnyat)",
     required: [
-      "TWILIO_ACCOUNT_SID",
-      "TWILIO_AUTH_TOKEN",
-      "TWILIO_PHONE_NUMBER",
+      "TAQNYAT_BEARER_TOKEN",
+      "TAQNYAT_SENDER_NAME",
       "NOTIFICATIONS_SMOKE_PHONE",
     ],
   },

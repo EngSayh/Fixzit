@@ -17,6 +17,7 @@ import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
 import {
   formatSaudiPhoneNumber,
   isValidSaudiPhone,
+  redactPhoneNumber,
 } from "@/lib/sms-providers/phone-utils";
 import { TaqnyatProvider } from "@/lib/sms-providers/taqnyat";
 
@@ -104,7 +105,10 @@ export async function sendSMS(
 
   if (!isValidSaudiPhone(formattedPhone)) {
     const error = `Invalid Saudi phone number format: ${to}`;
-    logger.warn("[SMS] Invalid phone number", { to, formattedPhone, provider: "taqnyat" });
+    logger.warn("[SMS] Invalid phone number", {
+      to: redactPhoneNumber(formattedPhone),
+      provider: "taqnyat",
+    });
     return { success: false, error };
   }
 
@@ -113,7 +117,10 @@ export async function sendSMS(
 
   if (!hasCredentials && !SMS_DEV_MODE_ENABLED) {
     const error = "SMS provider Taqnyat not configured. Missing credentials.";
-    logger.warn("[SMS] Configuration missing", { to: formattedPhone, provider: "taqnyat" });
+    logger.warn("[SMS] Configuration missing", {
+      to: redactPhoneNumber(formattedPhone),
+      provider: "taqnyat",
+    });
     return { success: false, error };
   }
 
@@ -178,7 +185,7 @@ async function sendViaTaqnyat(
     const errorMessage = error.message;
     logger.error("[SMS] Taqnyat send failed", {
       error: errorMessage,
-      to,
+      to: redactPhoneNumber(to),
     });
 
     return {

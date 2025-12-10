@@ -1,21 +1,22 @@
 # SMS Integration - Testing Guide
 
+> **Important:** Fixzit now uses **Taqnyat as the sole SMS provider** (CITC-compliant for KSA). The Twilio references below are legacy. Use `TAQNYAT_BEARER_TOKEN` and `TAQNYAT_SENDER_NAME` for any new configuration or testing.
+
 ## ✅ Implementation Complete
 
-All SMS functionality has been integrated using Twilio for Saudi market notifications.
+All SMS functionality is now standardized on **Taqnyat** for Saudi market notifications.
 
 ## Configuration
 
 Add these environment variables to your `.env.local` file:
 
 ```bash
-# Twilio SMS Configuration (Saudi Arabia)
-TWILIO_ACCOUNT_SID=your_twilio_account_sid
-TWILIO_AUTH_TOKEN=your_twilio_auth_token
-TWILIO_PHONE_NUMBER=+966XXXXXXXXX  # Your Twilio Saudi number
+# Taqnyat SMS Configuration (Saudi Arabia)
+TAQNYAT_BEARER_TOKEN=your_taqnyat_api_token
+TAQNYAT_SENDER_NAME=YOUR_SENDER_ID  # Registered with CITC
 ```
 
-**Note**: These values should already be in your GitHub secrets.
+**Note**: These values should already be in your secrets/CI config.
 
 ## Features Implemented
 

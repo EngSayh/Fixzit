@@ -119,24 +119,22 @@ fi
 echo ""
 
 # ==============================================================================
-# STEP 4: SMS (Twilio) - Already configured in .env.local
+# STEP 4: SMS (Taqnyat) - Already configured in .env.local
 # ==============================================================================
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📱 STEP 4: Twilio (SMS)"
+echo "📱 STEP 4: Taqnyat (SMS)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-TWILIO_ACCOUNT_SID=$(grep "^TWILIO_ACCOUNT_SID=" .env.local | cut -d'=' -f2)
-TWILIO_AUTH_TOKEN=$(grep "^TWILIO_AUTH_TOKEN=" .env.local | cut -d'=' -f2)
-TWILIO_PHONE_NUMBER=$(grep "^TWILIO_PHONE_NUMBER=" .env.local | cut -d'=' -f2)
+TAQNYAT_BEARER_TOKEN=$(grep "^TAQNYAT_BEARER_TOKEN=" .env.local | cut -d'=' -f2)
+TAQNYAT_SENDER_NAME=$(grep "^TAQNYAT_SENDER_NAME=" .env.local | cut -d'=' -f2)
 
-if [ -n "$TWILIO_ACCOUNT_SID" ]; then
-    echo "$TWILIO_ACCOUNT_SID" | vercel env add TWILIO_ACCOUNT_SID production --force
-    echo "$TWILIO_AUTH_TOKEN" | vercel env add TWILIO_AUTH_TOKEN production --force
-    echo "$TWILIO_PHONE_NUMBER" | vercel env add TWILIO_PHONE_NUMBER production --force
-    echo "✅ Twilio configured"
+if [ -n "$TAQNYAT_BEARER_TOKEN" ]; then
+    echo "$TAQNYAT_BEARER_TOKEN" | vercel env add TAQNYAT_BEARER_TOKEN production --force
+    echo "$TAQNYAT_SENDER_NAME" | vercel env add TAQNYAT_SENDER_NAME production --force
+    echo "✅ Taqnyat configured"
 else
-    echo "⚠️  Twilio not found in .env.local - skipping"
+    echo "⚠️  Taqnyat not found in .env.local - skipping"
 fi
 echo ""
 
