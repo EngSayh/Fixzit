@@ -205,29 +205,37 @@ if (!conn) {
       const hasExplicitTlsParam =
         connectionUri.includes("tls=true") || connectionUri.includes("ssl=true");
       // For non-SRV URIs, enforce TLS by default unless explicitly disabled via local allowances.
+      // For SRV URIs (Atlas), TLS is handled automatically by the driver - don't override.
       const enforceTls =
         !isSrvUri &&
         !hasExplicitTlsParam &&
         !getAllowLocalMongo() &&
         !getDisableMongoForBuild();
 
+      // Build connection options - don't set tls for SRV URIs as it's handled automatically
+      const connectionOptions: Parameters<typeof mongoose.connect>[1] = {
+        dbName: getDbName(),
+        autoIndex: true,
+        maxPoolSize: 10,
+        minPoolSize: 2, // Maintain minimum connections for faster response
+        maxIdleTimeMS: 30000, // Close idle connections after 30s
+        serverSelectionTimeoutMS: 8000,
+        connectTimeoutMS: 8000,
+        socketTimeoutMS: 45000, // Socket timeout for long-running queries
+        retryWrites: true,
+        retryReads: true, // Enable read retries
+        w: "majority",
+        // Vercel-optimized settings
+        compressors: ["zlib"], // Enable compression for bandwidth savings
+      };
+      
+      // Only set TLS explicitly for non-SRV URIs that need it
+      if (enforceTls) {
+        connectionOptions.tls = true;
+      }
+
       conn = globalObj._mongoose = mongoose
-        .connect(connectionUri, {
-          dbName: getDbName(),
-          autoIndex: true,
-          maxPoolSize: 10,
-          minPoolSize: 2, // Maintain minimum connections for faster response
-          maxIdleTimeMS: 30000, // Close idle connections after 30s
-          serverSelectionTimeoutMS: 8000,
-          connectTimeoutMS: 8000,
-          socketTimeoutMS: 45000, // Socket timeout for long-running queries
-          retryWrites: true,
-          retryReads: true, // Enable read retries
-          tls: enforceTls || isTlsEnabled(connectionUri),
-          w: "majority",
-          // Vercel-optimized settings
-          compressors: ["zlib"], // Enable compression for bandwidth savings
-        })
+        .connect(connectionUri, connectionOptions)
         .then(async (m) => {
           // Attach database pool for Vercel Functions optimization
           // This ensures proper cleanup when functions suspend and resume
