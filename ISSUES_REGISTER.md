@@ -1,12 +1,66 @@
 # Issues Register - Fixzit Index Management System
 
 **Last Updated**: 2025-12-10  
-**Version**: 2.1  
-**Scope**: Database index management, security audits, observability, SMS infrastructure, test infrastructure
+**Version**: 2.2  
+**Scope**: Database index management, security audits, observability, SMS infrastructure, test infrastructure, i18n
 
 ---
 
 ## Recent Additions (2025-12-10)
+
+### ISSUE-DB-001: Production MongoDB Connection - Lazy Environment Variable Reading
+
+**Severity**: 🟥 Critical  
+**Category**: Operations, Infrastructure  
+**Status**: ✅ COMPLETED  
+**Branch**: fix/test-failures-and-code-cleanup  
+**Commits**: a838f3f28, 1c67a31ac
+
+**Description**: Production `/api/health` returns `database: error` because environment variables were read at module load time, before Vercel serverless functions had injected them.
+
+**Root Cause**: `lib/mongo.ts` used module-level constants for `MONGODB_URI`, `dbName`, etc. which evaluated to empty/undefined in Vercel serverless context where env vars are injected after module initialization.
+
+**Changes Made**:
+- **Changed**: `lib/mongo.ts` - Converted module-level constants to lazy getter functions
+- **Created**: `scripts/clear-database-keep-demo.ts` - Database cleanup script (dry-run tested)
+
+**PR**: #508 (Pending merge to main)
+
+---
+
+### ISSUE-I18N-001: Missing Translation Keys
+
+**Severity**: 🟧 High  
+**Category**: i18n  
+**Status**: ✅ COMPLETED  
+**Commits**: 28901fb80, 817e0da41
+
+**Description**: Translation audit found 9 missing keys and 37 [AR] placeholder translations.
+
+**Changes Made**:
+- Added 9 missing keys: dashboard.workOrderHealth, reports.page.subtitle, reports.tabs.title, etc.
+- Replaced 37 [AR] placeholders with proper Arabic translations
+- Total keys: 31,179 (EN/AR parity maintained)
+- Translation audit: 100% code coverage
+
+---
+
+### ISSUE-TEST-002: OTP Utils Test Failure
+
+**Severity**: 🟨 Medium  
+**Category**: Tests  
+**Status**: ✅ COMPLETED  
+**Commit**: 817e0da41
+
+**Description**: `otp-utils.test.ts` failed due to incorrect assumption that `hashIdentifier("test")` equals `hashIdentifier("test", "")`.
+
+**Root Cause**: When salt is `undefined`, the function uses env salt; when salt is empty string, it uses empty string. These produce different hashes.
+
+**Fix**: Updated test to correctly verify salt behavior without assuming equality.
+
+**Test Results**: 1885/1885 API tests passing
+
+---
 
 ### ISSUE-TEST-001: Vitest Configuration Test Environment Mismatch
 
@@ -36,27 +90,17 @@
 
 **Severity**: 🟥 Critical  
 **Category**: Operations, Infrastructure  
-**Status**: ⏳ UNDER INVESTIGATION (Other AI Agent)
+**Status**: ✅ FIXED - PENDING MERGE
 
 **Description**: Production `/api/health` returns `database: error` despite all environment variables being configured.
 
-**Verified**:
-- ✅ `MONGODB_URI` is set in Vercel for "All Environments"
-- ✅ MongoDB Atlas IP Access List has `0.0.0.0/0` (allows all IPs) - Active
-- ✅ Local tests pass with same connection logic
+**Root Cause Identified**: Environment variables were read at module load time in `lib/mongo.ts`, before Vercel serverless functions had injected them.
 
-**Possible Causes (For Other Agent)**:
-1. MONGODB_URI value may have typo or wrong password
-2. Password may contain special characters needing URL encoding
-3. Database name in URI may not match Atlas
-4. TLS/SSL configuration issues with Vercel serverless
-5. Connection timeout on cold starts
-6. Atlas cluster may be paused (free tier)
+**Fix Applied**: Changed `lib/mongo.ts` to use lazy getter functions instead of module-level constants. See ISSUE-DB-001.
 
-**Code Locations**:
-- Connection: `lib/mongo.ts`
-- Health check: `app/api/health/route.ts`
-- Env validation: `lib/env.ts`
+**Pending Actions**:
+1. Merge PR #508 to main
+2. Verify production health at `https://fixzit.co/api/health/ready`
 
 ---
 
