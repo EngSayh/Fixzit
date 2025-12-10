@@ -43,11 +43,10 @@ const CHANNELS = {
     required: ["SENDGRID_API_KEY", "SENDGRID_FROM_EMAIL", "SENDGRID_FROM_NAME"],
   },
   sms: {
-    name: "SMS (Twilio)",
+    name: "SMS (Taqnyat)",
     required: [
-      "TWILIO_ACCOUNT_SID",
-      "TWILIO_AUTH_TOKEN",
-      "TWILIO_PHONE_NUMBER",
+      "TAQNYAT_BEARER_TOKEN",
+      "TAQNYAT_SENDER_NAME",
       "NOTIFICATIONS_SMOKE_PHONE",
     ],
   },
@@ -273,14 +272,13 @@ function printQuickFixes(results: ValidationResult[]): void {
         break;
 
       case "sms":
-        console.log("   Get Twilio credentials:");
-        console.log("   1. Visit: https://console.twilio.com");
-        console.log("   2. Copy Account SID and Auth Token from dashboard");
-        console.log("   3. Get phone number from Phone Numbers → Manage");
+        console.log("   Get Taqnyat credentials:");
+        console.log("   1. Visit: https://taqnyat.sa");
+        console.log("   2. Create an account and get API Bearer Token");
+        console.log("   3. Register a sender name (CITC-compliant)");
         console.log("   4. Add to .env.local:");
-        console.log("      TWILIO_ACCOUNT_SID=AC...");
-        console.log("      TWILIO_AUTH_TOKEN=...");
-        console.log("      TWILIO_PHONE_NUMBER=+1555...\n");
+        console.log("      TAQNYAT_BEARER_TOKEN=your_bearer_token_here");
+        console.log("      TAQNYAT_SENDER_NAME=Fixzit\n");
         break;
 
       case "push":

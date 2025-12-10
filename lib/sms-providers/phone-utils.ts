@@ -2,7 +2,7 @@
  * Shared Phone Number Utilities for SMS Providers
  *
  * Centralized phone formatting and validation for Saudi Arabian numbers.
- * Used by Unifonic, Twilio, and other SMS providers.
+ * Used by Taqnyat (ONLY supported SMS provider - CITC compliant for Saudi Arabia).
  */
 
 /**

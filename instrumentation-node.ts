@@ -2,7 +2,7 @@
  * Node.js-specific Instrumentation
  *
  * This file contains Node.js-specific initialization code that requires
- * Node.js-only modules (bullmq, twilio, etc.) and should NOT be bundled
+ * Node.js-only modules (bullmq, etc.) and should NOT be bundled
  * for Edge runtime or client-side.
  *
  * @see https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation

@@ -29,9 +29,9 @@ const INTEGRATIONS = [
     icon: "📧",
   },
   {
-    id: "twilio",
-    name: "Twilio",
-    description: "SMS and WhatsApp messaging",
+    id: "taqnyat",
+    name: "Taqnyat",
+    description: "SMS messaging (CITC-compliant for Saudi Arabia)",
     status: "connected",
     icon: "💬",
   },

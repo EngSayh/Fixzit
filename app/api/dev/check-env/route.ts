@@ -26,10 +26,9 @@ export async function GET() {
     SENDGRID_FROM_EMAIL: !!process.env.SENDGRID_FROM_EMAIL,
     SENDGRID_FROM_NAME: !!process.env.SENDGRID_FROM_NAME,
 
-    // SMS
-    TWILIO_ACCOUNT_SID: !!process.env.TWILIO_ACCOUNT_SID,
-    TWILIO_AUTH_TOKEN: !!process.env.TWILIO_AUTH_TOKEN,
-    TWILIO_PHONE_NUMBER: !!process.env.TWILIO_PHONE_NUMBER,
+    // SMS (Taqnyat - ONLY supported provider, CITC-compliant for Saudi Arabia)
+    TAQNYAT_BEARER_TOKEN: !!process.env.TAQNYAT_BEARER_TOKEN,
+    TAQNYAT_SENDER_NAME: !!process.env.TAQNYAT_SENDER_NAME,
 
     // Storage
     AWS_S3_BUCKET: !!process.env.AWS_S3_BUCKET,

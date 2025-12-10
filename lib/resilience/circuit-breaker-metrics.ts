@@ -78,7 +78,7 @@ export function getAllCircuitBreakerMetrics(): CircuitBreakerMetrics[] {
  * # HELP circuit_breaker_state Current state of circuit breaker (0=closed, 1=open, 2=half-open)
  * # TYPE circuit_breaker_state gauge
  * circuit_breaker_state{name="paytabs"} 0
- * circuit_breaker_state{name="twilio"} 0
+ * circuit_breaker_state{name="taqnyat"} 0
  * ...
  * ```
  */

@@ -24,8 +24,8 @@ Before running smoke tests, you'll need accounts and API keys for:
 - ✅ **MongoDB** - Running locally or Atlas (for storing FCM tokens)
 - 🔥 **Firebase** - For Push Notifications ([console.firebase.google.com](https://console.firebase.google.com))
 - 📧 **SendGrid** - For Email ([app.sendgrid.com](https://app.sendgrid.com))
-- 📱 **Twilio** - For SMS ([console.twilio.com](https://console.twilio.com))
-- 💬 **WhatsApp Business API** - For WhatsApp (via Meta or Twilio)
+- 📱 **Taqnyat** - For SMS ([taqnyat.sa](https://taqnyat.sa)) - CITC-compliant for Saudi Arabia
+- 💬 **WhatsApp Business API** - For WhatsApp (via Meta)
 
 ### Test User Requirements
 
@@ -148,41 +148,38 @@ SENDGRID_FROM_NAME=Fixzit Notifications
 
 ---
 
-### 3. Twilio (SMS Notifications)
+### 3. Taqnyat (SMS Notifications)
+
+> **Note:** Taqnyat is the ONLY production SMS provider for Fixzit. It is CITC-compliant for Saudi Arabia.
 
 #### Get Credentials
 
-1. Go to [Twilio Console](https://console.twilio.com)
-2. Navigate to **Account Info** (on dashboard)
-3. Copy:
-   - **Account SID** (starts with `AC...`)
-   - **Auth Token** (click to reveal)
-4. Go to **Phone Numbers** → **Manage** → **Active Numbers**
-5. Copy your **Twilio Phone Number**
+1. Go to [Taqnyat](https://taqnyat.sa)
+2. Create an account or login
+3. Navigate to **API Settings**
+4. Generate a **Bearer Token**
+5. Register a **Sender Name** (must be CITC-approved)
 
 #### Configure in `.env.local`
 
 ```bash
-TWILIO_ACCOUNT_SID=ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-TWILIO_AUTH_TOKEN=your_32_character_auth_token_here
-TWILIO_PHONE_NUMBER=+15551234567
+TAQNYAT_BEARER_TOKEN=your_bearer_token_here
+TAQNYAT_SENDER_NAME=Fixzit
 ```
 
 #### Phone Number Format
 
-- **Must be E.164 format:** `+[country code][number]`
+- **International format WITHOUT + or 00 prefix:** `[country code][number]`
 - **Examples:**
-  - US: `+15551234567`
-  - Saudi Arabia: `+966501234567`
-  - UK: `+447700900123`
+  - Saudi Arabia: `966501234567`
+  - UAE: `971501234567`
+  - Bahrain: `973xxxxxxxx`
 
-#### Trial Account Limitations
+#### Important Notes
 
-If using Twilio trial account:
-
-- Can only send to **verified phone numbers**
-- Add `NOTIFICATIONS_SMOKE_PHONE` to **Verified Caller IDs** in console
-- Messages will have "Sent from your Twilio trial account" prefix
+- Max 1000 recipients per bulk request
+- Sender name must be CITC-approved (8-11 alphanumeric characters)
+- API Base URL: `https://api.taqnyat.sa/`
 
 ---
 
