@@ -177,21 +177,21 @@ class ReturnsService {
     }
     const orderOrgId = order.orgId ? order.orgId.toString() : undefined;
 
-    if (order.status !== 'delivered') {
+      if (order.status !== 'delivered') {
       return { eligible: false, reason: 'Order not yet delivered' };
     }
 
-    // Check return window (30 days from delivery)
+    // Check return window (configurable days from delivery)
     const orderWithDates = order as OrderWithDates;
     const deliveryDate = orderWithDates.deliveredAt || orderWithDates.updatedAt;
     if (!deliveryDate) {
       return { eligible: false, reason: 'Delivery date unavailable' };
     }
     const daysSinceDelivery = Math.floor((Date.now() - deliveryDate.getTime()) / (1000 * 60 * 60 * 24));
-    const returnWindow = 30;
+    const returnWindow = parseInt(process.env.RETURN_WINDOW_DAYS || "30", 10);
 
     if (daysSinceDelivery > returnWindow) {
-      return { eligible: false, reason: 'Return window expired (30 days)' };
+      return { eligible: false, reason: `Return window expired (${returnWindow} days)` };
     }
 
     // Check if already returned
