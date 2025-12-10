@@ -1,13 +1,13 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T18:36:00+03:00  
-**Version**: 6.1  
+**Last Updated**: 2025-12-10T18:50:00+03:00  
+**Version**: 6.2  
 **Branch**: main  
 **Status**: ⚠️ PRODUCTION INTERMITTENT (MongoDB cold start issues, SMS ok)  
-**Total Pending Items**: 74 identified (1 Critical, 9 Major, 24 Moderate, 39 Minor)  
+**Total Pending Items**: 74 identified + 145 hardcoded values (1 Critical, 10 Major, 30 Moderate, 39 Minor)  
 **Completed Items**: 56+ tasks completed this session  
 **Consolidated Sources**: `docs/archived/pending-history/2025-12-10_CONSOLIDATED_PENDING.md`, `docs/archived/pending-history/PENDING_TASKS_MASTER.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_16-51-05_POST_STABILIZATION_AUDIT.md`, and all `PENDING_REPORT_2025-12-10T*.md` files (merged; no duplicates)
-**Consolidation Check**: 2025-12-10T18:36:00+03:00 — All pending reports scanned, deep dive completed, merged into single source of truth
+**Consolidation Check**: 2025-12-10T18:50:00+03:00 — All pending reports scanned, hardcoded values audit completed, merged into single source of truth
 
 ---
 
@@ -198,6 +198,123 @@
 - INF-001: Monitoring integration (Sentry) - P1
 - INF-002: Email notification stub (SendGrid) - P1
 - INF-003: WhatsApp Business API stub - P2
+
+---
+
+## 🔧 HARDCODED VALUES AUDIT (2025-12-10T18:45 +03)
+
+### Summary
+| Category | Count | Severity | Action Required |
+|----------|-------|----------|-----------------|
+| Hardcoded Domains/Emails | 50+ | 🟡 MODERATE | Extract to env vars for multi-tenant/rebrand |
+| Hardcoded Phone Numbers | 30+ | 🟠 MAJOR | Replace placeholders with env-driven values |
+| Hardcoded Currency (SAR) | 40+ | 🟡 MODERATE | Add multi-currency support |
+| Hardcoded Credentials | 15+ | 🔴 CRITICAL | Remove from scripts, use env vars only |
+| Brand-locked Seeds/Config | 10+ | 🟡 MODERATE | Make tenant-configurable |
+
+### Category 1: Hardcoded Domains/Emails (Multi-tenant Blocker)
+
+#### Production Files (MUST FIX)
+| File | Line | Issue | Fix |
+|------|------|-------|-----|
+| `lib/config/domains.ts` | 16 | `"https://fixzit.co"` fallback | Require `NEXT_PUBLIC_BASE_URL` in prod |
+| `lib/config/domains.ts` | 25 | `"https://app.fixzit.co"` fallback | Require `NEXT_PUBLIC_APP_URL` in prod |
+| `lib/config/domains.ts` | 40 | `"fixzit.co"` email domain | Require `EMAIL_DOMAIN` in prod |
+| `lib/config/constants.ts` | 272 | `noreply@fixzit.co` email | Use `EMAIL_FROM` env var |
+| `lib/config/demo-users.ts` | 29 | `"fixzit.co"` fallback | Document as intentional for demos |
+| `openapi.yaml` | 19 | `https://fixzit.co/api` server URL | Make dynamic or parameterized |
+| `next.config.js` | 73 | Whitelisted Fixzit hosts | Add tenant domains dynamically |
+
+#### Scripts/Test Files (LOW PRIORITY)
+- `scripts/*.ts` - 30+ files use `EMAIL_DOMAIN || "fixzit.co"` (acceptable for dev/test)
+- `vitest.setup.ts:116` - Test email domain fallback (acceptable)
+
+### Category 2: Hardcoded Phone Numbers (Data Integrity Risk)
+
+#### Production Files (MUST FIX)
+| File | Line | Issue | Fix |
+|------|------|-------|-----|
+| `services/souq/fulfillment-service.ts` | 250 | `"+966123456789"` placeholder | Use customer's actual phone from order |
+| `lib/config/constants.ts` | 301 | `"+966 XX XXX XXXX"` support phone | Set `NEXT_PUBLIC_SUPPORT_PHONE` env var |
+| `app/settings/page.tsx` | 131 | Hardcoded phone placeholder | Use config constant |
+| `app/privacy/page.tsx` | 37 | Contact phone placeholder | Use config constant |
+| `app/api/payments/create/route.ts` | 135 | Invoice fallback phone | Use organization phone |
+
+#### Scripts/Seeds (LOW PRIORITY - Dev Only)
+- `scripts/create-demo-users.ts:27-32` - `+966552233456` demo phones (acceptable)
+- `scripts/seed-production-data.ts:66,103` - Demo data phones (acceptable)
+- `scripts/update-test-users-phone.ts:22-27` - Test fixtures (acceptable)
+
+### Category 3: Hardcoded Currency "SAR" (Multi-currency Blocker)
+
+#### Business Logic (SHOULD FIX)
+| File | Line | Issue | Fix |
+|------|------|-------|-----|
+| `services/souq/settlements/escrow-service.ts` | 168,230,262,313,372,440 | `currency ?? "SAR"` defaults | Get from organization settings |
+| `services/souq/settlements/settlement-config.ts` | 15 | `currency: "SAR"` | Parameterize |
+| `services/souq/settlements/withdrawal-service.ts` | 95,333 | `currency: "SAR"` | Parameterize |
+| `services/souq/claims/refund-processor.ts` | 558 | `currency: 'SAR'` | Get from order/org |
+| `jobs/zatca-retry-queue.ts` | 26,93,198 | SAR default | Parameterize |
+| `modules/organizations/schema.ts` | 82 | `default: "SAR"` | Keep as default but support others |
+
+#### UI/Display (MODERATE)
+| File | Lines | Issue | Fix |
+|------|-------|-------|-----|
+| `app/souq/catalog/page.tsx` | 38-102 | `"SAR X,XXX"` prices | Use currency formatter |
+| `app/dashboard/page.tsx` | 27 | `"SAR 284,500"` | Use currency formatter |
+| `app/careers/page.tsx` | 66,105 | `"SAR 15,000 - 25,000"` | Use currency formatter |
+| `app/properties/units/page.tsx` | 17-50 | `"SAR X,XXX"` rents | Use currency formatter |
+| `app/vendor/dashboard/page.tsx` | 103,152,194 | Fixed SAR labels | Use i18n + formatter |
+| `app/fm/finance/budgets/page.tsx` | 373 | SAR hardcoded | Use currency formatter |
+
+#### Translation Keys (OK - i18n handled)
+- `i18n/sources/*.translations.json` - Currency labels in translations (correct approach)
+
+### Category 4: Hardcoded Credentials/Passwords (SECURITY RISK)
+
+#### CRITICAL - Remove Immediately
+| File | Line | Issue | Fix |
+|------|------|-------|-----|
+| `quick-fix-deployment.sh` | 63 | `password123` in MongoDB URI example | Remove or redact |
+| `scripts/update-superadmin-credentials.ts` | 21 | `'EngSayh@1985'` hardcoded | Use env var only |
+| `scripts/COMPLETE_FINAL_IMPLEMENTATION.sh` | 202 | `"adminPassword": "password123"` | Remove |
+| `scripts/test-system.ps1` | 67,84 | `"password":"Admin@123"` | Use env vars |
+| `scripts/test-system.mjs` | 87,114 | `password: "Admin@123"` | Use env vars |
+| `scripts/run-fixzit-superadmin-tests.sh` | 51,117 | `ADMIN_PASSWORD=Admin@123` | Use env vars |
+| `scripts/verification-checkpoint.js` | 48 | `password: "Admin@1234"` | Use env vars |
+
+#### Scripts with Fallbacks (MODERATE - Document as dev-only)
+- `scripts/test-data.js:7` - `DEMO_SUPERADMIN_PASSWORD || "admin123"` 
+- `scripts/verify-passwords.ts:52-61` - Password list for security audit (acceptable)
+
+### Category 5: Brand-locked Seeds/Config
+
+| File | Line | Issue | Fix |
+|------|------|-------|-----|
+| `modules/organizations/seed.mjs` | 10,20,30,49 | Fixzit org names/domains | Make tenant-aware |
+| `lib/config/constants.ts` | 299 | `"Fixzit"` company name | Require `NEXT_PUBLIC_COMPANY_NAME` |
+| `lib/config/constants.ts` | 194 | `"Fixzit Returns Center"` | Use env var |
+| `lib/config/constants.ts` | 240 | `"fixzit-dev-uploads"` S3 bucket | Use env var |
+
+---
+
+### Recommended Actions
+
+#### Phase 1: Critical Security (Immediate)
+1. ❌ Remove all hardcoded passwords from scripts
+2. ❌ Remove `password123` from `quick-fix-deployment.sh`
+3. ❌ Add `.env` validation to reject weak passwords in prod
+
+#### Phase 2: Production Data Integrity (This Week)
+1. ⚠️ Fix `fulfillment-service.ts:250` placeholder phone
+2. ⚠️ Set `NEXT_PUBLIC_SUPPORT_PHONE` in Vercel
+3. ⚠️ Require `EMAIL_DOMAIN` in production builds
+
+#### Phase 3: Multi-tenant/Rebrand Support (This Quarter)
+1. 🟡 Create `lib/config/tenant.ts` for org-specific config
+2. 🟡 Add `getCurrency(orgId)` function for multi-currency
+3. 🟡 Create currency formatter utility
+4. 🟡 Update OpenAPI to use parameterized server URL
 - INF-004: FCM/Web Push stub - P2
 - INF-005: Real-time auth middleware queries - P1
 - INF-006: Approval engine user queries - P2
