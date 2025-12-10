@@ -226,7 +226,7 @@ echo "   ✅ MONGODB_URI"
 echo "   ✅ NEXTAUTH_SECRET (auto-generated)"
 echo "   ✅ NEXTAUTH_URL (https://fixzit.co)"
 echo "   ✅ SendGrid (email)"
-echo "   ✅ Twilio (SMS)"
+echo "   ✅ Taqnyat (SMS)"
 echo "   ✅ Firebase (push notifications)"
 echo "   ✅ Additional app config"
 if [[ "$configure_aws" =~ ^[Yy]$ ]]; then

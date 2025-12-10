@@ -25,7 +25,7 @@ This document captures the operational contract for the FM notification engine i
 - **Monitoring:** `fixzit_notification_dlq_backlog{channel="<channel>"}` exposes the pending queue depth per transport (push/email/sms/whatsapp).
 - **Replay strategy:** run `pnpm notifications:replay-dlq --channel email --limit 25` (script lives in `scripts/notifications/replay-dlq.ts`). The script:
   1. Queries `NotificationDeadLetter` for `status: 'pending'`.
-  2. Replays channel-specific senders (SendGrid/Twilio/FCM/WhatsApp).
+  2. Replays channel-specific senders (SendGrid/Taqnyat/FCM/WhatsApp).
   3. Marks documents as `status: 'replayed'` (success) or leaves them pending with incremented attempt metadata.
   4. Updates `NotificationLog.channelResults` so audit records stay in sync.
 - **Alerting guidance:**

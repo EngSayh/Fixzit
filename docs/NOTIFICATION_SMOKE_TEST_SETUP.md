@@ -198,28 +198,21 @@ WHATSAPP_BUSINESS_API_KEY=EAAxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 WHATSAPP_PHONE_NUMBER_ID=123456789012345
 ```
 
-#### Option B: Twilio WhatsApp API (Easier)
+#### WhatsApp via Meta Cloud API
 
-1. Go to [Twilio Console](https://console.twilio.com)
-2. Navigate to **Messaging** → **Try it out** → **Send a WhatsApp message**
-3. Join sandbox via WhatsApp: Send code to `+1 415 523 8886`
-4. Use same Twilio credentials as SMS:
-
-```bash
-# Reuse Twilio credentials
-TWILIO_ACCOUNT_SID=ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-TWILIO_AUTH_TOKEN=your_auth_token_here
-
-# WhatsApp-specific
-WHATSAPP_PHONE_NUMBER_ID=whatsapp:+14155238886
-```
+1. Go to [Meta Business](https://business.facebook.com)
+2. Navigate to **WhatsApp** → **API Setup**
+3. Verify a phone number and obtain:
+   - **WHATSAPP_BUSINESS_API_KEY**
+   - **WHATSAPP_PHONE_NUMBER_ID**
+4. Ensure your message template is approved for production sends.
 
 #### WhatsApp Template Messages
 
 WhatsApp requires **pre-approved templates** for business messages. For testing:
 
-- Use Twilio Sandbox (allows freeform messages to joined users)
-- Or create/approve templates in Meta Business Manager
+- Create/approve templates in Meta Business Manager
+- For sandbox-style testing, limit to allowed recipients and verified templates
 
 ---
 

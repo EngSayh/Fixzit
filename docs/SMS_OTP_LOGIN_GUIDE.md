@@ -17,7 +17,7 @@ Enhanced the login flow with SMS OTP (One-Time Password) verification using Taqn
    ↓
 2. System validates credentials against database
    ↓
-3. System sends 6-digit OTP to user's registered phone via Twilio
+3. System sends 6-digit OTP to user's registered phone via Taqnyat
    ↓
 4. User receives SMS with OTP code
    ↓
@@ -43,7 +43,7 @@ Enhanced the login flow with SMS OTP (One-Time Password) verification using Taqn
 2. **`app/api/auth/otp/send/route.ts`** (250 lines)
    - POST /api/auth/otp/send
    - Validates credentials
-   - Sends OTP via Twilio SMS
+   - Sends OTP via Taqnyat SMS
    - Rate limiting (5 sends per 15 minutes)
    - Returns masked phone number
 
@@ -110,7 +110,7 @@ Enhanced the login flow with SMS OTP (One-Time Password) verification using Taqn
 - `401`: Invalid credentials
 - `403`: Account not active
 - `429`: Rate limit exceeded (5 sends per 15 minutes)
-- `500`: Server error (Twilio failure, database error)
+- `500`: Server error (Taqnyat failure, database error)
 
 **Rate Limiting:**
 
@@ -318,10 +318,9 @@ interface OTPLoginSession {
 ## Environment Variables
 
 ```env
-# Twilio SMS (Required)
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_PHONE_NUMBER=+966501234567
+# Taqnyat SMS (Required)
+TAQNYAT_BEARER_TOKEN=your_taqnyat_api_token
+TAQNYAT_SENDER_NAME=YOUR_REGISTERED_SENDER
 
 # NextAuth (Required)
 NEXTAUTH_SECRET=your_secret_key
@@ -333,9 +332,9 @@ NEXTAUTH_URL=http://localhost:3000
 
 **Testing:**
 
-1. Go to [Twilio Console](https://console.twilio.com/)
-2. Use verified phone numbers for testing
-3. Check SMS logs in Twilio dashboard
+1. Ensure `TAQNYAT_BEARER_TOKEN` and `TAQNYAT_SENDER_NAME` are set
+2. Use Saudi mobile numbers in E.164 format (`+9665XXXXXXXX`)
+3. For dev-only dry runs, set `SMS_DEV_MODE=true` to avoid live sends
 
 ## Testing Guide
 
@@ -420,7 +419,7 @@ describe("OTP Login Flow", () => {
   - Update `lib/otp-store.ts` to use Redis
   - Set TTL for OTP keys (5 minutes)
 - [ ] **Monitor SMS costs**
-  - Set up Twilio usage alerts
+  - Monitor Taqnyat usage and costs
   - Implement SMS cost tracking
   - Consider SMS budget limits per user
 - [ ] **Implement OTP backup methods**
@@ -430,7 +429,7 @@ describe("OTP Login Flow", () => {
 - [ ] **Add logging and monitoring**
   - Log all OTP send/verify attempts
   - Track success/failure rates
-  - Monitor Twilio delivery status
+  - Monitor Taqnyat delivery status
   - Set up alerts for high failure rates
 - [ ] **Security enhancements**
   - Implement CAPTCHA before sending OTP
@@ -452,20 +451,19 @@ describe("OTP Login Flow", () => {
 **Possible Causes:**
 
 - Invalid phone number format
-- Phone number not verified in Twilio (development mode)
-- Twilio account suspended or out of credits
+- Phone number not verified/allowed (Taqnyat) or invalid format
+- Taqnyat account suspended or out of credits
 - SMS blocked by carrier
 
 **Debug Steps:**
 
 ```bash
-# Check Twilio logs
-# Visit: https://console.twilio.com/us1/monitor/logs/sms
+# Check Taqnyat logs/portal
 
-# Test phone number format
+# Test phone number format (dev mode)
 curl -X POST http://localhost:3000/api/sms/test \
   -H "Content-Type: application/json" \
-  -d '{"to": "+966501234567", "message": "Test"}'
+  -d '{"phone": "+966501234567", "message": "Test", "testConfig": true}'
 
 # Check user phone number in database
 db.users.findOne({ email: "user@example.com" }, { "contact.phone": 1 })
@@ -539,21 +537,21 @@ rateLimitStore.delete(identifier);
 
 ### Target Metrics
 
-- **OTP Send Time:** <3 seconds (credential validation + Twilio API)
-- **OTP Delivery Time:** <10 seconds (Twilio → User's phone)
+- **OTP Send Time:** <3 seconds (credential validation + Taqnyat API)
+- **OTP Delivery Time:** <10 seconds (Taqnyat → User's phone)
 - **Verification Time:** <1 second (in-memory lookup + validation)
 - **Success Rate:** >95% (OTP delivery + verification)
 
 ### Monitoring
 
 - Track average OTP send time
-- Monitor Twilio delivery rates
+- Monitor Taqnyat delivery rates
 - Log failed verification attempts
 - Alert on high failure rates (>10%)
 
 ## Cost Analysis
 
-### Twilio SMS Pricing (Saudi Arabia)
+### Taqnyat SMS Pricing (Saudi Arabia)
 
 - **Outbound SMS:** ~$0.05 - $0.10 per message
 - **Estimated Monthly Cost (1000 users):**
@@ -586,7 +584,7 @@ rateLimitStore.delete(identifier);
 ### v1.0.0 (Current)
 
 - ✅ Initial SMS OTP implementation
-- ✅ Twilio integration
+- ✅ Taqnyat integration
 - ✅ Rate limiting (5 sends / 15 min)
 - ✅ Attempt limiting (3 attempts max)
 - ✅ UI with countdown timer

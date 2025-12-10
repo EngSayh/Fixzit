@@ -235,7 +235,7 @@ tail -f /tmp/route-verify.log | grep "PayTabs"
 | ID    | Owner   | Description                                                        | Status                                      |
 | ----- | ------- | ------------------------------------------------------------------ | ------------------------------------------- |
 | PI-01 | Backend | Provide signed sample payloads for subscriptions + invoices        | ✅ Completed (see _Sample Payload Library_) |
-| PI-02 | Backend | Share error taxonomy + status codes for PayTabs + Twilio hooks     | ✅ Completed (see _Error Response Matrix_)  |
+| PI-02 | Backend | Share error taxonomy + status codes for PayTabs + SMS hooks (Taqnyat) | ✅ Completed (see _Error Response Matrix_)  |
 | PI-03 | QA      | Build MSW/prism mock that exercises signature validation + retries | 🚧 Planned                                  |
 
 ---
@@ -257,7 +257,7 @@ tail -f /tmp/route-verify.log | grep "PayTabs"
   - Non-idempotent (requires different handling)
 - [ ] Third-party SLA/timeout documentation:
   - PayTabs API latency guarantees
-  - Twilio timeout recommendations
+  - Taqnyat timeout recommendations
   - Meilisearch query timeouts
 
 ### Files to Audit

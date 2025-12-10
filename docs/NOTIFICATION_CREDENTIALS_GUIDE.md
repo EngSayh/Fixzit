@@ -60,20 +60,18 @@ pnpm tsx qa/notifications/run-smoke.ts --channel email
 
 ---
 
-## 📱 Step 3: SMS via Twilio (Optional - for SMS tests)
+## 📱 Step 3: SMS via Taqnyat (Required for SMS)
 
 ```bash
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_PHONE_NUMBER=+15551234567
+TAQNYAT_BEARER_TOKEN=your_taqnyat_api_token
+TAQNYAT_SENDER_NAME=YOUR_REGISTERED_SENDER
 ```
 
 **Get Credentials:**
 
-1. Go to https://console.twilio.com
-2. Copy **Account SID** and **Auth Token** from dashboard
-3. Go to **Phone Numbers** → Active Numbers
-4. Copy your phone number (E.164 format: +1XXXXXXXXXX)
+1. Go to https://www.taqnyat.sa
+2. Generate an API token
+3. Use your CITC-approved sender name
 
 **Test command:**
 
