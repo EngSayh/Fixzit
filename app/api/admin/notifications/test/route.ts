@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { sendSMS } from "@/lib/sms";
 import { handleApiError } from "@/server/utils/errorResponses";
+import { audit } from "@/lib/audit";
 
 const TestNotificationSchema = z.object({
   phoneNumber: z.string().min(10).regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format"),
@@ -41,6 +42,8 @@ export async function POST(request: NextRequest) {
 
     // Ensure phone number has country code
     const formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
+    const maskedPhone = formattedPhone.replace(/\d{6}$/, "******");
+    const orgId = session.user.orgId || "global";
 
     if (channel === "sms") {
       // Send SMS via Taqnyat (CITC-compliant for Saudi Arabia)
@@ -51,11 +54,44 @@ export async function POST(request: NextRequest) {
       const result = await sendSMS(formattedPhone, message);
 
       if (!result.success) {
+        logger.warn("[Admin Test SMS] send failed", {
+          to: formattedPhone,
+          message: result.error || "Unknown error",
+        });
+        await audit({
+          actorId: session.user.id,
+          actorEmail: session.user.email || "unknown",
+          actorRole: session.user.role,
+          action: "admin.notifications.test.sms.failed",
+          orgId,
+          target: maskedPhone,
+          targetType: "notification",
+          meta: {
+            channel: "sms",
+            error: result.error || "Unknown error",
+          },
+          success: false,
+        });
         return NextResponse.json(
-          { error: `SMS failed: ${result.error || "Unknown error"}` },
+          { error: "Failed to send SMS. Check server logs for details." },
           { status: 400 }
         );
       }
+
+      await audit({
+        actorId: session.user.id,
+        actorEmail: session.user.email || "unknown",
+        actorRole: session.user.role,
+        action: "admin.notifications.test.sms.sent",
+        orgId,
+        target: maskedPhone,
+        targetType: "notification",
+        meta: {
+          channel: "sms",
+          messageId: result.messageSid,
+        },
+        success: true,
+      });
 
       return NextResponse.json({
         success: true,
@@ -86,14 +122,54 @@ export async function POST(request: NextRequest) {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
+        const providerMessage =
+          (errorData?.error?.message as string) ||
+          (errorData?.message as string) ||
+          "Unknown WhatsApp API error";
+
+        logger.error("[Admin Test WhatsApp] provider error", {
+          status: response.status,
+          message: providerMessage,
+          code: errorData?.error?.code,
+          type: errorData?.error?.type,
+        });
+        await audit({
+          actorId: session.user.id,
+          actorEmail: session.user.email || "unknown",
+          actorRole: session.user.role,
+          action: "admin.notifications.test.whatsapp.failed",
+          orgId,
+          target: maskedPhone,
+          targetType: "notification",
+          meta: {
+            channel: "whatsapp",
+            status: response.status,
+            providerCode: errorData?.error?.code,
+          },
+          success: false,
+        });
         return NextResponse.json(
-          { error: `WhatsApp API error: ${JSON.stringify(errorData)}` },
-          { status: 400 }
+          { error: `WhatsApp API error: ${providerMessage}` },
+          { status: response.status || 400 }
         );
       }
 
       const result = await response.json();
+      await audit({
+        actorId: session.user.id,
+        actorEmail: session.user.email || "unknown",
+        actorRole: session.user.role,
+        action: "admin.notifications.test.whatsapp.sent",
+        orgId,
+        target: maskedPhone,
+        targetType: "notification",
+        meta: {
+          channel: "whatsapp",
+          messageId: result.messages?.[0]?.id,
+        },
+        success: true,
+      });
       return NextResponse.json({
         success: true,
         message: `WhatsApp message sent successfully to ${formattedPhone}`,
