@@ -69,7 +69,8 @@
     "profile.toast.passwordMismatch": "Passwords do not match",
     "profile.toast.passwordTooShort": "Password must be at least 8 characters",
     "profile.toast.securityError": "Failed to update security settings",
-    "profile.toast.securitySaved": "Security settings updated!"
+    "profile.toast.securitySaved": "Security settings updated!",
+    "profile.retry": "Retry"
   },
   "ar": {
     "profile.account.cancel": "إلغاء",
@@ -141,6 +142,7 @@
     "profile.toast.passwordMismatch": "كلمات المرور غير متطابقة",
     "profile.toast.passwordTooShort": "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
     "profile.toast.securityError": "فشل تحديث إعدادات الأمان",
-    "profile.toast.securitySaved": "تم تحديث إعدادات الأمان!"
+    "profile.toast.securitySaved": "تم تحديث إعدادات الأمان!",
+    "profile.retry": "إعادة المحاولة"
   }
 }

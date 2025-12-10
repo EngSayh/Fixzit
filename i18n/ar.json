@@ -668,6 +668,7 @@
       "subtitle": "[AR] Manage your reports",
       "comingSoon": "[AR] Coming Soon"
     },
+    "workOrderHealth": "صحة أوامر العمل",
     "finance": {
       "tabs": {
         "invoices": "[AR] Invoices",
@@ -4336,21 +4337,28 @@
       "compliance": "[AR] Compliance"
     },
     "page": {
-      "title": "[AR] Reports Page"
+      "title": "[AR] Reports Page",
+      "subtitle": "لوحات التحكم والبناة والتصدير"
     },
     "toast": {
       "newReportComingSoon": "[AR] New Report Coming Soon"
     },
     "actions": {
       "newReport": "[AR] New Report",
-      "langToggle": "[AR] Lang Toggle"
+      "langToggle": "[AR] Lang Toggle",
+      "download": "تحميل",
+      "retry": "إعادة المحاولة",
+      "retrying": "جاري إعادة المحاولة",
+      "view": "عرض"
     },
     "tabs": {
+      "title": "مساحة عمل التقارير",
       "builder": "[AR] Builder",
       "viewer": "[AR] Viewer"
     },
     "table": {
       "reportName": "[AR] Report Name",
+      "name": "الاسم",
       "type": "النوع",
       "lastRun": "[AR] Last Run",
       "status": "الحالة",

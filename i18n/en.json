@@ -668,6 +668,7 @@
       "subtitle": "Manage your reports",
       "comingSoon": "Coming Soon"
     },
+    "workOrderHealth": "Work Order Health",
     "finance": {
       "tabs": {
         "invoices": "Invoices",
@@ -4336,21 +4337,28 @@
       "compliance": "Compliance"
     },
     "page": {
-      "title": "Reports Page"
+      "title": "Reports Page",
+      "subtitle": "Dashboards, builders, and exports"
     },
     "toast": {
       "newReportComingSoon": "New Report Coming Soon"
     },
     "actions": {
       "newReport": "New Report",
-      "langToggle": "Lang Toggle"
+      "langToggle": "Lang Toggle",
+      "download": "Download",
+      "retry": "Retry",
+      "retrying": "Retrying",
+      "view": "View"
     },
     "tabs": {
+      "title": "Report Workspace",
       "builder": "Builder",
       "viewer": "Viewer"
     },
     "table": {
       "reportName": "Report Name",
+      "name": "Name",
       "type": "Type",
       "lastRun": "Last Run",
       "status": "Status",

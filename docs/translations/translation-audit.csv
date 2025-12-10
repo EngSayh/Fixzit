@@ -1,9 +1,1 @@
 type,key,bare,inEN,inAR,files
-USED_MISSING,dashboard.workOrderHealth,dashboard.workOrderHealth,false,false,"Fixzit/app/dashboard/page.tsx"
-USED_MISSING,reports.page.subtitle,reports.page.subtitle,false,false,"Fixzit/app/reports/page.tsx"
-USED_MISSING,reports.tabs.title,reports.tabs.title,false,false,"Fixzit/app/reports/page.tsx"
-USED_MISSING,reports.table.name,reports.table.name,false,false,"Fixzit/app/reports/page.tsx"
-USED_MISSING,reports.actions.download,reports.actions.download,false,false,"Fixzit/app/reports/page.tsx"
-USED_MISSING,reports.actions.retrying,reports.actions.retrying,false,false,"Fixzit/app/reports/page.tsx"
-USED_MISSING,reports.actions.retry,reports.actions.retry,false,false,"Fixzit/app/reports/page.tsx"
-USED_MISSING,reports.actions.view,reports.actions.view,false,false,"Fixzit/app/reports/page.tsx"

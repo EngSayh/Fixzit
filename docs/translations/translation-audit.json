@@ -3,87 +3,14 @@
     "files": 819,
     "usedKeys": 2909,
     "hasDynamic": true,
-    "enCount": 31171,
-    "arCount": 31171,
+    "enCount": 31179,
+    "arCount": 31179,
     "parityGap": 0
   },
   "missing": {
     "inAr": [],
     "inEn": [],
-    "used": [
-      {
-        "key": "dashboard.workOrderHealth",
-        "bare": "dashboard.workOrderHealth",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/dashboard/page.tsx"
-        ]
-      },
-      {
-        "key": "reports.page.subtitle",
-        "bare": "reports.page.subtitle",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/reports/page.tsx"
-        ]
-      },
-      {
-        "key": "reports.tabs.title",
-        "bare": "reports.tabs.title",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/reports/page.tsx"
-        ]
-      },
-      {
-        "key": "reports.table.name",
-        "bare": "reports.table.name",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/reports/page.tsx"
-        ]
-      },
-      {
-        "key": "reports.actions.download",
-        "bare": "reports.actions.download",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/reports/page.tsx"
-        ]
-      },
-      {
-        "key": "reports.actions.retrying",
-        "bare": "reports.actions.retrying",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/reports/page.tsx"
-        ]
-      },
-      {
-        "key": "reports.actions.retry",
-        "bare": "reports.actions.retry",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/reports/page.tsx"
-        ]
-      },
-      {
-        "key": "reports.actions.view",
-        "bare": "reports.actions.view",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/app/reports/page.tsx"
-        ]
-      }
-    ]
+    "used": []
   },
   "fileMap": {
     "billing.history.tagline": [
@@ -9064,5 +8991,5 @@
       "Fixzit/components/ui/pagination.tsx"
     ]
   },
-  "timestamp": "2025-12-10T08:57:18.327Z"
+  "timestamp": "2025-12-10T09:34:40.799Z"
 }
