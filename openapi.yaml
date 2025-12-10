@@ -1,11 +1,16 @@
 openapi: 3.0.3
 info:
   title: Fixzit Aqar Real Estate API
-  version: 1.0.0
+  version: 2.0.27
   description: |-
     REST API for Aqar real estate marketplace with listings, leads, favorites, and packages
     
     ## Breaking Changes
+    ### v2.0.27 - Public API Caching (December 2025)
+    - **NEW**: Public API routes now return Cache-Control headers
+    - **Affected Endpoints**: `/api/public/*` routes
+    - **Details**: max-age varies by content type (30s for dynamic, 300s for static)
+    
     ### v2.0.26 - Souq Refund Methods
     - **DEPRECATED**: `store_credit` refund method removed
     - **NEW**: Use `wallet` for refunds to user's digital wallet
@@ -354,6 +359,140 @@ paths:
         "500":
           description: Internal server error
 
+  # Public API Endpoints (no authentication required)
+  /public/rfqs:
+    get:
+      summary: Get public RFQs
+      description: Returns publicly visible Request for Quotations
+      tags: [Public]
+      responses:
+        "200":
+          description: List of public RFQs
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=60, stale-while-revalidate=120"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PublicRFQ"
+
+  /public/aqar/listings:
+    get:
+      summary: Get public property listings
+      description: Returns publicly visible Aqar property listings
+      tags: [Public]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of public listings
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=60, stale-while-revalidate=120"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  listings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PublicListing"
+                  total:
+                    type: integer
+
+  /public/aqar/listings/{id}:
+    get:
+      summary: Get single public listing
+      description: Returns a single publicly visible listing with view increment
+      tags: [Public]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+      responses:
+        "200":
+          description: Public listing details
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=30, stale-while-revalidate=60"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  listing:
+                    $ref: "#/components/schemas/PublicListing"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /public/footer/{page}:
+    get:
+      summary: Get footer content page
+      description: Returns footer content for about, privacy, or terms pages
+      tags: [Public]
+      parameters:
+        - name: page
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [about, privacy, terms]
+      responses:
+        "200":
+          description: Footer content
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=300, stale-while-revalidate=600"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page:
+                    type: string
+                  contentEn:
+                    type: string
+                  contentAr:
+                    type: string
+                  updatedAt:
+                    type: string
+                    format: date-time
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -394,6 +533,82 @@ components:
             $ref: "#/components/schemas/Error"
 
   schemas:
+    # Public API Schemas
+    PublicRFQ:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        status:
+          type: string
+          enum: [OPEN, CLOSED, AWARDED]
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+
+    PublicListing:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        titleAr:
+          type: string
+        description:
+          type: string
+        descriptionAr:
+          type: string
+        propertyType:
+          type: string
+          enum: [APARTMENT, VILLA, OFFICE, LAND, WAREHOUSE, RETAIL]
+        intent:
+          type: string
+          enum: [SALE, RENT]
+        price:
+          type: number
+        currency:
+          type: string
+          default: OMR
+        city:
+          type: string
+        district:
+          type: string
+        area:
+          type: number
+          description: Area in square meters
+        bedrooms:
+          type: integer
+        bathrooms:
+          type: integer
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        features:
+          type: array
+          items:
+            type: string
+        isVerified:
+          type: boolean
+        isFeatured:
+          type: boolean
+        views:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
     Error:
       type: object
       properties:
