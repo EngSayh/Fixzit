@@ -1,13 +1,13 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T20:50:00+03:00  
-**Version**: 6.2  
+**Last Updated**: 2025-12-11T10:30:00+03:00  
+**Version**: 6.3  
 **Branch**: main  
 **Status**: ⚠️ PRODUCTION INTERMITTENT (MongoDB cold start issues, SMS ok)  
-**Total Pending Items**: 83 identified (4 Critical, 16 Major, 24 Moderate, 39 Minor)  
+**Total Pending Items**: 95 identified (5 Critical, 19 Major, 28 Moderate, 43 Minor)  
 **Completed Items**: 56+ tasks completed this session  
 **Consolidated Sources**: `docs/archived/pending-history/2025-12-10_CONSOLIDATED_PENDING.md`, `docs/archived/pending-history/PENDING_TASKS_MASTER.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_16-51-05_POST_STABILIZATION_AUDIT.md`, and all `PENDING_REPORT_2025-12-10T*.md` files (merged; no duplicates)
-**Consolidation Check**: 2025-12-10T20:50:00+03:00 — All pending reports scanned, deep dive completed, hardcoded issues scan added, merged into single source of truth
+**Consolidation Check**: 2025-12-11T10:30:00+03:00 — All pending reports scanned, DEEP DIVE HARDCODED SEARCH COMPLETED, comprehensive system-wide audit merged into single source of truth
 
 ---
 
@@ -31,24 +31,25 @@
 
 ---
 
-## 📊 DEEP DIVE EXECUTIVE SUMMARY (2025-12-10T20:50 +03)
+## 📊 DEEP DIVE EXECUTIVE SUMMARY (2025-12-11T10:30 +03)
 
 | Category | Critical | Major | Moderate | Minor | Total |
 |----------|----------|-------|----------|-------|-------|
 | Production Issues | 1 | 2 | 3 | 4 | 10 |
-| **Hardcoded Issues** | **3** | **7** | **0** | **0** | **10** |
+| **Hardcoded Issues (DEEP DIVE)** | **4** | **10** | **6** | **2** | **22** |
 | Code Quality | 0 | 3 | 8 | 12 | 23 |
 | Testing Gaps | 0 | 2 | 5 | 8 | 15 |
 | Security | 0 | 1 | 2 | 4 | 7 |
 | Performance | 0 | 1 | 4 | 6 | 11 |
 | Documentation | 0 | 0 | 2 | 5 | 7 |
-| **TOTAL** | **4** | **16** | **24** | **39** | **83** |
+| **TOTAL** | **5** | **19** | **28** | **43** | **95** |
 
-**🔴 CRITICAL (4)**: 
+**🔴 CRITICAL (5)**: 
 - CRIT-001: MongoDB intermittent cold start connection failure
 - HC-CRIT-001: Hardcoded phone number in fulfillment-service.ts:250
 - HC-CRIT-002: Hardcoded ZATCA VAT number in payment callbacks
 - HC-CRIT-003: Test passwords exposed in version control
+- HC-CRIT-004: Test email in production code (temp-kyc@fixzit.test)
 
 ---
 
@@ -111,29 +112,51 @@
 
 ---
 
-## 🔧 HARDCODED ISSUES SCAN (2025-12-10T20:50 +03)
+## 🔧 HARDCODED ISSUES SCAN — DEEP DIVE (2025-12-11T10:30 +03)
 
-Comprehensive scan for values that should be moved to environment variables or configuration.
+Comprehensive system-wide scan for values that should be moved to environment variables or configuration.
 
-### 🔴 HC-CRITICAL (3 Items) - Immediate Action Required
+### 🔴 HC-CRITICAL (4 Items) - Immediate Action Required
 
 | ID | Issue | File(s) | Risk | Action |
 |----|-------|---------|------|--------|
 | HC-CRIT-001 | **Hardcoded Phone Number** | `services/souq/fulfillment-service.ts:250` | Invalid phone causes shipping failures | Replace `+966123456789` with `process.env.FULFILLMENT_CENTER_PHONE` |
 | HC-CRIT-002 | **Hardcoded ZATCA VAT Number** | Payment callback routes | Tax compliance violation | Use `ZATCA_VAT_NUMBER` and `ZATCA_SELLER_NAME` env vars |
-| HC-CRIT-003 | **Test Passwords in Scripts** | `scripts/test-data.js:7`, `scripts/setup-test-env.ts:23`, `scripts/test-auth.ts:12` | Security exposure | Ensure guarded by `NODE_ENV !== 'production'` |
+| HC-CRIT-003 | **Test Passwords in Scripts** | `scripts/test-data.js:7`, `scripts/setup-test-env.ts:23`, `scripts/test-auth.ts:12`, `quick-fix-deployment.sh:63`, `scripts/update-superadmin-credentials.ts:21` | Security exposure | Ensure guarded by `NODE_ENV !== 'production'` or remove |
+| HC-CRIT-004 | **Test Email in Production Code** | `services/souq/seller-kyc-service.ts:445,655` | Test data leaking to production | Replace `temp-kyc@fixzit.test` with actual KYC email logic |
 
-### 🟠 HC-MAJOR (7 Items) - Should Address Soon
+### 🟠 HC-MAJOR (10 Items) - Should Address Soon
 
 | ID | Issue | File(s) | Risk | Action |
 |----|-------|---------|------|--------|
 | HC-MAJ-001 | Placeholder URL | `services/souq/seller-kyc-service.ts:479` | Invalid document link | Replace `https://example.com/placeholder.pdf` |
 | HC-MAJ-002 | Hardcoded Warehouse Address | `services/souq/fulfillment-service.ts:249-256` | Config inflexibility | Move entire warehouse config to env vars |
-| HC-MAJ-003 | Test Email in KYC Service | `services/souq/seller-kyc-service.ts:445,655` | Test data in prod | Ensure `temp-kyc@fixzit.test` only in test flows |
+| HC-MAJ-003 | Hardcoded VAT Rate 0.15 | `services/souq/settlements/settlement-calculator.ts:10,25`, `app/api/souq/orders/route.ts` | Rate change requires code change | Create `SAUDI_VAT_RATE` env var |
 | HC-MAJ-004 | Hardcoded Test Phones | `scripts/update-test-users-phone.ts:22-26` | Config inflexibility | Move to `TEST_PHONE_NUMBER` env var |
-| HC-MAJ-005 | Hardcoded VAT Rate | `app/api/souq/orders/route.ts`, `lib/pricing.ts` | Rate change requires code change | Create `SAUDI_VAT_RATE` env var |
-| HC-MAJ-006 | Brand Name in Notifications | `services/notifications/seller-notification-service.ts:60-208` | White-label incompatible | Use i18n keys or brand config |
-| HC-MAJ-007 | Placeholder Support Phone | `lib/config/constants.ts:301` | Invalid contact | Replace with real phone |
+| HC-MAJ-005 | Brand Name in Notifications | `services/notifications/seller-notification-service.ts:60,204,208` | White-label incompatible | Use i18n keys or brand config |
+| HC-MAJ-006 | Placeholder Support Phone | `lib/config/constants.ts:301` | Invalid contact | Replace with real phone via env var |
+| HC-MAJ-007 | Hardcoded City Names | `services/souq/fulfillment-service.ts:253` | Riyadh hardcoded | Use `FULFILLMENT_CENTER_CITY` env var |
+| HC-MAJ-008 | Late Reporting Days | `services/souq/claims/investigation-service.ts:30` | Business rule hardcoded `14 days` | Move to config |
+| HC-MAJ-009 | Return Window Days | `services/souq/returns-service.ts:276` | Business rule hardcoded `30 days` | Move to config |
+| HC-MAJ-010 | Cache TTL Values | `services/souq/reviews/rating-aggregation-service.ts:49`, `services/aqar/offline-cache-service.ts:87` | Performance tuning hardcoded | Use env vars |
+
+### 🟡 HC-MODERATE (6 Items) - Address This Quarter
+
+| ID | Issue | File(s) | Risk | Action |
+|----|-------|---------|------|--------|
+| HC-MOD-001 | Max Retries Hardcoded | `services/souq/claims/refund-processor.ts:155` | `MAX_RETRIES = 3` hardcoded | Move to config |
+| HC-MOD-002 | Retry Delay Hardcoded | `services/souq/claims/refund-processor.ts:159,161` | `30_000ms` and `300_000ms` delays | Move to config |
+| HC-MOD-003 | Pagination Limits | Multiple services (20, 50, 100, 200) | Consistent defaults but not configurable | Create central pagination config |
+| HC-MOD-004 | Timeout Values | `services/souq/settlements/payout-processor.ts:641` (`2000ms`) | Performance tuning hardcoded | Use config |
+| HC-MOD-005 | Brand Name in Seeds | `modules/organizations/seed.mjs:10,20,30,49` | Multi-tenant incompatible | Make tenant-aware |
+| HC-MOD-006 | S3 Bucket Name | `lib/config/constants.ts:240` | `fixzit-dev-uploads` hardcoded | Use `S3_BUCKET_NAME` env var |
+
+### 🟢 HC-MINOR (2 Items) - Backlog
+
+| ID | Issue | File(s) | Risk | Action |
+|----|-------|---------|------|--------|
+| HC-MIN-001 | Period Defaults | Analytics services (7, 30, 90 days) | Consistent but not configurable | Low priority - accept as reasonable defaults |
+| HC-MIN-002 | Port Numbers in Dev Config | Docker, vitest configs (3000, 6379, 7700) | Development only | No action needed |
 
 ### 📋 Environment Variables to Add
 
@@ -157,16 +180,54 @@ SAUDI_VAT_RATE="0.15"
 # Brand Configuration (White-label)
 BRAND_NAME="Fixzit"
 BRAND_TAGLINE="Fixzit Marketplace"
+
+# Business Rules
+LATE_REPORTING_DAYS="14"
+RETURN_WINDOW_DAYS="30"
+
+# Performance Tuning
+RATING_CACHE_TTL_MS="300000"
+OFFLINE_CACHE_TTL_MS="900000"
+MAX_REFUND_RETRIES="3"
+REFUND_RETRY_DELAY_MS="30000"
+MAX_REFUND_RETRY_DELAY_MS="300000"
+
+# Storage
+S3_BUCKET_NAME="fixzit-dev-uploads"
 ```
 
 ### ✅ Acceptable Hardcoding (No Action Required)
-- Test file data (vitest configs, test setup)
-- `.env.example` documentation
-- Government reference URLs (HRSD, GOSI)
-- Enum constants and role definitions
-- Standard pagination defaults (20, 50, 100, 200)
-- Currency defaults (`SAR` for Saudi Arabia)
-- File size/image dimension limits
+- Test file data (vitest configs, test setup) - Development only
+- `.env.example` documentation - Reference values
+- Government reference URLs (HRSD, GOSI) - Static official URLs
+- Enum constants and role definitions - Type safety
+- Standard pagination defaults (20, 50, 100, 200) - Reasonable defaults
+- Currency defaults (`SAR` for Saudi Arabia) - Single-currency system
+- File size/image dimension limits - Technical constraints
+- Port numbers in docker-compose/vitest - Development only
+- Analytics period options (7/30/90 days) - UI choices
+- Timezone defaults (`Asia/Riyadh`) - Regional default
+
+---
+
+### 🔍 DEEP DIVE SEARCH PATTERNS EXECUTED
+
+The following patterns were searched across the entire codebase:
+
+1. **Email Patterns**: `@fixzit\.co|@test\.com|@example\.com` - 50+ matches
+2. **Domain/URL Patterns**: `fixzit\.co|localhost:3000` - 40+ matches
+3. **Password Patterns**: `password123|Admin@123|Test@1234` - 20+ matches (CRITICAL)
+4. **Currency Patterns**: `"SAR"|currency.*SAR` - 50+ matches
+5. **Phone Patterns**: `\+966\d{9}` - 50+ matches
+6. **API Key Patterns**: `sk_live_|Bearer\s+` - 10+ matches (docs only)
+7. **City Names**: `Riyadh|Jeddah|Dammam` - 30+ matches
+8. **Brand Names**: `Fixzit\s+(Enterprise|Marketplace)` - 30+ matches
+9. **ZATCA VAT Numbers**: `300\d{12}|VAT.*\d{15}` - 20+ matches
+10. **Timeout Values**: `timeout.*=.*\d{3,}|setTimeout.*\d{4,}` - 30+ matches
+11. **Retry Values**: `retry.*=.*\d+|MAX_RETRIES` - 25+ matches
+12. **TTL Values**: `ttl.*=.*\d+|cacheTTL` - 20+ matches
+13. **Days/Period Values**: `days.*=.*\d+|DAYS.*=.*\d+` - 30+ matches
+14. **Secret Key References**: `secretKey|apiKey|clientSecret` - 20+ matches (all use env vars)
 
 ---
 
