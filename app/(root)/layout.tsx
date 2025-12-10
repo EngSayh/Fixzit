@@ -1,18 +1,16 @@
-import type { Metadata } from "next";
-import "../globals.css";
 import { ReactNode } from "react";
 
-export const metadata: Metadata = {
-  title: "Fixzit — Facility Management + Marketplace",
-  description: "Fixzit: FM + Marketplaces (Aqar Souq & Fixzit Souq).",
-};
-
-export default function RootLayout({ children }: { children: ReactNode }) {
+/**
+ * (root) Route Group Layout
+ * 
+ * This is a route group layout that inherits from app/layout.tsx.
+ * It should NOT have html/body tags - those are provided by the root layout.
+ * Fonts and theme are inherited from the root layout.
+ */
+export default function RootGroupLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body className="bg-card">
-        <main>{children}</main>
-      </body>
-    </html>
+    <main className="min-h-screen bg-background">
+      {children}
+    </main>
   );
 }

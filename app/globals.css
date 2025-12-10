@@ -2,11 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Roboto:wght@300;400;500;700&display=swap');
-
 /* ============================================
-   FIXZIT DESIGN SYSTEM v3.0
+   FIXZIT DESIGN SYSTEM v3.0 - Ejar Theme
    Modern, Distinctive, Production-Ready
+   Fonts loaded via Next.js font loader in layout.tsx
    ============================================ */
 
 @layer base {
@@ -36,8 +35,10 @@
     --color-border-subtle: #DEE2E6;
     --color-border-soft: #EAEAEA;
 
-    /* Typography */
-    --font-family-base: "Almarai", "Roboto", "Segoe UI", sans-serif;
+    /* Typography - Ejar-style: Tajawal for Arabic, DM Sans for Latin */
+    /* These use CSS variables set by Next.js font loader in layout.tsx */
+    --font-family-base: var(--font-tajawal), var(--font-sans), "Segoe UI", system-ui, sans-serif;
+    --font-family-arabic: var(--font-tajawal), var(--font-arabic), "Tahoma", "Arial", sans-serif;
     --font-weight-light: 300;
     --font-weight-regular: 400;
     --font-weight-medium: 500;
