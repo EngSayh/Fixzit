@@ -77,24 +77,31 @@ interface DatabaseHandle {
 // MongoDB-only implementation - no mock database
 
 // Environment configuration
-const rawMongoUri = getEnv("MONGODB_URI");
-const dbName = process.env.MONGODB_DB || "fixzit";
-const isProd = process.env.NODE_ENV === "production";
-const allowLocalMongo = isTruthy(process.env.ALLOW_LOCAL_MONGODB);
-const isNextBuild = process.env.NEXT_PHASE === "phase-production-build";
-const disableMongoForBuild =
-  isTruthy(process.env.DISABLE_MONGODB_FOR_BUILD) || isNextBuild;
-const allowOfflineMongo = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
+// Read environment variables lazily to ensure Vercel has injected them
+// CRITICAL: Do NOT read env vars at module scope - they may not be available yet in serverless
+const getDbName = () => process.env.MONGODB_DB || "fixzit";
+const getIsProd = () => process.env.NODE_ENV === "production";
+const getAllowLocalMongo = () => isTruthy(process.env.ALLOW_LOCAL_MONGODB);
+const getIsNextBuild = () => process.env.NEXT_PHASE === "phase-production-build";
+const getDisableMongoForBuild = () =>
+  isTruthy(process.env.DISABLE_MONGODB_FOR_BUILD) || getIsNextBuild();
+const getAllowOfflineMongo = () => isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
 
 function resolveMongoUri(): string {
-  if (disableMongoForBuild) {
+  const disableForBuild = getDisableMongoForBuild();
+  if (disableForBuild) {
     return "mongodb://disabled-for-build";
   }
 
-  if (rawMongoUri && rawMongoUri.trim().length > 0) {
-    return rawMongoUri;
+  // Read MONGODB_URI lazily - critical for Vercel serverless where env vars
+  // may not be available at module load time
+  const mongoUri = getEnv("MONGODB_URI");
+  
+  if (mongoUri && mongoUri.trim().length > 0) {
+    return mongoUri;
   }
 
+  const isProd = getIsProd();
   if (!isProd) {
     logger.warn(
       "[Mongo] MONGODB_URI not set, using localhost fallback (development only)",
@@ -114,7 +121,7 @@ function validateMongoUri(uri: string): void {
 }
 
 function assertNotLocalhostInProd(uri: string): void {
-  if (!isProd || allowLocalMongo || disableMongoForBuild) return;
+  if (!getIsProd() || getAllowLocalMongo() || getDisableMongoForBuild()) return;
   const localPatterns = [
     "mongodb://localhost",
     "mongodb://127.0.0.1",
@@ -128,7 +135,7 @@ function assertNotLocalhostInProd(uri: string): void {
 }
 
 function assertAtlasUriInProd(uri: string): void {
-  if (!isProd || allowLocalMongo || disableMongoForBuild) return;
+  if (!getIsProd() || getAllowLocalMongo() || getDisableMongoForBuild()) return;
   if (uri.startsWith("mongodb+srv://")) return;
 
   const allowNonSrv = isTruthy(process.env.ALLOW_NON_SRV_MONGODB);
@@ -179,7 +186,7 @@ function createOfflineHandle(): DatabaseHandle {
 
 if (!conn) {
   try {
-    if (disableMongoForBuild) {
+    if (getDisableMongoForBuild()) {
       logger.warn(
         "[Mongo] DISABLE_MONGODB_FOR_BUILD enabled – returning stub database handle",
       );
@@ -201,12 +208,12 @@ if (!conn) {
       const enforceTls =
         !isSrvUri &&
         !hasExplicitTlsParam &&
-        !allowLocalMongo &&
-        !disableMongoForBuild;
+        !getAllowLocalMongo() &&
+        !getDisableMongoForBuild();
 
       conn = globalObj._mongoose = mongoose
         .connect(connectionUri, {
-          dbName,
+          dbName: getDbName(),
           autoIndex: true,
           maxPoolSize: 10,
           minPoolSize: 2, // Maintain minimum connections for faster response
@@ -254,7 +261,7 @@ if (!conn) {
         .catch((err) => {
           const errorObj = err instanceof Error ? err : new Error(String(err));
           logger.error("ERROR: mongoose.connect() failed", errorObj);
-          if (allowOfflineMongo && !isProd) {
+          if (getAllowOfflineMongo() && !getIsProd()) {
             logger.warn(
               "[Mongo] Offline fallback enabled – continuing without database connection",
             );
