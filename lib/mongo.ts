@@ -383,6 +383,25 @@ export async function pingDatabase(timeoutMs = 2000): Promise<{
     // Wait for connection to be established
     await db;
     
+    // Give Mongoose a moment to update readyState after connection
+    // This fixes a race condition in Vercel serverless cold starts
+    if (mongoose.connection.readyState !== 1) {
+      // Wait up to 500ms for connection state to stabilize
+      await new Promise<void>((resolve) => {
+        const checkInterval = setInterval(() => {
+          if (mongoose.connection.readyState === 1) {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 50);
+        // Timeout after 500ms
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          resolve();
+        }, 500);
+      });
+    }
+    
     // Get the native MongoDB connection from mongoose
     const connection = mongoose.connection;
     
