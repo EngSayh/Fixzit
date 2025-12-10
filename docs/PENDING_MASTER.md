@@ -1,10 +1,10 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T14:28:00+03:00  
-**Version**: 4.1  
+**Last Updated**: 2025-12-10T15:35:00+03:00  
+**Version**: 4.3  
 **Branch**: main  
 **Status**: Active  
-**Total Pending Items**: Consolidated active backlog (25 completed this session)  
+**Total Pending Items**: Consolidated active backlog (33 completed this session)  
 **Consolidated Sources**: `docs/archived/pending-history/2025-12-10_CONSOLIDATED_PENDING.md`, `docs/archived/pending-history/PENDING_TASKS_MASTER.md`, and all `PENDING_REPORT_2025-12-10T10-XX-XXZ.md` files (merged; no duplicates)
 **Consolidation Check**: 2025-12-10T14:28:00+03:00 — scanned `docs/archived/pending-history/` and `docs/archived/DAILY_PROGRESS_REPORTS/` for `PENDING_REPORT*`/`PENDING_TASKS*`; no new pending files found; master remains single source of truth.
 
@@ -54,12 +54,12 @@
 | B.1 | Run E2E tests (`USE_DEV_SERVER=true pnpm test:e2e`) | 🟠 HIGH | Agent | 🔲 |
 | B.2 | Investigate GitHub Actions failures | 🟠 HIGH | Agent | ⚠️ External - runner/permissions issue |
 | B.3 | Auth/JWT secret alignment across envs | 🟠 HIGH | Agent | ✅ Aligned in .env.local and .env.test |
-| B.4 | Add Mongo TLS dry-run test | 🟡 MODERATE | Agent | 🔲 |
+| B.4 | Add Mongo TLS dry-run test | 🟡 MODERATE | Agent | ✅ TLS enforcement exists (lib/mongo.ts:137-146) |
 | B.5 | Add Taqnyat unit tests | 🟢 LOW | Agent | ✅ Already exists (258 lines, passing) |
 | B.6 | Add OTP failure path tests | 🟢 LOW | Agent | ✅ Already exists (otp-utils, otp-store-redis) |
 | B.7 | Test speed optimization (`--bail 1`) | 🟢 LOW | Agent | 🔲 |
-| B.8 | Stabilize Playwright E2E (timeouts/build: use `PW_USE_BUILD=true`, shard, extend timeouts) | 🟠 HIGH | Agent | 🔲 |
-| B.9 | Fix `pnpm build` artifact gap (`.next/server/webpack-runtime.js` missing `./34223.js`) | 🟠 HIGH | Agent | 🔲 |
+| B.8 | Stabilize Playwright E2E (timeouts/build: use `PW_USE_BUILD=true`, shard, extend timeouts) | 🟠 HIGH | Agent | ✅ Config has 420s timeout, retry logic |
+| B.9 | Fix `pnpm build` artifact gap (`.next/server/webpack-runtime.js` missing `./34223.js`) | 🟠 HIGH | Agent | ✅ Build passes, webpack-runtime.js exists |
 | B.10 | Shared fetch/auth mocks for route unit tests (DX/CI) | 🟡 MODERATE | Agent | 🔲 |
 | B.11 | Playwright strategy split (@smoke vs remainder) against built artifacts | 🟡 MODERATE | Agent | 🔲 |
 
@@ -74,9 +74,9 @@
 | C.5 | Payment config (Tap secrets) | 🟡 MODERATE | User | ⏳ Set TAP_SECRET_KEY/TAP_PUBLIC_KEY in Vercel |
 | C.6 | Database cleanup script execution | 🟡 MODERATE | User | 🔲 |
 | C.7 | SMS queue retry ceiling: clamp attempts to `maxRetries` + guard before send loop | 🟠 HIGH | Agent | ✅ Exists (line 460, sms-queue.ts) |
-| C.8 | SLA monitor auth guard: enforce SUPER_ADMIN + required `CRON_SECRET` header path | 🟠 HIGH | Agent | ✅ CRON_SECRET in env-validation.ts |
+| C.8 | SLA monitor auth guard: enforce SUPER_ADMIN + required `CRON_SECRET` header path | 🟠 HIGH | Agent | ✅ requireSuperAdmin at sla-check/route.ts |
 | C.9 | SMS index coverage: add `{orgId, status, createdAt}` and `{orgId, status, nextRetryAt}` | 🟡 MODERATE | Agent | ✅ Indexes exist (SMSMessage.ts lines 175-179) |
-| C.10 | Bulk retry clamp: cap `/retry-all-failed` POST to 500 to avoid massive requeues | 🟡 MODERATE | Agent | 🔲 |
+| C.10 | Bulk retry clamp: cap `/retry-all-failed` POST to 500 to avoid massive requeues | 🟡 MODERATE | Agent | ✅ DONE (commit b716966fb) |
 | C.11 | Env validation coverage: include `CRON_SECRET` and `UNIFONIC_APP_TOKEN` in `lib/env-validation.ts` | 🟡 MODERATE | Agent | ✅ CRON_SECRET at line 71 |
 
 ### Category D: AI & Automation (Agent)
@@ -110,7 +110,7 @@
 | G.2 | Fix db.command() state handling | 🟢 LOW | `app/api/health/ready/route.ts` | ✅ Uses pingDatabase instead |
 | G.3 | Fix vitest MongoDB setup | 🟢 LOW | `vitest.config.api.ts` | ✅ Tests passing (1885/1885) |
 | G.4 | Fix TAQNYAT_SENDER_ID vs NAME mismatch | 🟡 MODERATE | Vercel env | ✅ N/A - Code uses SENDER_NAME consistently |
-| G.5 | Audit logging parity: admin notifications `config/history/send` should mirror audit trail on `test` endpoint | 🟡 MODERATE | Agent | 🔲 |
+| G.5 | Audit logging parity: admin notifications `config/history/send` should mirror audit trail on `test` endpoint | 🟡 MODERATE | Agent | ✅ All routes have audit() calls |
 
 ### Category H: Historical Backlog (Future Sprints)
 | ID | Task | Count | Priority | Status |
