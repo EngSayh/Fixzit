@@ -1,14 +1,31 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T14:22:00+03:00  
-**Version**: 3.6  
+**Last Updated**: 2025-12-10T14:24:00+03:00  
+**Version**: 4.0  
 **Branch**: main  
 **Status**: Active  
-**Total Pending Items**: 25 actionable + historical backlog (18 completed this session)
+**Total Pending Items**: Consolidated active backlog (19 completed this session)  
+**Consolidated Sources**: `docs/archived/pending-history/2025-12-10_CONSOLIDATED_PENDING.md`, `docs/archived/pending-history/PENDING_TASKS_MASTER.md`, and all `PENDING_REPORT_2025-12-10T10-XX-XXZ.md` files (merged; no duplicates)
+**Consolidation Check**: 2025-12-10T14:24:00+03:00 — scanned `docs/archived/pending-history/` and `docs/archived/DAILY_PROGRESS_REPORTS/` for `PENDING_REPORT*`/`PENDING_TASKS*`; no new pending files found; master remains single source of truth.
 
 ---
 
-## 🔄 Imported OPS Pending (synced 2025-12-10 14:07 +03)
+## 🔄 Production Health Status (LIVE as of 2025-12-10T14:24 +03)
+```json
+{
+  "ready": true,
+  "checks": {
+    "mongodb": "ok",
+    "redis": "disabled",
+    "email": "disabled",
+    "sms": "not_configured"
+  },
+  "latency": { "mongodb": 84 }
+}
+```
+**✅ MongoDB: FIXED** — Database connection now working in production!
+
+## 🔄 Imported OPS Pending (synced 2025-12-10 14:24 +03)
 - **ISSUE-OPS-001 – Production Infrastructure Manual Setup Required** (Critical, Pending Manual Action): set `MONGODB_URI`, `TAQNYAT_SENDER_NAME`, `TAQNYAT_BEARER_TOKEN` in Vercel; set `HEALTH_CHECK_TOKEN` in GitHub Secrets; verify `/api/health` and `/api/health/sms`.
 - **ISSUE-OPS-002 – Production Database Connection Error** (Critical, Pending Merge): merge PR #508 to `main`, then verify `https://fixzit.co/api/health/ready`.
 - **ISSUE-CI-001 – GitHub Actions Workflows Failing** (High, Pending Investigation): check runners, secrets per `docs/GITHUB_SECRETS_SETUP.md`, review workflow syntax.
@@ -20,10 +37,11 @@
 ### Category A: Production Infrastructure (USER ACTION)
 | ID | Task | Priority | Owner | Status |
 |----|------|----------|-------|--------|
-| A.1 | Fix MONGODB_URI in Vercel (remove `<>`, add `/fixzit`) | 🔴 CRITICAL | User | ⏳ |
-| A.2 | Set TAQNYAT_BEARER_TOKEN in Vercel | 🔴 CRITICAL | User | ⏳ |
-| A.3 | Set TAQNYAT_SENDER_NAME in Vercel | 🔴 CRITICAL | User | ⏳ |
-| A.4 | Verify production health after env fix | 🔴 CRITICAL | User | ⏳ |
+| A.1 | Fix MONGODB_URI in Vercel (remove `<>`, add `/fixzit`) | 🔴 CRITICAL | User | ✅ FIXED (mongodb: ok) |
+| A.2 | Set TAQNYAT_BEARER_TOKEN in Vercel | 🔴 CRITICAL | User | ⏳ (sms: not_configured) |
+| A.3 | Set TAQNYAT_SENDER_NAME in Vercel | 🔴 CRITICAL | User | ⏳ (sms: not_configured) |
+| A.4 | Verify production health after env fix | 🔴 CRITICAL | User | ✅ ready: true, mongodb: ok |
+| A.5 | Map Twilio env vars for SMS fallback in Vercel + GitHub Actions | 🟠 HIGH | User | ⏳ |
 
 ### Category B: Testing & Quality (Agent)
 | ID | Task | Priority | Owner | Status |
@@ -35,16 +53,26 @@
 | B.5 | Add Taqnyat unit tests | 🟢 LOW | Agent | ✅ Already exists (258 lines, passing) |
 | B.6 | Add OTP failure path tests | 🟢 LOW | Agent | ✅ Already exists (otp-utils, otp-store-redis) |
 | B.7 | Test speed optimization (`--bail 1`) | 🟢 LOW | Agent | 🔲 |
+| B.8 | Stabilize Playwright E2E (timeouts/build: use `PW_USE_BUILD=true`, shard, extend timeouts) | 🟠 HIGH | Agent | 🔲 |
+| B.9 | Fix `pnpm build` artifact gap (`.next/server/webpack-runtime.js` missing `./34223.js`) | 🟠 HIGH | Agent | 🔲 |
+| B.10 | Shared fetch/auth mocks for route unit tests (DX/CI) | 🟡 MODERATE | Agent | 🔲 |
+| B.11 | Playwright strategy split (@smoke vs remainder) against built artifacts | 🟡 MODERATE | Agent | 🔲 |
 
 ### Category C: Code & Features (Agent)
 | ID | Task | Priority | Owner | Status |
 |----|------|----------|-------|--------|
-| C.1 | Add approveQuotation tool to copilot | 🟠 HIGH | Agent | ✅ Already exists |
+| C.1 | approveQuotation tool wiring in `server/copilot/tools.ts` | 🟠 HIGH | Agent | ⚠️ Verify (flagged missing in historical report) |
 | C.2 | Merge PR #509 (Ejar font fix) | 🟠 HIGH | Agent | ✅ MERGED |
+| C.12 | Merge PR #510 (Ejar theme cleanup - Business.sa/Almarai conflicts) | 🟠 HIGH | Agent | 📝 DRAFT |
 | C.3 | OpenAPI spec regeneration | 🟡 MODERATE | Agent | ✅ DONE |
 | C.4 | UI/AppShell/Design sweep | 🟡 MODERATE | Agent | ⚠️ Requires approval per copilot-instructions |
 | C.5 | Payment config (Tap secrets) | 🟡 MODERATE | User | ⏳ Set TAP_SECRET_KEY/TAP_PUBLIC_KEY in Vercel |
 | C.6 | Database cleanup script execution | 🟡 MODERATE | User | 🔲 |
+| C.7 | SMS queue retry ceiling: clamp attempts to `maxRetries` + guard before send loop | 🟠 HIGH | Agent | 🔲 |
+| C.8 | SLA monitor auth guard: enforce SUPER_ADMIN + required `CRON_SECRET` header path | 🟠 HIGH | Agent | 🔲 |
+| C.9 | SMS index coverage: add `{orgId, status, createdAt}` and `{orgId, status, nextRetryAt}` | 🟡 MODERATE | Agent | 🔲 |
+| C.10 | Bulk retry clamp: cap `/retry-all-failed` POST to 500 to avoid massive requeues | 🟡 MODERATE | Agent | 🔲 |
+| C.11 | Env validation coverage: include `CRON_SECRET` and `UNIFONIC_APP_TOKEN` in `lib/env-validation.ts` | 🟡 MODERATE | Agent | 🔲 |
 
 ### Category D: AI & Automation (Agent)
 | ID | Task | Priority | Owner | Status |
@@ -77,6 +105,7 @@
 | G.2 | Fix db.command() state handling | 🟢 LOW | `app/api/health/ready/route.ts` | ✅ Uses pingDatabase instead |
 | G.3 | Fix vitest MongoDB setup | 🟢 LOW | `vitest.config.api.ts` | ✅ Tests passing (1885/1885) |
 | G.4 | Fix TAQNYAT_SENDER_ID vs NAME mismatch | 🟡 MODERATE | Vercel env | ✅ N/A - Code uses SENDER_NAME consistently |
+| G.5 | Audit logging parity: admin notifications `config/history/send` should mirror audit trail on `test` endpoint | 🟡 MODERATE | Agent | 🔲 |
 
 ### Category H: Historical Backlog (Future Sprints)
 | ID | Task | Count | Priority | Status |
@@ -98,13 +127,15 @@
 
 **Status**: ⏳ PENDING USER ACTION
 
-**Current Production Health** (as of 2025-12-10T11:06 UTC):
+**Current Production Health** (as of 2025-12-10T11:24 UTC):
 ```json
 {
-  "mongodb": "error",
+  "ready": true,
+  "mongodb": "ok",
   "sms": "not_configured",
   "redis": "disabled",
-  "email": "disabled"
+  "email": "disabled",
+  "latency": { "mongodb": 974 }
 }
 ```
 
