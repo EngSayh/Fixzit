@@ -1,6 +1,13 @@
 {
   "name": "fixzit-frontend",
-  "version": "2.0.26",
+  "version": "2.0.27",
+  "sideEffects": [
+    "*.css",
+    "*.scss",
+    "./app/globals.css",
+    "./instrumentation.ts",
+    "./instrumentation-node.ts"
+  ],
   "engines": {
     "node": ">=18.18 <23"
   },
