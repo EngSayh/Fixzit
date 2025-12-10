@@ -77,6 +77,18 @@ export async function POST(req: NextRequest) {
 
   const session = await resolveCopilotSession(req);
 
+  // Cross-tenant guard: non-guest sessions must carry a tenant/org id
+  if (session.role !== "GUEST" && (!session.tenantId || session.tenantId === "public")) {
+    return createSecureResponse(
+      {
+        error: "Tenant context required",
+        requiresAuth: true,
+      },
+      401,
+      req,
+    );
+  }
+
   const contentType = req.headers.get("content-type") || "";
   let body: z.infer<typeof requestSchema>;
 
@@ -139,6 +151,9 @@ export async function POST(req: NextRequest) {
         400,
         req,
       );
+    }
+    if (!json || (typeof json === "object" && Object.keys(json as object).length === 0)) {
+      return createSecureResponse({ error: "Request body is required" }, 400, req);
     }
     body = requestSchema.parse(json);
   }
