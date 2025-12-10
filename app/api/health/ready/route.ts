@@ -12,7 +12,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { db } from "@/lib/mongo";
+import { pingDatabase } from "@/lib/mongo";
 import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { withTimeout } from "@/lib/resilience";
@@ -64,32 +64,23 @@ export async function GET(): Promise<NextResponse> {
   };
 
   try {
-    // Check MongoDB
-    const mongoStart = Date.now();
-    try {
-      const connection = (await db) as unknown as {
-        command?: (cmd: Record<string, unknown>, options?: { signal?: AbortSignal }) => Promise<unknown>;
-      };
-
-      if (typeof connection?.command === "function") {
-        const cmd = connection.command;
-        await withTimeout(
-          async (signal: AbortSignal) => {
-            await cmd({ ping: 1, maxTimeMS: HEALTH_CHECK_TIMEOUT_MS }, { signal });
-          },
-          { timeoutMs: HEALTH_CHECK_TIMEOUT_MS }
-        );
-        status.checks.mongodb = "ok";
-        status.latency.mongodb = Date.now() - mongoStart;
-      } else {
-        throw new Error("MongoDB connection does not support command()");
-      }
-    } catch (mongoError) {
-      status.latency.mongodb = Date.now() - mongoStart;
-      const isTimeout = mongoError instanceof Error && mongoError.message.includes("timeout");
-      status.checks.mongodb = isTimeout ? "timeout" : "error";
+    // Check MongoDB using pingDatabase for consistent health checking
+    const pingResult = await pingDatabase(HEALTH_CHECK_TIMEOUT_MS);
+    status.latency.mongodb = pingResult.latencyMs;
+    
+    if (pingResult.ok) {
+      status.checks.mongodb = "ok";
+    } else if (pingResult.error?.includes("timeout") || pingResult.error?.includes("Timeout")) {
+      status.checks.mongodb = "timeout";
+      logger.warn("[Health/Ready] MongoDB check timeout", {
+        latency: pingResult.latencyMs,
+        error: pingResult.error,
+      });
+    } else {
+      status.checks.mongodb = "error";
       logger.warn("[Health/Ready] MongoDB check failed", {
-        error: mongoError instanceof Error ? mongoError.message : String(mongoError),
+        error: pingResult.error,
+        latency: pingResult.latencyMs,
       });
     }
 

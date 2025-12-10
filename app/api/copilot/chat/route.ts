@@ -384,4 +384,14 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
+
+  // Fallback safeguard (should not reach here)
+  const fallback =
+    locale === "ar"
+      ? "لا يمكن إتمام الطلب حالياً. يرجى المحاولة لاحقاً."
+      : "Request cannot be completed right now. Please try again later.";
+  return NextResponse.json(
+    { reply: fallback, intent: "fallback" },
+    { status: 200 },
+  );
 }

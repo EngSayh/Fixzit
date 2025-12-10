@@ -357,3 +357,64 @@ export async function connectDb(): Promise<DatabaseHandle> {
 export async function connectMongo(): Promise<DatabaseHandle> {
   return await getDatabase();
 }
+
+/**
+ * Ping the database to check connectivity.
+ * Used by health check endpoints for liveness/readiness probes.
+ * 
+ * @param timeoutMs - Maximum time to wait for ping response
+ * @returns Promise<{ ok: boolean; latencyMs: number; error?: string }>
+ */
+export async function pingDatabase(timeoutMs = 2000): Promise<{
+  ok: boolean;
+  latencyMs: number;
+  error?: string;
+}> {
+  const start = Date.now();
+  
+  try {
+    // Wait for connection to be established
+    await db;
+    
+    // Get the native MongoDB connection from mongoose
+    const connection = mongoose.connection;
+    
+    if (!connection || connection.readyState !== 1) {
+      return {
+        ok: false,
+        latencyMs: Date.now() - start,
+        error: `Connection not ready (state: ${connection?.readyState ?? 'undefined'})`,
+      };
+    }
+    
+    // Get the native Db object
+    const nativeDb = connection.db;
+    if (!nativeDb) {
+      return {
+        ok: false,
+        latencyMs: Date.now() - start,
+        error: "Native database not available",
+      };
+    }
+    
+    // Run ping command with timeout
+    const adminDb = nativeDb.admin();
+    await Promise.race([
+      adminDb.ping(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Ping timeout")), timeoutMs)
+      ),
+    ]);
+    
+    return {
+      ok: true,
+      latencyMs: Date.now() - start,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      latencyMs: Date.now() - start,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}

@@ -7,11 +7,11 @@
  * SECURITY: Deep diagnostics only exposed when X-Health-Token header matches
  * HEALTH_CHECK_TOKEN env variable. See env.example for configuration.
  * 
- * RELIABILITY: DB liveness check uses withTimeout to avoid hanging on stale
- * connections. All callers (authorized or not) get an accurate health status.
+ * RELIABILITY: DB liveness check uses pingDatabase() with timeout to avoid 
+ * hanging on stale connections. All callers (authorized or not) get accurate status.
  */
 import { NextRequest } from "next/server";
-import { db } from "@/lib/mongo";
+import { pingDatabase } from "@/lib/mongo";
 import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
@@ -27,45 +27,21 @@ export async function GET(request: NextRequest) {
   try {
     const isAuthorized = isAuthorizedHealthRequest(request);
     
-    // Check database connection with timeout to avoid false positives from stale connections
+    // Check database connection using pingDatabase for reliable health checking
     let dbStatus: "connected" | "disconnected" | "error" | "timeout" = "disconnected";
     let dbLatency = 0;
 
-    const dbStart = Date.now();
-    try {
-      const connection = (await db) as unknown as {
-        command?: (
-          cmd: Record<string, unknown>,
-          options?: { signal?: AbortSignal },
-        ) => Promise<unknown>;
-      };
-
-      // Lightweight admin ping with server-side timeout; avoids full collection scans.
-      const command = connection?.command;
-      if (typeof command === "function") {
-        const cmd = command;
-        await withTimeout(
-          async (signal: AbortSignal) => {
-            await cmd({ ping: 1, maxTimeMS: PING_TIMEOUT_MS }, { signal });
-          },
-          { timeoutMs: PING_TIMEOUT_MS },
-        );
-        dbStatus = "connected";
-        dbLatency = Date.now() - dbStart;
-      } else {
-        throw new Error("Database handle does not support command()");
-      }
-    } catch (dbError) {
-      dbLatency = Date.now() - dbStart;
-      const errorMessage = dbError instanceof Error ? dbError.message : String(dbError);
-      
-      if (errorMessage.includes("timeout") || errorMessage.includes("Timeout")) {
-        dbStatus = "timeout";
-        logger.warn("[Health Check] Database ping timeout", { latency: dbLatency });
-      } else {
-        dbStatus = "error";
-        logger.error("[Health Check] Database error", dbError as Error);
-      }
+    const pingResult = await pingDatabase(PING_TIMEOUT_MS);
+    dbLatency = pingResult.latencyMs;
+    
+    if (pingResult.ok) {
+      dbStatus = "connected";
+    } else if (pingResult.error?.includes("timeout") || pingResult.error?.includes("Timeout")) {
+      dbStatus = "timeout";
+      logger.warn("[Health Check] Database ping timeout", { latency: dbLatency, error: pingResult.error });
+    } else {
+      dbStatus = "error";
+      logger.error("[Health Check] Database error", { error: pingResult.error, latency: dbLatency });
     }
 
     // Check Redis connection if configured
