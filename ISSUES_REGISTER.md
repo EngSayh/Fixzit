@@ -1,12 +1,41 @@
 # Issues Register - Fixzit Index Management System
 
 **Last Updated**: 2025-12-10  
-**Version**: 1.8  
+**Version**: 1.9  
 **Scope**: Database index management, security audits, observability, SMS infrastructure
 
 ---
 
 ## Recent Additions (2025-12-10)
+
+### ISSUE-SMS-002: Legacy SMS Provider Dead Code Cleanup
+
+**Severity**: 🟩 Informational  
+**Category**: Technical Debt, Code Hygiene  
+**Status**: ✅ COMPLETED  
+**PR**: #504
+
+**Description**: Complete removal of all legacy SMS provider references (Twilio/Unifonic/Nexmo/AWS SNS).
+
+**Before**: 62 legacy SMS provider references across 13 files  
+**After**: 7 intentional references (comments, backward compat, webhook headers)
+
+**Changes Made**:
+- **Rewrote**: `app/api/health/sms/route.ts` - Complete Taqnyat-only health check
+- **Updated**: `server/models/SMSSettings.ts` - Default provider TWILIO→TAQNYAT
+- **Updated**: `server/models/Organization.ts` - SmsProvider enum to [TAQNYAT, LOCAL]
+- **Updated**: `app/api/admin/sms/settings/route.ts` - Provider enums to Taqnyat-only
+- **Updated**: `app/api/dev/check-env/route.ts` - Check TAQNYAT_* instead of TWILIO_*
+- **Updated**: `app/admin/feature-settings/page.tsx` - UI description text
+- **Updated**: `lib/sms-providers/phone-utils.ts` - Comment updated
+- **Updated**: `lib/communication-logger.ts` - Added taqnyatId, deprecated twilioSid
+
+**Remaining Intentional References**:
+- `env-validation.ts`: Warning about legacy provider env vars for migration help
+- `communication-logger.ts`: @deprecated twilioSid for backward compatibility
+- `sendgrid/route.ts`: HTTP headers from SendGrid webhooks (owned by Twilio) - NOT SMS
+
+---
 
 ### ISSUE-SMS-001: SMS Provider Consolidation to Taqnyat-Only
 
