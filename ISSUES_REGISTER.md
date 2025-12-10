@@ -1,12 +1,64 @@
 # Issues Register - Fixzit Index Management System
 
 **Last Updated**: 2025-12-10  
-**Version**: 2.0  
-**Scope**: Database index management, security audits, observability, SMS infrastructure
+**Version**: 2.1  
+**Scope**: Database index management, security audits, observability, SMS infrastructure, test infrastructure
 
 ---
 
 ## Recent Additions (2025-12-10)
+
+### ISSUE-TEST-001: Vitest Configuration Test Environment Mismatch
+
+**Severity**: 🟧 High  
+**Category**: Tests, Configuration  
+**Status**: ✅ COMPLETED  
+**Branch**: fix/test-failures-and-code-cleanup
+
+**Description**: 40 API tests were failing due to DB-dependent tests running under the wrong Vitest project (ui/jsdom instead of server/node).
+
+**Root Cause**: Tests in `tests/unit/finance/`, `tests/unit/services/`, `tests/unit/middleware.test.ts`, and `tests/unit/marketplace/` required real MongoDB connection but were running in jsdom environment with mocked DB.
+
+**Changes Made**:
+- **Updated**: `vitest.config.api.ts` - Added exclusions for DB-dependent tests from `ui` project
+- **Updated**: `tests/unit/services/notifications/seller-notification-service.test.ts` - Added proper MongoDB mock with `$in` operator support
+- **Updated**: `tests/unit/marketplace/context.test.ts` - Fixed vi.hoisted() mock setup
+
+**Test Results After Fix**:
+- API Tests: 1884/1884 PASS ✅
+- Model Tests: 91/91 PASS ✅
+- TypeCheck: PASS ✅
+- Lint: PASS ✅
+
+---
+
+### ISSUE-OPS-002: Production Database Connection Error
+
+**Severity**: 🟥 Critical  
+**Category**: Operations, Infrastructure  
+**Status**: ⏳ UNDER INVESTIGATION (Other AI Agent)
+
+**Description**: Production `/api/health` returns `database: error` despite all environment variables being configured.
+
+**Verified**:
+- ✅ `MONGODB_URI` is set in Vercel for "All Environments"
+- ✅ MongoDB Atlas IP Access List has `0.0.0.0/0` (allows all IPs) - Active
+- ✅ Local tests pass with same connection logic
+
+**Possible Causes (For Other Agent)**:
+1. MONGODB_URI value may have typo or wrong password
+2. Password may contain special characters needing URL encoding
+3. Database name in URI may not match Atlas
+4. TLS/SSL configuration issues with Vercel serverless
+5. Connection timeout on cold starts
+6. Atlas cluster may be paused (free tier)
+
+**Code Locations**:
+- Connection: `lib/mongo.ts`
+- Health check: `app/api/health/route.ts`
+- Env validation: `lib/env.ts`
+
+---
 
 ### ISSUE-SEC-005: Per-Phone SMS Rate Limiting
 
