@@ -82,6 +82,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify webhook signature (enforced in production, configurable in development)
+    // NOTE: These headers use "x-twilio-email-event-webhook-*" because SendGrid is owned by Twilio.
+    // This is NOT related to Twilio SMS - it's the standard SendGrid Event Webhook signature format.
+    // See: https://docs.sendgrid.com/for-developers/tracking-events/getting-started-event-webhook-security-features
     const signature =
       req.headers.get("x-twilio-email-event-webhook-signature") || "";
     const timestamp =

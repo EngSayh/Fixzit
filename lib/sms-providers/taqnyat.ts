@@ -17,6 +17,12 @@ import type {
 
 const TAQNYAT_API_BASE = "https://api.taqnyat.sa/v1";
 
+/**
+ * Taqnyat API bulk send limit (max recipients per request)
+ * @see https://taqnyat.sa/documentation
+ */
+export const TAQNYAT_BULK_LIMIT = 1000;
+
 export interface TaqnyatConfig {
   bearerToken?: string;
   senderName?: string;
@@ -111,6 +117,25 @@ export class TaqnyatProvider implements SMSProvider {
   }
 
   async sendBulk(recipients: string[], message: string): Promise<BulkSMSResult> {
+    // Validate bulk limit (Taqnyat API max: 1000 recipients per request)
+    if (recipients.length > TAQNYAT_BULK_LIMIT) {
+      logger.error("[Taqnyat] Bulk send exceeds API limit", {
+        requested: recipients.length,
+        limit: TAQNYAT_BULK_LIMIT,
+      });
+      return {
+        sent: 0,
+        failed: recipients.length,
+        results: recipients.map((to) => ({
+          success: false,
+          error: `Bulk send exceeds Taqnyat API limit of ${TAQNYAT_BULK_LIMIT} recipients`,
+          provider: this.name,
+          to,
+          timestamp: new Date(),
+        })),
+      };
+    }
+
     if (!this.isConfigured()) {
       return {
         sent: 0,

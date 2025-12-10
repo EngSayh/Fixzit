@@ -44,7 +44,8 @@ describe("Admin test notifications endpoint", () => {
     expect(res.status).toBe(400);
 
     const body = await res.json();
-    expect(body.error).toBe("WhatsApp API error: Rate limit hit");
+    expect(body.error).toBe("Failed to send WhatsApp message. Check server logs for details.");
+    expect(JSON.stringify(body.error)).not.toContain("Rate limit hit");
     expect(JSON.stringify(body.error)).not.toContain("OAuthException");
   });
 });

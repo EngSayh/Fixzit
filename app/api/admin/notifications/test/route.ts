@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
           success: false,
         });
         return NextResponse.json(
-          { error: `WhatsApp API error: ${providerMessage}` },
+          { error: "Failed to send WhatsApp message. Check server logs for details." },
           { status: response.status || 400 }
         );
       }

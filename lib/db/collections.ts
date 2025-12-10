@@ -1227,6 +1227,18 @@ export async function createIndexes() {
         partialFilterExpression: { orgId: { $exists: true } },
       },
     );
+  // Index for Taqnyat message ID lookups (SMS delivery status queries)
+  await db
+    .collection(COLLECTIONS.COMMUNICATION_LOGS)
+    .createIndex(
+      { "metadata.taqnyatId": 1 },
+      {
+        background: true,
+        name: "communication_logs_metadata_taqnyatId",
+        sparse: true,
+        partialFilterExpression: { "metadata.taqnyatId": { $exists: true } },
+      },
+    );
 
   // Error Events (Support/Incidents) - STRICT v4.1: org-scoped for tenant isolation
   // Supports dedupe queries and analytics by tenant
