@@ -557,12 +557,12 @@ function TopBarContent() {
   // ✅ FIXED: Use semantic colors throughout
   return (
     <header
-      className={`sticky top-0 z-40 fxz-topbar ${isMobile ? "px-2" : "px-4"}`}
+      className={`sticky top-0 z-40 fxz-topbar h-16 border-b border-ejar-border flex items-center ${isMobile ? "px-3" : "px-6"}`}
       role="banner"
       aria-label={t("nav.globalHeader", "Fixzit global navigation")}
     >
       <div
-        className={`h-16 flex items-center justify-between gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
+        className={`w-full flex items-center justify-between gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
       >
         {/* Left Section: Logo & App Switcher */}
         <div
