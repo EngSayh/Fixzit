@@ -2,7 +2,7 @@
  * SMS Test API Endpoint
  * POST /api/sms/test
  *
- * Test SMS functionality with Twilio
+ * Test SMS functionality with Taqnyat (sole SMS provider)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -12,6 +12,12 @@ import { auth } from "@/auth";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
+
+function maskPhone(phone?: string): string {
+  if (!phone) return "unknown";
+  if (phone.length <= 6) return phone;
+  return phone.replace(/\d{6}$/, "******");
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -47,8 +53,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: isConfigured,
         message: isConfigured
-          ? "Twilio configuration is valid"
-          : "Twilio configuration is invalid or missing",
+          ? "Taqnyat configuration is valid"
+          : "Taqnyat configuration is invalid or missing",
       });
     }
 
@@ -70,18 +76,32 @@ export async function POST(req: NextRequest) {
         message: "SMS sent successfully",
       });
     } else {
+      const normalizedError = (result.error || "").toLowerCase();
+      const isClientError =
+        normalizedError.includes("invalid saudi phone number") ||
+        normalizedError.includes("not configured") ||
+        normalizedError.includes("missing credentials");
+
+      logger.warn("[API] SMS test send failed", {
+        phone: maskPhone(phone),
+        error: result.error || "Unknown error",
+      });
+
       return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 500 },
+        {
+          success: false,
+          error: "Failed to send SMS. Check server logs for details.",
+        },
+        { status: isClientError ? 400 : 502 },
       );
     }
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
-    logger.error("[API] SMS test failed", { error: error.message });
+    logger.error("[API] SMS test failed", { error });
     return NextResponse.json(
       {
         success: false,
-        error: error.message,
+        error: "Internal server error",
       },
       { status: 500 },
     );
