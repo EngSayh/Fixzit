@@ -321,6 +321,39 @@ paths:
         "403": { description: Unauthorized org context }
         "429": { description: Rate limit exceeded }
 
+  /admin/notifications/test:
+    post:
+      summary: Send an admin test notification (SMS or WhatsApp)
+      tags: [Admin, Notifications]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phoneNumber, channel, message]
+              properties:
+                phoneNumber:
+                  type: string
+                  description: E.164 phone number (with +)
+                  example: "+15551234567"
+                channel:
+                  type: string
+                  enum: [sms, whatsapp]
+                message:
+                  type: string
+                  maxLength: 1600
+      responses:
+        "200":
+          description: Message accepted by provider
+        "400":
+          description: Validation failed or provider rejected (sanitized error message, no provider payload)
+        "403":
+          description: Forbidden (requires SUPER_ADMIN)
+        "500":
+          description: Internal server error
+
 components:
   securitySchemes:
     bearerAuth:

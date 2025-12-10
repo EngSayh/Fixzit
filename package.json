@@ -95,6 +95,7 @@
     "i18n:coverage": "tsx scripts/detect-unlocalized-strings.ts",
     "i18n:coverage:fail": "tsx scripts/detect-unlocalized-strings.ts --fail-threshold=0.5",
     "i18n:coverage:strict": "tsx scripts/detect-unlocalized-strings.ts --fail-threshold=0.1",
+    "openapi:build": "node scripts/openapi-build.js",
     "fixzit:agent": "node scripts/fixzit-agent.mjs --report --port 3000 --keepAlive true --limit=0",
     "fixzit:agent:apply": "node scripts/fixzit-agent.mjs --apply --report --port 3000 --keepAlive true --limit=0",
     "fixzit:agent:stop": "node scripts/stop-dev.js",
