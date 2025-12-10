@@ -1,9 +1,87 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T14:00 +03:00  
-**Version**: 3.0 (Consolidated from all prior pending reports)  
+**Last Updated**: 2025-12-10T13:58:43+0300  
+**Version**: 3.1 (Consolidated from all prior pending reports)  
 **Branch**: main  
-**Status**: Active
+**Status**: Active  
+**Total Pending Items**: 33 actionable + historical backlog
+
+---
+
+## 📋 ACTION PLAN BY CATEGORY
+
+### Category A: Production Infrastructure (USER ACTION)
+| ID | Task | Priority | Owner | Status |
+|----|------|----------|-------|--------|
+| A.1 | Fix MONGODB_URI in Vercel (remove `<>`, add `/fixzit`) | 🔴 CRITICAL | User | ⏳ |
+| A.2 | Set TAQNYAT_BEARER_TOKEN in Vercel | 🔴 CRITICAL | User | ⏳ |
+| A.3 | Set TAQNYAT_SENDER_NAME in Vercel | 🔴 CRITICAL | User | ⏳ |
+| A.4 | Verify production health after env fix | 🔴 CRITICAL | User | ⏳ |
+
+### Category B: Testing & Quality (Agent)
+| ID | Task | Priority | Owner | Status |
+|----|------|----------|-------|--------|
+| B.1 | Run E2E tests (`USE_DEV_SERVER=true pnpm test:e2e`) | 🟠 HIGH | Agent | 🔲 |
+| B.2 | Investigate GitHub Actions failures | 🟠 HIGH | Agent | 🔲 |
+| B.3 | Auth/JWT secret alignment across envs | 🟠 HIGH | Agent | 🔲 |
+| B.4 | Add Mongo TLS dry-run test | 🟡 MODERATE | Agent | 🔲 |
+| B.5 | Add Taqnyat unit tests | 🟢 LOW | Agent | 🔲 |
+| B.6 | Add OTP failure path tests | 🟢 LOW | Agent | 🔲 |
+| B.7 | Test speed optimization (`--bail 1`) | 🟢 LOW | Agent | 🔲 |
+
+### Category C: Code & Features (Agent)
+| ID | Task | Priority | Owner | Status |
+|----|------|----------|-------|--------|
+| C.1 | Add approveQuotation tool to copilot | 🟠 HIGH | Agent | 🔲 |
+| C.2 | Merge PR #509 (Ejar font fix) | 🟠 HIGH | Agent | 🔲 |
+| C.3 | OpenAPI spec regeneration | 🟡 MODERATE | Agent | 🔲 |
+| C.4 | UI/AppShell/Design sweep | 🟡 MODERATE | Agent | 🔲 |
+| C.5 | Payment config (Tap secrets) | 🟡 MODERATE | Agent | 🔲 |
+| C.6 | Database cleanup script execution | 🟡 MODERATE | User | 🔲 |
+
+### Category D: AI & Automation (Agent)
+| ID | Task | Priority | Owner | Status |
+|----|------|----------|-------|--------|
+| D.1 | Process AI memory batches (353 pending) | 🟡 MODERATE | Agent | 🔲 |
+| D.2 | Review dynamic translation keys (4 files) | 🟡 MODERATE | Agent | ⚠️ |
+
+### Category E: Code Hygiene (Agent)
+| ID | Task | Priority | Owner | Status |
+|----|------|----------|-------|--------|
+| E.1 | RTL CSS audit (`pnpm lint:rtl`) | 🟢 LOW | Agent | 🔲 |
+| E.2 | Console.log cleanup | 🟢 LOW | Agent | 🔲 |
+| E.3 | setupTestDb helper creation | 🟢 LOW | Agent | 🔲 |
+| E.4 | 3-tier health status implementation | 🟢 LOW | Agent | 🔲 |
+| E.5 | Centralized phone masking | 🟢 LOW | Agent | 🔲 |
+
+### Category F: Process Improvements (Agent)
+| ID | Task | Priority | Owner | Status |
+|----|------|----------|-------|--------|
+| F.1 | Add translation audit to pre-commit hooks | 🟢 LOW | Agent | 🔲 |
+| F.2 | Add CI/CD health smoke test | 🟢 LOW | Agent | 🔲 |
+| F.3 | Add environment validation startup script | 🟢 LOW | Agent | 🔲 |
+| F.4 | Add database connection retry with backoff | 🟢 LOW | Agent | 🔲 |
+| F.5 | Improve Playwright test strategy | 🟢 LOW | Agent | 🔲 |
+
+### Category G: Bug Fixes (Agent)
+| ID | Task | Priority | File | Status |
+|----|------|----------|------|--------|
+| G.1 | Add connection retry on cold start | 🟡 MODERATE | `lib/mongo.ts` | 🔲 |
+| G.2 | Fix db.command() state handling | 🟢 LOW | `app/api/health/ready/route.ts` | 🔲 |
+| G.3 | Fix vitest MongoDB setup | 🟢 LOW | `vitest.config.api.ts` | 🔲 |
+| G.4 | Fix TAQNYAT_SENDER_ID vs NAME mismatch | 🟡 MODERATE | Vercel env | 🔲 |
+
+### Category H: Historical Backlog (Future Sprints)
+| ID | Task | Count | Priority | Status |
+|----|------|-------|----------|--------|
+| H.1 | TODO/FIXME comments | 34+ | 🟢 LOW | 🔲 |
+| H.2 | Empty catch blocks | TBD | 🟢 LOW | 🔲 |
+| H.3 | eslint-disable comments | TBD | 🟢 LOW | 🔲 |
+| H.4 | new Date() in JSX | 47 | 🟢 LOW | 🔲 |
+| H.5 | Date.now() in JSX | 20 | 🟢 LOW | 🔲 |
+| H.6 | Dynamic i18n keys | 112+ | 🟢 LOW | ⚠️ 4 done |
+| H.7 | Duplicate files | 11 | 🟢 LOW | 🔲 |
+| H.8 | Missing docstrings | ~669 | 🟢 LOW | 🔲 |
 
 ---
 
