@@ -12,11 +12,12 @@ import { Payment } from "@/server/models/finance/Payment";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError, notFoundError } from "@/server/utils/errorResponses";
 
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);
   if (!user || !user.id || !user.orgId) {
-    throw new Error("Unauthorized: Invalid session");
+    return null;
   }
   return {
     userId: user.id,
@@ -51,15 +52,15 @@ export async function POST(
 ) {
   try {
     const user = await getUserSession(req);
+    if (!user) {
+      return unauthorizedError();
+    }
 
     // Resolve params (Next.js 15 provides params as a Promise)
     const _params = await Promise.resolve(context.params);
 
     if (!Types.ObjectId.isValid(_params.id)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid payment ID" },
-        { status: 400 },
-      );
+      return validationError("Invalid payment ID");
     }
 
     // Determine action from URL path
@@ -99,10 +100,7 @@ export async function POST(
         });
 
         if (!payment) {
-          return NextResponse.json(
-            { success: false, error: "Payment not found" },
-            { status: 404 },
-          );
+          return notFoundError("Payment");
         }
 
         if (action === "reconcile") {
@@ -171,11 +169,8 @@ export async function POST(
   } catch (error) {
     logger.error("Error processing payment action:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 403 },
-      );
+    if (isForbidden(error)) {
+      return forbiddenError("Access denied to payments");
     }
 
     if (error instanceof z.ZodError) {
@@ -189,15 +184,6 @@ export async function POST(
       );
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to process payment action",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

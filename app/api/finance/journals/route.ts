@@ -17,6 +17,7 @@ import { requirePermission } from "@/config/rbac.config";
 import { dbConnect } from "@/lib/mongodb-unified";
 import Journal from "@/server/models/finance/Journal";
 import postingService from "@/server/services/finance/postingService";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
 
 import { Types } from "mongoose";
 import { z } from "zod";
@@ -113,7 +114,7 @@ export async function POST(req: NextRequest) {
     // Auth check
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     // Authorization check
@@ -178,38 +179,11 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     logger.error("POST /api/finance/journals error:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 403 },
-      );
+    if (isForbidden(error)) {
+      return forbiddenError("Access denied to journals");
     }
 
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: "Validation failed",
-          details: error.issues,
-        },
-        { status: 400 },
-      );
-    }
-
-    if (error instanceof Error) {
-      return NextResponse.json(
-        {
-          error: error.message,
-        },
-        { status: 400 },
-      );
-    }
-
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -224,7 +198,7 @@ export async function GET(req: NextRequest) {
     // Auth check
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     // Authorization check
@@ -298,18 +272,10 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     logger.error("GET /api/finance/journals error:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 403 },
-      );
+    if (isForbidden(error)) {
+      return forbiddenError("Access denied to journals");
     }
 
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Internal server error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

@@ -10,11 +10,12 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { logger } from "@/lib/logger";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError, notFoundError } from "@/server/utils/errorResponses";
 
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);
   if (!user || !user.id || !user.orgId) {
-    throw new Error("Unauthorized: Invalid session");
+    return null;
   }
   return {
     userId: user.id,
@@ -30,12 +31,12 @@ export async function POST(
   try {
     const { id } = params;
     const user = await getUserSession(req);
+    if (!user) {
+      return unauthorizedError();
+    }
 
     if (!Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid payment ID" },
-        { status: 400 }
-      );
+      return validationError("Invalid payment ID");
     }
 
     // Authorization check
@@ -56,27 +57,16 @@ export async function POST(
         });
 
         if (!payment) {
-          return NextResponse.json(
-            { success: false, error: "Payment not found" },
-            { status: 404 }
-          );
+          return notFoundError("Payment");
         }
 
         if (payment.status === PaymentStatus.CLEARED) {
-          return NextResponse.json(
-            { success: false, error: "Payment is already completed" },
-            { status: 400 }
-          );
+          return validationError("Payment is already completed");
         }
 
         if (payment.status !== PaymentStatus.POSTED) {
-          return NextResponse.json(
-            {
-              success: false,
-              error:
-                "Payment must be in POSTED status before it can be marked as completed",
-            },
-            { status: 400 }
+          return validationError(
+            "Payment must be in POSTED status before it can be marked as completed",
           );
         }
 
@@ -115,27 +105,10 @@ export async function POST(
   } catch (error) {
     logger.error("Error completing payment:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 403 }
-      );
+    if (isForbidden(error)) {
+      return forbiddenError("Access denied to payments");
     }
 
-    if (error instanceof Error && error.message.includes("Unauthorized")) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to complete payment",
-      },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

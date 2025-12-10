@@ -17,7 +17,7 @@ import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { Types } from "mongoose";
 import { z } from "zod";
-import { forbiddenError, handleApiError } from "@/server/utils/errorResponses";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -66,7 +66,7 @@ export async function GET(
     // Auth check
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     // Authorization check
@@ -146,7 +146,7 @@ export async function GET(
   } catch (error) {
     logger.error("GET /api/finance/accounts/[id] error:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
+    if (isForbidden(error)) {
       return forbiddenError("Access denied to account");
     }
 
@@ -168,7 +168,7 @@ export async function PUT(
     // Auth check
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     // Authorization check
@@ -269,7 +269,7 @@ export async function PUT(
   } catch (error) {
     logger.error("PUT /api/finance/accounts/[id] error:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
+    if (isForbidden(error)) {
       return forbiddenError("Access denied to update account");
     }
 
@@ -291,7 +291,7 @@ export async function DELETE(
     // Auth check
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     // Authorization check
@@ -376,7 +376,7 @@ export async function DELETE(
   } catch (error) {
     logger.error("DELETE /api/finance/accounts/[id] error:", error);
 
-    if (error instanceof Error && error.message.includes("Forbidden")) {
+    if (isForbidden(error)) {
       return forbiddenError("Access denied to delete account");
     }
 

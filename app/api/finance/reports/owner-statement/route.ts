@@ -7,7 +7,7 @@ import { ownerStatement } from "@/server/finance/reporting.service";
 import { decimal128ToMinor } from "@/server/lib/money";
 import { Types } from "mongoose";
 import { logger } from "@/lib/logger";
-import { forbiddenError, handleApiError } from "@/server/utils/errorResponses";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError } from "@/server/utils/errorResponses";
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
     const user = await getSessionUser(req);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     requirePermission(user.role, "finance.reports.owner-statement");
@@ -31,10 +31,7 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const propertyId = searchParams.get("propertyId");
         if (!propertyId) {
-          return NextResponse.json(
-            { error: "propertyId is required" },
-            { status: 400 },
-          );
+          return validationError("propertyId is required");
         }
 
         const fromParam = searchParams.get("from");
@@ -93,7 +90,7 @@ export async function GET(req: NextRequest) {
     );
   } catch (error) {
     logger.error("GET /api/finance/reports/owner-statement error:", error);
-    if (error instanceof Error && error.message.includes("Forbidden")) {
+    if (isForbidden(error)) {
       return forbiddenError("Access denied to owner statement report");
     }
     return handleApiError(error);

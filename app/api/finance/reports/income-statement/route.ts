@@ -7,7 +7,7 @@ import { incomeStatement } from "@/server/finance/reporting.service";
 import { decimal128ToMinor } from "@/server/lib/money";
 import { Types } from "mongoose";
 import { logger } from "@/lib/logger";
-import { forbiddenError, handleApiError } from "@/server/utils/errorResponses";
+import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
     const user = await getSessionUser(req);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     requirePermission(user.role, "finance.reports.income-statement");
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
     );
   } catch (error) {
     logger.error("GET /api/finance/reports/income-statement error:", error);
-    if (error instanceof Error && error.message.includes("Forbidden")) {
+    if (isForbidden(error)) {
       return forbiddenError("Access denied to income statement report");
     }
     return handleApiError(error);
