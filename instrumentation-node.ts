@@ -55,8 +55,7 @@ export async function registerNode(): Promise<void> {
     logger.info("[Instrumentation] Server initialization complete", {
       nodeEnv: process.env.NODE_ENV,
       hasRedis: Boolean(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL),
-      hasTwilio: Boolean(process.env.TWILIO_ACCOUNT_SID),
-      hasUnifonic: Boolean(process.env.UNIFONIC_APP_SID),
+      hasTaqnyatSMS: Boolean(process.env.TAQNYAT_BEARER_TOKEN && process.env.TAQNYAT_SENDER_NAME),
       hasEncryption: Boolean(process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY),
     });
   } catch (error) {
