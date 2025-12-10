@@ -1,46 +1,44 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T16:50:00+03:00  
-**Version**: 5.6  
+**Last Updated**: 2025-12-10T16:55:00+03:00  
+**Version**: 5.7  
 **Branch**: main  
-**Status**: ✅ PRODUCTION HEALTHY (MongoDB OK, SMS pending config)  
+**Status**: ⚠️ PRODUCTION NEEDS REDEPLOY (MongoDB error after env change)  
 **Total Pending Items**: Consolidated active backlog (54 completed, 2 remaining)  
 **Consolidated Sources**: `docs/archived/pending-history/2025-12-10_CONSOLIDATED_PENDING.md`, `docs/archived/pending-history/PENDING_TASKS_MASTER.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md`, and all `PENDING_REPORT_2025-12-10T*.md` files (merged; no duplicates)
-**Consolidation Check**: 2025-12-10T16:50:00+03:00 — All pending reports scanned and merged into single source of truth
+**Consolidation Check**: 2025-12-10T16:55:00+03:00 — All pending reports scanned and merged into single source of truth
 
 ---
 
-## ✅ RESOLVED: MongoDB Connection Issue (2025-12-10T16:46 +03)
+## ⚠️ ACTION REQUIRED: Redeploy Vercel (2025-12-10T16:55 +03)
 
-**Previous Issue**: Login/OTP failures with 500→429 errors due to MongoDB connection flapping
+**Current Issue**: MongoDB showing "error" after environment variable changes
 
-**Root Cause**: `MONGODB_URI` in Vercel had:
-1. Angle brackets `<>` around the password
-2. Missing `/fixzit` database name
+**Reason**: Vercel caches environment variables at deploy time. Changes require a **redeploy**.
 
-**Fix Applied**: Updated `MONGODB_URI` to correct format (no brackets, includes database name)
-
-**Status**: ✅ **RESOLVED** - MongoDB now stable
+**Action Required**:
+1. Go to **Vercel Dashboard** → **fixzit.co** → **Deployments**
+2. Click the **three dots (...)** on the latest deployment
+3. Select **"Redeploy"**
+4. Wait 1-2 minutes for deployment to complete
+5. Verify health: `curl https://fixzit.co/api/health/ready`
 
 ---
 
-## 🔄 Production Health Status (LIVE as of 2025-12-10T16:50 +03)
+## 🔄 Production Health Status (LIVE as of 2025-12-10T16:55 +03)
 ```json
 {
-  "ready": true,
+  "ready": false,
   "checks": {
-    "mongodb": "ok",
+    "mongodb": "error",
     "redis": "disabled",
     "email": "disabled",
     "sms": "not_configured"
-  },
-  "latency": {
-    "mongodb": 563
   }
 }
 ```
-**✅ MongoDB: STABLE** — Connection working consistently after URI fix.
-**⚠️ SMS: not_configured** — `TAQNYAT_SENDER_NAME` env var needed (code expects `TAQNYAT_SENDER_NAME`, Vercel has `TAQNYAT_SENDER_ID`)
+**⚠️ MongoDB: ERROR** — Needs Vercel redeploy to pick up new MONGODB_URI.
+**⚠️ SMS: not_configured** — Needs `TAQNYAT_SENDER_NAME` env var (not `TAQNYAT_SENDER_ID`)
 
 **Root Cause Analysis**: Vercel serverless cold starts + MongoDB Atlas connection pooling. 
 
