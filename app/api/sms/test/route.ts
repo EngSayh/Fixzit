@@ -12,12 +12,7 @@ import { auth } from "@/auth";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
-
-function maskPhone(phone?: string): string {
-  if (!phone) return "unknown";
-  if (phone.length <= 6) return phone;
-  return phone.replace(/\d{6}$/, "******");
-}
+import { redactPhoneNumber } from "@/lib/sms-providers/phone-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -83,7 +78,7 @@ export async function POST(req: NextRequest) {
         normalizedError.includes("missing credentials");
 
       logger.warn("[API] SMS test send failed", {
-        phone: maskPhone(phone),
+        phone: phone ? redactPhoneNumber(phone) : "unknown",
         error: result.error || "Unknown error",
       });
 

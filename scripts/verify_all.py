@@ -179,7 +179,6 @@ class VerificationSuite:
             "qrcode",
             "babel",
             "hijri_converter",
-            "twilio",
             "sendgrid",
             "pyperclip",
         ]

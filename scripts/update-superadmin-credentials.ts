@@ -3,7 +3,7 @@
  * Update SuperAdmin Credentials
  * 
  * Updates the SuperAdmin account with username/password authentication.
- * Twilio does not support KSA, so OTP is disabled for SuperAdmin.
+ * OTP is disabled for SuperAdmin; SMS OTP is restricted to Taqnyat-only flows.
  * 
  * SuperAdmin Credentials:
  * - Username: EngSayh

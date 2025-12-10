@@ -8,12 +8,12 @@
  */
 
 import { logger } from "@/lib/logger";
-import type {
-  SMSProvider,
-  SMSResult,
-  SMSStatusResult,
-  BulkSMSResult,
-} from "./types";
+import type { SMSProvider, SMSResult, SMSStatusResult, BulkSMSResult } from "./types";
+import {
+  formatSaudiPhoneNumber,
+  isValidSaudiPhone,
+  redactPhoneNumber,
+} from "./phone-utils";
 
 const TAQNYAT_API_BASE = "https://api.taqnyat.sa/v1";
 
@@ -53,6 +53,19 @@ export class TaqnyatProvider implements SMSProvider {
       };
     }
 
+    const normalizedTo = formatSaudiPhoneNumber(to);
+    const maskedTo = redactPhoneNumber(normalizedTo);
+
+    if (!isValidSaudiPhone(normalizedTo)) {
+      return {
+        success: false,
+        error: "Invalid Saudi phone number format",
+        provider: this.name,
+        to: normalizedTo,
+        timestamp: new Date(),
+      };
+    }
+
     try {
       const response = await fetch(`${TAQNYAT_API_BASE}/messages`, {
         method: "POST",
@@ -61,7 +74,7 @@ export class TaqnyatProvider implements SMSProvider {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          recipients: [to],
+          recipients: [normalizedTo],
           body: message,
           sender: this.senderName,
         }),
@@ -74,7 +87,7 @@ export class TaqnyatProvider implements SMSProvider {
           success: true,
           messageId: data.messageId || `taqnyat-${Date.now()}`,
           provider: this.name,
-          to,
+          to: normalizedTo,
           timestamp: new Date(),
           cost: data.cost || undefined,
           currency: data.currency || "SAR",
@@ -83,29 +96,34 @@ export class TaqnyatProvider implements SMSProvider {
         };
       }
 
+      const providerMessage =
+        typeof data?.message === "string" ? data.message : undefined;
       logger.error("[Taqnyat] SMS send failed", {
         status: response.status,
-        data,
-        to,
+        providerMessage,
+        to: maskedTo,
       });
 
       return {
         success: false,
-        error: data.message || `HTTP ${response.status}`,
+        error: "Taqnyat SMS send failed",
         provider: this.name,
-        to,
+        to: normalizedTo,
         timestamp: new Date(),
-        rawResponse: data,
+        rawResponse: process.env.NODE_ENV === "production" ? undefined : data,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error("[Taqnyat] SMS send exception", { error: errorMessage, to });
+      logger.error("[Taqnyat] SMS send exception", {
+        error: errorMessage,
+        to: maskedTo,
+      });
 
       return {
         success: false,
-        error: errorMessage,
+        error: "Taqnyat SMS send failed",
         provider: this.name,
-        to,
+        to: normalizedTo,
         timestamp: new Date(),
       };
     }
@@ -150,6 +168,28 @@ export class TaqnyatProvider implements SMSProvider {
       };
     }
 
+    const normalizedRecipients = recipients.map((to) =>
+      formatSaudiPhoneNumber(to),
+    );
+    const maskedRecipients = normalizedRecipients.map((to) =>
+      redactPhoneNumber(to),
+    );
+    const allValid = normalizedRecipients.every((to) => isValidSaudiPhone(to));
+
+    if (!allValid) {
+      return {
+        sent: 0,
+        failed: recipients.length,
+        results: normalizedRecipients.map((to) => ({
+          success: false,
+          error: "Invalid Saudi phone number format",
+          provider: this.name,
+          to,
+          timestamp: new Date(),
+        })),
+      };
+    }
+
     try {
       const response = await fetch(`${TAQNYAT_API_BASE}/messages`, {
         method: "POST",
@@ -158,7 +198,7 @@ export class TaqnyatProvider implements SMSProvider {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          recipients,
+          recipients: normalizedRecipients,
           body: message,
           sender: this.senderName,
         }),
@@ -172,7 +212,7 @@ export class TaqnyatProvider implements SMSProvider {
           failed: 0,
           total: recipients.length,
           successful: recipients.length,
-          results: recipients.map((to) => ({
+          results: normalizedRecipients.map((to) => ({
             success: true,
             messageId: data.messageId || `taqnyat-bulk-${Date.now()}`,
             provider: this.name,
@@ -186,14 +226,15 @@ export class TaqnyatProvider implements SMSProvider {
         status: response.status,
         data,
         recipientCount: recipients.length,
+        recipients: maskedRecipients,
       });
 
       return {
         sent: 0,
         failed: recipients.length,
-        results: recipients.map((to) => ({
+        results: normalizedRecipients.map((to) => ({
           success: false,
-          error: data.message || `HTTP ${response.status}`,
+          error: "Taqnyat SMS send failed",
           provider: this.name,
           to,
           timestamp: new Date(),
@@ -204,14 +245,15 @@ export class TaqnyatProvider implements SMSProvider {
       logger.error("[Taqnyat] Bulk SMS exception", {
         error: errorMessage,
         recipientCount: recipients.length,
+        recipients: maskedRecipients,
       });
 
       return {
         sent: 0,
         failed: recipients.length,
-        results: recipients.map((to) => ({
+        results: normalizedRecipients.map((to) => ({
           success: false,
-          error: errorMessage,
+          error: "Taqnyat SMS send failed",
           provider: this.name,
           to,
           timestamp: new Date(),
