@@ -60,7 +60,7 @@ export default function DashboardPage() {
           return (
             <Card key={stat.labelKey} className="shadow-card">
               <CardContent className="flex items-center justify-between p-5">
-                <div className="space-y-1 text-right">
+                <div className="space-y-1 text-end">
                   <p className="text-[13px] text-[var(--color-text-secondary)]">
                     {t(stat.labelKey, stat.labelKey)}
                   </p>
@@ -102,7 +102,7 @@ export default function DashboardPage() {
                 key={`task-${i}`}
                 className="flex items-center justify-between gap-3"
               >
-                <div className="text-right">
+                <div className="text-end">
                   <p className="font-medium text-[var(--color-text-primary)]">
                     WO-{1000 + i} - {t("dashboard.acMaintenance", "AC Maintenance")}
                   </p>
@@ -130,7 +130,7 @@ export default function DashboardPage() {
                 key={`payment-${i}`}
                 className="flex items-center justify-between gap-3"
               >
-                <div className="text-right">
+                <div className="text-end">
                   <p className="font-medium text-[var(--color-text-primary)]">
                     INV-{2000 + i} - {t("dashboard.monthlyRent", "Monthly Rent")}
                   </p>

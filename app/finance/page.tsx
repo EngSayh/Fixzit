@@ -18,6 +18,7 @@ import { CardGridSkeleton } from "@/components/skeletons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useSupportOrg } from "@/contexts/SupportOrgContext";
 import Decimal from "decimal.js";
+import StatusPill from "@/components/ui/status-pill";
 
 import { logger } from "@/lib/logger";
 import ClientDate from "@/components/ClientDate";
@@ -147,9 +148,16 @@ export default function FinancePage() {
                     <div className="font-semibold text-[var(--color-text-primary)]">
                       {inv.number}
                     </div>
-                    <span className="text-xs rounded-full px-2 py-1 border border-[var(--color-border-subtle)] bg-[var(--color-brand-primary-surface)] text-[var(--color-brand-primary)]">
-                      {inv.status}
-                    </span>
+                    <StatusPill
+                      status={
+                        inv.status === "PAID"
+                          ? "success"
+                          : inv.status === "VOID"
+                            ? "danger"
+                            : "warning"
+                      }
+                      label={inv.status}
+                    />
                   </div>
                   <div className="text-sm text-[var(--color-text-secondary)]">
                     {t("finance.issue", "Issue")}:{" "}

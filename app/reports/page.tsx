@@ -122,7 +122,7 @@ export default function Reports() {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-[var(--color-app-background)] text-right">
+                <tr className="bg-[var(--color-app-background)] text-end">
                   <th className="px-4 py-3 text-[13px] text-[var(--color-text-secondary)] font-medium border-b border-ejar-border">
                     {t("reports.table.name", "Name")}
                   </th>
@@ -145,19 +145,19 @@ export default function Reports() {
                   const pill = pillMap[row.status];
                   return (
                     <tr key={row.name} className="border-b border-ejar-border">
-                      <td className="px-4 py-3 text-[var(--color-text-primary)] text-right">
+                      <td className="px-4 py-3 text-[var(--color-text-primary)] text-end">
                         {row.name}
                       </td>
-                      <td className="px-4 py-3 text-[var(--color-text-secondary)] text-right">
+                      <td className="px-4 py-3 text-[var(--color-text-secondary)] text-end">
                         {row.type}
                       </td>
-                      <td className="px-4 py-3 text-[var(--color-text-secondary)] text-right">
+                      <td className="px-4 py-3 text-[var(--color-text-secondary)] text-end">
                         {row.lastRun}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-end">
                         <StatusPill status={pill.status} label={pill.label} />
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-end">
                         <div className="flex items-center gap-2 justify-end">
                           {row.actionType === "download" ? (
                             <Button
