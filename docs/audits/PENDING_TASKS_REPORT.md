@@ -1,4 +1,4 @@
-# Pending Tasks Report - November 11, 2025 (Updated)
+# Pending Tasks Report - Updated 2025-12-10 13:34:49 +03
 
 ## ✅ Completed (Priority 1 - CRITICAL)
 
@@ -198,6 +198,26 @@ Fixed floating-point bugs in:
 ---
 
 ## 🎯 Final Step
+
+---
+
+## 🔄 New Pending Items (2025-12-10 13:34:49 +03)
+
+### A. Playwright / Runtime Failures (HIGH)
+- Dev server throws `Unexpected end of JSON input` in `app/api/copilot/chat/route.ts` (JSON.parse on empty/invalid body) → results in 500s and Playwright failures.
+- Next dev runtime `Cannot find module './34223.js'` from `.next/server/webpack-runtime.js` causing 500 on `/` and crashes during E2E.
+- Action: patch `app/api/copilot/chat/route.ts` to validate/guard request body; clear `.next`/`.next/cache` and rerun dev server to eliminate stale chunks; rerun `pnpm test:e2e` (dev-server mode) with logs to verify stability.
+
+### B. AI Memory Pipeline (MEDIUM)
+- `ai-memory/outputs/` empty; `master-index.json` still placeholder.
+- Action: run `node tools/smart-chunker.js` → Inline Chat per batch → `node tools/merge-memory.js`; then `node tools/memory-selfcheck.js`.
+
+### C. CI/Monitoring Hygiene (LOW)
+- Legacy SMS providers deprecated but still in env; ensure dashboards/alerts mark twilio/unifonic/aws-sns/nexmo as deprecated and prod uses only Taqnyat; consider pruning legacy env vars in prod configs.
+
+### D. Follow-up Tests to Run
+- `pnpm test:e2e` after runtime fixes (currently failing as above).
+- `node tools/tests/smart-chunker.smoke.js`, `node tools/tests/merge-memory.smoke.js`, `node tools/memory-selfcheck.js` after memory generation.
 
 ### 12. Merge PR #273 & Cleanup
 
