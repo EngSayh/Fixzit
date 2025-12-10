@@ -86,7 +86,9 @@ const canonicalToWorkOrderRole = (
 };
 
 const normalizeWorkOrderRole = (role?: UserRoleType): CanonicalRole | null => {
-  if (!role) return null;
+  // Guard against non-string types to prevent runtime errors
+  if (!role || typeof role !== 'string') return null;
+  
   const inferredSubRole = inferSubRoleFromRole(role);
   const canonical = normalizeFmRole(role);
   const mapped = canonicalToWorkOrderRole(canonical, inferredSubRole ?? undefined);
