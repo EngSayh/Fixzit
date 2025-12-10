@@ -30,9 +30,12 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEFAULT_HOST="127.0.0.1"
 export HOSTNAME="$DEFAULT_HOST"
 export PW_HOSTNAME="$DEFAULT_HOST"
+export PW_USE_BUILD="false"
+export PW_SKIP_BUILD="true"
 
 # Prefer running against a built server to avoid dev-mode manifest gaps
-if [[ "${PW_USE_BUILD:-true}" == "true" ]]; then
+# Default to dev-server mode unless PW_USE_BUILD is explicitly true to avoid build-time tracing/manifest issues.
+if [[ "${PW_USE_BUILD:-false}" == "true" ]]; then
   if [[ "${PW_SKIP_BUILD:-false}" == "true" ]]; then
     echo "🔄 Skipping pnpm build (PW_SKIP_BUILD=true); using existing .next output"
   else
@@ -73,6 +76,10 @@ else
   export HOSTNAME="$DEFAULT_HOST"
   export PW_WEB_SERVER="${PW_WEB_SERVER:-cd \"$ROOT_DIR\" && pnpm dev:webpack --hostname $HOSTNAME --port $PORT}"
 fi
+
+# Ensure Playwright-specific flags also set in dev-server mode
+export PLAYWRIGHT_TESTS="${PLAYWRIGHT_TESTS:-true}"
+export SKIP_ENV_VALIDATION="${SKIP_ENV_VALIDATION:-true}"
 
 CONFIG_FILE="${PLAYWRIGHT_CONFIG:-tests/playwright.config.ts}"
 CMD=("npx" "playwright" "test" "--config=${CONFIG_FILE}")
