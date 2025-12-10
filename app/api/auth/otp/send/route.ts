@@ -823,6 +823,9 @@ export async function POST(request: NextRequest) {
           otpAttempts: MAX_ATTEMPTS,
           rateLimitRemaining: rateLimitResult.remaining,
           identifier: otpKey,
+          taqnyatId: smsResult.messageSid,
+          cost: smsResult.cost,
+          segments: smsResult.segments,
         },
       });
 

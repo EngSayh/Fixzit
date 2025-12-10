@@ -1,0 +1,89 @@
+---
+# yamllint disable rule:line-length rule:truthy
+name: Production Smoke Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run every 6 hours to catch production issues early
+    - cron: '0 */6 * * *'
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      - name: Check Production Health
+        id: health
+        run: |
+          echo "Testing production health endpoint..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" https://fixzit.co/api/health || echo "error")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+          
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          
+          if [ "$HTTP_CODE" -ge 500 ]; then
+            echo "::error::Production health check returned $HTTP_CODE"
+            exit 1
+          fi
+          
+          echo "health_status=$HTTP_CODE" >> $GITHUB_OUTPUT
+
+      - name: Check Login Page
+        run: |
+          echo "Testing login page..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://fixzit.co/login)
+          
+          echo "Login page HTTP Status: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Login page returned $HTTP_CODE (expected 200)"
+            exit 1
+          fi
+          
+          echo "✅ Login page accessible"
+
+      - name: Check Static Assets
+        run: |
+          echo "Testing static asset delivery..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://fixzit.co/favicon.ico)
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::warning::Favicon returned $HTTP_CODE"
+          else
+            echo "✅ Static assets accessible"
+          fi
+
+      - name: Check API Auth Endpoint
+        run: |
+          echo "Testing auth session endpoint..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://fixzit.co/api/auth/session)
+          
+          # Session endpoint should return 200 even for unauthenticated users
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::warning::Auth session returned $HTTP_CODE (expected 200)"
+          else
+            echo "✅ Auth session endpoint accessible"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Production Smoke Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Endpoint | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| /api/health | ${{ steps.health.outputs.health_status || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| /login | Tested |" >> $GITHUB_STEP_SUMMARY
+          echo "| Static assets | Tested |" >> $GITHUB_STEP_SUMMARY
+          echo "| /api/auth/session | Tested |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Run completed at: $(date -u)" >> $GITHUB_STEP_SUMMARY

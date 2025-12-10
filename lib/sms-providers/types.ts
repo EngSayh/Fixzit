@@ -35,6 +35,12 @@ export interface SMSResult {
   provider?: SMSProviderType;
   to?: string;
   timestamp?: Date;
+  /** Cost of the SMS in provider's currency (e.g., SAR for Taqnyat) */
+  cost?: number;
+  /** Currency of the cost (e.g., 'SAR') */
+  currency?: string;
+  /** Number of message segments used */
+  segments?: number;
   /** Raw response from provider for debugging */
   rawResponse?: unknown;
 }

@@ -39,6 +39,12 @@ interface SMSResult {
   success: boolean;
   messageSid?: string;
   error?: string;
+  /** Cost of the SMS in provider's currency (SAR for Taqnyat) */
+  cost?: number;
+  /** Currency of the cost */
+  currency?: string;
+  /** Number of message segments */
+  segments?: number;
 }
 
 export type TaqnyatOperationLabel =
@@ -150,10 +156,16 @@ async function sendViaTaqnyat(
       logger.info("[SMS] Message sent successfully via Taqnyat", {
         to,
         messageSid: result.messageId,
+        cost: result.cost,
+        currency: result.currency,
+        segments: result.segments,
       });
       return {
         success: true,
         messageSid: result.messageId,
+        cost: result.cost,
+        currency: result.currency || "SAR",
+        segments: result.segments,
       };
     }
 

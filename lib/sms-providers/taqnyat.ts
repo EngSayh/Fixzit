@@ -70,6 +70,9 @@ export class TaqnyatProvider implements SMSProvider {
           provider: this.name,
           to,
           timestamp: new Date(),
+          cost: data.cost || undefined,
+          currency: data.currency || "SAR",
+          segments: data.msgCount || 1,
           rawResponse: data,
         };
       }
