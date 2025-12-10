@@ -21,8 +21,10 @@ import { createTaqnyatProvider } from "@/lib/sms-providers/taqnyat";
 
 export const dynamic = "force-dynamic";
 
-// Timeout for dependency checks - fail fast for readiness
-const HEALTH_CHECK_TIMEOUT_MS = 3_000;
+// Timeout for dependency checks
+// Increased to 10s for Vercel serverless cold starts where Mongoose connection
+// can take several seconds to establish
+const HEALTH_CHECK_TIMEOUT_MS = 10_000;
 
 interface CircuitBreakerStat {
   name: string;
