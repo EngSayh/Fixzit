@@ -37,7 +37,8 @@ export interface CommunicationLog {
   message: string;
   status: "pending" | "sent" | "delivered" | "failed" | "read";
   metadata?: {
-    twilioSid?: string;
+    taqnyatId?: string; // Taqnyat message ID
+    twilioSid?: string; // @deprecated Legacy field for backward compatibility
     sendgridId?: string;
     whatsappId?: string;
     messageId?: string;

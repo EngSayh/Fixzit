@@ -768,7 +768,7 @@ export default function FeatureSettingsPage() {
           id="sms-notifications"
           label={auto("SMS Notifications", "features.smsNotifications.label")}
           description={auto(
-            "Send SMS notifications via Twilio/Unifonic",
+            "Send SMS notifications via Taqnyat",
             "features.smsNotifications.description",
           )}
           enabled={features.smsNotifications}

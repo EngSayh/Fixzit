@@ -48,7 +48,9 @@ type TSsoProvider = (typeof SsoProvider)[number];
 const EmailProvider = ["SMTP", "SENDGRID", "AWS_SES"] as const;
 type TEmailProvider = (typeof EmailProvider)[number];
 
-const SmsProvider = ["TWILIO", "AWS_SNS", "LOCAL"] as const;
+// SMS Provider - TAQNYAT is the ONLY supported production provider (CITC-compliant for Saudi Arabia)
+// LOCAL is for development/testing only
+const SmsProvider = ["TAQNYAT", "LOCAL"] as const;
 type TSmsProvider = (typeof SmsProvider)[number];
 
 const PaymentGateway = ["PAYTABS", "STRIPE", "PAYPAL"] as const;
