@@ -1,51 +1,65 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T20:30:00+03:00  
-**Version**: 6.0 (Comprehensive Deep Dive Edition)  
+**Last Updated**: 2025-12-10T18:36:00+03:00  
+**Version**: 6.1  
 **Branch**: main  
-**Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok)  
-**Total Pending Items**: 73 identified (1 Critical, 9 Major, 24 Moderate, 39 Minor)  
+**Status**: ⚠️ PRODUCTION INTERMITTENT (MongoDB cold start issues, SMS ok)  
+**Total Pending Items**: 74 identified (1 Critical, 9 Major, 24 Moderate, 39 Minor)  
 **Completed Items**: 56+ tasks completed this session  
 **Consolidated Sources**: `docs/archived/pending-history/2025-12-10_CONSOLIDATED_PENDING.md`, `docs/archived/pending-history/PENDING_TASKS_MASTER.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_16-51-05_POST_STABILIZATION_AUDIT.md`, and all `PENDING_REPORT_2025-12-10T*.md` files (merged; no duplicates)
-**Consolidation Check**: 2025-12-10T20:30:00+03:00 — All pending reports scanned, deep dive completed, merged into single source of truth
+**Consolidation Check**: 2025-12-10T18:36:00+03:00 — All pending reports scanned, deep dive completed, merged into single source of truth
 
 ---
 
-## ✅ PRODUCTION IS NOW OPERATIONAL (2025-12-10T18:25 +03)
+## 🔴 CRITICAL: Intermittent MongoDB Cold Start Issue (2025-12-10T18:36 +03)
 
-All critical systems are functioning correctly. MongoDB and SMS are both operational.
+**Current Production Health** (intermittent - depends on serverless instance):
+```json
+{
+  "ready": false,  // Sometimes true, sometimes false
+  "mongodb": "error",  // Fails on cold starts, succeeds after warm-up
+  "sms": "ok",
+  "latency": 0  // 0 indicates immediate rejection (connection not established)
+}
+```
+
+**Issue**: Vercel serverless cold starts cause MongoDB connection to fail intermittently. Works on 3rd request but fails on 1st-2nd requests to cold instances.
+
+**Root Cause**: Connection promise in `lib/mongo.ts` may be cached in rejected state across serverless invocations.
+
+**Immediate Action Required**: Fix connection pooling/promise caching in `lib/mongo.ts`
 
 ---
 
-## 📊 DEEP DIVE EXECUTIVE SUMMARY (2025-12-10T20:30 +03)
+## 📊 DEEP DIVE EXECUTIVE SUMMARY (2025-12-10T18:36 +03)
 
 | Category | Critical | Major | Moderate | Minor | Total |
 |----------|----------|-------|----------|-------|-------|
-| Production Issues | 0 | 2 | 3 | 4 | 9 |
+| Production Issues | 1 | 2 | 3 | 4 | 10 |
 | Code Quality | 0 | 3 | 8 | 12 | 23 |
 | Testing Gaps | 0 | 2 | 5 | 8 | 15 |
 | Security | 0 | 1 | 2 | 4 | 7 |
 | Performance | 0 | 1 | 4 | 6 | 11 |
 | Documentation | 0 | 0 | 2 | 5 | 7 |
-| **TOTAL** | **0** | **9** | **24** | **39** | **72** |
+| **TOTAL** | **1** | **9** | **24** | **39** | **73** |
 
-**Note**: CRITICAL was 1 (MONGODB_URI) → Now 0 (RESOLVED)
+**🔴 CRITICAL**: MongoDB intermittent cold start connection failure (CRIT-001)
 
 ---
 
-## ✅ Production Health Status (LIVE as of 2025-12-10T18:23 +03)
+## ⚠️ Production Health Status (LIVE as of 2025-12-10T18:36 +03)
 ```json
 {
-  "ready": true,
+  "ready": "INTERMITTENT",
   "checks": {
-    "mongodb": "ok",
+    "mongodb": "error on cold start, ok after warm-up",
     "redis": "disabled",
     "email": "disabled",
     "sms": "ok"
   }
 }
 ```
-**✅ MongoDB: OK** — Connected to `fixzit` database on Atlas cluster
+**⚠️ MongoDB: INTERMITTENT** — Fails on cold starts (latency: 0), succeeds after warm-up (latency: ~1000ms)
 **✅ SMS: OK** — Taqnyat configured and working!
 
 **Fixes Applied**:
@@ -57,7 +71,7 @@ All critical systems are functioning correctly. MongoDB and SMS are both operati
 - Increased connection timeouts from 8s to 15s
 - Added readyState stabilization wait (2s) for cold start race conditions
 
-## ✅ LOCAL VERIFICATION STATUS (2025-12-10T20:30 +03)
+## ✅ LOCAL VERIFICATION STATUS (2025-12-10T18:36 +03)
 | Check | Result | Details |
 |-------|--------|---------|
 | TypeScript | ✅ PASS | 0 errors |
@@ -73,16 +87,22 @@ All critical systems are functioning correctly. MongoDB and SMS are both operati
 | Test Files | ℹ️ INFO | 190 test files |
 | TODO/FIXME Count | ℹ️ INFO | 2 items remaining |
 
-## 🔄 Imported OPS Pending (synced 2025-12-10 20:30 +03)
+## 🔄 Imported OPS Pending (synced 2025-12-10 18:36 +03)
 - ✅ **ISSUE-OPS-001 – Production Infrastructure Manual Setup Required** (Critical, **RESOLVED**): `MONGODB_URI` fixed, `TAQNYAT_SENDER_NAME` set, `TAQNYAT_BEARER_TOKEN` set in Vercel. Health check verified: mongodb ok, sms ok.
-- ✅ **ISSUE-OPS-002 – Production Database Connection Error** (Critical, **RESOLVED**): MongoDB now connected. Fixed via enhanced connection handling, increased timeouts, and readyState stabilization.
+- ⚠️ **ISSUE-OPS-002 – Production Database Connection Error** (Critical, **RECURRING**): MongoDB connection intermittent. Works after warm-up but fails on cold starts. Connection promise caching issue in `lib/mongo.ts`.
 - **ISSUE-CI-001 – GitHub Actions Workflows Failing** (High, Pending Investigation): check runners, secrets per `docs/GITHUB_SECRETS_SETUP.md`, review workflow syntax.
 - **ISSUE-005 – Mixed orgId Storage in Souq Payouts/Withdrawals** (Major, Pending Migration - Ops): run `npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts` (dry-run then execute).
 - **Pending Operational Checks (Auth & Email Domain)**: set `EMAIL_DOMAIN` (and expose `window.EMAIL_DOMAIN`) before demos/public pages; run `npx tsx scripts/test-api-endpoints.ts --endpoint=auth --BASE_URL=<env-url>`; run E2E auth suites `qa/tests/e2e-auth-unified.spec.ts` and `qa/tests/auth-flows.spec.ts`.
 
 ---
 
-## 🔍 COMPREHENSIVE DEEP DIVE FINDINGS (2025-12-10T20:30 +03)
+## 🔍 COMPREHENSIVE DEEP DIVE FINDINGS (2025-12-10T18:36 +03)
+
+### 🔴 CRITICAL ISSUES (1 Item) - Production Blocker
+
+| ID | Issue | File(s) | Risk | Action |
+|----|-------|---------|------|--------|
+| CRIT-001 | **MongoDB Intermittent Cold Start Failure** | `lib/mongo.ts` | Production down on cold starts | Fix connection promise caching - clear rejected promises on failure, add retry logic |
 
 ### 🟠 MAJOR ISSUES (9 Items) - Should Address Soon
 
