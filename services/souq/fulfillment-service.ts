@@ -7,6 +7,7 @@ import { splCarrier } from "@/lib/carriers/spl";
 import { addJob } from "@/lib/queues/setup";
 import { logger } from "@/lib/logger";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
+import { Config } from "@/lib/config/constants";
 import type { IOrder } from "@/server/models/souq/Order";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 
@@ -244,15 +245,15 @@ class FulfillmentService {
     shippingAddress: IAddress,
   ): Promise<void> {
     try {
-      // Get warehouse address (mock for now)
+      // Get warehouse address from environment configuration
       const warehouseAddress: IAddress = {
-        name: "Fixzit Fulfillment Center",
-        phone: "+966123456789",
+        name: process.env.FULFILLMENT_CENTER_NAME || "Fixzit Fulfillment Center",
+        phone: process.env.FULFILLMENT_CENTER_PHONE || Config.company.supportPhone.replace(/\s/g, ""),
         email: EMAIL_DOMAINS.fulfillment,
-        street: "King Fahd Road",
-        city: "Riyadh",
-        postalCode: "11564",
-        country: "SA",
+        street: process.env.FULFILLMENT_CENTER_STREET || "King Fahd Road",
+        city: process.env.FULFILLMENT_CENTER_CITY || "Riyadh",
+        postalCode: process.env.FULFILLMENT_CENTER_POSTAL || "11564",
+        country: process.env.FULFILLMENT_CENTER_COUNTRY || "SA",
       };
 
       // Calculate package dimensions

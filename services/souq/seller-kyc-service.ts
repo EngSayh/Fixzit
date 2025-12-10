@@ -442,7 +442,7 @@ class SellerKYCService {
             sellerId: sellerId || `TEMP-${Date.now()}`,
             legalName: "Temp Seller",
             businessName: "Temp Seller",
-            contactEmail: "temp-kyc@fixzit.test",
+            contactEmail: process.env.KYC_FALLBACK_EMAIL || "kyc@fixzit.co",
             contactPhone: "+0000000000",
             registrationType: "company",
             country: "SA",
@@ -476,7 +476,7 @@ class SellerKYCService {
 
     const updatedDoc: IKYCDocumentEntry = {
       type: storedType,
-      url: existingDoc?.url ?? "https://example.com/placeholder.pdf",
+      url: existingDoc?.url ?? "/documents/pending-upload",
       uploadedAt: existingDoc?.uploadedAt ?? new Date(),
       verified: approved,
       verifiedAt: approved ? new Date() : undefined,
@@ -652,7 +652,7 @@ class SellerKYCService {
             sellerId: sellerId || `TEMP-${Date.now()}`,
             legalName: "Temp Seller",
             businessName: "Temp Seller",
-            contactEmail: "temp-kyc@fixzit.test",
+            contactEmail: process.env.KYC_FALLBACK_EMAIL || "kyc@fixzit.co",
             contactPhone: "+0000000000",
             registrationType: "company",
             country: "SA",

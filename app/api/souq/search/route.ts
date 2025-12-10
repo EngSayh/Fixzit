@@ -12,6 +12,7 @@ import {
 } from "@/lib/marketplace/context";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { escapeMeiliFilterValue } from "@/lib/marketplace/meiliFilters";
+import { DEFAULT_CURRENCY } from "@/config/currencies";
 import crypto from "node:crypto";
 
 const MAX_QUERY_LENGTH = 256;
@@ -421,22 +422,22 @@ export async function GET(req: NextRequest) {
 function calculatePriceRanges(prices: number[]): Record<string, number> {
   if (prices.length === 0) return {};
 
-  const ranges = {
-    "Under 50 SAR": 0,
-    "50 - 100 SAR": 0,
-    "100 - 200 SAR": 0,
-    "200 - 500 SAR": 0,
-    "500 - 1000 SAR": 0,
-    "Above 1000 SAR": 0,
+  const ranges: Record<string, number> = {
+    [`Under 50 ${DEFAULT_CURRENCY}`]: 0,
+    [`50 - 100 ${DEFAULT_CURRENCY}`]: 0,
+    [`100 - 200 ${DEFAULT_CURRENCY}`]: 0,
+    [`200 - 500 ${DEFAULT_CURRENCY}`]: 0,
+    [`500 - 1000 ${DEFAULT_CURRENCY}`]: 0,
+    [`Above 1000 ${DEFAULT_CURRENCY}`]: 0,
   };
 
   prices.forEach((price) => {
-    if (price < 50) ranges["Under 50 SAR"]++;
-    else if (price < 100) ranges["50 - 100 SAR"]++;
-    else if (price < 200) ranges["100 - 200 SAR"]++;
-    else if (price < 500) ranges["200 - 500 SAR"]++;
-    else if (price < 1000) ranges["500 - 1000 SAR"]++;
-    else ranges["Above 1000 SAR"]++;
+    if (price < 50) ranges[`Under 50 ${DEFAULT_CURRENCY}`]++;
+    else if (price < 100) ranges[`50 - 100 ${DEFAULT_CURRENCY}`]++;
+    else if (price < 200) ranges[`100 - 200 ${DEFAULT_CURRENCY}`]++;
+    else if (price < 500) ranges[`200 - 500 ${DEFAULT_CURRENCY}`]++;
+    else if (price < 1000) ranges[`500 - 1000 ${DEFAULT_CURRENCY}`]++;
+    else ranges[`Above 1000 ${DEFAULT_CURRENCY}`]++;
   });
 
   return ranges;

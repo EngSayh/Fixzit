@@ -5,6 +5,7 @@ import { useTranslation } from "@/contexts/TranslationContext";
 import { Shield, Lock, Eye, FileText, Mail, Phone } from "lucide-react";
 import { renderMarkdownSanitized } from "@/lib/markdown";
 import { EMAIL_DOMAINS as EMAILS } from "@/lib/config/domains";
+import { Config } from "@/lib/config/constants";
 import { logger } from "@/lib/logger";
 
 /**
@@ -34,7 +35,7 @@ Industry-standard security: encryption, access controls, regular audits, 24/7 mo
 Access, correct, delete, export your data, and opt-out of marketing communications.
 
 ## Contact
-For privacy inquiries: ${EMAILS.privacy} | Phone: +966 XX XXX XXXX`;
+For privacy inquiries: ${EMAILS.privacy} | Phone: ${Config.company.supportPhone}`;
 
 /**
  * Privacy Policy Page (Public View)

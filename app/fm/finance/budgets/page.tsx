@@ -17,6 +17,7 @@ import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { useEffect } from "react";
+import { DEFAULT_CURRENCY } from "@/config/currencies";
 
 type BudgetData = {
   id?: string;
@@ -370,7 +371,7 @@ function CreateBudgetDialog({
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("");
   const [amount, setAmount] = useState("");
-  const [currency] = useState("SAR");
+  const [currency] = useState(DEFAULT_CURRENCY);
 
   const resetForm = () => {
     setName("");

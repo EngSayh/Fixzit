@@ -273,7 +273,7 @@ class ReturnsService {
 
     const orderWithDates = order as OrderWithDates;
     const deliveryDate = orderWithDates.deliveredAt || orderWithDates.updatedAt || new Date();
-    const returnWindowDays = 30;
+    const returnWindowDays = parseInt(process.env.RETURN_WINDOW_DAYS || "30", 10);
     const returnDeadline = new Date(deliveryDate);
     returnDeadline.setDate(returnDeadline.getDate() + returnWindowDays);
 

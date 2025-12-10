@@ -14,6 +14,7 @@ import {
 } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { EMAIL_DOMAINS, DOMAINS } from "@/lib/config/domains";
+import { Config } from "@/lib/config/constants";
 import { joinUrl } from "@/lib/utils/url";
 
 /**
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
       customerDetails: {
         name: invoice.recipient?.name || "Unknown Customer",
         email: invoice.recipient?.email || `customer@${EMAIL_DOMAINS.primary}`,
-        phone: invoice.recipient?.phone || "+966500000000",
+        phone: invoice.recipient?.phone || Config.company.supportPhone.replace(/\s/g, ""),
         address: invoice.recipient?.address || "Saudi Arabia",
         city: "Riyadh",
         state: "Riyadh",

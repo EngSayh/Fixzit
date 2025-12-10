@@ -1,13 +1,50 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-10T21:15:00+03:00  
-**Version**: 6.5  
+**Last Updated**: 2025-12-10T23:00:00+03:00  
+**Version**: 6.7  
 **Branch**: main  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok)  
-**Total Pending Items**: 98 identified (1 Critical RESOLVED, 4 Major-Hardcoded, 23 Major, 28 Moderate, 42 Minor)  
-**Completed Items**: 60+ tasks completed this session  
-**Consolidated Sources**: `docs/archived/pending-history/2025-12-10_CONSOLIDATED_PENDING.md`, `docs/archived/pending-history/PENDING_TASKS_MASTER.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md`, `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_16-51-05_POST_STABILIZATION_AUDIT.md`, and all `PENDING_REPORT_2025-12-10T*.md` files (merged; no duplicates)
-**Consolidation Check**: 2025-12-10T21:15:00+03:00 — All pending reports scanned, DEEP DIVE HARDCODED SEARCH COMPLETED, CODE QUALITY SCAN COMPLETED, comprehensive system-wide audit merged into single source of truth
+**Total Pending Items**: 78 identified (0 Critical, 10 Major, 28 Moderate, 40 Minor) — 20 items resolved this session  
+**Completed Items**: 80+ tasks completed (20 new this session)  
+**Consolidation Check**: 2025-12-10T23:00:00+03:00 — All pending reports scanned, DEEP DIVE HARDCODED SEARCH COMPLETED, CODE QUALITY SCAN COMPLETED, comprehensive system-wide audit merged into single source of truth
+
+---
+
+## ✅ SESSION 2025-12-10T23:00 COMPLETED FIXES (Batch 2)
+
+| ID | Issue | Resolution | Files Changed |
+|----|-------|------------|---------------|
+| **HC-MAJ-001** | Hardcoded phone +966123456789 in fulfillment | Uses env var or `Config.company.supportPhone` | `services/souq/fulfillment-service.ts` |
+| **HC-MAJ-003** | Test email temp-kyc@fixzit.test in KYC (2x) | Uses `process.env.KYC_FALLBACK_EMAIL` or `kyc@fixzit.co` | `services/souq/seller-kyc-service.ts` |
+| **HC-MAJ-004** | Placeholder URL example.com/placeholder.pdf | Changed to `/documents/pending-upload` | `services/souq/seller-kyc-service.ts` |
+| **HC-MOD-001** | Hardcoded warehouse address | Now configurable via `FULFILLMENT_CENTER_*` env vars | `services/souq/fulfillment-service.ts` |
+| **HC-MOD-002** | Hardcoded VAT rate 0.15 | Uses `process.env.SAUDI_VAT_RATE` | `services/souq/settlements/settlement-calculator.ts` |
+| **HC-MOD-005** | Late reporting days hardcoded 14 | Uses `process.env.LATE_REPORTING_DAYS` | `services/souq/claims/investigation-service.ts` |
+| **HC-MOD-006** | Return window days hardcoded 30 | Uses `process.env.RETURN_WINDOW_DAYS` | `services/souq/returns-service.ts` |
+| **HC-MOD-006b** | S3 bucket name fixzit-dev-uploads | Uses `S3_BUCKET_NAME` env var | `lib/config/constants.ts` |
+| **SEC-002** | Debug endpoint db-diag unsecured | Added `isAuthorizedHealthRequest` auth | `app/api/health/db-diag/route.ts` |
+
+**Verification Status**:
+- ✅ TypeScript: PASS (0 errors)
+- ✅ ESLint: PASS (0 errors)
+
+---
+
+## ✅ SESSION 2025-12-10T22:30 COMPLETED FIXES (Batch 1)
+
+| ID | Issue | Resolution | Files Changed |
+|----|-------|------------|---------------|
+| **HC-PHONE-001** | Hardcoded phone +966 50 123 4567 in settings | Replaced with placeholder input | `app/settings/page.tsx` |
+| **HC-PHONE-002** | Hardcoded phone +966 XX XXX XXXX in privacy | Uses `Config.company.supportPhone` | `app/privacy/page.tsx` |
+| **HC-PHONE-003** | Hardcoded fallback +966500000000 in payments | Uses `Config.company.supportPhone` | `app/api/payments/create/route.ts` |
+| **HC-SAR-001** | Hardcoded "SAR" in vendor dashboard revenue | Uses `DEFAULT_CURRENCY` from config | `app/vendor/dashboard/page.tsx` |
+| **HC-SAR-002** | Hardcoded "SAR" in vendor dashboard prices | Uses `DEFAULT_CURRENCY` from config | `app/vendor/dashboard/page.tsx` |
+| **HC-SAR-003** | Hardcoded "SAR" in vendor dashboard orders | Uses `DEFAULT_CURRENCY` from config | `app/vendor/dashboard/page.tsx` |
+| **HC-SAR-004** | Hardcoded "SAR" in budgets currency state | Uses `DEFAULT_CURRENCY` from config | `app/fm/finance/budgets/page.tsx` |
+| **HC-SAR-005** | Hardcoded "SAR" in souq search price ranges | Uses `DEFAULT_CURRENCY` from config | `app/api/souq/search/route.ts` |
+| **DEBUG-001** | DEBUG_CLAIM_TEST console.log (2 instances) | Removed debug statements | `services/souq/claims/claim-service.ts` |
+| **DEBUG-002** | DEBUG_REFUND_TEST console.log | Removed debug statements | `services/souq/claims/refund-processor.ts` |
+| **DEBUG-003** | DEBUG_MOCKS logger.debug | Removed debug statements | `server/services/finance/postingService.ts` |
 
 ---
 
@@ -39,27 +76,33 @@
 
 ---
 
-## 📊 DEEP DIVE EXECUTIVE SUMMARY (2025-12-10T21:15 +03)
+## 📊 DEEP DIVE EXECUTIVE SUMMARY (2025-12-10T23:00 +03)
 
 | Category | Critical | Major | Moderate | Minor | Total |
 |----------|----------|-------|----------|-------|-------|
-| Production Issues | 0 (RESOLVED) | 2 | 3 | 4 | 9 |
-| **Hardcoded Issues** | **0** | **4** | **6** | **2** | **12** |
-| Code Quality | 0 | 5 | 10 | 12 | 27 |
+| Production Issues | 0 (RESOLVED) | 1 | 2 | 4 | 7 |
+| **Hardcoded Issues** | **0** | **0** (RESOLVED) | **0** (RESOLVED) | **1** | **1** |
+| Code Quality | 0 | 4 | 10 | 12 | 26 |
 | Testing Gaps | 0 | 2 | 5 | 8 | 15 |
-| Security | 0 | 2 | 2 | 4 | 8 |
+| Security | 0 | 1 (1 RESOLVED) | 2 | 4 | 7 |
 | Performance | 0 | 1 | 4 | 6 | 11 |
 | Documentation | 0 | 0 | 2 | 5 | 7 |
-| Debug Code | 0 | 3 | 2 | 4 | 9 |
-| **TOTAL** | **0** | **19** | **34** | **45** | **98** |
+| Debug Code | 0 | 0 (RESOLVED) | 2 | 3 | 5 |
+| **TOTAL** | **0** | **9** | **27** | **43** | **79** |
 
 **✅ CRITICAL (0)**: ALL RESOLVED
 - ~~CRIT-001: MongoDB intermittent cold start connection failure~~ → **FIXED**
 
-**🟠 NEW MAJOR FINDINGS (Deep Dive 2025-12-10)**:
-- DEBUG-001: `DEBUG_CLAIM_TEST` console.log in claim-service.ts (lines 335,337,369,371)
-- DEBUG-002: `DEBUG_REFUND_TEST` console.log in refund-processor.ts (lines 919,921)
-- DEBUG-003: `DEBUG_MOCKS` console.debug in postingService.ts (line 401)
+**✅ DEBUG CODE (3) RESOLVED (2025-12-10T22:30)**:
+- ~~DEBUG-001: `DEBUG_CLAIM_TEST` console.log in claim-service.ts~~ → **REMOVED**
+- ~~DEBUG-002: `DEBUG_REFUND_TEST` console.log in refund-processor.ts~~ → **REMOVED**
+- ~~DEBUG-003: `DEBUG_MOCKS` console.debug in postingService.ts~~ → **REMOVED**
+
+**✅ HARDCODED VALUES (8) RESOLVED (2025-12-10T22:30)**:
+- ~~HC-PHONE: Phone numbers in settings, privacy, payments~~ → **FIXED** (use Config.company.supportPhone)
+- ~~HC-SAR: Hardcoded SAR in vendor dashboard, budgets, search~~ → **FIXED** (use DEFAULT_CURRENCY)
+
+**🟠 REMAINING MAJOR FINDINGS**:
 - SEC-001: 7 test scripts with hardcoded passwords (not production code, but tracked)
 
 ---
@@ -129,13 +172,13 @@
 
 ## 🔍 NEW DEEP DIVE FINDINGS (2025-12-11T14:45 +03)
 
-### 🟠 Debug Code in Production Services (3 Items) - Remove Before Production
+### ✅ Debug Code in Production Services (3 Items) - RESOLVED 2025-12-10T22:30
 
-| ID | Issue | File(s) | Risk | Action |
-|----|-------|---------|------|--------|
-| DEBUG-001 | **DEBUG_CLAIM_TEST console.log** | `services/souq/claims/claim-service.ts:335,337,369,371` | Debug leakage if env var set in prod | Ensure `DEBUG_CLAIM_TEST` never set in production |
-| DEBUG-002 | **DEBUG_REFUND_TEST console.log** | `services/souq/claims/refund-processor.ts:919,921` | Debug leakage if env var set in prod | Ensure `DEBUG_REFUND_TEST` never set in production |
-| DEBUG-003 | **DEBUG_MOCKS console.debug** | `server/services/finance/postingService.ts:401` | Test debug in production | Ensure `DEBUG_MOCKS` never set in production |
+| ID | Issue | File(s) | Status | Resolution |
+|----|-------|---------|--------|------------|
+| ~~DEBUG-001~~ | ~~DEBUG_CLAIM_TEST console.log~~ | `services/souq/claims/claim-service.ts` | ✅ RESOLVED | Debug statements removed |
+| ~~DEBUG-002~~ | ~~DEBUG_REFUND_TEST console.log~~ | `services/souq/claims/refund-processor.ts` | ✅ RESOLVED | Debug statements removed |
+| ~~DEBUG-003~~ | ~~DEBUG_MOCKS console.debug~~ | `server/services/finance/postingService.ts` | ✅ RESOLVED | Debug statements removed |
 
 ### 🟠 Empty Catch Blocks Found (CI/Workflow Files) - Acceptable
 

@@ -3,17 +3,26 @@
  * GET /api/health/db-diag
  * 
  * Returns detailed database connection diagnostics for troubleshooting.
- * This endpoint is temporary for debugging production issues.
+ * SECURITY: Requires X-Health-Token header matching HEALTH_CHECK_TOKEN.
  */
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { MongoClient } from "mongodb";
 import { db } from "@/lib/mongo";
+import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
+  // Only allow authorized requests
+  if (!isAuthorizedHealthRequest(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized - provide X-Health-Token header" },
+      { status: 401 }
+    );
+  }
+
   const diagnostics: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,

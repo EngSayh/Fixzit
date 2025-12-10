@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Package, TrendingUp, Clock, Star } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { DEFAULT_CURRENCY } from "@/config/currencies";
 
 export default function VendorDashboard() {
   const { t } = useTranslation();
@@ -100,7 +101,7 @@ export default function VendorDashboard() {
               <div>
                 <p className="text-sm text-muted-foreground">Revenue</p>
                 <p className="text-2xl font-bold">
-                  SAR {stats.revenue.toFixed(2)}
+                  {DEFAULT_CURRENCY} {stats.revenue.toFixed(2)}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-warning" />
@@ -149,7 +150,7 @@ export default function VendorDashboard() {
                   <tr key={product.id}>
                     <td className="px-6 py-4">{product.title}</td>
                     <td className="px-6 py-4">{product.stock}</td>
-                    <td className="px-6 py-4">SAR {product.price}</td>
+                    <td className="px-6 py-4">{DEFAULT_CURRENCY} {product.price}</td>
                     <td className="px-6 py-4">{product.sold}</td>
                     <td className="px-6 py-4">
                       <button className="text-primary hover:underline">
@@ -191,7 +192,7 @@ export default function VendorDashboard() {
                   <tr key={order.id}>
                     <td className="px-6 py-4">{order.id}</td>
                     <td className="px-6 py-4">{order.customer}</td>
-                    <td className="px-6 py-4">SAR {order.total.toFixed(2)}</td>
+                    <td className="px-6 py-4">{DEFAULT_CURRENCY} {order.total.toFixed(2)}</td>
                     <td className="px-6 py-4">
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded-full ${

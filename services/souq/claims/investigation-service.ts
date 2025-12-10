@@ -27,7 +27,7 @@ export class InvestigationService {
   private static FRAUD_THRESHOLD = 70; // Score above 70 requires manual review
   private static HIGH_VALUE_THRESHOLD = 500; // SAR
   private static MULTIPLE_CLAIMS_PERIOD = 30; // days
-  private static LATE_REPORTING_DAYS = 14; // days after delivery
+  private static LATE_REPORTING_DAYS = parseInt(process.env.LATE_REPORTING_DAYS || "14", 10); // days after delivery
   private static async claimsCollection() {
     // Use ClaimService.ensureIndexes to guarantee index bootstrap before heavy queries
     return ClaimService.ensureIndexes();

@@ -916,18 +916,6 @@ export class RefundProcessor {
       queueModule?: QueueModule
     ) => {
       const queue = queueModule ?? (await getQueueModule());
-      if (process.env.DEBUG_REFUND_TEST === '1') {
-        // eslint-disable-next-line no-console
-        console.log('[Refunds][TestDebug] enqueue using queue module', {
-          hasMock:
-            typeof queue === 'object' &&
-            queue !== null &&
-            'addJob' in queue &&
-            typeof (queue as { addJob?: unknown }).addJob === 'function' &&
-            Boolean((queue as { addJob?: { mock?: unknown } }).addJob?.mock),
-          queueKeys: typeof queue === 'object' && queue !== null ? Object.keys(queue) : [],
-        });
-      }
       const queueName = queue.QUEUE_NAMES.NOTIFICATIONS;
       const jobName = 'souq-claim-refund-status';
       await queue.addJob(queueName, jobName, payload);

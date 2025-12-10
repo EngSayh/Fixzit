@@ -396,17 +396,6 @@ class PostingService {
       journal.status = "POSTED";
       journal.postingDate = new Date();
 
-      // Optional debug trace
-      try {
-        if (process.env.DEBUG_MOCKS === "1") {
-          logger.debug(
-            `postingService.postJournal: about to save journal id=${journal._id?.toString?.()} status=${journal.status}`,
-          );
-        }
-      } catch {
-        // Ignore debug errors
-      }
-
       await journal.save(session ? { session } : {});
 
       return {

@@ -22,7 +22,7 @@ import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 const FEE_CONFIG = {
   platformCommissionRate: 0.1, // 10%
   paymentGatewayFeeRate: 0.025, // 2.5%
-  vatRate: 0.15, // 15%
+  vatRate: parseFloat(process.env.SAUDI_VAT_RATE || "0.15"), // 15% default, configurable
   reserveRate: 0.2, // 20%
   // Use centralized holdPeriodDays from PAYOUT_CONFIG to prevent drift
   get holdPeriodDays() {

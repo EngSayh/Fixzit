@@ -128,7 +128,7 @@ export default function SettingsPage() {
                   <Label htmlFor="phone">
                     {t("settings.profile.phone", "Phone")}
                   </Label>
-                  <Input id="phone" defaultValue="+966 50 123 4567" />
+                  <Input id="phone" placeholder="+966 5X XXX XXXX" />
                 </div>
                 <div>
                   <Label htmlFor="department">

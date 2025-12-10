@@ -1,4 +1,4 @@
-# Pending Tasks Report - Updated 2025-12-10 13:34:49 +03
+# Pending Tasks Report - Updated 2025-12-10 18:54:11 +03
 
 ## ✅ Completed (Priority 1 - CRITICAL)
 
@@ -201,23 +201,29 @@ Fixed floating-point bugs in:
 
 ---
 
-## 🔄 New Pending Items (2025-12-10 13:34:49 +03)
+## 🔄 Consolidated Pending (as of 2025-12-10 18:54:11 +03)
 
-### A. Playwright / Runtime Failures (HIGH)
-- Dev server throws `Unexpected end of JSON input` in `app/api/copilot/chat/route.ts` (JSON.parse on empty/invalid body) → results in 500s and Playwright failures.
-- Next dev runtime `Cannot find module './34223.js'` from `.next/server/webpack-runtime.js` causing 500 on `/` and crashes during E2E.
-- Action: patch `app/api/copilot/chat/route.ts` to validate/guard request body; clear `.next`/`.next/cache` and rerun dev server to eliminate stale chunks; rerun `pnpm test:e2e` (dev-server mode) with logs to verify stability.
+### 🟥 Critical / High
+- Production Mongo/health: set correct `MONGODB_URI` (no placeholders, SRV+TLS), redeploy, and smoke `/login`, `/api/health`, `/api/auth/session`, `/api/health/sms`; ensure SMS uses Taqnyat only.
+- Next.js build stability: fix missing chunk/pages-manifest/NFT generation (`Cannot find module './34223.js'`) so `pnpm build` and Playwright can run; clear `.next` artifacts and ensure dev server starts cleanly on port 3100.
+- Playwright/copilot stability: guard JSON parse in `app/api/copilot/chat/route.ts`, ensure guest/tenant isolation responses, and rerun `pnpm test:e2e` (dev server mode) once build is stable; keep 127.0.0.1 in the dev CORS allowlist.
+- Secret alignment/CI unblock: make `AUTH_SECRET/NEXTAUTH_SECRET` consistent across `.env.test`, Playwright bootstrap, and runtime; investigate GitHub Actions runs failing immediately (runner/secrets/workflow). Monitor CI for PR #273 and merge once green.
+- Payment/SMS health: set Tap secrets (`TAP_WEBHOOK_SECRET`, `TAP_PUBLIC_KEY` if needed); verify `/api/health/sms` is OK and remove legacy SMS webhooks/metrics.
 
-### B. AI Memory Pipeline (MEDIUM)
-- `ai-memory/outputs/` empty; `master-index.json` still placeholder.
-- Action: run `node tools/smart-chunker.js` → Inline Chat per batch → `node tools/merge-memory.js`; then `node tools/memory-selfcheck.js`.
+### 🟧 Medium
+- Mongo TLS validation: add a mock-based test to assert `tls: true` and `retryWrites: true` for non-SRV URIs in `lib/mongo.ts`.
+- Translation dynamic keys: audit and add catalog coverage for dynamic templates in `app/finance/expenses/new/page.tsx`, `app/settings/page.tsx`, `components/Sidebar.tsx`, `components/SupportPopup.tsx`, `components/finance/TrialBalanceReport.tsx`, plus `app/fm/properties/leases/page.tsx`, `app/fm/properties/page.tsx`, `app/reports/page.tsx`, `components/admin/RoleBadge.tsx`.
+- Copilot tools: add missing `approveQuotation` tool to `server/copilot/tools.ts`.
+- Contracts/logging: align audit logging parity for admin notifications send/test endpoints; regenerate OpenAPI spec to include sanitized errors and finance 401/403 helpers.
+- Legacy cleanup: scrub Twilio/Unifonic/SNS references from docs/dashboards, prune unused SMS env vars, and run `pnpm prune` to clear stale deps/peer warnings; keep `ALLOW_OFFLINE_MONGODB` out of production.
+- AI memory pipeline: generate batches, merge, and run `node tools/memory-selfcheck.js`; include smoke tests for chunker/merge scripts.
+- Playwright/DX: add shared fetch/auth mocks, enable sharding/build-mode runs, and reduce timeouts to stabilize suites.
 
-### C. CI/Monitoring Hygiene (LOW)
-- Legacy SMS providers deprecated but still in env; ensure dashboards/alerts mark twilio/unifonic/aws-sns/nexmo as deprecated and prod uses only Taqnyat; consider pruning legacy env vars in prod configs.
-
-### D. Follow-up Tests to Run
-- `pnpm test:e2e` after runtime fixes (currently failing as above).
-- `node tools/tests/smart-chunker.smoke.js`, `node tools/tests/merge-memory.smoke.js`, `node tools/memory-selfcheck.js` after memory generation.
+### 🟨 Low / Optional
+- File organization (Governance V5): reorganize by feature (domain/server/lib/components).
+- UI/AppShell polish: standardize Button/Input/Card/StatusPill usage, RTL spacing (ps/pe, text-end), emerald/gold chart palette, remove stray gradients/animations.
+- Logging/telemetry hygiene: centralize phone redaction/masking for SMS/WhatsApp/OTP logs; adopt 3-tier health status in dashboards and add smokes for `/login` + `/api/health`.
+- Test coverage/perf: add Taqnyat provider/OTP failure-path unit tests, consider `--bail 1`/parallelization/shared Mongo memory server to speed suites.
 
 ### 12. Merge PR #273 & Cleanup
 
@@ -276,7 +282,7 @@ git checkout main && git pull origin main
 ---
 
 **End of Report**  
-**Generated**: 2025-11-11 (Updated)  
+**Generated**: 2025-12-10 18:54 +03 (Updated)  
 **Status**: All critical tasks complete, CI monitoring in progress
 
 ### 1. VS Code Crash (Error Code 5) - Memory Optimization ✅

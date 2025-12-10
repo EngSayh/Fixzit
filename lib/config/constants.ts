@@ -237,7 +237,7 @@ export const Config = {
 
     // S3 Configuration
     s3: {
-      bucket: getOptional("AWS_S3_BUCKET", "fixzit-dev-uploads"),
+      bucket: getOptional("AWS_S3_BUCKET", getOptional("S3_BUCKET_NAME", "fixzit-uploads")),
       uploadsPrefix: getOptional("S3_UPLOADS_PREFIX", "uploads/"),
       publicUrl: getOptional("S3_PUBLIC_URL", ""),
     },
