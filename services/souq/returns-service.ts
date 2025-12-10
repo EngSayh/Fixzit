@@ -21,6 +21,7 @@ import { nanoid } from "nanoid";
 import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+import { generateReturnTrackingNumber, generateRefundId, generateJobId } from "@/lib/id-generator";
 
 /**
  * Contact information for notifications
@@ -569,7 +570,7 @@ class ReturnsService {
     const baseLabelUrl =
       (Config.returns.labelBaseUrl || Config.app.url || "http://localhost:3000").replace(/\/+$/, "");
     const label = {
-      trackingNumber: `RET-${Date.now()}-${rma._id.toString().slice(-6).toUpperCase()}`,
+      trackingNumber: generateReturnTrackingNumber(rma._id.toString().slice(-6).toUpperCase()),
       labelUrl: `${baseLabelUrl}/returns/labels/${rma._id}.pdf`,
       carrier: splRate.carrier
     };
@@ -882,7 +883,7 @@ class ReturnsService {
 
     // If nothing is refundable, close the RMA to avoid stuck "inspected" states
     if (refundAmount <= 0) {
-      const transactionId = `REF-${Date.now()}-${rma._id.toString().slice(-6)}`;
+      const transactionId = generateRefundId();
       const timeline = Array.isArray(rma.timeline) ? rma.timeline : [];
       timeline.push({
         status: 'completed',
@@ -1060,7 +1061,7 @@ class ReturnsService {
     const pendingNotifications: PendingNotification[] = [];
 
     const now = new Date();
-    const transactionId = `REF-${Date.now()}-${rmaId.slice(-6)}`;
+    const transactionId = generateRefundId();
 
     // 🔒 SECURITY: Pre-fetch RMA to get orderId and sellerId for contact lookups
     const rmaPrecheck = await RMA.findOne({ _id: rmaId, ...buildOrgFilter(orgId) }).lean();
@@ -1451,7 +1452,7 @@ class ReturnsService {
 
     const autoCompleteDays = parseInt(process.env.AUTO_COMPLETE_RETURNS_DAYS || "7", 10);
     const autoCompleteAgo = new Date(Date.now() - autoCompleteDays * 24 * 60 * 60 * 1000);
-    const jobId = `auto-complete-${Date.now()}`;  // Unique job identifier for tracking
+    const jobId = generateJobId("auto-complete");  // Unique job identifier for tracking
 
     // Build query with optional orgId scoping (string/ObjectId safe)
     const baseOrgFilter = buildOrgFilter(orgId);

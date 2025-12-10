@@ -22,6 +22,7 @@ import { logger } from "@/lib/logger";
 import type { SettlementStatement } from "./settlement-calculator";
 import { escrowService } from "./escrow-service";
 import { PAYOUT_CONFIG } from "./settlement-config";
+import { generatePayoutId, generateTransactionId, generateBatchId } from "@/lib/id-generator";
 
 function normalizeOrgId(orgId: string) {
   const orgIdStr = String(orgId);
@@ -257,7 +258,7 @@ export class PayoutProcessorService {
     this.validateBankAccount(bankAccount);
 
     // Generate payout ID
-    const payoutId = `PAYOUT-${Date.now()}-${sellerId.slice(-6).toUpperCase()}`;
+    const payoutId = generatePayoutId(sellerId.slice(-6).toUpperCase());
 
     // Create payout request
     const payoutRequest: PayoutRequest = {
@@ -654,7 +655,7 @@ export class PayoutProcessorService {
     if (isSuccess) {
       return {
         success: true,
-        transactionId: `TXN-${Date.now()}-${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
+        transactionId: generateTransactionId(),
       };
     } else {
       return {
@@ -703,7 +704,7 @@ export class PayoutProcessorService {
     const batchesCollection = db.collection("souq_payout_batches");
 
     // Generate batch ID
-    const batchId = `BATCH-${scheduledDate.toISOString().split("T")[0]}-${Date.now()}`;
+    const batchId = generateBatchId(scheduledDate);
 
     // Fetch pending payouts
     const pendingPayouts = (await payoutsCollection

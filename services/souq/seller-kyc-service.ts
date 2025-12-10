@@ -28,6 +28,7 @@ import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import { Config } from "@/lib/config/constants";
 import mongoose from "mongoose";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+import { generateTempSellerId } from "@/lib/id-generator";
 
 // 🔐 STRICT v4.1: Use shared org filter helper for consistent tenant isolation
 // Handles both orgId and legacy org_id fields with proper ObjectId matching
@@ -439,7 +440,7 @@ class SellerKYCService {
         { _id: fallbackId, ...buildOrgFilter(orgId) },
         {
           $setOnInsert: {
-            sellerId: sellerId || `TEMP-${Date.now()}`,
+            sellerId: sellerId || generateTempSellerId(),
             legalName: "Temp Seller",
             businessName: "Temp Seller",
             contactEmail: process.env.KYC_FALLBACK_EMAIL || "kyc@fixzit.co",
@@ -649,7 +650,7 @@ class SellerKYCService {
         { _id: sellerObjectId ?? new Types.ObjectId(sellerId), ...buildOrgFilter(orgId) },
         {
           $setOnInsert: {
-            sellerId: sellerId || `TEMP-${Date.now()}`,
+            sellerId: sellerId || generateTempSellerId(),
             legalName: "Temp Seller",
             businessName: "Temp Seller",
             contactEmail: process.env.KYC_FALLBACK_EMAIL || "kyc@fixzit.co",

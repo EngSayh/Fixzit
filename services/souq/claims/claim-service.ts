@@ -2,6 +2,7 @@ import { ObjectId, type Collection } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import { logger } from "@/lib/logger";
+import { generateClaimId } from "@/lib/id-generator";
 
 // Claim Types
 export type ClaimType =
@@ -280,7 +281,7 @@ export class ClaimService {
   static async createClaim(input: CreateClaimInput): Promise<Claim> {
     const collection = await this.collection();
 
-    const claimId = `CLM-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const claimId = generateClaimId();
     const _id = new ObjectId();
 
     // Calculate deadlines

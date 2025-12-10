@@ -18,6 +18,7 @@ import { getCache, setCache, CacheTTL, invalidateCacheKey } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { buildOrgCandidates, findWithOrgFallback } from "@/services/souq/utils/org-helpers";
 import { PAYOUT_CONFIG } from "@/services/souq/settlements/settlement-config";
+import { generateTransactionId, generateWithdrawalRequestId } from "@/lib/id-generator";
 
 // Use centralized config to prevent drift between withdrawal and payout validation
 const WITHDRAWAL_HOLD_DAYS = PAYOUT_CONFIG.holdPeriodDays;
@@ -586,7 +587,7 @@ export class SellerBalanceService {
       : transaction.orgId;
 
     // Generate transaction ID
-    const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const transactionId = generateTransactionId();
 
     // 🔐 ATOMIC OPERATION: Use MongoDB session for transactional consistency
     const callerSession = options?.session;
@@ -906,7 +907,7 @@ export class SellerBalanceService {
         }
 
         // Generate request ID
-        const requestId = `WDR-${Date.now()}-${sellerId.slice(-6).toUpperCase()}`;
+        const requestId = generateWithdrawalRequestId(sellerId.slice(-6).toUpperCase());
         const orgIdStr = String(orgId);
 
         // Create withdrawal request

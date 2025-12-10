@@ -19,6 +19,7 @@ import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import { metricsRegistry } from "@/lib/monitoring/metrics-registry";
 import { Counter, Histogram } from "prom-client";
 import { validateEscrowEventPayload } from "./escrow-events.contract";
+import { generateEscrowNumber } from "@/lib/id-generator";
 
 export type EscrowEventName =
   | "escrow.created"
@@ -153,7 +154,7 @@ export class EscrowService {
       return existing;
     }
 
-    const escrowNumber = `ESC-${Date.now()}-${context.sourceId.toString().slice(-6)}`;
+    const escrowNumber = generateEscrowNumber(context.sourceId.toString().slice(-6));
 
     const account = await EscrowAccount.create({
       orgId: context.orgId,

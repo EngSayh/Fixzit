@@ -4,6 +4,7 @@ import { addJob } from "@/lib/queues/setup";
 import { logger } from "@/lib/logger";
 import mongoose, { type ClientSession } from "mongoose";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+import { generateInventoryId, generateInventoryTxnId } from "@/lib/id-generator";
 
 // 🔐 STRICT v4.1: Use shared org filter helper for consistent tenant isolation
 // Handles both orgId and legacy org_id fields with proper ObjectId matching
@@ -215,7 +216,7 @@ class InventoryService {
         throw new Error("orgId is required to initialize inventory");
       }
 
-      const inventoryId = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const inventoryId = generateInventoryId();
 
       const inventory = await SouqInventory.create({
         inventoryId,
@@ -232,7 +233,7 @@ class InventoryService {
         reservations: [],
         transactions: [
           {
-            transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            transactionId: generateInventoryTxnId(),
             type: "receive",
             quantity: params.quantity,
             reason: params.reason || "Initial inventory",

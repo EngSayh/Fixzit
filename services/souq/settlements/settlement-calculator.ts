@@ -15,6 +15,7 @@ import { ObjectId, Filter, Document } from "mongodb";
 import { connectDb } from "@/lib/mongodb-unified";
 import { PAYOUT_CONFIG } from "./settlement-config";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+import { generateStatementId, generatePrefixedId } from "@/lib/id-generator";
 
 /**
  * Fee configuration
@@ -462,7 +463,7 @@ export class SettlementCalculatorService {
       db.collection<SettlementStatement>("souq_settlements");
 
     // Generate statement ID
-    const statementId = `STMT-${Date.now()}-${sellerId.slice(-6).toUpperCase()}`;
+    const statementId = generateStatementId(sellerId.slice(-6).toUpperCase());
 
     // Build transactions list
     const transactions: SettlementStatement["transactions"] = [];
@@ -617,7 +618,7 @@ export class SettlementCalculatorService {
 
     // Create adjustment transaction
     const adjustmentTxn = {
-      transactionId: `TXN-${adjustment.orderId}-ADJ-${Date.now()}`,
+      transactionId: generatePrefixedId(`TXN-${adjustment.orderId}-ADJ`),
       orderId: adjustment.orderId,
       type: "adjustment" as TransactionType,
       amount: -Math.abs(adjustment.amount), // Always negative for deductions

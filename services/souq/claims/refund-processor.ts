@@ -7,6 +7,7 @@ import { logger } from '@/lib/logger';
 import { ClaimService } from './claim-service';
 import type { Claim as ClaimModel } from './claim-service';
 import { buildSouqOrgFilter } from '@/services/souq/org-scope';
+import { generateRefundId, generateTransactionId } from '@/lib/id-generator';
 
 // Vitest globals are available in test runtime; safely access via globalThis to avoid ReferenceError in production
 type ViTestGlobal = { importMock?: <T>(path: string) => Promise<T> } | undefined;
@@ -324,7 +325,7 @@ export class RefundProcessor {
     }
 
     // Create refund record
-    const refundId = `REF-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const refundId = generateRefundId();
     
     const refund: Refund = {
       refundId,
@@ -1244,7 +1245,7 @@ export class RefundProcessor {
     
     const balances = (await getDatabase()).collection<SellerBalanceDocument>('souq_seller_balances');
     const newTransaction: SellerBalanceDocument['transactions'][number] = {
-      transactionId: `TXN-${Date.now()}`,
+      transactionId: generateTransactionId(),
       type: 'deduction',
       amount: -amount,
       reason,

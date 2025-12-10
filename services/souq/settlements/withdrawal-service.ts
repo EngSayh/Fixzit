@@ -1,6 +1,7 @@
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { createPayout } from "@/lib/paytabs";
+import { generateWithdrawalId } from "@/lib/id-generator";
 
 /**
  * Withdrawal Request from Seller
@@ -82,7 +83,7 @@ export class WithdrawalService {
       }
 
       // Generate withdrawal ID
-      const withdrawalId = `WD-${Date.now()}-${request.sellerId.slice(0, 8)}`;
+      const withdrawalId = generateWithdrawalId(request.sellerId.slice(0, 8));
 
       // Create withdrawal record
       // 🔐 STRICT v4.1: Include orgId for tenant isolation
