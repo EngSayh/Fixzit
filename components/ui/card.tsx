@@ -12,9 +12,8 @@ const Card = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    // FIX: Use rounded-2xl (16px) per Design System, semantic tokens for dark mode
     className={cn(
-      "rounded-2xl border border-border bg-card text-card-foreground shadow-sm",
+      "rounded-md border border-border bg-card text-card-foreground shadow-card",
       className,
     )}
     {...props}

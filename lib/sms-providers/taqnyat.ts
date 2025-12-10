@@ -98,8 +98,9 @@ export class TaqnyatProvider implements SMSProvider {
         rawResponse: data,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error("[Taqnyat] SMS send exception", { error: errorMessage, to });
+      const rawError = error instanceof Error ? error.message : String(error);
+      const errorMessage = `Taqnyat SMS send failed: ${rawError}`;
+      logger.error("[Taqnyat] SMS send exception", { error: rawError, to });
 
       return {
         success: false,
