@@ -1,8 +1,28 @@
 # Pending Items Report (Past 5 Days)
 
-**Date**: November 16, 2025  
-**Review Period**: November 11-16, 2025  
+**Date**: December 10, 2025 — 13:27 +03  
+**Review Period**: December 5-10, 2025  
 **Branch**: main
+
+---
+
+## 🆕 Update — December 10, 2025
+
+### Critical / Blockers
+- Playwright E2E still not green. Last runs timed out after build/static generation; dev-server hot reload caused missing artifacts (`.next/server/webpack-runtime.js` looking for `./34223.js`) and repeated 500s on `/api/auth/test/session`. Need stable run against production build (set `PW_USE_BUILD=true`, clear `.next`) or shard suites/extend timeout until completion.
+- `pnpm build` currently fails during data collection with `Cannot find module './34223.js'` from `.next/server/webpack-runtime.js` even after cleaning `.next`. Requires investigation of Next artifact generation before E2E can pass.
+
+### High
+- Add mock-based Mongo TLS dry-run to assert `tls: true` and `retryWrites: true` for non-SRV URIs while leaving SRV unchanged (`lib/mongo.ts`). No regression test exists yet.
+- Audit logging parity: admin notifications `config/history/send` should mirror the new audit trail added to the `test` endpoint (verify post-merge).
+- OpenAPI/contracts: ensure regenerated spec includes sanitized `/api/admin/notifications/test` errors and finance 401/403 helper responses (`npm run openapi:build` available).
+
+### Medium
+- DX/CI: add shared fetch/auth mock helpers for route unit tests to cut boilerplate; enable Playwright browser cache and predefined sharding in CI to avoid timeouts.
+- Update Playwright strategy to run against build artifacts or split by tag (`@smoke` vs remainder) to reduce runtime and flakiness.
+
+### Carry-over (from earlier report)
+- approveQuotation tool still missing in `server/copilot/tools.ts` (see details below).
 
 ---
 

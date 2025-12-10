@@ -1,10 +1,10 @@
 {
   "stats": {
-    "files": 814,
-    "usedKeys": 2919,
+    "files": 819,
+    "usedKeys": 2909,
     "hasDynamic": true,
-    "enCount": 31171,
-    "arCount": 31171,
+    "enCount": 31179,
+    "arCount": 31179,
     "parityGap": 0
   },
   "missing": {
@@ -1170,11 +1170,23 @@
     "dashboard.hrRecruitment.header.subtitle": [
       "Fixzit/app/dashboard/hr/recruitment/page.tsx"
     ],
+    "dashboard.statusCompleted": [
+      "Fixzit/app/dashboard/page.tsx"
+    ],
+    "dashboard.statusInProgress": [
+      "Fixzit/app/dashboard/page.tsx"
+    ],
+    "dashboard.statusPending": [
+      "Fixzit/app/dashboard/page.tsx"
+    ],
     "dashboard.title": [
       "Fixzit/app/dashboard/page.tsx",
       "Fixzit/app/fm/dashboard/page.tsx"
     ],
     "dashboard.welcome": [
+      "Fixzit/app/dashboard/page.tsx"
+    ],
+    "dashboard.workOrderHealth": [
       "Fixzit/app/dashboard/page.tsx"
     ],
     "dashboard.recentWorkOrders": [
@@ -1188,9 +1200,6 @@
       "Fixzit/app/dashboard/page.tsx"
     ],
     "dashboard.unit": [
-      "Fixzit/app/dashboard/page.tsx"
-    ],
-    "dashboard.statusInProgress": [
       "Fixzit/app/dashboard/page.tsx"
     ],
     "dashboard.recentTransactions": [
@@ -2756,8 +2765,7 @@
       "Fixzit/app/fm/page.tsx",
       "Fixzit/app/fm/properties/leases/page.tsx",
       "Fixzit/app/fm/tenants/page.tsx",
-      "Fixzit/app/fm/vendors/page.tsx",
-      "Fixzit/app/reports/page.tsx"
+      "Fixzit/app/fm/vendors/page.tsx"
     ],
     "hr.ats.jobs.error.generic": [
       "Fixzit/app/fm/hr/recruitment/page.tsx"
@@ -2922,7 +2930,6 @@
       "Fixzit/app/fm/work-orders/pm/page.tsx",
       "Fixzit/app/properties/inspections/page.tsx",
       "Fixzit/app/properties/units/page.tsx",
-      "Fixzit/app/reports/page.tsx",
       "Fixzit/app/vendor/dashboard/page.tsx"
     ],
     "maintenance.deleteTask": [
@@ -3151,8 +3158,7 @@
     "common.retry": [
       "Fixzit/app/fm/properties/documents/page.tsx",
       "Fixzit/app/fm/properties/leases/page.tsx",
-      "Fixzit/app/fm/tenants/page.tsx",
-      "Fixzit/app/reports/page.tsx"
+      "Fixzit/app/fm/tenants/page.tsx"
     ],
     "fm.properties.documents.empty": [
       "Fixzit/app/fm/properties/documents/page.tsx"
@@ -3232,6 +3238,7 @@
     "UNSAFE_DYNAMIC": [
       "Fixzit/app/fm/properties/leases/page.tsx",
       "Fixzit/app/fm/properties/page.tsx",
+      "Fixzit/app/reports/page.tsx",
       "Fixzit/components/admin/RoleBadge.tsx"
     ],
     "fm.properties.new.kicker": [
@@ -5911,10 +5918,13 @@
     "reports.types.compliance": [
       "Fixzit/app/reports/page.tsx"
     ],
+    "reports.toast.newReportComingSoon": [
+      "Fixzit/app/reports/page.tsx"
+    ],
     "reports.page.title": [
       "Fixzit/app/reports/page.tsx"
     ],
-    "reports.toast.newReportComingSoon": [
+    "reports.page.subtitle": [
       "Fixzit/app/reports/page.tsx"
     ],
     "reports.actions.newReport": [
@@ -5923,52 +5933,10 @@
     "reports.actions.langToggle": [
       "Fixzit/app/reports/page.tsx"
     ],
-    "sidebar.category.core": [
+    "reports.tabs.title": [
       "Fixzit/app/reports/page.tsx"
     ],
-    "nav.dashboard": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "nav.work-orders": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "nav.properties": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "nav.finance": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "nav.hr": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "sidebar.category.business": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "nav.crm": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "nav.marketplace": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "nav.support": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "nav.compliance": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "nav.reports": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "nav.system": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "reports.tabs.builder": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "reports.tabs.viewer": [
-      "Fixzit/app/reports/page.tsx"
-    ],
-    "reports.table.reportName": [
+    "reports.table.name": [
       "Fixzit/app/reports/page.tsx"
     ],
     "reports.table.type": [
@@ -5983,16 +5951,16 @@
     "reports.table.actions": [
       "Fixzit/app/reports/page.tsx"
     ],
-    "common.download": [
+    "reports.actions.download": [
       "Fixzit/app/reports/page.tsx"
     ],
-    "reports.builder.placeholder": [
+    "reports.actions.retrying": [
       "Fixzit/app/reports/page.tsx"
     ],
-    "reports.viewer.placeholder": [
+    "reports.actions.retry": [
       "Fixzit/app/reports/page.tsx"
     ],
-    "reports.footer": [
+    "reports.actions.view": [
       "Fixzit/app/reports/page.tsx"
     ],
     "nav.settings": [
@@ -9023,5 +8991,5 @@
       "Fixzit/components/ui/pagination.tsx"
     ]
   },
-  "timestamp": "2025-12-10T06:04:24.564Z"
+  "timestamp": "2025-12-10T10:25:20.820Z"
 }

@@ -8,7 +8,7 @@
     "vendor.type": "Vendor Type"
   },
   "ar": {
-    "Vendor": "[AR] Vendor",
+    "Vendor": "مورد",
     "vendor.category": "الفئة",
     "vendor.code": "رمز البائع",
     "vendor.responseTime": "وقت الاستجابة",

@@ -30,6 +30,8 @@ const STATIC_ALLOWED_ORIGINS = buildOriginsList();
 const DEV_ALLOWED_ORIGINS = [
   "http://localhost:3000",
   "http://localhost:3001",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3100",
 ] as const;
 
 const isE2E =

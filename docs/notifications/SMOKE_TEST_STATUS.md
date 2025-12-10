@@ -156,7 +156,7 @@ pnpm tsx qa/notifications/run-smoke.ts --channel push
   - Claim notifications
   - Weekly summaries
 
-### SMS Provider: Twilio (assumed)
+### SMS Provider: Taqnyat (KSA-compliant)
 
 - **Status:** ⏸️ Not tested (credentials needed)
 - **Use Cases:**
@@ -194,18 +194,17 @@ pnpm tsx qa/notifications/run-smoke.ts --channel push
 - [ ] Test email in multiple clients (Gmail, Outlook, Apple Mail)
 - [ ] Configure bounce/spam handling
 
-### SMS (Twilio) - Priority: MEDIUM
+### SMS (Taqnyat) - Priority: MEDIUM
 
-- [ ] Set up Twilio account
-- [ ] Purchase phone number for SMS sending
+- [ ] Set up Taqnyat account (API token + sender name)
 - [ ] Add credentials to environment
 - [ ] Test SMS delivery
 - [ ] Verify OTP flow works
-- [ ] Test international numbers (if applicable)
+- [ ] Use Saudi mobile numbers in E.164 (+9665XXXXXXXX)
 
 ### WhatsApp - Priority: LOW
 
-- [ ] Determine provider (Twilio, 360dialog, or WhatsApp Business API)
+- [ ] Use Meta WhatsApp Business API
 - [ ] Complete business verification
 - [ ] Set up message templates
 - [ ] Add credentials to environment

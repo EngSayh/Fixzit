@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { POST } from "@/app/api/sms/test/route";
+import { auth } from "@/auth";
 import { sendSMS, testSMSConfiguration } from "@/lib/sms";
 import { smartRateLimit } from "@/server/security/rateLimit";
 
@@ -117,5 +118,15 @@ describe("POST /api/sms/test", () => {
 
     const body = await res.json();
     expect(body.error).toBe("Failed to send SMS. Check server logs for details.");
+  });
+
+  it("returns 401 when unauthenticated", async () => {
+    vi.mocked(auth).mockResolvedValueOnce(null as any);
+    const req = new Request("http://localhost/api/sms/test", {
+      method: "POST",
+      body: JSON.stringify({ phone: "+966500000000", message: "hi" }),
+    });
+    const res = await POST(req as any);
+    expect(res.status).toBe(401);
   });
 });

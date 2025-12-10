@@ -1,12 +1,108 @@
 # Issues Register - Fixzit Index Management System
 
 **Last Updated**: 2025-12-10  
-**Version**: 2.0  
-**Scope**: Database index management, security audits, observability, SMS infrastructure
+**Version**: 2.2  
+**Scope**: Database index management, security audits, observability, SMS infrastructure, test infrastructure, i18n
 
 ---
 
 ## Recent Additions (2025-12-10)
+
+### ISSUE-DB-001: Production MongoDB Connection - Lazy Environment Variable Reading
+
+**Severity**: 🟥 Critical  
+**Category**: Operations, Infrastructure  
+**Status**: ✅ COMPLETED  
+**Branch**: fix/test-failures-and-code-cleanup  
+**Commits**: a838f3f28, 1c67a31ac
+
+**Description**: Production `/api/health` returns `database: error` because environment variables were read at module load time, before Vercel serverless functions had injected them.
+
+**Root Cause**: `lib/mongo.ts` used module-level constants for `MONGODB_URI`, `dbName`, etc. which evaluated to empty/undefined in Vercel serverless context where env vars are injected after module initialization.
+
+**Changes Made**:
+- **Changed**: `lib/mongo.ts` - Converted module-level constants to lazy getter functions
+- **Created**: `scripts/clear-database-keep-demo.ts` - Database cleanup script (dry-run tested)
+
+**PR**: #508 (Pending merge to main)
+
+---
+
+### ISSUE-I18N-001: Missing Translation Keys
+
+**Severity**: 🟧 High  
+**Category**: i18n  
+**Status**: ✅ COMPLETED  
+**Commits**: 28901fb80, 817e0da41
+
+**Description**: Translation audit found 9 missing keys and 37 [AR] placeholder translations.
+
+**Changes Made**:
+- Added 9 missing keys: dashboard.workOrderHealth, reports.page.subtitle, reports.tabs.title, etc.
+- Replaced 37 [AR] placeholders with proper Arabic translations
+- Total keys: 31,179 (EN/AR parity maintained)
+- Translation audit: 100% code coverage
+
+---
+
+### ISSUE-TEST-002: OTP Utils Test Failure
+
+**Severity**: 🟨 Medium  
+**Category**: Tests  
+**Status**: ✅ COMPLETED  
+**Commit**: 817e0da41
+
+**Description**: `otp-utils.test.ts` failed due to incorrect assumption that `hashIdentifier("test")` equals `hashIdentifier("test", "")`.
+
+**Root Cause**: When salt is `undefined`, the function uses env salt; when salt is empty string, it uses empty string. These produce different hashes.
+
+**Fix**: Updated test to correctly verify salt behavior without assuming equality.
+
+**Test Results**: 1885/1885 API tests passing
+
+---
+
+### ISSUE-TEST-001: Vitest Configuration Test Environment Mismatch
+
+**Severity**: 🟧 High  
+**Category**: Tests, Configuration  
+**Status**: ✅ COMPLETED  
+**Branch**: fix/test-failures-and-code-cleanup
+
+**Description**: 40 API tests were failing due to DB-dependent tests running under the wrong Vitest project (ui/jsdom instead of server/node).
+
+**Root Cause**: Tests in `tests/unit/finance/`, `tests/unit/services/`, `tests/unit/middleware.test.ts`, and `tests/unit/marketplace/` required real MongoDB connection but were running in jsdom environment with mocked DB.
+
+**Changes Made**:
+- **Updated**: `vitest.config.api.ts` - Added exclusions for DB-dependent tests from `ui` project
+- **Updated**: `tests/unit/services/notifications/seller-notification-service.test.ts` - Added proper MongoDB mock with `$in` operator support
+- **Updated**: `tests/unit/marketplace/context.test.ts` - Fixed vi.hoisted() mock setup
+
+**Test Results After Fix**:
+- API Tests: 1884/1884 PASS ✅
+- Model Tests: 91/91 PASS ✅
+- TypeCheck: PASS ✅
+- Lint: PASS ✅
+
+---
+
+### ISSUE-OPS-002: Production Database Connection Error
+
+**Severity**: 🟥 Critical  
+**Category**: Operations, Infrastructure  
+**Status**: ✅ FIXED - PENDING MERGE
+
+**Description**: Production `/api/health` returns `database: error` despite all environment variables being configured.
+
+**Root Cause Identified**: Environment variables were read at module load time in `lib/mongo.ts`, before Vercel serverless functions had injected them.
+
+**Fix Applied**: Changed `lib/mongo.ts` to use lazy getter functions instead of module-level constants. See ISSUE-DB-001.
+
+**Pending Actions**:
+1. Merge PR #508 to main
+2. Verify production health at `https://fixzit.co/api/health/ready`
+
+---
 
 ### ISSUE-SEC-005: Per-Phone SMS Rate Limiting
 

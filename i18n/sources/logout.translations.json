@@ -12,8 +12,8 @@
     "logout.error": "خطأ",
     "logout.errorMessage": "خطأ Message",
     "logout.pleaseWait": "يرجى الانتظار",
-    "logout.redirecting": "[AR] Redirecting",
-    "logout.redirectingAfterError": "Redirecting After خطأ",
+    "logout.redirecting": "جاري إعادة التوجيه",
+    "logout.redirectingAfterError": "جاري إعادة التوجيه بعد الخطأ",
     "logout.signingOut": "جاري تسجيل الخروج...",
     "logout.success": "نجح"
   }

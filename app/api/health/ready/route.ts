@@ -3,7 +3,7 @@
  * GET /api/health/ready
  *
  * Returns 200 when the application is ready to serve traffic.
- * Checks critical dependencies: MongoDB and Redis.
+ * Checks critical dependencies: MongoDB, Redis, and SMS provider.
  *
  * Use this endpoint for k8s readinessProbe configuration.
  * For liveness checks, use /api/health (lighter weight).
@@ -12,11 +12,12 @@
  */
 
 import { NextResponse } from "next/server";
-import { db } from "@/lib/mongo";
+import { pingDatabase } from "@/lib/mongo";
 import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { withTimeout } from "@/lib/resilience";
 import { getAllCircuitBreakerStats, hasOpenCircuitBreakers } from "@/lib/resilience/service-circuit-breakers";
+import { createTaqnyatProvider } from "@/lib/sms-providers/taqnyat";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ interface ReadinessStatus {
     mongodb: "ok" | "error" | "timeout";
     redis: "ok" | "error" | "disabled" | "timeout";
     email: "ok" | "error" | "disabled" | "timeout";
+    sms: "ok" | "not_configured" | "disabled";
   };
   latency: {
     mongodb?: number;
@@ -58,38 +60,30 @@ export async function GET(): Promise<NextResponse> {
       mongodb: "error",
       redis: "disabled",
       email: "disabled",
+      sms: "disabled",
     },
     latency: {},
     timestamp: new Date().toISOString(),
   };
 
   try {
-    // Check MongoDB
-    const mongoStart = Date.now();
-    try {
-      const connection = (await db) as unknown as {
-        command?: (cmd: Record<string, unknown>, options?: { signal?: AbortSignal }) => Promise<unknown>;
-      };
-
-      if (typeof connection?.command === "function") {
-        const cmd = connection.command;
-        await withTimeout(
-          async (signal: AbortSignal) => {
-            await cmd({ ping: 1, maxTimeMS: HEALTH_CHECK_TIMEOUT_MS }, { signal });
-          },
-          { timeoutMs: HEALTH_CHECK_TIMEOUT_MS }
-        );
-        status.checks.mongodb = "ok";
-        status.latency.mongodb = Date.now() - mongoStart;
-      } else {
-        throw new Error("MongoDB connection does not support command()");
-      }
-    } catch (mongoError) {
-      status.latency.mongodb = Date.now() - mongoStart;
-      const isTimeout = mongoError instanceof Error && mongoError.message.includes("timeout");
-      status.checks.mongodb = isTimeout ? "timeout" : "error";
+    // Check MongoDB using pingDatabase for consistent health checking
+    const pingResult = await pingDatabase(HEALTH_CHECK_TIMEOUT_MS);
+    status.latency.mongodb = pingResult.latencyMs;
+    
+    if (pingResult.ok) {
+      status.checks.mongodb = "ok";
+    } else if (pingResult.error?.includes("timeout") || pingResult.error?.includes("Timeout")) {
+      status.checks.mongodb = "timeout";
+      logger.warn("[Health/Ready] MongoDB check timeout", {
+        latency: pingResult.latencyMs,
+        error: pingResult.error,
+      });
+    } else {
+      status.checks.mongodb = "error";
       logger.warn("[Health/Ready] MongoDB check failed", {
-        error: mongoError instanceof Error ? mongoError.message : String(mongoError),
+        error: pingResult.error,
+        latency: pingResult.latencyMs,
       });
     }
 
@@ -115,6 +109,14 @@ export async function GET(): Promise<NextResponse> {
           error: redisError instanceof Error ? redisError.message : String(redisError),
         });
       }
+    }
+
+    // Check SMS provider (Taqnyat) configuration - non-blocking
+    try {
+      const smsProvider = createTaqnyatProvider();
+      status.checks.sms = smsProvider.isConfigured() ? "ok" : "not_configured";
+    } catch {
+      status.checks.sms = "not_configured";
     }
 
     // Ready if MongoDB is OK and Redis is OK when configured

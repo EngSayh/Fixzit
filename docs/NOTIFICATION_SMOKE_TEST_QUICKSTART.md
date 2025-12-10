@@ -152,16 +152,15 @@ pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel w
 
 ---
 
-### SMS Test Fails (Twilio Trial)
+### SMS Test Fails (Taqnyat)
 
-**Error:** `unverified number`
+**Error:** `Invalid Saudi phone number format` or `not configured`
 
 **Fix:**
 
-1. Go to [console.twilio.com/us1/develop/phone-numbers/manage/verified](https://console.twilio.com/us1/develop/phone-numbers/manage/verified)
-2. Click **+ Add a new number**
-3. Add `NOTIFICATIONS_SMOKE_PHONE` number
-4. Verify via SMS code
+1. Ensure `TAQNYAT_BEARER_TOKEN` and `TAQNYAT_SENDER_NAME` are set
+2. Use a Saudi mobile number in E.164 format (`+9665XXXXXXXX`)
+3. If testing without live sends, set `SMS_DEV_MODE=true` to avoid provider calls
 
 ---
 
