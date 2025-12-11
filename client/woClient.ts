@@ -15,7 +15,16 @@ export async function api<T = unknown>(
     },
   });
   const text = await res.text();
-  const body = text ? JSON.parse(text) : null;
-  if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
-  return body;
+  let body: T | null = null;
+  if (text) {
+    try {
+      body = JSON.parse(text) as T;
+    } catch {
+      // Server returned non-JSON response
+      if (!res.ok) throw new Error(`HTTP ${res.status}: Invalid response`);
+      throw new Error("Invalid JSON response from server");
+    }
+  }
+  if (!res.ok) throw new Error((body as { error?: string })?.error || `HTTP ${res.status}`);
+  return body as T;
 }
