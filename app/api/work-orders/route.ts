@@ -1,8 +1,11 @@
 /**
- * Work Orders API Routes - Refactored with CRUD Factory
- * BEFORE: 190 lines of duplicated boilerplate
- * AFTER: ~85 lines using reusable factory
- * REDUCTION: 55% less code
+ * @fileoverview Work Orders API Routes
+ * @description Core CRUD operations for work order management including creation,
+ * listing with advanced filtering, and multi-tenant scoping.
+ * @route GET /api/work-orders - List work orders with filtering, pagination, search
+ * @route POST /api/work-orders - Create a new work order with SLA assignment
+ * @access Protected - Requires VIEW or CREATE ability on work orders
+ * @module work-orders
  */
 
 import { createCrudHandlers } from "@/lib/api/crud-factory";

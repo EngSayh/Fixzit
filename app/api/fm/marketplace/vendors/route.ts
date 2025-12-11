@@ -1,22 +1,20 @@
 /**
- * FM Marketplace Vendors API
- * 
- * Manages vendor listings in the FM marketplace.
+ * @fileoverview FM Marketplace Vendors API
+ * @description Manages vendor listings in the FM marketplace.
  * Vendors can register services, bid on work orders, and receive assignments.
- * 
+ *
+ * @route GET /api/fm/marketplace/vendors - List vendors
+ * @route POST /api/fm/marketplace/vendors - Register a new vendor
  * @module api/fm/marketplace/vendors
  * @requires Authentication - Valid session with orgId
  * @requires Authorization - VENDOR:VIEW for GET, VENDOR:CREATE for POST
- * 
+ *
  * Features:
  * - Multi-tenant isolation via orgId
  * - Vendor registration and onboarding
  * - Service category management
  * - Coverage area configuration
  * - Contact information management
- * 
- * @example GET /api/fm/marketplace/vendors?category=plumbing
- * @example POST /api/fm/marketplace/vendors
  */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";

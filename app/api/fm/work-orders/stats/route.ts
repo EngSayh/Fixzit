@@ -1,20 +1,19 @@
 /**
- * Work Order Statistics API
- * 
- * Provides aggregated statistics and metrics for work orders.
+ * @fileoverview Work Order Statistics API
+ * @description Provides aggregated statistics and metrics for work orders.
  * Used for dashboard widgets, reporting, and analytics.
- * 
+ *
+ * @route GET /api/fm/work-orders/stats - Get aggregated statistics
  * @module api/fm/work-orders/stats
  * @requires Authentication - Valid session with orgId
  * @requires Authorization - VIEW permission on work orders
- * 
+ *
  * Returns:
  * - Total work order count
  * - Status distribution (OPEN, IN_PROGRESS, CLOSED, etc.)
  * - Priority distribution (CRITICAL, HIGH, MEDIUM, LOW)
  * - Completion rate and SLA metrics
- * 
- * @example GET /api/fm/work-orders/stats
+ *
  * @returns {WorkOrderStats} Aggregated statistics object
  */
 import { NextRequest, NextResponse } from "next/server";

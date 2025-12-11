@@ -1,10 +1,21 @@
 /**
- * Expense Approval API Routes
- * POST /api/finance/expenses/:id/submit - Submit for approval
- * POST /api/finance/expenses/:id/approve - Approve expense
- * POST /api/finance/expenses/:id/reject - Reject expense
+ * @description Handles expense approval workflow actions.
+ * POST submit: Submits draft expense for approval.
+ * POST approve: Approves pending expense.
+ * POST reject: Rejects pending expense with comments.
+ * @route POST /api/finance/expenses/[id]/submit
+ * @route POST /api/finance/expenses/[id]/approve
+ * @route POST /api/finance/expenses/[id]/reject
+ * @access Private - Users with FINANCE:APPROVE permission
+ * @param {string} id - Expense ID (MongoDB ObjectId)
+ * @param {string} action - Action type (submit, approve, reject)
+ * @param {Object} body - comments (optional rejection reason)
+ * @returns {Object} expense: updated expense with new status
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE:APPROVE permission
+ * @throws {404} If expense not found
+ * @throws {409} If status transition not allowed
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
 import { z } from "zod";

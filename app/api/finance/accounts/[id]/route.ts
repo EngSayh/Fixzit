@@ -1,12 +1,17 @@
 /**
- * Chart of Accounts Single Account API Routes - Finance Pack Phase 2
- *
- * Endpoints:
- * - GET /api/finance/accounts/[id]     - Get account details
- * - PUT /api/finance/accounts/[id]     - Update account
- * - DELETE /api/finance/accounts/[id]  - Deactivate account
+ * @description Manages individual Chart of Accounts entries by ID.
+ * GET retrieves account details with balance. PUT updates account properties.
+ * DELETE deactivates account (soft delete if has transactions).
+ * @route GET /api/finance/accounts/[id]
+ * @route PUT /api/finance/accounts/[id]
+ * @route DELETE /api/finance/accounts/[id]
+ * @access Private - Users with FINANCE:VIEW/UPDATE/DELETE permission
+ * @param {string} id - Account ID (MongoDB ObjectId)
+ * @returns {Object} account: { code, name, type, balance, parentId }
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE permission
+ * @throws {404} If account not found
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 

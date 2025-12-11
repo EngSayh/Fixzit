@@ -1,9 +1,10 @@
 /**
- * FM Work Orders API - FSM State Transitions
- * POST /api/fm/work-orders/[id]/transition
- *
- * Handles work order state transitions according to FSM rules
- * Enforces RBAC permissions and validates transitions
+ * @fileoverview FM Work Orders API - FSM State Transitions
+ * @description Handles work order state transitions according to FSM rules.
+ * Validates transitions, enforces RBAC permissions, and executes side effects.
+ * @route POST /api/fm/work-orders/[id]/transition - Transition work order status
+ * @access Protected - Requires STATUS ability
+ * @module fm/work-orders
  */
 
 import { NextRequest, NextResponse } from "next/server";

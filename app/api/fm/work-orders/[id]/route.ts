@@ -1,5 +1,12 @@
 /**
- * FM Work Orders API - Individual Work Order Operations
+ * @fileoverview FM Work Orders API - Individual Operations
+ * @description CRUD operations for a single FM work order by ID.
+ * Supports retrieval, updates with timeline tracking, and soft deletion.
+ * @route GET /api/fm/work-orders/[id] - Get work order details
+ * @route PATCH /api/fm/work-orders/[id] - Update work order
+ * @route DELETE /api/fm/work-orders/[id] - Soft delete work order
+ * @access Protected - Requires VIEW, EDIT, or DELETE ability
+ * @module fm/work-orders
  */
 
 import { NextRequest, NextResponse } from "next/server";

@@ -1,13 +1,13 @@
 /**
- * Work Order Timeline API
- * 
- * Returns the complete activity timeline for a work order.
+ * @fileoverview Work Order Timeline API
+ * @description Returns the complete activity timeline for a work order.
  * Includes status changes, assignments, comments, and attachments.
- * 
+ *
+ * @route GET /api/fm/work-orders/[id]/timeline - Get timeline entries
  * @module api/fm/work-orders/[id]/timeline
  * @requires Authentication - Valid session with orgId
  * @requires Authorization - VIEW permission on work orders
- * 
+ *
  * Timeline Actions:
  * - created: Work order creation
  * - status_changed: Status transitions
@@ -15,8 +15,7 @@
  * - comment_added: New comments
  * - attachment_added: File uploads
  * - updated: Field modifications
- * 
- * @example GET /api/fm/work-orders/[id]/timeline
+ *
  * @returns {WorkOrderTimeline[]} Array of timeline entries, newest first
  */
 import { NextRequest, NextResponse } from "next/server";

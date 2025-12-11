@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Work Order Status Transition API Route
+ * @description FSM-based status transitions for work orders. Validates transitions
+ * against state machine rules, enforces media requirements, and triggers financial posting.
+ * @route POST /api/work-orders/[id]/status - Transition work order to new status
+ * @access Protected - Requires authenticated session with appropriate role
+ * @module work-orders
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";

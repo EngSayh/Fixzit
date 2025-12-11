@@ -1,3 +1,11 @@
+/**
+ * @fileoverview SLA Check API Route
+ * @description System-wide SLA compliance monitoring endpoint for work orders.
+ * Checks resolution/response deadlines and triggers escalation notifications.
+ * @route POST /api/work-orders/sla-check - Run SLA breach check across all tenants
+ * @access SUPER_ADMIN only - System cron job endpoint
+ * @module work-orders
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { requireSuperAdmin } from "@/lib/authz";

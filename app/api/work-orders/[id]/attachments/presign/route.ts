@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Work Order Attachment Presign API Route
+ * @description Generate presigned S3 URLs for secure file uploads. Validates
+ * file type/size, enforces AV scanning policy, and returns signed PUT URL.
+ * @route POST /api/work-orders/[id]/attachments/presign - Get presigned upload URL
+ * @access Protected - Requires authenticated session
+ * @module work-orders
+ */
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";

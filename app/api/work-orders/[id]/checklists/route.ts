@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Work Order Checklists API Route
+ * @description Manage QA/task checklists for work orders. Supports creating
+ * checklists with multiple items for quality assurance and task tracking.
+ * @route POST /api/work-orders/[id]/checklists - Add a checklist to work order
+ * @access Protected - Requires EDIT ability on work orders
+ * @module work-orders
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";

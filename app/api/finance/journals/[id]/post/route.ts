@@ -1,11 +1,16 @@
 /**
- * Journal Post/Void API Routes - Finance Pack Phase 2
- *
- * Endpoints:
- * - POST /api/finance/journals/[id]/post - Post journal to ledger
- * - POST /api/finance/journals/[id]/void - Void posted journal
+ * @description Posts a draft journal entry to the general ledger.
+ * Creates immutable ledger entries from journal lines.
+ * Updates account balances and marks journal as POSTED.
+ * @route POST /api/finance/journals/[id]/post
+ * @access Private - Users with FINANCE:POST permission
+ * @param {string} id - Journal ID (MongoDB ObjectId)
+ * @returns {Object} journal: posted journal with ledger entry IDs
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE:POST permission
+ * @throws {404} If journal not found
+ * @throws {409} If journal is not in DRAFT status
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
