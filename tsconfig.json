@@ -28,6 +28,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "mongoose": [
+        "./types/mongoose-shim"
       ]
     }
   },

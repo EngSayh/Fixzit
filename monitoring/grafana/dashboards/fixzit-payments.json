@@ -1,0 +1,234 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "Payment Processing Metrics for Fixzit (TAP/PayTabs)",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "Payment Success Rate",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "expr": "(sum(payment_transactions_total{job=\"fixzit\", status=\"success\"}) / sum(payment_transactions_total{job=\"fixzit\"})) * 100",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 95 },
+              { "color": "green", "value": 99 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Transaction Volume",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "expr": "sum(rate(payment_transactions_total{job=\"fixzit\"}[5m])) by (status)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Revenue (OMR)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "expr": "sum(increase(payment_amount_total{job=\"fixzit\", currency=\"OMR\", status=\"success\"}[24h]))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "currencyOMR",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Revenue (SAR)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "expr": "sum(increase(payment_amount_total{job=\"fixzit\", currency=\"SAR\", status=\"success\"}[24h]))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "currencySAR",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Gateway Latency",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 5,
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "expr": "histogram_quantile(0.95, sum(rate(payment_gateway_duration_seconds_bucket{job=\"fixzit\"}[5m])) by (le, gateway))",
+          "legendFormat": "{{gateway}} p95",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "title": "Failure Reasons",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 },
+      "id": 6,
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "expr": "sum by (reason) (increase(payment_failures_total{job=\"fixzit\"}[24h]))",
+          "legendFormat": "{{reason}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Refunds Processed",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 12 },
+      "id": 7,
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "expr": "sum(increase(refund_transactions_total{job=\"fixzit\", status=\"success\"}[24h]))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Webhook Processing",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 8,
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "expr": "sum(rate(webhook_processed_total{job=\"fixzit\", provider=\"tap\"}[5m]))",
+          "legendFormat": "TAP Webhooks/sec",
+          "refId": "A"
+        },
+        {
+          "datasource": "prometheus",
+          "expr": "sum(rate(webhook_failed_total{job=\"fixzit\", provider=\"tap\"}[5m]))",
+          "legendFormat": "Failed Webhooks/sec",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Subscription Renewals",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "id": 9,
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "expr": "sum(rate(subscription_renewal_total{job=\"fixzit\"}[5m])) by (status)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short"
+        }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["fixzit", "payments", "tap", "paytabs"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Fixzit Payments",
+  "uid": "fixzit-payments",
+  "version": 1,
+  "weekStart": ""
+}

@@ -1,0 +1,294 @@
+# Fixzit Grafana Alert Rules
+# Import this file into Grafana Alerting or configure via provisioning
+
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: Fixzit Availability
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-health-down
+        title: Fixzit Health Check Failed
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: up{job="fixzit"} == 0
+              intervalMs: 60000
+              maxDataPoints: 43200
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          summary: Fixzit application is down
+          description: Health check endpoint is not responding for 2 minutes
+        labels:
+          severity: critical
+          team: engineering
+
+      - uid: fixzit-high-error-rate
+        title: High Error Rate (>5%)
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: |
+                (sum(rate(http_requests_total{job="fixzit", status=~"5.."}[5m])) 
+                / sum(rate(http_requests_total{job="fixzit"}[5m]))) * 100 > 5
+              intervalMs: 60000
+              maxDataPoints: 43200
+        noDataState: NoData
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: Error rate exceeds 5%
+          description: "Current error rate: {{ $value | printf \"%.2f\" }}%"
+        labels:
+          severity: critical
+          team: engineering
+
+      - uid: fixzit-error-rate-warning
+        title: Elevated Error Rate (>2%)
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: |
+                (sum(rate(http_requests_total{job="fixzit", status=~"5.."}[5m])) 
+                / sum(rate(http_requests_total{job="fixzit"}[5m]))) * 100 > 2
+              intervalMs: 60000
+              maxDataPoints: 43200
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Error rate exceeds 2%
+          description: "Current error rate: {{ $value | printf \"%.2f\" }}%"
+        labels:
+          severity: warning
+          team: engineering
+
+  - orgId: 1
+    name: Fixzit Performance
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-high-latency-p95
+        title: High Latency (p95 > 1.5s)
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: |
+                histogram_quantile(0.95, 
+                  sum(rate(http_request_duration_seconds_bucket{job="fixzit"}[5m])) by (le)
+                ) > 1.5
+              intervalMs: 60000
+              maxDataPoints: 43200
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: API latency p95 exceeds 1.5 seconds
+          description: "Current p95 latency: {{ $value | printf \"%.2f\" }}s"
+        labels:
+          severity: warning
+          team: engineering
+
+      - uid: fixzit-critical-latency-p99
+        title: Critical Latency (p99 > 2.5s)
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: |
+                histogram_quantile(0.99, 
+                  sum(rate(http_request_duration_seconds_bucket{job="fixzit"}[5m])) by (le)
+                ) > 2.5
+              intervalMs: 60000
+              maxDataPoints: 43200
+        noDataState: NoData
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: API latency p99 exceeds 2.5 seconds
+          description: "Current p99 latency: {{ $value | printf \"%.2f\" }}s"
+        labels:
+          severity: critical
+          team: engineering
+
+  - orgId: 1
+    name: Fixzit Resources
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-high-memory
+        title: High Memory Usage (>85%)
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: |
+                (process_resident_memory_bytes{job="fixzit"} / 1024 / 1024 / 1024) > 0.85
+              intervalMs: 60000
+              maxDataPoints: 43200
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: Memory usage exceeds 85%
+          description: Consider investigating for memory leaks
+        labels:
+          severity: warning
+          team: engineering
+
+      - uid: fixzit-memory-leak-detected
+        title: Potential Memory Leak
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: |
+                delta(nodejs_heap_size_used_bytes{job="fixzit"}[1h]) / 1024 / 1024 > 128
+              intervalMs: 60000
+              maxDataPoints: 43200
+        noDataState: NoData
+        execErrState: Error
+        for: 30m
+        annotations:
+          summary: Heap grew by more than 128MB in 1 hour
+          description: Check memory-leak-detector logs and heap snapshots
+        labels:
+          severity: warning
+          team: engineering
+
+  - orgId: 1
+    name: Fixzit Payments
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-payment-failure-rate
+        title: Payment Failure Rate (>3%)
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: |
+                (sum(rate(payment_transactions_total{job="fixzit", status="failed"}[5m])) 
+                / sum(rate(payment_transactions_total{job="fixzit"}[5m]))) * 100 > 3
+              intervalMs: 60000
+              maxDataPoints: 43200
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Payment failure rate exceeds 3%
+          description: "Current payment failure rate: {{ $value | printf \"%.2f\" }}%"
+        labels:
+          severity: critical
+          team: engineering
+          runbook: Check PayTabs/TAP status page
+
+      - uid: fixzit-consecutive-payment-failures
+        title: Consecutive Payment Failures (10+)
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: |
+                increase(payment_consecutive_failures_total{job="fixzit"}[5m]) >= 10
+              intervalMs: 60000
+              maxDataPoints: 43200
+        noDataState: NoData
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: 10+ consecutive payment failures detected
+          description: Gateway may be experiencing issues
+        labels:
+          severity: critical
+          team: engineering
+
+  - orgId: 1
+    name: Fixzit Database
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-db-connection-failure
+        title: MongoDB Connection Failures
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: |
+                increase(mongodb_connection_failures_total{job="fixzit"}[1m]) > 0
+              intervalMs: 60000
+              maxDataPoints: 43200
+        noDataState: NoData
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: MongoDB connection failures detected
+          description: Check MongoDB Atlas status and connectivity
+        labels:
+          severity: critical
+          team: engineering
+
+      - uid: fixzit-slow-queries
+        title: High Slow Query Count
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: |
+                increase(mongodb_slow_queries_total{job="fixzit"}[5m]) > 50
+              intervalMs: 60000
+              maxDataPoints: 43200
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: High number of slow queries detected
+          description: Review query patterns and index coverage
+        labels:
+          severity: warning
+          team: engineering
+
+  - orgId: 1
+    name: Fixzit Queue
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-queue-depth
+        title: High Queue Depth (>1000 jobs)
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(job_queue_depth{job="fixzit"}) > 1000
+              intervalMs: 60000
+              maxDataPoints: 43200
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: Job queue depth exceeds 1000
+          description: "Queue types: notifications, email, OTP, SMS"
+        labels:
+          severity: warning
+          team: engineering
