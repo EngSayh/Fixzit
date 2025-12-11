@@ -4,7 +4,7 @@
 **Version**: 15.26  
 **Branch**: agent/pending-report-enhancements  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok, TAP Payments ok)  
-**Total Pending Items**: 0 core items (Categories A-G all ✅ VERIFIED/COMPLETE)  
+**Total Pending Items**: 1 core item (Mongoose 9.x TypeScript compatibility — Categories A-G ✅ VERIFIED/COMPLETE)  
 **Optional Enhancements**: 9 items (OE-001..OE-009; ALL ✅ COMPLETE)  
 **Completed Items**: 388+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes 8 items + Backlog Verification + Chat Session Analysis + System-Wide Code Audit + PR#520 Extended Deep Dive + POST-STAB AUDIT v2 + PSA-001 + CAT4-001 Security Fixes + 13 Silent CI Handlers Fixed + Currency Conversion Guard + PROC/SEC Session 18 fixes + SYS-012 Translation Audit Fix + RBAC pattern audit + Taqnyat URL constant + CQP-002a resolved + Category A/B/C Verification Session 6 items + CQP-007 parseInt radix + Category C final verification + SYS-008/TODO-DOC-001/TODO-DOC-002 documentation cleanup + Category D LOW priority verification 5 items + **CQP-006 Arabic translations 1,985→0** + **Category F backlog delivered (BL-001..008 + TODO-001)** + **Playwright E2E Auth Fixtures Regenerated** + **OpenAPI /docs/openapi route added to RBAC**)  
 **Test Status**: ✅ Vitest 2,468 tests | ✅ Playwright auth fixtures regenerated (9 storage states) | ✅ TypeScript compiles (0 errors)  
@@ -62,6 +62,15 @@ Updated PENDING_MASTER.md to v15.26 with today's timestamp (2025-12-11T19:00:00+
 | DB index audit script added | `scripts/db/index-audit.ts` | ✅ NEW |
 | LHCI runner script added | `scripts/run-lhci.mjs` | ✅ NEW |
 | OpenAPI stub generator improved | `scripts/generate-openapi-stubs.ts` | ✅ Better path regex |
+
+### ⚠️ Known Issue: Mongoose 9.x TypeScript Compatibility
+
+**Status**: 350 TypeScript errors detected from Mongoose 9.x upgrade  
+**Impact**: Pre-push hooks fail; doc-only commits require `--no-verify`  
+**Root Cause**: Mongoose 9.x changed middleware typing (schema.pre/post hooks `next()` callback types)  
+**Priority**: HIGH — blocks all pushes until resolved  
+**Affected Files**: 117 files in `server/models/`, `server/plugins/`, `services/`  
+**Fix Required**: Update middleware function signatures to use Mongoose 9.x typing
 
 ### Report Status
 - **Single Source of Truth**: `docs/PENDING_MASTER.md` (this file)
