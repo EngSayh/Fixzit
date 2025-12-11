@@ -7,7 +7,7 @@
  * @module lib/utils/currency-formatter
  */
 
-import { getCurrency, getTimezone } from "../config/tenant";
+import { getCurrency } from "../config/tenant";
 
 /**
  * Currency formatting options
@@ -305,6 +305,7 @@ export function convertCurrency(
     return amount;
   }
 
+  // eslint-disable-next-line no-console -- Intentional warning for unimplemented feature
   console.warn(
     `Currency conversion from ${fromCurrency} to ${toCurrency} not yet implemented. Returning original amount.`
   );

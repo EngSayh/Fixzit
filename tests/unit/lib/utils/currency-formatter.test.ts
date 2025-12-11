@@ -57,7 +57,8 @@ describe("Currency Formatter", () => {
 
     it("should respect currency option", () => {
       const result = formatCurrency(1234.56, { currency: "USD" });
-      expect(result).toContain("$") || expect(result).toContain("USD");
+      const containsDollarOrUSD = result.includes("$") || result.includes("USD");
+      expect(containsDollarOrUSD).toBe(true);
     });
 
     it("should handle showSymbol false", () => {
@@ -77,7 +78,8 @@ describe("Currency Formatter", () => {
 
     it("should handle negative numbers", () => {
       const result = formatCurrency(-1234.56);
-      expect(result).toContain("-") || expect(result).toContain("(");
+      const containsNegative = result.includes("-") || result.includes("(");
+      expect(containsNegative).toBe(true);
     });
 
     it("should handle very large numbers", () => {
