@@ -1,13 +1,171 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T19:45:00+03:00  
-**Version**: 14.10  
+**Last Updated**: 2025-12-11T20:30:00+03:00  
+**Version**: 15.0  
 **Branch**: feat/frontend-dashboards  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok, TAP Payments ok)  
-**Total Pending Items**: 70 items (1 Major Feature + 9 Code TODOs + 8 Backlog Verified + 6 Deep Dive Findings + 13 System-Wide + 8 Code Quality Patterns + 2 MOD items ✅ + 21 PR#520 Extended Audit + 2 POST-STAB AUDIT v2)  
+**Total Pending Items**: 70 items (Consolidated from all sources — see Action Plan below)  
 **Completed Items**: 323+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes 8 items + Backlog Verification + Chat Session Analysis + System-Wide Code Audit + PR#520 Extended Deep Dive + POST-STAB AUDIT v2)  
 **Test Status**: ✅ Vitest full suite previously (2,468 tests) + latest `pnpm test:models` rerun (6 files, 91 tests) | 🚧 Playwright e2e timed out after ~15m during `pnpm test` (dev server stopped post-run; env gaps documented in E2E_TESTING_QUICK_START.md)  
-**Consolidation Check**: 2025-12-11T19:45:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T20:30:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+
+---
+
+## 📋 CONSOLIDATED ACTION PLAN BY CATEGORY (v15.0)
+
+### 🔴 CATEGORY A: SECURITY (4 items) — PRIORITY: IMMEDIATE
+
+| ID | Issue | File/Location | Effort | Status |
+|----|-------|---------------|--------|--------|
+| **PSA-001** | ATS moderation route missing orgId scoping (multi-tenant isolation) | `app/api/ats/moderation/route.ts:68` | 30 min | 🔴 CRITICAL |
+| **CAT4-001** | PII Encryption TTL failure handling (plaintext may persist) | `scripts/migrate-encrypt-finance-pii.ts:386` | 30 min | 🔴 SECURITY |
+| **CQP-002a** | `as any` in production lib files (2 occurrences) | `lib/resilience/circuit-breaker-metrics.ts:38`, `lib/fm-auth-middleware.ts:345` | 1 hr | 🟡 MEDIUM |
+| **SYS-004** | dangerouslySetInnerHTML review (10 usages) | Multiple components | 1 hr | 🟡 REVIEW |
+
+**Total Effort**: ~3 hours | **Action**: Fix immediately before next deploy
+
+---
+
+### 🟧 CATEGORY B: CI/CD & BUILD (13 items) — PRIORITY: HIGH
+
+| ID | Issue | File/Location | Effort | Status |
+|----|-------|---------------|--------|--------|
+| **CAT1-001** | Silent CI error handler | `scripts/rapid-enhance-all.js:263` | 10 min | 🟧 MAJOR |
+| **CAT1-002** | Silent CI error handler | `scripts/migrate-legacy-rate-limit-keys.ts:264` | 10 min | 🟧 MAJOR |
+| **CAT1-003** | Silent CI error handler | `scripts/enhance-api-routes.js:344` | 10 min | 🟧 MAJOR |
+| **CAT1-004** | Silent CI error handler | `scripts/test-system.mjs:185` | 10 min | 🟧 MAJOR |
+| **CAT1-005** | Silent CI error handler | `scripts/fixzit-unified-audit-system.js:808` | 10 min | 🟧 MAJOR |
+| **CAT1-006** | Silent CI error handler | `scripts/test-all-pages.mjs:146` | 10 min | 🟧 MAJOR |
+| **CAT1-007** | Silent CI error handler | `scripts/testing/test-system-e2e.js:91` | 10 min | 🟧 MAJOR |
+| **CAT1-008** | Silent CI error handler | `scripts/fixzit-comprehensive-audit.js:641` | 10 min | 🟧 MAJOR |
+| **CAT1-009** | Silent CI error handler | `scripts/migrate-rate-limits.ts:161` | 10 min | 🟧 MAJOR |
+| **CAT1-010** | Silent CI error handler | `scripts/security/fix-ip-extraction.ts:272` | 10 min | 🟧 MAJOR |
+| **CAT1-011** | Silent CI error handler | `scripts/complete-scope-verification.js:571` | 10 min | 🟧 MAJOR |
+| **CAT1-012** | Silent CI error handler | `scripts/complete-system-audit.js:701` | 10 min | 🟧 MAJOR |
+| **SYS-005** | Empty catch blocks in CI workflows (8 files) | `.github/workflows/*.yml` | 30 min | 🟢 LOW |
+
+**Total Effort**: ~3 hours | **Action**: Add `process.exit(1)` after each `.catch(console.error)`
+
+---
+
+### 🟡 CATEGORY C: API & BACKEND (10 items) — PRIORITY: MEDIUM
+
+| ID | Issue | File/Location | Effort | Status |
+|----|-------|---------------|--------|--------|
+| **SYS-009** | GraphQL resolvers stub-only | `lib/graphql/index.ts:463-704` | 4-6 hrs | 🟠 MODERATE |
+| **SYS-011** | Currency conversion stub (no rate applied) | `lib/utils/currency-formatter.ts:290-312` | 1 hr | 🟡 MODERATE |
+| **SYS-013** | Tenant config always returns defaults | `lib/config/tenant.ts:86-107` | 2 hrs | 🟠 MODERATE |
+| **CQP-005** | Unhandled `await req.json()` (~30 routes) | Multiple API routes | 3 hrs | 🟡 MEDIUM |
+| **CAT2-001** | Missing RBAC pattern: `requireSuperAdmin` | `scripts/rbac-audit.mjs` | 5 min | 🟡 MODERATE |
+| **CAT2-002** | Missing RBAC pattern: `requireAbility` | `scripts/rbac-audit.mjs` | 5 min | 🟡 MODERATE |
+| **CAT2-003** | Missing RBAC pattern: `getUserFromToken` | `scripts/rbac-audit.mjs` | 5 min | 🟡 MODERATE |
+| **CAT2-004** | Missing RBAC pattern: `resolveMarketplaceContext` | `scripts/rbac-audit.mjs` | 5 min | 🟡 MODERATE |
+| **CAT2-005** | Missing RBAC pattern: `requirePermission` | `scripts/rbac-audit.mjs` | 5 min | 🟡 MODERATE |
+| **CAT2-006** | Missing RBAC pattern: `resolveRequestSession` + `verifySecretHeader` | `scripts/rbac-audit.mjs` | 5 min | 🟡 MODERATE |
+
+**Total Effort**: ~12-14 hours | **Action**: Sprint planning required
+
+---
+
+### 🟢 CATEGORY D: CODE QUALITY (8 items) — PRIORITY: LOW
+
+| ID | Issue | Count | Effort | Status |
+|----|-------|-------|--------|--------|
+| **CQP-001** | `void error;` anti-pattern | 100+ occurrences | HIGH | 🟢 LOW |
+| **CQP-002** | `as any` in scripts/tests | 140+ occurrences | HIGH | 🟢 LOW |
+| **CQP-003** | Empty catch blocks | 14 occurrences | LOW | 🟢 LOW |
+| **CQP-004** | `@ts-ignore/@ts-expect-error` | 12 occurrences | MEDIUM | 🟢 LOW |
+| **CQP-007** | `parseInt` without radix | 8 occurrences | LOW | 🟢 LOW |
+| **CQP-008** | Hardcoded fallback credentials | 8 occurrences | — | ⚪ INFO |
+| **SYS-006** | Redis type aliases as `any` | 3 files | 30 min | 🟢 LOW |
+| **CAT3-001** | Hardcoded Taqnyat URL | `app/api/health/sms/route.ts:49` | 15 min | 🟢 LOW |
+
+**Total Effort**: Address incrementally during feature work
+
+---
+
+### 🟦 CATEGORY E: I18N & UX (2 items) — PRIORITY: MEDIUM-HIGH
+
+| ID | Issue | File/Location | Effort | Status |
+|----|-------|---------------|--------|--------|
+| **CQP-006** | Missing Arabic translations `[AR]` | `i18n/ar.json` — 200+ entries | HIGH | 🟧 HIGH |
+| **SYS-012** | Translation audit script uses stale path | `i18n-translation-report.txt` | 1 hr | 🟡 MODERATE |
+
+**Total Effort**: ~8-16 hours (translation work) | **Action**: Requires Arabic translator
+
+---
+
+### 🟪 CATEGORY F: FEATURES & BACKLOG (9 items) — PRIORITY: FUTURE
+
+| ID | Item | Status | Effort |
+|----|------|--------|--------|
+| **BL-001** | IP Reputation Scoring | ❌ NOT IMPLEMENTED | HIGH |
+| **BL-002** | Bundle Budget Historical Trends | ❌ NOT IMPLEMENTED | MEDIUM |
+| **BL-003** | RTL Playwright Visual Tests | ❌ NOT IMPLEMENTED | MEDIUM |
+| **BL-004** | ICU MessageFormat | ❌ NOT IMPLEMENTED | MEDIUM |
+| **BL-005** | Storybook Setup | ❌ NOT IMPLEMENTED | MEDIUM |
+| **BL-006** | Interactive Swagger UI | ❌ NOT IMPLEMENTED | LOW |
+| **BL-007** | Sentry FM/Souq Contexts | ❌ NOT IMPLEMENTED | LOW |
+| **BL-008** | Structured JSON Logging | 🟡 PARTIAL | MEDIUM |
+| **TODO-001** | Aqar User Personalization | ❌ NOT STARTED | 2-3 days |
+
+**Action**: Sprint planning for next quarter
+
+---
+
+### ⚪ CATEGORY G: DOCUMENTATION (3 items) — PRIORITY: LOW
+
+| ID | Issue | File/Location | Effort | Status |
+|----|-------|---------------|--------|--------|
+| **SYS-008** | CATEGORIZED_TASKS_LIST.md outdated | `docs/CATEGORIZED_TASKS_LIST.md` | 1 hr | 🟡 MODERATE |
+| **TODO-DOC-001** | Type-safety debt documentation | 5 Mongoose statics | 1 hr | 🟢 LOW |
+| **TODO-DOC-002** | Historical notes cleanup | 2 documentation notes | 15 min | 🟢 LOW |
+
+---
+
+### ✅ CATEGORY H: COMPLETED (ARCHIVE REFERENCE)
+
+| ID | Item | Completed Date |
+|----|------|----------------|
+| **MOD-001** | Legacy Docs Cleanup | 2025-12-11 |
+| **MOD-002** | Playwright E2E Env Gaps Documented | 2025-12-11 |
+| **CS-002** | Superadmin Phone Fixed | 2025-12-11 |
+| **PR#520** | 8 fixes applied | 2025-12-11 |
+
+---
+
+## 📊 SUMMARY METRICS (v15.0)
+
+| Category | Count | Priority | Est. Effort |
+|----------|-------|----------|-------------|
+| A: Security | 4 | 🔴 IMMEDIATE | 3 hrs |
+| B: CI/CD | 13 | 🟧 HIGH | 3 hrs |
+| C: API & Backend | 10 | 🟡 MEDIUM | 12-14 hrs |
+| D: Code Quality | 8 | 🟢 LOW | Incremental |
+| E: I18N & UX | 2 | 🟧 MEDIUM-HIGH | 8-16 hrs |
+| F: Features/Backlog | 9 | 🟪 FUTURE | Sprint plan |
+| G: Documentation | 3 | ⚪ LOW | 2-3 hrs |
+| **TOTAL** | **49 active** | — | **~40-50 hrs** |
+
+---
+
+## 🎯 RECOMMENDED EXECUTION ORDER
+
+### Week 1 (Immediate)
+1. ✅ Fix PSA-001: ATS moderation orgId scoping (30 min)
+2. ✅ Fix CAT4-001: PII TTL error handling (30 min)
+3. ✅ Fix 12 silent CI error handlers (2 hrs)
+4. ✅ Add 7 missing RBAC patterns (30 min)
+
+### Week 2 (High Priority)
+1. Complete Arabic translations (CQP-006)
+2. Standardize `req.json()` error handling (CQP-005)
+3. Fix translation audit script path (SYS-012)
+
+### Week 3+ (Sprint Planning)
+1. GraphQL resolver implementation (SYS-009)
+2. Currency conversion integration (SYS-011)
+3. Tenant config DB-backed loading (SYS-013)
 
 ---
 
