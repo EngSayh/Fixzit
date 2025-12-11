@@ -1,3 +1,14 @@
+/**
+ * @fileoverview Aqar Pricing Insights API
+ * @description Provides market pricing insights for real estate listings including
+ * average prices, price trends, and comparable property analysis by city/neighborhood.
+ * @module api/aqar/insights/pricing
+ *
+ * @example
+ * // GET /api/aqar/insights/pricing?city=Riyadh&propertyType=APARTMENT&intent=BUY
+ * // Returns: { averagePrice, priceRange, comparables, marketTrend }
+ */
+
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";

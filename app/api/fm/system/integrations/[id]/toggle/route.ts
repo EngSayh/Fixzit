@@ -1,3 +1,17 @@
+/**
+ * @fileoverview FM Integration Toggle API
+ * @description Enables or disables third-party integrations for the FM module.
+ * Supports toggling payment gateways, accounting systems, and other external services.
+ * @module api/fm/system/integrations/[id]/toggle
+ *
+ * @security Requires FM FINANCE module UPDATE permission
+ * @security Rate limited per organization
+ *
+ * @example
+ * // POST /api/fm/system/integrations/quickbooks/toggle
+ * // Body: { enabled: true }
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

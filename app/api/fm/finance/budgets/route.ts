@@ -1,3 +1,22 @@
+/**
+ * Budgets API - Facility Management Finance Module
+ * 
+ * Manages departmental budgets for facility management operations.
+ * Tracks budget allocation, utilization, and forecasting.
+ * 
+ * @module api/fm/finance/budgets
+ * @requires Authentication - Valid session with orgId
+ * @requires Authorization - FINANCE:VIEW for GET, FINANCE:CREATE for POST
+ * 
+ * Features:
+ * - Multi-tenant isolation via orgId
+ * - Department-based budget allocation
+ * - Currency-aware (SAR, USD, etc.)
+ * - Budget utilization tracking
+ * 
+ * @example GET /api/fm/finance/budgets
+ * @example POST /api/fm/finance/budgets
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

@@ -1,3 +1,22 @@
+/**
+ * Properties API - Facility Management Module
+ * 
+ * CRUD operations for property management within the FM module.
+ * Properties represent buildings, facilities, or managed locations.
+ * 
+ * @module api/fm/properties
+ * @requires Authentication - Valid session with orgId
+ * @requires Authorization - PROPERTY:VIEW for GET, PROPERTY:CREATE for POST
+ * 
+ * Features:
+ * - Multi-tenant isolation via orgId
+ * - Filterable by type, status, lease_status
+ * - Supports pagination (page, limit)
+ * - Full-text search on name
+ * 
+ * @example GET /api/fm/properties?type=residential&status=active&page=1&limit=20
+ * @example POST /api/fm/properties
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

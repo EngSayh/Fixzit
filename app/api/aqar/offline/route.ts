@@ -1,3 +1,14 @@
+/**
+ * @fileoverview Aqar Offline Cache Bundle API
+ * @description Generates offline-capable data bundles for the Aqar mobile app.
+ * Supports Progressive Web App (PWA) offline functionality with cached listings.
+ * @module api/aqar/offline
+ *
+ * @example
+ * // GET /api/aqar/offline?city=Riyadh&intent=BUY&limit=50&includeAuctions=true
+ * // Returns: { listings: [...], metadata: {...}, cacheHint: "..." }
+ */
+
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";

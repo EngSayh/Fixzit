@@ -1,3 +1,14 @@
+/**
+ * @fileoverview Aqar Listings Recommendations API
+ * @description Provides personalized property recommendations based on user preferences,
+ * browsing history, and favorited listings. Uses ML-powered recommendation engine.
+ * @module api/aqar/listings/recommendations
+ *
+ * @example
+ * // GET /api/aqar/listings/recommendations?propertyTypes=APARTMENT,VILLA&intent=BUY&limit=10
+ * // Returns: { recommendations: [...], score, context }
+ */
+
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";

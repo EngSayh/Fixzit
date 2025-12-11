@@ -1,3 +1,19 @@
+/**
+ * @fileoverview Post-Login Token Issuance API
+ * @description Issues JWT access and refresh tokens after successful NextAuth authentication.
+ * Performs server-side user status validation to prevent token issuance for disabled accounts.
+ * @module api/auth/post-login
+ *
+ * @security Validates user status from DB before issuing tokens
+ * @security Stores refresh token JTI for revocation support
+ * @security Sets HTTP-only cookies for token storage
+ *
+ * @example
+ * // POST /api/auth/post-login
+ * // Requires valid NextAuth session
+ * // Returns: { success: true } with Set-Cookie headers
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

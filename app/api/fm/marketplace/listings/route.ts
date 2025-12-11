@@ -1,3 +1,17 @@
+/**
+ * @fileoverview FM Marketplace Listings API
+ * @description CRUD operations for facility management marketplace product listings.
+ * Supports multi-tenant isolation and compliance tracking for procurement items.
+ * @module api/fm/marketplace/listings
+ *
+ * @security Requires FM module MARKETPLACE permission
+ * @security Multi-tenant isolated via orgId
+ *
+ * @example
+ * // GET /api/fm/marketplace/listings?category=maintenance&status=draft
+ * // POST /api/fm/marketplace/listings { title, sku, price, stock, compliance[] }
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

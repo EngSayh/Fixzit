@@ -1,3 +1,17 @@
+/**
+ * @fileoverview FM Support Tickets API
+ * @description Creates and manages support tickets for facility management issues.
+ * Supports priority levels, module categorization, and customer notifications.
+ * @module api/fm/support/tickets
+ *
+ * @security Requires FM WORK_ORDERS module CREATE/READ permission
+ * @security Multi-tenant isolated via orgId
+ *
+ * @example
+ * // POST /api/fm/support/tickets
+ * // Body: { requesterName, requesterEmail, module, priority, subject, summary }
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

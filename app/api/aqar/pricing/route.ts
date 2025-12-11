@@ -1,3 +1,16 @@
+/**
+ * @fileoverview Aqar Public Pricing API
+ * @description Public endpoint for real estate pricing insights. Returns market data
+ * for specified city/neighborhood without requiring authentication.
+ * @module api/aqar/pricing
+ *
+ * @security Rate limited: 30 requests/minute per IP (public endpoint)
+ *
+ * @example
+ * // GET /api/aqar/pricing?city=Riyadh&neighborhood=AlOlaya&propertyType=APARTMENT&intent=BUY
+ * // Returns: { ok: true, insight: { averagePrice, priceRange, ... } }
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/db/mongoose";
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";

@@ -1,3 +1,17 @@
+/**
+ * @fileoverview FM Support Escalations API
+ * @description Manages incident escalations for facility management operations.
+ * Handles P1/P2 incidents with stakeholder notifications and SLA tracking.
+ * @module api/fm/support/escalations
+ *
+ * @security Requires FM WORK_ORDERS module CREATE/READ permission
+ * @security Multi-tenant isolated via orgId
+ *
+ * @example
+ * // POST /api/fm/support/escalations
+ * // Body: { incidentId, service, severity, summary, symptoms, preferredChannel }
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

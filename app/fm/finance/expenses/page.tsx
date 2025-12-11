@@ -232,12 +232,11 @@ function ExpenseCard({
           <div className="space-y-1">
             <div className="font-semibold text-lg">{vendor}</div>
             <div className="text-sm text-muted-foreground">{category}</div>
-            <div className="text-xs text-muted-foreground">
-              <ClientDate
-                date={createdAt || new Date().toISOString()}
-                format="date-only"
-              />
-            </div>
+            {createdAt && (
+              <div className="text-xs text-muted-foreground">
+                <ClientDate date={createdAt} format="date-only" />
+              </div>
+            )}
             {description && (
               <div className="text-sm text-muted-foreground">{description}</div>
             )}

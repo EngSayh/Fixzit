@@ -1,3 +1,18 @@
+/**
+ * @fileoverview FM User Invitation API
+ * @description Manages user invitations for the facility management module.
+ * Sends email invitations and tracks invitation status for new team members.
+ * @module api/fm/system/users/invite
+ *
+ * @security Requires FM FINANCE module UPDATE permission
+ * @security Rate limited per organization
+ *
+ * @example
+ * // POST /api/fm/system/users/invite
+ * // Body: { email, firstName, lastName, role }
+ * // Returns: { success: true, invite: {...} }
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
