@@ -1,13 +1,213 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T16:00:00+03:00  
-**Version**: 14.3  
+**Last Updated**: 2025-12-11T16:30:00+03:00  
+**Version**: 14.4  
 **Branch**: feat/frontend-dashboards  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok, TAP Payments ok)  
-**Total Pending Items**: 18 items (1 Major Feature + 9 Code TODOs + 2 Enhancements + 6 Deep Dive Findings)  
+**Total Pending Items**: 26 items (1 Major Feature + 9 Code TODOs + 2 Enhancements + 6 Deep Dive Findings + 8 New System-Wide Findings)  
 **Completed Items**: 315+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes)  
 **Test Status**: ✅ Vitest full suite previously (2,468 tests) + latest `pnpm test:models` rerun (6 files, 91 tests) | 🚧 Playwright e2e timed out after ~15m during `pnpm test` (dev server stopped post-run; env gaps documented in E2E_TESTING_QUICK_START.md)  
-**Consolidation Check**: 2025-12-11T16:00:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T16:30:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+
+---
+
+## 🔍 SESSION 2025-12-11T16:30 — SYSTEM-WIDE AUDIT & STRICT v4.1 (Extended Deep Dive)
+
+### Methodology Applied
+
+Full system scan using **Post-Stabilization Audit & STRICT v4.1** protocol:
+1. Phase 1: Structural Drift & Import Errors
+2. Phase 2: RBAC & Mongoose Violations  
+3. Phase 3: Task List Verification
+4. Phase 4: Code Quality Deep Dive
+
+**Total Files Scanned**: 1500+ TypeScript/JavaScript files  
+**New Issues Found**: 8 items  
+**Duplicate Patterns**: Identified system-wide
+
+---
+
+### 🔴 NEW FINDINGS (8 items)
+
+#### SYS-001: ATS Moderation Route Missing Org Scoping
+**Priority**: 🟠 MODERATE | **Effort**: 30 min | **Category**: Security/RBAC
+
+**Problem**: `app/api/ats/moderation/route.ts:68` uses `Job.findById(jobId)` without orgId filter.
+
+**Evidence**:
+```typescript
+const job = await Job.findById(jobId);  // Line 68 - NO ORG SCOPING
+if (!job) return notFoundError("Job");
+```
+
+**Risk**: User from Org A could potentially moderate a job from Org B (cross-tenant data leak).
+
+**Fix**:
+```typescript
+const job = await Job.findOne({ _id: jobId, orgId: user.orgId });
+```
+
+**Similar Patterns Found**: 19 total `findById()` calls without org scoping across API routes:
+- `app/api/ats/moderation/route.ts:68` ⚠️ NEEDS FIX
+- `app/api/ats/convert-to-employee/route.ts:89-90` — Has post-check `app.orgId !== orgId`
+- `app/api/careers/apply/route.ts:80` — Public endpoint, acceptable
+- `app/api/aqar/listings/[id]/route.ts:140,301` — Uses listerId ownership check
+- `app/api/aqar/favorites/[id]/route.ts:52` — Uses userId ownership check
+- `app/api/billing/callback/paytabs/route.ts:214` — Uses subId from webhook
+- `app/api/admin/*` routes — Admin-only, Super Admin access
+
+---
+
+#### SYS-002: Inconsistent API JSON Error Handling
+**Priority**: 🟡 LOW | **Effort**: 2 hours | **Category**: Reliability
+
+**Problem**: Mix of patterns for `await req.json()` handling across API routes.
+
+**Pattern Analysis**:
+| Pattern | Count | Example File |
+|---------|-------|--------------|
+| `.catch(() => ({}))` | ~40 routes | `app/api/help/escalate/route.ts` ✅ |
+| No catch (raw) | ~30 routes | `app/api/billing/quote/route.ts` ⚠️ |
+| Zod `.parse()` wrapping | ~25 routes | `app/api/notifications/[id]/route.ts` ✅ |
+
+**Risk**: Malformed JSON on unprotected routes causes 500 instead of 400.
+
+**Recommendation**: Standardize on Zod parse pattern or add `.catch()` fallback.
+
+---
+
+#### SYS-003: parseInt Without Radix in Claims Routes
+**Priority**: 🟢 LOW | **Effort**: 15 min | **Category**: Code Quality
+
+**Problem**: `app/api/souq/claims/admin/review/route.ts:291-292` uses `parseInt()` without radix.
+
+**Evidence**:
+```typescript
+const page = parseInt(searchParams.get("page") || "1");    // Missing ", 10"
+const limit = parseInt(searchParams.get("limit") || "10"); // Missing ", 10"
+```
+
+**Risk**: None in practice (base 10 is default for numeric strings), but inconsistent with other routes.
+
+**Fix**: Add `, 10` radix parameter for consistency.
+
+---
+
+#### SYS-004: 10 dangerouslySetInnerHTML Usages
+**Priority**: 🟡 MODERATE | **Effort**: 1 hour | **Category**: Security Review
+
+**Problem**: 10 components use `dangerouslySetInnerHTML` for rendering HTML content.
+
+**Evidence**:
+```
+app/help/[slug]/page.tsx:70 — Uses renderMarkdown()
+app/help/tutorial/getting-started/page.tsx:625 — Uses renderedContent
+app/privacy/page.tsx:204 — Uses renderedContent  
+app/help/[slug]/HelpArticleClient.tsx:97 — Uses article.contentHtml
+app/cms/[slug]/page.tsx:134 — CMS content
+app/about/page.tsx:217,221,315 — JSON-LD schema + aboutContent
+app/careers/[slug]/page.tsx:126 — Job description
+app/terms/page.tsx:246 — Terms content
+```
+
+**Current Mitigation**: `lib/markdown.ts` uses `rehype-sanitize` with default schema ✅
+
+**Recommendation**: Verify all 10 usages pass through `renderMarkdownSanitized()`. Document approved patterns.
+
+---
+
+#### SYS-005: Empty Catch Blocks in CI Workflows
+**Priority**: 🟢 LOW | **Effort**: 15 min | **Category**: CI/CD
+
+**Problem**: 8 GitHub workflow files have `catch (_) {}` empty catch blocks.
+
+**Evidence**:
+```yaml
+# .github/workflows/webpack.yml:77
+pnpm tsx -e "... try { ... } catch (_) {} })();"
+```
+
+**Risk**: Silently swallows errors during DB index creation.
+
+**Recommendation**: Add logging or remove try-catch if failure is acceptable.
+
+---
+
+#### SYS-006: Redis Type Aliases Using `any`
+**Priority**: 🟢 LOW | **Effort**: 30 min | **Category**: Type Safety
+
+**Problem**: `lib/redis.ts:27-29` and `lib/otp-store-redis.ts:71` use `type = any`.
+
+**Evidence**:
+```typescript
+// lib/redis.ts
+type RedisCtor = any;    // Line 27
+type RedisInstance = any; // Line 29
+
+// lib/otp-store-redis.ts  
+type RedisClient = any;  // Line 71
+```
+
+**Risk**: Reduces type safety for Redis operations.
+
+**Recommendation**: Create proper interface for Redis client with required methods.
+
+---
+
+#### SYS-007: env var Fallback Patterns in Services
+**Priority**: 🟢 LOW | **Effort**: — | **Category**: Configuration
+
+**Problem**: 20+ locations use `process.env.X || "default"` pattern.
+
+**Evidence** (samples):
+```typescript
+// services/souq/fulfillment-service.ts:250-256
+name: process.env.FULFILLMENT_CENTER_NAME || "Fixzit Fulfillment Center"
+street: process.env.FULFILLMENT_CENTER_STREET || "King Fahd Road"
+city: process.env.FULFILLMENT_CENTER_CITY || "Riyadh"
+postalCode: process.env.FULFILLMENT_CENTER_POSTAL || "11564"
+country: process.env.FULFILLMENT_CENTER_COUNTRY || "SA"
+
+// services/souq/returns-service.ts:192
+const returnWindow = parseInt(process.env.RETURN_WINDOW_DAYS || "30", 10);
+```
+
+**Status**: This is an acceptable pattern for non-sensitive defaults. **NO ACTION NEEDED**.
+
+---
+
+#### SYS-008: CATEGORIZED_TASKS_LIST.md Last Updated Nov 2025
+**Priority**: 🟡 MODERATE | **Effort**: 1 hour | **Category**: Documentation
+
+**Problem**: `docs/CATEGORIZED_TASKS_LIST.md` header shows "Generated: November 6, 2025".
+
+**Evidence**:
+```markdown
+# 📋 CATEGORIZED TASKS LIST
+**Generated**: November 6, 2025
+```
+
+**Risk**: Task list may not reflect December 2025 completions. PENDING_MASTER.md is canonical.
+
+**Recommendation**: Update or add deprecation notice pointing to PENDING_MASTER.md as source of truth.
+
+---
+
+### Summary Table
+
+| ID | Issue | Priority | Effort | Category | Action |
+|----|-------|----------|--------|----------|--------|
+| SYS-001 | ATS moderation missing orgId | 🟠 MODERATE | 30 min | Security | **FIX REQUIRED** |
+| SYS-002 | Inconsistent JSON error handling | 🟡 LOW | 2 hrs | Reliability | Optional |
+| SYS-003 | parseInt missing radix | 🟢 LOW | 15 min | Code Quality | Optional |
+| SYS-004 | dangerouslySetInnerHTML review | 🟡 MODERATE | 1 hr | Security | Verify |
+| SYS-005 | Empty catch in CI workflows | 🟢 LOW | 15 min | CI/CD | Optional |
+| SYS-006 | Redis type aliases as any | 🟢 LOW | 30 min | Type Safety | Optional |
+| SYS-007 | env var fallback patterns | ⚪ INFO | — | Config | No Action |
+| SYS-008 | Task list outdated | 🟡 MODERATE | 1 hr | Docs | Update |
+
+**Critical Finding**: SYS-001 (ATS moderation missing orgId) requires immediate fix.  
+**Total New Effort**: ~6.5 hours if all addressed
 
 ---
 
