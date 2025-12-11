@@ -34,7 +34,7 @@ export const RBAC_MODULES: RBACModule[] = [
 type RolePermissionsMap = Record<UserRoleType, Partial<Record<string, ModulePermissions>>>;
 
 // 🔒 STRICT v4.1: Default permissions aligned to canonical roles + sub-roles.
-export const RBAC_ROLE_PERMISSIONS: RolePermissionsMap = {
+const BASE_RBAC_ROLE_PERMISSIONS: Partial<RolePermissionsMap> = {
   [UserRole.SUPER_ADMIN]: Object.fromEntries(
     RBAC_MODULES.map((m) => [m.id, { view: true, create: true, edit: true, delete: true }]),
   ),
@@ -94,10 +94,6 @@ export const RBAC_ROLE_PERMISSIONS: RolePermissionsMap = {
   [UserRole.FINANCE_OFFICER]: {
     finance: { view: true, create: true, edit: true, delete: false },
     reports: { view: true, create: false, edit: false, delete: false },
-  },
-  [UserRole.FINANCE_MANAGER]: {
-    finance: { view: true, create: true, edit: true, delete: false },
-    reports: { view: true, create: true, edit: true, delete: false },
   },
   [UserRole.HR]: {
     hr: { view: true, create: true, edit: true, delete: false },
@@ -176,27 +172,18 @@ export const RBAC_ROLE_PERMISSIONS: RolePermissionsMap = {
     marketplace: { view: true, create: false, edit: true, delete: false },
     crm_notifications: { view: true, create: true, edit: true, delete: false },
   },
-  // 🔒 DEPRECATED ROLES - Included for type compatibility
-  // These should be migrated to canonical roles
-  [UserRole.EMPLOYEE]: {
-    dashboard: { view: true, create: false, edit: false, delete: false },
-  },
-  [UserRole.SUPPORT]: {
-    dashboard: { view: true, create: false, edit: false, delete: false },
-    work_orders: { view: true, create: true, edit: true, delete: false },
-  },
-  [UserRole.DISPATCHER]: {
-    dashboard: { view: true, create: false, edit: false, delete: false },
-    work_orders: { view: true, create: true, edit: true, delete: false },
-  },
-  [UserRole.CUSTOMER]: {
-    dashboard: { view: true, create: false, edit: false, delete: false },
-  },
-  [UserRole.VIEWER]: {
-    dashboard: { view: true, create: false, edit: false, delete: false },
-    reports: { view: true, create: false, edit: false, delete: false },
-  },
 };
+
+export const RBAC_ROLE_PERMISSIONS: RolePermissionsMap = {
+  ...BASE_RBAC_ROLE_PERMISSIONS,
+  [UserRole.SUPER_ADMIN]: BASE_RBAC_ROLE_PERMISSIONS[UserRole.SUPER_ADMIN] || {},
+  [UserRole.FINANCE_MANAGER]: BASE_RBAC_ROLE_PERMISSIONS[UserRole.FINANCE] || {},
+  [UserRole.EMPLOYEE]: BASE_RBAC_ROLE_PERMISSIONS[UserRole.TEAM_MEMBER] || {},
+  [UserRole.SUPPORT]: BASE_RBAC_ROLE_PERMISSIONS[UserRole.SUPPORT_AGENT] || {},
+  [UserRole.DISPATCHER]: BASE_RBAC_ROLE_PERMISSIONS[UserRole.OPERATIONS_MANAGER] || {},
+  [UserRole.CUSTOMER]: BASE_RBAC_ROLE_PERMISSIONS[UserRole.TENANT] || {},
+  [UserRole.VIEWER]: BASE_RBAC_ROLE_PERMISSIONS[UserRole.AUDITOR] || {},
+} as RolePermissionsMap;
 
 // Legacy roles included for compatibility; default to view-only dashboard.
 export const DEFAULT_LEGACY_PERMISSIONS: ModulePermissions = {

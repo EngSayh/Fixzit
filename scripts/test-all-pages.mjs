@@ -143,4 +143,7 @@ async function testUserAccess() {
   return results;
 }
 
-testUserAccess().catch(console.error);
+testUserAccess().catch((err) => {
+  console.error('Page tests failed:', err);
+  process.exit(1);
+});

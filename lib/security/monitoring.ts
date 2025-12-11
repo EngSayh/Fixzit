@@ -201,6 +201,48 @@ export function getSecurityMetrics() {
   };
 }
 
+export type RateLimitEndpointStats = {
+  endpoint: string;
+  hits: number;
+  uniqueClients: number;
+  orgs: string[];
+};
+
+/**
+ * Summarize rate limit hits by endpoint for dashboards.
+ * Does not expose identifiers; aggregates by endpoint and org.
+ */
+export function getRateLimitBreakdown(): RateLimitEndpointStats[] {
+  const breakdown = new Map<
+    string,
+    { hits: number; uniqueClients: number; orgs: Set<string> }
+  >();
+
+  for (const [key, timestamps] of rateLimitHits.entries()) {
+    const parts = key.split(":");
+    const endpoint = parts.pop() || "unknown";
+    const orgId = parts.shift() || "global";
+    const current = breakdown.get(endpoint) ?? {
+      hits: 0,
+      uniqueClients: 0,
+      orgs: new Set<string>(),
+    };
+    current.hits += timestamps.length;
+    current.uniqueClients += 1;
+    current.orgs.add(orgId);
+    breakdown.set(endpoint, current);
+  }
+
+  return [...breakdown.entries()]
+    .map(([endpoint, data]) => ({
+      endpoint,
+      hits: data.hits,
+      uniqueClients: data.uniqueClients,
+      orgs: Array.from(data.orgs),
+    }))
+    .sort((a, b) => b.hits - a.hits);
+}
+
 /**
  * Reset all monitoring state for test isolation.
  * 

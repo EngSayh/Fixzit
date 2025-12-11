@@ -164,7 +164,11 @@ const ROLE_EQUIVALENTS: Record<string, string[]> = {
   PROPERTY_ADMIN: ['PROPERTY_MANAGER'],
   PROPERTY_MANAGER: ['FM_MANAGER', 'MANAGER'],
   FINANCE_ADMIN: ['FINANCE'],
+  FINANCE_MANAGER: ['FINANCE'],
   BILLING_ADMIN: ['FINANCE'],
+  EMPLOYEE: ['TEAM_MEMBER'],
+  DISPATCHER: ['OPERATIONS_MANAGER'],
+  SUPPORT: ['SUPPORT_AGENT'],
   GUEST: ['guest'],
 };
 
@@ -709,12 +713,14 @@ const propertyOps: ModuleId[] = ['dashboard', 'properties', WORK_ORDERS_ID, 'crm
 const financeOnly: ModuleId[] = ['dashboard', 'finance', 'reports', 'support'];
 const hrOnly: ModuleId[] = ['dashboard', 'hr', 'support', 'reports'];
 const procurementOnly: ModuleId[] = ['dashboard', 'marketplace', 'support', 'reports'];
+const teamMemberBase: ModuleId[] = ['dashboard', WORK_ORDERS_ID, 'support', 'reports'];
 const technicianOnly: ModuleId[] = ['dashboard', WORK_ORDERS_ID, 'support'];
 const ownerTenant: ModuleId[] = ['dashboard', 'properties', 'support', 'reports'];
 const vendorOnly: ModuleId[] = ['dashboard', 'marketplace', 'support'];
 const customerOnly: ModuleId[] = ['dashboard', 'support'];
 const complianceOnly: ModuleId[] = ['dashboard', 'compliance', 'reports'];
 const viewerOnly: ModuleId[] = ['dashboard', 'reports'];
+const supportAgentAccess: ModuleId[] = ['dashboard', 'support', 'crm', 'reports'];
 
 export const ROLE_PERMISSIONS = {
   SUPER_ADMIN: fullAccess,
@@ -723,17 +729,17 @@ export const ROLE_PERMISSIONS = {
   MANAGER: fmLeadership,
   FM_MANAGER: fmLeadership,
   PROPERTY_MANAGER: propertyOps,
-  TEAM_MEMBER: ['dashboard', WORK_ORDERS_ID, 'support', 'reports'] as ModuleId[], // Base team member access - specialize via sub-roles
+  TEAM_MEMBER: teamMemberBase, // Base team member access - specialize via sub-roles
   FINANCE: financeOnly,
   HR: hrOnly,
   PROCUREMENT: procurementOnly,
   TECHNICIAN: technicianOnly,
   FINANCE_OFFICER: financeOnly,
   HR_OFFICER: hrOnly,
-  SUPPORT_AGENT: ['dashboard', 'support', 'crm', 'reports'] as ModuleId[],
+  SUPPORT_AGENT: supportAgentAccess,
   OPERATIONS_MANAGER: fmLeadership,
   FINANCE_MANAGER: financeOnly,
-  EMPLOYEE: hrOnly,
+  EMPLOYEE: teamMemberBase,
   CORPORATE_OWNER: propertyOps,
   // Souq Marketplace Roles
   SOUQ_ADMIN: ['dashboard', 'marketplace', 'reports', 'admin'] as ModuleId[],
@@ -744,8 +750,8 @@ export const ROLE_PERMISSIONS = {
   CUSTOMER: customerOnly,
   AUDITOR: complianceOnly,
   VIEWER: viewerOnly,
-  DISPATCHER: technicianOnly,
-  SUPPORT: ['dashboard', 'support'] as ModuleId[],
+  DISPATCHER: fmLeadership,
+  SUPPORT: supportAgentAccess,
   // External roles fall back to view-only
   guest: viewerOnly,
 } satisfies Record<UserRoleType | 'guest', readonly ModuleId[]>;
@@ -1822,14 +1828,29 @@ const rawNavigationConfig: NavigationConfig = {
               label: 'Create Ticket',
               labelAr: 'إنشاء تذكرة',
               href: '/fm/support/tickets/new',
-              roles: ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'EMPLOYEE', 'SUPPORT'],
+              roles: [
+                'SUPER_ADMIN',
+                'CORPORATE_ADMIN',
+                'ADMIN',
+                'FM_MANAGER',
+                'TEAM_MEMBER',
+                'SUPPORT_AGENT',
+                'OPERATIONS_MANAGER',
+              ],
             },
             {
               id: 'major_incident_escalation',
               label: 'Major Incident Escalation',
               labelAr: 'تصعيد حادثة كبرى',
               href: '/fm/support/escalations/new',
-              roles: ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'SUPPORT'],
+              roles: [
+                'SUPER_ADMIN',
+                'CORPORATE_ADMIN',
+                'ADMIN',
+                'FM_MANAGER',
+                'SUPPORT_AGENT',
+                'OPERATIONS_MANAGER',
+              ],
             },
           ],
         },
@@ -1866,7 +1887,15 @@ const rawNavigationConfig: NavigationConfig = {
           labelAr: 'الدردشة المباشرة',
           href: '/support/chat',
           iconName: 'MessageCircle',
-          roles: ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'EMPLOYEE', 'SUPPORT'],
+          roles: [
+            'SUPER_ADMIN',
+            'CORPORATE_ADMIN',
+            'ADMIN',
+            'FM_MANAGER',
+            'TEAM_MEMBER',
+            'SUPPORT_AGENT',
+            'OPERATIONS_MANAGER',
+          ],
           isNew: true,
         },
       ],

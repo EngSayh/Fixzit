@@ -1,5 +1,6 @@
 "use client";
 import { logger } from "@/lib/logger";
+import { CURRENCIES } from "@/lib/utils/currency-formatter";
 
 import React, {
   createContext,
@@ -10,7 +11,7 @@ import React, {
   useState,
 } from "react";
 
-export type CurrencyCode = "SAR" | "USD" | "EUR" | "GBP" | "AED";
+export type CurrencyCode = keyof typeof CURRENCIES;
 
 export type CurrencyOption = {
   code: CurrencyCode;
@@ -19,13 +20,40 @@ export type CurrencyOption = {
   flag: string;
 };
 
-export const CURRENCY_OPTIONS = [
-  { code: "SAR", name: "Saudi Riyal", symbol: "﷼", flag: "🇸🇦" },
-  { code: "USD", name: "US Dollar", symbol: "$", flag: "🇺🇸" },
-  { code: "EUR", name: "Euro", symbol: "€", flag: "🇪🇺" },
-  { code: "GBP", name: "Pound Sterling", symbol: "£", flag: "🇬🇧" },
-  { code: "AED", name: "UAE Dirham", symbol: "د.إ", flag: "🇦🇪" },
-] as const satisfies readonly CurrencyOption[];
+const CURRENCY_ORDER: CurrencyCode[] = [
+  "SAR",
+  "AED",
+  "USD",
+  "EUR",
+  "GBP",
+  "OMR",
+  "KWD",
+  "BHD",
+  "QAR",
+  "EGP",
+];
+
+const CURRENCY_FLAGS: Record<CurrencyCode, string> = {
+  SAR: "🇸🇦",
+  AED: "🇦🇪",
+  USD: "🇺🇸",
+  EUR: "🇪🇺",
+  GBP: "🇬🇧",
+  OMR: "🇴🇲",
+  KWD: "🇰🇼",
+  BHD: "🇧🇭",
+  QAR: "🇶🇦",
+  EGP: "🇪🇬",
+};
+
+export const CURRENCY_OPTIONS: readonly CurrencyOption[] = CURRENCY_ORDER.map(
+  (code) => ({
+    code,
+    name: CURRENCIES[code].nameEn,
+    symbol: CURRENCIES[code].symbol,
+    flag: CURRENCY_FLAGS[code] ?? "🏳️",
+  }),
+);
 
 const DEFAULT_CURRENCY: CurrencyCode = "SAR";
 

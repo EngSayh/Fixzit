@@ -33,14 +33,12 @@ function getBreakerStats(breaker: CircuitBreaker): {
   successCount: number;
   cooldownMs: number;
 } {
-  // Access private fields via any cast (metrics-only, safe pattern)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const b = breaker as any;
+  const b = breaker.getMetricsSnapshot();
   return {
     state: b.state ?? "closed",
     failureCount: b.failureCount ?? 0,
     successCount: b.successCount ?? 0,
-    cooldownMs: b.options?.cooldownMs ?? b.cooldownMs ?? 30000,
+    cooldownMs: b.cooldownMs ?? 30000,
   };
 }
 

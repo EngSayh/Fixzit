@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Bot, Calendar, CheckCircle2, ClipboardList, FileText, Loader2, Send, ShieldCheck, Upload, WifiOff, X } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -147,7 +147,7 @@ const initialForms: Record<string, ToolFormState> = {
   ownerStatements: { ownerId: '', period: 'YTD', year: String(new Date().getFullYear()) }
 };
 
-const toolIcons: Record<string, JSX.Element> = {
+const toolIcons: Record<string, React.ReactElement> = {
   createWorkOrder: <ClipboardList className="h-4 w-4" />,
   listMyWorkOrders: <FileText className="h-4 w-4" />,
   dispatchWorkOrder: <CheckCircle2 className="h-4 w-4" />,

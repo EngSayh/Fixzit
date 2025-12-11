@@ -142,7 +142,8 @@
 - **Impact:** Payment processing won't work
 - **Optional:** Only needed if accepting payments
 - **PayTabs:** PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY, PAYTABS_CLIENT_KEY
-- **Tap:** TAP_SECRET_KEY, TAP_PUBLIC_KEY
+- **Tap:** `TAP_TEST_SECRET_KEY`, `TAP_LIVE_SECRET_KEY`, `NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY`, `NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY`, `TAP_WEBHOOK_SECRET`
+  - **Note:** Old `TAP_SECRET_KEY` / `TAP_PUBLIC_KEY` are deprecated. Use environment-specific keys above.
 
 ### 🟢 Medium Priority (optional)
 

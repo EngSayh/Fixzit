@@ -16,7 +16,8 @@
     "footer.privacy": "Privacy",
     "footer.support": "Support",
     "footer.terms": "Terms",
-    "footer.ticket": "Open a ticket"
+    "footer.ticket": "Open a ticket",
+    "footer.ticket_aria": "Open a support ticket"
   },
   "ar": {
     "footer.about": "معلومات عنا",
@@ -35,6 +36,7 @@
     "footer.privacy": "الخصوصية",
     "footer.support": "الدعم",
     "footer.terms": "الشروط",
-    "footer.ticket": "فتح تذكرة"
+    "footer.ticket": "فتح تذكرة",
+    "footer.ticket_aria": "افتح تذكرة دعم"
   }
 }

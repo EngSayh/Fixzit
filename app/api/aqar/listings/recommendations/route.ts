@@ -25,6 +25,7 @@ import {
 } from "@/services/aqar/recommendation-engine";
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { Types, type Model } from "mongoose";
+import { recordPersonalizationEvent } from "@/services/aqar/personalization-service";
 
 export const runtime = "nodejs";
 
@@ -75,6 +76,9 @@ export async function GET(request: NextRequest) {
     const budgetMin = parseNumberParam(searchParams.get("budgetMin"));
     const budgetMax = parseNumberParam(searchParams.get("budgetMax"));
     const limit = parseNumberParam(searchParams.get("limit"));
+    const personalize =
+      searchParams.get("personalize") !== "false" &&
+      searchParams.get("personalization") !== "false";
 
     let favorites: string[] | undefined = favoritesParam.length
       ? favoritesParam
@@ -109,8 +113,24 @@ export async function GET(request: NextRequest) {
       currentListingId: searchParams.get("listingId") || undefined,
       updateAiSnapshot: searchParams.get("updateAi") !== "false",
       includeExperimental: searchParams.get("experimental") !== "false",
+      personalize,
+      userId: user?.id,
       orgId: user?.orgId,
     };
+
+    if (user?.id) {
+      void recordPersonalizationEvent({
+        userId: user.id,
+        orgId: user.orgId,
+        listingId: context.currentListingId,
+        type: context.currentListingId ? "view" : "recommendation_request",
+        path: new URL(request.url).pathname,
+        intent: context.intent,
+        propertyType: context.propertyTypes?.[0],
+        city: context.preferredCity,
+        source: "aqar-listings-recommendations",
+      });
+    }
 
     const recommendations = await AqarRecommendationEngine.recommend(context);
     return NextResponse.json(recommendations);

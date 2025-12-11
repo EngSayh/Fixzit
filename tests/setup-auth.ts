@@ -40,11 +40,22 @@ async function globalSetup(config: FullConfig) {
   console.log('\n🔐 Setting up authentication states for all roles (OTP flow)...\n');
 
   const baseURL = config.projects[0].use.baseURL || process.env.BASE_URL || 'http://localhost:3000';
+  const normalizedBaseUrl = baseURL.replace(/\/$/, '');
   let offlineMode = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
   const testModeDirect = process.env.PLAYWRIGHT_TESTS === 'true';
   const nextAuthSecret = resolvedNextAuthSecret;
 
-  console.log(`📍 Base URL: ${baseURL}`);
+  // Force-align Auth.js/NextAuth URLs with the Playwright base URL to avoid 401s from origin drift
+  const prevAuthUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL;
+  if (prevAuthUrl && prevAuthUrl !== normalizedBaseUrl) {
+    console.warn(`⚠️  NEXTAUTH_URL/AUTH_URL (${prevAuthUrl}) did not match Playwright baseURL (${normalizedBaseUrl}). Overriding for fixtures.`);
+  }
+  process.env.NEXTAUTH_URL = normalizedBaseUrl;
+  process.env.AUTH_URL = normalizedBaseUrl;
+  process.env.BASE_URL = normalizedBaseUrl;
+  process.env.PW_WEB_URL = normalizedBaseUrl;
+
+  console.log(`📍 Base URL: ${normalizedBaseUrl}`);
   console.log(`🗄️  Database Mode: ${offlineMode ? 'Offline (Mock Sessions)' : 'Online (Real MongoDB)'}`);
   console.log(`🔑 Using NextAuth Secret: ${nextAuthSecret.substring(0, 10)}...`);
 

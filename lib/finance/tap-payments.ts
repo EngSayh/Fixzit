@@ -10,14 +10,21 @@
  * - Webhook verification
  * - Refunds and partial refunds
  *
- * Environment Variables Required:
- * - TAP_SECRET_KEY: Your Tap secret API key
- * - TAP_PUBLIC_KEY: Your Tap publishable key
- * - TAP_WEBHOOK_SECRET: Webhook signing secret
+ * Environment Variables (via lib/tapConfig.ts):
+ * Server-side:
+ * - TAP_TEST_SECRET_KEY / TAP_LIVE_SECRET_KEY
+ * - TAP_MERCHANT_ID, TAP_ACCOUNT_ID, TAP_API_KEY
+ * - TAP_GOSELL_USERNAME, TAP_GOSELL_PASSWORD
+ * - TAP_WEBHOOK_SECRET
+ * Client-side:
+ * - NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY / NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY
+ * Environment selector:
+ * - TAP_ENVIRONMENT: "test" or "live"
  */
 
 import crypto from "crypto";
 import { logger } from "@/lib/logger";
+import { getTapConfig, assertTapConfig, type TapConfig } from "@/lib/tapConfig";
 
 // ============================================================================
 // Types & Interfaces
@@ -193,25 +200,18 @@ export interface TapError {
 
 class TapPaymentsClient {
   private readonly baseUrl = "https://api.tap.company/v2";
-  private readonly secretKey: string;
-  private readonly publicKey: string;
-  private readonly webhookSecret: string;
-  private readonly isConfigured: boolean;
+  private config: TapConfig;
 
   constructor() {
-    this.secretKey = process.env.TAP_SECRET_KEY || "";
-    this.publicKey = process.env.TAP_PUBLIC_KEY || "";
-    this.webhookSecret = process.env.TAP_WEBHOOK_SECRET || "";
+    // Load configuration from central tapConfig helper
+    this.config = getTapConfig();
     
     const paytabsConfigured =
       Boolean(process.env.PAYTABS_PROFILE_ID) &&
       Boolean(process.env.PAYTABS_SERVER_KEY);
     
-    // Tap is only considered configured when BOTH essential API keys exist
-    this.isConfigured = Boolean(this.secretKey && this.publicKey);
-
     // Suppress Tap warnings when PayTabs is configured and Tap is intentionally absent
-    const tapEnvPresent = Boolean(this.secretKey) || Boolean(this.publicKey);
+    const tapEnvPresent = Boolean(this.config.secretKey) || Boolean(this.config.publicKey);
     if (!tapEnvPresent) {
       if (!paytabsConfigured) {
         logger.warn(
@@ -222,24 +222,33 @@ class TapPaymentsClient {
     }
 
     // Warn if partially configured (one key present but not both)
-    if (!this.isConfigured) {
+    if (!this.config.isConfigured) {
+      const envType = this.config.environment === "live" 
+        ? "TAP_LIVE_SECRET_KEY/NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY" 
+        : "TAP_TEST_SECRET_KEY/NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY";
       logger.error(
-        "Tap Payments partially configured: both TAP_SECRET_KEY and TAP_PUBLIC_KEY are required for API access",
+        `Tap Payments partially configured: ${envType} required for API access (environment: ${this.config.environment})`,
       );
     }
     
-    if (!this.webhookSecret) {
+    if (!this.config.webhookSecret) {
       logger.warn(
         "TAP_WEBHOOK_SECRET environment variable not set (webhook verification disabled)",
       );
     }
   }
 
+  /**
+   * Refresh configuration (useful if env vars change at runtime)
+   */
+  refreshConfig() {
+    this.config = getTapConfig();
+  }
+
   private ensureConfigured(action: string) {
-    if (!this.isConfigured) {
-      throw new Error(
-        `Tap Payments is not configured (${action}). Set TAP_SECRET_KEY and TAP_PUBLIC_KEY or use PayTabs instead.`,
-      );
+    if (!this.config.isConfigured) {
+      // Use assertTapConfig for detailed error message
+      assertTapConfig(action);
     }
   }
 
@@ -248,7 +257,21 @@ class TapPaymentsClient {
    */
   getPublicKey(): string {
     this.ensureConfigured("public key lookup");
-    return this.publicKey;
+    return this.config.publicKey;
+  }
+
+  /**
+   * Get current environment (test or live)
+   */
+  getEnvironment(): "test" | "live" {
+    return this.config.environment;
+  }
+
+  /**
+   * Check if running in production/live mode
+   */
+  isLiveMode(): boolean {
+    return this.config.isProd;
   }
 
   /**
@@ -268,7 +291,7 @@ class TapPaymentsClient {
       const response = await fetch(`${this.baseUrl}/charges`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${this.secretKey}`,
+          Authorization: `Bearer ${this.config.secretKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(request),
@@ -315,7 +338,7 @@ class TapPaymentsClient {
       const response = await fetch(`${this.baseUrl}/charges/${chargeId}`, {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${this.secretKey}`,
+          Authorization: `Bearer ${this.config.secretKey}`,
         },
       });
 
@@ -361,7 +384,7 @@ class TapPaymentsClient {
       const response = await fetch(`${this.baseUrl}/refunds`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${this.secretKey}`,
+          Authorization: `Bearer ${this.config.secretKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(request),
@@ -404,7 +427,7 @@ class TapPaymentsClient {
    */
   verifyWebhookSignature(payload: string, signature: string): boolean {
     this.ensureConfigured("verify webhook signature");
-    if (!this.webhookSecret) {
+    if (!this.config.webhookSecret) {
       logger.warn(
         "Webhook signature verification skipped - TAP_WEBHOOK_SECRET not configured",
       );
@@ -412,7 +435,7 @@ class TapPaymentsClient {
     }
 
     try {
-      const hmac = crypto.createHmac("sha256", this.webhookSecret);
+      const hmac = crypto.createHmac("sha256", this.config.webhookSecret);
       const calculatedSignature = hmac.update(payload).digest("hex");
 
       const isValid = calculatedSignature === signature;

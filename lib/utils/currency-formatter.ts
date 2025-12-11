@@ -287,29 +287,35 @@ export function parseCurrency(value: string): number {
 }
 
 /**
- * Convert amount between currencies (placeholder for future API integration)
+ * Convert amount between currencies
+ *
+ * IMPORTANT: Cross-currency conversion is NOT supported. This function enforces
+ * single-currency mode by throwing an error if different currencies are requested.
+ * Future integration with exchange rate API required for multi-currency support.
  *
  * @param amount - Amount to convert
  * @param fromCurrency - Source currency code
  * @param toCurrency - Target currency code
- * @returns Converted amount (currently returns same amount as placeholder)
+ * @returns Original amount if same currency, throws error otherwise
+ * @throws Error if cross-currency conversion is attempted (not implemented)
  */
 export function convertCurrency(
   amount: number,
   fromCurrency: string,
   toCurrency: string
 ): number {
-  // TODO: Implement actual currency conversion using exchange rate API
-  // For now, return the same amount (single-currency system)
-  if (fromCurrency === toCurrency) {
+  // Same currency - no conversion needed
+  if (fromCurrency.toUpperCase() === toCurrency.toUpperCase()) {
     return amount;
   }
 
-  // eslint-disable-next-line no-console -- Intentional warning for unimplemented feature
-  console.warn(
-    `Currency conversion from ${fromCurrency} to ${toCurrency} not yet implemented. Returning original amount.`
+  // SECURITY: Fail hard instead of silently returning wrong amount
+  // Cross-currency conversion requires exchange rate API integration
+  throw new Error(
+    `Currency conversion from ${fromCurrency} to ${toCurrency} is not supported. ` +
+    `Multi-currency operations require exchange rate API integration. ` +
+    `Please ensure all transactions use the same currency or implement exchange rate service.`
   );
-  return amount;
 }
 
 /**

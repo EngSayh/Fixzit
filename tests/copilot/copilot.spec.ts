@@ -33,7 +33,7 @@ const ROLES = [
   { name: "GUEST", requiresAuth: false },
   { name: "TENANT", requiresAuth: true },
   { name: "TECHNICIAN", requiresAuth: true },
-  { name: "PROPERTY_OWNER", requiresAuth: true },
+  { name: "CORPORATE_OWNER", requiresAuth: true },
   { name: "FINANCE", requiresAuth: true },
   { name: "SUPER_ADMIN", requiresAuth: true },
 ];

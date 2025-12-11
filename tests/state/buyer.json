@@ -1,0 +1,43 @@
+{
+  "cookies": [
+    {
+      "name": "authjs.session-token",
+      "value": "e2e-test-buyer-session-token-placeholder",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "next-auth.session-token",
+      "value": "e2e-test-buyer-session-token-placeholder",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:3100",
+      "localStorage": [
+        {
+          "name": "fixzit-role",
+          "value": "buyer"
+        },
+        {
+          "name": "fixzit-org",
+          "value": "68dc8955a1ba6ed80ff372dc"
+        },
+        {
+          "name": "fixzit-souq-buyer",
+          "value": "true"
+        }
+      ]
+    }
+  ]
+}

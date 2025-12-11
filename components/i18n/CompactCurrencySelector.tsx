@@ -1,14 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import { DollarSign } from "lucide-react";
-import { useCurrency } from "@/contexts/CurrencyContext";
-
-// Simplified currency options for auth pages
-const AUTH_CURRENCIES = [
-  { code: "SAR", symbol: "﷼", name: "Saudi Riyal" },
-  { code: "USD", symbol: "$", name: "US Dollar" },
-  { code: "EUR", symbol: "€", name: "Euro" },
-];
+import { useCurrency, type CurrencyCode } from "@/contexts/CurrencyContext";
 
 interface CompactCurrencySelectorProps {
   className?: string;
@@ -21,13 +15,12 @@ interface CompactCurrencySelectorProps {
 export default function CompactCurrencySelector({
   className = "",
 }: CompactCurrencySelectorProps) {
-  const { currency, setCurrency } = useCurrency();
+  const { currency, setCurrency, options } = useCurrency();
 
-  const handleChange = (newCurrency: string) => {
-    // Trust context to handle persistence - it already manages localStorage
-    if (setCurrency) {
-      (setCurrency as (val: string) => void)(newCurrency);
-    }
+  const authOptions = useMemo(() => options.slice(0, 6), [options]);
+
+  const handleChange = (newCurrency: CurrencyCode) => {
+    setCurrency(newCurrency);
   };
 
   return (
@@ -40,7 +33,7 @@ export default function CompactCurrencySelector({
           className="appearance-none bg-transparent border-none outline-none text-sm text-foreground font-medium cursor-pointer pe-1"
           aria-label="Select currency"
         >
-          {AUTH_CURRENCIES.map((curr) => (
+          {authOptions.map((curr) => (
             <option key={curr.code} value={curr.code}>
               {curr.symbol} {curr.code}
             </option>

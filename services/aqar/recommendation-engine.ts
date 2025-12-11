@@ -13,6 +13,10 @@ import {
   PropertyType,
   SmartHomeLevel,
 } from "@/server/models/aqar/Listing";
+import {
+  buildUserPreferenceProfile,
+  type UserPreferenceProfile,
+} from "@/services/aqar/personalization-service";
 import type { FilterQuery } from "mongoose";
 import { Types } from "mongoose";
 
@@ -41,6 +45,7 @@ export interface RecommendationContext {
   budget?: BudgetPreference;
   favorites?: string[];
   currentListingId?: string;
+  userId?: string;
   orgId?: string;
   tenantId?: string;
   limit?: number;
@@ -48,6 +53,9 @@ export interface RecommendationContext {
   updateAiSnapshot?: boolean;
   correlationId?: string;
   variant?: "primary" | "neighbor" | "experimental";
+  personalize?: boolean;
+  userProfile?: UserPreferenceProfile;
+  locale?: string;
 }
 
 export interface RecommendationResultItem {
@@ -84,6 +92,12 @@ export interface RecommendationResponse {
     neighborhoods?: string[];
     budget?: BudgetPreference;
   };
+  personalization?: {
+    applied: boolean;
+    budgetMin?: number;
+    budgetMax?: number;
+    signals?: UserPreferenceProfile["signals"];
+  };
 }
 
 type ListingProjection = {
@@ -111,13 +125,54 @@ export class AqarRecommendationEngine {
   private static readonly PROJECTION =
     "_id title city neighborhood price areaSqm propertyType intent amenities rnplEligible auction proptech immersive ai pricingInsights analytics fmLifecycle status";
 
+  private static async resolvePersonalization(
+    context: RecommendationContext,
+  ): Promise<{ profile?: UserPreferenceProfile; budget?: BudgetPreference }> {
+    if (context.personalize === false) {
+      return { profile: undefined, budget: context.budget };
+    }
+
+    try {
+      const profile =
+        context.userProfile ??
+        (context.userId
+          ? await buildUserPreferenceProfile(
+              context.userId,
+              context.orgId ?? context.tenantId,
+            )
+          : undefined);
+
+      const budget =
+        context.budget ??
+        (profile?.budgetMin || profile?.budgetMax
+          ? {
+              min: profile?.budgetMin,
+              max: profile?.budgetMax,
+            }
+          : undefined);
+
+      return { profile, budget };
+    } catch (error) {
+      logger.warn("[AqarRecommendationEngine] Failed to resolve personalization", {
+        error,
+      });
+      return { profile: undefined, budget: context.budget };
+    }
+  }
+
   static async recommend(
     context: RecommendationContext = {},
   ): Promise<RecommendationResponse> {
     const correlationId = context.correlationId ?? crypto.randomUUID();
     await connectDb();
 
-    const baseFilter = this.buildFilter(context);
+    const { profile, budget } = await this.resolvePersonalization(context);
+    const effectiveContext: RecommendationContext = {
+      ...context,
+      budget: context.budget ?? budget,
+    };
+
+    const baseFilter = this.buildFilter(effectiveContext);
     const limit = Math.min(24, Math.max(context.limit ?? 12, 6));
     const fetchLimit = Math.min(200, Math.max(limit * 5, 60));
 
@@ -140,7 +195,14 @@ export class AqarRecommendationEngine {
     }
 
     const scored = listings
-      .map((listing) => this.scoreListing(listing, context))
+      .map((listing) =>
+        this.scoreListing(
+          listing,
+          effectiveContext,
+          profile,
+          effectiveContext.budget,
+        ),
+      )
       .filter((item) => item.score > 0)
       .sort((a, b) => b.score - a.score);
 
@@ -171,7 +233,13 @@ export class AqarRecommendationEngine {
         propertyTypes: context.propertyTypes,
         city: context.preferredCity,
         neighborhoods: context.preferredNeighborhoods,
-        budget: context.budget,
+        budget: effectiveContext.budget,
+      },
+      personalization: {
+        applied: Boolean(profile),
+        budgetMin: profile?.budgetMin,
+        budgetMax: profile?.budgetMax,
+        signals: profile?.signals,
       },
     };
   }
@@ -259,6 +327,8 @@ export class AqarRecommendationEngine {
   private static scoreListing(
     listing: ListingProjection,
     context: RecommendationContext,
+    profile?: UserPreferenceProfile,
+    budgetOverride?: BudgetPreference,
   ): RecommendationResultItem {
     let score = listing.ai?.recommendationScore ?? 32;
     const reasons: string[] = [];
@@ -293,7 +363,7 @@ export class AqarRecommendationEngine {
 
     const priceScore = this.computePriceScore(
       listing.price?.amount,
-      context.budget,
+      budgetOverride ?? context.budget,
     );
     score += priceScore.value;
     if (priceScore.reason) {
@@ -367,6 +437,14 @@ export class AqarRecommendationEngine {
         reasons.push("below-neighborhood");
       }
     }
+
+    const personalization = this.applyPersonalization(
+      listing,
+      profile,
+      budgetOverride ?? context.budget,
+    );
+    score += personalization.delta;
+    reasons.push(...personalization.reasons);
 
     const highlights = this.buildHighlights(listing, pricePerSqm);
     const badges = this.buildBadges(listing, reasons);
@@ -455,6 +533,65 @@ export class AqarRecommendationEngine {
       highlights.push("مزايدة نشطة");
     }
     return highlights;
+  }
+
+  private static applyPersonalization(
+    listing: ListingProjection,
+    profile?: UserPreferenceProfile,
+    budget?: BudgetPreference,
+  ): { delta: number; reasons: string[] } {
+    if (!profile) return { delta: 0, reasons: [] };
+
+    let delta = 0;
+    const reasons: string[] = [];
+    const weights = [6, 4, 3, 2];
+
+    const applyListMatch = (
+      preferences: string[],
+      value?: string | null,
+      reason?: string,
+    ) => {
+      if (!value) return;
+      const idx = preferences.findIndex((item) => item === value);
+      if (idx >= 0) {
+        delta += weights[idx] ?? 1.5;
+        if (reason) reasons.push(reason);
+      }
+    };
+
+    applyListMatch(
+      profile.preferredPropertyTypes,
+      listing.propertyType,
+      "personalized-property-type",
+    );
+    applyListMatch(
+      profile.preferredCities,
+      listing.city,
+      "personalized-city",
+    );
+    applyListMatch(
+      profile.preferredNeighborhoods,
+      listing.neighborhood,
+      "personalized-neighborhood",
+    );
+
+    if (budget && listing.price?.amount) {
+      const min = budget.min ?? profile.budgetMin;
+      const max = budget.max ?? profile.budgetMax;
+
+      if (
+        (min === undefined || listing.price.amount >= min) &&
+        (max === undefined || listing.price.amount <= max)
+      ) {
+        delta += 5;
+        reasons.push("personalized-budget");
+      } else if (max && listing.price.amount <= max * 1.1) {
+        delta += 2;
+        reasons.push("near-budget");
+      }
+    }
+
+    return { delta, reasons };
   }
 
   private static buildBadges(

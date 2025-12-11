@@ -152,6 +152,21 @@ export default function AdministrationPage() {
       },
     },
     {
+      id: "rate-limiting",
+      name: t("admin.rateLimit.title", "Rate Limiting"),
+      description: t(
+        "admin.rateLimit.description",
+        "Monitor throttling events and login guardrails",
+      ),
+      icon: Activity,
+      href: "/admin/rate-limiting",
+      color: "bg-amber-500",
+      stats: {
+        label: t("admin.rateLimit.stats", "Recent 429s"),
+        value: "---",
+      },
+    },
+    {
       id: "database",
       name: t("admin.database.title", "Database Management"),
       description: t(

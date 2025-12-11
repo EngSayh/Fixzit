@@ -40,9 +40,18 @@ const envVars = {
   PAYTABS_SERVER_KEY: !!process.env.PAYTABS_SERVER_KEY,
   PAYTABS_CLIENT_KEY: !!process.env.PAYTABS_CLIENT_KEY,
 
-  // Payment - Tap
-  TAP_SECRET_KEY: !!process.env.TAP_SECRET_KEY,
-  TAP_PUBLIC_KEY: !!process.env.TAP_PUBLIC_KEY,
+  // Payment - Tap (standardized names)
+  TAP_ENVIRONMENT: !!process.env.TAP_ENVIRONMENT,
+  TAP_TEST_SECRET_KEY: !!process.env.TAP_TEST_SECRET_KEY,
+  TAP_LIVE_SECRET_KEY: !!process.env.TAP_LIVE_SECRET_KEY,
+  TAP_MERCHANT_ID: !!process.env.TAP_MERCHANT_ID,
+  TAP_ACCOUNT_ID: !!process.env.TAP_ACCOUNT_ID,
+  TAP_API_KEY: !!process.env.TAP_API_KEY,
+  TAP_GOSELL_USERNAME: !!process.env.TAP_GOSELL_USERNAME,
+  TAP_GOSELL_PASSWORD: !!process.env.TAP_GOSELL_PASSWORD,
+  TAP_WEBHOOK_SECRET: !!process.env.TAP_WEBHOOK_SECRET,
+  NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY: !!process.env.NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY,
+  NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY: !!process.env.NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY,
 
   // ZATCA
   ZATCA_API_KEY: !!process.env.ZATCA_API_KEY,
@@ -138,7 +147,19 @@ const categories = {
     "PAYTABS_SERVER_KEY",
     "PAYTABS_CLIENT_KEY",
   ],
-  "💰 Payment - Tap": ["TAP_SECRET_KEY", "TAP_PUBLIC_KEY"],
+  "💰 Payment - Tap": [
+    "TAP_ENVIRONMENT",
+    "TAP_TEST_SECRET_KEY",
+    "TAP_LIVE_SECRET_KEY",
+    "TAP_MERCHANT_ID",
+    "TAP_ACCOUNT_ID",
+    "TAP_API_KEY",
+    "TAP_GOSELL_USERNAME",
+    "TAP_GOSELL_PASSWORD",
+    "TAP_WEBHOOK_SECRET",
+    "NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY",
+    "NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY",
+  ],
   "🇸🇦 ZATCA": [
     "ZATCA_API_KEY",
     "ZATCA_API_SECRET",

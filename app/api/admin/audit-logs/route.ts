@@ -16,11 +16,12 @@
  * @throws {403} If not SUPER_ADMIN
  */
 import { NextRequest, NextResponse } from "next/server";
+import type { FilterQuery } from "mongoose";
 
 // Prevent prerendering/export of this API route (requires auth + database)
 export const dynamic = "force-dynamic";
 import { auth } from "@/auth";
-import { AuditLogModel } from "@/server/models/AuditLog";
+import { AuditLogModel, type AuditLog } from "@/server/models/AuditLog";
 import { connectDb } from "@/lib/mongo";
 
 import { logger } from "@/lib/logger";
@@ -51,21 +52,22 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get("action");
     const startDateStr = searchParams.get("startDate");
     const endDateStr = searchParams.get("endDate");
+    const successParam = searchParams.get("success");
 
     // Parse and validate pagination with safe defaults and caps
     let limit = parseInt(searchParams.get("limit") || "100", 10);
-    let skip = parseInt(searchParams.get("skip") || "0", 10);
+    let page = parseInt(searchParams.get("page") || "1", 10);
 
     // Validate and cap pagination values to prevent DoS
     if (!Number.isInteger(limit) || limit < 1) {
       limit = 100;
     }
-    if (!Number.isInteger(skip) || skip < 0) {
-      skip = 0;
+    if (!Number.isInteger(page) || page < 1) {
+      page = 1;
     }
-    // Cap limit at 1000 and skip at 100000 for safety
-    limit = Math.min(limit, 1000);
-    skip = Math.min(skip, 100000);
+    // Cap limit at 500 for safety
+    limit = Math.min(limit, 500);
+    const skip = (page - 1) * limit;
 
     // Validate and parse date parameters
     let startDate: Date | undefined;
@@ -109,19 +111,46 @@ export async function GET(request: NextRequest) {
       return rateLimitError();
     }
 
-    // Search logs
-    const logs = await AuditLogModel.search({
-      orgId,  // ✅ Validated orgId
-      userId: userId || undefined,
-      entityType: entityType || undefined,
-      action: action || undefined,
-      startDate,
-      endDate,
-      limit,
-      skip,
-    });
+    const query: FilterQuery<AuditLog> = { orgId };
+    if (userId) {
+      query.userId = userId;
+    }
+    if (entityType) {
+      query.entityType = entityType;
+    }
+    if (action) {
+      query.action = action;
+    }
+    if (successParam === "true") {
+      query["result.success"] = true;
+    } else if (successParam === "false") {
+      query["result.success"] = false;
+    }
+    if (startDate || endDate) {
+      query.timestamp = {};
+      if (startDate) {
+        query.timestamp.$gte = startDate;
+      }
+      if (endDate) {
+        query.timestamp.$lte = endDate;
+      }
+    }
 
-    return NextResponse.json({ logs });
+    const [logs, total] = await Promise.all([
+      AuditLogModel.find(query).sort({ timestamp: -1 }).limit(limit).skip(skip),
+      AuditLogModel.countDocuments(query),
+    ]);
+
+    const pages = Math.max(1, Math.ceil(total / limit));
+
+    // Search logs
+    return NextResponse.json({
+      logs,
+      total,
+      page,
+      pages,
+      limit,
+    });
   } catch (error) {
     logger.error("Failed to fetch audit logs:", error);
     return NextResponse.json(

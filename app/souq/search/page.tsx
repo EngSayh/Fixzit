@@ -50,7 +50,7 @@ export default function SearchPage() {
 
   // Get query params
   const query = params.get("q") || "";
-  const page = parseInt(params.get("page") || "1");
+  const page = parseInt(params.get("page") || "1", 10);
   const category = params.get("category");
   const minPrice = params.get("minPrice");
   const maxPrice = params.get("maxPrice");

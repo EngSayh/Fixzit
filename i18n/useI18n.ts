@@ -1,5 +1,6 @@
 import { useContext, useCallback } from "react";
 import { I18nContext } from "./I18nProvider";
+import { formatIcuMessage } from "./formatMessage";
 
 type Dict = Record<string, unknown>;
 
@@ -26,23 +27,20 @@ export function useI18n() {
   // FIX: Use useCallback to memoize translation function based on dict reference
   // This ensures 't' has a stable identity when dict doesn't change,
   // but updates when dict changes
-  const { dict } = ctx;
+  const { dict, locale } = ctx;
   const t = useCallback(
-    (key: string, vars?: Record<string, string | number>) => {
+    (
+      key: string,
+      vars?: Record<string, string | number | boolean | Date | null>,
+    ) => {
       const raw = drill(key, dict) ?? key;
       if (typeof raw !== "string") {
         return key;
       }
 
-      if (!vars) {
-        return raw;
-      }
-
-      return Object.keys(vars).reduce((acc, token) => {
-        return acc.replace(new RegExp(`{${token}}`, "g"), String(vars[token]));
-      }, raw);
+      return formatIcuMessage(key, raw, locale, vars);
     },
-    [dict], // Recreate function when dict reference changes
+    [dict, locale], // Recreate function when dict reference changes
   );
 
   return { ...ctx, t, isRTL };

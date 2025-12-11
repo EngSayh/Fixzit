@@ -1,7 +1,36 @@
 # 📋 CATEGORIZED TASKS LIST
 
-**Generated**: November 6, 2025  
+> ⚠️ **DEPRECATED**: This file is no longer maintained as of December 2025.  
+> **Canonical Source**: See [`docs/PENDING_MASTER.md`](./PENDING_MASTER.md) for the single source of truth.  
+> This file is preserved for historical reference only.
+
+**Snapshot Refreshed**: 2025-12-11T23:40:00+03:00 (synced with `docs/PENDING_MASTER.md` v15.11)  
+**Legacy Archive Generated**: November 6, 2025 (ARCHIVED)  
 **Source**: Past 5 days analysis + TODO/FIXME scan + Test results
+
+---
+
+## Current Snapshot (Dec 2025)
+
+- Total active items: **15** (Category G cleared; A/B/C verified).  
+- Closed in this refresh: `SYS-008`, `TODO-DOC-001`, `TODO-DOC-002` with new references:
+  - `docs/guides/TYPE_SAFETY_PATTERNS.md` — Mongoose statics/type-safety pattern (covers TODO-001..005)
+  - `docs/archived/HISTORICAL_NOTES_CLEANUP_2025-12-11.md` — Historical notes moved out of code
+- Canonical tracker: `docs/PENDING_MASTER.md` (v15.11)
+
+| Category | Count | Notes |
+|----------|-------|-------|
+| A: Security | 0 | Verified (no open items) |
+| B: CI/CD | 0 | Verified (no open items) |
+| C: API & Backend | 0 | Verified (no open items) |
+| D: Code Quality | 5 | Incremental cleanup |
+| E: I18N & UX | 1 | Arabic translations backlog |
+| F: Features/Backlog | 9 | Future sprint items |
+| G: Documentation | 0 | Category cleared this refresh |
+
+---
+
+## Legacy Archive (Nov 2025)
 
 ---
 

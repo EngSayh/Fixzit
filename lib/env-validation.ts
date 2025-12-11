@@ -61,19 +61,38 @@ export function validateSMSConfig(options: ValidationOptions = {}): EnvValidatio
 }
 
 /**
- * Validate job/cron secrets (used by scheduled endpoints)
+ * Validate job/cron and webhook secrets (used by scheduled endpoints and callbacks)
  */
 export function validateJobSecrets(options: ValidationOptions = {}): EnvValidationResult {
   const strict = options.strict !== false;
   const errors: string[] = [];
   const warnings: string[] = [];
 
+  // Cron secret validation
   if (!process.env.CRON_SECRET) {
     if (process.env.NODE_ENV === "production" && strict) {
       errors.push("CRON_SECRET is required for secured cron endpoints.");
     } else {
       warnings.push("CRON_SECRET not set. Cron job endpoints will reject secret auth.");
     }
+  }
+
+  // SEC-001: Webhook secrets validation
+  if (!process.env.TAP_WEBHOOK_SECRET) {
+    warnings.push("TAP_WEBHOOK_SECRET not set. TAP payment webhooks will be rejected.");
+  }
+
+  if (!process.env.COPILOT_WEBHOOK_SECRET) {
+    warnings.push("COPILOT_WEBHOOK_SECRET not set. Copilot knowledge webhooks will be rejected.");
+  }
+
+  if (!process.env.SENDGRID_WEBHOOK_SECRET) {
+    warnings.push("SENDGRID_WEBHOOK_SECRET not set. SendGrid inbound webhooks will be rejected.");
+  }
+
+  // Vercel cron authorization
+  if (!process.env.VERCEL_CRON_SECRET && !process.env.CRON_SECRET) {
+    warnings.push("Neither VERCEL_CRON_SECRET nor CRON_SECRET set. Scheduled jobs may fail authorization.");
   }
 
   return {
@@ -185,15 +204,26 @@ export function validatePaymentConfig(options: ValidationOptions = {}): EnvValid
   const hasPaytabs =
     Boolean(process.env.PAYTABS_SERVER_KEY) &&
     Boolean(process.env.PAYTABS_PROFILE_ID);
-  const hasTap = Boolean(process.env.TAP_WEBHOOK_SECRET);
+  
+  // Tap: Environment-aware key detection
+  const tapEnvIsLive = process.env.TAP_ENVIRONMENT === "live" || process.env.NODE_ENV === "production";
+  const tapSecretKey = tapEnvIsLive 
+    ? process.env.TAP_LIVE_SECRET_KEY 
+    : process.env.TAP_TEST_SECRET_KEY;
+  const hasTap = Boolean(tapSecretKey);
 
   if (!hasPaytabs && !hasTap) {
+    const tapKeyName = tapEnvIsLive ? "TAP_LIVE_SECRET_KEY" : "TAP_TEST_SECRET_KEY";
     const msg =
-      "Payment gateway not configured. Configure Tap (TAP_WEBHOOK_SECRET) or PayTabs (PAYTABS_SERVER_KEY, PAYTABS_PROFILE_ID).";
+      `Payment gateway not configured. Configure Tap (TAP_ENVIRONMENT + ${tapKeyName}) or PayTabs (PAYTABS_SERVER_KEY, PAYTABS_PROFILE_ID).`;
     // CHANGED: Payment is optional - warn instead of error to allow graceful degradation
     warnings.push(msg);
   } else {
     if (!hasTap) {
+      const tapKeyName = tapEnvIsLive ? "TAP_LIVE_SECRET_KEY" : "TAP_TEST_SECRET_KEY";
+      warnings.push(`Tap secret key missing (${tapKeyName}) - Tap payments disabled.`);
+    }
+    if (!process.env.TAP_WEBHOOK_SECRET) {
       warnings.push("Tap webhook secret missing (TAP_WEBHOOK_SECRET) - Tap callbacks will be rejected.");
     }
     if (!hasPaytabs) {
@@ -313,7 +343,13 @@ export function getConfigStatus(): Record<string, { configured: boolean; details
       ),
     },
     tap: {
-      configured: Boolean(process.env.TAP_WEBHOOK_SECRET),
+      // Environment-aware: check the appropriate key based on TAP_ENVIRONMENT
+      configured: Boolean(
+        process.env.TAP_ENVIRONMENT === "live" || process.env.NODE_ENV === "production"
+          ? process.env.TAP_LIVE_SECRET_KEY
+          : process.env.TAP_TEST_SECRET_KEY
+      ),
+      details: `environment=${process.env.TAP_ENVIRONMENT || "test"}`,
     },
   };
 }

@@ -698,4 +698,7 @@ class SystemAuditScanner {
 // RUN THE AUDIT
 // ==========================================
 const scanner = new SystemAuditScanner();
-scanner.runCompleteAudit().catch(console.error);
+scanner.runCompleteAudit().catch((err) => {
+  console.error('System audit failed:', err);
+  process.exit(1);
+});

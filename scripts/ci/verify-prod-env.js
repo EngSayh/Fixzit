@@ -9,7 +9,13 @@ const warnings = [];
 const env = process.env;
 // Only validate in actual production/preview deployments (Vercel), not in CI test builds
 const isProdDeploy = env.VERCEL_ENV === 'production' || env.VERCEL_ENV === 'preview';
-const tapConfigured = Boolean(env.TAP_PUBLIC_KEY) && Boolean(env.TAP_WEBHOOK_SECRET);
+
+// Tap: Use standardized env var names with environment-aware key selection
+const tapEnvIsLive = env.TAP_ENVIRONMENT === 'live' || env.VERCEL_ENV === 'production';
+const tapSecretKey = tapEnvIsLive ? env.TAP_LIVE_SECRET_KEY : env.TAP_TEST_SECRET_KEY;
+const tapPublicKey = tapEnvIsLive ? env.NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY : env.NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY;
+const tapConfigured = Boolean(tapPublicKey) && Boolean(env.TAP_WEBHOOK_SECRET);
+
 const paytabsConfigured = Boolean(env.PAYTABS_PROFILE_ID) && Boolean(env.PAYTABS_SERVER_KEY);
 
 // Redis is required for BullMQ queues (activation retries, ZATCA compliance)
@@ -71,8 +77,12 @@ requireFalse('DISABLE_MONGODB_FOR_BUILD', 'DISABLE_MONGODB_FOR_BUILD must be fal
   }
 
   if (!tapConfigured && !paytabsConfigured) {
+    const tapEnvType = tapEnvIsLive ? 'live' : 'test';
+    const tapKeys = tapEnvIsLive 
+      ? 'NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY, TAP_LIVE_SECRET_KEY' 
+      : 'NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY, TAP_TEST_SECRET_KEY';
     warnings.push(
-      'No payment provider configured: set PayTabs (PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY) or Tap (TAP_PUBLIC_KEY, TAP_WEBHOOK_SECRET)',
+      `No payment provider configured: set PayTabs (PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY) or Tap (${tapKeys}, TAP_WEBHOOK_SECRET). Current TAP_ENVIRONMENT: ${tapEnvType}`,
     );
   }
 

@@ -118,12 +118,22 @@ These secrets enable major features. Without them, users will experience broken 
 - **How to get:**
   1. Go to https://dashboard.tap.company
   2. Settings → API Keys
-  3. Copy Secret Key and Public Key
+  3. Copy Test/Live Secret Keys and Public Keys
 - **Add to Vercel:**
   ```bash
-  vercel env add TAP_SECRET_KEY production
-  vercel env add TAP_PUBLIC_KEY production
+  # Test mode keys (for development/staging)
+  vercel env add TAP_TEST_SECRET_KEY preview
+  vercel env add NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY preview
+  
+  # Live mode keys (for production)
+  vercel env add TAP_LIVE_SECRET_KEY production
+  vercel env add NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY production
+  
+  # Webhook secret (all environments)
+  vercel env add TAP_WEBHOOK_SECRET production
   ```
+  
+  > **Note:** Old `TAP_SECRET_KEY` / `TAP_PUBLIC_KEY` are deprecated. Use environment-specific keys above. See `lib/tapConfig.ts` for details.
 
 ---
 

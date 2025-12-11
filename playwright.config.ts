@@ -34,12 +34,13 @@ const useBuild = process.env.PW_USE_BUILD === 'true';
 const ROOT_DIR = path.resolve(__dirname);
 const DEFAULT_HOST = process.env.PW_HOSTNAME || '127.0.0.1';
 const DEFAULT_PORT = process.env.PW_PORT || '3100';
+const AUTH_BASE_URL = process.env.PW_WEB_URL || `http://${DEFAULT_HOST}:${DEFAULT_PORT}`;
 const WEB_COMMAND = process.env.PW_WEB_SERVER
   ? process.env.PW_WEB_SERVER
   : useBuild
     ? `sh -c "cd ${ROOT_DIR} && mkdir -p .next/standalone/.next && cp -R .next/static .next/standalone/.next/static 2>/dev/null || true; cp -R public .next/standalone/public 2>/dev/null || true; NEXT_OUTPUT=standalone HOSTNAME=${DEFAULT_HOST} PORT=${DEFAULT_PORT} node .next/standalone/server.js"`
     : `cd ${ROOT_DIR} && npm run dev:webpack -- --hostname ${DEFAULT_HOST} --port ${DEFAULT_PORT}`;
-const WEB_URL = process.env.PW_WEB_URL || `http://${DEFAULT_HOST}:${DEFAULT_PORT}`;
+const WEB_URL = AUTH_BASE_URL;
 
 // Load environment variables from .env.test if it exists
 // This ensures GOOGLE_CLIENT_ID/SECRET and other test credentials are available
@@ -172,7 +173,9 @@ export default defineConfig({
       HOSTNAME: process.env.PW_HOSTNAME || DEFAULT_HOST,
       NEXTAUTH_SECRET: resolvedAuthSecret,
       AUTH_SECRET: resolvedAuthSecret,
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL || WEB_URL,
+      NEXTAUTH_URL: AUTH_BASE_URL,
+      AUTH_URL: AUTH_BASE_URL,
+      BASE_URL: WEB_URL,
       CORS_ORIGINS: process.env.CORS_ORIGINS || WEB_URL,
       // Pass Google OAuth credentials to prevent warning logs
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',

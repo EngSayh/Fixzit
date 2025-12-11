@@ -1,33 +1,30 @@
 # TODO FEATURE TRACKING
 **Generated**: November 23, 2025  
-**Last validated**: Today  
-**Purpose**: Track *all* remaining TODO markers in production code with factual counts  
+**Last validated**: 2025-12-11  
+**Purpose**: Track remaining TODO clusters and keep paths in sync with the current code layout  
 **Status**: 📋 Ready for Sprint Planning
 
 ---
 
 ## 📊 SUMMARY
 
-- **Total TODO markers in production**: 9  
-  - 1 feature enhancement (personalized recommendations)  
-  - 5 type-safety cleanups (Mongoose statics/model exports)  
-  - 1 configuration TODO (boost pricing)  
-  - 2 documentation/historical notes  
-- **Risk**: Low–medium (type-safety debt can hide runtime issues)  
-- **Impact**: One UX feature; rest are quality/hardening items
+- **Active TODO clusters**: 1 (Aqar personalization backlog)  
+- **Closed clusters**: Type-safety statics (5), boost pricing config, and 2 documentation/historical notes — all resolved and documented.  
+- **Risk**: Low–medium (feature work only; type-safety debt was cleared)  
+- **Impact**: Feature uplift only; no open safety or reliability debt in this list.
 
 ---
 
-## 🎯 FEATURE TODOs (1)
+## 🎯 FEATURE TODOs (1 active)
 
 ### 1. User Personalization for Aqar Recommendations
-**Location**: `src/lib/aqar/recommendation.ts:103`  
+**Location**: Backlog item `TODO-006` (see `docs/PENDING_MASTER.md`); current wrapper lives in `lib/aqar/recommendation.ts` and delegates to `services/aqar/recommendation-engine.ts`.  
 **Priority**: 🟢 Low (Enhancement)  
 **Effort**: 🔵 Medium (2–3 days)  
 **Category**: Machine Learning / Personalization
 
 **Current Behavior**  
-Recommendations are based only on property attributes (location, type, price range).
+Recommendations are based only on property attributes (location, type, price range) via `AqarRecommendationEngine.recommend()`.
 
 **Proposed Enhancement**  
 Personalize scoring using viewing history, favorites, and search patterns (collaborative/content-based filtering). Add A/B testing and metrics dashboard.
@@ -45,25 +42,22 @@ Start with favorites weighting (quick win), then add view tracking, then ML mode
 
 ---
 
-## 🛡️ TYPE-SAFETY DEBT (5)
-- `models/project.model.ts:522` – `setStatus` static is cast; define proper ProjectModel statics interface.
-- `models/project.model.ts:542` – `recomputeBudget` static cast; same fix as above.
-- `models/aqarBooking.model.ts:435` – `isAvailable` casts `this` to BookingModel.
-- `models/aqarBooking.model.ts:453` – `createWithAvailability` casts `this` to BookingModel.
-- `models/aqarBooking.model.ts:523` – Model export cast to BookingModel.
-
-**Suggested fix**: Define reusable `BookingModel`/`ProjectModel` static interfaces and apply them instead of `as unknown as` casts.
+## ✅ CLOSED: TYPE-SAFETY DEBT (5)
+- Legacy statics in `models/project.model.ts` and `models/aqarBooking.model.ts` were rehomed and fixed.  
+- Canonical pattern documented in `docs/guides/TYPE_SAFETY_PATTERNS.md` (see `server/models/aqar/Booking.ts:642-750` for the live implementation).  
+- No remaining `TODO(type-safety)` markers or `as unknown as` casts in the statics cluster.
 
 ---
 
-## ⚙️ CONFIGURATION TODO (1)
-- `models/aqarBoost.model.ts:10` – Boost pricing hardcoded; TODO notes org-level configurable pricing. Add settings source with sensible defaults and admin override.
+## ✅ CLOSED: CONFIGURATION TODO
+- Boost pricing now configurable via `server/models/aqar/Boost.ts` (`getPricing` reads `BOOST_*_PRICE_PER_DAY` with sane defaults).  
+- No hardcoded prices remain; tenant isolation enforced through the model.
 
 ---
 
-## 📝 DOCUMENTATION / HISTORICAL NOTES (2)
-- `components/SystemVerifier.tsx:32` – Documentation note about dynamic API integration.
-- `app/api/admin/users/route.ts:180` – Historical note on removed plaintext passwords.
+## ✅ CLOSED: DOCUMENTATION / HISTORICAL NOTES (2)
+- Notes were moved out of code and captured in `docs/archived/HISTORICAL_NOTES_CLEANUP_2025-12-11.md` (SystemVerifier dynamic status + admin user password history).  
+- UI now references the archive instead of inline historical comments.
 
 ---
 

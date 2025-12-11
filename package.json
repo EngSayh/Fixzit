@@ -121,6 +121,9 @@
     "test:stable": "pnpm exec vitest run --reporter=dot --maxWorkers=1 --fileParallelism=false",
     "clean:root": "tsx scripts/janitor.ts --apply",
     "bundle:check": "webpack --config webpack.config.js --mode=production",
+    "analyze:client": "ANALYZE=true next build",
+    "bundle:budget": "node scripts/checkBundleBudget.mjs",
+    "bundle:budget:report": "node scripts/checkBundleBudget.mjs --report",
     "seed:marketplace": "tsx scripts/seed-marketplace.ts",
     "seed:prod-data": "tsx scripts/seed-production-data.ts",
     "seed:test": "pnpm exec tsx scripts/seed-test-users.ts",
@@ -155,6 +158,8 @@
     "health:watch": "watch -n 30 'bash scripts/system-health-check.sh'",
     "lint:weak-passwords": "node scripts/check-weak-passwords.js",
     "guard:seeds": "node scripts/check-seed-guards.js",
+    "storybook": "storybook dev -p 6006",
+    "storybook:build": "storybook build -o _artifacts/storybook",
     "prepare": "simple-git-hooks"
   },
   "dependencies": {
@@ -198,6 +203,7 @@
     "html2canvas": "^1.4.1",
     "ical.js": "^2.2.1",
     "import-in-the-middle": "1.15.0",
+    "intl-messageformat": "^10.7.18",
     "ioredis": "^5.8.2",
     "isomorphic-dompurify": "^2.32.0",
     "jose": "^5.10.0",
@@ -230,10 +236,12 @@
     "require-in-the-middle": "7.5.2",
     "server-only": "^0.0.1",
     "sonner": "^2.0.7",
+    "swagger-ui-react": "^5.30.3",
     "swr": "^2.3.6",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "unified": "^11.0.5",
+    "yaml": "^2.8.2",
     "zod": "^4.1.12",
     "zustand": "^5.0.8"
   },
@@ -243,6 +251,13 @@
     "@next/bundle-analyzer": "^16.0.3",
     "@next/eslint-plugin-next": "^16.0.3",
     "@playwright/test": "^1.56.1",
+    "@storybook/addon-a11y": "^8.6.14",
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/addon-interactions": "^8.6.14",
+    "@storybook/blocks": "^8.6.14",
+    "@storybook/nextjs": "^8.6.14",
+    "@storybook/react": "^8.6.14",
+    "@storybook/test": "^8.6.14",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
@@ -285,6 +300,7 @@
     "recast": "^0.23.11",
     "redis": "^5.9.0",
     "simple-git-hooks": "^2.9.0",
+    "storybook": "^8.6.14",
     "supertest": "^6.3.4",
     "tailwindcss": "^3.4.18",
     "tailwindcss-logical": "^3.0.1",
@@ -308,7 +324,7 @@
     }
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm lint:prod && pnpm lint:inventory-org && pnpm guard:fm-hooks && bash scripts/security/check-hardcoded-uris.sh",
+    "pre-commit": "pnpm audit --prod --audit-level=high && pnpm lint:prod && pnpm lint:inventory-org && pnpm guard:fm-hooks && bash scripts/security/check-hardcoded-uris.sh",
     "pre-push": "pnpm lint:mongo-unwrap && pnpm typecheck"
   }
 }

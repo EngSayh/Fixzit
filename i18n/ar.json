@@ -1,4 +1,7 @@
 {
+  "brand": {
+    "logoAlt": "شعار فكس إت"
+  },
   "landing": {
     "title": "فكس إت - إدارة كاملة للعقارات والمرافق",
     "subtitle": "تبسيط العمليات وإدارة أوامر العمل وتحسين محفظتك العقارية",
@@ -71,53 +74,53 @@
     "presignFailed": "فشل الحصول على رابط التحميل",
     "resumeUploadNote": "يرجى تحميل سيرتك الذاتية بصيغة PDF (بحد أقصى 5 ميجابايت)",
     "resumeScanStatus": "جاري فحص السيرة الذاتية من الفيروسات...",
-    "fullNameRequired": "[AR] Full Name Required",
-    "emailRequired": "[AR] Email Required",
-    "emailInvalid": "[AR] Email Invalid",
-    "phoneInvalid": "[AR] Phone Invalid",
-    "linkedinInvalid": "[AR] Linkedin Invalid",
-    "experienceInvalid": "[AR] Experience Invalid",
-    "resumeRequired": "[AR] Resume Required",
-    "resumeType": "[AR] Resume Type",
-    "resumeSize": "[AR] Resume Size",
-    "spamDetected": "[AR] Spam Detected",
-    "tooMany": "[AR] Too Many",
-    "applyFailed": "[AR] Apply Failed",
-    "applySuccess": "[AR] Apply successful",
-    "applyNow": "[AR] Apply Now",
-    "fullName": "[AR] Full Name",
-    "fullNamePh": "[AR] Full Name Ph",
+    "fullNameRequired": "الاسم الكامل مطلوب",
+    "emailRequired": "البريد الإلكتروني مطلوب",
+    "emailInvalid": "البريد الإلكتروني غير صالح",
+    "phoneInvalid": "رقم الهاتف غير صالح",
+    "linkedinInvalid": "رابط لينكد إن غير صالح",
+    "experienceInvalid": "سنوات الخبرة غير صالحة",
+    "resumeRequired": "السيرة الذاتية مطلوبة",
+    "resumeType": "يجب أن تكون السيرة الذاتية بصيغة PDF",
+    "resumeSize": "حجم السيرة الذاتية كبير جداً",
+    "spamDetected": "تم اكتشاف بريد عشوائي",
+    "tooMany": "طلبات كثيرة جداً، حاول لاحقاً",
+    "applyFailed": "فشل التقديم",
+    "applySuccess": "تم التقديم بنجاح",
+    "applyNow": "تقدم الآن",
+    "fullName": "الاسم الكامل",
+    "fullNamePh": "أدخل اسمك الكامل",
     "email": "البريد الإلكتروني",
-    "emailPh": "[AR] Email Ph",
+    "emailPh": "أدخل بريدك الإلكتروني",
     "phone": "الهاتف",
-    "phonePh": "[AR] Phone Ph",
+    "phonePh": "أدخل رقم هاتفك",
     "location": "الموقع",
-    "locationPh": "[AR] Location Ph",
-    "experience": "[AR] Experience",
-    "linkedin": "[AR] Linkedin",
-    "skills": "[AR] Skills",
-    "skillsPh": "[AR] Skills Ph",
-    "skillsHint": "[AR] Skills Hint",
-    "coverLetter": "[AR] Cover Letter",
-    "coverLetterPh": "[AR] Cover Letter Ph",
-    "resume": "[AR] Resume",
-    "resumeHint": "[AR] Resume Hint",
-    "submitting": "[AR] Submitting",
+    "locationPh": "أدخل موقعك",
+    "experience": "الخبرة",
+    "linkedin": "لينكد إن",
+    "skills": "المهارات",
+    "skillsPh": "أدخل مهاراتك",
+    "skillsHint": "افصل المهارات بفاصلة",
+    "coverLetter": "خطاب التقديم",
+    "coverLetterPh": "اكتب خطاب التقديم هنا",
+    "resume": "السيرة الذاتية",
+    "resumeHint": "يرجى رفع سيرتك الذاتية بصيغة PDF",
+    "submitting": "جارٍ الإرسال",
     "submit": "إرسال",
     "terms": "الشروط",
     "notFound": {
-      "title": "[AR] Careers Not Found",
-      "description": "[AR] Enter description",
-      "viewAll": "[AR] View All",
-      "goHome": "[AR] Go Home",
-      "footerPrompt": "[AR] Footer Prompt",
+      "title": "لم يتم العثور على وظائف",
+      "description": "أدخل الوصف",
+      "viewAll": "عرض الكل",
+      "goHome": "العودة للرئيسية",
+      "footerPrompt": "هل تبحث عن فرص عمل؟",
       "contact": "اتصل بنا"
     },
     "detail": {
-      "back": "[AR] Back",
-      "description": "[AR] Enter description",
-      "requirements": "[AR] Requirements",
-      "benefits": "[AR] Benefits"
+      "back": "رجوع",
+      "description": "أدخل الوصف",
+      "requirements": "المتطلبات",
+      "benefits": "المزايا"
     }
   },
   "auth": {
@@ -216,8 +219,8 @@
         "label": "مدير العمليات",
         "description": "يشرف على أوامر العمل وعمليات العقارات"
       },
-      "specializationTooltip": "[AR] Specialization Tooltip",
-      "ariaLabel": "[AR] Aria"
+      "specializationTooltip": "اختر تخصصك الوظيفي",
+      "ariaLabel": "تسمية إمكانية الوصول"
     },
     "modules": {
       "dashboard": "لوحة التحكم",
@@ -233,26 +236,26 @@
       "reports": "التقارير",
       "system": "النظام"
     },
-    "approvalQueue": "[AR] Approval Queue",
-    "approvalQueueDesc": "[AR] Approval Queue Desc",
-    "redirecting": "[AR] Redirecting",
+    "approvalQueue": "قائمة الموافقات",
+    "approvalQueueDesc": "إدارة الطلبات المعلقة للموافقة",
+    "redirecting": "جارٍ التحويل",
     "footer": {
       "accessDenied": "الوصول مرفوض",
-      "loadFailed": "[AR] Load Failed",
+      "loadFailed": "فشل التحميل",
       "networkError": "خطأ في الشبكة. يرجى المحاولة مرة أخرى.",
       "saving": "جاري الحفظ...",
-      "saveSuccess": "[AR] Save successful",
-      "saveFailed": "[AR] Save Failed",
-      "saveNetworkError": "[AR] Save Network failed",
-      "title": "[AR] Admin Footer",
-      "subtitle": "[AR] Manage your footer",
-      "contentEn": "[AR] Content En",
-      "contentEnPlaceholder": "[AR] Enter Content En",
-      "contentAr": "[AR] Content Ar",
-      "contentArPlaceholder": "[AR] Enter Content Ar",
-      "helpTitle": "[AR] Help Title",
+      "saveSuccess": "تم الحفظ بنجاح",
+      "saveFailed": "فشل الحفظ",
+      "saveNetworkError": "فشل الحفظ - خطأ في الشبكة",
+      "title": "إدارة التذييل",
+      "subtitle": "إدارة محتوى التذييل",
+      "contentEn": "المحتوى بالإنجليزية",
+      "contentEnPlaceholder": "أدخل المحتوى بالإنجليزية",
+      "contentAr": "المحتوى بالعربية",
+      "contentArPlaceholder": "أدخل المحتوى بالعربية",
+      "helpTitle": "المساعدة",
       "validation": {
-        "bothRequired": "[AR] Both Required"
+        "bothRequired": "كلا الحقلين مطلوبين"
       },
       "pages": {
         "about": "حول",
@@ -260,75 +263,75 @@
         "terms": "الشروط"
       },
       "help": {
-        "both": "[AR] Both",
-        "markdown": "[AR] Markdown",
-        "auto": "[AR] Auto",
-        "public": "[AR] Public"
+        "both": "كلاهما",
+        "markdown": "ماركداون",
+        "auto": "تلقائي",
+        "public": "عام"
       }
     },
     "cms": {
-      "loadError": "[AR] Load failed",
-      "title": "[AR] Admin Cms",
-      "slug": "[AR] Slug",
+      "loadError": "فشل التحميل",
+      "title": "إدارة المحتوى",
+      "slug": "المعرف",
       "draft": "مسودة",
       "published": "منشور",
       "titleLabel": "العنوان",
-      "content": "[AR] Content",
-      "description": "[AR] Enter description",
-      "totalPages": "[AR] Total Pages"
+      "content": "المحتوى",
+      "description": "أدخل الوصف",
+      "totalPages": "إجمالي الصفحات"
     },
     "logo": {
       "accessDenied": "الوصول مرفوض",
-      "invalidType": "[AR] Invalid Type",
-      "fileTooLarge": "[AR] File Too Large",
-      "noFileSelected": "[AR] No File Selected",
+      "invalidType": "نوع الملف غير صالح",
+      "fileTooLarge": "حجم الملف كبير جداً",
+      "noFileSelected": "لم يتم اختيار ملف",
       "uploading": "جاري الرفع...",
-      "uploadSuccess": "[AR] Upload successful",
-      "uploadFailed": "[AR] Upload Failed",
-      "uploadNetworkError": "[AR] Upload Network failed",
-      "title": "[AR] Admin Logo",
-      "subtitle": "[AR] Manage your logo",
-      "currentLogo": "[AR] Current Logo",
-      "currentLogoAlt": "[AR] Current Logo Alt",
-      "visibleInTopBar": "[AR] Visible In Top Bar",
-      "replaceLogo": "[AR] Replace Logo",
-      "uploadLogo": "[AR] Upload Logo",
-      "previewAlt": "[AR] Preview Alt",
-      "uploadButton": "[AR] Upload Button",
-      "chooseFile": "[AR] Choose File",
-      "orDragDrop": "[AR] Or Drag Drop",
-      "supportedFormats": "[AR] Supported Formats",
-      "guidelinesTitle": "[AR] Guidelines Title",
+      "uploadSuccess": "تم الرفع بنجاح",
+      "uploadFailed": "فشل الرفع",
+      "uploadNetworkError": "فشل الرفع - خطأ في الشبكة",
+      "title": "إدارة الشعار",
+      "subtitle": "إدارة شعار الموقع",
+      "currentLogo": "الشعار الحالي",
+      "currentLogoAlt": "وصف الشعار الحالي",
+      "visibleInTopBar": "ظاهر في الشريط العلوي",
+      "replaceLogo": "استبدال الشعار",
+      "uploadLogo": "رفع الشعار",
+      "previewAlt": "معاينة الشعار",
+      "uploadButton": "زر الرفع",
+      "chooseFile": "اختر ملف",
+      "orDragDrop": "أو اسحب وأفلت هنا",
+      "supportedFormats": "الصيغ المدعومة",
+      "guidelinesTitle": "إرشادات الرفع",
       "guideline": {
-        "formats": "[AR] Formats",
-        "size": "[AR] Size",
-        "dimensions": "[AR] Dimensions",
-        "transparent": "[AR] Transparent",
-        "topbar": "[AR] Topbar",
-        "clickable": "[AR] Clickable"
+        "formats": "الصيغ",
+        "size": "الحجم",
+        "dimensions": "الأبعاد",
+        "transparent": "شفاف",
+        "topbar": "الشريط العلوي",
+        "clickable": "قابل للنقر"
       }
     },
     "users": {
-      "confirmDelete": "[AR] Confirm Delete",
-      "title": "[AR] Admin Users",
-      "subtitle": "[AR] Manage your users",
-      "searchPlaceholder": "[AR] Enter Search",
+      "confirmDelete": "تأكيد الحذف",
+      "title": "إدارة المستخدمين",
+      "subtitle": "إدارة حسابات المستخدمين",
+      "searchPlaceholder": "ابحث هنا...",
       "searchAria": "بحث",
-      "description": "[AR] Enter description",
-      "totalUsers": "[AR] Total Users",
-      "createUser": "[AR] Create User",
+      "description": "أدخل الوصف",
+      "totalUsers": "إجمالي المستخدمين",
+      "createUser": "إنشاء مستخدم",
       "active": "نشط",
-      "online": "[AR] Online",
+      "online": "متصل",
       "table": {
-        "unknownUser": "[AR] Unknown User",
-        "noActivity": "[AR] No Activity",
-        "departmentFallback": "[AR] Department Fallback",
+        "unknownUser": "مستخدم غير معروف",
+        "noActivity": "لا يوجد نشاط",
+        "departmentFallback": "القسم الافتراضي",
         "user": "المستخدم",
         "role": "الدور",
         "status": "الحالة",
-        "lastLogin": "[AR] Last Login",
+        "lastLogin": "آخر تسجيل دخول",
         "department": "القسم",
-        "actions": "[AR] Actions"
+        "actions": "الإجراءات"
       },
       "status": {
         "active": "نشط",
@@ -336,11 +339,11 @@
         "locked": "مقفل"
       },
       "toast": {
-        "updated": "[AR] Updated",
-        "created": "[AR] Created",
-        "activated": "[AR] Activated",
-        "deactivated": "[AR] Deactivated",
-        "deleted": "[AR] Deleted"
+        "updated": "محدث",
+        "created": "منشأ",
+        "activated": "مُفعّل",
+        "deactivated": "معطّل",
+        "deleted": "محذوف"
       },
       "errors": {
         "save": "حفظ",
@@ -353,114 +356,114 @@
         "add": "إضافة",
         "filterAria": "تصفية",
         "edit": "تعديل",
-        "deactivate": "[AR] Deactivate",
-        "activate": "[AR] Activate",
+        "deactivate": "تعطيل",
+        "activate": "تفعيل",
         "delete": "حذف"
       },
       "form": {
         "subRole": {
-          "_value": "[AR] Sub Role",
-          "none": "[AR] None",
+          "_value": "الدور الفرعي",
+          "none": "لا شيء",
           "help": "المساعدة"
         },
-        "moduleAccess": "[AR] Module Access"
+        "moduleAccess": "صلاحيات الوحدات"
       }
     },
     "tabs": {
-      "users": "[AR] Users",
-      "roles": "[AR] Roles",
-      "audit": "[AR] Audit",
+      "users": "المستخدمون",
+      "roles": "الأدوار",
+      "audit": "سجل المراجعة",
       "settings": "الإعدادات",
       "notifications": "الإشعارات",
-      "communications": "[AR] Communications",
-      "tenants": "[AR] Tenants",
-      "billing": "[AR] Billing"
+      "communications": "الاتصالات",
+      "tenants": "المستأجرون",
+      "billing": "الفوترة"
     },
     "common": {
-      "loadingSession": "[AR] Loading Session",
+      "loadingSession": "جارٍ تحميل الجلسة",
       "export": "تصدير",
-      "filters": "[AR] Filters",
+      "filters": "المرشحات",
       "cancel": "إلغاء",
       "saving": "جاري الحفظ...",
       "update": "تحديث",
       "create": "إنشاء",
       "errors": {
-        "fetchData": "[AR] Fetch Data"
+        "fetchData": "جلب البيانات"
       }
     },
     "roles": {
-      "title": "[AR] Admin Roles",
-      "subtitle": "[AR] Manage your roles",
-      "usersCount": "[AR] Users Count",
-      "morePermissions": "[AR] More Permissions",
-      "description": "[AR] Enter description",
-      "totalRoles": "[AR] Total Roles",
-      "createRole": "[AR] Create Role",
-      "ariaLabel": "[AR] Aria",
+      "title": "إدارة الأدوار",
+      "subtitle": "إدارة أدوار المستخدمين",
+      "usersCount": "عدد المستخدمين",
+      "morePermissions": "المزيد من الصلاحيات",
+      "description": "أدخل الوصف",
+      "totalRoles": "إجمالي الأدوار",
+      "createRole": "إنشاء دور",
+      "ariaLabel": "تسمية إمكانية الوصول",
       "tenant": "المستأجر",
       "vendor": "المورد",
-      "technician": "[AR] Technician",
-      "propertyManager": "[AR] Property Manager",
-      "fmManager": "[AR] Fm Manager",
-      "finance": "[AR] Finance",
-      "hr": "[AR] Hr",
+      "technician": "فني",
+      "propertyManager": "مدير العقارات",
+      "fmManager": "مدير المرافق",
+      "finance": "المالية",
+      "hr": "الموارد البشرية",
       "support": "الدعم",
-      "admin": "[AR] Admin",
-      "superAdmin": "[AR] Super Admin",
+      "admin": "المسؤول",
+      "superAdmin": "المسؤول الأعلى",
       "actions": {
         "addAria": "إضافة",
         "add": "إضافة",
-        "more": "[AR] More"
+        "more": "المزيد"
       }
     },
     "audit": {
-      "title": "[AR] Admin Audit",
-      "subtitle": "[AR] Manage your audit",
-      "description": "[AR] Enter description",
-      "recentEvents": "[AR] Recent Events",
-      "viewLogs": "[AR] View Logs",
+      "title": "سجل المراجعة",
+      "subtitle": "إدارة سجلات المراجعة",
+      "description": "أدخل الوصف",
+      "recentEvents": "الأحداث الأخيرة",
+      "viewLogs": "عرض السجلات",
       "status": {
         "success": "تمت العملية بنجاح",
         "failed": "فشل"
       },
       "filters": {
         "actionAria": "الإجراء",
-        "allActions": "[AR] All Actions",
-        "userCreated": "[AR] User Created",
-        "userUpdated": "[AR] User Updated",
+        "allActions": "كل الإجراءات",
+        "userCreated": "تم إنشاء المستخدم",
+        "userUpdated": "تم تحديث المستخدم",
         "login": "تسجيل الدخول",
         "logout": "تسجيل الخروج",
         "statusAria": "الحالة",
-        "allStatus": "[AR] All Status",
-        "fromDate": "[AR] From Date",
-        "toDate": "[AR] To Date"
+        "allStatus": "كل الحالات",
+        "fromDate": "من تاريخ",
+        "toDate": "إلى تاريخ"
       },
       "table": {
-        "timestamp": "[AR] Timestamp",
+        "timestamp": "الطابع الزمني",
         "user": "المستخدم",
         "action": "الإجراء",
-        "resource": "[AR] Resource",
+        "resource": "المورد",
         "status": "الحالة",
-        "ip": "[AR] Ip",
-        "details": "[AR] Details"
+        "ip": "عنوان IP",
+        "details": "التفاصيل"
       },
       "actions": {
         "viewDetails": "عرض التفاصيل"
       }
     },
     "settings": {
-      "title": "[AR] Admin Settings",
-      "subtitle": "[AR] Manage your settings",
-      "description": "[AR] Enter description",
-      "categories": "[AR] Categories",
+      "title": "إعدادات المسؤول",
+      "subtitle": "إدارة إعدادات النظام",
+      "description": "أدخل الوصف",
+      "categories": "الفئات",
       "fields": {
-        "orgName": "[AR] Org Name",
-        "timezone": "[AR] Timezone",
-        "language": "[AR] Language",
-        "featureToggle": "[AR] Feature Toggle"
+        "orgName": "اسم المنظمة",
+        "timezone": "المنطقة الزمنية",
+        "language": "اللغة",
+        "featureToggle": "تبديل الميزة"
       },
       "toast": {
-        "saved": "[AR] Saved"
+        "saved": "محفوظ"
       },
       "errors": {
         "save": "حفظ"
@@ -472,132 +475,132 @@
         "save": "حفظ"
       },
       "options": {
-        "enabled": "[AR] Enabled",
-        "disabled": "[AR] Disabled"
+        "enabled": "مفعل",
+        "disabled": "معطل"
       }
     },
     "tenants": {
-      "title": "[AR] Admin Tenants",
-      "subtitle": "[AR] Manage your tenants",
-      "placeholder": "[AR] Enter Tenants"
+      "title": "إدارة المستأجرين",
+      "subtitle": "إدارة المستأجرين",
+      "placeholder": "أدخل المستأجرين"
     },
     "billing": {
-      "title": "[AR] Admin Billing",
-      "subtitle": "[AR] Manage your billing",
-      "placeholder": "[AR] Enter Billing"
+      "title": "إدارة الفواتير",
+      "subtitle": "إدارة الفوترة",
+      "placeholder": "أدخل الفوترة"
     },
     "header": {
-      "title": "[AR] Admin Header",
-      "subtitle": "[AR] Manage your header"
+      "title": "رأس صفحة المسؤول",
+      "subtitle": "إدارة الرأسية"
     },
     "features": {
-      "title": "[AR] Admin Features",
-      "description": "[AR] Enter description",
+      "title": "ميزات المسؤول",
+      "description": "أدخل الوصف",
       "active": "نشط"
     },
     "database": {
-      "title": "[AR] Admin Database",
-      "description": "[AR] Enter description",
+      "title": "قاعدة البيانات",
+      "description": "أدخل الوصف",
       "status": "الحالة",
-      "healthy": "[AR] Healthy"
+      "healthy": "سليم"
     },
     "notifications": {
-      "title": "[AR] Admin Notifications",
-      "description": "[AR] Enter description",
+      "title": "إشعارات المسؤول",
+      "description": "أدخل الوصف",
       "pending": "قيد الانتظار",
       "success": "تمت العملية بنجاح",
-      "subtitle": "[AR] Manage your notifications",
-      "hideHistory": "[AR] Hide History",
-      "showHistory": "[AR] Show History",
-      "recipientType": "[AR] Recipient Type",
-      "channels": "[AR] Channels",
-      "comingSoon": "[AR] Coming Soon",
-      "message": "[AR] Message",
+      "subtitle": "إدارة الإشعارات",
+      "hideHistory": "إخفاء السجل",
+      "showHistory": "عرض السجل",
+      "recipientType": "نوع المستلم",
+      "channels": "القنوات",
+      "comingSoon": "قريباً",
+      "message": "رسالة",
       "priority": {
         "_value": "الأولوية",
-        "low": "[AR] Low",
-        "normal": "[AR] Normal",
-        "high": "[AR] High",
-        "urgent": "[AR] Urgent"
+        "low": "منخفضة",
+        "normal": "عادي",
+        "high": "عالية",
+        "urgent": "عاجل"
       },
-      "subject": "[AR] Subject",
-      "subjectPlaceholder": "[AR] Enter Subject",
-      "messageBody": "[AR] Message Body",
-      "messagePlaceholder": "[AR] Enter Message",
-      "characters": "[AR] Characters",
-      "preview": "[AR] Preview",
-      "to": "[AR] To",
-      "via": "[AR] Via",
-      "none": "[AR] None",
-      "noSubject": "[AR] No Subject",
-      "noMessage": "[AR] No Message",
-      "sending": "[AR] Sending",
-      "send": "[AR] Send",
-      "important": "[AR] Important",
-      "historyTitle": "[AR] History Title",
-      "noHistory": "[AR] No History",
-      "sentBy": "[AR] Sent By",
+      "subject": "الموضوع",
+      "subjectPlaceholder": "أدخل الموضوع",
+      "messageBody": "نص الرسالة",
+      "messagePlaceholder": "أدخل الرسالة",
+      "characters": "الأحرف",
+      "preview": "معاينة",
+      "to": "إلى",
+      "via": "عبر",
+      "none": "لا شيء",
+      "noSubject": "لا يوجد موضوع",
+      "noMessage": "لا توجد رسالة",
+      "sending": "جارٍ الإرسال",
+      "send": "إرسال",
+      "important": "مهم",
+      "historyTitle": "عنوان السجل",
+      "noHistory": "لا يوجد سجل",
+      "sentBy": "مرسل من",
       "errors": {
-        "historyFetch": "[AR] History Fetch",
-        "noChannels": "[AR] No Channels",
-        "emptyFields": "[AR] Empty Fields",
-        "sendFailed": "[AR] Send Failed"
+        "historyFetch": "جلب السجل",
+        "noChannels": "لا توجد قنوات",
+        "emptyFields": "حقول فارغة",
+        "sendFailed": "فشل الإرسال"
       },
       "recipients": {
-        "users": "[AR] Users",
-        "tenants": "[AR] Tenants",
-        "corporate": "[AR] Corporate",
-        "all": "[AR] All"
+        "users": "المستخدمون",
+        "tenants": "المستأجرون",
+        "corporate": "شركات",
+        "all": "الكل"
       },
       "info": {
-        "1": "[AR] 1",
-        "2": "[AR] 2",
-        "3": "[AR] 3",
-        "4": "[AR] 4"
+        "1": "١",
+        "2": "٢",
+        "3": "٣",
+        "4": "٤"
       }
     },
     "email": {
-      "title": "[AR] Admin Email",
-      "description": "[AR] Enter description",
-      "templates": "[AR] Templates"
+      "title": "البريد الإلكتروني للمسؤول",
+      "description": "أدخل الوصف",
+      "templates": "القوالب"
     },
     "security": {
-      "title": "[AR] Admin Security",
-      "description": "[AR] Enter description",
-      "policies": "[AR] Policies"
+      "title": "أمان النظام",
+      "description": "أدخل الوصف",
+      "policies": "السياسات"
     },
     "monitoring": {
-      "title": "[AR] Admin Monitoring",
-      "description": "[AR] Enter description",
-      "uptime": "[AR] Uptime"
+      "title": "المراقبة",
+      "description": "أدخل الوصف",
+      "uptime": "وقت التشغيل"
     },
     "reports": {
-      "title": "[AR] Admin Reports",
-      "description": "[AR] Enter description",
-      "generated": "[AR] Generated"
+      "title": "تقارير المسؤول",
+      "description": "أدخل الوصف",
+      "generated": "تم الإنشاء"
     },
     "administration": {
-      "title": "[AR] Admin Administration",
-      "subtitle": "[AR] Manage your administration"
+      "title": "إدارة النظام",
+      "subtitle": "إدارة الإدارة"
     },
     "system": {
       "status": "الحالة",
-      "operational": "[AR] Operational",
-      "monitor": "[AR] Monitor"
+      "operational": "تشغيلي",
+      "monitor": "مراقبة"
     },
     "userModal": {
-      "titleEdit": "[AR] Title Edit",
-      "titleCreate": "[AR] Title Create",
-      "descriptionEdit": "[AR] Description Edit",
-      "descriptionCreate": "[AR] Description Create",
+      "titleEdit": "تعديل العنوان",
+      "titleCreate": "إنشاء العنوان",
+      "descriptionEdit": "تعديل الوصف",
+      "descriptionCreate": "إنشاء الوصف",
       "errors": {
-        "saveFailed": "[AR] Save Failed"
+        "saveFailed": "فشل الحفظ"
       },
       "fields": {
         "name": "الاسم",
         "email": "البريد الإلكتروني",
         "role": "الدور",
-        "subRole": "[AR] Sub Role",
+        "subRole": "الدور الفرعي",
         "status": "الحالة",
         "department": "القسم",
         "phone": "الهاتف"
@@ -609,8 +612,8 @@
         "phone": "الهاتف"
       },
       "hints": {
-        "emailImmutable": "[AR] Email Immutable",
-        "subRole": "[AR] Sub Role"
+        "emailImmutable": "البريد الإلكتروني غير قابل للتغيير",
+        "subRole": "الدور الفرعي"
       }
     },
     "status": {
@@ -656,46 +659,46 @@
       "vendors": "الموردون"
     },
     "recentActivity": "النشاط الأخير",
-    "acMaintenance": "[AR] Ac Maintenance",
-    "propertyTowerA": "[AR] Property Tower A",
+    "acMaintenance": "صيانة التكييف",
+    "propertyTowerA": "البرج أ",
     "unit": "الوحدة",
-    "statusInProgress": "[AR] Status In Progress",
-    "recentTransactions": "[AR] Recent Transactions",
-    "monthlyRent": "[AR] Monthly Rent",
+    "statusInProgress": "قيد التنفيذ",
+    "recentTransactions": "المعاملات الأخيرة",
+    "monthlyRent": "الإيجار الشهري",
     "tenant": "المستأجر",
     "reports": {
-      "title": "[AR] Dashboard Reports",
-      "subtitle": "[AR] Manage your reports",
-      "comingSoon": "[AR] Coming Soon"
+      "title": "تقارير لوحة التحكم",
+      "subtitle": "إدارة التقارير",
+      "comingSoon": "قريباً"
     },
     "workOrderHealth": "صحة أوامر العمل",
     "finance": {
       "tabs": {
-        "invoices": "[AR] Invoices",
-        "payments": "[AR] Payments",
-        "expenses": "[AR] Expenses",
-        "budgets": "[AR] Budgets",
+        "invoices": "الفواتير",
+        "payments": "المدفوعات",
+        "expenses": "المصروفات",
+        "budgets": "الميزانيات",
         "reports": "التقارير",
-        "placeholder": "[AR] Enter Tabs"
+        "placeholder": "أدخل التبويبات"
       },
       "header": {
-        "title": "[AR] Dashboard Finance Header",
-        "subtitle": "[AR] Manage your finance"
+        "title": "رأس لوحة المالية",
+        "subtitle": "إدارة المالية"
       },
       "cards": {
-        "totalInvoices": "[AR] Total Invoices",
-        "unpaid": "[AR] Unpaid",
+        "totalInvoices": "إجمالي الفواتير",
+        "unpaid": "غير مدفوع",
         "overdue": "متأخر",
-        "paid": "[AR] Paid",
-        "recentInvoices": "[AR] Recent Invoices",
-        "recentPlaceholder": "[AR] Enter Recent",
-        "recentHint": "[AR] Recent Hint"
+        "paid": "مدفوع",
+        "recentInvoices": "الفواتير الأخيرة",
+        "recentPlaceholder": "أدخل الأخيرة",
+        "recentHint": "تلميح الأخيرة"
       }
     },
     "hrRecruitment": {
       "header": {
-        "title": "[AR] Dashboard Hr Recruitment Header",
-        "subtitle": "[AR] Manage your hrRecruitment"
+        "title": "رأس لوحة التوظيف",
+        "subtitle": "إدارة التوظيف"
       }
     }
   },
@@ -714,7 +717,7 @@
         "propertyIdPlaceholder": "اختياري — رابط إلى خاصية",
         "cancelButton": "يلغي",
         "submitButton": "يخلق",
-        "priorityPlaceholder": "[AR] Enter Priority"
+        "priorityPlaceholder": "أدخل الأولوية"
       },
       "toast": {
         "success": "تمت العملية بنجاح",
@@ -726,14 +729,14 @@
       "success": "تم إنشاء أمر العمل بنجاح",
       "woNumber": "أمر العمل #{{number}}",
       "uploadHint": "اسحب وأفلت الملفات هنا، أو انقر للتصفح",
-      "title": "[AR] Work Orders New",
-      "subtitle": "[AR] Manage your new",
-      "basicInfo": "[AR] Basic Info",
-      "titlePlaceholder": "[AR] Enter Title",
-      "propertyLocation": "[AR] Property Location",
-      "locationPlaceholder": "[AR] Enter Location",
-      "descriptionPlaceholder": "[AR] Enter Description",
-      "assignmentScheduling": "[AR] Assignment Scheduling"
+      "title": "أمر عمل جديد",
+      "subtitle": "إدارة الجديد",
+      "basicInfo": "معلومات أساسية",
+      "titlePlaceholder": "أدخل العنوان",
+      "propertyLocation": "موقع العقار",
+      "locationPlaceholder": "أدخل الموقع",
+      "descriptionPlaceholder": "أدخل الوصف",
+      "assignmentScheduling": "جدولة التعيينات"
     },
     "status": {
       "open": "مفتوح",
@@ -748,10 +751,10 @@
       "high": "عالي",
       "urgent": "عاجل",
       "_value": "الأولوية",
-      "p1": "[AR] P1",
-      "p2": "[AR] P2",
-      "p3": "[AR] P3",
-      "p4": "[AR] P4"
+      "p1": "أولوية 1",
+      "p2": "أولوية 2",
+      "p3": "أولوية 3",
+      "p4": "أولوية 4"
     },
     "fields": {
       "title": "العنوان",
@@ -765,176 +768,176 @@
     "attachments": {
       "missingUrl": "رابط المرفق مفقود"
     },
-    "quickActions": "[AR] Quick Actions",
+    "quickActions": "إجراءات سريعة",
     "property": "العقار",
     "pending": "قيد الانتظار",
-    "woId": "[AR] Wo Id",
+    "woId": "معرف أمر العمل",
     "reports": "التقارير",
     "settings": "الإعدادات",
     "export": "تصدير",
     "filter": "تصفية",
     "inProgress": "قيد التنفيذ",
-    "scheduled": "[AR] Scheduled",
+    "scheduled": "مجدول",
     "completed": "مكتمل",
-    "assignTo": "[AR] Assign To",
-    "selectTechnician": "[AR] Select Technician",
-    "createFromTemplate": "[AR] Create From Template",
-    "emergencyContact": "[AR] Emergency Contact",
-    "costCalculator": "[AR] Cost Calculator",
-    "recentActivity": "[AR] Recent Activity",
-    "formAutoSaved": "[AR] Form Auto Saved",
-    "propertySelected": "[AR] Property Selected",
+    "assignTo": "تعيين إلى",
+    "selectTechnician": "اختر الفني",
+    "createFromTemplate": "إنشاء من قالب",
+    "emergencyContact": "جهة اتصال الطوارئ",
+    "costCalculator": "حاسبة التكلفة",
+    "recentActivity": "النشاط الأخير",
+    "formAutoSaved": "تم حفظ النموذج تلقائياً",
+    "propertySelected": "تم اختيار العقار",
     "approvals": {
-      "title": "[AR] Work Orders Approvals",
-      "subtitle": "[AR] Manage your approvals",
-      "rules": "[AR] Rules",
-      "bulkApprove": "[AR] Bulk Approve",
-      "pendingApproval": "[AR] Pending Approval",
-      "approvedToday": "[AR] Approved Today",
-      "avgTime": "[AR] Avg Time",
-      "totalApproved": "[AR] Total Approved",
+      "title": "موافقات أوامر العمل",
+      "subtitle": "إدارة الموافقات",
+      "rules": "القواعد",
+      "bulkApprove": "موافقة جماعية",
+      "pendingApproval": "بانتظار الموافقة",
+      "approvedToday": "موافق عليه اليوم",
+      "avgTime": "متوسط الوقت",
+      "totalApproved": "إجمالي الموافق عليه",
       "pending": "قيد الانتظار",
-      "recent": "[AR] Recent",
-      "viewAll": "[AR] View All",
-      "approvedBy": "[AR] Approved By",
-      "approvalDate": "[AR] Approval Date",
-      "estimatedCost": "[AR] Estimated Cost",
-      "actualCost": "[AR] Actual Cost",
-      "workflow": "[AR] Workflow",
+      "recent": "الأخيرة",
+      "viewAll": "عرض الكل",
+      "approvedBy": "موافق عليه من",
+      "approvalDate": "تاريخ الموافقة",
+      "estimatedCost": "التكلفة المقدرة",
+      "actualCost": "التكلفة الفعلية",
+      "workflow": "سير العمل",
       "details": {
-        "requestedBy": "[AR] Requested By",
+        "requestedBy": "مطلوب من",
         "date": "التاريخ",
-        "estimatedCost": "[AR] Estimated Cost"
+        "estimatedCost": "التكلفة المقدرة"
       }
     },
     "board": {
-      "title": "[AR] Work Orders Board",
-      "description": "[AR] Enter description",
-      "newWO": "[AR] New W O",
-      "noCompleted": "[AR] No Completed",
-      "createWO": "[AR] Create W O",
-      "assignTech": "[AR] Assign Tech",
-      "schedule": "[AR] Schedule"
+      "title": "لوحة أوامر العمل",
+      "description": "أدخل الوصف",
+      "newWO": "أمر عمل جديد",
+      "noCompleted": "لا يوجد مكتمل",
+      "createWO": "إنشاء أمر عمل",
+      "assignTech": "تعيين فني",
+      "schedule": "جدول"
     },
     "history": {
-      "title": "[AR] Work Orders History",
-      "subtitle": "[AR] Manage your history",
-      "exportReport": "[AR] Export Report",
-      "totalCompleted": "[AR] Total Completed",
-      "view": "[AR] View",
+      "title": "سجل أوامر العمل",
+      "subtitle": "إدارة السجل",
+      "exportReport": "تصدير التقرير",
+      "totalCompleted": "إجمالي المكتمل",
+      "view": "عرض",
       "invoice": "فاتورة",
       "filters": {
-        "fromDate": "[AR] From Date",
-        "toDate": "[AR] To Date"
+        "fromDate": "من تاريخ",
+        "toDate": "إلى تاريخ"
       },
       "table": {
-        "title": "[AR] Work Orders History Table",
+        "title": "جدول سجل أوامر العمل",
         "property": "العقار",
-        "technician": "[AR] Technician",
-        "completionDate": "[AR] Completion Date",
-        "duration": "[AR] Duration",
-        "cost": "[AR] Cost",
-        "rating": "[AR] Rating",
+        "technician": "فني",
+        "completionDate": "تاريخ الإنجاز",
+        "duration": "المدة",
+        "cost": "التكلفة",
+        "rating": "التقييم",
         "status": "الحالة",
-        "actions": "[AR] Actions",
-        "ratingOutOf": "[AR] Rating Out Of"
+        "actions": "الإجراءات",
+        "ratingOutOf": "التقييم من"
       },
       "quickActions": {
         "analytics": "التحليلات",
-        "trends": "[AR] Trends",
-        "cost": "[AR] Cost",
-        "techPerformance": "[AR] Tech Performance",
+        "trends": "الاتجاهات",
+        "cost": "التكلفة",
+        "techPerformance": "أداء الفنيين",
         "reports": "التقارير",
         "settings": "الإعدادات"
       }
     },
     "pm": {
-      "title": "[AR] Work Orders Pm",
-      "subtitle": "[AR] Manage your pm",
-      "importSchedule": "[AR] Import Schedule",
-      "newPM": "[AR] New P M",
+      "title": "الصيانة الوقائية",
+      "subtitle": "إدارة الصيانة الوقائية",
+      "importSchedule": "استيراد الجدول",
+      "newPM": "صيانة وقائية جديدة",
       "thisMonth": "هذا الشهر",
-      "schedulesTitle": "[AR] Schedules Title",
-      "frequency": "[AR] Frequency",
-      "lastCompleted": "[AR] Last Completed",
-      "nextDue": "[AR] Next Due",
-      "emptyState": "[AR] Empty State",
-      "generate": "[AR] Generate",
+      "schedulesTitle": "عنوان الجداول",
+      "frequency": "التكرار",
+      "lastCompleted": "آخر إنجاز",
+      "nextDue": "الاستحقاق التالي",
+      "emptyState": "حالة فارغة",
+      "generate": "توليد",
       "filters": {
         "search": "بحث"
       },
       "table": {
-        "id": "[AR] Id",
-        "title": "[AR] Work Orders Pm Table",
+        "id": "المعرف",
+        "title": "جدول الصيانة الوقائية",
         "property": "العقار",
         "status": "الحالة",
-        "assigned": "[AR] Assigned",
-        "actions": "[AR] Actions",
-        "generated": "[AR] Generated"
+        "assigned": "معين",
+        "actions": "الإجراءات",
+        "generated": "تم الإنشاء"
       },
       "quickActions": {
-        "schedule": "[AR] Schedule",
-        "templates": "[AR] Templates",
+        "schedule": "جدول",
+        "templates": "القوالب",
         "reports": "التقارير",
-        "checklists": "[AR] Checklists",
+        "checklists": "قوائم التحقق",
         "settings": "الإعدادات",
         "export": "تصدير"
       }
     },
     "sla": {
-      "watchlist": "[AR] Watchlist",
-      "subtitle": "[AR] Manage your sla",
-      "breached": "[AR] Breached",
-      "critical": "[AR] Critical",
+      "watchlist": "قائمة المراقبة",
+      "subtitle": "إدارة اتفاقية الخدمة",
+      "breached": "مخترق",
+      "critical": "حرج",
       "warning": "تحذير",
-      "safe": "[AR] Safe",
-      "breachedList": "[AR] Breached List",
-      "criticalList": "[AR] Critical List",
-      "warningList": "[AR] Warning List",
-      "safeList": "[AR] Safe List",
-      "safeMore": "[AR] Safe More",
-      "noActive": "[AR] No Active",
-      "allClear": "[AR] All Clear"
+      "safe": "آمن",
+      "breachedList": "قائمة الانتهاكات",
+      "criticalList": "القائمة الحرجة",
+      "warningList": "قائمة التحذيرات",
+      "safeList": "القائمة الآمنة",
+      "safeMore": "المزيد من الآمان",
+      "noActive": "لا يوجد نشط",
+      "allClear": "الكل واضح"
     },
     "list": {
-      "heading": "[AR] Heading",
-      "description": "[AR] Enter description",
+      "heading": "العنوان الرئيسي",
+      "description": "أدخل الوصف",
       "loading": "جاري التحميل...",
-      "searchPlaceholder": "[AR] Enter Search",
+      "searchPlaceholder": "ابحث هنا...",
       "values": {
-        "notScheduled": "[AR] Not Scheduled",
-        "notLinked": "[AR] Not Linked",
-        "unassigned": "[AR] Unassigned",
-        "general": "[AR] General",
-        "unknown": "[AR] Unknown",
-        "slaHours": "[AR] Sla Hours"
+        "notScheduled": "غير مجدول",
+        "notLinked": "غير مرتبط",
+        "unassigned": "غير معين",
+        "general": "عام",
+        "unknown": "غير معروف",
+        "slaHours": "ساعات الخدمة"
       },
       "filters": {
         "status": "الحالة",
-        "statusAll": "[AR] Status All",
+        "statusAll": "كل الحالات",
         "priority": "الأولوية",
-        "priorityAll": "[AR] Priority All",
+        "priorityAll": "جميع الأولويات",
         "refresh": "تحديث"
       },
       "labels": {
         "property": "العقار",
-        "assigned": "[AR] Assigned",
+        "assigned": "معين",
         "category": "الفئة",
-        "created": "[AR] Created",
+        "created": "منشأ",
         "priority": "الأولوية",
-        "code": "[AR] Code",
-        "slaWindow": "[AR] Sla Window",
-        "due": "[AR] Due"
+        "code": "الرمز",
+        "slaWindow": "نافذة الخدمة",
+        "due": "مستحق"
       },
       "empty": {
-        "title": "[AR] Work Orders List Empty",
-        "subtitle": "[AR] Manage your list"
+        "title": "قائمة أوامر العمل فارغة",
+        "subtitle": "إدارة القائمة"
       },
       "pagination": {
-        "summary": "[AR] Summary",
-        "previous": "[AR] Previous",
-        "pageXofY": "[AR] Page Xof Y",
-        "next": "[AR] Next"
+        "summary": "الملخص",
+        "previous": "السابق",
+        "pageXofY": "صفحة X من Y",
+        "next": "التالي"
       }
     }
   },
@@ -951,7 +954,7 @@
       "units": "الوحدات",
       "status": "الحالة"
     },
-    "description": "[AR] Enter description"
+    "description": "أدخل الوصف"
   },
   "finance": {
     "title": "الماليات",
@@ -1032,249 +1035,249 @@
     "selectPeriod": "اختر الفترة",
     "currency": "العملة",
     "customer": "العميل",
-    "selectCustomer": "[AR] Select Customer",
+    "selectCustomer": "اختر العميل",
     "selectAccount": "اختر الحساب",
-    "vat": "[AR] Vat",
-    "subtotal": "[AR] Subtotal",
-    "discount": "[AR] Discount",
+    "vat": "ضريبة القيمة المضافة",
+    "subtotal": "المجموع الفرعي",
+    "discount": "الخصم",
     "total": "الإجمالي",
-    "recentActivity": "[AR] Recent Activity",
-    "formAutoSaved": "[AR] Form Auto Saved",
-    "searchPlaceholder": "[AR] Enter Search",
-    "issue": "[AR] Issue",
-    "due": "[AR] Due",
-    "description": "[AR] Enter description",
-    "qty": "[AR] Qty",
-    "unitPrice": "[AR] Unit Price",
-    "vatPercent": "[AR] Vat Percent",
-    "newInvoice": "[AR] New Invoice",
-    "createInvoice": "[AR] Create Invoice",
-    "issueDate": "[AR] Issue Date",
+    "recentActivity": "النشاط الأخير",
+    "formAutoSaved": "تم حفظ النموذج تلقائياً",
+    "searchPlaceholder": "ابحث هنا...",
+    "issue": "المشكلة",
+    "due": "مستحق",
+    "description": "أدخل الوصف",
+    "qty": "الكمية",
+    "unitPrice": "سعر الوحدة",
+    "vatPercent": "نسبة ضريبة القيمة المضافة",
+    "newInvoice": "فاتورة جديدة",
+    "createInvoice": "إنشاء فاتورة",
+    "issueDate": "تاريخ الإصدار",
     "dueDate": "تاريخ الاستحقاق",
-    "lines": "[AR] Lines",
-    "addLine": "[AR] Add Line",
-    "allProperties": "[AR] All Properties",
+    "lines": "الأسطر",
+    "addLine": "إضافة سطر",
+    "allProperties": "جميع العقارات",
     "notes": "ملاحظات",
-    "notesPlaceholder": "[AR] Enter Notes",
-    "receiptDocumentation": "[AR] Receipt Documentation",
-    "uploadMultipleReceipts": "[AR] Upload Multiple Receipts",
-    "supportedFormats": "[AR] Supported Formats",
-    "chooseFiles": "[AR] Choose Files",
+    "notesPlaceholder": "أدخل الملاحظات",
+    "receiptDocumentation": "توثيق الإيصال",
+    "uploadMultipleReceipts": "رفع إيصالات متعددة",
+    "supportedFormats": "الصيغ المدعومة",
+    "chooseFiles": "اختر الملفات",
     "paymentMethod": "طريقة الدفع",
-    "remaining": "[AR] Remaining",
+    "remaining": "المتبقي",
     "account": "الحساب",
     "debit": "مدين",
     "credit": "دائن",
-    "fiscalYear": "[AR] Fiscal Year",
-    "period": "[AR] Period",
-    "showZero": "[AR] Show Zero",
-    "groupByType": "[AR] Group By Type",
-    "totalAccounts": "[AR] Total Accounts",
-    "displayed": "[AR] Displayed",
+    "fiscalYear": "السنة المالية",
+    "period": "الفترة",
+    "showZero": "عرض الصفر",
+    "groupByType": "تجميع حسب النوع",
+    "totalAccounts": "إجمالي الحسابات",
+    "displayed": "معروض",
     "invoice": {
-      "issueDateRequired": "[AR] Issue Date Required",
-      "dueDateRequired": "[AR] Due Date Required",
-      "customerRequired": "[AR] Customer Required",
-      "lineItemsRequired": "[AR] Line Items Required",
-      "lineItemDescRequired": "[AR] Line Item Desc Required",
-      "lineItemQtyInvalid": "[AR] Line Item Qty Invalid",
-      "lineItemPriceInvalid": "[AR] Line Item Price Invalid",
-      "accountRequired": "[AR] Account Required",
-      "totalInvalid": "[AR] Total Invalid",
-      "draftSaved": "[AR] Draft Saved",
-      "created": "[AR] Created",
-      "newInvoice": "[AR] New Invoice",
-      "subtitle": "[AR] Manage your invoice",
-      "createInvoice": "[AR] Create Invoice",
-      "details": "[AR] Details",
+      "issueDateRequired": "تاريخ الإصدار مطلوب",
+      "dueDateRequired": "تاريخ الاستحقاق مطلوب",
+      "customerRequired": "العميل مطلوب",
+      "lineItemsRequired": "البنود مطلوبة",
+      "lineItemDescRequired": "وصف البند مطلوب",
+      "lineItemQtyInvalid": "كمية البند غير صالحة",
+      "lineItemPriceInvalid": "سعر البند غير صالح",
+      "accountRequired": "الحساب مطلوب",
+      "totalInvalid": "إجمالي غير صالح",
+      "draftSaved": "تم حفظ المسودة",
+      "created": "منشأ",
+      "newInvoice": "فاتورة جديدة",
+      "subtitle": "إدارة الفاتورة",
+      "createInvoice": "إنشاء فاتورة",
+      "details": "التفاصيل",
       "type": "النوع",
-      "sales": "[AR] Sales",
-      "rental": "[AR] Rental",
-      "service": "[AR] Service",
-      "maintenance": "[AR] Maintenance",
-      "issueDate": "[AR] Issue Date",
+      "sales": "المبيعات",
+      "rental": "إيجار",
+      "service": "الخدمة",
+      "maintenance": "الصيانة",
+      "issueDate": "تاريخ الإصدار",
       "dueDate": "تاريخ الاستحقاق",
-      "billTo": "[AR] Bill To",
-      "customerName": "[AR] Customer Name",
-      "customerNamePlaceholder": "[AR] Enter Customer Name",
-      "billingAddress": "[AR] Billing Address",
-      "billingAddressPlaceholder": "[AR] Enter Billing Address",
-      "itemsServices": "[AR] Items Services",
-      "addItem": "[AR] Add Item",
-      "description": "[AR] Enter description",
-      "revenueAccount": "[AR] Revenue Account",
-      "qty": "[AR] Qty",
-      "rate": "[AR] Rate",
-      "discount": "[AR] Discount",
-      "taxType": "[AR] Tax Type",
+      "billTo": "فاتورة إلى",
+      "customerName": "اسم العميل",
+      "customerNamePlaceholder": "أدخل اسم العميل",
+      "billingAddress": "عنوان الفوترة",
+      "billingAddressPlaceholder": "أدخل عنوان الفوترة",
+      "itemsServices": "العناصر والخدمات",
+      "addItem": "إضافة عنصر",
+      "description": "أدخل الوصف",
+      "revenueAccount": "حساب الإيرادات",
+      "qty": "الكمية",
+      "rate": "التقييم",
+      "discount": "الخصم",
+      "taxType": "نوع الضريبة",
       "total": "الإجمالي",
-      "itemDescription": "[AR] Item Description",
-      "exempt": "[AR] Exempt",
-      "vatBreakdown": "[AR] Vat Breakdown",
-      "on": "[AR] On",
-      "totalVAT": "[AR] Total V A T",
-      "journalPosting": "[AR] Journal Posting",
-      "autoPostJournal": "[AR] Auto Post Journal",
-      "journalPostingInfo": "[AR] Journal Posting Info",
-      "journalPosted": "[AR] Journal Posted",
-      "notesTerms": "[AR] Notes Terms",
-      "paymentTerms": "[AR] Payment Terms",
-      "net30": "[AR] Net30",
-      "net15": "[AR] Net15",
-      "net7": "[AR] Net7",
-      "dueOnReceipt": "[AR] Due On Receipt",
-      "cod": "[AR] Cod",
-      "invoiceNotes": "[AR] Invoice Notes",
-      "notesPlaceholder": "[AR] Enter Notes",
-      "summary": "[AR] Summary",
-      "items": "[AR] Items",
-      "paymentTracking": "[AR] Payment Tracking",
-      "totalPaid": "[AR] Total Paid",
+      "itemDescription": "وصف العنصر",
+      "exempt": "معفى",
+      "vatBreakdown": "تفصيل ضريبة القيمة المضافة",
+      "on": "تشغيل",
+      "totalVAT": "إجمالي ضريبة القيمة المضافة",
+      "journalPosting": "ترحيل القيد",
+      "autoPostJournal": "ترحيل القيد تلقائياً",
+      "journalPostingInfo": "معلومات ترحيل القيد",
+      "journalPosted": "تم ترحيل القيد",
+      "notesTerms": "شروط الملاحظات",
+      "paymentTerms": "شروط الدفع",
+      "net30": "صافي 30 يوم",
+      "net15": "صافي 15 يوم",
+      "net7": "صافي 7 أيام",
+      "dueOnReceipt": "مستحق عند الاستلام",
+      "cod": "الدفع عند الاستلام",
+      "invoiceNotes": "ملاحظات الفاتورة",
+      "notesPlaceholder": "أدخل الملاحظات",
+      "summary": "الملخص",
+      "items": "العناصر",
+      "paymentTracking": "تتبع الدفع",
+      "totalPaid": "إجمالي المدفوع",
       "amountDue": "المبلغ المستحق",
-      "createFromTemplate": "[AR] Create From Template",
-      "costCalculator": "[AR] Cost Calculator",
-      "paymentSchedule": "[AR] Payment Schedule",
-      "customerSelected": "[AR] Customer Selected",
+      "createFromTemplate": "إنشاء من قالب",
+      "costCalculator": "حاسبة التكلفة",
+      "paymentSchedule": "جدول الدفع",
+      "customerSelected": "تم اختيار العميل",
       "toast": {
-        "unknownError": "[AR] Unknown failed"
+        "unknownError": "فشل غير معروف"
       },
       "actions": {
-        "post": "[AR] Post",
-        "void": "[AR] Void"
+        "post": "نشر",
+        "void": "ملغي"
       }
     },
     "support": {
-      "selectOrg": "[AR] Select Org",
-      "selectOrgHint": "[AR] Select Org Hint",
-      "activeOrg": "[AR] Active Org"
+      "selectOrg": "اختر المنظمة",
+      "selectOrgHint": "تلميح اختيار المنظمة",
+      "activeOrg": "المؤسسة النشطة"
     },
     "errors": {
-      "noOrgSession": "[AR] No Org Session",
-      "noOrgId": "[AR] No Org Id"
+      "noOrgSession": "لا توجد جلسة منظمة",
+      "noOrgId": "لا يوجد معرف مؤسسة"
     },
     "budget": {
-      "draftSaved": "[AR] Draft Saved",
-      "nameRequired": "[AR] Name Required",
-      "periodRequired": "[AR] Period Required",
-      "datesRequired": "[AR] Dates Required",
-      "categoriesRequired": "[AR] Categories Required",
+      "draftSaved": "تم حفظ المسودة",
+      "nameRequired": "الاسم مطلوب",
+      "periodRequired": "الفترة مطلوبة",
+      "datesRequired": "التواريخ مطلوبة",
+      "categoriesRequired": "الفئات مطلوبة",
       "creating": "جاري الإنشاء...",
-      "created": "[AR] Created",
-      "newBudget": "[AR] New Budget",
-      "subtitle": "[AR] Manage your budget",
-      "createBudget": "[AR] Create Budget",
-      "details": "[AR] Details",
-      "budgetName": "[AR] Budget Name",
-      "namePlaceholder": "[AR] Enter Name",
-      "budgetPeriod": "[AR] Budget Period",
-      "selectPeriod": "[AR] Select Period",
-      "monthly": "[AR] Monthly",
-      "quarterly": "[AR] Quarterly",
-      "semiAnnual": "[AR] Semi Annual",
-      "annual": "[AR] Annual",
+      "created": "منشأ",
+      "newBudget": "ميزانية جديدة",
+      "subtitle": "إدارة الميزانية",
+      "createBudget": "إنشاء ميزانية",
+      "details": "التفاصيل",
+      "budgetName": "اسم الميزانية",
+      "namePlaceholder": "أدخل الاسم",
+      "budgetPeriod": "فترة الميزانية",
+      "selectPeriod": "اختر الفترة",
+      "monthly": "شهري",
+      "quarterly": "ربع سنوي",
+      "semiAnnual": "نصف سنوي",
+      "annual": "سنوي",
       "startDate": "تاريخ البداية",
       "endDate": "تاريخ النهاية",
-      "budgetOwner": "[AR] Budget Owner",
-      "selectOwner": "[AR] Select Owner",
-      "propertyManager": "[AR] Property Manager",
-      "maintenanceManager": "[AR] Maintenance Manager",
-      "financeManager": "[AR] Finance Manager",
-      "categoriesAmounts": "[AR] Categories Amounts",
+      "budgetOwner": "مالك الميزانية",
+      "selectOwner": "اختر المالك",
+      "propertyManager": "مدير العقارات",
+      "maintenanceManager": "مدير الصيانة",
+      "financeManager": "مدير المالية",
+      "categoriesAmounts": "مبالغ الفئات",
       "category": "الفئة",
-      "budgetedAmount": "[AR] Budgeted Amount",
-      "percentage": "[AR] Percentage",
-      "selectCategory": "[AR] Select Category",
-      "propertyManagement": "[AR] Property Management",
-      "security": "[AR] Security",
-      "landscaping": "[AR] Landscaping",
-      "administrative": "[AR] Administrative",
-      "addCategory": "[AR] Add Category",
-      "budgetSettings": "[AR] Budget Settings",
-      "enableAlerts": "[AR] Enable Alerts",
-      "requireApprovals": "[AR] Require Approvals",
-      "allowCarryover": "[AR] Allow Carryover",
-      "notesDescription": "[AR] Notes Description",
-      "budgetDescription": "[AR] Budget Description",
-      "descriptionPlaceholder": "[AR] Enter Description",
-      "budgetSummary": "[AR] Budget Summary",
-      "totalBudget": "[AR] Total Budget",
+      "budgetedAmount": "المبلغ المدرج في الميزانية",
+      "percentage": "النسبة المئوية",
+      "selectCategory": "اختر الفئة",
+      "propertyManagement": "إدارة العقارات",
+      "security": "الأمان",
+      "landscaping": "تنسيق الحدائق",
+      "administrative": "إداري",
+      "addCategory": "إضافة فئة",
+      "budgetSettings": "إعدادات الميزانية",
+      "enableAlerts": "تفعيل التنبيهات",
+      "requireApprovals": "يتطلب موافقات",
+      "allowCarryover": "السماح بالترحيل",
+      "notesDescription": "وصف الملاحظات",
+      "budgetDescription": "وصف الميزانية",
+      "descriptionPlaceholder": "أدخل الوصف",
+      "budgetSummary": "ملخص الميزانية",
+      "totalBudget": "إجمالي الميزانية",
       "allocated": "موزع",
-      "remaining": "[AR] Remaining",
-      "available": "[AR] Available",
-      "budgetTemplate": "[AR] Budget Template",
-      "copyPrevious": "[AR] Copy Previous",
-      "useTemplate": "[AR] Use Template",
-      "importExcel": "[AR] Import Excel",
-      "existingBudgets": "[AR] Existing Budgets",
-      "budgetVsActual": "[AR] Budget Vs Actual",
-      "templates": "[AR] Templates",
-      "periodSet": "[AR] Period Set"
+      "remaining": "المتبقي",
+      "available": "متاح",
+      "budgetTemplate": "قالب الميزانية",
+      "copyPrevious": "نسخ السابق",
+      "useTemplate": "استخدم القالب",
+      "importExcel": "استيراد Excel",
+      "existingBudgets": "الميزانيات الحالية",
+      "budgetVsActual": "الميزانية مقابل الفعلي",
+      "templates": "القوالب",
+      "periodSet": "تم تعيين الفترة"
     },
     "expense": {
-      "maintenance": "[AR] Maintenance",
-      "utilities": "[AR] Utilities",
-      "insurance": "[AR] Insurance",
-      "tracking": "[AR] Tracking",
-      "dateRequired": "[AR] Date Required",
-      "vendorRequired": "[AR] Vendor Required",
-      "descriptionRequired": "[AR] Description Required",
-      "lineItemsRequired": "[AR] Line Items Required",
-      "lineItemDescRequired": "[AR] Line Item Desc Required",
-      "lineItemQtyInvalid": "[AR] Line Item Qty Invalid",
-      "lineItemPriceInvalid": "[AR] Line Item Price Invalid",
-      "totalInvalid": "[AR] Total Invalid",
-      "draftSaved": "[AR] Draft Saved",
-      "submitted": "[AR] Submitted",
-      "title": "[AR] Finance Expense",
-      "subtitle": "[AR] Manage your expense",
-      "submitForApproval": "[AR] Submit For Approval",
-      "details": "[AR] Details",
+      "maintenance": "الصيانة",
+      "utilities": "المرافق",
+      "insurance": "التأمين",
+      "tracking": "التتبع",
+      "dateRequired": "التاريخ مطلوب",
+      "vendorRequired": "المورد مطلوب",
+      "descriptionRequired": "الوصف مطلوب",
+      "lineItemsRequired": "البنود مطلوبة",
+      "lineItemDescRequired": "وصف البند مطلوب",
+      "lineItemQtyInvalid": "كمية البند غير صالحة",
+      "lineItemPriceInvalid": "سعر البند غير صالح",
+      "totalInvalid": "إجمالي غير صالح",
+      "draftSaved": "تم حفظ المسودة",
+      "submitted": "مُرسل",
+      "title": "مصروفات المالية",
+      "subtitle": "إدارة المصروفات",
+      "submitForApproval": "إرسال للموافقة",
+      "details": "التفاصيل",
       "type": "النوع",
-      "operational": "[AR] Operational",
-      "capital": "[AR] Capital",
-      "utility": "[AR] Utility",
-      "administrative": "[AR] Administrative",
+      "operational": "تشغيلي",
+      "capital": "رأس المال",
+      "utility": "المرفق",
+      "administrative": "إداري",
       "other": "أخرى",
       "date": "التاريخ",
       "dueDate": "تاريخ الاستحقاق",
-      "vendorInfo": "[AR] Vendor Info",
-      "vendorSupplier": "[AR] Vendor Supplier",
-      "selectVendor": "[AR] Select Vendor",
-      "vendorName": "[AR] Vendor Name",
-      "vendorNamePlaceholder": "[AR] Enter Vendor Name",
-      "information": "[AR] Information",
-      "description": "[AR] Enter description",
-      "descriptionPlaceholder": "[AR] Enter Description",
-      "lineItems": "[AR] Line Items",
-      "addLineItem": "[AR] Add Line Item",
+      "vendorInfo": "معلومات المورد",
+      "vendorSupplier": "مورد",
+      "selectVendor": "اختر المورد",
+      "vendorName": "اسم المورد",
+      "vendorNamePlaceholder": "أدخل اسم المورد",
+      "information": "معلومات",
+      "description": "أدخل الوصف",
+      "descriptionPlaceholder": "أدخل الوصف",
+      "lineItems": "البنود",
+      "addLineItem": "إضافة بند",
       "category": "الفئة",
       "account": "الحساب",
-      "qty": "[AR] Qty",
-      "unitPrice": "[AR] Unit Price",
-      "taxable": "[AR] Taxable",
+      "qty": "الكمية",
+      "unitPrice": "سعر الوحدة",
+      "taxable": "خاضع للضريبة",
       "amount": "المبلغ",
-      "itemDescription": "[AR] Item Description",
+      "itemDescription": "وصف العنصر",
       "paymentDetails": "تفاصيل الدفع",
-      "summary": "[AR] Summary",
-      "items": "[AR] Items",
-      "budgetStatus": "[AR] Budget Status",
-      "maintenanceBudget": "[AR] Maintenance Budget",
-      "utilitiesBudget": "[AR] Utilities Budget",
-      "recent": "[AR] Recent",
-      "viewBudget": "[AR] View Budget",
-      "bulkEntry": "[AR] Bulk Entry",
-      "templates": "[AR] Templates"
+      "summary": "الملخص",
+      "items": "العناصر",
+      "budgetStatus": "حالة الميزانية",
+      "maintenanceBudget": "ميزانية الصيانة",
+      "utilitiesBudget": "ميزانية المرافق",
+      "recent": "الأخيرة",
+      "viewBudget": "عرض الميزانية",
+      "bulkEntry": "إدخال جماعي",
+      "templates": "القوالب"
     },
     "payment": {
       "cash": "نقدي",
       "bankTransfer": "تحويل بنكي",
       "cheque": "شيك",
-      "card": "[AR] Card",
+      "card": "البطاقة",
       "credit": "دائن"
     },
     "journal": {
-      "entryDetails": "[AR] Entry Details",
-      "journalDate": "[AR] Journal Date",
+      "entryDetails": "تفاصيل القيد",
+      "journalDate": "تاريخ القيد",
       "sourceType": {
         "_value": "نوع المصدر",
         "manual": "يدوي",
@@ -1285,33 +1288,33 @@
         "rent": "إيجار",
         "expense": "مصروف"
       },
-      "descriptionPlaceholder": "[AR] Enter Description",
-      "sourceReference": "[AR] Source Reference",
-      "journalLines": "[AR] Journal Lines",
-      "quickBalance": "[AR] Quick Balance",
-      "clearAmounts": "[AR] Clear Amounts",
-      "addLine": "[AR] Add Line",
-      "searchAccount": "[AR] Search Account",
-      "searchAccountLabel": "[AR] Search Account",
+      "descriptionPlaceholder": "أدخل الوصف",
+      "sourceReference": "مرجع المصدر",
+      "journalLines": "بنود القيد",
+      "quickBalance": "الرصيد السريع",
+      "clearAmounts": "مسح المبالغ",
+      "addLine": "إضافة سطر",
+      "searchAccount": "البحث في الحسابات",
+      "searchAccountLabel": "البحث في الحسابات",
       "selectAccount": "اختر الحساب",
-      "lineDescription": "[AR] Line Description",
-      "removeLine": "[AR] Remove Line",
-      "entryBalanced": "[AR] Entry Balanced",
-      "entryUnbalanced": "[AR] Entry Unbalanced",
-      "debitsExceed": "[AR] Debits Exceed",
-      "creditsExceed": "[AR] Credits Exceed",
-      "totalLines": "[AR] Total Lines",
-      "difference": "[AR] Difference",
-      "createEntry": "[AR] Create Entry"
+      "lineDescription": "وصف السطر",
+      "removeLine": "إزالة السطر",
+      "entryBalanced": "القيد متوازن",
+      "entryUnbalanced": "القيد غير متوازن",
+      "debitsExceed": "المدين يتجاوز",
+      "creditsExceed": "الأرصدة تتجاوز",
+      "totalLines": "إجمالي الأسطر",
+      "difference": "الفرق",
+      "createEntry": "إنشاء قيد"
     },
     "trialBalance": {
-      "title": "[AR] Finance Trial Balance",
+      "title": "ميزان المراجعة",
       "loading": "جاري التحميل...",
-      "balanced": "[AR] Balanced",
-      "unbalanced": "[AR] Unbalanced",
-      "difference": "[AR] Difference",
-      "noData": "[AR] No Data",
-      "loadData": "[AR] Load Data",
+      "balanced": "متوازن",
+      "unbalanced": "غير متوازن",
+      "difference": "الفرق",
+      "noData": "لا توجد بيانات",
+      "loadData": "تحميل البيانات",
       "error": {
         "load": "تحميل"
       }
@@ -1343,56 +1346,56 @@
       "leave": "إدارة الإجازات",
       "attendance": "الحضور"
     },
-    "description": "[AR] Enter description",
+    "description": "أدخل الوصف",
     "employees": {
-      "jobTitle": "[AR] Job Title",
-      "hireDate": "[AR] Hire Date",
-      "salary": "[AR] Salary",
-      "title": "[AR] Hr Employees",
-      "subtitle": "[AR] Manage your employees",
-      "addNew": "[AR] Add New",
+      "jobTitle": "المسمى الوظيفي",
+      "hireDate": "تاريخ التوظيف",
+      "salary": "الراتب",
+      "title": "الموظفون",
+      "subtitle": "إدارة الموظفين",
+      "addNew": "إضافة جديد",
       "search": "بحث",
-      "showing": "[AR] Showing",
-      "of": "[AR] Of",
-      "employees": "[AR] Employees",
-      "noResults": "[AR] No Results",
-      "noResultsFiltered": "[AR] No Results Filtered",
-      "noResultsEmpty": "[AR] No Results Empty",
-      "code": "[AR] Code",
+      "showing": "عرض",
+      "of": "من",
+      "employees": "الموظفون",
+      "noResults": "لا توجد نتائج",
+      "noResultsFiltered": "لا توجد نتائج للفلتر",
+      "noResultsEmpty": "لا توجد نتائج",
+      "code": "الرمز",
       "department": "القسم",
-      "position": "[AR] Position",
-      "joinDate": "[AR] Join Date",
+      "position": "المنصب",
+      "joinDate": "تاريخ الانضمام",
       "filter": {
-        "allStatus": "[AR] All Status"
+        "allStatus": "كل الحالات"
       },
       "compensation": {
-        "base": "[AR] Base"
+        "base": "الأساس"
       }
     },
     "attendance": {
-      "title": "[AR] Hr Attendance",
-      "subtitle": "[AR] Manage your attendance",
-      "selectEmployee": "[AR] Select Employee",
-      "selectPlaceholder": "[AR] Enter Select",
-      "from": "[AR] From",
-      "to": "[AR] To",
-      "empty": "[AR] Empty",
-      "minutes": "[AR] Minutes",
+      "title": "الحضور والانصراف",
+      "subtitle": "إدارة الحضور",
+      "selectEmployee": "اختر موظف",
+      "selectPlaceholder": "أدخل الاختيار",
+      "from": "من",
+      "to": "إلى",
+      "empty": "فارغ",
+      "minutes": "دقائق",
       "filters": {
-        "all": "[AR] All",
-        "sourceAll": "[AR] Source All",
-        "sourceManual": "[AR] Source Manual",
-        "sourceImport": "[AR] Source Import",
-        "sourceBiometric": "[AR] Source Biometric",
+        "all": "الكل",
+        "sourceAll": "جميع المصادر",
+        "sourceManual": "مصدر يدوي",
+        "sourceImport": "استيراد المصدر",
+        "sourceBiometric": "مصدر بيومتري",
         "status": "الحالة",
         "source": "المصدر"
       },
       "status": {
-        "present": "[AR] Present",
-        "absent": "[AR] Absent",
-        "late": "[AR] Late",
-        "on_leave": "[AR] On Leave",
-        "off": "[AR] Off"
+        "present": "حاضر",
+        "absent": "غائب",
+        "late": "متأخر",
+        "on_leave": "في إجازة",
+        "off": "إيقاف"
       },
       "actions": {
         "exportCsv": "تصدير CSV"
@@ -1400,229 +1403,229 @@
       "table": {
         "date": "التاريخ",
         "status": "الحالة",
-        "clockIn": "[AR] Clock In",
-        "clockOut": "[AR] Clock Out",
-        "overtime": "[AR] Overtime",
+        "clockIn": "تسجيل الحضور",
+        "clockOut": "تسجيل الانصراف",
+        "overtime": "العمل الإضافي",
         "source": "المصدر",
         "notes": "ملاحظات"
       }
     },
     "leave": {
-      "title": "[AR] Hr Leave",
-      "subtitle": "[AR] Manage your leave",
-      "empty": "[AR] Empty",
-      "start": "[AR] Start",
-      "end": "[AR] End",
-      "days": "[AR] Days",
-      "reason": "[AR] Reason",
+      "title": "الإجازات",
+      "subtitle": "إدارة الإجازات",
+      "empty": "فارغ",
+      "start": "بدء",
+      "end": "نهاية",
+      "days": "أيام",
+      "reason": "السبب",
       "approvals": {
-        "loadError": "[AR] Load failed",
+        "loadError": "فشل التحميل",
         "approved": "موافق عليه",
         "rejected": "مرفوض",
-        "updateError": "[AR] Update failed",
-        "title": "[AR] Hr Leave Approvals",
-        "subtitle": "[AR] Manage your leave",
-        "empty": "[AR] Empty",
+        "updateError": "فشل التحديث",
+        "title": "موافقات الإجازات",
+        "subtitle": "إدارة الإجازات",
+        "empty": "فارغ",
         "refresh": "تحديث",
-        "leave": "[AR] Leave",
-        "dates": "[AR] Dates",
-        "days": "[AR] Days",
-        "paid": "[AR] Paid",
-        "unpaid": "[AR] Unpaid",
-        "reason": "[AR] Reason",
-        "noReason": "[AR] No Reason",
+        "leave": "إجازة",
+        "dates": "التواريخ",
+        "days": "أيام",
+        "paid": "مدفوع",
+        "unpaid": "غير مدفوع",
+        "reason": "السبب",
+        "noReason": "لا يوجد سبب",
         "notes": "ملاحظات",
-        "notesPlaceholder": "[AR] Enter Notes",
+        "notesPlaceholder": "أدخل الملاحظات",
         "reject": "رفض",
         "approve": "موافقة",
         "cards": {
           "pending": "قيد الانتظار",
-          "urgent": "[AR] Urgent",
-          "avgDuration": "[AR] Avg Duration",
-          "days": "[AR] Days"
+          "urgent": "عاجل",
+          "avgDuration": "متوسط المدة",
+          "days": "أيام"
         }
       },
       "form": {
         "success": "تمت العملية بنجاح",
         "error": "حدث خطأ",
-        "title": "[AR] Hr Leave Form",
-        "employee": "[AR] Employee",
-        "selectEmployee": "[AR] Select Employee",
-        "leaveType": "[AR] Leave Type",
-        "leaveTypeRefresh": "[AR] Leave Type Refresh",
-        "leaveTypeLoading": "[AR] Leave Type Loading",
-        "leaveTypeEmpty": "[AR] Leave Type Empty",
-        "leaveTypePlaceholder": "[AR] Enter Leave Type",
-        "leaveTypeDaysSuffix": "[AR] Leave Type Days Suffix",
-        "leaveTypeHelper": "[AR] Leave Type Helper",
+        "title": "نموذج الإجازة",
+        "employee": "الموظف",
+        "selectEmployee": "اختر موظف",
+        "leaveType": "نوع الإجازة",
+        "leaveTypeRefresh": "تحديث نوع الإجازة",
+        "leaveTypeLoading": "جارٍ تحميل نوع الإجازة",
+        "leaveTypeEmpty": "نوع الإجازة فارغ",
+        "leaveTypePlaceholder": "أدخل نوع الإجازة",
+        "leaveTypeDaysSuffix": "أيام",
+        "leaveTypeHelper": "مساعد نوع الإجازة",
         "startDate": "تاريخ البداية",
         "endDate": "تاريخ النهاية",
-        "days": "[AR] Days",
-        "reason": "[AR] Reason",
-        "reasonPlaceholder": "[AR] Enter Reason",
+        "days": "أيام",
+        "reason": "السبب",
+        "reasonPlaceholder": "أدخل السبب",
         "submit": "إرسال",
         "validation": {
-          "required": "[AR] Required"
+          "required": "مطلوب"
         }
       },
       "actions": {
         "error": "حدث خطأ",
-        "newRequest": "[AR] New Request",
+        "newRequest": "طلب جديد",
         "approve": "موافقة",
         "reject": "رفض"
       },
       "filter": {
-        "all": "[AR] All"
+        "all": "الكل"
       },
       "analytics": {
         "pending": "قيد الانتظار",
         "approved": "موافق عليه",
-        "avgDuration": "[AR] Avg Duration",
-        "days": "[AR] Days",
-        "upcoming": "[AR] Upcoming",
-        "noneUpcoming": "[AR] None Upcoming"
+        "avgDuration": "متوسط المدة",
+        "days": "أيام",
+        "upcoming": "القادم",
+        "noneUpcoming": "لا يوجد قادم"
       }
     },
     "payroll": {
-      "title": "[AR] Hr Payroll",
-      "subtitle": "[AR] Manage your payroll",
-      "createNew": "[AR] Create New",
-      "noRuns": "[AR] No Runs",
-      "noRunsDesc": "[AR] No Runs Desc",
-      "employees": "[AR] Employees",
-      "basicPay": "[AR] Basic Pay",
-      "allowances": "[AR] Allowances",
-      "deductions": "[AR] Deductions",
-      "netPay": "[AR] Net Pay",
-      "calculatedAt": "[AR] Calculated At",
+      "title": "الرواتب",
+      "subtitle": "إدارة الرواتب",
+      "createNew": "إنشاء جديد",
+      "noRuns": "لا توجد عمليات",
+      "noRunsDesc": "لا توجد عمليات تشغيل",
+      "employees": "الموظفون",
+      "basicPay": "الراتب الأساسي",
+      "allowances": "البدلات",
+      "deductions": "الخصومات",
+      "netPay": "صافي الراتب",
+      "calculatedAt": "محسوب في",
       "actions": {
-        "recalculate": "[AR] Recalculate",
+        "recalculate": "إعادة الحساب",
         "export": "تصدير",
-        "viewing": "[AR] Viewing",
+        "viewing": "جارٍ العرض",
         "viewDetails": "عرض التفاصيل",
-        "postFinance": "[AR] Post Finance"
+        "postFinance": "نشر المالية"
       },
       "detail": {
-        "title": "[AR] Hr Payroll Detail",
-        "totalEarnings": "[AR] Total Earnings",
-        "totalDeductions": "[AR] Total Deductions",
-        "netPay": "[AR] Net Pay",
-        "calculatedAt": "[AR] Calculated At",
-        "linesTitle": "[AR] Lines Title",
-        "linesCount": "[AR] Lines Count",
-        "noLines": "[AR] No Lines",
-        "exportRef": "[AR] Export Ref",
+        "title": "تفاصيل الرواتب",
+        "totalEarnings": "إجمالي الأرباح",
+        "totalDeductions": "إجمالي الخصومات",
+        "netPay": "صافي الراتب",
+        "calculatedAt": "محسوب في",
+        "linesTitle": "عنوان الأسطر",
+        "linesCount": "عدد الأسطر",
+        "noLines": "لا توجد أسطر",
+        "exportRef": "مرجع التصدير",
         "table": {
-          "employee": "[AR] Employee",
+          "employee": "الموظف",
           "iban": "رقم الآيبان",
-          "earnings": "[AR] Earnings",
-          "deductions": "[AR] Deductions",
-          "net": "[AR] Net",
+          "earnings": "الأرباح",
+          "deductions": "الخصومات",
+          "net": "صافي",
           "notes": "ملاحظات"
         }
       }
     },
     "settings": {
-      "title": "[AR] Hr Settings",
-      "subtitle": "[AR] Manage your settings",
+      "title": "إعدادات الموارد البشرية",
+      "subtitle": "إدارة إعدادات النظام",
       "leaveTypes": {
-        "title": "[AR] Hr Settings Leave Types",
-        "empty": "[AR] Empty",
-        "code": "[AR] Code",
-        "entitlement": "[AR] Entitlement",
-        "created": "[AR] Created",
+        "title": "أنواع الإجازات",
+        "empty": "فارغ",
+        "code": "الرمز",
+        "entitlement": "الاستحقاق",
+        "created": "منشأ",
         "error": {
           "load": "تحميل"
         },
         "form": {
-          "validation": "[AR] Validation",
+          "validation": "التحقق",
           "creating": "جاري الإنشاء...",
           "success": "تمت العملية بنجاح",
           "error": "حدث خطأ",
-          "title": "[AR] Hr Settings Leave Types Form",
-          "code": "[AR] Code",
+          "title": "نموذج أنواع الإجازات",
+          "code": "الرمز",
           "name": "الاسم",
-          "namePlaceholder": "[AR] Enter Name",
-          "description": "[AR] Enter description",
-          "entitlement": "[AR] Entitlement",
-          "isPaid": "[AR] Is Paid",
-          "isPaidHelper": "[AR] Is Paid Helper",
+          "namePlaceholder": "أدخل الاسم",
+          "description": "أدخل الوصف",
+          "entitlement": "الاستحقاق",
+          "isPaid": "مدفوع",
+          "isPaidHelper": "مساعد الدفع",
           "submit": "إرسال"
         },
         "badge": {
-          "paid": "[AR] Paid",
-          "unpaid": "[AR] Unpaid"
+          "paid": "مدفوع",
+          "unpaid": "غير مدفوع"
         }
       }
     },
     "ats": {
       "jobs": {
-        "title": "[AR] Hr Ats Jobs",
-        "subtitle": "[AR] Manage your ats",
-        "empty": "[AR] Empty",
-        "notPublished": "[AR] Not Published",
+        "title": "وظائف نظام التوظيف",
+        "subtitle": "إدارة نظام التوظيف",
+        "empty": "فارغ",
+        "notPublished": "غير منشور",
         "error": {
-          "generic": "[AR] Generic"
+          "generic": "عام"
         },
         "filters": {
-          "statusPublished": "[AR] Status Published",
-          "statusPending": "[AR] Status Pending",
-          "statusDraft": "[AR] Status Draft",
-          "statusClosed": "[AR] Status Closed",
-          "statusArchived": "[AR] Status Archived",
-          "statusAll": "[AR] Status All",
-          "jobTypeAll": "[AR] Job Type All",
-          "jobTypeFullTime": "[AR] Job Type Full Time",
-          "jobTypePartTime": "[AR] Job Type Part Time",
-          "jobTypeContract": "[AR] Job Type Contract",
-          "jobTypeTemporary": "[AR] Job Type Temporary",
-          "jobTypeInternship": "[AR] Job Type Internship",
-          "jobTypeRemote": "[AR] Job Type Remote",
-          "jobTypeHybrid": "[AR] Job Type Hybrid",
-          "title": "[AR] Hr Ats Jobs Filters",
+          "statusPublished": "منشور",
+          "statusPending": "معلق",
+          "statusDraft": "مسودة",
+          "statusClosed": "مغلق",
+          "statusArchived": "مؤرشف",
+          "statusAll": "كل الحالات",
+          "jobTypeAll": "جميع الأنواع",
+          "jobTypeFullTime": "دوام كامل",
+          "jobTypePartTime": "دوام جزئي",
+          "jobTypeContract": "عقد",
+          "jobTypeTemporary": "مؤقت",
+          "jobTypeInternship": "تدريب",
+          "jobTypeRemote": "عن بُعد",
+          "jobTypeHybrid": "هجين",
+          "title": "فلاتر الوظائف",
           "search": "بحث",
-          "searchPlaceholder": "[AR] Enter Search",
+          "searchPlaceholder": "ابحث هنا...",
           "statusLabel": "الحالة",
-          "jobTypeLabel": "[AR] Job Type"
+          "jobTypeLabel": "نوع الوظيفة"
         },
         "location": {
-          "unspecified": "[AR] Unspecified"
+          "unspecified": "غير محدد"
         },
         "actions": {
-          "new": "[AR] New"
+          "new": "جديد"
         },
         "stats": {
           "published": "منشور",
           "pending": "قيد الانتظار",
           "draft": "مسودة",
-          "closed": "[AR] Closed"
+          "closed": "مغلق"
         },
         "table": {
           "role": "الدور",
           "department": "القسم",
           "location": "الموقع",
-          "jobType": "[AR] Job Type",
-          "applications": "[AR] Applications",
+          "jobType": "نوع الوظيفة",
+          "applications": "التطبيقات",
           "published": "منشور",
-          "visibility": "[AR] Visibility"
+          "visibility": "الرؤية"
         },
         "new": {
-          "title": "[AR] Hr Ats Jobs New",
+          "title": "وظيفة جديدة",
           "toast": {
             "creating": "جاري الإنشاء...",
             "error": "حدث خطأ",
             "success": "تمت العملية بنجاح",
-            "generic": "[AR] Generic"
+            "generic": "عام"
           },
           "fields": {
-            "title": "[AR] Hr Ats Jobs New Fields",
+            "title": "حقول الوظيفة الجديدة",
             "department": "القسم",
-            "city": "[AR] City",
-            "country": "[AR] Country",
-            "salaryMin": "[AR] Salary Min",
-            "salaryMax": "[AR] Salary Max",
+            "city": "المدينة",
+            "country": "الدولة",
+            "salaryMin": "الحد الأدنى للراتب",
+            "salaryMax": "الحد الأقصى للراتب",
             "currency": "العملة",
-            "description": "[AR] Enter description"
+            "description": "أدخل الوصف"
           }
         }
       }
@@ -1634,7 +1637,7 @@
     "leads": "العملاء المحتملون",
     "opportunities": "الفرص",
     "activities": "الأنشطة",
-    "description": "[AR] Enter description"
+    "description": "أدخل الوصف"
   },
   "marketplace": {
     "title": "السوق",
@@ -1660,8 +1663,8 @@
         "respondToClaimSubtitle": "قدّم المستندات أو المبالغ المستردة أو الأدلة المضادة لحل النزاع"
       },
       "admin": {
-        "title": "[AR] Marketplace Claims Admin",
-        "subtitle": "[AR] Manage your claims"
+        "title": "إدارة المطالبات",
+        "subtitle": "إدارة المطالبات"
       }
     },
     "settlements": {
@@ -1677,202 +1680,202 @@
       "comingSoon": "تصدير الكشوفات قادم قريباً"
     },
     "admin": {
-      "title": "[AR] Marketplace Admin",
-      "subtitle": "[AR] Manage your admin",
+      "title": "إدارة السوق",
+      "subtitle": "إدارة المسؤول",
       "error": "حدث خطأ",
       "metrics": {
-        "activeProducts": "[AR] Active Products",
-        "pendingApprovals": "[AR] Pending Approvals",
-        "deliveredOrders": "[AR] Delivered Orders",
-        "openRfqs": "[AR] Open Rfqs"
+        "activeProducts": "المنتجات النشطة",
+        "pendingApprovals": "الموافقات المعلقة",
+        "deliveredOrders": "الطلبات المسلمة",
+        "openRfqs": "طلبات العروض المفتوحة"
       },
       "catalogue": {
-        "title": "[AR] Marketplace Admin Catalogue",
-        "sku": "[AR] Sku",
-        "standards": "[AR] Standards"
+        "title": "كتالوج السوق",
+        "sku": "رمز المنتج",
+        "standards": "المعايير"
       },
       "approvals": {
-        "title": "[AR] Marketplace Admin Approvals",
-        "order": "[AR] Order",
+        "title": "موافقات السوق",
+        "order": "الطلب",
         "total": "الإجمالي",
         "status": "الحالة",
-        "submitted": "[AR] Submitted"
+        "submitted": "مُرسل"
       }
     },
     "cart": {
-      "title": "[AR] Marketplace Cart",
-      "imageAlt": "[AR] Image Alt",
-      "fallbackTitle": "[AR] Fallback Title",
-      "quantity": "[AR] Quantity",
-      "unitPrice": "[AR] Unit Price",
-      "lineTotal": "[AR] Line Total",
-      "leadTime": "[AR] Lead Time",
-      "days": "[AR] Days",
-      "minOrder": "[AR] Min Order",
+      "title": "سلة السوق",
+      "imageAlt": "النص البديل للصورة",
+      "fallbackTitle": "العنوان البديل",
+      "quantity": "الكمية",
+      "unitPrice": "سعر الوحدة",
+      "lineTotal": "إجمالي السطر",
+      "leadTime": "وقت التسليم",
+      "days": "أيام",
+      "minOrder": "الحد الأدنى للطلب",
       "empty": {
-        "title": "[AR] Marketplace Cart Empty",
-        "subtitle": "[AR] Manage your cart",
-        "cta": "[AR] Cta"
+        "title": "السلة فارغة",
+        "subtitle": "إدارة السلة",
+        "cta": "زر الإجراء"
       },
       "summary": {
-        "title": "[AR] Marketplace Cart Summary",
-        "subtotal": "[AR] Subtotal",
-        "vat": "[AR] Vat",
+        "title": "ملخص السلة",
+        "subtotal": "المجموع الفرعي",
+        "vat": "ضريبة القيمة المضافة",
         "total": "الإجمالي",
-        "checkoutCta": "[AR] Checkout Cta"
+        "checkoutCta": "متابعة الشراء"
       },
       "policy": {
-        "title": "[AR] Marketplace Cart Policy",
-        "description": "[AR] Enter description"
+        "title": "سياسة السلة",
+        "description": "أدخل الوصف"
       }
     },
     "checkout": {
-      "title": "[AR] Marketplace Checkout",
-      "description": "[AR] Enter description",
+      "title": "إتمام الشراء",
+      "description": "أدخل الوصف",
       "breadcrumb": {
-        "cart": "[AR] Cart",
-        "checkout": "[AR] Checkout"
+        "cart": "السلة",
+        "checkout": "الدفع"
       },
       "contents": {
-        "title": "[AR] Marketplace Checkout Contents"
+        "title": "محتويات الشراء"
       },
       "finance": {
-        "title": "[AR] Marketplace Checkout Finance",
-        "point1": "[AR] Point1",
-        "point2": "[AR] Point2",
-        "point3": "[AR] Point3"
+        "title": "تمويل الشراء",
+        "point1": "النقطة الأولى",
+        "point2": "النقطة الثانية",
+        "point3": "النقطة الثالثة"
       },
       "error": {
-        "message": "[AR] Message",
-        "cta": "[AR] Cta"
+        "message": "رسالة",
+        "cta": "زر الإجراء"
       }
     },
     "orders": {
-      "title": "[AR] Marketplace Orders",
-      "subtitle": "[AR] Manage your orders",
-      "orderNumber": "[AR] Order Number",
-      "itemsCount": "[AR] Items Count",
-      "submitted": "[AR] Submitted",
-      "approvalStatus": "[AR] Approval Status",
+      "title": "طلبات السوق",
+      "subtitle": "إدارة الطلبات",
+      "orderNumber": "رقم الطلب",
+      "itemsCount": "عدد العناصر",
+      "submitted": "مُرسل",
+      "approvalStatus": "حالة الموافقة",
       "status": {
-        "unknown": "[AR] Unknown"
+        "unknown": "غير معروف"
       },
       "empty": {
-        "title": "[AR] Marketplace Orders Empty",
-        "subtitle": "[AR] Manage your orders"
+        "title": "لا توجد طلبات",
+        "subtitle": "إدارة الطلبات"
       },
       "error": {
-        "message": "[AR] Message"
+        "message": "رسالة"
       }
     },
     "product": {
-      "sku": "[AR] Sku",
-      "brand": "[AR] Brand",
-      "standards": "[AR] Standards",
+      "sku": "رمز المنتج",
+      "brand": "العلامة التجارية",
+      "standards": "المعايير",
       "error": "حدث خطأ",
-      "errorCta": "[AR] Error Cta",
+      "errorCta": "إجراء الخطأ",
       "metadata": {
-        "title": "[AR] Marketplace Product Metadata",
-        "description": "[AR] Enter description"
+        "title": "بيانات المنتج",
+        "description": "أدخل الوصف"
       },
       "breadcrumb": {
-        "home": "[AR] Home"
+        "home": "الرئيسية"
       },
       "specs": {
-        "title": "[AR] Marketplace Product Specs"
+        "title": "مواصفات المنتج"
       },
       "documents": {
-        "title": "[AR] Marketplace Product Documents",
-        "msds": "[AR] Msds",
-        "coa": "[AR] Coa"
+        "title": "مستندات المنتج",
+        "msds": "صحيفة بيانات السلامة",
+        "coa": "دليل الحسابات"
       },
       "related": {
-        "title": "[AR] Marketplace Product Related",
-        "empty": "[AR] Empty"
+        "title": "منتجات ذات صلة",
+        "empty": "فارغ"
       }
     },
     "search": {
-      "defaultQuery": "[AR] Default Query",
-      "heading": "[AR] Heading",
-      "resultsLabel": "[AR] Results",
-      "startRfq": "[AR] Start Rfq",
+      "defaultQuery": "الاستعلام الافتراضي",
+      "heading": "العنوان الرئيسي",
+      "resultsLabel": "النتائج",
+      "startRfq": "بدء طلب العروض",
       "empty": {
-        "title": "[AR] Marketplace Search Empty",
-        "subtitle": "[AR] Manage your search"
+        "title": "لا توجد نتائج بحث",
+        "subtitle": "إدارة البحث"
       }
     },
     "vendor": {
       "profile": "الملف الشخصي",
-      "uploadProduct": "[AR] Upload Product",
-      "manageProducts": "[AR] Manage Products",
-      "bulkUpload": "[AR] Bulk Upload",
+      "uploadProduct": "رفع منتج",
+      "manageProducts": "إدارة المنتجات",
+      "bulkUpload": "رفع جماعي",
       "sellerCentral": {
-        "_value": "[AR] Seller Central",
-        "desc": "[AR] Desc"
+        "_value": "مركز البائع",
+        "desc": "الوصف"
       }
     },
     "productCard": {
       "unitLabel": "الوحدة",
-      "leadTime": "[AR] Lead Time",
+      "leadTime": "وقت التسليم",
       "toast": {
         "success": "تمت العملية بنجاح",
         "error": "حدث خطأ"
       },
       "button": {
-        "adding": "[AR] Adding",
+        "adding": "جارٍ الإضافة",
         "add": "إضافة"
       }
     },
     "home": {
       "hero": {
-        "pill": "[AR] Pill",
-        "title": "[AR] Marketplace Home Hero",
-        "description": "[AR] Enter description",
+        "pill": "شريحة",
+        "title": "البطل في الرئيسية",
+        "description": "أدخل الوصف",
         "highlights": {
-          "rapidRfq": "[AR] Rapid Rfq",
-          "linkedOrders": "[AR] Linked Orders",
-          "financeReady": "[AR] Finance Ready"
+          "rapidRfq": "طلب عروض سريع",
+          "linkedOrders": "الطلبات المرتبطة",
+          "financeReady": "المالية جاهزة"
         }
       },
       "kpis": {
-        "title": "[AR] Marketplace Home Kpis",
-        "openApprovals": "[AR] Open Approvals",
-        "pendingDeliveries": "[AR] Pending Deliveries",
-        "financeReady": "[AR] Finance Ready"
+        "title": "مؤشرات الأداء",
+        "openApprovals": "الموافقات المفتوحة",
+        "pendingDeliveries": "التوصيلات المعلقة",
+        "financeReady": "المالية جاهزة"
       },
       "featured": {
-        "title": "[AR] Marketplace Home Featured",
-        "viewAll": "[AR] View All"
+        "title": "المميز في الرئيسية",
+        "viewAll": "عرض الكل"
       },
       "categories": {
-        "explore": "[AR] Explore"
+        "explore": "استكشاف"
       }
     },
     "sellerOnboarding": {
       "errors": {
-        "fileType": "[AR] File Type",
-        "fileSize": "[AR] File Size",
-        "stepRequired": "[AR] Step Required",
-        "required": "[AR] Required",
-        "submitFailed": "[AR] Submit Failed"
+        "fileType": "نوع الملف",
+        "fileSize": "حجم الملف",
+        "stepRequired": "الخطوة مطلوبة",
+        "required": "مطلوب",
+        "submitFailed": "فشل الإرسال"
       },
       "progress": {
-        "business": "[AR] Business",
+        "business": "الأعمال",
         "contact": "اتصل بنا",
-        "kyc": "[AR] Kyc",
-        "banking": "[AR] Banking"
+        "kyc": "تحقق من الهوية",
+        "banking": "الخدمات المصرفية"
       },
       "headings": {
-        "business": "[AR] Business",
+        "business": "الأعمال",
         "contact": "اتصل بنا",
-        "kyc": "[AR] Kyc",
-        "banking": "[AR] Banking"
+        "kyc": "تحقق من الهوية",
+        "banking": "الخدمات المصرفية"
       },
       "fields": {
-        "businessName": "[AR] Business Name",
-        "businessType": "[AR] Business Type",
-        "taxId": "[AR] Tax Id",
-        "contactName": "[AR] Contact Name",
+        "businessName": "اسم الشركة",
+        "businessType": "نوع النشاط",
+        "taxId": "الرقم الضريبي",
+        "contactName": "اسم جهة الاتصال",
         "email": "البريد الإلكتروني",
         "phone": "الهاتف",
         "address": "العنوان",
@@ -1881,24 +1884,24 @@
         "iban": "رقم الآيبان"
       },
       "options": {
-        "selectType": "[AR] Select Type",
-        "soleProprietor": "[AR] Sole Proprietor",
-        "llc": "[AR] Llc",
-        "corporation": "[AR] Corporation"
+        "selectType": "اختر النوع",
+        "soleProprietor": "مؤسسة فردية",
+        "llc": "شركة ذات مسؤولية محدودة",
+        "corporation": "شركة مساهمة"
       },
       "documents": {
-        "commercial": "[AR] Commercial",
-        "hint": "[AR] Hint",
-        "chooseFile": "[AR] Choose File",
-        "tax": "[AR] Tax"
+        "commercial": "تجاري",
+        "hint": "تلميح",
+        "chooseFile": "اختر ملف",
+        "tax": "الضريبة"
       },
       "banking": {
         "info": "معلومات"
       },
       "buttons": {
-        "previous": "[AR] Previous",
-        "next": "[AR] Next",
-        "submitting": "[AR] Submitting",
+        "previous": "السابق",
+        "next": "التالي",
+        "submitting": "جارٍ الإرسال",
         "submit": "إرسال"
       }
     }
@@ -1911,23 +1914,23 @@
     "contracts": "العقود",
     "performance": "الأداء",
     "payments": "المدفوعات",
-    "confirmDelete": "[AR] Confirm Delete",
+    "confirmDelete": "تأكيد الحذف",
     "toast": {
-      "deleting": "[AR] Deleting",
-      "deleteSuccess": "[AR] Delete successful",
-      "deleteFailed": "[AR] Delete Failed"
+      "deleting": "جارٍ الحذف",
+      "deleteSuccess": "تم الحذف بنجاح",
+      "deleteFailed": "فشل الحذف"
     },
     "errors": {
-      "deleteUnknown": "[AR] Delete Unknown",
-      "loadFailed": "[AR] Load Failed"
+      "deleteUnknown": "حذف غير معروف",
+      "loadFailed": "فشل التحميل"
     },
     "export": {
-      "empty": "[AR] Empty",
+      "empty": "فارغ",
       "success": "تمت العملية بنجاح"
     },
     "empty": {
-      "description": "[AR] Enter description",
-      "cta": "[AR] Cta"
+      "description": "أدخل الوصف",
+      "cta": "زر الإجراء"
     }
   },
   "tenants": {
@@ -1948,13 +1951,13 @@
     "schedule": "جدول الصيانة",
     "history": "تاريخ الصيانة",
     "preventive": "الصيانة الوقائية",
-    "deleteSuccess": "[AR] Delete successful",
-    "deleteError": "[AR] Delete failed",
-    "deleteTitle": "[AR] Delete Title",
-    "deleteConfirm": "[AR] Delete Confirm",
-    "viewTask": "[AR] View Task",
-    "editTask": "[AR] Edit Task",
-    "deleteTask": "[AR] Delete Task"
+    "deleteSuccess": "تم الحذف بنجاح",
+    "deleteError": "فشل الحذف",
+    "deleteTitle": "عنوان الحذف",
+    "deleteConfirm": "تأكيد الحذف",
+    "viewTask": "عرض المهمة",
+    "editTask": "تعديل المهمة",
+    "deleteTask": "حذف المهمة"
   },
   "support": {
     "title": "الدعم",
@@ -2034,80 +2037,80 @@
     "subCategoryPlaceholder": "حدد فئة فرعية",
     "typePlaceholder": "اختر النوع",
     "priorityPlaceholder": "حدد الأولوية",
-    "description": "[AR] Enter description",
-    "errorId": "[AR] Error Id",
-    "autoErrorReport": "[AR] Auto Error Report",
-    "timestamp": "[AR] Timestamp",
-    "url": "[AR] Url",
-    "userAgent": "[AR] User Agent",
-    "errorDetails": "[AR] Error Details",
-    "message": "[AR] Message",
-    "noMessage": "[AR] No Message",
-    "viewport": "[AR] Viewport",
-    "platform": "[AR] Platform",
-    "systemInfo": "[AR] System Info",
-    "language": "[AR] Language",
-    "onlineStatus": "[AR] Online Status",
-    "memoryUsage": "[AR] Memory Usage",
-    "used": "[AR] Used",
-    "appState": "[AR] App State",
-    "authenticated": "[AR] Authenticated",
-    "userData": "[AR] User Data",
-    "languageSet": "[AR] Language Set",
-    "themeSet": "[AR] Theme Set",
-    "stackTrace": "[AR] Stack Trace",
-    "noStackTrace": "[AR] No Stack Trace",
-    "componentStack": "[AR] Component Stack",
-    "noComponentStack": "[AR] No Component Stack",
-    "autoCreated": "[AR] Auto Created",
-    "systemError": "[AR] System failed",
-    "ticketCreated": "[AR] Ticket Created",
-    "ticketId": "[AR] Ticket Id",
-    "subject": "[AR] Subject",
-    "module": "[AR] Module",
-    "emailUpdates": "[AR] Email Updates",
-    "thankYou": "[AR] Thank You",
-    "welcomeEmailSent": "[AR] Welcome Email Sent",
-    "welcomeEmailDesc": "[AR] Welcome Email Desc",
-    "welcomeEmailNext": "[AR] Welcome Email Next",
+    "description": "أدخل الوصف",
+    "errorId": "معرف الخطأ",
+    "autoErrorReport": "تقرير الأخطاء التلقائي",
+    "timestamp": "الطابع الزمني",
+    "url": "الرابط",
+    "userAgent": "وكيل المستخدم",
+    "errorDetails": "تفاصيل الخطأ",
+    "message": "رسالة",
+    "noMessage": "لا توجد رسالة",
+    "viewport": "منطقة العرض",
+    "platform": "المنصة",
+    "systemInfo": "معلومات النظام",
+    "language": "اللغة",
+    "onlineStatus": "الحالة المتصلة",
+    "memoryUsage": "استخدام الذاكرة",
+    "used": "مستخدم",
+    "appState": "حالة التطبيق",
+    "authenticated": "تم المصادقة",
+    "userData": "بيانات المستخدم",
+    "languageSet": "تم تعيين اللغة",
+    "themeSet": "تم تعيين السمة",
+    "stackTrace": "تتبع المكدس",
+    "noStackTrace": "لا يوجد تتبع مكدس",
+    "componentStack": "مكدس المكونات",
+    "noComponentStack": "لا يوجد مكدس مكونات",
+    "autoCreated": "إنشاء تلقائي",
+    "systemError": "فشل النظام",
+    "ticketCreated": "تم إنشاء التذكرة",
+    "ticketId": "معرف التذكرة",
+    "subject": "الموضوع",
+    "module": "الوحدة",
+    "emailUpdates": "تحديثات البريد الإلكتروني",
+    "thankYou": "شكراً لك",
+    "welcomeEmailSent": "تم إرسال بريد الترحيب",
+    "welcomeEmailDesc": "وصف بريد الترحيب",
+    "welcomeEmailNext": "التالي بريد الترحيب",
     "tryAgain": "حاول مرة أخرى",
-    "failedToCreate": "[AR] Failed To Create",
-    "copiedToClipboard": "[AR] Copied To Clipboard",
-    "failedToCopy": "[AR] Failed To Copy",
-    "createTicket": "[AR] Create Ticket",
-    "subjectPlaceholder": "[AR] Enter Subject",
-    "descriptionPlaceholder": "[AR] Enter Description",
-    "yourName": "[AR] Your Name",
-    "namePlaceholder": "[AR] Enter Name",
-    "emailPlaceholder": "[AR] Enter Email",
+    "failedToCreate": "فشل الإنشاء",
+    "copiedToClipboard": "تم النسخ إلى الحافظة",
+    "failedToCopy": "فشل النسخ",
+    "createTicket": "إنشاء تذكرة",
+    "subjectPlaceholder": "أدخل الموضوع",
+    "descriptionPlaceholder": "أدخل الوصف",
+    "yourName": "اسمك",
+    "namePlaceholder": "أدخل الاسم",
+    "emailPlaceholder": "أدخل البريد الإلكتروني",
     "phone": "الهاتف",
-    "phonePlaceholder": "[AR] Enter Phone",
-    "copyDetails": "[AR] Copy Details",
+    "phonePlaceholder": "أدخل الهاتف",
+    "copyDetails": "نسخ التفاصيل",
     "creating": "جاري الإنشاء...",
-    "submitTicket": "[AR] Submit Ticket",
+    "submitTicket": "إرسال التذكرة",
     "impersonation": {
       "success": "تمت العملية بنجاح",
-      "cleared": "[AR] Cleared",
-      "current": "[AR] Current",
+      "cleared": "تم المسح",
+      "current": "الحالي",
       "select": "اختيار",
-      "title": "[AR] Support Impersonation",
-      "description": "[AR] Enter description",
-      "registration": "[AR] Registration",
-      "noRegistration": "[AR] No Registration",
+      "title": "دعم انتحال الهوية",
+      "description": "أدخل الوصف",
+      "registration": "التسجيل",
+      "noRegistration": "لا يوجد تسجيل",
       "clear": "مسح",
-      "noSelection": "[AR] No Selection",
+      "noSelection": "لا يوجد اختيار",
       "searchLabel": "بحث",
-      "placeholder": "[AR] Enter Impersonation",
+      "placeholder": "أدخل انتحال الهوية",
       "searching": "جاري البحث...",
       "search": "بحث",
-      "results": "[AR] Results",
-      "useOrg": "[AR] Use Org",
-      "auditNotice": "[AR] Audit Notice",
+      "results": "النتائج",
+      "useOrg": "استخدم المنظمة",
+      "auditNotice": "إشعار التدقيق",
       "errors": {
-        "identifierRequired": "[AR] Identifier Required",
-        "lookupFailed": "[AR] Lookup Failed",
-        "noResults": "[AR] No Results",
-        "setFailed": "[AR] Set Failed"
+        "identifierRequired": "المعرف مطلوب",
+        "lookupFailed": "فشل البحث",
+        "noResults": "لا توجد نتائج",
+        "setFailed": "فشل التعيين"
       }
     }
   },
@@ -2241,47 +2244,47 @@
       "viewVendors": "عرض البائعين"
     },
     "brand": {
-      "title": "[AR] Souq Brand"
+      "title": "علامة السوق"
     },
     "nav": {
-      "catalog": "[AR] Catalog",
-      "vendors": "[AR] Vendors",
-      "rfqs": "[AR] Rfqs",
-      "orders": "[AR] Orders"
+      "catalog": "الكتالوج",
+      "vendors": "الموردين",
+      "rfqs": "طلبات العروض",
+      "orders": "الطلبات"
     },
     "catalog": {
-      "searchPlaceholder": "[AR] Enter Search",
-      "searchAriaLabel": "[AR] Search Aria",
-      "filterByCategory": "[AR] Filter By Category",
-      "categoryAll": "[AR] Category All",
-      "sortBy": "[AR] Sort By",
-      "resultsFound": "[AR] Results Found",
-      "filtersApplied": "[AR] Filters Applied",
-      "soldBy": "[AR] Sold By",
+      "searchPlaceholder": "ابحث هنا...",
+      "searchAriaLabel": "بحث",
+      "filterByCategory": "تصفية حسب الفئة",
+      "categoryAll": "جميع الفئات",
+      "sortBy": "ترتيب حسب",
+      "resultsFound": "نتائج موجودة",
+      "filtersApplied": "تم تطبيق الفلاتر",
+      "soldBy": "مُباع من",
       "sort": {
-        "relevance": "[AR] Relevance",
-        "priceLow": "[AR] Price Low",
-        "priceHigh": "[AR] Price High",
-        "rating": "[AR] Rating",
-        "newest": "[AR] Newest"
+        "relevance": "الصلة",
+        "priceLow": "السعر الأقل",
+        "priceHigh": "السعر الأعلى",
+        "rating": "التقييم",
+        "newest": "الأحدث"
       },
       "badge": {
-        "new": "[AR] New"
+        "new": "جديد"
       },
       "stock": {
-        "in": "[AR] In",
-        "out": "[AR] Out"
+        "in": "في",
+        "out": "خارج"
       },
       "actions": {
         "viewDetails": "عرض التفاصيل",
-        "addToCart": "[AR] Add To Cart"
+        "addToCart": "إضافة إلى السلة"
       },
       "noResults": {
-        "title": "[AR] Souq Catalog No Results",
-        "description": "[AR] Enter description"
+        "title": "لا توجد نتائج في الكتالوج",
+        "description": "أدخل الوصف"
       },
       "footer": {
-        "cta": "[AR] Cta"
+        "cta": "زر الإجراء"
       }
     }
   },
@@ -2300,7 +2303,7 @@
       "auctions": "مزادات",
       "rnpl": "RNPL جاهز",
       "legend": "يظهر تلميح الأدوات العنقودية متوسط ​​السعر • قوائم جاهزة للمزاد • قوائم جاهزة لـ RNPL.",
-      "avgPrice": "[AR] Avg Price"
+      "avgPrice": "متوسط السعر"
     },
     "compliance": {
       "title": "الثقة على مستوى المؤسسة",
@@ -2330,298 +2333,298 @@
       "badge": {
         "rnpl": "RNPL جاهز",
         "auction": "مزاد",
-        "fallback": "[AR] Fallback"
+        "fallback": "البديل"
       },
       "error": "حدث خطأ",
-      "searchPlaceholder": "[AR] Enter Search",
-      "count": "[AR] Count",
+      "searchPlaceholder": "ابحث هنا...",
+      "count": "العدد",
       "loading": "جاري التحميل...",
       "empty": {
-        "title": "[AR] Aqar Properties Empty",
-        "description": "[AR] Enter description"
+        "title": "لا توجد عقارات",
+        "description": "أدخل الوصف"
       }
     },
     "interactiveMap": {
-      "_value": "[AR] Interactive Map",
-      "desc": "[AR] Desc"
+      "_value": "خريطة تفاعلية",
+      "desc": "الوصف"
     },
-    "title": "[AR] Aqar",
-    "subtitle": "[AR] Manage your subtitle",
-    "exploreMap": "[AR] Explore Map",
-    "searchProperties": "[AR] Search Properties",
-    "realEstateFeatures": "[AR] Real Estate Features",
-    "propertyListings": "[AR] Property Listings",
+    "title": "عقار",
+    "subtitle": "إدارة العنوان الفرعي",
+    "exploreMap": "استكشاف الخريطة",
+    "searchProperties": "البحث في العقارات",
+    "realEstateFeatures": "ميزات العقار",
+    "propertyListings": "قوائم العقارات",
     "auctions": {
-      "badge": "[AR] Badge",
-      "title": "[AR] Aqar Auctions",
-      "subtitle": "[AR] Manage your auctions",
-      "empty": "[AR] Empty",
+      "badge": "شارة",
+      "title": "المزادات العقارية",
+      "subtitle": "إدارة المزادات",
+      "empty": "فارغ",
       "rega": {
-        "_value": "[AR] Rega",
-        "desc": "[AR] Desc"
+        "_value": "الهيئة العامة للعقار",
+        "desc": "الوصف"
       }
     },
     "filters": {
-      "title": "[AR] Aqar Filters",
-      "subtitle": "[AR] Manage your filters",
-      "keywords": "[AR] Keywords",
-      "keywordsPlaceholder": "[AR] Enter Keywords",
-      "propertyType": "[AR] Property Type",
-      "city": "[AR] City",
-      "bedrooms": "[AR] Bedrooms",
-      "any": "[AR] Any",
-      "bathrooms": "[AR] Bathrooms",
-      "minPrice": "[AR] Min Price",
-      "maxPrice": "[AR] Max Price",
-      "minArea": "[AR] Min Area",
-      "maxArea": "[AR] Max Area",
+      "title": "فلاتر العقار",
+      "subtitle": "إدارة الفلاتر",
+      "keywords": "الكلمات المفتاحية",
+      "keywordsPlaceholder": "أدخل الكلمات المفتاحية",
+      "propertyType": "نوع العقار",
+      "city": "المدينة",
+      "bedrooms": "غرف النوم",
+      "any": "أي",
+      "bathrooms": "الحمامات",
+      "minPrice": "السعر الأدنى",
+      "maxPrice": "السعر الأقصى",
+      "minArea": "المساحة الدنيا",
+      "maxArea": "المساحة القصوى",
       "furnished": {
-        "_value": "[AR] Furnished",
-        "yes": "[AR] Yes",
-        "no": "[AR] No",
-        "partial": "[AR] Partial"
+        "_value": "مفروش",
+        "yes": "نعم",
+        "no": "لا",
+        "partial": "جزئي"
       },
-      "availableFrom": "[AR] Available From",
+      "availableFrom": "متاح من",
       "reset": "إعادة تعيين",
       "search": "بحث",
-      "quickFilters": "[AR] Quick Filters",
-      "all": "[AR] All",
-      "forSale": "[AR] For Sale",
-      "forRent": "[AR] For Rent",
-      "forLease": "[AR] For Lease",
-      "toggleFilters": "[AR] Toggle Filters",
-      "filtersButton": "[AR] Filters Button",
-      "advancedFiltersRegion": "[AR] Advanced Filters Region",
-      "propertyTypeOption": "[AR] Property Type Option",
-      "priceRange": "[AR] Price Range",
-      "minimum": "[AR] Minimum",
-      "min": "[AR] Min",
-      "minPriceInput": "[AR] Min Price Input",
-      "maximum": "[AR] Maximum",
-      "max": "[AR] Max",
-      "maxPriceInput": "[AR] Max Price Input",
-      "bedroomsLabel": "[AR] Bedrooms",
-      "bathroomsLabel": "[AR] Bathrooms",
-      "area": "[AR] Area",
-      "minAreaInput": "[AR] Min Area Input",
-      "maxAreaInput": "[AR] Max Area Input",
+      "quickFilters": "فلاتر سريعة",
+      "all": "الكل",
+      "forSale": "للبيع",
+      "forRent": "للإيجار",
+      "forLease": "للإيجار",
+      "toggleFilters": "تبديل الفلاتر",
+      "filtersButton": "زر الفلاتر",
+      "advancedFiltersRegion": "منطقة الفلاتر المتقدمة",
+      "propertyTypeOption": "خيار نوع العقار",
+      "priceRange": "نطاق السعر",
+      "minimum": "الأدنى",
+      "min": "الحد الأدنى",
+      "minPriceInput": "إدخال السعر الأدنى",
+      "maximum": "الأقصى",
+      "max": "الحد الأقصى",
+      "maxPriceInput": "إدخال السعر الأقصى",
+      "bedroomsLabel": "غرف النوم",
+      "bathroomsLabel": "الحمامات",
+      "area": "المساحة",
+      "minAreaInput": "إدخال المساحة الدنيا",
+      "maxAreaInput": "إدخال المساحة القصوى",
       "location": "الموقع",
-      "allCities": "[AR] All Cities",
-      "district": "[AR] District",
-      "enterDistrict": "[AR] Enter District",
-      "amenities": "[AR] Amenities",
-      "additionalOptions": "[AR] Additional Options",
-      "featuredOnly": "[AR] Featured Only",
-      "verifiedOnly": "[AR] Verified Only",
-      "sortBy": "[AR] Sort By",
-      "newestFirst": "[AR] Newest First",
-      "priceLowToHigh": "[AR] Price Low To High",
-      "priceHighToLow": "[AR] Price High To Low",
-      "largestFirst": "[AR] Largest First",
-      "mostPopular": "[AR] Most Popular",
+      "allCities": "جميع المدن",
+      "district": "الحي",
+      "enterDistrict": "أدخل الحي",
+      "amenities": "المرافق",
+      "additionalOptions": "خيارات إضافية",
+      "featuredOnly": "المميز فقط",
+      "verifiedOnly": "المتحقق فقط",
+      "sortBy": "ترتيب حسب",
+      "newestFirst": "الأحدث أولاً",
+      "priceLowToHigh": "من الأقل للأعلى سعراً",
+      "priceHighToLow": "من الأعلى للأقل سعراً",
+      "largestFirst": "الأكبر أولاً",
+      "mostPopular": "الأكثر شعبية",
       "clearAll": "مسح الكل",
-      "applyFilters": "[AR] Apply Filters",
-      "activeFilters": "[AR] Active Filters",
-      "typesSelected": "[AR] Types Selected",
+      "applyFilters": "تطبيق الفلاتر",
+      "activeFilters": "الفلاتر النشطة",
+      "typesSelected": "الأنواع المحددة",
       "preset": {
-        "familyApartment": "[AR] Family Apartment",
-        "luxuryVilla": "[AR] Luxury Villa",
-        "affordableStudio": "[AR] Affordable Studio",
-        "commercialOffice": "[AR] Commercial Office"
+        "familyApartment": "شقة عائلية",
+        "luxuryVilla": "فيلا فاخرة",
+        "affordableStudio": "استوديو بسعر مناسب",
+        "commercialOffice": "مكتب تجاري"
       }
     },
     "listing": {
       "error": "حدث خطأ",
       "loading": "جاري التحميل...",
       "notFound": "غير موجود",
-      "amenities": "[AR] Amenities",
-      "views": "[AR] Views",
-      "untitled": "[AR] Untitled",
-      "baths": "[AR] Baths",
-      "vr": "[AR] Vr",
+      "amenities": "المرافق",
+      "views": "المشاهدات",
+      "untitled": "بدون عنوان",
+      "baths": "الحمامات",
+      "vr": "الواقع الافتراضي",
       "offline": {
         "loading": "جاري التحميل...",
-        "cta": "[AR] Cta",
-        "ready": "[AR] Ready"
+        "cta": "زر الإجراء",
+        "ready": "جاهز"
       }
     },
     "post": {
-      "badge": "[AR] Badge",
-      "title": "[AR] Aqar Post",
-      "subtitle": "[AR] Manage your post",
+      "badge": "شارة",
+      "title": "إعلان عقاري",
+      "subtitle": "إدارة المنشور",
       "steps": {
-        "cta": "[AR] Cta"
+        "cta": "زر الإجراء"
       },
       "offline": {
-        "title": "[AR] Aqar Post Offline",
-        "desc": "[AR] Desc"
+        "title": "إعلان عقاري غير متصل",
+        "desc": "الوصف"
       }
     },
     "agent": {
-      "listings": "[AR] Listings",
-      "license": "[AR] License",
-      "verified": "[AR] Verified",
-      "propertiesClosed": "[AR] Properties Closed",
-      "avgResponse": "[AR] Avg Response",
-      "yearsExperience": "[AR] Years Experience",
-      "call": "[AR] Call",
-      "whatsapp": "[AR] Whatsapp"
+      "listings": "القوائم",
+      "license": "الترخيص",
+      "verified": "موثق",
+      "propertiesClosed": "العقارات المغلقة",
+      "avgResponse": "متوسط الاستجابة",
+      "yearsExperience": "سنوات الخبرة",
+      "call": "الاتصال",
+      "whatsapp": "واتساب"
     },
     "propertyCard": {
-      "featured": "[AR] Featured",
-      "call": "[AR] Call",
-      "message": "[AR] Message",
-      "perMonth": "[AR] Per Month",
-      "perYear": "[AR] Per Year",
-      "viewProperty": "[AR] View Property",
-      "verified": "[AR] Verified",
-      "forSale": "[AR] For Sale",
-      "forRent": "[AR] For Rent",
-      "ai": "[AR] Ai",
-      "smartHome": "[AR] Smart Home",
-      "vr": "[AR] Vr",
-      "rnpl": "[AR] Rnpl"
+      "featured": "مميز",
+      "call": "الاتصال",
+      "message": "رسالة",
+      "perMonth": "شهرياً",
+      "perYear": "سنوياً",
+      "viewProperty": "عرض العقار",
+      "verified": "موثق",
+      "forSale": "للبيع",
+      "forRent": "للإيجار",
+      "ai": "الذكاء الاصطناعي",
+      "smartHome": "المنزل الذكي",
+      "vr": "الواقع الافتراضي",
+      "rnpl": "الدفع الآجل"
     },
     "aiInsights": {
-      "subtitle": "[AR] Manage your aiInsights",
-      "title": "[AR] Aqar Ai Insights",
+      "subtitle": "إدارة رؤى الذكاء الاصطناعي",
+      "title": "رؤى الذكاء الاصطناعي العقارية",
       "match": {
-        "_value": "[AR] Match",
-        "desc": "[AR] Desc"
+        "_value": "تطابق",
+        "desc": "الوصف"
       },
       "pricing": {
-        "_value": "[AR] Pricing",
-        "desc": "[AR] Desc"
+        "_value": "التسعير",
+        "desc": "الوصف"
       },
       "demand": {
-        "_value": "[AR] Demand",
-        "desc": "[AR] Desc"
+        "_value": "الطلب",
+        "desc": "الوصف"
       },
       "appreciation": {
-        "_value": "[AR] Appreciation",
-        "desc": "[AR] Desc"
+        "_value": "التقدير",
+        "desc": "الوصف"
       },
       "rnpl": {
-        "_value": "[AR] Rnpl",
-        "ready": "[AR] Ready",
-        "custom": "[AR] Custom",
+        "_value": "الدفع الآجل",
+        "ready": "جاهز",
+        "custom": "مخصص",
         "desc": {
-          "ready": "[AR] Ready",
-          "custom": "[AR] Custom"
+          "ready": "جاهز",
+          "custom": "مخصص"
         }
       },
-      "proptech": "[AR] Proptech"
+      "proptech": "التقنية العقارية"
     },
     "mortgage": {
-      "title": "[AR] Aqar Mortgage",
-      "propertyPrice": "[AR] Property Price",
-      "downPayment": "[AR] Down Payment",
-      "interestRate": "[AR] Interest Rate",
-      "loanTerm": "[AR] Loan Term",
-      "years": "[AR] Years",
-      "monthlyPayment": "[AR] Monthly Payment",
-      "months": "[AR] Months"
+      "title": "التمويل العقاري",
+      "propertyPrice": "سعر العقار",
+      "downPayment": "الدفعة المقدمة",
+      "interestRate": "معدل الفائدة",
+      "loanTerm": "مدة القرض",
+      "years": "سنوات",
+      "monthlyPayment": "الدفعة الشهرية",
+      "months": "أشهر"
     },
     "proptech": {
-      "vendors": "[AR] Vendors",
-      "smartSummary": "[AR] Smart Summary",
-      "title": "[AR] Aqar Proptech",
-      "solar": "[AR] Solar",
-      "ev": "[AR] Ev",
+      "vendors": "الموردين",
+      "smartSummary": "الملخص الذكي",
+      "title": "التقنية العقارية",
+      "solar": "طاقة شمسية",
+      "ev": "شاحن كهربائي",
       "level": {
-        "advanced": "[AR] Advanced",
-        "basic": "[AR] Basic",
-        "none": "[AR] None"
+        "advanced": "متقدم",
+        "basic": "أساسي",
+        "none": "لا شيء"
       }
     },
     "recommendations": {
       "loading": "جاري التحميل...",
-      "title": "[AR] Aqar Recommendations",
-      "subtitle": "[AR] Manage your recommendations",
-      "smart": "[AR] Smart",
-      "untitled": "[AR] Untitled",
-      "rnpl": "[AR] Rnpl",
-      "suggested": "[AR] Suggested"
+      "title": "توصيات العقار",
+      "subtitle": "إدارة التوصيات",
+      "smart": "ذكي",
+      "untitled": "بدون عنوان",
+      "rnpl": "الدفع الآجل",
+      "suggested": "مقترح"
     },
     "propertyTypes": {
-      "apartment": "[AR] Apartment",
-      "villa": "[AR] Villa",
-      "townhouse": "[AR] Townhouse",
-      "penthouse": "[AR] Penthouse",
-      "studio": "[AR] Studio",
-      "land": "[AR] Land",
-      "commercial": "[AR] Commercial",
-      "warehouse": "[AR] Warehouse",
-      "office": "[AR] Office"
+      "apartment": "شقة",
+      "villa": "فيلا",
+      "townhouse": "تاون هاوس",
+      "penthouse": "بنتهاوس",
+      "studio": "استوديو",
+      "land": "أرض",
+      "commercial": "تجاري",
+      "warehouse": "مستودع",
+      "office": "مكتب"
     },
     "amenitiesList": {
-      "swimmingPool": "[AR] Swimming Pool",
-      "gym": "[AR] Gym",
-      "parking": "[AR] Parking",
-      "security": "[AR] Security",
-      "garden": "[AR] Garden",
-      "balcony": "[AR] Balcony",
-      "elevator": "[AR] Elevator",
-      "centralAc": "[AR] Central Ac",
-      "maidRoom": "[AR] Maid Room",
-      "storage": "[AR] Storage",
-      "kidsArea": "[AR] Kids Area",
-      "bbqArea": "[AR] Bbq Area"
+      "swimmingPool": "مسبح",
+      "gym": "صالة رياضية",
+      "parking": "موقف السيارات",
+      "security": "الأمان",
+      "garden": "حديقة",
+      "balcony": "شرفة",
+      "elevator": "المصعد",
+      "centralAc": "تكييف مركزي",
+      "maidRoom": "غرفة الخادمة",
+      "storage": "التخزين",
+      "kidsArea": "منطقة الأطفال",
+      "bbqArea": "منطقة الشواء"
     },
     "cities": {
-      "riyadh": "[AR] Riyadh",
-      "jeddah": "[AR] Jeddah",
-      "mecca": "[AR] Mecca",
-      "medina": "[AR] Medina",
-      "dammam": "[AR] Dammam",
-      "khobar": "[AR] Khobar",
-      "dhahran": "[AR] Dhahran",
-      "jubail": "[AR] Jubail",
-      "tabuk": "[AR] Tabuk",
-      "abha": "[AR] Abha",
-      "khamisMushait": "[AR] Khamis Mushait",
-      "najran": "[AR] Najran",
-      "jazan": "[AR] Jazan"
+      "riyadh": "الرياض",
+      "jeddah": "جدة",
+      "mecca": "مكة المكرمة",
+      "medina": "المدينة المنورة",
+      "dammam": "الدمام",
+      "khobar": "الخبر",
+      "dhahran": "الظهران",
+      "jubail": "الجبيل",
+      "tabuk": "تبوك",
+      "abha": "أبها",
+      "khamisMushait": "خميس مشيط",
+      "najran": "نجران",
+      "jazan": "جازان"
     },
     "viewing": {
-      "scheduled": "[AR] Scheduled",
-      "confirmationSent": "[AR] Confirmation Sent",
-      "details": "[AR] Details",
-      "scheduleTitle": "[AR] Schedule Title",
-      "typeQuestion": "[AR] Type Question",
-      "selectDate": "[AR] Select Date",
+      "scheduled": "مجدول",
+      "confirmationSent": "تم إرسال التأكيد",
+      "details": "التفاصيل",
+      "scheduleTitle": "عنوان الجدول",
+      "typeQuestion": "اكتب سؤالك",
+      "selectDate": "اختر التاريخ",
       "today": "اليوم",
-      "selectTime": "[AR] Select Time",
+      "selectTime": "اختر الوقت",
       "steps": {
         "type": "النوع",
-        "dateTime": "[AR] Date Time",
-        "details": "[AR] Details",
+        "dateTime": "التاريخ والوقت",
+        "details": "التفاصيل",
         "confirm": "تأكيد"
       },
       "types": {
-        "inPerson": "[AR] In Person",
-        "inPersonDesc": "[AR] In Person Desc",
-        "videoCall": "[AR] Video Call",
-        "videoCallDesc": "[AR] Video Call Desc",
-        "virtual": "[AR] Virtual",
-        "virtualDesc": "[AR] Virtual Desc"
+        "inPerson": "حضورياً",
+        "inPersonDesc": "وصف الحضور",
+        "videoCall": "مكالمة فيديو",
+        "videoCallDesc": "وصف مكالمة الفيديو",
+        "virtual": "افتراضي",
+        "virtualDesc": "وصف الافتراضي"
       },
       "buttons": {
-        "continue": "[AR] Continue"
+        "continue": "متابعة"
       }
     },
     "superpowers": {
       "ai": {
-        "title": "[AR] Aqar Superpowers Ai",
-        "desc": "[AR] Desc"
+        "title": "قوى الذكاء الاصطناعي العقارية",
+        "desc": "الوصف"
       },
       "assistant": {
-        "title": "[AR] Aqar Superpowers Assistant",
-        "desc": "[AR] Desc"
+        "title": "المساعد الذكي للعقار",
+        "desc": "الوصف"
       },
       "offline": {
-        "title": "[AR] Aqar Superpowers Offline",
-        "desc": "[AR] Desc"
+        "title": "القوى العقارية غير متصلة",
+        "desc": "الوصف"
       }
     }
   },
@@ -2651,7 +2654,7 @@
     "filter": "تصفية",
     "import": "استيراد",
     "error": {
-      "loadData": "[AR] Load Data"
+      "loadData": "تحميل البيانات"
     },
     "success": "نجح",
     "confirm": "تأكيد",
@@ -2704,55 +2707,56 @@
       "unexpected": "حدث خطأ غير متوقع"
     },
     "saving": "جاري الحفظ...",
-    "characters": "[AR] Characters",
+    "characters": "الأحرف",
     "share": "مشاركة",
-    "contactSupport": "[AR] Contact Support",
-    "selected": "[AR] Selected",
-    "notAvailable": "[AR] Not Available",
+    "contactSupport": "تواصل مع الدعم",
+    "selected": "محدد",
+    "notAvailable": "غير متاح",
     "email": "البريد الإلكتروني",
     "viewDetails": "عرض التفاصيل",
-    "vendors": "[AR] Vendors",
+    "vendors": "الموردين",
     "retry": "إعادة المحاولة",
-    "na": "[AR] Na",
+    "na": "غير متاح",
     "approve": "موافقة",
     "reject": "رفض",
     "review": "مراجعة",
     "analytics": "التحليلات",
     "thisMonth": "هذا الشهر",
-    "avgRating": "[AR] Avg Rating",
-    "totalCost": "[AR] Total Cost",
+    "avgRating": "متوسط التقييم",
+    "totalCost": "إجمالي التكلفة",
     "exportCsv": "تصدير CSV",
     "viewCharts": "عرض الرسوم البيانية",
     "property": "العقار",
     "selectProperty": "اختر العقار",
     "location": "الموقع",
-    "description": "[AR] Enter description",
+    "description": "أدخل الوصف",
     "dueDate": "تاريخ الاستحقاق",
     "overdue": "متأخر",
     "password": "كلمة المرور",
     "forgotPassword": "نسيت كلمة المرور؟",
     "signUp": "إنشاء حساب",
-    "online": "[AR] Online",
-    "offline": "[AR] Offline",
+    "online": "متصل",
+    "offline": "غير متصل",
     "logout": "تسجيل الخروج",
-    "popularPages": "[AR] Popular Pages",
-    "totals": "[AR] Totals",
+    "popularPages": "الصفحات الشائعة",
+    "totals": "الإجماليات",
     "saveChanges": "حفظ التغييرات",
     "expandAll": "توسيع الكل",
     "collapseAll": "طي الكل",
-    "asOf": "[AR] As Of",
+    "asOf": "اعتباراً من",
     "pages": {
       "dashboard": "لوحة التحكم",
-      "properties": "[AR] Properties",
-      "workOrders": "[AR] Work Orders",
-      "marketplace": "[AR] Marketplace",
-      "finance": "[AR] Finance",
-      "hr": "[AR] Hr",
+      "properties": "العقارات",
+      "workOrders": "أوامر العمل",
+      "marketplace": "السوق",
+      "finance": "المالية",
+      "hr": "الموارد البشرية",
       "login": "تسجيل الدخول"
     }
   },
   "accessibility": {
-    "skipToContent": "انتقل إلى المحتوى الرئيسي"
+    "skipToContent": "انتقل إلى المحتوى الرئيسي",
+    "skipToMainContent": "انتقل إلى المحتوى الرئيسي"
   },
   "app": {
     "fm": "إدارة المرافق",
@@ -2793,7 +2797,7 @@
     "profile": "الملف الشخصي",
     "header": "التنقل",
     "globalHeader": "التنقل العالمي لفيكزت",
-    "fm": "[AR] Fm"
+    "fm": "إدارة المرافق"
   },
   "time": {
     "justNow": "الآن",
@@ -2823,15 +2827,15 @@
       "compliance": "الامتثال",
       "reporting": "التقارير",
       "admin": "الإدارة",
-      "business": "[AR] Business"
+      "business": "الأعمال"
     },
-    "expand": "[AR] Expand",
-    "collapse": "[AR] Collapse",
+    "expand": "توسيع",
+    "collapse": "طي",
     "legacy": {
-      "heading": "[AR] Heading",
+      "heading": "العنوان الرئيسي",
       "theme": {
-        "light": "[AR] Light",
-        "dark": "[AR] Dark"
+        "light": "فاتح",
+        "dark": "داكن"
       }
     }
   },
@@ -2852,45 +2856,45 @@
       "language": "اللغة",
       "english": "الإنجليزية",
       "arabic": "العربية",
-      "timezone": "[AR] Timezone",
-      "riyadh": "[AR] Riyadh",
-      "utc": "[AR] Utc",
-      "theme": "[AR] Theme",
-      "light": "[AR] Light",
-      "dark": "[AR] Dark",
-      "system": "[AR] System",
+      "timezone": "المنطقة الزمنية",
+      "riyadh": "الرياض",
+      "utc": "التوقيت العالمي",
+      "theme": "المظهر",
+      "light": "فاتح",
+      "dark": "داكن",
+      "system": "النظام",
       "save": "حفظ"
     },
     "tabs": {
       "profile": "الملف الشخصي",
-      "security": "[AR] Security",
+      "security": "الأمان",
       "notifications": "الإشعارات",
-      "preferences": "[AR] Preferences"
+      "preferences": "التفضيلات"
     },
     "profile": {
-      "title": "[AR] Settings Profile",
-      "firstName": "[AR] First Name",
-      "lastName": "[AR] Last Name",
+      "title": "إعدادات الملف",
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
       "email": "البريد الإلكتروني",
       "phone": "الهاتف",
       "department": "القسم",
       "save": "حفظ"
     },
     "security": {
-      "title": "[AR] Settings Security",
-      "currentPassword": "[AR] Current Password",
-      "newPassword": "[AR] New Password",
-      "confirmPassword": "[AR] Confirm Password",
-      "twoFactor": "[AR] Two Factor",
-      "twoFactorDesc": "[AR] Two Factor Desc",
-      "updatePassword": "[AR] Update Password"
+      "title": "إعدادات الأمان",
+      "currentPassword": "كلمة المرور الحالية",
+      "newPassword": "كلمة المرور الجديدة",
+      "confirmPassword": "تأكيد كلمة المرور",
+      "twoFactor": "المصادقة الثنائية",
+      "twoFactorDesc": "وصف التحقق الثنائي",
+      "updatePassword": "تحديث كلمة المرور"
     }
   },
   "topbar": {
     "modules": "الوحدات",
     "collapseMenu": "إخفاء قائمة الوحدات",
-    "quickActions": "[AR] Quick Actions",
-    "expandMenu": "[AR] Expand Menu"
+    "quickActions": "إجراءات سريعة",
+    "expandMenu": "توسيع القائمة"
   },
   "navigation": {
     "home": "الرئيسية",
@@ -2915,43 +2919,43 @@
   },
   "errors": {
     "404": {
-      "code": "[AR] Code",
-      "title": "[AR] Errors 404",
-      "message": "[AR] Message",
-      "helpText": "[AR] Help Text"
+      "code": "الرمز",
+      "title": "أخطاء 404",
+      "message": "رسالة",
+      "helpText": "نص المساعدة"
     },
     "generic": {
-      "title": "[AR] Errors Generic",
-      "message": "[AR] Message",
-      "persistsText": "[AR] Persists Text"
+      "title": "أخطاء عامة",
+      "message": "رسالة",
+      "persistsText": "النص المحفوظ"
     },
     "network": "خطأ في الشبكة. يرجى التحقق من اتصالك.",
     "unauthorized": "غير مصرح لك بتنفيذ هذا الإجراء.",
     "notFound": "المورد غير موجود.",
     "validation": "يرجى التحقق من إدخالك والمحاولة مرة أخرى.",
     "admin": {
-      "title": "[AR] Errors Admin",
-      "message": "[AR] Message"
+      "title": "أخطاء المسؤول",
+      "message": "رسالة"
     },
     "aqar": {
-      "title": "[AR] Errors Aqar",
-      "message": "[AR] Message"
+      "title": "أخطاء العقار",
+      "message": "رسالة"
     },
     "dashboard": {
-      "title": "[AR] Errors Dashboard",
-      "message": "[AR] Message"
+      "title": "أخطاء لوحة التحكم",
+      "message": "رسالة"
     },
     "finance": {
-      "title": "[AR] Errors Finance",
-      "message": "[AR] Message"
+      "title": "أخطاء المالية",
+      "message": "رسالة"
     },
     "marketplace": {
-      "title": "[AR] Errors Marketplace",
-      "message": "[AR] Message"
+      "title": "أخطاء السوق",
+      "message": "رسالة"
     },
     "souq": {
-      "title": "[AR] Errors Souq",
-      "message": "[AR] Message"
+      "title": "أخطاء السوق",
+      "message": "رسالة"
     }
   },
   "validation": {
@@ -3012,84 +3016,84 @@
       "body": "تم إكمال وإغلاق أمر العمل #{{workOrderId}}"
     },
     "toast": {
-      "noOrgId": "[AR] No Org Id",
-      "markReadFailed": "[AR] Mark Read Failed",
-      "markingCount": "[AR] Marking Count",
-      "markedCount": "[AR] Marked Count",
-      "archived": "[AR] Archived",
-      "deleted": "[AR] Deleted",
-      "markedImportant": "[AR] Marked Important",
-      "mutedCategory": "[AR] Muted Category",
-      "muteSelectCategory": "[AR] Mute Select Category",
-      "clearedAll": "[AR] Cleared All"
+      "noOrgId": "لا يوجد معرف مؤسسة",
+      "markReadFailed": "فشل التحديد كمقروء",
+      "markingCount": "عدد التحديد",
+      "markedCount": "عدد المحدد",
+      "archived": "مؤرشف",
+      "deleted": "محذوف",
+      "markedImportant": "تم التحديد كمهم",
+      "mutedCategory": "الفئة المكتومة",
+      "muteSelectCategory": "كتم الفئة المحددة",
+      "clearedAll": "تم مسح الكل"
     },
     "status": {
-      "read": "[AR] Read",
-      "unread": "[AR] Unread"
+      "read": "مقروء",
+      "unread": "غير مقروء"
     },
     "report": {
-      "filenamePrefix": "[AR] Filename Prefix"
+      "filenamePrefix": "بادئة اسم الملف"
     },
     "bulk": {
-      "selected": "[AR] Selected",
-      "countSingle": "[AR] Count Single",
-      "count": "[AR] Count",
-      "selectAll": "[AR] Select All",
-      "markRead": "[AR] Mark Read",
-      "markImportant": "[AR] Mark Important",
+      "selected": "محدد",
+      "countSingle": "عدد واحد",
+      "count": "العدد",
+      "selectAll": "اختر الكل",
+      "markRead": "تحديد كمقروء",
+      "markImportant": "تحديد كمهم",
       "export": "تصدير",
-      "archive": "[AR] Archive",
+      "archive": "أرشفة",
       "delete": "حذف"
     },
     "page": {
-      "title": "[AR] Notifications Page",
-      "subtitle": "[AR] Manage your page"
+      "title": "صفحة الإشعارات",
+      "subtitle": "إدارة الصفحة"
     },
     "actions": {
-      "markAllRead": "[AR] Mark All Read",
-      "openSettings": "[AR] Open Settings"
+      "markAllRead": "تحديد الكل كمقروء",
+      "openSettings": "فتح الإعدادات"
     },
     "stats": {
       "total": "الإجمالي",
-      "unread": "[AR] Unread",
-      "highPriority": "[AR] High Priority",
+      "unread": "غير مقروء",
+      "highPriority": "أولوية عالية",
       "today": "اليوم"
     },
     "search": {
-      "placeholder": "[AR] Enter Search"
+      "placeholder": "ابحث هنا..."
     },
     "filters": {
-      "all": "[AR] All",
-      "unread": "[AR] Unread",
-      "high": "[AR] High",
-      "maintenance": "[AR] Maintenance",
+      "all": "الكل",
+      "unread": "غير مقروء",
+      "high": "عالية",
+      "maintenance": "الصيانة",
       "vendor": "المورد",
-      "finance": "[AR] Finance",
-      "system": "[AR] System"
+      "finance": "المالية",
+      "system": "النظام"
     },
     "tabs": {
-      "all": "[AR] All",
-      "unread": "[AR] Unread",
-      "urgent": "[AR] Urgent"
+      "all": "الكل",
+      "unread": "غير مقروء",
+      "urgent": "عاجل"
     },
     "state": {
       "loading": "جاري التحميل...",
-      "emptyTitle": "[AR] Empty Title",
-      "emptySubtitle": "[AR] Empty Subtitle"
+      "emptyTitle": "العنوان فارغ",
+      "emptySubtitle": "العنوان الفرعي فارغ"
     },
     "accessibility": {
-      "selectNotification": "[AR] Select Notification"
+      "selectNotification": "اختر الإشعار"
     },
     "item": {
-      "markAsRead": "[AR] Mark As Read",
-      "moreActions": "[AR] More Actions"
+      "markAsRead": "تحديد كمقروء",
+      "moreActions": "المزيد من الإجراءات"
     },
     "quickActions": {
-      "title": "[AR] Notifications Quick Actions",
+      "title": "إجراءات سريعة للإشعارات",
       "email": "البريد الإلكتروني",
-      "push": "[AR] Push",
-      "mute": "[AR] Mute",
-      "report": "[AR] Report",
+      "push": "إرسال",
+      "mute": "كتم",
+      "report": "التقرير",
       "settings": "الإعدادات",
       "clearAll": "مسح الكل"
     }
@@ -3120,8 +3124,8 @@
     "watch-all": "مشاهدة الكل",
     "welcome": "مرحباً بك",
     "page": {
-      "title": "[AR] Test Page",
-      "description": "[AR] Enter description"
+      "title": "صفحة الاختبار",
+      "description": "أدخل الوصف"
     }
   },
   "fm": {
@@ -3159,29 +3163,29 @@
       "all": "جميع المستأجرين",
       "active": "نشط",
       "inactive": "غير نشط",
-      "noEmail": "[AR] No Email",
-      "noPhone": "[AR] No Phone",
-      "mobile": "[AR] Mobile",
-      "createTenant": "[AR] Create Tenant",
+      "noEmail": "لا يوجد بريد إلكتروني",
+      "noPhone": "لا يوجد هاتف",
+      "mobile": "جوال",
+      "createTenant": "إنشاء مستأجر",
       "new": {
-        "kicker": "[AR] Kicker",
-        "title": "[AR] Fm Tenants New",
-        "subtitle": "[AR] Manage your tenants",
-        "back": "[AR] Back",
-        "sectionTitle": "[AR] Section Title",
-        "sectionDescription": "[AR] Section Description"
+        "kicker": "العنوان الفرعي",
+        "title": "مستأجر جديد",
+        "subtitle": "إدارة المستأجرين",
+        "back": "رجوع",
+        "sectionTitle": "عنوان القسم",
+        "sectionDescription": "وصف القسم"
       },
       "errors": {
-        "failedToLoadTitle": "[AR] Failed To Load Title",
-        "failedToLoadDescription": "[AR] Failed To Load Description",
-        "typeRequired": "[AR] Type Required",
-        "unknown": "[AR] Unknown"
+        "failedToLoadTitle": "فشل تحميل العنوان",
+        "failedToLoadDescription": "فشل تحميل الوصف",
+        "typeRequired": "النوع مطلوب",
+        "unknown": "غير معروف"
       },
       "toast": {
         "creating": "جاري الإنشاء...",
-        "createFailed": "[AR] Create Failed",
-        "createSuccess": "[AR] Create successful",
-        "createUnknown": "[AR] Create Unknown"
+        "createFailed": "فشل الإنشاء",
+        "createSuccess": "تم الإنشاء بنجاح",
+        "createUnknown": "إنشاء غير معروف"
       }
     },
     "properties": {
@@ -3210,137 +3214,137 @@
       "detail": {
         "errors": {
           "noPropertyId": "معرف العقار مطلوب",
-          "noOrgId": "[AR] No Org Id",
-          "loadFailed": "[AR] Load Failed"
+          "noOrgId": "لا يوجد معرف مؤسسة",
+          "loadFailed": "فشل التحميل"
         },
         "actions": {
-          "confirmDelete": "[AR] Confirm Delete"
+          "confirmDelete": "تأكيد الحذف"
         },
         "toasts": {
-          "deleting": "[AR] Deleting",
+          "deleting": "جارٍ الحذف",
           "success": "تمت العملية بنجاح",
-          "failure": "[AR] Failure"
+          "failure": "فشل"
         }
       },
-      "subtitle": "[AR] Manage your properties",
-      "newProperty": "[AR] New Property",
-      "addProperty": "[AR] Add Property",
-      "searchProperties": "[AR] Search Properties",
-      "propertyType": "[AR] Property Type",
-      "industrial": "[AR] Industrial",
-      "mixedUse": "[AR] Mixed Use",
-      "land": "[AR] Land",
-      "viewMap": "[AR] View Map",
-      "noProperties": "[AR] No Properties",
-      "noPropertiesText": "[AR] No Properties Text",
-      "confirmDelete": "[AR] Confirm Delete",
-      "totalArea": "[AR] Total Area",
-      "occupancy": "[AR] Occupancy",
-      "monthlyRent": "[AR] Monthly Rent",
+      "subtitle": "إدارة عقاراتك",
+      "newProperty": "عقار جديد",
+      "addProperty": "إضافة عقار",
+      "searchProperties": "البحث في العقارات",
+      "propertyType": "نوع العقار",
+      "industrial": "صناعي",
+      "mixedUse": "متعدد الاستخدامات",
+      "land": "أرض",
+      "viewMap": "عرض الخريطة",
+      "noProperties": "لا توجد عقارات",
+      "noPropertiesText": "لا توجد عقارات للعرض",
+      "confirmDelete": "تأكيد الحذف",
+      "totalArea": "إجمالي المساحة",
+      "occupancy": "الإشغال",
+      "monthlyRent": "الإيجار الشهري",
       "active": "نشط",
-      "tenants": "[AR] Tenants",
-      "propertyName": "[AR] Property Name",
-      "description": "[AR] Enter description",
-      "streetAddress": "[AR] Street Address",
-      "city": "[AR] City",
-      "region": "[AR] Region",
-      "postalCode": "[AR] Postal Code",
-      "builtArea": "[AR] Built Area",
-      "bedrooms": "[AR] Bedrooms",
-      "bathrooms": "[AR] Bathrooms",
-      "floors": "[AR] Floors",
-      "createProperty": "[AR] Create Property",
+      "tenants": "المستأجرون",
+      "propertyName": "اسم العقار",
+      "description": "أدخل الوصف",
+      "streetAddress": "عنوان الشارع",
+      "city": "المدينة",
+      "region": "المنطقة",
+      "postalCode": "الرمز البريدي",
+      "builtArea": "المساحة المبنية",
+      "bedrooms": "غرف النوم",
+      "bathrooms": "الحمامات",
+      "floors": "الطوابق",
+      "createProperty": "إنشاء عقار",
       "documents": {
-        "title": "[AR] Fm Properties Documents",
-        "subtitle": "[AR] Manage your properties",
+        "title": "مستندات العقارات",
+        "subtitle": "إدارة عقاراتك",
         "upload": "رفع",
-        "viewOnly": "[AR] View Only",
+        "viewOnly": "للعرض فقط",
         "error": "حدث خطأ",
-        "empty": "[AR] Empty",
-        "noDocuments": "[AR] No Documents",
-        "addDocument": "[AR] Add Document",
+        "empty": "فارغ",
+        "noDocuments": "لا توجد مستندات",
+        "addDocument": "إضافة مستند",
         "planGate": {
-          "title": "[AR] Fm Properties Documents Plan Gate",
-          "body": "[AR] Body"
+          "title": "بوابة خطة المستندات",
+          "body": "المحتوى"
         },
         "stats": {
           "total": "الإجمالي",
-          "acrossProperties": "[AR] Across Properties",
+          "acrossProperties": "عبر العقارات",
           "active": "نشط",
-          "expiring": "[AR] Expiring",
-          "expired": "[AR] Expired"
+          "expiring": "تنتهي قريباً",
+          "expired": "منتهي الصلاحية"
         },
         "uploadArea": {
-          "title": "[AR] Fm Properties Documents Upload Area",
-          "description": "[AR] Enter description",
-          "button": "[AR] Button",
-          "hint": "[AR] Hint",
-          "readOnly": "[AR] Read Only"
+          "title": "منطقة رفع المستندات",
+          "description": "أدخل الوصف",
+          "button": "زر",
+          "hint": "تلميح",
+          "readOnly": "للقراءة فقط"
         },
         "byProperty": {
-          "title": "[AR] Fm Properties Documents By Property",
-          "subtitle": "[AR] Manage your properties"
+          "title": "مستندات حسب العقار",
+          "subtitle": "إدارة عقاراتك"
         },
         "comingSoon": {
-          "title": "[AR] Fm Properties Documents Coming Soon",
-          "description": "[AR] Enter description"
+          "title": "المستندات قريباً",
+          "description": "أدخل الوصف"
         }
       },
       "leases": {
-        "title": "[AR] Fm Properties Leases",
-        "subtitle": "[AR] Manage your properties",
-        "newLease": "[AR] New Lease",
-        "viewOnly": "[AR] View Only",
+        "title": "عقود الإيجار",
+        "subtitle": "إدارة عقاراتك",
+        "newLease": "عقد إيجار جديد",
+        "viewOnly": "للعرض فقط",
         "error": "حدث خطأ",
-        "empty": "[AR] Empty",
+        "empty": "فارغ",
         "planGate": {
-          "title": "[AR] Fm Properties Leases Plan Gate",
-          "body": "[AR] Body"
+          "title": "بوابة خطة العقود",
+          "body": "المحتوى"
         },
         "stats": {
           "total": "الإجمالي",
-          "hint": "[AR] Hint",
+          "hint": "تلميح",
           "active": "نشط"
         },
         "list": {
-          "title": "[AR] Fm Properties Leases List",
-          "subtitle": "[AR] Manage your properties"
+          "title": "قائمة العقود",
+          "subtitle": "إدارة عقاراتك"
         },
         "table": {
           "property": "العقار",
           "unit": "الوحدة",
           "tenant": "المستأجر",
           "status": "الحالة",
-          "actions": "[AR] Actions"
+          "actions": "الإجراءات"
         },
         "comingSoon": {
-          "title": "[AR] Fm Properties Leases Coming Soon",
-          "description": "[AR] Enter description"
+          "title": "العقود قريباً",
+          "description": "أدخل الوصف"
         }
       },
       "new": {
-        "kicker": "[AR] Kicker",
-        "title": "[AR] Fm Properties New",
-        "subtitle": "[AR] Manage your properties",
-        "back": "[AR] Back",
-        "sectionTitle": "[AR] Section Title",
-        "sectionDescription": "[AR] Section Description"
+        "kicker": "العنوان الفرعي",
+        "title": "عقار جديد",
+        "subtitle": "إدارة عقاراتك",
+        "back": "رجوع",
+        "sectionTitle": "عنوان القسم",
+        "sectionDescription": "وصف القسم"
       },
       "support": {
-        "activeOrg": "[AR] Active Org"
+        "activeOrg": "المؤسسة النشطة"
       },
       "toast": {
-        "deleting": "[AR] Deleting",
-        "deleteSuccess": "[AR] Delete successful",
-        "deleteFailed": "[AR] Delete Failed",
+        "deleting": "جارٍ الحذف",
+        "deleteSuccess": "تم الحذف بنجاح",
+        "deleteFailed": "فشل الحذف",
         "creating": "جاري الإنشاء...",
-        "createSuccess": "[AR] Create successful",
-        "createFailed": "[AR] Create Failed",
-        "createUnknown": "[AR] Create Unknown"
+        "createSuccess": "تم الإنشاء بنجاح",
+        "createFailed": "فشل الإنشاء",
+        "createUnknown": "إنشاء غير معروف"
       },
       "errors": {
-        "deleteUnknown": "[AR] Delete Unknown",
-        "unknown": "[AR] Unknown"
+        "deleteUnknown": "حذف غير معروف",
+        "unknown": "غير معروف"
       }
     },
     "title": "إدارة المرافق",
@@ -3423,16 +3427,16 @@
       "detail": {
         "errors": {
           "noVendorId": "معرف المورد مطلوب",
-          "noOrgId": "[AR] No Org Id",
-          "loadFailed": "[AR] Load Failed"
+          "noOrgId": "لا يوجد معرف مؤسسة",
+          "loadFailed": "فشل التحميل"
         },
         "actions": {
-          "confirmDelete": "[AR] Confirm Delete"
+          "confirmDelete": "تأكيد الحذف"
         },
         "toasts": {
-          "deleting": "[AR] Deleting",
+          "deleting": "جارٍ الحذف",
           "success": "تمت العملية بنجاح",
-          "failure": "[AR] Failure"
+          "failure": "فشل"
         }
       }
     },
@@ -3484,53 +3488,53 @@
       "draft": "مسودة",
       "sent": "مرسلة",
       "overdue": "متأخرة",
-      "subtitle": "[AR] Manage your invoices",
-      "newInvoice": "[AR] New Invoice",
-      "createInvoice": "[AR] Create Invoice",
-      "totalOutstanding": "[AR] Total Outstanding",
+      "subtitle": "إدارة الفواتير",
+      "newInvoice": "فاتورة جديدة",
+      "createInvoice": "إنشاء فاتورة",
+      "totalOutstanding": "إجمالي المستحق",
       "pending": "قيد الانتظار",
-      "paidThisMonth": "[AR] Paid This Month",
-      "searchInvoices": "[AR] Search Invoices",
-      "viewed": "[AR] Viewed",
+      "paidThisMonth": "المدفوع هذا الشهر",
+      "searchInvoices": "بحث الفواتير",
+      "viewed": "تم العرض",
       "cancelled": "ملغي",
-      "sales": "[AR] Sales",
-      "purchase": "[AR] Purchase",
-      "rental": "[AR] Rental",
-      "service": "[AR] Service",
-      "maintenance": "[AR] Maintenance",
-      "noInvoices": "[AR] No Invoices",
-      "noInvoicesText": "[AR] No Invoices Text",
-      "issueDate": "[AR] Issue Date",
-      "overdueDays": "[AR] Overdue Days",
-      "items": "[AR] Items",
-      "viewInvoice": "[AR] View Invoice",
-      "downloadInvoice": "[AR] Download Invoice",
-      "sendInvoice": "[AR] Send Invoice",
-      "sendReminder": "[AR] Send Reminder",
-      "invoiceType": "[AR] Invoice Type",
+      "sales": "المبيعات",
+      "purchase": "شراء",
+      "rental": "إيجار",
+      "service": "الخدمة",
+      "maintenance": "الصيانة",
+      "noInvoices": "لا توجد فواتير",
+      "noInvoicesText": "لا توجد فواتير للعرض",
+      "issueDate": "تاريخ الإصدار",
+      "overdueDays": "أيام التأخير",
+      "items": "العناصر",
+      "viewInvoice": "عرض الفاتورة",
+      "downloadInvoice": "تحميل الفاتورة",
+      "sendInvoice": "إرسال الفاتورة",
+      "sendReminder": "إرسال تذكير",
+      "invoiceType": "نوع الفاتورة",
       "currency": "العملة",
-      "customerInfo": "[AR] Customer Info",
-      "customerName": "[AR] Customer Name",
-      "taxId": "[AR] Tax Id",
-      "lineItems": "[AR] Line Items",
-      "description": "[AR] Enter description",
-      "quantity": "[AR] Quantity",
-      "unitPrice": "[AR] Unit Price",
-      "vat": "[AR] Vat",
-      "addLineItem": "[AR] Add Line Item",
+      "customerInfo": "معلومات العميل",
+      "customerName": "اسم العميل",
+      "taxId": "الرقم الضريبي",
+      "lineItems": "البنود",
+      "description": "أدخل الوصف",
+      "quantity": "الكمية",
+      "unitPrice": "سعر الوحدة",
+      "vat": "ضريبة القيمة المضافة",
+      "addLineItem": "إضافة بند",
       "toast": {
-        "downloadSuccess": "[AR] Download successful",
-        "downloadFailed": "[AR] Download Failed",
-        "sendSuccess": "[AR] Send successful",
-        "sendFailed": "[AR] Send Failed",
-        "reminderSuccess": "[AR] Reminder successful",
-        "reminderFailed": "[AR] Reminder Failed",
-        "createSuccess": "[AR] Create successful",
-        "createFailed": "[AR] Create Failed",
-        "createUnknown": "[AR] Create Unknown"
+        "downloadSuccess": "تم التحميل بنجاح",
+        "downloadFailed": "فشل التحميل",
+        "sendSuccess": "تم الإرسال بنجاح",
+        "sendFailed": "فشل الإرسال",
+        "reminderSuccess": "تم التذكير بنجاح",
+        "reminderFailed": "فشل التذكير",
+        "createSuccess": "تم الإنشاء بنجاح",
+        "createFailed": "فشل الإنشاء",
+        "createUnknown": "إنشاء غير معروف"
       },
       "errors": {
-        "unknown": "[AR] Unknown"
+        "unknown": "غير معروف"
       }
     },
     "common": {
@@ -3562,26 +3566,26 @@
       "clearAll": "مسح الكل",
       "actions": "الإجراءات"
     },
-    "description": "[AR] Enter description",
+    "description": "أدخل الوصف",
     "org": {
-      "supportContext": "[AR] Support Context",
-      "required": "[AR] Required",
-      "selectPrompt": "[AR] Select Prompt",
-      "contactAdmin": "[AR] Contact Admin"
+      "supportContext": "سياق الدعم",
+      "required": "مطلوب",
+      "selectPrompt": "اختر الموجه",
+      "contactAdmin": "تواصل مع المسؤول"
     },
     "errors": {
-      "orgIdMissing": "[AR] Org Id Missing",
-      "noOrgSession": "[AR] No Org Session"
+      "orgIdMissing": "معرف المنظمة مفقود",
+      "noOrgSession": "لا توجد جلسة منظمة"
     },
     "tabs": {
-      "catalog": "[AR] Catalog",
-      "vendors": "[AR] Vendors",
-      "rfqs": "[AR] Rfqs",
-      "orders": "[AR] Orders"
+      "catalog": "الكتالوج",
+      "vendors": "الموردين",
+      "rfqs": "طلبات العروض",
+      "orders": "الطلبات"
     },
     "finance": {
       "support": {
-        "activeOrg": "[AR] Active Org"
+        "activeOrg": "المؤسسة النشطة"
       }
     }
   },
@@ -3591,18 +3595,18 @@
       "purchase": "أوامر الشراء",
       "service": "طلبات الخدمة"
     },
-    "confirmDelete": "[AR] Confirm Delete",
+    "confirmDelete": "تأكيد الحذف",
     "toast": {
-      "deleting": "[AR] Deleting",
-      "deleteSuccess": "[AR] Delete successful",
-      "deleteFailed": "[AR] Delete Failed"
+      "deleting": "جارٍ الحذف",
+      "deleteSuccess": "تم الحذف بنجاح",
+      "deleteFailed": "فشل الحذف"
     },
     "errors": {
-      "deleteUnknown": "[AR] Delete Unknown",
-      "loadFailed": "[AR] Load Failed"
+      "deleteUnknown": "حذف غير معروف",
+      "loadFailed": "فشل التحميل"
     },
     "export": {
-      "empty": "[AR] Empty",
+      "empty": "فارغ",
       "success": "تمت العملية بنجاح"
     }
   },
@@ -3613,28 +3617,28 @@
     "items": "العناصر",
     "delivery": "التسليم",
     "amount": "المبلغ",
-    "po": "[AR] Po"
+    "po": "أمر شراء"
   },
   "vendor": {
     "type": "النوع",
     "services": "الخدمات",
     "code": "الرمز",
     "category": "الفئة",
-    "responseTime": "[AR] Response Time",
+    "responseTime": "وقت الاستجابة",
     "apply": {
-      "backHome": "[AR] Back Home",
-      "tagline": "[AR] Tagline",
-      "title": "[AR] Vendor Apply",
-      "subtitle": "[AR] Manage your apply",
-      "company": "[AR] Company",
+      "backHome": "العودة للرئيسية",
+      "tagline": "الشعار",
+      "title": "تقديم المورد",
+      "subtitle": "إدارة التقديم",
+      "company": "الشركة",
       "email": "البريد الإلكتروني",
       "contact": "اتصل بنا",
       "phone": "الهاتف",
-      "services": "[AR] Services",
-      "servicesPlaceholder": "[AR] Enter Services",
+      "services": "الخدمات",
+      "servicesPlaceholder": "أدخل الخدمات",
       "notes": "ملاحظات",
-      "notesPlaceholder": "[AR] Enter Notes",
-      "submitting": "[AR] Submitting",
+      "notesPlaceholder": "أدخل الملاحظات",
+      "submitting": "جارٍ الإرسال",
       "submit": "إرسال",
       "success": "تمت العملية بنجاح",
       "error": "حدث خطأ"
@@ -3665,74 +3669,74 @@
       "rateLimited": "محاولات كثيرة جدًا.يرجى المحاولة مرة أخرى في وقت لاحق.",
       "noPhone": "لم يتم تسجيل رقم الهاتف.يرجى الاتصال بالدعم.",
       "otpFailed": "فشل في إرسال رمز التحقق.يرجى المحاولة مرة أخرى.",
-      "emailRequired": "[AR] Email Required",
-      "employeeInvalid": "[AR] Employee Invalid",
-      "passwordRequired": "[AR] Password Required",
-      "passwordTooShort": "[AR] Password Too Short",
-      "companyRequired": "[AR] Company Required",
-      "emailNotVerified": "[AR] Email Not Verified",
-      "accountLocked": "[AR] Account Locked",
-      "invalidCredentials": "[AR] Invalid Credentials",
+      "emailRequired": "البريد الإلكتروني مطلوب",
+      "employeeInvalid": "الموظف غير صالح",
+      "passwordRequired": "كلمة المرور مطلوبة",
+      "passwordTooShort": "كلمة المرور قصيرة جداً",
+      "companyRequired": "الشركة مطلوبة",
+      "emailNotVerified": "البريد الإلكتروني غير مُتحقق",
+      "accountLocked": "الحساب مغلق",
+      "invalidCredentials": "بيانات غير صالحة",
       "networkError": "خطأ في الشبكة. يرجى المحاولة مرة أخرى.",
-      "loginFailed": "[AR] Login Failed",
-      "resendVerificationFailed": "[AR] Resend Verification Failed",
-      "verificationResent": "[AR] Verification Resent",
-      "identifierRequired": "[AR] Identifier Required",
-      "identifierInvalid": "[AR] Identifier Invalid"
+      "loginFailed": "فشل تسجيل الدخول",
+      "resendVerificationFailed": "فشل إعادة إرسال التحقق",
+      "verificationResent": "تم إعادة إرسال التحقق",
+      "identifierRequired": "المعرف مطلوب",
+      "identifierInvalid": "المعرف غير صالح"
     },
-    "welcome": "[AR] Welcome",
-    "subtitle": "[AR] Manage your subtitle",
-    "personalEmailTab": "[AR] Personal Email Tab",
-    "corporateAccountTab": "[AR] Corporate Account Tab",
-    "ssoLoginTab": "[AR] Sso Login Tab",
-    "phoneMode": "[AR] Phone Mode",
-    "companyNumber": "[AR] Company Number",
-    "enterCompanyNumber": "[AR] Enter Company Number",
-    "personalEmail": "[AR] Personal Email",
-    "employeeNumber": "[AR] Employee Number",
-    "enterPhone": "[AR] Enter Phone",
-    "enterEmail": "[AR] Enter Email",
-    "enterEmployeeNumber": "[AR] Enter Employee Number",
-    "corporateHelp": "[AR] Corporate Help",
-    "enterPassword": "[AR] Enter Password",
-    "hidePassword": "[AR] Hide Password",
-    "showPassword": "[AR] Show Password",
-    "capsLockOn": "[AR] Caps Lock On",
-    "rememberMe": "[AR] Remember Me",
-    "verificationPending": "[AR] Verification Pending",
-    "resendVerification": "[AR] Resend Verification",
-    "signingIn": "[AR] Signing In",
-    "signIn": "[AR] Sign In",
-    "continueWith": "[AR] Continue With",
-    "appleUnavailable": "[AR] Apple Unavailable",
-    "orUseAccount": "[AR] Or Use Account",
-    "usePersonalEmail": "[AR] Use Personal Email",
-    "useCorporateAccount": "[AR] Use Corporate Account",
-    "noAccount": "[AR] No Account",
+    "welcome": "مرحباً",
+    "subtitle": "إدارة العنوان الفرعي",
+    "personalEmailTab": "تبويب البريد الشخصي",
+    "corporateAccountTab": "تبويب حساب الشركة",
+    "ssoLoginTab": "تبويب تسجيل الدخول الموحد",
+    "phoneMode": "وضع الهاتف",
+    "companyNumber": "رقم الشركة",
+    "enterCompanyNumber": "أدخل رقم الشركة",
+    "personalEmail": "بريد شخصي",
+    "employeeNumber": "رقم الموظف",
+    "enterPhone": "أدخل الهاتف",
+    "enterEmail": "أدخل البريد الإلكتروني",
+    "enterEmployeeNumber": "أدخل رقم الموظف",
+    "corporateHelp": "مساعدة الشركات",
+    "enterPassword": "أدخل كلمة المرور",
+    "hidePassword": "إخفاء كلمة المرور",
+    "showPassword": "إظهار كلمة المرور",
+    "capsLockOn": "مفتاح Caps Lock مفعّل",
+    "rememberMe": "تذكرني",
+    "verificationPending": "التحقق معلق",
+    "resendVerification": "إعادة إرسال التحقق",
+    "signingIn": "جارٍ تسجيل الدخول",
+    "signIn": "تسجيل الدخول",
+    "continueWith": "المتابعة مع",
+    "appleUnavailable": "Apple غير متاح",
+    "orUseAccount": "أو استخدم الحساب",
+    "usePersonalEmail": "استخدم البريد الشخصي",
+    "useCorporateAccount": "استخدم حساب الشركة",
+    "noAccount": "لا يوجد حساب",
     "signUp": "إنشاء حساب",
-    "personalEmailAccounts": "[AR] Personal Email Accounts",
-    "corporateAccountEmployee": "[AR] Corporate Account Employee",
-    "employeeHash": "[AR] Employee Hash",
-    "signInError": "[AR] Sign In failed",
-    "requestDemo": "[AR] Request Demo",
-    "devHelpers": "[AR] Dev Helpers",
-    "identifier": "[AR] Identifier",
-    "identifierPlaceholder": "[AR] Enter Identifier",
-    "identifierHint": "[AR] Identifier Hint",
-    "passwordPlaceholder": "[AR] Enter Password",
-    "orContinueWith": "[AR] Or Continue With",
+    "personalEmailAccounts": "حسابات البريد الشخصي",
+    "corporateAccountEmployee": "موظف حساب شركة",
+    "employeeHash": "معرف الموظف",
+    "signInError": "فشل تسجيل الدخول",
+    "requestDemo": "طلب عرض تجريبي",
+    "devHelpers": "أدوات المطور",
+    "identifier": "المعرف",
+    "identifierPlaceholder": "أدخل المعرف",
+    "identifierHint": "تلميح المعرف",
+    "passwordPlaceholder": "أدخل كلمة المرور",
+    "orContinueWith": "أو المتابعة مع",
     "success": {
-      "title": "[AR] Login Success",
-      "message": "[AR] Message"
+      "title": "تم تسجيل الدخول بنجاح",
+      "message": "رسالة"
     },
     "helper": {
-      "personal": "[AR] Personal",
-      "corporate": "[AR] Corporate"
+      "personal": "شخصي",
+      "corporate": "شركات"
     },
     "phoneOtp": {
-      "prompt": "[AR] Prompt",
-      "notice": "[AR] Notice",
-      "cta": "[AR] Cta"
+      "prompt": "موجه",
+      "notice": "إشعار",
+      "cta": "زر الإجراء"
     }
   },
   "otp": {
@@ -3809,23 +3813,23 @@
     "results": {
       "title": "نتائج",
       "loading": "جاري التحميل...",
-      "empty": "[AR] Empty",
-      "hint": "[AR] Hint"
+      "empty": "فارغ",
+      "hint": "تلميح"
     },
     "quickActions": {
-      "_value": "[AR] Quick Actions",
-      "empty": "[AR] Empty"
+      "_value": "إجراءات سريعة",
+      "empty": "فارغ"
     },
-    "global": "[AR] Global",
+    "global": "عالمي",
     "scope": {
-      "all": "[AR] All"
+      "all": "الكل"
     },
     "saved": {
-      "title": "[AR] Search Saved",
-      "empty": "[AR] Empty"
+      "title": "تم حفظ البحث",
+      "empty": "فارغ"
     },
     "error": {
-      "generic": "[AR] Generic"
+      "generic": "عام"
     }
   },
   "ats": {
@@ -3834,9 +3838,9 @@
       "insufficientPermissions": "لا تملك الصلاحية للوصول إلى هذه الميزة",
       "moduleDisabled": "وحدة التوظيف غير مفعلة للمستأجر الخاص بك",
       "seatLimitExceeded": "تم تجاوز عدد مقاعد ATS. يرجى التواصل مع المسؤول",
-      "jobsFetchFailed": "[AR] Jobs Fetch Failed",
-      "jobPostLimitExceeded": "[AR] Job Post Limit Exceeded",
-      "jobCreationFailed": "[AR] Job Creation Failed"
+      "jobsFetchFailed": "فشل جلب الوظائف",
+      "jobPostLimitExceeded": "تم تجاوز حد نشر الوظائف",
+      "jobCreationFailed": "فشل إنشاء الوظيفة"
     }
   },
   "onboarding": {
@@ -3967,93 +3971,93 @@
       "viewBilling": "اعرض الفوترة لإدارة اشتراكك أو تحميل الفواتير أو التحدث مع المبيعات."
     }
   },
-  "Bank Transfer Details": "[AR] Bank  Transfer  Details",
-  "Bank Name": "[AR] Bank  Name",
-  "Account Number": "[AR] Account  Number",
-  "Account Holder": "[AR] Account  Holder",
-  "SWIFT Code": "[AR] S W I F T  Code",
-  "IBAN": "[AR] I B A N",
-  "Cheque Details": "[AR] Cheque  Details",
-  "Cheque Number": "[AR] Cheque  Number",
-  "Cheque Date": "[AR] Cheque  Date",
-  "Drawer Name": "[AR] Drawer  Name",
-  "Name on cheque": "[AR] Name On Cheque",
-  "Card Payment Details": "[AR] Card  Payment  Details",
-  "Card Type": "[AR] Card  Type",
-  "Last 4 Digits": "[AR] Last 4  Digits",
-  "Transaction ID": "[AR] Transaction  I D",
-  "Authorization Code": "[AR] Authorization  Code",
-  "New Payment": "[AR] New  Payment",
+  "Bank Transfer Details": "تفاصيل التحويل البنكي",
+  "Bank Name": "اسم البنك",
+  "Account Number": "رقم الحساب",
+  "Account Holder": "صاحب الحساب",
+  "SWIFT Code": "رمز السويفت",
+  "IBAN": "رقم الآيبان",
+  "Cheque Details": "تفاصيل الشيك",
+  "Cheque Number": "رقم الشيك",
+  "Cheque Date": "تاريخ الشيك",
+  "Drawer Name": "اسم الدرج",
+  "Name on cheque": "الاسم على الشيك",
+  "Card Payment Details": "تفاصيل الدفع بالبطاقة",
+  "Card Type": "نوع البطاقة",
+  "Last 4 Digits": "آخر 4 أرقام",
+  "Transaction ID": "معرف المعاملة",
+  "Authorization Code": "رمز التفويض",
+  "New Payment": "دفعة جديدة",
   "Cancel": "إلغاء",
-  "Payment Details": "[AR] Payment  Details",
-  "Payment Type": "[AR] Payment  Type",
-  "Payment Received": "[AR] Payment  Received",
-  "Payment Made": "[AR] Payment  Made",
-  "Payment Date": "[AR] Payment  Date",
-  "Reference Number": "[AR] Reference  Number",
+  "Payment Details": "تفاصيل الدفع",
+  "Payment Type": "نوع الدفع",
+  "Payment Received": "تم استلام الدفعة",
+  "Payment Made": "تم الدفع",
+  "Payment Date": "تاريخ الدفع",
+  "Reference Number": "رقم المرجع",
   "Optional": "اختياري",
   "Amount": "المبلغ",
   "Currency": "العملة",
-  "Payment Method": "[AR] Payment  Method",
+  "Payment Method": "طريقة الدفع",
   "Cash": "نقدي",
-  "Credit/Debit Card": "[AR] Credit/ Debit  Card",
-  "Bank Transfer": "[AR] Bank  Transfer",
+  "Credit/Debit Card": "بطاقة ائتمان/خصم",
+  "Bank Transfer": "تحويل بنكي",
   "Cheque": "شيك",
-  "Online Payment": "[AR] Online  Payment",
+  "Online Payment": "دفع إلكتروني",
   "Other": "أخرى",
-  "Deposit To Account": "[AR] Deposit  To  Account",
-  "Select Account": "[AR] Select  Account",
-  "Received From": "[AR] Received  From",
-  "Paid To": "[AR] Paid  To",
-  "Party Type": "[AR] Party  Type",
+  "Deposit To Account": "إيداع في الحساب",
+  "Select Account": "اختر الحساب",
+  "Received From": "مستلم من",
+  "Paid To": "مدفوع إلى",
+  "Party Type": "نوع الطرف",
   "Tenant": "المستأجر",
   "Customer": "العميل",
   "Vendor": "المورد",
   "Supplier": "المورد",
   "Owner": "المالك",
-  "Party Name": "[AR] Party  Name",
+  "Party Name": "اسم الطرف",
   "Notes": "ملاحظات",
-  "Invoice Allocation": "[AR] Invoice  Allocation",
-  "Hide Invoices": "[AR] Hide  Invoices",
-  "Allocate to Invoices": "[AR] Allocate To  Invoices",
-  "No unpaid invoices found": "[AR] No Unpaid Invoices Found",
-  "Allocate Equally": "[AR] Allocate  Equally",
-  "By Due Date": "[AR] By  Due  Date",
-  "Clear All": "[AR] Clear  All",
+  "Invoice Allocation": "تخصيص الفاتورة",
+  "Hide Invoices": "إخفاء الفواتير",
+  "Allocate to Invoices": "تخصيص للفواتير",
+  "No unpaid invoices found": "لا توجد فواتير غير مدفوعة",
+  "Allocate Equally": "توزيع بالتساوي",
+  "By Due Date": "حسب تاريخ الاستحقاق",
+  "Clear All": "مسح الكل",
   "Select": "اختيار",
-  "Invoice #": "[AR] Invoice #",
-  "Due Date": "[AR] Due  Date",
-  "Amount Due": "[AR] Amount  Due",
+  "Invoice #": "فاتورة رقم",
+  "Due Date": "تاريخ الاستحقاق",
+  "Amount Due": "المبلغ المستحق",
   "Allocate": "توزيع",
-  "Payment Amount": "[AR] Payment  Amount",
+  "Payment Amount": "مبلغ الدفع",
   "Allocated": "موزع",
   "Unallocated": "غير موزع",
-  "Create Payment": "[AR] Create  Payment",
-  "Account Activity": "[AR] Account  Activity",
-  "Export CSV": "[AR] Export  C S V",
+  "Create Payment": "إنشاء دفعة",
+  "Account Activity": "نشاط الحساب",
+  "Export CSV": "تصدير CSV",
   "Refresh": "تحديث",
-  "Start Date": "[AR] Start  Date",
-  "End Date": "[AR] End  Date",
-  "Source Type": "[AR] Source  Type",
-  "All Types": "[AR] All  Types",
+  "Start Date": "تاريخ البدء",
+  "End Date": "تاريخ الانتهاء",
+  "Source Type": "نوع المصدر",
+  "All Types": "جميع الأنواع",
   "Manual": "يدوي",
   "Invoice": "فاتورة",
   "Payment": "دفعة",
   "Expense": "مصروف",
   "Rent": "إيجار",
-  "Work Order": "[AR] Work  Order",
+  "Work Order": "أمر عمل",
   "Adjustment": "تعديل",
   "Today": "اليوم",
-  "This Week": "[AR] This  Week",
-  "This Month": "[AR] This  Month",
-  "This Quarter": "[AR] This  Quarter",
-  "This Year": "[AR] This  Year",
-  "Last Month": "[AR] Last  Month",
-  "Last Year": "[AR] Last  Year",
-  "Opening Balance": "[AR] Opening  Balance",
-  "Total Debits": "[AR] Total  Debits",
-  "Total Credits": "[AR] Total  Credits",
-  "Closing Balance": "[AR] Closing  Balance",
+  "This Week": "هذا الأسبوع",
+  "This Month": "هذا الشهر",
+  "This Quarter": "هذا الربع",
+  "This Year": "هذه السنة",
+  "Last Month": "الشهر الماضي",
+  "Last Year": "السنة الماضية",
+  "Opening Balance": "الرصيد الافتتاحي",
+  "Total Debits": "إجمالي المدين",
+  "Total Credits": "إجمالي الدائن",
+  "Closing Balance": "الرصيد الختامي",
   "Date": "التاريخ",
   "Journal #": "رقم القيد",
   "Source": "المصدر",
@@ -4061,16 +4065,16 @@
   "Debit": "مدين",
   "Credit": "دائن",
   "Balance": "الرصيد",
-  "No transactions found for this period": "[AR] No Transactions Found For This Period",
-  "Showing": "[AR] Showing",
-  "of": "[AR] Of",
-  "transactions": "[AR] Transactions",
+  "No transactions found for this period": "لا توجد معاملات لهذه الفترة",
+  "Showing": "عرض",
+  "of": "من",
+  "transactions": "المعاملات",
   "First": "الأول",
-  "Previous": "[AR] Previous",
-  "Page": "[AR] Page",
-  "Next": "[AR] Next",
+  "Previous": "السابق",
+  "Page": "الصفحة",
+  "Next": "التالي",
   "Last": "الأخير",
-  "Select an account to view activity": "[AR] Select An Account To View Activity",
+  "Select an account to view activity": "اختر حساباً لعرض النشاط",
   "save": {
     "saving": "جاري الحفظ...",
     "success": "تمت العملية بنجاح",
@@ -4078,274 +4082,274 @@
     "networkError": "خطأ في الشبكة. يرجى المحاولة مرة أخرى."
   },
   "compliance": {
-    "title": "[AR] Compliance",
-    "description": "[AR] Enter description"
+    "title": "الامتثال",
+    "description": "أدخل الوصف"
   },
   "devLogin": {
-    "title": "[AR] Dev Login",
-    "subtitle": "[AR] Manage your subtitle",
+    "title": "تسجيل دخول المطور",
+    "subtitle": "إدارة العنوان الفرعي",
     "alert": {
-      "failure": "[AR] Failure",
-      "unknownError": "[AR] Unknown failed"
+      "failure": "فشل",
+      "unknownError": "فشل غير معروف"
     },
     "fields": {
       "emailLabel": "البريد الإلكتروني",
-      "employeeLabel": "[AR] Employee",
+      "employeeLabel": "الموظف",
       "passwordLabel": "كلمة المرور",
-      "passwordHidden": "[AR] Password Hidden"
+      "passwordHidden": "كلمة المرور مخفية"
     },
     "buttons": {
-      "loggingIn": "[AR] Logging In",
-      "autoLogin": "[AR] Auto Login",
-      "copyIdentifier": "[AR] Copy Identifier",
-      "backToLogin": "[AR] Back To Login"
+      "loggingIn": "جارٍ تسجيل الدخول",
+      "autoLogin": "تسجيل دخول تلقائي",
+      "copyIdentifier": "نسخ المعرف",
+      "backToLogin": "العودة لتسجيل الدخول"
     },
     "warning": {
-      "title": "[AR] Dev Login Warning",
-      "description": "[AR] Enter description"
+      "title": "تحذير تسجيل دخول المطور",
+      "description": "أدخل الوصف"
     },
     "empty": {
-      "noCreds": "[AR] No Creds",
-      "copyPrefix": "[AR] Copy Prefix",
-      "copyMiddle": "[AR] Copy Middle",
-      "copySuffix": "[AR] Copy Suffix"
+      "noCreds": "لا توجد بيانات اعتماد",
+      "copyPrefix": "نسخ البادئة",
+      "copyMiddle": "نسخ الوسط",
+      "copySuffix": "نسخ اللاحقة"
     },
     "sections": {
-      "personal": "[AR] Personal",
-      "corporate": "[AR] Corporate"
+      "personal": "شخصي",
+      "corporate": "شركات"
     },
     "instructions": {
-      "title": "[AR] Dev Login Instructions",
-      "autoLoginTitle": "[AR] Auto Login Title",
-      "autoLoginDesc": "[AR] Auto Login Desc",
-      "copyTitle": "[AR] Copy Title",
-      "copyDesc": "[AR] Copy Desc",
-      "accessTitle": "[AR] Access Title",
-      "accessDesc": "[AR] Access Desc",
-      "securityTitle": "[AR] Security Title",
-      "securityDesc": "[AR] Security Desc"
+      "title": "تعليمات تسجيل دخول المطور",
+      "autoLoginTitle": "عنوان تسجيل الدخول التلقائي",
+      "autoLoginDesc": "وصف تسجيل الدخول التلقائي",
+      "copyTitle": "نسخ العنوان",
+      "copyDesc": "نسخ الوصف",
+      "accessTitle": "عنوان الوصول",
+      "accessDesc": "وصف الوصول",
+      "securityTitle": "عنوان الأمان",
+      "securityDesc": "وصف الأمان"
     }
   },
   "rfq": {
-    "bids": "[AR] Bids",
+    "bids": "العروض",
     "category": "الفئة",
-    "due": "[AR] Due",
-    "budget": "[AR] Budget",
-    "id": "[AR] Id"
+    "due": "مستحق",
+    "budget": "الميزانية",
+    "id": "المعرف"
   },
   "forgotPassword": {
-    "sendAnother": "[AR] Send Another",
-    "backToLogin": "[AR] Back To Login",
-    "title": "[AR] Forgot Password",
-    "subtitle": "[AR] Manage your subtitle",
+    "sendAnother": "إرسال آخر",
+    "backToLogin": "العودة لتسجيل الدخول",
+    "title": "نسيت كلمة المرور",
+    "subtitle": "إدارة العنوان الفرعي",
     "emailLabel": "البريد الإلكتروني",
-    "emailPlaceholder": "[AR] Enter Email",
-    "sending": "[AR] Sending",
+    "emailPlaceholder": "أدخل البريد الإلكتروني",
+    "sending": "جارٍ الإرسال",
     "submit": "إرسال",
     "success": {
-      "title": "[AR] Forgot Password Success",
-      "message": "[AR] Message",
-      "hint": "[AR] Hint"
+      "title": "تم إرسال رابط إعادة تعيين كلمة المرور",
+      "message": "رسالة",
+      "hint": "تلميح"
     }
   },
   "resetPassword": {
-    "validating": "[AR] Validating",
-    "invalidTitle": "[AR] Invalid Title",
-    "invalidMessage": "[AR] Invalid Message",
-    "requestNew": "[AR] Request New",
-    "backToLogin": "[AR] Back To Login",
-    "goToLogin": "[AR] Go To Login",
-    "title": "[AR] Reset Password",
-    "forEmail": "[AR] For Email",
-    "newPassword": "[AR] New Password",
-    "passwordPlaceholder": "[AR] Enter Password",
-    "passwordStrong": "[AR] Password Strong",
-    "confirmPassword": "[AR] Confirm Password",
-    "confirmPlaceholder": "[AR] Enter Confirm",
-    "passwordsMatch": "[AR] Passwords Match",
-    "resetting": "[AR] Resetting",
+    "validating": "جارٍ التحقق",
+    "invalidTitle": "عنوان غير صالح",
+    "invalidMessage": "رسالة غير صالحة",
+    "requestNew": "طلب جديد",
+    "backToLogin": "العودة لتسجيل الدخول",
+    "goToLogin": "الذهاب لتسجيل الدخول",
+    "title": "إعادة تعيين كلمة المرور",
+    "forEmail": "للبريد الإلكتروني",
+    "newPassword": "كلمة المرور الجديدة",
+    "passwordPlaceholder": "أدخل كلمة المرور",
+    "passwordStrong": "كلمة مرور قوية",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "confirmPlaceholder": "أدخل التأكيد",
+    "passwordsMatch": "كلمات المرور متطابقة",
+    "resetting": "جارٍ إعادة التعيين",
     "submit": "إرسال",
     "errors": {
-      "noToken": "[AR] No Token",
-      "invalidToken": "[AR] Invalid Token",
-      "validation": "[AR] Validation",
-      "mismatch": "[AR] Mismatch",
+      "noToken": "لا يوجد رمز",
+      "invalidToken": "رمز غير صالح",
+      "validation": "التحقق",
+      "mismatch": "عدم تطابق",
       "failed": "فشل"
     },
     "validation": {
-      "minLength": "[AR] Min Length",
-      "letter": "[AR] Letter",
-      "number": "[AR] Number",
-      "special": "[AR] Special"
+      "minLength": "الحد الأدنى للطول",
+      "letter": "خطاب",
+      "number": "رقم",
+      "special": "خاص"
     },
     "success": {
-      "title": "[AR] Reset Password Success",
-      "message": "[AR] Message",
-      "redirect": "[AR] Redirect"
+      "title": "تم إعادة تعيين كلمة المرور بنجاح",
+      "message": "رسالة",
+      "redirect": "إعادة توجيه"
     }
   },
   "helpCenter": {
-    "startTutorial": "[AR] Start Tutorial",
+    "startTutorial": "بدء الدليل",
     "completed": "مكتمل",
     "difficulty": {
-      "beginner": "[AR] Beginner",
-      "intermediate": "[AR] Intermediate",
-      "advanced": "[AR] Advanced"
+      "beginner": "مبتدئ",
+      "intermediate": "متوسط",
+      "advanced": "متقدم"
     }
   },
   "pricing": {
-    "tagline": "[AR] Tagline",
-    "title": "[AR] Pricing",
-    "subtitle": "[AR] Manage your subtitle",
-    "popular": "[AR] Popular",
+    "tagline": "الشعار",
+    "title": "التسعير",
+    "subtitle": "إدارة العنوان الفرعي",
+    "popular": "شائع",
     "trial": {
-      "title": "[AR] Pricing Trial",
-      "subtitle": "[AR] Manage your trial",
+      "title": "الفترة التجريبية",
+      "subtitle": "إدارة الفترة التجريبية",
       "name": "الاسم",
       "email": "البريد الإلكتروني",
-      "company": "[AR] Company",
+      "company": "الشركة",
       "phone": "الهاتف",
       "plan": {
-        "_value": "[AR] Plan",
-        "standard": "[AR] Standard",
-        "premium": "[AR] Premium",
-        "enterprise": "[AR] Enterprise"
+        "_value": "الخطة",
+        "standard": "قياسي",
+        "premium": "مميز",
+        "enterprise": "مؤسسي"
       },
-      "message": "[AR] Message",
-      "messagePlaceholder": "[AR] Enter Message",
-      "submitting": "[AR] Submitting",
+      "message": "رسالة",
+      "messagePlaceholder": "أدخل الرسالة",
+      "submitting": "جارٍ الإرسال",
       "submit": "إرسال",
       "success": "تمت العملية بنجاح",
       "error": "حدث خطأ"
     },
     "vendor": {
-      "title": "[AR] Pricing Vendor",
-      "subtitle": "[AR] Manage your vendor",
-      "benefit1": "[AR] Benefit1",
-      "benefit2": "[AR] Benefit2",
-      "benefit3": "[AR] Benefit3",
+      "title": "تسعير المورد",
+      "subtitle": "إدارة المورد",
+      "benefit1": "الميزة الأولى",
+      "benefit2": "الميزة الثانية",
+      "benefit3": "الميزة الثالثة",
       "apply": "تطبيق",
-      "note": "[AR] Note"
+      "note": "ملاحظة"
     }
   },
   "privacy": {
     "title": "الخصوصية",
-    "subtitle": "[AR] Manage your subtitle",
-    "encrypted": "[AR] Encrypted",
-    "encryptedDesc": "[AR] Encrypted Desc",
-    "transparent": "[AR] Transparent",
-    "transparentDesc": "[AR] Transparent Desc",
-    "compliant": "[AR] Compliant",
-    "compliantDesc": "[AR] Compliant Desc",
-    "yourRights": "[AR] Your Rights",
-    "yourRightsDesc": "[AR] Your Rights Desc",
-    "contactTitle": "[AR] Contact Title",
-    "contactDesc": "[AR] Contact Desc",
+    "subtitle": "إدارة العنوان الفرعي",
+    "encrypted": "مشفر",
+    "encryptedDesc": "وصف التشفير",
+    "transparent": "شفاف",
+    "transparentDesc": "وصف الشفافية",
+    "compliant": "متوافق",
+    "compliantDesc": "وصف التوافق",
+    "yourRights": "حقوقك",
+    "yourRightsDesc": "وصف حقوقك",
+    "contactTitle": "عنوان جهة الاتصال",
+    "contactDesc": "وصف جهة الاتصال",
     "email": "البريد الإلكتروني",
     "phone": "الهاتف",
-    "lastUpdated": "[AR] Last Updated"
+    "lastUpdated": "آخر تحديث"
   },
   "product": {
     "notFound": "غير موجود",
-    "brand": "[AR] Brand",
-    "standards": "[AR] Standards",
-    "uom": "[AR] Uom",
-    "minQty": "[AR] Min Qty",
-    "inStock": "[AR] In Stock",
-    "backorder": "[AR] Backorder",
-    "lead": "[AR] Lead",
-    "days": "[AR] Days",
-    "addToCart": "[AR] Add To Cart",
-    "buyNow": "[AR] Buy Now",
-    "aboutTitle": "[AR] About Title",
-    "aboutDesc": "[AR] About Desc"
+    "brand": "العلامة التجارية",
+    "standards": "المعايير",
+    "uom": "وحدة القياس",
+    "minQty": "الحد الأدنى للكمية",
+    "inStock": "متوفر",
+    "backorder": "طلب متأخر",
+    "lead": "عميل محتمل",
+    "days": "أيام",
+    "addToCart": "إضافة إلى السلة",
+    "buyNow": "اشترِ الآن",
+    "aboutTitle": "العنوان",
+    "aboutDesc": "الوصف"
   },
   "profile": {
     "title": "الملف الشخصي",
-    "subtitle": "[AR] Manage your subtitle",
+    "subtitle": "إدارة العنوان الفرعي",
     "toast": {
-      "loadError": "[AR] Load failed",
-      "accountSaved": "[AR] Account Saved",
-      "accountError": "[AR] Account failed",
-      "changesCancelled": "[AR] Changes Cancelled",
-      "notificationsSaved": "[AR] Notifications Saved",
-      "notificationsError": "[AR] Notifications failed",
-      "passwordMismatch": "[AR] Password Mismatch",
-      "passwordTooShort": "[AR] Password Too Short",
-      "securitySaved": "[AR] Security Saved",
-      "securityError": "[AR] Security failed"
+      "loadError": "فشل التحميل",
+      "accountSaved": "تم حفظ الحساب",
+      "accountError": "فشل الحساب",
+      "changesCancelled": "تم إلغاء التغييرات",
+      "notificationsSaved": "تم حفظ الإشعارات",
+      "notificationsError": "فشل الإشعارات",
+      "passwordMismatch": "كلمة المرور غير متطابقة",
+      "passwordTooShort": "كلمة المرور قصيرة جداً",
+      "securitySaved": "تم حفظ الأمان",
+      "securityError": "فشل الأمان"
     },
     "card": {
-      "memberSince": "[AR] Member Since",
-      "accountStatus": "[AR] Account Status",
+      "memberSince": "عضو منذ",
+      "accountStatus": "حالة الحساب",
       "active": "نشط"
     },
     "tabs": {
       "account": "الحساب",
       "notifications": "الإشعارات",
-      "security": "[AR] Security"
+      "security": "الأمان"
     },
     "account": {
-      "fullName": "[AR] Full Name",
+      "fullName": "الاسم الكامل",
       "email": "البريد الإلكتروني",
       "phone": "الهاتف",
       "cancel": "إلغاء",
       "save": "حفظ"
     },
     "notifications": {
-      "channels": "[AR] Channels",
+      "channels": "القنوات",
       "email": "البريد الإلكتروني",
-      "push": "[AR] Push",
-      "sms": "[AR] Sms",
-      "events": "[AR] Events",
-      "workOrders": "[AR] Work Orders",
-      "maintenance": "[AR] Maintenance",
-      "invoices": "[AR] Invoices",
+      "push": "إرسال",
+      "sms": "رسالة نصية",
+      "events": "الأحداث",
+      "workOrders": "أوامر العمل",
+      "maintenance": "الصيانة",
+      "invoices": "الفواتير",
       "save": "حفظ"
     },
     "security": {
-      "changePassword": "[AR] Change Password",
-      "currentPassword": "[AR] Current Password",
-      "newPassword": "[AR] New Password",
-      "confirmPassword": "[AR] Confirm Password",
-      "twoFactor": "[AR] Two Factor",
-      "enable2FA": "[AR] Enable2 F A",
-      "2FADesc": "[AR] 2 F A Desc",
+      "changePassword": "تغيير كلمة المرور",
+      "currentPassword": "كلمة المرور الحالية",
+      "newPassword": "كلمة المرور الجديدة",
+      "confirmPassword": "تأكيد كلمة المرور",
+      "twoFactor": "المصادقة الثنائية",
+      "enable2FA": "تفعيل التحقق الثنائي",
+      "2FADesc": "وصف التحقق الثنائي",
       "update": "تحديث"
     },
     "retry": "إعادة المحاولة",
     "quickActions": {
-      "title": "[AR] Profile Quick Actions",
-      "system": "[AR] System",
-      "systemDesc": "[AR] System Desc",
+      "title": "إجراءات سريعة للملف",
+      "system": "النظام",
+      "systemDesc": "وصف النظام",
       "notifications": "الإشعارات",
-      "notificationsDesc": "[AR] Notifications Desc",
-      "security": "[AR] Security",
-      "securityDesc": "[AR] Security Desc"
+      "notificationsDesc": "وصف الإشعارات",
+      "security": "الأمان",
+      "securityDesc": "وصف الأمان"
     }
   },
   "reports": {
-    "footer": "[AR] Footer",
+    "footer": "التذييل",
     "samples": {
-      "monthlyFinancialSummary": "[AR] Monthly Financial Summary",
-      "workOrdersPerformance": "[AR] Work Orders Performance",
-      "complianceStatus": "[AR] Compliance Status"
+      "monthlyFinancialSummary": "الملخص المالي الشهري",
+      "workOrdersPerformance": "أداء أوامر العمل",
+      "complianceStatus": "حالة الامتثال"
     },
     "types": {
-      "financial": "[AR] Financial",
-      "operational": "[AR] Operational",
-      "compliance": "[AR] Compliance"
+      "financial": "مالي",
+      "operational": "تشغيلي",
+      "compliance": "الامتثال"
     },
     "page": {
-      "title": "[AR] Reports Page",
+      "title": "صفحة التقارير",
       "subtitle": "لوحات التحكم والبناة والتصدير"
     },
     "toast": {
-      "newReportComingSoon": "[AR] New Report Coming Soon"
+      "newReportComingSoon": "تقرير جديد قريباً"
     },
     "actions": {
-      "newReport": "[AR] New Report",
-      "langToggle": "[AR] Lang Toggle",
+      "newReport": "تقرير جديد",
+      "langToggle": "تبديل اللغة",
       "download": "تحميل",
       "retry": "إعادة المحاولة",
       "retrying": "جاري إعادة المحاولة",
@@ -4353,74 +4357,74 @@
     },
     "tabs": {
       "title": "مساحة عمل التقارير",
-      "builder": "[AR] Builder",
-      "viewer": "[AR] Viewer"
+      "builder": "المطور",
+      "viewer": "المشاهد"
     },
     "table": {
-      "reportName": "[AR] Report Name",
+      "reportName": "اسم التقرير",
       "name": "الاسم",
       "type": "النوع",
-      "lastRun": "[AR] Last Run",
+      "lastRun": "آخر تشغيل",
       "status": "الحالة",
-      "actions": "[AR] Actions"
+      "actions": "الإجراءات"
     },
     "builder": {
-      "placeholder": "[AR] Enter Builder"
+      "placeholder": "أدخل المطور"
     },
     "viewer": {
-      "placeholder": "[AR] Enter Viewer"
+      "placeholder": "أدخل المشاهد"
     }
   },
   "signup": {
-    "backToLogin": "[AR] Back To Login",
-    "newsletter": "[AR] Newsletter",
+    "backToLogin": "العودة لتسجيل الدخول",
+    "newsletter": "النشرة الإخبارية",
     "validation": {
-      "firstNameRequired": "[AR] First Name Required",
-      "lastNameRequired": "[AR] Last Name Required",
-      "emailRequired": "[AR] Email Required",
-      "emailInvalid": "[AR] Email Invalid",
-      "phoneRequired": "[AR] Phone Required",
-      "companyRequired": "[AR] Company Required",
-      "passwordStrength": "[AR] Password Strength",
-      "passwordMatch": "[AR] Password Match",
-      "termsRequired": "[AR] Terms Required"
+      "firstNameRequired": "الاسم الأول مطلوب",
+      "lastNameRequired": "الاسم الأخير مطلوب",
+      "emailRequired": "البريد الإلكتروني مطلوب",
+      "emailInvalid": "البريد الإلكتروني غير صالح",
+      "phoneRequired": "الهاتف مطلوب",
+      "companyRequired": "الشركة مطلوبة",
+      "passwordStrength": "قوة كلمة المرور",
+      "passwordMatch": "تطابق كلمة المرور",
+      "termsRequired": "الشروط مطلوبة"
     },
     "success": {
-      "title": "[AR] Signup Success",
-      "message": "[AR] Message",
-      "redirecting": "[AR] Redirecting"
+      "title": "تم التسجيل بنجاح",
+      "message": "رسالة",
+      "redirecting": "جارٍ التحويل"
     },
     "branding": {
-      "title": "[AR] Signup Branding",
-      "subtitle": "[AR] Manage your branding"
+      "title": "علامة التسجيل",
+      "subtitle": "إدارة العلامة التجارية"
     },
     "form": {
-      "title": "[AR] Signup Form",
-      "subtitle": "[AR] Manage your form"
+      "title": "نموذج التسجيل",
+      "subtitle": "إدارة النموذج"
     },
     "fields": {
-      "accountType": "[AR] Account Type",
-      "firstName": "[AR] First Name",
-      "lastName": "[AR] Last Name",
+      "accountType": "نوع الحساب",
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
       "email": "البريد الإلكتروني",
       "phone": "الهاتف",
-      "companyName": "[AR] Company Name",
+      "companyName": "اسم الشركة",
       "password": "كلمة المرور",
-      "confirmPassword": "[AR] Confirm Password"
+      "confirmPassword": "تأكيد كلمة المرور"
     },
     "placeholders": {
-      "firstName": "[AR] First Name",
-      "lastName": "[AR] Last Name",
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
       "email": "البريد الإلكتروني",
       "phone": "الهاتف",
-      "companyName": "[AR] Company Name",
+      "companyName": "اسم الشركة",
       "password": "كلمة المرور",
-      "confirmPassword": "[AR] Confirm Password"
+      "confirmPassword": "تأكيد كلمة المرور"
     },
     "terms": {
-      "agree": "[AR] Agree",
-      "service": "[AR] Service",
-      "and": "[AR] And",
+      "agree": "موافق",
+      "service": "الخدمة",
+      "and": "و",
       "privacy": "الخصوصية"
     },
     "button": {
@@ -4428,49 +4432,49 @@
       "create": "إنشاء"
     },
     "login": {
-      "prompt": "[AR] Prompt",
-      "link": "[AR] Link"
+      "prompt": "موجه",
+      "link": "رابط"
     },
     "features": {
       "facility": {
-        "title": "[AR] Signup Features Facility",
-        "desc": "[AR] Desc"
+        "title": "ميزات المنشأة",
+        "desc": "الوصف"
       },
       "marketplace": {
-        "title": "[AR] Signup Features Marketplace",
-        "desc": "[AR] Desc"
+        "title": "ميزات السوق",
+        "desc": "الوصف"
       },
       "support": {
-        "title": "[AR] Signup Features Support",
-        "desc": "[AR] Desc"
+        "title": "ميزات الدعم",
+        "desc": "الوصف"
       }
     }
   },
   "a11y": {
-    "hidePassword": "[AR] Hide Password",
-    "showPassword": "[AR] Show Password",
-    "currencySelectorHelp": "[AR] Currency Selector Help",
-    "languageSelectorHelp": "[AR] Language Selector Help"
+    "hidePassword": "إخفاء كلمة المرور",
+    "showPassword": "إظهار كلمة المرور",
+    "currencySelectorHelp": "مساعدة اختيار العملة",
+    "languageSelectorHelp": "مساعدة اختيار اللغة"
   },
   "terms": {
     "title": "الشروط",
-    "subtitle": "[AR] Manage your subtitle",
-    "binding": "[AR] Binding",
-    "bindingDesc": "[AR] Binding Desc",
-    "fair": "[AR] Fair",
-    "fairDesc": "[AR] Fair Desc",
+    "subtitle": "إدارة العنوان الفرعي",
+    "binding": "ملزم",
+    "bindingDesc": "وصف الالتزام",
+    "fair": "عادل",
+    "fairDesc": "وصف العدالة",
     "clear": "مسح",
-    "clearDesc": "[AR] Clear Desc",
-    "updated": "[AR] Updated",
-    "updatedDesc": "[AR] Updated Desc",
-    "contactTitle": "[AR] Contact Title",
-    "contactDesc": "[AR] Contact Desc",
+    "clearDesc": "وصف المسح",
+    "updated": "محدث",
+    "updatedDesc": "وصف التحديث",
+    "contactTitle": "عنوان جهة الاتصال",
+    "contactDesc": "وصف جهة الاتصال",
     "email": "البريد الإلكتروني",
     "phone": "الهاتف",
-    "lastUpdated": "[AR] Last Updated"
+    "lastUpdated": "آخر تحديث"
   },
   "testCms": {
-    "title": "[AR] Test Cms",
+    "title": "اختبار نظام المحتوى",
     "links": {
       "privacy": "الخصوصية",
       "terms": "الشروط",
@@ -4478,233 +4482,234 @@
     }
   },
   "footer": {
-    "brand": "[AR] Brand",
-    "backHome": "[AR] Back Home",
-    "company": "[AR] Company",
+    "brand": "العلامة التجارية",
+    "backHome": "العودة للرئيسية",
+    "company": "الشركة",
     "about": "حول",
-    "careers": "[AR] Careers",
-    "pricing": "[AR] Pricing",
-    "legal": "[AR] Legal",
+    "careers": "الوظائف",
+    "pricing": "التسعير",
+    "legal": "قانوني",
     "privacy": "الخصوصية",
     "terms": "الشروط",
     "support": "الدعم",
     "help": "المساعدة",
-    "ticket": "[AR] Ticket",
-    "copyright": "[AR] Copyright",
-    "breadcrumbLabel": "[AR] Breadcrumb",
+    "ticket": "تذكرة",
+    "ticket_aria": "افتح تذكرة دعم",
+    "copyright": "حقوق النشر",
+    "breadcrumbLabel": "مسار التنقل",
     "crumb": {
-      "fixzit": "[AR] Fixzit",
-      "platform": "[AR] Platform",
-      "version": "[AR] Version"
+      "fixzit": "فكسزت",
+      "platform": "المنصة",
+      "version": "الإصدار"
     }
   },
   "loginPrompt": {
-    "title": "[AR] Login Prompt",
-    "description": "[AR] Enter description",
-    "welcomeBack": "[AR] Welcome Back",
-    "welcomeMessage": "[AR] Welcome Message",
-    "signInButton": "[AR] Sign In Button",
-    "signUpButton": "[AR] Sign Up Button",
-    "benefitsTitle": "[AR] Benefits Title",
-    "benefit1": "[AR] Benefit1",
-    "benefit2": "[AR] Benefit2",
-    "benefit3": "[AR] Benefit3",
-    "benefit4": "[AR] Benefit4",
-    "benefit5": "[AR] Benefit5",
-    "needHelp": "[AR] Need Help",
-    "contactSupport": "[AR] Contact Support"
+    "title": "موجه تسجيل الدخول",
+    "description": "أدخل الوصف",
+    "welcomeBack": "مرحباً بعودتك",
+    "welcomeMessage": "رسالة الترحيب",
+    "signInButton": "زر تسجيل الدخول",
+    "signUpButton": "زر التسجيل",
+    "benefitsTitle": "عنوان المزايا",
+    "benefit1": "الميزة الأولى",
+    "benefit2": "الميزة الثانية",
+    "benefit3": "الميزة الثالثة",
+    "benefit4": "الميزة الرابعة",
+    "benefit5": "الميزة الخامسة",
+    "needHelp": "تحتاج مساعدة؟",
+    "contactSupport": "تواصل مع الدعم"
   },
   "system": {
-    "lastCheck": "[AR] Last Check",
+    "lastCheck": "آخر فحص",
     "help": "المساعدة",
     "verification": {
       "failed": "فشل",
-      "title": "[AR] System Verification",
-      "description": "[AR] Enter description",
-      "checking": "[AR] Checking",
-      "verify": "[AR] Verify"
+      "title": "التحقق من النظام",
+      "description": "أدخل الوصف",
+      "checking": "جارٍ التحقق",
+      "verify": "تحقق"
     },
     "monitoring": {
       "active": "نشط",
-      "start": "[AR] Start",
-      "stop": "[AR] Stop"
+      "start": "بدء",
+      "stop": "إيقاف"
     },
     "status": {
-      "overall": "[AR] Overall",
-      "running": "[AR] Running",
-      "stopped": "[AR] Stopped"
+      "overall": "إجمالي",
+      "running": "قيد التشغيل",
+      "stopped": "متوقف"
     },
     "issues": {
-      "found": "[AR] Found",
-      "detected": "[AR] Detected"
+      "found": "موجود",
+      "detected": "تم الكشف"
     },
     "fixes": {
-      "applied": "[AR] Applied"
+      "applied": "مُطبَّق"
     },
     "components": {
-      "title": "[AR] System Components",
-      "description": "[AR] Enter description"
+      "title": "مكونات النظام",
+      "description": "أدخل الوصف"
     },
     "component": {
       "database": {
-        "_value": "[AR] Database",
-        "desc": "[AR] Desc"
+        "_value": "قاعدة البيانات",
+        "desc": "الوصف"
       },
       "network": {
-        "_value": "[AR] Network",
-        "desc": "[AR] Desc"
+        "_value": "الشبكة",
+        "desc": "الوصف"
       },
       "performance": {
-        "_value": "[AR] Performance",
-        "desc": "[AR] Desc"
+        "_value": "الأداء",
+        "desc": "الوصف"
       }
     },
     "autofix": {
-      "title": "[AR] System Autofix",
-      "description": "[AR] Enter description",
+      "title": "الإصلاح التلقائي",
+      "description": "أدخل الوصف",
       "errorBoundary": {
-        "_value": "[AR] Error Boundary",
-        "desc": "[AR] Desc"
+        "_value": "حدود الخطأ",
+        "desc": "الوصف"
       },
       "healthMonitoring": {
-        "_value": "[AR] Health Monitoring",
-        "desc": "[AR] Desc"
+        "_value": "مراقبة الصحة",
+        "desc": "الوصف"
       },
       "autoRecovery": {
-        "_value": "[AR] Auto Recovery",
-        "desc": "[AR] Desc"
+        "_value": "الاسترداد التلقائي",
+        "desc": "الوصف"
       }
     },
     "emergency": {
-      "title": "[AR] System Emergency",
-      "description": "[AR] Enter description",
-      "recovery": "[AR] Recovery"
+      "title": "طوارئ النظام",
+      "description": "أدخل الوصف",
+      "recovery": "الاسترداد"
     },
     "reset": {
       "confirm": "تأكيد",
-      "full": "[AR] Full"
+      "full": "كامل"
     }
   },
   "features": {
-    "workOrders": "[AR] Work Orders",
-    "properties": "[AR] Properties",
-    "units": "[AR] Units",
-    "basicReports": "[AR] Basic Reports",
-    "finance": "[AR] Finance",
-    "invoicing": "[AR] Invoicing",
-    "hrManagement": "[AR] Hr Management",
-    "technicians": "[AR] Technicians",
-    "approvals": "[AR] Approvals",
-    "auditTrail": "[AR] Audit Trail",
-    "advancedReports": "[AR] Advanced Reports",
-    "apiAccess": "[AR] Api Access",
-    "sso": "[AR] Sso",
-    "scim": "[AR] Scim",
-    "customSla": "[AR] Custom Sla",
-    "dedicatedSupport": "[AR] Dedicated Support",
-    "whiteLabeling": "[AR] White Labeling",
-    "multiRegion": "[AR] Multi Region",
-    "complianceReports": "[AR] Compliance Reports"
+    "workOrders": "أوامر العمل",
+    "properties": "العقارات",
+    "units": "الوحدات",
+    "basicReports": "التقارير الأساسية",
+    "finance": "المالية",
+    "invoicing": "الفوترة",
+    "hrManagement": "إدارة الموارد البشرية",
+    "technicians": "الفنيون",
+    "approvals": "الموافقات",
+    "auditTrail": "سجل التدقيق",
+    "advancedReports": "التقارير المتقدمة",
+    "apiAccess": "الوصول للواجهة البرمجية",
+    "sso": "تسجيل دخول موحد",
+    "scim": "نظام إدارة الهوية",
+    "customSla": "اتفاقية مستوى خدمة مخصصة",
+    "dedicatedSupport": "دعم مخصص",
+    "whiteLabeling": "العلامة البيضاء",
+    "multiRegion": "متعدد المناطق",
+    "complianceReports": "تقارير الامتثال"
   },
   "plans": {
-    "basic": "[AR] Basic",
-    "standard": "[AR] Standard",
-    "premium": "[AR] Premium",
-    "enterprise": "[AR] Enterprise"
+    "basic": "أساسي",
+    "standard": "قياسي",
+    "premium": "مميز",
+    "enterprise": "مؤسسي"
   },
   "upgrade": {
-    "title": "[AR] Upgrade",
+    "title": "ترقية",
     "description": {
-      "_value": "[AR] Enter description",
-      "feature": "[AR] Feature",
-      "default": "[AR] Default"
+      "_value": "أدخل الوصف",
+      "feature": "ميزة",
+      "default": "افتراضي"
     },
-    "upgrade": "[AR] Upgrade",
-    "viewPlans": "[AR] View Plans",
-    "upgradeTo": "[AR] Upgrade To",
-    "comparePlans": "[AR] Compare Plans",
-    "guarantee": "[AR] Guarantee",
+    "upgrade": "ترقية",
+    "viewPlans": "عرض الخطط",
+    "upgradeTo": "الترقية إلى",
+    "comparePlans": "مقارنة الخطط",
+    "guarantee": "الضمان",
     "error": {
       "invalidEmail": "بريد إلكتروني غير صالح",
-      "submitFailed": "[AR] Submit Failed"
+      "submitFailed": "فشل الإرسال"
     },
     "feature": {
-      "enterprise": "[AR] Enterprise",
-      "premium": "[AR] Premium",
-      "api": "[AR] Api",
+      "enterprise": "مؤسسي",
+      "premium": "مميز",
+      "api": "واجهة برمجة التطبيقات",
       "support": "الدعم",
-      "sla": "[AR] Sla"
+      "sla": "اتفاقية مستوى الخدمة"
     },
     "includes": {
-      "title": "[AR] Upgrade Includes"
+      "title": "يشمل الترقية"
     },
     "email": {
-      "label": "[AR] Label",
-      "placeholder": "[AR] Enter Email"
+      "label": "التسمية",
+      "placeholder": "أدخل البريد الإلكتروني"
     },
     "action": {
-      "later": "[AR] Later",
-      "sending": "[AR] Sending",
+      "later": "لاحقاً",
+      "sending": "جارٍ الإرسال",
       "contact": "اتصل بنا"
     },
     "alternative": {
-      "prefix": "[AR] Prefix"
+      "prefix": "البادئة"
     },
     "success": {
-      "title": "[AR] Upgrade Success",
-      "message": "[AR] Message"
+      "title": "تمت الترقية بنجاح",
+      "message": "رسالة"
     }
   },
   "i18n": {
-    "selectCurrencyLabel": "[AR] Select Currency",
-    "filterCurrencies": "[AR] Filter Currencies",
-    "selectLanguageLabel": "[AR] Select Language",
-    "filterLanguages": "[AR] Filter Languages",
-    "comingSoon": "[AR] Coming Soon"
+    "selectCurrencyLabel": "اختر العملة",
+    "filterCurrencies": "تصفية العملات",
+    "selectLanguageLabel": "اختر اللغة",
+    "filterLanguages": "تصفية اللغات",
+    "comingSoon": "قريباً"
   },
   "billing": {
     "history": {
-      "tagline": "[AR] Tagline",
-      "title": "[AR] Billing History",
-      "subtitle": "[AR] Manage your history",
-      "tableTitle": "[AR] Table Title",
+      "tagline": "الشعار",
+      "title": "سجل الفواتير",
+      "subtitle": "إدارة السجل",
+      "tableTitle": "عنوان الجدول",
       "error": "حدث خطأ",
       "invoice": "فاتورة",
       "amount": "المبلغ",
       "status": "الحالة",
-      "period": "[AR] Period",
-      "paidAt": "[AR] Paid At",
-      "unpaid": "[AR] Unpaid"
+      "period": "الفترة",
+      "paidAt": "مدفوع في",
+      "unpaid": "غير مدفوع"
     },
     "plan": {
-      "tagline": "[AR] Tagline",
-      "title": "[AR] Billing Plan",
-      "subtitle": "[AR] Manage your plan",
-      "popular": "[AR] Popular",
-      "viewPricing": "[AR] View Pricing",
-      "manageBilling": "[AR] Manage Billing"
+      "tagline": "الشعار",
+      "title": "خطة الفوترة",
+      "subtitle": "إدارة الخطة",
+      "popular": "شائع",
+      "viewPricing": "عرض الأسعار",
+      "manageBilling": "إدارة الفوترة"
     }
   },
   "error": {
     "boundary": {
-      "title": "[AR] Error Boundary",
-      "desc": "[AR] Desc",
-      "ref": "[AR] Ref",
+      "title": "حدود الخطأ",
+      "desc": "الوصف",
+      "ref": "المرجع",
       "refresh": "تحديث"
     }
   },
   "trial": {
     "banner": {
-      "title": "[AR] Trial Banner",
-      "subtitle": "[AR] Manage your banner",
-      "upgrade": "[AR] Upgrade",
-      "billing": "[AR] Billing",
-      "dismiss_aria": "[AR] Dismiss Aria"
+      "title": "شريط الفترة التجريبية",
+      "subtitle": "إدارة الإعلان",
+      "upgrade": "ترقية",
+      "billing": "الفوترة",
+      "dismiss_aria": "تجاهل"
     }
   },
   "tb": {
     "col": {
-      "code": "[AR] Code",
+      "code": "الرمز",
       "name": "الاسم",
       "type": "النوع",
       "debit": "مدين",
@@ -4712,38 +4717,96 @@
       "balance": "الرصيد"
     }
   },
-  "Loading": {
-    "": {
-      "": {
-        "": "[AR] "
-      }
-    }
-  },
-  "Optional payment notes": {
-    "": {
-      "": {
-        "": "[AR] "
-      }
-    }
-  },
-  "Loading invoices": {
-    "": {
-      "": {
-        "": "[AR] "
-      }
-    }
-  },
-  "Creating": {
-    "": {
-      "": {
-        "": "[AR] "
-      }
-    }
-  },
-  "Loading account activity": {
-    "": {
-      "": {
-        "": "[AR] "
+  "Loading": "جارٍ التحميل",
+  "Optional payment notes": "ملاحظات الدفع (اختياري)",
+  "Loading invoices": "جارٍ تحميل الفواتير",
+  "Creating": "جارٍ الإنشاء",
+  "Loading account activity": "جارٍ تحميل نشاط الحساب",
+  "auto": {
+    "fm": {
+      "hr": {
+        "directory": {
+          "new": {
+            "toast": {
+              "success": "تم إنشاء الموظف بنجاح",
+              "error": "فشل في إنشاء الموظف"
+            },
+            "breadcrumbs": "الموارد البشرية / الدليل",
+            "header": {
+              "title": "إضافة موظف جديد",
+              "subtitle": "املأ التفاصيل لإضافة موظف جديد"
+            },
+            "sections": {
+              "profile": {
+                "title": "المعلومات الأساسية",
+                "description": "المعلومات الأساسية عن الموظف"
+              },
+              "role": {
+                "title": "تفاصيل الوظيفة",
+                "description": "المنصب ومعلومات التقارير"
+              },
+              "compensation": {
+                "title": "التعويضات والملاحظات",
+                "description": "الراتب والملاحظات الإضافية"
+              }
+            },
+            "actions": {
+              "cancel": "إلغاء",
+              "saving": "جارٍ الحفظ...",
+              "submit": "إنشاء موظف"
+            },
+            "form": {
+              "compensationType": {
+                "label": "نوع التعويض",
+                "placeholder": "اختر نوع التعويض"
+              },
+              "salary": {
+                "label": "الراتب الأساسي"
+              },
+              "notes": {
+                "label": "ملاحظات إضافية",
+                "placeholder": "أدخل أي ملاحظات إضافية..."
+              },
+              "firstName": {
+                "label": "الاسم الأول",
+                "placeholder": "أدخل الاسم الأول"
+              },
+              "lastName": {
+                "label": "اسم العائلة",
+                "placeholder": "أدخل اسم العائلة"
+              },
+              "workEmail": {
+                "label": "البريد الإلكتروني للعمل"
+              },
+              "phone": {
+                "label": "الهاتف"
+              },
+              "reportsTo": {
+                "label": "المدير المباشر",
+                "placeholder": "اختر المدير"
+              },
+              "jobTitle": {
+                "label": "المسمى الوظيفي",
+                "placeholder": "أدخل المسمى الوظيفي"
+              },
+              "department": {
+                "label": "القسم",
+                "placeholder": "اختر القسم"
+              },
+              "employmentType": {
+                "label": "نوع التوظيف",
+                "placeholder": "اختر نوع التوظيف"
+              },
+              "workModel": {
+                "label": "نموذج العمل",
+                "placeholder": "اختر نموذج العمل"
+              },
+              "startDate": {
+                "label": "تاريخ البدء"
+              }
+            }
+          }
+        }
       }
     }
   }

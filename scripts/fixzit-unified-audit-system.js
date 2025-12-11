@@ -805,4 +805,10 @@ async function runFullAudit() {
 }
 
 // Run the audit
-runFullAudit().catch(console.error);
+runFullAudit().catch((err) => {
+  console.error('Audit failed:', err);
+  process.exit(1);
+});
+  console.error('Audit failed:', err);
+  process.exit(1);
+});

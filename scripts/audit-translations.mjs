@@ -30,6 +30,10 @@ const COLOR = {
 
 const argv = new Set(process.argv.slice(2));
 const DO_FIX = argv.has('--fix');
+const LOCALE_DIRS = (process.env.I18N_DIRS ?? 'i18n/generated,i18n/locales,i18n')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
 
 // ---------- Helpers ----------
 const exists = async p => fssync.existsSync(p);
@@ -127,59 +131,72 @@ function flattenKeys(obj, prefix = '') {
   return keys;
 }
 
+async function collectJsonFiles(dir, acc = []) {
+  let entries = [];
+  try { entries = await fs.readdir(dir, { withFileTypes: true }); } catch { return acc; }
+
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      await collectJsonFiles(full, acc);
+    } else if (entry.isFile() && entry.name.endsWith('.json')) {
+      acc.push(full);
+    }
+  }
+  return acc;
+}
+
+async function addJsonFileKeys(filePath, targetSet, errors) {
+  try {
+    const raw = await readText(filePath);
+    const parsed = JSON.parse(raw);
+    flattenKeys(parsed).forEach((key) => targetSet.add(key));
+  } catch (err) {
+    errors.push(`Failed to parse ${path.relative(ROOT, filePath)}: ${err.message}`);
+  }
+}
+
 // Parse i18n JSON files for ar/en keys
 async function loadCatalogKeys(ctxPath) {
   const arKeys = new Set();
   const enKeys = new Set();
   const errors = [];
   let hasPrimaryCatalog = false;
+  const sourcesUsed = [];
 
-  // PRIORITY: Check for generated dictionary JSON files FIRST
-  // These are the actual runtime dictionaries loaded by I18nProvider
-  // The i18n/en.json and i18n/ar.json are legacy nested format, not used at runtime
-  const enGenPath = path.join(ROOT, 'i18n', 'generated', 'en.dictionary.json');
-  const arGenPath = path.join(ROOT, 'i18n', 'generated', 'ar.dictionary.json');
-  
-  if (await exists(enGenPath) && await exists(arGenPath)) {
-    try {
-      const enContent = await readText(enGenPath);
-      const arContent = await readText(arGenPath);
-      const enData = JSON.parse(enContent);
-      const arData = JSON.parse(arContent);
-      
-      // The generated dictionaries are already flat, so just get the keys
-      Object.keys(enData).forEach(key => enKeys.add(key));
-      Object.keys(arData).forEach(key => arKeys.add(key));
+  for (const dir of LOCALE_DIRS) {
+    const baseDir = path.isAbsolute(dir) ? dir : path.join(ROOT, dir);
+    const enDictionary = path.join(baseDir, 'en.dictionary.json');
+    const arDictionary = path.join(baseDir, 'ar.dictionary.json');
+    if (await exists(enDictionary) && await exists(arDictionary)) {
+      await addJsonFileKeys(enDictionary, enKeys, errors);
+      await addJsonFileKeys(arDictionary, arKeys, errors);
       hasPrimaryCatalog = true;
-    } catch (err) {
-      errors.push(`Failed to parse i18n generated dictionary files: ${err.message}`);
+      sourcesUsed.push(`dictionary:${path.relative(ROOT, baseDir) || '.'}`);
+      break;
+    }
+
+    const enNamespaced = await collectJsonFiles(path.join(baseDir, 'en'));
+    const arNamespaced = await collectJsonFiles(path.join(baseDir, 'ar'));
+    if (enNamespaced.length || arNamespaced.length) {
+      for (const f of enNamespaced) await addJsonFileKeys(f, enKeys, errors);
+      for (const f of arNamespaced) await addJsonFileKeys(f, arKeys, errors);
+      hasPrimaryCatalog = true;
+      sourcesUsed.push(`namespaced:${path.relative(ROOT, baseDir) || '.'}`);
+      break;
+    }
+
+    const enJsonFlat = path.join(baseDir, 'en.json');
+    const arJsonFlat = path.join(baseDir, 'ar.json');
+    if (await exists(enJsonFlat) && await exists(arJsonFlat)) {
+      await addJsonFileKeys(enJsonFlat, enKeys, errors);
+      await addJsonFileKeys(arJsonFlat, arKeys, errors);
+      hasPrimaryCatalog = true;
+      sourcesUsed.push(`flat:${path.relative(ROOT, baseDir) || '.'}`);
+      break;
     }
   }
 
-  // Fallback: Check legacy nested i18n JSON files if generated not found
-  if (!hasPrimaryCatalog) {
-    const enJsonPath = path.join(ROOT, 'i18n', 'en.json');
-    const arJsonPath = path.join(ROOT, 'i18n', 'ar.json');
-    
-    if (await exists(enJsonPath) && await exists(arJsonPath)) {
-      try {
-        const enContent = await readText(enJsonPath);
-        const arContent = await readText(arJsonPath);
-        const enData = JSON.parse(enContent);
-        const arData = JSON.parse(arContent);
-        
-        // Flatten nested JSON to dot notation keys
-        const enFlat = flattenKeys(enData);
-        const arFlat = flattenKeys(arData);
-        enFlat.forEach(key => enKeys.add(key));
-        arFlat.forEach(key => arKeys.add(key));
-        hasPrimaryCatalog = true;
-      } catch (err) {
-        errors.push(`Failed to parse i18n/*.json files: ${err.message}`);
-      }
-    }
-  }
-  
   // Fallback to TS-based approach if JSON files not found
   if (!hasPrimaryCatalog) {
     const generatedPath = path.join(ROOT, 'i18n', 'new-translations.ts');
@@ -216,7 +233,7 @@ async function loadCatalogKeys(ctxPath) {
     }
   }
 
-  return { ar: arKeys, en: enKeys, errors };
+  return { ar: arKeys, en: enKeys, errors, sourcesUsed };
 }
 
 // Find i18n keys used in code
@@ -283,9 +300,12 @@ async function main() {
   }
 
   // Load catalogs
-  const { ar, en, errors } = await loadCatalogKeys(ctxPath);
+  const { ar, en, errors, sourcesUsed } = await loadCatalogKeys(ctxPath);
   if (errors.length) errors.forEach(e => console.error(COLOR.r(`Parser warning: ${e}`)));
   console.log(COLOR.c('📦 Catalog stats'));
+  if (sourcesUsed.length) {
+    console.log('  Source:', sourcesUsed[0]);
+  }
   console.log('  EN keys:', en.size);
   console.log('  AR keys:', ar.size);
   console.log('  Gap    :', Math.abs(en.size - ar.size));

@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const propertyId = searchParams.get("propertyId");
     const status = searchParams.get("status");
-    const limit = parseInt(searchParams.get("limit") || "100");
+    const limit = parseInt(searchParams.get("limit") || "100", 10);
 
     const mode = resolveVendorAssignmentsMode();
 

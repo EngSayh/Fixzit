@@ -4,6 +4,10 @@ import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 import { logSecurityEvent } from "@/lib/monitoring/security-events";
 import { logger } from "@/lib/logger";
+import {
+  applyReputationToLimit,
+  recordReputationSignal,
+} from "@/lib/security/ip-reputation";
 
 type RateLimitOptions = {
   /**
@@ -39,8 +43,52 @@ export function enforceRateLimit(
   const limit = options.requests ?? 30;
   const windowMs = options.windowMs ?? 60_000;
 
-  const result = rateLimit(key, limit, windowMs);
+  const { limit: effectiveLimit, reputation } = applyReputationToLimit(limit, {
+    ip: identifier,
+    path: prefix,
+    userAgent: request.headers.get("user-agent"),
+  });
+
+  if (reputation?.shouldBlock || effectiveLimit <= 0) {
+    recordReputationSignal({
+      ip: identifier,
+      type: "manual_block",
+      path: prefix,
+    });
+    logSecurityEvent({
+      type: "ip_reputation_block",
+      ip: identifier,
+      path: prefix,
+      timestamp: new Date().toISOString(),
+      metadata: {
+        score: reputation?.score,
+        level: reputation?.level,
+      },
+    }).catch((err) => {
+      logger.error("[RateLimit] Failed to log reputation block", err);
+    });
+    const response = rateLimitError();
+    response.headers.set("Retry-After", String(Math.ceil(windowMs / 1000)));
+    response.headers.set("X-RateLimit-Limit", String(limit));
+    response.headers.set("X-RateLimit-Remaining", "0");
+    response.headers.set("X-RateLimit-Reset", String(Date.now() + windowMs));
+    response.headers.set("X-RateLimit-Reason", "ip-reputation-block");
+    if (reputation) {
+      response.headers.set(
+        "X-IP-Reputation",
+        `${reputation.score}:${reputation.level}`,
+      );
+    }
+    return response;
+  }
+
+  const result = rateLimit(key, effectiveLimit, windowMs);
   if (!result.allowed) {
+    recordReputationSignal({
+      ip: identifier,
+      type: "rate_limit_exceeded",
+      path: prefix,
+    });
     // Log security event for monitoring
     logSecurityEvent({
       type: "rate_limit",
@@ -61,9 +109,15 @@ export function enforceRateLimit(
 
     const response = rateLimitError();
     response.headers.set("Retry-After", String(Math.ceil(windowMs / 1000)));
-    response.headers.set("X-RateLimit-Limit", String(limit));
+    response.headers.set("X-RateLimit-Limit", String(effectiveLimit));
     response.headers.set("X-RateLimit-Remaining", "0");
     response.headers.set("X-RateLimit-Reset", String(Date.now() + windowMs));
+    if (reputation) {
+      response.headers.set(
+        "X-IP-Reputation",
+        `${reputation.score}:${reputation.level}`,
+      );
+    }
 
     return response;
   }

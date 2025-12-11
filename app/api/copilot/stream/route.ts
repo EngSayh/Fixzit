@@ -86,7 +86,22 @@ export async function POST(req: NextRequest) {
     const session = await resolveCopilotSession(req);
 
     // Parse and validate request body
-    const json = await req.json();
+    let json: unknown;
+    try {
+      json = await req.json();
+    } catch (error) {
+      logger.warn("[copilot:stream] Invalid JSON body", { error });
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON payload" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    if (!json || (typeof json === "object" && Object.keys(json as object).length === 0)) {
+      return new Response(
+        JSON.stringify({ error: "Request body is required" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
     const body = requestSchema.parse(json);
 
     const locale = body.locale || session.locale;

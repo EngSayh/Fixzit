@@ -222,9 +222,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // SECURITY: Hash passwords before storing (CRITICAL)
-    // Historical context: Code had TODO comment for 6+ months with plaintext passwords
-    // Require password in request body - no default passwords for security
+    // SECURITY: Hash passwords before storing; password is required and no defaults are allowed
     if (!body.password) {
       return NextResponse.json(
         {

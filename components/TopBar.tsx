@@ -799,7 +799,7 @@ interface NotificationPopupProps {
   setUserOpen: (open: boolean) => void;
   notifFilter: NotificationFilter;
   setNotifFilter: (filter: NotificationFilter) => void;
-  notifBtnRef: React.RefObject<HTMLButtonElement>;
+  notifBtnRef: React.RefObject<HTMLButtonElement | null>;
   notifPos: { top: number; left: number; width: number };
   setNotifPos: (pos: { top: number; left: number; width: number }) => void;
   placeDropdown: (
@@ -1005,7 +1005,7 @@ interface UserMenuPopupProps {
   userOpen: boolean;
   setUserOpen: (open: boolean) => void;
   setNotifOpen: (open: boolean) => void;
-  userBtnRef: React.RefObject<HTMLButtonElement>;
+  userBtnRef: React.RefObject<HTMLButtonElement | null>;
   userPos: { top: number; left: number; width: number };
   setUserPos: (pos: { top: number; left: number; width: number }) => void;
   placeDropdown: (

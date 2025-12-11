@@ -7,6 +7,10 @@ on:
   schedule:
     - cron: "0 3 * * *"  # Daily at 03:00 UTC
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
   pull-requests: write
@@ -16,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run Renovate
-        uses: renovatebot/github-action@v40
+        uses: renovatebot/github-action@v44
         with:
           configurationFile: renovate.json
           token: ${{ secrets.RENOVATE_TOKEN != '' && secrets.RENOVATE_TOKEN || github.token }}

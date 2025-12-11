@@ -2,6 +2,11 @@ import { LRUCache } from "lru-cache";
 import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { redactRateLimitKey } from "./rateLimitKey";
+import {
+  applyReputationToLimit,
+  recordReputationSignal,
+} from "@/lib/security/ip-reputation";
+import type { IpReputationResult } from "@/lib/security/ip-reputation";
 
 /**
  * In-memory LRU cache for rate limiting (fallback when Redis unavailable)
@@ -18,6 +23,19 @@ const memoryCache = new LRUCache<string, { count: number; resetAt: number }>({
 // to avoid log spam on every request
 let warnedNoRedis = false;
 
+const ipv4Pattern = /(\d{1,3}(?:\.\d{1,3}){3})/;
+
+const extractIpFromKey = (key: string): string | undefined => {
+  const match = key.match(ipv4Pattern);
+  return match?.[1];
+};
+
+export type RateLimitReputationOptions = {
+  ip?: string | null;
+  path?: string | null;
+  userAgent?: string | null;
+};
+
 /**
  * Distributed rate limiting result
  */
@@ -25,6 +43,8 @@ interface RateLimitResult {
   allowed: boolean;
   remaining: number;
   resetAt?: number;
+  reputation?: IpReputationResult;
+  effectiveLimit?: number;
 }
 
 /**
@@ -50,11 +70,16 @@ export function rateLimit(key: string, limit = 60, windowMs = 60_000): RateLimit
   const entry = memoryCache.get(key);
   if (!entry || now > entry.resetAt) {
     memoryCache.set(key, { count: 1, resetAt: now + windowMs });
-    return { allowed: true, remaining: limit - 1 };
+    return { allowed: true, remaining: limit - 1, effectiveLimit: limit };
   }
-  if (entry.count >= limit) return { allowed: false, remaining: 0 };
+  if (entry.count >= limit)
+    return { allowed: false, remaining: 0, effectiveLimit: limit };
   entry.count += 1;
-  return { allowed: true, remaining: limit - entry.count };
+  return {
+    allowed: true,
+    remaining: limit - entry.count,
+    effectiveLimit: limit,
+  };
 }
 
 /**
@@ -153,13 +178,14 @@ export async function redisRateLimit(
         count, 
         limit 
       });
-      return { allowed: false, remaining: 0, resetAt };
+      return { allowed: false, remaining: 0, resetAt, effectiveLimit: limit };
     }
 
     return { 
       allowed: true, 
       remaining: Math.max(0, limit - count), 
-      resetAt 
+      resetAt,
+      effectiveLimit: limit,
     };
   } catch (error) {
     // Redis error - fall back to in-memory
@@ -192,6 +218,7 @@ export { buildRateLimitKey, buildOrgAwareRateLimitKey, safeGetClientIp, redactRa
  * @param key - Rate limit key (use buildRateLimitKey for org-aware keys)
  * @param limit - Maximum requests allowed in window
  * @param windowMs - Time window in milliseconds
+ * @param reputation - Optional IP reputation hints (ip/path/userAgent) to tighten limits
  * @returns Rate limit result
  * 
  * @example
@@ -205,10 +232,48 @@ export { buildRateLimitKey, buildOrgAwareRateLimitKey, safeGetClientIp, redactRa
 export async function smartRateLimit(
   key: string,
   limit = 60,
-  windowMs = 60_000
+  windowMs = 60_000,
+  reputation?: RateLimitReputationOptions,
 ): Promise<RateLimitResult> {
-  // Always try Redis first for distributed rate limiting
-  return redisRateLimit(key, limit, windowMs);
+  const ip = reputation?.ip ?? extractIpFromKey(key);
+  const applied = applyReputationToLimit(limit, {
+    ip,
+    path: reputation?.path ?? key,
+    userAgent: reputation?.userAgent,
+  });
+
+  if (applied.reputation?.shouldBlock || applied.limit <= 0) {
+    if (ip) {
+      recordReputationSignal({
+        ip,
+        type: "manual_block",
+        path: reputation?.path ?? key,
+      });
+    }
+    return {
+      allowed: false,
+      remaining: 0,
+      resetAt: Date.now() + windowMs,
+      reputation: applied.reputation,
+      effectiveLimit: applied.limit,
+    };
+  }
+
+  const result = await redisRateLimit(key, applied.limit, windowMs);
+
+  if (!result.allowed && ip) {
+    recordReputationSignal({
+      ip,
+      type: "rate_limit_exceeded",
+      path: reputation?.path ?? key,
+    });
+  }
+
+  return {
+    ...result,
+    reputation: applied.reputation ?? result.reputation,
+    effectiveLimit: applied.limit,
+  };
 }
 
 // Export type for consumers

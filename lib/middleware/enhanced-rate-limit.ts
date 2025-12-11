@@ -8,6 +8,10 @@ import { rateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 import { trackRateLimitHit } from "@/lib/security/monitoring";
+import {
+  applyReputationToLimit,
+  recordReputationSignal,
+} from "@/lib/security/ip-reputation";
 
 export type RateLimitOptions = {
   identifier?: string;
@@ -35,26 +39,62 @@ export function enforceRateLimit(
     ?? request.headers.get("X-Tenant-ID")
     ?? undefined;
 
-  const result = rateLimit(
-    key,
-    options.requests ?? 30,
-    options.windowMs ?? 60_000,
-  );
+  const requestedLimit = options.requests ?? 30;
+  const windowMs = options.windowMs ?? 60_000;
+  const { limit, reputation } = applyReputationToLimit(requestedLimit, {
+    ip: identifier,
+    path: prefix,
+    userAgent: request.headers.get("user-agent"),
+  });
+
+  if (reputation?.shouldBlock || limit <= 0) {
+    recordReputationSignal({
+      ip: identifier,
+      type: "manual_block",
+      path: prefix,
+    });
+    trackRateLimitHit(identifier, `${prefix}:reputation-block`, orgId ?? undefined);
+    const response = rateLimitError();
+    response.headers.set("X-RateLimit-Limit", String(requestedLimit));
+    response.headers.set("X-RateLimit-Remaining", "0");
+    response.headers.set("X-RateLimit-Reset", String(Date.now() + windowMs));
+    response.headers.set("X-RateLimit-Reason", "ip-reputation-block");
+    if (reputation) {
+      response.headers.set(
+        "X-IP-Reputation",
+        `${reputation.score}:${reputation.level}`,
+      );
+    }
+    return response;
+  }
+
+  const result = rateLimit(key, limit, windowMs);
 
   if (!result.allowed) {
     // Track rate limit event for monitoring (with org context)
     trackRateLimitHit(identifier, prefix, orgId ?? undefined);
+    recordReputationSignal({
+      ip: identifier,
+      type: "rate_limit_exceeded",
+      path: prefix,
+    });
     return rateLimitError();
   }
 
   // Add rate limit headers
   const response = NextResponse.next();
-  response.headers.set("X-RateLimit-Limit", String(options.requests ?? 30));
+  response.headers.set("X-RateLimit-Limit", String(limit));
   response.headers.set("X-RateLimit-Remaining", String(result.remaining));
   response.headers.set(
     "X-RateLimit-Reset",
-    String(Date.now() + (options.windowMs ?? 60_000)),
+    String(Date.now() + windowMs),
   );
+  if (reputation) {
+    response.headers.set(
+      "X-IP-Reputation",
+      `${reputation.score}:${reputation.level}`,
+    );
+  }
 
   return null;
 }

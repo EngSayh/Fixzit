@@ -27,7 +27,8 @@
     "accessibility.tactilePaving": "Tactile Paving",
     "accessibility.wheelchair": "Wheelchair",
     "accessibility.wheelchairAccess": "Wheelchair Access",
-    "accessibility.wheelchairRamp": "Wheelchair Ramp"
+    "accessibility.wheelchairRamp": "Wheelchair Ramp",
+    "accessibility.skipToMainContent": "Skip to main content"
   },
   "ar": {
     "accessibility.accessibility1": "إمكانية الوصول",
@@ -57,6 +58,7 @@
     "accessibility.tactilePaving": "الرصف اللمسي",
     "accessibility.wheelchair": "كرسي متحرك",
     "accessibility.wheelchairAccess": "وصول الكراسي المتحركة",
-    "accessibility.wheelchairRamp": "منحدر الكراسي المتحركة"
+    "accessibility.wheelchairRamp": "منحدر الكراسي المتحركة",
+    "accessibility.skipToMainContent": "انتقل إلى المحتوى الرئيسي"
   }
 }

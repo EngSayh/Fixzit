@@ -20,6 +20,8 @@
 **Status:** ✅ RESOLVED  
 **Severity:** 🔴 Critical - Blocking all builds
 
+> **Note (2025-12):** The env vars `TAP_PUBLIC_KEY` / `TAP_SECRET_KEY` referenced below are **deprecated**. Current implementation uses `TAP_TEST_SECRET_KEY` / `TAP_LIVE_SECRET_KEY` and `NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY` / `NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY`. See `lib/tapConfig.ts` for current config.
+
 **Problem:**
 ```
 Error: Production env validation failed:
@@ -46,6 +48,7 @@ const isVercelDeploy =
   process.env.VERCEL_ENV === 'preview';
 
 // Payment keys only for true production
+// NOTE: Current code uses TAP_LIVE_SECRET_KEY instead of TAP_PUBLIC_KEY
 if (isProdDeploy) {
   if (!process.env.TAP_PUBLIC_KEY) { violations.push(...) }
   if (!process.env.TAP_WEBHOOK_SECRET) { violations.push(...) }

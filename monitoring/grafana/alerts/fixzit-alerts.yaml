@@ -1,0 +1,772 @@
+# Fixzit Alert Rules for Grafana/Prometheus
+# Version: 2.0.0
+# Last Updated: 2025-12-11
+#
+# Deploy this file to Prometheus AlertManager or Grafana Alerting
+# Import: Grafana UI > Alerting > Import from file
+# Validate: node scripts/validate-grafana.mjs
+
+apiVersion: 1
+
+groups:
+  # =============================================================================
+  # Application Health Alerts
+  # =============================================================================
+  - name: fixzit-application
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-high-error-rate
+        title: High Error Rate
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(rate(http_requests_total{status=~"5.."}[5m])) 
+                / sum(rate(http_requests_total[5m])) * 100 > 5
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "High error rate detected (>5%)"
+          description: |
+            Error rate is {{ $value | printf "%.2f" }}% over the last 5 minutes.
+            Check application logs and Sentry for details.
+          runbook_url: https://fixzit.atlassian.net/wiki/spaces/OPS/pages/123/High+Error+Rate
+        labels:
+          severity: critical
+          team: backend
+          module: application
+
+      - uid: fixzit-high-latency
+        title: High Response Latency
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) * 1000 > 2000
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "High p95 response latency (>2s)"
+          description: |
+            p95 latency is {{ $value | printf "%.0f" }}ms.
+            Check database queries and external API calls.
+        labels:
+          severity: warning
+          team: backend
+          module: application
+
+      - uid: fixzit-memory-high
+        title: High Memory Usage
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                (process_resident_memory_bytes / (1024 * 1024 * 1024)) > 3.5
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 10m
+        annotations:
+          summary: "High memory usage (>3.5GB)"
+          description: |
+            Memory usage is {{ $value | printf "%.2f" }}GB.
+            Consider scaling or investigating memory leaks.
+        labels:
+          severity: warning
+          team: infra
+          module: application
+
+      - uid: fixzit-pod-restart
+        title: Pod Restarts Detected
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                increase(kube_pod_container_status_restarts_total{namespace="fixzit"}[1h]) > 3
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 0s
+        annotations:
+          summary: "Multiple pod restarts in last hour"
+          description: |
+            Pod {{ $labels.pod }} has restarted {{ $value }} times in the last hour.
+            Check crashloop conditions and OOM kills.
+        labels:
+          severity: warning
+          team: infra
+          module: kubernetes
+
+  # =============================================================================
+  # Database Alerts
+  # =============================================================================
+  - name: fixzit-database
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-db-connection-pool-exhausted
+        title: Database Connection Pool Exhausted
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                (mongodb_connections_current / mongodb_connections_available) * 100 > 90
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "Database connection pool near exhaustion (>90%)"
+          description: |
+            Connection pool usage is {{ $value | printf "%.1f" }}%.
+            Increase pool size or investigate connection leaks.
+        labels:
+          severity: critical
+          team: backend
+          module: database
+
+      - uid: fixzit-slow-queries
+        title: High Slow Query Rate
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(rate(mongodb_slow_queries_total[5m])) > 10
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "High rate of slow queries (>10/min)"
+          description: |
+            Slow query rate is {{ $value | printf "%.1f" }} per minute.
+            Review query performance and add indexes.
+        labels:
+          severity: warning
+          team: backend
+          module: database
+
+      - uid: fixzit-db-latency-spike
+        title: Database Latency Spike
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                histogram_quantile(0.95, sum(rate(mongodb_op_latency_seconds_bucket[5m])) by (le)) * 1000 > 500
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "Database query latency spike (>500ms p95)"
+          description: |
+            Database p95 latency is {{ $value | printf "%.0f" }}ms.
+            Check for lock contention, missing indexes, or resource exhaustion.
+        labels:
+          severity: warning
+          team: backend
+          module: database
+
+  # =============================================================================
+  # Payment Gateway Alerts
+  # =============================================================================
+  - name: fixzit-payments
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-payment-failure-spike
+        title: Payment Failure Spike
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                (sum(rate(payment_failure_total[1h])) / sum(rate(payment_attempts_total[1h]))) * 100 > 5
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "Payment failure rate >5%"
+          description: |
+            Payment failure rate is {{ $value | printf "%.2f" }}% over the last hour.
+            Check TAP/PayTabs gateway status and API connectivity.
+          runbook_url: https://fixzit.atlassian.net/wiki/spaces/OPS/pages/124/Payment+Failures
+        labels:
+          severity: critical
+          team: payments
+          module: finance
+
+      - uid: fixzit-payment-gateway-down
+        title: Payment Gateway Unreachable
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(up{job=~"tap-gateway|paytabs-gateway"}) == 0
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 2m
+        annotations:
+          summary: "Payment gateway unreachable"
+          description: |
+            Payment gateway probes failing for 2+ minutes.
+            Check network connectivity and gateway status pages.
+        labels:
+          severity: critical
+          team: payments
+          module: finance
+
+      - uid: fixzit-webhook-failures
+        title: Webhook Delivery Failures
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                (sum(rate(webhook_failure_total[1h])) / sum(rate(webhook_attempts_total[1h]))) * 100 > 10
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "Webhook delivery failure rate >10%"
+          description: |
+            Webhook failure rate is {{ $value | printf "%.2f" }}%.
+            Check webhook endpoint availability and signature validation.
+        labels:
+          severity: warning
+          team: payments
+          module: finance
+
+  # =============================================================================
+  # Security Alerts
+  # =============================================================================
+  - name: fixzit-security
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-auth-failure-spike
+        title: Authentication Failure Spike
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(rate(auth_failures_total[15m])) > 50
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "High authentication failure rate (>50/15min)"
+          description: |
+            {{ $value | printf "%.0f" }} auth failures in 15 minutes.
+            Possible brute force attack or credential stuffing.
+          runbook_url: https://fixzit.atlassian.net/wiki/spaces/SEC/pages/125/Auth+Attack
+        labels:
+          severity: critical
+          team: security
+          module: auth
+
+      - uid: fixzit-rate-limit-exceeded
+        title: Rate Limit Exceeded
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(rate(rate_limit_exceeded_total[5m])) by (endpoint) > 100
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 2m
+        annotations:
+          summary: "Rate limiting triggered on {{ $labels.endpoint }}"
+          description: |
+            Endpoint {{ $labels.endpoint }} rate limited {{ $value | printf "%.0f" }} times.
+            May indicate abuse or misconfigured client.
+        labels:
+          severity: warning
+          team: security
+          module: api
+
+  # =============================================================================
+  # Background Jobs Alerts
+  # =============================================================================
+  - name: fixzit-jobs
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-job-failure
+        title: Background Job Failures
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(rate(job_failure_total[1h])) by (job_name) > 5
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "Job {{ $labels.job_name }} failing repeatedly"
+          description: |
+            Job {{ $labels.job_name }} has failed {{ $value | printf "%.0f" }} times in the last hour.
+            Check job logs and retry queue.
+        labels:
+          severity: warning
+          team: backend
+          module: jobs
+
+      - uid: fixzit-queue-backlog
+        title: Job Queue Backlog Growing
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(job_queue_length) > 1000
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 15m
+        annotations:
+          summary: "Job queue backlog >1000 items"
+          description: |
+            Queue has {{ $value | printf "%.0f" }} pending jobs.
+            Scale workers or investigate blocking issues.
+        labels:
+          severity: warning
+          team: backend
+          module: jobs
+
+# =============================================================================
+# Notification Policies (for AlertManager)
+# =============================================================================
+# Configure these in AlertManager or Grafana Contact Points:
+#
+# Critical alerts: 
+#   - PagerDuty (24/7)
+#   - Slack #fixzit-alerts
+#   - Email ops@fixzit.app
+#
+# Warning alerts:
+#   - Slack #fixzit-alerts
+#   - Email team-leads@fixzit.app
+#
+# Silences during maintenance:
+#   - Use maintenance window labels
+#   - Silence by module or team
+
+  # =============================================================================
+  # SMS/Taqnyat Alerts
+  # =============================================================================
+  - name: fixzit-sms
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-sms-queue-depth
+        title: SMS Queue Depth High
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(sms_queue_pending_total) > 500
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 10m
+        annotations:
+          summary: "SMS queue depth exceeds 500 messages"
+          description: |
+            SMS queue has {{ $value | printf "%.0f" }} pending messages.
+            Check Taqnyat provider status and rate limits.
+          runbook_url: https://fixzit.atlassian.net/wiki/spaces/OPS/pages/130/SMS+Queue+Backlog
+        labels:
+          severity: warning
+          team: backend
+          module: sms
+
+      - uid: fixzit-sms-delivery-failure
+        title: SMS Delivery Failure Rate
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                (sum(rate(sms_delivery_failure_total[1h])) / sum(rate(sms_delivery_total[1h]))) * 100 > 10
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "SMS delivery failure rate >10%"
+          description: |
+            SMS delivery failure rate is {{ $value | printf "%.2f" }}%.
+            Check Taqnyat API credentials and sender ID status.
+        labels:
+          severity: critical
+          team: backend
+          module: sms
+
+      - uid: fixzit-sms-provider-down
+        title: Taqnyat Provider Unreachable
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(up{job="taqnyat-sms"}) == 0 or absent(up{job="taqnyat-sms"})
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 2m
+        annotations:
+          summary: "Taqnyat SMS provider unreachable"
+          description: |
+            Cannot reach Taqnyat SMS API for 2+ minutes.
+            Check network connectivity and API status.
+        labels:
+          severity: critical
+          team: backend
+          module: sms
+
+  # =============================================================================
+  # Copilot AI Alerts
+  # =============================================================================
+  - name: fixzit-copilot
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-copilot-error-rate
+        title: Copilot API Error Rate
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(rate(http_requests_total{path=~"/api/copilot/.*",status=~"5.."}[5m])) 
+                / sum(rate(http_requests_total{path=~"/api/copilot/.*"}[5m])) * 100 > 5
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "Copilot API error rate >5%"
+          description: |
+            Copilot error rate is {{ $value | printf "%.2f" }}%.
+            Check OpenAI/LLM provider status and API keys.
+        labels:
+          severity: warning
+          team: ai
+          module: copilot
+
+      - uid: fixzit-copilot-latency
+        title: Copilot Response Latency High
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{path=~"/api/copilot/.*"}[5m])) by (le)) * 1000 > 5000
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "Copilot p95 latency >5s"
+          description: |
+            Copilot p95 latency is {{ $value | printf "%.0f" }}ms.
+            LLM provider may be slow or overloaded.
+        labels:
+          severity: warning
+          team: ai
+          module: copilot
+
+      - uid: fixzit-copilot-rate-limit
+        title: Copilot Rate Limits Hit
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(rate(copilot_rate_limit_exceeded_total[5m])) > 10
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 2m
+        annotations:
+          summary: "Copilot rate limits being hit frequently"
+          description: |
+            {{ $value | printf "%.0f" }} rate limit events in 5 minutes.
+            Consider increasing limits or optimizing usage.
+        labels:
+          severity: warning
+          team: ai
+          module: copilot
+
+  # =============================================================================
+  # TAP Webhook Enhanced Alerts
+  # =============================================================================
+  - name: fixzit-tap-webhooks
+    folder: Fixzit
+    interval: 1m
+    rules:
+      - uid: fixzit-tap-webhook-signature-failures
+        title: TAP Webhook Signature Failures
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(rate(tap_webhook_signature_failure_total[1h])) > 5
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "TAP webhook signature verification failures"
+          description: |
+            {{ $value | printf "%.0f" }} signature failures in the last hour.
+            Possible webhook replay attack or key mismatch.
+          runbook_url: https://fixzit.atlassian.net/wiki/spaces/SEC/pages/131/Webhook+Security
+        labels:
+          severity: critical
+          team: security
+          module: payments
+
+      - uid: fixzit-tap-webhook-latency
+        title: TAP Webhook Processing Slow
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                histogram_quantile(0.95, sum(rate(tap_webhook_processing_seconds_bucket[5m])) by (le)) * 1000 > 10000
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 5m
+        annotations:
+          summary: "TAP webhook processing >10s p95"
+          description: |
+            Webhook processing p95 latency is {{ $value | printf "%.0f" }}ms.
+            Database or external API calls may be slow.
+        labels:
+          severity: warning
+          team: payments
+          module: payments
+
+      - uid: fixzit-tap-webhook-retries
+        title: TAP Webhook Retry Rate High
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                (sum(rate(tap_webhook_retry_total[1h])) / sum(rate(tap_webhook_received_total[1h]))) * 100 > 20
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 10m
+        annotations:
+          summary: "TAP webhook retry rate >20%"
+          description: |
+            {{ $value | printf "%.1f" }}% of webhooks required retries.
+            Check idempotency handling and database locks.
+        labels:
+          severity: warning
+          team: payments
+          module: payments
+
+  # =============================================================================
+  # Build/Deployment Alerts
+  # =============================================================================
+  - name: fixzit-builds
+    folder: Fixzit
+    interval: 5m
+    rules:
+      - uid: fixzit-build-failure
+        title: Build Failure Detected
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(increase(build_failure_total[1h])) > 0
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 0s
+        annotations:
+          summary: "Build failure in the last hour"
+          description: |
+            A build has failed. Check CI/CD logs for details.
+        labels:
+          severity: warning
+          team: devops
+          module: builds
+
+      - uid: fixzit-deployment-rollback
+        title: Deployment Rollback Triggered
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(increase(deployment_rollback_total[1h])) > 0
+              intervalMs: 1000
+              maxDataPoints: 43200
+        execErrState: Error
+        noDataState: NoData
+        for: 0s
+        annotations:
+          summary: "Deployment rollback occurred"
+          description: |
+            A deployment was rolled back in the last hour.
+            Review changes and incident response.
+        labels:
+          severity: critical
+          team: devops
+          module: builds

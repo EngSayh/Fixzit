@@ -29,6 +29,7 @@ Use it as the first stop before diving into deeper folders.
 - [Notification smoke test setup](../NOTIFICATION_SMOKE_TEST_SETUP.md)
 - [Manual UI testing checklist](../MANUAL_UI_TESTING_CHECKLIST.md)
 - [Communication logs QA plan](../testing/COMMUNICATION_LOGS_QA_PLAN.md)
+- [Type safety patterns (Mongoose statics)](../guides/TYPE_SAFETY_PATTERNS.md)
 
 ## Internationalization & UX
 

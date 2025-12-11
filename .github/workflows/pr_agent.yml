@@ -7,6 +7,10 @@ on:
     types: [opened, reopened, ready_for_review]
   issue_comment:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   issues: write
   pull-requests: write

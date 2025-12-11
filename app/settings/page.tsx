@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Bell, Lock, User, Palette } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
+import { useCurrency, type CurrencyCode } from "@/contexts/CurrencyContext";
 
 const NOTIFICATION_LABELS: Record<string, { key: string; fallback: string }> = {
   email: { key: "settings.notifications.email", fallback: "Email Alerts" },
@@ -35,6 +36,7 @@ const NOTIFICATION_LABELS: Record<string, { key: string; fallback: string }> = {
 
 export default function SettingsPage() {
   const { t } = useTranslation();
+  const { currency, setCurrency, options } = useCurrency();
   const [notifications, setNotifications] = useState({
     email: true,
     sms: true,
@@ -269,6 +271,32 @@ export default function SettingsPage() {
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label htmlFor="currency">
+                    {t("settings.preferences.currency", "Currency")}
+                  </Label>
+                  <Select
+                    value={currency}
+                    onValueChange={(value) => setCurrency(value as CurrencyCode)}
+                  >
+                    <SelectTrigger id="currency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {options.map((option) => (
+                        <SelectItem key={option.code} value={option.code}>
+                          {option.flag} {option.code} — {option.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {t(
+                      "settings.preferences.currencyHint",
+                      "Applies to pricing, invoices, and dashboards",
+                    )}
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="theme">

@@ -1,0 +1,358 @@
+{
+  "en": [
+    {
+      "namespace": "misc",
+      "path": "./en/misc.json"
+    },
+    {
+      "namespace": "admin/audit",
+      "path": "./en/admin/audit.json"
+    },
+    {
+      "namespace": "admin/featureSettings",
+      "path": "./en/admin/featureSettings.json"
+    },
+    {
+      "namespace": "admin/notifications",
+      "path": "./en/admin/notifications.json"
+    },
+    {
+      "namespace": "admin/roles",
+      "path": "./en/admin/roles.json"
+    },
+    {
+      "namespace": "admin/routeMetrics",
+      "path": "./en/admin/routeMetrics.json"
+    },
+    {
+      "namespace": "admin/users",
+      "path": "./en/admin/users.json"
+    },
+    {
+      "namespace": "api/error",
+      "path": "./en/api/error.json"
+    },
+    {
+      "namespace": "aqar/filters",
+      "path": "./en/aqar/filters.json"
+    },
+    {
+      "namespace": "ats/applications",
+      "path": "./en/ats/applications.json"
+    },
+    {
+      "namespace": "ats/interviews",
+      "path": "./en/ats/interviews.json"
+    },
+    {
+      "namespace": "ats/jobs",
+      "path": "./en/ats/jobs.json"
+    },
+    {
+      "namespace": "dashboard/hrRecruitment",
+      "path": "./en/dashboard/hrRecruitment.json"
+    },
+    {
+      "namespace": "finance/budget",
+      "path": "./en/finance/budget.json"
+    },
+    {
+      "namespace": "finance/expense",
+      "path": "./en/finance/expense.json"
+    },
+    {
+      "namespace": "finance/invoice",
+      "path": "./en/finance/invoice.json"
+    },
+    {
+      "namespace": "finance/payment",
+      "path": "./en/finance/payment.json"
+    },
+    {
+      "namespace": "fm/assets",
+      "path": "./en/fm/assets.json"
+    },
+    {
+      "namespace": "fm/compliance",
+      "path": "./en/fm/compliance.json"
+    },
+    {
+      "namespace": "fm/crm",
+      "path": "./en/fm/crm.json"
+    },
+    {
+      "namespace": "fm/finance",
+      "path": "./en/fm/finance.json"
+    },
+    {
+      "namespace": "fm/invoices",
+      "path": "./en/fm/invoices.json"
+    },
+    {
+      "namespace": "fm/projects",
+      "path": "./en/fm/projects.json"
+    },
+    {
+      "namespace": "fm/properties",
+      "path": "./en/fm/properties.json"
+    },
+    {
+      "namespace": "fm/rfqs",
+      "path": "./en/fm/rfqs.json"
+    },
+    {
+      "namespace": "fm/support",
+      "path": "./en/fm/support.json"
+    },
+    {
+      "namespace": "fm/tenants",
+      "path": "./en/fm/tenants.json"
+    },
+    {
+      "namespace": "fm/vendors",
+      "path": "./en/fm/vendors.json"
+    },
+    {
+      "namespace": "hr/ats",
+      "path": "./en/hr/ats.json"
+    },
+    {
+      "namespace": "hr/attendance",
+      "path": "./en/hr/attendance.json"
+    },
+    {
+      "namespace": "hr/leave",
+      "path": "./en/hr/leave.json"
+    },
+    {
+      "namespace": "hr/payroll",
+      "path": "./en/hr/payroll.json"
+    },
+    {
+      "namespace": "marketplace/sellerCentral",
+      "path": "./en/marketplace/sellerCentral.json"
+    },
+    {
+      "namespace": "marketplace/sellerOnboarding",
+      "path": "./en/marketplace/sellerOnboarding.json"
+    },
+    {
+      "namespace": "payments/tap",
+      "path": "./en/payments/tap.json"
+    },
+    {
+      "namespace": "properties/leases",
+      "path": "./en/properties/leases.json"
+    },
+    {
+      "namespace": "seller/advertising",
+      "path": "./en/seller/advertising.json"
+    },
+    {
+      "namespace": "seller/analytics",
+      "path": "./en/seller/analytics.json"
+    },
+    {
+      "namespace": "seller/health",
+      "path": "./en/seller/health.json"
+    },
+    {
+      "namespace": "sidebar/admin",
+      "path": "./en/sidebar/admin.json"
+    },
+    {
+      "namespace": "sidebar/legacy",
+      "path": "./en/sidebar/legacy.json"
+    },
+    {
+      "namespace": "support/subCategories",
+      "path": "./en/support/subCategories.json"
+    },
+    {
+      "namespace": "workOrders/history",
+      "path": "./en/workOrders/history.json"
+    },
+    {
+      "namespace": "workOrders/pm",
+      "path": "./en/workOrders/pm.json"
+    }
+  ],
+  "ar": [
+    {
+      "namespace": "misc",
+      "path": "./ar/misc.json"
+    },
+    {
+      "namespace": "admin/audit",
+      "path": "./ar/admin/audit.json"
+    },
+    {
+      "namespace": "admin/featureSettings",
+      "path": "./ar/admin/featureSettings.json"
+    },
+    {
+      "namespace": "admin/notifications",
+      "path": "./ar/admin/notifications.json"
+    },
+    {
+      "namespace": "admin/roles",
+      "path": "./ar/admin/roles.json"
+    },
+    {
+      "namespace": "admin/routeMetrics",
+      "path": "./ar/admin/routeMetrics.json"
+    },
+    {
+      "namespace": "admin/users",
+      "path": "./ar/admin/users.json"
+    },
+    {
+      "namespace": "api/error",
+      "path": "./ar/api/error.json"
+    },
+    {
+      "namespace": "aqar/filters",
+      "path": "./ar/aqar/filters.json"
+    },
+    {
+      "namespace": "ats/applications",
+      "path": "./ar/ats/applications.json"
+    },
+    {
+      "namespace": "ats/interviews",
+      "path": "./ar/ats/interviews.json"
+    },
+    {
+      "namespace": "ats/jobs",
+      "path": "./ar/ats/jobs.json"
+    },
+    {
+      "namespace": "dashboard/hrRecruitment",
+      "path": "./ar/dashboard/hrRecruitment.json"
+    },
+    {
+      "namespace": "finance/budget",
+      "path": "./ar/finance/budget.json"
+    },
+    {
+      "namespace": "finance/expense",
+      "path": "./ar/finance/expense.json"
+    },
+    {
+      "namespace": "finance/invoice",
+      "path": "./ar/finance/invoice.json"
+    },
+    {
+      "namespace": "finance/payment",
+      "path": "./ar/finance/payment.json"
+    },
+    {
+      "namespace": "fm/assets",
+      "path": "./ar/fm/assets.json"
+    },
+    {
+      "namespace": "fm/compliance",
+      "path": "./ar/fm/compliance.json"
+    },
+    {
+      "namespace": "fm/crm",
+      "path": "./ar/fm/crm.json"
+    },
+    {
+      "namespace": "fm/finance",
+      "path": "./ar/fm/finance.json"
+    },
+    {
+      "namespace": "fm/invoices",
+      "path": "./ar/fm/invoices.json"
+    },
+    {
+      "namespace": "fm/projects",
+      "path": "./ar/fm/projects.json"
+    },
+    {
+      "namespace": "fm/properties",
+      "path": "./ar/fm/properties.json"
+    },
+    {
+      "namespace": "fm/rfqs",
+      "path": "./ar/fm/rfqs.json"
+    },
+    {
+      "namespace": "fm/support",
+      "path": "./ar/fm/support.json"
+    },
+    {
+      "namespace": "fm/tenants",
+      "path": "./ar/fm/tenants.json"
+    },
+    {
+      "namespace": "fm/vendors",
+      "path": "./ar/fm/vendors.json"
+    },
+    {
+      "namespace": "hr/ats",
+      "path": "./ar/hr/ats.json"
+    },
+    {
+      "namespace": "hr/attendance",
+      "path": "./ar/hr/attendance.json"
+    },
+    {
+      "namespace": "hr/leave",
+      "path": "./ar/hr/leave.json"
+    },
+    {
+      "namespace": "hr/payroll",
+      "path": "./ar/hr/payroll.json"
+    },
+    {
+      "namespace": "marketplace/sellerCentral",
+      "path": "./ar/marketplace/sellerCentral.json"
+    },
+    {
+      "namespace": "marketplace/sellerOnboarding",
+      "path": "./ar/marketplace/sellerOnboarding.json"
+    },
+    {
+      "namespace": "payments/tap",
+      "path": "./ar/payments/tap.json"
+    },
+    {
+      "namespace": "properties/leases",
+      "path": "./ar/properties/leases.json"
+    },
+    {
+      "namespace": "seller/advertising",
+      "path": "./ar/seller/advertising.json"
+    },
+    {
+      "namespace": "seller/analytics",
+      "path": "./ar/seller/analytics.json"
+    },
+    {
+      "namespace": "seller/health",
+      "path": "./ar/seller/health.json"
+    },
+    {
+      "namespace": "sidebar/admin",
+      "path": "./ar/sidebar/admin.json"
+    },
+    {
+      "namespace": "sidebar/legacy",
+      "path": "./ar/sidebar/legacy.json"
+    },
+    {
+      "namespace": "support/subCategories",
+      "path": "./ar/support/subCategories.json"
+    },
+    {
+      "namespace": "workOrders/history",
+      "path": "./ar/workOrders/history.json"
+    },
+    {
+      "namespace": "workOrders/pm",
+      "path": "./ar/workOrders/pm.json"
+    }
+  ]
+}

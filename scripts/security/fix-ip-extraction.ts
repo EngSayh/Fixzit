@@ -263,10 +263,13 @@ async function main() {
     console.log("\n� Run without --dry-run to apply changes");
   } else {
     console.log(
-      "\n�🔒 All IP extraction now uses secure centralized function (LAST IP from trusted proxy)",
+      "\n🔒 All IP extraction now uses secure centralized function (LAST IP from trusted proxy)",
     );
     console.log("💾 Backup files created with .bak extension");
   }
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error('IP extraction fix failed:', err);
+  process.exit(1);
+});

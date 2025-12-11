@@ -54,14 +54,34 @@ i18n/dictionaries/
 Add to your `.env.local`:
 
 ```bash
-# Tap Payments
-TAP_SECRET_KEY=sk_test_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-TAP_PUBLIC_KEY=pk_test_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# Tap Payments - Environment-aware configuration
+# TAP_ENVIRONMENT controls which keys are used: "test" (default) or "live"
+TAP_ENVIRONMENT=test
+
+# Server-side keys (NEVER expose to client)
+TAP_TEST_SECRET_KEY=sk_test_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+TAP_LIVE_SECRET_KEY=sk_live_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# Client-side keys (safe for browser)
+NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY=pk_test_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY=pk_live_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# Webhook verification
 TAP_WEBHOOK_SECRET=whsec_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# Additional Tap credentials
+TAP_MERCHANT_ID=your_merchant_id
+TAP_ACCOUNT_ID=your_account_id
+TAP_API_KEY=your_api_key
+TAP_GOSELL_USERNAME=gosell_username
+TAP_GOSELL_PASSWORD=gosell_password
 
 # Base URL for webhooks
 NEXT_PUBLIC_BASE_URL=https://yourdomain.com
 ```
+
+> **Note**: The system automatically selects test vs live keys based on `TAP_ENVIRONMENT` (or `NODE_ENV` in production).
+> See `lib/tapConfig.ts` for the central configuration helper.
 
 ### 3. Configure Webhooks
 

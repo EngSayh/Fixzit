@@ -1,8 +1,12 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-12-10T13:45+03  
-**Version**: 2.3  
-**Scope**: Database index management, security audits, observability, SMS infrastructure, test infrastructure, i18n
+**Last Updated**: 2025-12-12T03:00+03  
+**Version**: 2.5  
+**Scope**: Database index management, security audits, observability, SMS infrastructure, test infrastructure, i18n  
+**Status**: ✅ ALL ISSUES VERIFIED - See PENDING_MASTER.md for current status
+
+> **Note**: This register contains historical issues for reference. For current project status, 
+> see `docs/PENDING_MASTER.md` (v15.25) which is the single source of truth.
 
 ---
 
@@ -12,7 +16,7 @@
 
 **Severity**: 🟥 Critical  
 **Category**: Operations, Infrastructure  
-**Status**: ⏳ PENDING USER ACTION
+**Status**: ✅ COMPLETED (2025-12-11 - UA-001 verified in PENDING_MASTER)
 
 **Current Production Status** (2025-12-10T10:42 UTC):
 ```json
@@ -33,6 +37,40 @@
 curl -s https://fixzit.co/api/health/ready | jq '.checks'
 # Expected: {"mongodb":"ok","redis":"disabled","email":"disabled","sms":"ok"}
 ```
+
+---
+
+## Recent Additions (2025-12-11)
+
+### ISSUE-PERF-001: Client i18n bundles are monolithic
+
+**Severity**: 🟨 Moderate  
+**Category**: Performance, i18n  
+**Status**: ✅ FALSE POSITIVE (Verified 2025-12-11T16:30)
+
+**Evidence**: `i18n/I18nProvider.tsx:21-30` uses dynamic imports `en: () => import("./dictionaries/en")`. Only active locale loaded at runtime, not bundled into client JS.
+
+**Verification**: This was flagged based on ChatGPT bundle analysis which misunderstood that dynamic imports load only the active locale at runtime, not the monolithic dictionaries.
+
+---
+
+### ISSUE-PERF-002: HR directory/new page shipped as single client chunk
+
+**Severity**: 🟨 Moderate  
+**Category**: Performance, HR  
+**Status**: ✅ FALSE POSITIVE (Verified 2025-12-11T16:30)
+
+**Verification**: Page uses minimal imports (useAutoTranslator, standard form). No heavy dependencies. Already optimized.
+
+---
+
+### ISSUE-PERF-003: Client entry bloat + missing bundle budget guardrail
+
+**Severity**: 🟨 Moderate  
+**Category**: Performance, Build  
+**Status**: ✅ FALSE POSITIVE (Verified 2025-12-11T16:30)
+
+**Verification**: ConditionalProviders already splits PublicProviders/AuthenticatedProviders. optimizePackageImports configured for 12+ packages. Bundle budget gate added in FR-003.
 
 ---
 

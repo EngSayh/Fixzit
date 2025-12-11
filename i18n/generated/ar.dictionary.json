@@ -109,6 +109,7 @@
   "accessibility.ramp": "منحدر",
   "accessibility.ramps": "منحدرات",
   "accessibility.signage": "اللافتات",
+  "accessibility.skipToMainContent": "انتقل إلى المحتوى الرئيسي",
   "accessibility.tactile": "لمسي",
   "accessibility.tactilePaving": "الرصف اللمسي",
   "accessibility.wheelchair": "كرسي متحرك",
@@ -474,6 +475,28 @@
   "admin.email.description": "تكوين إعدادات SMTP وقوالب البريد الإلكتروني",
   "admin.email.templates": "القوالب",
   "admin.email.title": "تكوين البريد الإلكتروني",
+  "admin.featureFlags.categories.aqar.description": "مساحات إدارة العقارات وأقار",
+  "admin.featureFlags.categories.aqar.title": "العقارات",
+  "admin.featureFlags.categories.core.description": "المصادقة، دعم اللغات، والإشعارات",
+  "admin.featureFlags.categories.core.title": "المنصة الأساسية",
+  "admin.featureFlags.categories.experimental.description": "ميزات بيتا والإصدارات التدريجية",
+  "admin.featureFlags.categories.experimental.title": "تجريبي",
+  "admin.featureFlags.categories.finance.description": "الفوترة والفواتير وأدوات المحاسبة",
+  "admin.featureFlags.categories.finance.title": "المالية",
+  "admin.featureFlags.categories.fm.description": "تدفقات وأتمتة إدارة المرافق",
+  "admin.featureFlags.categories.fm.title": "إدارة المرافق",
+  "admin.featureFlags.categories.hr.description": "تجربة الموظفين والسياسات",
+  "admin.featureFlags.categories.hr.title": "الموارد البشرية",
+  "admin.featureFlags.categories.integrations.description": "الأنظمة الخارجية وجسور الـ API",
+  "admin.featureFlags.categories.integrations.title": "التكاملات",
+  "admin.featureFlags.categories.souq.description": "قدرات السوق والتجارة",
+  "admin.featureFlags.categories.souq.title": "سوق",
+  "admin.featureFlags.categories.ui.description": "لوحات التحكم، التخطيطات، والميزات البصرية",
+  "admin.featureFlags.categories.ui.title": "الواجهة والتجربة",
+  "admin.featureFlags.lastUpdated": "تم التقييم في {{time}}",
+  "admin.featureFlags.refresh": "تحديث",
+  "admin.featureFlags.search": "ابحث بالاسم أو المفتاح",
+  "admin.featureFlags.subtitle": "تفعيل قدرات النظام وحماياته عبر الوحدات.",
   "admin.features.active": "الميزات النشطة",
   "admin.features.desc": "تكوين إعدادات ميزات التطبيق",
   "admin.features.description": "تفعيل/تعطيل الميزات ديناميكياً",
@@ -670,6 +693,9 @@
   "admin.overview.quickLinks": "روابط سريعة",
   "admin.overview.title": "نظرة عامة على الإدارة",
   "admin.overview.viewLogs": "عرض سجلات التدقيق",
+  "admin.rateLimit.description": "مراقبة أحداث الخنق وحماية تسجيل الدخول",
+  "admin.rateLimit.stats": "أحدث رموز 429",
+  "admin.rateLimit.title": "تحديد المعدل",
   "admin.redirecting": "جارٍ إعادة التوجيه إلى لوحة الإدارة...",
   "admin.reports.description": "إنشاء تقارير وتحليلات على مستوى الإدارة",
   "admin.reports.generated": "تم إنشاؤها",
@@ -3401,6 +3427,7 @@
   "borderStyles.thick": "سميك",
   "borderStyles.thin": "رفيع",
   "borderStyles.top": "الحدود العلوية",
+  "brand.logoAlt": "شعار فكس إت",
   "brandingCustomization.accent": "اللون المميز",
   "brandingCustomization.bodyFont": "خط المحتوى",
   "brandingCustomization.branding": "العلامة التجارية",
@@ -10934,6 +10961,7 @@
   "errors.insufficientPermissions": "محظور: صلاحيات غير كافية",
   "errors.invalidCredentials": "بيانات الدخول غير صحيحة",
   "errors.invalidEmail": "عنوان البريد الإلكتروني غير صحيح",
+  "errors.invalidPayload": "استجابة غير صالحة",
   "errors.loginFailed": "فشل تسجيل الدخول",
   "errors.marketplace.message": "حدث خطأ في السوق",
   "errors.marketplace.title": "خطأ في السوق",
@@ -11345,24 +11373,40 @@
   "fashionRetail.windowDisplay": "عرض الواجهة",
   "featureFlags.abtest": "اختبار A/B",
   "featureFlags.archive": "الأرشيف",
+  "featureFlags.badges.defaultOn": "مفعلة افتراضياً",
+  "featureFlags.badges.devOn": "مفعلة في التطوير",
+  "featureFlags.badges.orgRestricted": "مقيدة للمنظمة",
+  "featureFlags.badges.prodOff": "معطلة في الإنتاج",
+  "featureFlags.badges.rollout": "{{percent}}٪ طرح تدريجي",
+  "featureFlags.badges.stagingOn": "مفعلة في Staging",
   "featureFlags.condition": "الشرط",
   "featureFlags.control": "المجموعة الضابطة",
+  "featureFlags.dependenciesWarning": "التبعيات معطلة: {{deps}}",
   "featureFlags.disable": "تعطيل",
   "featureFlags.enable": "تمكين",
+  "featureFlags.error": "تعذر تحميل الخصائص",
   "featureFlags.experiment": "التجربة",
   "featureFlags.expiry": "انتهاء الصلاحية",
   "featureFlags.feature": "علامة الميزة",
   "featureFlags.flag": "العلامة",
   "featureFlags.gradual": "الطرح التدريجي",
+  "featureFlags.meta.allowedOrgs": "المنظمات المسموح بها: {{count}}",
+  "featureFlags.meta.dependencies": "يعتمد على: {{deps}}",
   "featureFlags.override": "التجاوز",
   "featureFlags.percentage": "النسبة المئوية",
   "featureFlags.rollout": "الطرح",
   "featureFlags.rule": "القاعدة",
   "featureFlags.schedule": "الجدولة",
   "featureFlags.segment": "الشريحة",
+  "featureFlags.summary.enabled": "مفعلة",
+  "featureFlags.summary.restricted": "مقيدة للمنظمة",
+  "featureFlags.summary.rollout": "متدرجة",
+  "featureFlags.summary.total": "إجمالي الخصائص",
   "featureFlags.targeting": "الاستهداف",
   "featureFlags.toggle": "التبديل",
   "featureFlags.treatment": "المجموعة العلاجية",
+  "featureFlags.updated": "تم تحديث {{flag}}",
+  "featureFlags.updateFailed": "فشل تحديث الخاصية",
   "featureFlags.variant": "المتغير",
   "features.advancedReports": "التقارير المتقدمة",
   "features.apiAccess": "الوصول لـ API",
@@ -11521,6 +11565,30 @@
   "filterOptions.tags": "مرشح الوسوم",
   "filterOptions.to": "إلى",
   "filterOptions.type": "مرشح النوع",
+  "filters.actions.activate": "تفعيل",
+  "filters.actions.approve": "اعتماد",
+  "filters.actions.archive": "أرشفة",
+  "filters.actions.custom": "مخصص",
+  "filters.actions.deactivate": "تعطيل",
+  "filters.actions.download": "تنزيل",
+  "filters.actions.export": "تصدير",
+  "filters.actions.import": "استيراد",
+  "filters.actions.receive": "استلام",
+  "filters.actions.reject": "رفض",
+  "filters.actions.restore": "استعادة",
+  "filters.actions.send": "إرسال",
+  "filters.actions.share": "مشاركة",
+  "filters.actions.upload": "رفع",
+  "filters.entityTypes.bid": "مزايدة",
+  "filters.entityTypes.document": "مستند",
+  "filters.entityTypes.invoice": "فاتورة",
+  "filters.entityTypes.other": "أخرى",
+  "filters.entityTypes.owner": "مالك",
+  "filters.entityTypes.project": "مشروع",
+  "filters.entityTypes.serviceProvider": "مزود خدمة",
+  "filters.entityTypes.setting": "إعداد",
+  "filters.entityTypes.ticket": "تذكرة",
+  "filters.entityTypes.vendor": "مزود",
   "finance.account": "الحساب",
   "finance.accountType.ASSET": "أصل",
   "finance.accountType.EQUITY": "حقوق الملكية",
@@ -12861,6 +12929,8 @@
   "fm.properties.leases.comingSoon.title": "قريباً",
   "fm.properties.leases.empty": "لا توجد عقود",
   "fm.properties.leases.error": "فشل في تحميل العقود",
+  "fm.properties.leases.filter.active": "نشط",
+  "fm.properties.leases.filter.all": "الكل",
   "fm.properties.leases.list.subtitle": "جميع العقود عبر العقارات",
   "fm.properties.leases.list.title": "قائمة العقود",
   "fm.properties.leases.newLease": "عقد جديد",
@@ -12898,6 +12968,11 @@
   "fm.properties.searchProperties": "البحث عن العقارات...",
   "fm.properties.selectType": "اختر النوع",
   "fm.properties.status": "الحالة",
+  "fm.properties.status.active": "نشط",
+  "fm.properties.status.inactive": "غير نشط",
+  "fm.properties.status.occupied": "مشغول",
+  "fm.properties.status.pending": "قيد الانتظار",
+  "fm.properties.status.vacant": "شاغر",
   "fm.properties.streetAddress": "عنوان الشارع",
   "fm.properties.subtitle": "محفظة العقارات وإدارة المستأجرين",
   "fm.properties.support.activeOrg": "سياق الدعم: {{name}}",
@@ -13427,6 +13502,7 @@
   "footer.support": "الدعم",
   "footer.terms": "الشروط",
   "footer.ticket": "فتح تذكرة",
+  "footer.ticket_aria": "افتح تذكرة دعم",
   "forensicInvestigation.acquisition": "الحصول على البيانات",
   "forensicInvestigation.analysis": "التحليل الشرعي",
   "forensicInvestigation.artifacts": "تحليل القطع الأثرية",
@@ -23110,6 +23186,31 @@
   "quotesEstimates.total": "المبلغ الإجمالي",
   "quotesEstimates.unitPrice": "سعر الوحدة",
   "quotesEstimates.valid": "صالح حتى",
+  "rateLimit.actions.refresh": "تحديث",
+  "rateLimit.errors.load": "تعذر تحميل بيانات تحديد المعدل",
+  "rateLimit.filter.placeholder": "تصفية حسب المسار",
+  "rateLimit.header.refreshed": "تم التحديث {{time}}",
+  "rateLimit.header.subtitle": "مراقبة نشاط الخنق وحالة الحماية الموزعة.",
+  "rateLimit.header.title": "لوحة تحديد المعدل",
+  "rateLimit.redis.lastErrorAt": "آخر خطأ في {{time}}",
+  "rateLimit.redis.warning": "تحذير Redis حديث",
+  "rateLimit.summary.attempts": "محاولات",
+  "rateLimit.summary.distributed": "الحالة الموزعة",
+  "rateLimit.summary.login": "حماية تسجيل الدخول",
+  "rateLimit.summary.redisActive": "Redis فعال",
+  "rateLimit.summary.redisInactive": "ذاكرة داخلية",
+  "rateLimit.summary.total": "رموز 429 في النافذة",
+  "rateLimit.summary.unique": "عملاء فريدون",
+  "rateLimit.summary.window": "كل {{window}} دقيقة",
+  "rateLimit.table.empty": "لا توجد أحداث تحديد معدل حديثة",
+  "rateLimit.table.endpoint": "المسار",
+  "rateLimit.table.global": "عالمي",
+  "rateLimit.table.hits": "العدد",
+  "rateLimit.table.orgs": "المنظمات",
+  "rateLimit.table.subtitle": "أعلى المسارات التي يتم خنقها حالياً. تتضمن تحديد المعدل للمنظمة عند توفره.",
+  "rateLimit.table.title": "نشاط المسارات (نافذة {{minutes}} دقيقة)",
+  "rateLimit.table.unique": "مفاتيح فريدة",
+  "rateLimit.table.window": "النافذة",
   "realEstate.apartment": "شقة",
   "realEstate.builtUpArea": "المساحة المبنية",
   "realEstate.carpetArea": "المساحة الصافية",
@@ -23669,6 +23770,7 @@
   "reports.table.status": "الحالة",
   "reports.table.type": "النوع",
   "reports.tabs.builder": "منشئ التقارير",
+  "reports.tabs.dashboard": "لوحة المتابعة",
   "reports.tabs.title": "مساحة عمل التقارير",
   "reports.tabs.viewer": "عارض التقارير",
   "reports.title": "التقارير",
@@ -25410,6 +25512,8 @@
   "settings.notificationsSettings.title": "تفضيلات الإشعارات",
   "settings.notificationsSettings.workOrders": "أوامر العمل",
   "settings.preferences.arabic": "العربية",
+  "settings.preferences.currency": "العملة",
+  "settings.preferences.currencyHint": "تطبق على التسعير والفواتير ولوحات التحكم",
   "settings.preferences.dark": "داكن",
   "settings.preferences.english": "الإنجليزية",
   "settings.preferences.language": "اللغة",
@@ -31177,5 +31281,93 @@
   "workspaceSettings.timeFormat": "تنسيق الوقت",
   "workspaceSettings.timezone": "المنطقة الزمنية الافتراضية",
   "workspaceSettings.visibility": "الظهور",
-  "workspaceSettings.workspace": "مساحة العمل"
+  "workspaceSettings.workspace": "مساحة العمل",
+  "auto": {
+    "fm": {
+      "hr": {
+        "directory": {
+          "new": {
+            "toast": {
+              "success": "تم إنشاء الموظف بنجاح",
+              "error": "فشل في إنشاء الموظف"
+            },
+            "breadcrumbs": "الموارد البشرية / الدليل",
+            "header": {
+              "title": "إضافة موظف جديد",
+              "subtitle": "املأ التفاصيل لإضافة موظف جديد"
+            },
+            "sections": {
+              "profile": {
+                "title": "المعلومات الأساسية",
+                "description": "المعلومات الأساسية عن الموظف"
+              },
+              "role": {
+                "title": "تفاصيل الوظيفة",
+                "description": "المنصب ومعلومات التقارير"
+              },
+              "compensation": {
+                "title": "التعويضات والملاحظات",
+                "description": "الراتب والملاحظات الإضافية"
+              }
+            },
+            "actions": {
+              "cancel": "إلغاء",
+              "saving": "جارٍ الحفظ...",
+              "submit": "إنشاء موظف"
+            },
+            "form": {
+              "compensationType": {
+                "label": "نوع التعويض",
+                "placeholder": "اختر نوع التعويض"
+              },
+              "salary": {
+                "label": "الراتب الأساسي"
+              },
+              "notes": {
+                "label": "ملاحظات إضافية",
+                "placeholder": "أدخل أي ملاحظات إضافية..."
+              },
+              "firstName": {
+                "label": "الاسم الأول",
+                "placeholder": "أدخل الاسم الأول"
+              },
+              "lastName": {
+                "label": "اسم العائلة",
+                "placeholder": "أدخل اسم العائلة"
+              },
+              "workEmail": {
+                "label": "البريد الإلكتروني للعمل"
+              },
+              "phone": {
+                "label": "الهاتف"
+              },
+              "reportsTo": {
+                "label": "المدير المباشر",
+                "placeholder": "اختر المدير"
+              },
+              "jobTitle": {
+                "label": "المسمى الوظيفي",
+                "placeholder": "أدخل المسمى الوظيفي"
+              },
+              "department": {
+                "label": "القسم",
+                "placeholder": "اختر القسم"
+              },
+              "employmentType": {
+                "label": "نوع التوظيف",
+                "placeholder": "اختر نوع التوظيف"
+              },
+              "workModel": {
+                "label": "نموذج العمل",
+                "placeholder": "اختر نموذج العمل"
+              },
+              "startDate": {
+                "label": "تاريخ البدء"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }

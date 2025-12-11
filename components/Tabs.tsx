@@ -38,7 +38,7 @@ export function Tabs({ tabs, defaultTab, onChange, className }: TabsProps) {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
-        const num = parseInt(e.key);
+        const num = parseInt(e.key, 10);
         if (num > 0 && num <= tabs.length) {
           const targetTab = tabs[num - 1];
           if (targetTab && !targetTab.disabled) {

@@ -568,4 +568,7 @@ async function testAllEndpoints() {
   return overallPercentage;
 }
 
-testAllEndpoints().catch(console.error);
+testAllEndpoints().catch((err) => {
+  console.error('Scope verification failed:', err);
+  process.exit(1);
+});

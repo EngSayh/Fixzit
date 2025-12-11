@@ -8,6 +8,11 @@ const fs = require('fs');
 const resolveFromRoot = (...segments) => path.resolve(__dirname, ...segments);
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
+  analyzerMode: 'static',
+  openAnalyzer: false,
+  reportFilename: 'analyze/client.html',
+  generateStatsFile: true,
+  statsFilename: 'analyze/stats.client.json',
 });
 
 // ---- Production guardrails (fail fast for unsafe flags/secrets) ----
@@ -18,8 +23,17 @@ const isVercelDeploy = process.env.VERCEL_ENV === 'production' || process.env.VE
 if (isVercelDeploy) {
   const violations = [];
   const warnings = [];
+  // Tap: Environment-aware key selection
+  const tapEnvIsLive = process.env.TAP_ENVIRONMENT === 'live' || isProdDeploy;
+  const tapPublicKey = tapEnvIsLive 
+    ? process.env.NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY 
+    : process.env.NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY;
+  const tapSecretKey = tapEnvIsLive 
+    ? process.env.TAP_LIVE_SECRET_KEY 
+    : process.env.TAP_TEST_SECRET_KEY;
   const tapConfigured =
-    Boolean(process.env.TAP_PUBLIC_KEY) &&
+    Boolean(tapPublicKey) &&
+    Boolean(tapSecretKey) &&
     Boolean(process.env.TAP_WEBHOOK_SECRET);
   const paytabsConfigured =
     Boolean(process.env.PAYTABS_PROFILE_ID) &&
@@ -146,6 +160,23 @@ const nextConfig = {
     parallelServerCompiles: false,
     // 🔧 MEMORY FIX: Reduce parallel server builds
     parallelServerBuildTraces: false,
+    modularizeImports: {
+      lodash: {
+        transform: 'lodash/{{member}}',
+      },
+      'date-fns': {
+        transform: 'date-fns/{{member}}',
+      },
+      '@mui/material': {
+        transform: '@mui/material/{{member}}',
+      },
+      '@mui/icons-material': {
+        transform: '@mui/icons-material/{{member}}',
+      },
+      'lucide-react': {
+        transform: 'lucide-react/dist/esm/icons/{{member}}',
+      },
+    },
   },
   // ⚡ FIX BUILD TIMEOUT: Add reasonable timeout for static page generation
   // Default is infinite which can cause CI to kill the process (exit 143 = SIGTERM)
