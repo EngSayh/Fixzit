@@ -41,8 +41,8 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
-  const closeTimerRef = useRef<NodeJS.Timeout>();
-  const successTimerRef = useRef<NodeJS.Timeout>();
+  const closeTimerRef = useRef<NodeJS.Timeout>(undefined);
+  const successTimerRef = useRef<NodeJS.Timeout>(undefined);
 
   // ✅ FIXED: Cleanup timers on unmount
   useEffect(() => {

@@ -47,7 +47,7 @@ export default function AccessibleModal({
 }: AccessibleModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
-  const focusTimerRef = useRef<NodeJS.Timeout>();
+  const focusTimerRef = useRef<NodeJS.Timeout>(undefined);
   
   // Focus management
   useEffect(() => {
