@@ -121,6 +121,8 @@
     "test:stable": "pnpm exec vitest run --reporter=dot --maxWorkers=1 --fileParallelism=false",
     "clean:root": "tsx scripts/janitor.ts --apply",
     "bundle:check": "webpack --config webpack.config.js --mode=production",
+    "bundle:budget": "node scripts/checkBundleBudget.mjs",
+    "bundle:budget:report": "node scripts/checkBundleBudget.mjs --report",
     "seed:marketplace": "tsx scripts/seed-marketplace.ts",
     "seed:prod-data": "tsx scripts/seed-production-data.ts",
     "seed:test": "pnpm exec tsx scripts/seed-test-users.ts",

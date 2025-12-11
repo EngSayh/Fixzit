@@ -1,0 +1,265 @@
+name: Release Gate (Staging → Production)
+
+# PROC-007: Staging→Prod Release Gate
+# Ensures staging validation before production deployment
+#
+# Flow:
+# 1. Deploys to staging environment
+# 2. Runs smoke tests against staging
+# 3. Waits for manual approval (for production)
+# 4. Deploys to production after approval
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+  workflow_dispatch:
+    inputs:
+      skip_staging:
+        description: 'Skip staging deployment (emergency only)'
+        required: false
+        default: 'false'
+        type: boolean
+      skip_smoke_tests:
+        description: 'Skip smoke tests'
+        required: false
+        default: 'false'
+        type: boolean
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  # Stage 1: Build and validate
+  build:
+    name: Build & Validate
+    runs-on: ubuntu-latest
+    outputs:
+      build_id: ${{ steps.build.outputs.build_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript check
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test:unit --run
+
+      - name: Build
+        id: build
+        run: |
+          pnpm build
+          echo "build_id=${{ github.sha }}-$(date +%s)" >> $GITHUB_OUTPUT
+
+      - name: Bundle budget check
+        run: node scripts/checkBundleBudget.mjs
+        continue-on-error: true
+
+  # Stage 2: Deploy to staging
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build
+    if: ${{ github.event.inputs.skip_staging != 'true' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.url }}
+    outputs:
+      staging_url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build for Staging
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Staging
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "✅ Deployed to staging: $DEPLOYMENT_URL"
+
+  # Stage 3: Run smoke tests against staging
+  smoke-tests:
+    name: Smoke Tests (Staging)
+    needs: deploy-staging
+    if: ${{ github.event.inputs.skip_smoke_tests != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright
+        run: pnpm playwright install --with-deps chromium
+
+      - name: Run smoke tests
+        env:
+          BASE_URL: ${{ needs.deploy-staging.outputs.staging_url }}
+          STAGING_URL: ${{ needs.deploy-staging.outputs.staging_url }}
+        run: |
+          echo "🧪 Running smoke tests against: $BASE_URL"
+          pnpm playwright test tests/e2e/smoke/ --reporter=github
+
+      - name: Health check
+        run: |
+          echo "🏥 Checking health endpoints..."
+          STAGING_URL="${{ needs.deploy-staging.outputs.staging_url }}"
+          
+          # Check liveness
+          curl -sf "$STAGING_URL/api/health/live" || {
+            echo "❌ Liveness check failed"
+            exit 1
+          }
+          echo "✅ Liveness: OK"
+          
+          # Check readiness
+          curl -sf "$STAGING_URL/api/health/ready" || {
+            echo "❌ Readiness check failed"
+            exit 1
+          }
+          echo "✅ Readiness: OK"
+
+  # Stage 4: Manual approval gate
+  approval-gate:
+    name: Production Approval
+    needs: [build, deploy-staging, smoke-tests]
+    runs-on: ubuntu-latest
+    environment:
+      name: production-approval
+    steps:
+      - name: Approval checkpoint
+        run: |
+          echo "✅ Staging deployment verified"
+          echo "📋 Build ID: ${{ needs.build.outputs.build_id }}"
+          echo "🔗 Staging URL: ${{ needs.deploy-staging.outputs.staging_url }}"
+          echo ""
+          echo "This deployment has been approved for production."
+
+  # Stage 5: Deploy to production
+  deploy-production:
+    name: Deploy to Production
+    needs: [build, deploy-staging, approval-gate]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://fixzit.app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build for Production
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Production
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "✅ Deployed to production: $DEPLOYMENT_URL"
+
+      - name: Post-deployment health check
+        run: |
+          echo "🏥 Verifying production deployment..."
+          sleep 30  # Wait for deployment to propagate
+          
+          # Check liveness
+          curl -sf "https://fixzit.app/api/health/live" || {
+            echo "❌ Production liveness check failed"
+            exit 1
+          }
+          echo "✅ Production liveness: OK"
+          
+          # Check readiness
+          curl -sf "https://fixzit.app/api/health/ready" || {
+            echo "❌ Production readiness check failed"  
+            exit 1
+          }
+          echo "✅ Production readiness: OK"
+
+      - name: Create release tag
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          TAG="release-$(date +%Y%m%d-%H%M%S)"
+          git tag -a "$TAG" -m "Production release: ${{ github.sha }}"
+          git push origin "$TAG"
+          echo "🏷️ Created release tag: $TAG"
+
+  # Notify on failure
+  notify-failure:
+    name: Notify on Failure
+    needs: [build, deploy-staging, smoke-tests, deploy-production]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send failure notification
+        run: |
+          echo "❌ Release pipeline failed!"
+          echo "Commit: ${{ github.sha }}"
+          echo "Actor: ${{ github.actor }}"
+          # Add Slack/email notification here if configured

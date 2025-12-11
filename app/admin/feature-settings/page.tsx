@@ -1,238 +1,285 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useSession } from "next-auth/react";
-import {
-  FeatureToggle,
-  FeatureToggleGroup,
-} from "@/components/ui/feature-toggle";
+import { Loader2, RefreshCw, Search, Shield } from "lucide-react";
+import { FeatureToggle, FeatureToggleGroup } from "@/components/ui/feature-toggle";
 import { FeatureToggleGroupSkeleton } from "@/components/ui/feature-toggle-skeleton";
 import { UpgradeModal } from "@/components/admin/UpgradeModal";
-import toast from "react-hot-toast";
-
-import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-/**
- * Feature flags configuration type
- */
-interface FeatureFlags {
-  // Module 2: Customer & User Lifecycle
-  referralProgram: boolean;
-  familyManagement: boolean;
-  hrModule: boolean;
-  vacationRequests: boolean;
+import toast from "react-hot-toast";
+import { logger } from "@/lib/logger";
+import type { FeatureCategory, FeatureFlag } from "@/lib/feature-flags";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
-  // Module 3: Legal & Contract Management
-  electronicContracts: boolean;
-  electronicAttorneys: boolean;
-
-  // Module 4: Financial & Accounting
-  autoPayments: boolean;
-  paymentLinks: boolean;
-  receiptVouchers: boolean;
-  ejarWallet: boolean;
-
-  // Module 5: Service & Maintenance
-  serviceRatings: boolean;
-  warrantyTracker: boolean;
-  sparePartsApproval: boolean;
-  emergencyMaintenance: boolean;
-
-  // Module 6: Marketplace & Project Bidding
-  projectBidding: boolean;
-  vendorVerification: boolean;
-  onlineStore: boolean;
-
-  // Module 7: System & Administration
-  auditLogging: boolean;
-  twoFactorAuth: boolean;
-  apiAccess: boolean;
-  dataExport: boolean;
-
-  // Cross-Platform Features
-  mobileApp: boolean;
-  pushNotifications: boolean;
-  smsNotifications: boolean;
-  whatsappNotifications: boolean;
+interface FeatureFlagResponse extends FeatureFlag {
+  enabled: boolean;
 }
 
-/**
- * Admin Feature Settings Page
- *
- * Allows Super Admin to enable/disable platform features using iOS-style toggles
- */
-export default function FeatureSettingsPage() {
-  const { data: session, status } = useSession();
-  const auto = useAutoTranslator("admin.featureSettings");
-  const [loading, setLoading] = useState(true);
-  const [loadingFeatures, setLoadingFeatures] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
-  const [lockedFeatureName, setLockedFeatureName] = useState<string>("");
+const CATEGORY_ORDER: FeatureCategory[] = [
+  "core",
+  "ui",
+  "finance",
+  "hr",
+  "aqar",
+  "fm",
+  "souq",
+  "integrations",
+  "experimental",
+];
 
-  // Initialize with null to handle loading state explicitly
-  const [features, setFeatures] = useState<FeatureFlags | null>(null);
-
-  /**
-   * Fetch feature flags from API on mount
-   */
-  useEffect(() => {
-    const fetchFeatureFlags = async () => {
-      try {
-        const response = await fetch("/api/admin/feature-flags");
-        if (!response.ok) {
-          throw new Error("Failed to fetch feature flags");
-        }
-        const data = await response.json();
-        setFeatures(data.features || data);
-        setError(null); // Clear any previous errors
-      } catch (err) {
-        logger.error(
-          "Failed to fetch feature flags",
-          err instanceof Error ? err : new Error(String(err)),
-          { route: "/admin/feature-settings" },
-        );
-        // Proper Error instance check with fallback
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : "An unknown error occurred while loading feature settings";
-        setError(errorMessage);
-        toast.error(errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFeatureFlags();
-  }, []);
-
-  /**
-   * Handle feature toggle change
-   */
-  const handleFeatureChange = async (
-    featureKey: keyof FeatureFlags,
-    enabled: boolean,
-  ) => {
-    if (!features) return; // Guard against null state
-
-    // Store previous value for rollback on error
-    const previousValue = features[featureKey];
-
-    // Optimistic update - update UI immediately
-    setFeatures((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        [featureKey]: enabled,
-      };
-    });
-
-    // Add to loading state
-    setLoadingFeatures((prev) => [...prev, featureKey]);
-
-    try {
-      // Save to backend API
-      const response = await fetch("/api/admin/feature-flags", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          key: featureKey,
-          enabled,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || `Failed to update feature: ${response.statusText}`,
-        );
-      }
-
-      // Show success toast with feature name
-      const featureName = featureKey
-        .replace(/([A-Z])/g, " $1")
-        .replace(/^./, (str) => str.toUpperCase());
-      toast.success(
-        `${featureName} ${enabled ? "enabled" : "disabled"} successfully`,
-      );
-
-      // Note: We don't overwrite all features to avoid race conditions
-      // The optimistic update is kept unless there's an error
-    } catch (err) {
-      logger.error(
-        "Failed to update feature",
-        err instanceof Error ? err : new Error(String(err)),
-        { route: "/admin/feature-settings", featureKey, enabled },
-      );
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "An unknown error occurred while updating feature";
-
-      // Rollback to previous value on error
-      setFeatures((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          [featureKey]: previousValue,
-        };
-      });
-
-      // Show error toast
-      toast.error(errorMessage);
-    } finally {
-      // Remove from loading state
-      setLoadingFeatures((prev) => prev.filter((k) => k !== featureKey));
-    }
+const CATEGORY_DETAILS: Record<FeatureCategory, { titleKey: string; descriptionKey: string; fallback: string; descriptionFallback: string }>
+  = {
+    core: {
+      titleKey: "admin.featureFlags.categories.core.title",
+      descriptionKey: "admin.featureFlags.categories.core.description",
+      fallback: "Core Platform",
+      descriptionFallback: "Authentication, localization, and notifications",
+    },
+    ui: {
+      titleKey: "admin.featureFlags.categories.ui.title",
+      descriptionKey: "admin.featureFlags.categories.ui.description",
+      fallback: "UI & Experience",
+      descriptionFallback: "Dashboards, layout options, and visual features",
+    },
+    finance: {
+      titleKey: "admin.featureFlags.categories.finance.title",
+      descriptionKey: "admin.featureFlags.categories.finance.description",
+      fallback: "Finance",
+      descriptionFallback: "Billing, invoicing, and accounting toggles",
+    },
+    hr: {
+      titleKey: "admin.featureFlags.categories.hr.title",
+      descriptionKey: "admin.featureFlags.categories.hr.description",
+      fallback: "HR & People",
+      descriptionFallback: "Employee experience and policy controls",
+    },
+    aqar: {
+      titleKey: "admin.featureFlags.categories.aqar.title",
+      descriptionKey: "admin.featureFlags.categories.aqar.description",
+      fallback: "Property",
+      descriptionFallback: "Aqar and property management surface area",
+    },
+    fm: {
+      titleKey: "admin.featureFlags.categories.fm.title",
+      descriptionKey: "admin.featureFlags.categories.fm.description",
+      fallback: "FM",
+      descriptionFallback: "Facility management flows and automations",
+    },
+    souq: {
+      titleKey: "admin.featureFlags.categories.souq.title",
+      descriptionKey: "admin.featureFlags.categories.souq.description",
+      fallback: "Souq",
+      descriptionFallback: "Marketplace and commerce capabilities",
+    },
+    integrations: {
+      titleKey: "admin.featureFlags.categories.integrations.title",
+      descriptionKey: "admin.featureFlags.categories.integrations.description",
+      fallback: "Integrations",
+      descriptionFallback: "External systems and API bridges",
+    },
+    experimental: {
+      titleKey: "admin.featureFlags.categories.experimental.title",
+      descriptionKey: "admin.featureFlags.categories.experimental.description",
+      fallback: "Experimental",
+      descriptionFallback: "Beta features and staged rollouts",
+    },
   };
 
-  /**
-   * Handle locked feature click (upgrade required)
-   * Opens modal instead of alert for better UX
-   */
+export default function FeatureSettingsPage() {
+  const auto = useAutoTranslator("admin.featureSettings");
+  const { data: session, status } = useSession();
+
+  const [flags, setFlags] = useState<FeatureFlagResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingFlags, setLoadingFlags] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [lockedFeatureName, setLockedFeatureName] = useState("");
+  const [search, setSearch] = useState("");
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
+  const hasAccess = session?.user?.role === "SUPER_ADMIN";
+
+  const refreshFlags = useCallback(async () => {
+    if (!hasAccess) return;
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/feature-flags", {
+        cache: "no-store",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        const message = data?.error || auto("Failed to load feature flags", "errors.load");
+        throw new Error(message);
+      }
+
+      if (!data || !Array.isArray(data.flags)) {
+        throw new Error(auto("Invalid feature flag payload", "errors.invalidPayload"));
+      }
+
+      setFlags(data.flags);
+      setLastUpdated(data.evaluatedAt ?? new Date().toISOString());
+      setError(null);
+    } catch (err) {
+      logger.error("[FeatureFlags] load failed", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : auto("Unable to load feature flags", "errors.load");
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [auto, hasAccess]);
+
+  useEffect(() => {
+    if (status === "authenticated" && hasAccess) {
+      void refreshFlags();
+    }
+  }, [status, hasAccess, refreshFlags]);
+
+  const filteredFlags = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return flags;
+    return flags.filter((flag) => {
+      return (
+        flag.id.toLowerCase().includes(term) ||
+        flag.name.toLowerCase().includes(term) ||
+        flag.description.toLowerCase().includes(term)
+      );
+    });
+  }, [flags, search]);
+
+  const groupedFlags = useMemo(() => {
+    const base: Record<FeatureCategory, FeatureFlagResponse[]> = CATEGORY_ORDER.reduce(
+      (acc, category) => {
+        acc[category] = [];
+        return acc;
+      },
+      {} as Record<FeatureCategory, FeatureFlagResponse[]>,
+    );
+    filteredFlags.forEach((flag) => {
+      base[flag.category]?.push(flag);
+    });
+    return base;
+  }, [filteredFlags]);
+
+  const summary = useMemo(() => {
+    const enabled = flags.filter((flag) => flag.enabled).length;
+    const rollout = flags.filter((flag) => flag.rolloutPercentage !== undefined).length;
+    const restricted = flags.filter((flag) => (flag.allowedOrgs?.length ?? 0) > 0).length;
+    return { total: flags.length, enabled, rollout, restricted };
+  }, [flags]);
+
   const handleLockedFeatureClick = (featureName: string) => {
     setLockedFeatureName(featureName);
     setUpgradeModalOpen(true);
   };
 
-  // Check authentication and authorization
+  const handleFeatureChange = useCallback(
+    async (flagId: string, enabled: boolean) => {
+      const previousValue = flags.find((flag) => flag.id === flagId)?.enabled ?? false;
+
+      // Optimistic update
+      setFlags((prev) =>
+        prev.map((flag) => (flag.id === flagId ? { ...flag, enabled } : flag)),
+      );
+      setLoadingFlags((prev) => [...prev, flagId]);
+
+      try {
+        const response = await fetch("/api/admin/feature-flags", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: flagId, enabled }),
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          const message = data?.error || response.statusText;
+          throw new Error(message);
+        }
+
+        const updated = data?.flag as FeatureFlagResponse | undefined;
+        if (updated) {
+          setFlags((prev) =>
+            prev.map((flag) => (flag.id === flagId ? { ...flag, ...updated } : flag)),
+          );
+        }
+
+        if (Array.isArray(data?.unmetDependencies) && data.unmetDependencies.length > 0) {
+          toast(
+            auto(
+              "Dependencies are disabled: {{deps}}",
+              "featureFlags.dependenciesWarning",
+              {
+                deps: data.unmetDependencies.join(", "),
+              },
+            ),
+            { icon: "⚠️" },
+          );
+        }
+
+        toast.success(
+          auto(
+            "Updated {{flag}}",
+            "featureFlags.updated",
+            { flag: updated?.name ?? flagId },
+          ),
+        );
+      } catch (err) {
+        logger.error("[FeatureFlags] update failed", err);
+        setFlags((prev) =>
+          prev.map((flag) =>
+            flag.id === flagId ? { ...flag, enabled: previousValue } : flag,
+          ),
+        );
+        const message =
+          err instanceof Error
+            ? err.message
+            : auto("Failed to update feature", "featureFlags.updateFailed");
+        toast.error(message);
+      } finally {
+        setLoadingFlags((prev) => prev.filter((id) => id !== flagId));
+      }
+    },
+    [auto, flags],
+  );
+
   if (status === "loading") {
     return (
       <div className="max-w-4xl mx-auto p-6 space-y-8">
         <div>
-          <div className="h-8 bg-muted dark:bg-gray-700 rounded w-1/3 mb-2 animate-pulse"></div>
-          <div className="h-4 bg-muted dark:bg-gray-700 rounded w-2/3 animate-pulse"></div>
+          <div className="h-8 bg-muted rounded w-1/3 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-muted rounded w-2/3 animate-pulse"></div>
         </div>
+        <FeatureToggleGroupSkeleton />
         <FeatureToggleGroupSkeleton />
       </div>
     );
   }
 
-  // Check if user is authenticated
   if (status === "unauthenticated" || !session) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-warning/10 dark:bg-warning/10 border border-warning/20 dark:border-warning/30 rounded-2xl p-6">
-          <div className="flex items-start">
-            <svg
-              className="w-6 h-6 text-warning dark:text-warning mt-0.5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <div className="ms-3">
-              <h3 className="text-lg font-medium text-warning-foreground dark:text-warning-foreground">
+        <div className="bg-warning/10 border border-warning/20 rounded-2xl p-6">
+          <div className="flex items-start gap-3">
+            <Shield className="w-6 h-6 text-warning mt-0.5" />
+            <div>
+              <h3 className="text-lg font-medium text-warning-foreground">
                 {auto("Authentication Required", "authRequired.title")}
               </h3>
-              <p className="mt-2 text-sm text-warning dark:text-warning">
+              <p className="mt-2 text-sm text-warning">
                 {auto(
                   "You must be logged in to access Feature Settings.",
                   "authRequired.description",
@@ -251,36 +298,24 @@ export default function FeatureSettingsPage() {
     );
   }
 
-  // Check if user is Super Admin
-  if (session.user?.role !== "SUPER_ADMIN") {
+  if (!hasAccess) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-destructive/10 dark:bg-destructive/10 border border-destructive/20 dark:border-destructive/30 rounded-2xl p-6">
-          <div className="flex items-start">
-            <svg
-              className="w-6 h-6 text-destructive dark:text-destructive mt-0.5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <div className="ms-3">
-              <h3 className="text-lg font-medium text-destructive-foreground dark:text-destructive-foreground">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-6">
+          <div className="flex items-start gap-3">
+            <Shield className="w-6 h-6 text-destructive mt-0.5" />
+            <div>
+              <h3 className="text-lg font-medium text-destructive-foreground">
                 {auto("Access Denied", "accessDenied.title")}
               </h3>
-              <p className="mt-2 text-sm text-destructive dark:text-destructive">
+              <p className="mt-2 text-sm text-destructive">
                 {auto(
                   "You do not have permission to access Feature Settings. This page is restricted to Super Admin users only.",
                   "accessDenied.description",
                 )}
               </p>
-              <p className="mt-2 text-sm text-destructive dark:text-destructive">
-                {auto("Your role", "accessDenied.roleLabel")}:{" "}
-                <strong>{session.user?.role || "Unknown"}</strong>
+              <p className="mt-2 text-sm text-destructive">
+                {auto("Your role", "accessDenied.roleLabel")}: {session.user?.role}
               </p>
               <a
                 href="/dashboard"
@@ -295,49 +330,65 @@ export default function FeatureSettingsPage() {
     );
   }
 
-  // Show skeleton loaders during initial load
-  if (loading || !features) {
-    return (
-      <div className="max-w-4xl mx-auto p-6 space-y-8">
-        <div>
-          <div className="h-8 bg-muted dark:bg-gray-700 rounded w-1/3 mb-2 animate-pulse"></div>
-          <div className="h-4 bg-muted dark:bg-gray-700 rounded w-2/3 animate-pulse"></div>
-        </div>
-        <FeatureToggleGroupSkeleton />
-        <FeatureToggleGroupSkeleton />
-        <FeatureToggleGroupSkeleton />
-        <FeatureToggleGroupSkeleton />
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      {/* Error Display */}
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold text-foreground">
+            {auto("Feature Flags", "admin.features.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Toggle platform capabilities and guardrails across modules.",
+              "admin.featureFlags.subtitle",
+            )}
+          </p>
+          {lastUpdated && (
+            <p className="text-xs text-muted-foreground">
+              {auto(
+                "Evaluated at {{time}}",
+                "admin.featureFlags.lastUpdated",
+                {
+                  time: new Date(lastUpdated).toLocaleString(),
+                },
+              )}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+            <Input
+              className="pl-10 w-64"
+              placeholder={auto("Search by name or key", "admin.featureFlags.search")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => refreshFlags()}
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {auto("Refresh", "admin.featureFlags.refresh")}
+          </Button>
+        </div>
+      </div>
+
       {error && (
-        <div className="bg-destructive/10 dark:bg-destructive/10 border border-destructive/20 dark:border-destructive/30 rounded-2xl p-4">
-          <div className="flex items-start">
-            <svg
-              className="w-5 h-5 text-destructive dark:text-destructive mt-0.5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <div className="ms-3 flex-1">
-              <h3 className="text-sm font-medium text-destructive-foreground dark:text-destructive-foreground">
-                {auto("Error Loading Feature Settings", "errors.loadTitle")}
-              </h3>
-              <p className="mt-1 text-sm text-destructive dark:text-destructive">
-                {error}
+        <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-4 text-destructive-foreground">
+          <div className="flex items-start gap-2">
+            <Shield className="h-5 w-5 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold">
+                {auto("Error loading feature flags", "featureFlags.error")}
               </p>
+              <p className="text-sm">{error}</p>
               <button
-                onClick={() => window.location.reload()}
-                className="mt-3 text-sm font-medium text-destructive dark:text-destructive hover:text-destructive dark:hover:text-destructive"
+                onClick={() => refreshFlags()}
+                className="text-sm font-medium underline"
               >
                 {auto("Retry", "errors.retry")}
               </button>
@@ -346,473 +397,144 @@ export default function FeatureSettingsPage() {
         </div>
       )}
 
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground dark:text-white">
-          {auto("Feature Settings", "header.title")}
-        </h1>
-        <p className="mt-2 text-muted-foreground dark:text-muted-foreground">
-          {auto(
-            "Enable or disable platform features. Changes take effect immediately.",
-            "header.subtitle",
-          )}
-        </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">
+              {auto("Total Flags", "featureFlags.summary.total")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl font-bold">{summary.total}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">
+              {auto("Enabled", "featureFlags.summary.enabled")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl font-bold text-success">
+            {summary.enabled}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">
+              {auto("Rollout", "featureFlags.summary.rollout")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl font-bold">
+            {summary.rollout}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">
+              {auto("Org Scoped", "featureFlags.summary.restricted")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl font-bold">
+            {summary.restricted}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Customer & User Lifecycle */}
-      <FeatureToggleGroup
-        title={auto("Customer & User Management", "groups.customer.title")}
-        description={auto(
-          "Features related to customer lifecycle, family management, and HR",
-          "groups.customer.description",
-        )}
-      >
-        <FeatureToggle
-          id="referral-program"
-          label={auto("Referral Program", "features.referralProgram.label")}
-          description={auto(
-            "Allow users to refer others and earn rewards",
-            "features.referralProgram.description",
-          )}
-          enabled={features.referralProgram}
-          onChange={(enabled) =>
-            handleFeatureChange("referralProgram", enabled)
-          }
-          loading={loadingFeatures.includes("referralProgram")}
-          badge={auto("New", "badges.new")}
-        />
+      {loading ? (
+        <>
+          <FeatureToggleGroupSkeleton />
+          <FeatureToggleGroupSkeleton />
+        </>
+      ) : (
+        CATEGORY_ORDER.map((category) => {
+          const flagsForCategory = groupedFlags[category];
+          if (!flagsForCategory || flagsForCategory.length === 0) return null;
+          const copy = CATEGORY_DETAILS[category];
 
-        <FeatureToggle
-          id="family-management"
-          label={auto("Family Management", "features.familyManagement.label")}
-          description={auto(
-            "Enable family member invitations and shared access",
-            "features.familyManagement.description",
-          )}
-          enabled={features.familyManagement}
-          onChange={(enabled) =>
-            handleFeatureChange("familyManagement", enabled)
-          }
-          loading={loadingFeatures.includes("familyManagement")}
-          badge={auto("Beta", "badges.beta")}
-        />
+          return (
+            <FeatureToggleGroup
+              key={category}
+              title={auto(copy.titleKey, copy.fallback)}
+              description={auto(copy.descriptionKey, copy.descriptionFallback)}
+            >
+              {flagsForCategory.map((flag) => {
+                const rolloutBadge =
+                  flag.rolloutPercentage !== undefined
+                    ? auto(
+                        "{{percent}}% rollout",
+                        "featureFlags.badges.rollout",
+                        { percent: flag.rolloutPercentage },
+                      )
+                    : undefined;
 
-        <FeatureToggle
-          id="hr-module"
-          label={auto("HR Module", "features.hrModule.label")}
-          description={auto(
-            "Employee management and vacation tracking",
-            "features.hrModule.description",
-          )}
-          enabled={features.hrModule}
-          onChange={(enabled) => handleFeatureChange("hrModule", enabled)}
-          loading={loadingFeatures.includes("hrModule")}
-        />
+                const orgRestricted =
+                  (flag.allowedOrgs?.length ?? 0) > 0 &&
+                  (!session.user?.orgId ||
+                    !flag.allowedOrgs?.includes(session.user.orgId));
 
-        <FeatureToggle
-          id="vacation-requests"
-          label={auto("Vacation Requests", "features.vacationRequests.label")}
-          description={auto(
-            "Allow employees to submit vacation requests",
-            "features.vacationRequests.description",
-          )}
-          enabled={features.vacationRequests}
-          onChange={(enabled) =>
-            handleFeatureChange("vacationRequests", enabled)
-          }
-          loading={loadingFeatures.includes("vacationRequests")}
-        />
-      </FeatureToggleGroup>
+                const locked = orgRestricted;
 
-      {/* Legal & Contract Management */}
-      <FeatureToggleGroup
-        title={auto("Legal & Contracts", "groups.legal.title")}
-        description={auto(
-          "Contract management and legal document features",
-          "groups.legal.description",
-        )}
-      >
-        <FeatureToggle
-          id="electronic-contracts"
-          label={auto(
-            "Electronic Contracts",
-            "features.electronicContracts.label",
-          )}
-          description={auto(
-            "Enable digital contract signing via Ejar",
-            "features.electronicContracts.description",
-          )}
-          enabled={features.electronicContracts}
-          onChange={(enabled) =>
-            handleFeatureChange("electronicContracts", enabled)
-          }
-          loading={loadingFeatures.includes("electronicContracts")}
-        />
+                const chips: string[] = [];
+                if (flag.defaultEnabled) {
+                  chips.push(auto("Default on", "featureFlags.badges.defaultOn"));
+                }
+                if (flag.environmentOverrides?.production === false) {
+                  chips.push(auto("Production off", "featureFlags.badges.prodOff"));
+                }
+                if (flag.environmentOverrides?.staging === true) {
+                  chips.push(auto("Staging on", "featureFlags.badges.stagingOn"));
+                }
+                if (flag.environmentOverrides?.development === true) {
+                  chips.push(auto("Dev enabled", "featureFlags.badges.devOn"));
+                }
+                if (orgRestricted) {
+                  chips.push(auto("Org restricted", "featureFlags.badges.orgRestricted"));
+                }
 
-        <FeatureToggle
-          id="electronic-attorneys"
-          label={auto(
-            "Electronic Attorneys",
-            "features.electronicAttorneys.label",
-          )}
-          description={auto(
-            "Power of Attorney management system",
-            "features.electronicAttorneys.description",
-          )}
-          enabled={features.electronicAttorneys}
-          onChange={(enabled) =>
-            handleFeatureChange("electronicAttorneys", enabled)
-          }
-          loading={loadingFeatures.includes("electronicAttorneys")}
-          badge={auto("Coming Soon", "badges.comingSoon")}
-        />
-      </FeatureToggleGroup>
+                return (
+                  <div key={flag.id} className="px-2 py-1">
+                    <FeatureToggle
+                      id={flag.id}
+                      label={flag.name}
+                      description={flag.description}
+                      enabled={flag.enabled}
+                      onChange={(next) => handleFeatureChange(flag.id, next)}
+                      loading={loadingFlags.includes(flag.id)}
+                      badge={rolloutBadge}
+                      locked={locked}
+                      onLockedClick={() => handleLockedFeatureClick(flag.name)}
+                    />
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground ms-4">
+                      {chips.map((chip) => (
+                        <Badge key={`${flag.id}-${chip}`} variant="outline">
+                          {chip}
+                        </Badge>
+                      ))}
+                      {flag.dependencies?.length ? (
+                        <span>
+                          {auto(
+                            "Depends on: {{deps}}",
+                            "featureFlags.meta.dependencies",
+                            { deps: flag.dependencies.join(", ") },
+                          )}
+                        </span>
+                      ) : null}
+                      {flag.allowedOrgs?.length ? (
+                        <span>
+                          {auto(
+                            "Allowed orgs: {{count}}",
+                            "featureFlags.meta.allowedOrgs",
+                            { count: flag.allowedOrgs.length },
+                          )}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </FeatureToggleGroup>
+          );
+        })
+      )}
 
-      {/* Financial & Accounting */}
-      <FeatureToggleGroup
-        title={auto("Financial & Accounting", "groups.finance.title")}
-        description={auto(
-          "Payment processing, invoicing, and financial features",
-          "groups.finance.description",
-        )}
-      >
-        <FeatureToggle
-          id="auto-payments"
-          label={auto("Auto Payments", "features.autoPayments.label")}
-          description={auto(
-            "Automatic payment processing via Stripe/Tap",
-            "features.autoPayments.description",
-          )}
-          enabled={features.autoPayments}
-          onChange={(enabled) => handleFeatureChange("autoPayments", enabled)}
-          loading={loadingFeatures.includes("autoPayments")}
-        />
-
-        <FeatureToggle
-          id="payment-links"
-          label={auto("Payment Links", "features.paymentLinks.label")}
-          description={auto(
-            "Generate payment links for tenants",
-            "features.paymentLinks.description",
-          )}
-          enabled={features.paymentLinks}
-          onChange={(enabled) => handleFeatureChange("paymentLinks", enabled)}
-          loading={loadingFeatures.includes("paymentLinks")}
-        />
-
-        <FeatureToggle
-          id="receipt-vouchers"
-          label={auto(
-            "Receipt Vouchers with QR",
-            "features.receiptVouchers.label",
-          )}
-          description={auto(
-            "Generate receipt vouchers with QR codes",
-            "features.receiptVouchers.description",
-          )}
-          enabled={features.receiptVouchers}
-          onChange={(enabled) =>
-            handleFeatureChange("receiptVouchers", enabled)
-          }
-          loading={loadingFeatures.includes("receiptVouchers")}
-          badge={auto("New", "badges.new")}
-        />
-
-        <FeatureToggle
-          id="ejar-wallet"
-          label={auto("Ejar Wallet Integration", "features.ejarWallet.label")}
-          description={auto(
-            "Connect with Ejar digital wallet",
-            "features.ejarWallet.description",
-          )}
-          enabled={features.ejarWallet}
-          onChange={(enabled) => handleFeatureChange("ejarWallet", enabled)}
-          loading={loadingFeatures.includes("ejarWallet")}
-          locked={true}
-          onLockedClick={() =>
-            handleLockedFeatureClick(
-              auto("Ejar Wallet Integration", "features.ejarWallet.label"),
-            )
-          }
-        />
-      </FeatureToggleGroup>
-
-      {/* Service & Maintenance */}
-      <FeatureToggleGroup
-        title={auto("Service & Maintenance", "groups.service.title")}
-        description={auto(
-          "Maintenance request management and service provider features",
-          "groups.service.description",
-        )}
-      >
-        <FeatureToggle
-          id="service-ratings"
-          label={auto("Service Ratings", "features.serviceRatings.label")}
-          description={auto(
-            "Allow customers to rate service providers",
-            "features.serviceRatings.description",
-          )}
-          enabled={features.serviceRatings}
-          onChange={(enabled) => handleFeatureChange("serviceRatings", enabled)}
-          loading={loadingFeatures.includes("serviceRatings")}
-        />
-
-        <FeatureToggle
-          id="warranty-tracker"
-          label={auto("Warranty Tracker", "features.warrantyTracker.label")}
-          description={auto(
-            "Track appliance and equipment warranties",
-            "features.warrantyTracker.description",
-          )}
-          enabled={features.warrantyTracker}
-          onChange={(enabled) =>
-            handleFeatureChange("warrantyTracker", enabled)
-          }
-          loading={loadingFeatures.includes("warrantyTracker")}
-          badge={auto("Beta", "badges.beta")}
-        />
-
-        <FeatureToggle
-          id="spare-parts-approval"
-          label={auto(
-            "Spare Parts Approval",
-            "features.sparePartsApproval.label",
-          )}
-          description={auto(
-            "Require tenant approval for spare parts purchases",
-            "features.sparePartsApproval.description",
-          )}
-          enabled={features.sparePartsApproval}
-          onChange={(enabled) =>
-            handleFeatureChange("sparePartsApproval", enabled)
-          }
-          loading={loadingFeatures.includes("sparePartsApproval")}
-        />
-
-        <FeatureToggle
-          id="emergency-maintenance"
-          label={auto(
-            "Emergency Maintenance",
-            "features.emergencyMaintenance.label",
-          )}
-          description={auto(
-            "24/7 emergency maintenance requests",
-            "features.emergencyMaintenance.description",
-          )}
-          enabled={features.emergencyMaintenance}
-          onChange={(enabled) =>
-            handleFeatureChange("emergencyMaintenance", enabled)
-          }
-          loading={loadingFeatures.includes("emergencyMaintenance")}
-        />
-      </FeatureToggleGroup>
-
-      {/* Marketplace & Project Bidding */}
-      <FeatureToggleGroup
-        title={auto("Marketplace & Projects", "groups.marketplace.title")}
-        description={auto(
-          "Project bidding, vendor management, and e-commerce",
-          "groups.marketplace.description",
-        )}
-      >
-        <FeatureToggle
-          id="project-bidding"
-          label={auto(
-            "Project Bidding System",
-            "features.projectBidding.label",
-          )}
-          description={auto(
-            "Allow contractors to bid on projects",
-            "features.projectBidding.description",
-          )}
-          enabled={features.projectBidding}
-          onChange={(enabled) => handleFeatureChange("projectBidding", enabled)}
-          loading={loadingFeatures.includes("projectBidding")}
-          badge={auto("New", "badges.new")}
-        />
-
-        <FeatureToggle
-          id="vendor-verification"
-          label={auto(
-            "Vendor Verification",
-            "features.vendorVerification.label",
-          )}
-          description={auto(
-            "Background checks and document verification for vendors",
-            "features.vendorVerification.description",
-          )}
-          enabled={features.vendorVerification}
-          onChange={(enabled) =>
-            handleFeatureChange("vendorVerification", enabled)
-          }
-          loading={loadingFeatures.includes("vendorVerification")}
-        />
-
-        <FeatureToggle
-          id="online-store"
-          label={auto("Online Store (Souq)", "features.onlineStore.label")}
-          description={auto(
-            "Public e-commerce store for products and services",
-            "features.onlineStore.description",
-          )}
-          enabled={features.onlineStore}
-          onChange={(enabled) => handleFeatureChange("onlineStore", enabled)}
-          loading={loadingFeatures.includes("onlineStore")}
-        />
-      </FeatureToggleGroup>
-
-      {/* System & Administration */}
-      <FeatureToggleGroup
-        title={auto("System & Security", "groups.system.title")}
-        description={auto(
-          "Administrative and security features",
-          "groups.system.description",
-        )}
-      >
-        <FeatureToggle
-          id="audit-logging"
-          label={auto("Audit Logging", "features.auditLogging.label")}
-          description={auto(
-            "Track all database changes and user actions",
-            "features.auditLogging.description",
-          )}
-          enabled={features.auditLogging}
-          onChange={(enabled) => handleFeatureChange("auditLogging", enabled)}
-          loading={loadingFeatures.includes("auditLogging")}
-          danger={!features.auditLogging}
-        />
-
-        <FeatureToggle
-          id="two-factor-auth"
-          label={auto(
-            "Two-Factor Authentication",
-            "features.twoFactorAuth.label",
-          )}
-          description={auto(
-            "Require 2FA for admin accounts",
-            "features.twoFactorAuth.description",
-          )}
-          enabled={features.twoFactorAuth}
-          onChange={(enabled) => handleFeatureChange("twoFactorAuth", enabled)}
-          loading={loadingFeatures.includes("twoFactorAuth")}
-          badge={auto("Recommended", "badges.recommended")}
-        />
-
-        <FeatureToggle
-          id="api-access"
-          label={auto("API Access", "features.apiAccess.label")}
-          description={auto(
-            "Enable third-party API integrations",
-            "features.apiAccess.description",
-          )}
-          enabled={features.apiAccess}
-          onChange={(enabled) => handleFeatureChange("apiAccess", enabled)}
-          loading={loadingFeatures.includes("apiAccess")}
-          locked={true}
-          onLockedClick={() =>
-            handleLockedFeatureClick(
-              auto("API Access", "features.apiAccess.label"),
-            )
-          }
-        />
-
-        <FeatureToggle
-          id="data-export"
-          label={auto("Data Export", "features.dataExport.label")}
-          description={auto(
-            "Allow users to export their data",
-            "features.dataExport.description",
-          )}
-          enabled={features.dataExport}
-          onChange={(enabled) => handleFeatureChange("dataExport", enabled)}
-          loading={loadingFeatures.includes("dataExport")}
-        />
-      </FeatureToggleGroup>
-
-      {/* Cross-Platform Features */}
-      <FeatureToggleGroup
-        title={auto("Cross-Platform Features", "groups.crossPlatform.title")}
-        description={auto(
-          "Mobile app and notification settings",
-          "groups.crossPlatform.description",
-        )}
-      >
-        <FeatureToggle
-          id="mobile-app"
-          label={auto("Mobile App Access", "features.mobileApp.label")}
-          description={auto(
-            "Enable iOS and Android mobile applications",
-            "features.mobileApp.description",
-          )}
-          enabled={features.mobileApp}
-          onChange={(enabled) => handleFeatureChange("mobileApp", enabled)}
-          loading={loadingFeatures.includes("mobileApp")}
-          badge={auto("Coming Soon", "badges.comingSoon")}
-        />
-
-        <FeatureToggle
-          id="push-notifications"
-          label={auto("Push Notifications", "features.pushNotifications.label")}
-          description={auto(
-            "Send push notifications to mobile devices",
-            "features.pushNotifications.description",
-          )}
-          enabled={features.pushNotifications}
-          onChange={(enabled) =>
-            handleFeatureChange("pushNotifications", enabled)
-          }
-          loading={loadingFeatures.includes("pushNotifications")}
-        />
-
-        <FeatureToggle
-          id="sms-notifications"
-          label={auto("SMS Notifications", "features.smsNotifications.label")}
-          description={auto(
-            "Send SMS notifications via Taqnyat",
-            "features.smsNotifications.description",
-          )}
-          enabled={features.smsNotifications}
-          onChange={(enabled) =>
-            handleFeatureChange("smsNotifications", enabled)
-          }
-          loading={loadingFeatures.includes("smsNotifications")}
-        />
-
-        <FeatureToggle
-          id="whatsapp-notifications"
-          label={auto(
-            "WhatsApp Notifications",
-            "features.whatsappNotifications.label",
-          )}
-          description={auto(
-            "Send notifications via WhatsApp Business API",
-            "features.whatsappNotifications.description",
-          )}
-          enabled={features.whatsappNotifications}
-          onChange={(enabled) =>
-            handleFeatureChange("whatsappNotifications", enabled)
-          }
-          loading={loadingFeatures.includes("whatsappNotifications")}
-          locked={true}
-          onLockedClick={() =>
-            handleLockedFeatureClick(
-              auto(
-                "WhatsApp Notifications",
-                "features.whatsappNotifications.label",
-              ),
-            )
-          }
-        />
-      </FeatureToggleGroup>
-
-      {/* Save Button (optional, changes are auto-saved) */}
-      <div className="flex justify-end pt-6 border-t border-border dark:border-gray-700">
-        <p className="text-sm text-muted-foreground dark:text-muted-foreground">
-          {auto("Changes are saved automatically", "footer.autoSaved")}
-        </p>
-      </div>
-
-      {/* Upgrade Modal */}
       <UpgradeModal
         isOpen={upgradeModalOpen}
         onClose={() => setUpgradeModalOpen(false)}

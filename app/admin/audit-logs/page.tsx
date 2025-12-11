@@ -22,7 +22,7 @@ const API_ENDPOINT = "/api/admin/audit-logs";
 
 interface AuditLog {
   id: string;
-  timestamp: Date;
+  timestamp: string | Date;
   action: string;
   entityType: string;
   entityId?: string;
@@ -31,16 +31,16 @@ interface AuditLog {
   userName: string;
   userEmail: string;
   userRole: string;
-  context: {
-    method: string;
-    endpoint: string;
-    ipAddress: string;
-    browser: string;
-    os: string;
-    device: string;
+  context?: {
+    method?: string;
+    endpoint?: string;
+    ipAddress?: string;
+    browser?: string;
+    os?: string;
+    device?: string;
   };
-  result: {
-    success: boolean;
+  result?: {
+    success?: boolean;
     errorCode?: string;
     duration?: number;
   };
@@ -157,9 +157,20 @@ export default function AuditLogViewer() {
         );
       }
 
-      setLogs(data.logs || []);
-      setTotalLogs(data.total || 0);
-      setTotalPages(Math.ceil((data.total || 0) / LOGS_PER_PAGE));
+      const logs = Array.isArray(data.logs) ? data.logs : [];
+      const total = typeof data.total === "number" ? data.total : logs.length;
+      const pages =
+        typeof data.pages === "number"
+          ? data.pages
+          : Math.max(1, Math.ceil(total / LOGS_PER_PAGE));
+
+      setLogs(logs);
+      setTotalLogs(total);
+      setTotalPages(pages);
+
+      if (page > pages) {
+        setPage(pages);
+      }
     } catch (err) {
       logger.error(
         "Failed to fetch audit logs",
@@ -333,14 +344,15 @@ export default function AuditLogViewer() {
             </label>
             <select
               className="w-full rounded-2xl border-border bg-background text-foreground"
-              value={filters.action || ""}
-              onChange={(e) =>
-                setFilters({ ...filters, action: e.target.value || undefined })
-              }
-            >
-              <option value="">
-                {auto("All Actions", "filters.actions.all")}
-              </option>
+            value={filters.action || ""}
+            onChange={(e) => {
+              setFilters({ ...filters, action: e.target.value || undefined });
+              setPage(1);
+            }}
+          >
+            <option value="">
+              {auto("All Actions", "filters.actions.all")}
+            </option>
               <option value="CREATE">
                 {auto("Create", "filters.actions.create")}
               </option>
@@ -359,6 +371,48 @@ export default function AuditLogViewer() {
               <option value="LOGOUT">
                 {auto("Logout", "filters.actions.logout")}
               </option>
+              <option value="EXPORT">
+                {auto("Export", "filters.actions.export")}
+              </option>
+              <option value="IMPORT">
+                {auto("Import", "filters.actions.import")}
+              </option>
+              <option value="APPROVE">
+                {auto("Approve", "filters.actions.approve")}
+              </option>
+              <option value="REJECT">
+                {auto("Reject", "filters.actions.reject")}
+              </option>
+              <option value="SEND">
+                {auto("Send", "filters.actions.send")}
+              </option>
+              <option value="RECEIVE">
+                {auto("Receive", "filters.actions.receive")}
+              </option>
+              <option value="UPLOAD">
+                {auto("Upload", "filters.actions.upload")}
+              </option>
+              <option value="DOWNLOAD">
+                {auto("Download", "filters.actions.download")}
+              </option>
+              <option value="SHARE">
+                {auto("Share", "filters.actions.share")}
+              </option>
+              <option value="ARCHIVE">
+                {auto("Archive", "filters.actions.archive")}
+              </option>
+              <option value="RESTORE">
+                {auto("Restore", "filters.actions.restore")}
+              </option>
+              <option value="ACTIVATE">
+                {auto("Activate", "filters.actions.activate")}
+              </option>
+              <option value="DEACTIVATE">
+                {auto("Deactivate", "filters.actions.deactivate")}
+              </option>
+              <option value="CUSTOM">
+                {auto("Custom", "filters.actions.custom")}
+              </option>
             </select>
           </div>
 
@@ -368,13 +422,14 @@ export default function AuditLogViewer() {
             </label>
             <select
               className="w-full rounded-2xl border-border bg-background text-foreground"
-              value={filters.entityType || ""}
-              onChange={(e) =>
-                setFilters({
-                  ...filters,
-                  entityType: e.target.value || undefined,
-                })
-              }
+            value={filters.entityType || ""}
+            onChange={(e) => {
+              setFilters({
+                ...filters,
+                entityType: e.target.value || undefined,
+              });
+              setPage(1);
+            }}
             >
               <option value="">
                 {auto("All Types", "filters.entityTypes.all")}
@@ -388,14 +443,44 @@ export default function AuditLogViewer() {
               <option value="TENANT">
                 {auto("Tenant", "filters.entityTypes.tenant")}
               </option>
+              <option value="OWNER">
+                {auto("Owner", "filters.entityTypes.owner")}
+              </option>
               <option value="CONTRACT">
                 {auto("Contract", "filters.entityTypes.contract")}
               </option>
               <option value="PAYMENT">
                 {auto("Payment", "filters.entityTypes.payment")}
               </option>
+              <option value="INVOICE">
+                {auto("Invoice", "filters.entityTypes.invoice")}
+              </option>
               <option value="WORKORDER">
                 {auto("Work Order", "filters.entityTypes.workOrder")}
+              </option>
+              <option value="TICKET">
+                {auto("Ticket", "filters.entityTypes.ticket")}
+              </option>
+              <option value="PROJECT">
+                {auto("Project", "filters.entityTypes.project")}
+              </option>
+              <option value="BID">
+                {auto("Bid", "filters.entityTypes.bid")}
+              </option>
+              <option value="VENDOR">
+                {auto("Vendor", "filters.entityTypes.vendor")}
+              </option>
+              <option value="SERVICE_PROVIDER">
+                {auto("Service Provider", "filters.entityTypes.serviceProvider")}
+              </option>
+              <option value="DOCUMENT">
+                {auto("Document", "filters.entityTypes.document")}
+              </option>
+              <option value="SETTING">
+                {auto("Setting", "filters.entityTypes.setting")}
+              </option>
+              <option value="OTHER">
+                {auto("Other", "filters.entityTypes.other")}
               </option>
             </select>
           </div>
@@ -426,6 +511,7 @@ export default function AuditLogViewer() {
                   ? new Date(e.target.value + "T00:00:00")
                   : undefined;
                 setFilters({ ...filters, startDate: value });
+                setPage(1);
               }}
             />
           </div>
@@ -456,6 +542,7 @@ export default function AuditLogViewer() {
                   ? new Date(e.target.value + "T23:59:59")
                   : undefined;
                 setFilters({ ...filters, endDate: value });
+                setPage(1);
               }}
             />
           </div>
@@ -463,7 +550,10 @@ export default function AuditLogViewer() {
 
         <div className="mt-4 flex justify-end">
           <button
-            onClick={() => setFilters({})}
+            onClick={() => {
+              setFilters({});
+              setPage(1);
+            }}
             className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-2xl"
           >
             {auto("Clear Filters", "filters.clear")}
@@ -547,10 +637,10 @@ export default function AuditLogViewer() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                      {log.context.ipAddress}
+                      {log.context?.ipAddress ?? "—"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {log.result.success ? (
+                      {log.result?.success ? (
                         <span className="text-success">
                           ✓ {auto("Success", "table.status.success")}
                         </span>
@@ -744,37 +834,37 @@ export default function AuditLogViewer() {
                       <span className="font-medium">
                         {auto("Method", "modal.contextMethod")}:
                       </span>{" "}
-                      {selectedLog.context.method}
+                      {selectedLog.context?.method ?? "—"}
                     </div>
                     <div className="bg-muted p-2 rounded-2xl">
                       <span className="font-medium">
                         {auto("IP", "modal.contextIp")}:
                       </span>{" "}
-                      {selectedLog.context.ipAddress}
+                      {selectedLog.context?.ipAddress ?? "—"}
                     </div>
                     <div className="bg-muted p-2 rounded-2xl">
                       <span className="font-medium">
                         {auto("Browser", "modal.contextBrowser")}:
                       </span>{" "}
-                      {selectedLog.context.browser}
+                      {selectedLog.context?.browser ?? "—"}
                     </div>
                     <div className="bg-muted p-2 rounded-2xl">
                       <span className="font-medium">
                         {auto("OS", "modal.contextOs")}:
                       </span>{" "}
-                      {selectedLog.context.os}
+                      {selectedLog.context?.os ?? "—"}
                     </div>
                     <div className="bg-muted p-2 rounded-2xl">
                       <span className="font-medium">
                         {auto("Device", "modal.contextDevice")}:
                       </span>{" "}
-                      {selectedLog.context.device}
+                      {selectedLog.context?.device ?? "—"}
                     </div>
                     <div className="bg-muted p-2 rounded-2xl">
                       <span className="font-medium">
                         {auto("Endpoint", "modal.contextEndpoint")}:
                       </span>{" "}
-                      {selectedLog.context.endpoint}
+                      {selectedLog.context?.endpoint ?? "—"}
                     </div>
                   </div>
                 </div>
@@ -788,11 +878,11 @@ export default function AuditLogViewer() {
                       <span className="font-medium">
                         {auto("Success", "modal.resultSuccess")}:
                       </span>{" "}
-                      {selectedLog.result.success
+                      {selectedLog.result?.success
                         ? auto("Yes", "modal.resultYes")
                         : auto("No", "modal.resultNo")}
                     </div>
-                    {selectedLog.result.errorCode && (
+                    {selectedLog.result?.errorCode && (
                       <div className="bg-destructive/10 dark:bg-destructive/10 p-2 rounded-2xl">
                         <span className="font-medium text-destructive dark:text-destructive">
                           {auto("Error Code", "modal.resultErrorCode")}:
@@ -800,12 +890,12 @@ export default function AuditLogViewer() {
                         {selectedLog.result.errorCode}
                       </div>
                     )}
-                    {selectedLog.result.duration !== undefined && (
+                    {selectedLog.result?.duration !== undefined && (
                       <div className="bg-muted p-2 rounded-2xl">
                         <span className="font-medium">
                           {auto("Duration", "modal.resultDuration")}:
                         </span>{" "}
-                        {selectedLog.result.duration}{" "}
+                        {selectedLog.result?.duration}{" "}
                         {auto("ms", "modal.durationUnit")}
                       </div>
                     )}

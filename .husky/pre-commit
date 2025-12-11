@@ -26,6 +26,16 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# PROC-005: Local Security Audit (non-blocking - warns only)
+echo "🔒 Running security audit..."
+if pnpm audit --audit-level=high 2>/dev/null; then
+  echo "✅ No high/critical vulnerabilities found"
+else
+  echo "⚠️  Security vulnerabilities detected (non-blocking)"
+  echo "   Run: pnpm audit --fix"
+  echo "   Or review: pnpm audit"
+fi
+
 # Run translation audit (non-blocking while known gaps are being fixed)
 echo "🧪 Auditing translation keys..."
 if ! pnpm run scan:i18n:audit; then
