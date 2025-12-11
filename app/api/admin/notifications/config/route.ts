@@ -1,13 +1,17 @@
+/**
+ * @description Returns notification service configuration status.
+ * Shows which channels (Email, SMS, WhatsApp) are properly configured
+ * and their current operational status.
+ * @route GET /api/admin/notifications/config
+ * @access Private - SUPER_ADMIN only
+ * @returns {Object} email: { enabled, configured }, sms: { enabled, configured }, whatsapp: { enabled, configured }
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { audit } from "@/lib/audit";
-
-/**
- * GET /api/admin/notifications/config
- * Returns notification service configuration status
- * SUPER_ADMIN only
- */
 export async function GET(_request: NextRequest) {
   try {
     const session = await auth();

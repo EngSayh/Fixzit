@@ -1,3 +1,14 @@
+/**
+ * @description Resets user password using a valid signed reset token.
+ * Validates token, updates password hash, and invalidates the token.
+ * @route POST /api/auth/reset-password
+ * @access Public - Requires valid password reset token
+ * @param {Object} body - token, password, confirmPassword
+ * @returns {Object} success: true on password reset
+ * @throws {400} If token invalid/expired or passwords don't match
+ * @throws {404} If user associated with token not found
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
@@ -25,9 +36,7 @@ const resetSchema = z.object({
 });
 
 /**
- * Password reset confirmation endpoint.
- * 
- * SECURITY:
+ * Resets user password with token validation
  * - Validates HMAC-signed token
  * - Rate limited to prevent brute force
  * - Requires strong password

@@ -1,15 +1,17 @@
 /**
- * Journal API Routes - Finance Pack Phase 2
- *
- * Endpoints:
- * - POST   /api/finance/journals          - Create draft journal
- * - GET    /api/finance/journals          - List journals (with filters)
- * - GET    /api/finance/journals/:id      - Get journal by ID
- * - POST   /api/finance/journals/:id/post - Post journal to ledger
- * - POST   /api/finance/journals/:id/void - Void posted journal
- * - DELETE /api/finance/journals/:id      - Delete draft journal
+ * @description Manages accounting journal entries for double-entry bookkeeping.
+ * POST creates draft journal entries. GET lists journals with filtering.
+ * Supports posting to ledger, voiding, and deletion of draft entries.
+ * @route GET /api/finance/journals
+ * @route POST /api/finance/journals
+ * @access Private - Users with FINANCE:CREATE/VIEW permission
+ * @param {string} status - Filter by status (DRAFT, POSTED, VOIDED)
+ * @param {string} startDate - Filter from date (ISO format)
+ * @param {string} endDate - Filter to date (ISO format)
+ * @returns {Object} journals: array, total: number
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE permission
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";

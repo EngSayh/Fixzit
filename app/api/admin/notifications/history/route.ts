@@ -1,10 +1,15 @@
 /**
- * Admin Notification History API
- * GET /api/admin/notifications/history
- *
- * Fetch notification history for audit and tracking
+ * @description Fetches notification broadcast history for audit and tracking.
+ * Returns paginated list of previously sent notifications with delivery status.
+ * @route GET /api/admin/notifications/history
+ * @access Private - SUPER_ADMIN only
+ * @param {number} page - Page number (default: 1)
+ * @param {number} limit - Items per page (default: 20)
+ * @param {string} channel - Filter by channel (email, sms, whatsapp)
+ * @returns {Object} notifications: array, total: number, page: number, pages: number
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDatabase } from "@/lib/mongodb-unified";

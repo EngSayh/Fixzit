@@ -1,3 +1,15 @@
+/**
+ * @description Exports tenant data in JSON or CSV format.
+ * Provides bulk data export for backup, migration, or analytics.
+ * Enforces organization-scoped access and document limits per collection.
+ * @route POST /api/admin/export
+ * @access Private - Admin roles with export permission
+ * @param {Object} body - format (json|csv), collections (array of collection names)
+ * @returns {Object} Exported data by collection or CSV download
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking export permission
+ * @throws {400} If too many collections requested (max 5)
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

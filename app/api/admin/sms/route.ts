@@ -1,3 +1,21 @@
+/**
+ * @description Manages SMS message queue and delivery status.
+ * GET lists SMS messages with filtering by status, type, org, and date range.
+ * POST actions include retry failed messages, enqueue pending, and clear queue.
+ * @route GET /api/admin/sms
+ * @route POST /api/admin/sms
+ * @access Private - SUPER_ADMIN only
+ * @param {string} status - Filter by status (PENDING, QUEUED, SENT, DELIVERED, FAILED, EXPIRED)
+ * @param {string} type - Filter by type (OTP, NOTIFICATION, ALERT, MARKETING, TRANSACTIONAL)
+ * @param {string} orgId - Filter by organization
+ * @param {string} search - Search by phone number
+ * @param {string} from - Start date (ISO format)
+ * @param {string} to - End date (ISO format)
+ * @param {boolean} slaBreached - Filter by SLA breach status
+ * @returns {Object} messages: array, total: number, stats: object
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ */
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
@@ -17,17 +35,7 @@ import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 
 /**
- * GET /api/admin/sms
- *
- * Get SMS messages with filters (Super Admin only)
- * Query params:
- * - status: Filter by status (PENDING, QUEUED, SENT, DELIVERED, FAILED, EXPIRED)
- * - type: Filter by type (OTP, NOTIFICATION, ALERT, MARKETING, TRANSACTIONAL)
- * - orgId: Filter by organization (superadmin can see all)
- * - search: Search by phone number
- * - from: Start date (ISO)
- * - to: End date (ISO)
- * - slaBreached: Filter by SLA breach status
+ * Fetches SMS messages with optional filtering and statistics
  * - limit: Number of results (default 50, max 500)
  * - skip: Skip for pagination
  * - includeStats: Include aggregate statistics

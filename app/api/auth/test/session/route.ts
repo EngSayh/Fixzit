@@ -1,3 +1,15 @@
+/**
+ * @description Test-only session minting endpoint for E2E testing.
+ * Generates real NextAuth JWT session tokens and sets cookies directly.
+ * FORBIDDEN in production environments.
+ * @route POST /api/auth/test/session
+ * @access Private - Development/test environments only
+ * @param {Object} body - email, orgId (optional)
+ * @returns {Object} success: true with session cookies set
+ * @throws {400} If email is not provided
+ * @throws {403} If called in production environment
+ * @throws {404} If user not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
@@ -5,11 +17,6 @@ import { encode } from "next-auth/jwt";
 import { Types } from "mongoose";
 
 export const runtime = "nodejs";
-
-/**
- * Test-only session minting endpoint.
- * Generates a real NextAuth JWT session token and sets cookies directly.
- */
 export async function POST(req: NextRequest) {
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });

@@ -1,3 +1,21 @@
+/**
+ * @description Retrieves communication logs for admin dashboard.
+ * Provides paginated, filterable history of all SMS, email, and WhatsApp
+ * communications sent through the platform with delivery status tracking.
+ * @route GET /api/admin/communications
+ * @access Private - SUPER_ADMIN only
+ * @param {string} userId - Filter by recipient user ID
+ * @param {string} channel - Filter by channel (sms, email, whatsapp)
+ * @param {string} status - Filter by status (sent, delivered, failed)
+ * @param {string} startDate - Filter from date (ISO format)
+ * @param {string} endDate - Filter to date (ISO format)
+ * @param {string} search - Search in content/recipient
+ * @param {number} page - Page number (default: 1)
+ * @param {number} limit - Items per page (default: 20, max: 100)
+ * @returns {Object} communications: array, total: number, page: number, pages: number
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
@@ -26,8 +44,6 @@ type PipelineStage =
   | { $project: Record<string, number | string | Record<string, unknown>> };
 
 /**
- * GET /api/admin/communications
- *
  * Fetch communication history with filtering and pagination
  *
  * Query Parameters:

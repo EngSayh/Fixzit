@@ -1,3 +1,16 @@
+/**
+ * @description Manages footer content for static pages (About, Privacy, Terms).
+ * GET retrieves footer content for a specific page in both EN and AR.
+ * POST updates footer content with bilingual support.
+ * @route GET /api/admin/footer
+ * @route POST /api/admin/footer
+ * @access Private - SUPER_ADMIN only
+ * @param {Object} body - page (about|privacy|terms), contentEn, contentAr
+ * @returns {Object} footer: { page, contentEn, contentAr, updatedAt }
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ * @throws {400} If page type is invalid
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { FooterContent } from "@/server/models/FooterContent";
@@ -12,12 +25,6 @@ interface FooterDocument {
   updatedBy?: string | null;
   [key: string]: unknown;
 }
-
-/**
- * POST /api/admin/footer
- * Super Admin only endpoint to update footer content
- * Body: { page: 'about' | 'privacy' | 'terms', contentEn: string, contentAr: string }
- */
 export async function POST(request: NextRequest) {
   try {
     // Authentication & Authorization

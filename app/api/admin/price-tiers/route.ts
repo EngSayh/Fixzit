@@ -1,3 +1,17 @@
+/**
+ * @description Manages pricing tiers for platform modules.
+ * GET lists all price tiers with module info.
+ * POST creates new price tier with seat-based or flat pricing.
+ * Supports regional pricing and global defaults.
+ * @route GET /api/admin/price-tiers
+ * @route POST /api/admin/price-tiers
+ * @access Private - SUPER_ADMIN only
+ * @param {Object} body - moduleCode, seatsMin, seatsMax, pricePerSeatMonthly, flatMonthly, currency, region
+ * @returns {Object} priceTiers: array or created tier
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ * @throws {400} If validation fails
+ */
 import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

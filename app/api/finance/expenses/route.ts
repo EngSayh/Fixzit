@@ -1,9 +1,18 @@
 /**
- * Expense API Routes
- * POST /api/finance/expenses - Create expense (draft or direct submission)
- * GET /api/finance/expenses - List expenses with filters
+ * @description Manages expense records with approval workflow.
+ * GET lists expenses with status, vendor, and date filters.
+ * POST creates expenses as draft or direct submission.
+ * Supports line items, attachments, and accounting integration.
+ * @route GET /api/finance/expenses
+ * @route POST /api/finance/expenses
+ * @access Private - Users with FINANCE:VIEW/CREATE permission
+ * @param {string} status - Filter by status (DRAFT, PENDING, APPROVED, REJECTED)
+ * @param {string} vendorId - Filter by vendor
+ * @param {Object} body - vendorId, amount, description, lineItems, attachments
+ * @returns {Object} expenses: array, total: number
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE permission
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { Expense } from "@/server/models/finance/Expense";

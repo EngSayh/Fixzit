@@ -1,3 +1,13 @@
+/**
+ * @description Initiates password reset flow by sending reset email.
+ * Generates a stateless HMAC-SHA256 signed token valid for 1 hour.
+ * Always returns success to prevent email enumeration attacks.
+ * @route POST /api/auth/forgot-password
+ * @access Public - Rate limited to 5 requests per 15 minutes per IP
+ * @param {Object} body - email, locale (en|ar)
+ * @returns {Object} success: true (always returns success)
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
@@ -13,16 +23,6 @@ type ForgotPasswordBody = {
   email?: string;
   locale?: "en" | "ar";
 };
-
-/**
- * Password reset request endpoint.
- * 
- * SECURITY:
- * - Rate limited to prevent enumeration attacks
- * - Always returns success to prevent email enumeration
- * - Token expires in 1 hour
- * - Uses HMAC-SHA256 signed tokens (stateless)
- */
 export async function POST(req: NextRequest) {
   try {
     // Rate limit: 5 requests per 15 minutes per IP

@@ -1,3 +1,16 @@
+/**
+ * @description Manages platform-wide discount rules.
+ * GET lists all discount rules with their configurations.
+ * POST/PUT creates or updates discount rules (percentage-based).
+ * @route GET /api/admin/discounts
+ * @route POST /api/admin/discounts
+ * @access Private - SUPER_ADMIN only
+ * @param {Object} body - value (discount percentage 0-100)
+ * @returns {Object} discounts: array or created discount
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ * @throws {400} If discount value out of range
+ */
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import DiscountRule from "@/server/models/DiscountRule";

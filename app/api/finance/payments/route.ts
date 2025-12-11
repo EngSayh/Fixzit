@@ -1,9 +1,18 @@
 /**
- * Payment API Routes
- * POST /api/finance/payments - Create payment
- * GET /api/finance/payments - List payments
+ * @description Manages payment records and invoice allocations.
+ * GET lists payments with filtering by status, method, and date.
+ * POST creates payments with optional invoice allocation.
+ * Supports multiple payment methods and bank details.
+ * @route GET /api/finance/payments
+ * @route POST /api/finance/payments
+ * @access Private - Users with FINANCE:VIEW/CREATE permission
+ * @param {string} status - Filter by status (PENDING, COMPLETED, FAILED)
+ * @param {string} method - Filter by payment method
+ * @param {Object} body - amount, method, invoiceAllocations, bankDetails
+ * @returns {Object} payments: array, total: number
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE permission
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { Payment } from "@/server/models/finance/Payment";

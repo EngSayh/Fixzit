@@ -1,3 +1,19 @@
+/**
+ * @description Manages platform users with pagination and filtering.
+ * GET lists users with role, status, and organization filters.
+ * POST creates new users with password hashing and role assignment.
+ * @route GET /api/admin/users
+ * @route POST /api/admin/users
+ * @access Private - SUPER_ADMIN only
+ * @param {string} role - Filter by user role
+ * @param {string} status - Filter by user status (active, suspended, pending)
+ * @param {string} orgId - Filter by organization
+ * @param {number} page - Page number (default: 1)
+ * @param {number} limit - Items per page (default: 20)
+ * @returns {Object} users: array, total: number, page: number, pages: number
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectDb } from "@/lib/mongo";
@@ -5,11 +21,6 @@ import { Schema, model, models } from "mongoose";
 import bcrypt from "bcryptjs";
 
 import { logger } from "@/lib/logger";
-/**
- * GET /api/admin/users
- *
- * Fetch users with filters (Super Admin only)
- */
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();

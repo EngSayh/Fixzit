@@ -1,21 +1,25 @@
+/**
+ * @description Manages testing/demo user accounts for QA and staging.
+ * GET lists testing users with filtering by status, org, and search.
+ * POST creates new testing user with specified role and credentials.
+ * @route GET /api/admin/testing-users
+ * @route POST /api/admin/testing-users
+ * @access Private - SUPER_ADMIN only
+ * @param {string} status - Filter by status
+ * @param {string} orgId - Filter by organization
+ * @param {string} search - Search by email or username
+ * @param {number} limit - Items per page (default: 50, max: 200)
+ * @param {number} skip - Skip for pagination
+ * @returns {Object} users: array, total: number
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { TestingUser, TestingUserStatus, TestingUserRole, TTestingUserRole, TTestingUserStatus } from "@/server/models/TestingUser";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
-
-/**
- * GET /api/admin/testing-users
- *
- * List testing users (Super Admin only)
- * Query params:
- * - status: Filter by status
- * - orgId: Filter by organization
- * - search: Search by email or username
- * - limit: Number of results (default 50, max 200)
- * - skip: Skip for pagination
- */
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();

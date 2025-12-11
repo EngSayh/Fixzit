@@ -1,33 +1,21 @@
+/**
+ * @description Updates a billing benchmark configuration by ID.
+ * Benchmarks are used for pricing validation and market comparison.
+ * @route PATCH /api/admin/billing/benchmark/[id]
+ * @access Private - SUPER_ADMIN only
+ * @param {string} id - Benchmark ID (MongoDB ObjectId)
+ * @param {Object} body - Benchmark update fields
+ * @returns {Object} benchmark: updated benchmark object
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ * @throws {404} If benchmark not found
+ */
 import { NextRequest } from "next/server";
 import { dbConnect } from "@/db/mongoose";
 import Benchmark from "@/server/models/Benchmark";
 import { requireSuperAdmin } from "@/lib/authz";
 
 import { createSecureResponse } from "@/server/security/headers";
-
-/**
- * @openapi
- * /api/admin/billing/benchmark/{id}:
- *   patch:
- *     summary: Update billing benchmark
- *     description: Updates a billing benchmark by ID. Super admin only.
- *     tags:
- *       - Admin
- *       - Billing
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Benchmark updated successfully
- *       404:
- *         description: Benchmark not found
- */
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },

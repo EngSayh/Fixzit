@@ -1,11 +1,15 @@
 /**
- * Admin Notification Broadcast API
- * POST /api/admin/notifications/send
- *
- * Allows super admins to send notifications via Email, SMS, or WhatsApp
- * to users, tenants, or corporate groups
+ * @description Broadcasts notifications to users via Email, SMS, or WhatsApp.
+ * Supports targeting by users, tenants, corporate groups, or all users.
+ * Includes scheduled delivery and priority settings.
+ * @route POST /api/admin/notifications/send
+ * @access Private - SUPER_ADMIN only
+ * @param {Object} body - recipients (type, ids), channels, subject, message, priority, scheduledAt
+ * @returns {Object} success: true, sent: number, failed: number, details: array
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ * @throws {400} If recipients or channels are invalid
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId, type Document, type Filter } from "mongodb";
 import { auth } from "@/auth";

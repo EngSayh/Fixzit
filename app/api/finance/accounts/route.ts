@@ -1,11 +1,16 @@
 /**
- * Chart of Accounts API Routes - Finance Pack Phase 2
- *
- * Endpoints:
- * - GET  /api/finance/accounts     - List accounts (with hierarchy)
- * - POST /api/finance/accounts     - Create new account
+ * @description Manages Chart of Accounts with hierarchical structure.
+ * GET lists accounts with parent-child relationships.
+ * POST creates new accounts (ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE).
+ * @route GET /api/finance/accounts
+ * @route POST /api/finance/accounts
+ * @access Private - Users with FINANCE:VIEW/CREATE permission
+ * @param {Object} body - accountCode, accountName, accountType, normalBalance, parentId
+ * @returns {Object} accounts: array with hierarchy
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE permission
+ * @throws {400} If account code already exists
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 

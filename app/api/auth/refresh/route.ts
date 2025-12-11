@@ -1,3 +1,14 @@
+/**
+ * @description Refreshes JWT access tokens using a valid refresh token.
+ * Issues a new short-lived access token and optional new refresh token.
+ * Implements token rotation for enhanced security.
+ * @route POST /api/auth/refresh
+ * @access Private - Requires valid refresh token cookie
+ * @returns {Object} success: true with new token cookies set
+ * @throws {401} If refresh token is missing or invalid
+ * @throws {403} If refresh token JTI has been revoked
+ * @throws {500} If NEXTAUTH_SECRET is not configured
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
@@ -8,14 +19,6 @@ export const REFRESH_COOKIE = "fxz.refresh";
 export const ACCESS_COOKIE = "fxz.access";
 export const ACCESS_TTL_SECONDS = 15 * 60; // 15 minutes
 export const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
-
-/**
- * Refresh endpoint: revalidates session and issues a fresh short-lived JWT
- * signed with NEXTAUTH_SECRET for clients that need a renewed token.
- * Also sets an httpOnly access cookie for client-side fetchers that rely on it.
- * 
- * UPGRADED: Uses NextAuth v5 `auth()` API instead of deprecated `getServerSession()`.
- */
 export async function POST(req: NextRequest) {
   try {
     const refreshToken = req.cookies.get(REFRESH_COOKIE)?.value;

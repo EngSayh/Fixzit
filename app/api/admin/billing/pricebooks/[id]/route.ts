@@ -1,3 +1,15 @@
+/**
+ * @description Updates an existing pricebook configuration by ID.
+ * Allows modification of pricing tiers, regional settings, and discounts.
+ * @route PATCH /api/admin/billing/pricebooks/[id]
+ * @access Private - SUPER_ADMIN only
+ * @param {string} id - Pricebook ID (MongoDB ObjectId)
+ * @param {Object} body - Pricebook update fields
+ * @returns {Object} pricebook: updated pricebook object
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ * @throws {404} If pricebook not found
+ */
 import { NextRequest } from "next/server";
 import { dbConnect } from "@/db/mongoose";
 import PriceBook from "@/server/models/PriceBook";
@@ -6,35 +18,7 @@ import { requireSuperAdmin } from "@/lib/authz";
 import { createSecureResponse } from "@/server/security/headers";
 
 /**
- * @openapi
- * /api/admin/billing/pricebooks/{id}:
- *   patch:
- *     summary: Update pricebook
- *     description: Updates a pricebook configuration. Requires super admin access.
- *     tags:
- *       - Admin
- *       - Billing
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *     responses:
- *       200:
- *         description: Pricebook updated successfully
- *       404:
- *         description: Pricebook not found
- *       403:
- *         description: Forbidden - Super admin only
+ * Updates a pricebook by ID
  */
 export async function PATCH(
   req: NextRequest,

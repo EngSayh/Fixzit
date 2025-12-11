@@ -1,12 +1,17 @@
 /**
- * Ledger API Routes - Finance Pack Phase 2
- *
- * Endpoints:
- * - GET /api/finance/ledger               - Get ledger entries (with filters)
- * - GET /api/finance/ledger/trial-balance - Get trial balance report
- * - GET /api/finance/ledger/balance-sheet - Get balance sheet report
+ * @description Retrieves general ledger entries with filtering.
+ * Supports date range, account, and journal filters.
+ * Used for audit trail and financial reporting.
+ * @route GET /api/finance/ledger
+ * @access Private - Users with FINANCE:VIEW permission
+ * @param {string} accountId - Filter by account ID
+ * @param {string} startDate - Filter from date (ISO format)
+ * @param {string} endDate - Filter to date (ISO format)
+ * @param {string} journalId - Filter by journal ID
+ * @returns {Object} entries: array, total: number
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE permission
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";

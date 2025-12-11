@@ -1,3 +1,18 @@
+/**
+ * @description Manages user notifications in the system.
+ * GET retrieves paginated notifications with filtering by type, priority, and category.
+ * POST creates new notifications (system or admin initiated).
+ * @route GET /api/notifications - List user notifications
+ * @route POST /api/notifications - Create new notification
+ * @access Private - Authenticated users (own notifications)
+ * @query {string} type - Filter: work-order, vendor, payment, maintenance, system
+ * @query {string} priority - Filter: low, medium, high
+ * @query {string} category - Filter: maintenance, vendor, finance, system
+ * @query {boolean} read - Filter by read status
+ * @returns {Object} notifications: array with pagination
+ * @throws {401} If user is not authenticated
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCollections } from "@/lib/db/collections";

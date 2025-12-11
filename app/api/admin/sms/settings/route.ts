@@ -1,17 +1,21 @@
+/**
+ * @description Manages SMS provider settings and configuration.
+ * GET retrieves current Taqnyat SMS settings (global or org-specific).
+ * PUT updates SMS configuration including sender name and rate limits.
+ * @route GET /api/admin/sms/settings
+ * @route PUT /api/admin/sms/settings
+ * @access Private - SUPER_ADMIN only
+ * @param {string} orgId - Organization ID for org-specific settings (optional, defaults to global)
+ * @returns {Object} settings: { senderName, rateLimit, enabled, lastUpdated }
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SMSSettings } from "@/server/models/SMSSettings";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
-
-/**
- * GET /api/admin/sms/settings
- *
- * Get SMS settings (Super Admin only)
- * Query params:
- * - orgId: Get org-specific settings (optional, defaults to global)
- */
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();

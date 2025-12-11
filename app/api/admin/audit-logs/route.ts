@@ -1,3 +1,20 @@
+/**
+ * @description Retrieves audit logs with pagination and filtering.
+ * Provides security and compliance audit trail for all platform actions.
+ * Supports filtering by actor, action type, date range, and success status.
+ * @route GET /api/admin/audit-logs
+ * @access Private - SUPER_ADMIN only
+ * @param {string} actorId - Filter by user ID who performed action
+ * @param {string} action - Filter by action type
+ * @param {string} startDate - Filter from date (ISO format)
+ * @param {string} endDate - Filter to date (ISO format)
+ * @param {boolean} success - Filter by success status
+ * @param {number} page - Page number (default: 1)
+ * @param {number} limit - Items per page (default: 50)
+ * @returns {Object} logs: array, total: number, page: number, pages: number
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ */
 import { NextRequest, NextResponse } from "next/server";
 
 // Prevent prerendering/export of this API route (requires auth + database)
@@ -9,11 +26,6 @@ import { connectDb } from "@/lib/mongo";
 import { logger } from "@/lib/logger";
 import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
-/**
- * GET /api/admin/audit-logs
- *
- * Fetch audit logs with filters (Super Admin only)
- */
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();

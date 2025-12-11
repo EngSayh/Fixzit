@@ -1,3 +1,15 @@
+/**
+ * @description Sends email verification link to user's email address.
+ * Generates a stateless HMAC-signed verification token.
+ * In development, returns the verification link directly.
+ * @route POST /api/auth/verify/send
+ * @access Public
+ * @param {Object} body - email, locale (en|ar)
+ * @returns {Object} success: true, verificationLink? (dev only)
+ * @throws {400} If email is not provided
+ * @throws {404} If user not found
+ * @throws {500} If NEXTAUTH_SECRET not configured
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
@@ -12,11 +24,6 @@ type VerifyRequestBody = {
   email?: string;
   locale?: "en" | "ar";
 };
-
-/**
- * Email verification trigger with signed token (stateless).
- * Sends verification email via SendGrid if configured, otherwise returns link for dev.
- */
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as VerifyRequestBody;
   if (!body.email) {

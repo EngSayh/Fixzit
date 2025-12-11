@@ -1,3 +1,15 @@
+/**
+ * @description Sends a test SMS or WhatsApp message for channel validation.
+ * Uses Taqnyat for SMS (CITC-compliant for Saudi Arabia) and Meta
+ * WhatsApp Business API for WhatsApp messaging.
+ * @route POST /api/admin/notifications/test
+ * @access Private - SUPER_ADMIN only
+ * @param {Object} body - phoneNumber, channel (sms|whatsapp), message
+ * @returns {Object} success: true, messageId: string
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ * @throws {400} If phone number or message is invalid
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
@@ -12,15 +24,6 @@ const TestNotificationSchema = z.object({
   channel: z.enum(["sms", "whatsapp"]),
   message: z.string().min(1).max(1600),
 });
-
-/**
- * POST /api/admin/notifications/test
- * Send a test SMS or WhatsApp message
- * SUPER_ADMIN only
- * 
- * SMS: Uses Taqnyat (CITC-compliant for Saudi Arabia)
- * WhatsApp: Uses Meta WhatsApp Business API
- */
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();

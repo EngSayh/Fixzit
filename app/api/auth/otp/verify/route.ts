@@ -1,3 +1,15 @@
+/**
+ * @description Verifies OTP code and issues authentication tokens.
+ * Creates user session with JWT access and refresh tokens on successful verification.
+ * Supports bypass code for development environments.
+ * @route POST /api/auth/otp/verify
+ * @access Public - Rate limited to prevent brute force
+ * @param {Object} body - identifier (email/phone/employeeId), otp (6-digit code), companyCode (optional)
+ * @returns {Object} success: true with access/refresh token cookies set
+ * @throws {400} If OTP is invalid or expired
+ * @throws {401} If max verification attempts exceeded
+ * @throws {404} If user not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { randomBytes, randomUUID } from "crypto";
@@ -21,11 +33,12 @@ import { ACCESS_COOKIE, ACCESS_TTL_SECONDS, REFRESH_COOKIE, REFRESH_TTL_SECONDS 
 import jwt from "jsonwebtoken";
 import { persistRefreshJti } from "@/lib/refresh-token-store";
 
-// Validation schema - OTP can be 6 digits OR bypass code (12+ chars for production)
-// The bypass code is validated later against NEXTAUTH_BYPASS_OTP_CODE env var
+/**
+ * Validation schema for OTP verification request
+ */
 const VerifyOTPSchema = z.object({
   identifier: z.string().trim().min(1, "Email or employee number is required"),
-  otp: z.string().min(6, "OTP must be at least 6 characters"),
+  otp: z.string().length(6, "OTP must be 6 digits"),
   companyCode: z.string().trim().optional(),
 });
 

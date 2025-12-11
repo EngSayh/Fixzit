@@ -1,3 +1,17 @@
+/**
+ * @description Manages customer invoices for billing and accounts receivable.
+ * GET lists invoices with status, customer, and date filters.
+ * POST creates new invoices with line items and automatic numbering.
+ * @route GET /api/finance/invoices
+ * @route POST /api/finance/invoices
+ * @access Private - Users with FINANCE:VIEW/CREATE permission
+ * @param {string} status - Filter by status (DRAFT, SENT, PAID, OVERDUE, CANCELLED)
+ * @param {string} customerId - Filter by customer
+ * @param {Object} body - customerId, amount, currency, description, dueDate, items
+ * @returns {Object} invoices: array, total: number
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE permission
+ */
 import { NextRequest } from "next/server";
 import { randomUUID } from "crypto";
 import { logger } from "@/lib/logger";

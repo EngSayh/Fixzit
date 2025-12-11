@@ -1,3 +1,16 @@
+/**
+ * @description Uploads platform favicon for browser tab branding.
+ * Accepts PNG, ICO, or SVG images up to 1MB. PNG files are automatically
+ * converted to ICO format using ImageMagick. Favicon is placed in public/
+ * for Next.js auto-serving.
+ * @route POST /api/admin/favicon
+ * @access Private - SUPER_ADMIN only
+ * @param {FormData} body - favicon file (multipart/form-data)
+ * @returns {Object} success: true, faviconUrl: string
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ * @throws {400} If file type invalid or size exceeds limit
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { PlatformSettings } from "@/server/models/PlatformSettings";
@@ -21,13 +34,7 @@ interface PlatformSettingsDocument {
 }
 
 /**
- * POST /api/admin/favicon
- * Super Admin only endpoint to upload platform favicon
- * Accepts multipart/form-data with 'favicon' file field
- * Validates: file type (image/png, image/x-icon, image/svg+xml), size (<1MB)
- * 
- * If PNG is uploaded, it will be converted to ICO format using ImageMagick
- * The favicon.ico is placed in public/ for Next.js to serve automatically
+ * Uploads and sets a new favicon for the platform
  */
 export async function POST(request: NextRequest) {
   try {

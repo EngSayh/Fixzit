@@ -1,14 +1,22 @@
+/**
+ * @description Manages individual user accounts by ID.
+ * GET retrieves user details, PUT updates user profile, DELETE removes user.
+ * Supports role updates, status changes, and organization reassignment.
+ * @route GET /api/admin/users/[id]
+ * @route PUT /api/admin/users/[id]
+ * @route DELETE /api/admin/users/[id]
+ * @access Private - SUPER_ADMIN only
+ * @param {string} id - User ID (MongoDB ObjectId)
+ * @returns {Object} user: { id, email, name, role, status, orgId }
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ * @throws {404} If user not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectDb } from "@/lib/mongo";
 import { Schema, model, models, Types } from "mongoose";
 import { logger } from "@/lib/logger";
-
-/**
- * DELETE /api/admin/users/[id]
- *
- * Delete a user by ID (Super Admin only)
- */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

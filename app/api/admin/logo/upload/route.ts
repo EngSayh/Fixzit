@@ -1,3 +1,15 @@
+/**
+ * @description Uploads platform logo for white-labeling.
+ * Accepts PNG, JPEG, or SVG images up to 5MB.
+ * Stores logo in public directory and updates platform settings.
+ * @route POST /api/admin/logo/upload
+ * @access Private - SUPER_ADMIN only
+ * @param {FormData} body - logo file (multipart/form-data)
+ * @returns {Object} success: true, logoUrl: string
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ * @throws {400} If file type invalid or size exceeds limit
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { PlatformSettings } from "@/server/models/PlatformSettings";
@@ -15,13 +27,6 @@ interface PlatformSettingsDocument {
   updatedAt?: Date;
   [key: string]: unknown;
 }
-
-/**
- * POST /api/admin/logo/upload
- * Super Admin only endpoint to upload platform logo
- * Accepts multipart/form-data with 'logo' file field
- * Validates: file type (image/png, image/jpeg, image/svg+xml), size (<5MB)
- */
 export async function POST(request: NextRequest) {
   try {
     // Authentication & Authorization

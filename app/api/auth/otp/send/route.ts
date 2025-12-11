@@ -1,3 +1,14 @@
+/**
+ * @description Sends OTP code via SMS for passwordless authentication.
+ * Supports email, employee ID, or phone number identification.
+ * Implements rate limiting and Redis-backed OTP storage with expiry.
+ * @route POST /api/auth/otp/send
+ * @access Public - Rate limited to prevent abuse
+ * @param {Object} body - identifier (email/phone/employeeId), companyCode (optional)
+ * @returns {Object} success: true, expiresIn: number (seconds)
+ * @throws {400} If identifier is invalid or not found
+ * @throws {429} If rate limit exceeded (max 5 sends per window)
+ */
 import { randomBytes, randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";

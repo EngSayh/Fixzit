@@ -1,12 +1,14 @@
+/**
+ * @description Returns the current authenticated user's session data.
+ * Provides user profile, role, and organization info for client-side state.
+ * Returns guest payload for unauthenticated requests to avoid 401 noise.
+ * @route GET /api/auth/me
+ * @access Public - Returns different payload based on auth state
+ * @returns {Object} authenticated: boolean, user: { id, email, name, role, orgId } | null
+ */
 import { logger } from "@/lib/logger";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-
-/**
- * GET /api/auth/me
- * Returns the current authenticated user's session data
- * Used by ClientLayout and other components for auth state management
- */
 export async function GET() {
   try {
     const session = await auth();

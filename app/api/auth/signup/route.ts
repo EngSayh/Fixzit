@@ -1,3 +1,15 @@
+/**
+ * @description Creates a new user account with email/password credentials.
+ * Includes email verification flow, password hashing, and atomic user code
+ * generation for unique user identification.
+ * @route POST /api/auth/signup
+ * @access Public - Rate limited to prevent abuse
+ * @param {Object} body - firstName, lastName, email, password, confirmPassword, phone, organization
+ * @returns {Object} success: true, user: { id, email, verificationLink? }
+ * @throws {400} If validation fails (missing fields, password mismatch)
+ * @throws {409} If email already registered
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";

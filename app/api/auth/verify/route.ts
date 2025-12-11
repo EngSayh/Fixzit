@@ -1,13 +1,19 @@
+/**
+ * @description Verifies user email address using signed token.
+ * Validates the HMAC-signed token and marks user as verified.
+ * @route GET /api/auth/verify
+ * @access Public
+ * @param {string} token - Signed verification token (query param)
+ * @returns {Object} success: true, email: string
+ * @throws {400} If token is missing or invalid signature
+ * @throws {410} If token has expired
+ * @throws {500} If NEXTAUTH_SECRET not configured
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
 import { verifyVerificationToken } from "@/lib/auth/emailVerification";
 import { UserStatus } from "@/types/user";
-
-/**
- * Stateless email verification endpoint.
- * Validates a signed token and returns 200 if valid/active, and marks user verified.
- */
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
   if (!token) {

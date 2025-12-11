@@ -1,3 +1,17 @@
+/**
+ * @description Manages individual testing user accounts by ID.
+ * GET retrieves testing user details, PUT updates credentials/role, DELETE removes user.
+ * Used for QA and staging environment user management.
+ * @route GET /api/admin/testing-users/[id]
+ * @route PUT /api/admin/testing-users/[id]
+ * @route DELETE /api/admin/testing-users/[id]
+ * @access Private - SUPER_ADMIN only
+ * @param {string} id - Testing user ID (MongoDB ObjectId)
+ * @returns {Object} user: { id, email, username, role, status }
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ * @throws {404} If testing user not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";
@@ -10,12 +24,6 @@ import bcrypt from "bcryptjs";
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
-
-/**
- * GET /api/admin/testing-users/[id]
- *
- * Get a specific testing user (Super Admin only)
- */
 export async function GET(
   request: NextRequest,
   { params }: RouteParams

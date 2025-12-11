@@ -1,3 +1,16 @@
+/**
+ * @description Performs bulk operations on notifications.
+ * Supports mark-read, mark-unread, archive, and delete actions
+ * for multiple notifications at once.
+ * @route POST /api/notifications/bulk - Bulk notification action
+ * @access Private - Notification owner only
+ * @param {Object} body.action - Bulk action: mark-read, mark-unread, archive, delete
+ * @param {Object} body.notificationIds - Array of notification IDs to process
+ * @returns {Object} success: true, modifiedCount: number of affected notifications
+ * @throws {400} If action or notificationIds invalid
+ * @throws {401} If user is not authenticated or missing tenant context
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { getCollections } from "@/lib/db/collections";

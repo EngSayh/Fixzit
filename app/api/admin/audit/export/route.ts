@@ -1,15 +1,15 @@
 /**
- * Audit Log Export API Route
- *
- * Streams audit logs as CSV to prevent memory exhaustion.
- * Supports date range filtering.
- *
- * Memory-safe implementation:
- * - Uses Node.js streams to process large datasets
- * - Chunks data in batches of 100 records
- * - No in-memory accumulation of all records
+ * @description Exports audit logs as CSV with streaming for memory efficiency.
+ * Supports date range filtering and processes records in batches of 100.
+ * Uses Node.js streams to handle large datasets without memory exhaustion.
+ * @route GET /api/admin/audit/export
+ * @access Private - SUPER_ADMIN only
+ * @param {string} startDate - Filter from date (ISO format)
+ * @param {string} endDate - Filter to date (ISO format)
+ * @returns {Response} CSV file download stream
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";

@@ -1,3 +1,19 @@
+/**
+ * @description Manages individual notification operations.
+ * GET retrieves notification details. PATCH updates read/archived status.
+ * DELETE removes the notification.
+ * @route GET /api/notifications/[id] - Get notification details
+ * @route PATCH /api/notifications/[id] - Update notification status
+ * @route DELETE /api/notifications/[id] - Delete notification
+ * @access Private - Notification owner only
+ * @param {string} id - Notification ID
+ * @param {Object} body.read - Set read status (PATCH)
+ * @param {Object} body.archived - Set archived status (PATCH)
+ * @returns {Object} notification: notification details
+ * @throws {401} If user is not authenticated
+ * @throws {404} If notification not found
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest } from "next/server";
 import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";

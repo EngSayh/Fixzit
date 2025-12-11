@@ -1,3 +1,13 @@
+/**
+ * @description Retrieves billing benchmarks for pricing comparison.
+ * Returns market benchmarks used to validate and compare module pricing.
+ * @route GET /api/admin/billing/benchmark
+ * @access Private - SUPER_ADMIN only
+ * @returns {Object} benchmarks: array of benchmark configs
+ * @throws {401} If not authenticated
+ * @throws {403} If not SUPER_ADMIN
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import Benchmark from "@/server/models/Benchmark";
@@ -6,24 +16,6 @@ import { requireSuperAdmin } from "@/lib/authz";
 import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-
-/**
- * @openapi
- * /api/admin/billing/benchmark:
- *   get:
- *     summary: admin/billing/benchmark operations
- *     tags: [admin]
- *     security:
- *       - cookieAuth: []
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Success
- *       401:
- *         description: Unauthorized
- *       429:
- *         description: Rate limit exceeded
- */
 export async function GET(req: NextRequest) {
   // AuthZ + tenancy
   let authContext: { id: string; tenantId: string } | null = null;

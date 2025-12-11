@@ -1,3 +1,11 @@
+/**
+ * @description Forces logout by expiring all authentication cookies.
+ * Complements NextAuth's signOut handler and ensures httpOnly cookies
+ * minted by test helpers are also cleared.
+ * @route POST /api/auth/force-logout
+ * @access Public - No authentication required
+ * @returns {Object} ok: true confirming cookies have been cleared
+ */
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -6,12 +14,6 @@ export const runtime = 'nodejs';
 function _isIp(hostname: string): boolean {
   return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
 }
-
-/**
- * Test-friendly logout endpoint that force-expire all auth cookies.
- * This complements NextAuth's signOut handler and ensures httpOnly
- * cookies minted by test helpers are cleared.
- */
 export async function POST(req: NextRequest) {
   const url = req.nextUrl;
   const host = url.hostname;
