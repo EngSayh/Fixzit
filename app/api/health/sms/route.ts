@@ -12,6 +12,7 @@ import { createSecureResponse } from "@/server/security/headers";
 import { withTimeout } from "@/lib/resilience";
 import { getRedisClient } from "@/lib/redis-client";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
+import { TAQNYAT_API_BASE } from "@/lib/sms-providers/taqnyat";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ async function checkTaqnyatReachability(taqnyatConfigured: boolean) {
     const start = Date.now();
     const response = await withTimeout(
       async () => {
-        const res = await fetch("https://api.taqnyat.sa/v1/messages/status", {
+        const res = await fetch(`${TAQNYAT_API_BASE}/messages/status`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${process.env.TAQNYAT_BEARER_TOKEN}`,

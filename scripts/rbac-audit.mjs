@@ -32,6 +32,9 @@ const INTENTIONALLY_PUBLIC = [
   '/api/billing/callback',        // Billing callback
   '/api/paytabs/',                // PayTabs callbacks
   '/api/aqar/listings/search',    // Public listing search
+  '/api/aqar/pricing',            // Public pricing insights
+  '/api/aqar/support/chatbot',    // Public chatbot endpoint
+  '/api/aqar/chat',               // Alias to chatbot endpoint
   '/api/work-orders/sla-check',   // Internal cron job
   '/api/metrics',                 // Prometheus metrics
   '/api/public/',                 // Explicitly public endpoints
@@ -59,7 +62,7 @@ const INTENTIONALLY_PUBLIC = [
 ];
 
 // Auth patterns to look for
-// UPDATED 2025-12-11: Added 7 missing patterns from deep dive audit
+// UPDATED 2025-12-11: Added missing patterns from deep dive audit and module/factory guards
 const AUTH_PATTERNS = [
   'getSessionUser',
   'withAuthRbac',
@@ -78,6 +81,13 @@ const AUTH_PATTERNS = [
   'requirePermission',        // Permission guards
   'resolveRequestSession',    // Session resolution
   'verifySecretHeader',       // Webhook security
+  // Added to cover factory and module-specific guards:
+  'createCrudHandlers',       // CRUD factory injects auth + tenant isolation
+  'atsRBAC',                  // ATS module RBAC guard
+  'requireFmPermission',      // FM module permission guard
+  'requireSubscription',      // Owner portal subscription check
+  'requirePlan',              // Owner portal plan gate
+  'requireFeature',           // Feature flag/plan gate
 ];
 
 async function walk(dir, acc = []) {

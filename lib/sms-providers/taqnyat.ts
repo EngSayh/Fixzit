@@ -15,7 +15,7 @@ import {
   redactPhoneNumber,
 } from "./phone-utils";
 
-const TAQNYAT_API_BASE = "https://api.taqnyat.sa/v1";
+export const TAQNYAT_API_BASE = "https://api.taqnyat.sa/v1";
 
 /**
  * Taqnyat API bulk send limit (max recipients per request)
