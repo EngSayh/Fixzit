@@ -1,3 +1,25 @@
+/**
+ * Income Statement Report API
+ * 
+ * Generates income statement (profit & loss) reports for the organization.
+ * Shows revenue, expenses, and net income over a specified period.
+ * 
+ * @module api/finance/reports/income-statement
+ * @requires Authentication - Valid session
+ * @requires Authorization - finance.reports.income-statement permission
+ * 
+ * Query Parameters:
+ * - startDate: Report period start (ISO date)
+ * - endDate: Report period end (ISO date)
+ * - format: Output format (json, pdf, excel)
+ * 
+ * Response:
+ * - revenue: Total revenue breakdown
+ * - expenses: Total expenses breakdown
+ * - netIncome: Revenue minus expenses
+ * 
+ * @example GET /api/finance/reports/income-statement?startDate=2025-01-01&endDate=2025-12-31
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";

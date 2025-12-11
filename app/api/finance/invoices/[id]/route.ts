@@ -1,3 +1,26 @@
+/**
+ * Invoice Operations API
+ * 
+ * Handles individual invoice operations including status updates,
+ * amount modifications, and invoice lifecycle management.
+ * 
+ * @module api/finance/invoices/[id]
+ * @requires Authentication - Bearer token required
+ * @requires Authorization - Finance role (FINANCE_ADMIN, BILLING_ADMIN, etc.)
+ * 
+ * Invoice Statuses:
+ * - DRAFT: Initial state, editable
+ * - SENT: Sent to customer
+ * - PAID: Payment received
+ * - OVERDUE: Past due date
+ * - CANCELLED: Cancelled by user
+ * - VOID: Voided after posting
+ * 
+ * Audit Trail:
+ * - All changes are logged with actor, timestamp, and IP
+ * 
+ * @example PATCH /api/finance/invoices/[id] { status: "PAID" }
+ */
 import { NextRequest } from "next/server";
 import * as svc from "@/server/finance/invoice.service";
 import { getUserFromToken } from "@/lib/auth";

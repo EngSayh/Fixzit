@@ -1,3 +1,25 @@
+/**
+ * Work Order Attachments API
+ * 
+ * Manages file attachments (photos, documents) for work orders.
+ * Supports image uploads with thumbnail generation.
+ * 
+ * @module api/fm/work-orders/[id]/attachments
+ * @requires Authentication - Valid session with orgId
+ * @requires Authorization - VIEW for GET, EDIT for POST/DELETE
+ * 
+ * Attachment Types:
+ * - image/*: Photos with auto-generated thumbnails
+ * - application/pdf: PDF documents
+ * - Other document types
+ * 
+ * Quotas:
+ * - Max attachments per work order: 50
+ * - Max timeline entries per work order: 200
+ * 
+ * @example GET /api/fm/work-orders/[id]/attachments
+ * @example POST /api/fm/work-orders/[id]/attachments (multipart/form-data)
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

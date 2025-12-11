@@ -1,3 +1,26 @@
+/**
+ * Expenses API - Facility Management Finance Module
+ * 
+ * Manages expense records for facility management operations.
+ * Supports expense tracking, approval workflows, and reporting.
+ * 
+ * @module api/fm/finance/expenses
+ * @requires Authentication - Valid session with orgId
+ * @requires Authorization - FINANCE:VIEW for GET, FINANCE:CREATE for POST
+ * 
+ * Expense Statuses:
+ * - pending: Awaiting approval
+ * - approved: Approved for payment
+ * - rejected: Rejected by approver
+ * 
+ * Features:
+ * - Multi-tenant isolation via orgId
+ * - Filterable by status, vendor, category
+ * - Currency-aware (SAR, USD, etc.)
+ * 
+ * @example GET /api/fm/finance/expenses?status=pending
+ * @example POST /api/fm/finance/expenses
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

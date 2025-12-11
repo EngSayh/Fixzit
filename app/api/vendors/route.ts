@@ -1,3 +1,31 @@
+/**
+ * Vendors API
+ * 
+ * Manages vendor/supplier records for the organization.
+ * Vendors can be contractors, suppliers, service providers, or consultants.
+ * 
+ * @module api/vendors
+ * @requires Authentication - Valid session with orgId
+ * @requires Authorization - Role-based access control
+ * 
+ * Vendor Types:
+ * - SUPPLIER: Product/material suppliers
+ * - CONTRACTOR: Construction/maintenance contractors
+ * - SERVICE_PROVIDER: Service providers (cleaning, security, etc.)
+ * - CONSULTANT: Professional consultants
+ * 
+ * Features:
+ * - Multi-tenant isolation via orgId
+ * - Contact management (primary, secondary)
+ * - Business information (registration, licenses)
+ * - Certification tracking
+ * 
+ * Rate Limiting:
+ * - Applies smart rate limiting per user/org
+ * 
+ * @example GET /api/vendors
+ * @example POST /api/vendors
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
