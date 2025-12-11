@@ -103,6 +103,10 @@ export default function NewEmployeePageClient({
         setLookups(mod.LOOKUPS);
         setLookupsLoaded(true);
       })
+      .catch((error) => {
+        console.error("Failed to load lookups:", error);
+        toast.error("Failed to load form options");
+      })
       .finally(() => setLoadingLookups(false));
   }, [lookupsLoaded]);
 
