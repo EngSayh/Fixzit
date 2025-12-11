@@ -261,6 +261,25 @@ class Logger {
             component: context.component,
           });
         }
+        // SENTRY-001: Add module-specific contexts for better error triage
+        if (moduleKey === "fm" || context?.module === "fm") {
+          scope.setContext("fm", {
+            propertyId: context?.propertyId,
+            workOrderId: context?.workOrderId,
+            vendorId: context?.vendorId,
+            tenantId: context?.tenantId,
+            assetId: context?.assetId,
+          });
+        }
+        if (moduleKey === "souq" || context?.module === "souq") {
+          scope.setContext("souq", {
+            sellerId: context?.sellerId,
+            listingId: context?.listingId,
+            orderId: context?.orderId,
+            productId: context?.productId,
+            categoryId: context?.categoryId,
+          });
+        }
         if (context) {
           scope.setExtra("context", context);
         }

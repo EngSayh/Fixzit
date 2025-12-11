@@ -87,7 +87,7 @@ jobs:
 
       - name: Check translation parity
         id: check-parity
-        if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_parity_check == 'true') }}
+        if: ${{ !(github.event_name == 'workflow_dispatch' && fromJSON(github.event.inputs.skip_parity_check || 'false')) }}
         continue-on-error: true
         run: |
           echo "📊 Checking translation parity..."
