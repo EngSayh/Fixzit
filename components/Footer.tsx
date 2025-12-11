@@ -117,6 +117,7 @@ export default function Footer() {
                   type="button"
                   className="hover:underline text-start"
                   onClick={() => setOpen(true)}
+                  aria-label={t("footer.ticket_aria", "Open a support ticket")}
                 >
                   {t("footer.ticket", "Open a ticket")}
                 </button>

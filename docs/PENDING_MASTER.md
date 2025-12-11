@@ -1,13 +1,30 @@
 # MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T11:00:00+03:00  
-**Version**: 8.0  
-**Branch**: main  
+**Last Updated**: 2025-12-11T18:30:00+03:00  
+**Version**: 8.1  
+**Branch**: main + fix/historical-backlog-cleanup-20251211  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok)  
-**Total Pending Items**: 23 identified (0 Critical, 0 Major, 4 Moderate, 19 Minor)  
-**Completed Items**: 140+ tasks completed (25 verified last session)  
+**Total Pending Items**: 22 identified (0 Critical, 0 Major, 4 Moderate, 18 Minor)  
+**Completed Items**: 145+ tasks completed (5 verified this session)  
 **Test Status**: ✅ Vitest 2405/2405 passed | ✅ Playwright 116/117 passed (1 skipped)  
-**Consolidation Check**: 2025-12-11T11:00:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T18:30:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+
+---
+
+## ✅ SESSION 2025-12-11T18:30 COMPLETED FIXES (Batch 7 - Historical Backlog Cleanup)
+
+| ID | Issue | Resolution | Files Changed |
+|----|-------|------------|---------------|
+| **H.4** | new Date() in JSX (was 74) | ✅ FIXED - Only 1 problematic case found and fixed; 73 are safe (inside hooks/handlers) | `app/fm/finance/expenses/page.tsx` |
+| **H.5** | Date.now() in JSX (was 22) | ✅ VERIFIED - All 22 usages are safe (ID generation, timestamp comparisons) | No changes needed |
+| **H.7** | Duplicate files (was 11) | ✅ VERIFIED - Only 1 found (tests/playwright.config.ts), it's a re-export, not a duplicate | No changes needed |
+| **H.8** | Missing docstrings (~669) | 🔲 Deferred - API routes already have JSDoc; full coverage is a future enhancement | N/A |
+| **REPORT** | Updated historical backlog counts | ✅ Corrected inaccurate counts based on actual analysis | `docs/PENDING_MASTER.md` |
+
+**Detailed Analysis**:
+- **H.4**: Scanned 74 `new Date()` occurrences in TSX files. Found most are inside `useMemo()`, `useEffect()`, event handlers, or used for filename/ID generation - all safe patterns. Only 1 true issue in `expenses/page.tsx` where `new Date()` was used as a fallback prop.
+- **H.5**: All 22 `Date.now()` usages are for ID generation (`Date.now().toString(36)`) or timestamp comparisons - not render-path issues.
+- **H.7**: The "11 duplicates" was from an older scan. Current analysis found only 1 file (`tests/playwright.config.ts`) which is intentionally a re-export of the root config.
 
 ---
 
@@ -803,11 +820,11 @@ The following patterns were searched across the entire codebase:
 | H.1 | TODO/FIXME comments | 2 | 🟢 LOW | ✅ Minimal (2 in prod) |
 | H.2 | Empty catch blocks | 0 | 🟢 LOW | ✅ NONE |
 | H.3 | eslint-disable comments | 13 | 🟢 LOW | ✅ All justified with explanations |
-| H.4 | new Date() in JSX | 74 | 🟢 LOW | 🔲 |
-| H.5 | Date.now() in JSX | 22 | 🟢 LOW | 🔲 |
+| H.4 | new Date() in JSX | 1 | 🟢 LOW | ✅ FIXED (was 74, but 73 are safe - in hooks/handlers) |
+| H.5 | Date.now() in JSX | 0 | 🟢 LOW | ✅ All 22 usages are safe (ID generation, comparisons) |
 | H.6 | Dynamic i18n keys | 4 | 🟢 LOW | ✅ Documented |
-| H.7 | Duplicate files | 11 | 🟢 LOW | 🔲 |
-| H.8 | Missing docstrings | ~669 | 🟢 LOW | 🔲 |
+| H.7 | Duplicate files | 0 | 🟢 LOW | ✅ Only re-exports found, no true duplicates |
+| H.8 | Missing docstrings | ~669 | 🟢 LOW | 🔲 Future enhancement (API routes have JSDoc) |
 
 ---
 
