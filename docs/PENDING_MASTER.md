@@ -1,13 +1,62 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-12T00:15:00+03:00  
-**Version**: 13.3  
+**Last Updated**: 2025-12-14T12:00:00+03:00  
+**Version**: 13.4  
 **Branch**: main  
-**Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok)  
-**Total Pending Items**: 22 remaining (0 Critical, 1 High, 10 Moderate, 11 Minor)  
-**Completed Items**: 218+ tasks completed (All batches 1-11 completed + JSDoc additions + Color Contrast + Infrastructure 7/7)  
+**Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok, Grafana alerts 2.0)  
+**Total Pending Items**: 20 remaining (0 Critical, 1 High, 8 Moderate, 11 Minor)  
+**Completed Items**: 225+ tasks completed (All batches 1-12 completed + Grafana SLI Alerts + Validation Scripts)  
 **Test Status**: ✅ Vitest 2,468 tests (247 files) | ✅ Playwright 424 tests (41 files)  
-**Consolidation Check**: 2025-12-12T00:15:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-14T12:00:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+
+---
+
+## ✅ SESSION 2025-12-14T12:00 COMPLETED FIXES (Batch 13 - Code Quality & Observability)
+
+| ID | Issue | Resolution | Status |
+|----|-------|------------|--------|
+| **CQ-010** | parseInt missing radix (souq/search) | ✅ Fixed: Added radix 10 to parseInt in `app/souq/search/page.tsx:53` | ✅ FIXED |
+| **CQ-011** | parseInt missing radix (resume-parser) | ✅ Fixed: Added radix 10 to parseInt in `lib/ats/resume-parser.ts:193` | ✅ FIXED |
+| **CQ-012** | Unhandled promise chain (NewEmployee) | ✅ Fixed: Added .catch() to dynamic import in `app/fm/hr/directory/new/NewEmployeePageClient.tsx` | ✅ FIXED |
+| **OBS-001** | Grafana validation script | ✅ Created `scripts/validate-grafana.mjs` (240+ lines) for YAML/JSON validation | ✅ NEW |
+| **OBS-002** | SMS/Taqnyat SLI alerts | ✅ Added SMS queue depth, delivery failures, Taqnyat provider down alerts | ✅ NEW |
+| **OBS-003** | Copilot AI SLI alerts | ✅ Added Copilot error rate, latency, rate limit alerts | ✅ NEW |
+| **OBS-004** | TAP webhook SLI alerts | ✅ Added TAP signature failures, latency, retry alerts | ✅ NEW |
+| **OBS-005** | Build/Deployment alerts | ✅ Added build failure and deployment rollback alerts | ✅ NEW |
+
+**Key Changes**:
+
+**CQ-010/CQ-011 - parseInt Radix Fixes**:
+- ESLint rule `radix` requires explicit radix parameter
+- Fixed in souq search (page param parsing) and ATS resume parser (years extraction)
+- Pattern: `parseInt(value)` → `parseInt(value, 10)`
+
+**CQ-012 - Promise Chain Error Handling**:
+- Dynamic `import("./lookups")` had `.then()` but no `.catch()`
+- Added `.catch((error) => { logger.error(); toast.error(); })` for graceful degradation
+
+**OBS-001 - Grafana Validation Script**:
+- Created `scripts/validate-grafana.mjs` with:
+  - YAML syntax validation for alert rule files
+  - JSON syntax validation for dashboard files
+  - Required fields check (uid, title, condition, data)
+  - Alert category coverage verification
+  - Exit code for CI/CD integration
+
+**OBS-002 to OBS-005 - New Grafana Alert Rules** (Version 2.0.0):
+- Updated `monitoring/grafana/alerts/fixzit-alerts.yaml` from v1.0.0 to v2.0.0
+- Added 13+ new alert rules across 5 categories:
+  - **SMS Group**: sms-queue-depth, sms-delivery-failures, taqnyat-provider-down
+  - **Copilot Group**: copilot-error-rate, copilot-latency, copilot-rate-limit
+  - **TAP Webhooks Group**: tap-signature-failures, tap-webhook-latency, tap-webhook-retries
+  - **Build/CI Group**: build-failures, deployment-rollbacks
+- All alerts include proper severity labels, annotations, and runbook URLs
+
+**Verification Results**:
+- ✅ `pnpm typecheck` - 0 errors
+- ✅ `pnpm lint` - 0 errors
+- ✅ Vitest 2,468 tests passing
+- ✅ Playwright 424 tests passing
 
 ---
 
