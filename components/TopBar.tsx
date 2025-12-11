@@ -248,8 +248,8 @@ function TopBarContent() {
   });
 
   // Anchor refs for dropdown positioning
-  const notifBtnRef = useRef<HTMLButtonElement>(null);
-  const userBtnRef = useRef<HTMLButtonElement>(null);
+  const notifBtnRef = useRef<HTMLButtonElement>(null!);
+  const userBtnRef = useRef<HTMLButtonElement>(null!);
 
   // Panel positioning state
   type Pos = { top: number; left: number; width: number };
@@ -799,7 +799,7 @@ interface NotificationPopupProps {
   setUserOpen: (open: boolean) => void;
   notifFilter: NotificationFilter;
   setNotifFilter: (filter: NotificationFilter) => void;
-  notifBtnRef: React.RefObject<HTMLButtonElement | null>;
+  notifBtnRef: React.RefObject<HTMLButtonElement>;
   notifPos: { top: number; left: number; width: number };
   setNotifPos: (pos: { top: number; left: number; width: number }) => void;
   placeDropdown: (
@@ -1005,7 +1005,7 @@ interface UserMenuPopupProps {
   userOpen: boolean;
   setUserOpen: (open: boolean) => void;
   setNotifOpen: (open: boolean) => void;
-  userBtnRef: React.RefObject<HTMLButtonElement | null>;
+  userBtnRef: React.RefObject<HTMLButtonElement>;
   userPos: { top: number; left: number; width: number };
   setUserPos: (pos: { top: number; left: number; width: number }) => void;
   placeDropdown: (
