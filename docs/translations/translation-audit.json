@@ -1,16 +1,341 @@
 {
   "stats": {
-    "files": 821,
-    "usedKeys": 2912,
+    "files": 830,
+    "usedKeys": 2953,
     "hasDynamic": true,
-    "enCount": 31190,
-    "arCount": 31190,
+    "enCount": 31283,
+    "arCount": 31283,
     "parityGap": 0
   },
   "missing": {
     "inAr": [],
     "inEn": [],
-    "used": []
+    "used": [
+      {
+        "key": "auto.fm.hr.directory.new.toast.success",
+        "bare": "auto.fm.hr.directory.new.toast.success",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.toast.error",
+        "bare": "auto.fm.hr.directory.new.toast.error",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.breadcrumbs",
+        "bare": "auto.fm.hr.directory.new.breadcrumbs",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.header.title",
+        "bare": "auto.fm.hr.directory.new.header.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.header.subtitle",
+        "bare": "auto.fm.hr.directory.new.header.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.sections.profile.title",
+        "bare": "auto.fm.hr.directory.new.sections.profile.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.sections.profile.description",
+        "bare": "auto.fm.hr.directory.new.sections.profile.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.sections.role.title",
+        "bare": "auto.fm.hr.directory.new.sections.role.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.sections.role.description",
+        "bare": "auto.fm.hr.directory.new.sections.role.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.sections.compensation.title",
+        "bare": "auto.fm.hr.directory.new.sections.compensation.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.sections.compensation.description",
+        "bare": "auto.fm.hr.directory.new.sections.compensation.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.actions.cancel",
+        "bare": "auto.fm.hr.directory.new.actions.cancel",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.actions.saving",
+        "bare": "auto.fm.hr.directory.new.actions.saving",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.actions.submit",
+        "bare": "auto.fm.hr.directory.new.actions.submit",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.compensationType.label",
+        "bare": "auto.fm.hr.directory.new.form.compensationType.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/CompensationNotesStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.compensationType.placeholder",
+        "bare": "auto.fm.hr.directory.new.form.compensationType.placeholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/CompensationNotesStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.salary.label",
+        "bare": "auto.fm.hr.directory.new.form.salary.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/CompensationNotesStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.notes.label",
+        "bare": "auto.fm.hr.directory.new.form.notes.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/CompensationNotesStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.notes.placeholder",
+        "bare": "auto.fm.hr.directory.new.form.notes.placeholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/CompensationNotesStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.firstName.label",
+        "bare": "auto.fm.hr.directory.new.form.firstName.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.firstName.placeholder",
+        "bare": "auto.fm.hr.directory.new.form.firstName.placeholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.lastName.label",
+        "bare": "auto.fm.hr.directory.new.form.lastName.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.lastName.placeholder",
+        "bare": "auto.fm.hr.directory.new.form.lastName.placeholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.workEmail.label",
+        "bare": "auto.fm.hr.directory.new.form.workEmail.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.phone.label",
+        "bare": "auto.fm.hr.directory.new.form.phone.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.reportsTo.label",
+        "bare": "auto.fm.hr.directory.new.form.reportsTo.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.reportsTo.placeholder",
+        "bare": "auto.fm.hr.directory.new.form.reportsTo.placeholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.jobTitle.label",
+        "bare": "auto.fm.hr.directory.new.form.jobTitle.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.jobTitle.placeholder",
+        "bare": "auto.fm.hr.directory.new.form.jobTitle.placeholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.department.label",
+        "bare": "auto.fm.hr.directory.new.form.department.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.department.placeholder",
+        "bare": "auto.fm.hr.directory.new.form.department.placeholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.employmentType.label",
+        "bare": "auto.fm.hr.directory.new.form.employmentType.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.employmentType.placeholder",
+        "bare": "auto.fm.hr.directory.new.form.employmentType.placeholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.workModel.label",
+        "bare": "auto.fm.hr.directory.new.form.workModel.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.workModel.placeholder",
+        "bare": "auto.fm.hr.directory.new.form.workModel.placeholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+        ]
+      },
+      {
+        "key": "auto.fm.hr.directory.new.form.startDate.label",
+        "bare": "auto.fm.hr.directory.new.form.startDate.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+        ]
+      }
+    ]
   },
   "fileMap": {
     "billing.history.tagline": [
@@ -1705,6 +2030,15 @@
     "admin.features.active": [
       "Fixzit/app/fm/administration/page.tsx"
     ],
+    "admin.rateLimit.title": [
+      "Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.rateLimit.description": [
+      "Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.rateLimit.stats": [
+      "Fixzit/app/fm/administration/page.tsx"
+    ],
     "admin.database.title": [
       "Fixzit/app/fm/administration/page.tsx"
     ],
@@ -2658,8 +2992,127 @@
     "Create Payment": [
       "Fixzit/app/fm/finance/payments/new/page.tsx"
     ],
+    "auto.fm.hr.directory.new.toast.success": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.toast.error": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.breadcrumbs": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.header.title": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.header.subtitle": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.sections.profile.title": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.sections.profile.description": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.sections.role.title": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.sections.role.description": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.sections.compensation.title": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.sections.compensation.description": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.actions.cancel": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.actions.saving": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.actions.submit": [
+      "Fixzit/app/fm/hr/directory/new/NewEmployeePageClient.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.compensationType.label": [
+      "Fixzit/app/fm/hr/directory/new/steps/CompensationNotesStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.compensationType.placeholder": [
+      "Fixzit/app/fm/hr/directory/new/steps/CompensationNotesStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.salary.label": [
+      "Fixzit/app/fm/hr/directory/new/steps/CompensationNotesStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.notes.label": [
+      "Fixzit/app/fm/hr/directory/new/steps/CompensationNotesStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.notes.placeholder": [
+      "Fixzit/app/fm/hr/directory/new/steps/CompensationNotesStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.firstName.label": [
+      "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.firstName.placeholder": [
+      "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.lastName.label": [
+      "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.lastName.placeholder": [
+      "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.workEmail.label": [
+      "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.phone.label": [
+      "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.reportsTo.label": [
+      "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.reportsTo.placeholder": [
+      "Fixzit/app/fm/hr/directory/new/steps/ProfileBasicsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.jobTitle.label": [
+      "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.jobTitle.placeholder": [
+      "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.department.label": [
+      "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.department.placeholder": [
+      "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.employmentType.label": [
+      "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.employmentType.placeholder": [
+      "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.workModel.label": [
+      "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.workModel.placeholder": [
+      "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+    ],
+    "auto.fm.hr.directory.new.form.startDate.label": [
+      "Fixzit/app/fm/hr/directory/new/steps/RoleDetailsStep.tsx"
+    ],
+    "common.notAvailable": [
+      "Fixzit/app/fm/hr/directory/page.tsx",
+      "Fixzit/app/fm/hr/employees/page.tsx",
+      "Fixzit/app/fm/hr/recruitment/page.tsx",
+      "Fixzit/app/fm/tenants/page.tsx",
+      "Fixzit/app/fm/work-orders/pm/page.tsx",
+      "Fixzit/app/hr/leave/page.tsx",
+      "Fixzit/app/hr/payroll/page.tsx",
+      "Fixzit/app/hr/settings/page.tsx",
+      "Fixzit/app/marketplace/orders/page.tsx",
+      "Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
     "fm.org.supportContext": [
-      "Fixzit/app/fm/hr/directory/new/page.tsx",
       "Fixzit/app/fm/hr/directory/page.tsx",
       "Fixzit/app/fm/hr/employees/page.tsx",
       "Fixzit/app/fm/hr/leave/approvals/page.tsx",
@@ -2681,18 +3134,6 @@
       "Fixzit/app/work-orders/page.tsx",
       "Fixzit/components/fm/useFmOrgGuard.tsx",
       "Fixzit/hooks/fm/useOrgGuard.tsx"
-    ],
-    "common.notAvailable": [
-      "Fixzit/app/fm/hr/directory/page.tsx",
-      "Fixzit/app/fm/hr/employees/page.tsx",
-      "Fixzit/app/fm/hr/recruitment/page.tsx",
-      "Fixzit/app/fm/tenants/page.tsx",
-      "Fixzit/app/fm/work-orders/pm/page.tsx",
-      "Fixzit/app/hr/leave/page.tsx",
-      "Fixzit/app/hr/payroll/page.tsx",
-      "Fixzit/app/hr/settings/page.tsx",
-      "Fixzit/app/marketplace/orders/page.tsx",
-      "Fixzit/components/fm/WorkOrdersView.tsx"
     ],
     "hr.employees.jobTitle": [
       "Fixzit/app/fm/hr/directory/page.tsx"
@@ -6051,6 +6492,12 @@
     "settings.preferences.utc": [
       "Fixzit/app/settings/page.tsx"
     ],
+    "settings.preferences.currency": [
+      "Fixzit/app/settings/page.tsx"
+    ],
+    "settings.preferences.currencyHint": [
+      "Fixzit/app/settings/page.tsx"
+    ],
     "settings.preferences.theme": [
       "Fixzit/app/settings/page.tsx"
     ],
@@ -9000,5 +9447,5 @@
       "Fixzit/components/ui/pagination.tsx"
     ]
   },
-  "timestamp": "2025-12-11T09:02:58.517Z"
+  "timestamp": "2025-12-11T13:38:14.178Z"
 }
