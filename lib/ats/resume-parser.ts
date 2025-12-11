@@ -190,7 +190,7 @@ function extractExperience(
   const yearsMatch = normalizedText.match(
     /(\d+)\+?\s*(years?|yrs?)\s*(of\s*)?(experience|exp)/i,
   );
-  const extractedYears = yearsMatch ? parseInt(yearsMatch[1]) : 0;
+  const extractedYears = yearsMatch ? parseInt(yearsMatch[1], 10) : 0;
 
   // Try to extract job titles (common patterns)
   const jobTitlePatterns = [
