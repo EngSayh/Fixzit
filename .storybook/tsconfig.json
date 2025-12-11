@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["@storybook/addon-docs"]
+  },
+  "include": [
+    "../components/**/*.stories.tsx",
+    "../app/**/*.stories.tsx",
+    "./**/*.ts",
+    "./**/*.tsx"
+  ]
+}
