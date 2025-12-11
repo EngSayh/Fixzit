@@ -1,3 +1,16 @@
+/**
+ * @description Receives PayTabs webhook callbacks for payment status updates.
+ * Validates signature, processes payment results, and updates subscription status.
+ * Implements idempotency to prevent duplicate processing of the same transaction.
+ * @route POST /api/paytabs/callback
+ * @access Public - PayTabs server-to-server callback (signature validated)
+ * @param {Object} body - PayTabs transaction result payload
+ * @returns {Object} success: true if processed, error details otherwise
+ * @throws {400} If payload is invalid or too large
+ * @throws {401} If signature validation fails
+ * @throws {429} If rate limit exceeded
+ * @security Requires valid PayTabs signature in headers
+ */
 import { NextRequest } from "next/server";
 import { dbConnect } from "@/db/mongoose";
 import {

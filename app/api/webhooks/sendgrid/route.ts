@@ -1,3 +1,16 @@
+/**
+ * @description Receives SendGrid email event webhooks for delivery tracking.
+ * Processes delivery, open, click, bounce, and spam report events.
+ * Updates email_logs collection with real-time delivery status for auditing.
+ * @route POST /api/webhooks/sendgrid
+ * @route GET /api/webhooks/sendgrid - Health check for webhook endpoint
+ * @access Public - SendGrid server-to-server callback (signature validated)
+ * @param {Array} body - Array of SendGrid event objects
+ * @returns {Object} success: true if events processed
+ * @throws {400} If payload is invalid or signature verification fails
+ * @security Requires valid SendGrid webhook signature when configured
+ * @see https://docs.sendgrid.com/for-developers/tracking-events/event
+ */
 import { NextRequest } from "next/server";
 import { createSecureResponse } from "@/server/security/headers";
 import { getDatabase } from "@/lib/mongodb-unified";
