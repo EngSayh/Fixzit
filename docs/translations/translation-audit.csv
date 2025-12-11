@@ -1,4 +1,1 @@
 type,key,bare,inEN,inAR,files
-USED_MISSING,footer.ticket_aria,footer.ticket_aria,false,false,"Fixzit/components/Footer.tsx"
-USED_MISSING,accessibility.skipToMainContent,accessibility.skipToMainContent,false,false,"Fixzit/components/accessibility/SkipNavigation.tsx"
-USED_MISSING,brand.logoAlt,brand.logoAlt,false,false,"Fixzit/components/auth/LoginHeader.tsx"
