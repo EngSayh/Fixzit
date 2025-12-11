@@ -1,26 +1,17 @@
 /**
- * Owner Statement Report API
- * 
- * Generates owner/landlord statements for property management.
- * Shows income, expenses, and distributions for a specific property owner.
- * 
- * @module api/finance/reports/owner-statement
- * @requires Authentication - Valid session
- * @requires Authorization - finance.reports.owner-statement permission
- * 
- * Query Parameters:
- * - ownerId: Property owner ID (required)
- * - startDate: Report period start (ISO date)
- * - endDate: Report period end (ISO date)
- * - format: Output format (json, pdf, excel)
- * 
- * Response:
- * - income: Rental income, fees, other income
- * - expenses: Management fees, maintenance, taxes
- * - distributions: Owner payouts
- * - netIncome: Total owner earnings
- * 
- * @example GET /api/finance/reports/owner-statement?ownerId=owner_123&startDate=2025-01-01&endDate=2025-12-31
+ * @description Generates owner/landlord statement for property management.
+ * Shows rental income, expenses, and distributions for a specific owner.
+ * Used for property management financial reporting to owners.
+ * @route GET /api/finance/reports/owner-statement
+ * @access Private - Users with finance.reports.owner-statement permission
+ * @param {string} ownerId - Property owner ID (required)
+ * @param {string} startDate - Report period start (ISO date)
+ * @param {string} endDate - Report period end (ISO date)
+ * @param {string} format - Output format (json, pdf, excel)
+ * @returns {Object} income, expenses, distributions, netIncome
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking report permission
+ * @throws {400} If ownerId is missing
  */
 import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb-unified";

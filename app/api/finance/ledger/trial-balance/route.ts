@@ -1,10 +1,14 @@
 /**
- * Trial Balance API Route - Finance Pack Phase 2
- *
- * Endpoint:
- * - GET /api/finance/ledger/trial-balance - Get trial balance report
+ * @description Generates trial balance report showing all account balances.
+ * Verifies that total debits equal total credits.
+ * Used for period-end closing and audit preparation.
+ * @route GET /api/finance/ledger/trial-balance
+ * @access Private - Users with FINANCE:VIEW permission
+ * @param {string} asOfDate - Balance date (ISO date, defaults to today)
+ * @returns {Object} accounts: array with debit/credit balances, totals
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE permission
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";

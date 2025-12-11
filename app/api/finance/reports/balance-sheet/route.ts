@@ -1,23 +1,14 @@
 /**
- * Balance Sheet Report API
- * 
- * Generates balance sheet reports showing assets, liabilities, and equity.
- * Provides a snapshot of the organization's financial position.
- * 
- * @module api/finance/reports/balance-sheet
- * @requires Authentication - Valid session
- * @requires Authorization - finance.reports.balance-sheet permission
- * 
- * Query Parameters:
- * - asOfDate: Report date (ISO date, defaults to today)
- * - format: Output format (json, pdf, excel)
- * 
- * Response:
- * - assets: Current and fixed assets
- * - liabilities: Current and long-term liabilities
- * - equity: Owner's equity and retained earnings
- * 
- * @example GET /api/finance/reports/balance-sheet?asOfDate=2025-12-31
+ * @description Generates balance sheet financial report.
+ * Shows assets, liabilities, and equity as of specified date.
+ * Supports JSON, PDF, and Excel output formats.
+ * @route GET /api/finance/reports/balance-sheet
+ * @access Private - Users with finance.reports.balance-sheet permission
+ * @param {string} asOfDate - Report date (ISO date, defaults to today)
+ * @param {string} format - Output format (json, pdf, excel)
+ * @returns {Object} assets: total, liabilities: total, equity: total
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking report permission
  */
 import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb-unified";

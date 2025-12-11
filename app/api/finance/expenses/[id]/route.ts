@@ -1,10 +1,17 @@
 /**
- * Individual Expense API Routes
- * GET /api/finance/expenses/:id - Get single expense
- * PUT /api/finance/expenses/:id - Update expense
- * DELETE /api/finance/expenses/:id - Cancel expense
+ * @description Manages individual expense records by ID.
+ * GET retrieves expense details with line items.
+ * PUT updates expense (only in DRAFT status). DELETE cancels expense.
+ * @route GET /api/finance/expenses/[id]
+ * @route PUT /api/finance/expenses/[id]
+ * @route DELETE /api/finance/expenses/[id]
+ * @access Private - Users with FINANCE:VIEW/UPDATE permission
+ * @param {string} id - Expense ID (MongoDB ObjectId)
+ * @returns {Object} expense: { vendor, amount, status, lineItems }
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE permission
+ * @throws {404} If expense not found
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
 import { z } from "zod";

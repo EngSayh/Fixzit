@@ -1,10 +1,17 @@
 /**
- * Account Activity API Route - Finance Pack Phase 2
- *
- * Endpoint:
- * - GET /api/finance/ledger/account-activity/[accountId] - Get transaction history for account
+ * @description Retrieves transaction history for a specific account.
+ * Shows all ledger entries with running balance calculation.
+ * Supports date range filtering and pagination.
+ * @route GET /api/finance/ledger/account-activity/[accountId]
+ * @access Private - Users with FINANCE:VIEW permission
+ * @param {string} accountId - Chart of Account ID (MongoDB ObjectId)
+ * @param {string} startDate - Filter from date (ISO format)
+ * @param {string} endDate - Filter to date (ISO format)
+ * @returns {Object} entries: array with debit/credit/balance, account details
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE permission
+ * @throws {404} If account not found
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";

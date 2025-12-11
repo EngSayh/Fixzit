@@ -1,10 +1,17 @@
 /**
- * Journal Void API Route - Finance Pack Phase 2
- *
- * Endpoint:
- * - POST /api/finance/journals/[id]/void - Void posted journal (creates reversal)
+ * @description Voids a posted journal by creating reversal entries.
+ * Creates new journal with opposite debit/credit entries.
+ * Marks original journal as VOIDED and links to reversal.
+ * @route POST /api/finance/journals/[id]/void
+ * @access Private - Users with FINANCE:VOID permission
+ * @param {string} id - Journal ID (MongoDB ObjectId)
+ * @param {Object} body - reason (required void reason for audit)
+ * @returns {Object} journal: voided journal, reversalJournal: new reversal
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE:VOID permission
+ * @throws {404} If journal not found
+ * @throws {409} If journal is not in POSTED status
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";

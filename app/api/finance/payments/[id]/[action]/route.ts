@@ -1,10 +1,21 @@
 /**
- * Payment reconciliation API
- * POST /api/finance/payments/:id/reconcile - Reconcile payment with bank statement
- * POST /api/finance/payments/:id/clear - Mark payment as cleared
- * POST /api/finance/payments/:id/bounce - Mark cheque as bounced
+ * @description Handles payment reconciliation and status actions.
+ * POST reconcile: Matches payment with bank statement entry.
+ * POST clear: Marks cheque payment as cleared.
+ * POST bounce: Marks cheque as bounced, reverses allocation.
+ * @route POST /api/finance/payments/[id]/reconcile
+ * @route POST /api/finance/payments/[id]/clear
+ * @route POST /api/finance/payments/[id]/bounce
+ * @access Private - Users with FINANCE:RECONCILE permission
+ * @param {string} id - Payment ID (MongoDB ObjectId)
+ * @param {string} action - Action type (reconcile, clear, bounce)
+ * @param {Object} body - bankStatementDate (for reconcile), reason (for bounce)
+ * @returns {Object} payment: updated payment with new status
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE:RECONCILE permission
+ * @throws {404} If payment not found
+ * @throws {409} If status transition not allowed
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
 import { z } from "zod";

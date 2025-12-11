@@ -1,25 +1,18 @@
 /**
- * Invoice Operations API
- * 
- * Handles individual invoice operations including status updates,
- * amount modifications, and invoice lifecycle management.
- * 
- * @module api/finance/invoices/[id]
- * @requires Authentication - Bearer token required
- * @requires Authorization - Finance role (FINANCE_ADMIN, BILLING_ADMIN, etc.)
- * 
- * Invoice Statuses:
- * - DRAFT: Initial state, editable
- * - SENT: Sent to customer
- * - PAID: Payment received
- * - OVERDUE: Past due date
- * - CANCELLED: Cancelled by user
- * - VOID: Voided after posting
- * 
- * Audit Trail:
- * - All changes are logged with actor, timestamp, and IP
- * 
- * @example PATCH /api/finance/invoices/[id] { status: "PAID" }
+ * @description Manages individual invoice operations by ID.
+ * GET retrieves invoice details. PATCH updates status or amount.
+ * DELETE cancels invoice (only in DRAFT status).
+ * @route GET /api/finance/invoices/[id]
+ * @route PATCH /api/finance/invoices/[id]
+ * @route DELETE /api/finance/invoices/[id]
+ * @access Private - Users with FINANCE:VIEW/UPDATE permission
+ * @param {string} id - Invoice ID (MongoDB ObjectId)
+ * @param {Object} body - status, amount, dueDate (for PATCH)
+ * @returns {Object} invoice: { number, status, amount, customer, items }
+ * @throws {401} If not authenticated
+ * @throws {403} If lacking FINANCE permission
+ * @throws {404} If invoice not found
+ * @throws {409} If status transition not allowed
  */
 import { NextRequest } from "next/server";
 import * as svc from "@/server/finance/invoice.service";
