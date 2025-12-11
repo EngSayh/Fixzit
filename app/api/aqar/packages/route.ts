@@ -1,8 +1,16 @@
 /**
- * Aqar Souq - Packages API
- *
- * GET /api/aqar/packages - Get user's packages
- * POST /api/aqar/packages - Purchase package
+ * @description Manages Aqar listing promotion packages.
+ * GET retrieves user's purchased packages with remaining credits.
+ * POST creates a new package purchase for listing promotion.
+ * @route GET /api/aqar/packages - Get user's packages
+ * @route POST /api/aqar/packages - Purchase package
+ * @access Private - Authenticated users only
+ * @query {boolean} active - Filter to active packages only (GET)
+ * @param {Object} body.packageType - Package type to purchase (POST)
+ * @param {Object} body.paymentMethod - Payment method for purchase (POST)
+ * @returns {Object} GET: packages array | POST: created package with payment URL
+ * @throws {400} If package type invalid or payment fails
+ * @throws {401} If user is not authenticated
  */
 
 import { NextRequest, NextResponse } from "next/server";

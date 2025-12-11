@@ -1,3 +1,16 @@
+/**
+ * @description Handles PayTabs subscription payment webhooks.
+ * Validates signatures, processes payment results, and updates subscription/invoice status.
+ * Implements idempotency to prevent duplicate processing.
+ * @route POST /api/billing/callback/paytabs
+ * @access Public - PayTabs server-to-server callback (signature validated)
+ * @param {Object} body - PayTabs transaction result payload
+ * @returns {Object} success: true if processed, error details otherwise
+ * @throws {400} If payload invalid or too large
+ * @throws {401} If signature validation fails
+ * @throws {429} If rate limit exceeded
+ * @security Requires valid PayTabs signature; updates subscription status
+ */
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import SubscriptionInvoice from "@/server/models/SubscriptionInvoice";

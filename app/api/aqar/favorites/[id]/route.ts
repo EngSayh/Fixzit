@@ -1,7 +1,13 @@
 /**
- * Aqar Souq - Delete Favorite API
- *
- * DELETE /api/aqar/favorites/[id]
+ * @description Removes a property or project from user's favorites.
+ * Only the favorite owner can delete their own favorites.
+ * @route DELETE /api/aqar/favorites/[id]
+ * @access Private - Authenticated users (favorite owner only)
+ * @param {string} id - The favorite record ID to remove
+ * @returns {Object} success: true if removed successfully
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user is not the favorite owner
+ * @throws {404} If favorite not found
  */
 
 import { NextRequest, NextResponse } from "next/server";

@@ -1,9 +1,16 @@
 /**
- * Aqar Souq - Favorites API
- *
- * GET /api/aqar/favorites - Get user's favorites
- * POST /api/aqar/favorites - Add to favorites
- * DELETE /api/aqar/favorites/[id] - Remove from favorites
+ * @description Manages user favorites for Aqar property listings and projects.
+ * GET retrieves all favorites for the authenticated user with populated details.
+ * POST adds a new listing or project to favorites.
+ * @route GET /api/aqar/favorites - Get user's favorites
+ * @route POST /api/aqar/favorites - Add to favorites
+ * @access Private - Authenticated users only
+ * @param {Object} body.targetId - ID of listing or project to favorite (POST)
+ * @param {Object} body.targetType - LISTING or PROJECT (POST)
+ * @returns {Object} GET: favorites array with populated items | POST: created favorite
+ * @throws {400} If target item not found
+ * @throws {401} If user is not authenticated
+ * @throws {409} If item is already favorited
  */
 
 import { NextRequest, NextResponse } from "next/server";

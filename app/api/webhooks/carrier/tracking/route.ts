@@ -1,3 +1,20 @@
+/**
+ * @description Receives shipping carrier tracking webhooks for order fulfillment.
+ * Updates shipment status from Aramex, SMSA, and SPL carriers.
+ * Validates HMAC-SHA256 signatures per carrier webhook secret.
+ * @route POST /api/webhooks/carrier/tracking - Receive tracking update
+ * @route GET /api/webhooks/carrier/tracking - Health check
+ * @access Public - Carrier server-to-server callback (signature validated)
+ * @param {Object} body.carrier - Carrier identifier: aramex, smsa, spl
+ * @param {Object} body.trackingNumber - Shipment tracking number
+ * @param {Object} body.status - Updated shipment status
+ * @param {Object} body.signature - HMAC-SHA256 signature for verification
+ * @param {Object} body.orgId - Organization ID for tenant scoping
+ * @returns {Object} success: true if processed
+ * @throws {400} If payload validation fails
+ * @throws {401} If signature verification fails
+ * @security Each carrier has own webhook secret (ARAMEX_WEBHOOK_SECRET, etc.)
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { fulfillmentService } from "@/services/souq/fulfillment-service";
 import { logger } from "@/lib/logger";

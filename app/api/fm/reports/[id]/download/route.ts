@@ -1,3 +1,16 @@
+/**
+ * @description Downloads a generated FM report file.
+ * Returns a presigned S3 URL for the report file if job is complete.
+ * Requires EXPORT permission on REPORTS module.
+ * @route GET /api/fm/reports/[id]/download
+ * @access Private - Users with REPORTS.EXPORT permission
+ * @param {string} id - Report job ID
+ * @returns {Object} downloadUrl: presigned S3 URL (valid for 1 hour)
+ * @throws {400} If report ID is invalid
+ * @throws {403} If user lacks EXPORT permission
+ * @throws {404} If report job not found
+ * @throws {409} If report not ready (still processing)
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
