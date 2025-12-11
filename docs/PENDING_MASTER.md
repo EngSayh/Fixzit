@@ -4,8 +4,8 @@
 **Version**: 15.9  
 **Branch**: feat/frontend-dashboards  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok, TAP Payments ok)  
-**Total Pending Items**: 17 items (Category D code quality fixes applied)  
-**Completed Items**: 375+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes 8 items + Backlog Verification + Chat Session Analysis + System-Wide Code Audit + PR#520 Extended Deep Dive + POST-STAB AUDIT v2 + PSA-001 + CAT4-001 Security Fixes + 13 Silent CI Handlers Fixed + Currency Conversion Guard + PROC/SEC Session 18 fixes + SYS-012 Translation Audit Fix + RBAC pattern audit + Taqnyat URL constant + CQP-002a resolved + Category A/B/C Verification Session 6 items + CQP-007 parseInt radix + CAT3-001 Taqnyat URL)  
+**Total Pending Items**: 18 items (A/B/C verified; remaining items in D/E/F/G)  
+**Completed Items**: 375+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes 8 items + Backlog Verification + Chat Session Analysis + System-Wide Code Audit + PR#520 Extended Deep Dive + POST-STAB AUDIT v2 + PSA-001 + CAT4-001 Security Fixes + 13 Silent CI Handlers Fixed + Currency Conversion Guard + PROC/SEC Session 18 fixes + SYS-012 Translation Audit Fix + RBAC pattern audit + Taqnyat URL constant + CQP-002a resolved + Category A/B/C Verification Session 6 items + CQP-007 parseInt radix)  
 **Test Status**: ✅ Vitest full suite previously (2,468 tests) + latest `pnpm test:models` rerun (6 files, 91 tests) | 🚧 Playwright e2e timed out after ~15m during `pnpm test` (dev server stopped post-run; env gaps documented in E2E_TESTING_QUICK_START.md)  
 **Consolidation Check**: 2025-12-11T23:30:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
 
@@ -175,7 +175,7 @@ Deprecated with notice pointing to PENDING_MASTER.md.
 | **CQP-002** | `as any` in scripts/tests | 140+ occurrences | HIGH | 🟢 LOW |
 | **CQP-003** | Empty catch blocks | 14 occurrences | LOW | 🟢 LOW |
 | **CQP-004** | `@ts-ignore/@ts-expect-error` | 12 occurrences | MEDIUM | 🟢 LOW |
-| **CQP-007** | `parseInt` without radix | 8 occurrences | LOW | 🟢 LOW |
+| **CQP-007** | `parseInt` without radix | 8 occurrences | LOW | ✅ FIXED 2025-12-11 |
 | **CQP-008** | Hardcoded fallback credentials | 8 occurrences | — | ⚪ INFO |
 | **SYS-006** | Redis type aliases as `any` | 3 files | 30 min | 🟢 LOW |
 | **CAT3-001** | Hardcoded Taqnyat URL | `app/api/health/sms/route.ts:49` | 15 min | ✅ FIXED 2025-12-11 |
@@ -234,18 +234,18 @@ Deprecated with notice pointing to PENDING_MASTER.md.
 
 ---
 
-## 📊 SUMMARY METRICS (v15.7)
+## 📊 SUMMARY METRICS (v15.9)
 
 | Category | Count | Priority | Est. Effort |
 |----------|-------|----------|-------------|
 | A: Security | 0 | ✅ VERIFIED | — |
 | B: CI/CD | 0 | ✅ VERIFIED | — |
 | C: API & Backend | 0 | ✅ VERIFIED | — |
-| D: Code Quality | 6 | 🟢 LOW | Incremental |
+| D: Code Quality | 5 | 🟢 LOW | Incremental |
 | E: I18N & UX | 1 | 🟧 MEDIUM-HIGH | 8-16 hrs |
 | F: Features/Backlog | 9 | 🟪 FUTURE | Sprint plan |
 | G: Documentation | 3 | ⚪ LOW | 2-3 hrs |
-| **TOTAL** | **19 active** | — | **~15-25 hrs** |
+| **TOTAL** | **18 active** | — | **~15-25 hrs** |
 
 ---
 
