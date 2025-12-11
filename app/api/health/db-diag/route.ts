@@ -15,7 +15,12 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 export async function GET(request: NextRequest) {
-  // Only allow authorized requests
+  // Return 404 if token not configured (hide endpoint in production)
+  if (!process.env.HEALTH_CHECK_TOKEN) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Only allow authorized requests with valid token
   if (!isAuthorizedHealthRequest(request)) {
     return NextResponse.json(
       { error: "Unauthorized - provide X-Health-Token header" },

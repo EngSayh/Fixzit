@@ -1,8 +1,11 @@
 /**
- * Aqar Souq - Leads API
- *
- * POST /api/aqar/leads - Create inquiry lead
- * GET /api/aqar/leads - Get user's leads (owner/agent)
+ * @fileoverview Aqar Souq - Leads API
+ * @description Manages property inquiry leads for the Aqar marketplace.
+ * Supports lead creation from listings and retrieval by owner/agent.
+ * @route GET /api/aqar/leads - Get user's leads (owner/agent)
+ * @route POST /api/aqar/leads - Create an inquiry lead
+ * @access Protected - Requires authenticated session
+ * @module aqar
  */
 
 import { NextRequest, NextResponse } from "next/server";

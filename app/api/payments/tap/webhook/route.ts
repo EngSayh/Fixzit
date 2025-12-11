@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Tap Payments Webhook API
+ * @description Receives and processes Tap payment webhooks for charge and refund events.
+ * Verifies signature, handles idempotency, and updates transaction/invoice records.
+ * @route POST /api/payments/tap/webhook - Process Tap webhook events
+ * @access Tap servers only - Signature verified
+ * @module payments
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { Types } from "mongoose";

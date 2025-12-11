@@ -1,3 +1,11 @@
+/**
+ * @fileoverview PayTabs Callback Webhook API
+ * @description Handles PayTabs payment gateway callbacks for transaction processing.
+ * Validates signature, updates payment status, generates ZATCA-compliant invoices.
+ * @route POST /api/payments/paytabs/callback - Process PayTabs callback
+ * @access PayTabs servers only - Signature verified
+ * @module payments
+ */
 import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { validateCallback } from "@/lib/paytabs";

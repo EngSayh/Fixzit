@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Copilot Chat API Route
+ * @description Handles AI-powered chat interactions with message policy evaluation, intent classification, sentiment detection, tool execution, and knowledge retrieval for context-aware responses.
+ * @route POST /api/copilot/chat - Process user messages and return AI-generated responses
+ * @access Authenticated users (cookie or bearer token)
+ * @module copilot
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { z } from "zod";

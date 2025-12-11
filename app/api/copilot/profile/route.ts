@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Copilot Profile API Route
+ * @description Returns the current user's copilot session profile including permitted tools and quick actions based on user role and locale.
+ * @route GET /api/copilot/profile - Retrieve user session, tools, and quick actions
+ * @access Authenticated users (cookie or bearer token)
+ * @module copilot
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { resolveCopilotSession } from "@/server/copilot/session";
 import { getPermittedTools } from "@/server/copilot/policy";

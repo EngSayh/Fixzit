@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Tap Payments Checkout API
+ * @description Creates Tap payment charges for invoice payments.
+ * Generates redirect URLs for customer checkout flow.
+ * @route POST /api/payments/tap/checkout - Create Tap charge
+ * @access Protected - Requires authenticated session
+ * @module payments
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { Types } from "mongoose";
