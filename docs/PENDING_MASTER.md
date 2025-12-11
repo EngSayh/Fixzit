@@ -1,13 +1,13 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-12T00:30:00+03:00  
-**Version**: 15.13  
+**Last Updated**: 2025-12-11T17:30:00+03:00  
+**Version**: 15.15  
 **Branch**: feat/frontend-dashboards  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok, TAP Payments ok)  
-**Total Pending Items**: 12 items (A/B/C/D/E verified; remaining items in F only)  
-**Completed Items**: 382+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes 8 items + Backlog Verification + Chat Session Analysis + System-Wide Code Audit + PR#520 Extended Deep Dive + POST-STAB AUDIT v2 + PSA-001 + CAT4-001 Security Fixes + 13 Silent CI Handlers Fixed + Currency Conversion Guard + PROC/SEC Session 18 fixes + SYS-012 Translation Audit Fix + RBAC pattern audit + Taqnyat URL constant + CQP-002a resolved + Category A/B/C Verification Session 6 items + CQP-007 parseInt radix + Category C final verification + SYS-008/TODO-DOC-001/TODO-DOC-002 documentation cleanup + Category D LOW priority verification 5 items + **CQP-006 Arabic translations 1,985→0**)  
+**Total Pending Items**: 6 items (Categories A-E ✅ VERIFIED; 6 backlog items in F)  
+**Completed Items**: 385+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes 8 items + Backlog Verification + Chat Session Analysis + System-Wide Code Audit + PR#520 Extended Deep Dive + POST-STAB AUDIT v2 + PSA-001 + CAT4-001 Security Fixes + 13 Silent CI Handlers Fixed + Currency Conversion Guard + PROC/SEC Session 18 fixes + SYS-012 Translation Audit Fix + RBAC pattern audit + Taqnyat URL constant + CQP-002a resolved + Category A/B/C Verification Session 6 items + CQP-007 parseInt radix + Category C final verification + SYS-008/TODO-DOC-001/TODO-DOC-002 documentation cleanup + Category D LOW priority verification 5 items + **CQP-006 Arabic translations 1,985→0** + **BL-001/BL-004/BL-005 verified as IMPLEMENTED**)  
 **Test Status**: ✅ Vitest full suite previously (2,468 tests) + latest `pnpm test:models` rerun (6 files, 91 tests) | ❌ `pnpm test` failed (Playwright e2e cross-tenant isolation suite) — see “Test Failure (Playwright)” below  
-**Consolidation Check**: 2025-12-12T00:30:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T17:30:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
 
 ---
 
@@ -292,20 +292,21 @@ Deprecated with notice pointing to PENDING_MASTER.md.
 
 ---
 
-### 🟪 CATEGORY F: FEATURES & BACKLOG (9 items) — PRIORITY: FUTURE
+### 🟪 CATEGORY F: FEATURES & BACKLOG (6 items remaining) — PRIORITY: FUTURE
 
-| ID | Item | Status | Effort |
-|----|------|--------|--------|
-| **BL-001** | IP Reputation Scoring | ❌ NOT IMPLEMENTED | HIGH |
-| **BL-002** | Bundle Budget Historical Trends | ❌ NOT IMPLEMENTED | MEDIUM |
-| **BL-003** | RTL Playwright Visual Tests | ❌ NOT IMPLEMENTED | MEDIUM |
-| **BL-004** | ICU MessageFormat | ❌ NOT IMPLEMENTED | MEDIUM |
-| **BL-005** | Storybook Setup | ❌ NOT IMPLEMENTED | MEDIUM |
-| **BL-006** | Interactive Swagger UI | ❌ NOT IMPLEMENTED | LOW |
-| **BL-007** | Sentry FM/Souq Contexts | ❌ NOT IMPLEMENTED | LOW |
-| **BL-008** | Structured JSON Logging | 🟡 PARTIAL | MEDIUM |
-| **TODO-001** | Aqar User Personalization | ❌ NOT STARTED | 2-3 days |
+| ID | Item | Status | Effort | Notes |
+|----|------|--------|--------|-------|
+| **BL-001** | IP Reputation Scoring | ✅ IMPLEMENTED | — | `lib/security/ip-reputation.ts` (255 lines) — scoring, blocklist/allowlist, throttle multiplier |
+| **BL-002** | Bundle Budget Historical Trends | ❌ NOT IMPLEMENTED | MEDIUM | No time-series analytics |
+| **BL-003** | RTL Playwright Visual Tests | ❌ NOT IMPLEMENTED | MEDIUM | No visual regression tests |
+| **BL-004** | ICU MessageFormat | ✅ IMPLEMENTED | — | `i18n/formatMessage.ts` — IntlMessageFormat with cache |
+| **BL-005** | Storybook Setup | ✅ IMPLEMENTED | — | 3 stories: button, card, status-pill + full Storybook 8.6 deps |
+| **BL-006** | Interactive Swagger UI | ❌ NOT IMPLEMENTED | LOW | Only `openapi.yaml` exists |
+| **BL-007** | Sentry FM/Souq Contexts | ❌ NOT IMPLEMENTED | LOW | No module-specific error contexts |
+| **BL-008** | Structured JSON Logging | 🟡 PARTIAL | MEDIUM | `lib/audit.ts` has structured logging; not full ELK format |
+| **TODO-001** | Aqar User Personalization | ❌ NOT STARTED | 2-3 days | Saved searches, favorites |
 
+**Remaining**: 6 items (BL-002, BL-003, BL-006, BL-007, BL-008 partial, TODO-001)  
 **Action**: Sprint planning for next quarter
 
 ---
@@ -334,18 +335,18 @@ Deprecated with notice pointing to PENDING_MASTER.md.
 
 ---
 
-## 📊 SUMMARY METRICS (v15.11)
+## 📊 SUMMARY METRICS (v15.15)
 
 | Category | Count | Priority | Est. Effort |
 |----------|-------|----------|-------------|
 | A: Security | 0 | ✅ VERIFIED | — |
 | B: CI/CD | 0 | ✅ VERIFIED | — |
 | C: API & Backend | 0 | ✅ VERIFIED | — |
-| D: Code Quality | 5 | 🟢 LOW | Incremental |
-| E: I18N & UX | 1 | 🟧 MEDIUM-HIGH | 8-16 hrs |
-| F: Features/Backlog | 9 | 🟪 FUTURE | Sprint plan |
+| D: Code Quality | 0 | ✅ VERIFIED | — |
+| E: I18N & UX | 0 | ✅ COMPLETE | — |
+| F: Features/Backlog | 6 | 🟪 FUTURE | Sprint plan |
 | G: Documentation | 0 | ✅ COMPLETED | — |
-| **TOTAL** | **15 active** | — | **~12-20 hrs** |
+| **TOTAL** | **6 backlog** | — | **Sprint plan** |
 
 ---
 
