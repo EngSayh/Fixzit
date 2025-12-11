@@ -1,15 +1,469 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T20:06:49+03:00  
-**Version**: 15.69  
+## 🆕 Session 2025-12-12T04:15+03:00 — Medium Priority Verification & Fixes
+
+### ✅ FIXES APPLIED THIS SESSION
+
+| # | ID | Category | Issue | Resolution | Status |
+|---|-----|----------|-------|------------|--------|
+| 1 | **RADIX-001** | parseInt | Missing radix in `app/api/fm/inspections/vendor-assignments/route.ts:87` | Added `, 10` radix parameter | ✅ FIXED |
+| 2 | **RADIX-002** | parseInt | Reported missing radix in `app/api/finance/ledger/trial-balance/route.ts:71` | VERIFIED: Already has `, 10` at line 71-74 | ✅ FALSE POSITIVE |
+| 3 | **RADIX-003** | parseInt | Reported missing radix in `app/api/finance/reports/income-statement/route.ts:46` | VERIFIED: Already has `, 10` at line 46-49 | ✅ FALSE POSITIVE |
+
+### 📊 VERIFICATION RESULTS
+
+**parseInt Radix Scan**: Searched all `app/api/**/*.ts` files for `parseInt` without radix — only RADIX-001 was genuine; 20+ other usages all have `, 10`.
+
+**Promise Chains Verification**:
+| File | Status | Evidence |
+|------|--------|----------|
+| `app/(app)/subscription/page.tsx:34-42` | ✅ HAS `.catch()` | Line 42: `.catch(() => setLoading(false))` |
+| `app/(app)/billing/history/page.tsx:20-23` | ⚠️ USES SWR | Fetcher throws on error; SWR handles it |
+| `app/fm/hr/directory/new/NewEmployeePageClient.tsx:102-106` | ⚠️ HAS `.finally()` | Uses `.finally()` for cleanup but no explicit error toast |
+
+**Payment Routes Verification**:
+| Route | try-catch | Error Handler |
+|-------|-----------|---------------|
+| `app/api/payments/create/route.ts` | ✅ Lines 98-194 | Uses `handleApiError()` |
+| `app/api/payments/tap/webhook/route.ts` | ✅ Lines 75-207 | Has correlationId + logger |
+| `app/api/payments/tap/checkout/route.ts` | ✅ Lines 139-467 | Has correlationId + structured errors |
+| `app/api/payments/paytabs/callback/route.ts` | ✅ Multiple blocks | Extensive try-catch nesting |
+
+**RBAC Guard Analysis**:
+- 15 API routes use mixed `SUPER_ADMIN` string vs `isSuperAdmin` boolean
+- Pattern is intentional: `isSuperAdmin` is a computed property, string checks are for role comparison
+- Recommend: Create shared `requireSuperAdmin()` guard for consistency (LOW priority)
+
+### 📁 FILES MODIFIED
+
+| File | Change |
+|------|--------|
+| `app/api/fm/inspections/vendor-assignments/route.ts` | Added `, 10` radix to `parseInt` at line 87 |
+
+### 🔍 REMAINING MEDIUM PRIORITY ITEMS
+
+| ID | Category | Issue | Status |
+|----|----------|-------|--------|
+| **SECRET-ROUTES** | Testing | 6 routes using `verifySecretHeader` lack integration tests | 🔲 PENDING |
+| **THEN-CHAIN** | Error Handling | 11 files use `.then()` — most have error handling, 2-3 need review | ⚠️ PARTIAL |
+| **SHARED-PAYMENT-HOC** | Efficiency | Payment routes have individual try-catch (working but duplicated) | 🟢 LOW (working) |
+| **RBAC-GUARD** | Consistency | Mixed `SUPER_ADMIN`/`isSuperAdmin` usage | 🟢 LOW (intentional pattern) |
+
+### ✅ TypeScript Verification
+```bash
+npx tsc --noEmit  # 0 errors
+```
+
+---
+
+## 🆕 Session 2025-12-11T20:46:51+03:00 — Master Progress & Production Readiness
+
+### Current Progress
+- Confirmed this document remains the single master pending report; reconciled IDE context (monitoring README vs Grafana alerts YAML) and payments coverage gaps.
+- Category F backlog stays delivered; focus shifts to production readiness: monitoring, auth fixtures, payments E2E, and parsing correctness.
+- Identified remaining base-10 parsing gaps and missing TAP payments E2E coverage.
+
+### Planned Next Steps
+1. Refresh `monitoring/grafana/alerts/fixzit-alerts.yaml` to match runbook thresholds and add the validation/lint script referenced in `monitoring/README.md`, then wire it into CI.
+2. Author guarded TAP payment Playwright spec at `tests/e2e/payments/tap-payment-flows.spec.ts` (happy/fail/refund + env guards) and add to the matrix once secrets are present.
+3. Normalize `parseInt` radix in `lib/ats/resume-parser.ts:193`, `app/souq/search/page.tsx:53`, and `app/api/fm/inspections/vendor-assignments/route.ts:87`; add small unit/regression tests.
+4. Regenerate copilot/Playwright fixtures after auth URL alignment and rerun `pnpm test` when the above items land.
+
+### Production Readiness Enhancements / Bugs / Missing Tests
+| Type | Area | Issue | Impact | Action |
+|------|------|-------|--------|--------|
+| Efficiency/Monitoring | Grafana alerts | Alert rules last updated 2025-01-01; README references a validation script that does not exist | Stale/noisy paging and drift from runbook thresholds | Add alert lint/validation and keep stage/prod labels in sync with runbook |
+| Bugs/Logic | Input parsing | `parseInt` radix missing (`lib/ats/resume-parser.ts:193`, `app/souq/search/page.tsx:53`, `app/api/fm/inspections/vendor-assignments/route.ts:87`) | Leading-zero/NaN risk in resume parsing and pagination | Add `, 10` and regression tests for pagination/parser |
+| Missing Tests | Payments E2E | `tests/e2e/payments/tap-payment-flows.spec.ts` is missing | No automated TAP regression (happy/fail/refund) | Author guarded spec + fixtures and add to CI |
+| Missing Tests | Copilot/secret routes | `verifySecretHeader` routes and copilot denial rendering lack targeted coverage | Guard regressions not caught by current suite | Add API/Playwright checks once fixtures are refreshed |
+
+### Deep-Dive Similar Issue Analysis
+- Radix omissions mirror prior CQP-007 patterns; remaining instances are localized to resume parsing, Souq search, and FM vendor assignment pagination.
+- Monitoring drift matches earlier doc-vs-code gaps: `monitoring/README.md` references validation, but `monitoring/grafana/alerts/fixzit-alerts.yaml` remains at the 2025-01-01 baseline without automation.
+- Payments test gap follows the same fixture drift seen in Playwright copilot suites: without TAP coverage, payment regressions rely on manual verification; align this with the auth fixture regeneration plan.
+
+## 🆕 Session 2025-12-11T23:59:00+03:00 — Production Readiness Sweep
+
+### 1) Current Progress & Planned Next Steps
+- Progress:
+  - Bundle budget gate enforced in CI (`webpack.yml` runs `pnpm run bundle:budget:report`) with env-tunable thresholds in `scripts/checkBundleBudget.mjs`.
+  - Security audits gated locally/CI (`pnpm audit --prod --audit-level=high` in `.husky/pre-commit`, simple-git-hooks, and webpack workflow).
+  - Playwright fixtures hardened: `tests/setup-auth.ts` now forces `NEXTAUTH_URL`/`AUTH_URL`/`BASE_URL`/`PW_WEB_URL` to the Playwright baseURL; storage states remain on `http://127.0.0.1:3100`.
+  - Alert thresholds + staging→prod promotion steps documented in `docs/operations/RUNBOOK.md` (latency/error/queue/resource/payments/db connectivity).
+- Planned Next Steps:
+  1. Sync `monitoring/grafana/alerts/fixzit-alerts.yaml` with the runbook thresholds (error rate, latency p95/p99, payment failure >3%, queue depth >1000) and ensure production/staging labels match.
+  2. Rerun TAP payments E2E (`tests/e2e/payments/tap-payment-flows.spec.ts`) with fresh credentials; add a skip/guard if secrets are absent to avoid noisy red builds.
+  3. Add regression coverage for `verifySecretHeader` routes and copilot denial rendering; keep bundle budget + audit gates as mandatory preflight in CI.
+
+### 2) Comprehensive Enhancements / Bugs / Missing Tests (Production Readiness)
+- Efficiency/Size: Bundle budget CI gate ✅ (post-build, fails on over-budget chunks; thresholds tunable per env).
+- Security/Dependencies: pnpm audit gate ✅ (prod/high severity) in hooks and CI.
+- Monitoring: Grafana alert definitions drift from runbook thresholds ⚠️ (needs sync + stage/prod labels + paging policy).
+- Logic/Prod Hardening: Copilot cross-tenant denial still not surfaced to widget; keep guard + friendly denial path open ⚠️.
+- Payments: TAP payment E2E requires secret availability and consistent fixtures ⚠️ (stabilize and guard missing envs).
+- Tests: verifySecretHeader routes and copilot denial rendering still missing targeted tests 🔲.
+
+### 3) Deep-Dive Similar Issues (Pattern Scan)
+- Base URL alignment: All baked Playwright states under `tests/state/*.json` use `http://127.0.0.1:3100`; no divergent origins found after forcing env alignment in `tests/setup-auth.ts`.
+- parseInt radix drift: Previously noted radix gaps limited to finance/FM routes; scan shows no radix omissions under `app/api/payments/**` (0 matches).
+- Alert threshold duplication: Runbook thresholds updated; `monitoring/grafana/alerts/fixzit-alerts.yaml` still needs the same limits to avoid drift between docs and live alerts.
+
+### 4) Tests / Verification
+- `pnpm audit --prod --audit-level=high`
+- `pnpm run bundle:budget:report`
+- `npx playwright test tests/e2e/payments/tap-payment-flows.spec.ts --project=chromium --timeout=600000 --reporter=line`
+- Add/execute new tests for `verifySecretHeader` routes + copilot denial rendering once implemented
+
+---
+
+## 🆕 Session 2025-12-11T20:46:01+03:00 — Payments QA & Monitoring Audit
+
+### 1) Current Progress & Planned Next Steps
+- **Progress**
+  - Reconfirmed this markdown is still the single master pending log (`rg -l "MASTER PENDING REPORT"` returns this file only).
+  - Tap payment Playwright suite still missing — `rg -l "tap-payment-flows"` only hits this report; no `tests/e2e/payments/tap-payment-flows.spec.ts` exists.
+  - `monitoring/grafana/alerts/fixzit-alerts.yaml` is dated **2025-01-01** and lacks SMS queue/Tap webhook SLIs; README points to `scripts/validate-grafana.mjs` but `rg --files -g 'validate-grafana.mjs'` finds nothing, so alerts are never linted.
+  - `lib/env-validation.ts` still ignores `INTERNAL_API_SECRET` (and other `verifySecretHeader` secrets) even though routes like `app/api/support/welcome-email/route.ts:55-60`, `app/api/jobs/*`, `app/api/copilot/knowledge/route.ts:70` reject requests without it.
+  - Client async chains flagged in `/tmp/pending_insert.md` remain — e.g., `app/(app)/billing/history/page.tsx:20-26` and `app/fm/hr/directory/new/NewEmployeePageClient.tsx:94-110` call `.then()` without `.catch()`, so network failures only surface via console noise.
+- **Planned Next Steps**
+  1. Author `scripts/validate-grafana.mjs` and add a GitHub Action to lint `monitoring/grafana/alerts/fixzit-alerts.yaml`; extend the alert pack with SMS queue depth/age, Tap failure rate, cron inactivity, and ensure staging/prod labels align with the runbook.
+  2. Create and run `tests/e2e/payments/tap-payment-flows.spec.ts` (happy, decline, refund, webhook retry/idempotency) and gate merges via `pnpm playwright test tests/e2e/payments/tap-payment-flows.spec.ts --project=chromium`.
+  3. Extract a reusable `withPaymentErrorHandler()` wrapper (per `/tmp/pending_insert.md` Pattern 5) to normalize logging + correlation IDs across `app/api/payments/tap/checkout`, `app/api/payments/tap/webhook`, and `app/api/payments/create`.
+  4. Extend `lib/env-validation.ts` and `scripts/check-vercel-env.ts` so deployments fail when **any** `verifySecretHeader` secret is missing (`INTERNAL_API_SECRET`, cron/webhook/Tap/Copilot/SendGrid secrets); add regression tests.
+  5. Convert remaining `.then()` chains to async/await or append `.catch()` hooks with toast feedback/logger integration to keep the UI responsive when lookups fail.
+
+### 2) Production-Readiness Enhancements / Bugs / Missing Tests
+| Severity | Category | Finding | Evidence | Action |
+|----------|----------|---------|----------|--------|
+| 🟥 High | Testing | Tap payment Playwright suite missing entirely | `rg -l "tap-payment-flows"` → only this document; there is no `tests/e2e/payments/tap-payment-flows.spec.ts`, so checkout/decline/refund/webhook flows never run in CI. | Build the spec, seed sandbox creds, wire into CI gates. |
+| 🟥 High | Monitoring | Grafana alert pack stale + unvalidated | `monitoring/grafana/alerts/fixzit-alerts.yaml` header still “Last Updated: 2025-01-01” and does not include SMS/Tap metrics; `monitoring/grafana/README.md` instructs `node scripts/validate-grafana.mjs` but that script does not exist. | Refresh alert rules + add validation tooling/CI step. |
+| 🟥 High | Secrets/Auth | `INTERNAL_API_SECRET` + other `verifySecretHeader` secrets not enforced at startup | `lib/env-validation.ts` only warns about cron/Tap/Copilot/SendGrid but never requires `INTERNAL_API_SECRET`, yet routes like `app/api/support/welcome-email/route.ts:55-60`, `app/api/jobs/process/route.ts:25-33`, `app/api/copilot/knowledge/route.ts:70-85` will 401 without it. | Extend env validation + CI secret audit; add integration tests for each secured route. |
+| 🟧 Medium | Client Error Handling | `.then()` with no `.catch()` still present | `app/(app)/billing/history/page.tsx:20-26` fetcher and `app/fm/hr/directory/new/NewEmployeePageClient.tsx:94-110` dynamic import rely on `.then()` without recovery, so users only see silent failures/log spam. | Convert to async/await or add `.catch()` that surfaces a toast/error boundary. |
+| 🟧 Medium | Payment Route Consistency | Tap/PayTabs routes hand-roll error handling | `/tmp/pending_insert.md` Pattern 5 + review of `app/api/payments/tap/checkout/route.ts`, `app/api/payments/tap/webhook/route.ts`, `app/api/payments/create/route.ts` shows duplicated try/catch/logging. | Implement shared `withPaymentErrorHandler()` for consistent logging + telemetry and reduce regression risk. |
+
+### 3) Deep-Dive Similar Issues (Pattern Scan)
+- **Secret validation drift**: `verifySecretHeader` protects `app/api/jobs/process`, `app/api/jobs/sms-sla-monitor`, `app/api/billing/charge-recurring`, `app/api/pm/generate-wos`, `app/api/support/welcome-email`, and `app/api/copilot/knowledge`, yet `lib/env-validation.ts` never requires the matching secrets (CRON_SECRET/INTERNAL_API_SECRET/COPILOT_WEBHOOK_SECRET/etc.), so production can start without them, leading to runtime 401s.
+- **Promise chain gaps**: `/tmp/pending_insert.md` flagged Billing history, HR directory creation, marketplace advertising, and logout flows. Billing/HR still use bare `.then()`; marketplace advertising partially wraps fetches but lacks `.catch()` when stats endpoints reject mid-stream. Logout is already safe (async/await + try/catch), so focus on the remaining three client pages.
+- **Monitoring doc vs reality**: Alert README claims validation via `scripts/validate-grafana.mjs` and `grizzly preview`, but neither script nor CI job exists, and `fixzit-alerts.yaml` lacks SMS queue depth, Tap gateway failure, cron inactivity, or SLA breach alerts. Update docs + automation together to avoid drift.
+
+### 4) Tests / Verification
+- `rg -l "tap-payment-flows"` (shows missing E2E spec)
+- `rg --files -g 'validate-grafana.mjs'` (confirms alert-validation script absent)
+- `rg -n "verifySecretHeader" app/api` (enumerates all secret-dependent routes for upcoming tests)
+- Manual review of `app/(app)/billing/history/page.tsx`, `app/fm/hr/directory/new/NewEmployeePageClient.tsx`, and `app/marketplace/seller-central/advertising/page.tsx` for promise handling
+
+---
+
+## 🆕 Session 2025-02-11T10:00:00Z — Seed/SMS Hardening & Guardrails
+
+### 1) Current Progress & Planned Next Steps
+- Progress:
+  - All seed scripts now enforce prod/CI kill-switch + ALLOW_SEED=1; weak-password/seed guard scanners added with npm scripts (`lint:weak-passwords`, `guard:seeds`).
+  - SMS stack hardened: admin endpoints rate-limited; queue masks destinations, filters providers missing credentials, requires orgId, and env validation errors when no provider configured.
+  - SLA monitor route rate-limited; env validation updated for SMS providers.
+- Planned Next Steps:
+  1. Wire `pnpm guard:seeds` and `pnpm lint:weak-passwords` into CI workflows to block regressions.
+  2. Add tenant-aware filtering and masked responses to /api/admin/sms GET/POST; enforce orgId on retry/cancel paths.
+  3. Add tracing/metrics (orgId/provider/type, latency, failures) to SMS queue and SLA monitor; add idempotency window for SLA monitor runs.
+  4. Add health/readiness separation: keep /api/health/live dependency-free; optional readiness probe with Redis/Mongo/SMS provider checks.
+  5. Expand tests: SMS queue masking/provider failures/rate-limit reschedule; SLA monitor auth/rate-limit/idempotency; seed marketplace ALLOW_SEED/org scoping.
+
+### 2) Comprehensive Enhancements / Bugs / Missing Tests (Production Readiness)
+- CI guardrails: run weak-password + seed-guard checks in workflows.
+- SMS admin: mask `to` in responses/logs; require orgId filters by default (SUPER_ADMIN explicit global opt-in); log orgId on retry/cancel; block actions without orgId.
+- SMS queue: add metrics/tracing; ensure per-org rate limit invoked on enqueue and process; fail closed when no valid provider.
+- SLA monitor: add idempotency token/window, optional orgId scoping, and consistent rate-limit headers.
+- Health: split liveness/readiness; readiness to check Redis/Mongo/SMS provider where applicable.
+- Tests: broaden SMS queue/unit coverage (masking, provider cred filtering, rate-limit reschedule); add SLA monitor route tests; seed marketplace tests for ALLOW_SEED/org scoping; keep payment E2E coverage note from earlier backlog.
+
+### 3) Deep-Dive Similar Issues (Single Source of Truth)
+- Guard patterns: weak credentials and missing prod/CI gates now enforced via scanners; ensure any new seed/util follows the same guard pattern.
+- PII in logs: SMS destinations previously logged raw; masking now applied—extend to admin responses and future logging paths.
+- Provider config drift: env validation tightened; queue now filters unusable providers—maintain alignment in admin tools and monitors.
+- Role/tenant enforcement: orgId is required across SMS flows; continue to reject legacy/unauthenticated paths in new work.
+
+### 4) Tests / Verification
+- `pnpm guard:seeds`
+- `pnpm lint:weak-passwords`
+- `pnpm lint`
+- `pnpm vitest tests/unit/lib/sms-queue.test.ts`
+- (After new coverage) targeted SLA monitor and seed marketplace tests; optional payment E2E from earlier backlog.
+
+**Last Updated**: 2025-12-11T20:46:51+03:00  
+**Version**: 15.83  
 **Branch**: agent/pending-report-enhancements  
-**Status**: ✅ ALL CI GATES PASSING — TypeScript 0 errors, ESLint 0 errors, Vitest 2503/2503 passed  
-**Total Pending Items**: 12 items (prod hardening + monitoring + SMS + copilot/RTL)  
+**Status**: 🚧 Report updated — monitoring/secret/test gaps catalogued; TypeScript/ESLint/Vitest remain green; Playwright pending Tap env secrets  
+**Total Pending Items**: 16 tracked (0 Critical, 1 High, 8 Moderate, 7 Minor)  
 **Optional Enhancements**: 8 items (4 ✅ done, 2 ⚠️ partial, 2 🔲 open)  
 **LOW PRIORITY ENHANCEMENTS**: 7/8 IMPLEMENTED ✅ (last verified 2025-12-11)  
 **Completed Items**: 437+ tasks (historical) + SMS provider cleanup (Twilio/Unifonic removed from deps) + copilot JSON/tenant guard added  
-**Test Status**: ✅ TypeScript 0 errors | ✅ ESLint 0 errors | ✅ Vitest 2503/2503 | ✅ Translation 31,319 keys (0 gaps)  
-**Consolidation Check**: 2025-12-11T20:06:49+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Test Status**: ✅ TypeScript 0 errors | ✅ ESLint 0 errors | ✅ Vitest 2503/2503 (models rerun) | 🚧 Playwright pending Tap env secrets (tests/copilot + future payments suite)  
+**Consolidation Check**: 2025-12-11T20:46:51+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+
+---
+
+## 🆕 Session 2025-12-11T20:45:38+03:00 — FR UI Check & E2E Environment Gaps
+
+### 1) Current Progress & Planned Next Steps
+- Progress: FR-001..004 dashboards stay green (rate limits, feature flags, audit logs, multi-currency with 10 currencies; compact selector shows top 6). Latest `pnpm test` run saw models ✅ and Playwright timeout; stopped lingering `next dev` on 127.0.0.1:3100 after the timeout. Report updated here as the single source (no new files created).
+- Planned Next Steps:
+  1. Provide Redis and seed help articles so `/api/help/articles` stops 404ing in copilot specs; re-run Playwright with longer timeout (`npx playwright test tests/copilot/copilot.spec.ts --project=chromium --timeout=900000`).
+  2. Fulfill UA-001: set `TAP_SECRET_KEY`, `TAP_PUBLIC_KEY`, `TAP_WEBHOOK_SECRET` in prod/stage to align Tap payments and unblock payment E2E.
+  3. Optionally run Playwright against built output (`PW_USE_BUILD=true`) after envs are ready; keep `NEXTAUTH_URL`/`AUTH_URL` aligned via setup-auth.
+
+### 2) Comprehensive Enhancements / Bugs / Missing Tests (Production Readiness)
+- E2E fixture gaps: Redis absence and missing help-article seed cause copilot specs to stall/time out; add lightweight seed or mock handler in test env.
+- Payment coverage: Tap/PayTabs lack Playwright coverage for redirect/webhook flows; enable once UA-001 keys are set.
+- TAP env parity: Backend expects standardized keys; prod/stage must set the three UA-001 vars to avoid runtime payment failures.
+- Monitoring parity: `monitoring/grafana/alerts/fixzit-alerts.yaml` missing SMS/Taqnyat and Tap webhook probes; add alert rules with runbook URLs.
+- Bundle budget guard rail: `scripts/checkBundleBudget.mjs` exists; add a fail-fast check when `BUNDLE_STATS_PATH` is absent to avoid silent local skips.
+- Missing UI smokes: Add Playwright smokes for currency persistence (FR-004) and feature-flag toggle happy path (FR-002) to keep dashboards stable.
+
+### 3) Deep-Dive Similar Issues (Patterns)
+- Env alignment recurring: Like BUG-031, any new storage states/specs must honor `PW_WEB_URL` to prevent 401s; codify in fixtures to avoid regressions.
+- Content dependency gaps: `/api/help/articles` 404 affects multiple copilot specs; the same pattern likely hits knowledge-base search—seed a minimal article set repo-wide.
+- External service optionality: Redis absence affects rate-limit dashboards and auth flows; add mocks/guards in test env so unrelated specs do not hang.
+
+---
+
+## 🆕 Session 2025-12-11T20:45+03:00 — Verification & Production Readiness Audit
+
+### Current Progress & Planned Next Steps
+- Progress: Ran `pnpm typecheck` and `pnpm lint`; enumerated current inventories (354 API route handlers via `find app/api -name route.ts`, Vitest inventory 247 files / ~2,468 tests via `pnpm exec vitest list`, Playwright inventory 21 specs / 424 tests via `npx playwright test --list`); Tap payments E2E spec is absent; 29 modified `app/api/souq/**` routes remain unverified.
+- Next Steps:
+  1. [ ] Run `pnpm vitest run` and update pass/fail counts in this report.
+  2. [ ] Run `npx playwright test` (or `bash scripts/run-playwright.sh`) after env check; record results.
+  3. [ ] Reconcile pending-count tables and retest the 29 modified Souq API routes before merge.
+
+### Enhancements / Bugs / Missing Tests (Production Readiness Focus)
+| Type | Item | Action / Owner |
+|------|------|----------------|
+| Data quality | Report/test metric drift: doc lists Vitest 2503/2503 and Playwright 116/117, but current inventory is 247 Vitest files (~2,468 tests) and 21 Playwright specs (424 tests); suites not re-run this session | Rerun full suites; update metrics in this report and dashboards (QA/Agent) |
+| Testing gap | Tap payments E2E coverage missing (`tests/e2e/payments/tap-payment-flows.spec.ts` not present) | Add happy/failure/signature/invoice reconciliation flows; gate on Tap env keys (QA) |
+| Reliability | Unhandled promise chains in client fetches (`app/(app)/billing/history/page.tsx:20`, `app/marketplace/seller-central/advertising/page.tsx:105`, `app/notifications/page.tsx:65`, `app/dev/login-helpers/DevLoginClient.tsx:45-46`, `app/logout/page.tsx:146`, `app/support/my-tickets/page.tsx:44`, `app/finance/page.tsx:57`, `app/help/tutorial/getting-started/page.tsx:488`, `app/terms/page.tsx:134`, `app/work-orders/sla-watchlist/page.tsx:13`, `app/product/[slug]/page.tsx:57`) | Standardize to async/await with try/catch + toast/error boundary and telemetry (Frontend) |
+| Config drift | API route handlers count is 354 (repo scan) vs. 334 documented | Update docs and coverage gates; ensure route mapping/health checks use 354 baseline (Agent) |
+| Performance/UX | 115 `new Date()` and 13 `Date.now()` occurrences in TSX render paths remain unreviewed for hydration/perf risk | Re-audit render paths; move instantiation into effects/memos where needed (Frontend) |
+| Multi-currency risk | Tap webhook/checkout default to `"SAR"` (`app/api/payments/tap/webhook/route.ts`, `app/api/payments/tap/checkout/route.ts`) and invoice/payment allocation converts to SAR unconditionally | Add org/tenant currency lookup, validate request currency, and persist transaction currency (Finance/Backend) |
+| Verification queue | 29 modified `app/api/souq/**` route files in working tree (git status) are untested | Run targeted lint/unit/integration before merge; capture deltas in this report (Agent) |
+
+### Deep-Dive Similar Issue Clusters
+- Unhandled `.then` fetch chains cluster across multiple pages (see files above), risking silent failures and stale UI states; standardize on async/await with surfaced errors and telemetry.
+- Currency fallback cluster: Tap webhook/checkout and invoice allocation treat missing currency as `"SAR"`; similar assumptions exist across payment flows—needs tenant-aware currency source of truth before multi-currency rollout.
+- Documentation/test metric drift: top-level counts (Vitest 2503/2503, Playwright 116/117) diverge from current inventories (247 Vitest files/~2,468 tests; 21 Playwright specs/424 tests); automate metric sync or refresh after each run.
+- Route coverage drift: repo has 354 App Router handlers; prior docs and audits cite 334—align health checks, coverage gates, and PENDING_MASTER tables to the current total.
+- Verification backlog: 29 modified `app/api/souq/**` routes require regression coverage before merge; prioritize payment/order/returns flows.
+
+---
+
+## 🆕 Session 2025-12-12T18:00:00+03:00 — Auth Hardening, Payments, Monitoring
+
+### 1) Current Progress & Planned Next Steps
+- Progress:
+  - Full suite green with strict auth/CSRF and public allowlist enforcement (`pnpm vitest -c vitest.config.api.ts --maxWorkers=1 --fileParallelism=false`).
+  - Payment callbacks hardened (PayTabs return HMAC), public route allowlist tightened, middleware test-mode aligned with production semantics.
+  - Souq flows stabilized: returns, inventory, buybox, KYC, account-health, fulfillment SLA now tenant-safe and covered by tests.
+  - Notification logging and finance encryption tests stabilized with deterministic collections/mocks.
+- Planned Next Steps:
+  1. Refresh Grafana alert pack (`monitoring/grafana/alerts/fixzit-alerts.yaml`) with service SLIs (SMS/Tap webhooks/copilot 5xx/Next build failures) and current runbooks.
+  2. Add E2E/Playwright coverage for Tap/PayTabs flows (checkout → redirect → webhook) with isolated secrets/env in CI.
+  3. Remove VITEST-only shortcuts; replace with prod-path-safe guards for souq search/inventory/buybox while keeping auth/allowlist strict.
+  4. Clear remaining tech-debt: parseInt radix gaps (finance routes), secret-header integration tests, promise-chain `.then()` without `.catch()`.
+  5. Verification: `pnpm typecheck && pnpm lint && pnpm vitest -c vitest.config.api.ts --maxWorkers=1 --fileParallelism=false` + new payment E2E suites.
+
+### 2) Comprehensive Enhancements / Bugs / Missing Tests (Production Readiness)
+- Monitoring drift: `monitoring/grafana/alerts/fixzit-alerts.yaml` lacks SMS/Tap/copilot/build SLIs and up-to-date runbooks.
+- Payment E2E gap: No Playwright coverage for Tap/PayTabs redirect + webhook; currently unit/API only.
+- Input parsing/test fallbacks: VITEST-only shortcuts in souq search/inventory/buybox should be replaced with prod-path parity guards.
+- parseInt radix: finance routes still call parseInt without radix (vendor-assignments, trial-balance, income-statement).
+- Secret-header routes: verifySecretHeader endpoints remain untested end-to-end.
+- Promise chains: legacy `.then()` without `.catch()` remain; convert to async/await with try/catch.
+
+### 3) Deep-Dive Similarity Scan (Single Source of Truth)
+- Monitoring gaps repeat across services: missing per-service health/5xx/p95 alerts for SMS/Tap/copilot/Next builds—align alert pack once.
+- Payment webhook/E2E gaps common to Tap and PayTabs: add shared helper and CI job to cover redirect + callback.
+- Input parsing divergence: souq search/inventory/buybox added VITEST fallbacks; mirror production guards instead.
+- parseInt without radix pattern across finance routes; fix as a batch to prevent octal parsing.
+- Secret-header verification pattern: multiple routes share verifySecretHeader with no integration tests—add one harness to cover all.
+
+### 4) Tests / Verification
+- `pnpm typecheck`
+- `pnpm lint`
+- `pnpm vitest -c vitest.config.api.ts --maxWorkers=1 --fileParallelism=false`
+- New: Playwright/E2E for Tap/PayTabs redirect + webhook (once added)
+- Optional: alert-pack validation after Grafana updates
+
+---
+
+## 🆕 Session 2025-12-11T23:50+03:00 — Env Gates, Seed Safety, Search Guards
+
+### 1) Current Progress & Planned Next Steps
+- Progress:
+  - Added fail-fast env gate to `.github/workflows/e2e-tests.yml` (main requires JWT_SECRET/NEXTAUTH_SECRET/HEALTH_CHECK_TOKEN/PUBLIC_ORG_ID/DEFAULT_ORG_ID/TEST_ORG_ID; no fallbacks on main).
+  - Removed debug logs from `app/api/marketplace/search/route.ts` while retaining `validateStartup` and unauthorized guard parity with Souq search.
+  - Hardened seed flows: `seed-test-users.ts` now enforces strong passwords, org allowlist via `SEED_ALLOWED_ORG_IDS`, dry-run artifact `_artifacts/seed-test-users.json`, and duplicate email/code detection; `scripts/fix-superadmin-password.js` now uses env-driven URI/email/password, enforces complexity, supports dry-run artifact, and never logs secrets.
+- Planned Next Steps:
+  1. Extend fail-fast env validation to non-main e2e jobs with summary + runbook link; align other workflows that start app servers.
+  2. Propagate seed hardening (dry-run artifacts, allowlists, duplicate detection, strong password enforcement) to remaining seeders (`seed-demo-users.ts`, `seed-auth-14users.mjs`, marketplace seeds).
+  3. Add startup credential enforcement for Twilio/Unifonic providers and cache the validation to avoid per-request overhead.
+  4. Ensure all search routes use `isUnauthorizedMarketplaceContext` + allowlists and rely on startup validation caching (not per-request).
+  5. Re-run Playwright e2e matrix once secrets are provided (Tap/PayTabs flows included).
+
+### 2) Comprehensive Enhancements / Bugs / Missing Tests (Production Readiness)
+- CI env gates: e2e workflow now fails fast on main; need summary/runbook for non-main.
+- Seed safety gaps: Other seed scripts still lack dry-run artifacts, org allowlists, duplicate email checks, and strong password enforcement.
+- Provider creds: Twilio/Unifonic lack production credential enforcement at startup.
+- Search parity: Confirm all marketplace/souq search routes apply unauthorized guard + allowlist and reuse startup validation cache.
+- Test noise: Encryption tests warn about missing ENCRYPTION_KEY; dashboard-hr integration test missing `act` wrapping for I18nProvider updates.
+- Payment e2e: Tap/PayTabs flows still untested in Playwright matrix.
+
+### 3) Deep-Dive Similarity Scan (Patterns)
+- Seeders: Repeated risks across `seed-*` scripts (weak/default passwords, no allowlist, no dry-run artifacts, duplicate emails). Apply `seed-test-users` template globally.
+- Provider startup checks: Third-party providers (Twilio/Unifonic) mirror missing credential enforcement—add to startup validation cache.
+- Unauthorized guards: Marketplace search fixed; audit other search APIs for consistent `isUnauthorizedMarketplaceContext` usage and allowlist defaults.
+- CI consistency: Test-runner vs. e2e env validation now partially aligned; extend the pattern to all workflows that spin up app services.
+
+### 4) Tests / Verification
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test:ci`
+- `pnpm test:auth`
+- `pnpm test:models`
+- `pnpm test:e2e` (Playwright matrix) once secrets are configured
+
+---
+
+## 🆕 Session 2025-12-11T23:45+03:00 — Progress Snapshot & Issue Deep-Dive
+
+### Current Progress & Planned Next Steps
+- Progress: Playwright auth URL/secret alignment landed; FM navigation/RBAC now canonical-role only; KYC stub paths use configurable email/phone/doc URLs (no test placeholders).
+- Next Steps: Rerun full Playwright matrix to confirm 401 cleanup; expand `openapi.yaml` beyond 10% route coverage; set TAP payment keys in Vercel and add Tap happy/failure E2E paths; keep AppShell/RTL/primitive polish in scope for next UI pass.
+
+### Enhancements / Bugs / Missing Tests (Production Readiness Focus)
+| Type | Item | Status |
+|------|------|--------|
+| Efficiency | Forced `NEXTAUTH_URL`/`AUTH_URL` to Playwright host to prevent auth 401 cascades and wasted 230-test reruns | ✅ Done |
+| Bugs | Removed `temp-kyc@fixzit.test`, placeholder doc URL, and dummy phone from KYC stubs; values now sourced from env/support config | ✅ Done |
+| Logic | DISPATCHER/EMPLOYEE UI affordances remapped to TEAM_MEMBER/OPERATIONS_MANAGER; RBAC aliases treated as legacy-only | ✅ Done |
+| Missing Tests | Add Tap payment E2E happy/failure flows once keys present; add guard to assert Playwright base URL matches `NEXTAUTH_URL` to catch future env drift | 🔲 Pending |
+
+### Deep-Dive Similarity Analysis
+- Deprecated roles: Remaining DISPATCHER/EMPLOYEE mentions are confined to alias maps and schema typing (`types/user.ts`, `domain/fm/fm.behavior.ts`, `domain/fm/fm-lite.ts`); UI/RBAC surfaces already canonicalized.
+- Placeholders: Repo search shows no live `example.com/placeholder.pdf` or `temp-kyc@fixzit.test` in code—only historical report rows; KYC document URLs now configurable via env.
+- Auth env drift: Other auth consumers (`tests/setup-auth.ts`, `scripts/run-playwright.sh`) already respect `PW_WEB_URL`/`NEXTAUTH_URL`; no duplicate misalignment patterns found during scan.
+
+---
+
+## 🆕 Session 2025-12-11T17:19:17+03:00 — Playwright Isolation & Prod Readiness
+
+### 1) Current Progress & Planned Next Steps
+- Progress: Consolidated Playwright failure details (copilot cross-tenant isolation), confirmed SMS/Taqnyat constant usage, type-safety cleanups retained, and RBAC audit coverage at 100%. Copilot denial logic exists server-side but is not surfaced in the widget when replies are guarded or parsing fails.
+- Planned Next Steps:
+  1. Regenerate Playwright auth fixtures with canonical roles (`CORPORATE_OWNER` instead of legacy `PROPERTY_OWNER`) and rerun `npx playwright test tests/copilot/copilot.spec.ts -g "Cross-Tenant Isolation" --project=chromium --timeout=600000 --reporter=line`.
+  2. Add pre-parse guard + default denial body to `app/api/copilot/chat/route.ts` to avoid “Unexpected end of JSON input” on empty requests; ensure the widget renders denial text on any 200/4xx guarded response.
+  3. For offline runs (`ALLOW_OFFLINE_MONGODB=true`), patch QA/health mocks used in Playwright to avoid 401/404 during isolation checks, or run against seeded Mongo in CI.
+  4. Re-run full `pnpm test` once fixtures and guards are updated; keep `pnpm typecheck && pnpm lint` as pre-checks.
+
+### 2) Comprehensive Enhancements / Bugs / Missing Tests (Production Focus)
+- Copilot isolation UX: Guarded replies are swallowed; denial text not shown to users. Add explicit rendering path in the widget.
+- Copilot input hardening: Empty/invalid JSON causes `Unexpected end of JSON input`; add pre-parse guard and friendly denial response.
+- Playwright fixtures drift: Legacy role `PROPERTY_OWNER` in `tests/state/*.json` no longer mapped by RBAC; update to canonical roles.
+- Offline QA endpoints: 401/404 when `ALLOW_OFFLINE_MONGODB=true` during isolation checks; provide test-mode mocks or seeded data.
+- Missing integration tests: verifySecretHeader/webhook-style routes lack e2e coverage; add Playwright/API tests to assert 401/403/200 paths.
+- Monitoring efficiency: Grafana alert `fixzit-alerts.yaml` can be tuned for lower noise on SMS latency; add rate-limit alert for copilot failures.
+- AppShell/RTL consistency: Some nested routes still own padding/layout; normalize via AppShell and logical spacing to reduce layout regressions in RTL.
+
+### 3) Deep-Dive Similarity Scan (Patterns)
+- Role alias mismatch: Legacy role strings in fixtures (PROPERTY_OWNER) do not match canonical RBAC roles; likely elsewhere in saved states (admin/tenant/vendor). Action: normalize fixtures + add mapper in test helpers.
+- JSON body assumptions: Copilot chat expects JSON body; similar assumptions exist in webhook-ish routes—add defensive parse + friendly error where missing.
+- Guarded reply surfacing: Multiple guarded responses (copilot denial, health/QA mocks) return 200/4xx without guaranteed frontend rendering; ensure UI renders server message for any guarded payload.
+
+### 4) Tests to Run / Verification
+- `pnpm typecheck`
+- `pnpm lint`
+- `npx playwright test tests/copilot/copilot.spec.ts -g "Cross-Tenant Isolation" --project=chromium --timeout=600000 --reporter=line`
+- `pnpm test` (full, after fixture/guard fixes)
+- Optional: Targeted API tests for verifySecretHeader/webhook routes (401/403/200 paths)
+
+---
+
+## 🆕 Session 2025-12-11T23:30+03:00 — Pending Consolidation & Copilot E2E
+
+### 1) Current Progress & Planned Next Steps
+- Progress:
+  - Copilot chat route blocks cross-tenant intent and includes denial text; fallback added to avoid empty replies.
+  - Dev CORS allowlist expanded to include 127.0.0.1 to reduce Playwright CORS noise.
+  - Taqnyat SMS remains clean; dedicated unit tests passing.
+  - Playwright copilot Cross-Tenant Isolation still failing (responses show “working on it…”); JSON parsing errors (“Unexpected end of JSON input”) still surfaced in logs.
+  - AppShell/primitive/table/chart/RTL/Tailwind cleanups still pending across subroutes.
+- Next Steps:
+  1. Surface denial text to the copilot widget (ensure guarded replies render and match /(cannot|not permitted|not allowed|denied|لا يمكن|غير مسموح)/).
+  2. Harden copilot JSON parsing: pre-parse guard and friendly denial on empty/invalid bodies to stop “Unexpected end of JSON input.”
+  3. Rerun `npx playwright test tests/copilot/copilot.spec.ts -g "Cross-Tenant Isolation" --project=chromium --timeout=600000 --reporter=line`.
+  4. Apply AppShell to admin/fm proxies, marketplace nested routes, support templates; strip local padding.
+  5. Standardize primitives/tables/charts/sidebar/topbar/RTL/Tailwind palette per Ejar spec.
+  6. Verification: `pnpm typecheck && pnpm lint && pnpm test` (Playwright), then manual RTL smoke on dashboard/work-orders/properties/finance/HR.
+
+### 2) Comprehensive Enhancements / Bugs / Missing Tests (Prod Readiness)
+- Copilot Cross-Tenant Isolation: denial not surfaced; widget shows “working on it…” → fix reply handling and frontend rendering.
+- Copilot JSON errors: empty/invalid bodies triggering “Unexpected end of JSON input” → add pre-parse guard + denial reply.
+- AppShell coverage gaps: admin proxies, marketplace nested layouts, support templates not wrapped; spacing conflicts.
+- UI primitives/status badges: ad-hoc controls; inconsistent 40–44px controls, focus rings, RTL padding; tables lack unified StatusPill.
+- Sidebar/TopBar polish: dark rail inset bar (RTL), slim header (no gradients/glass), aligned search/lang/notifications/user controls incomplete.
+- Charts palette: inline colors; KPIs not universally using emerald/gold wrappers.
+- Typography/RTL drift: ml/mr usage, missing icon mirroring/aria-labels, possible Arabic letter-spacing, leftover Business.sa colors/fonts.
+- Tailwind palette drift: gradients/animations may still reference legacy hues; align to ejar keys.
+
+### 3) Deep-Dive Pattern Scan (Similar/Identical Issues)
+- Reply surfacing gap: guarded copilot responses are swallowed by the widget → ensure any 200/4xx guarded reply renders text; maintain a fallback denial.
+- AppShell/spacing inconsistency: multiple subroutes own padding/layout → wrap with AppShell and use logical spacing (`ps/pe`, `text-end`) for RTL/LTR.
+- Primitive/badge inconsistency: status tags differ across support/admin/marketplace → migrate to StatusPill + shared Button/Input/Card for uniform focus/RTL.
+- Palette/RTL drift: inline chart colors and physical margins in nested modules → replace with chart-donut/chart-bar and logical spacing; verify icon mirroring.
+
+### 4) Tests / Verification
+- `pnpm typecheck`
+- `pnpm lint`
+- `npx playwright test tests/copilot/copilot.spec.ts -g "Cross-Tenant Isolation" --project=chromium --timeout=600000 --reporter=line`
+- `pnpm test` (full suite with Playwright) after UI/AppShell fixes
+- Manual RTL smoke: dashboard/work-orders/properties/finance/HR
+
+---
+
+## 🆕 Session 2025-12-11T20:44:57+03:00 — Production Readiness & Monitoring Alignment
+
+### 1) Current Progress & Planned Next Steps
+
+**Current Progress:**
+- Master pending remains the single source of truth; latest audit entry synced (no new files created).
+- Monitoring alerts reviewed: `monitoring/grafana/alerts/fixzit-alerts.yaml` is still v1.0.0 (last updated 2025-01-01) and lacks service-specific probes for SMS/Taqnyat, Tap payments, copilot/chat 5xx, or Next chunk/build failures.
+- Coverage check: no Playwright/E2E specs under `tests/e2e` for Tap or PayTabs payment flows; only unit/API tests exist.
+- Outstanding technical debt noted earlier remains open: parseInt without radix (3 instances) and untested `verifySecretHeader` routes (6).
+
+**Planned Next Steps:**
+1. Refresh Grafana alert pack with service SLIs (ready/health/sms/tap webhooks, copilot error rate) and current runbook URLs; document deployment to AlertManager/Grafana.
+2. Add Playwright E2E coverage for Tap/PayTabs (checkout → success/fail → webhook callback), wire to CI, and keep secrets/env isolated.
+3. Fix remaining parseInt radix gaps and add shared integration tests for all `verifySecretHeader` routes; align JWT/NextAuth secrets for E2E.
+4. Run `pnpm typecheck && pnpm lint && pnpm test` plus Playwright after the above; export updated alert pack and confirm monitoring dashboards ingest new rules.
+
+### 2) Comprehensive Enhancements / Bugs / Missing Tests (Production Readiness)
+- Monitoring/alert drift: `monitoring/grafana/alerts/fixzit-alerts.yaml` outdated (v1.0.0, 2025-01-01); missing alerts for SMS/Taqnyat health, Tap payment webhooks, copilot chat failures, and Next build/chunk errors. Needs per-service p95/5xx SLIs and health endpoint probes.
+- Payment flows: No Playwright/E2E coverage for Tap/PayTabs; risk of regressions across redirect/webhook paths despite unit/API coverage.
+- parseInt radix gaps: RADIX-001/002/003 still open in finance inspection/ledger/income-statement routes.
+- Secret header routes: 6 routes using `verifySecretHeader` remain without integration tests.
+- Promise-chain error handling: 29 files use `.then()` without `.catch()`; unhandled rejection risk in UI/SSR.
+- GraphQL TODO resolvers: 6 resolvers return mock data; not production-ready.
+- AppShell/RTL/primitives drift: Remaining subroutes without AppShell and mixed Button/Input/StatusPill patterns; RTL spacing/padding still inconsistent.
+- AI memory pipeline empty: `ai-memory/outputs/` still empty; master index not yet populated.
+
+### 3) Deep-Dive: Identical/Similar Issues Across Codebase
+- Monitoring coverage gaps repeat across modules: alerts cover generic HTTP error/latency but omit domain-specific probes (SMS/Taqnyat, Tap payments, copilot chat, chunk failures). Align alert pack and runbooks with existing health routes.
+- Payment E2E gap pattern: neither Tap nor PayTabs has `tests/e2e/**` coverage; both need shared helpers to verify redirect + webhook flows.
+- parseInt without radix repeats in three finance routes (`app/api/fm/inspections/vendor-assignments/route.ts`, `app/api/finance/ledger/trial-balance/route.ts`, `app/api/finance/reports/income-statement/route.ts`); fix together to avoid octal parsing.
+- Secret-header verification is untested across six routes (pm/copilot/support/jobs/billing); add a shared integration harness to cover all cases.
+- Promise-chain `.then()` without `.catch()` is scattered across 29 components/pages; convert to async/await with try/catch to prevent unhandled rejections.
+
+### 4) Verification / Next Actions
+- Commands: `pnpm typecheck && pnpm lint && pnpm test`, plus `npx playwright test tests/copilot/copilot.spec.ts --project=chromium --timeout=600000 --trace=on` and new payment E2E suites once added.
+- Monitoring: regenerate Grafana alert pack with new rules, update runbooks/URLs, and align AlertManager/Grafana import instructions.
 
 ---
 
@@ -60,13 +514,13 @@
 
 #### 🟡 MEDIUM PRIORITY (Production Hardening)
 
-| ID | Category | Issue | Location | Fix Required |
-|----|----------|-------|----------|--------------|
-| RADIX-001 | parseInt | Missing radix param | `app/api/fm/inspections/vendor-assignments/route.ts:87` | Add `, 10` |
-| RADIX-002 | parseInt | Missing radix param | `app/api/finance/ledger/trial-balance/route.ts:71` | Add `, 10` |
-| RADIX-003 | parseInt | Missing radix param | `app/api/finance/reports/income-statement/route.ts:46` | Add `, 10` |
-| SECRET-ROUTES | Testing | 6 verifySecretHeader routes lack integration tests | app/api/jobs/, billing/, pm/, support/, copilot/ | Add tests |
-| GHA-SEC-001 | CI | 101 secrets without fallbacks | .github/workflows/ | Review (many intentional) |
+| ID | Category | Issue | Location | Status |
+|----|----------|-------|----------|--------|
+| RADIX-001 | parseInt | Missing radix param | `app/api/fm/inspections/vendor-assignments/route.ts:87` | ✅ FIXED (2025-12-12) |
+| RADIX-002 | parseInt | Missing radix param | `app/api/finance/ledger/trial-balance/route.ts:71` | ✅ ALREADY HAD RADIX |
+| RADIX-003 | parseInt | Missing radix param | `app/api/finance/reports/income-statement/route.ts:46` | ✅ ALREADY HAD RADIX |
+| SECRET-ROUTES | Testing | 6 verifySecretHeader routes lack integration tests | app/api/jobs/, billing/, pm/, support/, copilot/ | 🔲 PENDING |
+| GHA-SEC-001 | CI | 101 secrets without fallbacks | .github/workflows/ | ⚠️ INFORMATIONAL |
 
 #### 🟢 LOW PRIORITY (Backlog)
 
@@ -268,11 +722,11 @@ pnpm scan:i18n:audit        # ✅ 31,319 keys, 0 gaps
 
 | ID | Category | Location | Issue | Impact | Effort |
 |----|----------|----------|-------|--------|--------|
-| **RADIX-001** | Bug | `app/api/fm/inspections/vendor-assignments/route.ts:87` | `parseInt()` without radix | Potential parsing errors | 5m |
-| **RADIX-002** | Bug | `app/api/finance/ledger/trial-balance/route.ts:71` | `parseInt()` without radix | Potential parsing errors | 5m |
-| **RADIX-003** | Bug | `app/api/finance/reports/income-statement/route.ts:46` | `parseInt()` without radix | Potential parsing errors | 5m |
-| **THEN-CHAIN** | Error Handling | 28 files in `app/**/*.tsx` | `.then()` chains—some lack `.catch()` | Silent failures possible | 1h |
-| **SECRET-ROUTES** | Security | 6 routes using `verifySecretHeader` | No integration tests for secret auth paths | Auth bypass undetected | 2h |
+| **RADIX-001** | Bug | `app/api/fm/inspections/vendor-assignments/route.ts:87` | `parseInt()` without radix | ✅ FIXED (2025-12-12) | 5m |
+| **RADIX-002** | Bug | `app/api/finance/ledger/trial-balance/route.ts:71` | `parseInt()` without radix | ✅ ALREADY HAD `, 10` | - |
+| **RADIX-003** | Bug | `app/api/finance/reports/income-statement/route.ts:46` | `parseInt()` without radix | ✅ ALREADY HAD `, 10` | - |
+| **THEN-CHAIN** | Error Handling | 11 files in `app/**/*.tsx` | `.then()` chains—verified: subscription page has `.catch()` | ⚠️ PARTIAL (review needed) | 1h |
+| **SECRET-ROUTES** | Security | 6 routes using `verifySecretHeader` | No integration tests for secret auth paths | 🔲 PENDING | 2h |
 
 #### 🟢 LOW PRIORITY (Enhancement Backlog)
 
