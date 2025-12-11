@@ -340,17 +340,16 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
       const FMWorkOrderModule = await import("@/domain/fm/fm.behavior").catch(
         () => null,
       );
-      const workOrder = FMWorkOrderModule
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic import requires type assertion
-        ? await (FMWorkOrderModule.FMWorkOrder as any)
+      type WorkOrderOrgProjection = { orgId?: unknown; propertyOwnerId?: unknown };
+      const workOrderModel = FMWorkOrderModule?.FMWorkOrder;
+      const workOrder = workOrderModel
+        ? await workOrderModel
             .findOne({ propertyId: _propertyId })
             .select("propertyOwnerId orgId")
-            .lean()
+            .lean<WorkOrderOrgProjection>()
         : null;
 
-      const workOrderDoc = workOrder as
-        | { orgId?: unknown; propertyOwnerId?: unknown }
-        | null;
+      const workOrderDoc = workOrder ?? null;
       if (workOrderDoc && workOrderDoc.propertyOwnerId) {
         // ORGID-FIX: Validate orgId exists before returning
         const orgIdVal =

@@ -242,9 +242,9 @@ function extractExperience(
     dateRanges.forEach((range) => {
       const parts = range.match(/(\d{4})\s*[-–—]\s*(\d{4}|present|current)/i);
       if (parts) {
-        const startYear = parseInt(parts[1]);
+        const startYear = parseInt(parts[1], 10);
         const endYear = parts[2].match(/\d{4}/)
-          ? parseInt(parts[2])
+          ? parseInt(parts[2], 10)
           : new Date().getFullYear();
         totalYears += endYear - startYear;
       }
@@ -313,7 +313,7 @@ function extractEducation(
   let yearMatch;
   while ((yearMatch = yearPattern.exec(educationSection)) !== null) {
     const year = yearMatch[1];
-    const yearNum = parseInt(year);
+    const yearNum = parseInt(year, 10);
     if (yearNum >= 1960 && yearNum <= new Date().getFullYear() + 5) {
       years.push(year);
     }

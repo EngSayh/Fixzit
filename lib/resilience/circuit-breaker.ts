@@ -155,6 +155,23 @@ export class CircuitBreaker {
   }
 
   /**
+   * Snapshot of breaker metrics for monitoring without exposing mutable state
+   */
+  getMetricsSnapshot(): {
+    state: BreakerState;
+    failureCount: number;
+    successCount: number;
+    cooldownMs: number;
+  } {
+    return {
+      state: this.state,
+      failureCount: this.failureCount,
+      successCount: this.successCount,
+      cooldownMs: this.cooldownMs,
+    };
+  }
+
+  /**
    * Get statistics for monitoring/health checks
    */
   getStats(): {
