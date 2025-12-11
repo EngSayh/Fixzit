@@ -1,13 +1,13 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T20:30:00+03:00  
-**Version**: 15.0  
+**Last Updated**: 2025-12-11T21:00:00+03:00  
+**Version**: 15.1  
 **Branch**: feat/frontend-dashboards  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok, TAP Payments ok)  
-**Total Pending Items**: 70 items (Consolidated from all sources — see Action Plan below)  
-**Completed Items**: 323+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes 8 items + Backlog Verification + Chat Session Analysis + System-Wide Code Audit + PR#520 Extended Deep Dive + POST-STAB AUDIT v2)  
+**Total Pending Items**: 68 items (Consolidated from all sources — see Action Plan below)  
+**Completed Items**: 325+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes 8 items + Backlog Verification + Chat Session Analysis + System-Wide Code Audit + PR#520 Extended Deep Dive + POST-STAB AUDIT v2 + **PSA-001 + CAT4-001 Security Fixes**)  
 **Test Status**: ✅ Vitest full suite previously (2,468 tests) + latest `pnpm test:models` rerun (6 files, 91 tests) | 🚧 Playwright e2e timed out after ~15m during `pnpm test` (dev server stopped post-run; env gaps documented in E2E_TESTING_QUICK_START.md)  
-**Consolidation Check**: 2025-12-11T20:30:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T21:00:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
 
 ---
 
@@ -17,12 +17,12 @@
 
 | ID | Issue | File/Location | Effort | Status |
 |----|-------|---------------|--------|--------|
-| **PSA-001** | ATS moderation route missing orgId scoping (multi-tenant isolation) | `app/api/ats/moderation/route.ts:68` | 30 min | 🔴 CRITICAL |
-| **CAT4-001** | PII Encryption TTL failure handling (plaintext may persist) | `scripts/migrate-encrypt-finance-pii.ts:386` | 30 min | 🔴 SECURITY |
+| **PSA-001** | ATS moderation route orgId scoping ✅ | `app/api/ats/moderation/route.ts:68` | 30 min | ✅ FIXED 2025-12-11 |
+| **CAT4-001** | PII Encryption TTL failure handling ✅ | `scripts/migrate-encrypt-finance-pii.ts:386` | 30 min | ✅ FIXED 2025-12-11 |
 | **CQP-002a** | `as any` in production lib files (2 occurrences) | `lib/resilience/circuit-breaker-metrics.ts:38`, `lib/fm-auth-middleware.ts:345` | 1 hr | 🟡 MEDIUM |
 | **SYS-004** | dangerouslySetInnerHTML review (10 usages) | Multiple components | 1 hr | 🟡 REVIEW |
 
-**Total Effort**: ~3 hours | **Action**: Fix immediately before next deploy
+**Total Effort**: ~2 hours (2 critical items FIXED) | **Action**: Review remaining 2 items
 
 ---
 
