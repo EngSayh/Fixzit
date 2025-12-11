@@ -1,13 +1,131 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T15:07:27+03:00  
-**Version**: 13.33  
+**Last Updated**: 2025-12-11T15:13:04+03:00  
+**Version**: 13.34  
 **Branch**: feat/frontend-dashboards  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok, TAP Payments ok)  
 **Total Pending Items**: 0 remaining — ✅ ALL COMPLETE  
 **Completed Items**: 308+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment)  
 **Test Status**: ✅ Vitest full suite previously (2,468 tests) + latest `pnpm test:models` rerun (6 files, 91 tests) | 🚧 Playwright e2e timed out after ~15m during `pnpm test` (dev server stopped post-run; env gaps still blocking)  
-**Consolidation Check**: 2025-12-11T15:07:27+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T15:13:04+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+
+---
+
+## 📋 BACKLOG: IMPROVEMENTS, TESTS & NEXT ACTIONS
+
+### 🟡 MODERATE PRIORITY - Recommended Improvements
+
+#### 1. Documentation Cleanup (Legacy Env Var References)
+
+Old `TAP_SECRET_KEY`/`TAP_PUBLIC_KEY` references remain in archived docs:
+
+| File | Issue |
+|------|-------|
+| `docs/archived/reports/IMPLEMENTATION_AUDIT_REPORT.md` | References old env vars in code examples |
+| `docs/PENDING_MASTER.md` | Historical section references old pattern |
+| `docs/fixes/CI_FIX_COMPREHENSIVE_REPORT.md` | Old env var check example |
+| `docs/deployment/DEPLOYMENT_GUARDRAILS.md` | Lists old TAP_PUBLIC_KEY |
+| `docs/deployment/SECRETS_ADDED_SUMMARY.md` | Lists TAP_SECRET_KEY, TAP_PUBLIC_KEY |
+| `docs/deployment/VERCEL_SECRETS_STATUS.md` | Old vercel env add commands |
+
+**Recommendation**: Update docs to reference canonical env vars for consistency.
+
+#### 2. Uncommitted Files in Workspace
+
+| File | Issue |
+|------|-------|
+| `package.json` | Modified (unknown changes) - *Currently clean* |
+| `tools/checkBundleBudget.mjs` | Deleted - *Currently clean* |
+
+**Status**: ✅ Workspace is currently clean (no uncommitted changes as of 2025-12-11T15:13)
+
+---
+
+### 🟢 LOW PRIORITY - Optional Enhancements
+
+#### 3. Test Coverage Expansion
+
+| Area | Current State | Enhancement |
+|------|---------------|-------------|
+| TAP Payments | Unit tests exist | Add E2E payment flow tests with mock Tap API |
+| Webhook Handlers | Basic coverage | Add signature verification failure tests |
+| Multi-currency | Selector tested | Add currency conversion edge case tests |
+
+#### 4. Security Hardening
+
+| Area | Current | Enhancement |
+|------|---------|-------------|
+| Rate Limiting | Redis-based | Add IP reputation scoring |
+| Webhook Verification | HMAC signature | Add request timestamp validation (reject >5min old) |
+| Secret Rotation | Manual | Document rotation procedure in RUNBOOK.md |
+
+#### 5. Performance Monitoring
+
+| Area | Current | Enhancement |
+|------|---------|-------------|
+| Bundle Budget | CI gate exists | Add historical trend tracking |
+| API Latency | Alert thresholds set | Add percentile tracking (p50, p95, p99) |
+| Database Queries | Basic logging | Add slow query alerting (>500ms) |
+
+#### 6. i18n Improvements
+
+| Area | Current | Enhancement |
+|------|---------|-------------|
+| Dynamic Keys | Flagged as UNSAFE_DYNAMIC | Document approved dynamic key patterns |
+| Translation Coverage | 100% EN/AR parity | Add FR/ES full translations (currently fall back to EN) |
+| RTL Testing | Manual | Add Playwright visual regression for RTL layouts |
+
+---
+
+### 🧪 TESTS TO RUN
+
+#### Immediate Verification
+```bash
+# 1. TypeScript compilation
+pnpm typecheck
+
+# 2. Unit tests
+pnpm test
+
+# 3. Lint
+pnpm lint
+
+# 4. E2E tests (requires running dev server)
+pnpm test:e2e
+
+# 5. i18n parity check
+node scripts/audit-translations.mjs
+
+# 6. Bundle budget check
+pnpm bundle:budget:report
+```
+
+#### Production Verification
+```bash
+# 1. Build production bundle
+pnpm build
+
+# 2. Verify Vercel deployment
+# - Check /api/health endpoint
+# - Test TAP payment flow in test mode
+# - Verify webhook endpoint responds to Tap
+
+# 3. MongoDB connection
+# - Verify via /api/dev/check-env (dev only)
+
+# 4. SMS (Taqnyat) verification
+# - Send test SMS via admin panel
+```
+
+---
+
+### 📋 RECOMMENDED NEXT ACTIONS (Priority Order)
+
+1. **Review uncommitted changes** - `package.json` and deleted `tools/checkBundleBudget.mjs` *(Currently clean)*
+2. **Run full test suite** - Verify TAP changes don't break anything
+3. **Deploy to preview** - Test TAP integration in Vercel preview environment
+4. **Update archived docs** - Clean up legacy env var references (optional, low priority)
+5. **Add TAP E2E tests** - Payment flow with mock API (enhancement)
 
 ---
 
