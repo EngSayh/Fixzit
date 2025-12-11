@@ -1,3 +1,17 @@
+/**
+ * @fileoverview Credentials Debug API (Development Only)
+ * @description Test endpoint for debugging credentials authentication flow.
+ * Simulates NextAuth credentials callback to help diagnose auth issues.
+ * @module api/auth/test/credentials-debug
+ *
+ * @security FORBIDDEN in production - returns 403
+ * @security Development-only debugging tool
+ *
+ * @example
+ * // POST /api/auth/test/credentials-debug (dev only)
+ * // Body: { identifier: "test@example.com", password: "password" }
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";

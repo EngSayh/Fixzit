@@ -1,3 +1,17 @@
+/**
+ * @fileoverview FM System Roles API
+ * @description Manages custom RBAC roles for the facility management module.
+ * Allows creating, updating, and listing organization-specific roles with granular permissions.
+ * @module api/fm/system/roles
+ *
+ * @security Requires FM FINANCE module UPDATE permission
+ * @security Multi-tenant isolated via orgId
+ *
+ * @example
+ * // GET /api/fm/system/roles
+ * // POST /api/fm/system/roles { name, description, permissions[] }
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

@@ -1,3 +1,18 @@
+/**
+ * @fileoverview Aqar Support Chatbot API
+ * @description AI-powered real estate assistant for property inquiries, pricing questions,
+ * and general Aqar platform support. Uses context-aware responses based on listing data.
+ * @module api/aqar/support/chatbot
+ *
+ * @security Rate limited: 30 requests/minute per IP
+ * @security Input validated with Zod (max 2000 chars)
+ *
+ * @example
+ * // POST /api/aqar/support/chatbot
+ * // Body: { message: "What's the average price for apartments in Jeddah?", listingId?: "xxx" }
+ * // Returns: { reply: "...", context: {...} }
+ */
+
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";

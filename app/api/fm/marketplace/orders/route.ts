@@ -1,3 +1,17 @@
+/**
+ * @fileoverview FM Marketplace Orders API
+ * @description Manages procurement orders for facility management. Handles order creation,
+ * approval workflows, and order tracking with multi-tenant isolation.
+ * @module api/fm/marketplace/orders
+ *
+ * @security Requires FM module MARKETPLACE permission
+ * @security Multi-tenant isolated via orgId
+ *
+ * @example
+ * // GET /api/fm/marketplace/orders?status=pending_approval
+ * // POST /api/fm/marketplace/orders { requester, department, justification, items[] }
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

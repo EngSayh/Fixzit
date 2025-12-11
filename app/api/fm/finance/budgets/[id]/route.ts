@@ -1,3 +1,18 @@
+/**
+ * @fileoverview FM Finance Budget Detail API
+ * @description Manages individual budget records for facility management finance.
+ * Supports GET/PUT/DELETE operations on specific budget allocations by department.
+ * @module api/fm/finance/budgets/[id]
+ *
+ * @security Requires FM FINANCE module READ/UPDATE/DELETE permission
+ * @security Multi-tenant isolated via orgId
+ *
+ * @example
+ * // GET /api/fm/finance/budgets/123
+ * // PUT /api/fm/finance/budgets/123 { name, department, allocated, currency }
+ * // DELETE /api/fm/finance/budgets/123
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

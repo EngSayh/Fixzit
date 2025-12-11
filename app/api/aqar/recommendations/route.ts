@@ -1,3 +1,16 @@
+/**
+ * @fileoverview Aqar Recommendations API (Authenticated)
+ * @description Provides authenticated property recommendations with tenant-aware filtering.
+ * Requires user authentication and organization context for multi-tenant isolation.
+ * @module api/aqar/recommendations
+ *
+ * @security Rate limited: 60 requests/minute per user/tenant
+ * @security Requires authentication and org context
+ *
+ * @example
+ * // GET /api/aqar/recommendations?listingId=xxx&city=Riyadh&intent=BUY
+ */
+
 import { NextRequest } from "next/server";
 import { dbConnect } from "@/db/mongoose";
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
