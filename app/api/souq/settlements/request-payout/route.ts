@@ -1,9 +1,10 @@
 /**
- * Request Payout API
- * POST /api/souq/settlements/request-payout - Request withdrawal for available balance
- * 
- * 🔐 SECURITY: Amount is derived from the statement's netPayout, NOT user input.
- * User-provided amount is only used for validation to prevent UI/API mismatches.
+ * @fileoverview Payout Request API
+ * @description Processes seller payout requests with secure amount derivation from statements and RBAC-based authorization.
+ * @route POST /api/souq/settlements/request-payout - Request withdrawal for available balance
+ * @access Authenticated (VENDOR/TEAM_MEMBER for self, SUPER_ADMIN/ADMIN/CORPORATE_OWNER/FINANCE_OFFICER for others)
+ * @module souq
+ * @security Amount is derived from the statement's netPayout, NOT user input.
  */
 
 import { NextRequest, NextResponse } from "next/server";

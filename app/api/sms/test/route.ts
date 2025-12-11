@@ -1,10 +1,10 @@
 /**
- * SMS Test API Endpoint
- * POST /api/sms/test
- *
- * Test SMS functionality with Taqnyat (sole SMS provider)
+ * @fileoverview SMS Test API
+ * @description Tests SMS configuration and sends test messages via Taqnyat provider for system verification.
+ * @route POST /api/sms/test - Test SMS configuration or send test message
+ * @access Authenticated (SUPER_ADMIN only)
+ * @module sms
  */
-
 import { NextRequest, NextResponse } from "next/server";
 import { sendSMS, testSMSConfiguration } from "@/lib/sms";
 import { logger } from "@/lib/logger";

@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Recruitment Analytics Dashboard
+ * @description Provides recruitment pipeline analytics including application metrics, interview stats, and hiring funnel data.
+ * @route GET /api/ats/analytics - Retrieve recruitment analytics for specified period
+ * @access Protected - Requires applications:read permission
+ * @module ats
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

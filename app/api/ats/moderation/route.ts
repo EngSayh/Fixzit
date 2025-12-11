@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Job Moderation Control
+ * @description Handles moderation actions on job postings such as approval, rejection, and flagging for review.
+ * @route PUT /api/ats/moderation - Update moderation status of a job posting
+ * @access Protected - Requires authenticated moderator or admin role
+ * @module ats
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

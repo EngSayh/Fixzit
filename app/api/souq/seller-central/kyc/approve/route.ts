@@ -1,3 +1,11 @@
+/**
+ * @fileoverview KYC Approval API
+ * @description Allows administrators to approve or reject complete KYC submissions from sellers.
+ * @route POST /api/souq/seller-central/kyc/approve - Approve or reject KYC submission
+ * @access Authenticated (SUPER_ADMIN, ADMIN, CORPORATE_OWNER only)
+ * @module souq
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
@@ -8,11 +16,6 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
-
-/**
- * POST /api/souq/seller-central/kyc/approve
- * Approve or reject KYC submission (Admin only)
- */
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();

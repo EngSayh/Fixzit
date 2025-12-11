@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Job Postings Management
+ * @description Manages internal job postings with CRUD operations, search, status filtering, and slug generation.
+ * @route GET, POST /api/ats/jobs - List or create job postings
+ * @access Protected - Requires jobs:read or jobs:create permissions
+ * @module ats
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

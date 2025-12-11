@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Ad Campaigns API
+ * @description Manages advertisement campaigns for marketplace sellers including creation and listing.
+ * @route POST /api/souq/ads/campaigns - Create new ad campaign
+ * @route GET /api/souq/ads/campaigns - List campaigns
+ * @access Authenticated (SUPER_ADMIN, CORPORATE_ADMIN, CORPORATE_OWNER, ADMIN, MANAGER, PROCUREMENT, OPERATIONS_MANAGER, VENDOR)
+ * @module souq
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

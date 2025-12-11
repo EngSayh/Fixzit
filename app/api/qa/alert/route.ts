@@ -1,3 +1,11 @@
+/**
+ * @fileoverview QA Alert System
+ * @description Records and retrieves QA alerts for system monitoring and debugging with payload sanitization
+ * @route GET /api/qa/alert - List stored QA alerts
+ * @route POST /api/qa/alert - Record a new QA alert event
+ * @access Private - SUPER_ADMIN only
+ * @module qa
+ */
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';

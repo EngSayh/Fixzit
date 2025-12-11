@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Public Job Posting Creation
+ * @description Allows creation of public job postings with validation for title, department, job type, location, and salary range.
+ * @route POST /api/ats/public-post - Create a new public job posting
+ * @access Rate-limited public endpoint
+ * @module ats
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

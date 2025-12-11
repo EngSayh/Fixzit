@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Interview Schedule Management
+ * @description Manages interview scheduling with support for filtering by job, application, candidate, status, stage, and date range.
+ * @route GET, POST /api/ats/interviews - List or schedule interviews
+ * @access Protected - Requires interviews:read or interviews:create permissions
+ * @module ats
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

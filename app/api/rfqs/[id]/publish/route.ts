@@ -1,3 +1,10 @@
+/**
+ * @fileoverview RFQ Publishing
+ * @description Publishes a draft RFQ to make it visible to vendors for bidding
+ * @route POST /api/rfqs/[id]/publish - Publish a draft RFQ
+ * @access Private - Requires authentication and RFQ ownership
+ * @module rfqs
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import {

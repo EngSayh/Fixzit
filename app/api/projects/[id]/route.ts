@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Single Project Operations
+ * @description Handles retrieval, update, and deletion of individual construction/renovation projects
+ * @route GET /api/projects/[id] - Get project details
+ * @route PATCH /api/projects/[id] - Update project
+ * @route DELETE /api/projects/[id] - Delete project
+ * @access Private - Requires authentication and org membership
+ * @module projects
+ */
 import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

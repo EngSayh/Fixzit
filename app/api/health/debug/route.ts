@@ -1,10 +1,11 @@
 /**
- * Health Debug Endpoint (TEMPORARY - REMOVE AFTER FIXING)
- * GET /api/health/debug
- *
- * Returns detailed MongoDB connection diagnostics for troubleshooting.
- * SECURITY: Requires X-Health-Token header matching HEALTH_CHECK_TOKEN.
+ * @fileoverview Health Debug Endpoint
+ * @description Returns detailed MongoDB connection diagnostics including mongoose state and connection errors. Temporary endpoint for troubleshooting.
+ * @route GET /api/health/debug - Health debug diagnostic endpoint
+ * @access Internal (requires X-Health-Token)
+ * @module health
  */
+
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";

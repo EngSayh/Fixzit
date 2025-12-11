@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Service Contracts Management
+ * @description Handles CRUD operations for service contracts between property owners and FM companies/real estate agents
+ * @route GET /api/contracts - List contracts with filtering
+ * @route POST /api/contracts - Create new service contract
+ * @access Private - Requires authentication
+ * @module contracts
+ */
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import ServiceContract from "@/server/models/ServiceContract";

@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Invoices Management API
+ * @description Manages invoice lifecycle including creation, listing, and ZATCA-compliant QR code generation.
+ * @route GET /api/invoices - List invoices with filters and pagination
+ * @route POST /api/invoices - Create a new invoice with ZATCA QR
+ * @access Authenticated (tenant-scoped)
+ * @module finance
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

@@ -1,3 +1,10 @@
+/**
+ * @fileoverview PM Work Order Generation API
+ * @description Auto-generates work orders from preventive maintenance plans that are due, typically invoked by cron job.
+ * @route POST /api/pm/generate-wos - Generate work orders from due PM plans
+ * @access System (CRON_SECRET header required)
+ * @module pm
+ */
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { FMPMPlan } from "@/server/models/FMPMPlan";

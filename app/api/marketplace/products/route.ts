@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Marketplace Products Catalog
+ * @description Manages product listings in the marketplace - browse, create, and manage products for procurement
+ * @route GET /api/marketplace/products - List products with pagination
+ * @route POST /api/marketplace/products - Create new product (admin only)
+ * @access Private - Requires authentication, admin roles for write operations
+ * @module marketplace
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { z } from "zod";

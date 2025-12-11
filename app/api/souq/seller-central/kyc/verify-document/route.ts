@@ -1,3 +1,11 @@
+/**
+ * @fileoverview KYC Document Verification API
+ * @description Allows administrators to verify or reject individual KYC documents submitted by sellers.
+ * @route POST /api/souq/seller-central/kyc/verify-document - Verify a specific KYC document
+ * @access Authenticated (SUPER_ADMIN, ADMIN, CORPORATE_OWNER only)
+ * @module souq
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
@@ -8,11 +16,6 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
-
-/**
- * POST /api/souq/seller-central/kyc/verify-document
- * Verify a specific KYC document (Admin only)
- */
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();

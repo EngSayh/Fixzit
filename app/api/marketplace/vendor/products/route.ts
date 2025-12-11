@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Vendor Product Catalog Management
+ * @description Vendor-specific product operations - list, create, and update products in vendor's catalog
+ * @route GET /api/marketplace/vendor/products - List vendor's products
+ * @route POST /api/marketplace/vendor/products - Create/upsert product
+ * @access Private - Requires vendor authentication
+ * @module marketplace
+ */
 import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { z } from "zod";

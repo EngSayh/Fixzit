@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Knowledge Base Search API
+ * @description Performs vector search or lexical fallback on KB articles scoped by tenant, language, and role.
+ * @route POST /api/kb/search - Search KB articles using embeddings
+ * @access Authenticated (tenant-scoped, role-filtered)
+ * @module kb
+ */
 import { NextRequest } from "next/server";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";

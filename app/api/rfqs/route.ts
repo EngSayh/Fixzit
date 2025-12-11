@@ -1,3 +1,11 @@
+/**
+ * @fileoverview RFQ (Request for Quotation) Management
+ * @description Core RFQ operations for procurement - create and list requests for goods, services, or works
+ * @route GET /api/rfqs - List RFQs with filtering and pagination
+ * @route POST /api/rfqs - Create new RFQ with specifications and timeline
+ * @access Private - Requires authentication and organization context
+ * @module rfqs
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { z } from "zod";

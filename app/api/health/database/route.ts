@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Database Health Check Endpoint
+ * @description Returns MongoDB connection status and response time. Authorized callers receive extended diagnostics.
+ * @route GET /api/health/database - Database connectivity health check
+ * @access Public (detailed info requires X-Health-Token)
+ * @module health
+ */
+
 import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { checkDatabaseHealth, getDatabase } from "@/lib/mongodb-unified";

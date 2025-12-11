@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Public Job Listings
+ * @description Provides publicly accessible job listings with search, filtering, and pagination support. Results are cached for performance.
+ * @route GET /api/ats/jobs/public - Retrieve public job postings
+ * @access Public - Rate-limited endpoint with Redis caching
+ * @module ats
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";

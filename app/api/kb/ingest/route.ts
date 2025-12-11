@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Knowledge Base Ingest API
+ * @description Ingests and manages article embeddings for the knowledge base vector search system.
+ * @route POST /api/kb/ingest - Create/update article embeddings
+ * @route DELETE /api/kb/ingest - Remove article embeddings
+ * @access Authenticated (SUPER_ADMIN, ADMIN only)
+ * @module kb
+ */
 import { NextRequest } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { upsertArticleEmbeddings, deleteArticleEmbeddings } from "@/kb/ingest";

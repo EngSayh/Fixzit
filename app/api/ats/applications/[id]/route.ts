@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Single Application Management
+ * @description Retrieves, updates, or deletes a specific application by ID with stage transition validation.
+ * @route GET, PUT, DELETE /api/ats/applications/[id] - Manage individual application
+ * @access Protected - Requires applications:read, applications:update, or applications:delete permissions
+ * @module ats
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

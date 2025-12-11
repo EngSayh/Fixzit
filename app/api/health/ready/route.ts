@@ -1,14 +1,9 @@
 /**
- * Kubernetes Readiness Probe
- * GET /api/health/ready
- *
- * Returns 200 when the application is ready to serve traffic.
- * Checks critical dependencies: MongoDB, Redis, and SMS provider.
- *
- * Use this endpoint for k8s readinessProbe configuration.
- * For liveness checks, use /api/health (lighter weight).
- *
- * @module api/health/ready
+ * @fileoverview Kubernetes Readiness Probe
+ * @description Returns 200 when the application is ready to serve traffic by checking critical dependencies (MongoDB, Redis, SMS provider). Use for k8s readinessProbe configuration.
+ * @route GET /api/health/ready - Kubernetes readiness probe endpoint
+ * @access Public
+ * @module health
  */
 
 import { NextResponse } from "next/server";
