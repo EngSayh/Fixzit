@@ -1,14 +1,35 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-12T20:30:00+03:00  
-**Version**: 15.30  
+**Last Updated**: 2025-12-11T23:45:00+03:00  
+**Version**: 15.31  
 **Branch**: agent/pending-report-enhancements  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok, TAP Payments ok)  
 **Total Pending Items**: 0 core items (Categories A-G all ✅ VERIFIED/COMPLETE)  
 **Optional Enhancements**: 9 items (OE-001..OE-009; ALL ✅ COMPLETE)  
-**Completed Items**: 400+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes 8 items + Backlog Verification + Chat Session Analysis + System-Wide Code Audit + PR#520 Extended Deep Dive + POST-STAB AUDIT v2 + PSA-001 + CAT4-001 Security Fixes + 13 Silent CI Handlers Fixed + Currency Conversion Guard + PROC/SEC Session 18 fixes + SYS-012 Translation Audit Fix + RBAC pattern audit + Taqnyat URL constant + CQP-002a resolved + Category A/B/C Verification Session 6 items + CQP-007 parseInt radix + Category C final verification + SYS-008/TODO-DOC-001/TODO-DOC-002 documentation cleanup + Category D LOW priority verification 5 items + **CQP-006 Arabic translations 1,985→0** + **Category F backlog delivered (BL-001..008 + TODO-001)** + **Playwright E2E Auth Fixtures Regenerated** + **OpenAPI /docs/openapi route added to RBAC** + **Test Failure Fixes 2025-12-11** + **GH-WORKFLOW-001/002 release gate guardrails** + **PR#520 CodeRabbit/Gemini/Copilot Review Fixes 10 items**)  
+**Completed Items**: 405+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes 8 items + Backlog Verification + Chat Session Analysis + System-Wide Code Audit + PR#520 Extended Deep Dive + POST-STAB AUDIT v2 + PSA-001 + CAT4-001 Security Fixes + 13 Silent CI Handlers Fixed + Currency Conversion Guard + PROC/SEC Session 18 fixes + SYS-012 Translation Audit Fix + RBAC pattern audit + Taqnyat URL constant + CQP-002a resolved + Category A/B/C Verification Session 6 items + CQP-007 parseInt radix + Category C final verification + SYS-008/TODO-DOC-001/TODO-DOC-002 documentation cleanup + Category D LOW priority verification 5 items + **CQP-006 Arabic translations 1,985→0** + **Category F backlog delivered (BL-001..008 + TODO-001)** + **Playwright E2E Auth Fixtures Regenerated** + **OpenAPI /docs/openapi route added to RBAC** + **Test Failure Fixes 2025-12-11** + **GH-WORKFLOW-001/002 release gate guardrails** + **PR#520 CodeRabbit/Gemini/Copilot Review Fixes 10 items** + **New CI Scripts 2025-12-11**)  
 **Test Status**: ✅ Vitest 2,468 tests | ✅ Playwright auth fixtures regenerated (9 storage states) | 🟡 Mongoose 9.x TypeScript errors (runtime OK) | ✅ Test failure fixes applied  
-**Consolidation Check**: 2025-12-12T20:30:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T23:45:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+
+---
+
+## 🔍 SESSION 2025-12-11T23:45 — NEW CI SCRIPTS & MONITORING TOOLS
+
+### New Scripts Added (Unstaged)
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `lib/monitoring/memory-leak-detector.ts` | Node.js memory leak detection with heap snapshot support | ✅ NEW |
+| `scripts/memory/leak-watch.ts` | CLI wrapper for memory leak monitoring | ✅ NEW |
+| `scripts/ci/run-ts-prune.mjs` | Noise-reduced ts-prune runner with barrel file filtering | ✅ NEW |
+| `scripts/db/index-audit.ts` | MongoDB schema index vs database index comparison | ✅ NEW |
+| `scripts/deadcode/check.ts` | Dead code detection with baseline tracking | ✅ NEW |
+| `scripts/run-lhci.mjs` | Lighthouse CI runner for performance monitoring | ✅ NEW |
+
+### Test Fixes Applied
+
+| File | Change | Status |
+|------|--------|--------|
+| `tests/copilot/copilot.spec.ts` | `PROPERTY_OWNER` → `CORPORATE_OWNER` in ROLES array | ✅ FIXED |
 
 ---
 
@@ -2519,17 +2540,12 @@ All 6 MODERATE PRIORITY production items verified. Configuration is correct - on
 
 ### 📊 Process Efficiency Improvements
 
-| ID | Area | Current State | Status / Next Step |
-|----|------|---------------|--------------------|
-| **PROC-001** | CI/CD | No bundle budget gate; PF-033 tracks backlog for `checkBundleBudget.mjs` + CI threshold. | 🔲 Backlog |
-| **PROC-002** | Testing | Playwright CI uses `retries: process.env.CI ? 2 : 0`, aligned `NEXTAUTH_URL`/`AUTH_URL`/`BASE_URL`, storageState seeded for `127.0.0.1:3100`; no dedicated auth fixtures. | 🟡 Partial (stabilized; add fixtures if flakes persist) |
-| **PROC-003** | i18n | `node scripts/audit-translations.mjs` runs in CI (`.github/workflows/webpack.yml`) as warning-only; pre-commit runs coverage + audit. | 🟡 Partial (gate build if needed) |
-| **PROC-004** | Docs | `scripts/generate-openapi-stubs.ts` auto-generates `openapi.yaml` from `app/api/**/route.ts`; coverage 352 routes (100%). | ✅ Implemented |
-| **PROC-005** | Security | `.husky/pre-commit` lacks `pnpm audit`; security workflows run `pnpm audit` but not blocking locally. | 🔲 Backlog (add audit to hooks/CI gate) |
-| **PROC-006** | Monitoring | Health endpoints + Sentry/OTEL in place; no explicit alert thresholds/pagers recorded. | 🔲 Backlog (define proactive alerts) |
-| **PROC-007** | Deployment | Single-click deploy noted; no staging promotion/release gate documented. | 🔲 Backlog |
-
-*Superseded by Session 2025-12-11T14:58 (bundle budgets enforced, pnpm audit gated, alert thresholds + staging promotion documented, Playwright env alignment).*
+| Area | Improvement | Evidence | Status |
+|------|-------------|----------|--------|
+| CI Bundle Budget | `scripts/checkBundleBudget.mjs` enforces gzipped chunk thresholds; `.github/workflows/webpack.yml` runs `bundle:budget:report` and fails on violations. | scripts/checkBundleBudget.mjs; .github/workflows/webpack.yml:89-155 | ✅ Gate active (gzip chunks) |
+| Translation Audit | `.husky/pre-commit` + simple-git-hooks pre-commit now run `pnpm run scan:i18n:audit` and block parity drift before commit; CI audit remains warning-only. | .husky/pre-commit; package.json#simple-git-hooks.pre-commit | ✅ Blocking locally |
+| Dead Code Scans | `scripts/ci/run-ts-prune.mjs` wraps ts-prune, suppresses index barrel re-export noise, and emits `.artifacts/ts-prune.txt` in `fixzit-quality-gates.yml`. | scripts/ci/run-ts-prune.mjs; .github/workflows/fixzit-quality-gates.yml:160-172 | ✅ Noise reduced (warning-only) |
+| Lighthouse CI | `bundle:lhci` targets `LHCI_TARGET_URL` (default https://fixzit.co) to hit the live URL in quality gates; reports copied to `.artifacts/lhci_reports`. | scripts/run-lhci.mjs; .github/workflows/fixzit-quality-gates.yml:335-352 | ✅ Live URL |
 
 ---
 
@@ -2541,7 +2557,7 @@ Verified 12 potential enhancement items. **6 items already implemented**, 5 trul
 
 | ID | Enhancement | Verification | Status |
 |----|-------------|--------------|--------|
-| **ENH-001** | Bundle Budget CI | No `checkBundleBudget.mjs` script found. Tracked as PF-033 below. | 🔲 Not Implemented |
+| **ENH-001** | Bundle Budget CI | `scripts/checkBundleBudget.mjs` + `.github/workflows/webpack.yml` gate gzipped chunk sizes via `bundle:budget:report`. | ✅ Implemented |
 | **ENH-002** | Lighthouse CI | ✅ `lighthouserc.json` exists (367 bytes). Configured with accessibility/performance assertions, score thresholds (85% performance, 90% accessibility). | ✅ Already Done |
 | **ENH-003** | Playwright Auth Fixtures | ✅ `tests/setup-auth.ts` (393 lines) with globalSetup, storageState for 6 roles (SuperAdmin/Admin/Manager/Technician/Tenant/Vendor), JWT minting, OTP flow support. | ✅ Already Done |
 | **ENH-004** | Visual Regression | No Percy/Chromatic references in package.json. | 🔲 Not Implemented |
@@ -2550,15 +2566,15 @@ Verified 12 potential enhancement items. **6 items already implemented**, 5 trul
 | **ENH-007** | Health Endpoints | ✅ `/api/health/live` (livenessProbe) and `/api/health/ready` (readinessProbe) exist. Kubernetes-compatible. | ✅ Already Done |
 | **ENH-008** | OpenTelemetry | ✅ `lib/tracing.ts` (13,207 lines). Full OTEL implementation with env-based config: `OTEL_ENABLED`, `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_ENDPOINT`. | ✅ Already Done |
 | **ENH-009** | Translation Audit CI | ✅ `audit-translations.mjs` called in `webpack.yml` workflow. 100% EN-AR parity enforced. | ✅ Already Done |
-| **ENH-010** | Dead Code Analysis | `ts-prune` used in `scripts/comprehensive-code-analysis.sh`. Not in regular CI. | ⚠️ Partial |
+| **ENH-010** | Dead Code Analysis | `scripts/ci/run-ts-prune.mjs` filters index barrel noise; `fixzit-quality-gates.yml` stores output in `.artifacts/ts-prune.txt` (warning-only). | ✅ Implemented (reporting) |
 | **ENH-011** | Parallel Build | `next.config.js:140` has `workerThreads: false` (disabled for memory constraints). | 🔲 Disabled |
 | **ENH-012** | GraphQL Schema | ✅ `lib/graphql/index.ts` (845 lines). Full typeDefs + resolvers. Playground secured (dev only). | ✅ Already Done |
 
 ### Summary
-- **Already Implemented**: 7 items (ENH-002, ENH-003, ENH-006, ENH-007, ENH-008, ENH-009, ENH-012)
-- **Not Implemented**: 3 items (ENH-001/PF-033, ENH-004, ENH-005)
+- **Already Implemented**: 9 items (ENH-001, ENH-002, ENH-003, ENH-006, ENH-007, ENH-008, ENH-009, ENH-010, ENH-012)
+- **Not Implemented**: 2 items (ENH-004, ENH-005)
 - **Disabled by Design**: 1 item (ENH-011 - for memory optimization)
-- **Partial**: 1 item (ENH-010 - exists in analysis script, not CI)
+- **Partial**: 0 items (dead code scan runs in CI as warning-only by design)
 
 ### Key Findings
 - **Health Endpoints**: Kubernetes-ready liveness/readiness probes at `/api/health/live` and `/api/health/ready`
