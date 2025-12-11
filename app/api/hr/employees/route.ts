@@ -1,3 +1,28 @@
+/**
+ * @fileoverview HR Employees API
+ * @description Manages employee records including listing, creation, and updates
+ * for the human resources module.
+ * 
+ * @module api/hr/employees
+ * @requires HR, HR_OFFICER, SUPER_ADMIN, or CORPORATE_ADMIN role
+ * 
+ * @endpoints
+ * - GET /api/hr/employees - List employees with pagination and filtering
+ * - POST /api/hr/employees - Create a new employee record
+ * 
+ * @queryParams
+ * - page: Page number (default: 1)
+ * - limit: Items per page (max: 100, default: 50)
+ * - status: Filter by employment status (ACTIVE, INACTIVE, ON_LEAVE, TERMINATED)
+ * - department: Filter by department ID
+ * - search: Text search on employee name/email
+ * - includePii: Include sensitive compensation/bank data (requires HR role)
+ * 
+ * @security
+ * - RBAC: HR, HR_OFFICER, SUPER_ADMIN, CORPORATE_ADMIN
+ * - PII protection: Compensation and bank details stripped by default
+ * - Tenant-scoped: Employees are isolated by organization
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { Types } from "mongoose";

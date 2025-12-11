@@ -1,3 +1,30 @@
+/**
+ * @fileoverview HR Leave Types API
+ * @description Manages leave type definitions including annual leave, sick leave,
+ * maternity/paternity leave, and custom leave types per organization.
+ * 
+ * @module api/hr/leave-types
+ * @requires HR, HR_OFFICER, SUPER_ADMIN, or CORPORATE_ADMIN role
+ * 
+ * @endpoints
+ * - GET /api/hr/leave-types - List all leave types for the organization
+ * - POST /api/hr/leave-types - Create a new leave type
+ * 
+ * @queryParams (GET)
+ * - search: Text search on leave type name/code
+ * - limit: Maximum items to return
+ * 
+ * @requestBody (POST)
+ * - code: (required) Unique leave type code (e.g., ANNUAL, SICK)
+ * - name: (required) Display name
+ * - description: Optional description
+ * - isPaid: Whether leave is paid (default: true)
+ * - annualEntitlementDays: Days entitled per year
+ * 
+ * @security
+ * - RBAC: HR, HR_OFFICER, SUPER_ADMIN, CORPORATE_ADMIN
+ * - Tenant-scoped: Leave types are organization-specific
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";

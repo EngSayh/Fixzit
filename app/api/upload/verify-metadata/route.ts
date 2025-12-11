@@ -1,3 +1,29 @@
+/**
+ * @fileoverview File Metadata Verification API
+ * @description Verifies and retrieves metadata for uploaded S3 objects
+ * to confirm successful uploads and validate file properties.
+ * 
+ * @module api/upload/verify-metadata
+ * @requires Authenticated user
+ * 
+ * @endpoints
+ * - GET /api/upload/verify-metadata?key=<s3-key> - Verify file exists and get metadata
+ * - POST /api/upload/verify-metadata - Update or verify metadata
+ * 
+ * @queryParams (GET)
+ * - key: S3 object key to verify
+ * 
+ * @response
+ * - key: S3 object key
+ * - contentType: MIME type
+ * - contentLength: File size in bytes
+ * - metadata: Custom S3 metadata object
+ * 
+ * @security
+ * - Rate limited: 60 requests per minute per user
+ * - Tenant-scoped via org-aware rate limit key
+ * - Validates user has access to the object
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";

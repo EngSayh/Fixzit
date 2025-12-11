@@ -1,3 +1,30 @@
+/**
+ * @fileoverview Route Alias Workflow API
+ * @description Manages workflow status for route alias resolution including
+ * ownership assignment and resolution tracking.
+ * 
+ * @module api/admin/route-aliases/workflow
+ * @requires SUPER_ADMIN role
+ * 
+ * @endpoints
+ * - GET /api/admin/route-aliases/workflow - Get all workflow statuses
+ * - POST /api/admin/route-aliases/workflow - Update workflow for an alias
+ * 
+ * @requestBody (POST)
+ * - aliasFile: (required) Path to the alias file
+ * - owner: Assigned owner for resolution
+ * - resolved: Whether the alias has been resolved
+ * 
+ * @response (GET)
+ * - Map of aliasFile to workflow status {owner, resolved, updatedAt}
+ * 
+ * @response (POST)
+ * - Updated workflow entry
+ * 
+ * @security
+ * - SUPER_ADMIN only
+ * - Tracks who resolved duplicates for audit
+ */
 import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@/auth";

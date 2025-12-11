@@ -1,3 +1,37 @@
+/**
+ * @fileoverview CRM Contacts API
+ * @description Manages CRM leads and accounts including creation, listing,
+ * and contact information management for sales pipeline tracking.
+ * 
+ * @module api/crm/contacts
+ * @requires SUPER_ADMIN, CORPORATE_ADMIN, ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER, or SUPPORT_AGENT role
+ * 
+ * @endpoints
+ * - GET /api/crm/contacts - List leads/accounts with filtering
+ * - POST /api/crm/contacts - Create a new lead or account
+ * 
+ * @requestBody (POST)
+ * - type: LEAD or ACCOUNT (default: LEAD)
+ * - company: (required) Company name
+ * - contact: Contact person name
+ * - email: Contact email
+ * - phone: Contact phone number
+ * - notes: Additional notes
+ * - segment: Market segment classification
+ * - revenue: Annual revenue (for value estimation)
+ * - employees: Employee count (for value estimation)
+ * - source: Lead source (web, referral, etc.)
+ * 
+ * @features
+ * - Automatic deal value estimation based on revenue/employees
+ * - Lead-to-Account conversion support
+ * - Activity logging for interactions
+ * 
+ * @security
+ * - RBAC: Admin, management, and support roles
+ * - STRICT v4: EMPLOYEE role removed, use SUPPORT_AGENT for CRM
+ * - Tenant-scoped: Contacts are isolated by organization
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";

@@ -1,3 +1,31 @@
+/**
+ * @fileoverview HR Leave Requests API
+ * @description Manages employee leave requests including submission,
+ * approval workflow, and leave balance tracking.
+ * 
+ * @module api/hr/leaves
+ * @requires HR, HR_OFFICER, SUPER_ADMIN, or CORPORATE_ADMIN role
+ * 
+ * @endpoints
+ * - GET /api/hr/leaves - List leave requests with optional status filter
+ * - POST /api/hr/leaves - Submit a new leave request
+ * 
+ * @queryParams (GET)
+ * - status: Filter by request status (PENDING, APPROVED, REJECTED, CANCELLED)
+ * 
+ * @requestBody (POST)
+ * - employeeId: (required) Employee ID
+ * - leaveTypeId: (required) Leave type ID (annual, sick, etc.)
+ * - startDate: (required) Leave start date
+ * - endDate: (required) Leave end date
+ * - numberOfDays: (required) Number of leave days
+ * - reason: Optional reason for leave
+ * 
+ * @security
+ * - RBAC: HR, HR_OFFICER, SUPER_ADMIN, CORPORATE_ADMIN
+ * - Approval workflow: Requests start as PENDING
+ * - Tenant-scoped: Leave requests are isolated by organization
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";

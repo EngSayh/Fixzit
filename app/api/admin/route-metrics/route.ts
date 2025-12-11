@@ -1,3 +1,35 @@
+/**
+ * @fileoverview Route Alias Metrics API
+ * @description Provides metrics about API route aliases including duplicate
+ * detection, health status, and historical snapshots for maintenance.
+ * 
+ * @module api/admin/route-metrics
+ * @requires SUPER_ADMIN or ADMIN role
+ * 
+ * @endpoints
+ * - GET /api/admin/route-metrics - Get route alias metrics
+ * - POST /api/admin/route-metrics - Regenerate metrics and optionally notify
+ * 
+ * @queryParams (GET)
+ * - refresh: Set to "1" to regenerate metrics
+ * - history: Set to "1" to include historical snapshots
+ * 
+ * @response
+ * - totals: Aggregate metrics (aliasFiles, duplicateAliases, duplicateRate)
+ * - duplicates: List of duplicate alias files
+ * - history: Array of historical snapshots (if requested)
+ * - generatedAt: Timestamp of generation
+ * 
+ * @features
+ * - Automatic duplicate detection
+ * - Historical tracking (last 60 snapshots)
+ * - Webhook notification on regeneration
+ * - Route health data enrichment
+ * 
+ * @security
+ * - Admin roles only
+ * - File system access for artifact storage
+ */
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { existsSync, readdirSync } from "fs";

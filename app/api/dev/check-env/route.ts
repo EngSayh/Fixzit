@@ -1,3 +1,13 @@
+/**
+ * @description Diagnostic endpoint showing environment variable configuration status.
+ * Returns boolean flags indicating which env vars are set (values hidden for security).
+ * Covers authentication, OAuth, email, SMS (Taqnyat), storage, search, payment, ZATCA, and AI.
+ * @route GET /api/dev/check-env
+ * @access Private - Super Admins only
+ * @returns {Object} Map of environment variable names to boolean (true = configured)
+ * @throws {403} If user is not a Super Admin
+ * @security Never exposes actual values, only configuration presence
+ */
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 

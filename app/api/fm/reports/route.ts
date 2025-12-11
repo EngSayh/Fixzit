@@ -1,3 +1,20 @@
+/**
+ * @fileoverview FM Report Jobs API
+ * @description Manages facility management report generation jobs including creation,
+ * listing, and status tracking for scheduled reports.
+ * 
+ * @module api/fm/reports
+ * @requires FM:FINANCE:EXPORT permission
+ * 
+ * @endpoints
+ * - GET /api/fm/reports - List all report jobs for the organization
+ * - POST /api/fm/reports - Queue a new report generation job
+ * 
+ * @security
+ * - Requires FM FINANCE module EXPORT permission
+ * - Tenant-scoped: Reports are isolated by organization
+ * - Super Admin can access cross-tenant reports
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';

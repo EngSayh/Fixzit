@@ -1,3 +1,35 @@
+/**
+ * @fileoverview HR WPS Export API
+ * @description Generates Wage Protection System (WPS) files for Saudi Arabia
+ * central bank compliance, containing employee banking and salary data.
+ * 
+ * @module api/hr/payroll/runs/[id]/export/wps
+ * @requires HR, HR_OFFICER, FINANCE, FINANCE_OFFICER, SUPER_ADMIN, or CORPORATE_ADMIN role
+ * 
+ * @endpoints
+ * - GET /api/hr/payroll/runs/:id/export/wps - Download WPS file for payroll run
+ * 
+ * @params
+ * - id: Payroll run ID
+ * 
+ * @response
+ * - Content-Type: text/csv; charset=utf-8
+ * - Content-Disposition: attachment; filename="WPS_YYYY-MM.csv"
+ * - X-File-Checksum: MD5 hash for validation
+ * - X-Record-Count: Number of employee records
+ * - X-Total-Net-Salary: Total salary amount in SAR
+ * 
+ * @validation
+ * - Run must not be in DRAFT status
+ * - Run must have calculated payroll lines
+ * - WPS file validation checks IBAN format, amounts, etc.
+ * 
+ * @security
+ * - CRITICAL: Contains banking data (IBANs, salaries)
+ * - RBAC: Only HR/Finance officers can export
+ * - Access denied logging for audit trail
+ * - Tenant-scoped: WPS exports are isolated by organization
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";

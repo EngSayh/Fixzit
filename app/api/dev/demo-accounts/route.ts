@@ -1,3 +1,14 @@
+/**
+ * @description Returns sanitized demo account credentials for development testing.
+ * SECURITY: ONLY available when NODE_ENV=development. Never exposes passwords.
+ * Returns demo user emails and types for local testing and CI/CD pipelines.
+ * @route GET /api/dev/demo-accounts
+ * @access Development mode only - 404 in production
+ * @returns {Object} demo: array of demo accounts, corporate: array of corporate accounts
+ * @throws {403} If demo mode is not enabled in dev config
+ * @throws {404} If accessed in production environment
+ * @security Passwords are NEVER included in response (only emails/types)
+ */
 import { NextResponse } from "next/server";
 
 import { logger } from "@/lib/logger";

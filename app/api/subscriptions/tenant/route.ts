@@ -1,3 +1,34 @@
+/**
+ * @fileoverview Tenant Subscription API
+ * @description Retrieves subscription details for the authenticated tenant
+ * including plan, modules, seats, and billing information.
+ * 
+ * @module api/subscriptions/tenant
+ * @requires Authenticated user with tenantId
+ * 
+ * @endpoints
+ * - GET /api/subscriptions/tenant - Get current tenant's subscription
+ * 
+ * @response
+ * - id: Subscription ID
+ * - status: Subscription status (active, cancelled, etc.)
+ * - modules: Array of enabled modules
+ * - seats: Number of licensed seats
+ * - billing_cycle: monthly, yearly, etc.
+ * - amount: Subscription amount
+ * - currency: Payment currency
+ * - next_billing_date: Next billing date
+ * - metadata: Additional subscription metadata
+ * 
+ * @errors
+ * - 401: Unauthorized (no session or tenantId)
+ * - 404: No subscription found for tenant
+ * - 500: Failed to fetch subscription
+ * 
+ * @security
+ * - Authenticated users only
+ * - Tenant-scoped: Returns only current tenant's subscription
+ */
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getSubscriptionForTenant } from "@/server/services/subscriptionSeatService";

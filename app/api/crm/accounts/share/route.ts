@@ -1,5 +1,33 @@
 "use server";
 
+/**
+ * @fileoverview CRM Account Sharing API
+ * @description Creates shared CRM accounts that can be accessed by multiple
+ * team members, with activity logging for collaboration tracking.
+ * 
+ * @module api/crm/accounts/share
+ * @requires SUPER_ADMIN, CORPORATE_ADMIN, ADMIN, MANAGER, FM_MANAGER, or PROPERTY_MANAGER role
+ * 
+ * @endpoints
+ * - POST /api/crm/accounts/share - Share/create a shared account
+ * 
+ * @requestBody
+ * - company: (required) Company name
+ * - segment: Market segment classification
+ * - revenue: Annual revenue
+ * - employees: Employee count
+ * - notes: Sharing notes
+ * 
+ * @behavior
+ * - Creates account if not exists
+ * - Logs share activity for audit trail
+ * - Enables team collaboration on account
+ * 
+ * @security
+ * - RBAC: Admin and management roles
+ * - Tenant-scoped: Accounts are isolated by organization
+ * - Audit context for tracking share events
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";

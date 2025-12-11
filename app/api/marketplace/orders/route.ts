@@ -1,3 +1,14 @@
+/**
+ * @description Lists orders for the authenticated marketplace user.
+ * Returns paginated order history with line items and status tracking.
+ * Excludes cart-status orders (pending checkouts).
+ * @route GET /api/marketplace/orders
+ * @access Private - Authenticated marketplace users
+ * @query {string} status - Optional filter by order status
+ * @returns {Object} orders: array of orders with line items and totals
+ * @throws {401} If user is not authenticated
+ * @throws {400} If query validation fails
+ */
 import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { z } from "zod";

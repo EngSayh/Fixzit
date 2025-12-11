@@ -1,3 +1,30 @@
+/**
+ * @fileoverview File Scan Webhook Callback API
+ * @description Receives scan results from external antivirus scanning service
+ * and stores them for status queries.
+ * 
+ * @module api/upload/scan-callback
+ * @requires x-scan-token header matching SCAN_WEBHOOK_TOKEN
+ * 
+ * @endpoints
+ * - POST /api/upload/scan-callback - Receive scan result webhook
+ * 
+ * @requestBody (from scanning service)
+ * - key: (required) S3 object key that was scanned
+ * - status: Scan result (clean, infected, pending, error)
+ * - engine: Scanner engine name
+ * - findings: Array of detected threats
+ * - sizeBytes: File size
+ * 
+ * @response
+ * - success: boolean
+ * - id: Created scan record ID
+ * 
+ * @security
+ * - Token authentication required via x-scan-token header
+ * - Webhook token must match configured SCAN_WEBHOOK_TOKEN
+ * - Used by external scanning service only
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

@@ -1,3 +1,21 @@
+/**
+ * @description Full-text and faceted product search for the marketplace.
+ * Supports filtering by category, brand, standards, price range.
+ * Returns paginated results with matched products and category facets.
+ * @route GET /api/marketplace/search
+ * @access Public - Search is publicly available for marketplace browsing
+ * @query {string} q - Search query text
+ * @query {string} cat - Category ID filter
+ * @query {string} brand - Brand name filter
+ * @query {string} std - Standards/certifications filter
+ * @query {number} min - Minimum price filter
+ * @query {number} max - Maximum price filter
+ * @query {number} page - Page number (default: 1)
+ * @query {number} limit - Items per page (default: 24, max: 100)
+ * @returns {Object} products: array, pagination: metadata, categories: facets
+ * @throws {400} If query parameters validation fails
+ * @throws {500} If search engine error occurs
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { z } from "zod";

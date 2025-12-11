@@ -1,3 +1,31 @@
+/**
+ * @fileoverview Organization Search API (Support Tool)
+ * @description Enables Super Admins to search for organizations by various
+ * identifiers for support and troubleshooting purposes.
+ * 
+ * @module api/support/organizations/search
+ * @requires SUPER_ADMIN role
+ * 
+ * @endpoints
+ * - GET /api/support/organizations/search?identifier=<query> - Search organizations
+ * 
+ * @queryParams
+ * - identifier: Search term (orgId, code, name, or registration number)
+ * - corporateId: Alias for identifier
+ * 
+ * @response
+ * - Array of matching organizations with:
+ *   - orgId: Organization ID
+ *   - name: Organization name
+ *   - code: Organization code
+ *   - registrationNumber: Legal registration number
+ *   - subscriptionPlan: Current subscription plan
+ * 
+ * @security
+ * - SUPER_ADMIN only - cross-tenant access for support
+ * - Regex patterns escaped to prevent ReDoS
+ * - Identifier length limited to 256 characters
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";

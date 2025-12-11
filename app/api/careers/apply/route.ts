@@ -1,3 +1,20 @@
+/**
+ * @description Handles job application submissions from the public careers page.
+ * Accepts resume uploads, validates application data, and runs screening rules.
+ * Creates Application record linked to the Job posting for ATS processing.
+ * @route POST /api/careers/apply
+ * @access Public - No authentication required (rate-limited)
+ * @param {FormData} body - Multipart form with resume, cover letter, and applicant details
+ * @param {string} body.jobId - ID of the job being applied to
+ * @param {string} body.firstName - Applicant's first name
+ * @param {string} body.lastName - Applicant's last name
+ * @param {string} body.email - Applicant's email address
+ * @param {File} body.resume - Resume file (PDF, DOC, DOCX)
+ * @returns {Object} success: true, applicationId: created application ID
+ * @throws {400} If job not found, not published, or validation fails
+ * @throws {409} If applicant has already applied to this job
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

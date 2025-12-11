@@ -1,3 +1,19 @@
+/**
+ * @description Manages Service Level Agreement (SLA) definitions for work orders.
+ * Supports creating SLA policies with response/resolution time targets,
+ * uptime guarantees, and maintenance window configurations.
+ * @route GET /api/slas - List SLA policies for the organization
+ * @route POST /api/slas - Create a new SLA policy
+ * @access Private - Authenticated users with SLA management permissions
+ * @param {Object} body.name - SLA policy name
+ * @param {Object} body.type - SLA type (RESPONSE_TIME, RESOLUTION_TIME, UPTIME, etc.)
+ * @param {Object} body.category - Work order category this SLA applies to
+ * @param {Object} body.priority - Priority level (LOW, MEDIUM, HIGH, CRITICAL)
+ * @param {Object} body.targets - Target metrics (responseTime, resolutionTime, uptime, etc.)
+ * @returns {Object} GET: Array of SLA policies | POST: Created SLA policy
+ * @throws {401} If user is not authenticated
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

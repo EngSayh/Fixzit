@@ -1,3 +1,36 @@
+/**
+ * @fileoverview Compliance Audits API
+ * @description Manages compliance audit records including planning, execution,
+ * findings tracking, and risk assessment for regulatory compliance.
+ * 
+ * @module api/compliance/audits
+ * @requires SUPER_ADMIN, CORPORATE_ADMIN, ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER, or AUDITOR role
+ * 
+ * @endpoints
+ * - GET /api/compliance/audits - List audits with filtering and pagination
+ * - POST /api/compliance/audits - Create a new audit
+ * - PUT /api/compliance/audits - Update an existing audit
+ * 
+ * @requestBody (POST/PUT)
+ * - name: (required) Audit name/title
+ * - owner: (required) Responsible person
+ * - scope: (required) Audit scope description
+ * - startDate: (required) Audit start date
+ * - endDate: (required) Audit end date
+ * - status: PLANNED, IN_PROGRESS, FOLLOW_UP, COMPLETED
+ * - riskLevel: LOW, MEDIUM, HIGH, CRITICAL
+ * - findings: Number of findings identified
+ * - openIssues: Number of unresolved issues
+ * - checklist: Array of checklist items
+ * - tags: Classification tags
+ * - leadAuditor: Lead auditor name
+ * - supportingTeams: Teams involved in audit
+ * 
+ * @security
+ * - RBAC: Admin and management roles
+ * - Tenant-scoped: Audits are isolated by organization
+ * - Audit context set for change tracking
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";

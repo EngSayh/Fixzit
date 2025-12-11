@@ -1,3 +1,34 @@
+/**
+ * @fileoverview HR Payroll Runs API
+ * @description Manages payroll run lifecycle including creation, listing,
+ * and status transitions for payroll processing.
+ * 
+ * @module api/hr/payroll/runs
+ * @requires HR, HR_OFFICER, FINANCE, FINANCE_OFFICER, SUPER_ADMIN, or CORPORATE_ADMIN role
+ * 
+ * @endpoints
+ * - GET /api/hr/payroll/runs - List payroll runs with optional status filter
+ * - POST /api/hr/payroll/runs - Create a new DRAFT payroll run
+ * 
+ * @queryParams (GET)
+ * - status: Filter by run status (DRAFT, IN_REVIEW, APPROVED, LOCKED, EXPORTED)
+ * 
+ * @requestBody (POST)
+ * - name: (required) Payroll run name
+ * - periodStart: (required) Pay period start date
+ * - periodEnd: (required) Pay period end date
+ * 
+ * @workflow
+ * 1. Create DRAFT run
+ * 2. Calculate payroll (POST /runs/:id/calculate)
+ * 3. Review and approve
+ * 4. Export WPS file
+ * 
+ * @security
+ * - RBAC: HR and Finance roles have access
+ * - Period overlap prevention: Cannot create overlapping runs
+ * - Tenant-scoped: Payroll runs are isolated by organization
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";

@@ -1,3 +1,34 @@
+/**
+ * @fileoverview Presigned URL API for Secure File Uploads
+ * @description Generates AWS S3 presigned URLs for secure direct-to-S3 uploads
+ * with file type validation, size limits, and tenant isolation.
+ * 
+ * @module api/upload/presigned-url
+ * @requires Authenticated user with orgId
+ * 
+ * @endpoints
+ * - POST /api/upload/presigned-url - Generate presigned PUT URL
+ * 
+ * @requestBody
+ * - fileName: (required) Original file name
+ * - contentType: (required) MIME type (application/pdf, image/png, image/jpeg)
+ * - category: Upload category (kyc, resume, invoice, document)
+ * 
+ * @response
+ * - url: Presigned PUT URL (expires in 5 minutes)
+ * - key: S3 object key for reference
+ * 
+ * @validation
+ * - Allowed types: PDF (25MB max), PNG/JPEG (10MB max)
+ * - File extension must match content type
+ * - Requires AV scanning if configured
+ * 
+ * @security
+ * - Rate limited: 30 requests per minute per user/org
+ * - Tenant-isolated: Files stored in org-prefixed paths
+ * - Secure headers applied to response
+ * - orgId required to prevent anonymous uploads
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { smartRateLimit } from "@/server/security/rateLimit";

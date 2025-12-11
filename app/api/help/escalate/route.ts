@@ -1,3 +1,33 @@
+/**
+ * @fileoverview Support Escalation API
+ * @description Creates support tickets for access requests and escalations,
+ * routing to appropriate support contacts.
+ * 
+ * @module api/help/escalate
+ * @requires Authenticated user
+ * 
+ * @endpoints
+ * - POST /api/help/escalate - Create an escalation ticket
+ * 
+ * @requestBody
+ * - module: Module context (FM, Souq, Aqar, Account, Billing, Other)
+ * - attempted_action: Description of the action user was trying to perform
+ * 
+ * @response
+ * - ticket_id: Created support ticket ID
+ * - escalated_to: Contact information for assigned support person
+ * 
+ * @workflow
+ * 1. Resolve escalation contact based on module
+ * 2. Create support ticket with HELP prefix
+ * 3. Assign to escalation contact
+ * 4. Return ticket details
+ * 
+ * @security
+ * - Authenticated users only
+ * - Tenant-scoped: Ticket linked to user's organization
+ * - Unique ticket codes prevent collisions
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { resolveEscalationContact } from '@/server/services/escalation.service';

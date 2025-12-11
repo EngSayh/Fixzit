@@ -1,3 +1,31 @@
+/**
+ * @fileoverview Help Article Comments API
+ * @description Manages user comments on help articles for feedback
+ * and community assistance.
+ * 
+ * @module api/help/articles/[id]/comments
+ * @requires Authenticated user
+ * 
+ * @endpoints
+ * - GET /api/help/articles/:id/comments - List comments on an article
+ * - POST /api/help/articles/:id/comments - Add a comment to an article
+ * 
+ * @params
+ * - id: Article ID (ObjectId) or slug
+ * 
+ * @requestBody (POST)
+ * - comment: (required) Comment text (1-2000 chars)
+ * 
+ * @validation
+ * - Article must exist and be accessible to user's org
+ * - Article must be in PUBLISHED status
+ * - Comment length: 1-2000 characters
+ * 
+ * @security
+ * - Authenticated users only
+ * - Tenant-scoped: Comments isolated by organization
+ * - Secure response headers applied
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";

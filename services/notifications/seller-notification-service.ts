@@ -57,7 +57,7 @@ const templateTranslations: Record<TemplateKey, TranslationConfig> = {
     sms: {
       key: "notifications.seller.budgetLow.sms",
       fallback:
-        "Fixzit Alert: Ad budget low - {{budgetRemaining}} SAR remaining. Add funds to continue.",
+        `${Config.company.name} Alert: Ad budget low - {{budgetRemaining}} SAR remaining. Add funds to continue.`,
     },
   },
   BUDGET_DEPLETED: {
@@ -73,7 +73,7 @@ const templateTranslations: Record<TemplateKey, TranslationConfig> = {
     sms: {
       key: "notifications.seller.budgetDepleted.sms",
       fallback:
-        "Fixzit Alert: Ad campaign paused - budget depleted. Add funds to resume.",
+        `${Config.company.name} Alert: Ad campaign paused - budget depleted. Add funds to resume.`,
     },
   },
   REFUND_PROCESSED: {
@@ -89,7 +89,7 @@ const templateTranslations: Record<TemplateKey, TranslationConfig> = {
     sms: {
       key: "notifications.seller.refundProcessed.sms",
       fallback:
-        "Fixzit: Refund of {{amount}} SAR processed for order {{orderId}}.",
+        `${Config.company.name}: Refund of {{amount}} SAR processed for order {{orderId}}.`,
     },
   },
   WITHDRAWAL_COMPLETE: {
@@ -104,7 +104,7 @@ const templateTranslations: Record<TemplateKey, TranslationConfig> = {
     },
     sms: {
       key: "notifications.seller.withdrawalComplete.sms",
-      fallback: "Fixzit: Withdrawal of {{amount}} SAR completed successfully.",
+      fallback: `${Config.company.name}: Withdrawal of {{amount}} SAR completed successfully.`,
     },
   },
 };
@@ -201,11 +201,11 @@ async function sendEmail(
   }
   const header = translateTemplate(locale, {
     key: "notifications.seller.email.brand",
-    fallback: "Fixzit Marketplace",
+    fallback: `${Config.company.name} Marketplace`,
   });
   const footer = translateTemplate(locale, {
     key: "notifications.seller.email.footer",
-    fallback: "This is an automated notification from Fixzit Marketplace.",
+    fallback: `This is an automated notification from ${Config.company.name} Marketplace.`,
   });
   const support = translateTemplate(locale, {
     key: "notifications.seller.email.support",

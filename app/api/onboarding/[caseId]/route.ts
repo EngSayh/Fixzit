@@ -1,3 +1,16 @@
+/**
+ * @description Manages individual onboarding cases including retrieval and status updates.
+ * GET returns case details for the owner or authorized reviewers.
+ * PATCH allows status transitions for compliance officers and admins.
+ * @route GET /api/onboarding/[caseId]
+ * @route PATCH /api/onboarding/[caseId]
+ * @access Private - Case owner or reviewers (SUPER_ADMIN, ADMIN, COMPLIANCE_OFFICER, REVIEWER)
+ * @param {string} caseId - The unique identifier of the onboarding case
+ * @returns {Object} GET: Onboarding case details | PATCH: Updated case with new status
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user lacks permission to view or update the case
+ * @throws {404} If onboarding case is not found
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';

@@ -1,3 +1,19 @@
+/**
+ * @description Creates new subscription checkout sessions for FM module packages.
+ * Supports both CORPORATE_FM (organization) and OWNER_FM (individual) plan types.
+ * Calculates pricing, creates PayTabs checkout, and provisions subscription.
+ * @route POST /api/billing/subscribe
+ * @access Private - Authenticated users with subscription management permissions
+ * @param {Object} body.customer - Customer details (type, name, billingEmail, country)
+ * @param {Object} body.planType - Plan type: 'CORPORATE_FM' or 'OWNER_FM'
+ * @param {Object} body.items - Array of module items with pricing and seat counts
+ * @param {Object} body.billingCycle - Optional billing cycle: 'monthly' or 'annual'
+ * @returns {Object} checkoutUrl: PayTabs payment URL, subscriptionId: created subscription ID
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user lacks subscription management permissions
+ * @throws {400} If validation fails or plan type is invalid
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";

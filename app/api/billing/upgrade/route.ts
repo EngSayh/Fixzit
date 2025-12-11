@@ -1,3 +1,20 @@
+/**
+ * @description Handles subscription plan upgrades with prorated billing.
+ * Supports upgrading between STANDARD, PRO, PREMIUM, and ENTERPRISE plans.
+ * Calculates prorated amounts and creates PayTabs checkout for the difference.
+ * GET returns available upgrade options and pricing for current subscription.
+ * @route GET /api/billing/upgrade - Get available upgrade options and pricing
+ * @route POST /api/billing/upgrade - Initiate plan upgrade checkout
+ * @access Private - Authenticated users with subscription management permissions
+ * @param {Object} body.targetPlan - Target plan: STANDARD, PRO, PREMIUM, ENTERPRISE
+ * @param {Object} body.billingCycle - Optional: 'monthly' or 'annual'
+ * @param {Object} body.additionalSeats - Optional: additional seats to add
+ * @param {Object} body.additionalModules - Optional: array of module codes to add
+ * @returns {Object} POST: checkoutUrl | GET: upgrade options with pricing
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user lacks subscription management permissions
+ * @throws {400} If downgrade attempted or invalid plan
+ */
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
