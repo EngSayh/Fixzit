@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import type { Locale } from "@/i18n/config";
 import type { TranslationDictionary } from "@/i18n/dictionaries/types";
 import type {
@@ -104,7 +105,7 @@ export default function NewEmployeePageClient({
         setLookupsLoaded(true);
       })
       .catch((error) => {
-        console.error("Failed to load lookups:", error);
+        logger.error("Failed to load lookups:", error);
         toast.error("Failed to load form options");
       })
       .finally(() => setLoadingLookups(false));
