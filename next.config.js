@@ -8,6 +8,11 @@ const fs = require('fs');
 const resolveFromRoot = (...segments) => path.resolve(__dirname, ...segments);
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
+  analyzerMode: 'static',
+  openAnalyzer: false,
+  reportFilename: 'analyze/client.html',
+  generateStatsFile: true,
+  statsFilename: 'analyze/stats.client.json',
 });
 
 // ---- Production guardrails (fail fast for unsafe flags/secrets) ----
@@ -146,6 +151,23 @@ const nextConfig = {
     parallelServerCompiles: false,
     // 🔧 MEMORY FIX: Reduce parallel server builds
     parallelServerBuildTraces: false,
+    modularizeImports: {
+      lodash: {
+        transform: 'lodash/{{member}}',
+      },
+      'date-fns': {
+        transform: 'date-fns/{{member}}',
+      },
+      '@mui/material': {
+        transform: '@mui/material/{{member}}',
+      },
+      '@mui/icons-material': {
+        transform: '@mui/icons-material/{{member}}',
+      },
+      'lucide-react': {
+        transform: 'lucide-react/dist/esm/icons/{{member}}',
+      },
+    },
   },
   // ⚡ FIX BUILD TIMEOUT: Add reasonable timeout for static page generation
   // Default is infinite which can cause CI to kill the process (exit 143 = SIGTERM)

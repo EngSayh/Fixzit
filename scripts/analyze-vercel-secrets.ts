@@ -106,15 +106,51 @@ const requiredSecrets = {
       note: "Payment processing",
       howToGet: "From PayTabs dashboard",
     },
-    TAP_SECRET_KEY: {
+    // Tap Payments - Standardized env var names
+    TAP_ENVIRONMENT: {
       status: "missing",
-      note: "Alternative payment",
-      howToGet: "From Tap dashboard",
+      note: "Environment selector: 'test' or 'live'",
+      howToGet: "Set to 'test' for dev/preview, 'live' for production",
     },
-    TAP_PUBLIC_KEY: {
+    TAP_TEST_SECRET_KEY: {
       status: "missing",
-      note: "Alternative payment",
-      howToGet: "From Tap dashboard",
+      note: "Tap test mode secret key",
+      howToGet: "From Tap dashboard → Developers → Test Keys",
+    },
+    TAP_LIVE_SECRET_KEY: {
+      status: "missing",
+      note: "Tap live mode secret key",
+      howToGet: "From Tap dashboard → Developers → Live Keys",
+    },
+    TAP_MERCHANT_ID: {
+      status: "missing",
+      note: "Tap merchant identifier",
+      howToGet: "From Tap dashboard → Settings",
+    },
+    TAP_ACCOUNT_ID: {
+      status: "missing",
+      note: "Tap account identifier",
+      howToGet: "From Tap dashboard → Settings",
+    },
+    TAP_API_KEY: {
+      status: "missing",
+      note: "Tap API key",
+      howToGet: "From Tap dashboard → Developers",
+    },
+    TAP_WEBHOOK_SECRET: {
+      status: "missing",
+      note: "Tap webhook signing secret",
+      howToGet: "From Tap dashboard → Developers → Webhooks",
+    },
+    NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY: {
+      status: "missing",
+      note: "Tap test mode public key (client-safe)",
+      howToGet: "From Tap dashboard → Developers → Test Keys",
+    },
+    NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY: {
+      status: "missing",
+      note: "Tap live mode public key (client-safe)",
+      howToGet: "From Tap dashboard → Developers → Live Keys",
     },
   },
 

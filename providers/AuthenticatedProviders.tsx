@@ -7,6 +7,7 @@ import React from "react";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import PublicProviders from "./PublicProviders";
 import QueryProvider from "./QueryProvider";
+import { SupportOrgProvider } from "@/contexts/SupportOrgContext";
 import type { Locale } from "@/i18n/config";
 
 /**
@@ -37,11 +38,13 @@ export default function AuthenticatedProviders({
 }) {
   return (
     <PublicProviders initialLocale={initialLocale}>
-      <QueryProvider>
-        <TranslationProvider initialLanguage={initialLocale}>
-          {children}
-        </TranslationProvider>
-      </QueryProvider>
+      <SupportOrgProvider>
+        <QueryProvider>
+          <TranslationProvider initialLanguage={initialLocale}>
+            {children}
+          </TranslationProvider>
+        </QueryProvider>
+      </SupportOrgProvider>
     </PublicProviders>
   );
 }

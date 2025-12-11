@@ -17,6 +17,18 @@ if [ -n "$TRANSLATION_SOURCES_CHANGED" ]; then
   echo "✅ Translation artifacts updated"
 fi
 
+# Security: fail fast on known vulnerabilities
+if [ "${SKIP_PNPM_AUDIT:-false}" != "true" ]; then
+  echo "🛡️  Running pnpm audit (prod, high severity)..."
+  pnpm audit --prod --audit-level=high
+  if [ $? -ne 0 ]; then
+    echo "❌ pnpm audit reported vulnerabilities (prod, high). Fix or set SKIP_PNPM_AUDIT=true to bypass locally."
+    exit 1
+  fi
+else
+  echo "⚠️  SKIP_PNPM_AUDIT=true - pnpm audit skipped for this commit."
+fi
+
 # Run TypeScript check
 echo "🔍 Running TypeScript check..."
 pnpm tsc --noEmit

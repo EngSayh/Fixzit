@@ -83,6 +83,28 @@ pnpm db:migrate --env=production
 curl https://fixzit.com/api/health
 ```
 
+### Staging Promotion Flow (pre-prod ➜ prod)
+
+1. **Deploy to staging**: `vercel --prod=false` (or staging environment pipeline).
+2. **Smoke + auth checks**:
+   - `pnpm lint && pnpm typecheck`
+   - `pnpm run bundle:budget:report` (fail if budgets exceeded)
+   - `pnpm audit --prod --audit-level=high`
+   - `pnpm test:e2e` (or minimal `qa/tests/*.spec.ts`)
+3. **Health gates** (staging):
+   - `/api/health/ready` returns `{"ready": true}`; p95 < 1.5s for 5 minutes
+   - Error rate < 1% across staging Sentry project
+4. **Promotion checklist**:
+   - Secrets parity verified (`guard:prod-env`, `check:env`)
+   - Feature flags match intended rollout (`lib/feature-flags.ts` + env overrides)
+   - Migrations applied and verified (dry-run logs saved)
+5. **Promote to production**:
+   - Tag release: `git tag -a vX.Y.Z -m "Promote staging to prod"`; push tag
+   - Promote staging build in Vercel (or redeploy from tag)
+6. **Post-promotion**:
+   - Watch alerts for 30 minutes (see thresholds below)
+   - If SEV-1/2 triggered, rollback to previous deployment and open incident
+
 ---
 
 ## Incident Response
@@ -248,21 +270,15 @@ db.workOrders.aggregate([
 | `/api/health/db` | Database connectivity | `{"mongodb": "connected"}` |
 | `/api/health/redis` | Redis connectivity | `{"redis": "connected"}` |
 
-### Key Metrics to Monitor
+### Alert Thresholds (production)
 
-```yaml
-# Critical metrics (alert immediately)
-- error_rate > 1%
-- response_time_p95 > 2000ms
-- mongodb_connection_failures > 0
-- payment_failure_rate > 5%
-
-# Warning metrics (alert after 15min)
-- cpu_usage > 80%
-- memory_usage > 85%
-- disk_usage > 90%
-- queue_depth > 1000
-```
+- **Error rate**: >2% for 5 minutes (SEV-2); >5% for 2 minutes (SEV-1)
+- **Latency**: p95 > 1500ms for 5 minutes; p99 > 2500ms for 2 minutes
+- **Availability**: `/api/health/ready` fails twice in 3 minutes
+- **Queue depth**: >1000 jobs for 10 minutes (notifications/email/OTP)
+- **Resource**: CPU > 80% or memory > 85% for 10 minutes; disk > 90%
+- **Payments**: PayTabs failure rate > 3% or 10 consecutive failures
+- **DB connectivity**: MongoDB connection failures > 0 in a 60s window
 
 ### Alert Response Matrix
 
@@ -272,6 +288,14 @@ db.workOrders.aggregate([
 | Database Down | Check Atlas status, failover | Contact MongoDB support |
 | Payment Failures | Check PayTabs status | Contact PayTabs support |
 | High Memory | Restart services | Investigate memory leaks |
+
+### Alerting Playbook
+
+1. **Acknowledge** within SLA (see Incident Response).
+2. **Stabilize**: scale up temporarily, enable maintenance flag if needed, throttle background jobs.
+3. **Inspect**: Sentry spikes, Vercel logs for regressions, Mongo/Redis dashboards for saturation.
+4. **Decide**: rollback recent deploy vs. disable feature flag vs. hotfix branch.
+5. **Communicate**: update #incidents every 15 minutes until resolved.
 
 ---
 

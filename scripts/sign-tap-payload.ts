@@ -87,9 +87,16 @@ async function main() {
     );
   }
 
-  const secret = process.env.TAP_SECRET_KEY;
+  // Use standardized env vars: prefer live key if TAP_ENVIRONMENT=live, otherwise test
+  const isProd = process.env.TAP_ENVIRONMENT === "live" || process.env.NODE_ENV === "production";
+  const secret = isProd 
+    ? process.env.TAP_LIVE_SECRET_KEY 
+    : process.env.TAP_TEST_SECRET_KEY;
+  
   if (!secret) {
-    console.error("❌ TAP_SECRET_KEY is not set. Cannot generate signature.");
+    const keyName = isProd ? "TAP_LIVE_SECRET_KEY" : "TAP_TEST_SECRET_KEY";
+    console.error(`❌ ${keyName} is not set. Cannot generate signature.`);
+    console.error(`   Current environment: ${isProd ? "live" : "test"}`);
     process.exit(1);
   }
 
