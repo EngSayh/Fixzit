@@ -182,7 +182,10 @@ async function testSystem() {
 
 // Run tests if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  testSystem().catch(console.error);
+  testSystem().catch((err) => {
+    console.error('Test system failed:', err);
+    process.exit(1);
+  });
 }
 
 export default testSystem;

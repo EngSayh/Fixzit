@@ -1,6 +1,10 @@
 # 📋 CATEGORIZED TASKS LIST
 
-**Generated**: November 6, 2025  
+> ⚠️ **DEPRECATED**: This file is no longer maintained as of December 2025.  
+> **Canonical Source**: See [`docs/PENDING_MASTER.md`](./PENDING_MASTER.md) for the single source of truth.  
+> This file is preserved for historical reference only.
+
+**Generated**: November 6, 2025 (ARCHIVED)  
 **Source**: Past 5 days analysis + TODO/FIXME scan + Test results
 
 ---

@@ -638,4 +638,7 @@ async function main() {
 }
 
 // Run audit
-main().catch(console.error);
+main().catch((err) => {
+  console.error('Audit failed:', err);
+  process.exit(1);
+});

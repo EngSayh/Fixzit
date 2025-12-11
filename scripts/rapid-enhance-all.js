@@ -260,7 +260,10 @@ async function main() {
 
 // Run if called directly
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch((err) => {
+    console.error('Script failed:', err);
+    process.exit(1);
+  });
 }
 
 module.exports = { enhanceFile, findAllRoutes };

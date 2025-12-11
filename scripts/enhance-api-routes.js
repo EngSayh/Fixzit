@@ -327,6 +327,12 @@ async function main() {
   }
 }
 
+// Run if called directly
+main().catch((err) => {
+  console.error('Script failed:', err);
+  process.exit(1);
+});
+
 if (!DRY_RUN && !APPLY && !SINGLE_ROUTE) {
   console.log("Usage:");
   console.log(
@@ -341,4 +347,7 @@ if (!DRY_RUN && !APPLY && !SINGLE_ROUTE) {
   process.exit(1);
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error('Script failed:', err);
+  process.exit(1);
+});

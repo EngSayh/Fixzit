@@ -65,7 +65,9 @@ export async function PUT(req: NextRequest) {
     if (!jobId || !["approve", "reject"].includes(action))
       return validationError("Invalid request");
 
-    const job = await Job.findById(jobId);
+    // SECURITY: Use orgId scoping for tenant isolation
+    // Ensures users can only moderate jobs within their organization
+    const job = await Job.findOne({ _id: jobId, orgId: user.orgId });
     if (!job) return notFoundError("Job");
 
     if (action === "approve") {

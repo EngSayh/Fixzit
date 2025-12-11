@@ -59,6 +59,7 @@ const INTENTIONALLY_PUBLIC = [
 ];
 
 // Auth patterns to look for
+// UPDATED 2025-12-11: Added 7 missing patterns from deep dive audit
 const AUTH_PATTERNS = [
   'getSessionUser',
   'withAuthRbac',
@@ -69,6 +70,14 @@ const AUTH_PATTERNS = [
   'requireFmAbility',  // FM module authorization
   'validateApiKey',
   'verifySignature',
+  // Added from PROC-4/SEC-4 deep dive audit:
+  'requireSuperAdmin',        // Admin routes, QA routes
+  'requireAbility',           // Permission-based access
+  'getUserFromToken',         // Token-based auth (FM, contracts)
+  'resolveMarketplaceContext', // Marketplace vendor auth
+  'requirePermission',        // Permission guards
+  'resolveRequestSession',    // Session resolution
+  'verifySecretHeader',       // Webhook security
 ];
 
 async function walk(dir, acc = []) {
