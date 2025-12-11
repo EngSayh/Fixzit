@@ -1,13 +1,13 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T13:06:25+03:00  
-**Version**: 13.20  
+**Last Updated**: 2025-12-11T13:06:34+03:00  
+**Version**: 13.21  
 **Branch**: feat/batch-13-completion  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok)  
 **Total Pending Items**: 10 remaining (0 Critical, 0 High, 0 Moderate Engineering, 1 User Action, 4 Feature Requests, 1 Nice-to-Have, 4 Process/CI backlog)  
-**Completed Items**: 262+ tasks completed (All batches 1-14 completed + OpenAPI full documentation + LOW PRIORITY verification)  
+**Completed Items**: 268+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROD-001..006 verification)  
 **Test Status**: ✅ Vitest 2,468 tests (247 files) | 🚧 Playwright auth URL alignment landed; full suite rerun pending (prior 230 env 401s)  
-**Consolidation Check**: 2025-12-11T13:06:25+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T13:06:34+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
 
 ---
 
@@ -68,6 +68,32 @@ Backend infrastructure complete for all. Only frontend UI dashboards needed.
 | **UI/UX** | ✅ 0 remaining | WCAG AA compliant |
 | **Infrastructure** | ✅ 0 remaining | All integrations implemented |
 | **Accessibility** | ✅ 0 remaining | 280 ARIA attrs, 11+ keyboard handlers |
+
+---
+
+## ✅ SESSION 2025-12-11T13:06 - PRODUCTION ITEMS VERIFICATION (PROD-001..006)
+
+### Production Configuration Verification Complete
+
+All 6 MODERATE PRIORITY production items verified. Configuration is correct - only user actions required.
+
+| ID | Item | Verification | Status |
+|----|------|--------------|--------|
+| **PROD-001** | Playwright E2E Auth Fix | ✅ **CONFIG CORRECT** - `playwright.config.ts` properly aligns `NEXTAUTH_URL`/`AUTH_URL`/`BASE_URL` to `AUTH_BASE_URL` (http://127.0.0.1:3100). `tests/setup-auth.ts` mints proper JWT tokens with offline fallback. 230 failures due to missing `TEST_*_IDENTIFIER` credentials in CI. | ✅ Config Correct |
+| **PROD-002** | Redis Production Setup | ✅ **GRACEFUL FALLBACK** - `lib/redis.ts` supports `REDIS_URL`/`REDIS_KEY`/`OTP_STORE_REDIS_URL`/`BULLMQ_REDIS_URL` with graceful fallback when not configured. User must set `REDIS_URL` in Vercel. | ✅ User Action |
+| **PROD-003** | Sentry Source Maps Upload | ✅ **FULLY CONFIGURED** - `.github/workflows/build-sourcemaps.yml` uses `getsentry/action-release@v3` with `SENTRY_AUTH_TOKEN`/`SENTRY_ORG`/`SENTRY_PROJECT`. Debug IDs injected automatically. | ✅ Configured |
+| **PROD-004** | Database Migration Execution | ✅ **READY** - `scripts/migrations/2025-12-20-normalize-souq-orgId.ts` complete with dry-run (default) and `--apply` flag. 7 target collections. User must run with `--apply`. | ✅ User Action |
+| **PROD-005** | GraphQL Playground Auth | ✅ **SECURE** - `lib/graphql/index.ts:806` has `graphiql: process.env.NODE_ENV === 'development'`. Playground disabled in production. | ✅ Secure |
+| **PROD-006** | Rate Limiting Configuration | ✅ **IMPLEMENTED** - `middleware.ts:100-103` has `LOGIN_RATE_LIMIT_WINDOW_MS` (60s) and `LOGIN_RATE_LIMIT_MAX_ATTEMPTS` (5). `lib/middleware/enhanced-rate-limit.ts` provides `enforceRateLimit()` with X-RateLimit headers. | ✅ Implemented |
+
+### User Actions Required (from PROD verification)
+
+| Action | Command/Location | Priority |
+|--------|------------------|----------|
+| Add Playwright test credentials | Set `TEST_*_IDENTIFIER`/`TEST_*_PASSWORD` in `.env.test` or GitHub Secrets | Medium |
+| Enable Redis caching | Set `REDIS_URL` in Vercel environment variables | Medium |
+| Configure Sentry | Set `SENTRY_AUTH_TOKEN`/`SENTRY_ORG`/`SENTRY_PROJECT` in GitHub Secrets | Medium |
+| Run souq migration | `npx tsx scripts/migrations/2025-12-20-normalize-souq-orgId.ts --apply` | Low |
 
 ---
 
