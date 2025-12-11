@@ -1,9 +1,10 @@
 # Fixzit Alert Rules for Grafana/Prometheus
-# Version: 1.0.0
-# Last Updated: 2025-01-01
+# Version: 2.0.0
+# Last Updated: 2025-12-11
 #
 # Deploy this file to Prometheus AlertManager or Grafana Alerting
 # Import: Grafana UI > Alerting > Import from file
+# Validate: node scripts/validate-grafana.mjs
 
 apiVersion: 1
 
