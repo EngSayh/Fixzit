@@ -1,4 +1,7 @@
 {
+  "brand": {
+    "logoAlt": "شعار فكس إت"
+  },
   "landing": {
     "title": "فكس إت - إدارة كاملة للعقارات والمرافق",
     "subtitle": "تبسيط العمليات وإدارة أوامر العمل وتحسين محفظتك العقارية",
@@ -2752,7 +2755,8 @@
     }
   },
   "accessibility": {
-    "skipToContent": "انتقل إلى المحتوى الرئيسي"
+    "skipToContent": "انتقل إلى المحتوى الرئيسي",
+    "skipToMainContent": "انتقل إلى المحتوى الرئيسي"
   },
   "app": {
     "fm": "إدارة المرافق",
@@ -4490,6 +4494,7 @@
     "support": "الدعم",
     "help": "المساعدة",
     "ticket": "[AR] Ticket",
+    "ticket_aria": "افتح تذكرة دعم",
     "copyright": "[AR] Copyright",
     "breadcrumbLabel": "[AR] Breadcrumb",
     "crumb": {

@@ -1,4 +1,7 @@
 {
+  "brand": {
+    "logoAlt": "Fixzit Logo"
+  },
   "landing": {
     "title": "Fixzit - Complete Property & Facility Management",
     "subtitle": "Streamline operations, manage work orders, and optimize your real estate portfolio",
@@ -2752,7 +2755,8 @@
     }
   },
   "accessibility": {
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "skipToMainContent": "Skip to main content"
   },
   "app": {
     "fm": "Facility Management",
@@ -4490,6 +4494,7 @@
     "support": "Support",
     "help": "Help",
     "ticket": "Ticket",
+    "ticket_aria": "Open a support ticket",
     "copyright": "Copyright",
     "breadcrumbLabel": "Breadcrumb",
     "crumb": {
