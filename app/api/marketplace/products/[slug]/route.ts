@@ -1,3 +1,14 @@
+/**
+ * @description Retrieves a single marketplace product by its URL slug.
+ * Returns product details including pricing, inventory, and computed buy-box data.
+ * Uses tenant-scoped queries to ensure proper multi-tenancy isolation.
+ * @route GET /api/marketplace/products/[slug]
+ * @access Public - Products are publicly visible for marketplace browsing
+ * @param {string} slug - URL-friendly product identifier (e.g., 'industrial-pump-xyz')
+ * @returns {Object} product: full product data, buyBox: computed pricing/availability
+ * @throws {404} If product with the specified slug is not found
+ * @throws {500} If server error occurs during retrieval
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { MarketplaceProduct } from "@/server/models/MarketplaceProduct";

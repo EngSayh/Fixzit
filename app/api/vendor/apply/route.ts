@@ -1,3 +1,19 @@
+/**
+ * @description Handles vendor application submissions from the public vendor onboarding form.
+ * Validates company details, contact information, and service offerings.
+ * Creates a vendor application record for review by organization admins.
+ * @route POST /api/vendor/apply
+ * @access Public - No authentication required (rate-limited)
+ * @param {Object} body.company - Company name (2-200 chars)
+ * @param {Object} body.contactName - Primary contact name (2-100 chars)
+ * @param {Object} body.email - Contact email address
+ * @param {Object} body.phone - Optional phone number in international format
+ * @param {Object} body.services - Optional description of services offered
+ * @param {Object} body.notes - Optional additional notes
+ * @returns {Object} success: true, applicationId: created application ID
+ * @throws {400} If validation fails
+ * @throws {429} If rate limit exceeded (5 requests/minute per IP)
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

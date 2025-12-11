@@ -1,3 +1,27 @@
+/**
+ * @fileoverview Onboarding Cases API
+ * @description Lists onboarding cases for user registration workflows including
+ * KYC verification, document submission, and approval processes.
+ * 
+ * @module api/onboarding
+ * @requires Authenticated user (privileged roles see all, others see own)
+ * 
+ * @endpoints
+ * - GET /api/onboarding - List onboarding cases
+ * 
+ * @queryParams
+ * - status: Filter by case status
+ * - role: Filter by target role (VENDOR, TENANT, OWNER, etc.)
+ * - limit: Max results (1-100, default: 25)
+ * 
+ * @accessControl
+ * - SUPER_ADMIN, ADMIN, COMPLIANCE_OFFICER, REVIEWER: See all org cases
+ * - Other users: See only cases they created or are subject of
+ * 
+ * @security
+ * - Tenant-scoped: Cases filtered by orgId
+ * - Privacy: Non-privileged users restricted to own cases
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';

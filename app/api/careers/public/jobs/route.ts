@@ -1,3 +1,34 @@
+/**
+ * @fileoverview Public Jobs Listing API
+ * @description Provides public access to job listings for the careers page,
+ * with search, filtering, and pagination support.
+ * 
+ * @module api/careers/public/jobs
+ * @public Unauthenticated access allowed
+ * 
+ * @endpoints
+ * - GET /api/careers/public/jobs - List published public jobs
+ * 
+ * @queryParams
+ * - orgId: Organization ID (defaults to platform org)
+ * - q: Text search query
+ * - department: Filter by department
+ * - location: Filter by city or country (regex)
+ * - jobType: Filter by job type (full-time, part-time, etc.)
+ * - page: Page number (default: 1)
+ * - limit: Items per page (max: 50, default: 12)
+ * 
+ * @response
+ * - success: boolean
+ * - jobs: Array of job listings
+ * - total: Total matching jobs
+ * - page: Current page
+ * - totalPages: Total pages available
+ * 
+ * @security
+ * - Only published, public visibility jobs are returned
+ * - Location regex is escaped to prevent ReDoS attacks
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";

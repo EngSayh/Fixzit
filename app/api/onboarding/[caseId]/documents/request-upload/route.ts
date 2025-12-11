@@ -1,3 +1,19 @@
+/**
+ * @description Generates a presigned S3 URL for secure document uploads during onboarding.
+ * Creates a unique file path based on case ID and document type, validates allowed
+ * document types, and returns a time-limited upload URL with content restrictions.
+ * @route POST /api/onboarding/[caseId]/documents/request-upload
+ * @access Private - Case owner only
+ * @param {string} caseId - The unique identifier of the onboarding case
+ * @param {Object} body.document_type_code - Type code (e.g., 'NATIONAL_ID', 'CR')
+ * @param {Object} body.file_name - Original filename for extension detection
+ * @param {Object} body.content_type - MIME type (e.g., 'image/jpeg', 'application/pdf')
+ * @param {Object} body.file_size - Expected file size in bytes for validation
+ * @returns {Object} presigned_url, file_storage_key, expires_at (URL expires in 1 hour)
+ * @throws {401} If user is not authenticated
+ * @throws {400} If required fields missing, invalid content type, or invalid document type
+ * @throws {404} If onboarding case is not found
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { connectMongo } from '@/lib/mongo';

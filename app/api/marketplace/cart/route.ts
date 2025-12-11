@@ -1,3 +1,18 @@
+/**
+ * @description Manages shopping cart operations for the B2B marketplace.
+ * GET retrieves current cart with populated product details.
+ * POST adds items to cart with quantity and pricing calculations.
+ * Uses tenant-scoped cart storage with automatic total recalculation.
+ * @route GET /api/marketplace/cart - Retrieve current cart
+ * @route POST /api/marketplace/cart - Add item to cart
+ * @access Private - Authenticated marketplace users
+ * @param {Object} body.productId - Product ID to add to cart
+ * @param {Object} body.quantity - Quantity to add (positive integer)
+ * @returns {Object} GET: cart with lines and totals | POST: updated cart
+ * @throws {401} If user is not authenticated
+ * @throws {400} If product not found or validation fails
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { z } from "zod";

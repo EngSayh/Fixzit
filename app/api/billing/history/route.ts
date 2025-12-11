@@ -1,3 +1,15 @@
+/**
+ * @description Retrieves paginated billing history for the authenticated user's organization.
+ * Supports both corporate (org-based) and owner (user-based) subscription types.
+ * Returns invoices with payment status, amounts, and associated subscription details.
+ * @route GET /api/billing/history
+ * @access Private - Authenticated users with organization context
+ * @query {number} page - Page number for pagination (default: 1)
+ * @query {number} limit - Items per page (default: 10, max: 50)
+ * @returns {Object} invoices: array of invoice records, pagination metadata
+ * @throws {401} If user is not authenticated
+ * @throws {400} If organization context is missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import {

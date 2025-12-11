@@ -1,3 +1,35 @@
+/**
+ * @fileoverview Compliance Policies API
+ * @description Manages organizational compliance policies including creation,
+ * versioning, review scheduling, and lifecycle management.
+ * 
+ * @module api/compliance/policies
+ * @requires SUPER_ADMIN, CORPORATE_ADMIN, ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER, or AUDITOR role
+ * 
+ * @endpoints
+ * - GET /api/compliance/policies - List policies with filtering and pagination
+ * - POST /api/compliance/policies - Create a new policy
+ * - PUT /api/compliance/policies - Update an existing policy
+ * 
+ * @requestBody (POST/PUT)
+ * - title: (required) Policy title (min 2 chars)
+ * - owner: (required) Responsible person
+ * - summary: Brief summary
+ * - body: Full policy content
+ * - category: OPERATIONS, FINANCE, HR, SAFETY, COMPLIANCE, VENDOR
+ * - status: DRAFT, UNDER_REVIEW, ACTIVE, RETIRED
+ * - version: Version string (default: 1.0)
+ * - reviewFrequencyDays: Days between reviews (30-720, default: 365)
+ * - effectiveFrom: Policy effective date
+ * - reviewDate: Next review date
+ * - tags: Classification tags
+ * - relatedDocuments: Array of {name, url, type}
+ * 
+ * @security
+ * - RBAC: Admin and management roles
+ * - Tenant-scoped: Policies are isolated by organization
+ * - Audit context set for change tracking
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";

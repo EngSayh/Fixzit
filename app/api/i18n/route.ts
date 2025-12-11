@@ -1,3 +1,14 @@
+/**
+ * @description Sets user locale preference for internationalization.
+ * Stores the locale in a secure HTTP-only cookie for subsequent requests.
+ * Supports 'en' (English) and 'ar' (Arabic) locales.
+ * @route POST /api/i18n
+ * @access Public - Rate-limited (30 requests/minute per IP)
+ * @param {Object} body.locale - The locale to set: 'en' or 'ar'
+ * @returns {Object} success: true, locale: the set locale
+ * @throws {400} If locale is invalid or unsupported
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";

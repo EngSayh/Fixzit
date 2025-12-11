@@ -1,3 +1,33 @@
+/**
+ * @fileoverview HR Attendance API
+ * @description Manages employee attendance records including clock-in/out,
+ * time tracking, and attendance status management.
+ * 
+ * @module api/hr/attendance
+ * @requires HR, HR_OFFICER, SUPER_ADMIN, or CORPORATE_ADMIN role
+ * 
+ * @endpoints
+ * - GET /api/hr/attendance - List attendance entries for an employee
+ * - POST /api/hr/attendance - Log a new attendance entry
+ * 
+ * @queryParams (GET)
+ * - employeeId: (required) Employee ID to fetch attendance for
+ * - from: Start date filter (ISO 8601)
+ * - to: End date filter (ISO 8601)
+ * 
+ * @requestBody (POST)
+ * - employeeId: (required) Employee ID
+ * - date: (required) Attendance date
+ * - status: (required) PRESENT, ABSENT, LATE, LEAVE, HOLIDAY
+ * - clockIn: Clock-in timestamp
+ * - clockOut: Clock-out timestamp
+ * - shiftTemplateId: Associated shift template
+ * - notes: Additional notes
+ * 
+ * @security
+ * - RBAC: HR, HR_OFFICER, SUPER_ADMIN, CORPORATE_ADMIN
+ * - Tenant-scoped: Attendance records are isolated by organization
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";

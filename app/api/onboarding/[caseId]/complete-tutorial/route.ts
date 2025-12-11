@@ -1,3 +1,15 @@
+/**
+ * @description Marks the onboarding tutorial as completed for a specific case.
+ * Updates the tutorial_completed flag and records the completion timestamp.
+ * Only the case owner or authorized reviewers can mark the tutorial complete.
+ * @route PUT /api/onboarding/[caseId]/complete-tutorial
+ * @access Private - Case owner or authorized reviewers
+ * @param {string} caseId - The unique identifier of the onboarding case
+ * @returns {Object} success: true, case: updated case with tutorial_completed=true
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user is not authorized to update this case
+ * @throws {404} If onboarding case is not found
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';

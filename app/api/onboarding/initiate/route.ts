@@ -1,3 +1,34 @@
+/**
+ * @fileoverview Onboarding Case Initiation API
+ * @description Creates new onboarding cases for user registration including
+ * vendor onboarding, tenant verification, and owner KYC processes.
+ * 
+ * @module api/onboarding/initiate
+ * @requires Authenticated user
+ * 
+ * @endpoints
+ * - POST /api/onboarding/initiate - Start a new onboarding case
+ * 
+ * @requestBody
+ * - role: (required) Target role (VENDOR, TENANT, OWNER, DRIVER, etc.)
+ * - basic_info: (required) Initial user information object
+ * - payload: Additional data for the onboarding process
+ * - country: Country code (default: SA)
+ * 
+ * @response
+ * - id: Created case ID
+ * - step: Current onboarding step (starts at first step)
+ * 
+ * @workflow
+ * 1. User initiates onboarding with role and basic info
+ * 2. System creates case with PENDING status
+ * 3. User proceeds through steps (documents, verification, etc.)
+ * 4. Reviewer approves or rejects
+ * 
+ * @security
+ * - Authenticated: Any logged-in user can initiate
+ * - Tenant-scoped: Case linked to user's organization
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import { connectMongo } from '@/lib/mongo';

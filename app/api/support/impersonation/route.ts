@@ -1,3 +1,31 @@
+/**
+ * @fileoverview Organization Impersonation API (Support Tool)
+ * @description Enables Super Admins to temporarily impersonate an organization
+ * for support and troubleshooting without changing their actual session.
+ * 
+ * @module api/support/impersonation
+ * @requires SUPER_ADMIN role
+ * 
+ * @endpoints
+ * - GET /api/support/impersonation - Get current impersonation status
+ * - POST /api/support/impersonation - Start impersonating an organization
+ * - DELETE /api/support/impersonation - Stop impersonation
+ * 
+ * @cookies
+ * - support_org_id: Stores impersonated org ID
+ * 
+ * @requestBody (POST)
+ * - orgId: (required) Organization ID to impersonate
+ * 
+ * @response
+ * - organization: Impersonated organization details or null
+ * 
+ * @security
+ * - SUPER_ADMIN only - highly privileged operation
+ * - Cookie-based session tracking
+ * - Audit logging recommended for production
+ * - Impersonation visible in UI for transparency
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";

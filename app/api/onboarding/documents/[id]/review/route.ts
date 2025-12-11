@@ -1,3 +1,19 @@
+/**
+ * @description Reviews and approves/rejects onboarding documents submitted by users.
+ * Only authorized reviewers can perform document verification. On full approval,
+ * triggers entity creation (Organization, User) from the onboarding case data.
+ * Records review decision in VerificationLog for audit trail.
+ * @route PATCH /api/onboarding/documents/[id]/review
+ * @access Private - Authorized reviewers (SUPER_ADMIN, ADMIN, COMPLIANCE_OFFICER, REVIEWER)
+ * @param {string} id - The unique identifier of the VerificationDocument
+ * @param {Object} body.decision - Review decision: 'VERIFIED' or 'REJECTED'
+ * @param {Object} body.rejection_reason - Required reason when rejecting a document
+ * @returns {Object} success: true, document: updated document with review status
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user is not an authorized reviewer
+ * @throws {400} If decision is invalid or rejection_reason missing for rejections
+ * @throws {404} If document is not found
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import { connectMongo } from '@/lib/mongo';

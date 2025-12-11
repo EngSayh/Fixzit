@@ -1,3 +1,21 @@
+/**
+ * @description Confirms document upload completion and enqueues OCR processing.
+ * Records the uploaded document metadata (S3 key, type, size) and creates
+ * a VerificationDocument entry. Triggers background OCR analysis for identity
+ * documents like national IDs and commercial registrations.
+ * @route POST /api/onboarding/[caseId]/documents/confirm-upload
+ * @access Private - Case owner only
+ * @param {string} caseId - The unique identifier of the onboarding case
+ * @param {Object} body.document_type_code - Type code (e.g., 'NATIONAL_ID', 'CR')
+ * @param {Object} body.file_storage_key - S3 key where the document is stored
+ * @param {Object} body.original_name - Original filename
+ * @param {Object} body.mime_type - MIME type of the uploaded file
+ * @param {Object} body.size_bytes - File size in bytes
+ * @returns {Object} success: true, document: created VerificationDocument
+ * @throws {401} If user is not authenticated
+ * @throws {400} If required fields are missing
+ * @throws {404} If onboarding case is not found
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import { connectMongo } from '@/lib/mongo';

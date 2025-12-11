@@ -1,3 +1,31 @@
+/**
+ * @fileoverview File Antivirus Scan API
+ * @description Triggers malware/virus scanning for uploaded S3 objects
+ * to ensure file safety before processing.
+ * 
+ * @module api/upload/scan
+ * @requires Authenticated user
+ * 
+ * @endpoints
+ * - POST /api/upload/scan - Scan an uploaded file for malware
+ * 
+ * @requestBody
+ * - key: (required) S3 object key to scan
+ * 
+ * @response
+ * - success: boolean - Whether scan completed
+ * - clean: boolean - True if file is safe
+ * - error: string - Error message if scan failed or malware detected
+ * 
+ * @validation
+ * - S3 bucket must be configured
+ * - Scan endpoint must be configured
+ * - Bucket policies and encryption validated
+ * 
+ * @security
+ * - Files marked as infected are rejected
+ * - Secure response headers applied
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse } from "@/server/security/headers";

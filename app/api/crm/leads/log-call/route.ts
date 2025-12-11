@@ -1,5 +1,33 @@
 "use server";
 
+/**
+ * @fileoverview CRM Log Call API
+ * @description Logs sales call activities for CRM leads and accounts,
+ * creating or updating lead records with call notes.
+ * 
+ * @module api/crm/leads/log-call
+ * @requires SUPER_ADMIN, CORPORATE_ADMIN, ADMIN, MANAGER, FM_MANAGER, or PROPERTY_MANAGER role
+ * 
+ * @endpoints
+ * - POST /api/crm/leads/log-call - Log a call activity for a lead
+ * 
+ * @requestBody
+ * - contact: (required) Contact person name
+ * - company: (required) Company name
+ * - email: Contact email
+ * - phone: Contact phone number
+ * - notes: (required) Call notes/summary
+ * 
+ * @behavior
+ * - Creates new lead if company doesn't exist
+ * - Updates existing lead contact info if found
+ * - Creates CRM activity record with call details
+ * 
+ * @security
+ * - RBAC: Admin and management roles
+ * - Tenant-scoped: Calls are logged per organization
+ * - Audit context for tracking changes
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";

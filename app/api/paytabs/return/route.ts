@@ -1,3 +1,14 @@
+/**
+ * @description Handles PayTabs payment return redirects after checkout completion.
+ * Receives the customer back from PayTabs payment page and redirects to billing completion page.
+ * Extracts cart ID and payment status from query parameters for order finalization.
+ * @route GET /api/paytabs/return
+ * @access Public - PayTabs redirects customers here after payment
+ * @query {string} cart_id - The cart/order identifier
+ * @query {string} respStatus - Payment response status from PayTabs
+ * @returns {Redirect} Redirects to /billing/complete with payment status
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 
 import { smartRateLimit } from "@/server/security/rateLimit";

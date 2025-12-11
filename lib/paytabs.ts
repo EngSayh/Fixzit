@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { logger } from "./logger";
+import { Config } from "@/lib/config/constants";
 import { fetchWithRetry } from "@/lib/http/fetchWithRetry";
 import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
 import { getCircuitBreaker } from "@/lib/resilience";
@@ -392,7 +393,7 @@ export async function createPayout(
     payout_reference: input.reference,
     payout_amount: input.amount.toFixed(2),
     payout_currency: input.currency,
-    payout_description: input.description ?? "Fixzit payout",
+    payout_description: input.description ?? `${Config.company.name} payout`,
     beneficiary: {
       name: input.beneficiary.name,
       iban: input.beneficiary.iban,

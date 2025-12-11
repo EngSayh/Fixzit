@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { logger } from "@/lib/logger";
+import { Config } from "@/lib/config/constants";
 import { NOTIFY } from "@/domain/fm/fm.behavior";
 import {
   sendBulkNotifications,
@@ -324,7 +325,7 @@ export function buildNotification(
   recipients: NotificationRecipient[],
 ): NotificationPayload {
   // Build notification title and body
-  let title = "Fixzit Notification";
+  let title = `${Config.company.name} Notification`;
   let body = "";
   let deepLink: string | undefined;
   let priority: "high" | "normal" | "low" = "normal";

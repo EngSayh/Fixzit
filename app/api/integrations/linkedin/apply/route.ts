@@ -1,3 +1,17 @@
+/**
+ * @description Handles LinkedIn Easy Apply integration for job applications.
+ * Receives candidate data from LinkedIn and creates Application records in ATS.
+ * Requires ATS_ENABLED=true environment flag to function.
+ * @route POST /api/integrations/linkedin/apply
+ * @access Public - LinkedIn server-to-server integration (rate-limited)
+ * @param {Object} body - LinkedIn candidate application payload
+ * @param {string} body.jobId - Target job posting ID
+ * @param {Object} body.candidate - Candidate profile from LinkedIn
+ * @returns {Object} success: true, applicationId: created application ID
+ * @throws {400} If job not found or candidate data invalid
+ * @throws {501} If LinkedIn integration is not enabled
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectMongo } from "@/lib/mongo";

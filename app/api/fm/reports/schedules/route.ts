@@ -1,3 +1,25 @@
+/**
+ * @fileoverview FM Report Schedules API
+ * @description Manages automated report scheduling including creation, listing,
+ * and status management for recurring facility management reports.
+ * 
+ * @module api/fm/reports/schedules
+ * @requires FM:FINANCE:EXPORT permission
+ * 
+ * @endpoints
+ * - GET /api/fm/reports/schedules - List all report schedules
+ * - POST /api/fm/reports/schedules - Create a new report schedule
+ * 
+ * @features
+ * - Frequency options: daily, weekly, monthly, quarterly
+ * - Multiple recipients support (email list)
+ * - Format options: PDF, Excel, CSV
+ * - Pause/resume capability
+ * 
+ * @security
+ * - Requires FM FINANCE module EXPORT permission
+ * - Tenant-scoped: Schedules are isolated by organization
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';

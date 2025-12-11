@@ -1337,22 +1337,22 @@ No critical blockers remaining. Production is fully operational.
 
 ---
 
-### 🟢 CATEGORY 8: LOW PRIORITY - Code Hygiene (12 Items)
+### 🟢 CATEGORY 8: LOW PRIORITY - Code Hygiene (12 Items) - **7/12 VERIFIED CLEAN (2025-12-11)**
 
 | ID | Task | Count/Location | Status |
 |----|------|----------------|--------|
-| CH-001 | Unused imports cleanup | Various files | 🔲 Not Started |
-| CH-002 | Inconsistent error handling | Various files | 🔲 Not Started |
-| CH-003 | Variable naming consistency | orgId vs org_id | 🔲 Not Started |
-| CH-004 | Long function refactoring | >100 line functions | 🔲 Not Started |
-| CH-005 | Repeated validation schemas | Consolidate | 🔲 Not Started |
-| CH-006 | Magic string constants | Extract to constants | 🔲 Not Started |
+| CH-001 | Unused imports cleanup | 0 warnings | ✅ ESLint shows 0 unused import warnings |
+| CH-002 | Inconsistent error handling | Various files | ✅ Verified - Uses logger.error + toast.error consistently |
+| CH-003 | Variable naming consistency | orgId vs org_id | ✅ Intentional - Backward compat for legacy DB records (`$or` pattern) |
+| CH-004 | Long function refactoring | >100 line functions | 🔲 Future sprint (1511 functions, needs sampling) |
+| CH-005 | Repeated validation schemas | Consolidate | 🔲 Future sprint (Zod schemas exist, well-organized) |
+| CH-006 | Magic string constants | Extract to constants | ✅ Verified - Status enums exist in domain/fm/fm.types.ts, lib/models/index.ts |
 | CH-007 | new Date() in JSX | 73 safe, 1 fixed | ✅ Fixed (H.4) |
 | CH-008 | Date.now() patterns | 22 (all safe) | ✅ Verified |
 | CH-009 | Duplicate file cleanup | 0 true duplicates | ✅ Verified |
 | CH-010 | eslint-disable comments | 13 (all justified) | ✅ Verified |
-| CH-011 | TODO/FIXME comments | 2 remaining | ✅ Minimal |
-| CH-012 | Empty catch blocks | 0 found | ✅ Clean |
+| CH-011 | TODO/FIXME comments | 2 remaining | ✅ Minimal + Added formatDate utils to lib/date-utils.ts |
+| CH-012 | Empty catch blocks | 0 found | ✅ Clean
 
 ---
 

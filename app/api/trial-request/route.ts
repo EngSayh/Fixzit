@@ -1,3 +1,33 @@
+/**
+ * @fileoverview Trial Request API
+ * @description Handles trial/demo request submissions from potential customers
+ * with bot detection, rate limiting, and email validation.
+ * 
+ * @module api/trial-request
+ * @public Unauthenticated access allowed
+ * 
+ * @endpoints
+ * - POST /api/trial-request - Submit a trial request
+ * 
+ * @requestBody
+ * - name: (required) Contact name (max 100 chars)
+ * - email: (required) Valid email address (max 254 chars)
+ * - company: (required) Company name (max 200 chars)
+ * - plan: Optional plan interest (max 50 chars)
+ * - message: Optional message (max 2000 chars)
+ * - phone: Optional phone number (max 20 chars)
+ * - website: Honeypot field - must be empty (bot detection)
+ * 
+ * @response
+ * - ok: boolean - Success indicator
+ * - id: Created trial request ID (on success)
+ * 
+ * @security
+ * - Rate limited: 3 requests per minute per IP
+ * - Secondary rate limit per email address
+ * - Honeypot field for bot detection
+ * - Zod validation for all inputs
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";

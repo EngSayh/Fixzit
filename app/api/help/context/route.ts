@@ -1,3 +1,25 @@
+/**
+ * @fileoverview Help Context API
+ * @description Provides contextual help information and escalation contacts
+ * based on the user's current module and role.
+ * 
+ * @module api/help/context
+ * @requires Authenticated user
+ * 
+ * @endpoints
+ * - GET /api/help/context?module=<module> - Get contextual help and escalation
+ * 
+ * @queryParams
+ * - module: Module context (FM, Souq, Aqar, Account, Billing, Other)
+ * 
+ * @response
+ * - articles: Array of relevant help articles (ROADMAP: KnowledgeBase integration)
+ * - escalation: Contact information for support escalation
+ * 
+ * @security
+ * - Authenticated users only
+ * - Module-aware escalation routing
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { resolveEscalationContact } from '@/server/services/escalation.service';

@@ -1,3 +1,18 @@
+/**
+ * @description Manages individual asset records for facility equipment tracking.
+ * Supports retrieval, updates, and deletion of assets (HVAC, electrical, elevators, etc.).
+ * All operations are tenant-scoped with proper RBAC enforcement.
+ * @route GET /api/assets/[id] - Retrieve asset details
+ * @route PATCH /api/assets/[id] - Update asset properties
+ * @route DELETE /api/assets/[id] - Soft delete an asset
+ * @access Private - Authenticated users with asset management permissions
+ * @param {string} id - The unique asset identifier
+ * @returns {Object} GET: asset details | PATCH: updated asset | DELETE: success status
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user lacks permission for the operation
+ * @throws {404} If asset is not found
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Asset } from "@/server/models/Asset";

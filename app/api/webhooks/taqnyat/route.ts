@@ -1,10 +1,16 @@
 /**
- * Taqnyat SMS Webhook Handler
- *
- * Receives delivery status callbacks from Taqnyat SMS provider.
- * Updates SMS message records with delivery status.
- *
- * @see https://taqnyat.sa/documentation (delivery reports section)
+ * @description Receives Taqnyat SMS delivery status webhooks.
+ * Updates SMS message records with delivery confirmation or failure status.
+ * Taqnyat is the ONLY supported SMS provider (CITC-compliant for Saudi Arabia).
+ * @route POST /api/webhooks/taqnyat - Receive delivery status callbacks
+ * @route GET /api/webhooks/taqnyat - Health check for webhook endpoint
+ * @access Public - Taqnyat server-to-server callback
+ * @param {Object} body.messageId - Original message ID from send request
+ * @param {Object} body.status - Delivery status code (1-7)
+ * @param {Object} body.recipient - Phone number that received the SMS
+ * @returns {Object} success: true if status processed
+ * @throws {400} If payload is invalid
+ * @security SMS provider limited to Taqnyat only (no Twilio, Unifonic, etc.)
  */
 
 import { NextRequest, NextResponse } from "next/server";

@@ -1,3 +1,18 @@
+/**
+ * @description Processes cart checkout and creates purchase orders.
+ * Validates cart contents, shipping address, and converts cart to order.
+ * Supports B2B checkout with payment terms and shipping configurations.
+ * @route POST /api/marketplace/checkout
+ * @access Private - Authenticated marketplace users with active cart
+ * @param {Object} body.shipTo - Shipping address details
+ * @param {Object} body.shipTo.address - Delivery address
+ * @param {Object} body.shipTo.contact - Contact person name
+ * @param {Object} body.shipTo.phone - Optional contact phone
+ * @returns {Object} success: true, order: created order with ID and status
+ * @throws {401} If user is not authenticated
+ * @throws {400} If cart is empty or validation fails
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { resolveMarketplaceContext } from "@/lib/marketplace/context";

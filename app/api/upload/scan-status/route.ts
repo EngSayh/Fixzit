@@ -1,3 +1,31 @@
+/**
+ * @fileoverview File Scan Status API
+ * @description Retrieves antivirus scan status for uploaded files,
+ * allowing clients to poll for scan completion.
+ * 
+ * @module api/upload/scan-status
+ * @requires Authenticated user OR valid status token
+ * 
+ * @endpoints
+ * - GET /api/upload/scan-status?key=<s3-key> - Get scan status for a file
+ * - POST /api/upload/scan-status - Batch query multiple files
+ * 
+ * @queryParams (GET)
+ * - key: S3 object key to check
+ * 
+ * @response
+ * - key: S3 object key
+ * - status: pending | clean | infected | error
+ * - findings: Array of detected issues (if any)
+ * - engine: Scanner engine name
+ * - sizeBytes: File size
+ * - scannedAt: Scan timestamp
+ * 
+ * @security
+ * - Rate limited: 60 requests per minute per user
+ * - Token authentication supported for automated systems
+ * - Tenant-scoped: Keys verified against user's org
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

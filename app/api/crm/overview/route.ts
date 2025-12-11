@@ -1,5 +1,30 @@
 "use server";
 
+/**
+ * @fileoverview CRM Overview Dashboard API
+ * @description Provides aggregated CRM statistics and metrics for dashboard
+ * display including pipeline value, lead counts, and top accounts.
+ * 
+ * @module api/crm/overview
+ * @requires SUPER_ADMIN, CORPORATE_ADMIN, ADMIN, MANAGER, OWNER, or SUPPORT_AGENT role
+ * 
+ * @endpoints
+ * - GET /api/crm/overview - Fetch CRM dashboard statistics
+ * 
+ * @response
+ * - totalLeads: Total number of leads
+ * - openPipeline: Value of open opportunities
+ * - wonDeals: Number of closed-won deals
+ * - stageCounts: Breakdown by pipeline stage
+ * - topAccounts: Top accounts by value
+ * - recentActivity: Activities from last 7 days
+ * 
+ * @security
+ * - RBAC: Admin, management, owner, and support roles
+ * - PHASE-3: FM/Property-specific roles excluded (no CRM use case)
+ * - Tenant-scoped: All aggregations filtered by orgId
+ * - CRM-001 FIX: Multi-tenant isolation enforced
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";

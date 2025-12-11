@@ -1,3 +1,12 @@
+/**
+ * @description Retrieves the category tree for marketplace navigation.
+ * Returns hierarchical categories with parent-child relationships.
+ * Categories are organization-scoped for multi-tenant marketplace support.
+ * @route GET /api/marketplace/categories
+ * @access Public - Categories are publicly visible for marketplace browsing
+ * @returns {Object} categories: flat list, tree: nested hierarchy structure
+ * @throws {500} If server error occurs during retrieval
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
