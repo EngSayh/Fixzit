@@ -1,13 +1,13 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T17:31:00+03:00  
-**Version**: 15.16  
-**Branch**: feat/frontend-dashboards  
+**Last Updated**: 2025-12-11T17:46:00+03:00  
+**Version**: 15.18  
+**Branch**: agent/pending-report-enhancements  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok, TAP Payments ok)  
-**Total Pending Items**: 6 items (Categories A-E ✅ VERIFIED; 6 backlog items in F)  
-**Completed Items**: 386+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes 8 items + Backlog Verification + Chat Session Analysis + System-Wide Code Audit + PR#520 Extended Deep Dive + POST-STAB AUDIT v2 + PSA-001 + CAT4-001 Security Fixes + 13 Silent CI Handlers Fixed + Currency Conversion Guard + PROC/SEC Session 18 fixes + SYS-012 Translation Audit Fix + RBAC pattern audit + Taqnyat URL constant + CQP-002a resolved + Category A/B/C Verification Session 6 items + CQP-007 parseInt radix + Category C final verification + SYS-008/TODO-DOC-001/TODO-DOC-002 documentation cleanup + Category D LOW priority verification 5 items + **CQP-006 Arabic translations 1,985→0** + **BL-001/BL-004/BL-005 verified as IMPLEMENTED**)  
+**Total Pending Items**: 8 items (optional enhancements backlog; Categories A-F still ✅)  
+**Completed Items**: 386+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes 8 items + Backlog Verification + Chat Session Analysis + System-Wide Code Audit + PR#520 Extended Deep Dive + POST-STAB AUDIT v2 + PSA-001 + CAT4-001 Security Fixes + 13 Silent CI Handlers Fixed + Currency Conversion Guard + PROC/SEC Session 18 fixes + SYS-012 Translation Audit Fix + RBAC pattern audit + Taqnyat URL constant + CQP-002a resolved + Category A/B/C Verification Session 6 items + CQP-007 parseInt radix + Category C final verification + SYS-008/TODO-DOC-001/TODO-DOC-002 documentation cleanup + Category D LOW priority verification 5 items + **CQP-006 Arabic translations 1,985→0** + **Category F backlog delivered (BL-002..008 + TODO-001)**)  
 **Test Status**: ✅ Vitest full suite previously (2,468 tests) + latest `pnpm test:models` rerun (6 files, 91 tests) | ❌ `pnpm test` failed (Playwright e2e cross-tenant isolation suite) — see “Test Failure (Playwright)” below  
-**Consolidation Check**: 2025-12-11T17:31:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T17:46:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
 
 ---
 
@@ -292,22 +292,22 @@ Deprecated with notice pointing to PENDING_MASTER.md.
 
 ---
 
-### 🟪 CATEGORY F: FEATURES & BACKLOG (6 items remaining) — PRIORITY: FUTURE
+### 🟪 CATEGORY F: FEATURES & BACKLOG (0 items remaining) — PRIORITY: FUTURE
 
 | ID | Item | Status | Effort | Notes |
 |----|------|--------|--------|-------|
-| **BL-001** | IP Reputation Scoring | ✅ IMPLEMENTED | — | `lib/security/ip-reputation.ts` (255 lines) — scoring, blocklist/allowlist, throttle multiplier |
-| **BL-002** | Bundle Budget Historical Trends | ❌ NOT IMPLEMENTED | MEDIUM | No time-series analytics |
-| **BL-003** | RTL Playwright Visual Tests | ❌ NOT IMPLEMENTED | MEDIUM | No visual regression tests |
-| **BL-004** | ICU MessageFormat | ✅ IMPLEMENTED | — | `i18n/formatMessage.ts` — IntlMessageFormat with cache |
-| **BL-005** | Storybook Setup | ✅ IMPLEMENTED | — | 3 stories: button, card, status-pill + full Storybook 8.6 deps |
-| **BL-006** | Interactive Swagger UI | ❌ NOT IMPLEMENTED | LOW | Only `openapi.yaml` exists |
-| **BL-007** | Sentry FM/Souq Contexts | ❌ NOT IMPLEMENTED | LOW | No module-specific error contexts |
-| **BL-008** | Structured JSON Logging | 🟡 PARTIAL | MEDIUM | `lib/audit.ts` has structured logging; not full ELK format |
-| **TODO-001** | Aqar User Personalization | ❌ NOT STARTED | 2-3 days | Saved searches, favorites |
+| **BL-001** | IP Reputation Scoring | ✅ IMPLEMENTED | — | `lib/security/ip-reputation.ts` + rate-limit wrappers with throttle multipliers and block/allow lists |
+| **BL-002** | Bundle Budget Historical Trends | ✅ IMPLEMENTED | MEDIUM | `scripts/checkBundleBudget.mjs` now persists runs to `reports/bundle-budget-history.json` with trend printing |
+| **BL-003** | RTL Playwright Visual Tests | ✅ IMPLEMENTED | MEDIUM | `/qa/rtl-preview` RTL showcase + `tests/e2e/rtl-visual.spec.ts` visual snapshot |
+| **BL-004** | ICU MessageFormat | ✅ IMPLEMENTED | — | `i18n/formatMessage.ts` uses `intl-messageformat` + cache + unit tests |
+| **BL-005** | Storybook Setup | ✅ IMPLEMENTED | — | `.storybook` config + Button/Card/StatusPill stories (8.6 NextJS stack) |
+| **BL-006** | Interactive Swagger UI | ✅ IMPLEMENTED | LOW | `/docs/api` with `swagger-ui-react` backed by `/api/docs/openapi` YAML parser |
+| **BL-007** | Sentry FM/Souq Contexts | ✅ IMPLEMENTED | LOW | Logger tags Sentry scope with module/context + request metadata |
+| **BL-008** | Structured JSON Logging | ✅ IMPLEMENTED | MEDIUM | `LOG_FORMAT=json` in `lib/logger.ts` outputs JSON with module tags + extras |
+| **TODO-001** | Aqar User Personalization | ✅ IMPLEMENTED | 2-3 days | Personalization events + profile scoring in `services/aqar/recommendation-engine.ts` |
 
-**Remaining**: 6 items (BL-002, BL-003, BL-006, BL-007, BL-008 partial, TODO-001)  
-**Action**: Sprint planning for next quarter
+**Remaining**: 0 items — backlog fully delivered  
+**Action**: Monitor adoption (RTL visual snapshots, Swagger UI usage, personalization signals)
 
 ---
 
@@ -335,7 +335,7 @@ Deprecated with notice pointing to PENDING_MASTER.md.
 
 ---
 
-## 📊 SUMMARY METRICS (v15.15)
+## 📊 SUMMARY METRICS (v15.17)
 
 | Category | Count | Priority | Est. Effort |
 |----------|-------|----------|-------------|
@@ -344,9 +344,9 @@ Deprecated with notice pointing to PENDING_MASTER.md.
 | C: API & Backend | 0 | ✅ VERIFIED | — |
 | D: Code Quality | 0 | ✅ VERIFIED | — |
 | E: I18N & UX | 0 | ✅ COMPLETE | — |
-| F: Features/Backlog | 6 | 🟪 FUTURE | Sprint plan |
+| F: Features/Backlog | 0 | ✅ COMPLETE | — |
 | G: Documentation | 0 | ✅ COMPLETED | — |
-| **TOTAL** | **6 backlog** | — | **Sprint plan** |
+| **TOTAL** | **0 backlog** | — | **All categories verified** |
 
 ---
 
@@ -2246,9 +2246,9 @@ All 4 Feature Request UI dashboards verified and live:
 | 3 | **FR-003** | Audit Log Viewer | `/admin/audit-logs/page.tsx` (940 lines) — Searchable table, filters, pagination, change tracking | ✅ Complete |
 | 4 | **FR-004** | Multi-Currency Selector | `components/i18n/CompactCurrencySelector.tsx` (45 lines) — Compact auth dropdown (top 6) backed by 10-currency support | ✅ Complete |
 
-### 🟢 NICE-TO-HAVE - LOW PRIORITY (0 items) — ✅ ALL COMPLETE
+### 🟢 NICE-TO-HAVE - LOW PRIORITY (8 items) — 🔲 BACKLOG
 
-PF-033 (Bundle Budget CI Script) has been implemented as part of PROC-001.
+PF-033 (Bundle Budget CI Script) was implemented as part of PROC-001. New optional enhancements (OE-001..OE-008) are tracked in the session below.
 
 ### ⚙️ PROCESS/CI BACKLOG (0 items) — ✅ ALL COMPLETE
 
@@ -2257,6 +2257,8 @@ All 7 PROCESS/CI items have been implemented (see SESSION 2025-12-11T13:43 above
 ---
 
 ## ✅ COMPLETED CATEGORIES SUMMARY
+
+Optional enhancements (OE-001..OE-008) remain open and are not included in the category totals below.
 
 | Category | Status | Details |
 |----------|--------|---------|
@@ -2447,6 +2449,25 @@ images: {
 }
 // Vercel automatically provides CDN for all static assets
 ```
+
+---
+
+## 🔍 SESSION 2025-12-11T18:45 - OPTIONAL ENHANCEMENTS (Nice-to-Have) REVIEW
+
+Reviewed the new optional enhancements list; most items remain backlog/nice-to-have and are not yet integrated into CI or runtime.
+
+| ID | Item | Verification | Status |
+|----|------|--------------|--------|
+| **OE-001** | Bundle Size Analysis | `@next/bundle-analyzer` configured in `next.config.js` (ANALYZE=true, static report + stats files); latest findings live in `docs/performance/BUNDLE_ANALYSIS_FINDINGS.md`, but no recent run or CI gate. | ⚠️ Tool ready, run pending |
+| **OE-002** | Lighthouse CI Integration | `lighthouserc.json` present, but no `@lhci/cli` dependency or workflow step; `fixzit-quality-gates.yml` only parses Lighthouse manifests if they already exist. | 🔲 Not integrated |
+| **OE-003** | Dead Code Elimination | `scripts/comprehensive-code-analysis.sh` calls `ts-prune` only when installed; package not in devDependencies/CI, last report is archived. | ⚠️ Manual only |
+| **OE-004** | API Response Time Monitoring | `lib/performance.ts` computes p50/p95/p99 + X-Response-Time headers, but nothing imports it; percentile alert names live only in `lib/monitoring/alert-thresholds.ts`. | 🔲 Not implemented |
+| **OE-005** | Database Index Audit | No automated index-audit script/workflow; duplicate index warnings noted in `docs/performance/BUNDLE_ANALYSIS_FINDINGS.md` remain unaddressed. | 🔲 Not implemented |
+| **OE-006** | Security Headers Audit | API JSON responses hardened (`server/security/headers.ts`, `lib/marketplace/security.ts`) and `poweredByHeader: false` in `next.config.js`; no global CSP/HSTS/header policy for HTML routes or Helmet-style middleware. | ⚠️ Partial |
+| **OE-007** | Dependency Update | `pnpm outdated --depth 0` shows major upgrades pending (next/react 15→16 / 18→19, mongoose 8→9, express 4→5, @aws-sdk 3.948, playwright 1.57) plus minors. | 🔲 Not updated |
+| **OE-008** | Memory Leak Detection | No long-running leak detection or profiling in repo; monitoring config lacks memory sampling beyond threshold definitions; only ad-hoc cleanups (e.g., login rate limiter sweep). | 🔲 Not implemented |
+
+**Next Steps (Nice-to-Have)**: Run bundle analyzer (`ANALYZE=true pnpm build`) and publish reports; add LHCI with `@lhci/cli` + CI upload; add `ts-prune` (or similar) to devDependencies + CI; wire `withPerformanceMonitoring`/OTEL metrics for API latency percentiles; add a Mongoose index audit script; add global CSP/HSTS headers for HTML responses; plan dependency upgrade path; add memory profiling for long-running services.
 
 ---
 
