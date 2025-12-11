@@ -14,6 +14,7 @@ export { default as AqarMarketingRequest } from "./MarketingRequest";
 export { default as AqarPackage } from "./Package";
 export { default as AqarBoost } from "./Boost";
 export { default as AqarPayment } from "./Payment";
+export { default as AqarPersonalizationEvent } from "./PersonalizationEvent";
 
 // Export types
 export * from "./Listing";
@@ -26,3 +27,4 @@ export * from "./MarketingRequest";
 export * from "./Package";
 export * from "./Boost";
 export * from "./Payment";
+export * from "./PersonalizationEvent";

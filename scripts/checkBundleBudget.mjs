@@ -12,8 +12,15 @@
  * @see https://web.dev/performance-budgets-101/
  */
 
-import { readdirSync, statSync, readFileSync } from 'fs';
-import { join, basename } from 'path';
+import {
+  readdirSync,
+  statSync,
+  readFileSync,
+  existsSync,
+  mkdirSync,
+  writeFileSync,
+} from 'fs';
+import { join, basename, dirname } from 'path';
 import { gzipSync } from 'zlib';
 
 // Budget thresholds in KB (gzipped). Tuned to current verified bundle sizes with ~10-15% headroom.
@@ -51,6 +58,9 @@ const BUDGETS = Object.fromEntries(
   Object.entries(DEFAULT_BUDGETS).map(([k, v]) => [k, parseBudgetEnv(k, v)]),
 );
 
+const HISTORY_PATH = join(process.cwd(), 'reports', 'bundle-budget-history.json');
+const HISTORY_LIMIT = 60;
+
 // Patterns to skip
 const SKIP_PATTERNS = [
   /\.map$/,                  // Source maps
@@ -60,6 +70,53 @@ const SKIP_PATTERNS = [
   /_buildManifest/,
   /_ssgManifest/,
 ];
+
+function ensureHistoryDir() {
+  const dir = dirname(HISTORY_PATH);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+}
+
+function loadHistory() {
+  try {
+    const raw = readFileSync(HISTORY_PATH, "utf8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistHistory(entry) {
+  ensureHistoryDir();
+  const history = loadHistory();
+  history.push(entry);
+  const trimmed = history.slice(-HISTORY_LIMIT);
+  writeFileSync(HISTORY_PATH, JSON.stringify(trimmed, null, 2));
+  return trimmed;
+}
+
+function printTrend(history) {
+  if (!history.length) return;
+  console.log("\n📈 Bundle Size Trend (last 5 runs):");
+  console.log("-".repeat(70));
+  history.slice(-5).forEach((run) => {
+    const date = run.timestamp
+      ? new Date(run.timestamp).toISOString()
+      : "unknown";
+    const total =
+      typeof run.totalKb === "number" ? run.totalKb.toFixed(2) : "unknown";
+    const over =
+      (Array.isArray(run.violations) ? run.violations.length : null) ??
+      run.overBudgetCount ??
+      0;
+    console.log(
+      `${date} | total ${total} KB | violations: ${over} | branch: ${run.branch || "n/a"}`,
+    );
+  });
+  console.log("-".repeat(70));
+}
 
 /**
  * Get gzipped size of a file
@@ -213,9 +270,37 @@ function main() {
   console.log('🔍 Checking bundle budgets...\n');
 
   const { results, violations, totalSize } = checkBundles();
+  const sorted = [...results].sort((a, b) => b.size - a.size);
+
+  const historyEntry = {
+    timestamp: new Date().toISOString(),
+    branch:
+      process.env.VERCEL_GIT_COMMIT_REF ||
+      process.env.GIT_BRANCH ||
+      process.env.BRANCH ||
+      null,
+    totalKb: Number((totalSize / 1024).toFixed(2)),
+    bundleCount: results.length,
+    overBudgetCount: violations.length,
+    topChunks: sorted.slice(0, 5).map((item) => ({
+      file: item.file,
+      sizeKb: Number(item.size.toFixed(2)),
+      budgetKb: item.budget,
+      overBudget: item.overBudget,
+    })),
+    violations: violations.map((v) => ({
+      file: v.file,
+      sizeKb: Number(v.size.toFixed(2)),
+      budgetKb: v.budget,
+      deltaKb: Number(v.delta.toFixed(2)),
+    })),
+  };
+
+  const history = persistHistory(historyEntry);
 
   if (reportMode || violations.length > 0) {
     printReport(results, violations, totalSize);
+    printTrend(history);
   }
 
   if (violations.length > 0) {

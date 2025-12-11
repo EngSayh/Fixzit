@@ -23,6 +23,7 @@ import {
   AqarRecommendationEngine,
   type RecommendationContext,
 } from "@/services/aqar/recommendation-engine";
+import { recordPersonalizationEvent } from "@/services/aqar/personalization-service";
 
 export const runtime = "nodejs";
 
@@ -78,6 +79,9 @@ export async function GET(req: NextRequest) {
     const limit = Number.isFinite(limitParam)
       ? Math.min(Math.max(1, limitParam), 12)
       : 8;
+    const personalize =
+      searchParams.get("personalize") !== "false" &&
+      searchParams.get("personalization") !== "false";
 
     // Tenant-safe context: derive org/tenant from session, not user input
     const context: RecommendationContext = {
@@ -85,10 +89,24 @@ export async function GET(req: NextRequest) {
       preferredCity: city,
       intent,
       propertyTypes: propertyType ? [propertyType] : undefined,
+      personalize,
+      userId: session.id,
       orgId: session.orgId,
       tenantId: session.orgId,
       limit,
     };
+
+    void recordPersonalizationEvent({
+      userId: session.id,
+      orgId: session.orgId,
+      listingId: listingId ?? undefined,
+      type: listingId ? "view" : "recommendation_request",
+      path: new URL(req.url).pathname,
+      intent,
+      propertyType: propertyType ?? undefined,
+      city,
+      source: "aqar-auth-recommendations",
+    });
 
     const recommendation = await AqarRecommendationEngine.recommend(context);
 

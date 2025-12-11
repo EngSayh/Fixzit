@@ -8,6 +8,7 @@ import {
 
 export type SecurityEventType =
   | "rate_limit"
+  | "ip_reputation_block"
   | "cors_block"
   | "auth_failure"
   | "csrf_violation";
@@ -41,6 +42,11 @@ export async function logSecurityEvent(event: {
     switch (event.type) {
       case "rate_limit": {
         const endpoint = String(event.metadata?.keyPrefix ?? event.path);
+        trackRateLimitHit(event.ip, endpoint, orgId);
+        break;
+      }
+      case "ip_reputation_block": {
+        const endpoint = `${event.path}:reputation-block`;
         trackRateLimitHit(event.ip, endpoint, orgId);
         break;
       }

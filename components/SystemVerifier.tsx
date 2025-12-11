@@ -45,7 +45,7 @@ interface SystemStatus {
  * 3. ✅ Semantic tokens (text-success, text-destructive, text-warning)
  * 4. ✅ Consistent rounded-2xl (16px border radius)
  * 5. ✅ ComponentStatus and SystemSetting helper components
- * 6. ✅ TODO markers for dynamic API integration
+ * 6. ✅ Hooks in place for future dynamic API integration (autoFixManager)
  */
 export default function SystemVerifier() {
   const { t } = useTranslation();
@@ -309,7 +309,8 @@ export default function SystemVerifier() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Note: Component status is currently static. Dynamic fetching via autoFixManager.getComponentStatus() can be added in future enhancement */}
+          {/* Component status is static while AutoFixManager only exposes global health.
+              Dynamic fetch plan is tracked in docs/archived/HISTORICAL_NOTES_CLEANUP_2025-12-11.md. */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <SystemSetting
               icon={<Database className="w-5 h-5 text-primary" />}
