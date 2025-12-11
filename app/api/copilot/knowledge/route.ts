@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { upsertKnowledgeDocument } from "@/server/copilot/retrieval";
+import { logger } from "@/lib/logger";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -72,7 +73,16 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
 
-  const json = await req.json();
+  let json: unknown;
+  try {
+    json = await req.json();
+  } catch (error) {
+    logger.warn("[copilot:knowledge] Invalid JSON body", { error });
+    return createSecureResponse({ error: "Invalid JSON payload" }, 400, req);
+  }
+  if (!json || (typeof json === "object" && Object.keys(json as object).length === 0)) {
+    return createSecureResponse({ error: "Request body is required" }, 400, req);
+  }
   const payload = payloadSchema.parse(json);
 
   for (const doc of payload.docs) {
