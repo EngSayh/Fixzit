@@ -1,13 +1,13 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T13:53:35+03:00  
-**Version**: 13.24  
+**Last Updated**: 2025-12-11T13:54:51+03:00  
+**Version**: 13.25  
 **Branch**: feat/frontend-dashboards  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok)  
-**Total Pending Items**: 5 remaining (0 Critical, 0 High, 0 Moderate Engineering, 1 User Action, 4 Feature Requests)  
-**Completed Items**: 279+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI all 7 items complete)  
+**Total Pending Items**: 1 remaining (0 Critical, 0 High, 0 Moderate Engineering, 1 User Action, 0 Feature Requests, 0 Nice-to-Haves)  
+**Completed Items**: 283+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI all 7 items complete + Feature Requests FR-001..004 UI delivered)  
 **Test Status**: ✅ Vitest 2,468 tests (247 files) | 🚧 Playwright auth URL alignment landed; full suite rerun pending (prior 230 env 401s)  
-**Consolidation Check**: 2025-12-11T13:53:35+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T13:54:51+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
 
 ---
 
@@ -450,21 +450,19 @@ The ChatGPT analysis was based on **raw file sizes** (31K lines per dictionary),
 |----|------|-------|-----------------|
 | **UA-001** | Payment Gateway Config | User | Set `TAP_SECRET_KEY`, `TAP_PUBLIC_KEY` in Vercel for payments |
 
-### 🔲 Feature Requests - Backlog (4)
+### 🔵 Feature Requests - COMPLETE (0 pending)
 
-These are new UI components that require frontend development. Backend infrastructure is complete for all.
+Frontend dashboards delivered; backends were already complete.
 
-| ID | Item | Backend Status | UI Status | Priority |
-|----|------|----------------|-----------|----------|
-| **FR-001** | API Rate Limiting Dashboard | ✅ Complete: `lib/middleware/rate-limit.ts` (enforceRateLimit), X-RateLimit headers, security event logging | 🔲 New UI needed | Low |
-| **FR-002** | Feature Flag Dashboard | ✅ Complete: `lib/feature-flags.ts` (587 lines, 25+ flags, rollout %, dependencies, org targeting) | 🔲 New UI needed | Low |
-| **FR-003** | Audit Log Viewer | ✅ Complete: `server/models/AuditLog.ts` (315 lines, 20 action types, 15 entity types, change tracking) | 🔲 New UI needed | Low |
-| **FR-004** | Multi-Currency Selector | ✅ Complete: `lib/utils/currency-formatter.ts` (356 lines, 10 currencies: SAR/AED/OMR/KWD/BHD/QAR/EGP/USD/EUR/GBP) | 🔲 New UI needed | Low |
+| ID | Feature | UI Delivery | Notes |
+|----|---------|-------------|-------|
+| **FR-001** | API Rate Limiting Dashboard | ✅ `/admin/rate-limiting` — live 429 metrics, Redis status, endpoint breakdown | Backend: `lib/middleware/rate-limit.ts`, `server/security/rateLimit.ts` |
+| **FR-002** | Feature Flag Dashboard | ✅ `/admin/feature-settings` — dynamic flags by category, rollout/dependency badges | Backend: `lib/feature-flags.ts` |
+| **FR-003** | Audit Log Viewer | ✅ `/admin/audit-logs` — paginated filters (action/entity/date), modal drilldowns | Backend: `server/models/AuditLog.ts`, `app/api/admin/audit-logs` |
+| **FR-004** | Multi-Currency Selector | ✅ Settings > Preferences — 10-currency selector tied to formatter utilities | Backend: `lib/utils/currency-formatter.ts`, `contexts/CurrencyContext` |
 
-### 🟢 Nice-to-Have - Low Priority (1)
-| ID | Item | Description | Priority |
-|----|------|-------------|----------|
-| **PF-033** | Bundle Budget CI Script | Add CI guardrail script for bundle size thresholds | Low |
+### 🟢 Nice-to-Have - Low Priority (0 pending)
+No nice-to-have items remain pending. PF-033 (bundle budget CI script) landed with `scripts/checkBundleBudget.mjs`.
 
 ### ✅ All Other Categories - COMPLETE
 - **Critical Issues**: 0 remaining ✅
