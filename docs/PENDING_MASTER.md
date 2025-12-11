@@ -1,13 +1,39 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T12:43:30+03:00  
-**Version**: 13.17  
+**Last Updated**: 2025-12-11T20:00:00+03:00  
+**Version**: 13.19  
 **Branch**: feat/batch-13-completion  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok)  
-**Total Pending Items**: 5 remaining (0 Critical, 0 High, 0 Moderate, 1 User Action, 4 Feature Requests)  
+**Total Pending Items**: 10 remaining (0 Critical, 0 High, 0 Moderate Engineering, 1 User Action, 4 Feature Requests, 1 Nice-to-Have, 4 Process/CI backlog)  
 **Completed Items**: 262+ tasks completed (All batches 1-14 completed + OpenAPI full documentation + LOW PRIORITY verification)  
 **Test Status**: ✅ Vitest 2,468 tests (247 files) | 🚧 Playwright auth URL alignment landed; full suite rerun pending (prior 230 env 401s)  
-**Consolidation Check**: 2025-12-11T12:43:30+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T20:00:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+
+---
+
+## ✅ SESSION 2025-12-11T12:50 - PENDING REPORT VERIFICATION (BUG-031..035, PROC-001..007)
+
+### 🐛 Potential Bugs / Edge Cases Validation
+
+| ID | Area | Verification | Status |
+|----|------|--------------|--------|
+| **BUG-031** | Auth | `playwright.config.ts` sets `baseURL`, `NEXTAUTH_URL`, `AUTH_URL`, and `BASE_URL` to `PW_WEB_URL`/`PW_HOSTNAME`+`PW_PORT`; storage states are baked for `http://127.0.0.1:3100` so cookies and origin match, preventing 401s from URL drift. | ✅ Verified (env alignment) |
+| **BUG-032** | Souq | `services/souq/seller-kyc-service.ts:38-44,455,665` uses `KYC_FALLBACK_EMAIL`/support email for stub sellers; no `temp-kyc@fixzit.test` strings remain. | ✅ Fixed |
+| **BUG-033** | FM Roles | Quick actions/navigation normalize legacy aliases: `config/navigation.ts` maps `DISPATCHER` → `OPERATIONS_MANAGER`, `EMPLOYEE` → `TEAM_MEMBER`; `eslint.config.mjs` blocks new alias usage; `config/rbac.matrix.ts` maps legacy roles to canonical permissions. | ✅ Fixed |
+| **BUG-034** | i18n | Dynamic translation keys use template literals with explicit fallbacks (e.g., `components/admin/RoleBadge.tsx` role/sub-role labels; FM properties/reports pages). Audit flags remain acceptable. | ℹ️ Acceptable (fallbacks in place) |
+| **BUG-035** | Types | `config/rbac.matrix.ts` exports `RBAC_ROLE_PERMISSIONS` as `RolePermissionsMap`, preserving legacy alias mappings for strict TS mode. | ✅ Fixed |
+
+### 📊 Process Efficiency Improvements
+
+| ID | Area | Current State | Status / Next Step |
+|----|------|---------------|--------------------|
+| **PROC-001** | CI/CD | No bundle budget gate; PF-033 tracks backlog for `checkBundleBudget.mjs` + CI threshold. | 🔲 Backlog |
+| **PROC-002** | Testing | Playwright CI uses `retries: process.env.CI ? 2 : 0`, aligned `NEXTAUTH_URL`/`AUTH_URL`/`BASE_URL`, storageState seeded for `127.0.0.1:3100`; no dedicated auth fixtures. | 🟡 Partial (stabilized; add fixtures if flakes persist) |
+| **PROC-003** | i18n | `node scripts/audit-translations.mjs` runs in CI (`.github/workflows/webpack.yml`) as warning-only; pre-commit runs coverage + audit. | 🟡 Partial (gate build if needed) |
+| **PROC-004** | Docs | `scripts/generate-openapi-stubs.ts` auto-generates `openapi.yaml` from `app/api/**/route.ts`; coverage 352 routes (100%). | ✅ Implemented |
+| **PROC-005** | Security | `.husky/pre-commit` lacks `pnpm audit`; security workflows run `pnpm audit` but not blocking locally. | 🔲 Backlog (add audit to hooks/CI gate) |
+| **PROC-006** | Monitoring | Health endpoints + Sentry/OTEL in place; no explicit alert thresholds/pagers recorded. | 🔲 Backlog (define proactive alerts) |
+| **PROC-007** | Deployment | Single-click deploy noted; no staging promotion/release gate documented. | 🔲 Backlog |
 
 ---
 
@@ -477,8 +503,9 @@ du -sh .next/static/chunks/*.js | sort -rh | head -10
 | **Accessibility** | 0 | 🟢 | **All 4 items verified** ✅ (280 ARIA attrs, 11+ keyboard handlers) |
 | **User Actions** | 1 | 🟡 | Payment config (TAP keys) |
 | **Feature Requests** | 4 | 🔲 | Rate limiting dashboard, Feature flag dashboard, Audit log viewer, Multi-currency selector |
-| **Nice-to-Have** | 1 | 🟢 | Bundle budget CI script |
-| **TOTAL PENDING** | **6** | | (1 User action, 4 Feature requests (backend complete), 1 Nice-to-have) |
+| **Nice-to-Have** | 1 | 🟡 | Bundle budget CI script (PF-033) |
+| **Process/CI** | 4 | 🟡 | PROC-002 Playwright auth fixtures, PROC-005 pnpm audit hook, PROC-006 alerting thresholds, PROC-007 staging promotion |
+| **TOTAL PENDING** | **10** | | (1 User action, 4 Feature requests (backend complete), 1 Nice-to-have, 4 Process/CI backlog) |
 
 | ID | Issue | Resolution | Files Changed |
 |----|-------|------------|---------------|
@@ -1995,7 +2022,9 @@ No critical blockers remaining. Production is fully operational.
 **Next Update**: After user sets Tap payment secrets or next development session
 
 **Report History**:
-- v13.17 (2025-12-11T12:43+03) - **CURRENT** - LOW PRIORITY enhancements verification complete. 6 of 12 items already implemented (ENH-002, ENH-006-009, ENH-012). Only 5 truly pending as nice-to-have.
+- v13.19 (2025-12-11T20:00+03) - **CURRENT** - Timestamp update. Single source of truth maintained. 10 pending items: 1 user action (TAP keys), 4 feature requests (UI dashboards), 1 nice-to-have (PF-033), 4 process/CI backlog.
+- v13.18 (2025-12-11T12:50+03) - Pending report verification complete. BUG-031..035 validated (4 fixed, 1 acceptable). PROC-001..007 documented (4 backlog, 3 partial/done).
+- v13.17 (2025-12-11T12:43+03) - LOW PRIORITY enhancements verification complete. 6 of 12 items already implemented (ENH-002, ENH-006-009, ENH-012). Only 5 truly pending as nice-to-have.
 - v13.16 (2025-12-11T19:45+03) - Feature requests verification complete. All 4 FR items have backend fully implemented, only UI dashboards needed.
 - v13.11 (2025-12-11T19:30+03) - TG-006 webhook delivery tests completed (15 tests). UX-005 color contrast already verified. #25/#27 are documented feature requests.
 - v13.10 (2025-12-11T16:45+03) - Updated timestamp, consolidated single source of truth. All archived reports in `docs/archived/pending-history/`. 4 items remain: 2 user actions (Tap secrets, E2E env), 2 feature requests (rate limit dashboard, feature flag dashboard).
