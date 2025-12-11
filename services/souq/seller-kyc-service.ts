@@ -35,6 +35,15 @@ import { generateTempSellerId } from "@/lib/id-generator";
 const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) =>
   buildSouqOrgFilter(orgId.toString()) as Record<string, unknown>;
 
+const KYC_FALLBACK_EMAIL =
+  process.env.KYC_FALLBACK_EMAIL ||
+  Config.souq.sellerSupportEmail ||
+  Config.company.supportEmail;
+const KYC_FALLBACK_PHONE =
+  process.env.KYC_FALLBACK_PHONE || Config.company.supportPhone;
+const KYC_PENDING_DOCUMENT_URL =
+  process.env.KYC_PENDING_DOCUMENT_URL || "/documents/pending-upload";
+
 export interface IKYCCompanyInfo {
   businessName: string;
   businessNameArabic?: string;
@@ -443,8 +452,8 @@ class SellerKYCService {
             sellerId: sellerId || generateTempSellerId(),
             legalName: "Temp Seller",
             businessName: "Temp Seller",
-            contactEmail: process.env.KYC_FALLBACK_EMAIL || "kyc@fixzit.co",
-            contactPhone: "+0000000000",
+            contactEmail: KYC_FALLBACK_EMAIL,
+            contactPhone: KYC_FALLBACK_PHONE,
             registrationType: "company",
             country: "SA",
             city: "Riyadh",
@@ -477,7 +486,7 @@ class SellerKYCService {
 
     const updatedDoc: IKYCDocumentEntry = {
       type: storedType,
-      url: existingDoc?.url ?? "/documents/pending-upload",
+      url: existingDoc?.url ?? KYC_PENDING_DOCUMENT_URL,
       uploadedAt: existingDoc?.uploadedAt ?? new Date(),
       verified: approved,
       verifiedAt: approved ? new Date() : undefined,
@@ -653,8 +662,8 @@ class SellerKYCService {
             sellerId: sellerId || generateTempSellerId(),
             legalName: "Temp Seller",
             businessName: "Temp Seller",
-            contactEmail: process.env.KYC_FALLBACK_EMAIL || "kyc@fixzit.co",
-            contactPhone: "+0000000000",
+            contactEmail: KYC_FALLBACK_EMAIL,
+            contactPhone: KYC_FALLBACK_PHONE,
             registrationType: "company",
             country: "SA",
             city: "Riyadh",
