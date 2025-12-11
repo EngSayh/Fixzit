@@ -1,3 +1,15 @@
+/**
+ * @description Retrieves inventory details for a specific product listing.
+ * Returns current stock level, reserved quantity, available quantity,
+ * and reservation history.
+ * @route GET /api/souq/inventory/[listingId]
+ * @access Private - Authenticated sellers only
+ * @param {string} listingId - Listing ID to get inventory for
+ * @returns {Object} inventory: stock details with available, reserved, total
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ * @throws {404} If inventory not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";

@@ -1,3 +1,18 @@
+/**
+ * @description Issues administrative decision on an A-to-Z claim.
+ * Claims administrators review evidence from both parties and issue
+ * a binding decision with refund/compensation amounts if applicable.
+ * @route POST /api/souq/claims/[id]/decision
+ * @access Private - Claims administrators only (SUPER_ADMIN, ADMIN, CLAIMS_ADMIN)
+ * @param {string} id - Claim ID
+ * @param {Object} body.decision - Decision: approved, rejected, partial
+ * @param {Object} body.reasoning - Detailed reasoning for the decision
+ * @param {Object} body.refundAmount - Optional refund amount if approved
+ * @returns {Object} success: true, claim: updated claim with decision
+ * @throws {400} If decision or reasoning missing
+ * @throws {401} If user is not authenticated
+ * @throws {404} If claim not found or user lacks admin role
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";

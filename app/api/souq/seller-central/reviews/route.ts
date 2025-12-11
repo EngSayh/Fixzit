@@ -1,5 +1,18 @@
 /**
- * GET /api/souq/seller-central/reviews - Get seller reviews
+ * @description Retrieves product and seller reviews for Seller Central dashboard.
+ * Supports filtering by rating, verified purchase status, and review status.
+ * Provides pagination and sorting options for review management.
+ * @route GET /api/souq/seller-central/reviews
+ * @access Private - Authenticated sellers only
+ * @query {number} page - Page number (default: 1)
+ * @query {number} limit - Items per page (default: 20, max: 100)
+ * @query {number} rating - Filter by star rating (1-5)
+ * @query {boolean} verifiedOnly - Filter to verified purchase reviews
+ * @query {string} sortBy - Sort order: recent, helpful, rating
+ * @query {string} status - Filter by status: pending, published, rejected, flagged
+ * @returns {Object} reviews: array, pagination: metadata, aggregates: rating breakdown
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
  */
 import { NextRequest, NextResponse } from "next/server";
 import { reviewService } from "@/services/souq/reviews/review-service";

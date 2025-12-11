@@ -1,3 +1,19 @@
+/**
+ * @description Processes product returns and restocks inventory.
+ * Handles RMA completion by adding returned items back to stock.
+ * Tracks return condition for quality control.
+ * @route POST /api/souq/inventory/return
+ * @access Private - Authenticated sellers or admins
+ * @param {Object} body.listingId - Listing to restock
+ * @param {Object} body.rmaId - RMA/return ID
+ * @param {Object} body.quantity - Quantity being returned
+ * @param {Object} body.condition - Item condition: new, refurbished, damaged
+ * @returns {Object} success: true, inventory: updated stock levels
+ * @throws {400} If required fields missing
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing or unauthorized
+ * @throws {404} If inventory or RMA not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";

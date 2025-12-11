@@ -1,3 +1,18 @@
+/**
+ * @description Admin interface for reviewing A-to-Z claims queue.
+ * Provides claim dashboard with filtering, sorting, and claim prioritization.
+ * Returns claims pending decision with evidence and timeline.
+ * @route GET /api/souq/claims/admin/review
+ * @access Private - Admin only
+ * @query {string} status - Filter: pending-decision, under-investigation, under-appeal
+ * @query {string} priority - Filter by priority: high, medium, low
+ * @query {string} sort - Sort order: newest, oldest, amount
+ * @query {number} page - Page number
+ * @query {number} limit - Items per page
+ * @returns {Object} claims: array with evidence summary, pagination, stats
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user is not admin
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectDb } from "@/lib/mongo";

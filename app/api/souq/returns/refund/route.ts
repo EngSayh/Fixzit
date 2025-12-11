@@ -1,3 +1,18 @@
+/**
+ * @description Processes refunds for inspected and approved returns.
+ * Finance/admin action to issue refund after return item inspection.
+ * Creates audit trail for refund processing.
+ * @route POST /api/souq/returns/refund
+ * @access Private - Admin or finance officer only
+ * @param {Object} body.rmaId - Return Merchandise Authorization ID
+ * @param {Object} body.refundAmount - Amount to refund
+ * @param {Object} body.refundMethod - Method: original_payment, store_credit
+ * @returns {Object} success: true, refund: refund transaction details
+ * @throws {400} If validation fails
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user is not admin/finance
+ * @throws {404} If return not found
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';

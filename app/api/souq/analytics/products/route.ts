@@ -1,3 +1,14 @@
+/**
+ * @description Provides product-level performance analytics for Souq sellers.
+ * Returns metrics like units sold, revenue, conversion rate, and ranking per product.
+ * Supports period filtering for trend analysis.
+ * @route GET /api/souq/analytics/products
+ * @access Private - Authenticated sellers only
+ * @query {string} period - Time period: last_7_days, last_30_days, last_90_days
+ * @returns {Object} products: array of product metrics with views, orders, revenue
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { analyticsService } from "@/services/souq/analytics/analytics-service";

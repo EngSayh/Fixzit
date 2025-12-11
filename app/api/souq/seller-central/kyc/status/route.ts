@@ -1,3 +1,13 @@
+/**
+ * @description Retrieves KYC (Know Your Customer) verification status.
+ * Shows document submission status, verification progress, and any issues.
+ * Required for seller account activation and payment processing.
+ * @route GET /api/souq/seller-central/kyc/status
+ * @access Private - Authenticated sellers only
+ * @returns {Object} status: pending/verified/rejected, documents: array, issues: array
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

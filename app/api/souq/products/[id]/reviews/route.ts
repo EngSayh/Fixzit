@@ -1,5 +1,17 @@
 /**
- * GET /api/souq/products/[id]/reviews - Get product reviews with stats
+ * @description Retrieves product reviews with aggregated statistics.
+ * Returns paginated reviews along with rating breakdown and average score.
+ * Supports filtering by rating and verified purchases.
+ * @route GET /api/souq/products/[id]/reviews
+ * @access Public - Tenant-scoped via product orgId
+ * @param {string} id - Product ID
+ * @query {number} page - Page number (default: 1)
+ * @query {number} limit - Items per page (default: 20, max: 100)
+ * @query {number} rating - Filter by star rating (1-5)
+ * @query {boolean} verifiedOnly - Filter to verified purchases
+ * @query {string} sortBy - Sort order: recent, helpful, rating
+ * @returns {Object} reviews: array, stats: rating breakdown, averageRating
+ * @throws {404} If product not found or missing orgId
  */
 import { NextRequest, NextResponse } from "next/server";
 import { reviewService } from "@/services/souq/reviews/review-service";

@@ -1,3 +1,15 @@
+/**
+ * @description Manages auto-repricer settings for Souq marketplace sellers.
+ * GET retrieves current repricer configuration including price rules and competitors.
+ * PUT updates repricer settings (enabled/disabled, min/max margins, strategy).
+ * @route GET /api/souq/repricer/settings - Get auto-repricer settings
+ * @route PUT /api/souq/repricer/settings - Update repricer settings
+ * @access Private - Authenticated sellers only
+ * @returns {Object} GET: repricer settings object | PUT: updated settings
+ * @throws {400} If organization context missing
+ * @throws {401} If user is not authenticated
+ * @throws {404} If seller profile not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

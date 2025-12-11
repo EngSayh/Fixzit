@@ -1,6 +1,20 @@
 /**
- * Souq Reviews API - Product reviews management
- * @route /api/souq/reviews
+ * @description Manages product reviews in the Souq marketplace.
+ * GET lists reviews with filtering by status, rating, and verified purchase.
+ * POST creates a new product review with rating, title, content, and optional images.
+ * @route GET /api/souq/reviews - List reviews with filters
+ * @route POST /api/souq/reviews - Create new product review
+ * @access Private - Authenticated buyers for POST
+ * @query {string} status - Filter: pending, published, rejected, flagged
+ * @query {number} rating - Filter by star rating (1-5)
+ * @query {boolean} verifiedOnly - Filter to verified purchases
+ * @param {Object} body.productId - Product ID being reviewed
+ * @param {Object} body.rating - Star rating (1-5)
+ * @param {Object} body.title - Review title
+ * @param {Object} body.content - Review content (10-5000 chars)
+ * @returns {Object} reviews: array with pagination | created review
+ * @throws {400} If validation fails
+ * @throws {401} If user is not authenticated (POST)
  */
 
 import { NextResponse } from "next/server";

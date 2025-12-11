@@ -1,3 +1,19 @@
+/**
+ * @description Completes return item inspection after physical receipt.
+ * Records inspection results including item condition and damage assessment.
+ * Determines if full or partial refund is appropriate.
+ * @route POST /api/souq/returns/inspect
+ * @access Private - Admin or operations staff with inspect permissions
+ * @param {Object} body.rmaId - Return Merchandise Authorization ID
+ * @param {Object} body.condition - Inspection result: as_described, damaged, missing_parts
+ * @param {Object} body.notes - Inspector notes
+ * @param {Object} body.refundRecommendation - Recommended: full, partial, none
+ * @returns {Object} success: true, inspection: inspection result details
+ * @throws {400} If validation fails
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user lacks inspection permissions
+ * @throws {404} If return not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

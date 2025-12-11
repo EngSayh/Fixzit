@@ -1,3 +1,18 @@
+/**
+ * @description Files an appeal against an A-to-Z claim decision.
+ * Allows buyers or sellers to contest a decision with additional reasoning
+ * and supporting evidence. Appeals are reviewed by claims administrators.
+ * @route POST /api/souq/claims/[id]/appeal
+ * @access Private - Claim participants only
+ * @param {string} id - Claim ID
+ * @param {Object} body.reasoning - Detailed appeal reasoning
+ * @param {Object} body.additionalEvidence - Optional new evidence array
+ * @returns {Object} success: true, claim: updated claim with appeal info
+ * @throws {400} If reasoning is missing or claim cannot be appealed
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ * @throws {404} If claim not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";

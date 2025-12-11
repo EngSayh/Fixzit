@@ -1,6 +1,16 @@
 /**
- * Souq Seller Dashboard API - Seller metrics and statistics
- * @route /api/souq/sellers/[id]/dashboard
+ * @description Provides seller dashboard metrics and statistics.
+ * Returns sales performance, order counts, review ratings, and listing stats.
+ * Super admins can access any seller's dashboard via targetOrgId.
+ * @route GET /api/souq/sellers/[id]/dashboard
+ * @access Private - Seller owner or platform admin
+ * @param {string} id - Seller ID
+ * @query {string} targetOrgId - Organization ID for admin access (super admin only)
+ * @returns {Object} sales: revenue stats, orders: count and status, reviews: ratings, listings: active count
+ * @throws {400} If targetOrgId missing for platform admin
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user does not own seller profile
+ * @throws {404} If seller not found
  */
 
 import { NextRequest, NextResponse } from "next/server";

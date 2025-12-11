@@ -1,6 +1,21 @@
 /**
- * Souq Orders API - Order management
- * @route /api/souq/orders
+ * @description Manages orders in the Souq marketplace.
+ * GET lists orders with filtering by status, date, and customer.
+ * POST creates a new order with items, shipping, and payment info.
+ * Supports escrow payment holds for buyer protection.
+ * @route GET /api/souq/orders - List orders with filters
+ * @route POST /api/souq/orders - Create new order
+ * @access Private - Authenticated users
+ * @query {string} status - Filter by order status
+ * @query {string} customerId - Filter by customer
+ * @param {Object} body.customerId - Customer placing order
+ * @param {Object} body.customerEmail - Customer email
+ * @param {Object} body.items - Array of order items with quantities
+ * @param {Object} body.shippingAddress - Delivery address
+ * @returns {Object} orders: array with pagination | created order details
+ * @throws {400} If validation fails or insufficient stock
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
  */
 
 import { NextResponse } from "next/server";

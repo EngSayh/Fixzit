@@ -1,5 +1,15 @@
 /**
- * POST /api/souq/reviews/[id]/helpful - Mark review as helpful
+ * @description Marks a product review as helpful or not helpful.
+ * Users can vote on review helpfulness to surface quality reviews.
+ * Each user can only vote once per review.
+ * @route POST /api/souq/reviews/[id]/helpful
+ * @access Private - Authenticated users only
+ * @param {string} id - Review ID
+ * @param {Object} body.action - Vote: helpful or not_helpful
+ * @returns {Object} success: true, helpfulCount: updated count
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ * @throws {404} If review not found
  */
 import { NextRequest, NextResponse } from "next/server";
 import { reviewService } from "@/services/souq/reviews/review-service";

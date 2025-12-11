@@ -1,3 +1,18 @@
+/**
+ * @description Manages product brands in Souq marketplace.
+ * GET lists all active brands (platform-wide catalog, not tenant-specific).
+ * POST creates new brand (admin only). Brands control seller authorization.
+ * @route GET /api/souq/brands - List all active brands
+ * @route POST /api/souq/brands - Create new brand (admin)
+ * @access GET: Public | POST: Admin only
+ * @param {Object} body.name - Brand name (English)
+ * @param {Object} body.name_ar - Brand name (Arabic)
+ * @param {Object} body.slug - URL-friendly slug
+ * @param {Object} body.logo - Brand logo URL
+ * @returns {Object} GET: brands array | POST: created brand
+ * @throws {401} If not authenticated (POST)
+ * @throws {403} If not admin (POST)
+ */
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { auth } from "@/auth";

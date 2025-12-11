@@ -1,3 +1,19 @@
+/**
+ * @description Adjusts inventory quantities for damage, loss, or correction.
+ * Creates audit trail of adjustment with reason and authorization.
+ * Sellers can adjust own inventory; admins can adjust any.
+ * @route POST /api/souq/inventory/adjust
+ * @access Private - Sellers (own inventory) or admins
+ * @param {Object} body.listingId - Listing to adjust
+ * @param {Object} body.quantity - Adjustment amount (positive or negative)
+ * @param {Object} body.reason - Adjustment reason (damage, loss, correction)
+ * @param {Object} body.notes - Optional notes about adjustment
+ * @returns {Object} success: true, inventory: updated stock levels
+ * @throws {400} If validation fails or insufficient stock
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ * @throws {404} If inventory not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";

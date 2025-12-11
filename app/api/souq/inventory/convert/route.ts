@@ -1,3 +1,18 @@
+/**
+ * @description Converts inventory reservation to confirmed sale.
+ * Called when order is confirmed to permanently deduct reserved stock.
+ * Creates audit trail linking reservation to order.
+ * @route POST /api/souq/inventory/convert
+ * @access Private - Authenticated users (order system)
+ * @param {Object} body.listingId - Listing with reservation
+ * @param {Object} body.reservationId - Reservation ID to convert
+ * @param {Object} body.orderId - Order ID to link
+ * @returns {Object} success: true, inventory: updated stock levels
+ * @throws {400} If required fields missing
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ * @throws {404} If reservation not found or expired
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";

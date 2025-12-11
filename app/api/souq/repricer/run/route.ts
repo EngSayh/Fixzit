@@ -1,3 +1,14 @@
+/**
+ * @description Manually triggers the auto-repricer for the current seller.
+ * Runs the repricing algorithm based on configured rules and competitor prices.
+ * Updates listing prices to maintain Buy Box competitiveness.
+ * @route POST /api/souq/repricer/run
+ * @access Private - Authenticated sellers only
+ * @returns {Object} success: true, result: repricing summary with updated listings
+ * @throws {400} If organization context missing
+ * @throws {401} If user is not authenticated
+ * @throws {404} If seller profile not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

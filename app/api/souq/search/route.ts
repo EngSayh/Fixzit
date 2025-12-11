@@ -1,3 +1,24 @@
+/**
+ * @description Full-text product search using Meilisearch.
+ * Supports faceted filtering by category, price, rating, and badges.
+ * Returns paginated results with relevance scoring.
+ * Rate-limited to prevent abuse.
+ * @route GET /api/souq/search
+ * @access Public - Tenant-scoped
+ * @query {string} q - Search query (max 256 chars)
+ * @query {string} category - Filter by category slug
+ * @query {number} minPrice - Minimum price filter
+ * @query {number} maxPrice - Maximum price filter
+ * @query {number} minRating - Minimum rating (0-5)
+ * @query {string} badges - Comma-separated badge filters
+ * @query {boolean} inStock - Filter in-stock only
+ * @query {string} sort - Sort: relevance, price_asc, price_desc, rating, newest
+ * @query {number} page - Page number (min: 1)
+ * @query {number} limit - Items per page (max: 100)
+ * @returns {Object} products: array, facets: available filters, pagination
+ * @throws {400} If query too long or validation fails
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { searchClient, INDEXES } from "@/lib/meilisearch";
 import { withMeiliResilience } from "@/lib/meilisearch-resilience";

@@ -1,3 +1,19 @@
+/**
+ * @description Reserves inventory for a pending checkout or order.
+ * Creates temporary hold on stock to prevent overselling during checkout.
+ * Reservations expire automatically after specified duration.
+ * @route POST /api/souq/inventory/reserve
+ * @access Private - Authenticated users (checkout system)
+ * @param {Object} body.listingId - Listing to reserve
+ * @param {Object} body.quantity - Quantity to reserve
+ * @param {Object} body.reservationId - Unique reservation identifier
+ * @param {Object} body.expirationMinutes - Optional TTL (default: 15 minutes)
+ * @returns {Object} success: true, reservation: reservation details
+ * @throws {400} If required fields missing or invalid quantity
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ * @throws {409} If insufficient stock available
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";

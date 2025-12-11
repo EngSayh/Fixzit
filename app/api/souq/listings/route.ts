@@ -1,6 +1,20 @@
 /**
- * Souq Listings API - Seller offers management
- * @route /api/souq/listings
+ * @description Manages seller product listings (offers) in Souq marketplace.
+ * POST creates a new listing linking seller to product with pricing,
+ * inventory, and fulfillment options.
+ * @route POST /api/souq/listings - Create seller listing
+ * @access Private - Authenticated sellers only
+ * @param {Object} body.productId - Product to list
+ * @param {Object} body.fsin - Fixzit Standard Identification Number
+ * @param {Object} body.sellerId - Seller ID
+ * @param {Object} body.price - Listing price
+ * @param {Object} body.stockQuantity - Initial stock quantity
+ * @param {Object} body.fulfillmentMethod - fbf (Fulfilled by Fixzit) or fbm (Fulfilled by Merchant)
+ * @param {Object} body.condition - Product condition: new, refurbished, used-*
+ * @returns {Object} success: true, listing: created listing details
+ * @throws {400} If validation fails or product not found
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
  */
 
 import { NextResponse } from "next/server";

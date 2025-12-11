@@ -1,3 +1,15 @@
+/**
+ * @description Checks SLA (Service Level Agreement) metrics for an order.
+ * Returns fulfillment timeline compliance including ship-by, deliver-by deadlines.
+ * Tracks late shipment and delivery metrics.
+ * @route GET /api/souq/fulfillment/sla/[orderId]
+ * @access Private - Order seller or admin
+ * @param {string} orderId - Order ID to check SLA for
+ * @returns {Object} slaMetrics: deadlines, compliance status, late flags
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing or unauthorized
+ * @throws {404} If order not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/getServerSession";
 import { fulfillmentService } from "@/services/souq/fulfillment-service";

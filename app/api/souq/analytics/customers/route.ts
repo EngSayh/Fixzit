@@ -1,3 +1,14 @@
+/**
+ * @description Provides customer behavior analytics for Souq sellers.
+ * Returns insights on new vs returning customers, purchase frequency,
+ * customer lifetime value, and geographic distribution.
+ * @route GET /api/souq/analytics/customers
+ * @access Private - Authenticated sellers only
+ * @query {string} period - Time period: last_7_days, last_30_days, last_90_days
+ * @returns {Object} newCustomers, returningRate, avgLTV, topRegions, segments
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

@@ -1,3 +1,16 @@
+/**
+ * @description Retrieves details for a specific return (RMA) request.
+ * Returns full RMA information including items, status, and timeline.
+ * Accessible by buyer, seller, or admin with proper org scoping.
+ * @route GET /api/souq/returns/[rmaId]
+ * @access Private - Buyer, seller, or admin
+ * @param {string} rmaId - Return Merchandise Authorization ID
+ * @returns {Object} return: full RMA details with items and timeline
+ * @throws {400} If rmaId is invalid
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user does not have access
+ * @throws {404} If return not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

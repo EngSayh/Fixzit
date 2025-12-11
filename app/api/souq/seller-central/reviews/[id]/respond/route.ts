@@ -1,5 +1,16 @@
 /**
- * POST /api/souq/seller-central/reviews/[id]/respond - Seller response to review
+ * @description Allows sellers to respond to customer reviews.
+ * Creates public seller response visible on product reviews.
+ * One response per review allowed.
+ * @route POST /api/souq/seller-central/reviews/[id]/respond
+ * @access Private - Product seller only
+ * @param {string} id - Review ID to respond to
+ * @param {Object} body.content - Response content (10-1000 chars)
+ * @returns {Object} review: updated review with seller response
+ * @throws {400} If content validation fails or orgId missing
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user is not the product seller
+ * @throws {404} If review not found
  */
 import { NextRequest, NextResponse } from "next/server";
 import { reviewService } from "@/services/souq/reviews/review-service";

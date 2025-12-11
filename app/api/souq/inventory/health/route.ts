@@ -1,3 +1,14 @@
+/**
+ * @description Generates inventory health report for Souq sellers.
+ * Analyzes stock levels, turnover rates, aging inventory, and alerts.
+ * Helps identify slow-moving products and restock needs.
+ * @route GET /api/souq/inventory/health
+ * @access Private - Authenticated sellers or platform admins
+ * @query {string} sellerId - Seller ID (admins can query any seller)
+ * @returns {Object} healthScore, lowStockItems, slowMovers, recommendations
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing or unauthorized seller
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";

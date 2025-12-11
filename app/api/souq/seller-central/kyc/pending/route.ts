@@ -1,3 +1,13 @@
+/**
+ * @description Lists pending KYC submissions awaiting admin review.
+ * Returns seller applications requiring document verification.
+ * Admin-only endpoint for KYC approval workflow.
+ * @route GET /api/souq/seller-central/kyc/pending
+ * @access Private - Admin only
+ * @returns {Object} pending: array of KYC submissions with seller details
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user is not admin or org context missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

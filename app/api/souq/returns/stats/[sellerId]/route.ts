@@ -1,3 +1,16 @@
+/**
+ * @description Retrieves return statistics for a seller.
+ * Provides return rate, common reasons, and trends by period.
+ * Helps sellers monitor product quality and customer satisfaction.
+ * @route GET /api/souq/returns/stats/[sellerId]
+ * @access Private - Seller (own stats) or admin
+ * @param {string} sellerId - Seller ID
+ * @query {string} period - Time period: week, month, year
+ * @query {string} targetOrgId - Target org for platform admins
+ * @returns {Object} returnRate, topReasons, trends, comparison to average
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user cannot access seller stats
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

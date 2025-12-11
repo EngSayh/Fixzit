@@ -1,3 +1,17 @@
+/**
+ * @description Bulk processes multiple A-to-Z claims simultaneously.
+ * Allows admins to approve or reject multiple claims with single action.
+ * Queues refund processing for approved claims.
+ * @route POST /api/souq/claims/admin/bulk
+ * @access Private - Admin only (SUPER_ADMIN, ADMIN, CORPORATE_OWNER)
+ * @param {Object} body.action - Bulk action: approve, reject
+ * @param {Object} body.claimIds - Array of claim IDs to process
+ * @param {Object} body.reason - Reason for bulk decision
+ * @returns {Object} processed: count, failed: array of errors
+ * @throws {400} If validation fails or invalid claim IDs
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user is not admin
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectDb } from "@/lib/mongo";

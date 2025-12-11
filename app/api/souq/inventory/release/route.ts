@@ -1,3 +1,17 @@
+/**
+ * @description Releases a previously made inventory reservation.
+ * Called when checkout is cancelled, cart expires, or order is abandoned.
+ * Returns reserved stock back to available inventory.
+ * @route POST /api/souq/inventory/release
+ * @access Private - Authenticated users (checkout system)
+ * @param {Object} body.listingId - Listing with reservation
+ * @param {Object} body.reservationId - Reservation ID to release
+ * @returns {Object} success: true, message: confirmation
+ * @throws {400} If required fields missing
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ * @throws {404} If reservation not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";

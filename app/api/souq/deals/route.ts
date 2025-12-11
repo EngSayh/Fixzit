@@ -1,6 +1,20 @@
 /**
- * Souq Deals API - Lightning deals, coupons, promotions
- * @route /api/souq/deals
+ * @description Manages promotional deals in Souq marketplace.
+ * Supports lightning deals, coupons, bundles, BOGO, and percentage/fixed discounts.
+ * POST creates new deals with product targeting and usage limits.
+ * @route GET /api/souq/deals - List active deals
+ * @route POST /api/souq/deals - Create new promotional deal
+ * @access Private - Authenticated sellers for POST
+ * @param {Object} body.type - Deal type: lightning_deal, coupon, bundle, bogo
+ * @param {Object} body.title - Deal title
+ * @param {Object} body.discountType - Type: percentage, fixed_amount
+ * @param {Object} body.discountValue - Discount amount or percentage
+ * @param {Object} body.startDate - Deal start date
+ * @param {Object} body.endDate - Deal end date
+ * @returns {Object} deals: array | created deal details
+ * @throws {400} If validation fails
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
  */
 
 import { NextResponse } from "next/server";

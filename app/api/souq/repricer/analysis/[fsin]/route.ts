@@ -1,3 +1,14 @@
+/**
+ * @description Provides competitor price analysis for a product.
+ * Returns competitor pricing, market position, and recommended price points.
+ * Helps sellers make informed pricing decisions.
+ * @route GET /api/souq/repricer/analysis/[fsin]
+ * @access Private - Authenticated sellers only
+ * @param {string} fsin - Fixzit Standard Identification Number
+ * @returns {Object} analysis: competitor prices, market avg, recommended price
+ * @throws {400} If FSIN or organization context missing
+ * @throws {401} If user is not authenticated
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

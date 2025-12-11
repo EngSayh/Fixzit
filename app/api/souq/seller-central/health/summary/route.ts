@@ -1,3 +1,14 @@
+/**
+ * @description Provides comprehensive account health summary with trends.
+ * Includes historical comparison, improvement recommendations, and risk alerts.
+ * Shows trajectory towards account suspension thresholds.
+ * @route GET /api/souq/seller-central/health/summary
+ * @access Private - Authenticated sellers only
+ * @query {string} period - Time period: last_7_days, last_30_days, last_90_days
+ * @returns {Object} healthScore, trends, recommendations, riskLevel
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

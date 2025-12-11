@@ -1,3 +1,16 @@
+/**
+ * @description Retrieves all seller offers for a product ("Other Sellers" section).
+ * Returns competing offers with pricing, condition, and seller ratings.
+ * Supports filtering by condition and sorting options.
+ * @route GET /api/souq/buybox/offers/[fsin]
+ * @access Public - Tenant-scoped via orgId query parameter
+ * @param {string} fsin - Fixzit Standard Identification Number
+ * @query {string} orgId - Organization ID for tenant scoping (required)
+ * @query {string} condition - Filter by condition: new, refurbished, used
+ * @query {string} sort - Sort order: price, rating
+ * @returns {Object} offers: array of seller offers, total: count
+ * @throws {400} If FSIN or orgId is missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { BuyBoxService } from "@/services/souq/buybox-service";
 import { logger } from "@/lib/logger";

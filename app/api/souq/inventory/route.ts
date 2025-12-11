@@ -1,3 +1,18 @@
+/**
+ * @description Manages seller inventory listings in Souq marketplace.
+ * GET retrieves inventory with filtering by status, low stock alerts,
+ * and product search. Returns stock levels, reservations, and availability.
+ * @route GET /api/souq/inventory
+ * @access Private - Authenticated sellers only
+ * @query {string} sellerId - Filter by seller ID
+ * @query {string} status - Filter by stock status
+ * @query {boolean} lowStock - Filter low stock items
+ * @query {number} page - Page number
+ * @query {number} limit - Items per page
+ * @returns {Object} inventory: array of items with stock levels, pagination
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";

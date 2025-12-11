@@ -1,3 +1,19 @@
+/**
+ * @description Uploads supporting evidence to an existing A-to-Z claim.
+ * Accepts file uploads or JSON with file URLs. Supports images, PDFs,
+ * and other document types. Rate limited to prevent abuse.
+ * @route POST /api/souq/claims/[id]/evidence
+ * @access Private - Claim participants only
+ * @param {string} id - Claim ID
+ * @param {Object} body.file - File upload (multipart) or file URL
+ * @param {Object} body.description - Optional description of evidence
+ * @returns {Object} success: true, evidence: uploaded evidence details
+ * @throws {400} If file is missing or invalid format
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing or not claim participant
+ * @throws {404} If claim not found
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";

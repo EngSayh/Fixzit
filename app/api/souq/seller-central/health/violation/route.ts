@@ -1,3 +1,17 @@
+/**
+ * @description Records policy violations against seller accounts.
+ * Creates violation records that impact seller account health scores.
+ * Admin-only action for policy enforcement.
+ * @route POST /api/souq/seller-central/health/violation
+ * @access Private - Admin only
+ * @param {Object} body.sellerId - Seller to record violation against
+ * @param {Object} body.type - Violation type: policy, counterfeit, listing, shipping
+ * @param {Object} body.severity - Severity: warning, minor, major, critical
+ * @param {Object} body.description - Violation description
+ * @returns {Object} success: true, violation: created violation record
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user is not admin
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

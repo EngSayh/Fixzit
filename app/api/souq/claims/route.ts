@@ -1,3 +1,19 @@
+/**
+ * @description Manages A-to-Z guarantee claims for Souq marketplace.
+ * POST files a new claim against an order for issues like non-delivery,
+ * defective items, or items not as described.
+ * @route POST /api/souq/claims - File new A-to-Z claim
+ * @access Private - Authenticated buyers only
+ * @param {Object} body.orderId - Order ID to file claim against
+ * @param {Object} body.reason - Claim reason (not_received, defective, wrong_item, etc.)
+ * @param {Object} body.description - Detailed description of issue
+ * @param {Object} body.evidence - Optional array of evidence URLs (photos, documents)
+ * @returns {Object} success: true, claim: created claim with ID and status
+ * @throws {400} If validation fails or claim deadline exceeded
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ * @throws {404} If order not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   ClaimService,

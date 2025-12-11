@@ -1,5 +1,16 @@
 /**
- * POST /api/souq/reviews/[id]/report - Report review
+ * @description Reports a product review for policy violations.
+ * Users can flag inappropriate, fake, or offensive reviews for moderation.
+ * Reports are queued for admin review.
+ * @route POST /api/souq/reviews/[id]/report
+ * @access Private - Authenticated users only
+ * @param {string} id - Review ID
+ * @param {Object} body.reason - Report reason (5-500 chars)
+ * @returns {Object} success: true, message: confirmation
+ * @throws {400} If reason is missing or too short
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ * @throws {404} If review not found
  */
 import { NextRequest, NextResponse } from "next/server";
 import { reviewService } from "@/services/souq/reviews/review-service";

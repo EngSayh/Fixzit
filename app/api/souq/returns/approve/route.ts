@@ -1,3 +1,18 @@
+/**
+ * @description Approves or rejects return requests.
+ * Admin endpoint for processing return authorization decisions.
+ * Supports ops/support sub-roles on TEAM_MEMBER.
+ * @route POST /api/souq/returns/approve
+ * @access Private - Admin, ops manager, or support agent
+ * @param {Object} body.rmaId - Return Merchandise Authorization ID
+ * @param {Object} body.action - Decision: approve, reject
+ * @param {Object} body.reason - Optional rejection reason
+ * @returns {Object} success: true, return: updated return status
+ * @throws {400} If validation fails
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user lacks authorization
+ * @throws {404} If return not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

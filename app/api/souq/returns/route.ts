@@ -1,3 +1,16 @@
+/**
+ * @description Lists return requests for buyers, sellers, or admins.
+ * Buyers see their submitted returns; sellers see returns for their orders.
+ * Supports filtering by status, date range, and pagination.
+ * @route GET /api/souq/returns
+ * @access Private - Role-based access (buyers see own, sellers see received)
+ * @query {string} status - Filter by return status
+ * @query {number} page - Page number
+ * @query {number} limit - Items per page
+ * @returns {Object} returns: array of return requests, pagination: metadata
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

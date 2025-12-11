@@ -1,3 +1,20 @@
+/**
+ * @description Submits seller's response to an A-to-Z claim.
+ * Sellers can accept responsibility, dispute the claim, or offer resolution.
+ * Supports counter-evidence uploads to support the response.
+ * @route POST /api/souq/claims/[id]/response
+ * @access Private - Claim seller only
+ * @param {string} id - Claim ID
+ * @param {Object} body.action - Response action: accept, dispute, offer_refund
+ * @param {Object} body.message - Response message explaining seller's position
+ * @param {Object} body.counterEvidence - Optional counter-evidence array
+ * @returns {Object} success: true, claim: updated claim with response
+ * @throws {400} If action or message missing
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user is not the seller or org context missing
+ * @throws {404} If claim not found
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { ClaimService, type Evidence } from "@/services/souq/claims/claim-service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";

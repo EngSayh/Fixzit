@@ -1,6 +1,14 @@
 /**
- * Souq Buy Box API - Get Buy Box winner and all offers for a product
- * @route /api/souq/buybox/[fsin]
+ * @description Gets Buy Box winner and all competing offers for a product.
+ * Returns the current Buy Box holder along with alternative seller offers.
+ * Used for product detail pages and competitive analysis.
+ * @route GET /api/souq/buybox/[fsin]
+ * @access Private - Authenticated users with org context
+ * @param {string} fsin - Fixzit Standard Identification Number
+ * @returns {Object} buyBoxWinner: winning offer, allOffers: array of competing offers
+ * @throws {400} If FSIN is missing
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
  */
 
 import { NextResponse } from "next/server";

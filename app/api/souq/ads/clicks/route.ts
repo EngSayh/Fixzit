@@ -1,3 +1,17 @@
+/**
+ * @description Tracks ad clicks and charges advertiser budget.
+ * Implements click fraud prevention via signed click tokens.
+ * Rate-limited per IP to prevent automated attacks.
+ * @route POST /api/souq/ads/clicks
+ * @access Public - With signed click verification
+ * @param {Object} body.bidId - Bid ID for the click
+ * @param {Object} body.campaignId - Campaign ID
+ * @param {Object} body.timestamp - Click timestamp
+ * @param {Object} body.signature - HMAC signature for verification
+ * @returns {Object} success: true, charged: cost deducted
+ * @throws {400} If signature invalid or expired
+ * @throws {429} If rate limit exceeded
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { AuctionEngine } from "@/services/souq/ads/auction-engine";
 import { BudgetManager } from "@/services/souq/ads/budget-manager";

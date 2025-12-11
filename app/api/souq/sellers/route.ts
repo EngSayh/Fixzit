@@ -1,6 +1,20 @@
 /**
- * Souq Seller API - Seller onboarding and management
- * @route /api/souq/sellers
+ * @description Manages Souq seller onboarding and registration.
+ * POST creates a new seller profile with business information,
+ * tier selection, and contact details. Supports individual and company sellers.
+ * @route POST /api/souq/sellers - Register new seller
+ * @access Private - Authenticated users only
+ * @param {Object} body.legalName - Legal business name
+ * @param {Object} body.registrationType - Type: individual, company, partnership
+ * @param {Object} body.tier - Seller tier: individual, professional, enterprise
+ * @param {Object} body.contactEmail - Business contact email
+ * @param {Object} body.country - Country code
+ * @param {Object} body.city - City name
+ * @param {Object} body.address - Full business address
+ * @returns {Object} success: true, seller: created seller profile
+ * @throws {400} If validation fails or seller already exists
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
  */
 
 import { NextResponse } from "next/server";

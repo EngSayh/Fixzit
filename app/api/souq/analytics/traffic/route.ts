@@ -1,3 +1,14 @@
+/**
+ * @description Provides traffic and engagement analytics for Souq sellers.
+ * Returns page views, unique visitors, bounce rate, and session duration metrics.
+ * Supports different time periods: last 7, 30, or 90 days.
+ * @route GET /api/souq/analytics/traffic
+ * @access Private - Authenticated sellers only
+ * @query {string} period - Time period: last_7_days, last_30_days, last_90_days
+ * @returns {Object} pageViews, uniqueVisitors, bounceRate, avgSessionDuration, trends
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

@@ -1,3 +1,15 @@
+/**
+ * @description Calculates and returns the Buy Box winner for a product FSIN.
+ * The Buy Box algorithm considers price, seller rating, shipping speed, and inventory.
+ * Returns the winning seller's offer details if eligible sellers exist.
+ * @route GET /api/souq/buybox/winner/[fsin]
+ * @access Public - Tenant-scoped via orgId query parameter
+ * @param {string} fsin - Fixzit Standard Identification Number (product identifier)
+ * @query {string} orgId - Organization ID for tenant scoping
+ * @returns {Object} success: true, winner: offer details with sellerId, price, shipping
+ * @throws {400} If FSIN or orgId is missing
+ * @throws {404} If no eligible sellers found for product
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { BuyBoxService } from "@/services/souq/buybox-service";
 import { logger } from "@/lib/logger";

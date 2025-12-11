@@ -1,3 +1,18 @@
+/**
+ * @description Manages product categories in Souq marketplace.
+ * GET lists all active categories with hierarchy (platform-wide catalog).
+ * POST creates new category (admin only).
+ * Categories support multi-level parent-child relationships.
+ * @route GET /api/souq/categories - List categories with hierarchy
+ * @route POST /api/souq/categories - Create new category (admin)
+ * @access GET: Public | POST: Admin only
+ * @param {Object} body.name - Category name (English)
+ * @param {Object} body.name_ar - Category name (Arabic)
+ * @param {Object} body.parentId - Optional parent category ID
+ * @returns {Object} GET: categories array | POST: created category
+ * @throws {401} If not authenticated (POST)
+ * @throws {403} If not admin (POST)
+ */
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { auth } from "@/auth";

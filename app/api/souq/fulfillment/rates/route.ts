@@ -1,3 +1,18 @@
+/**
+ * @description Compares carrier shipping rates for fulfillment.
+ * Returns rate quotes from all available carriers sorted by price.
+ * Used for seller shipping cost estimation and label selection.
+ * @route POST /api/souq/fulfillment/rates
+ * @access Private - Authenticated sellers and admins
+ * @param {Object} body.origin - Origin address object
+ * @param {Object} body.destination - Destination address object
+ * @param {Object} body.weight - Package weight
+ * @param {Object} body.dimensions - Optional package dimensions
+ * @param {Object} body.serviceType - Service level: standard, express
+ * @returns {Object} rates: sorted array of carrier rates with cost and delivery time
+ * @throws {400} If required fields missing
+ * @throws {401} If user is not authenticated
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/getServerSession";
 import { fulfillmentService } from "@/services/souq/fulfillment-service";

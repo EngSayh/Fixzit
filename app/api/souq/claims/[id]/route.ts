@@ -1,3 +1,15 @@
+/**
+ * @description Retrieves details for a specific A-to-Z claim.
+ * Returns full claim information including timeline, evidence, and status.
+ * Only accessible by the claim's buyer or seller.
+ * @route GET /api/souq/claims/[id]
+ * @access Private - Claim participants only (buyer or seller)
+ * @param {string} id - Claim ID
+ * @returns {Object} claim: full claim details with order info and timeline
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user is not buyer or seller of the claim
+ * @throws {404} If claim not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";

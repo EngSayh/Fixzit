@@ -1,3 +1,16 @@
+/**
+ * @description Assigns Fast Badge to eligible product listings.
+ * Fast Badge indicates rapid shipping capability based on seller performance.
+ * Can target specific listing, seller, or run bulk assignment.
+ * @route POST /api/souq/fulfillment/assign-fast-badge
+ * @access Private - Admin only (or background job)
+ * @param {Object} body.listingId - Optional specific listing to badge
+ * @param {Object} body.sellerId - Optional seller for bulk assignment
+ * @param {Object} body.targetOrgId - Target org for platform admins
+ * @returns {Object} eligible: count, updated: count, details
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user is not admin or orgId missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/getServerSession";
 import { fulfillmentService } from "@/services/souq/fulfillment-service";

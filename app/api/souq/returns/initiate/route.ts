@@ -1,3 +1,17 @@
+/**
+ * @description Initiates a return request from a buyer for a Souq order.
+ * Creates an RMA (Return Merchandise Authorization) record with item details
+ * and optional buyer photos documenting the issue.
+ * @route POST /api/souq/returns/initiate
+ * @access Private - Authenticated buyers only
+ * @param {Object} body.orderId - The order ID to return items from
+ * @param {Object} body.items - Array of items to return with quantities and reasons
+ * @param {Object} body.buyerPhotos - Optional array of photo URLs documenting issues
+ * @returns {Object} success: true, rmaId: created RMA identifier
+ * @throws {400} If validation fails or order not found
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing or user not order buyer
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

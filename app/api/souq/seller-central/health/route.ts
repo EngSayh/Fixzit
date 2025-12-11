@@ -1,3 +1,14 @@
+/**
+ * @description Retrieves account health metrics for Seller Central.
+ * Returns performance scores including order defect rate, late shipment rate,
+ * cancellation rate, and customer feedback scores.
+ * @route GET /api/souq/seller-central/health
+ * @access Private - Authenticated sellers only
+ * @query {string} period - Time period: last_7_days, last_30_days, last_90_days
+ * @returns {Object} healthScore, orderDefectRate, lateShipmentRate, violations
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

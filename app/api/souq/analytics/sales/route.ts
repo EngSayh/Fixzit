@@ -1,3 +1,14 @@
+/**
+ * @description Provides sales performance analytics for Souq sellers.
+ * Returns metrics like total revenue, order count, average order value, and trends.
+ * Supports various time periods including year-to-date.
+ * @route GET /api/souq/analytics/sales
+ * @access Private - Authenticated sellers only
+ * @query {string} period - Time period: last_7_days, last_30_days, last_90_days, ytd
+ * @returns {Object} totalRevenue, orderCount, avgOrderValue, trends by period
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { analyticsService } from "@/services/souq/analytics/analytics-service";

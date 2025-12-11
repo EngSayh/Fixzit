@@ -1,3 +1,14 @@
+/**
+ * @description Provides comprehensive analytics dashboard for Souq sellers.
+ * Aggregates sales, traffic, product performance, and customer metrics.
+ * Returns combined data optimized for dashboard display.
+ * @route GET /api/souq/analytics/dashboard
+ * @access Private - Authenticated sellers only
+ * @query {string} period - Time period: last_7_days, last_30_days, last_90_days, ytd
+ * @returns {Object} sales, traffic, topProducts, customerInsights, healthScore
+ * @throws {401} If user is not authenticated
+ * @throws {403} If organization context missing
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { analyticsService } from "@/services/souq/analytics/analytics-service";

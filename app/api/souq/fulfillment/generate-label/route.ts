@@ -1,3 +1,17 @@
+/**
+ * @description Generates shipping labels for FBM (Fulfilled by Merchant) orders.
+ * Creates carrier-specific labels with tracking numbers for seller shipments.
+ * Validates seller ownership of order before label generation.
+ * @route POST /api/souq/fulfillment/generate-label
+ * @access Private - Order sellers or admins only
+ * @param {Object} body.orderId - Order ID to generate label for
+ * @param {Object} body.carrier - Carrier code: spl, aramex, dhl (default: spl)
+ * @returns {Object} label: PDF URL, trackingNumber, carrier details
+ * @throws {400} If orderId missing or orgId not found
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user does not own order items
+ * @throws {404} If order not found
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/getServerSession";
 import { fulfillmentService } from "@/services/souq/fulfillment-service";

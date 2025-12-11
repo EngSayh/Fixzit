@@ -1,7 +1,17 @@
 /**
- * GET /api/souq/reviews/[id] - Get review details
- * PUT /api/souq/reviews/[id] - Update review
- * DELETE /api/souq/reviews/[id] - Delete review
+ * @description Manages individual product reviews in Souq marketplace.
+ * GET retrieves review details. PUT updates review content.
+ * DELETE removes review (author or admin only).
+ * @route GET /api/souq/reviews/[id] - Get review details
+ * @route PUT /api/souq/reviews/[id] - Update review
+ * @route DELETE /api/souq/reviews/[id] - Delete review
+ * @access Private - Review author or admin
+ * @param {string} id - Review ID
+ * @returns {Object} review: review details or updated review
+ * @throws {400} If no updates provided
+ * @throws {401} If user is not authenticated
+ * @throws {403} If user is not review author
+ * @throws {404} If review not found
  */
 import { NextRequest, NextResponse } from "next/server";
 import { reviewService } from "@/services/souq/reviews/review-service";
