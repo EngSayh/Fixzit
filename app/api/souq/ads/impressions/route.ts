@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Ad Impressions Tracking API
+ * @description Records ad impressions for the auction-based advertising system with rate limiting to prevent fraud.
+ * @route POST /api/souq/ads/impressions - Track ad impression
+ * @access Public (rate-limited by IP)
+ * @module souq
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { AuctionEngine } from "@/services/souq/ads/auction-engine";
 import { logger } from "@/lib/logger";

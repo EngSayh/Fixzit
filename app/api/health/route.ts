@@ -1,15 +1,11 @@
 /**
- * Health Check Endpoint
- * GET /api/health
- *
- * Returns server health status for monitoring and E2E test readiness checks.
- * 
- * SECURITY: Deep diagnostics only exposed when X-Health-Token header matches
- * HEALTH_CHECK_TOKEN env variable. See env.example for configuration.
- * 
- * RELIABILITY: DB liveness check uses pingDatabase() with timeout to avoid 
- * hanging on stale connections. All callers (authorized or not) get accurate status.
+ * @fileoverview Main Health Check Endpoint
+ * @description Returns overall server health status including database and Redis connectivity. Used for monitoring and E2E test readiness checks.
+ * @route GET /api/health - Primary health check endpoint
+ * @access Public (detailed diagnostics require X-Health-Token)
+ * @module health
  */
+
 import { NextRequest } from "next/server";
 import { pingDatabase } from "@/lib/mongo";
 import { getRedisClient } from "@/lib/redis";

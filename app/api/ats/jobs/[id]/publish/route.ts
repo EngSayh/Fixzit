@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Job Publishing Control
+ * @description Controls the publication status of job postings, allowing jobs to be published or unpublished.
+ * @route POST /api/ats/jobs/[id]/publish - Publish a job posting
+ * @access Protected - Requires jobs:publish permission
+ * @module ats
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

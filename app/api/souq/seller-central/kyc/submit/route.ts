@@ -1,12 +1,15 @@
+/**
+ * @fileoverview KYC Submission API
+ * @description Handles multi-step KYC submission for sellers including company info, documents, and bank details.
+ * @route POST /api/souq/seller-central/kyc/submit - Submit KYC information (multi-step)
+ * @access Authenticated (Seller)
+ * @module souq
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { sellerKYCService } from "@/services/souq/seller-kyc-service";
-
-/**
- * POST /api/souq/seller-central/kyc/submit
- * Submit KYC information (multi-step)
- */
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();

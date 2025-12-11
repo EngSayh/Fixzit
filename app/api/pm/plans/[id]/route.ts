@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Preventive Maintenance Plan Detail API
+ * @description Handles individual PM plan operations including retrieval, updates, and deletion by plan ID.
+ * @route GET /api/pm/plans/[id] - Get single PM plan by ID
+ * @route PATCH /api/pm/plans/[id] - Update a PM plan
+ * @route DELETE /api/pm/plans/[id] - Delete a PM plan
+ * @access Authenticated (role-based, tenant-scoped)
+ * @module pm
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { FMPMPlan } from "@/server/models/FMPMPlan";

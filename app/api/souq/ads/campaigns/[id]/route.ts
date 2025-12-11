@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Ad Campaign Details API
+ * @description Manages individual ad campaign operations including retrieval, updates, and deletion.
+ * @route GET /api/souq/ads/campaigns/[id] - Get campaign details
+ * @route PATCH /api/souq/ads/campaigns/[id] - Update campaign
+ * @route DELETE /api/souq/ads/campaigns/[id] - Delete campaign
+ * @access Authenticated (SUPER_ADMIN, CORPORATE_ADMIN, CORPORATE_OWNER, ADMIN, MANAGER, PROCUREMENT, OPERATIONS_MANAGER, VENDOR)
+ * @module souq
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

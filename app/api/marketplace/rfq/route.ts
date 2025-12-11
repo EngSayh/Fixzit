@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Marketplace RFQ Management
+ * @description Request for Quotation (RFQ) operations in the marketplace - create and list procurement requests
+ * @route GET /api/marketplace/rfq - List RFQs with status filtering
+ * @route POST /api/marketplace/rfq - Create new RFQ
+ * @access Private - Requires authentication and marketplace context
+ * @module marketplace
+ */
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { resolveMarketplaceContext } from "@/lib/marketplace/context";

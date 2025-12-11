@@ -1,6 +1,9 @@
 /**
- * Transactions API
- * GET /api/souq/settlements/transactions - Get transaction history for seller
+ * @fileoverview Seller Transactions API
+ * @description Retrieves paginated transaction history for sellers with filtering by type, date range, and authorization controls.
+ * @route GET /api/souq/settlements/transactions - Get transaction history for seller
+ * @access Authenticated (Seller for own transactions, ADMIN/FINANCE for all)
+ * @module souq
  */
 
 import { NextRequest, NextResponse } from "next/server";

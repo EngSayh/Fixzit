@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Vendor Detail API
+ * @description Handles individual vendor operations including retrieval, updates, and deletion by vendor ID.
+ * @route GET /api/vendors/[id] - Get single vendor by ID
+ * @route PATCH /api/vendors/[id] - Update vendor details
+ * @route DELETE /api/vendors/[id] - Delete a vendor
+ * @access Authenticated (role-based, tenant-scoped)
+ * @module vendors
+ */
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Vendor } from "@/server/models/Vendor";

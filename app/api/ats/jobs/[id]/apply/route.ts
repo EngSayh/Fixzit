@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Job Application Submission
+ * @description Handles public job application submissions with form processing and candidate screening rules.
+ * @route POST /api/ats/jobs/[id]/apply - Submit application for a specific job
+ * @access Public - Rate-limited endpoint for applicants
+ * @module ats
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";

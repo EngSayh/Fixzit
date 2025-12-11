@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Convert Candidate to Employee
+ * @description Converts a hired candidate from the ATS pipeline into an HR employee record with job details.
+ * @route POST /api/ats/convert-to-employee - Convert accepted candidate to employee
+ * @access Protected - Requires application update/stage-transition permissions
+ * @module ats
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

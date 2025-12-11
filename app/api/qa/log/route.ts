@@ -1,3 +1,11 @@
+/**
+ * @fileoverview QA Logging System
+ * @description Records and retrieves QA log entries for debugging with deduplication and payload sanitization
+ * @route GET /api/qa/log - List stored QA log entries
+ * @route POST /api/qa/log - Record a new QA log event with hash-based deduplication
+ * @access Private - SUPER_ADMIN only
+ * @module qa
+ */
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createHash } from "crypto";

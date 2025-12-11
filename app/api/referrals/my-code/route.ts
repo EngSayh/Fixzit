@@ -1,3 +1,10 @@
+/**
+ * @fileoverview User Referral Code Retrieval
+ * @description Retrieves the authenticated user's active referral code and associated statistics with pagination support
+ * @route GET /api/referrals/my-code - Get current user's referral code and usage stats
+ * @access Private - Requires authentication
+ * @module referrals
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { ReferralCodeModel } from "@/server/models/ReferralCode";

@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Seller Settlements API
+ * @description Lists and manages seller settlement statements with RBAC-based access control and audit logging.
+ * @route GET /api/souq/settlements - List seller settlements
+ * @access Authenticated (Seller for own settlements, ADMIN/SUPER_ADMIN for all)
+ * @module souq
+ */
+
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { auth } from "@/auth";

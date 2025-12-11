@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Referral Code Generation
+ * @description Generates a new tenant-aware referral code for the authenticated user with configurable rewards and limits
+ * @route POST /api/referrals/generate - Create a new referral code
+ * @access Private - Requires authentication and organization context
+ * @module referrals
+ */
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { ReferralCodeModel } from "@/server/models/ReferralCode";

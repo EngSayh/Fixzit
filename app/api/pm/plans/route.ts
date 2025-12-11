@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Preventive Maintenance Plans API
+ * @description Manages preventive maintenance plans with CRUD operations for scheduling recurring maintenance tasks.
+ * @route GET /api/pm/plans - List PM plans with optional filters
+ * @route POST /api/pm/plans - Create a new PM plan
+ * @access Authenticated (tenant-scoped)
+ * @module pm
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { FMPMPlan } from "@/server/models/FMPMPlan";

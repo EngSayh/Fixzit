@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Organization Settings API
+ * @description Retrieves and manages organization branding and configuration settings including logo, name, and color scheme.
+ * @route GET /api/organization/settings - Get organization branding settings
+ * @access Public (defaults) / Authenticated (org-specific)
+ * @module organization
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";

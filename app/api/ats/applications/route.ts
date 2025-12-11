@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Applications List Management
+ * @description Lists and filters job applications with support for pagination, job filtering, and stage filtering.
+ * @route GET /api/ats/applications - Retrieve paginated list of applications
+ * @access Protected - Requires applications:read permission
+ * @module ats
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

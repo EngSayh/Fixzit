@@ -1,6 +1,9 @@
 /**
- * Settlement Details API
- * GET /api/souq/settlements/[id] - Get settlement statement details
+ * @fileoverview Settlement Details API
+ * @description Retrieves detailed information for a specific settlement statement with authorization checks.
+ * @route GET /api/souq/settlements/[id] - Get settlement statement details
+ * @access Authenticated (Seller for own statements, ADMIN/SUPER_ADMIN/CORPORATE_ADMIN/FINANCE for all)
+ * @module souq
  */
 
 import { NextRequest, NextResponse } from "next/server";

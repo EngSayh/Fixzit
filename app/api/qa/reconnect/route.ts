@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Database Reconnection Utility
+ * @description QA/Admin endpoint to force database reconnection for troubleshooting connectivity issues
+ * @route POST /api/qa/reconnect - Force database reconnection
+ * @access Private - SUPER_ADMIN only
+ * @module qa
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 

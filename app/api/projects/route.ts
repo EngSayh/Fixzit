@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Projects API (Test Environment)
+ * @description Test-only endpoint for Playwright E2E tests - manages construction/renovation projects with in-memory storage
+ * @route GET /api/projects - List all projects
+ * @route POST /api/projects - Create a new project
+ * @access Private - Requires authentication, TEST_ENV only
+ * @module projects
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";

@@ -1,10 +1,11 @@
 /**
- * Database Diagnostic Endpoint
- * GET /api/health/db-diag
- * 
- * Returns detailed database connection diagnostics for troubleshooting.
- * SECURITY: Requires X-Health-Token header matching HEALTH_CHECK_TOKEN.
+ * @fileoverview Database Diagnostic Endpoint
+ * @description Returns detailed MongoDB connection diagnostics including connection state, pool info, and test results for troubleshooting.
+ * @route GET /api/health/db-diag - Database diagnostic endpoint
+ * @access Internal (requires X-Health-Token)
+ * @module health
  */
+
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { MongoClient } from "mongodb";

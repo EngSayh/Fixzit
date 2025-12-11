@@ -1,3 +1,10 @@
+/**
+ * @fileoverview AI Assistant Query API
+ * @description Handles natural language queries for the AI assistant including KB search, ticket creation, and work order lookups.
+ * @route POST /api/assistant/query - Process natural language queries and commands
+ * @access Authenticated (session required)
+ * @module assistant
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";

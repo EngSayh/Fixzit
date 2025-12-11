@@ -1,16 +1,13 @@
 /**
- * Circuit Breaker Metrics Endpoint
- * GET /api/metrics/circuit-breakers
+ * @fileoverview Circuit Breaker Metrics API
+ * @description Exposes Prometheus-compatible metrics for circuit breaker health monitoring and alerting.
+ * @route GET /api/metrics/circuit-breakers - Get circuit breaker metrics in Prometheus or JSON format
+ * @access Protected (METRICS_TOKEN in production)
+ * @module metrics
  *
- * Returns Prometheus-compatible metrics for all circuit breakers.
- * Supports both Prometheus text format and JSON.
- * 
  * Query params:
  * - format=prometheus (default) - Prometheus text format
  * - format=json - JSON format
- * 
- * SECURITY: Protected by optional METRICS_TOKEN for production.
- * In development, metrics are always accessible.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { 

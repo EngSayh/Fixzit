@@ -1,13 +1,11 @@
 /**
- * Auth Configuration Health Check Endpoint
- * GET /api/health/auth
- *
- * Returns auth configuration status WITHOUT exposing secrets.
- * Use this to debug 500 errors on /api/auth/session in production.
- * SECURITY: Detailed config is only returned to authorized callers that provide
- * X-Health-Token matching HEALTH_CHECK_TOKEN. Unauthenticated callers receive
- * a minimal status payload to avoid recon/fingerprinting.
+ * @fileoverview Auth Configuration Health Check Endpoint
+ * @description Returns authentication configuration status without exposing secrets. Use to debug auth-related 500 errors in production.
+ * @route GET /api/health/auth - Authentication configuration health check
+ * @access Public (detailed info requires X-Health-Token)
+ * @module health
  */
+
 import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";

@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Ad Campaign Statistics API
+ * @description Retrieves performance statistics for a specific ad campaign including impressions, clicks, and conversions.
+ * @route GET /api/souq/ads/campaigns/[id]/stats - Get campaign performance statistics
+ * @access Authenticated (SUPER_ADMIN, CORPORATE_ADMIN, CORPORATE_OWNER, ADMIN, MANAGER, PROCUREMENT, OPERATIONS_MANAGER, VENDOR)
+ * @module souq
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

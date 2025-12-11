@@ -1,14 +1,9 @@
 /**
- * Kubernetes Liveness Probe
- * GET /api/health/live
- *
- * Returns 200 if the Node.js process is alive and responsive.
- * This is a lightweight check that doesn't verify dependencies.
- *
- * Use this endpoint for k8s livenessProbe configuration.
- * For full readiness checks, use /api/health/ready.
- *
- * @module api/health/live
+ * @fileoverview Kubernetes Liveness Probe
+ * @description Returns 200 if the Node.js process is alive and responsive. Lightweight check without dependency verification for k8s livenessProbe.
+ * @route GET /api/health/live - Kubernetes liveness probe endpoint
+ * @access Public
+ * @module health
  */
 
 import { NextResponse } from "next/server";

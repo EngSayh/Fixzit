@@ -1,3 +1,11 @@
+/**
+ * @fileoverview RFQ Bid Management
+ * @description Handles vendor bid submissions and retrieval for specific RFQs with anonymous bidding support
+ * @route GET /api/rfqs/[id]/bids - List all bids for an RFQ
+ * @route POST /api/rfqs/[id]/bids - Submit a new bid
+ * @access Private - Requires vendor authentication for submissions
+ * @module rfqs
+ */
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { RFQ } from "@/server/models/RFQ";

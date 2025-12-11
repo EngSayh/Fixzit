@@ -1,12 +1,15 @@
+/**
+ * @fileoverview Return Eligibility Check API
+ * @description Checks if a specific order item is eligible for return based on return policy and time constraints.
+ * @route GET /api/souq/returns/eligibility/[orderId]/[listingId] - Check return eligibility for order item
+ * @access Authenticated (requires organization context)
+ * @module souq
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { returnsService } from "@/services/souq/returns-service";
-
-/**
- * GET /api/souq/returns/eligibility/[orderId]/[listingId]
- * Check if an order item is eligible for return
- */
 export async function GET(
   request: NextRequest,
   { params }: { params: { orderId: string; listingId: string } },

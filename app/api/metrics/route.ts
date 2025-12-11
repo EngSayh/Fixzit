@@ -1,25 +1,15 @@
 /**
- * Application Metrics API (Prometheus-compatible)
- * 
- * Exposes application metrics for monitoring and alerting.
- * Restricted to SUPER_ADMIN users only.
- * 
- * @module api/metrics
- * @requires Authentication - Valid session
- * @requires Authorization - SUPER_ADMIN role only
- * 
+ * @fileoverview Application Metrics API
+ * @description Exposes Prometheus-compatible application metrics for monitoring, alerting, and observability.
+ * @route GET /api/metrics - Get application metrics in Prometheus text format
+ * @access Authenticated (SUPER_ADMIN only)
+ * @module metrics
+ *
  * Metrics Exposed:
  * - http_requests_total: Request count by route and status
  * - http_request_duration_seconds: Request latency histogram
  * - mongodb_connections_active: Active DB connections
  * - work_orders_total: Work order count by status
- * - Custom business metrics
- * 
- * Rate Limiting:
- * - Applies smart rate limiting per org
- * 
- * @example GET /api/metrics
- * @returns Prometheus text format metrics
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getMetricsRegistry } from "@/lib/monitoring/metrics-registry";

@@ -1,7 +1,10 @@
 /**
- * Catalog Service API - Product & Category Management
- * Handles FSIN generation, product creation, category management
- * @module app/api/souq/catalog
+ * @fileoverview Catalog Products API
+ * @description Manages product catalog operations including FSIN generation, product creation, and localized product retrieval.
+ * @route GET /api/souq/catalog/products - List products with search and filtering
+ * @route POST /api/souq/catalog/products - Create new product with FSIN
+ * @access Authenticated
+ * @module souq
  */
 
 import { NextRequest, NextResponse } from "next/server";

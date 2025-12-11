@@ -1,14 +1,11 @@
 /**
- * SMS Service Health Check Endpoint
- * GET /api/health/sms
- *
- * Returns SMS/Taqnyat health status with configuration details
- * SECURITY: Detailed config is only exposed to authorized internal tools using
- * the X-Health-Token header (redacted otherwise). Preview/Dev environments are
- * treated as non-prod for dev-mode SMS.
- *
- * NOTE: This system uses Taqnyat as the ONLY SMS provider (CITC-compliant for Saudi Arabia).
+ * @fileoverview SMS Service Health Check Endpoint
+ * @description Returns Taqnyat SMS provider health status and configuration. Detailed config only exposed to authorized callers via X-Health-Token header.
+ * @route GET /api/health/sms - SMS service (Taqnyat) health check
+ * @access Public (detailed info requires X-Health-Token)
+ * @module health
  */
+
 import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { createSecureResponse } from "@/server/security/headers";

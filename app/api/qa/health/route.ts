@@ -1,3 +1,10 @@
+/**
+ * @fileoverview System Health Diagnostics
+ * @description Provides health check endpoint for database connectivity and system status monitoring
+ * @route GET /api/qa/health - Get system health status and database connection state
+ * @access Private - SUPER_ADMIN only
+ * @module qa
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";

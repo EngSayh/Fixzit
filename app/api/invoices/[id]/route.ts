@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Invoice Detail API
+ * @description Handles individual invoice operations including retrieval, status updates, payments, and approvals.
+ * @route GET /api/invoices/[id] - Get single invoice by ID
+ * @route PATCH /api/invoices/[id] - Update invoice status/payment
+ * @route DELETE /api/invoices/[id] - Cancel/void an invoice
+ * @access Authenticated (tenant-scoped)
+ * @module finance
+ */
 import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";

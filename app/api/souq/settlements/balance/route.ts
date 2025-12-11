@@ -1,6 +1,9 @@
 /**
- * Balance API
- * GET /api/souq/settlements/balance - Get seller balance (available, reserved, pending)
+ * @fileoverview Seller Balance API
+ * @description Retrieves seller balance information including available, reserved, and pending amounts with tenant isolation.
+ * @route GET /api/souq/settlements/balance - Get seller balance (available, reserved, pending)
+ * @access Authenticated (Seller for own balance, ADMIN/SUPER_ADMIN/CORPORATE_ADMIN/FINANCE for all)
+ * @module souq
  */
 
 import { NextRequest, NextResponse } from "next/server";

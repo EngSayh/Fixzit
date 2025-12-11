@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Platform Logo Settings API
+ * @description Retrieves the platform logo URL and branding information for the current organization.
+ * @route GET /api/settings/logo - Get platform logo and brand details
+ * @access Public (returns defaults for unauthenticated requests)
+ * @module settings
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";

@@ -1,3 +1,11 @@
+/**
+ * @fileoverview ATS Settings Management
+ * @description Manages organization-specific ATS settings including scoring weights, knockout rules, and alerts.
+ * @route GET, PUT /api/ats/settings - Retrieve or update ATS configuration for an organization
+ * @access Protected - Requires settings:read or settings:update permissions
+ * @module ats
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { AtsSettings } from "@/server/models/AtsSettings";
