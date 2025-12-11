@@ -1,13 +1,374 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T15:41:04+03:00  
-**Version**: 14.5  
+**Last Updated**: 2025-12-11T16:45:00+03:00  
+**Version**: 14.7  
 **Branch**: feat/frontend-dashboards  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok, TAP Payments ok)  
-**Total Pending Items**: 34 items (1 Major Feature + 9 Code TODOs + 8 Backlog Verified + 6 Deep Dive Findings + 8 System-Wide + 2 MOD items ✅)  
-**Completed Items**: 318+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes + Backlog Verification + Chat Session Analysis)  
+**Total Pending Items**: 47 items (1 Major Feature + 9 Code TODOs + 8 Backlog Verified + 6 Deep Dive Findings + 13 System-Wide + 8 Code Quality Patterns + 2 MOD items ✅)  
+**Completed Items**: 319+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes + Backlog Verification + Chat Session Analysis + System-Wide Code Audit)  
 **Test Status**: ✅ Vitest full suite previously (2,468 tests) + latest `pnpm test:models` rerun (6 files, 91 tests) | 🚧 Playwright e2e timed out after ~15m during `pnpm test` (dev server stopped post-run; env gaps documented in E2E_TESTING_QUICK_START.md)  
-**Consolidation Check**: 2025-12-11T15:41:04+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T16:45:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+
+---
+
+## 🔍 SESSION 2025-12-11T16:45 — SYSTEM-WIDE CODE QUALITY PATTERNS AUDIT
+
+### Methodology
+
+Comprehensive grep-based pattern search across entire repository to identify code quality anti-patterns discovered during chat session. This audit quantifies technical debt for prioritization.
+
+**Search Scope**: All TypeScript, JavaScript, JSON, and YAML files  
+**Patterns Searched**: 12 anti-pattern categories  
+**Total Findings**: 400+ occurrences across 8 pattern categories
+
+---
+
+### 📊 PATTERN CATEGORY SUMMARY
+
+| ID | Pattern | Count | Location Distribution | Priority | Effort to Fix |
+|----|---------|-------|----------------------|----------|---------------|
+| **CQP-001** | `void error;` / `void _error;` | **100+** | 30+ service files | 🟢 LOW | HIGH (refactor) |
+| **CQP-002** | `as any` type assertions | **100+** | 2 prod + 40 scripts + 100 tests | 🟡 MEDIUM | HIGH |
+| **CQP-003** | Empty catch blocks `catch(_){}` | **14** | 8 workflows + 4 scripts + 2 tests | 🟢 LOW | LOW |
+| **CQP-004** | `@ts-ignore/@ts-expect-error` | **12** | 5 prod + 7 tests | 🟢 LOW | MEDIUM |
+| **CQP-005** | Unhandled `await req.json()` | **30+** | API routes | 🟡 MEDIUM | MEDIUM |
+| **CQP-006** | Missing Arabic translations `[AR]` | **200+** | i18n/ar.json | 🟧 HIGH | HIGH |
+| **CQP-007** | `parseInt` without radix | **8** | ATS/Souq routes | 🟢 LOW | LOW |
+| **CQP-008** | Hardcoded fallback credentials | **8** | scripts + docs | 🟢 LOW | LOW |
+
+---
+
+### 🔴 DETAILED FINDINGS BY PATTERN
+
+#### CQP-001: `void error;` Anti-Pattern (100+ occurrences)
+**Priority**: 🟢 LOW (functional but bad practice) | **Category**: Error Handling
+
+**Problem**: Using `void error;` to suppress "unused variable" lint warnings instead of proper error handling or logging.
+
+**Distribution by File** (Top 15):
+| File | Count |
+|------|-------|
+| `services/souq/inventory-service.ts` | 14 |
+| `services/souq/fm-approval-engine.ts` | 9 |
+| `services/souq/fulfillment-service.ts` | 7 |
+| `lib/payments/tap-payments.ts` | 5 |
+| `lib/carriers/aramex.ts` | 4 |
+| `lib/carriers/spl.ts` | 4 |
+| `services/notification-service.ts` | 4 |
+| `services/work-order-service.ts` | 4 |
+| `services/souq/cart-service.ts` | 3 |
+| `services/souq/seller-disputes-service.ts` | 3 |
+| `services/souq/marketplace-analytics-service.ts` | 3 |
+| `services/souq/order-fulfillment-service.ts` | 3 |
+| `lib/billing/plan-manager.ts` | 2 |
+| `app/api/souq/support/tickets/[ticketId]/route.ts` | 2 |
+| Various other services | 20+ |
+
+**Risk**: Errors are silently swallowed. Production debugging becomes impossible.
+
+**Recommended Fix**: Replace with `console.error('Context:', error)` or structured logging.
+
+---
+
+#### CQP-002: `as any` Type Assertions (100+ occurrences)
+**Priority**: 🟡 MEDIUM | **Category**: Type Safety
+
+**Problem**: Using `as any` to bypass TypeScript's type system.
+
+**Distribution**:
+| Category | Count | Priority to Fix |
+|----------|-------|-----------------|
+| Production `lib/` files | **2** | 🔴 HIGH |
+| Scripts (`scripts/`) | **40+** | 🟡 MEDIUM |
+| Test files (`tests/`) | **100+** | 🟢 LOW |
+| GitHub workflows | **8** | 🟢 LOW |
+
+**Critical Production Files**:
+- `lib/resilience/circuit-breaker-metrics.ts:38` — Timer type
+- `lib/fm-auth-middleware.ts:345` — Session type
+
+**Risk**: Bypasses compile-time type safety, allows runtime type errors.
+
+**Recommended Fix**: Create proper interfaces/types for production files first.
+
+---
+
+#### CQP-003: Empty Catch Blocks (14 occurrences)
+**Priority**: 🟢 LOW | **Category**: Error Handling
+
+**Problem**: Empty catch blocks silently swallow errors.
+
+**Distribution**:
+| Location | Count |
+|----------|-------|
+| `.github/workflows/*.yml` | 8 |
+| `qa/scripts/verify.mjs` | 2 |
+| `package.json` (embedded scripts) | 2 |
+| Test files | 2 |
+
+**Example** (CI workflow):
+```yaml
+# .github/workflows/webpack.yml:77
+pnpm tsx -e "... try { ... } catch (_) {} })();"
+```
+
+**Risk**: Build/deployment issues silently ignored in CI.
+
+**Recommended Fix**: Add `console.error` or remove try-catch if failure is acceptable.
+
+---
+
+#### CQP-004: TypeScript Ignore Directives (12 occurrences)
+**Priority**: 🟢 LOW | **Category**: Type Safety
+
+**Problem**: `@ts-ignore` and `@ts-expect-error` bypass type checking.
+
+**Production Files** (5):
+| File | Line | Reason |
+|------|------|--------|
+| `lib/ats/resume-parser.ts` | Multiple | Complex PDF parsing |
+| `lib/markdown.ts` | — | Rehype plugin types |
+| `scripts/fixzit-pack.ts` | — | Dynamic imports |
+| `scripts/migrations/*.ts` | — | DB migration scripts |
+
+**Test Files** (7):
+| File | Purpose |
+|------|---------|
+| `tests/services/souq/settlements/balance-service.test.ts` | Mock types |
+| `tests/scripts/generate-marketplace-bible.test.ts` | Vitest/Jest compat |
+| `tests/api/lib-paytabs.test.ts` (×2) | Mock payment |
+| `tests/unit/lib/ats/scoring.test.ts` (×3) | Edge case testing |
+
+**Risk**: Masks real type errors. Acceptable in tests for edge case testing.
+
+**Recommended Fix**: Document reason next to each ignore; review production files.
+
+---
+
+#### CQP-005: Unhandled `await req.json()` (30+ occurrences)
+**Priority**: 🟡 MEDIUM | **Category**: API Reliability
+
+**Problem**: API routes call `await req.json()` without `.catch()` fallback.
+
+**Pattern Comparison**:
+```typescript
+// ✅ GOOD: With catch fallback
+const body = await req.json().catch(() => ({}));
+
+// ❌ BAD: No catch (throws on malformed JSON)
+const body = await req.json();
+```
+
+**Impact**: Malformed JSON causes 500 error instead of 400 Bad Request.
+
+**Distribution**:
+- ~40 routes: Use `.catch(() => ({}))` ✅
+- ~30 routes: Raw `await req.json()` ⚠️
+
+**Recommended Fix**: Standardize on Zod parse pattern or `.catch()` fallback.
+
+---
+
+#### CQP-006: Missing Arabic Translations `[AR]` (200+ occurrences)
+**Priority**: 🟧 HIGH | **Category**: i18n/UX
+
+**Problem**: Arabic translation file contains 200+ placeholder strings like `"[AR] Full Name"`.
+
+**Distribution by Module**:
+| Module | Count |
+|--------|-------|
+| Careers | 35+ |
+| Admin | 80+ |
+| CMS | 15+ |
+| Notifications | 25+ |
+| Settings | 20+ |
+| Aqar | 15+ |
+| Misc | 10+ |
+
+**Sample Entries**:
+```json
+"fullNameRequired": "[AR] Full Name Required",
+"emailRequired": "[AR] Email Required",
+"approvalQueue": "[AR] Approval Queue",
+"title": "[AR] Admin Footer",
+```
+
+**Risk**: Arabic-speaking users see English placeholders, unprofessional UX.
+
+**Recommended Fix**: Professional Arabic translation for all `[AR] *` entries.
+
+---
+
+#### CQP-007: `parseInt` Without Radix (8 occurrences)
+**Priority**: 🟢 LOW | **Category**: Code Quality
+
+**Problem**: `parseInt()` called without explicit radix parameter.
+
+**Files Affected**:
+- `lib/ats/resume-parser.ts` (4 occurrences)
+- `app/souq/search/page.tsx` (1)
+- `app/api/fm/inspections/vendor-assignments/route.ts` (1)
+- `app/api/souq/claims/admin/review/route.ts` (2)
+
+**Example**:
+```typescript
+// ⚠️ Current
+const page = parseInt(searchParams.get("page") || "1");
+
+// ✅ Recommended
+const page = parseInt(searchParams.get("page") || "1", 10);
+```
+
+**Risk**: Leading zeros interpreted as octal in edge cases.
+
+**Recommended Fix**: Add `, 10` radix to all 8 occurrences.
+
+---
+
+#### CQP-008: Hardcoded Fallback Credentials (8 occurrences)
+**Priority**: 🟢 LOW | **Category**: Security/Config
+
+**Problem**: Test scripts have hardcoded password fallbacks.
+
+**Files Affected**:
+- `scripts/run-fixzit-superadmin-tests.sh:117` — `'Admin@123'`
+- `scripts/test-auth-direct.js:32` — `'Test@1234'`
+- Various documentation files (6 occurrences)
+
+**Risk**: Low (scripts only, not production code). Documentation shows examples.
+
+**Status**: Acceptable for test scripts. No action needed.
+
+---
+
+### 📈 SUMMARY METRICS
+
+| Metric | Value |
+|--------|-------|
+| **Total Patterns Searched** | 12 |
+| **Total Occurrences Found** | 400+ |
+| **Critical (Production Impact)** | 2 (`as any` in lib/) |
+| **High (User-Facing)** | 200+ (Arabic translations) |
+| **Medium (Reliability)** | 35+ (JSON handling + type safety) |
+| **Low (Code Quality)** | 150+ (void error + empty catch + radix) |
+
+### 🎯 RECOMMENDED PRIORITY ORDER
+
+1. **IMMEDIATE**: Fix 2 `as any` in production lib/ files
+2. **HIGH**: Complete Arabic translations (200+ entries)
+3. **MEDIUM**: Standardize `req.json()` error handling
+4. **LOW**: Address `void error;` pattern during feature work
+5. **OPTIONAL**: Clean up scripts/tests during maintenance
+
+---
+
+## 🔍 SESSION 2025-12-11T15:44 — CODEX QUICK DEEP DIVE (NEW FINDINGS)
+
+### Overview
+
+Fast sweep to cross-check previously marked "done" areas and surface any remaining gaps or regressions.
+
+---
+
+### 🟠 NEW FINDINGS (5 items)
+
+#### SYS-009: GraphQL resolvers are stub-only (non-functional when enabled)
+**Priority**: 🟠 MODERATE | **Effort**: 4-6 hours | **Category**: API/Backend
+
+**Problem**: GraphQL layer is marked complete in the report, but resolvers return placeholder data and the context is always unauthenticated.
+
+**Evidence**:
+```
+lib/graphql/index.ts:463-575 — Queries return static objects/null with TODOs
+lib/graphql/index.ts:592-704 — Mutations return NOT_IMPLEMENTED errors
+lib/graphql/index.ts:795-804 — Context sets isAuthenticated=false and empty roles
+```
+
+**Risk**: If `FEATURE_INTEGRATIONS_GRAPHQL_API=true`, the endpoint serves dummy data or rejects auth-required resolvers, contradicting "GraphQL complete" status.
+
+**Fix**: Implement DB-backed resolvers + auth extraction (session/token), or keep feature flag off until implemented. Add contract tests for each resolver.
+
+---
+
+#### SYS-010: parseInt without radix (8 occurrences across ATS/Souq)
+**Priority**: 🟢 LOW | **Effort**: 30 min | **Category**: Code Quality
+
+**Problem**: Eight `parseInt()` calls omit the radix, expanding SYS-003 beyond claims routes.
+
+**Evidence**:
+```
+lib/ats/resume-parser.ts:193,245,247,316
+app/souq/search/page.tsx:53
+app/api/fm/inspections/vendor-assignments/route.ts:87
+app/api/souq/claims/admin/review/route.ts:291-292
+```
+
+**Risk**: Inconsistent parsing (e.g., leading zeros) and deviates from standard codebase practice.
+
+**Fix**: Add explicit base 10 (`, 10`) to all occurrences for consistency and predictability.
+
+---
+
+#### SYS-011: Currency conversion is a stub (returns original amount)
+**Priority**: 🟡 MODERATE | **Effort**: 1 hour | **Category**: Finance
+
+**Problem**: `convertCurrency` logs a warning and returns the original amount for cross-currency conversions.
+
+**Evidence**:
+```
+lib/utils/currency-formatter.ts:290-312 — TODO + console.warn, no conversion applied
+```
+
+**Risk**: Any multi-currency flow will misprice amounts; contradicts FR-004 "multi-currency selector" being marked complete.
+
+**Fix**: Integrate exchange-rate source or explicitly gate to single-currency mode with validation and tests.
+
+---
+
+#### SYS-012: Translation audit script uses stale path (false 2332-key gap)
+**Priority**: 🟡 MODERATE | **Effort**: 1 hour | **Category**: i18n/Tooling
+
+**Problem**: `i18n-translation-report.txt` reports **0 locale files** under `i18n/locales/*` and flags **2332 missing keys**, even though dictionaries live in `i18n/generated/*.dictionary.json`.
+
+**Evidence**:
+```
+i18n-translation-report.txt:6-16 — "No locale files found ... loaded 0 keys"
+i18n-translation-report.txt:23 — "Missing EN translations: 2332"
+```
+
+**Risk**: CI/tooling noise hides real translation gaps and may block pipelines.
+
+**Fix**: Point the audit to `i18n/generated/en.dictionary.json` and `ar.dictionary.json` (or update sources path), regenerate the report, and delete stale artifacts.
+
+---
+
+#### SYS-013: Tenant config always returns defaults (multi-tenant gap)
+**Priority**: 🟠 MODERATE | **Effort**: 2 hours | **Category**: Multi-tenant
+
+**Problem**: `getTenantConfig` ignores org-level settings; TODO to fetch from DB is unimplemented.
+
+**Evidence**:
+```
+lib/config/tenant.ts:86-107 — Returns DEFAULT_TENANT_CONFIG for any orgId, caches it
+```
+
+**Risk**: Org-specific currency/timezone/branding cannot be applied when multi-tenant is enabled; seeds/env fallbacks mask the gap.
+
+**Fix**: Persist tenant configs per org, hydrate cache from DB, and add tests for currency/timezone/orgName overrides.
+
+---
+
+### Summary Table
+
+| ID | Issue | Priority | Effort | Category | Action |
+|----|-------|----------|--------|----------|--------|
+| SYS-009 | GraphQL resolvers stub-only / context unauthenticated | 🟠 MODERATE | 4-6 hrs | API/Backend | Implement or gate feature flag |
+| SYS-010 | parseInt missing radix (8 spots) | 🟢 LOW | 30 min | Code Quality | Add `, 10` to all calls |
+| SYS-011 | Currency conversion stub (no rate applied) | 🟡 MODERATE | 1 hr | Finance | Implement exchange rates or guard single-currency |
+| SYS-012 | Translation audit path stale (2332 false gaps) | 🟡 MODERATE | 1 hr | i18n/Tooling | Point audit to `i18n/generated` |
+| SYS-013 | Tenant config always defaults (no org fetch) | 🟠 MODERATE | 2 hrs | Multi-tenant | Load & cache per-org settings |
+
+**Total New Effort**: ~9-11 hours if all addressed.
 
 ---
 
