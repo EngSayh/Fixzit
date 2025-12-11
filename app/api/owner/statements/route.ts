@@ -1,18 +1,10 @@
 /**
- * Owner Portal API - Owner Statements
- *
- * GET /api/owner/statements
- * Generates comprehensive financial statements for owner
- * Similar to bank statements showing all income and expenses
- *
- * Query Parameters:
- * - period: "MTD" | "QTD" | "YTD" | "CUSTOM" (default: "MTD")
- * - startDate: ISO date string (required if period=CUSTOM)
- * - endDate: ISO date string (required if period=CUSTOM)
- * - propertyId: ObjectId (optional) - specific property filter
- * - format: "json" | "pdf" | "excel" (default: "json")
- *
- * Requires: BASIC subscription
+ * @fileoverview Owner Portal API - Owner Statements
+ * @description Generates comprehensive financial statements for property owners.
+ * Similar to bank statements showing all income and expenses with filtering.
+ * @route GET /api/owner/statements - Generate owner financial statement
+ * @access Protected - Requires BASIC subscription
+ * @module owner
  */
 
 import { NextRequest, NextResponse } from "next/server";

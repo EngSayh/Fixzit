@@ -1,7 +1,10 @@
 /**
- * Aqar Souq - Create Listing API
- *
- * POST /api/aqar/listings
+ * @fileoverview Aqar Souq - Create Listing API
+ * @description Creates property listings in the Aqar marketplace.
+ * Supports various listing types: sale, rent, daily rentals with proptech features.
+ * @route POST /api/aqar/listings - Create a new property listing
+ * @access Protected - Requires authenticated session
+ * @module aqar
  */
 
 import { NextRequest } from "next/server";

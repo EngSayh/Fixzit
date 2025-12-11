@@ -1,9 +1,10 @@
 /**
- * Aqar Souq - Listings Search API
- *
- * GET /api/aqar/listings/search
- *
- * Atlas Search with geo-spatial + full-text + facets
+ * @fileoverview Aqar Souq - Listings Search API
+ * @description Advanced property search using Atlas Search with geo-spatial,
+ * full-text, and faceted filtering capabilities.
+ * @route GET /api/aqar/listings/search - Search listings with filters
+ * @access Public - Rate limited (60 req/min)
+ * @module aqar
  */
 
 import { NextRequest, NextResponse } from "next/server";

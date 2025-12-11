@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Copilot Stream API Route
+ * @description Streams AI responses using Vercel AI SDK with real-time text generation, intent classification, and knowledge retrieval for interactive chat experiences.
+ * @route POST /api/copilot/stream - Stream AI responses via Server-Sent Events (SSE)
+ * @access Authenticated users (cookie or bearer token)
+ * @module copilot
+ */
+
 import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { z } from "zod";

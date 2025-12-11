@@ -1,17 +1,10 @@
 /**
- * Owner Portal API - ROI Reports
- *
- * GET /api/owner/reports/roi
- * Calculates ROI, NOI, and financial analytics for owner's portfolio
- *
- * Query Parameters:
- * - period: "3m" | "6m" | "9m" | "12m" | "ytd" | "custom" (default: "12m")
- * - startDate: ISO date string (required if period=custom)
- * - endDate: ISO date string (required if period=custom)
- * - propertyId: ObjectId (optional) - specific property or entire portfolio
- * - includeCapitalGains: boolean (default: false)
- *
- * Requires: PRO subscription + roiAnalytics feature
+ * @fileoverview Owner Portal API - ROI Reports
+ * @description Calculates ROI, NOI, and financial analytics for owner's portfolio.
+ * Provides investment performance metrics with customizable time periods.
+ * @route GET /api/owner/reports/roi - Generate ROI analytics
+ * @access Protected - Requires PRO subscription + roiAnalytics feature
+ * @module owner
  */
 
 import { NextRequest, NextResponse } from "next/server";

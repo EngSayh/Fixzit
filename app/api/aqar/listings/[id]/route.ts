@@ -1,9 +1,12 @@
 /**
- * Aqar Souq - Single Listing API
- *
- * GET /api/aqar/listings/[id] - Get listing details
- * PATCH /api/aqar/listings/[id] - Update listing
- * DELETE /api/aqar/listings/[id] - Delete listing
+ * @fileoverview Aqar Souq - Single Listing API
+ * @description CRUD operations for individual property listings.
+ * Supports retrieval, updates, and soft deletion with analytics tracking.
+ * @route GET /api/aqar/listings/[id] - Get listing details
+ * @route PATCH /api/aqar/listings/[id] - Update listing
+ * @route DELETE /api/aqar/listings/[id] - Delete listing
+ * @access Protected for mutations, Public for retrieval
+ * @module aqar
  */
 
 import { NextRequest, NextResponse } from "next/server";

@@ -1,3 +1,11 @@
+/**
+ * @fileoverview PayTabs Payment API
+ * @description Creates PayTabs payment pages for order payments.
+ * Builds PayTabs payload and returns payment URL with transaction reference.
+ * @route POST /api/payments/paytabs - Create PayTabs payment
+ * @access Public - Rate limited
+ * @module payments
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { z } from "zod";

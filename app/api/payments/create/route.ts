@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Payment Creation API
+ * @description Initiates payment transactions via PayTabs gateway for invoice payments.
+ * Generates secure checkout URLs with customer and billing details.
+ * @route POST /api/payments/create - Create payment page
+ * @access Protected - Requires authenticated session
+ * @module payments
+ */
 import { NextRequest } from "next/server";
 import { createPaymentPage } from "@/lib/paytabs";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";

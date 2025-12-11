@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Aqar Properties API
+ * @description Retrieves and filters property listings for the Aqar module.
+ * Supports city, district, type, beds, baths, area, price filters with sorting.
+ * @route GET /api/aqar/properties - List properties with filters
+ * @access Public - Rate limited
+ * @module aqar
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";

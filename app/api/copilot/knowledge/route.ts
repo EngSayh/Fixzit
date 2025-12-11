@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Copilot Knowledge API Route
+ * @description Handles upsert operations for knowledge documents used in AI retrieval-augmented generation (RAG), protected by webhook secret authentication.
+ * @route POST /api/copilot/knowledge - Upsert knowledge documents for copilot retrieval
+ * @access Internal/Webhook (requires COPILOT_WEBHOOK_SECRET header)
+ * @module copilot
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { upsertKnowledgeDocument } from "@/server/copilot/retrieval";

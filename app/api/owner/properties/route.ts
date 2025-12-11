@@ -1,14 +1,10 @@
 /**
- * Owner Portal API - Properties List
- *
- * GET /api/owner/properties
- * Returns all properties owned by the authenticated owner
- *
- * Query Parameters:
- * - includeFinancials: boolean (default: false) - Include financial summary
- * - includeUnits: boolean (default: true) - Include unit details
- *
- * Requires: BASIC subscription
+ * @fileoverview Owner Portal API - Properties List
+ * @description Returns all properties owned by the authenticated owner.
+ * Supports optional financial summaries and unit details inclusion.
+ * @route GET /api/owner/properties - List owner's properties
+ * @access Protected - Requires BASIC subscription
+ * @module owner
  */
 
 import { NextRequest, NextResponse } from "next/server";

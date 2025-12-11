@@ -1,22 +1,10 @@
 /**
- * Owner Portal API - Unit History
- *
- * GET /api/owner/units/[unitId]/history
- * Returns historical data for a specific unit including:
- * - Tenant history
- * - Maintenance history
- * - Inspection records (move-in/move-out)
- * - Revenue history
- * - Utility consumption
- *
- * Query Parameters:
- * - include: comma-separated list of data to include
- *   Options: tenants, maintenance, inspections, revenue, utilities
- *   Default: all
- * - startDate: ISO date string (optional) - filter from date
- * - endDate: ISO date string (optional) - filter to date
- *
- * Requires: BASIC subscription
+ * @fileoverview Owner Portal API - Unit History
+ * @description Returns historical data for a specific unit including tenant history,
+ * maintenance records, inspections, revenue, and utility consumption.
+ * @route GET /api/owner/units/[unitId]/history - Get unit historical data
+ * @access Protected - Requires BASIC subscription
+ * @module owner
  */
 
 import { NextRequest, NextResponse } from "next/server";

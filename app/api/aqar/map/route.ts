@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Aqar Souq - Map Clusters API
+ * @description Returns clustered property markers for map visualization.
+ * Uses grid-based clustering scaled to zoom level for performance.
+ * @route GET /api/aqar/map - Get map clusters within bounding box
+ * @access Public - Rate limited
+ * @module aqar
+ */
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
