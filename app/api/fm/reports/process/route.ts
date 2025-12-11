@@ -1,3 +1,11 @@
+/**
+ * @fileoverview FM Reports Process API
+ * @description Worker endpoint to claim and process queued report jobs atomically.
+ * Uses findOneAndUpdate for race-safe job claiming (up to 5 jobs per request).
+ * @route POST /api/fm/reports/process - Process queued report jobs
+ * @access Protected - Requires FM REPORTS/EXPORT permission
+ * @module fm/reports
+ */
 import { NextRequest, NextResponse } from "next/server";
 import type { ModifyResult, WithId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";

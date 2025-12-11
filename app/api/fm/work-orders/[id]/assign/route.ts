@@ -1,23 +1,21 @@
 /**
- * Work Order Assignment API
- * 
- * Assigns or reassigns work orders to technicians or vendors.
+ * @fileoverview Work Order Assignment API
+ * @description Assigns or reassigns work orders to technicians or vendors.
  * Triggers notifications and updates the work order timeline.
- * 
+ *
+ * @route POST /api/fm/work-orders/[id]/assign - Assign work order
  * @module api/fm/work-orders/[id]/assign
  * @requires Authentication - Valid session with orgId
  * @requires Authorization - ASSIGN permission on work orders
- * 
+ *
  * Assignment Types:
  * - Technician: Internal staff assignment
  * - Vendor: External contractor assignment
- * 
+ *
  * Side Effects:
  * - Creates timeline entry for assignment
  * - Sends notification to assignee
  * - Updates work order status if configured
- * 
- * @example POST /api/fm/work-orders/[id]/assign { assigneeId: "user_123", type: "technician" }
  */
 import { NextRequest, NextResponse } from "next/server";
 import { ModifyResult, ObjectId } from "mongodb";

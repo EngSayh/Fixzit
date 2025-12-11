@@ -1,20 +1,18 @@
 /**
- * Work Order Comments API
- * 
- * Manages comments and internal notes on work orders.
+ * @fileoverview Work Order Comments API
+ * @description Manages comments and internal notes on work orders.
  * Supports both public comments (visible to all stakeholders) and
  * internal notes (visible only to staff).
- * 
+ *
+ * @route GET /api/fm/work-orders/[id]/comments - List comments
+ * @route POST /api/fm/work-orders/[id]/comments - Add comment
  * @module api/fm/work-orders/[id]/comments
  * @requires Authentication - Valid session required
  * @requires Authorization - VIEW permission for GET, EDIT for POST
- * 
+ *
  * Rate Limits:
  * - Comments per work order: 100 max
  * - Timeline entries per work order: 200 max
- * 
- * @example GET /api/fm/work-orders/[id]/comments
- * @example POST /api/fm/work-orders/[id]/comments
  */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";

@@ -1,3 +1,12 @@
+/**
+ * @fileoverview FM Inspections Vendor Assignments API
+ * @description Manages vendor assignments for property inspections.
+ * Supports scheduling, status tracking, and assignment lifecycle.
+ * @route GET /api/fm/inspections/vendor-assignments - List vendor assignments
+ * @route POST /api/fm/inspections/vendor-assignments - Create an assignment
+ * @access Protected - Requires authenticated session
+ * @module fm/inspections
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";

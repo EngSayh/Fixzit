@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Work Order Checklist Toggle API Route
+ * @description Toggle completion status of individual checklist items.
+ * Used by technicians to mark tasks as done during work execution.
+ * @route POST /api/work-orders/[id]/checklists/toggle - Toggle checklist item
+ * @access Protected - Requires authenticated session
+ * @module work-orders
+ */
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";

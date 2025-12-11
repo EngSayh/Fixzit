@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Work Orders Export API Route
+ * @description Exports work orders to CSV format for reporting and data analysis.
+ * Includes key fields: WO number, title, status, priority, assignment, SLA info.
+ * @route GET /api/work-orders/export - Export work orders as CSV file
+ * @access Protected - Requires EXPORT ability on work orders
+ * @module work-orders
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";

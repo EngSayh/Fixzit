@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Work Order Assignment API Route
+ * @description Assigns work orders to technicians or vendors. Updates assignment
+ * fields and automatically transitions SUBMITTED orders to ASSIGNED status.
+ * @route POST /api/work-orders/[id]/assign - Assign work order to user/vendor
+ * @access Protected - Requires ASSIGN ability on work orders
+ * @module work-orders
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";

@@ -1,8 +1,11 @@
 /**
- * FM Work Orders API - GET /api/fm/work-orders
- *
- * List all work orders with filtering, pagination, and search
- * Enforces tenant isolation via authenticated org context
+ * @fileoverview FM Work Orders API - Main Route
+ * @description List and create FM work orders with filtering, pagination, and search.
+ * Enforces tenant isolation via authenticated org context and RBAC permissions.
+ * @route GET /api/fm/work-orders - List work orders with filtering
+ * @route POST /api/fm/work-orders - Create a new work order
+ * @access Protected - Requires VIEW or CREATE ability
+ * @module fm/work-orders
  */
 
 import { NextRequest, NextResponse } from "next/server";

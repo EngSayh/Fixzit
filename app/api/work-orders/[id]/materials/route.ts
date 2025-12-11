@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Work Order Materials API Route
+ * @description Manage materials/parts used in work orders for cost tracking.
+ * Adds materials with pricing, updates cost summary with labor and material totals.
+ * @route POST /api/work-orders/[id]/materials - Add a material item to work order
+ * @access Protected - Requires EDIT ability on work orders
+ * @module work-orders
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";

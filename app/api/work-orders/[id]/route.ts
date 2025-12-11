@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Work Order Individual API Route
+ * @description CRUD operations for a single work order by ID. Supports retrieval,
+ * updates with SLA recalculation, and soft deletion with attachment cleanup.
+ * @route GET /api/work-orders/[id] - Retrieve work order details
+ * @route PUT /api/work-orders/[id] - Update work order fields
+ * @route DELETE /api/work-orders/[id] - Soft delete work order
+ * @access Protected - Requires VIEW, EDIT, or DELETE ability
+ * @module work-orders
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";

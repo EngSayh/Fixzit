@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Work Order Comments API Route
+ * @description Manage comments/notes on work orders for communication tracking.
+ * Supports viewing comment history and adding new comments with user attribution.
+ * @route GET /api/work-orders/[id]/comments - List all comments on a work order
+ * @route POST /api/work-orders/[id]/comments - Add a comment to a work order
+ * @access Protected - Requires authenticated session
+ * @module work-orders
+ */
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";

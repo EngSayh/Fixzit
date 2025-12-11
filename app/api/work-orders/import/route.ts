@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Work Orders Bulk Import API Route
+ * @description Bulk import work orders from JSON payload. Validates each row,
+ * creates work orders with auto-generated codes, and reports import results.
+ * @route POST /api/work-orders/import - Import up to 100 work orders at once
+ * @access Protected - Requires EDIT ability on work orders
+ * @module work-orders
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
