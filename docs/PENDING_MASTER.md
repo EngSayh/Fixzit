@@ -1,17 +1,166 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T15:26:57+03:00  
-**Version**: 13.39  
+**Last Updated**: 2025-12-11T15:29:52+03:00  
+**Version**: 14.0  
 **Branch**: feat/frontend-dashboards  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok, TAP Payments ok)  
-**Total Pending Items**: 0 remaining — ✅ ALL COMPLETE  
+**Total Pending Items**: 12 items (1 Major Feature + 9 Code TODOs + 2 Enhancements)  
 **Completed Items**: 310+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented)  
 **Test Status**: ✅ Vitest full suite previously (2,468 tests) + latest `pnpm test:models` rerun (6 files, 91 tests) | 🚧 Playwright e2e timed out after ~15m during `pnpm test` (dev server stopped post-run; env gaps documented in E2E_TESTING_QUICK_START.md)  
-**Consolidation Check**: 2025-12-11T15:26:57+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T15:29:52+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
 
 ---
 
-## 📋 BACKLOG: IMPROVEMENTS, TESTS & NEXT ACTIONS
+## 📋 CONSOLIDATED PENDING ITEMS — ACTION PLAN BY CATEGORY
+
+### 🔴 MAJOR FEATURE (1 item)
+
+#### FEAT-001: Finance Pack Integration (Double-Entry Accounting)
+**Priority**: HIGH | **Effort**: 3-4 hours | **Status**: NOT YET STARTED
+
+Full double-entry accounting system with Saudi market compliance, multi-currency, escrow management.
+
+| Component | Current State | Required |
+|-----------|---------------|----------|
+| Chart of Accounts | ❌ Not created | `server/models/finance/ChartAccount.ts` |
+| Journal Entries | ❌ Not created | `server/models/finance/Journal.ts` |
+| Ledger Entries | ❌ Not created | `server/models/finance/LedgerEntry.ts` |
+| Escrow Management | ❌ Not created | `server/models/finance/EscrowAccount.ts` |
+| Payment Recording | ❌ Not created | `server/models/finance/Payment.ts` |
+| Expense Tracking | ❌ Not created | `server/models/finance/Expense.ts` |
+| Posting Service | ❌ Not created | `server/finance/posting.service.ts` |
+| Reporting Service | ❌ Not created | `server/finance/reporting.service.ts` |
+| Aqar Integration | Basic invoices | Rent invoicing, owner payouts |
+| Marketplace Integration | Basic orders | Order settlement, commissions |
+
+**Documentation**: Full spec in `docs/FINANCE_PACK_INTEGRATION_TODO.md` (550 lines)
+
+---
+
+### 🟡 CODE TODOs (9 items)
+
+#### Type-Safety Debt (5 items) — LOW PRIORITY
+
+| ID | File | Line | Issue | Fix |
+|----|------|------|-------|-----|
+| TODO-001 | `models/project.model.ts` | 522 | `setStatus` static cast to unknown | Define `ProjectModel` statics interface |
+| TODO-002 | `models/project.model.ts` | 542 | `recomputeBudget` static cast | Same as above |
+| TODO-003 | `models/aqarBooking.model.ts` | 435 | `isAvailable` casts `this` | Define `BookingModel` static interface |
+| TODO-004 | `models/aqarBooking.model.ts` | 453 | `createWithAvailability` casts | Same as above |
+| TODO-005 | `models/aqarBooking.model.ts` | 523 | Model export cast | Apply `BookingModel` type properly |
+
+**Suggested Fix**: Create `types/mongoose-statics.d.ts` with reusable static interfaces.
+
+#### Feature Enhancement (1 item) — LOW PRIORITY
+
+| ID | File | Line | Issue | Effort |
+|----|------|------|-------|--------|
+| TODO-006 | `src/lib/aqar/recommendation.ts` | 103 | User personalization for Aqar recommendations | 2-3 days |
+
+**Details**: Currently recommendations based only on property attributes. Enhancement would add:
+- Viewing history influence
+- Favorites weighting
+- Search pattern personalization
+- A/B testing framework
+- Target: +10% CTR uplift
+
+#### Configuration TODO (1 item) — LOW PRIORITY
+
+| ID | File | Line | Issue | Fix |
+|----|------|------|-------|-----|
+| TODO-007 | `models/aqarBoost.model.ts` | 10 | Boost pricing hardcoded | Add org-level configurable pricing from settings |
+
+#### Documentation Notes (2 items) — INFORMATIONAL
+
+| ID | File | Line | Note |
+|----|------|------|------|
+| TODO-008 | `components/SystemVerifier.tsx` | 32 | Documentation note about dynamic API integration |
+| TODO-009 | `app/api/admin/users/route.ts` | 180 | Historical note on removed plaintext passwords |
+
+---
+
+### 🟢 LOW PRIORITY ENHANCEMENTS (8 items NOT IMPLEMENTED)
+
+From LOW PRIORITY Enhancement Categories verification (session 2025-12-11T15:23):
+
+| ID | Category | Enhancement | Status |
+|----|----------|-------------|--------|
+| ENH-LP-001 | Security | IP reputation scoring for rate limiting | ❌ Not Done |
+| ENH-LP-002 | Performance | Bundle budget historical trend tracking | ❌ Not Done |
+| ENH-LP-003 | i18n | Playwright RTL visual regression tests | ❌ Not Done |
+| ENH-LP-004 | i18n | ICU MessageFormat pluralization | ❌ Not Done |
+| ENH-LP-005 | DevEx | Storybook component documentation | ❌ Not Done |
+| ENH-LP-006 | DevEx | Interactive Swagger UI | ❌ Not Done |
+| ENH-LP-007 | Observability | Sentry custom contexts for FM/Souq | ❌ Not Done |
+| ENH-LP-008 | Observability | Structured JSON logging | ❌ Not Done |
+
+---
+
+### ⚠️ PARTIAL IMPLEMENTATIONS (5 items)
+
+| ID | Category | Item | Current State |
+|----|----------|------|---------------|
+| PARTIAL-001 | Testing | TAP E2E tests | Unit tests exist, no full E2E flow |
+| PARTIAL-002 | Security | Secret rotation docs | In PII_ENCRYPTION_REPORT, not RUNBOOK |
+| PARTIAL-003 | Performance | Heap monitoring | Shell scripts exist, no app-level integration |
+| PARTIAL-004 | Observability | OpenTelemetry | `@sentry/opentelemetry` installed, not fully integrated |
+| PARTIAL-005 | Observability | Grafana/Datadog | Env vars defined, no dashboard configs |
+
+---
+
+### ✅ COMPLETED CATEGORIES (All items verified)
+
+| Category | Count | Status |
+|----------|-------|--------|
+| Critical Issues | 0 | ✅ All resolved |
+| High Priority | 0 | ✅ Batch 14 complete |
+| Code Quality | 0 | ✅ Verified acceptable |
+| Testing Gaps | 0 | ✅ 2,468 tests + 1,841 lines RBAC |
+| Security | 0 | ✅ 81.9% explicit + middleware |
+| Documentation | 0 | ✅ OpenAPI 352 routes (100%) |
+| Code Hygiene | 0 | ✅ All clean |
+| UI/UX | 0 | ✅ WCAG AA compliant |
+| Infrastructure | 0 | ✅ All integrations done |
+| Accessibility | 0 | ✅ 280 ARIA attrs |
+| User Actions | 0 | ✅ TAP keys configured |
+| Feature Requests | 0 | ✅ FR-001..004 live |
+| Process/CI | 0 | ✅ PROC-001..007 implemented |
+
+---
+
+## 📊 SUMMARY BY PRIORITY
+
+| Priority | Category | Items | Action Required |
+|----------|----------|-------|-----------------|
+| 🔴 HIGH | Major Feature | 1 | Finance Pack implementation (3-4 hrs) |
+| 🟡 MEDIUM | Type-Safety | 5 | Define Mongoose static interfaces |
+| 🟡 MEDIUM | Feature | 1 | Aqar recommendation personalization |
+| 🟢 LOW | Config | 1 | Boost pricing configurability |
+| 🟢 LOW | Enhancements | 8 | Future sprints |
+| ⚪ INFO | Documentation | 2 | No action (historical notes) |
+| **TOTAL** | | **18** | **7 actionable, 11 backlog** |
+
+---
+
+## 🎯 RECOMMENDED ACTION PLAN
+
+### Immediate (This Sprint)
+1. **FEAT-001**: Finance Pack Integration (HIGH priority, 3-4 hours)
+   - Create models: ChartAccount, Journal, LedgerEntry, Escrow, Payment, Expense
+   - Create services: posting.service.ts, reporting.service.ts
+   - Wire Aqar rent invoicing and Marketplace settlement
+
+### Next Sprint
+2. **TODO-001..005**: Type-safety cleanup (LOW priority, 1-2 hours)
+   - Create `types/mongoose-statics.d.ts`
+   - Apply proper static interfaces to models
+
+### Backlog (Future Sprints)
+3. **TODO-006**: Aqar personalization (2-3 days)
+4. **TODO-007**: Boost pricing config (30 min)
+5. **ENH-LP-001..008**: Low priority enhancements (as capacity allows)
+
+---
 
 ### ✅ MODERATE PRIORITY - 2 Items COMPLETED
 
@@ -184,6 +333,42 @@ pnpm build
 3. **Deploy to preview** - Test TAP integration in Vercel preview environment
 4. **Update archived docs** - Clean up legacy env var references (optional, low priority)
 5. **Add TAP E2E tests** - Payment flow with mock API (enhancement)
+
+---
+
+## ✅ SESSION 2025-12-11T15:29 - COMPREHENSIVE PENDING REPORT CONSOLIDATION
+
+### Consolidated All Pending Reports Into Single Source of Truth
+
+Scanned all pending reports across repository and consolidated into PENDING_MASTER.md v14.0.
+
+#### Reports Consolidated
+
+| Report | Location | Items Found | Status |
+|--------|----------|-------------|--------|
+| PENDING_MASTER.md | `docs/` | 310+ completed | ✅ Primary source |
+| FINANCE_PACK_INTEGRATION_TODO.md | `docs/` | 1 major feature | 📥 Consolidated |
+| TODO_FEATURES.md | `docs/guides/` | 9 TODOs | 📥 Consolidated |
+| 2025-12-10_CONSOLIDATED_PENDING.md | `docs/archived/pending-history/` | All resolved | ✅ Archived |
+| PENDING_WORK_INVENTORY.md | `docs/archived/reports/` | Old items | ✅ Superseded |
+
+#### New Pending Item Categories
+
+| Priority | Category | Count | Source |
+|----------|----------|-------|--------|
+| 🔴 HIGH | Major Feature (Finance Pack) | 1 | `FINANCE_PACK_INTEGRATION_TODO.md` |
+| 🟡 MEDIUM | Type-Safety Debt | 5 | `TODO_FEATURES.md` |
+| 🟡 MEDIUM | Feature Enhancement | 1 | `TODO_FEATURES.md` |
+| 🟢 LOW | Configuration TODO | 1 | `TODO_FEATURES.md` |
+| 🟢 LOW | Enhancement Backlog | 8 | Previous session verification |
+| ⚪ INFO | Documentation Notes | 2 | `TODO_FEATURES.md` |
+
+#### Summary
+
+- **Total Pending**: 18 items (7 actionable, 11 backlog)
+- **Completed**: 310+ items
+- **Version**: 14.0
+- **Single Source**: All reports now reference PENDING_MASTER.md
 
 ---
 
