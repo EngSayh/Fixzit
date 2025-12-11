@@ -333,8 +333,6 @@ describe("Webhook Delivery", () => {
         text: async () => "Error",
       });
 
-      const startTime = Date.now();
-
       // Don't await, just start the promise
       const deliveryPromise = deliverWebhook({
         url: "https://example.com/webhook",

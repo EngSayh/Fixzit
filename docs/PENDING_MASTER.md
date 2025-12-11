@@ -1,13 +1,37 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T15:29:52+03:00  
-**Version**: 14.0  
+**Last Updated**: 2025-12-11T15:32:36+03:00  
+**Version**: 14.1  
 **Branch**: feat/frontend-dashboards  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok, TAP Payments ok)  
 **Total Pending Items**: 12 items (1 Major Feature + 9 Code TODOs + 2 Enhancements)  
-**Completed Items**: 310+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented)  
+**Completed Items**: 315+ tasks completed (All batches 1-14 + OpenAPI 100% + LOW PRIORITY + PROCESS/CI + ChatGPT Bundle + FR-001..004 + BUG-031..035 + PROC-001..007 + UA-001 TAP Payment + LOW-003..008 Enhancement Verification + MOD-001 Doc Cleanup + MOD-002 E2E Gaps Documented + PR#520 Review Fixes)  
 **Test Status**: ✅ Vitest full suite previously (2,468 tests) + latest `pnpm test:models` rerun (6 files, 91 tests) | 🚧 Playwright e2e timed out after ~15m during `pnpm test` (dev server stopped post-run; env gaps documented in E2E_TESTING_QUICK_START.md)  
-**Consolidation Check**: 2025-12-11T15:29:52+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T15:32:36+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+
+---
+
+## ✅ SESSION 2025-12-11T15:32 — PR#520 AGENT REVIEW FIXES
+
+### Issues Fixed from PR#520 Reviews (Gemini, CodeRabbit, Copilot)
+
+| ID | Issue | Reviewer | Fix Applied | Status |
+|----|-------|----------|-------------|--------|
+| **SEC-001** | RBAC audit missing `requireFmAbility` pattern | @gemini-code-assist | Added to `AUTH_PATTERNS` in `scripts/rbac-audit.mjs` | ✅ Fixed |
+| **SEC-002** | RBAC audit `auth()` pattern too strict | @coderabbitai | Changed to `auth(` to match `auth({ role: ... })` | ✅ Fixed |
+| **SEC-003** | RBAC audit silent CI failures | @coderabbitai | Added explicit `process.exit(1)` on error catch | ✅ Fixed |
+| **YAML-001** | OpenAPI stubs unquoted tags with spaces | @coderabbitai | Added quote escaping in `generatePathStub()` | ✅ Fixed |
+| **YAML-002** | OpenAPI sed greedy on dynamic segments | @coderabbitai | Fixed sed to use `[^]]+` instead of `.*` | ✅ Fixed |
+| **YAML-003** | OpenAPI misses `export const GET` handlers | @coderabbitai | Extended grep to match both function and const exports | ✅ Fixed |
+| **TEST-001** | Unused imports in vendor-onboarding.test.ts | @copilot | Removed `vi, beforeEach` from imports | ✅ Fixed |
+| **TEST-002** | Unused `startTime` variable in webhook test | @copilot | Removed unused variable declaration | ✅ Fixed |
+
+### Files Modified
+
+- `scripts/rbac-audit.mjs` — Added `requireFmAbility`, fixed `auth(` pattern, fixed error exit code
+- `scripts/generate-openapi-stubs.ts` — Fixed YAML quoting, sed patterns, method detection
+- `tests/unit/e2e-flows/vendor-onboarding.test.ts` — Removed unused imports
+- `tests/unit/webhooks/webhook-delivery.test.ts` — Removed unused variable
 
 ---
 

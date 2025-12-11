@@ -62,10 +62,11 @@ const INTENTIONALLY_PUBLIC = [
 const AUTH_PATTERNS = [
   'getSessionUser',
   'withAuthRbac',
-  'auth()',
+  'auth(',             // Matches auth() and auth({ role: ... })
   'getServerSession',
   'requireAuth',
   'requireRole',
+  'requireFmAbility',  // FM module authorization
   'validateApiKey',
   'verifySignature',
 ];
@@ -196,4 +197,7 @@ async function main() {
   process.exit(results.unprotected.length > 0 ? 1 : 0);
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

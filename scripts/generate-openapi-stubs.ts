@@ -90,10 +90,13 @@ function generatePathStub(route: string, methods: string[]): string {
   for (const method of methods) {
     const methodLower = method.toLowerCase();
     const summary = getDescription(method, route);
+    // Escape quotes in summary and tag for valid YAML
+    const summaryYaml = summary.replace(/"/g, '\\"');
+    const tagYaml = tag.replace(/"/g, '\\"');
     
     yaml += `    ${methodLower}:\n`;
-    yaml += `      summary: ${summary}\n`;
-    yaml += `      tags: [${tag}]\n`;
+    yaml += `      summary: "${summaryYaml}"\n`;
+    yaml += `      tags: ["${tagYaml}"]\n`;
     yaml += `      security:\n`;
     yaml += `        - bearerAuth: []\n`;
     
@@ -154,8 +157,8 @@ async function main() {
   // Get all routes with methods
   const routesOutput = execSync(
     `find app/api -name "route.ts" | while read file; do
-      route=$(echo "$file" | sed 's|app/api||' | sed 's|/route.ts||' | sed 's|\\[id\\]|{id}|g' | sed 's|\\[.*\\]|{param}|g')
-      methods=$(grep -oE "^export (async )?function (GET|POST|PUT|PATCH|DELETE)" "$file" 2>/dev/null | grep -oE "(GET|POST|PUT|PATCH|DELETE)" | tr '\\n' ',' | sed 's/,$//')
+      route=$(echo "$file" | sed 's|app/api||' | sed 's|/route.ts||' | sed 's|\\[id\\]|{id}|g' | sed -E 's|\\[[^]]+\\]|{param}|g')
+      methods=$(grep -oE "^export (async )?function (GET|POST|PUT|PATCH|DELETE)|^export const (GET|POST|PUT|PATCH|DELETE)" "$file" 2>/dev/null | grep -oE "(GET|POST|PUT|PATCH|DELETE)" | tr '\\n' ',' | sed 's/,$//')
       if [ -n "$methods" ]; then
         echo "$route|$methods"
       fi

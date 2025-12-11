@@ -4,7 +4,7 @@
  * TG-005: Vendor onboarding E2E tests
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 /**
  * Vendor Onboarding State Machine
