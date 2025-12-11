@@ -1,13 +1,73 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T20:00:00+03:00  
-**Version**: 13.19  
+**Last Updated**: 2025-12-11T13:06:25+03:00  
+**Version**: 13.20  
 **Branch**: feat/batch-13-completion  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok)  
 **Total Pending Items**: 10 remaining (0 Critical, 0 High, 0 Moderate Engineering, 1 User Action, 4 Feature Requests, 1 Nice-to-Have, 4 Process/CI backlog)  
 **Completed Items**: 262+ tasks completed (All batches 1-14 completed + OpenAPI full documentation + LOW PRIORITY verification)  
 **Test Status**: ✅ Vitest 2,468 tests (247 files) | 🚧 Playwright auth URL alignment landed; full suite rerun pending (prior 230 env 401s)  
-**Consolidation Check**: 2025-12-11T20:00:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Consolidation Check**: 2025-12-11T13:06:25+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+
+---
+
+## 📋 ACTION PLAN BY CATEGORY (2025-12-11)
+
+### 🔴 CRITICAL (0 items) — ✅ ALL COMPLETE
+No critical items remaining.
+
+### 🟠 HIGH PRIORITY (0 items) — ✅ ALL COMPLETE
+No high priority items remaining.
+
+### 🟡 MODERATE - USER ACTIONS REQUIRED (1 item)
+
+| # | ID | Task | Owner | Action Required | Status |
+|---|-----|------|-------|-----------------|--------|
+| 1 | **UA-001** | Payment Gateway Config | User | Set `TAP_SECRET_KEY`, `TAP_PUBLIC_KEY` in Vercel for payments | 🔲 Pending |
+
+### 🔵 FEATURE REQUESTS - BACKLOG (4 items)
+
+Backend infrastructure complete for all. Only frontend UI dashboards needed.
+
+| # | ID | Feature | Backend Implementation | Priority |
+|---|-----|---------|----------------------|----------|
+| 1 | **FR-001** | Rate Limiting Dashboard | `lib/middleware/rate-limit.ts` (68+ lines) | Low |
+| 2 | **FR-002** | Feature Flag Dashboard | `lib/feature-flags.ts` (587 lines, 25+ flags) | Low |
+| 3 | **FR-003** | Audit Log Viewer | `server/models/AuditLog.ts` (315 lines, 20 action types) | Low |
+| 4 | **FR-004** | Multi-Currency Selector | `lib/utils/currency-formatter.ts` (356 lines, 10 currencies) | Low |
+
+### 🟢 NICE-TO-HAVE - LOW PRIORITY (1 item)
+
+| # | ID | Task | Description | Priority |
+|---|-----|------|-------------|----------|
+| 1 | **PF-033** | Bundle Budget CI Script | Add `checkBundleBudget.mjs` for CI guardrails (gzip thresholds) | Low |
+
+### ⚙️ PROCESS/CI BACKLOG (4 items)
+
+| # | ID | Area | Current State | Next Step |
+|---|-----|------|---------------|-----------|
+| 1 | **PROC-001** | Bundle Budget Gate | No CI gate for bundle size | Create `checkBundleBudget.mjs` script |
+| 2 | **PROC-005** | Local Security Audit | `.husky/pre-commit` lacks `pnpm audit` | Add audit to pre-commit hooks |
+| 3 | **PROC-006** | Alert Thresholds | Health endpoints exist, no pager alerts | Define proactive alert thresholds |
+| 4 | **PROC-007** | Release Gate | Single-click deploy, no staging promotion documented | Document staging→prod workflow |
+
+---
+
+## ✅ COMPLETED CATEGORIES SUMMARY
+
+| Category | Status | Details |
+|----------|--------|---------|
+| **Critical Issues** | ✅ 0 remaining | All resolved |
+| **High Priority** | ✅ 0 remaining | Batch 14 complete |
+| **Code Quality** | ✅ 0 remaining | All patterns verified |
+| **Testing Gaps** | ✅ 0 remaining | 1,841+ lines RBAC tests, 2,468 Vitest tests |
+| **Security** | ✅ 0 remaining | 81.9% explicit + middleware protection |
+| **Performance** | ✅ 0 remaining | Bundle optimization verified |
+| **Documentation** | ✅ 0 remaining | README, API docs (352 routes), ADRs |
+| **Code Hygiene** | ✅ 0 remaining | All verified clean |
+| **UI/UX** | ✅ 0 remaining | WCAG AA compliant |
+| **Infrastructure** | ✅ 0 remaining | All integrations implemented |
+| **Accessibility** | ✅ 0 remaining | 280 ARIA attrs, 11+ keyboard handlers |
 
 ---
 
@@ -2022,7 +2082,8 @@ No critical blockers remaining. Production is fully operational.
 **Next Update**: After user sets Tap payment secrets or next development session
 
 **Report History**:
-- v13.19 (2025-12-11T20:00+03) - **CURRENT** - Timestamp update. Single source of truth maintained. 10 pending items: 1 user action (TAP keys), 4 feature requests (UI dashboards), 1 nice-to-have (PF-033), 4 process/CI backlog.
+- v13.20 (2025-12-11T13:06+03) - **CURRENT** - Added ACTION PLAN BY CATEGORY section for easy task visibility. 10 pending items organized by priority. Single source of truth.
+- v13.19 (2025-12-11T20:00+03) - Timestamp update. Single source of truth maintained. 10 pending items: 1 user action (TAP keys), 4 feature requests (UI dashboards), 1 nice-to-have (PF-033), 4 process/CI backlog.
 - v13.18 (2025-12-11T12:50+03) - Pending report verification complete. BUG-031..035 validated (4 fixed, 1 acceptable). PROC-001..007 documented (4 backlog, 3 partial/done).
 - v13.17 (2025-12-11T12:43+03) - LOW PRIORITY enhancements verification complete. 6 of 12 items already implemented (ENH-002, ENH-006-009, ENH-012). Only 5 truly pending as nice-to-have.
 - v13.16 (2025-12-11T19:45+03) - Feature requests verification complete. All 4 FR items have backend fully implemented, only UI dashboards needed.
