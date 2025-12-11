@@ -1,5 +1,26 @@
 # 🚀 E2E Testing Quick Start Guide
 
+## ⚠️ Known Environment Gaps (December 2025)
+
+Before running E2E tests, be aware of these known issues:
+
+| Issue | Impact | Workaround |
+|-------|--------|------------|
+| **E2E tests timeout after ~15min** | Dev server mode unstable, may hang during parallel runs | Run with `--workers=1` or use `PW_USE_BUILD=true` for standalone server mode |
+| **Missing Redis in test env** | Rate limiting tests may fail/fallback to in-memory | Add `REDIS_URL` to `.env.test` or mock Redis in tests |
+| **`/api/help/articles` 404s** | Copilot spec stalls waiting for response | Ensure MongoDB is seeded with help articles or use offline mode |
+
+**Recommended E2E Command:**
+```bash
+# For stable local testing (single worker, build mode)
+PW_USE_BUILD=true npx playwright test --project=chromium --workers=1
+
+# For CI (uses standalone server after pnpm build)
+pnpm build && PW_USE_BUILD=true npx playwright test
+```
+
+---
+
 ## Ready to Test? Start Here! 👇
 
 ### 1. Start the Dev Server

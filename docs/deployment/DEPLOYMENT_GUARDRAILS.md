@@ -5,7 +5,7 @@ Use this checklist before production/preview deploys to avoid runtime failures a
 - Required secrets:
   - `NEXTAUTH_URL`, `NEXTAUTH_SECRET`
   - `MONGODB_URI`, `MONGODB_DB`
-  - `TAP_PUBLIC_KEY`, `TAP_WEBHOOK_SECRET`
+  - Tap Payments: `TAP_TEST_SECRET_KEY` or `TAP_LIVE_SECRET_KEY`, `NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY` or `NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY`, `TAP_WEBHOOK_SECRET`
   - Redis URL/creds (for budget/queue features)
 - Forbidden flags in prod:
   - `SKIP_ENV_VALIDATION=true`
@@ -19,3 +19,4 @@ Notes:
 - Local/dev can set skip flags, but production/preview must not.
 - Payment/webhook flows require TAP keys; without them, verification is disabled.
 - Redis is strongly recommended in production to avoid in-memory fallbacks.
+- **Note**: Old `TAP_PUBLIC_KEY` / `TAP_SECRET_KEY` are deprecated. Use environment-specific keys above.

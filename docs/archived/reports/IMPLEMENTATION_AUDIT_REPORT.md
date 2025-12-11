@@ -1,5 +1,7 @@
 # Implementation Audit Report
 
+> **⚠️ ARCHIVED DOCUMENT (2025-12):** This report contains historical references to deprecated environment variables (`TAP_SECRET_KEY`, `TAP_PUBLIC_KEY`). The current implementation uses `TAP_TEST_SECRET_KEY` / `TAP_LIVE_SECRET_KEY` and `NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY` / `NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY`. See `lib/tapConfig.ts` for current configuration.
+
 **Date**: November 15, 2025 (Last Verified: 2025-11-15 22:30 UTC)  
 **Branch**: `feat/souq-marketplace-advanced`  
 **Auditor**: GitHub Copilot (Claude Sonnet 4.5)
