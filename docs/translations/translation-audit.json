@@ -1,10 +1,10 @@
 {
   "stats": {
-    "files": 820,
-    "usedKeys": 2909,
+    "files": 821,
+    "usedKeys": 2912,
     "hasDynamic": true,
-    "enCount": 31179,
-    "arCount": 31179,
+    "enCount": 31190,
+    "arCount": 31190,
     "parityGap": 0
   },
   "missing": {
@@ -6560,6 +6560,9 @@
     "footer.help": [
       "Fixzit/components/Footer.tsx"
     ],
+    "footer.ticket_aria": [
+      "Fixzit/components/Footer.tsx"
+    ],
     "footer.ticket": [
       "Fixzit/components/Footer.tsx"
     ],
@@ -7114,6 +7117,9 @@
     ],
     "upgrade.guarantee": [
       "Fixzit/components/UpgradePrompt.tsx"
+    ],
+    "accessibility.skipToMainContent": [
+      "Fixzit/components/accessibility/SkipNavigation.tsx"
     ],
     "admin.notifications.errors.historyFetch": [
       "Fixzit/components/admin/AdminNotificationsTab.tsx"
@@ -8010,6 +8016,9 @@
     ],
     "login.passwordPlaceholder": [
       "Fixzit/components/auth/LoginForm.tsx"
+    ],
+    "brand.logoAlt": [
+      "Fixzit/components/auth/LoginHeader.tsx"
     ],
     "otp.errors.invalid": [
       "Fixzit/components/auth/OTPVerification.tsx"
@@ -8991,5 +9000,5 @@
       "Fixzit/components/ui/pagination.tsx"
     ]
   },
-  "timestamp": "2025-12-10T13:53:48.960Z"
+  "timestamp": "2025-12-11T09:02:58.517Z"
 }
