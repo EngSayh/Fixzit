@@ -12,6 +12,10 @@ on:
       - "docs/requirements/**"
       - "scripts/build-req-index.mjs"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

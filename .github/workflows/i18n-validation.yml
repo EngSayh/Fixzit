@@ -23,6 +23,10 @@ on:
       - 'scripts/**/*.ts'
   workflow_dispatch:
     inputs:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
       skip_parity_check:
         description: 'Skip parity check (for baseline updates)'
         required: false

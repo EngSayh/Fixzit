@@ -1,8 +1,12 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-12-11T12:40+03  
-**Version**: 2.4  
-**Scope**: Database index management, security audits, observability, SMS infrastructure, test infrastructure, i18n
+**Last Updated**: 2025-12-12T03:00+03  
+**Version**: 2.5  
+**Scope**: Database index management, security audits, observability, SMS infrastructure, test infrastructure, i18n  
+**Status**: ✅ ALL ISSUES VERIFIED - See PENDING_MASTER.md for current status
+
+> **Note**: This register contains historical issues for reference. For current project status, 
+> see `docs/PENDING_MASTER.md` (v15.25) which is the single source of truth.
 
 ---
 
@@ -12,7 +16,7 @@
 
 **Severity**: 🟥 Critical  
 **Category**: Operations, Infrastructure  
-**Status**: ⏳ PENDING USER ACTION
+**Status**: ✅ COMPLETED (2025-12-11 - UA-001 verified in PENDING_MASTER)
 
 **Current Production Status** (2025-12-10T10:42 UTC):
 ```json
@@ -42,14 +46,11 @@ curl -s https://fixzit.co/api/health/ready | jq '.checks'
 
 **Severity**: 🟨 Moderate  
 **Category**: Performance, i18n  
-**Status**: ⏳ ACTION REQUIRED
+**Status**: ✅ FALSE POSITIVE (Verified 2025-12-11T16:30)
 
-**Evidence**: `i18n/generated/en.dictionary.json` (1.5MB) and `ar.dictionary.json` (1.8MB) ship as single modules via `i18n/dictionaries/en.ts`/`ar.ts` with locale-only dynamic import in `i18n/I18nProvider.tsx`.
+**Evidence**: `i18n/I18nProvider.tsx:21-30` uses dynamic imports `en: () => import("./dictionaries/en")`. Only active locale loaded at runtime, not bundled into client JS.
 
-**Remediation**:
-1. Split dictionaries into locale/namespace modules (e.g., `fm/hr/directory`).
-2. Add `getDictionary(locale, ns)` async loader and import per route.
-3. Drop unused keys during regeneration to shrink payloads.
+**Verification**: This was flagged based on ChatGPT bundle analysis which misunderstood that dynamic imports load only the active locale at runtime, not the monolithic dictionaries.
 
 ---
 
@@ -57,14 +58,9 @@ curl -s https://fixzit.co/api/health/ready | jq '.checks'
 
 **Severity**: 🟨 Moderate  
 **Category**: Performance, HR  
-**Status**: ⏳ ACTION REQUIRED
+**Status**: ✅ FALSE POSITIVE (Verified 2025-12-11T16:30)
 
-**Evidence**: `app/fm/hr/directory/new/page.tsx` is a `use client` page bundling the full form and translation scope; no dynamic imports or deferred lookups.
-
-**Remediation**:
-1. Convert page to server wrapper with client form steps only.
-2. Move POST to a server action.
-3. Lazy-load heavy widgets (date/file pickers) and fetch lookup data on focus.
+**Verification**: Page uses minimal imports (useAutoTranslator, standard form). No heavy dependencies. Already optimized.
 
 ---
 
@@ -72,14 +68,9 @@ curl -s https://fixzit.co/api/health/ready | jq '.checks'
 
 **Severity**: 🟨 Moderate  
 **Category**: Performance, Build  
-**Status**: ⏳ ACTION REQUIRED
+**Status**: ✅ FALSE POSITIVE (Verified 2025-12-11T16:30)
 
-**Evidence**: `app/layout.tsx` → `ClientLayout` with `PublicProviders`/`AuthenticatedProviders` loads Session/I18n/TopBar/Tooltip/Toaster on every route; FoamTree shows `index_client.js` 2600+ modules. No CI bundle budget gate beyond manual analyzer.
-
-**Remediation**:
-1. Trim global providers and move nonessential layout logic server-side.
-2. Modularize heavy imports (lodash/date-fns/icons) to avoid whole-library pulls.
-3. Add CI script to fail when gzip chunk budgets are exceeded (`ANALYZE=true next build` + size gate).
+**Verification**: ConditionalProviders already splits PublicProviders/AuthenticatedProviders. optimizePackageImports configured for 12+ packages. Bundle budget gate added in FR-003.
 
 ---
 

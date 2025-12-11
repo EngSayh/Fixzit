@@ -59,6 +59,7 @@ const INTENTIONALLY_PUBLIC = [
   '/api/checkout/',               // Public checkout (creates auth during flow)
   '/api/billing/subscribe',       // Public subscription start
   '/api/billing/quote',           // Public quote generation
+  '/api/docs/openapi',            // Public OpenAPI spec documentation
 ];
 
 // Auth patterns to look for

@@ -22,21 +22,17 @@ on:
       skip_staging:
         description: 'Skip staging deployment (emergency only)'
         required: false
-        default: 'false'
+        default: false
         type: boolean
       skip_smoke_tests:
         description: 'Skip smoke tests'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
-
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
   # Stage 1: Build and validate
@@ -86,13 +82,17 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     needs: build
-    if: ${{ github.event.inputs.skip_staging != 'true' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || !fromJSON(inputs.skip_staging || 'false') }}
     runs-on: ubuntu-latest
     environment:
       name: staging
       url: ${{ steps.deploy.outputs.url }}
     outputs:
       staging_url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -106,15 +106,15 @@ jobs:
         run: pnpm add -g vercel
 
       - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
 
       - name: Build for Staging
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --token="$VERCEL_TOKEN"
 
       - name: Deploy to Staging
         id: deploy
         run: |
-          DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
           echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
           echo "✅ Deployed to staging: $DEPLOYMENT_URL"
 
@@ -122,7 +122,7 @@ jobs:
   smoke-tests:
     name: Smoke Tests (Staging)
     needs: deploy-staging
-    if: ${{ github.event.inputs.skip_smoke_tests != 'true' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || !fromJSON(inputs.skip_smoke_tests || 'false') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -196,6 +196,10 @@ jobs:
     environment:
       name: production
       url: https://fixzit.app
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -209,15 +213,15 @@ jobs:
         run: pnpm add -g vercel
 
       - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
       - name: Build for Production
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --prod --token="$VERCEL_TOKEN"
 
       - name: Deploy to Production
         id: deploy
         run: |
-          DEPLOYMENT_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
           echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
           echo "✅ Deployed to production: $DEPLOYMENT_URL"
 

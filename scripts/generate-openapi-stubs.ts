@@ -170,10 +170,15 @@ async function main() {
   console.log(`📊 Found ${routes.length} routes with handlers`);
   
   // Read existing OpenAPI to find documented routes
+  // Match paths that start with / at 2-space indent (OpenAPI paths format)
+  // Pattern: exactly 2 spaces, then /, then path segments until end of identifier
   const existingSpec = fs.readFileSync('openapi.yaml', 'utf8');
-  const documentedRoutes = new Set(
-    (existingSpec.match(/^\s{2}\/[^\s:]+/gm) || []).map(r => r.trim().replace(/:$/, ''))
-  );
+  const pathRegex = /^  (\/[a-zA-Z0-9\-_/{}]+):/gm;
+  const documentedRoutes = new Set<string>();
+  let match;
+  while ((match = pathRegex.exec(existingSpec)) !== null) {
+    documentedRoutes.add(match[1]);
+  }
   console.log(`📝 Currently documented: ${documentedRoutes.size} routes`);
   
   // Find undocumented routes
