@@ -1600,7 +1600,7 @@ No critical blockers remaining. Production is fully operational.
 | ~~TG-003~~ | ~~E2E for finance PII encryption~~ | Security validation | ✅ Verified - `tests/unit/finance/pii-protection.test.ts` (443 lines, 22+ tests) |
 | ~~TG-004~~ | ~~Integration tests for Souq flows~~ | Order lifecycle | ✅ Verified - 16 test files exist covering fulfillment, returns, orders, search, claims |
 | ~~TG-005~~ | ~~Marketplace vendor tests~~ | Vendor onboarding | ✅ Verified - `tests/unit/e2e-flows/vendor-onboarding.test.ts` (17 tests, all passing) |
-| TG-006 | Webhook delivery tests | Event delivery retry | 🔲 Not Started |
+| ~~TG-006~~ | ~~Webhook delivery tests~~ | Event delivery retry | ✅ COMPLETED 2025-12-11 - `tests/unit/webhooks/webhook-delivery.test.ts` (15 tests, all passing) |
 
 ---
 
@@ -1815,13 +1815,15 @@ No critical blockers remaining. Production is fully operational.
 31. ✅ **SEC-026**: GraphQL playground auth - Verified disabled in production (`NODE_ENV === 'development'`)
 32. ✅ **#28**: Database cleanup script - Verified `scripts/clear-database-keep-demo.ts` (286 lines)
 33. ✅ **#29**: Migration scripts - Verified multiple orgId normalization scripts ready for execution
+34. ✅ **TG-006**: Webhook delivery tests - Created `tests/unit/webhooks/webhook-delivery.test.ts` (15 tests, all passing)
 
 ---
 
 **Next Update**: After user sets Tap payment secrets or next development session
 
 **Report History**:
-- v13.10 (2025-12-11T16:45+03) - **CURRENT** - Updated timestamp, consolidated single source of truth. All archived reports in `docs/archived/pending-history/`. 4 items remain: 2 user actions (Tap secrets, E2E env), 2 feature requests (rate limit dashboard, feature flag dashboard).
+- v13.11 (2025-12-11T19:30+03) - **CURRENT** - TG-006 webhook delivery tests completed (15 tests). UX-005 color contrast already verified. #25/#27 are documented feature requests.
+- v13.10 (2025-12-11T16:45+03) - Updated timestamp, consolidated single source of truth. All archived reports in `docs/archived/pending-history/`. 4 items remain: 2 user actions (Tap secrets, E2E env), 2 feature requests (rate limit dashboard, feature flag dashboard).
 - v13.9 (2025-12-11T15:45+03) - Timestamp update, verified all pending consolidated
 - v13.8 (2025-12-12T15:30+03) - LOW PRIORITY backlog verified (items 21-29): TG-004 (dynamic i18n fixed), DOC-005 (Storybook guide exists), TG-005 (PII tests verified), PF-024 (Core Web Vitals ready), SEC-026 (GraphQL secure), #28 (cleanup script exists), #29 (migration scripts ready). 2 feature requests remain (#25, #27).
 - v13.3 (2025-12-12T00:15+03) - Infrastructure audit: ALL 7 items verified implemented (INF-001 to INF-007)
