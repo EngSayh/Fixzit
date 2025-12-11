@@ -41,9 +41,17 @@ export function validateStartup(): void {
     }
   }
 
-  const tapMissing = !process.env.TAP_WEBHOOK_SECRET;
+  // Tap: Check for environment-aware keys based on TAP_ENVIRONMENT
+  const tapEnvIsLive = process.env.TAP_ENVIRONMENT === "live" || process.env.NODE_ENV === "production";
+  const tapSecretKey = tapEnvIsLive 
+    ? process.env.TAP_LIVE_SECRET_KEY 
+    : process.env.TAP_TEST_SECRET_KEY;
+  const tapMissing = !tapSecretKey || !process.env.TAP_WEBHOOK_SECRET;
+  
   if (tapMissing) {
-    const msg = "Tap webhook secret missing (TAP_WEBHOOK_SECRET)";
+    const tapEnvType = tapEnvIsLive ? "live" : "test";
+    const keyName = tapEnvIsLive ? "TAP_LIVE_SECRET_KEY" : "TAP_TEST_SECRET_KEY";
+    const msg = `Tap configuration incomplete: ${keyName} and/or TAP_WEBHOOK_SECRET missing (TAP_ENVIRONMENT: ${tapEnvType})`;
     if (process.env.NODE_ENV === "production") {
       errors.push(msg);
     } else {

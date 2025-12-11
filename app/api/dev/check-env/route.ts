@@ -54,8 +54,14 @@ export async function GET() {
     PAYTABS_PROFILE_ID: !!process.env.PAYTABS_PROFILE_ID,
     PAYTABS_SERVER_KEY: !!process.env.PAYTABS_SERVER_KEY,
     PAYTABS_CLIENT_KEY: !!process.env.PAYTABS_CLIENT_KEY,
-    TAP_SECRET_KEY: !!process.env.TAP_SECRET_KEY,
-    TAP_PUBLIC_KEY: !!process.env.TAP_PUBLIC_KEY,
+    // Tap: Environment-aware keys
+    TAP_ENVIRONMENT: process.env.TAP_ENVIRONMENT || "test",
+    TAP_LIVE_SECRET_KEY: !!process.env.TAP_LIVE_SECRET_KEY,
+    TAP_TEST_SECRET_KEY: !!process.env.TAP_TEST_SECRET_KEY,
+    NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY: !!process.env.NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY,
+    NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY: !!process.env.NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY,
+    TAP_MERCHANT_ID: !!process.env.TAP_MERCHANT_ID,
+    TAP_ACCOUNT_ID: !!process.env.TAP_ACCOUNT_ID,
 
     // ZATCA
     ZATCA_API_KEY: !!process.env.ZATCA_API_KEY,

@@ -44,11 +44,19 @@ interface InvoiceDocument {
 }
 
 // SECURITY: Explicit non-empty string validation (not just truthy check)
+// Environment-aware key selection: TAP_ENVIRONMENT=live uses LIVE keys, else TEST keys
+const tapEnvIsLive = process.env.TAP_ENVIRONMENT === "live" || process.env.NODE_ENV === "production";
+const tapSecretKey = tapEnvIsLive 
+  ? process.env.TAP_LIVE_SECRET_KEY 
+  : process.env.TAP_TEST_SECRET_KEY;
+const tapPublicKey = tapEnvIsLive 
+  ? process.env.NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY 
+  : process.env.NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY;
 const TAP_PAYMENTS_CONFIGURED =
-  typeof process.env.TAP_SECRET_KEY === "string" &&
-  process.env.TAP_SECRET_KEY.trim() !== "" &&
-  typeof process.env.TAP_PUBLIC_KEY === "string" &&
-  process.env.TAP_PUBLIC_KEY.trim() !== "";
+  typeof tapSecretKey === "string" &&
+  tapSecretKey.trim() !== "" &&
+  typeof tapPublicKey === "string" &&
+  tapPublicKey.trim() !== "";
 
 type ChargeResult = Pick<
   TapChargeResponse,

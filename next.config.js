@@ -23,8 +23,17 @@ const isVercelDeploy = process.env.VERCEL_ENV === 'production' || process.env.VE
 if (isVercelDeploy) {
   const violations = [];
   const warnings = [];
+  // Tap: Environment-aware key selection
+  const tapEnvIsLive = process.env.TAP_ENVIRONMENT === 'live' || isProdDeploy;
+  const tapPublicKey = tapEnvIsLive 
+    ? process.env.NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY 
+    : process.env.NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY;
+  const tapSecretKey = tapEnvIsLive 
+    ? process.env.TAP_LIVE_SECRET_KEY 
+    : process.env.TAP_TEST_SECRET_KEY;
   const tapConfigured =
-    Boolean(process.env.TAP_PUBLIC_KEY) &&
+    Boolean(tapPublicKey) &&
+    Boolean(tapSecretKey) &&
     Boolean(process.env.TAP_WEBHOOK_SECRET);
   const paytabsConfigured =
     Boolean(process.env.PAYTABS_PROFILE_ID) &&
