@@ -4721,5 +4721,93 @@
   "Optional payment notes": "ملاحظات الدفع (اختياري)",
   "Loading invoices": "جارٍ تحميل الفواتير",
   "Creating": "جارٍ الإنشاء",
-  "Loading account activity": "جارٍ تحميل نشاط الحساب"
+  "Loading account activity": "جارٍ تحميل نشاط الحساب",
+  "auto": {
+    "fm": {
+      "hr": {
+        "directory": {
+          "new": {
+            "toast": {
+              "success": "تم إنشاء الموظف بنجاح",
+              "error": "فشل في إنشاء الموظف"
+            },
+            "breadcrumbs": "الموارد البشرية / الدليل",
+            "header": {
+              "title": "إضافة موظف جديد",
+              "subtitle": "املأ التفاصيل لإضافة موظف جديد"
+            },
+            "sections": {
+              "profile": {
+                "title": "المعلومات الأساسية",
+                "description": "المعلومات الأساسية عن الموظف"
+              },
+              "role": {
+                "title": "تفاصيل الوظيفة",
+                "description": "المنصب ومعلومات التقارير"
+              },
+              "compensation": {
+                "title": "التعويضات والملاحظات",
+                "description": "الراتب والملاحظات الإضافية"
+              }
+            },
+            "actions": {
+              "cancel": "إلغاء",
+              "saving": "جارٍ الحفظ...",
+              "submit": "إنشاء موظف"
+            },
+            "form": {
+              "compensationType": {
+                "label": "نوع التعويض",
+                "placeholder": "اختر نوع التعويض"
+              },
+              "salary": {
+                "label": "الراتب الأساسي"
+              },
+              "notes": {
+                "label": "ملاحظات إضافية",
+                "placeholder": "أدخل أي ملاحظات إضافية..."
+              },
+              "firstName": {
+                "label": "الاسم الأول",
+                "placeholder": "أدخل الاسم الأول"
+              },
+              "lastName": {
+                "label": "اسم العائلة",
+                "placeholder": "أدخل اسم العائلة"
+              },
+              "workEmail": {
+                "label": "البريد الإلكتروني للعمل"
+              },
+              "phone": {
+                "label": "الهاتف"
+              },
+              "reportsTo": {
+                "label": "المدير المباشر",
+                "placeholder": "اختر المدير"
+              },
+              "jobTitle": {
+                "label": "المسمى الوظيفي",
+                "placeholder": "أدخل المسمى الوظيفي"
+              },
+              "department": {
+                "label": "القسم",
+                "placeholder": "اختر القسم"
+              },
+              "employmentType": {
+                "label": "نوع التوظيف",
+                "placeholder": "اختر نوع التوظيف"
+              },
+              "workModel": {
+                "label": "نموذج العمل",
+                "placeholder": "اختر نموذج العمل"
+              },
+              "startDate": {
+                "label": "تاريخ البدء"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }

@@ -31281,5 +31281,93 @@
   "workspaceSettings.timeFormat": "Time Format",
   "workspaceSettings.timezone": "Default Timezone",
   "workspaceSettings.visibility": "Visibility",
-  "workspaceSettings.workspace": "Workspace"
+  "workspaceSettings.workspace": "Workspace",
+  "auto": {
+    "fm": {
+      "hr": {
+        "directory": {
+          "new": {
+            "toast": {
+              "success": "Employee created successfully",
+              "error": "Failed to create employee"
+            },
+            "breadcrumbs": "HR / Directory",
+            "header": {
+              "title": "Add New Employee",
+              "subtitle": "Fill in the details to add a new employee"
+            },
+            "sections": {
+              "profile": {
+                "title": "Profile Basics",
+                "description": "Basic information about the employee"
+              },
+              "role": {
+                "title": "Role Details",
+                "description": "Position and reporting information"
+              },
+              "compensation": {
+                "title": "Compensation & Notes",
+                "description": "Salary and additional notes"
+              }
+            },
+            "actions": {
+              "cancel": "Cancel",
+              "saving": "Saving...",
+              "submit": "Create employee"
+            },
+            "form": {
+              "compensationType": {
+                "label": "Compensation Type",
+                "placeholder": "Select compensation type"
+              },
+              "salary": {
+                "label": "Base Pay"
+              },
+              "notes": {
+                "label": "Additional Notes",
+                "placeholder": "Enter any additional notes..."
+              },
+              "firstName": {
+                "label": "First Name",
+                "placeholder": "Enter first name"
+              },
+              "lastName": {
+                "label": "Last Name",
+                "placeholder": "Enter last name"
+              },
+              "workEmail": {
+                "label": "Work Email"
+              },
+              "phone": {
+                "label": "Phone"
+              },
+              "reportsTo": {
+                "label": "Reports To",
+                "placeholder": "Select manager"
+              },
+              "jobTitle": {
+                "label": "Job Title",
+                "placeholder": "Enter job title"
+              },
+              "department": {
+                "label": "Department",
+                "placeholder": "Select department"
+              },
+              "employmentType": {
+                "label": "Employment Type",
+                "placeholder": "Select employment type"
+              },
+              "workModel": {
+                "label": "Work Model",
+                "placeholder": "Select work model"
+              },
+              "startDate": {
+                "label": "Start Date"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
