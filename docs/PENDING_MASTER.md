@@ -1,7 +1,7 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T14:28:31+03:00  
-**Version**: 13.27  
+**Last Updated**: 2025-12-11T14:32:29+03:00  
+**Version**: 13.28  
 **Branch**: feat/frontend-dashboards  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok)  
 **Total Pending Items**: 5 remaining (0 Critical, 0 High, 0 Moderate Engineering, 1 User Action, 4 Feature Requests)  
@@ -75,6 +75,78 @@ const DICTIONARIES = {
 
 ---
 
+## 🔧 SESSION 2025-12-11T14:32 - TAP PAYMENT GATEWAY VERIFICATION
+
+### User Action Required - Variable Name Mismatch
+
+User reported adding TAP payment environment variables to Vercel. **Deep dive verification found a variable name mismatch:**
+
+#### Variables User Added to Vercel:
+```
+TAP_ENVIRONMENT: Production
+TAP_MERCHANT_ID: configured
+TAP_ACCOUNT_ID: configured
+TAP_API_KEY: configured
+TAP_TEST_SECRET_KEY: configured
+TAP_LIVE_SECRET_KEY: configured
+NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY: configured
+NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY: configured
+TAP_GOSELL_USERNAME: configured
+TAP_GOSELL_PASSWORD: configured
+```
+
+#### Variables Expected by Codebase (`lib/finance/tap-payments.ts:202-204`):
+```typescript
+this.secretKey = process.env.TAP_SECRET_KEY || ""
+this.publicKey = process.env.TAP_PUBLIC_KEY || ""
+this.webhookSecret = process.env.TAP_WEBHOOK_SECRET || ""
+```
+
+#### ⚠️ MISMATCH FOUND
+
+| Expected Variable | Status | User Should Set |
+|-------------------|--------|----------------|
+| `TAP_SECRET_KEY` | ❌ MISSING | Use value from `TAP_LIVE_SECRET_KEY` |
+| `TAP_PUBLIC_KEY` | ❌ MISSING | Use value from `NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY` |
+| `TAP_WEBHOOK_SECRET` | ❌ MISSING | Get from TAP Dashboard → Webhooks |
+
+#### Action Required
+
+In Vercel Dashboard, add these 3 environment variables:
+1. `TAP_SECRET_KEY` = (copy value from TAP_LIVE_SECRET_KEY)
+2. `TAP_PUBLIC_KEY` = (copy value from NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY)
+3. `TAP_WEBHOOK_SECRET` = (get from TAP Dashboard → Settings → Webhooks)
+
+**Status**: 🟡 Awaiting user action
+
+---
+
+## ✅ SESSION 2025-12-11T14:58 - CI GUARDS & PLAYWRIGHT HARDENING
+
+### Implemented Items
+- **Bundle budget gate enforced**: `scripts/checkBundleBudget.mjs` thresholds aligned to observed bundles (main ~7.5MB gzipped, sentry ~5.8MB). CI runs `pnpm run bundle:budget:report` after Next.js build (`.github/workflows/webpack.yml`). Env overrides supported via `BUNDLE_BUDGET_*_KB`.
+- **pnpm audit gating**: Added `pnpm audit --prod --audit-level=high` to `.husky/pre-commit`, `simple-git-hooks` pre-commit command, and CI (`webpack.yml`). Skippable locally via `SKIP_PNPM_AUDIT=true`.
+- **Playwright auth fixtures hardened**: `tests/setup-auth.ts` now force-aligns `NEXTAUTH_URL`/`AUTH_URL`/`BASE_URL`/`PW_WEB_URL` to the Playwright `baseURL`, preventing 401s from origin drift in generated storage states.
+- **Alert thresholds & staging promotion**: Added explicit alert thresholds and staging→prod promotion gates to `docs/operations/RUNBOOK.md` (latency/error thresholds, queue/resource limits, promotion checklist).
+
+### Key Files Updated
+- `scripts/checkBundleBudget.mjs`
+- `.github/workflows/webpack.yml`
+- `.husky/pre-commit`, `package.json` (simple-git-hooks)
+- `tests/setup-auth.ts`
+- `docs/operations/RUNBOOK.md`
+
+### Status Mapping
+- PROC-001 (Bundle budget gate): ✅ enforced in CI
+- PROC-002 (Playwright fixtures): ✅ hardened (env-aligned storage state generation)
+- PROC-005 (pnpm audit gating): ✅ enforced locally + CI
+- PROC-006 (Alert thresholds): ✅ documented thresholds/runbook
+- PROC-007 (Staging promotion flow): ✅ documented checklist/runbook
+
+*Note: This session supersedes earlier PROC backlog notes in Session 2025-12-11T12:50.*
+
+---
+
 ## ✅ SESSION 2025-12-11T13:43 - PROCESS/CI VERIFICATION & IMPLEMENTATION (7 items)
 
 ### All 7 PROCESS/CI Items Implemented
@@ -140,7 +212,7 @@ No high priority items remaining.
 
 | # | ID | Task | Owner | Action Required | Status |
 |---|-----|------|-------|-----------------|--------|
-| 1 | **UA-001** | Payment Gateway Config | User | Set `TAP_SECRET_KEY`, `TAP_PUBLIC_KEY` in Vercel for payments | 🔲 Pending |
+| 1 | **UA-001** | Payment Gateway Config | User | ⚠️ Add `TAP_SECRET_KEY`, `TAP_PUBLIC_KEY`, `TAP_WEBHOOK_SECRET` (see Session 2025-12-11T14:32) | 🟡 Action Needed |
 
 ### 🔵 FEATURE REQUESTS - BACKLOG (4 items)
 
@@ -230,6 +302,8 @@ All 6 MODERATE PRIORITY production items verified. Configuration is correct - on
 | **PROC-005** | Security | `.husky/pre-commit` lacks `pnpm audit`; security workflows run `pnpm audit` but not blocking locally. | 🔲 Backlog (add audit to hooks/CI gate) |
 | **PROC-006** | Monitoring | Health endpoints + Sentry/OTEL in place; no explicit alert thresholds/pagers recorded. | 🔲 Backlog (define proactive alerts) |
 | **PROC-007** | Deployment | Single-click deploy noted; no staging promotion/release gate documented. | 🔲 Backlog |
+
+*Superseded by Session 2025-12-11T14:58 (bundle budgets enforced, pnpm audit gated, alert thresholds + staging promotion documented, Playwright env alignment).*
 
 ---
 
