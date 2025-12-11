@@ -1,7 +1,7 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-12-10T13:45+03  
-**Version**: 2.3  
+**Last Updated**: 2025-12-11T12:40+03  
+**Version**: 2.4  
 **Scope**: Database index management, security audits, observability, SMS infrastructure, test infrastructure, i18n
 
 ---
@@ -33,6 +33,53 @@
 curl -s https://fixzit.co/api/health/ready | jq '.checks'
 # Expected: {"mongodb":"ok","redis":"disabled","email":"disabled","sms":"ok"}
 ```
+
+---
+
+## Recent Additions (2025-12-11)
+
+### ISSUE-PERF-001: Client i18n bundles are monolithic
+
+**Severity**: 🟨 Moderate  
+**Category**: Performance, i18n  
+**Status**: ⏳ ACTION REQUIRED
+
+**Evidence**: `i18n/generated/en.dictionary.json` (1.5MB) and `ar.dictionary.json` (1.8MB) ship as single modules via `i18n/dictionaries/en.ts`/`ar.ts` with locale-only dynamic import in `i18n/I18nProvider.tsx`.
+
+**Remediation**:
+1. Split dictionaries into locale/namespace modules (e.g., `fm/hr/directory`).
+2. Add `getDictionary(locale, ns)` async loader and import per route.
+3. Drop unused keys during regeneration to shrink payloads.
+
+---
+
+### ISSUE-PERF-002: HR directory/new page shipped as single client chunk
+
+**Severity**: 🟨 Moderate  
+**Category**: Performance, HR  
+**Status**: ⏳ ACTION REQUIRED
+
+**Evidence**: `app/fm/hr/directory/new/page.tsx` is a `use client` page bundling the full form and translation scope; no dynamic imports or deferred lookups.
+
+**Remediation**:
+1. Convert page to server wrapper with client form steps only.
+2. Move POST to a server action.
+3. Lazy-load heavy widgets (date/file pickers) and fetch lookup data on focus.
+
+---
+
+### ISSUE-PERF-003: Client entry bloat + missing bundle budget guardrail
+
+**Severity**: 🟨 Moderate  
+**Category**: Performance, Build  
+**Status**: ⏳ ACTION REQUIRED
+
+**Evidence**: `app/layout.tsx` → `ClientLayout` with `PublicProviders`/`AuthenticatedProviders` loads Session/I18n/TopBar/Tooltip/Toaster on every route; FoamTree shows `index_client.js` 2600+ modules. No CI bundle budget gate beyond manual analyzer.
+
+**Remediation**:
+1. Trim global providers and move nonessential layout logic server-side.
+2. Modularize heavy imports (lodash/date-fns/icons) to avoid whole-library pulls.
+3. Add CI script to fail when gzip chunk budgets are exceeded (`ANALYZE=true next build` + size gate).
 
 ---
 

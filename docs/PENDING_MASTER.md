@@ -1,13 +1,39 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-11T12:15:00+03:00  
-**Version**: 13.11  
+**Last Updated**: 2025-12-11T12:40:00+03:00  
+**Version**: 13.13  
 **Branch**: feat/batch-13-completion  
 **Status**: ✅ PRODUCTION OPERATIONAL (MongoDB ok, SMS ok)  
-**Total Pending Items**: 3 remaining (0 Critical, 0 High, 1 Moderate - OpenAPI gap, 2 Feature Requests)  
+**Total Pending Items**: 7 remaining (0 Critical, 0 High, 4 Moderate engineering, 1 User Action, 2 Feature Requests)  
 **Completed Items**: 250+ tasks completed (All batches 1-14 completed + Accessibility/Code Hygiene fully verified)  
-**Test Status**: ✅ Vitest 2,468 tests (247 files) | ⚠️ Playwright 115 passed, 230 failed (env config)  
-**Consolidation Check**: 2025-12-11T12:15:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+**Test Status**: ✅ Vitest 2,468 tests (247 files) | 🚧 Playwright auth URL alignment landed; full suite rerun pending (prior 230 env 401s)  
+**Consolidation Check**: 2025-12-11T12:40:00+03:00 — Single source of truth. All archived reports in `docs/archived/pending-history/`
+
+---
+
+## 🔍 SESSION 2025-12-11T12:40 - CLIENT BUNDLE ANALYZER FOLLOW-UP
+
+| ID | Task | Findings / Required Action | Status |
+|----|------|----------------------------|--------|
+| **PF-025** | i18n bundle split (ar/en) | ❗ `i18n/generated/en.dictionary.json` (1.5MB) and `ar.dictionary.json` (1.8MB) are still shipped as single modules via `i18n/dictionaries/en.ts`/`ar.ts` plus locale-level dynamic import in `i18n/I18nProvider.tsx`. Action: split dictionaries by locale/namespace (e.g., `fm/hr/directory`), lazy-load per route (`getDictionary(locale, ns)`), and remove unused keys. | 🔲 Action Required |
+| **PF-026** | HR directory/new page chunk | ❗ `app/fm/hr/directory/new/page.tsx` is a full `use client` page bundling the entire form and translation scope into one chunk; no lazy data fetch or dynamic widget imports. Action: convert to server wrapper + client steps, move POST to server action, and lazy-load heavy inputs (date/file pickers, dropdown data on focus). | 🔲 Action Required |
+| **PF-027** | index_client entry bloat & guardrail | ❗ `app/layout.tsx` → `ClientLayout` with `PublicProviders`/`AuthenticatedProviders` loads Session/I18n/TopBar/Tooltip/Toaster on every route; FoamTree shows `index_client.js` 2600+ modules. Action: trim global provider footprint, push nonessential layout logic server-side, modularize imports (lodash/date-fns/icons), and add CI bundle budget check (`ANALYZE=true` build + gzip gate). | 🔲 Action Required |
+
+**Key Findings**:
+- Monolithic locale dictionaries are still bundled client-side; per-namespace loading is not implemented.
+- HR directory new page remains a single hydrated chunk; no deferred fetches or dynamic imports.
+- Client entry bundles the full provider stack/UI chrome globally with no bundle budget enforcement.
+
+---
+
+## ✅ SESSION 2025-12-11T12:25 - BUG FIXES (Auth, Roles, KYC)
+
+| ID | Issue | Resolution | Status |
+|----|-------|------------|--------|
+| **BUG-030** | E2E auth failures (Playwright 401) | Forced `NEXTAUTH_URL`/`AUTH_URL` to the Playwright host in `playwright.config.ts` so storageState cookies match the test base URL; keeps secrets consistent across runner + app | ✅ Fixed |
+| **DEP-ALIAS-001** | Deprecated FM role aliases referenced | Replaced DISPATCHER/EMPLOYEE usage in quick actions/navigation with canonical roles (TEAM_MEMBER/OPERATIONS_MANAGER) and aligned RBAC matrix to treat aliases as legacy-only | ✅ Fixed |
+| **HC-MAJ-003** | Test email in KYC service | Centralized fallback to `KYC_FALLBACK_EMAIL`/support email for stubbed sellers, removing `temp-kyc@fixzit.test` from onboarding flows (`services/souq/seller-kyc-service.ts`) | ✅ Fixed |
+| **HC-MAJ-004** | Placeholder KYC document URL | Added configurable pending-document URL and support-phone fallback for injected docs to eliminate `/example.com/placeholder.pdf` and `+0000000000` defaults | ✅ Fixed |
 
 ---
 
@@ -34,13 +60,20 @@
 
 ---
 
-## 📊 CURRENT PENDING SUMMARY (as of 2025-12-11T12:15)
+## 📊 CURRENT PENDING SUMMARY (as of 2025-12-11T12:40)
 
-### 🟡 Moderate Priority - User Actions Required (2)
+### 🟡 Moderate Priority - Engineering Actions Required (4)
+| ID | Item | Owner | Action Required |
+|----|------|-------|-----------------|
+| **DOC-001** | OpenAPI Spec Coverage | Engineering | Expand `openapi.yaml` beyond current 10% coverage (35/354 routes) to cover 354 API routes. |
+| **PF-025** | i18n bundle split (per-namespace) | Engineering | Split `i18n/generated/*.dictionary.json` monoliths into locale/namespace modules; async-load per route (`getDictionary(locale, ns)`) and remove unused keys. |
+| **PF-026** | HR directory/new page chunk | Engineering | Refactor `app/fm/hr/directory/new/page.tsx` into server wrapper + lazy client steps; defer lookup fetches and heavy widgets to dynamic imports. |
+| **PF-027** | index_client diet & CI budget | Engineering | Slim `ClientLayout`/providers footprint, modularize imports (lodash/date-fns/icons), and add CI bundle budget gate on `ANALYZE=true next build` (gzip thresholds). |
+
+### 🟡 Moderate Priority - User Actions Required (1)
 | ID | Item | Owner | Action Required |
 |----|------|-------|-----------------|
 | **UA-001** | Payment Gateway Config | User | Set `TAP_SECRET_KEY`, `TAP_PUBLIC_KEY` in Vercel for payments |
-| **UA-002** | E2E Test Environment | User | Fix auth/session env config (230 Playwright tests fail with 401) |
 
 ### 🔲 Feature Requests - Backlog (2)
 | ID | Item | Description | Priority |
@@ -54,7 +87,7 @@
 - **Code Quality**: 0 remaining ✅
 - **Testing Gaps**: 0 remaining ✅ (1,841+ lines of RBAC tests)
 - **Security**: 0 remaining ✅ (81.9% explicit + middleware protection)
-- **Performance**: 0 remaining ✅ (Cache headers, bundle analyzed, Redis ready)
+- **Performance**: ⚠️ Pending PF-025/PF-026/PF-027 (bundle diet, per-namespace i18n, CI budget guardrail)
 - **Documentation**: 0 remaining ✅ (README, API docs, ADRs complete)
 - **Code Hygiene**: 0 remaining ✅
 - **UI/UX**: 0 remaining ✅ (WCAG AA compliant)
