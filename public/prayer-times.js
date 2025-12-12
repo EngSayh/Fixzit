@@ -1,6 +1,14 @@
 // Prayer Times Mobile Component for Saudi Users
 // Fixzit Souq - Saudi Cultural Integration
 
+// 🔒 SECURITY: HTML escape utility to prevent XSS
+function escapeHtmlPrayer(text) {
+  if (typeof text !== 'string') return String(text);
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 class SaudiPrayerTimes {
   constructor() {
     this.currentLocation = null;
@@ -244,11 +252,12 @@ class SaudiPrayerTimes {
       isha: "العشاء",
     };
 
+    // 🔒 SECURITY: Use escapeHtmlPrayer for dynamic values to prevent XSS
     const html = `
             <div class="prayer-times-widget">
                 <div class="prayer-header">
-                    <div class="prayer-city">${this.currentLocation.city}</div>
-                    <div class="prayer-date">${this.prayerTimes.hijriDate}</div>
+                    <div class="prayer-city">${escapeHtmlPrayer(this.currentLocation.city)}</div>
+                    <div class="prayer-date">${escapeHtmlPrayer(this.prayerTimes.hijriDate)}</div>
                 </div>
                 <div class="prayer-times-grid">
                     ${Object.entries(this.prayerTimes)
@@ -256,8 +265,8 @@ class SaudiPrayerTimes {
                       .map(
                         ([key, time]) => `
                             <div class="prayer-time-item ${this.getNextPrayer() === key ? "next-prayer" : ""}">
-                                <div class="prayer-name">${prayerNames[key]}</div>
-                                <div class="prayer-time">${this.formatTime(time)}</div>
+                                <div class="prayer-name">${escapeHtmlPrayer(prayerNames[key])}</div>
+                                <div class="prayer-time">${escapeHtmlPrayer(this.formatTime(time))}</div>
                             </div>
                         `,
                       )

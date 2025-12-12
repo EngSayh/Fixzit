@@ -566,12 +566,16 @@ class ReturnsService {
       ? (splRate as { cost: number }).cost
       : 0;
 
-    // In production, this would call the actual carrier API
-    const baseLabelUrl =
-      (Config.returns.labelBaseUrl || Config.app.url || "http://localhost:3000").replace(/\/+$/, "");
+    // 🔒 SECURITY: Require proper URL configuration - no localhost fallback
+    const baseLabelUrl = Config.returns.labelBaseUrl || Config.app.url;
+    if (!baseLabelUrl) {
+      throw new Error('RETURNS_LABEL_BASE_URL or APP_URL must be configured - localhost fallback not allowed in production');
+    }
+    const sanitizedBaseUrl = baseLabelUrl.replace(/\/+$/, "");
+    
     const label = {
       trackingNumber: generateReturnTrackingNumber(rma._id.toString().slice(-6).toUpperCase()),
-      labelUrl: `${baseLabelUrl}/returns/labels/${rma._id}.pdf`,
+      labelUrl: `${sanitizedBaseUrl}/returns/labels/${rma._id}.pdf`,
       carrier: splRate.carrier
     };
 
