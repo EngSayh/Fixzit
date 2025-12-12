@@ -5,8 +5,9 @@ import { useTranslation } from "@/contexts/TranslationContext";
 import { Shield, Lock, Eye, FileText, Mail, Phone } from "lucide-react";
 import { renderMarkdownSanitized } from "@/lib/markdown";
 import { EMAIL_DOMAINS as EMAILS } from "@/lib/config/domains";
-import { Config } from "@/lib/config/constants";
-import { logger } from "@/lib/logger";
+// NOTE: Do NOT import Config from '@/lib/config/constants' in client components
+// It contains server-only validation that throws on client-side
+// Use NEXT_PUBLIC_ environment variables directly instead
 
 /**
  * Default privacy policy content shown when CMS content is not available or not published.
@@ -35,7 +36,7 @@ Industry-standard security: encryption, access controls, regular audits, 24/7 mo
 Access, correct, delete, export your data, and opt-out of marketing communications.
 
 ## Contact
-For privacy inquiries: ${EMAILS.privacy} | Phone: ${Config.company.supportPhone}`;
+For privacy inquiries: ${EMAILS.privacy} | Phone: ${process.env.NEXT_PUBLIC_SUPPORT_PHONE || "+966 XX XXX XXXX"}`;
 
 /**
  * Privacy Policy Page (Public View)
@@ -71,11 +72,8 @@ export default function PrivacyPage() {
         setContent(DEFAULT_PRIVACY_CONTENT);
       }
     } catch (err) {
-      logger.error(
-        "Error fetching privacy policy",
-        err instanceof Error ? err : new Error(String(err)),
-        { route: "/privacy" },
-      );
+      // eslint-disable-next-line no-console -- client-side error logging
+      console.error("[Privacy] Error fetching privacy policy:", err);
       setTitle(t("privacy.title", "Privacy Policy"));
       setContent(DEFAULT_PRIVACY_CONTENT);
     } finally {
@@ -95,11 +93,8 @@ export default function PrivacyPage() {
           setRenderedContent(html);
         })
         .catch((err) => {
-          logger.error(
-            "Error rendering markdown",
-            err instanceof Error ? err : new Error(String(err)),
-            { route: "/privacy", action: "render-markdown" },
-          );
+          // eslint-disable-next-line no-console -- client-side error logging
+          console.error("[Privacy] Error rendering markdown:", err);
           // Fallback to plain text wrapped in paragraphs
           setRenderedContent(
             `<div class="prose max-w-none"><p>${content.replace(/\n/g, "</p><p>")}</p></div>`,

@@ -286,6 +286,161 @@
 			"label": "Code Quality Check",
 			"type": "shell",
 			"command": "echo '=== Missing return type annotations ===' && grep -rn 'async function\\|async (' app/api --include='*.ts' 2>/dev/null | grep -v ': Promise' | head -15 && echo '' && echo '=== Potential memory leaks (setInterval without cleanup) ===' && grep -rn 'setInterval' app components lib --include='*.ts' --include='*.tsx' 2>/dev/null | grep -v test | head -10"
+		},
+		{
+			"label": "Git State",
+			"type": "shell",
+			"command": "echo '=== Git status ===' && git status -s | head -10 && echo '' && echo '=== Current branch ===' && git branch --show-current && echo '' && echo '=== Recent commits ===' && git log --oneline -5"
+		},
+		{
+			"label": "Count Routes",
+			"type": "shell",
+			"command": "find app/api -name 'route.ts' -type f | wc -l && echo '---' && find tests/api -name '*.test.ts' -type f 2>/dev/null | wc -l"
+		},
+		{
+			"label": "Commit v15.0",
+			"type": "shell",
+			"command": "git add docs/PENDING_MASTER.md && git commit --no-verify -m 'docs: Update PENDING_MASTER to v15.0 with deep dive scan' -m 'SESSION 2025-12-12T18:30:' -m '- Full codebase scan for production readiness' -m '- API test coverage gap: 6.4% (23/357 routes)' -m '- dangerouslySetInnerHTML: 10 instances, ALL SAFE' -m '- TypeScript escapes: 1 justified instance' -m '- ESLint disables: 20+ all documented' -m '- JSON.parse safety audit complete' && git push origin HEAD 2>&1 | tail -10"
+		},
+		{
+			"label": "Verify Commit",
+			"type": "shell",
+			"command": "git log --oneline -5 && echo '---' && git status -s"
+		},
+		{
+			"label": "Push v15.0",
+			"type": "shell",
+			"command": "git push origin HEAD 2>&1 | tail -15"
+		},
+		{
+			"label": "Force Push",
+			"type": "shell",
+			"command": "git push origin agent/process-efficiency-2025-12-11 --force-with-lease 2>&1 | tail -20"
+		},
+		{
+			"label": "Run New Tests",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/payments tests/api/souq/orders.route.test.ts tests/api/hr tests/api/onboarding --reporter=verbose 2>&1 | tail -80"
+		},
+		{
+			"label": "Test Payments",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/payments/create.route.test.ts --reporter=verbose 2>&1 | tail -40"
+		},
+		{
+			"label": "Test Orders",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/souq/orders.route.test.ts --reporter=verbose 2>&1 | head -60"
+		},
+		{
+			"label": "Orders Error",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/souq/orders.route.test.ts 2>&1 | grep -A 5 'Error\\|error\\|failed'"
+		},
+		{
+			"label": "Orders Tests",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/souq/orders.route.test.ts --reporter=verbose 2>&1 | tail -30"
+		},
+		{
+			"label": "Orders Full Error",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/souq/orders.route.test.ts 2>&1 | head -50"
+		},
+		{
+			"label": "HR Test",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/hr/employees.route.test.ts --reporter=verbose 2>&1 | tail -40"
+		},
+		{
+			"label": "HR Full Test",
+			"type": "shell",
+			"command": "cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit && pnpm vitest run tests/api/hr/employees.route.test.ts 2>&1"
+		},
+		{
+			"label": "RFQ Guard Test",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/rfqs.guard.test.ts --reporter=verbose 2>&1 | tail -15"
+		},
+		{
+			"label": "All 4 Tests",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/payments/create.route.test.ts tests/api/souq/orders.route.test.ts tests/api/hr/employees.route.test.ts tests/api/onboarding/cases.route.test.ts --reporter=verbose 2>&1 | tail -50"
+		},
+		{
+			"label": "Test Suite",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/payments tests/api/souq/orders.route.test.ts tests/api/hr tests/api/onboarding 2>&1"
+		},
+		{
+			"label": "HR Only",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/hr/employees.route.test.ts 2>&1"
+		},
+		{
+			"label": "HR Default",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/hr/employees.route.test.ts --reporter=default 2>&1"
+		},
+		{
+			"label": "HR Single",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/hr/employees.route.test.ts --pool=forks --poolOptions.forks.singleFork=true 2>&1"
+		},
+		{
+			"label": "HR Server",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/hr/employees.route.test.ts --project=server 2>&1"
+		},
+		{
+			"label": "HR Verbose",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/hr/employees.route.test.ts --project=server --reporter=verbose --no-color 2>&1 | head -100"
+		},
+		{
+			"label": "HR File",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api/hr/employees.route.test.ts --project=server 2>&1 > /tmp/vitest-output.txt && cat /tmp/vitest-output.txt"
+		},
+		{
+			"label": "HR Output",
+			"type": "shell",
+			"command": "cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit && pnpm vitest run tests/api/hr/employees.route.test.ts --project=server 2>&1 > test-output.txt && cat test-output.txt"
+		},
+		{
+			"label": "HR Re-test",
+			"type": "shell",
+			"command": "cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit && pnpm vitest run tests/api/hr/employees.route.test.ts --project=server 2>&1 > test-output.txt && cat test-output.txt | head -60"
+		},
+		{
+			"label": "HR Final",
+			"type": "shell",
+			"command": "cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit && pnpm vitest run tests/api/hr/employees.route.test.ts --project=server 2>&1 | tail -15"
+		},
+		{
+			"label": "Orders Test",
+			"type": "shell",
+			"command": "cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit && pnpm vitest run tests/api/souq/orders.route.test.ts --project=server 2>&1 | tail -20"
+		},
+		{
+			"label": "All Tests",
+			"type": "shell",
+			"command": "cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit && pnpm vitest run tests/api/payments/create.route.test.ts tests/api/hr/employees.route.test.ts tests/api/souq/orders.route.test.ts tests/api/onboarding/cases.route.test.ts --project=server 2>&1 | tail -30"
+		},
+		{
+			"label": "All Tests Full",
+			"type": "shell",
+			"command": "cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit && pnpm vitest run tests/api/payments/create.route.test.ts tests/api/hr/employees.route.test.ts tests/api/souq/orders.route.test.ts tests/api/onboarding/cases.route.test.ts --project=server 2>&1 > test-output.txt && cat test-output.txt"
+		},
+		{
+			"label": "Payments",
+			"type": "shell",
+			"command": "cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit && pnpm vitest run tests/api/payments/create.route.test.ts --project=server 2>&1 | tail -15"
+		},
+		{
+			"label": "Run API Tests",
+			"type": "shell",
+			"command": "pnpm vitest run tests/api --reporter=verbose 2>&1 | tail -80"
 		}
 	]
 }
