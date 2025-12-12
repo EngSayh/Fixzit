@@ -19,10 +19,19 @@ import {
   normalizeProptech,
 } from "@/app/api/aqar/listings/normalizers";
 import { AqarRecommendationEngine } from "@/services/aqar/recommendation-engine";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for listing creation
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:listings:post",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const correlationId = crypto.randomUUID();
 
   try {

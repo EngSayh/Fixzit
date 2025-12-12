@@ -15,6 +15,7 @@ import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongo";
 import { AqarFavorite, AqarListing, AqarProject } from "@/server/models/aqar";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import mongoose from "mongoose";
 
@@ -24,6 +25,14 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  // Rate limiting: 20 requests per minute per IP for deletes
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:favorites:delete",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDb();
 

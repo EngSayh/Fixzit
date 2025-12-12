@@ -20,6 +20,7 @@ import { connectDb } from "@/lib/mongo";
 import { AqarPackage, AqarPayment, PackageType } from "@/server/models/aqar";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { ok, badRequest, serverError } from "@/lib/api/http";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { logger } from "@/lib/logger";
 import { getServerTranslation } from "@/lib/i18n/server";
@@ -28,6 +29,14 @@ export const runtime = "nodejs";
 
 // GET /api/aqar/packages
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for reads
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:packages:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDb();
 
@@ -62,6 +71,14 @@ export async function GET(request: NextRequest) {
 
 // POST /api/aqar/packages
 export async function POST(request: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for package purchases
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:packages:post",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const correlationId = crypto.randomUUID();
 
   try {

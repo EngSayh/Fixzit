@@ -26,6 +26,7 @@ import {
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { Types, type Model } from "mongoose";
 import { recordPersonalizationEvent } from "@/services/aqar/personalization-service";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -50,6 +51,14 @@ const parseNumberParam = (value: string | null): number | undefined => {
 };
 
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for recommendations
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:recommendations:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const correlationId = crypto.randomUUID();
   try {
     await connectDb();

@@ -22,6 +22,7 @@ import {
   setTenantContext,
   clearTenantContext,
 } from "@/server/plugins/tenantIsolation";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import mongoose from "mongoose";
 
@@ -38,6 +39,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  // Rate limiting: 60 requests per minute per IP for reads
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:listings:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const correlationId = crypto.randomUUID();
 
   try {
@@ -123,6 +132,14 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  // Rate limiting: 30 requests per minute per IP for updates
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:listings:patch",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDb();
 
@@ -284,6 +301,14 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  // Rate limiting: 20 requests per minute per IP for deletes
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:listings:delete",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDb();
 

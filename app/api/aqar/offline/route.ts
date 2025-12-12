@@ -15,10 +15,19 @@ import { logger } from "@/lib/logger";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { ListingIntent } from "@/server/models/aqar/Listing";
 import { AqarOfflineCacheService } from "@/services/aqar/offline-cache-service";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for offline bundles (expensive operation)
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:offline:get",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const correlationId = crypto.randomUUID();
   try {
     const { searchParams } = new URL(request.url);

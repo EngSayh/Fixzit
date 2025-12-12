@@ -19,6 +19,7 @@ import {
 import { PricingInsightsService } from "@/services/aqar/pricing-insights-service";
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { isValidObjectIdSafe } from "@/lib/api/validation";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -31,6 +32,14 @@ const sanitizeEnum = <T extends string>(
     : undefined;
 
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:insights:pricing",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const correlationId = crypto.randomUUID();
   try {
     let user: { orgId?: string } | undefined;
