@@ -1,3 +1,3 @@
 // Backwards compatibility shim for the old import path
-// All FM permission logic now lives in hooks/useFMPermissions
-export { useFMPermissions } from "@/hooks/useFMPermissions";
+// Canonical hook now lives in hooks/fm/useFMPermissions
+export { useFMPermissions } from "@/hooks/fm/useFMPermissions";
