@@ -174,6 +174,25 @@
 
 ---
 
+## 🗓️ 2025-12-12T23:20+03:00 — GraphQL Tenant Guard Plan
+
+### 📍 Current Progress & Planned Next Steps
+- Branch `fix/graphql-resolver-todos`; planning only this session (no new code committed).
+- Identified GraphQL Query resolver gaps: orgId fallback to userId, missing tenant/audit context on reads, sequential DB calls in workOrders.
+- Plan: enforce required org context for all Query resolvers, wrap reads with tenant/audit context, normalize org once, parallelize workOrders find/count; add unit tests for org-less requests, `createGraphQLHandler` disabled/deps-missing branches, and rate-limit wrapper in `app/api/graphql/route.ts`.
+- Verification pending: rerun `pnpm typecheck && pnpm lint && pnpm test` after implementing changes.
+
+### 🧩 Enhancements / Bugs / Logic / Missing Tests (Prod Readiness)
+- **Logic | Org fallback leak**: Query resolvers use `ctx.orgId ?? ctx.userId` (e.g., `lib/graphql/index.ts:693-940`), allowing cross-tenant reads when orgId is missing. Require orgId and return an auth-style error.
+- **Isolation | Missing tenant/audit context on reads**: workOrders, workOrder, dashboardStats, organization, property/properties, and invoice resolvers do not set tenant/audit context, bypassing tenant isolation on read paths.
+- **Efficiency**: workOrders runs find and count sequentially; normalize org once and use `Promise.all`. Dashboard stats recomputes normalized org; reuse a single normalized value across aggregations.
+- **Missing tests**: No coverage for org-required guard on Query resolvers, `createGraphQLHandler` disabled/dependency-missing branches, or rate-limit wrapper behavior in `app/api/graphql/route.ts`.
+- **Observability**: Add debug-level logging around tenant/audit context setup for Query resolvers to aid triage once guards are added.
+
+### 🔍 Deep-Dive: Similar/Identical Issues
+- **Repeated org fallback** across all Query resolvers (workOrders, workOrder, dashboardStats, organization, property, properties, invoice) uses `ctx.orgId ?? ctx.userId`, creating consistent multi-tenant leakage risk. Standardize on a required org guard and single normalization.
+- **Tenant context missing uniformly on reads**: Unlike Mutations, no Query resolver wraps DB access with tenant/audit context, so isolation plugins are skipped everywhere on reads. Apply the same context setup/teardown pattern used in mutations to all read paths.
+
 ## 🗓️ 2025-12-12T23:15+03:00 — Webpack Build Fix v40.0
 
 ### 📍 Current Progress Summary
