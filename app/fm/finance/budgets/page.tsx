@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { useEffect } from "react";
 import { DEFAULT_CURRENCY } from "@/config/currencies";

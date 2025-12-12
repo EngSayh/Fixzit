@@ -2,7 +2,7 @@
 
 import React from "react";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useTranslation } from "@/contexts/TranslationContext";
 import useSWR from "swr";
 import ClientDate from "@/components/ClientDate";

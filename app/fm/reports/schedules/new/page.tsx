@@ -19,7 +19,7 @@ import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { Clock, Calendar, Mail } from "lucide-react";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 const REPORT_TYPES = [
   { value: "workorders", label: "Work Orders Summary" },

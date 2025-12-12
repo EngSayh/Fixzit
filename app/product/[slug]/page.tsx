@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, use } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { logger } from "@/lib/logger";
+import type { ApiResponse } from "@/types/common";
 
 interface Product {
   title?: string | { en?: string };
@@ -23,13 +24,9 @@ interface Product {
   [key: string]: unknown;
 }
 
-interface ApiResponse {
-  data?: {
-    product?: Product;
-  };
+type ProductApiResponse = ApiResponse<{ product?: Product }> & {
   product?: Product;
-  [key: string]: unknown;
-}
+};
 
 async function fetchPdp(slug: string) {
   try {
@@ -49,7 +46,7 @@ export default function ProductPage(props: {
 }) {
   const { t } = useTranslation();
   const params = use(props.params); // Use React 19's use() hook to unwrap the Promise
-  const [data, setData] = useState<ApiResponse | null>(null);
+  const [data, setData] = useState<ProductApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

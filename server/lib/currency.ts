@@ -1,60 +1,48 @@
+import {
+  CURRENCY_MAP,
+  DEFAULT_CURRENCY,
+  type CurrencyCode,
+} from "@/config/currencies";
+import { formatCurrency as formatDisplayCurrency } from "@/lib/currency-formatter";
+
 /**
  * Currency utilities for Finance Pack
  * Handles conversion between major/minor units and foreign exchange
  */
 
 export interface CurrencyConfig {
-  code: string; // ISO 4217 (SAR, USD, EUR, etc.)
+  code: CurrencyCode; // ISO 4217 (SAR, USD, EUR, etc.)
   name: string;
   symbol: string;
   decimalPlaces: number; // 2 for most currencies
   minorUnit: string; // "halalas" for SAR, "cents" for USD
 }
 
-export const CURRENCIES: Record<string, CurrencyConfig> = {
-  SAR: {
-    code: "SAR",
-    name: "Saudi Riyal",
-    symbol: "ر.س",
-    decimalPlaces: 2,
-    minorUnit: "halalas",
-  },
-  USD: {
-    code: "USD",
-    name: "US Dollar",
-    symbol: "$",
-    decimalPlaces: 2,
-    minorUnit: "cents",
-  },
-  EUR: {
-    code: "EUR",
-    name: "Euro",
-    symbol: "€",
-    decimalPlaces: 2,
-    minorUnit: "cents",
-  },
-  GBP: {
-    code: "GBP",
-    name: "British Pound",
-    symbol: "£",
-    decimalPlaces: 2,
-    minorUnit: "pence",
-  },
-  AED: {
-    code: "AED",
-    name: "UAE Dirham",
-    symbol: "د.إ",
-    decimalPlaces: 2,
-    minorUnit: "fils",
-  },
-};
+export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> =
+  Object.entries(CURRENCY_MAP).reduce(
+    (acc, [code, currency]) => {
+      const currencyCode = code as CurrencyCode;
+      acc[currencyCode] = {
+        code: currencyCode,
+        name: currency.name,
+        symbol: currency.symbol,
+        decimalPlaces: currency.decimals ?? 2,
+        minorUnit: currency.minorUnit ?? "cents",
+      };
+      return acc;
+    },
+    {} as Record<CurrencyCode, CurrencyConfig>,
+  );
+
+const fallbackCurrency = CURRENCIES[DEFAULT_CURRENCY];
 
 /**
  * Convert from major units (e.g., 100.50 SAR) to minor units (e.g., 10050 halalas)
  * Uses integer arithmetic to avoid floating-point errors
  */
 export function toMinor(amount: number, currency: string = "SAR"): number {
-  const config = CURRENCIES[currency] || CURRENCIES.SAR;
+  const normalized = (currency || DEFAULT_CURRENCY).toUpperCase() as CurrencyCode;
+  const config = CURRENCIES[normalized] || fallbackCurrency;
   const multiplier = Math.pow(10, config.decimalPlaces);
   return Math.round(amount * multiplier);
 }
@@ -63,7 +51,8 @@ export function toMinor(amount: number, currency: string = "SAR"): number {
  * Convert from minor units (e.g., 10050 halalas) to major units (e.g., 100.50 SAR)
  */
 export function fromMinor(amount: number, currency: string = "SAR"): number {
-  const config = CURRENCIES[currency] || CURRENCIES.SAR;
+  const normalized = (currency || DEFAULT_CURRENCY).toUpperCase() as CurrencyCode;
+  const config = CURRENCIES[normalized] || fallbackCurrency;
   const divisor = Math.pow(10, config.decimalPlaces);
   return amount / divisor;
 }
@@ -85,8 +74,8 @@ export function fromMinor(amount: number, currency: string = "SAR"): number {
 export function applyFx(
   amount: number,
   fxRate: number,
-  sourceCurrency: string = "SAR",
-  targetCurrency: string = "SAR",
+  sourceCurrency: string = DEFAULT_CURRENCY,
+  targetCurrency: string = DEFAULT_CURRENCY,
 ): number {
   if (sourceCurrency === targetCurrency) return amount;
 
@@ -106,18 +95,18 @@ export function applyFx(
  */
 export function formatCurrency(
   amount: number,
-  currency: string = "SAR",
+  currency: string = DEFAULT_CURRENCY,
   locale: string = "ar-SA",
 ): string {
-  const config = CURRENCIES[currency] || CURRENCIES.SAR;
+  const normalized = (currency || DEFAULT_CURRENCY).toUpperCase() as CurrencyCode;
+  const config = CURRENCIES[normalized] || fallbackCurrency;
   const majorAmount = fromMinor(amount, currency);
 
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
+  return formatDisplayCurrency(majorAmount, {
     currency: config.code,
-    minimumFractionDigits: config.decimalPlaces,
-    maximumFractionDigits: config.decimalPlaces,
-  }).format(majorAmount);
+    locale,
+    decimals: config.decimalPlaces,
+  });
 }
 
 /**

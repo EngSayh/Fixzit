@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

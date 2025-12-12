@@ -26,6 +26,7 @@ import {
 import type { WorkOrder } from "@/types/fm";
 import { WOStatus } from "@/types/fm";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
+import type { Invoice as InvoiceType } from "@/types/invoice";
 
 interface User {
   name?: string;
@@ -52,9 +53,7 @@ interface Asset {
   status?: string;
 }
 
-interface Invoice {
-  total: number;
-}
+type Invoice = Pick<InvoiceType, "total">;
 
 // Frontend serialized version of WorkOrder (API returns id instead of _id)
 interface WorkOrderResponse extends Omit<WorkOrder, "_id"> {

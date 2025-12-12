@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { attemptLogin, fillLoginForm, getErrorLocator, loginSelectors } from './utils/auth';
+import { attemptLogin, fillLoginForm, getErrorLocator, loginSelectors } from './utils/auth-helpers';
 import {
   getRequiredTestCredentials,
   hasTestCredentials,

@@ -17,7 +17,7 @@ import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import ClientDate from "@/components/ClientDate";
 
 type StageStat = { stage: string; total: number };

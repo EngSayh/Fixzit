@@ -481,8 +481,11 @@ export const redisOtpSessionStore = {
 // ============================================================================
 
 // Cleanup interval for memory stores (fallback mode only)
+// Store interval ID for graceful shutdown support
+let memoryCleanupInterval: ReturnType<typeof setInterval> | null = null;
+
 if (typeof setInterval !== "undefined") {
-  setInterval(() => {
+  memoryCleanupInterval = setInterval(() => {
     const now = Date.now();
 
     // Cleanup expired OTPs from memory
@@ -506,4 +509,16 @@ if (typeof setInterval !== "undefined") {
       }
     }
   }, 10 * 60 * 1000); // 10 minutes
+}
+
+/**
+ * Stop the memory cleanup interval for graceful shutdown.
+ * Call this during server shutdown to prevent resource leaks.
+ */
+export function stopMemoryCleanup(): void {
+  if (memoryCleanupInterval) {
+    clearInterval(memoryCleanupInterval);
+    memoryCleanupInterval = null;
+    logger.info("[OTP Store] Memory cleanup interval stopped");
+  }
 }

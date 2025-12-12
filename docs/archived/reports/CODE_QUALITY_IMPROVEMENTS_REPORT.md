@@ -85,7 +85,7 @@ let twilioClient: ReturnType<typeof import("twilio")> | null = null;
 
 **Problem:** `org-guard-baseline.json` had minimal documentation  
 **Solution:** Added comprehensive implementation details  
-**File:** `configs/org-guard-baseline.json`
+**File:** `config/org-guard-baseline.json`
 
 **Added Fields:**
 

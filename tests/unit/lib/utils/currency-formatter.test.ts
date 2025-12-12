@@ -177,7 +177,7 @@ describe("Currency Formatter", () => {
       const info = getCurrencyInfo("SAR");
       expect(info).toBeDefined();
       expect(info?.code).toBe("SAR");
-      expect(info?.symbol).toBe("﷼");
+      expect(info?.symbol).toBe("ر.س");
     });
 
     it("should return info for USD", () => {
@@ -187,9 +187,10 @@ describe("Currency Formatter", () => {
       expect(info?.symbol).toBe("$");
     });
 
-    it("should return undefined for unknown currency", () => {
+    it("should fallback to SAR for unknown currency", () => {
       const info = getCurrencyInfo("XYZ");
-      expect(info).toBeUndefined();
+      expect(info).toBeDefined();
+      expect(info?.code).toBe("SAR"); // Falls back to default currency
     });
 
     it("should handle lowercase codes", () => {
@@ -250,8 +251,7 @@ describe("Currency Formatter", () => {
       Object.values(CURRENCIES).forEach((currency) => {
         expect(currency).toHaveProperty("code");
         expect(currency).toHaveProperty("symbol");
-        expect(currency).toHaveProperty("nameEn");
-        expect(currency).toHaveProperty("nameAr");
+        expect(currency).toHaveProperty("name");
         expect(currency).toHaveProperty("decimals");
       });
     });
@@ -264,8 +264,7 @@ describe("Currency Formatter", () => {
 
     it("should have non-empty names", () => {
       Object.values(CURRENCIES).forEach((currency) => {
-        expect(currency.nameEn.length).toBeGreaterThan(0);
-        expect(currency.nameAr.length).toBeGreaterThan(0);
+        expect(currency.name.length).toBeGreaterThan(0);
       });
     });
   });

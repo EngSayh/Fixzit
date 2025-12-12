@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { logger } from "@/lib/logger";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 // ============================================================================
 // INTERFACES
 // ============================================================================

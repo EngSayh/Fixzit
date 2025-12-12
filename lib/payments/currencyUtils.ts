@@ -1,10 +1,13 @@
-// Unified currency formatting utilities for consistent USD/AED handling
+// Unified currency formatting utilities for consistent multi-currency handling
+import { CURRENCY_MAP, DEFAULT_CURRENCY, type CurrencyCode } from "@/config/currencies";
+import {
+  formatCurrency as formatDisplayCurrency,
+  getCurrencyInfo,
+} from "@/lib/currency-formatter";
 import { logger } from "@/lib/logger";
-// Consolidates payment parsing logic across the application
-
 import { parseCartAmount, parseCartAmountOrThrow } from "./parseCartAmount";
 
-export type SupportedCurrency = "USD" | "AED" | "SAR" | "EUR" | "GBP";
+export type SupportedCurrency = CurrencyCode;
 
 export interface CurrencyConfig {
   code: SupportedCurrency;
@@ -16,61 +19,31 @@ export interface CurrencyConfig {
   decimalSeparator: string;
 }
 
-// Currency configurations for consistent formatting
-export const CURRENCY_CONFIGS: Record<SupportedCurrency, CurrencyConfig> = {
-  USD: {
-    code: "USD",
-    symbol: "$",
-    symbolPosition: "before",
-    locale: "en-US",
-    decimalDigits: 2,
-    thousandSeparator: ",",
-    decimalSeparator: ".",
-  },
-  AED: {
-    code: "AED",
-    symbol: "د.إ",
-    symbolPosition: "after",
-    locale: "ar-AE",
-    decimalDigits: 2,
-    thousandSeparator: ",",
-    decimalSeparator: ".",
-  },
-  SAR: {
-    code: "SAR",
-    symbol: "ر.س",
-    symbolPosition: "after",
-    locale: "ar-SA",
-    decimalDigits: 2,
-    thousandSeparator: ",",
-    decimalSeparator: ".",
-  },
-  EUR: {
-    code: "EUR",
-    symbol: "€",
-    symbolPosition: "after",
-    locale: "de-DE",
-    decimalDigits: 2,
-    thousandSeparator: ".",
-    decimalSeparator: ",",
-  },
-  GBP: {
-    code: "GBP",
-    symbol: "£",
-    symbolPosition: "before",
-    locale: "en-GB",
-    decimalDigits: 2,
-    thousandSeparator: ",",
-    decimalSeparator: ".",
-  },
-};
+// Currency configurations for consistent formatting derived from central config
+export const CURRENCY_CONFIGS: Record<SupportedCurrency, CurrencyConfig> =
+  Object.entries(CURRENCY_MAP).reduce(
+    (acc, [code, currency]) => {
+      const currencyCode = code as SupportedCurrency;
+      acc[currencyCode] = {
+        code: currencyCode,
+        symbol: currency.symbol,
+        symbolPosition: currency.symbolPosition ?? "after",
+        locale: currency.locale,
+        decimalDigits: currency.decimals ?? 2,
+        thousandSeparator: currency.thousandSeparator ?? ",",
+        decimalSeparator: currency.decimalSeparator ?? ".",
+      };
+      return acc;
+    },
+    {} as Record<SupportedCurrency, CurrencyConfig>,
+  );
 
 /**
  * Unified currency formatter that handles both USD and AED consistently
  */
 export function formatCurrency(
   amount: unknown,
-  currency: SupportedCurrency = "USD",
+  currency: SupportedCurrency = DEFAULT_CURRENCY,
   options: {
     showSymbol?: boolean;
     compact?: boolean;
@@ -79,63 +52,20 @@ export function formatCurrency(
 ): string {
   const { showSymbol = true, compact = false, fallback = "0.00" } = options;
 
-  // Parse the amount using our unified parser
   const parsedAmount = parseCartAmount(amount, 0);
 
   if (!Number.isFinite(parsedAmount)) {
     return fallback;
   }
 
-  const config = CURRENCY_CONFIGS[currency];
-  if (!config) {
-    // Fallback to USD if currency not supported
-    return formatCurrency(amount, "USD", options);
-  }
+  const formatted = formatDisplayCurrency(parsedAmount, {
+    currency,
+    showSymbol,
+    compact,
+    decimals: CURRENCY_CONFIGS[currency]?.decimalDigits,
+  });
 
-  try {
-    // Use Intl.NumberFormat for proper locale formatting
-    const numberFormat = new Intl.NumberFormat(config.locale, {
-      style: "currency",
-      currency: config.code,
-      minimumFractionDigits: compact ? 0 : config.decimalDigits,
-      maximumFractionDigits: config.decimalDigits,
-      ...(compact && parsedAmount >= 1000
-        ? {
-            notation: "compact",
-            compactDisplay: "short",
-          }
-        : {}),
-    });
-
-    let formatted = numberFormat.format(parsedAmount);
-
-    // Handle symbol display preference
-    if (!showSymbol) {
-      formatted = formatted.replace(config.symbol, "").trim();
-    }
-
-    return formatted;
-  } catch {
-    // Fallback to manual formatting if Intl fails
-    const formattedNumber = parsedAmount.toFixed(config.decimalDigits);
-    const parts = formattedNumber.split(".");
-
-    // Add thousand separators
-    parts[0] = parts[0].replace(
-      /\B(?=(\d{3})+(?!\d))/g,
-      config.thousandSeparator,
-    );
-
-    const number = parts.join(config.decimalSeparator);
-
-    if (!showSymbol) {
-      return number;
-    }
-
-    return config.symbolPosition === "before"
-      ? `${config.symbol} ${number}`
-      : `${number} ${config.symbol}`;
-  }
+  return formatted || fallback;
 }
 
 /**
@@ -204,15 +134,15 @@ export function convertCurrency(
  * Get currency symbol for a given currency code
  */
 export function getCurrencySymbol(currency: SupportedCurrency): string {
-  return CURRENCY_CONFIGS[currency]?.symbol || "$";
+  return getCurrencyInfo(currency).symbol || "$";
 }
 
 /**
  * Check if a currency uses RTL (right-to-left) display
  */
 export function isCurrencyRTL(currency: SupportedCurrency): boolean {
-  const rtlCurrencies: SupportedCurrency[] = ["AED", "SAR"];
-  return rtlCurrencies.includes(currency);
+  const locale = CURRENCY_CONFIGS[currency]?.locale || "";
+  return locale.startsWith("ar");
 }
 
 /**

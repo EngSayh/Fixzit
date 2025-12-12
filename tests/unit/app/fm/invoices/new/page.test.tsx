@@ -13,7 +13,7 @@ type SubmitHandler = (values: InvoiceFormValues, event?: Event) => Promise<void>
 
 let capturedSubmit: SubmitHandler | undefined;
 
-vi.mock('@/components/fm/useFmOrgGuard', () => ({
+vi.mock('@/hooks/fm/useFmOrgGuard', () => ({
   useFmOrgGuard: () => mockUseFmOrgGuard(),
 }));
 

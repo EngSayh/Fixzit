@@ -8036,9 +8036,9 @@ config/referrals.config.ts
 config/sidebarModules.ts
 config/signup.config.ts
 config/topbar-modules.ts
-configs/brand.tokens.json
-configs/fixzit.governance.yaml
-configs/sidebar.snapshot.json
+config/brand.tokens.json
+config/fixzit.governance.yaml
+config/sidebar.snapshot.json
 contexts/CurrencyContext.tsx
 contexts/FormStateContext.tsx
 contexts/ResponsiveContext.tsx

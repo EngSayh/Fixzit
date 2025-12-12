@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useFmOrgGuard } from "./useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import type { ModuleId } from "@/config/navigation";
 
 type GuardContext = ReturnType<typeof useFmOrgGuard>;

@@ -197,8 +197,8 @@ The entire system is ready. Just needs one click or command to go live.
 - `DEPLOYMENT_READY.md` - Configuration summary
 - `DEPLOYMENT_CHECKLIST.md` - Full deployment checklist
 - `URGENT_DEPLOYMENT_FIX.md` - MongoDB Atlas setup guide
-- `setup-vercel-env.sh` - Automated setup script
-- `quick-fix-deployment.sh` - Quick deployment script
+- `scripts/deployment/setup-vercel-env.sh` - Automated setup script
+- `scripts/deployment/quick-fix-deployment.sh` - Quick deployment script
 
 ---
 

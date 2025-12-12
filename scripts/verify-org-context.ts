@@ -8,7 +8,7 @@
  * 2. Translation dictionaries contain the org prompt keys for EN/AR.
  * 3. SupportOrgSwitcher API route files expose the required HTTP handlers.
  *
- * The script compares the current guard coverage with configs/org-guard-baseline.json
+ * The script compares the current guard coverage with config/org-guard-baseline.json
  * so we can fail builds only when NEW pages regress, while still reporting when
  * existing pages get upgraded (so the baseline can be trimmed).
  */
@@ -89,12 +89,12 @@ function evaluateGuardScopes(): GuardScopeState[] {
 function checkOrgGuards(): CheckResult {
   const baselinePath = path.join(
     PROJECT_ROOT,
-    "configs",
+    "config",
     "org-guard-baseline.json",
   );
   if (!fs.existsSync(baselinePath)) {
     fail(
-      "Missing configs/org-guard-baseline.json. Run the baseline generator script.",
+      "Missing config/org-guard-baseline.json. Run the baseline generator script.",
     );
   }
 
@@ -140,7 +140,7 @@ function checkOrgGuards(): CheckResult {
     );
     newMissing.forEach((file) => console.error(`   - ${file}`));
     console.error(
-      "\nUpdate the page(s) to include the org guard or extend configs/org-guard-baseline.json.",
+      "\nUpdate the page(s) to include the org guard or extend config/org-guard-baseline.json.",
     );
     return { ok: false, warnings: [] };
   }

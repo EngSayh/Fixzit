@@ -303,8 +303,8 @@ After deployment:
 3. `URGENT_DEPLOYMENT_FIX.md` - MongoDB Atlas setup guide
 4. `DEPLOYMENT_READY.md` - Configuration completion summary
 5. `FINAL_DEPLOYMENT_INSTRUCTIONS.md` - This file
-6. `setup-vercel-env.sh` - Automated environment setup script
-7. `quick-fix-deployment.sh` - Quick deployment script
+6. `scripts/deployment/setup-vercel-env.sh` - Automated environment setup script
+7. `scripts/deployment/quick-fix-deployment.sh` - Quick deployment script
 
 ---
 

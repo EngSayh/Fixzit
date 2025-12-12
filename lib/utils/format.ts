@@ -1,6 +1,6 @@
 import { logger } from "@/lib/logger";
 import type { Locale } from "@/i18n/config";
-export { formatCurrency } from "@/lib/payments/currencyUtils";
+export { formatCurrency } from "@/lib/currency-formatter";
 
 // Cache Intl formatters to avoid repeated allocations
 const numberFormatters = new Map<string, Intl.NumberFormat>();

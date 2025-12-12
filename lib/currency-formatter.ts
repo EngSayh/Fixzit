@@ -126,6 +126,51 @@ export function formatCurrencyEn(
   });
 }
 
+/**
+ * Format a price range (min-max) with currency
+ */
+export function formatPriceRange(
+  min: number,
+  max: number,
+  options: CurrencyFormatOptions = {},
+): string {
+  const formattedMin = formatCurrency(min, options);
+  const formattedMax = formatCurrency(max, options);
+  return `${formattedMin} - ${formattedMax}`;
+}
+
+/**
+ * Parse a formatted currency string back to a number
+ */
+export function parseCurrency(value: string): number {
+  if (!value || typeof value !== "string") {
+    return NaN;
+  }
+  // Remove currency symbols, spaces, and common separators
+  const cleaned = value
+    .replace(/[^\d.,-]/g, "") // Remove all non-numeric except ., - and ,
+    .replace(/,/g, ""); // Remove thousand separators
+  return parseFloat(cleaned);
+}
+
+/**
+ * Get list of all supported currency codes
+ */
+export function getSupportedCurrencies(): CurrencyCode[] {
+  return Object.keys(currencyInfoMap) as CurrencyCode[];
+}
+
+/**
+ * Check if a currency code is supported
+ */
+export function isSupportedCurrency(code: string): boolean {
+  if (!code || typeof code !== "string") {
+    return false;
+  }
+  const normalized = code.toUpperCase() as CurrencyCode;
+  return normalized in currencyInfoMap;
+}
+
 export const CURRENCIES = currencyInfoMap;
 export const SUPPORTED_CURRENCIES = Object.keys(currencyInfoMap) as CurrencyCode[];
 
@@ -133,6 +178,10 @@ export default {
   formatCurrency,
   formatCurrencyAr,
   formatCurrencyEn,
+  formatPriceRange,
+  parseCurrency,
+  getSupportedCurrencies,
+  isSupportedCurrency,
   CURRENCIES,
   SUPPORTED_CURRENCIES,
   getCurrencyInfo,

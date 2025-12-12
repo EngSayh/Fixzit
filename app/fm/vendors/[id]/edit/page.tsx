@@ -22,7 +22,7 @@ import {
   type UpdateVendorInput,
 } from "@/lib/validations/forms";
 import { z } from "zod";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 // ✅ FIX 1: Helper to convert empty strings to undefined for optional fields
 const getOptionalString = (value: string | File | null): string | undefined => {

@@ -34,7 +34,7 @@ import {
   Map,
 } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 import { logger } from "@/lib/logger";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";

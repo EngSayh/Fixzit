@@ -23,7 +23,7 @@ vi.mock("@/contexts/TranslationContext", () => ({
   }),
 }));
 
-vi.mock("@/components/fm/useFmOrgGuard", () => ({
+vi.mock("@/hooks/fm/useFmOrgGuard", () => ({
   useFmOrgGuard: () => mockUseFmOrgGuard(),
 }));
 

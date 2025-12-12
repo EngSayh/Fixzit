@@ -13,7 +13,7 @@ import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { Shield, Plus } from "lucide-react";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 const PERMISSIONS = [
   { id: "users:read", label: "View Users", category: "users" },

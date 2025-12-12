@@ -16,7 +16,7 @@
 | **File-Level Duplicates** | 🟡 Moderate | 3 org-scope utilities need consolidation |
 | **Function-Level Duplicates** | 🔴 High | 10+ formatCurrency implementations scattered |
 | **Inline toObjectId() Functions** | 🟠 Moderate | 5+ files define local toObjectId |
-| **Config Folder Split** | 🟢 Acceptable | config/ (runtime) vs configs/ (static JSON) |
+| **Config Folder Split** | 🟢 Resolved | Static JSON moved into `config/` alongside runtime config |
 | **Env Files** | 🟠 Overlap | env.example + .env.example at root |
 | **Build Artifacts** | 🟡 Cleanup Needed | Malformed tsconfig (1).tsbuildinfo |
 | **Backup Files** | 🟡 Cleanup Needed | 1 .backup file in tests/ |
