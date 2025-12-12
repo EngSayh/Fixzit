@@ -53,6 +53,7 @@ import type {
   CompliancePolicyStatus,
 } from "@/server/models/CompliancePolicy";
 import { UserRole, type UserRoleType } from "@/types/user";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const Statuses: CompliancePolicyStatus[] = [
   "DRAFT",
@@ -131,6 +132,7 @@ async function resolveUser(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "compliance:policies:list" });
   const user = await resolveUser(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

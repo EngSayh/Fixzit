@@ -32,10 +32,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const DEFAULT_LIMIT = 12;
 
 export async function GET(req: NextRequest) {
+  enforceRateLimit(req, { requests: 120, windowMs: 60_000, keyPrefix: "careers:public:jobs" });
   try {
     await connectToDatabase();
 

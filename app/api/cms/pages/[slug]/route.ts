@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { CmsPage } from "@/server/models/CmsPage";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { notFoundError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
@@ -28,6 +29,7 @@ export async function GET(
   _req: NextRequest,
   props: { params: Promise<{ slug: string }> },
 ) {
+  enforceRateLimit(_req, { requests: 120, windowMs: 60_000, keyPrefix: "cms:pages" });
   try {
     await connectToDatabase();
     const { slug } = await props.params;

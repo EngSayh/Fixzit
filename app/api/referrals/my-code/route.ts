@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { ReferralCodeModel } from "@/server/models/ReferralCode";
 import { connectDb } from "@/lib/mongo";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { logger } from "@/lib/logger";
 /**
@@ -17,6 +18,7 @@ import { logger } from "@/lib/logger";
  * Get current user's referral code and statistics with pagination
  */
 export async function GET(request: NextRequest) {
+  enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "referrals:my-code" });
   try {
     const session = await auth();
 

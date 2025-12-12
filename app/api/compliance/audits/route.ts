@@ -52,6 +52,7 @@ import type {
   AuditRiskLevel,
 } from "@/server/models/ComplianceAudit";
 import { UserRole, type UserRoleType } from "@/types/user";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const AuditStatuses: AuditStatus[] = [
   "PLANNED",
@@ -114,6 +115,7 @@ async function resolveUser(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "compliance:audits:list" });
   const user = await resolveUser(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

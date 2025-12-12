@@ -21,6 +21,7 @@ import { logger } from "@/lib/logger";
 import { auth } from "@/auth";
 import { createSecureResponse } from "@/server/security/headers";
 import { Types, type Model } from "mongoose";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/billing/history
@@ -29,6 +30,7 @@ import { Types, type Model } from "mongoose";
  * Supports both corporate (org-based) and owner (user-based) subscriptions.
  */
 export async function GET(req: NextRequest) {
+  enforceRateLimit(req, { requests: 30, windowMs: 60_000, keyPrefix: "billing:history" });
   try {
     // Authenticate user
     const session = await auth();

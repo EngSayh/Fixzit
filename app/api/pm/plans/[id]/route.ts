@@ -13,6 +13,7 @@ import { FMPMPlan } from "@/server/models/FMPMPlan";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse } from "@/server/security/headers";
 import { UserRole } from "@/types/user";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const PM_ALLOWED_ROLES = [
   UserRole.SUPER_ADMIN,
@@ -33,6 +34,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "pm:plans:get" });
   let orgId: string;
   try {
     const user = await getSessionUser(request);

@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";
 import { DOMAINS } from "@/lib/config/domains";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { createSecureResponse } from "@/server/security/headers";
 
@@ -24,7 +25,8 @@ export const dynamic = "force-dynamic";
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "feeds:linkedin" });
   try {
     // Check if ATS feeds are enabled
     if (process.env.ATS_ENABLED !== "true") {

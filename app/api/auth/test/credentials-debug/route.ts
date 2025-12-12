@@ -13,10 +13,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  enforceRateLimit(req, { requests: 10, windowMs: 60_000, keyPrefix: "auth:test:debug" });
   try {
     if (process.env.NODE_ENV === "production") {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });

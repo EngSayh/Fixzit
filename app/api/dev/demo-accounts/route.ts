@@ -9,10 +9,12 @@
  * @throws {404} If accessed in production environment
  * @security Passwords are NEVER included in response (only emails/types)
  */
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { logger } from "@/lib/logger";
-export async function GET() {
+export async function GET(request: NextRequest) {
+  enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "dev:demo-accounts" });
   // SECURITY: Demo accounts ONLY allowed in strict development mode
   // Historical context: ENABLED flag allowed production demo mode via env var
   // CRITICAL: This endpoint exposes test credentials and should NEVER be production-accessible

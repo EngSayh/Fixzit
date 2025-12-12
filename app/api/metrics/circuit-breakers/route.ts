@@ -15,6 +15,7 @@ import {
   getCircuitBreakerSummary,
 } from "@/lib/resilience/circuit-breaker-metrics";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,7 @@ function isAuthorized(request: NextRequest): boolean {
 }
 
 export async function GET(request: NextRequest) {
+  enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "metrics:circuit-breakers" });
   try {
     // Optional authentication
     if (!isAuthorized(request)) {

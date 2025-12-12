@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getAllCounters } from "@/lib/queries";
 import { logger } from "@/lib/logger";
 import { isTruthy } from "@/lib/utils/env";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/counters - Fetch live dashboard counters
@@ -13,7 +14,8 @@ import { isTruthy } from "@/lib/utils/env";
  *
  * Used by ClientSidebar for badge display and dashboard KPIs
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "counters" });
   try {
     // Offline/CI mode: avoid DB lookups to prevent 500s
     if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {

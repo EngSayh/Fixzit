@@ -29,11 +29,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { slug: string } },
 ) {
+  enforceRateLimit(req, { requests: 120, windowMs: 60_000, keyPrefix: "careers:public:job" });
   try {
     await connectToDatabase();
 

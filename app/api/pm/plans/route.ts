@@ -11,12 +11,14 @@ import { logger } from "@/lib/logger";
 import { FMPMPlan } from "@/server/models/FMPMPlan";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse } from "@/server/security/headers";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/pm/plans
  * List all PM plans with optional filters (tenant-scoped)
  */
 export async function GET(request: NextRequest) {
+  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "pm:plans:list" });
   let orgId: string;
   try {
     const user = await getSessionUser(request);

@@ -4,6 +4,7 @@ import { SupportTicket } from "@/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { Types } from "mongoose";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { createSecureResponse } from "@/server/security/headers";
 
@@ -34,6 +35,7 @@ export async function GET(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
+  enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "support:tickets:get" });
   try {
     await connectToDatabase();
     const { id } = await props.params;
