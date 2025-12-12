@@ -27,6 +27,7 @@ import {
 } from "@/lib/rbac/client-roles";
 import { AgentAuditLog } from "@/server/models/AgentAuditLog";
 import { inspectSchema, parseJsonBody, formatZodError, ensureValidObjectId } from "../validation";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * POST /api/souq/returns/inspect
@@ -34,6 +35,14 @@ import { inspectSchema, parseJsonBody, formatZodError, ensureValidObjectId } fro
  * Admin/Inspector-only endpoint
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for return inspection
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-returns:inspect",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   let userId: string | undefined;
   try {
     const session = await auth();

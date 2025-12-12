@@ -19,6 +19,7 @@ import { ratingAggregationService } from "@/services/souq/reviews/rating-aggrega
 import { connectDb } from "@/lib/mongodb-unified";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type RouteContext = {
   params: Promise<{
@@ -38,6 +39,14 @@ const productReviewFiltersSchema = z.object({
 });
 
 export async function GET(req: NextRequest, context: RouteContext) {
+  // Rate limiting: 120 requests per minute per IP for product reviews
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "souq-products:reviews",
+    requests: 120,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { id: productId } = await context.params;
     const connection = await connectDb();

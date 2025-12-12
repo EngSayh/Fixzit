@@ -16,6 +16,7 @@ import { getServerSession } from "@/lib/auth/getServerSession";
 import { fulfillmentService } from "@/services/souq/fulfillment-service";
 import { SouqListing } from "@/server/models/souq/Listing";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * POST /api/souq/fulfillment/assign-fast-badge
@@ -23,6 +24,14 @@ import { logger } from "@/lib/logger";
  * Admin-only endpoint (or background job)
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for fast badge assignment
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-fulfillment:assign-badge",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   let body: { listingId?: string; sellerId?: string; targetOrgId?: string } | undefined;
   try {
     const session = await getServerSession();

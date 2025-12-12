@@ -19,6 +19,7 @@
 
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { SouqListing } from "@/server/models/souq/Listing";
@@ -59,6 +60,14 @@ const listingCreateSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for listing creation
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-listings:create",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Authentication check
     const session = await getServerSession();
@@ -180,6 +189,14 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for listing reads
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-listings:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Authentication check
     const session = await getServerSession();

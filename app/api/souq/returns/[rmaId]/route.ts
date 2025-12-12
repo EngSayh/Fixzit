@@ -22,6 +22,7 @@ import {
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
 import mongoose from "mongoose";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/souq/returns/[rmaId]
@@ -32,6 +33,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { rmaId: string } },
 ) {
+  // Rate limiting: 60 requests per minute per IP for return details
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-returns:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

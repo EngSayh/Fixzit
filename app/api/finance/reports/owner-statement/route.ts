@@ -14,6 +14,7 @@
  * @throws {400} If ownerId is missing
  */
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { dbConnect } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
@@ -23,6 +24,17 @@ import { decimal128ToMinor } from "@/server/lib/money";
 import { Types } from "mongoose";
 import { logger } from "@/lib/logger";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError } from "@/server/utils/errorResponses";
+
+// ============================================================================
+// QUERY VALIDATION SCHEMA
+// ============================================================================
+
+const _OwnerStatementQuerySchema = z.object({
+  propertyId: z.string().min(1, "propertyId is required"),
+  from: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+  to: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+  format: z.enum(["json", "pdf", "excel"]).default("json"),
+});
 
 export async function GET(req: NextRequest) {
   try {

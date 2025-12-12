@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { CampaignService } from "@/services/souq/ads/campaign-service";
 import { createRbacContext, hasAnyRole } from "@/lib/rbac";
 import { UserRole, type UserRoleType } from "@/types/user";
@@ -43,9 +44,17 @@ const buildRbacContext = (user: {
  * Get campaign details
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  // Rate limiting: 60 requests per minute per IP for campaign reads
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-ads:get-campaign",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 
@@ -115,6 +124,14 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  // Rate limiting: 30 requests per minute per IP for campaign updates
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-ads:update-campaign",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 
@@ -208,9 +225,17 @@ export async function PUT(
  * Delete campaign
  */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  // Rate limiting: 20 requests per minute per IP for campaign deletion
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-ads:delete-campaign",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

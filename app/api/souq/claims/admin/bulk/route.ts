@@ -25,6 +25,7 @@ import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import { isValidObjectId } from "@/lib/utils/objectid";
 import { Role } from "@/lib/rbac/client-roles";
 import { buildOrgScopeFilter } from "@/services/souq/org-scope";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const ELIGIBLE_STATUSES = [
   "submitted",
@@ -48,6 +49,14 @@ const ELIGIBLE_STATUSES = [
  * @security Requires admin role
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 10 requests per minute per IP for bulk claim operations
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-claims:admin-bulk",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

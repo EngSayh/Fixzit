@@ -19,6 +19,7 @@ import { connectDb } from "@/lib/mongo";
 import { logger } from "@/lib/logger";
 import { SouqClaim } from "@/server/models/souq/Claim";
 import { User } from "@/server/models/User";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type ClaimLean = {
   buyerEvidence?: unknown[];
@@ -264,6 +265,14 @@ function generateRecommendation(
  * @security Requires admin role
  */
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for claims review listing
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-claims:admin-review",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

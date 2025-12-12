@@ -12,6 +12,7 @@
  * @throws {403} If lacking report permission
  */
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { dbConnect } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
@@ -22,6 +23,17 @@ import { Types } from "mongoose";
 import { logger } from "@/lib/logger";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+
+// ============================================================================
+// QUERY VALIDATION SCHEMA
+// ============================================================================
+
+const _IncomeStatementQuerySchema = z.object({
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
+  from: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+  to: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+  format: z.enum(["json", "pdf", "excel"]).default("json"),
+});
 
 export async function GET(req: NextRequest) {
   // Rate limiting: 30 requests per minute per IP for report generation

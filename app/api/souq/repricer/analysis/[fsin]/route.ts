@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { AutoRepricerService } from "@/services/souq/auto-repricer-service";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 interface RouteContext {
   params: Promise<{ fsin: string }>;
@@ -23,6 +24,14 @@ interface RouteContext {
  * Get competitor price analysis for a product
  */
 export async function GET(request: NextRequest, context: RouteContext) {
+  // Rate limiting: 60 requests per minute per IP for competitor analysis
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-repricer:analysis",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

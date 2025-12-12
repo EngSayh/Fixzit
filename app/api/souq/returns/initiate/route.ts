@@ -17,6 +17,7 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { returnsService } from "@/services/souq/returns-service";
 import { initiateSchema, parseJsonBody, formatZodError } from "../validation";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * POST /api/souq/returns/initiate
@@ -24,6 +25,14 @@ import { initiateSchema, parseJsonBody, formatZodError } from "../validation";
  * Buyer-only endpoint
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 10 requests per minute per IP for return initiation
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-returns:initiate",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

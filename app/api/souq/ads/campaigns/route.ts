@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { CampaignService } from "@/services/souq/ads/campaign-service";
 import { createRbacContext, hasAnyRole } from "@/lib/rbac";
 import { UserRole, type UserRoleType } from "@/types/user";
@@ -42,6 +43,14 @@ const buildRbacContext = (user: {
  * Create new ad campaign
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for campaign creation
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-ads:create-campaign",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

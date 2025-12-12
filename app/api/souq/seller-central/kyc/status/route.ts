@@ -12,12 +12,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { sellerKYCService } from "@/services/souq/seller-kyc-service";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/souq/seller-central/kyc/status
  * Get KYC status for current seller
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for KYC status check
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-kyc:status",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

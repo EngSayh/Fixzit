@@ -21,6 +21,7 @@ import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import { buildOrgScopeFilter } from "@/services/souq/org-scope";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 interface CounterEvidenceEntry {
   type?: string;
@@ -35,6 +36,14 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  // Rate limiting: 20 requests per minute per IP for claim decisions
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-claims:decision",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await resolveRequestSession(request);
     const userOrgId = session?.user?.orgId;

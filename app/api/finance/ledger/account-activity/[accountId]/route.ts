@@ -13,6 +13,7 @@
  * @throws {404} If account not found
  */
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
@@ -32,6 +33,18 @@ interface LedgerEntryDocument {
 }
 
 import { logger } from "@/lib/logger";
+
+// ============================================================================
+// QUERY VALIDATION SCHEMA
+// ============================================================================
+
+const _AccountActivityQuerySchema = z.object({
+  startDate: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+  endDate: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(50),
+});
+
 // ============================================================================
 // HELPER: Get User Session
 // ============================================================================

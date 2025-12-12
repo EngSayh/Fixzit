@@ -13,12 +13,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { accountHealthService } from "@/services/souq/account-health-service";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/souq/seller-central/health/summary
  * Get comprehensive account health summary with trends and recommendations
  */
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for health summary
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-seller-health:summary",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

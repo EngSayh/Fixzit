@@ -10,10 +10,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { returnsService } from "@/services/souq/returns-service";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 export async function GET(
   request: NextRequest,
   { params }: { params: { orderId: string; listingId: string } },
 ) {
+  // Rate limiting: 60 requests per minute per IP for eligibility checks
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-returns:eligibility",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

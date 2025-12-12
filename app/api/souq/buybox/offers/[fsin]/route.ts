@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BuyBoxService } from "@/services/souq/buybox-service";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 interface RouteContext {
   params: Promise<{ fsin: string }>;
@@ -24,6 +25,14 @@ interface RouteContext {
  * Get all offers for a product (for "Other Sellers" section)
  */
 export async function GET(request: NextRequest, context: RouteContext) {
+  // Rate limiting: 120 requests per minute per IP for product offers
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-buybox:offers",
+    requests: 120,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { fsin } = await context.params;
     const { searchParams } = new URL(request.url);

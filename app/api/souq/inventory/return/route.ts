@@ -27,6 +27,7 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
   const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
@@ -46,6 +47,14 @@ const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
  * Process return (RMA) and restock inventory
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for return processing
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-inventory:return",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

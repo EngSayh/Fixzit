@@ -10,6 +10,7 @@
  * @throws {403} If lacking FINANCE permission
  */
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
@@ -23,6 +24,16 @@ import { decimal128ToMinor } from "@/server/lib/money";
 import { Types } from "mongoose";
 
 import { logger } from "@/lib/logger";
+
+// ============================================================================
+// QUERY VALIDATION SCHEMA
+// ============================================================================
+
+const _TrialBalanceQuerySchema = z.object({
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
+  asOf: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+});
+
 // ============================================================================
 // HELPER: Get User Session
 // ============================================================================

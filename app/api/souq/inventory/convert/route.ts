@@ -26,6 +26,7 @@ import {
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
 import mongoose from "mongoose";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
   const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
@@ -45,6 +46,14 @@ const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
  * Convert reservation to sale (order confirmed)
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for inventory conversion
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-inventory:convert",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   let userId: string | undefined;
   try {
     const session = await auth();

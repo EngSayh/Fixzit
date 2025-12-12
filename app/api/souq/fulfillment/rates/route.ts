@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/getServerSession";
 import { fulfillmentService } from "@/services/souq/fulfillment-service";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * POST /api/souq/fulfillment/rates
@@ -24,6 +25,14 @@ import { logger } from "@/lib/logger";
  * Seller and admin access
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for shipping rate queries
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-fulfillment:rates",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await getServerSession();
     if (!session?.user?.id) {

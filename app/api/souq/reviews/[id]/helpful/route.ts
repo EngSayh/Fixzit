@@ -19,6 +19,7 @@ import { connectDb } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { z } from "zod";
 import { ObjectId } from "mongodb";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type RouteContext = {
   params: Promise<{
@@ -33,6 +34,14 @@ const helpfulActionSchema = z
   .default({ action: "helpful" });
 
 export async function POST(req: NextRequest, context: RouteContext) {
+  // Rate limiting: 30 requests per minute per IP for helpful votes
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "souq-reviews:helpful",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user) {

@@ -13,12 +13,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { analyticsService } from "@/services/souq/analytics/analytics-service";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/souq/analytics/traffic
  * Get traffic and engagement analytics for seller
  */
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for traffic analytics
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-analytics:traffic",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

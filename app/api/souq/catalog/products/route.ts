@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { generateFSIN } from "@/lib/souq/fsin-generator";
 import { SouqProduct } from "@/server/models/souq/Product";
 import { SouqCategory } from "@/server/models/souq/Category";
@@ -70,6 +71,14 @@ const CreateProductSchema = z.object({
  * Create new product with auto-generated FSIN
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for product creation
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-catalog:create-product",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   let orgId: string | undefined;
   try {
     // Authentication check
@@ -301,6 +310,14 @@ export async function POST(request: NextRequest) {
  * List products (seller-scoped or admin view)
  */
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for product listing
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-catalog:list-products",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await getServerSession();
     if (!session?.user?.orgId) {
