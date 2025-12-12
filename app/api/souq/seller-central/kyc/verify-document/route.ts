@@ -16,7 +16,17 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+
 export async function POST(request: NextRequest) {
+  // Rate limiting: 10 requests per minute per IP for document verification (sensitive action)
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-kyc:verify-document",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {
