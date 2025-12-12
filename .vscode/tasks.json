@@ -226,6 +226,66 @@
 			"label": "Final Commit",
 			"type": "shell",
 			"command": "git add -A && git commit --no-verify -m 'chore: Update tasks.json and billing tests' && git push origin HEAD 2>&1 | tail -10"
+		},
+		{
+			"label": "Final Status",
+			"type": "shell",
+			"command": "git log --oneline -4 && echo '---' && git status -s && echo '---' && git remote -v | head -2"
+		},
+		{
+			"label": "Push Final",
+			"type": "shell",
+			"command": "git push origin HEAD 2>&1 | tail -15"
+		},
+		{
+			"label": "Check PRs",
+			"type": "shell",
+			"command": "gh pr list --state open --limit 5 2>&1"
+		},
+		{
+			"label": "List PRs JSON",
+			"type": "shell",
+			"command": "gh pr list --state open --limit 5 --json number,title 2>&1 | head -20"
+		},
+		{
+			"label": "Update PR 534",
+			"type": "shell",
+			"command": "gh pr edit 534 --title 'fix(security): XSS hardening + P0 critical fixes + PENDING_MASTER v14.9' --body '## Summary\n\nP0 security fixes for XSS vulnerabilities, BUG-009 localhost fallback removal, and PENDING_MASTER update to v14.9 with DOC-001/DOC-002 verification.\n\n## Security Fixes (P0)\n\n| ID | File | Fix |\n|---|---|---|\n| SEC-001 | `public/app.js` | Added `escapeHtml()` for KPI rendering |\n| SEC-002 | `public/prayer-times.js` | Added `escapeHtmlPrayer()` for prayer time display |\n| SEC-003 | `public/search.html` | **CRITICAL** - XSS fix for user input in innerHTML |\n\n## Bug Fixes\n\n- **BUG-009**: Removed dangerous localhost:3000 fallback in `services/souq/returns-service.ts`\n\n## New Utilities\n\n- Created `lib/api/parse-body.ts` for safe JSON body parsing\n- Added 52 billing route tests\n\n## Documentation\n\n- Updated `PENDING_MASTER.md` to v14.9\n- **DOC-001**: CLOSED (single source of truth pattern is correct)\n- **DOC-002**: CLOSED (README already modernized with all required sections)\n\n## Verification\n\n- [x] `pnpm typecheck` - 0 errors\n- [x] `pnpm lint` - 0 errors\n- [x] Pre-push hooks pass\n\n## Remaining Items\n\n| Category | Count | Items |\n|----------|-------|-------|\n| User Actions | 2 | HIGH-002 (payment keys), QUOTA-001 (GitHub billing) |\n| DevOps/DBA | 3 | OBS-DB, PERF-001, PERF-002 |'"
+		},
+		{
+			"label": "View PR 534",
+			"type": "shell",
+			"command": "gh pr view 534 --json title,state,url 2>&1 | head -5"
+		},
+		{
+			"label": "Count Tests",
+			"type": "shell",
+			"command": "find tests -name '*.test.ts' 2>/dev/null | wc -l && echo 'API Routes:' && find app/api -type d 2>/dev/null | wc -l && echo 'Test Coverage Files:' && ls tests/ 2>/dev/null | head -20"
+		},
+		{
+			"label": "API Coverage",
+			"type": "shell",
+			"command": "echo 'Test files:' && find tests -name '*.test.ts' 2>/dev/null | wc -l && echo 'API route dirs:' && find app/api -type d 2>/dev/null | wc -l && echo 'Untested API routes (no corresponding test):' && for dir in app/api/billing app/api/finance app/api/hr app/api/souq; do echo \"$dir: $(ls -d $dir/*/ 2>/dev/null | wc -l) subdirs\"; done"
+		},
+		{
+			"label": "JSON Parse Check",
+			"type": "shell",
+			"command": "echo '=== request.json() without try-catch ===' && grep -r 'await request.json()' app/api --include='*.ts' 2>/dev/null | grep -v '.catch' | grep -v 'try' | wc -l && echo '=== Potential missing error handling ===' && grep -rn 'await request.json()' app/api --include='*.ts' 2>/dev/null | head -15"
+		},
+		{
+			"label": "Parse Body Usage",
+			"type": "shell",
+			"command": "echo '=== API routes with request.json() ===' && grep -rn 'await request.json()' app/api --include='*.ts' 2>/dev/null | wc -l && echo '=== Using parseBody utility ===' && grep -rn 'parseBody\\|parseBodyOrNull' app/api --include='*.ts' 2>/dev/null | wc -l && echo '=== Using .catch() ===' && grep -rn 'request.json().catch' app/api --include='*.ts' 2>/dev/null | wc -l"
+		},
+		{
+			"label": "Env and URL Check",
+			"type": "shell",
+			"command": "echo '=== Env var direct access (potential issues) ===' && grep -rn 'process.env\\.' lib app components services --include='*.ts' 2>/dev/null | grep -v 'process.env.NODE_ENV' | grep -v '//' | head -20 && echo '=== Hardcoded URLs ===' && grep -rn 'localhost:' app lib services --include='*.ts' 2>/dev/null | grep -v test | grep -v '.test.' | head -10"
+		},
+		{
+			"label": "Code Quality Check",
+			"type": "shell",
+			"command": "echo '=== Missing return type annotations ===' && grep -rn 'async function\\|async (' app/api --include='*.ts' 2>/dev/null | grep -v ': Promise' | head -15 && echo '' && echo '=== Potential memory leaks (setInterval without cleanup) ===' && grep -rn 'setInterval' app components lib --include='*.ts' --include='*.tsx' 2>/dev/null | grep -v test | head -10"
 		}
 	]
 }
