@@ -14,12 +14,13 @@ import { auth } from "@/auth";
 // This endpoint shows which env vars are configured (but not their values for security)
 // SECURITY: Restricted to Super Admins only
 export async function GET() {
-  // Check authentication
-  const session = await auth();
-  if (!session?.user?.isSuperAdmin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const envVars = {
+  try {
+    // Check authentication
+    const session = await auth();
+    if (!session?.user?.isSuperAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const envVars = {
     // Core Authentication
     MONGODB_URI: !!process.env.MONGODB_URI,
     NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
@@ -159,4 +160,7 @@ export async function GET() {
     },
     variables: envVars,
   });
+  } catch (_error) {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

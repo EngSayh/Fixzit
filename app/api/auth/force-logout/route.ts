@@ -15,46 +15,50 @@ function _isIp(hostname: string): boolean {
   return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
 }
 export async function POST(req: NextRequest) {
-  const url = req.nextUrl;
-  const host = url.hostname;
-  const isHttps = url.protocol === 'https:';
+  try {
+    const url = req.nextUrl;
+    const host = url.hostname;
+    const isHttps = url.protocol === 'https:';
 
-  const cookieNames = [
-    'authjs.session-token',
-    '__Secure-authjs.session-token',
-    'next-auth.session-token',
-    '__Secure-next-auth.session-token',
-    'authjs.callback-url',
-    'next-auth.callback-url',
-    'authjs.csrf-token',
-    'next-auth.csrf-token',
-    'fxz.access',
-    'fxz.refresh',
-    'fxz.otp',
-  ];
+    const cookieNames = [
+      'authjs.session-token',
+      '__Secure-authjs.session-token',
+      'next-auth.session-token',
+      '__Secure-next-auth.session-token',
+      'authjs.callback-url',
+      'next-auth.callback-url',
+      'authjs.csrf-token',
+      'next-auth.csrf-token',
+      'fxz.access',
+      'fxz.refresh',
+      'fxz.otp',
+    ];
 
-  const response = NextResponse.json({ ok: true });
-  const expires = new Date(0);
+    const response = NextResponse.json({ ok: true });
+    const expires = new Date(0);
 
-  const domains = [undefined, host].filter(Boolean) as (string | undefined)[];
+    const domains = [undefined, host].filter(Boolean) as (string | undefined)[];
 
-  for (const name of cookieNames) {
-    const secure = name.startsWith('__Secure-') || isHttps;
-    const baseOptions = {
-      path: '/',
-      httpOnly: true,
-      sameSite: 'lax' as const,
-      secure,
-      expires,
-    };
+    for (const name of cookieNames) {
+      const secure = name.startsWith('__Secure-') || isHttps;
+      const baseOptions = {
+        path: '/',
+        httpOnly: true,
+        sameSite: 'lax' as const,
+        secure,
+        expires,
+      };
 
-    for (const domain of domains) {
-      response.cookies.set(name, '', {
-        ...baseOptions,
-        ...(domain ? { domain } : {}),
-      });
+      for (const domain of domains) {
+        response.cookies.set(name, '', {
+          ...baseOptions,
+          ...(domain ? { domain } : {}),
+        });
+      }
     }
-  }
 
-  return response;
+    return response;
+  } catch (_error) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

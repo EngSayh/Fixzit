@@ -219,7 +219,6 @@ BookingSchema.pre('save', function(next) {
       const value = doc[key];
       if (value && !isEncrypted(value)) {
         const encrypted = encryptField(value, `booking.${field}`);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (doc as Record<BookingEncryptedField, string | undefined>)[key] = encrypted ?? undefined;
         logger.info('booking:pii_encrypted', {
           action: 'pre_save_encrypt',

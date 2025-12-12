@@ -25,10 +25,11 @@ type VerifyRequestBody = {
   locale?: "en" | "ar";
 };
 export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => ({}))) as VerifyRequestBody;
-  if (!body.email) {
-    return NextResponse.json({ error: "email is required" }, { status: 400 });
-  }
+  try {
+    const body = (await req.json().catch(() => ({}))) as VerifyRequestBody;
+    if (!body.email) {
+      return NextResponse.json({ error: "email is required" }, { status: 400 });
+    }
   // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
   // MUST align with auth.config.ts to prevent environment drift
   const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
@@ -184,4 +185,8 @@ export async function POST(req: NextRequest) {
     { error: "Failed to send verification email. Please try again." },
     { status: 500 }
   );
+  } catch (_error) {
+    logger.error("[auth/verify/send] Unexpected error", { error: String(_error) });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

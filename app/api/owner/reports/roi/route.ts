@@ -17,9 +17,19 @@ import {
   getStandardPeriods,
   type AnalyticsPeriod,
 } from "@/server/services/owner/analytics";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 export async function GET(req: NextRequest) {
   try {
+    // Rate limiting: 20 requests per minute per IP (heavy analytics)
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(`owner:roi:${clientIp}`, 20, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     // Check subscription - requires PRO plan with ROI analytics feature
     const subCheck = await requireSubscription(req, {
       requirePlan: "PRO",
