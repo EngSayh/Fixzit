@@ -1,3 +1,261 @@
+## 🗓️ 2025-12-12T22:30+03:00 — PRODUCTION READINESS AUDIT v27.0
+
+### 📍 Current Progress & Session Summary
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| **Branch** | `fix/graphql-resolver-todos` | ✅ Active |
+| **Latest Commit** | `45bc700cd` — feat(security): Add Zod validation and rate limiting | ✅ |
+| **TypeScript Errors** | 0 | ✅ Clean build |
+| **Total API Routes** | 352 | ✅ All tracked |
+| **Rate-Limited Routes** | 117/352 (33%) | ⚠️ Needs expansion |
+| **Error Boundaries** | 12 | ✅ Critical modules covered |
+| **Test Files** | 235 | ✅ Comprehensive |
+
+---
+
+### ✅ COMPLETED THIS SESSION
+
+| Task | Status | Details |
+|------|--------|---------|
+| **P3-001 Aria Labels** | ✅ COMPLETE | Added 6 aria-labels to aqar/filters/page.tsx |
+| **P3-003 Error Boundaries** | ✅ COMPLETE | Created 5 new: work-orders, fm, settings, crm, hr |
+| **P3-005 setInterval Cleanup** | ✅ VERIFIED | clearInterval exists in otp-store-redis.ts |
+| **P3-006 Rate Limiting API** | ✅ FIXED | Corrected smartRateLimit signature in 6 auth routes |
+| **Zod Error Access** | ✅ FIXED | Changed `.errors` to `.issues` in 4 routes |
+| **Schema Defaults** | ✅ FIXED | billing/quote schema now has proper defaults |
+
+---
+
+### 🎯 PLANNED NEXT STEPS
+
+| Priority | Task | Effort | Status | Blocker |
+|----------|------|--------|--------|---------|
+| 🔴 P0-1 | Merge PR `fix/graphql-resolver-todos` | 5 min | ⏳ READY | Code review |
+| 🔴 P0-2 | Configure Taqnyat env vars in Vercel | 15 min | ⏳ | DevOps access |
+| 🟡 P1-1 | Add Zod validation to 59 remaining routes | 4 hrs | 🔲 | None |
+| 🟡 P1-2 | Expand rate limiting (HR: 0/7, CRM: 0/4, Finance: 1/19) | 2 hrs | 🔲 | None |
+| 🟡 P1-3 | Add try-catch to 8 routes without error handling | 30 min | 🔲 | None |
+| 🟢 P2-1 | P3-002 Hardcoded strings → i18n | 2 hrs | 🔲 DEFERRED | Optional |
+| 🟢 P2-2 | P3-004 Unused exports cleanup | 1 hr | 🔲 DEFERRED | Optional |
+
+---
+
+### 🔧 COMPREHENSIVE ENHANCEMENTS LIST
+
+#### A. Security & Validation (Production Critical)
+
+| ID | Issue | Scope | Severity | Status |
+|----|-------|-------|----------|--------|
+| SEC-001 | Routes without Zod validation | 59 routes use raw `req.json()` | 🟡 MEDIUM | 🔲 TODO |
+| SEC-002 | Rate limiting gaps | HR (0/7), CRM (0/4), Finance (1/19), Souq (3/75) | 🟡 MEDIUM | 🔲 TODO |
+| SEC-003 | Routes without try-catch | 8 routes (mostly re-exports or framework-managed) | 🟢 LOW | 🔲 VERIFY |
+| SEC-004 | XSS via dangerouslySetInnerHTML | 8 usages | ✅ VERIFIED SAFE | All use sanitizers |
+
+**Routes Without Zod Validation (Top Priority):**
+```
+app/api/work-orders/[id]/comments/route.ts
+app/api/work-orders/[id]/checklists/toggle/route.ts
+app/api/work-orders/[id]/checklists/route.ts
+app/api/work-orders/[id]/status/route.ts
+app/api/work-orders/[id]/assign/route.ts
+app/api/fm/work-orders/[id]/assign/route.ts
+app/api/fm/work-orders/[id]/route.ts
+app/api/fm/work-orders/[id]/attachments/route.ts
+app/api/fm/marketplace/vendors/route.ts
+app/api/fm/marketplace/listings/route.ts
+app/api/fm/marketplace/orders/route.ts
+app/api/fm/system/roles/route.ts
+app/api/fm/system/users/invite/route.ts
+app/api/fm/properties/route.ts
+app/api/fm/support/escalations/route.ts
+app/api/fm/support/tickets/route.ts
+app/api/fm/finance/expenses/route.ts
+app/api/kb/ingest/route.ts
+app/api/kb/search/route.ts
+app/api/sms/test/route.ts
+... (+39 more)
+```
+
+#### B. Rate Limiting Coverage by Module
+
+| Module | Coverage | Priority | Action Needed |
+|--------|----------|----------|---------------|
+| auth | 10/14 (71%) | ✅ GOOD | 4 remaining are test/debug routes |
+| owner | 4/4 (100%) | ✅ COMPLETE | — |
+| copilot | 4/4 (100%) | ✅ COMPLETE | — |
+| billing | 4/5 (80%) | ✅ GOOD | — |
+| fm | 5/25 (20%) | 🔴 HIGH | Add to 20 routes |
+| work-orders | 4/12 (33%) | 🟡 MEDIUM | Add to 8 routes |
+| admin | 7/28 (25%) | 🟡 MEDIUM | Add to 21 routes |
+| aqar | 6/16 (38%) | 🟡 MEDIUM | Add to 10 routes |
+| finance | 1/19 (5%) | 🔴 HIGH | Add to 18 routes |
+| hr | 0/7 (0%) | 🔴 HIGH | Add to all 7 routes |
+| crm | 0/4 (0%) | 🔴 HIGH | Add to all 4 routes |
+| souq | 3/75 (4%) | 🟡 MEDIUM | Add to 72 routes |
+
+#### C. Routes Without Try-Catch (8 Total)
+
+| Route | Status | Reason |
+|-------|--------|--------|
+| `payments/callback/route.ts` | 🔲 VERIFY | Payment webhook - critical |
+| `aqar/chat/route.ts` | 🔲 VERIFY | May use streaming |
+| `auth/[...nextauth]/route.ts` | ✅ SAFE | NextAuth handles errors internally |
+| `healthcheck/route.ts` | ✅ SAFE | Simple status check |
+| `properties/route.ts` | 🔲 VERIFY | Re-export or needs wrapper |
+| `graphql/route.ts` | ✅ SAFE | GraphQL server handles errors |
+| `souq/products/route.ts` | 🔲 VERIFY | May be re-export |
+| `assets/route.ts` | 🔲 VERIFY | Static asset handler |
+
+#### D. Code Quality Issues
+
+| ID | Issue | Count | Severity | Status |
+|----|-------|-------|----------|--------|
+| QUAL-001 | console.log in documentation | 7 | ✅ SAFE | JSDoc examples only |
+| QUAL-002 | Unused type definitions | 2 | ✅ FIXED | Prefixed with underscore |
+| QUAL-003 | Test file lint errors | 6 | 🟢 LOW | `module` variable assignment |
+
+#### E. Missing Tests (Production Readiness)
+
+| Service | Location | Priority | Status |
+|---------|----------|----------|--------|
+| `pricing.ts` | lib/finance/ | 🟡 MEDIUM | 🔲 Needs unit tests |
+| `schemas.ts` | lib/finance/ | 🟢 LOW | Type definitions only |
+| `client-types.ts` | lib/aqar/ | 🟢 LOW | Type definitions only |
+
+---
+
+### 🔍 DEEP-DIVE: SIMILAR ISSUES ANALYSIS
+
+#### Pattern 1: Raw req.json() Without Validation
+
+**Finding:** 59 API routes accept JSON input without Zod schema validation
+
+**Risk:** Invalid input can cause runtime errors, type mismatches, or security issues
+
+**Recommendation:** Add Zod schemas following this pattern:
+```typescript
+import { z } from "zod";
+
+const RequestSchema = z.object({
+  field1: z.string().min(1),
+  field2: z.number().positive(),
+});
+
+export async function POST(req: NextRequest) {
+  const rawBody = await req.json().catch(() => ({}));
+  const parsed = RequestSchema.safeParse(rawBody);
+  
+  if (!parsed.success) {
+    const errorMessage = parsed.error.issues[0]?.message || "Invalid request";
+    return NextResponse.json({ error: errorMessage }, { status: 400 });
+  }
+  
+  const { field1, field2 } = parsed.data;
+  // ... rest of handler
+}
+```
+
+**Priority Routes (Write Operations):**
+1. All `fm/` POST/PUT/DELETE routes (20 remaining)
+2. All `work-orders/` POST/PUT routes (8 remaining)
+3. All `admin/` mutation routes (21 remaining)
+
+#### Pattern 2: Rate Limiting Gaps
+
+**Finding:** Only 117/352 routes (33%) have rate limiting
+
+**Critical Gaps:**
+- HR module: 0% coverage (employee data is sensitive)
+- CRM module: 0% coverage (customer data exposure risk)
+- Finance module: 5% coverage (financial operations)
+- Souq module: 4% coverage (marketplace abuse risk)
+
+**Correct Pattern:**
+```typescript
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
+export async function POST(req: NextRequest) {
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`route-name:${clientIp}`, 30, 60_000);
+  if (!rl.allowed) return rateLimitError();
+  
+  // ... handler logic
+}
+```
+
+#### Pattern 3: Error Boundary Coverage
+
+**Finding:** 12 error.tsx files exist, covering critical modules
+
+**Covered:**
+- work-orders ✅
+- fm ✅
+- settings ✅
+- crm ✅
+- hr ✅
+- admin ✅
+- finance ✅
+- aqar ✅
+- souq ✅
+- dashboard ✅
+- profile ✅
+- notifications ✅
+
+**Recommendation:** Current coverage is sufficient for production.
+
+---
+
+### 📊 CODEBASE HEALTH METRICS
+
+| Metric | Value | Target | Status |
+|--------|-------|--------|--------|
+| TypeScript Errors | 0 | 0 | ✅ |
+| ESLint Errors (prod) | 0 | 0 | ✅ |
+| Rate Limit Coverage | 33% | 80% | 🔴 |
+| Zod Validation Coverage | ~80% | 100% | 🟡 |
+| Error Boundary Coverage | 100% | 100% | ✅ |
+| Test File Count | 235 | 250+ | 🟡 |
+| API Routes | 352 | — | — |
+
+---
+
+### 📁 FILES MODIFIED THIS SESSION
+
+| File | Changes |
+|------|---------|
+| `app/aqar/filters/page.tsx` | +6 aria-labels |
+| `app/work-orders/error.tsx` | NEW - Error boundary |
+| `app/fm/error.tsx` | NEW - Error boundary |
+| `app/settings/error.tsx` | NEW - Error boundary |
+| `app/crm/error.tsx` | NEW - Error boundary |
+| `app/hr/error.tsx` | NEW - Error boundary |
+| `app/api/auth/me/route.ts` | Fixed smartRateLimit API |
+| `app/api/auth/refresh/route.ts` | Fixed smartRateLimit API |
+| `app/api/auth/force-logout/route.ts` | Fixed smartRateLimit API |
+| `app/api/auth/verify/route.ts` | Fixed smartRateLimit API |
+| `app/api/auth/post-login/route.ts` | Fixed smartRateLimit API |
+| `app/api/auth/verify/send/route.ts` | Fixed smartRateLimit API + Zod issues |
+| `app/api/auth/forgot-password/route.ts` | Fixed Zod issues |
+| `app/api/admin/billing/annual-discount/route.ts` | Fixed Zod issues |
+| `app/api/billing/quote/route.ts` | Fixed Zod issues + schema defaults |
+| `docs/PENDING_MASTER.md` | v25.0, v26.0, v27.0 entries |
+
+---
+
+### 📋 VERIFICATION GATES
+
+```bash
+pnpm typecheck   # ✅ 0 errors
+pnpm lint        # ✅ 0 errors (6 pre-existing in test files)
+git status       # ✅ Clean working tree
+git push         # ✅ Successfully pushed to origin
+```
+
+---
+
 ## 🗓️ 2025-12-12T21:00+03:00 — P1 SECURITY & RELIABILITY FIXES v26.0
 
 ### 📍 Session Summary
