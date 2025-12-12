@@ -206,18 +206,12 @@ class TapPaymentsClient {
     // Load configuration from central tapConfig helper
     this.config = getTapConfig();
     
-    const paytabsConfigured =
-      Boolean(process.env.PAYTABS_PROFILE_ID) &&
-      Boolean(process.env.PAYTABS_SERVER_KEY);
-    
-    // Suppress Tap warnings when PayTabs is configured and Tap is intentionally absent
+    // Check if TAP is configured
     const tapEnvPresent = Boolean(this.config.secretKey) || Boolean(this.config.publicKey);
     if (!tapEnvPresent) {
-      if (!paytabsConfigured) {
-        logger.warn(
-          "Tap Payments not configured and PayTabs not configured; payment routes will be disabled until one provider is set",
-        );
-      }
+      logger.warn(
+        "TAP Payments not configured; payment routes will be disabled until TAP credentials are set",
+      );
       return;
     }
 
@@ -227,7 +221,7 @@ class TapPaymentsClient {
         ? "TAP_LIVE_SECRET_KEY/NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY" 
         : "TAP_TEST_SECRET_KEY/NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY";
       logger.error(
-        `Tap Payments partially configured: ${envType} required for API access (environment: ${this.config.environment})`,
+        `TAP Payments partially configured: ${envType} required for API access (environment: ${this.config.environment})`,
       );
     }
     
@@ -415,6 +409,45 @@ class TapPaymentsClient {
         _error instanceof Error ? _error : new Error(String(_error));
       void error;
       logger.error("Error creating Tap refund", error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieve a refund by ID
+   * @param refundId - Refund ID (ref_xxxx)
+   * @returns Refund details
+   */
+  async getRefund(refundId: string): Promise<TapRefundResponse> {
+    this.ensureConfigured("get refund");
+    try {
+      const response = await fetch(`${this.baseUrl}/refunds/${refundId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.config.secretKey}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const error = data as TapError;
+        logger.error(
+          "Tap API error retrieving refund",
+          new Error(JSON.stringify(error)),
+        );
+        throw new Error(
+          error.errors?.map((e) => e.description).join(", ") ||
+            "Failed to retrieve refund",
+        );
+      }
+
+      return data as TapRefundResponse;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Error retrieving Tap refund", error as Error);
       throw error;
     }
   }

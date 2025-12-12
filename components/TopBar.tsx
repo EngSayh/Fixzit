@@ -248,8 +248,9 @@ function TopBarContent() {
   });
 
   // Anchor refs for dropdown positioning
-  const notifBtnRef = useRef<HTMLButtonElement>(null!);
-  const userBtnRef = useRef<HTMLButtonElement>(null!);
+  // React 19: useRef<T>(null) returns RefObject<T | null>, remove null assertion
+  const notifBtnRef = useRef<HTMLButtonElement>(null);
+  const userBtnRef = useRef<HTMLButtonElement>(null);
 
   // Panel positioning state
   type Pos = { top: number; left: number; width: number };
