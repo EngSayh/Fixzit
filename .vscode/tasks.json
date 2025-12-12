@@ -1,82 +1,191 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Clear Problems",
-      "type": "shell",
-      "command": "echo 'Problems cleared'",
-      "problemMatcher": []
-    },
-    {
-      "label": "AI Memory: Chunk Repository",
-      "type": "shell",
-      "command": "node tools/smart-chunker.js",
-      "group": "build",
-      "problemMatcher": [],
-      "detail": "Create batches of repository files for AI memory processing"
-    },
-    {
-      "label": "AI Memory: Merge Outputs",
-      "type": "shell",
-      "command": "node tools/merge-memory.js",
-      "group": "build",
-      "problemMatcher": [],
-      "detail": "Merge AI-generated outputs into master-index.json"
-    },
-    {
-      "label": "AI Memory: Selfcheck",
-      "type": "shell",
-      "command": "node tools/memory-selfcheck.js",
-      "group": "test",
-      "problemMatcher": [],
-      "detail": "Verify AI memory system configuration"
-    },
-    {
-      "label": "AI Memory: Selfcheck (Fix)",
-      "type": "shell",
-      "command": "node tools/memory-selfcheck.js --fix",
-      "group": "test",
-      "problemMatcher": [],
-      "detail": "Verify and auto-fix AI memory system configuration"
-    },
-    {
-      "label": "Build: Typecheck",
-      "type": "shell",
-      "command": "pnpm typecheck",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": ["$tsc"],
-      "detail": "Run TypeScript type checking"
-    },
-    {
-      "label": "Build: Lint",
-      "type": "shell",
-      "command": "pnpm lint",
-      "group": "build",
-      "problemMatcher": ["$eslint-stylish"],
-      "detail": "Run ESLint on the codebase"
-    },
-    {
-      "label": "Test: Unit Tests",
-      "type": "shell",
-      "command": "pnpm test",
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      },
-      "problemMatcher": [],
-      "detail": "Run all unit tests with vitest"
-    },
-    {
-      "label": "Dev: Start Server",
-      "type": "shell",
-      "command": "pnpm dev",
-      "group": "none",
-      "isBackground": true,
-      "problemMatcher": [],
-      "detail": "Start Next.js development server"
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Clear Problems",
+			"type": "shell",
+			"command": "echo 'Problems cleared'",
+			"problemMatcher": []
+		},
+		{
+			"label": "AI Memory: Chunk Repository",
+			"type": "shell",
+			"command": "node tools/smart-chunker.js",
+			"group": "build",
+			"problemMatcher": [],
+			"detail": "Create batches of repository files for AI memory processing"
+		},
+		{
+			"label": "AI Memory: Merge Outputs",
+			"type": "shell",
+			"command": "node tools/merge-memory.js",
+			"group": "build",
+			"problemMatcher": [],
+			"detail": "Merge AI-generated outputs into master-index.json"
+		},
+		{
+			"label": "AI Memory: Selfcheck",
+			"type": "shell",
+			"command": "node tools/memory-selfcheck.js",
+			"group": "test",
+			"problemMatcher": [],
+			"detail": "Verify AI memory system configuration"
+		},
+		{
+			"label": "AI Memory: Selfcheck (Fix)",
+			"type": "shell",
+			"command": "node tools/memory-selfcheck.js --fix",
+			"group": "test",
+			"problemMatcher": [],
+			"detail": "Verify and auto-fix AI memory system configuration"
+		},
+		{
+			"label": "Build: Typecheck",
+			"type": "shell",
+			"command": "pnpm typecheck",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$tsc"
+			],
+			"detail": "Run TypeScript type checking"
+		},
+		{
+			"label": "Build: Lint",
+			"type": "shell",
+			"command": "pnpm lint",
+			"group": "build",
+			"problemMatcher": [
+				"$eslint-stylish"
+			],
+			"detail": "Run ESLint on the codebase"
+		},
+		{
+			"label": "Test: Unit Tests",
+			"type": "shell",
+			"command": "pnpm test",
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			},
+			"problemMatcher": [],
+			"detail": "Run all unit tests with vitest"
+		},
+		{
+			"label": "Dev: Start Server",
+			"type": "shell",
+			"command": "pnpm dev",
+			"group": "none",
+			"isBackground": true,
+			"problemMatcher": [],
+			"detail": "Start Next.js development server"
+		},
+		{
+			"label": "TypeCheck",
+			"type": "shell",
+			"command": "pnpm typecheck"
+		},
+		{
+			"label": "ESLint",
+			"type": "shell",
+			"command": "pnpm lint"
+		},
+		{
+			"label": "Git Status & PRs",
+			"type": "shell",
+			"command": "git status && echo '---' && gh pr list --state open"
+		},
+		{
+			"label": "Run Tests",
+			"type": "shell",
+			"command": "pnpm vitest run --reporter=dot 2>&1 | tail -30"
+		},
+		{
+			"label": "Git Status Check",
+			"type": "shell",
+			"command": "git status && echo '---' && git log --oneline -3"
+		},
+		{
+			"label": "Commit and Push",
+			"type": "shell",
+			"command": "git checkout -b agent/session-20251212-0330 2>&1 || echo 'Branch exists or on main' && git add docs/PENDING_MASTER.md && git commit -m 'docs: Update PENDING_MASTER to v14.4 with verification audit' && git push -u origin HEAD 2>&1 || echo 'Push may require auth'"
+		},
+		{
+			"label": "Final Git Status",
+			"type": "shell",
+			"command": "git status && git branch -a | head -10"
+		},
+		{
+			"label": "Git Log Check",
+			"type": "shell",
+			"command": "git status --short && echo '---' && git log --oneline -3"
+		},
+		{
+			"label": "Create PR",
+			"type": "shell",
+			"command": "gh pr create --title 'docs: Update PENDING_MASTER to v14.4 with verification audit' --body '## Summary\n\nUpdated PENDING_MASTER.md to v14.4 with comprehensive verification audit.\n\n## Changes\n\n- Added SESSION 2025-12-12T03:30 verification audit\n- Cross-referenced all code quality patterns:\n  - Console statements: 1 justified (error boundary)\n  - Empty catches: 20+ all intentional (graceful degradation)\n  - TypeScript escapes: 4 production (documented)\n  - eslint-disable: 2 (both justified)\n  - dangerouslySetInnerHTML: 10 uses, all sanitized via rehype-sanitize\n- Identified placeholder phone numbers for future update\n- Confirmed production readiness status\n\n## Verification\n\n- [x] `pnpm typecheck` - 0 errors\n- [x] `pnpm lint` - 0 errors\n- [x] Git: Clean on main\n- [x] Open PRs: 0' --draft"
+		},
+		{
+			"label": "TypeCheck",
+			"type": "shell",
+			"command": "pnpm typecheck 2>&1 | tail -20"
+		},
+		{
+			"label": "Commit Fix",
+			"type": "shell",
+			"command": "git add client/woClient.ts docs/PENDING_MASTER.md && git commit -m 'fix(client): Add try-catch to JSON.parse in woClient.ts (BUG-002)\n\n- Added proper error handling for JSON.parse in api() function\n- Returns descriptive error messages for invalid JSON responses\n- Updated PENDING_MASTER.md to v14.5 with verification results\n- Verified 58 P1/P2/P3 items: 41 FALSE POSITIVES, 1 fixed, 16 deferred'"
+		},
+		{
+			"label": "Check Commit Status",
+			"type": "shell",
+			"command": "git status && git log --oneline -3"
+		},
+		{
+			"label": "Git Diff Check",
+			"type": "shell",
+			"command": "git diff --cached --stat && echo '---' && git status -s"
+		},
+		{
+			"label": "Check woClient diff",
+			"type": "shell",
+			"command": "git diff client/woClient.ts | head -30"
+		},
+		{
+			"label": "Check Recent Commits",
+			"type": "shell",
+			"command": "git log --oneline -5 && echo '---' && git show --stat HEAD | head -20"
+		},
+		{
+			"label": "Push Changes",
+			"type": "shell",
+			"command": "git push origin HEAD 2>&1"
+		},
+		{
+			"label": "Check PR 533",
+			"type": "shell",
+			"command": "gh pr view 533 --json state,title 2>/dev/null || echo 'PR 533 not found'"
+		},
+		{
+			"label": "Update PR Description",
+			"type": "shell",
+			"command": "gh pr edit 533 --title 'fix(client): BUG-002 JSON.parse error handling + P1/P2/P3 verification audit' --body '## Summary\n\nFixed BUG-002 (JSON.parse without try-catch in woClient.ts) and performed comprehensive verification of 58 P1/P2/P3 items from the codebase analysis.\n\n## Changes\n\n### Fix Applied\n- **BUG-002**: Added try-catch to JSON.parse in `client/woClient.ts`\n  - Returns descriptive error messages for invalid JSON responses\n  - Handles both HTTP errors and JSON parsing failures\n\n### Verification Results\n- **58 items reviewed** from P1/P2/P3 backlog\n- **41 FALSE POSITIVES** identified (code already has proper error handling)\n- **1 item fixed** (BUG-002)\n- **16 items deferred** (test coverage - requires 60h+ effort)\n\n### Key Findings\nMost flagged items already have robust error handling:\n- SWR hooks return `error` state\n- Fetch calls have try-catch blocks\n- JSON.parse operations are wrapped in try-catch\n- Dynamic imports have .catch() handlers\n\n## Files Changed\n- `client/woClient.ts` - Added JSON.parse error handling\n- `docs/PENDING_MASTER.md` - Updated to v14.5 with verification results\n\n## Verification\n- [x] `pnpm typecheck` - 0 errors\n- [x] `pnpm lint` - 0 errors\n- [x] Pre-commit hooks pass'"
+		},
+		{
+			"label": "Update PR Title",
+			"type": "shell",
+			"command": "gh pr edit 533 --title 'fix(client): BUG-002 JSON.parse error handling + P1/P2/P3 verification'"
+		},
+		{
+			"label": "View PR 533",
+			"type": "shell",
+			"command": "gh pr view 533 --json title,state,url"
+		},
+		{
+			"label": "Commit Security Fixes",
+			"type": "shell",
+			"command": "git add -A && git commit -m 'fix(security): XSS hardening + BUG-009 localhost fix + PENDING_MASTER v14.9' && git log --oneline -3"
+		}
+	]
 }

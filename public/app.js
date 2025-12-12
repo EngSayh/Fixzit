@@ -2,6 +2,14 @@
 // 🔐 Email domain comes from window for rebranding; falls back to generic demo domain.
 const EMAIL_DOMAIN = window.EMAIL_DOMAIN || window.__EMAIL_DOMAIN__ || "example.com";
 
+// 🔒 SECURITY: HTML escape utility to prevent XSS
+function escapeHtml(text) {
+  if (typeof text !== 'string') return String(text);
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 class FixzitApp {
   constructor() {
     this.token = localStorage.getItem("fixzit_token");
@@ -260,12 +268,13 @@ class FixzitApp {
     kpis.forEach((kpi) => {
       const kpiCard = document.createElement("div");
       kpiCard.className = "kpi-card";
+      // 🔒 SECURITY: Use escapeHtml for all dynamic values to prevent XSS
       kpiCard.innerHTML = `
-                <div class="kpi-icon" style="color: ${kpi.color}">${kpi.icon}</div>
+                <div class="kpi-icon" style="color: ${escapeHtml(kpi.color)}">${escapeHtml(kpi.icon)}</div>
                 <div class="kpi-content">
-                    <h3>${kpi.title}</h3>
-                    <div class="kpi-value">${kpi.value}</div>
-                    <div class="kpi-label">${kpi.label}</div>
+                    <h3>${escapeHtml(kpi.title)}</h3>
+                    <div class="kpi-value">${escapeHtml(kpi.value)}</div>
+                    <div class="kpi-label">${escapeHtml(kpi.label)}</div>
                 </div>
             `;
       kpiGrid.appendChild(kpiCard);
