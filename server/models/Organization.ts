@@ -53,7 +53,7 @@ type TEmailProvider = (typeof EmailProvider)[number];
 const SmsProvider = ["TAQNYAT", "LOCAL"] as const;
 type TSmsProvider = (typeof SmsProvider)[number];
 
-const PaymentGateway = ["PAYTABS", "STRIPE", "PAYPAL"] as const;
+const PaymentGateway = ["TAP", "STRIPE", "PAYPAL"] as const;
 type TPaymentGateway = (typeof PaymentGateway)[number];
 
 // ---------- Types ----------
@@ -504,7 +504,7 @@ const OrganizationSchema = new Schema<IOrganization>(
           settings: Schema.Types.Mixed,
         },
         paymentGateway: {
-          provider: { type: String, enum: PaymentGateway, default: "PAYTABS" },
+          provider: { type: String, enum: PaymentGateway, default: "TAP" },
           settings: Schema.Types.Mixed,
         },
         sso: {

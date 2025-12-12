@@ -38,7 +38,7 @@ describe("Circuit Breaker Metrics", () => {
       const names = metrics.map((m) => m.name);
 
       // Should include at least these service breakers (Taqnyat is ONLY SMS provider)
-      expect(names).toContain("paytabs");
+      expect(names).toContain("tap");
       expect(names).toContain("taqnyat");
       expect(names).toContain("meilisearch");
     });

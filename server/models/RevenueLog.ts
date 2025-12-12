@@ -40,7 +40,6 @@ export interface IRevenueLog extends Document {
     | "CREDIT_CARD"
     | "CHECK"
     | "TAP"
-    | "PAYTABS"
     | "OTHER";
   paymentReference?: string;
   paymentDate?: Date;
