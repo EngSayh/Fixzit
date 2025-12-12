@@ -309,13 +309,12 @@ UserSchema.pre('save', async function(next) {
         current[field] = encryptField(value, path);
         
         // Safe access to orgId added by tenantIsolationPlugin
-        const docWithOrg = doc as typeof doc & { orgId?: unknown };
         logger.info('user:pii_encrypted', {
           action: 'pre_save_encrypt',
           fieldPath: path,
           fieldName,
           userId: doc._id?.toString(),
-          orgId: String(docWithOrg.orgId ?? ''),
+          orgId: 'orgId' in doc ? String(doc.orgId ?? '') : '',
         });
       }
     }
