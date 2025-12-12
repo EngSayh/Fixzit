@@ -1,5 +1,104 @@
 ## Post-Stabilization Audit (STRICT v4.2) — 2025-12-12 15:30 Asia/Riyadh
 
+---
+
+## 🗓️ 2025-12-12T15:50+03:00 — CRITICAL Fixes Implementation Session
+
+### ✅ Issues FIXED In This Session
+
+| ID | Issue | Fix Applied | Evidence |
+|----|-------|-------------|----------|
+| **SEC-001** | Taqnyat webhook missing signature verification | ✅ **FIXED** | Added HMAC-SHA256 with `crypto.timingSafeEqual()` in `app/api/webhooks/taqnyat/route.ts:1-116` |
+| **TEST-001** | No tests for tap-payments.ts (670 lines) | ✅ **FIXED** | Created `tests/unit/lib/finance/tap-payments.test.ts` — 45 tests |
+| **TEST-002** | No tests for checkout.ts flow | ✅ **FIXED** | Created `tests/unit/lib/finance/checkout.test.ts` — 11 tests |
+| **TEST-003** | No tests for subscriptionBillingService.ts (317 lines) | ✅ **FIXED** | Created `tests/unit/server/services/subscriptionBillingService.test.ts` — 12 tests |
+| **BUG-NEW** | checkout.ts still using PayTabs instead of TAP | ✅ **FIXED** | Migrated `lib/finance/checkout.ts` from PayTabs to TAP Payments API |
+
+### 🟡 Issue Deferred (DevOps Required)
+
+| ID | Issue | Status | Action Required |
+|----|-------|--------|-----------------|
+| **OTP-001** | Login SMS/OTP not received | 🟡 **DEVOPS** | Set `TAQNYAT_BEARER_TOKEN` in Vercel production environment |
+
+### 🧪 Test Verification Results
+```bash
+✅ Test Files  3 passed (3)
+✅ Tests       68 passed (68)
+   - tap-payments.test.ts: 45 tests ✅
+   - checkout.test.ts: 11 tests ✅  
+   - subscriptionBillingService.test.ts: 12 tests ✅
+```
+
+### 📁 Files Changed
+
+| File | Change Type | Description |
+|------|-------------|-------------|
+| `app/api/webhooks/taqnyat/route.ts` | **SECURITY FIX** | Added HMAC-SHA256 webhook signature verification with timing-safe comparison |
+| `lib/finance/checkout.ts` | **MIGRATION** | Complete rewrite from PayTabs to TAP Payments API |
+| `tests/unit/lib/finance/tap-payments.test.ts` | **NEW** | 45 comprehensive tests for TAP Payments client |
+| `tests/unit/lib/finance/checkout.test.ts` | **NEW** | 11 tests for checkout flow with TAP |
+| `tests/unit/server/services/subscriptionBillingService.test.ts` | **NEW** | 12 tests for billing service types and logic |
+
+### 🔐 SEC-001 Fix Details
+
+**Before:** Taqnyat webhook had no signature verification - any request could trigger status updates.
+
+**After:** Implemented defense-in-depth:
+1. HMAC-SHA256 signature verification using `crypto.createHmac()`
+2. Timing-safe comparison with `crypto.timingSafeEqual()` to prevent timing attacks
+3. Support for multiple header names (`X-Taqnyat-Signature`, `X-Signature`, `X-Webhook-Signature`)
+4. Production enforcement: rejects ALL webhooks if `TAQNYAT_WEBHOOK_SECRET` not configured
+5. Proper error logging for debugging
+
+### 💳 Checkout Migration Details
+
+**Before:** `lib/finance/checkout.ts` was using PayTabs (old provider):
+- PayTabs environment variables
+- PayTabs API endpoint
+- PayTabs payment page flow
+
+**After:** Migrated to TAP Payments (sole payment provider):
+- Uses `TAP_API_KEY` environment variable
+- Uses `tapPayments.createCharge()` from `lib/finance/tap-payments.ts`
+- Stores charge info in `subscription.tap` instead of `subscription.paytabs`
+- Proper error handling with subscription cleanup on failure
+
+### ✅ Verification Gates Passed
+```bash
+pnpm typecheck  ✅ 0 errors
+pnpm lint       ✅ 0 errors  
+pnpm vitest run ✅ 68/68 tests passing
+```
+
+### 📊 Status Update
+
+| Category | Before | After | Change |
+|----------|--------|-------|--------|
+| CRITICAL (Code) | 5 | 0 | -5 ✅ |
+| CRITICAL (DevOps) | 0 | 1 | +1 (OTP-001 needs env config) |
+| Test Coverage | 56 tests | 68 tests | +12 new tests |
+
+### 🔧 OTP-001 Resolution Steps (DevOps)
+
+Set these in Vercel production environment:
+```bash
+TAQNYAT_BEARER_TOKEN=<token-from-taqnyat-dashboard>
+TAQNYAT_SENDER_NAME=FIXZIT
+TAQNYAT_WEBHOOK_SECRET=<generate-32-char-secret>
+SMS_DEV_MODE=false
+```
+
+### 📝 Branch & Commit
+
+**Branch:** `agent/critical-fixes-20251212-152814`
+
+**Ready for PR with:**
+- SEC-001: Taqnyat webhook signature verification
+- checkout.ts: PayTabs → TAP migration
+- 3 new test files with 68 tests total
+
+---
+
 ### 🗓️ 2025-12-12T15:42:27+03:00 — Consolidation & Verification Update
 - **Progress:** Currency + CURRENCIES duplicates consolidated into `config/currencies.ts` + `lib/currency-formatter.ts`; feature flags unified with shim at `lib/config/feature-flags.ts`; WorkOrder and Invoice now canonical in `types/fm/work-order.ts` + `types/invoice.ts`; ApiResponse imports standardized; auth helper files renamed for clarity (FM guard, e2e helpers, stubs).
 - **Verification:** `pnpm typecheck` ✅ | `pnpm lint` ✅ | `pnpm test:models` ✅ | `pnpm test:e2e` ⚠️ timed out mid-run (Copilot isolation suite still executing); rerun with longer timeout.
