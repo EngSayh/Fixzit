@@ -206,15 +206,20 @@ const BOOKING_ENCRYPTED_FIELDS = {
   'guestPhone': 'Guest Phone',
 } as const;
 
+type BookingEncryptedField = keyof typeof BOOKING_ENCRYPTED_FIELDS;
+
 /**
  * Pre-save hook: Encrypt guest PII fields
  */
 BookingSchema.pre('save', function(next) {
+  const doc = this as IBooking;
   try {
     for (const [field, fieldName] of Object.entries(BOOKING_ENCRYPTED_FIELDS)) {
-      const value = (this as any)[field];
+      const key = field as BookingEncryptedField;
+      const value = doc[key];
       if (value && !isEncrypted(value)) {
-        (this as any)[field] = encryptField(value, `booking.${field}`);
+        const encrypted = encryptField(value, `booking.${field}`);
+        (doc[key] as string | undefined) = encrypted ?? undefined;
         logger.info('booking:pii_encrypted', {
           action: 'pre_save_encrypt',
           fieldPath: field,

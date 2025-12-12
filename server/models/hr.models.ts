@@ -1098,11 +1098,12 @@ PayrollRunSchema.pre("save", async function (this: PayrollRunDoc, next) {
       return {
         ...line,
         iban: (iban ?? undefined) as string | undefined,
-        baseSalary: baseSalary as any, // Will be encrypted string or original number
-        housingAllowance: housingAllowance as any,
-        transportAllowance: transportAllowance as any,
+        // After encryption, salary fields may be strings; spread operator preserves other types
+        baseSalary: baseSalary as number | string,
+        housingAllowance: housingAllowance as number | string | undefined,
+        transportAllowance: transportAllowance as number | string | undefined,
         netPay,
-      };
+      } as PayrollLine;
     }));
 
     this.lines = encryptedLines;

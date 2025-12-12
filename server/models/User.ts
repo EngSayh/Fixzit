@@ -308,12 +308,14 @@ UserSchema.pre('save', async function(next) {
       if (value && !isEncrypted(value)) {
         current[field] = encryptField(value, path);
         
+        // Safe access to orgId added by tenantIsolationPlugin
+        const docWithOrg = doc as typeof doc & { orgId?: unknown };
         logger.info('user:pii_encrypted', {
           action: 'pre_save_encrypt',
           fieldPath: path,
           fieldName,
           userId: doc._id?.toString(),
-          orgId: (doc as any).orgId,
+          orgId: String(docWithOrg.orgId ?? ''),
         });
       }
     }
