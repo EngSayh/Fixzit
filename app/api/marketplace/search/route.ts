@@ -28,6 +28,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 
 import { zodValidationError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const QuerySchema = z.object({
   q: z.string().optional(),
@@ -59,6 +60,9 @@ export const dynamic = "force-dynamic";
  *         description: Rate limit exceeded
  */
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "marketplace:search" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
     const query = QuerySchema.parse(params);

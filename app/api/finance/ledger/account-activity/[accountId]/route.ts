@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { dbConnect } from "@/lib/mongodb-unified";
@@ -71,6 +72,13 @@ export async function GET(
   req: NextRequest,
   context: { params: { accountId: string } | Promise<{ accountId: string }> },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 60,
+    windowMs: 60_000,
+    keyPrefix: "finance:ledger:account-activity",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 

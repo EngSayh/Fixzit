@@ -15,6 +15,7 @@ import { resolveMarketplaceContext } from "@/lib/marketplace/context";
 import { serializeCategory } from "@/lib/marketplace/serializers";
 
 import { createSecureResponse } from "@/server/security/headers";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const dynamic = "force-dynamic";
 /**
@@ -35,6 +36,9 @@ export const dynamic = "force-dynamic";
  *         description: Rate limit exceeded
  */
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "marketplace:categories:list" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const context = await resolveMarketplaceContext(request);
     await connectToDatabase();

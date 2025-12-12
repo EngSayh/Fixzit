@@ -35,6 +35,7 @@ import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { OnboardingCase, ONBOARDING_ROLES, type OnboardingRole } from '@/server/models/onboarding/OnboardingCase';
 import { logger } from '@/lib/logger';
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type InitiateBody = {
   role?: OnboardingRole;
@@ -44,6 +45,9 @@ type InitiateBody = {
 };
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, { requests: 20, windowMs: 60_000, keyPrefix: "onboarding:initiate" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

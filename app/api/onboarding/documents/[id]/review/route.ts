@@ -24,6 +24,7 @@ import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
 import { DocumentProfile } from '@/server/models/onboarding/DocumentProfile';
 import { createEntitiesFromCase } from '@/server/services/onboardingEntities';
 import { logger } from '@/lib/logger';
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const ALLOWED_DECISIONS: Array<(typeof DOCUMENT_STATUSES)[number]> = ['VERIFIED', 'REJECTED'];
 const REVIEWER_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'COMPLIANCE_OFFICER', 'REVIEWER']);
@@ -32,6 +33,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, { requests: 30, windowMs: 60_000, keyPrefix: "onboarding:docs:review" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

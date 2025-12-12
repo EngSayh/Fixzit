@@ -17,6 +17,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { verifyWebhookSignature } from "@/config/sendgrid.config";
 import { getClientIp } from "@/lib/security/client-ip";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { logger } from "@/lib/logger";
 /**
@@ -54,6 +55,9 @@ interface SendGridEvent {
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, { requests: 100, windowMs: 60_000, keyPrefix: "webhooks:sendgrid" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // SECURITY: Capture client IP for logging (using secure IP detection)
     const clientIp = getClientIp(req);
@@ -285,6 +289,9 @@ export async function POST(req: NextRequest) {
 
 // Health check endpoint
 export async function GET(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, { requests: 120, windowMs: 60_000, keyPrefix: "webhooks:sendgrid:health" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   return createSecureResponse(
     {
       status: "healthy",

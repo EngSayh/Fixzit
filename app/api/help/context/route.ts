@@ -23,10 +23,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { resolveEscalationContact } from '@/server/services/escalation.service';
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const MODULES = ['FM', 'Souq', 'Aqar', 'Account', 'Billing', 'Other'] as const;
 
 export async function GET(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "help:context" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

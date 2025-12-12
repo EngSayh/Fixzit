@@ -7,6 +7,7 @@ import { ObjectId } from "mongodb";
 
 import { validationError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { logger } from "@/lib/logger";
 const patchSchema = z.object({
@@ -35,6 +36,9 @@ export async function PATCH(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, { requests: 30, windowMs: 60_000, keyPrefix: "help:articles:update" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { id } = await props.params;
     // Handle authentication separately to return 401 instead of 500

@@ -21,6 +21,7 @@ import { getUserFromToken } from "@/lib/auth";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   zodValidationError,
   rateLimitError,
@@ -82,6 +83,14 @@ async function tryGetSessionUser(req: NextRequest) {
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
+  // Rate limit: 60 req/min per IP for read operations
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 60,
+    windowMs: 60_000,
+    keyPrefix: "finance:invoices:get",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Try session-based auth first (cookies), fallback to Bearer token
     let user = await tryGetSessionUser(req);
@@ -151,6 +160,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 20 req/min per IP for create operations
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 20,
+    windowMs: 60_000,
+    keyPrefix: "finance:invoices:post",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Authentication & Authorization
     const token = req.headers

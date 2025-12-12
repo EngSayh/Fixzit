@@ -23,6 +23,7 @@ import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
 import { DocumentProfile } from '@/server/models/onboarding/DocumentProfile';
 import { DocumentType } from '@/server/models/onboarding/DocumentType';
 import { logger } from '@/lib/logger';
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const DEFAULT_COUNTRY = 'SA';
 
@@ -34,6 +35,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { caseId: string } },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, { requests: 20, windowMs: 60_000, keyPrefix: "onboarding:docs:request" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

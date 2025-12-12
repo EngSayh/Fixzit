@@ -11,6 +11,7 @@ import { randomUUID } from "crypto";
 import { Types } from "mongoose";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   tapPayments,
   buildTapCustomer,
@@ -135,6 +136,14 @@ const CheckoutRequestSchema = z.object({
  * }
  */
 export async function POST(req: NextRequest) {
+  // Rate limit: 10 req/min per IP to prevent payment abuse
+  const rateLimitResult = await enforceRateLimit(req, {
+    requests: 10,
+    windowMs: 60_000,
+    keyPrefix: "payments:tap:checkout",
+  });
+  if (rateLimitResult) return rateLimitResult;
+
   const correlationId = randomUUID();
 
   try {

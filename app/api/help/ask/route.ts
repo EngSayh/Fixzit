@@ -7,6 +7,7 @@ import { Filter, Document } from "mongodb";
 
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
@@ -178,6 +179,9 @@ async function maybeSummarizeWithOpenAI(
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, { requests: 20, windowMs: 60_000, keyPrefix: "help:ask" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await getSessionUser(req).catch(() => null);
     // Distributed rate limit per IP (uses Redis if available, falls back to in-memory)

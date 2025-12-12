@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SMSMessage } from "@/server/models/SMSMessage";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * Taqnyat delivery status codes mapping
@@ -122,6 +123,9 @@ function verifyWebhookSignature(
  * Handle Taqnyat SMS delivery status webhooks
  */
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 100, windowMs: 60_000, keyPrefix: "webhooks:taqnyat" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Read raw body for signature verification
     const rawBody = await request.text();
@@ -248,7 +252,10 @@ export async function POST(request: NextRequest) {
  *
  * Health check for webhook endpoint
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "webhooks:taqnyat:health" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   return NextResponse.json({
     status: "ok",
     provider: "taqnyat",

@@ -6,13 +6,14 @@
  * @module health
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { pingDatabase } from "@/lib/mongo";
 import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { withTimeout } from "@/lib/resilience";
 import { getAllCircuitBreakerStats, hasOpenCircuitBreakers } from "@/lib/resilience/service-circuit-breakers";
 import { createTaqnyatProvider } from "@/lib/sms-providers/taqnyat";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,10 @@ interface ReadinessStatus {
   requiresRedis?: boolean;
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "health:ready" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const status: ReadinessStatus = {
     ready: false,
     checks: {

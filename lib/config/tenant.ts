@@ -4,13 +4,13 @@
  * Provides organization-specific configuration for multi-tenant support.
  * Enables white-label and rebrand compatibility.
  *
+ * This module is CLIENT-SAFE and can be imported by any component.
+ * For server-side database loading, import from '@/lib/config/tenant.server'
+ *
  * @module lib/config/tenant
  */
 
 import { Config } from "./constants";
-import { getDatabase } from "@/lib/mongodb-unified";
-import { COLLECTIONS } from "@/lib/db/collections";
-import { ObjectId } from "mongodb";
 
 /**
  * Tenant-specific configuration settings
@@ -48,7 +48,7 @@ export interface TenantConfig {
 /**
  * Default tenant configuration from environment
  */
-const DEFAULT_TENANT_CONFIG: TenantConfig = {
+export const DEFAULT_TENANT_CONFIG: TenantConfig = {
   orgId: "default",
   name: process.env.NEXT_PUBLIC_COMPANY_NAME || Config.company.name,
   domain: process.env.NEXT_PUBLIC_BASE_URL || "https://fixzit.co",
@@ -70,90 +70,16 @@ const DEFAULT_TENANT_CONFIG: TenantConfig = {
 };
 
 /**
- * Cache for tenant configurations
+ * Cache for tenant configurations (shared between client and server)
  */
-const tenantCache = new Map<string, TenantConfig>();
-const pendingTenantFetches = new Map<string, Promise<void>>();
-
-async function loadTenantConfigFromDatabase(orgId: string): Promise<void> {
-  if (pendingTenantFetches.has(orgId)) {
-    return pendingTenantFetches.get(orgId) as Promise<void>;
-  }
-
-  const fetchPromise = (async () => {
-    try {
-      const db = await getDatabase();
-      const normalizedOrgId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : null;
-
-      // Build filter ensuring _id is always ObjectId or not included
-      const orgIdFilter: Record<string, unknown> = normalizedOrgId
-        ? { $or: [{ orgId }, { _id: normalizedOrgId }] }
-        : { orgId };
-
-      const organization =
-        (await db
-          .collection(COLLECTIONS.ORGANIZATIONS)
-          .findOne(orgIdFilter)) ||
-        (await db
-          .collection(COLLECTIONS.TENANTS)
-          .findOne(orgIdFilter));
-
-      if (!organization) {
-        return;
-      }
-
-      const config: TenantConfig = {
-        ...DEFAULT_TENANT_CONFIG,
-        orgId,
-        name: organization.name || DEFAULT_TENANT_CONFIG.name,
-        domain: organization.domain || organization.website || DEFAULT_TENANT_CONFIG.domain,
-        supportEmail:
-          organization.contact?.primary?.email || DEFAULT_TENANT_CONFIG.supportEmail,
-        supportPhone:
-          organization.contact?.primary?.phone || DEFAULT_TENANT_CONFIG.supportPhone,
-        currency:
-          organization.settings?.currency ||
-          organization.subscription?.price?.currency ||
-          DEFAULT_TENANT_CONFIG.currency,
-        timezone: organization.settings?.timezone || DEFAULT_TENANT_CONFIG.timezone,
-        branding: {
-          ...DEFAULT_TENANT_CONFIG.branding,
-          ...(organization.branding || {}),
-          logoUrl: organization.branding?.logo || organization.logo || DEFAULT_TENANT_CONFIG.branding.logoUrl,
-        },
-        features: {
-          ...DEFAULT_TENANT_CONFIG.features,
-          multiLanguage:
-            organization.settings?.locale != null
-              ? true
-              : DEFAULT_TENANT_CONFIG.features.multiLanguage,
-          smsNotifications:
-            organization.settings?.notifications?.sms ??
-            DEFAULT_TENANT_CONFIG.features.smsNotifications,
-          emailNotifications:
-            organization.settings?.notifications?.email ??
-            DEFAULT_TENANT_CONFIG.features.emailNotifications,
-          mfaRequired:
-            organization.settings?.security?.mfaRequired ??
-            DEFAULT_TENANT_CONFIG.features.mfaRequired,
-        },
-      };
-
-      tenantCache.set(orgId, config);
-    } catch (error) {
-      // Fail silently and keep default config; GraphQL/REST callers will still receive defaults
-      void error;
-    } finally {
-      pendingTenantFetches.delete(orgId);
-    }
-  })();
-
-  pendingTenantFetches.set(orgId, fetchPromise);
-  await fetchPromise;
-}
+export const tenantCache = new Map<string, TenantConfig>();
 
 /**
  * Get tenant configuration by organization ID
+ *
+ * This returns cached configuration or defaults. On the server side,
+ * use getTenantConfigAsync from '@/lib/config/tenant.server' for
+ * database-backed configuration.
  *
  * @param orgId - Organization ID (use 'default' for system defaults)
  * @returns Tenant configuration
@@ -176,18 +102,9 @@ export function getTenantConfig(orgId?: string): TenantConfig {
     return cached;
   }
 
-  // Best-effort async fetch from database; falls back to default until resolved
-  void loadTenantConfigFromDatabase(orgId);
-
-  // Return default config with orgId override until database result is cached
-  const config = {
-    ...DEFAULT_TENANT_CONFIG,
-    orgId,
-  };
-
-  // Cache the result
-  tenantCache.set(orgId, config);
-  return config;
+  // Return default config with orgId override
+  // Server-side code should use getTenantConfigAsync for DB lookup
+  return { ...DEFAULT_TENANT_CONFIG, orgId };
 }
 
 /**
