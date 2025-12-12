@@ -131,13 +131,13 @@ describe('pricingInsights', () => {
 
   describe('exports', () => {
     it('should re-export PricingInsightsService', async () => {
-      const module = await import('@/lib/aqar/pricingInsights');
-      expect(module.PricingInsightsService).toBeDefined();
+      const pricingModule = await import('@/lib/aqar/pricingInsights');
+      expect(pricingModule.PricingInsightsService).toBeDefined();
     });
 
     it('should export computePricingInsight function', async () => {
-      const module = await import('@/lib/aqar/pricingInsights');
-      expect(typeof module.computePricingInsight).toBe('function');
+      const pricingModule = await import('@/lib/aqar/pricingInsights');
+      expect(typeof pricingModule.computePricingInsight).toBe('function');
     });
   });
 });

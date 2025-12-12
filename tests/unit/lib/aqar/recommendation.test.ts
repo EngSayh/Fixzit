@@ -167,13 +167,13 @@ describe('recommendation', () => {
 
   describe('exports', () => {
     it('should re-export AqarRecommendationEngine', async () => {
-      const module = await import('@/lib/aqar/recommendation');
-      expect(module.AqarRecommendationEngine).toBeDefined();
+      const recommendationModule = await import('@/lib/aqar/recommendation');
+      expect(recommendationModule.AqarRecommendationEngine).toBeDefined();
     });
 
     it('should export getRecommendedListings function', async () => {
-      const module = await import('@/lib/aqar/recommendation');
-      expect(typeof module.getRecommendedListings).toBe('function');
+      const recommendationModule = await import('@/lib/aqar/recommendation');
+      expect(typeof recommendationModule.getRecommendedListings).toBe('function');
     });
   });
 });
