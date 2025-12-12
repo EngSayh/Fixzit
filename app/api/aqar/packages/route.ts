@@ -94,6 +94,15 @@ export async function POST(request: NextRequest) {
       }
     ).getPricing(packageType as PackageType);
 
+    // SEC-FIX: Require orgId - never fall back to userId to prevent cross-tenant writes
+    if (!user.orgId) {
+      return NextResponse.json(
+        { error: "Organization context is required to purchase packages" },
+        { status: 403 },
+      );
+    }
+    const orgId = user.orgId;
+
     // Use atomic transaction for multi-document operation
     const session = await mongoose.startSession();
     let pkg: InstanceType<typeof AqarPackage> | undefined;
@@ -103,7 +112,7 @@ export async function POST(request: NextRequest) {
       // Create package
       pkg = new AqarPackage({
         userId: user.id,
-        orgId: user.orgId || user.id,
+        orgId,
         type: packageType,
         listingsAllowed: pricing.listings,
         validityDays: pricing.days,
@@ -114,7 +123,7 @@ export async function POST(request: NextRequest) {
       // Create payment
       payment = new AqarPayment({
         userId: user.id,
-        orgId: user.orgId || user.id,
+        orgId,
         type: "PACKAGE",
         amount: pricing.price,
         currency: "SAR",

@@ -7,7 +7,7 @@
  * @module aqar
  */
 
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
 import { connectDb } from "@/lib/mongo";
@@ -97,7 +97,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Create listing
-    const orgId = user.orgId || user.id;
+    // SEC-FIX: Require orgId - never fall back to userId to prevent cross-tenant writes
+    if (!user.orgId) {
+      return NextResponse.json(
+        { error: "Organization context is required to create listings" },
+        { status: 403 },
+      );
+    }
+    const orgId = user.orgId;
     const {
       proptech: proptechRaw,
       immersive: immersiveRaw,

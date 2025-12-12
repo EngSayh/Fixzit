@@ -1,3 +1,245 @@
+## 🗓️ 2025-12-12T20:36+03:00 — Security Fixes: OrgId Enforcement v30.2
+
+### 📍 Session Summary
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| **Branch** | `fix/graphql-resolver-todos` | ✅ Active |
+| **TypeScript Errors** | 0 | ✅ Clean |
+| **Security Tests** | 16 passing | ✅ ALL PASS |
+| **Error Boundaries** | 14 | ✅ Expanded |
+| **Zod Routes** | 111/352 (32%) | ✅ |
+
+---
+
+### ✅ VERIFIED & FIXED: userId-as-orgId Fallback Pattern
+
+**Root Cause:** Multiple routes used `orgId = ctx.orgId ?? ctx.userId` which allows userId to be stored as orgId, breaking tenant isolation.
+
+**Fix Applied:** Changed to require `orgId` and return 403 when missing.
+
+| Bug ID | Location | Status | Fix Description |
+|--------|----------|--------|-----------------|
+| BUG-001 | `lib/graphql/index.ts:769-801` | ✅ FALSE POSITIVE | workOrder query correctly adds org filter |
+| BUG-002 | `lib/graphql/index.ts:803-887` | ✅ FIXED | dashboardStats now requires ctx.orgId |
+| BUG-003 | `lib/graphql/index.ts:936-1052` | ✅ FIXED | createWorkOrder now requires ctx.orgId |
+| BUG-004 | `app/api/souq/reviews/route.ts:61-108` | ✅ FIXED | POST requires session.user.orgId |
+| BUG-005 | `app/api/aqar/listings/route.ts:99-138` | ✅ FIXED | Requires user.orgId |
+| BUG-006 | `app/api/aqar/packages/route.ts:102-124` | ✅ FIXED | Requires user.orgId |
+| BUG-007 | `app/api/aqar/favorites/route.ts` (2 locations) | ✅ FIXED | GET & POST require user.orgId |
+
+---
+
+### ✅ ADDED: Missing Tests
+
+| Test File | Tests | Description |
+|-----------|-------|-------------|
+| `tests/security/org-enforcement.test.ts` | 8 | Pattern detection for userId-as-orgId fallbacks |
+| `tests/security/error-boundary.test.ts` | 3 | Error boundary coverage verification |
+| `tests/security/zod-validation.test.ts` | 5 | Zod validation coverage and correctness |
+
+---
+
+### ✅ ADDED: Error Boundaries
+
+| Module | Status |
+|--------|--------|
+| `app/properties/error.tsx` | ✅ NEW |
+| `app/vendors/error.tsx` | ✅ NEW |
+
+---
+
+### ✅ FIXED: Additional Issues Found by Tests
+
+| Issue | Location | Fix |
+|-------|----------|-----|
+| Incorrect Zod error access | `app/api/souq/search/route.ts:420` | Changed `.errors` to `.issues` |
+
+---
+
+### 📋 Files Changed This Session
+
+```
+lib/graphql/index.ts                  - SEC-FIX: dashboardStats, createWorkOrder
+app/api/souq/reviews/route.ts         - SEC-FIX: POST requires orgId
+app/api/aqar/listings/route.ts        - SEC-FIX: Requires orgId
+app/api/aqar/packages/route.ts        - SEC-FIX: Requires orgId
+app/api/aqar/favorites/route.ts       - SEC-FIX: GET & POST require orgId
+app/api/souq/search/route.ts          - Fix: .errors → .issues
+app/properties/error.tsx              - NEW: Error boundary
+app/vendors/error.tsx                 - NEW: Error boundary
+tests/security/org-enforcement.test.ts - NEW: 8 tests
+tests/security/error-boundary.test.ts  - NEW: 3 tests
+tests/security/zod-validation.test.ts  - NEW: 5 tests
+```
+
+---
+
+## 🗓️ 2025-12-12T20:30+03:00 — Comprehensive Production Readiness Audit v30.1
+
+### 📍 Current Progress & Session Summary
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| **Branch** | `fix/graphql-resolver-todos` | ✅ Active |
+| **TypeScript Errors** | 0 | ✅ Clean |
+| **ESLint** | 0 errors | ✅ Clean |
+| **Tests** | 2737 passing | ✅ ALL PASS |
+| **Rate-Limited Routes** | 139/352 (39%) | 🟡 Improving |
+| **Zod-Validated Routes** | 113/352 (32%) | 🟡 Expanding |
+| **Try-Catch Coverage** | 344/352 (98%) | ✅ Good |
+| **Uncommitted Changes** | 22 files | ⏳ Ready |
+
+---
+
+### ✅ CURRENT PROGRESS
+
+| Category | Status | Details |
+|----------|--------|---------|
+| P1 Security XSS | ✅ COMPLETE | All 10 `dangerouslySetInnerHTML` sanitized via DOMPurify |
+| P1 Auth Rate Limiting | ✅ COMPLETE | Added to post-login, verify/send |
+| P1 JSON.parse Safety | ✅ VERIFIED | All 4 routes have try-catch |
+| P1 Async Error Handling | ✅ VERIFIED | All use Promise.allSettled or internal try-catch |
+| P1 Zod Validation | ✅ ADDED | 8+ routes now validated |
+| P1 FM Rate Limiting | ✅ ADDED | 5 FM routes protected |
+| SEC-003 Priority Routes | ✅ ADDED | GraphQL, admin, trial-request, upload, impersonation |
+| TEST Suite | ✅ PASSING | 2737 tests, 0 failures |
+
+---
+
+### 📋 PLANNED NEXT STEPS
+
+| # | Task | Effort | Priority | Status |
+|---|------|--------|----------|--------|
+| 1 | Commit 22 uncommitted files | 5 min | 🔴 P0 | ⏳ Ready |
+| 2 | Push to remote | 2 min | 🔴 P0 | ⏳ Ready |
+| 3 | Add Zod to 52 remaining routes | 4-6 hrs | 🟡 P2 | 🔲 TODO |
+| 4 | Add try-catch to 8 routes | 1 hr | 🟡 P2 | 🔲 TODO |
+| 5 | Fix GraphQL orgId isolation | 2 hrs | 🔴 P1 | 🔲 TODO |
+| 6 | Add tests for 6 services | 3-4 hrs | 🟡 P3 | 🔲 TODO |
+| 7 | Expand rate limiting to 60% | 3-4 hrs | 🟡 P3 | 🔲 TODO |
+
+---
+
+### 🔧 COMPREHENSIVE ENHANCEMENTS LIST
+
+#### A. Efficiency Improvements
+
+| ID | Item | Current State | Recommendation | Effort |
+|----|------|---------------|----------------|--------|
+| EFF-001 | GraphQL org normalization | Validated per resolver | Normalize once per request | 1 hr |
+| EFF-002 | Rate limit key generation | IP extracted per route | Centralize in middleware | 2 hrs |
+| EFF-003 | Tenant context setup | Set in each mutation | Extract to shared util | 1 hr |
+| EFF-004 | Mongoose query optimization | Multiple `lean()` calls | Batch queries where possible | 2 hrs |
+
+#### B. Bugs & Logic Errors
+
+| ID | Issue | Location | Severity | Status |
+|----|-------|----------|----------|--------|
+| BUG-001 | GraphQL workOrder lacks org filter | `lib/graphql/index.ts:769-801` | 🔴 Critical | Open |
+| BUG-002 | dashboardStats userId fallback | `lib/graphql/index.ts:803-887` | 🔴 Critical | Open |
+| BUG-003 | createWorkOrder userId as org | `lib/graphql/index.ts:936-1052` | 🔴 Critical | Open |
+| BUG-004 | Souq review POST no org | `app/api/souq/reviews/route.ts:61-108` | 🟡 Medium | Open |
+| BUG-005 | Aqar listing userId fallback | `app/api/aqar/listings/route.ts:99-138` | 🟡 Medium | Open |
+
+#### C. Missing Tests (Production Readiness)
+
+| Service/Module | Path | Lines | Priority | Gap |
+|----------------|------|-------|----------|-----|
+| financeIntegration | `server/services/owner/` | ~200 | 🔴 High | Payment processing |
+| postingService | `server/services/finance/` | ~150 | 🔴 High | Ledger posting |
+| employee.service | `server/services/hr/` | ~300 | 🟡 Medium | CRUD, salary |
+| leave-type.service | `server/services/hr/` | ~100 | 🟡 Medium | Accrual logic |
+| offer-pdf | `server/services/ats/` | ~150 | 🟢 Low | PDF gen |
+| application-intake | `server/services/ats/` | ~100 | 🟢 Low | App processing |
+| GraphQL org isolation | `lib/graphql/` | - | 🔴 High | No tenant tests |
+| Rate limit exhaustion | `app/api/*` | - | 🟡 Medium | No 429 tests |
+
+---
+
+### 🔍 DEEP-DIVE: SIMILAR ISSUES ANALYSIS
+
+#### Pattern 1: User-ID as OrgId Fallback (5 locations)
+
+The `orgId = ctx.orgId ?? ctx.userId` pattern creates **cross-tenant data risk**:
+
+| # | File | Line Range | Current Code | Fix Required |
+|---|------|------------|--------------|--------------|
+| 1 | `lib/graphql/index.ts` | 936-1052 | `orgId: ctx.orgId ?? ctx.userId` | Require orgId, throw if missing |
+| 2 | `app/api/souq/reviews/route.ts` | 61-108 | `orgId ?? userId` | Enforce session.user.orgId |
+| 3 | `app/api/aqar/listings/route.ts` | 99-138 | `orgId \|\| userId` | Remove userId fallback |
+| 4 | `app/api/aqar/packages/route.ts` | 102-124 | `orgId ?? userId` | Validate orgId before writes |
+| 5 | `app/api/aqar/favorites/route.ts` | 61-138 | `orgId \|\| userId` | Scope to org only |
+
+**Recommended Fix Pattern:**
+```typescript
+if (!session?.user?.orgId) {
+  return NextResponse.json({ error: "Organization required" }, { status: 403 });
+}
+const orgId = new Types.ObjectId(session.user.orgId);
+```
+
+#### Pattern 2: Missing Tenant Context on Reads (4 locations)
+
+GraphQL queries execute without `setTenantContext()`:
+
+| Query | Location | Risk | Fix |
+|-------|----------|------|-----|
+| `workOrder` | `lib/graphql/index.ts:769` | Cross-tenant fetch | Add `setTenantContext()` before query |
+| `dashboardStats` | `lib/graphql/index.ts:803` | Aggregate leakage | Require org, set context |
+| `properties` | `lib/graphql/index.ts` | Property exposure | Filter by org |
+| `invoice` | `lib/graphql/index.ts` | Financial data | Require org context |
+
+#### Pattern 3: Rate Limit Gaps by Module
+
+| Module | Routes | Rate-Limited | Coverage | Priority |
+|--------|--------|--------------|----------|----------|
+| HR | 7 | 0 | 0% | 🔴 Critical |
+| CRM | 4 | 0 | 0% | 🔴 Critical |
+| Finance | 19 | 1 | 5% | 🔴 High |
+| Souq | 75 | 5 | 7% | 🟡 Medium |
+| FM | 35 | 15 | 43% | 🟡 Medium |
+| Admin | 28 | 15 | 54% | ✅ Good |
+| Auth | 14 | 12 | 86% | ✅ Good |
+
+#### Pattern 4: Routes Without Try-Catch (8 routes)
+
+| Route | Handler Type | Risk | Action |
+|-------|--------------|------|--------|
+| `payments/callback` | Webhook | 🔴 High | Add error boundary |
+| `aqar/chat` | Streaming | 🟡 Medium | Wrap handler |
+| `auth/[...nextauth]` | NextAuth | ✅ Safe | Internal handling |
+| `healthcheck` | Simple | ✅ Safe | Acceptable |
+| `properties` | List | 🟡 Medium | Add try-catch |
+| `graphql` | Apollo | ✅ Safe | Internal handling |
+| `souq/products` | List | 🟡 Medium | Add try-catch |
+| `assets` | Static | 🟡 Medium | Add try-catch |
+
+#### Pattern 5: Services Without Unit Tests
+
+| Service | Critical Functions | Test Gap |
+|---------|-------------------|----------|
+| `financeIntegration.ts` | `processPayment()`, `reconcile()` | No payment flow tests |
+| `postingService.ts` | `postJournal()`, `reverseLedger()` | No accounting tests |
+| `employee.service.ts` | `updateSalary()`, `terminate()` | No HR flow tests |
+| `leave-type.service.ts` | `calculateAccrual()` | No leave logic tests |
+
+---
+
+### 📊 SUMMARY METRICS
+
+| Category | Current | Target | Gap |
+|----------|---------|--------|-----|
+| Rate Limiting | 39% | 60% | +72 routes |
+| Zod Validation | 32% | 50% | +63 routes |
+| Try-Catch | 98% | 100% | +8 routes |
+| OrgId Isolation | ~80% | 100% | 5 locations |
+| Service Tests | ~70% | 90% | 6 services |
+
+**Estimated Total Remaining Effort:** 16-20 hours
+
+---
+
 ## 🗓️ 2025-12-12T20:28+03:00 — All Tests Passing & Production Readiness v30.0
 
 ### 📍 Current Progress & Session Summary

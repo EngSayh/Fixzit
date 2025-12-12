@@ -58,8 +58,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Consistent tenant isolation - use orgId if available, fallback to userId
-    const tenantOrgId = user.orgId || user.id;
+    // SEC-FIX: Require orgId - never fall back to userId to prevent cross-tenant data access
+    if (!user.orgId) {
+      return NextResponse.json(
+        { error: "Organization context is required" },
+        { status: 403 },
+      );
+    }
+    const tenantOrgId = user.orgId;
 
     const { searchParams } = new URL(request.url);
     const targetType = searchParams.get("targetType"); // LISTING|PROJECT
@@ -198,8 +204,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Consistent tenant isolation - use orgId if available, fallback to userId
-    const tenantOrgId = user.orgId || user.id;
+    // SEC-FIX: Require orgId - never fall back to userId to prevent cross-tenant writes
+    if (!user.orgId) {
+      return NextResponse.json(
+        { error: "Organization context is required" },
+        { status: 403 },
+      );
+    }
+    const tenantOrgId = user.orgId;
 
     const body = await request.json();
     const { targetId, targetType } = body;

@@ -73,7 +73,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const payload = reviewCreateSchema.parse(body);
 
-    const orgId = session.user.orgId ?? session.user.id;
+    // SEC-FIX: Require orgId - never fall back to userId to prevent cross-tenant writes
+    if (!session.user.orgId) {
+      return NextResponse.json(
+        { error: "Forbidden", message: "Organization context is required" },
+        { status: 403 },
+      );
+    }
+    const orgId = session.user.orgId;
     const review = await reviewService.submitReview(orgId, {
       ...payload,
       customerId: session.user.id,

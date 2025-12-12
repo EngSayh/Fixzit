@@ -808,8 +808,9 @@ export const resolvers = {
     ) => {
       requireAuth(ctx);
 
-      const orgId = ctx.orgId ?? ctx.userId;
-      if (!orgId) {
+      // SEC-FIX: Require orgId - never fall back to userId to prevent cross-tenant data access
+      if (!ctx.orgId) {
+        logger.warn("[GraphQL] dashboardStats: Missing orgId in context", { userId: ctx.userId });
         return {
           totalWorkOrders: 0,
           openWorkOrders: 0,
@@ -821,6 +822,7 @@ export const resolvers = {
           expensesThisMonth: 0,
         };
       }
+      const orgId = ctx.orgId;
 
       try {
         await connectToDatabase();
@@ -947,19 +949,21 @@ export const resolvers = {
         input: args.input,
       });
 
-      const orgId = ctx.orgId ?? ctx.userId;
-      if (!orgId || !ctx.userId) {
+      // SEC-FIX: Require orgId - never fall back to userId to prevent cross-tenant writes
+      if (!ctx.orgId || !ctx.userId) {
+        logger.warn("[GraphQL] createWorkOrder: Missing orgId or userId", { userId: ctx.userId, orgId: ctx.orgId });
         return {
           success: false,
           workOrder: null,
           errors: [
             {
               code: "INVALID_CONTEXT",
-              message: "Organization or user context is missing",
+              message: "Organization context is required for creating work orders",
             },
           ],
         };
       }
+      const orgId = ctx.orgId;
 
       const now = new Date();
       const priority = mapPriorityToModel(args.input?.priority as string | undefined);
