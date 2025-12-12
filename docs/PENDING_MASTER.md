@@ -78,26 +78,68 @@ This session verified the PayTabs migration status and fixed GitHub workflow war
 | **Dev Endpoint** | Removed PAYTABS_* env checks from /api/dev/check-env | ✅ DONE |
 | **Test Updates** | Updated circuit breaker tests to check for "tap" instead of "paytabs" | ✅ DONE |
 
-#### ⚠️ DISCOVERED: PayTabs Files Still Exist
+#### ⚠️ DISCOVERED: PayTabs References Still Exist
 
-**CRITICAL FINDING**: Despite PENDING_MASTER.md v16.3 claiming "32 PayTabs files deleted", the following 20 PayTabs files still exist:
+**FINDING**: While major PayTabs files were deleted, 37 files still contain PayTabs references:
 
+**Files Needing Cleanup (37 total)**:
 ```
-lib/paytabs.ts
-lib/finance/paytabs-subscription.ts
-lib/payments/paytabs-callback.contract.ts
-config/paytabs.config.ts
-scripts/sign-paytabs-payload.ts
-app/api/payments/paytabs/route.ts
-app/api/payments/paytabs/callback/route.ts
-docs/inventory/paytabs-duplicates.md
-tools/fixers/fix_paytabs.py
-tests/paytabs.test.ts
-tests/api/lib-paytabs.test.ts
-tests/api/paytabs-callback.test.ts
-tests/unit/api/api-paytabs.test.ts
-tests/unit/api/api-paytabs-callback.test.ts
-tests/unit/api/api-payments-paytabs-callback-tenancy.test.ts
+# Service Files (need migration to TAP)
+server/services/payTabsClient.ts          # EXISTS - Should be deleted
+server/services/subscriptionBillingService.ts
+services/souq/settlements/escrow-service.ts
+
+# Models (need enum/type updates)
+server/models/Subscription.ts
+server/models/PaymentMethod.ts
+server/models/RevenueLog.ts
+server/models/SubscriptionInvoice.ts
+server/models/aqar/Payment.ts
+server/models/finance/EscrowTransaction.ts
+types/common.ts
+
+# API Routes (need comment/import updates)
+app/api/billing/charge-recurring/route.ts
+app/api/billing/history/route.ts
+app/api/billing/subscribe/route.ts
+app/api/billing/upgrade/route.ts
+app/api/checkout/complete/route.ts
+app/api/payments/create/route.ts
+app/api/subscribe/corporate/route.ts
+app/api/aqar/packages/route.ts
+app/api/dev/check-env/route.ts
+
+# Config/Lib Files
+lib/finance/checkout.ts
+lib/finance/provision.ts
+lib/aqar/package-activation.ts
+lib/config/constants.ts
+lib/config/domains.ts
+lib/config/feature-flags.ts
+lib/db/collections.ts
+lib/env-validation.ts
+lib/startup-checks.ts
+config/service-timeouts.ts
+
+# UI
+app/fm/system/integrations/page.tsx
+
+# Scripts
+scripts/analyze-vercel-secrets.ts
+scripts/check-vercel-env.ts
+scripts/smart-merge-conflicts.ts
+scripts/test-api-endpoints.ts
+
+# Jobs
+jobs/zatca-retry-queue.ts
+
+# Tests
+tests/e2e/payments-flow.spec.ts
+tests/unit/api/payments/payment-flows.test.ts
+
+# Tools
+tools/fixers/fix_paytabs.py               # EXISTS - Can keep or delete
+```
 tests/unit/lib/paytabs-payout.test.ts
 tests/lib/payments/paytabs-callback.contract.test.ts
 qa/tests/README-paytabs-unit-tests.md
