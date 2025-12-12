@@ -927,8 +927,25 @@ export const resolvers = {
       ctx: GraphQLContext
     ) => {
       requireAuth(ctx);
-      logger.debug("[GraphQL] Fetching properties", { first: args.first });
-      return [];
+      
+      // SEC-FIX: Require orgId to prevent cross-tenant data access
+      if (!ctx.orgId) {
+        logger.warn("[GraphQL] properties: Missing orgId in context", { userId: ctx.userId });
+        return [];
+      }
+      
+      try {
+        await connectToDatabase();
+        setTenantContext({ orgId: ctx.orgId, userId: ctx.userId });
+        logger.debug("[GraphQL] Fetching properties", { first: args.first, orgId: ctx.orgId });
+        // TODO: Implement actual property fetch with org filter
+        return [];
+      } catch (error) {
+        logger.error("[GraphQL] Failed to fetch properties", { error, orgId: ctx.orgId });
+        return [];
+      } finally {
+        clearTenantContext();
+      }
     },
 
     // Invoice
@@ -938,8 +955,29 @@ export const resolvers = {
       ctx: GraphQLContext
     ) => {
       requireAuth(ctx);
-      logger.debug("[GraphQL] Fetching invoice", { id: args.id });
-      return null;
+      
+      // SEC-FIX: Require orgId to prevent cross-tenant data access
+      if (!ctx.orgId) {
+        logger.warn("[GraphQL] invoice: Missing orgId in context", { userId: ctx.userId, id: args.id });
+        return null;
+      }
+      
+      if (!args.id || !Types.ObjectId.isValid(args.id)) {
+        return null;
+      }
+      
+      try {
+        await connectToDatabase();
+        setTenantContext({ orgId: ctx.orgId, userId: ctx.userId });
+        logger.debug("[GraphQL] Fetching invoice", { id: args.id, orgId: ctx.orgId });
+        // TODO: Implement actual invoice fetch with org filter
+        return null;
+      } catch (error) {
+        logger.error("[GraphQL] Failed to fetch invoice", { error, id: args.id });
+        return null;
+      } finally {
+        clearTenantContext();
+      }
     },
   },
 
