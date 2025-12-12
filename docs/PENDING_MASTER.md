@@ -1,3 +1,118 @@
+## 🗓️ 2025-12-12T20:28+03:00 — All Tests Passing & Production Readiness v30.0
+
+### 📍 Current Progress & Session Summary
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| **Branch** | `fix/graphql-resolver-todos` | ✅ Active |
+| **Latest Commit** | `edca24e13` — docs: Add session progress and production audit v29.0 | ✅ Pushed |
+| **TypeScript Errors** | 0 | ✅ Clean build |
+| **ESLint** | 0 errors | ✅ Passes |
+| **Tests** | 2737 passing (273 files) | ✅ ALL PASS |
+| **Total API Routes** | 352 | ✅ All tracked |
+| **Rate-Limited Routes** | 139/352 (39%) | ⬆️ Improved |
+| **Uncommitted Changes** | 22 files | ⏳ Ready to commit |
+
+### ✅ Completed This Session
+
+| Task ID | Description | Status | Files Changed |
+|---------|-------------|--------|---------------|
+| TEST-001 | Fix `me.route.test.ts` | ✅ Done | Added proper mocks for `smartRateLimit`, `getClientIP` |
+| TEST-002 | Fix `forgot-password.route.test.ts` | ✅ Done | Updated Zod error expectations |
+| TEST-003 | Fix `forgot-password.test.ts` (unit) | ✅ Done | Updated error message expectations |
+| TEST-004 | Run full test suite | ✅ Done | 2737 tests passing, 0 failures |
+
+### 🔧 Test Fixes Applied
+
+#### 1. `tests/api/auth/me.route.test.ts`
+**Problem:** `logger.warn is not a function` + 429 rate limit responses
+**Root Cause:** Route now uses `smartRateLimit` and `getClientIP` which weren't mocked
+**Fix:**
+- Added `mockSmartRateLimit` function mock with `{ allowed: true, remaining: 100 }`
+- Mocked `@/server/security/headers` for `getClientIP`
+- Added `NextRequest` creation for proper route testing
+- Separated mock into `beforeEach` for proper reset between tests
+
+#### 2. `tests/api/auth/forgot-password.route.test.ts`
+**Problem:** Expected `"Email is required"`, received `"Invalid input: expected string..."`
+**Root Cause:** Route now uses Zod validation which returns different error format
+**Fix:** Changed `expect(body.error).toBe("Email is required")` → `expect(body.error).toContain("Invalid input")`
+
+#### 3. `tests/unit/api/auth/forgot-password.test.ts`
+**Problem:** Same Zod error format change
+**Fix:**
+- Missing email: `toContain("Invalid input")`
+- Empty email: `toBe("Invalid email format")` (Zod trims then rejects)
+
+---
+
+### 📊 CODEBASE HEALTH METRICS (Updated)
+
+#### Test Coverage Status
+
+| Category | Before | After | Status |
+|----------|--------|-------|--------|
+| **Test Files** | 273 (3 failing) | 273 (0 failing) | ✅ All Pass |
+| **Test Cases** | 2732 passing | 2737 passing | ✅ +5 fixed |
+| **Auth Tests** | 3 failing | 0 failing | ✅ All Pass |
+
+#### Verification Gates
+
+- [x] TypeScript: 0 errors
+- [x] ESLint: 0 errors
+- [x] Tests: 2737 passing (100%)
+- [x] Rate limiting: 139/352 routes (39%)
+- [x] Error boundaries: 12 covering critical modules
+- [ ] PR: Ready to commit and merge
+
+---
+
+### 📋 Uncommitted Files Summary (22 files)
+
+| Category | Files | Status |
+|----------|-------|--------|
+| **API Routes** | 9 files | Modified (minor fixes) |
+| **Models** | 3 files (`User.ts`, `Booking.ts`, `hr.models.ts`) | TypeScript fixes |
+| **Tests** | 5 files | Mock updates for rate limiting |
+| **Docs** | 1 file (`PENDING_MASTER.md`) | This update |
+| **CI/CD** | 1 file (`release-gate.yml`) | Workflow update |
+| **Pages** | 2 files (`about/page.tsx`, `cms/[slug]/page.tsx`) | Minor fixes |
+
+---
+
+### 🔲 Planned Next Steps
+
+| Priority | Task | Effort | Notes |
+|----------|------|--------|-------|
+| 🔴 P0 | Commit 22 files | 5 min | Stage and commit all changes |
+| 🔴 P0 | Push to origin | 2 min | Update remote branch |
+| 🟡 P1 | Merge PR | 5 min | Ready for review |
+| 🟡 P1 | Expand rate limiting to HR/CRM | 2 hrs | 100% gap in HR, CRM modules |
+| 🟡 P1 | Add Zod validation to remaining routes | 3 hrs | 59 routes still use raw `req.json()` |
+| 🟢 P2 | Add GraphQL org enforcement tests | 2 hrs | BUG-001 through BUG-003 coverage |
+
+---
+
+### 🔍 Deep-Dive: Test Failure Pattern Analysis
+
+#### Pattern: Rate Limiting Mock Requirements
+When routes add `smartRateLimit` or `getClientIP`, tests MUST mock:
+1. `@/server/security/rateLimit` → `{ smartRateLimit: mockFn }`
+2. `@/server/security/headers` → `{ getClientIP: vi.fn() }`
+3. Mock must return `{ allowed: true }` not `{ success: true }`
+
+**Files needing this pattern when rate limiting is added:**
+- Any route test under `tests/api/`
+- Must be applied in `beforeEach` to reset between tests
+
+#### Pattern: Zod Validation Error Messages
+When routes migrate from manual validation to Zod:
+- Missing required field: `"Invalid input: expected X, received undefined"`
+- Invalid format: Schema-specific message (e.g., `"Invalid email format"`)
+- Tests should use `toContain()` for robustness against message changes
+
+---
+
 ## 🗓️ 2025-12-12T20:16+03:00 — TypeScript Clean & Session Progress v29.0
 
 ### 📍 Current Progress & Session Summary
@@ -115,6 +230,221 @@ GraphQL queries execute without `setTenantContext()`:
 - [x] Rate limiting: 137/352 routes (39%)
 - [x] Error boundaries: 12 covering critical modules
 - [ ] PR: Ready to merge after tests pass
+
+---
+
+## 🗓️ 2025-12-12T20:16+03:00 — OrgId Isolation & Readiness v28.1
+
+### 📍 Current Progress & Planned Next Steps
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| Branch | `fix/graphql-resolver-todos` | ✅ Active |
+| Commands | `node tools/memory-selfcheck.js`, `pnpm lint:inventory-org` | ✅ Passed |
+| Scope | OrgId isolation across GraphQL, Souq reviews, Aqar listings/packages/favorites | ✅ In review |
+| Typecheck/Lint/Tests | Not run (docs-only update) | ⏳ Pending |
+
+- Progress: Master Pending Report refreshed with latest orgId audit; cataloged cross-module user-id fallbacks and missing tenant context on GraphQL reads/writes.
+- Next steps: Enforce orgId + tenant/audit context on GraphQL resolvers, remove user-id fallbacks in Souq/Aqar writes, add regression tests, then run `pnpm typecheck && pnpm lint && pnpm test`.
+
+### 🔧 Enhancements & Production Readiness
+
+| Category | Item | Status | Notes |
+|----------|------|--------|-------|
+| Efficiency | Normalize org once per GraphQL request and reuse across resolvers | 🔲 TODO | Reduce repeated `Types.ObjectId.isValid` checks and duplicate context setup. |
+| Efficiency | Short-circuit GraphQL reads when orgId missing | 🔲 TODO | Fail fast for dashboard/workOrder/properties/invoice to avoid orgless scans. |
+| Bugs/Logic | GraphQL `workOrder` query lacks org filter | 🔴 Open | lib/graphql/index.ts:769-801 — require org + tenant/audit context. |
+| Bugs/Logic | GraphQL `dashboardStats` uses `ctx.orgId ?? ctx.userId` | 🔴 Open | lib/graphql/index.ts:803-887 — reject orgless; set tenant/audit context. |
+| Bugs/Logic | GraphQL `createWorkOrder` writes with userId fallback | 🔴 Open | lib/graphql/index.ts:936-1052 — require org before writes; forbid userId-as-org. |
+| Bugs/Logic | Souq review POST falls back to user id | 🔴 Open | app/api/souq/reviews/route.ts:61-108 — unscoped writes; align with GET org requirement. |
+| Bugs/Logic | Aqar listings/packages/favorites use user-id fallback | 🔴 Open | listings `app/api/aqar/listings/route.ts:99-138`; packages `app/api/aqar/packages/route.ts:102-124`; favorites `app/api/aqar/favorites/route.ts:61-138`. |
+| Missing Tests | GraphQL org enforcement + tenant/audit context | 🟠 Missing | Add org-required + orgless rejection coverage for queries/mutations. |
+| Missing Tests | Souq review POST org requirement | 🟠 Missing | API test to enforce session orgId and stored org matches tenant. |
+| Missing Tests | Aqar listing/package/favorites org enforcement | 🟠 Missing | Ensure writes fail without orgId and persist correct tenant org. |
+
+### 🔍 Deep-Dive: Similar/Identical Issue Patterns
+
+- User-id-as-orgId fallbacks recur across GraphQL createWorkOrder, Souq review POST, and Aqar listings/packages/favorites, risking cross-tenant writes and orgId type drift.
+- GraphQL reads (workOrder, dashboardStats, properties, invoice) run without tenant/audit context and permit orgless execution; mirror mutation tenantIsolation by requiring orgId and setting contexts before DB access.
+- Souq reviews enforce org on GET but not POST; Aqar routes show the same “user-as-org” shortcut. Cleaning this pattern across modules keeps tenancy consistent.
+
+---
+
+## 🗓️ 2025-12-12T20:16+03:00 — COMPREHENSIVE CODEBASE HEALTH REPORT v28.1
+
+### 📍 Current Progress & Session Summary
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| **Branch** | `fix/graphql-resolver-todos` | ✅ Active |
+| **TypeScript Errors** | 0 | ✅ Clean |
+| **Staged Files** | 31 files (+806/-88 lines) | ✅ Ready |
+| **Rate-Limited Routes** | 139/352 (39%) | 🟡 Improved |
+| **Zod-Validated Routes** | 113/352 (32%) | 🟡 Expanding |
+| **Routes with Try-Catch** | 344/352 (98%) | ✅ Good |
+
+---
+
+### ✅ COMPLETED THIS SESSION
+
+| Task | Status | Details |
+|------|--------|---------|
+| P1 Security XSS | ✅ VERIFIED | All 10 `dangerouslySetInnerHTML` use DOMPurify via `renderMarkdownSanitized()` or `SafeHtml` |
+| P1 Auth Rate Limiting | ✅ FIXED | Added to `post-login` (30/min), `verify/send` (10/min) |
+| P1 JSON.parse Safety | ✅ VERIFIED | All 4 routes have try-catch blocks |
+| P1 Async Error Handling | ✅ VERIFIED | All 4 ops use internal try-catch or Promise.allSettled |
+| P1 Zod Validation | ✅ FIXED | Added Zod to 8+ routes (auth, admin, billing, FM) |
+| P1 FM Rate Limiting | ✅ FIXED | Added to 5 FM routes (work-orders, comments, transition) |
+| SEC-003 Priority Routes | ✅ FIXED | Added rate limiting to GraphQL, admin notifications, admin users, trial-request, upload scan, impersonation |
+| SEC-004 SMS Test | ✅ FIXED | Returns 404 in production, rate-limited for SUPER_ADMIN in dev |
+| DOMPurify Hardening | ✅ FIXED | Markdown + JSON-LD + SafeHtml all sanitized |
+
+---
+
+### 📊 CODEBASE HEALTH METRICS
+
+#### Security Coverage
+
+| Category | Current | Target | Gap |
+|----------|---------|--------|-----|
+| **Rate Limiting** | 139/352 (39%) | 211/352 (60%) | +72 routes |
+| **Zod Validation** | 113/352 (32%) | 165/352 (47%) | +52 routes |
+| **Try-Catch** | 344/352 (98%) | 352/352 (100%) | +8 routes |
+| **Error Boundaries** | 12/45 dirs (27%) | 20/45 (45%) | +8 directories |
+
+#### Code Quality
+
+| Metric | Count | Priority |
+|--------|-------|----------|
+| TypeScript `any` usage | ~26 | 🟨 Medium |
+| Console statements | ~19 | 🟨 Medium |
+| Services without tests | 6 | 🟨 Medium |
+| Test files total | 235+ | ✅ Good |
+
+---
+
+### 🔴 P2 HIGH PRIORITY — REMAINING WORK
+
+#### 1. Routes Needing Zod Validation (52 routes)
+
+**FM Module (Critical):**
+- `fm/work-orders/[id]/assign` — assigneeId, assigneeType
+- `fm/work-orders/[id]` PATCH — status, priority, description
+- `fm/work-orders/[id]/attachments` — file metadata
+- `fm/properties` POST — property fields
+- `fm/finance/expenses` — amount, category, vendor
+- `fm/finance/budgets` — budget fields
+
+**Other Modules:**
+- `kb/ingest`, `kb/search` — document content
+- `fm/marketplace/*` — vendor, listings, orders
+- `fm/system/*` — roles, user invites
+- `fm/support/*` — tickets, escalations
+
+**Effort:** 4-6 hours
+
+#### 2. Routes Needing Try-Catch (8 routes)
+
+| Route | Current State | Action |
+|-------|---------------|--------|
+| `payments/callback` | Webhook handler | Add error boundary |
+| `aqar/chat` | Streaming handler | Wrap with try-catch |
+| `auth/[...nextauth]` | NextAuth internals | SAFE (internal handling) |
+| `healthcheck` | Simple check | SAFE (acceptable) |
+| `properties` | List endpoint | Add try-catch |
+| `graphql` | Apollo handler | SAFE (internal handling) |
+| `souq/products` | Product list | Add try-catch |
+| `assets` | Asset handler | Add try-catch |
+
+**Effort:** 1 hour
+
+#### 3. Services Needing Unit Tests (6 services)
+
+| Service | Module | Priority |
+|---------|--------|----------|
+| `financeIntegration.ts` | owner | 🟧 High |
+| `postingService.ts` | finance | 🟧 High |
+| `employee.service.ts` | hr | 🟨 Medium |
+| `leave-type.service.ts` | hr | 🟨 Medium |
+| `offer-pdf.ts` | ats | 🟩 Low |
+| `application-intake.ts` | ats | 🟩 Low |
+
+**Effort:** 3-4 hours
+
+---
+
+### 🔍 DEEP-DIVE: SIMILAR ISSUES ACROSS CODEBASE
+
+#### Pattern 1: OrgId Isolation Gaps (GraphQL + Souq + Aqar)
+
+**Found in Previous Session (v27.5):**
+
+| Location | Issue | Risk |
+|----------|-------|------|
+| `lib/graphql/index.ts:769-801` | `workOrder` query uses id-only lookup (no org filter) | 🔴 Cross-tenant data leak |
+| `lib/graphql/index.ts:803-887` | `dashboardStats` uses `ctx.orgId ?? ctx.userId` | 🔴 Orgless queries possible |
+| `lib/graphql/index.ts:936-1052` | `createWorkOrder` writes with userId as org fallback | 🔴 Unscoped writes |
+| `app/api/souq/reviews/route.ts:61-108` | POST falls back to user id | 🟡 Inconsistent with GET |
+
+**Fix Pattern:** Remove all `?? ctx.userId` fallbacks; require orgId for all reads/writes; set tenant/audit context.
+
+#### Pattern 2: Rate Limiting Gaps by Module
+
+| Module | Coverage | Priority | Action |
+|--------|----------|----------|--------|
+| HR | 0/7 (0%) | 🔴 Critical | Add to all 7 routes |
+| CRM | 0/4 (0%) | 🔴 Critical | Add to all 4 routes |
+| Finance | 1/19 (5%) | 🔴 High | Add to 18 routes |
+| Souq | 5/75 (7%) | 🟡 Medium | Add to 70 routes |
+| FM | 15/35 (43%) | 🟡 Medium | Add to 20 routes |
+| Auth | 12/14 (86%) | ✅ Good | 2 remaining are test routes |
+| Admin | 15/28 (54%) | 🟡 Medium | Add to 13 routes |
+
+#### Pattern 3: Error Boundary Gaps
+
+**Directories Missing `error.tsx`:**
+- `app/compliance` — Critical for compliance module
+- `app/vendors` — Vendor management
+- `app/signup` — User registration
+- `app/terms`, `app/privacy` — Legal pages
+- `app/logout` — Session handling
+- `app/qa` — QA tools
+
+**Fix:** Add standard `error.tsx` template to each:
+```tsx
+'use client';
+export default function Error({ error, reset }: { error: Error; reset: () => void }) {
+  return <ErrorBoundary error={error} reset={reset} />;
+}
+```
+
+#### Pattern 4: Services Without Test Coverage
+
+| Service Path | Lines | Critical Functions |
+|--------------|-------|-------------------|
+| `server/services/owner/financeIntegration.ts` | ~200 | Payment processing, reconciliation |
+| `server/services/finance/postingService.ts` | ~150 | Journal entries, ledger posting |
+| `server/services/hr/employee.service.ts` | ~300 | Employee CRUD, salary changes |
+| `server/services/hr/leave-type.service.ts` | ~100 | Leave policies, accrual |
+| `server/services/ats/offer-pdf.ts` | ~150 | PDF generation |
+| `server/services/ats/application-intake.ts` | ~100 | Application processing |
+
+---
+
+### 📋 PLANNED NEXT STEPS
+
+| # | Task | Time Est. | Priority | Status |
+|---|------|-----------|----------|--------|
+| 1 | Run `pnpm typecheck && pnpm lint && pnpm test` | 10 min | 🔴 P0 | ⏳ Pending |
+| 2 | Commit staged changes | 5 min | 🔴 P0 | ⏳ Pending |
+| 3 | Add Zod validation to 52 routes | 4-6 hrs | 🔴 P2 | 🔲 TODO |
+| 4 | Add try-catch to 5 routes | 1 hr | 🔴 P2 | 🔲 TODO |
+| 5 | Fix GraphQL orgId isolation | 2 hrs | 🔴 P2 | 🔲 TODO |
+| 6 | Add tests for 6 services | 3-4 hrs | 🟡 P3 | 🔲 TODO |
+| 7 | Add error boundaries (+8 dirs) | 2 hrs | 🟡 P3 | 🔲 TODO |
+| 8 | Expand rate limiting to 60% | 3-4 hrs | 🟡 P3 | 🔲 TODO |
+
+**Total Remaining Effort:** ~16-20 hours
 
 ---
 
@@ -10359,3 +10689,39 @@ No critical blockers remaining. Production is fully operational.
 - SafeHtml wrapper centralizes DOMPurify; applied to privacy/terms/about CMS renders, CMS slug pages, help articles/tutorials, and careers (previous session) to eliminate raw `dangerouslySetInnerHTML`.
 - New API route template under `tools/templates/` plus adoption on the public footer endpoint (rate limiting + Zod + centralized errors).
 - `applyRateLimitBatch` added to rateLimit utilities and used by billing subscribe/upgrade for combined IP + tenant enforcement.
+## 🗓️ 2025-12-12T20:17+03:00 — OrgId Isolation & Readiness v28.2
+
+### 📍 Current Progress & Planned Next Steps
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| Branch | `fix/graphql-resolver-todos` | ✅ Active |
+| Commands | `node tools/memory-selfcheck.js`, `pnpm lint:inventory-org` | ✅ Passed |
+| Scope | OrgId isolation across GraphQL, Souq reviews, Aqar listings/packages/favorites | ✅ In review |
+| Typecheck/Lint/Tests | Not run (docs-only update) | ⏳ Pending |
+
+- Progress: Master Pending Report refreshed with latest orgId audit; cataloged cross-module user-id fallbacks and missing tenant context on GraphQL reads/writes.
+- Next steps: Enforce orgId + tenant/audit context on GraphQL resolvers, remove user-id fallbacks in Souq/Aqar writes, add regression tests, then run `pnpm typecheck && pnpm lint && pnpm test`.
+
+### 🔧 Enhancements & Production Readiness
+
+| Category | Item | Status | Notes |
+|----------|------|--------|-------|
+| Efficiency | Normalize org once per GraphQL request and reuse across resolvers | 🔲 TODO | Reduce repeated `Types.ObjectId.isValid` checks and duplicate context setup. |
+| Efficiency | Short-circuit GraphQL reads when orgId missing | 🔲 TODO | Fail fast for dashboard/workOrder/properties/invoice to avoid orgless scans. |
+| Bugs/Logic | GraphQL `workOrder` query lacks org filter | 🔴 Open | lib/graphql/index.ts:769-801 — require org + tenant/audit context. |
+| Bugs/Logic | GraphQL `dashboardStats` uses `ctx.orgId ?? ctx.userId` | 🔴 Open | lib/graphql/index.ts:803-887 — reject orgless; set tenant/audit context. |
+| Bugs/Logic | GraphQL `createWorkOrder` writes with userId fallback | 🔴 Open | lib/graphql/index.ts:936-1052 — require org before writes; forbid userId-as-org. |
+| Bugs/Logic | Souq review POST falls back to user id | 🔴 Open | app/api/souq/reviews/route.ts:61-108 — unscoped writes; align with GET org requirement. |
+| Bugs/Logic | Aqar listings/packages/favorites use user-id fallback | 🔴 Open | listings `app/api/aqar/listings/route.ts:99-138`; packages `app/api/aqar/packages/route.ts:102-124`; favorites `app/api/aqar/favorites/route.ts:61-138`. |
+| Missing Tests | GraphQL org enforcement + tenant/audit context | 🟠 Missing | Add org-required + orgless rejection coverage for queries/mutations. |
+| Missing Tests | Souq review POST org requirement | 🟠 Missing | API test to enforce session orgId and stored org matches tenant. |
+| Missing Tests | Aqar listing/package/favorites org enforcement | 🟠 Missing | Ensure writes fail without orgId and persist correct tenant org. |
+
+### 🔍 Deep-Dive: Similar/Identical Issue Patterns
+
+- User-id-as-orgId fallbacks recur across GraphQL createWorkOrder, Souq review POST, and Aqar listings/packages/favorites, risking cross-tenant writes and orgId type drift.
+- GraphQL reads (workOrder, dashboardStats, properties, invoice) run without tenant/audit context and permit orgless execution; mirror mutation tenantIsolation by requiring orgId and setting contexts before DB access.
+- Souq reviews enforce org on GET but not POST; Aqar routes show the same “user-as-org” shortcut. Cleaning this pattern across modules keeps tenancy consistent.
+
+---

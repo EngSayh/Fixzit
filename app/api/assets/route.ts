@@ -6,6 +6,7 @@
  */
 
 import { createCrudHandlers } from "@/lib/api/crud-factory";
+import { wrapRoute } from "@/lib/api/route-wrapper";
 import { Asset } from "@/server/models/Asset";
 import { z } from "zod";
 
@@ -136,7 +137,7 @@ function buildAssetFilter(searchParams: URLSearchParams, orgId: string) {
 /**
  * Export CRUD Handlers
  */
-export const { GET, POST } = createCrudHandlers({
+const crudHandlers = createCrudHandlers({
   Model: Asset,
   createSchema: createAssetSchema,
   entityName: "asset",
@@ -153,3 +154,6 @@ export const { GET, POST } = createCrudHandlers({
   ],
   buildFilter: buildAssetFilter,
 });
+
+export const GET = wrapRoute(crudHandlers.GET, "api.assets.get.catch");
+export const POST = wrapRoute(crudHandlers.POST, "api.assets.post.catch");

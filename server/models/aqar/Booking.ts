@@ -16,8 +16,15 @@
  * Each booking has an array of UTC date-only nights [checkIn..checkOut-1].
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, {
+  Schema,
+  Document,
+  Model,
+  type HydratedDocument,
+  type UpdateQuery,
+} from 'mongoose';
 import type { MModel } from '@/types/mongoose-compat';
+import type { EncryptableField } from '@/types/mongoose-encrypted';
 import { EscrowSource, EscrowState, type EscrowStateValue } from '@/server/models/finance/EscrowAccount';
 import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
 import { encryptField, decryptField, isEncrypted } from '@/lib/security/encryption';
@@ -68,8 +75,8 @@ export interface IBooking extends Document {
   status: BookingStatus;
 
   // Communication
-  guestPhone?: string;
-  guestNationalId?: string;
+  guestPhone?: EncryptableField<string>;
+  guestNationalId?: EncryptableField<string>;
   specialRequests?: string;
   hostNotes?: string;
 
@@ -243,18 +250,21 @@ BookingSchema.pre('save', function(next) {
  */
 BookingSchema.pre('findOneAndUpdate', function(next) {
   try {
-    const update = this.getUpdate() as Record<string, any>;
+    const update = this.getUpdate() as (UpdateQuery<IBooking> & Record<string, unknown>) | null;
     if (!update) return next();
     
-    const updateData = update.$set ?? update;
+    const setTarget = update.$set as Record<string, unknown> | undefined;
+    const updateTarget = update as Record<string, unknown>;
+    const updateData = setTarget ?? updateTarget;
     
     for (const [field, fieldName] of Object.entries(BOOKING_ENCRYPTED_FIELDS)) {
       const value = updateData[field];
       if (value !== undefined && value !== null && !isEncrypted(String(value))) {
-        if (update.$set) {
-          update.$set[field] = encryptField(String(value), `booking.${field}`);
+        const encrypted = encryptField(String(value), `booking.${field}`);
+        if (setTarget) {
+          setTarget[field] = encrypted;
         } else {
-          update[field] = encryptField(String(value), `booking.${field}`);
+          updateTarget[field] = encrypted;
         }
         logger.info('booking:pii_encrypted', {
           action: 'pre_findOneAndUpdate_encrypt',
@@ -276,13 +286,15 @@ BookingSchema.pre('findOneAndUpdate', function(next) {
 /**
  * Post-find hooks: Decrypt guest PII fields after retrieval
  */
-function decryptBookingPIIFields(doc: any) {
+function decryptBookingPIIFields(doc: BookingDoc) {
   if (!doc) return;
   try {
-    for (const field of Object.keys(BOOKING_ENCRYPTED_FIELDS)) {
-      const value = doc[field];
-      if (value && isEncrypted(value)) {
-        doc[field] = decryptField(value, `booking.${field}`);
+    for (const [field] of Object.entries(BOOKING_ENCRYPTED_FIELDS)) {
+      const key = field as BookingEncryptedField;
+      const value = doc[key];
+      if (value && isEncrypted(String(value))) {
+        (doc as Record<BookingEncryptedField, string | undefined>)[key] =
+          decryptField(String(value), `booking.${field}`) ?? undefined;
       }
     }
   } catch (error) {
@@ -293,15 +305,15 @@ function decryptBookingPIIFields(doc: any) {
   }
 }
 
-BookingSchema.post('find', function(docs: any[]) {
+BookingSchema.post('find', function(docs: HydratedDocument<IBooking>[]) {
   if (Array.isArray(docs)) docs.forEach(decryptBookingPIIFields);
 });
 
-BookingSchema.post('findOne', function(doc: any) {
+BookingSchema.post('findOne', function(doc: BookingDoc) {
   decryptBookingPIIFields(doc);
 });
 
-BookingSchema.post('findOneAndUpdate', function(doc: any) {
+BookingSchema.post('findOneAndUpdate', function(doc: BookingDoc) {
   decryptBookingPIIFields(doc);
 });
 
@@ -383,15 +395,16 @@ BookingSchema.pre('findOneAndUpdate', async function (next) {
     // Enforce validation and return updated document
     this.setOptions({ runValidators: true, new: true, context: 'query' });
     
-    const update = this.getUpdate() as Record<string, any>;
+    const update = this.getUpdate() as (UpdateQuery<IBooking> & Record<string, unknown>) | null;
     if (!update) return next();
     
-    const updateData = update.$set ?? update;
+    const setTarget = update.$set as Record<string, unknown> | undefined;
+    const updateData = (update.$set ?? update) as Record<string, unknown>;
     
     // Check if dates or price are being updated
-    const hasCheckInUpdate = updateData.checkInDate !== undefined;
-    const hasCheckOutUpdate = updateData.checkOutDate !== undefined;
-    const hasPriceUpdate = updateData.pricePerNight !== undefined;
+    const hasCheckInUpdate = updateData["checkInDate"] !== undefined;
+    const hasCheckOutUpdate = updateData["checkOutDate"] !== undefined;
+    const hasPriceUpdate = updateData["pricePerNight"] !== undefined;
     
     // If any date or price field is being updated, we need to recalculate derived fields
     if (hasCheckInUpdate || hasCheckOutUpdate || hasPriceUpdate) {
@@ -410,18 +423,28 @@ BookingSchema.pre('findOneAndUpdate', async function (next) {
       
       // Merge existing values with updates (updates take precedence)
       // BOOK-002 FIX: Validate that dates exist before processing
-      const checkInDate = hasCheckInUpdate ? updateData.checkInDate : existing.checkInDate;
-      const checkOutDate = hasCheckOutUpdate ? updateData.checkOutDate : existing.checkOutDate;
-      const pricePerNight = hasPriceUpdate ? updateData.pricePerNight : existing.pricePerNight;
+      const checkInDate = hasCheckInUpdate ? updateData["checkInDate"] : existing.checkInDate;
+      const checkOutDate = hasCheckOutUpdate ? updateData["checkOutDate"] : existing.checkOutDate;
+      const pricePerNight = hasPriceUpdate ? updateData["pricePerNight"] : existing.pricePerNight;
+      const normalizeDate = (value: unknown) => {
+        if (value instanceof Date) return value;
+        if (typeof value === 'string' || typeof value === 'number') {
+          return new Date(value);
+        }
+        return null;
+      };
+
+      const checkInValue = normalizeDate(checkInDate);
+      const checkOutValue = normalizeDate(checkOutDate);
       
       // Validate required date fields are present
-      if (!checkInDate || !checkOutDate) {
+      if (!checkInValue || !checkOutValue) {
         return next(new Error('Booking must have valid check-in and check-out dates'));
       }
       
       // Calculate derived fields with merged values
-      const inUTC = toUTCDateOnly(new Date(checkInDate));
-      const outUTC = toUTCDateOnly(new Date(checkOutDate));
+      const inUTC = toUTCDateOnly(checkInValue);
+      const outUTC = toUTCDateOnly(checkOutValue);
       
       // BOOK-002 FIX: Validate dates are valid before proceeding
       if (isNaN(inUTC.getTime()) || isNaN(outUTC.getTime())) {
@@ -436,7 +459,7 @@ BookingSchema.pre('findOneAndUpdate', async function (next) {
       const reservedNights = enumerateNightsUTC(inUTC, outUTC);
       
       // Calculate pricing
-      const price = pricePerNight ?? 0;
+      const price = Number(pricePerNight ?? 0);
       const total = Math.max(0, price * nights);
       const feePercentage = Number(process.env.PLATFORM_FEE_PERCENTAGE) || 15;
       const platform = Math.round(total * (feePercentage / 100));
@@ -453,8 +476,8 @@ BookingSchema.pre('findOneAndUpdate', async function (next) {
         hostPayout: payout,
       };
       
-      if (update.$set) {
-        Object.assign(update.$set, derivedFields);
+      if (setTarget) {
+        Object.assign(setTarget, derivedFields);
       } else {
         Object.assign(update, derivedFields);
       }

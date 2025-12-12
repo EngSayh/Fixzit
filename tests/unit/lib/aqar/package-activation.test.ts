@@ -7,10 +7,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 // Mock mongoose before imports
 vi.mock("mongoose", () => {
-  const mockObjectId = vi.fn((id?: string) => ({
-    toString: () => id || "mock-id-123",
-  }));
-  mockObjectId.isValid = vi.fn(() => true);
+  const mockObjectId = Object.assign(
+    vi.fn((id?: string) => ({
+      toString: () => id || "mock-id-123",
+    })),
+    { isValid: vi.fn(() => true) }
+  );
   
   return {
     default: {
@@ -78,6 +80,8 @@ vi.mock("@/server/models/aqar", () => ({
 import { activatePackageAfterPayment } from "@/lib/aqar/package-activation";
 import { AqarPayment, AqarPackage } from "@/server/models/aqar";
 import { logger } from "@/lib/logger";
+import { buildOrgScopedFilter } from "@/lib/utils/org-scope";
+import { withTenantContext } from "@/server/plugins/tenantIsolation";
 
 describe("activatePackageAfterPayment", () => {
   beforeEach(() => {
@@ -233,9 +237,12 @@ describe("activatePackageAfterPayment", () => {
       vi.mocked(AqarPayment.findOne).mockResolvedValueOnce(mockPayment);
       vi.mocked(AqarPackage.findOne).mockResolvedValueOnce(testPackage);
       
-      await activatePackageAfterPayment("payment-123", "org-789");
+      const result = await activatePackageAfterPayment("payment-123", "org-789");
       
       expect(testPackage.activate).not.toHaveBeenCalled();
+      expect(testPackage.save).toHaveBeenCalled();
+      expect(testPackage.paidAt).toBeInstanceOf(Date);
+      expect(result).toBe(true);
     });
   });
 
@@ -249,6 +256,31 @@ describe("activatePackageAfterPayment", () => {
       expect(logger.error).toHaveBeenCalledWith(
         "activatePackageAfterPayment: Error activating package",
         expect.objectContaining({ paymentId: "payment-123" })
+      );
+    });
+  });
+
+  describe("Tenant isolation", () => {
+    it("wraps lookups in tenant context with scoped filters", async () => {
+      vi.mocked(AqarPayment.findOne).mockResolvedValueOnce(mockPayment);
+      vi.mocked(AqarPackage.findOne).mockResolvedValueOnce({ ...mockPackage });
+
+      const result = await activatePackageAfterPayment(mockPayment._id, mockPayment.orgId);
+
+      expect(result).toBe(true);
+      expect(withTenantContext).toHaveBeenCalledWith(
+        mockPayment.orgId,
+        expect.any(Function),
+      );
+      expect(buildOrgScopedFilter).toHaveBeenNthCalledWith(
+        1,
+        mockPayment._id,
+        mockPayment.orgId,
+      );
+      expect(buildOrgScopedFilter).toHaveBeenNthCalledWith(
+        2,
+        mockPayment.relatedId,
+        mockPayment.orgId,
       );
     });
   });

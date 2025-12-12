@@ -58,7 +58,7 @@ describe("auth/forgot-password route", () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body.error).toBe("Email is required");
+    expect(body.error).toContain("Invalid input");
   });
 
   it("returns 500 when reset secrets are not configured", async () => {

@@ -33,6 +33,8 @@ import mongoose, {
   Types,
   Document,
   Model,
+  type UpdateQuery,
+  type HydratedDocument,
 } from "mongoose";
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 import { encryptField, decryptField, isEncrypted } from "@/lib/security/encryption";
@@ -221,6 +223,9 @@ export interface EmployeeDoc extends BaseOrgDoc {
   bankDetails?: EmployeeBankDetails;
 }
 
+type EmployeeMutable = Record<string, any>;
+type EmployeeDocLike = HydratedDocument<EmployeeDoc> | EmployeeMutable;
+
 const TechnicianProfileSchema = new Schema<TechnicianProfile>(
   {
     isTechnician: { type: Boolean, default: false },
@@ -360,14 +365,14 @@ EmployeeSchema.pre('save', async function(next) {
     // Only encrypt if fields are modified and not already encrypted
     for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
       const parts = path.split('.');
-      let current: any = doc;
+      let current: EmployeeMutable = doc as unknown as EmployeeMutable;
       
       // Navigate to parent object
       for (let i = 0; i < parts.length - 1; i++) {
-        if (!current[parts[i]]) {
+        if (!current[parts[i]] || typeof current[parts[i]] !== "object") {
           current[parts[i]] = {};
         }
-        current = current[parts[i]];
+        current = current[parts[i]] as EmployeeMutable;
       }
       
       const field = parts[parts.length - 1];
@@ -402,20 +407,20 @@ EmployeeSchema.pre('save', async function(next) {
  * Post-find hooks: Decrypt sensitive PII fields after retrieval
  * Applied to: find, findOne, findById, findOneAndUpdate
  */
-function decryptEmployeePIIFields(doc: any) {
+function decryptEmployeePIIFields(doc: EmployeeDocLike) {
   if (!doc) return;
   
   try {
     for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
       const parts = path.split('.');
-      let current: any = doc;
+      let current: EmployeeMutable = doc as unknown as EmployeeMutable;
       
       // Navigate to parent object
       for (let i = 0; i < parts.length - 1; i++) {
-        if (!current[parts[i]]) {
+        if (!current[parts[i]] || typeof current[parts[i]] !== "object") {
           break;
         }
-        current = current[parts[i]];
+        current = current[parts[i]] as EmployeeMutable;
       }
       
       const field = parts[parts.length - 1];
@@ -437,17 +442,17 @@ function decryptEmployeePIIFields(doc: any) {
 }
 
 // Apply decryption to various find operations
-EmployeeSchema.post('find', function(docs: any[]) {
+EmployeeSchema.post('find', function(docs: HydratedDocument<EmployeeDoc>[]) {
   if (Array.isArray(docs)) {
     docs.forEach(decryptEmployeePIIFields);
   }
 });
 
-EmployeeSchema.post('findOne', function(doc: any) {
+EmployeeSchema.post('findOne', function(doc: EmployeeDocLike) {
   decryptEmployeePIIFields(doc);
 });
 
-EmployeeSchema.post('findOneAndUpdate', function(doc: any) {
+EmployeeSchema.post('findOneAndUpdate', function(doc: EmployeeDocLike) {
   decryptEmployeePIIFields(doc);
 });
 
@@ -457,22 +462,24 @@ EmployeeSchema.post('findOneAndUpdate', function(doc: any) {
 // =============================================================================
 EmployeeSchema.pre('findOneAndUpdate', function(next) {
   try {
-    const update = this.getUpdate() as Record<string, any>;
+    const update = this.getUpdate() as (UpdateQuery<EmployeeDoc> & Record<string, unknown>) | null;
     if (!update) return next();
     
     // Handle both $set operations and direct field updates
-    const updateData = update.$set ?? update;
+    const setTarget = update.$set as Record<string, unknown> | undefined;
+    const updateTarget = update as Record<string, unknown>;
+    const updateData = setTarget ?? updateTarget;
     
     for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
       // Check if this field is being updated
       const value = updateData[path];
       
       if (value !== undefined && value !== null && !isEncrypted(String(value))) {
-        // Encrypt the field
-        if (update.$set) {
-          update.$set[path] = encryptField(String(value), path);
+        const encrypted = encryptField(String(value), path);
+        if (setTarget) {
+          setTarget[path] = encrypted;
         } else {
-          update[path] = encryptField(String(value), path);
+          updateTarget[path] = encrypted;
         }
         
         logger.info('employee:pii_encrypted', {
@@ -499,19 +506,22 @@ EmployeeSchema.pre('findOneAndUpdate', function(next) {
  */
 EmployeeSchema.pre('updateOne', function(next) {
   try {
-    const update = this.getUpdate() as Record<string, any>;
+    const update = this.getUpdate() as (UpdateQuery<EmployeeDoc> & Record<string, unknown>) | null;
     if (!update) return next();
     
-    const updateData = update.$set ?? update;
+    const setTarget = update.$set as Record<string, unknown> | undefined;
+    const updateTarget = update as Record<string, unknown>;
+    const updateData = setTarget ?? updateTarget;
     
     for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
       const value = updateData[path];
       
       if (value !== undefined && value !== null && !isEncrypted(String(value))) {
-        if (update.$set) {
-          update.$set[path] = encryptField(String(value), path);
+        const encrypted = encryptField(String(value), path);
+        if (setTarget) {
+          setTarget[path] = encrypted;
         } else {
-          update[path] = encryptField(String(value), path);
+          updateTarget[path] = encrypted;
         }
         
         logger.info('employee:pii_encrypted', {
@@ -534,19 +544,22 @@ EmployeeSchema.pre('updateOne', function(next) {
 
 EmployeeSchema.pre('updateMany', function(next) {
   try {
-    const update = this.getUpdate() as Record<string, any>;
+    const update = this.getUpdate() as (UpdateQuery<EmployeeDoc> & Record<string, unknown>) | null;
     if (!update) return next();
     
-    const updateData = update.$set ?? update;
+    const setTarget = update.$set as Record<string, unknown> | undefined;
+    const updateTarget = update as Record<string, unknown>;
+    const updateData = setTarget ?? updateTarget;
     
     for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
       const value = updateData[path];
       
       if (value !== undefined && value !== null && !isEncrypted(String(value))) {
-        if (update.$set) {
-          update.$set[path] = encryptField(String(value), path);
+        const encrypted = encryptField(String(value), path);
+        if (setTarget) {
+          setTarget[path] = encrypted;
         } else {
-          update[path] = encryptField(String(value), path);
+          updateTarget[path] = encrypted;
         }
         
         logger.info('employee:pii_encrypted', {
@@ -1158,35 +1171,40 @@ PayrollRunSchema.pre("save", async function (this: PayrollRunDoc, next) {
  * Post-find hooks: Decrypt payroll PII fields after retrieval
  * DATA-002 FIX: Extended to decrypt baseSalary, housingAllowance, transportAllowance
  */
-function decryptPayrollPIIFields(doc: any) {
+type PayrollRunDocLike = HydratedDocument<PayrollRunDoc> | null | undefined;
+type PayrollLineMutable = PayrollLine & Record<string, unknown>;
+
+function decryptPayrollPIIFields(doc: PayrollRunDocLike) {
   if (!doc || !doc.lines) return;
   
   try {
-    doc.lines = doc.lines.map((line: any) => {
+    doc.lines = doc.lines.map((line) => {
+      const nextLine = { ...(line as unknown as Record<string, unknown>) } as PayrollLineMutable;
       // Decrypt IBAN
-      if (line.iban && isEncrypted(line.iban)) {
-        line.iban = decryptField(line.iban, 'payroll.iban');
+      if (nextLine.iban && isEncrypted(String(nextLine.iban))) {
+        const decrypted = decryptField(String(nextLine.iban), 'payroll.iban');
+        nextLine.iban = decrypted ?? undefined;
       }
       
       // DATA-002 FIX: Decrypt baseSalary (stored as encrypted string, return as number)
-      if (line.baseSalary && typeof line.baseSalary === 'string' && isEncrypted(line.baseSalary)) {
-        const decrypted = decryptField(line.baseSalary, 'payroll.baseSalary');
-        line.baseSalary = decrypted ? Number(decrypted) : 0;
+      if (nextLine.baseSalary && typeof nextLine.baseSalary === 'string' && isEncrypted(nextLine.baseSalary)) {
+        const decrypted = decryptField(nextLine.baseSalary, 'payroll.baseSalary');
+        nextLine.baseSalary = decrypted ? Number(decrypted) : 0;
       }
       
       // DATA-002 FIX: Decrypt housingAllowance
-      if (line.housingAllowance && typeof line.housingAllowance === 'string' && isEncrypted(line.housingAllowance)) {
-        const decrypted = decryptField(line.housingAllowance, 'payroll.housingAllowance');
-        line.housingAllowance = decrypted ? Number(decrypted) : 0;
+      if (nextLine.housingAllowance && typeof nextLine.housingAllowance === 'string' && isEncrypted(nextLine.housingAllowance)) {
+        const decrypted = decryptField(nextLine.housingAllowance, 'payroll.housingAllowance');
+        nextLine.housingAllowance = decrypted ? Number(decrypted) : 0;
       }
       
       // DATA-002 FIX: Decrypt transportAllowance
-      if (line.transportAllowance && typeof line.transportAllowance === 'string' && isEncrypted(line.transportAllowance)) {
-        const decrypted = decryptField(line.transportAllowance, 'payroll.transportAllowance');
-        line.transportAllowance = decrypted ? Number(decrypted) : 0;
+      if (nextLine.transportAllowance && typeof nextLine.transportAllowance === 'string' && isEncrypted(nextLine.transportAllowance)) {
+        const decrypted = decryptField(nextLine.transportAllowance, 'payroll.transportAllowance');
+        nextLine.transportAllowance = decrypted ? Number(decrypted) : 0;
       }
       
-      return line;
+      return nextLine;
     });
   } catch (error) {
     logger.error('payroll:decryption_failed', {
@@ -1197,17 +1215,17 @@ function decryptPayrollPIIFields(doc: any) {
   }
 }
 
-PayrollRunSchema.post('find', function(docs: any[]) {
+PayrollRunSchema.post('find', function(docs: HydratedDocument<PayrollRunDoc>[]) {
   if (Array.isArray(docs)) {
     docs.forEach(decryptPayrollPIIFields);
   }
 });
 
-PayrollRunSchema.post('findOne', function(doc: any) {
+PayrollRunSchema.post('findOne', function(doc: PayrollRunDocLike) {
   decryptPayrollPIIFields(doc);
 });
 
-PayrollRunSchema.post('findOneAndUpdate', function(doc: any) {
+PayrollRunSchema.post('findOneAndUpdate', function(doc: PayrollRunDocLike) {
   decryptPayrollPIIFields(doc);
 });
 

@@ -211,17 +211,19 @@ export default async function AboutPage() {
       "query-input": "required name=search_term_string",
     },
   };
+  const organizationJson = sanitizeHtml(JSON.stringify(organizationSchema));
+  const websiteJson = sanitizeHtml(JSON.stringify(websiteSchema));
 
   return (
     <>
       {/* JSON-LD Structured Data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        dangerouslySetInnerHTML={{ __html: organizationJson }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        dangerouslySetInnerHTML={{ __html: websiteJson }}
       />
 
       <div

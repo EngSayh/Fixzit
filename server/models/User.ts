@@ -1,4 +1,11 @@
-import { Schema, Model, models, InferSchemaType } from "mongoose";
+import {
+  Schema,
+  Model,
+  models,
+  InferSchemaType,
+  type HydratedDocument,
+  type UpdateQuery,
+} from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
@@ -257,6 +264,11 @@ UserSchema.index({ orgId: 1, "workload.available": 1 }, { name: "users_orgId_wor
 UserSchema.index({ orgId: 1, "performance.rating": -1 }, { name: "users_orgId_performance_rating" });
 UserSchema.index({ orgId: 1, isSuperAdmin: 1 }, { name: "users_orgId_isSuperAdmin" }); // RBAC index
 
+type UserMutable = Record<string, any>;
+type UserDocLike =
+  | HydratedDocument<InferSchemaType<typeof UserSchema>>
+  | UserMutable;
+
 // =============================================================================
 // PII ENCRYPTION MIDDLEWARE (GDPR Article 32 - Security of Processing)
 // =============================================================================
@@ -291,14 +303,14 @@ UserSchema.pre('save', async function(next) {
     // Only encrypt if fields are modified and not already encrypted
     for (const [path, fieldName] of Object.entries(ENCRYPTED_FIELDS)) {
       const parts = path.split('.');
-      let current: any = doc;
+      let current: UserMutable = doc as unknown as UserMutable;
       
       // Navigate to parent object
       for (let i = 0; i < parts.length - 1; i++) {
-        if (!current[parts[i]]) {
+        if (!current[parts[i]] || typeof current[parts[i]] !== "object") {
           current[parts[i]] = {};
         }
-        current = current[parts[i]];
+        current = current[parts[i]] as UserMutable;
       }
       
       const field = parts[parts.length - 1];
@@ -334,20 +346,20 @@ UserSchema.pre('save', async function(next) {
  * Post-find hooks: Decrypt sensitive PII fields after retrieval
  * Applied to: find, findOne, findById, findOneAndUpdate
  */
-function decryptPIIFields(doc: any) {
+function decryptPIIFields(doc: UserDocLike) {
   if (!doc) return;
   
   try {
     for (const [path, fieldName] of Object.entries(ENCRYPTED_FIELDS)) {
       const parts = path.split('.');
-      let current: any = doc;
+      let current: UserMutable = doc as unknown as UserMutable;
       
       // Navigate to parent object
       for (let i = 0; i < parts.length - 1; i++) {
-        if (!current[parts[i]]) {
+        if (!current[parts[i]] || typeof current[parts[i]] !== "object") {
           break;
         }
-        current = current[parts[i]];
+        current = current[parts[i]] as UserMutable;
       }
       
       const field = parts[parts.length - 1];
@@ -369,17 +381,17 @@ function decryptPIIFields(doc: any) {
 }
 
 // Apply decryption to various find operations
-UserSchema.post('find', function(docs: any[]) {
+UserSchema.post('find', function(docs: HydratedDocument<UserDoc>[]) {
   if (Array.isArray(docs)) {
     docs.forEach(decryptPIIFields);
   }
 });
 
-UserSchema.post('findOne', function(doc: any) {
+UserSchema.post('findOne', function(doc: UserDocLike) {
   decryptPIIFields(doc);
 });
 
-UserSchema.post('findOneAndUpdate', function(doc: any) {
+UserSchema.post('findOneAndUpdate', function(doc: UserDocLike) {
   decryptPIIFields(doc);
 });
 
@@ -389,22 +401,24 @@ UserSchema.post('findOneAndUpdate', function(doc: any) {
 // =============================================================================
 UserSchema.pre('findOneAndUpdate', function(next) {
   try {
-    const update = this.getUpdate() as Record<string, any>;
+    const update = this.getUpdate() as (UpdateQuery<UserDoc> & Record<string, unknown>) | null;
     if (!update) return next();
     
     // Handle both $set operations and direct field updates
-    const updateData = update.$set ?? update;
+    const setTarget = update.$set as Record<string, unknown> | undefined;
+    const updateTarget = update as Record<string, unknown>;
+    const updateData = setTarget ?? updateTarget;
     
     for (const [path, fieldName] of Object.entries(ENCRYPTED_FIELDS)) {
       // Check if this field is being updated
       const value = updateData[path];
       
       if (value !== undefined && value !== null && !isEncrypted(String(value))) {
-        // Encrypt the field
-        if (update.$set) {
-          update.$set[path] = encryptField(String(value), path);
+        const encrypted = encryptField(String(value), path);
+        if (setTarget) {
+          setTarget[path] = encrypted;
         } else {
-          update[path] = encryptField(String(value), path);
+          updateTarget[path] = encrypted;
         }
         
         logger.info('user:pii_encrypted', {
@@ -431,19 +445,22 @@ UserSchema.pre('findOneAndUpdate', function(next) {
  */
 UserSchema.pre('updateOne', function(next) {
   try {
-    const update = this.getUpdate() as Record<string, any>;
+    const update = this.getUpdate() as (UpdateQuery<UserDoc> & Record<string, unknown>) | null;
     if (!update) return next();
     
-    const updateData = update.$set ?? update;
+    const setTarget = update.$set as Record<string, unknown> | undefined;
+    const updateTarget = update as Record<string, unknown>;
+    const updateData = setTarget ?? updateTarget;
     
     for (const [path, fieldName] of Object.entries(ENCRYPTED_FIELDS)) {
       const value = updateData[path];
       
       if (value !== undefined && value !== null && !isEncrypted(String(value))) {
-        if (update.$set) {
-          update.$set[path] = encryptField(String(value), path);
+        const encrypted = encryptField(String(value), path);
+        if (setTarget) {
+          setTarget[path] = encrypted;
         } else {
-          update[path] = encryptField(String(value), path);
+          updateTarget[path] = encrypted;
         }
         
         logger.info('user:pii_encrypted', {
@@ -466,19 +483,22 @@ UserSchema.pre('updateOne', function(next) {
 
 UserSchema.pre('updateMany', function(next) {
   try {
-    const update = this.getUpdate() as Record<string, any>;
+    const update = this.getUpdate() as (UpdateQuery<UserDoc> & Record<string, unknown>) | null;
     if (!update) return next();
     
-    const updateData = update.$set ?? update;
+    const setTarget = update.$set as Record<string, unknown> | undefined;
+    const updateTarget = update as Record<string, unknown>;
+    const updateData = setTarget ?? updateTarget;
     
     for (const [path, fieldName] of Object.entries(ENCRYPTED_FIELDS)) {
       const value = updateData[path];
       
       if (value !== undefined && value !== null && !isEncrypted(String(value))) {
-        if (update.$set) {
-          update.$set[path] = encryptField(String(value), path);
+        const encrypted = encryptField(String(value), path);
+        if (setTarget) {
+          setTarget[path] = encrypted;
         } else {
-          update[path] = encryptField(String(value), path);
+          updateTarget[path] = encrypted;
         }
         
         logger.info('user:pii_encrypted', {

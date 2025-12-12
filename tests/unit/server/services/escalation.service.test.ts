@@ -39,17 +39,19 @@ vi.mock("@/server/models/User", () => ({
 import { resolveEscalationContact, type EscalationContact } from "@/server/services/escalation.service";
 import type { SessionUser } from "@/server/middleware/withAuthRbac";
 import { logger } from "@/lib/logger";
+import { UserRole } from "@/types/user";
 
 // Helper to create mock session user
 function createSessionUser(overrides: Partial<SessionUser> = {}): SessionUser {
   return {
     id: "user-123",
     email: "test@example.com",
-    role: "TENANT",
+    role: UserRole.TENANT,
     orgId: "org-456",
+    tenantId: "tenant-123",
     isSuperAdmin: false,
     ...overrides,
-  } as SessionUser;
+  };
 }
 
 describe("resolveEscalationContact", () => {
@@ -65,7 +67,7 @@ describe("resolveEscalationContact", () => {
 
   describe("Authorization", () => {
     it("should return fallback for unauthorized roles", async () => {
-      const user = createSessionUser({ role: "GUEST" });
+      const user = createSessionUser({ role: UserRole.CUSTOMER });
       
       const result = await resolveEscalationContact(user);
       
@@ -77,7 +79,7 @@ describe("resolveEscalationContact", () => {
     });
 
     it("should return fallback for PUBLIC role", async () => {
-      const user = createSessionUser({ role: "PUBLIC" });
+      const user = createSessionUser({ role: UserRole.VIEWER });
       
       const result = await resolveEscalationContact(user);
       
@@ -139,7 +141,7 @@ describe("resolveEscalationContact", () => {
 
   describe("Org Contact Resolution", () => {
     it("should return org admin contact when found", async () => {
-      const user = createSessionUser({ role: "TENANT", orgId: "org-123" });
+      const user = createSessionUser({ role: UserRole.TENANT, orgId: "org-123" });
       mockUserFindOne.mockReturnValueOnce({
         sort: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
@@ -162,7 +164,7 @@ describe("resolveEscalationContact", () => {
     });
 
     it("should return user fallback when no org contact found", async () => {
-      const user = createSessionUser({ role: "TENANT", orgId: "org-123" });
+      const user = createSessionUser({ role: UserRole.TENANT, orgId: "org-123" });
       mockUserFindOne.mockReturnValueOnce({
         sort: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
@@ -178,7 +180,7 @@ describe("resolveEscalationContact", () => {
 
     it("should use ESCALATION_FALLBACK_EMAIL env var if set", async () => {
       process.env.ESCALATION_FALLBACK_EMAIL = "custom-support@company.com";
-      const user = createSessionUser({ role: "GUEST" });
+      const user = createSessionUser({ role: UserRole.CUSTOMER });
       
       const result = await resolveEscalationContact(user);
       
@@ -261,7 +263,7 @@ describe("resolveEscalationContact", () => {
     });
 
     it("should handle user without orgId by returning user info as fallback", async () => {
-      const user = createSessionUser({ role: "TENANT", orgId: undefined as unknown as string });
+      const user = createSessionUser({ role: UserRole.TENANT, orgId: undefined as unknown as string });
       
       const result = await resolveEscalationContact(user);
       
@@ -273,7 +275,7 @@ describe("resolveEscalationContact", () => {
 
   describe("Context Parameter", () => {
     it("should accept optional context parameter", async () => {
-      const user = createSessionUser({ role: "GUEST" });
+      const user = createSessionUser({ role: UserRole.CUSTOMER });
       
       // Should not throw with context
       const result = await resolveEscalationContact(user, "work-order-123");
@@ -282,7 +284,7 @@ describe("resolveEscalationContact", () => {
     });
 
     it("should accept module context", async () => {
-      const user = createSessionUser({ role: "GUEST" });
+      const user = createSessionUser({ role: UserRole.CUSTOMER });
       
       // Module-aware context
       const result = await resolveEscalationContact(user, "FM");

@@ -6,6 +6,7 @@
  */
 
 import { createCrudHandlers } from "@/lib/api/crud-factory";
+import { wrapRoute } from "@/lib/api/route-wrapper";
 import { Property } from "@/server/models/Property";
 import { z } from "zod";
 
@@ -135,7 +136,7 @@ function buildPropertyFilter(searchParams: URLSearchParams, orgId: string) {
 /**
  * Export CRUD Handlers
  */
-export const { GET, POST } = createCrudHandlers({
+const crudHandlers = createCrudHandlers({
   Model: Property,
   createSchema: createPropertySchema,
   entityName: "property",
@@ -151,3 +152,6 @@ export const { GET, POST } = createCrudHandlers({
   ],
   buildFilter: buildPropertyFilter,
 });
+
+export const GET = wrapRoute(crudHandlers.GET, "api.properties.get.catch");
+export const POST = wrapRoute(crudHandlers.POST, "api.properties.post.catch");

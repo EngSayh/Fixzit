@@ -31,6 +31,8 @@ const DEFAULT_NOTIFICATIONS = {
   sms: false,
 };
 
+const getSession = () => auth() as unknown as Promise<Session | null>;
+
 const NOTIFICATION_KEYS = ['email', 'push', 'sms'] as const;
 
 const normalizeNotifications = (value?: unknown) => {
@@ -154,7 +156,7 @@ export async function GET(req: NextRequest) {
   const allowPlaywright =
     process.env.PLAYWRIGHT_TESTS === 'true' && process.env.NODE_ENV === 'test';
   try {
-    const session = (await auth()) as Session | null;
+    const session = await getSession();
     const rateLimited = await enforcePreferencesRateLimit(
       req,
       session,
@@ -217,7 +219,7 @@ export async function GET(req: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const session = (await auth()) as Session | null;
+    const session = await getSession();
     const rateLimited = await enforcePreferencesRateLimit(
       request,
       session,
