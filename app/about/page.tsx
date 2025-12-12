@@ -9,6 +9,8 @@ import {
   Mail,
 } from "lucide-react";
 import { renderMarkdownSanitized } from "@/lib/markdown";
+import { sanitizeHtml } from "@/lib/sanitize-html";
+import { SafeHtml } from "@/components/SafeHtml";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { CONTACT_INFO } from "@/config/contact";
@@ -151,10 +153,11 @@ export default async function AboutPage() {
   }
 
   const renderedContent = await renderMarkdownSanitized(content);
+  const sanitizedContent = sanitizeHtml(renderedContent);
 
   // Strip duplicate H1 from CMS markdown content if present
   // CMS editors often add an H1 which duplicates the hero title
-  const contentWithoutH1 = renderedContent.replace(/<h1[^>]*>.*?<\/h1>/i, "");
+  const contentWithoutH1 = sanitizedContent.replace(/<h1[^>]*>.*?<\/h1>/i, "");
   const contactPhone = (CONTACT_INFO.phone || "").trim();
   const sanitizedTel = contactPhone ? contactPhone.replace(/[^+\d]/g, "") : "";
 
@@ -312,7 +315,7 @@ export default async function AboutPage() {
           <div className="mx-auto max-w-4xl px-4 lg:px-6">
             <div className="bg-card rounded-2xl shadow-md border border-border p-8 md:p-12">
               <article className="prose prose-lg max-w-none text-start prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground">
-                <div dangerouslySetInnerHTML={{ __html: contentWithoutH1 }} />
+                <SafeHtml html={contentWithoutH1} />
               </article>
             </div>
           </div>

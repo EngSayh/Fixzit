@@ -21,7 +21,7 @@
  *   MONGODB_URI or MONGO_URI must be set. Loads .env.local and .env automatically.
  */
 
-import { MongoClient } from "mongodb";
+import { MongoClient, type Document } from "mongodb";
 import { config } from "dotenv";
 
 config({ path: ".env.local" });
@@ -101,7 +101,7 @@ async function normalizeCollection(
   }
 
   // Use aggregation pipeline update (MongoDB 4.2+) to copy and normalize type
-  const updatePipeline: Record<string, unknown>[] = [
+  const updatePipeline: Document[] = [
     {
       $set: {
         orgId: {
@@ -119,7 +119,7 @@ async function normalizeCollection(
     updatePipeline.push({ $unset: "org_id" });
   }
 
-  const result = await coll.updateMany(filter, updatePipeline as any);
+  const result = await coll.updateMany(filter, updatePipeline);
   console.log(
     `   ✅ Updated ${result.modifiedCount}/${result.matchedCount} docs (${flags.unsetLegacy ? "moved" : "copied"} org_id -> orgId)\n`,
   );

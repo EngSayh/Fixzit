@@ -61,9 +61,18 @@ let createUpsert: (_db: MockDbInstance) => UpsertFn = (db) => {
       db.setCollection(collection, existing);
       return merged;
     }
+    const existingId = doc._id;
+    const normalizedId =
+      typeof existingId === "string"
+        ? existingId
+        : typeof existingId === "number"
+          ? String(existingId)
+          : undefined;
     const created = {
       ...doc,
-      _id: (doc as any)?._id ?? `seed_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      _id:
+        normalizedId ??
+        `seed_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     };

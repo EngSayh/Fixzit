@@ -15,6 +15,10 @@ import { getClientIP } from "@/server/security/headers";
 import { redactPhoneNumber } from "@/lib/sms-providers/phone-utils";
 
 export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ success: false, error: "Not Found" }, { status: 404 });
+  }
+
   try {
     const clientIp = getClientIP(req);
     // Strict rate limit for SMS test: 5 requests per minute

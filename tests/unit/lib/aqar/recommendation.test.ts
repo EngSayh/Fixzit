@@ -163,6 +163,19 @@ describe('recommendation', () => {
       expect(result.page).toBe(3);
       expect(result.pageSize).toBe(20);
     });
+
+    it('should propagate engine errors to the caller', async () => {
+      const { AqarRecommendationEngine } = await import('@/services/aqar/recommendation-engine');
+      const { getRecommendedListings } = await import('@/lib/aqar/recommendation');
+
+      vi.mocked(AqarRecommendationEngine.recommend).mockRejectedValue(
+        new Error('recommendation failed'),
+      );
+
+      await expect(
+        getRecommendedListings({ userId: 'user123' } as any),
+      ).rejects.toThrow('recommendation failed');
+    });
   });
 
   describe('exports', () => {

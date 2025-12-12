@@ -4,7 +4,14 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { decimal, Money } from '@/lib/finance/decimal';
+import {
+  BudgetMath,
+  InvoiceMath,
+  Money,
+  PaymentMath,
+  decimal,
+  formatDecimalCurrency,
+} from '@/lib/finance/decimal';
 import Decimal from 'decimal.js';
 
 describe('decimal.ts', () => {
@@ -200,6 +207,69 @@ describe('decimal.ts', () => {
       const result = Money.multiply(0.0001, 0.0001);
       // Decimal.js may use exponential notation for very small numbers
       expect(result.toNumber()).toBeCloseTo(0.00000001, 10);
+    });
+  });
+
+  describe('BudgetMath helpers', () => {
+    it('calculates totals and allocated amounts', () => {
+      const total = BudgetMath.calculateTotal([{ amount: 100 }, { amount: 50 }]);
+      const allocated = BudgetMath.calculateAllocated([
+        { category: 'ops', amount: 60 },
+        { category: '', amount: 10 },
+        { category: 'capex', amount: 20 },
+      ]);
+
+      expect(total.toNumber()).toBe(150);
+      expect(allocated.toNumber()).toBe(80);
+    });
+
+    it('derives remaining and percentage math', () => {
+      const total = decimal(200);
+      const allocated = decimal(75.5);
+      const remaining = BudgetMath.calculateRemaining(total, allocated);
+      const fromPct = BudgetMath.amountFromPercentage(total, 10);
+      const pctFromAmount = BudgetMath.percentageFromAmount(50, total);
+
+      expect(remaining.toNumber()).toBeCloseTo(124.5);
+      expect(fromPct.toNumber()).toBe(20);
+      expect(pctFromAmount.toNumber()).toBe(25);
+    });
+  });
+
+  describe('InvoiceMath helpers', () => {
+    it('computes line amounts, subtotals, tax, and totals', () => {
+      const lineAmount = InvoiceMath.calculateLineAmount(3, 19.99);
+      const subtotal = InvoiceMath.calculateSubtotal([{ amount: 25 }, { amount: 75 }]);
+      const tax = InvoiceMath.calculateTax(subtotal, 15);
+      const total = InvoiceMath.calculateTotal(subtotal, tax);
+
+      expect(lineAmount.toFixed(2)).toBe('59.97');
+      expect(subtotal.toNumber()).toBe(100);
+      expect(tax.toNumber()).toBe(15);
+      expect(total.toNumber()).toBe(115);
+    });
+  });
+
+  describe('PaymentMath.allocatePayment', () => {
+    it('allocates payments across invoices without rounding drift', () => {
+      const allocations = PaymentMath.allocatePayment(decimal(150), [
+        { id: 'a', amount: 100 },
+        { id: 'b', amount: 75 },
+      ]);
+
+      expect(allocations).toHaveLength(2);
+      expect(allocations[0].allocated.toNumber()).toBe(100);
+      expect(allocations[1].allocated.toNumber()).toBe(50);
+    });
+  });
+
+  describe('formatDecimalCurrency', () => {
+    it('formats numbers as currency strings', () => {
+      const formatted = formatDecimalCurrency(decimal(1234.56), 'USD');
+      expect(formatted).toContain('1,234.56');
+      expect(
+        formatted.startsWith('$') || formatted.includes('USD'),
+      ).toBe(true);
     });
   });
 });

@@ -127,6 +127,21 @@ describe('pricingInsights', () => {
         }),
       );
     });
+
+    it('should surface errors from the service layer', async () => {
+      const { PricingInsightsService } = await import('@/services/aqar/pricing-insights-service');
+      const { computePricingInsight } = await import('@/lib/aqar/pricingInsights');
+
+      vi.mocked(PricingInsightsService.getInsights).mockRejectedValue(
+        new Error('service unavailable'),
+      );
+
+      await expect(
+        computePricingInsight({
+          cityId: 'riyadh',
+        }),
+      ).rejects.toThrow('service unavailable');
+    });
   });
 
   describe('exports', () => {

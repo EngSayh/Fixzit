@@ -20,6 +20,12 @@ import { sendSMS } from "@/lib/sms";
 import { logCommunication } from "@/lib/communication-logger";
 import { logger } from "@/lib/logger";
 import { audit } from "@/lib/audit";
+import type { Session } from "next-auth";
+import {
+  buildOrgAwareRateLimitKey,
+  smartRateLimit,
+} from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
 
 interface NotificationRequest {
   recipients: {
@@ -32,6 +38,29 @@ interface NotificationRequest {
   priority: "low" | "normal" | "high" | "urgent";
   scheduledAt?: string; // ISO timestamp for scheduled delivery
 }
+
+const ADMIN_NOTIFICATIONS_RL_LIMIT = 10;
+
+const enforceAdminNotificationRateLimit = async (
+  req: NextRequest,
+  session: Session | null,
+) => {
+  const sessionUser = session?.user as { id?: string; orgId?: string } | undefined;
+  const key = buildOrgAwareRateLimitKey(
+    req,
+    sessionUser?.orgId ?? null,
+    sessionUser?.id ?? null,
+  );
+  const rl = await smartRateLimit(
+    `${key}:admin-notifications`,
+    ADMIN_NOTIFICATIONS_RL_LIMIT,
+    60_000,
+  );
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+  return null;
+};
 
 export async function POST(req: NextRequest) {
   const logPromises: Promise<void>[] = [];
@@ -67,7 +96,9 @@ export async function POST(req: NextRequest) {
 
   try {
     // Authentication check
-    const session = await auth();
+    const session = (await auth()) as Session | null;
+    const rateLimited = await enforceAdminNotificationRateLimit(req, session);
+    if (rateLimited) return rateLimited;
 
     if (!session?.user) {
       await audit({

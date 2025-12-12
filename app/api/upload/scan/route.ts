@@ -33,11 +33,19 @@ import { scanS3Object } from "@/lib/security/av-scan";
 import { validateBucketPolicies } from "@/lib/security/s3-policy";
 import { Config } from "@/lib/config/constants";
 import { logger } from "@/lib/logger";
+import {
+  buildOrgAwareRateLimitKey,
+  smartRateLimit,
+} from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
 
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    const rlKey = buildOrgAwareRateLimitKey(req, user.orgId ?? null, user.id);
+    const rl = await smartRateLimit(`${rlKey}:upload-scan`, 20, 60_000);
+    if (!rl.allowed) return rateLimitError();
 
     const { key } = await req.json().catch(() => ({}));
     if (!key || typeof key !== "string") {

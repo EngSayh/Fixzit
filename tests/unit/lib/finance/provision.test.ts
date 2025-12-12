@@ -127,5 +127,14 @@ describe('provision.ts', () => {
 
       expect(result._id).toBe('507f1f77bcf86cd799439011');
     });
+
+    it('should surface database errors', async () => {
+      const Subscription = (await import('@/server/models/Subscription')).default;
+      vi.mocked(Subscription.findOne).mockRejectedValue(new Error('db offline'));
+
+      const { provisionSubscriber } = await import('@/lib/finance/provision');
+
+      await expect(provisionSubscriber('any')).rejects.toThrow('db offline');
+    });
   });
 });

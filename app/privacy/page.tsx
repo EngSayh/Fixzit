@@ -5,6 +5,7 @@ import { useTranslation } from "@/contexts/TranslationContext";
 import { Shield, Lock, Eye, FileText, Mail, Phone } from "lucide-react";
 import { renderMarkdownSanitized } from "@/lib/markdown";
 import { EMAIL_DOMAINS as EMAILS } from "@/lib/config/domains";
+import { SafeHtml } from "@/components/SafeHtml";
 // NOTE: Do NOT import Config from '@/lib/config/constants' in client components
 // It contains server-only validation that throws on client-side
 // Use NEXT_PUBLIC_ environment variables directly instead
@@ -196,7 +197,7 @@ export default function PrivacyPage() {
         <div className="mx-auto max-w-4xl px-4 lg:px-6">
           <div className="bg-card rounded-2xl shadow-md border border-border p-8 md:p-12">
             <article className="prose prose-lg max-w-none text-start prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground">
-              <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
+              <SafeHtml html={renderedContent} />
             </article>
           </div>
         </div>

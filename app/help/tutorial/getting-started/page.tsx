@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { renderMarkdownSanitized } from "@/lib/markdown";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { SafeHtml } from "@/components/SafeHtml";
 
 // HTML escape utility for fallback rendering
 const escapeHtml = (str: string) =>
@@ -622,7 +623,7 @@ Continue to learn about tenant relations!
 
               {/* Step Content */}
               <div className="prose prose-lg max-w-none prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground">
-                <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
+                <SafeHtml html={renderedContent} />
               </div>
 
               {/* Tips */}

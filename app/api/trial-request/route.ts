@@ -34,6 +34,11 @@ import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { z } from "zod";
 import { getClientIP } from "@/server/security/headers";
+import {
+  buildOrgAwareRateLimitKey,
+  smartRateLimit,
+} from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
 
 // SECURITY: Zod schema with proper email validation and honeypot field
 const trialRequestSchema = z.object({
@@ -49,6 +54,10 @@ const trialRequestSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const rlKey = buildOrgAwareRateLimitKey(req, null, null);
+  const rl = await smartRateLimit(`${rlKey}:trial-request`, 3, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
   // Rate limiting: 3 requests per minute per IP to prevent spam/abuse
   const rateLimitResponse = enforceRateLimit(req, {
     keyPrefix: "trial-request",

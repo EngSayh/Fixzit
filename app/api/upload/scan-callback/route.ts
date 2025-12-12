@@ -30,6 +30,11 @@ import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { Config } from "@/lib/config/constants";
+import {
+  buildOrgAwareRateLimitKey,
+  smartRateLimit,
+} from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
 
 type ScanStatus = "pending" | "clean" | "infected" | "error";
 
@@ -65,6 +70,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const rlKey = buildOrgAwareRateLimitKey(req, null, null);
+    const rl = await smartRateLimit(`${rlKey}:upload-scan-callback`, 60, 60_000);
+    if (!rl.allowed) return rateLimitError();
+
     const payload = await req.json();
     const key = typeof payload?.key === "string" ? payload.key : "";
     const status = mapStatus(payload?.status);

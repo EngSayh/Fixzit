@@ -17,6 +17,16 @@ import Subscription from "@/server/models/Subscription";
 import { config } from "dotenv";
 import path from "path";
 
+type SubscriptionPeriodDoc = {
+  _id: mongoose.Types.ObjectId;
+  billing_cycle?: string | null;
+  next_billing_date?: Date | null;
+  current_period_start?: Date | null;
+  current_period_end?: Date | null;
+  updatedAt?: Date;
+  createdAt?: Date;
+};
+
 async function main() {
   const envPath = path.resolve(process.cwd(), ".env.local");
   config({ path: envPath });
@@ -28,7 +38,7 @@ async function main() {
   await mongoose.connect(uri);
   const batchSize = 200;
 
-  const cursor = Subscription.find({
+  const cursor = Subscription.find<SubscriptionPeriodDoc>({
     $or: [{ current_period_start: { $exists: false } }, { current_period_end: { $exists: false } }],
   })
     .sort({ _id: 1 })
@@ -43,19 +53,25 @@ async function main() {
     const billingCycle = (sub.billing_cycle || "MONTHLY").toUpperCase();
     const cycleDays = billingCycle === "ANNUAL" ? 365 : 30;
     const existingEnd =
-      (sub as any).current_period_end ||
-      sub.next_billing_date ||
-      sub.updatedAt ||
+      sub.current_period_end ??
+      sub.next_billing_date ??
+      sub.updatedAt ??
       sub.createdAt;
+
+    if (!existingEnd) {
+      continue;
+    }
     const periodEnd = new Date(existingEnd);
     const periodStart =
-      (sub as any).current_period_start ||
+      sub.current_period_start ||
       new Date(periodEnd.getTime() - cycleDays * 24 * 60 * 60 * 1000);
 
     // Only update missing fields
-    const update: Record<string, Date> = {};
-    if (!(sub as any).current_period_start) update.current_period_start = periodStart;
-    if (!(sub as any).current_period_end) update.current_period_end = periodEnd;
+    const update: Partial<
+      Pick<SubscriptionPeriodDoc, "current_period_start" | "current_period_end">
+    > = {};
+    if (!sub.current_period_start) update.current_period_start = periodStart;
+    if (!sub.current_period_end) update.current_period_end = periodEnd;
 
     if (Object.keys(update).length > 0) {
       await Subscription.updateOne({ _id: sub._id }, { $set: update }).exec();
