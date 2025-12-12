@@ -248,7 +248,7 @@ function TopBarContent() {
   });
 
   // Anchor refs for dropdown positioning
-  // React 19: useRef<T>(null) returns RefObject<T | null>, remove null assertion
+  // React 19 types: keep generic non-null so refs stay compatible with button forwardRef
   const notifBtnRef = useRef<HTMLButtonElement>(null);
   const userBtnRef = useRef<HTMLButtonElement>(null);
 
