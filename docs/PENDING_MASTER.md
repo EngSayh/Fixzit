@@ -1,3 +1,265 @@
+## 🗓️ 2025-12-12T17:10:59+03:00 — Production Readiness Update
+
+### Progress & Planned Next Steps
+- Added OTP send fail-fast when SMS/Taqnyat isn’t operational; guarded Souq ad clicks and Taqnyat webhook with JSON parsing + payload limits; created checkout unit tests for TAP subscription flow.
+- Verification: `pnpm typecheck` ✅, `pnpm lint` ✅, `pnpm test:models` ✅, `pnpm test:e2e` ⚠️ timed out (~10m, Copilot suite still running).
+- Next: rerun `pnpm test:e2e` with higher timeout; close CRITICALs OTP-001 (SMS delivery) and SEC-001 (Taqnyat signature); add tests for `lib/finance/tap-payments.ts`, `lib/finance/checkout.ts` edge cases, and remaining auth routes; finish safe JSON hardening for SendGrid webhook.
+
+### Enhancements (Production Readiness)
+- Efficiency: Currency + CURRENCIES + feature-flag single sources already consolidated; reuse shared formatter/map across client/server (no divergent configs).
+- Bugs/Logic: Taqnyat webhook now size-capped and JSON-safe before processing; Souq ad clicks return 400 on bad JSON instead of crashing; OTP send returns 503 when SMS disabled to avoid silent failures.
+- Missing Tests: Added checkout happy/quote/error coverage; still need TAP payments client deeper coverage, checkout edge cases, auth routes, and full Playwright pass to close gate.
+
+### Deep-Dive Similar Issues
+- Safe parsing pattern: Any `request.json()` without try/catch remains risky (e.g., SendGrid webhook) — apply shared safe parse + 400 responses.
+- SMS readiness: OTP flows should gate on `isSmsOperational` to prevent blackholes; verify Taqnyat creds in prod and monitor `sendOTP` outcomes.
+- TAP payments: Unit coverage exists for charge helpers; add scenarios for error codes/refunds/webhook parsing to align with checkout coverage.
+
+## 🗓️ 2025-12-12T17:20+03:00 — COMPREHENSIVE CODEBASE ANALYSIS v19.0
+
+### 📍 Current Session Status
+
+| Metric | Value |
+|--------|-------|
+| **Branch** | `fix/graphql-resolver-todos` |
+| **App Version** | v2.0.27 |
+| **Next.js** | 15.5.9 (patched for CVEs) |
+| **React** | 18.3.1 |
+| **Total API Routes** | 352 |
+| **Total Tests** | 2622 passing |
+| **TypeScript Errors** | 0 |
+| **ESLint Warnings** | 0 |
+
+### 📊 Current Progress Summary
+
+| Category | Completed | Remaining |
+|----------|-----------|-----------|
+| P0 Critical | 0/2 | OTP-001 (DevOps), PR #541 (waiting review) |
+| P1 High Priority | 1/2 | ✅ API error handling, 🔲 Service tests |
+| P2 Medium | 1/5 | ✅ fieldEncryption types, 🔲 4 remaining |
+| Test Coverage | 264 files | ~35% API route coverage |
+
+### 🎯 Planned Next Steps
+
+| Priority | Task | Effort | Blocker |
+|----------|------|--------|---------|
+| 🔴 P0-1 | Configure Taqnyat env vars in Vercel | 15 min | DevOps access |
+| 🔴 P0-2 | Merge PR #541 after approval | 5 min | Code review |
+| 🟡 P1-1 | Add tests for 9 critical services | 4 hrs | None |
+| 🟢 P2-1 | Add DOMPurify to 10 dangerouslySetInnerHTML usages | 2 hrs | None |
+| 🟢 P2-2 | Fix remaining 6 `as any` assertions | 1 hr | None |
+
+---
+
+### 🐛 BUGS & LOGIC ERRORS — COMPREHENSIVE SCAN
+
+#### BUG-001: API Routes Without Try-Catch (33 routes)
+**Severity:** 🟡 MEDIUM  
+**Status:** PARTIALLY FIXED (work-orders complete, others pending)
+
+| Module | Routes Without Try-Catch | Notes |
+|--------|--------------------------|-------|
+| auth | 8 | Mostly re-exports, delegated auth |
+| admin/billing | 4 | Need error handling |
+| checkout | 2 | Critical payment flow |
+| copilot | 4 | AI endpoints |
+| owner | 4 | Owner portal |
+| health/metrics | 3 | Monitoring endpoints (low priority) |
+| Other | 8 | Various modules |
+
+**Sample locations needing fix:**
+```
+app/api/checkout/quote/route.ts
+app/api/checkout/session/route.ts
+app/api/admin/billing/pricebooks/route.ts
+app/api/owner/statements/route.ts
+```
+
+#### BUG-002: Console Statements in Production Code (4 active)
+**Severity:** 🟢 LOW  
+**Impact:** Noisy logs, potential info leak
+
+| File | Type | Line |
+|------|------|------|
+| `app/privacy/page.tsx` | console.error | 76, 97 |
+| `app/global-error.tsx` | console.error | 30 |
+| `lib/startup-checks.ts` | console.warn | 73 |
+
+**Note:** `lib/logger.ts` console usage is intentional (logger implementation).
+
+#### BUG-003: `as any` Type Safety Bypasses (6 remaining)
+**Severity:** 🟢 LOW  
+**Status:** PARTIALLY FIXED
+
+| File | Line | Reason |
+|------|------|--------|
+| `server/utils/errorResponses.ts` | 39 | Error casting |
+| `server/models/aqar/Booking.ts` | 215, 217 | Field encryption |
+| `server/models/hr.models.ts` | 1101-1103 | Salary encryption |
+| `server/models/User.ts` | 316 | orgId access |
+
+---
+
+### ⚡ EFFICIENCY IMPROVEMENTS IDENTIFIED
+
+#### EFF-005: Rate Limiting Coverage Gap
+**Impact:** 237 of 352 routes (67%) lack rate limiting  
+**Risk:** Potential DoS vulnerability  
+**Recommended Action:** Create rate limit decorator/wrapper
+
+| Module | Routes | With Rate Limit | Coverage |
+|--------|--------|-----------------|----------|
+| souq | 75 | ~25 | 33% |
+| admin | 28 | ~10 | 36% |
+| fm | 25 | ~15 | 60% |
+| work-orders | 12 | 8 | 67% |
+| auth | 14 | 12 | 86% |
+
+#### EFF-006: Auth Check Coverage
+**Impact:** ~25 routes may lack explicit auth checks  
+**Notes:** Some are intentionally public (health, metrics, search)
+
+**Potentially unprotected sensitive routes:**
+```
+app/api/owner/statements/route.ts
+app/api/owner/properties/route.ts
+app/api/sms/test/route.ts (should be dev-only)
+```
+
+#### EFF-007: Re-export Pattern Without Error Boundary
+**Impact:** 4 routes use re-export pattern  
+**Risk:** Error propagation not controlled
+
+```
+app/api/payments/callback/route.ts → ../tap/webhook/route
+app/api/aqar/chat/route.ts → ../support/chatbot/route
+app/api/healthcheck/route.ts → ../../health/live/route
+app/api/souq/products/route.ts → ./catalog/route
+```
+
+---
+
+### 🧪 MISSING TEST COVERAGE
+
+#### TEST-001: Critical Services Without Tests (9 files)
+
+| Service | Location | Priority | Business Impact |
+|---------|----------|----------|-----------------|
+| `package-activation.ts` | lib/aqar/ | 🔴 HIGH | Subscription activation |
+| `escalation.service.ts` | server/services/ | 🔴 HIGH | SLA escalation |
+| `pricingInsights.ts` | lib/aqar/ | 🟡 MEDIUM | Dynamic pricing |
+| `recommendation.ts` | lib/aqar/ | 🟡 MEDIUM | AI recommendations |
+| `decimal.ts` | lib/finance/ | 🟡 MEDIUM | Financial calculations |
+| `provision.ts` | lib/finance/ | 🟡 MEDIUM | Revenue recognition |
+| `onboardingEntities.ts` | server/services/ | 🟡 MEDIUM | Tenant onboarding |
+| `onboardingKpi.service.ts` | server/services/ | 🟢 LOW | Analytics |
+| `subscriptionSeatService.ts` | server/services/ | 🟢 LOW | Seat management |
+
+#### TEST-002: API Route Coverage by Module
+
+| Module | Routes | Test Files | Est. Coverage |
+|--------|--------|------------|---------------|
+| souq | 75 | 18 | 24% |
+| admin | 28 | 6 | 21% |
+| fm | 25 | 9 | 36% |
+| work-orders | 12 | 4 | 33% |
+| finance | 19 | 14 | 74% |
+| auth | 14 | 13 | 93% |
+| hr | 7 | 2 | 29% |
+| aqar | 16 | 3 | 19% |
+| payments | 4 | 5 | 100%+ |
+
+---
+
+### 🔍 DEEP-DIVE: SIMILAR PATTERNS FOUND
+
+#### Pattern 1: Mongoose Encryption Type Bypasses
+**Finding:** All `as any` in models relate to field encryption  
+**Root Cause:** TypeScript can't infer encrypted field types  
+**Similar Locations:**
+- `server/models/aqar/Booking.ts` (2 instances)
+- `server/models/hr.models.ts` (3 instances)
+- `server/models/User.ts` (1 instance)
+
+**Recommended Fix:**
+```typescript
+// Create shared type for encrypted fields
+type EncryptableField<T> = T | string; // Original or encrypted string
+```
+
+#### Pattern 2: CMS Content XSS Surface
+**Finding:** 10 `dangerouslySetInnerHTML` usages across CMS pages  
+**Files Affected:**
+- `app/privacy/page.tsx`
+- `app/terms/page.tsx`
+- `app/about/page.tsx` (2 usages)
+- `app/careers/[slug]/page.tsx`
+- `app/cms/[slug]/page.tsx`
+- `app/help/tutorial/getting-started/page.tsx`
+- `app/help/[slug]/HelpArticleClient.tsx`
+- `app/help/[slug]/page.tsx`
+
+**Current Mitigation:** Content from trusted CMS  
+**Recommended:** Add DOMPurify sanitization as defense-in-depth
+
+#### Pattern 3: Re-Export Routes Without Local Error Handling
+**Finding:** 4 routes delegate entirely to other handlers  
+**Risk:** Errors from delegated handlers may not be properly caught  
+**Pattern:**
+```typescript
+// Current (risky)
+export { POST } from "../other/route";
+
+// Recommended
+import { POST as delegatedPost } from "../other/route";
+export async function POST(req) {
+  try {
+    return await delegatedPost(req);
+  } catch (error) {
+    logger.error("[route] Delegation failed", { error });
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
+}
+```
+
+#### Pattern 4: Inconsistent Rate Limiting Application
+**Finding:** Rate limiting applied inconsistently across modules  
+**High-Risk Unprotected Routes:**
+- All `/api/checkout/*` routes (payment flow)
+- Some `/api/admin/billing/*` routes
+- `/api/copilot/*` routes (AI token costs)
+
+---
+
+### 📋 PRODUCTION READINESS CHECKLIST
+
+| Category | Status | Blocking? |
+|----------|--------|-----------|
+| TypeScript compilation | ✅ 0 errors | No |
+| ESLint | ✅ 0 warnings | No |
+| Unit tests | ✅ 2622 passing | No |
+| Security CVEs | ✅ Next.js patched | No |
+| SMS/OTP | ⏳ Needs env vars | **Yes** |
+| Error handling | 🟡 33 routes need try-catch | No |
+| Rate limiting | 🟡 67% without | No |
+| Test coverage | 🟡 ~35% API routes | No |
+
+### ✅ DEPLOYMENT READINESS: **CONDITIONAL**
+- **Blocker:** OTP-001 Taqnyat env vars must be configured in Vercel
+- **Recommended:** Complete P1-1 service tests before production
+
+---
+
+### 📁 Open Pull Requests
+
+| PR | Title | Branch | Status |
+|----|-------|--------|--------|
+| #541 | fix(types): Resolve TypeScript errors | agent/critical-fixes-20251212-152814 | ⏳ Changes Requested |
+| #540 | docs(pending): Update PENDING_MASTER v18.0 | agent/system-scan-20251212-135700 | Open |
+| #539 | docs(pending): Update PENDING_MASTER v17.0 | docs/pending-report-update | Open |
+
+---
+
 ## 🗓️ 2025-12-12T17:05+03:00 — FULL VERIFICATION COMPLETE ✅
 
 ### 🧪 Test Results Summary
@@ -1241,6 +1503,26 @@ SMS_DEV_MODE=false
 ---
 
 # 🎯 MASTER PENDING REPORT — Fixzit Project
+## 🗓️ 2025-12-13T17:30+03:00 — GraphQL Resolvers & Tenancy Hardening
+
+### Progress & Planned Next Steps
+- Finished wiring all GraphQL resolver TODOs: auth context extraction (session/bearer), `me` user lookup, work order list/detail pagination, dashboard stats via shared query helpers, and creation with SLA/audit/tenant context.
+- Tenant config now loads from `organizations`/`tenants` collections with cache + default fallback; still serves defaults if DB unreachable.
+- Verification this session: `pnpm typecheck` ✅, `pnpm lint` ✅, `pnpm test:models` ✅, `pnpm test:e2e` ⚠️ timed out (~10m). Next: rerun Playwright with higher timeout/CI gate to confirm full pass.
+- Souq ad click handler hardened: timestamp parsed once to number before signature verification to satisfy type guard and avoid silent coercion issues.
+
+### Enhancements / Production Readiness (Efficiency, Bugs, Logic, Missing Tests)
+- GraphQL resolvers now backed by Mongo (users/work orders/stats/create) and respect tenant context; health remains unauthenticated.
+- Dashboard stats pulls work orders/properties/revenue/expenses; add coverage to ensure org scoping and non-zero data paths when DB seeded.
+- GraphQL work order creation currently minimal validation; consider aligning with REST validation schema and adding org-scoped existence checks for property/assignee.
+- Tenant config DB fetch is best-effort; add tests to cover branding/feature overrides and cache hit/miss paths; document offline fallback behavior.
+- Souq ad click signature path now typed; add regression tests for invalid payload types/timestamps and signature mismatches.
+- Missing tests: GraphQL resolvers (context building, pagination, creation errors), tenant config DB-backed path, Souq ad click negative cases, and a rerun of Playwright suite after timeout.
+
+### Deep-Dive: Similar/Identical Patterns to Address
+- Safe request parsing: the ad click route now guards payload types and parses timestamp before verification; run a sweep for other routes using `request.json()` without try/catch or numeric coercion checks to prevent 500s on malformed inputs.
+- Org scoping consistency: GraphQL resolvers enforce `orgId` + soft-delete guards; ensure any future GraphQL additions or REST fallbacks reuse the same filter builder to avoid cross-tenant leakage.
+- Test coverage gap pattern: feature-flagged GraphQL surface still lacks unit/integration tests; apply the same coverage model used for REST work orders (pagination, filters, authorization) to prevent regressions when the flag is enabled.
 
 **Last Updated**: 2025-12-12T16:40+03:00  
 **Version**: 18.20  
@@ -8019,3 +8301,46 @@ No critical blockers remaining. Production is fully operational.
 - v8.2 (2025-12-11T18:45+03) - H.4-H.8 historical backlog resolved
 - v6.4 (2025-12-11T14:45+03) - Production OPERATIONAL, MongoDB cold start RESOLVED
 # 🎯 MASTER PENDING REPORT — Fixzit Project
+## 🗓️ 2025-12-12T17:11+03:00 — Tenancy/RBAC Hardening & JSON Safety Pass
+
+### 📈 Progress & Planned Next Steps
+- Implemented tenancy fix: tenant scope now enforces unit-based filters and drops `tenant_id = userId` legacy path (`domain/fm/fm.behavior.ts`).
+- Tightened HR payroll RBAC: Finance roles removed; HR/HR_OFFICER (+ Corporate Admin) only; added invalid-JSON guard (`app/api/hr/payroll/runs/route.ts`).
+- Applied safe JSON parsing across finance/HR routes (accounts root/id, expenses, payments root, payment actions, HR leaves/payroll) with 400 fallback for malformed bodies.
+- Added regression tests for malformed JSON on finance accounts and HR payroll runs (`tests/unit/api/body-parse-negative.test.ts`).
+- Removed SQL/Prisma/knex/mysql/pg instrumentation from lock bundle to maintain Mongo-only stack (`pnpm-lock.yaml`).
+- Next: extend safe parser to remaining finance/HR routes, regenerate lock via `pnpm install`, then run `pnpm typecheck && pnpm lint && pnpm test`; add payroll RBAC tests and finance negative cases (expenses, payments actions).
+
+### 🧩 Enhancements / Bugs / Logic / Missing Tests (Prod Readiness)
+- **Tenancy:** Enforce `{ org_id, unit_id }` tenant scope; block legacy `tenant_id=userId` path.
+- **RBAC:** Payroll endpoints restricted to HR roles; remove Finance role bleed; add coverage to assert HR-only access.
+- **Input Hardening:** Safe parser with 400 response across finance/HR routes listed above; remaining routes to migrate.
+- **Efficiency:** Finance payments allocation loop still sequential; refactor to batch allocations to reduce latency.
+- **Stack Hygiene:** SQL/Prisma instrumentation entries removed from lock; ensure reinstall regenerates without SQL drivers.
+- **Missing Tests:** Add negative JSON tests for expenses, payments (root/actions), HR leaves PUT; add payroll RBAC tests; add lockfile guard to detect SQL/Prisma deps.
+- **Logic:** Ensure finance accounts parent validation stays org-scoped after parser change; keep TAP payments type alignment (`lastChargeId`) covered in tests.
+
+### 🔍 Deep-Dive Similar/Identical Issues
+1) **Raw req.json()** — Remaining finance/HR endpoints beyond updated set still risk malformed-body 500s; migrate all to `parseBodyOrNull` + 400.
+2) **Role bleed** — Review other HR/PII endpoints for Finance/Staff access; align with HR-only gate pattern used in payroll runs.
+3) **SQL/Prisma drift** — Lock had instrumentation bundle; add CI guard to fail on reintroduction of `instrumentation-pg/mysql/knex/prisma`.
+4) **Allocation sequencing** — Payments allocation loop is sequential; similar N+1/await-in-loop patterns exist in auto-repricer (PERF-001) and should be batched.
+## 🗓️ 2025-12-12T17:15+03:00 — Parser Coverage Gap & Validation Plan
+
+### 📈 Progress & Planned Next Steps
+- Recorded no-exec constraint acknowledgement; tests/installs not run.
+- Safe parser applied to finance/HR routes (accounts root/id, expenses, payments root/actions, HR leaves, payroll runs); tenancy/RBAC fixes from earlier session retained.
+- Lockfile SQL/Prisma instrumentation lines pruned; pending fresh install to regenerate clean lock.
+- Next: migrate remaining finance/HR routes still on raw `req.json()` to `parseBodyOrNull`; run `pnpm install`, then `pnpm typecheck && pnpm lint && pnpm test` to validate; add guards in CI to fail on SQL/Prisma reintroduction.
+
+### 🧩 Enhancements / Bugs / Logic / Missing Tests (Prod Readiness)
+- **Input Hardening:** Complete safe parser rollout across all finance/HR routes; maintain 400 fallback on malformed JSON.
+- **Tenancy/RBAC:** Verify tenant scope remains `{ org_id, unit_id }`; confirm HR-only payroll access (no Finance bleed) across related endpoints.
+- **Stack Hygiene:** Reinstall to regenerate lock without SQL/Prisma/knex/pg/mysql; add CI check for forbidden deps.
+- **Efficiency:** Batch invoice allocations in payments (remove sequential awaits); revisit auto-repricer N+1.
+- **Missing Tests:** Add negative JSON tests for expenses, payments (root/actions), HR leaves PUT; add payroll RBAC tests; add lockfile guard test for forbidden deps.
+
+### 🔍 Deep-Dive Similar/Identical Issues
+1) **Raw req.json() residuals** — Remaining finance/HR endpoints still need `parseBodyOrNull` to prevent malformed-body 500s.
+2) **Stack drift risk** — Lock previously pulled SQL/Prisma instrumentation; ensure post-install lock remains Mongo-only and gate in CI.
+3) **Sequential DB work** — Payments allocation loop mirrors other N+1/await-in-loop patterns (e.g., auto-repricer); batch where possible.
