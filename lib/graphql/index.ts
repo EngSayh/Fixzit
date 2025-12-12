@@ -21,6 +21,8 @@ import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { Expense, ExpenseStatus } from "@/server/models/finance/Expense";
 import { User } from "@/server/models/User";
+import { Property } from "@/server/models/Property";
+import { Invoice } from "@/server/models/Invoice";
 import { resolveSlaTarget } from "@/lib/sla";
 import { getWorkOrderStats, getPropertyCounters, getRevenueStats } from "@/lib/queries";
 import { setTenantContext, clearTenantContext } from "@/server/plugins/tenantIsolation";
@@ -938,8 +940,21 @@ export const resolvers = {
         await connectToDatabase();
         setTenantContext({ orgId: ctx.orgId, userId: ctx.userId });
         logger.debug("[GraphQL] Fetching properties", { first: args.first, orgId: ctx.orgId });
-        // TODO: Implement actual property fetch with org filter
-        return [];
+        
+        // Fetch properties with org filter (tenant isolation plugin will add orgId filter)
+        const limit = Math.min(args.first ?? 20, 100);
+        const properties = await Property.find({ orgId: ctx.orgId })
+          .limit(limit)
+          .sort({ createdAt: -1 })
+          .lean();
+        
+        return properties.map((p) => ({
+          id: p._id?.toString(),
+          code: p.code,
+          name: p.name,
+          type: p.type,
+          address: p.address,
+        }));
       } catch (error) {
         logger.error("[GraphQL] Failed to fetch properties", { error, orgId: ctx.orgId });
         return [];
@@ -970,8 +985,28 @@ export const resolvers = {
         await connectToDatabase();
         setTenantContext({ orgId: ctx.orgId, userId: ctx.userId });
         logger.debug("[GraphQL] Fetching invoice", { id: args.id, orgId: ctx.orgId });
-        // TODO: Implement actual invoice fetch with org filter
-        return null;
+        
+        // Fetch invoice with org filter for tenant isolation
+        const invoice = await Invoice.findOne({
+          _id: new Types.ObjectId(args.id),
+          orgId: ctx.orgId,
+        }).lean();
+        
+        if (!invoice) {
+          logger.debug("[GraphQL] Invoice not found", { id: args.id, orgId: ctx.orgId });
+          return null;
+        }
+        
+        return {
+          id: invoice._id?.toString(),
+          number: invoice.number,
+          type: invoice.type,
+          status: invoice.status,
+          issueDate: invoice.issueDate?.toISOString(),
+          dueDate: invoice.dueDate?.toISOString(),
+          total: invoice.total ?? 0,
+          currency: invoice.currency ?? "SAR",
+        };
       } catch (error) {
         logger.error("[GraphQL] Failed to fetch invoice", { error, id: args.id });
         return null;
