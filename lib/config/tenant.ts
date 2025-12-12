@@ -86,7 +86,7 @@ async function loadTenantConfigFromDatabase(orgId: string): Promise<void> {
       const normalizedOrgId = ObjectId.isValid(orgId) ? new ObjectId(orgId) : null;
 
       // Build filter ensuring _id is always ObjectId or not included
-      const orgIdFilter = normalizedOrgId
+      const orgIdFilter: Record<string, unknown> = normalizedOrgId
         ? { $or: [{ orgId }, { _id: normalizedOrgId }] }
         : { orgId };
 

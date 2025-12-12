@@ -135,7 +135,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const timestampNumber = Number.parseInt(timestamp, 10);
+    const timestampNumber = Number(timestamp);
+    if (!Number.isFinite(timestampNumber)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid timestamp" },
+        { status: 400 },
+      );
+    }
 
     if (!validateClickSignature(bidId, campaignId, timestampNumber, signature)) {
       logger.warn("[Ad API] Invalid click signature", { bidId, campaignId, clientIp });
@@ -145,7 +151,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cpc = typeof actualCpc === "number" ? actualCpc : parseFloat(actualCpc);
+    const cpc = typeof actualCpc === "number" ? actualCpc : Number(actualCpc);
+    if (!Number.isFinite(cpc) || cpc <= 0) {
+      return NextResponse.json(
+        { success: false, error: "Invalid click amount" },
+        { status: 400 },
+      );
+    }
 
     // Check budget availability
     const canCharge = await BudgetManager.canCharge(campaignId, orgId, cpc);

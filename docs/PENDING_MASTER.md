@@ -137,6 +137,23 @@
 
 ---
 
+## 🗓️ 2025-12-12T17:29:36+03:00 — Playwright Retry & Critical Focus
+
+### Progress & Planned Next Steps
+- Re-ran `pnpm test:e2e` with extended timeout; suite still timed out (Copilot isolation flow still running). Typecheck/lint remain clean; models tests already green.
+- Added OTP fail-fast when SMS/Taqnyat is not operational; Taqnyat webhook now size-capped and JSON-safe; Souq ad clicks return 400 on bad JSON instead of crashing; checkout unit tests added.
+- Next: run Playwright with an even higher ceiling or split suites to close gate; finalize OTP-001 (verify Taqnyat creds and delivery observability); confirm SEC-001 in prod (TAQNYAT_WEBHOOK_SECRET required and validated); expand TAP client tests for error/refund/webhook edges.
+
+### Enhancements (Production Readiness)
+- Efficiency: Currency/feature-flag/type single sources maintained (formatter + currencies map + feature-flags shim + FM/Invoice types).
+- Bugs/Logic: Safe parsing added to Taqnyat webhook and ad clicks; OTP send now surfaces 503 when SMS disabled; webhook payload size guard in place.
+- Missing Tests: New coverage for checkout happy/quote/error; TAP client still needs additional negative/refund/webhook parsing cases; full Playwright still pending completion.
+
+### Deep-Dive Similar Issues
+- Safe JSON pattern: Remaining direct `request.json()` calls (e.g., SendGrid webhook) should adopt the safe-parse + 400 pattern.
+- SMS readiness: OTP flows should continue to gate on SMS config and log delivery errors; validate Taqnyat credentials in deployed envs.
+- TAP coverage: Add tests for refund failures, API error codes, and webhook signature mismatch to mirror checkout coverage and ensure regression safety.
+
 ## 🗓️ 2025-12-12T17:10:59+03:00 — Production Readiness Update
 
 ### Progress & Planned Next Steps

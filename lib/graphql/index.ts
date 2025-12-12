@@ -734,7 +734,7 @@ export const resolvers = {
         const hasNextPage = docs.length > limit;
         const nodes = hasNextPage ? docs.slice(0, -1) : docs;
         const edges = nodes.map((doc) => {
-          const mapped = mapWorkOrderDocument(doc);
+          const mapped = mapWorkOrderDocument(doc as Record<string, unknown>);
           return {
             node: mapped,
             cursor: mapped.id,
@@ -793,7 +793,7 @@ export const resolvers = {
         logger.debug("[GraphQL] Fetching work order", { id: args.id, orgId: ctx.orgId });
 
         const wo = await WorkOrder.findOne(query).lean();
-        return wo ? mapWorkOrderDocument(wo) : null;
+        return wo ? mapWorkOrderDocument(wo as Record<string, unknown>) : null;
       } catch (error) {
         logger.error("[GraphQL] Failed to fetch work order", { error, id: args.id });
         return null;
@@ -1022,8 +1022,10 @@ export const resolvers = {
         setTenantContext({ orgId, userId: ctx.userId });
         setAuditContext({ userId: ctx.userId, timestamp: now });
 
-        const created = await WorkOrder.create(workOrderData);
-        const mapped = mapWorkOrderDocument(created.toObject());
+        const created = await WorkOrder.create(
+          workOrderData as Record<string, unknown>,
+        );
+        const mapped = mapWorkOrderDocument(created.toObject() as Record<string, unknown>);
 
         return {
           success: true,

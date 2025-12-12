@@ -127,8 +127,8 @@ export async function POST(req: NextRequest) {
       orgId: new Types.ObjectId(session.user.orgId),
       employeeId: new Types.ObjectId(employeeId),
       leaveTypeId: new Types.ObjectId(leaveTypeId),
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: new Date(startDate as string),
+      endDate: new Date(endDate as string),
       numberOfDays,
       status: "PENDING",
       reason,
@@ -177,6 +177,12 @@ export async function PUT(req: NextRequest) {
     if (!body?.leaveRequestId || !body.status) {
       return NextResponse.json(
         { error: "Missing fields: leaveRequestId, status" },
+        { status: 400 },
+      );
+    }
+    if (typeof body.leaveRequestId !== "string") {
+      return NextResponse.json(
+        { error: "leaveRequestId must be a string" },
         { status: 400 },
       );
     }
