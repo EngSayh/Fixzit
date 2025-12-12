@@ -3,7 +3,7 @@
 
 import cron from "node-cron";
 import { runRecurringBillingJob } from "../services/subscriptionBillingService";
-import { payTabsClient } from "../services/payTabsClient";
+import { tapPayments } from "@/lib/finance/tap-payments";
 import { logger } from "@/lib/logger";
 
 export function startBillingCron() {
@@ -11,7 +11,7 @@ export function startBillingCron() {
   cron.schedule("0 2 * * *", async () => {
     logger.info("[Cron] Starting daily billing job");
     try {
-      const result = await runRecurringBillingJob(payTabsClient);
+      const result = await runRecurringBillingJob(tapPayments);
       logger.info("[Cron] Billing job completed", result);
     } catch (error) {
       logger.error("[Cron] Billing job failed", { error });
