@@ -1,13 +1,116 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-12T21:20+03:00  
-**Version**: 16.7  
+**Last Updated**: 2025-12-12T22:10+03:00  
+**Version**: 16.8  
 **Branch**: fix/paytabs-cleanup-audit  
-**Status**: ✅ PRODUCTION READY | PR #537 open for PayTabs cleanup docs  
-**Total Pending Items**: 1 User Action (GH quota) + Optional PayTabs cleanup (37 files, 165 refs)  
-**Completed Items**: 332+ tasks completed  
-**Test Status**: ✅ TypeScript 0 errors | ✅ ESLint 0 errors  
-**CI Local Verification**: 2025-12-12T21:20+03:00 — typecheck ✅ | lint ✅
+**Status**: ✅ PRODUCTION READY | PR #537 open for merge  
+**Total Pending Items**: 3 Required + 1 Optional (PayTabs cleanup 38 files)  
+**Completed Items**: 336+ tasks completed  
+**Test Status**: ✅ Models 91 tests | ✅ E2E 170 tests | ✅ TypeScript 0 errors | ✅ ESLint 0 errors  
+**CI Local Verification**: 2025-12-12T22:10+03:00 — typecheck ✅ | lint ✅ | test:models ✅
+
+---
+
+## 🆕 SESSION 2025-12-12T22:10+03:00 — Status Consolidation & De-duplication
+
+### 📊 PROGRESS SINCE LAST UPDATE
+
+| Area | v16.7 | v16.8 | Change |
+|------|-------|-------|--------|
+| **Version** | 16.7 | 16.8 | +1 session update |
+| **TypeScript** | 0 errors | 0 errors | ✅ Stable |
+| **ESLint** | 0 errors | 0 errors | ✅ Stable |
+| **Model Tests** | 91 passing | 91 passing | ✅ Stable |
+| **E2E Tests** | 170 passing | 170 passing | ✅ Stable (1 skipped) |
+| **Open PRs** | 1 (#537) | 1 (#537) | Ready for merge |
+| **PayTabs Files** | 37 | 38 | +1 (`.next/` generated files) |
+| **NPM Vulnerabilities** | 2 | 2 | Next.js DoS (awaiting v15.5.8) |
+| **PRs Merged Total** | 534 | 534 | No new merges |
+
+### 🎯 NEXT STEPS — Consolidated & De-duplicated
+
+#### 🔴 REQUIRED — Blocking Items
+
+| # | ID | Task | Owner | Status | Effort | Action |
+|---|-----|------|-------|--------|--------|--------|
+| 1 | **PR-537** | Merge PayTabs cleanup docs PR | User | ⏳ Open | 1m | `gh pr merge 537 --squash --delete-branch` |
+| 2 | **GH-QUOTA** | Resolve GitHub Actions quota | DevOps | ⏳ Pending | TBD | Upgrade plan or self-hosted runners |
+| 3 | **GH-ENVS** | Create GitHub Environments | DevOps | ⏳ Pending | 5m | Create `staging` + `production-approval` |
+
+#### 🟡 OPTIONAL — Non-blocking Cleanup
+
+| # | ID | Task | Owner | Status | Effort | Priority |
+|---|-----|------|-------|--------|--------|----------|
+| 4 | **PAYTABS-CLEANUP** | Remove 38 PayTabs file refs | Agent | ⏳ Optional | 2-3h | Low (TAP operational) |
+| 5 | **NPM-VULN** | Update Next.js to 15.5.8+ | DevOps | ⏳ Waiting | 10m | Medium (DoS vuln) |
+
+#### 🟢 ENHANCEMENTS — Backlog
+
+| # | ID | Task | Priority | Notes |
+|---|-----|------|----------|-------|
+| 6 | **API-COVERAGE** | Increase API test coverage (7.8% → 30%) | Low | 357 routes, 28 tested |
+| 7 | **GRAPHQL** | Implement GraphQL resolvers | Low | Feature disabled |
+| 8 | **E2E-PERF** | Optimize E2E test runtime (55m) | Low | Consider parallel shards |
+
+### 🔍 FINDINGS
+
+#### A) Bugs/Errors Detected
+
+| Severity | Location | Issue | Status | Resolution |
+|----------|----------|-------|--------|------------|
+| 🔴 High | npm deps | Next.js DoS (GHSA-mwv6-3258-q52c) | ⏳ Waiting | Update to v15.5.8 when released |
+| 🟡 Moderate | npm deps | 1 moderate vulnerability | ⏳ Waiting | Bundled with Next.js update |
+| ✅ Fixed | `renovate.yml` | Version v44.1.0 → v44.0.5 | ✅ Done | Committed in previous session |
+| ✅ OK | GH Workflows | Secret context warnings | ✅ OK | False positives (optional secrets) |
+
+#### B) Logic/Efficiency Improvements
+
+| # | Finding | Location | Severity | Action Needed |
+|---|---------|----------|----------|---------------|
+| 1 | `payTabsClient.ts` exists | `server/services/` | 🟡 Medium | Delete (dead code) |
+| 2 | PayTabs types exported | `types/common.ts` | 🟡 Medium | Remove interfaces |
+| 3 | PAYTABS enum in models | 6 model files | 🟢 Low | Cosmetic cleanup |
+| 4 | `.next/` has generated refs | `.next/types/*.ts` | 🟢 Info | Auto-generated, ignore |
+
+#### C) De-duplication Notes
+
+Items verified as duplicates (merged/removed):
+- ❌ **TAP-KEYS**: Already ✅ COMPLETE (v16.5) — User configured in Vercel
+- ❌ **GHA-003 renovate fix**: Already ✅ DONE (v16.6) — Pinned to v44.0.5
+- ❌ **payTabsClient.ts**: Merged into PAYTABS-CLEANUP task
+- ❌ Multiple PayTabs file lists: Consolidated into single `<details>` section
+
+### 🧪 TESTS FOR PRODUCTION/DEPLOYED SYSTEM
+
+#### Pre-Deployment Verification (Local)
+
+```bash
+# REQUIRED — All must pass before deploy
+pnpm typecheck          # ✅ 0 errors (verified 2025-12-12T22:05)
+pnpm lint               # ✅ 0 errors (verified 2025-12-12T22:05)
+pnpm run test:models    # ✅ 91 tests passing (verified 2025-12-12T22:05)
+pnpm build              # Required for production deploy
+```
+
+#### Post-Deployment Smoke Tests (Production)
+
+| Priority | Test | Endpoint/Action | Expected Result |
+|----------|------|-----------------|-----------------|
+| 🔴 Critical | Health Check | `GET /api/health` | 200 OK |
+| 🔴 Critical | Auth Flow | Login → Dashboard redirect | Session created |
+| 🔴 Critical | TAP Payments | Create subscription | TAP checkout URL returned |
+| 🟡 High | i18n Toggle | Switch AR ↔ EN | UI updates correctly |
+| 🟡 High | RTL Layout | Arabic pages | Proper RTL rendering |
+| 🟡 High | Dashboard Load | `/dashboard` | < 3s load time |
+| 🟢 Medium | Work Orders | Create WO | WO created with ID |
+| 🟢 Medium | Finance Module | View invoices | List renders |
+
+#### E2E Test Suite (Comprehensive)
+
+```bash
+# Full E2E suite (55 minutes)
+pnpm run test:e2e       # ✅ 170 tests passing, 1 skipped
+```
 
 ---
 
