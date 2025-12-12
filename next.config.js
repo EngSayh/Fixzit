@@ -508,8 +508,7 @@ const nextConfig = {
           },
         },
         // ⚡ PERFORMANCE: Minimize bundle size
-        // Temporarily disabled to debug underlying errors
-        minimize: false,
+        minimize: true,
       };
       
       // Configure source maps: hidden maps for production (enables stack traces without exposing source)
