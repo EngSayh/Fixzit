@@ -1,11 +1,24 @@
 import { randomBytes, createCipheriv, createDecipheriv } from "crypto";
-import type { Schema } from "mongoose";
+import type {
+  Schema,
+  Document,
+  Query,
+  UpdateQuery,
+  UpdateWithAggregationPipeline,
+} from "mongoose";
 
 type EncryptionOptions = {
   fields: string[];
   secret?: string;
   skipIfNoSecret?: boolean;
 };
+
+// Type-safe hook context types for Mongoose operations
+interface QueryWithUpdate<T = Document> extends Query<T, T> {
+  getUpdate(): UpdateWithAggregationPipeline | UpdateQuery<T> | null;
+}
+
+type DocumentLike = Record<string, unknown>;
 
 const ENC_PREFIX = "enc::";
 const ALGORITHM = "aes-256-gcm";
@@ -61,7 +74,7 @@ function decryptValue(value: unknown, key: Buffer): unknown {
 
 type TransformFn = (value: unknown) => unknown;
 
-function applyPath(target: any, segments: string[], transform: TransformFn) {
+function applyPath(target: DocumentLike, segments: string[], transform: TransformFn) {
   if (!target || segments.length === 0) return;
   const [head, ...rest] = segments;
   const next = target[head];
@@ -77,19 +90,19 @@ function applyPath(target: any, segments: string[], transform: TransformFn) {
   if (Array.isArray(next)) {
     next.forEach((item) => {
       if (item && typeof item === "object") {
-        applyPath(item, rest, transform);
+        applyPath(item as DocumentLike, rest, transform);
       }
     });
   } else if (next && typeof next === "object") {
-    applyPath(next, rest, transform);
+    applyPath(next as DocumentLike, rest, transform);
   }
 }
 
-function transformDocument(doc: any, fields: string[], transform: TransformFn) {
+function transformDocument(doc: DocumentLike, fields: string[], transform: TransformFn) {
   fields.forEach((path) => applyPath(doc, path.split("."), transform));
 }
 
-function encryptDocument(doc: any, fields: string[], key: Buffer) {
+function encryptDocument(doc: DocumentLike, fields: string[], key: Buffer) {
   transformDocument(doc, fields, (current) => {
     if (current === undefined || current === null) return undefined;
     if (typeof current === "string" && current.startsWith(ENC_PREFIX)) return current;
@@ -97,15 +110,15 @@ function encryptDocument(doc: any, fields: string[], key: Buffer) {
   });
 }
 
-function decryptDocument(doc: any, fields: string[], key: Buffer) {
+function decryptDocument(doc: DocumentLike, fields: string[], key: Buffer) {
   transformDocument(doc, fields, (current) => {
     if (current === undefined || current === null) return current;
     return decryptValue(current, key);
   });
 }
 
-function encryptUpdate(update: Record<string, any>, fields: string[], key: Buffer) {
-  const targets = update.$set ?? update;
+function encryptUpdate(update: Record<string, unknown>, fields: string[], key: Buffer) {
+  const targets = (update.$set ?? update) as DocumentLike;
   encryptDocument(targets, fields, key);
   if (update.$set) update.$set = targets;
 }
@@ -126,24 +139,34 @@ export function fieldEncryptionPlugin(schema: Schema, options: EncryptionOptions
     next();
   });
 
-  const updateHooks = ["findOneAndUpdate", "updateOne", "updateMany", "update"];
+  const updateHooks: Array<"findOneAndUpdate" | "updateOne" | "updateMany"> = [
+    "findOneAndUpdate",
+    "updateOne",
+    "updateMany",
+  ];
   updateHooks.forEach((hook) => {
-    schema.pre(hook as any, function (this: any, next) {
-      const update =
-        typeof this.getUpdate === "function" ? this.getUpdate() : undefined;
-      if (update) encryptUpdate(update as Record<string, any>, fields, key);
+    schema.pre(hook, function (this: QueryWithUpdate, next) {
+      const update = this.getUpdate();
+      // Type guard: ensure update is an object (not aggregation pipeline)
+      if (update && typeof update === "object" && !Array.isArray(update)) {
+        encryptUpdate(update as Record<string, unknown>, fields, key);
+      }
       next();
     });
   });
 
-  const decryptHooks = ["init", "findOne", "find"];
-  decryptHooks.forEach((hook) => {
-    schema.post(hook as any, function (result: any) {
-      if (Array.isArray(result)) {
-        result.forEach((doc) => decryptDocument(doc, fields, key));
-      } else if (result) {
-        decryptDocument(result, fields, key);
-      }
-    });
+  // Register decrypt hooks individually to satisfy TypeScript
+  schema.post("init", function (result: DocumentLike | null) {
+    if (result) decryptDocument(result, fields, key);
+  });
+  
+  schema.post("findOne", function (result: DocumentLike | null) {
+    if (result) decryptDocument(result, fields, key);
+  });
+  
+  schema.post("find", function (result: DocumentLike[] | null) {
+    if (Array.isArray(result)) {
+      result.forEach((doc) => decryptDocument(doc, fields, key));
+    }
   });
 }

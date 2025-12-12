@@ -23,6 +23,7 @@ import { Payment } from "@/server/models/finance/Payment";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
+import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError, notFoundError } from "@/server/utils/errorResponses";
 
 async function getUserSession(req: NextRequest) {
@@ -115,7 +116,13 @@ export async function POST(
         }
 
         if (action === "reconcile") {
-          const body = await req.json();
+          const body = await parseBodyOrNull(req);
+          if (!body) {
+            return NextResponse.json(
+              { error: "Invalid JSON body" },
+              { status: 400 },
+            );
+          }
           const data = ReconcileSchema.parse(body);
 
           await payment.reconcile(
@@ -155,7 +162,13 @@ export async function POST(
             );
           }
 
-          const body = await req.json();
+          const body = await parseBodyOrNull(req);
+          if (!body) {
+            return NextResponse.json(
+              { error: "Invalid JSON body" },
+              { status: 400 },
+            );
+          }
           const data = BounceSchema.parse(body);
 
           payment.status = "BOUNCED";

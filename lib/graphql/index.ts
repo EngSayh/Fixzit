@@ -15,6 +15,22 @@
  */
 
 import { logger } from "@/lib/logger";
+// NOTE: These imports are prepared for full GraphQL implementation (BUG-002)
+// Currently disabled as GraphQL is behind FEATURE_INTEGRATIONS_GRAPHQL_API flag
+import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { Expense, ExpenseStatus } from "@/server/models/finance/Expense";
+import { User } from "@/server/models/User";
+import { resolveSlaTarget } from "@/lib/sla";
+import { getWorkOrderStats, getPropertyCounters, getRevenueStats } from "@/lib/queries";
+import { setTenantContext, clearTenantContext } from "@/server/plugins/tenantIsolation";
+import { setAuditContext, clearAuditContext } from "@/server/plugins/auditPlugin";
+import { verifyToken } from "@/lib/auth";
+import { getSessionUser, UnauthorizedError, type SessionUser } from "@/server/middleware/withAuthRbac";
+import { NextRequest } from "next/server";
+import { Types } from "mongoose";
+import { COLLECTIONS } from "@/lib/db/collections";
+import crypto from "crypto";
 
 // ============================================================================
 // Types
@@ -421,6 +437,164 @@ function requireAuth(ctx: GraphQLContext): void {
   }
 }
 
+const softDeleteGuard = { isDeleted: { $ne: true }, deletedAt: { $exists: false } };
+
+function normalizeId(id?: unknown): string | undefined {
+  if (!id) return undefined;
+  try {
+    return typeof id === "string" ? id : (id as Types.ObjectId).toString();
+  } catch {
+    return undefined;
+  }
+}
+
+function mapPriorityToModel(priority?: string): "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" {
+  if (!priority) return "MEDIUM";
+  const normalized = priority.toUpperCase();
+  if (normalized === "EMERGENCY") return "CRITICAL";
+  if (normalized === "LOW" || normalized === "MEDIUM" || normalized === "HIGH") {
+    return normalized as "LOW" | "MEDIUM" | "HIGH";
+  }
+  if (normalized === "URGENT" || normalized === "CRITICAL") return "CRITICAL";
+  return "MEDIUM";
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- lean() returns dynamic types from MongoDB
+function mapWorkOrderDocument(doc: Record<string, any>) {
+  return {
+    id: normalizeId(doc._id) ?? "",
+    title: doc.title ?? doc.workOrderNumber ?? "Work Order",
+    description: doc.description ?? "",
+    status: doc.status ?? "DRAFT",
+    priority: doc.priority ?? "MEDIUM",
+    propertyId: normalizeId(doc.location?.propertyId ?? doc.propertyId),
+    unitId: doc.location?.unitNumber ?? doc.unitId,
+    assignedTo: normalizeId(doc.assignment?.assignedTo?.userId),
+    createdBy: normalizeId(doc.createdBy),
+    organizationId: normalizeId(doc.orgId),
+    estimatedCost: doc.financial?.estimatedCost ?? doc.estimatedCost ?? null,
+    actualCost: doc.financial?.actualCost ?? doc.actualCost ?? null,
+    scheduledDate: doc.assignment?.scheduledDate?.toISOString?.() 
+      ?? doc.work?.estimatedStartTime?.toISOString?.() 
+      ?? null,
+    completedDate: doc.work?.actualEndTime?.toISOString?.() ?? null,
+    createdAt: doc.createdAt?.toISOString?.() ?? new Date().toISOString(),
+    updatedAt: doc.updatedAt?.toISOString?.() ?? new Date().toISOString(),
+  };
+}
+
+function buildWorkOrderFilter(
+  ctx: GraphQLContext,
+  filter?: { status?: string; priority?: string; propertyId?: string; assignedTo?: string; dateFrom?: string; dateTo?: string },
+) {
+  const base: Record<string, unknown> = { ...softDeleteGuard };
+  const normalizedOrg = ctx.orgId
+    ? Types.ObjectId.isValid(ctx.orgId)
+      ? new Types.ObjectId(ctx.orgId)
+      : ctx.orgId
+    : undefined;
+
+  if (normalizedOrg) {
+    base.orgId = normalizedOrg;
+  }
+
+  if (filter?.status) {
+    const status = filter.status.toUpperCase();
+    const statusMap: Record<string, string | string[]> = {
+      OPEN: ["SUBMITTED"],
+      ASSIGNED: "ASSIGNED",
+      IN_PROGRESS: "IN_PROGRESS",
+      COMPLETED: ["COMPLETED", "VERIFIED", "CLOSED"],
+      CANCELLED: "CANCELLED",
+    };
+    const mapped = statusMap[status] ?? filter.status;
+    base.status = Array.isArray(mapped) ? { $in: mapped } : mapped;
+  }
+
+  if (filter?.priority) {
+    base.priority = mapPriorityToModel(filter.priority);
+  }
+
+  if (filter?.propertyId) {
+    base["location.propertyId"] = Types.ObjectId.isValid(filter.propertyId)
+      ? new Types.ObjectId(filter.propertyId)
+      : filter.propertyId;
+  }
+
+  if (filter?.assignedTo) {
+    base["assignment.assignedTo.userId"] = Types.ObjectId.isValid(filter.assignedTo)
+      ? new Types.ObjectId(filter.assignedTo)
+      : filter.assignedTo;
+  }
+
+  if (filter?.dateFrom || filter?.dateTo) {
+    const range: Record<string, Date> = {};
+    if (filter.dateFrom) range.$gte = new Date(filter.dateFrom);
+    if (filter.dateTo) range.$lte = new Date(filter.dateTo);
+    base.createdAt = range;
+  }
+
+  return base;
+}
+
+async function buildGraphQLContext(request: Request): Promise<GraphQLContext> {
+  const locale = request.headers.get("Accept-Language")?.split(",")[0] || "en";
+  let sessionUser: SessionUser | null = null;
+
+  try {
+    // Use NextAuth session when available
+    const nextReq = new NextRequest(request);
+    sessionUser = await getSessionUser(nextReq);
+  } catch (error) {
+    if (!(error instanceof UnauthorizedError)) {
+      logger.debug("[GraphQL] Failed to read session user", { error });
+    }
+  }
+
+  // Fallback to bearer token if available
+  if (!sessionUser) {
+    const authHeader =
+      request.headers.get("authorization") ?? request.headers.get("Authorization");
+    const token = authHeader?.toLowerCase().startsWith("bearer ")
+      ? authHeader.slice(7).trim()
+      : null;
+    if (token) {
+      const payload = await verifyToken(token);
+      if (payload?.id) {
+        sessionUser = {
+          id: payload.id,
+          role: (payload.role as SessionUser["role"]) ?? "USER",
+          orgId: payload.orgId,
+          tenantId: payload.tenantId ?? payload.orgId,
+          email: payload.email,
+          name: payload.name,
+          roles: payload.role ? [payload.role] : [],
+          permissions: [],
+          subscriptionPlan: null,
+          isSuperAdmin: false,
+          vendorId: undefined,
+          assignedProperties: undefined,
+          impersonatedOrgId: null,
+          realOrgId: payload.orgId,
+        };
+      }
+    }
+  }
+
+  return {
+    isAuthenticated: Boolean(sessionUser?.id),
+    userId: sessionUser?.id,
+    orgId: sessionUser?.orgId ?? sessionUser?.tenantId,
+    roles: sessionUser?.roles ?? (sessionUser?.role ? [sessionUser.role] : []),
+    locale,
+  };
+}
+
+function generateWorkOrderNumber() {
+  const uuid = crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
+  return `WO-${new Date().getFullYear()}-${uuid}`;
+}
+
 /**
  * Resolver implementations
  * These provide the business logic for GraphQL operations
@@ -460,16 +634,59 @@ export const resolvers = {
         return null;
       }
 
-      // TODO: Fetch user from database
-      return {
-        id: ctx.userId,
-        email: "user@example.com",
-        name: "Current User",
-        roles: ctx.roles || [],
-        organizationId: ctx.orgId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      try {
+        await connectToDatabase();
+        const query: Record<string, unknown> = { _id: ctx.userId };
+        if (ctx.orgId) {
+          query.orgId = Types.ObjectId.isValid(ctx.orgId)
+            ? new Types.ObjectId(ctx.orgId)
+            : ctx.orgId;
+        }
+        const user = await User.findOne(query)
+          .select({
+            _id: 1,
+            email: 1,
+            username: 1,
+            "personal.firstName": 1,
+            "personal.lastName": 1,
+            "professional.role": 1,
+            roles: 1,
+            orgId: 1,
+            createdAt: 1,
+            updatedAt: 1,
+          })
+          .lean();
+
+        if (!user) {
+          return null;
+        }
+
+        const fullName =
+          user.username ||
+          [user.personal?.firstName, user.personal?.lastName]
+            .filter(Boolean)
+            .join(" ")
+            .trim();
+
+        const resolvedRoles =
+          ctx.roles && ctx.roles.length > 0
+            ? ctx.roles
+            : (user.professional?.role ? [user.professional.role] : user.roles ?? []);
+        const orgIdValue = (user as { orgId?: Types.ObjectId | string }).orgId;
+
+        return {
+          id: normalizeId(user._id) ?? ctx.userId,
+          email: user.email,
+          name: fullName || "User",
+          roles: resolvedRoles.filter(Boolean) as string[],
+          organizationId: normalizeId(orgIdValue) ?? ctx.orgId,
+          createdAt: (user.createdAt as Date | undefined)?.toISOString() ?? new Date().toISOString(),
+          updatedAt: (user.updatedAt as Date | undefined)?.toISOString() ?? new Date().toISOString(),
+        };
+      } catch (error) {
+        logger.error("[GraphQL] Failed to fetch user", { error, userId: ctx.userId });
+        return null;
+      }
     },
 
     // Work orders list
@@ -480,20 +697,73 @@ export const resolvers = {
     ) => {
       requireAuth(ctx);
 
-      const _limit = Math.min(args.first || 20, 100);
+      const limit = Math.min(args.first ?? 20, 100);
 
-      // TODO: Implement actual database query
-      logger.debug("[GraphQL] Fetching work orders", { filter: args.filter });
-      return {
-        edges: [],
-        pageInfo: {
-          hasNextPage: false,
-          hasPreviousPage: false,
-          startCursor: null,
-          endCursor: null,
-          totalCount: 0,
-        },
-      };
+      try {
+        await connectToDatabase();
+
+        const baseQuery = buildWorkOrderFilter(
+          ctx,
+          args.filter as {
+            status?: string;
+            priority?: string;
+            propertyId?: string;
+            assignedTo?: string;
+            dateFrom?: string;
+            dateTo?: string;
+          },
+        );
+
+        const cursor =
+          args.after && Types.ObjectId.isValid(args.after)
+            ? new Types.ObjectId(args.after)
+            : undefined;
+        const query = { ...baseQuery };
+        if (cursor) {
+          query._id = { $lt: cursor };
+        }
+
+        logger.debug("[GraphQL] Fetching work orders", { filter: args.filter, orgId: ctx.orgId });
+
+        const docs = await WorkOrder.find(query)
+          .sort({ _id: -1 })
+          .limit(limit + 1)
+          .lean();
+
+        const totalCount = await WorkOrder.countDocuments(baseQuery);
+        const hasNextPage = docs.length > limit;
+        const nodes = hasNextPage ? docs.slice(0, -1) : docs;
+        const edges = nodes.map((doc) => {
+          const mapped = mapWorkOrderDocument(doc);
+          return {
+            node: mapped,
+            cursor: mapped.id,
+          };
+        });
+
+        return {
+          edges,
+          pageInfo: {
+            hasNextPage,
+            hasPreviousPage: Boolean(cursor),
+            startCursor: edges[0]?.cursor ?? null,
+            endCursor: edges[edges.length - 1]?.cursor ?? null,
+            totalCount,
+          },
+        };
+      } catch (error) {
+        logger.error("[GraphQL] Failed to fetch work orders", { error, orgId: ctx.orgId });
+        return {
+          edges: [],
+          pageInfo: {
+            hasNextPage: false,
+            hasPreviousPage: Boolean(args.after),
+            startCursor: null,
+            endCursor: null,
+            totalCount: 0,
+          },
+        };
+      }
     },
 
     // Single work order
@@ -504,9 +774,30 @@ export const resolvers = {
     ) => {
       requireAuth(ctx);
 
-      // TODO: Fetch from database
-      logger.debug("[GraphQL] Fetching work order", { id: args.id });
-      return null;
+      if (!args.id || !Types.ObjectId.isValid(args.id)) {
+        return null;
+      }
+
+      try {
+        await connectToDatabase();
+        const query: Record<string, unknown> = {
+          _id: new Types.ObjectId(args.id),
+          ...softDeleteGuard,
+        };
+        if (ctx.orgId) {
+          query.orgId = Types.ObjectId.isValid(ctx.orgId)
+            ? new Types.ObjectId(ctx.orgId)
+            : ctx.orgId;
+        }
+
+        logger.debug("[GraphQL] Fetching work order", { id: args.id, orgId: ctx.orgId });
+
+        const wo = await WorkOrder.findOne(query).lean();
+        return wo ? mapWorkOrderDocument(wo) : null;
+      } catch (error) {
+        logger.error("[GraphQL] Failed to fetch work order", { error, id: args.id });
+        return null;
+      }
     },
 
     // Dashboard stats
@@ -517,17 +808,84 @@ export const resolvers = {
     ) => {
       requireAuth(ctx);
 
-      // TODO: Calculate actual stats
-      return {
-        totalWorkOrders: 0,
-        openWorkOrders: 0,
-        completedWorkOrders: 0,
-        totalProperties: 0,
-        totalUnits: 0,
-        occupancyRate: 0,
-        revenueThisMonth: 0,
-        expensesThisMonth: 0,
-      };
+      const orgId = ctx.orgId ?? ctx.userId;
+      if (!orgId) {
+        return {
+          totalWorkOrders: 0,
+          openWorkOrders: 0,
+          completedWorkOrders: 0,
+          totalProperties: 0,
+          totalUnits: 0,
+          occupancyRate: 0,
+          revenueThisMonth: 0,
+          expensesThisMonth: 0,
+        };
+      }
+
+      try {
+        await connectToDatabase();
+        const normalizedOrgId = Types.ObjectId.isValid(orgId)
+          ? new Types.ObjectId(orgId)
+          : orgId;
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const [woStats, propertyCounters, revenueStats, unitsCount, expenseAgg] =
+          await Promise.all([
+            getWorkOrderStats(orgId),
+            getPropertyCounters(orgId),
+            getRevenueStats(orgId, 30),
+            (async () => {
+              const db = await getDatabase();
+              return db.collection(COLLECTIONS.UNITS).countDocuments({
+                orgId: normalizedOrgId,
+                ...softDeleteGuard,
+              });
+            })(),
+            Expense.aggregate([
+              {
+                $match: {
+                  orgId: normalizedOrgId,
+                  expenseDate: { $gte: startOfMonth },
+                  status: { $in: [ExpenseStatus.APPROVED, ExpenseStatus.PAID] },
+                },
+              },
+              {
+                $group: {
+                  _id: null,
+                  total: { $sum: { $ifNull: ["$totalAmount", "$total"] } },
+                },
+              },
+            ]).exec(),
+          ]);
+
+        const openWorkOrders =
+          (woStats?.open ?? 0) + (woStats?.inProgress ?? 0) + (woStats?.overdue ?? 0);
+
+        return {
+          totalWorkOrders: woStats?.total ?? 0,
+          openWorkOrders,
+          completedWorkOrders: woStats?.completed ?? 0,
+          totalProperties: propertyCounters?.total ?? 0,
+          totalUnits: unitsCount ?? 0,
+          occupancyRate: Number(propertyCounters?.occupancyRate ?? 0),
+          revenueThisMonth: revenueStats?.total ?? 0,
+          expensesThisMonth: expenseAgg?.[0]?.total ?? 0,
+        };
+      } catch (error) {
+        logger.error("[GraphQL] Failed to calculate dashboard stats", { error, orgId: ctx.orgId });
+        return {
+          totalWorkOrders: 0,
+          openWorkOrders: 0,
+          completedWorkOrders: 0,
+          totalProperties: 0,
+          totalUnits: 0,
+          occupancyRate: 0,
+          revenueThisMonth: 0,
+          expensesThisMonth: 0,
+        };
+      }
     },
 
     // Organization
@@ -589,17 +947,106 @@ export const resolvers = {
         input: args.input,
       });
 
-      // TODO: Implement actual creation
-      return {
-        success: false,
-        workOrder: null,
-        errors: [
-          {
-            code: "NOT_IMPLEMENTED",
-            message: "Work order creation via GraphQL is not yet implemented",
-          },
-        ],
+      const orgId = ctx.orgId ?? ctx.userId;
+      if (!orgId || !ctx.userId) {
+        return {
+          success: false,
+          workOrder: null,
+          errors: [
+            {
+              code: "INVALID_CONTEXT",
+              message: "Organization or user context is missing",
+            },
+          ],
+        };
+      }
+
+      const now = new Date();
+      const priority = mapPriorityToModel(args.input?.priority as string | undefined);
+      const { slaMinutes, dueAt } = resolveSlaTarget(priority, now);
+      const responseMinutes = 120;
+
+      const location =
+        args.input?.propertyId || args.input?.unitId
+          ? {
+              propertyId: args.input?.propertyId 
+                ? (Types.ObjectId.isValid(args.input.propertyId as string) 
+                    ? new Types.ObjectId(args.input.propertyId as string) 
+                    : undefined)
+                : undefined,
+              unitNumber: args.input?.unitId as string | undefined,
+            }
+          : undefined;
+
+      // NOTE: Using a broad shape because create() will apply defaults and schema validation.
+      const workOrderData: Record<string, unknown> = {
+        orgId: Types.ObjectId.isValid(orgId) ? new Types.ObjectId(orgId) : orgId,
+        workOrderNumber: generateWorkOrderNumber(),
+        title: String(args.input?.title ?? "New Work Order"),
+        description: (args.input?.description as string) ?? "Created via GraphQL",
+        type: "MAINTENANCE",
+        category: "GENERAL",
+        priority,
+        status: "DRAFT",
+        location,
+        sla: {
+          responseTimeMinutes: responseMinutes,
+          resolutionTimeMinutes: slaMinutes,
+          responseDeadline: new Date(now.getTime() + responseMinutes * 60 * 1000),
+          resolutionDeadline: dueAt,
+          status: "ON_TIME" as const,
+          breachReasons: [],
+          escalationLevel: 0,
+        },
+        requester: {
+          type: "STAFF" as const,
+          name: (args.input?.requesterName as string) || ctx.userId || "Unknown",
+          isAnonymous: false,
+          userId: Types.ObjectId.isValid(ctx.userId ?? "")
+            ? new Types.ObjectId(ctx.userId)
+            : ctx.userId,
+        },
+        assignment: args.input?.scheduledDate
+          ? { 
+              scheduledDate: new Date(String(args.input.scheduledDate)),
+              reassignmentHistory: [],
+            }
+          : undefined,
+        createdBy: ctx.userId as unknown as Types.ObjectId,
+        createdAt: now,
+        updatedAt: now,
       };
+
+      try {
+        await connectToDatabase();
+        setTenantContext({ orgId, userId: ctx.userId });
+        setAuditContext({ userId: ctx.userId, timestamp: now });
+
+        const created = await WorkOrder.create(workOrderData);
+        const mapped = mapWorkOrderDocument(created.toObject());
+
+        return {
+          success: true,
+          workOrder: mapped,
+          errors: [],
+        };
+      } catch (error) {
+        logger.error("[GraphQL] Failed to create work order", { error, userId: ctx.userId });
+        return {
+          success: false,
+          workOrder: null,
+          errors: [
+            {
+              code: "CREATE_FAILED",
+              message:
+                error instanceof Error ? error.message : "Work order creation via GraphQL failed",
+            },
+          ],
+        };
+      } finally {
+        clearTenantContext();
+        clearAuditContext();
+      }
     },
 
     // Update work order
@@ -792,17 +1239,7 @@ export function createGraphQLHandler() {
         }),
         graphqlEndpoint: "/api/graphql",
         fetchAPI: { Response },
-        context: async (): Promise<GraphQLContext> => {
-          // TODO: Extract auth from session/token
-          return {
-            isAuthenticated: false,
-            userId: undefined,
-            orgId: undefined,
-            roles: [],
-            locale:
-              request.headers.get("Accept-Language")?.split(",")[0] || "en",
-          };
-        },
+        context: async (): Promise<GraphQLContext> => buildGraphQLContext(request),
         graphiql: process.env.NODE_ENV === "development",
       });
 

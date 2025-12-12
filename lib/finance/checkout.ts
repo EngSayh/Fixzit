@@ -168,6 +168,8 @@ export async function createSubscriptionCheckout(
     // Update subscription with TAP charge info
     subscription.tap = {
       customerEmail: input.customer.email,
+      // chargeId kept for backward compatibility; lastChargeId is canonical
+      chargeId: chargeResponse.id,
       lastChargeId: chargeResponse.id,
     };
     subscription.amount = quote.total;

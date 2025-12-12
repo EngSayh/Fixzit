@@ -14,7 +14,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { sendOTP, isValidSaudiPhone, isSMSDevModeEnabled } from "@/lib/sms";
+import {
+  sendOTP,
+  isValidSaudiPhone,
+  isSMSDevModeEnabled,
+  isSmsOperational,
+} from "@/lib/sms";
 import { logCommunication } from "@/lib/communication-logger";
 import {
   redisOtpStore,
@@ -796,6 +801,21 @@ export async function POST(request: NextRequest) {
           error: "Invalid phone number format. Please update your profile.",
         },
         { status: 400 },
+      );
+    }
+
+    // 9a. Fail fast if SMS is not operational (prevents silent OTP loss)
+    if (!isSmsOperational()) {
+      logger.error("[OTP] SMS provider not configured", {
+        userId: user._id?.toString?.() || loginIdentifier,
+        phone: redactPhoneNumber(userPhone),
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "SMS is not configured. Please contact support.",
+        },
+        { status: 503 },
       );
     }
 

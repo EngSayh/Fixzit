@@ -18,6 +18,7 @@ import { dbConnect } from "@/lib/mongodb-unified";
 import ChartAccount from "@/server/models/finance/ChartAccount";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
+import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { Types } from "mongoose";
 import { z } from "zod";
 
@@ -252,7 +253,10 @@ export async function POST(req: NextRequest) {
     requirePermission(user.role, "finance.accounts.create");
 
     // Parse and validate request body
-    const body = await req.json();
+    const body = await parseBodyOrNull(req);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const validated = CreateAccountSchema.parse(body);
 
     // Execute with proper context

@@ -8,5 +8,5 @@
 
 export { POST } from "../support/chatbot/route";
 
-// Explicit runtime declaration avoids Next.js warning about re-exported runtime
+// Explicit runtime declaration for Next.js edge/nodejs selection
 export const runtime = "nodejs";

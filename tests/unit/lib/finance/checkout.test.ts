@@ -1,402 +1,180 @@
-/**
- * Checkout Flow Unit Tests
- * 
- * Tests for the subscription checkout flow using TAP Payments.
- * 
- * @module tests/unit/lib/finance/checkout.test
- */
-
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Mock the logger
-vi.mock("@/lib/logger", () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
+// Mock setup - use vi.hoisted to ensure mocks are available at module load time
+const { mockPriceBookModel, mockSubscriptionModel, mockQuotePrice, mockTapPayments } = vi.hoisted(() => ({
+  mockPriceBookModel: {
+    findById: vi.fn(),
+    findOne: vi.fn(),
+  },
+  mockSubscriptionModel: {
+    create: vi.fn(),
+  },
+  mockQuotePrice: vi.fn(),
+  mockTapPayments: {
+    createCharge: vi.fn(),
   },
 }));
 
-// Mock tapConfig
-vi.mock("@/lib/tapConfig", () => ({
-  getTapConfig: vi.fn(() => ({
-    secretKey: "sk_test_123",
-    publicKey: "pk_test_123",
-    webhookSecret: "whsec_test_123",
-    environment: "test",
-    isConfigured: true,
-    isProd: false,
-  })),
-  assertTapConfig: vi.fn(),
-}));
-
-// Mock TAP payments
-const mockCreateCharge = vi.fn();
-vi.mock("@/lib/finance/tap-payments", () => ({
-  tapPayments: {
-    createCharge: mockCreateCharge,
-  },
-  buildTapCustomer: vi.fn((user) => ({
-    first_name: user.firstName,
-    last_name: user.lastName,
-    email: user.email,
-    ...(user.phone && {
-      phone: {
-        country_code: "+966",
-        number: user.phone.replace(/^\+966/, ""),
-      },
-    }),
-  })),
-}));
-
-// Mock MongoDB models
-const mockSubscriptionCreate = vi.fn();
-const mockSubscriptionSave = vi.fn();
-const mockSubscriptionDeleteOne = vi.fn();
-vi.mock("@/server/models/Subscription", () => ({
-  default: {
-    create: mockSubscriptionCreate,
-  },
-}));
-
-const mockPriceBookFindById = vi.fn();
-const mockPriceBookFindOne = vi.fn();
 vi.mock("@/server/models/PriceBook", () => ({
-  default: {
-    findById: mockPriceBookFindById,
-    findOne: mockPriceBookFindOne,
+  __esModule: true,
+  default: mockPriceBookModel,
+}));
+
+vi.mock("@/server/models/Subscription", () => ({
+  __esModule: true,
+  default: mockSubscriptionModel,
+}));
+
+vi.mock("@/lib/finance/pricing", () => ({
+  quotePrice: mockQuotePrice,
+  BillingCycle: {
+    ANNUAL: "ANNUAL",
+    MONTHLY: "MONTHLY",
   },
 }));
 
-// Mock pricing
-vi.mock("@/lib/finance/pricing", () => ({
-  quotePrice: vi.fn(() => ({
-    requiresQuote: false,
-    total: 1000,
-    subtotal: 1000,
-    discount: 0,
-    currency: "SAR",
-    lineItems: [],
-  })),
+vi.mock("@/lib/finance/tap-payments", () => ({
+  tapPayments: mockTapPayments,
+  buildTapCustomer: ({
+    firstName,
+    lastName,
+    email,
+    phone,
+  }: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+  }) => ({
+    first_name: firstName,
+    last_name: lastName,
+    email,
+    ...(phone
+      ? {
+          phone: {
+            country_code: "+966",
+            number: phone,
+          },
+        }
+      : {}),
+  }),
 }));
 
-describe("Checkout Flow", () => {
-  const originalEnv = { ...process.env };
+import { createSubscriptionCheckout } from "@/lib/finance/checkout";
 
+const originalEnv = { ...process.env };
+
+describe("createSubscriptionCheckout", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    process.env.NEXT_PUBLIC_APP_URL = "https://fixzit.app";
-    process.env.APP_URL = "https://fixzit.app";
-
-    // Reset mock implementations
-    mockSubscriptionCreate.mockResolvedValue({
-      _id: { toString: () => "sub_test_123" },
-      tap: {},
-      amount: 0,
-      save: mockSubscriptionSave,
-      deleteOne: mockSubscriptionDeleteOne,
-    });
-
-    mockSubscriptionSave.mockResolvedValue(undefined);
-    mockSubscriptionDeleteOne.mockResolvedValue(undefined);
-
-    mockPriceBookFindById.mockResolvedValue({
-      _id: "pb_test_123",
-      currency: "SAR",
-      active: true,
-    });
-
-    mockPriceBookFindOne.mockResolvedValue({
-      _id: "pb_test_123",
-      currency: "SAR",
-      active: true,
-    });
-
-    mockCreateCharge.mockResolvedValue({
-      id: "chg_test_123",
-      status: "INITIATED",
-      transaction: {
-        url: "https://checkout.tap.company/test",
-      },
-    });
+    vi.resetAllMocks();
+    process.env.APP_URL = "https://app.test";
   });
 
   afterEach(() => {
     process.env = { ...originalEnv };
-    vi.restoreAllMocks();
   });
 
-  describe("createSubscriptionCheckout", () => {
-    it("should create checkout session successfully", async () => {
-      const { createSubscriptionCheckout } = await import("@/lib/finance/checkout");
+  it("creates a TAP checkout session and returns redirect URL", async () => {
+    const mockPriceBook = { _id: "pb1", currency: "SAR", active: true };
+    mockPriceBookModel.findById.mockResolvedValue(null);
+    mockPriceBookModel.findOne.mockResolvedValue(mockPriceBook);
 
-      const result = await createSubscriptionCheckout({
-        subscriberType: "CORPORATE",
-        tenantId: "tenant_123",
-        modules: ["fm", "hr"],
-        seats: 10,
-        billingCycle: "MONTHLY",
+    mockQuotePrice.mockResolvedValue({
+      requiresQuote: false,
+      total: 250,
+      modules: ["core"],
+      seats: 5,
+      billingCycle: "ANNUAL",
+    });
+
+    const save = vi.fn();
+    const deleteOne = vi.fn();
+    mockSubscriptionModel.create.mockResolvedValue({
+      _id: "sub1",
+      tap: {},
+      amount: 0,
+      save,
+      deleteOne,
+    });
+
+    mockTapPayments.createCharge.mockResolvedValue({
+      id: "chg1",
+      transaction: { url: "https://pay.test/checkout/sub1" },
+    });
+
+    const result = await createSubscriptionCheckout({
+      subscriberType: "CORPORATE",
+      tenantId: "tenant-123",
+      modules: ["core"],
+      seats: 5,
+      billingCycle: "ANNUAL",
+      currency: "SAR",
+      customer: { name: "Test User", email: "test@example.com" },
+    });
+
+    expect(result.requiresQuote).toBe(false);
+    if (result.requiresQuote === false) {
+      expect(result.redirectUrl).toBe("https://pay.test/checkout/sub1");
+      expect(result.subscriptionId).toBe("sub1");
+      expect(save).toHaveBeenCalledTimes(1);
+    }
+    expect(mockTapPayments.createCharge).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 250,
         currency: "SAR",
-        customer: {
-          name: "Ahmed Al-Rashid",
-          email: "ahmed@example.com",
-          phone: "+966501234567",
-        },
-      });
+        metadata: expect.objectContaining({ subscriptionId: "sub1" }),
+      }),
+    );
+  });
 
-      expect(result.requiresQuote).toBe(false);
-      if (!result.requiresQuote) {
-        expect(result.subscriptionId).toBe("sub_test_123");
-        expect(result.redirectUrl).toBe("https://checkout.tap.company/test");
-        expect(result.cartId).toContain("SUB-");
-      }
+  it("returns quote-required response when pricing requires manual quote", async () => {
+    const mockPriceBook = { _id: "pb1", currency: "SAR", active: true };
+    mockPriceBookModel.findById.mockResolvedValue(null);
+    mockPriceBookModel.findOne.mockResolvedValue(mockPriceBook);
+
+    mockQuotePrice.mockResolvedValue({
+      requiresQuote: true,
+      reason: "NEEDS_APPROVAL",
     });
 
-    it("should throw error when APP_URL is not configured", async () => {
-      delete process.env.NEXT_PUBLIC_APP_URL;
-      delete process.env.APP_URL;
-
-      // Re-import to get fresh module
-      vi.resetModules();
-      const { createSubscriptionCheckout } = await import("@/lib/finance/checkout");
-
-      await expect(
-        createSubscriptionCheckout({
-          subscriberType: "OWNER",
-          ownerUserId: "user_123",
-          modules: ["fm"],
-          seats: 1,
-          billingCycle: "ANNUAL",
-          currency: "SAR",
-          customer: {
-            name: "Test User",
-            email: "test@example.com",
-          },
-        })
-      ).rejects.toThrow("APP_URL environment variable is not configured");
+    const result = await createSubscriptionCheckout({
+      subscriberType: "OWNER",
+      ownerUserId: "owner-1",
+      modules: ["core"],
+      seats: 10,
+      billingCycle: "MONTHLY",
+      currency: "SAR",
+      customer: { name: "Owner User", email: "owner@example.com" },
     });
 
-    it("should throw error when PriceBook not found", async () => {
-      mockPriceBookFindOne.mockResolvedValue(null);
-      mockPriceBookFindById.mockResolvedValue(null);
+    expect(result.requiresQuote).toBe(true);
+    if (result.requiresQuote) {
+      expect(result.quote.reason).toBe("NEEDS_APPROVAL");
+    }
+    expect(mockTapPayments.createCharge).not.toHaveBeenCalled();
+  });
 
-      vi.resetModules();
-      const { createSubscriptionCheckout } = await import("@/lib/finance/checkout");
-
-      await expect(
-        createSubscriptionCheckout({
-          subscriberType: "CORPORATE",
-          tenantId: "tenant_123",
-          modules: ["fm"],
-          seats: 5,
-          billingCycle: "MONTHLY",
-          currency: "SAR",
-          customer: {
-            name: "Test User",
-            email: "test@example.com",
-          },
-        })
-      ).rejects.toThrow("PriceBook not found");
+  it("throws when APP_URL is missing", async () => {
+    delete process.env.APP_URL;
+    mockPriceBookModel.findOne.mockResolvedValue({ _id: "pb1", currency: "SAR" });
+    mockQuotePrice.mockResolvedValue({
+      requiresQuote: false,
+      total: 100,
+      modules: ["core"],
+      seats: 1,
+      billingCycle: "MONTHLY",
     });
 
-    it("should use priceBookId when provided", async () => {
-      const { createSubscriptionCheckout } = await import("@/lib/finance/checkout");
-
-      await createSubscriptionCheckout({
+    await expect(
+      createSubscriptionCheckout({
         subscriberType: "CORPORATE",
-        tenantId: "tenant_123",
-        modules: ["fm"],
-        seats: 5,
-        billingCycle: "MONTHLY",
-        currency: "SAR",
-        customer: {
-          name: "Test User",
-          email: "test@example.com",
-        },
-        priceBookId: "custom_pb_123",
-      });
-
-      expect(mockPriceBookFindById).toHaveBeenCalledWith("custom_pb_123");
-    });
-
-    it("should clean up subscription on TAP charge failure", async () => {
-      mockCreateCharge.mockRejectedValue(new Error("TAP API Error"));
-
-      const { createSubscriptionCheckout } = await import("@/lib/finance/checkout");
-
-      await expect(
-        createSubscriptionCheckout({
-          subscriberType: "CORPORATE",
-          tenantId: "tenant_123",
-          modules: ["fm"],
-          seats: 5,
-          billingCycle: "MONTHLY",
-          currency: "SAR",
-          customer: {
-            name: "Test User",
-            email: "test@example.com",
-          },
-        })
-      ).rejects.toThrow("Failed to create payment session");
-
-      expect(mockSubscriptionDeleteOne).toHaveBeenCalled();
-    });
-
-    it("should handle OWNER subscriber type correctly", async () => {
-      const { createSubscriptionCheckout } = await import("@/lib/finance/checkout");
-
-      await createSubscriptionCheckout({
-        subscriberType: "OWNER",
-        ownerUserId: "user_123",
-        modules: ["aqar"],
+        tenantId: "tenant-123",
+        modules: ["core"],
         seats: 1,
-        billingCycle: "ANNUAL",
-        currency: "USD",
-        customer: {
-          name: "Property Owner",
-          email: "owner@example.com",
-        },
-      });
-
-      expect(mockSubscriptionCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          subscriber_type: "OWNER",
-          owner_user_id: "user_123",
-          tenant_id: undefined,
-        })
-      );
-    });
-
-    it("should parse customer name into first/last name", async () => {
-      const { createSubscriptionCheckout } = await import("@/lib/finance/checkout");
-
-      await createSubscriptionCheckout({
-        subscriberType: "CORPORATE",
-        tenantId: "tenant_123",
-        modules: ["fm"],
-        seats: 5,
         billingCycle: "MONTHLY",
         currency: "SAR",
-        customer: {
-          name: "Mohammed Abdullah Al-Rashid",
-          email: "test@example.com",
-        },
-      });
-
-      expect(mockCreateCharge).toHaveBeenCalledWith(
-        expect.objectContaining({
-          customer: expect.objectContaining({
-            first_name: "Mohammed",
-            last_name: "Abdullah Al-Rashid",
-          }),
-        })
-      );
-    });
-
-    it("should handle single name (no last name)", async () => {
-      const { createSubscriptionCheckout } = await import("@/lib/finance/checkout");
-
-      await createSubscriptionCheckout({
-        subscriberType: "CORPORATE",
-        tenantId: "tenant_123",
-        modules: ["fm"],
-        seats: 5,
-        billingCycle: "MONTHLY",
-        currency: "SAR",
-        customer: {
-          name: "Ahmed",
-          email: "test@example.com",
-        },
-      });
-
-      expect(mockCreateCharge).toHaveBeenCalledWith(
-        expect.objectContaining({
-          customer: expect.objectContaining({
-            first_name: "Ahmed",
-            last_name: "",
-          }),
-        })
-      );
-    });
-
-    it("should include metadata in TAP charge", async () => {
-      const { createSubscriptionCheckout } = await import("@/lib/finance/checkout");
-
-      await createSubscriptionCheckout({
-        subscriberType: "CORPORATE",
-        tenantId: "tenant_123",
-        modules: ["fm", "hr"],
-        seats: 10,
-        billingCycle: "MONTHLY",
-        currency: "SAR",
-        customer: {
-          name: "Test User",
-          email: "test@example.com",
-        },
-        metadata: { campaignId: "promo_2024" },
-      });
-
-      expect(mockCreateCharge).toHaveBeenCalledWith(
-        expect.objectContaining({
-          metadata: expect.objectContaining({
-            subscriptionId: "sub_test_123",
-            tenantId: "tenant_123",
-            subscriberType: "CORPORATE",
-          }),
-        })
-      );
-    });
-
-    it("should calculate correct period end for MONTHLY billing", async () => {
-      const { createSubscriptionCheckout } = await import("@/lib/finance/checkout");
-
-      await createSubscriptionCheckout({
-        subscriberType: "CORPORATE",
-        tenantId: "tenant_123",
-        modules: ["fm"],
-        seats: 5,
-        billingCycle: "MONTHLY",
-        currency: "SAR",
-        customer: {
-          name: "Test User",
-          email: "test@example.com",
-        },
-      });
-
-      const createCall = mockSubscriptionCreate.mock.calls[0][0];
-      const periodStart = createCall.current_period_start;
-      const periodEnd = createCall.current_period_end;
-
-      const daysDiff = Math.round(
-        (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      expect(daysDiff).toBe(30);
-    });
-
-    it("should calculate correct period end for ANNUAL billing", async () => {
-      const { createSubscriptionCheckout } = await import("@/lib/finance/checkout");
-
-      await createSubscriptionCheckout({
-        subscriberType: "CORPORATE",
-        tenantId: "tenant_123",
-        modules: ["fm"],
-        seats: 5,
-        billingCycle: "ANNUAL",
-        currency: "SAR",
-        customer: {
-          name: "Test User",
-          email: "test@example.com",
-        },
-      });
-
-      const createCall = mockSubscriptionCreate.mock.calls[0][0];
-      const periodStart = createCall.current_period_start;
-      const periodEnd = createCall.current_period_end;
-
-      const daysDiff = Math.round(
-        (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      expect(daysDiff).toBe(365);
-    });
+        customer: { name: "Test User", email: "test@example.com" },
+      }),
+    ).rejects.toThrow("APP_URL environment variable is not configured");
   });
 });

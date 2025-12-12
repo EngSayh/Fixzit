@@ -34,10 +34,10 @@ import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { PayrollService } from "@/server/services/hr/payroll.service";
+import { parseBodyOrNull } from "@/lib/api/parse-body";
 
-// 🔒 STRICT v4.1: Payroll requires HR Officer, Finance Officer, or Admin role
-// Finance Officer included because payroll is a financial function
-const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER', 'FINANCE', 'FINANCE_OFFICER'];
+// 🔒 STRICT v4.2: Payroll requires HR roles (optionally Corporate Admin) - no Finance role bleed
+const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
 
 // GET /api/hr/payroll/runs - List all payroll runs
 export async function GET(req: NextRequest) {
@@ -103,7 +103,19 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    const body = await req.json();
+    const body = (await parseBodyOrNull(req)) as
+      | {
+          periodStart?: string;
+          periodEnd?: string;
+          name?: string;
+        }
+      | null;
+    if (!body) {
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
 
     if (!body.periodStart || !body.periodEnd || !body.name) {
       return NextResponse.json(

@@ -1353,11 +1353,12 @@ export function buildDataScopeFilter(ctx: ResourceCtx): DataScopeFilter {
       break;
 
     case Role.TENANT:
-      // Only own units
+      // Only own units within org; do not scope by userId legacy tenant_id
       if (ctx.units && ctx.units.length > 0) {
         filter.unit_id = { $in: ctx.units };
+      } else {
+        filter.unit_id = { $in: [] }; // no units -> no access
       }
-      filter.tenant_id = ctx.userId;
       break;
 
     case Role.VENDOR:

@@ -30,12 +30,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
+import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { LeaveService } from "@/server/services/hr/leave.service";
 import type {
   LeaveRequestDoc,
   LeaveRequestStatus,
 } from "@/server/models/hr.models";
 import { Types } from "mongoose";
+
+type LeaveCreateBody = {
+  employeeId: string;
+  leaveTypeId: string;
+  startDate: string;
+  endDate: string;
+  numberOfDays: number;
+  reason?: string;
+};
 
 // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
 const HR_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
@@ -83,17 +93,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 
-    const body = await req.json();
+    const body = (await parseBodyOrNull(req)) as Partial<LeaveCreateBody> | null;
+    if (!body) {
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
+    const { employeeId, leaveTypeId, startDate, endDate, numberOfDays, reason } = body;
     const missing = [
-      "employeeId",
-      "leaveTypeId",
-      "startDate",
-      "endDate",
-      "numberOfDays",
-    ].filter((field) => !body[field]);
-    if (missing.length) {
+      !employeeId && "employeeId",
+      !leaveTypeId && "leaveTypeId",
+      !startDate && "startDate",
+      !endDate && "endDate",
+      typeof numberOfDays !== "number" && "numberOfDays",
+    ].filter(Boolean) as string[];
+    if (missing.length > 0) {
       return NextResponse.json(
         { error: `Missing fields: ${missing.join(", ")}` },
+        { status: 400 },
+      );
+    }
+    if (!startDate || !endDate) {
+      return NextResponse.json(
+        { error: "startDate and endDate are required" },
         { status: 400 },
       );
     }
@@ -102,13 +125,13 @@ export async function POST(req: NextRequest) {
 
     const leaveInput = {
       orgId: new Types.ObjectId(session.user.orgId),
-      employeeId: new Types.ObjectId(body.employeeId),
-      leaveTypeId: new Types.ObjectId(body.leaveTypeId),
-      startDate: new Date(body.startDate),
-      endDate: new Date(body.endDate),
-      numberOfDays: body.numberOfDays,
+      employeeId: new Types.ObjectId(employeeId),
+      leaveTypeId: new Types.ObjectId(leaveTypeId),
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      numberOfDays,
       status: "PENDING",
-      reason: body.reason,
+      reason,
       approvalHistory: [],
     } as unknown as Omit<
       LeaveRequestDoc,
@@ -138,8 +161,20 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 
-    const body = await req.json();
-    if (!body.leaveRequestId || !body.status) {
+    const body = (await parseBodyOrNull(req)) as
+      | {
+          leaveRequestId?: string;
+          status?: LeaveRequestStatus;
+          comment?: string;
+        }
+      | null;
+    if (!body) {
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
+    if (!body?.leaveRequestId || !body.status) {
       return NextResponse.json(
         { error: "Missing fields: leaveRequestId, status" },
         { status: 400 },

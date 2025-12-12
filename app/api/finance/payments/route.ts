@@ -20,6 +20,7 @@ import { Invoice } from "@/server/models/Invoice";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
+import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { Types } from "mongoose";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError } from "@/server/utils/errorResponses";
 
@@ -107,7 +108,13 @@ export async function POST(req: NextRequest) {
     requirePermission(user.role, "finance.payments.create");
 
     // Parse request body
-    const body = await req.json();
+    const body = await parseBodyOrNull(req);
+    if (!body) {
+      return NextResponse.json(
+        { success: false, error: "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
     const data = CreatePaymentSchema.parse(body);
 
     // Execute with proper context

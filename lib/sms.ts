@@ -36,6 +36,14 @@ function hasTaqnyatConfiguration(): boolean {
   );
 }
 
+/**
+ * Check if SMS can be delivered (either configured or dev-mode fallback).
+ * Used by OTP flows to fail fast when configuration is missing.
+ */
+export function isSmsOperational(): boolean {
+  return hasTaqnyatConfiguration() || SMS_DEV_MODE_ENABLED;
+}
+
 interface SMSResult {
   success: boolean;
   messageSid?: string;

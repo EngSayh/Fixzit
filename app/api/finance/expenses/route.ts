@@ -20,6 +20,7 @@ import ChartAccount from "@/server/models/finance/ChartAccount";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
+import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { Types } from "mongoose";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
 
@@ -142,7 +143,10 @@ export async function POST(req: NextRequest) {
     requirePermission(user.role, "finance.expenses.create");
 
     // Parse request body
-    const body = await req.json();
+    const body = await parseBodyOrNull(req);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const data = CreateExpenseSchema.parse(body);
 
     // Execute with proper context

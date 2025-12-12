@@ -64,9 +64,44 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    let rawBody: unknown;
+    try {
+      rawBody = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Invalid JSON payload" },
+        { status: 400 },
+      );
+    }
 
-    const { bidId, campaignId, orgId, actualCpc, query, category, productId, timestamp, signature } = body;
+    if (typeof rawBody !== "object" || rawBody === null) {
+      return NextResponse.json(
+        { success: false, error: "Invalid request body" },
+        { status: 400 },
+      );
+    }
+
+    const {
+      bidId,
+      campaignId,
+      orgId,
+      actualCpc,
+      query,
+      category,
+      productId,
+      timestamp,
+      signature,
+    } = rawBody as {
+      bidId?: unknown;
+      campaignId?: unknown;
+      orgId?: unknown;
+      actualCpc?: unknown;
+      query?: unknown;
+      category?: unknown;
+      productId?: unknown;
+      timestamp?: unknown;
+      signature?: unknown;
+    };
 
     if (!bidId || !campaignId || !orgId || !actualCpc) {
       return NextResponse.json(
@@ -86,7 +121,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!validateClickSignature(bidId, campaignId, timestamp, signature)) {
+    if (
+      typeof bidId !== "string" ||
+      typeof campaignId !== "string" ||
+      typeof orgId !== "string" ||
+      (typeof actualCpc !== "string" && typeof actualCpc !== "number") ||
+      typeof timestamp !== "string" ||
+      typeof signature !== "string"
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Invalid payload types" },
+        { status: 400 },
+      );
+    }
+
+    const timestampNumber = Number.parseInt(timestamp, 10);
+
+    if (!validateClickSignature(bidId, campaignId, timestampNumber, signature)) {
       logger.warn("[Ad API] Invalid click signature", { bidId, campaignId, clientIp });
       return NextResponse.json(
         { success: false, error: "Invalid or expired click token" },
@@ -94,7 +145,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cpc = parseFloat(actualCpc);
+    const cpc = typeof actualCpc === "number" ? actualCpc : parseFloat(actualCpc);
 
     // Check budget availability
     const canCharge = await BudgetManager.canCharge(campaignId, orgId, cpc);
@@ -119,9 +170,9 @@ export async function POST(request: NextRequest) {
     // Record click
     await AuctionEngine.recordClick(bidId, campaignId, cpc, {
       orgId, // Required for tenant isolation (STRICT v4.1)
-      query,
-      category,
-      productId,
+      query: typeof query === "string" ? query : undefined,
+      category: typeof category === "string" ? category : undefined,
+      productId: typeof productId === "string" ? productId : undefined,
     });
 
     return NextResponse.json({

@@ -125,6 +125,13 @@ export async function POST(request: NextRequest) {
   try {
     // Read raw body for signature verification
     const rawBody = await request.text();
+    const MAX_PAYLOAD_BYTES = 512 * 1024; // 512KB safety cap
+    if (Buffer.byteLength(rawBody, "utf8") > MAX_PAYLOAD_BYTES) {
+      logger.error("[Taqnyat Webhook] Payload too large", {
+        size: Buffer.byteLength(rawBody, "utf8"),
+      });
+      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+    }
     
     // Verify webhook authenticity FIRST (before parsing)
     if (!verifyWebhookSignature(request, rawBody)) {
@@ -136,7 +143,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse payload after verification
-    const payload: TaqnyatWebhookPayload = JSON.parse(rawBody);
+    let payload: TaqnyatWebhookPayload;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch (error) {
+      logger.error("[Taqnyat Webhook] Invalid JSON payload", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    }
 
     logger.info("[Taqnyat Webhook] Received delivery status", {
       messageId: payload.messageId || payload.msgId,
