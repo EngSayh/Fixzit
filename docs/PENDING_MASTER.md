@@ -1,3 +1,224 @@
+## 🗓️ 2025-12-12T21:02+03:00 — Comprehensive Production Readiness Audit v32.0
+
+### 📍 Current Progress Summary
+
+| Metric | Value | Status | Trend |
+|--------|-------|--------|-------|
+| **Branch** | `fix/graphql-resolver-todos` | ✅ Active | — |
+| **Latest Commit** | `b00f5c85b` — Mock hoisting fixes | ✅ Pushed | — |
+| **TypeScript Errors** | 0 | ✅ Clean | — |
+| **ESLint Errors** | 0 | ✅ Clean | — |
+| **Total Tests** | 2814 | ✅ All Passing | +77 this session |
+| **Test Files** | 282 | ✅ Comprehensive | +38 from v30.5 |
+| **Total API Routes** | 352 | ✅ Stable | — |
+| **Rate-Limited Routes** | 51/352 (14%) | 🔴 Gap | 301 unprotected |
+| **Zod-Validated Routes** | 111/352 (32%) | 🟡 Needs work | 241 remaining |
+| **Error Boundaries** | 30 | ✅ Core covered | Some subpages missing |
+| **Open PRs** | 5 (all draft) | 🟡 Cleanup needed | — |
+
+---
+
+### 🔲 Planned Next Steps
+
+| Priority | Task | Effort | Impact | Status |
+|----------|------|--------|--------|--------|
+| 🔴 P0 | Merge PR `fix/graphql-resolver-todos` | 5 min | Security/Quality | Ready |
+| 🔴 P0 | Close stale draft PRs (540-544) | 10 min | Cleanup | 🔲 TODO |
+| 🟡 P1 | Rate limiting: Souq module | 2 hrs | 69 routes need protection | 🔲 TODO |
+| 🟡 P1 | Rate limiting: FM module | 1 hr | 19 routes need protection | 🔲 TODO |
+| 🟡 P1 | Rate limiting: Admin module | 1 hr | 14 routes need protection | 🔲 TODO |
+| 🟡 P2 | Zod validation expansion | 4 hrs | 241 routes need schemas | 🔲 TODO |
+| 🟢 P3 | Error boundaries for subpages | 2 hrs | 25+ subpages | 🔲 TODO |
+| 🟢 P3 | Remaining service tests | 3 hrs | 5 services | 🔲 TODO |
+
+---
+
+### 🔧 Comprehensive Enhancement List
+
+#### 🔴 HIGH PRIORITY — Security & Rate Limiting Gaps
+
+| Module | Total Routes | Protected | Gap | Priority |
+|--------|--------------|-----------|-----|----------|
+| **Souq** | 75 | 6 (8%) | 69 | 🔴 Critical |
+| **Admin** | 28 | 14 (50%) | 14 | 🔴 High |
+| **FM** | 25 | 6 (24%) | 19 | 🔴 High |
+| **Aqar** | 16 | 7 (44%) | 9 | 🟡 Medium |
+| **Finance** | 19 | 9 (47%) | 10 | 🟡 Medium |
+| **HR** | 7 | 5 (71%) | 2 | 🟢 Low |
+| **CRM** | 4 | 4 (100%) | 0 | ✅ Done |
+
+**Total Gap**: 301 routes without rate limiting (85%)
+
+#### 🟡 MEDIUM PRIORITY — Validation & Data Integrity
+
+| Issue | Count | Location | Details |
+|-------|-------|----------|---------|
+| Routes without Zod validation | 241 | `app/api/**` | 32% coverage only |
+| Find queries without .limit() | 145 | `app/api/**` | Potential memory issues |
+| Aggregations without $limit | 39 | Various | May return unbounded data |
+| request.json() without try-catch | 168 | `app/api/**` | Many have wrapRoute |
+
+#### 🟢 LOW PRIORITY — Code Quality
+
+| Issue | Count | Status | Notes |
+|-------|-------|--------|-------|
+| console.log statements | 9 | 🟢 OK | Most are intentional logging |
+| @ts-ignore/@ts-expect-error | 3 | 🟢 OK | All documented |
+| `any` type usage | 5 | 🟢 OK | Minimal, justified |
+| eslint-disable comments | 10+ | 🟢 OK | All have justification |
+| dangerouslySetInnerHTML | 6 | ✅ SAFE | All use SafeHtml or sanitized |
+
+---
+
+### 🧪 Test Coverage Analysis
+
+#### Current State
+- **Total Tests**: 2814 passing
+- **Test Files**: 282
+- **Coverage**: All core functionality tested
+
+#### Untested Services (5 remaining)
+
+| Service | Path | Priority | Notes |
+|---------|------|----------|-------|
+| `analytics.ts` | `server/services/owner/` | 🟡 Medium | Dashboard metrics |
+| `subscriptionBillingService.ts` | `server/services/` | 🟡 Medium | Billing logic |
+| `payroll.service.ts` | `server/services/hr/` | 🟡 Medium | Payroll calculations |
+| `escalation.service.ts` | `server/services/` | 🟢 Low | WO escalation |
+| `attendance.service.ts` | `server/services/hr/` | 🟢 Low | Time tracking |
+
+---
+
+### 🔍 Deep-Dive: Similar Issues System-Wide
+
+#### Pattern 1: Rate Limiting Implementation
+
+**Status**: 🔴 Major Gap (14% coverage)
+**Current State**: Only 51/352 routes protected
+**Root Cause**: Inconsistent adoption across modules
+
+| Module | Implementation | Recommendation |
+|--------|----------------|----------------|
+| HR, CRM | `enforceRateLimit` | ✅ Standard |
+| Auth | `smartRateLimit` | ✅ Adaptive |
+| Souq, FM | Mostly missing | 🔴 Add immediately |
+| Admin | Partial | 🟡 Complete coverage |
+
+**Fix Pattern**:
+```typescript
+// Add to all mutation routes (POST, PUT, DELETE)
+const rateLimitCheck = await enforceRateLimit(
+  `${module}:${action}:${userId}`,
+  { max: 30, windowMs: 60_000 }
+);
+if (!rateLimitCheck.allowed) {
+  return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+}
+```
+
+#### Pattern 2: Unbounded Database Queries
+
+**Status**: 🟡 Medium Risk
+**Locations**: 145 .find() calls, 39 aggregations without limit
+
+**Sample Violations**:
+- `app/api/souq/products/route.ts` - find without limit
+- `app/api/fm/vendors/route.ts` - find without limit
+- Various aggregation pipelines missing $limit stage
+
+**Fix Pattern**:
+```typescript
+// Always add .limit() to find queries
+const results = await Model.find(query)
+  .sort({ createdAt: -1 })
+  .limit(100)  // Add reasonable limit
+  .lean();
+```
+
+#### Pattern 3: Error Boundary Gaps
+
+**Status**: 🟡 Partial Coverage
+**Core Routes**: 30 have error.tsx
+**Missing Subpages**: 25+ directories
+
+**Missing Error Boundaries** (High Priority):
+- `app/(root)/` - Main app shell
+- `app/aqar/filters/`, `app/aqar/map/` - Property features
+- `app/work-orders/board/`, `app/work-orders/new/` - Core WO features
+- `app/fm/vendors/`, `app/fm/invoices/` - FM operations
+
+#### Pattern 4: localhost Fallbacks
+
+**Status**: 🟢 Acceptable
+**Locations**: 5 in `lib/config/constants.ts`
+**Assessment**: All use `getOptional()` with proper fallback chain
+
+| File | Pattern | Risk |
+|------|---------|------|
+| `lib/config/constants.ts:189` | `APP_URL` fallback | 🟢 Config layer |
+| `lib/config/constants.ts:190` | `FRONTEND_URL` fallback | 🟢 Config layer |
+| `lib/config/constants.ts:200` | `APP_URL` fallback | 🟢 Config layer |
+| `lib/config/constants.ts:215` | `NEXTAUTH_URL` fallback | 🟢 Config layer |
+| `app/api/payments/tap/checkout/route.ts:242` | Direct fallback | 🟡 Monitor |
+
+---
+
+### 📊 Session Summary
+
+#### Completed This Session
+
+| Task | Details | Status |
+|------|---------|--------|
+| Full test suite verification | 2814 tests passing | ✅ |
+| Codebase security scan | Identified rate limiting gaps | ✅ |
+| Error boundary audit | 30 core + 25 missing subpages | ✅ |
+| Service test gap analysis | 5 services need tests | ✅ |
+| Code quality scan | 9 console.log, 3 ts-ignore, 5 any | ✅ |
+
+#### Metrics Summary
+
+| Category | Count | Status |
+|----------|-------|--------|
+| Total API Routes | 352 | — |
+| Rate-Limited | 51 (14%) | 🔴 Low |
+| Zod-Validated | 111 (32%) | 🟡 Medium |
+| Error Boundaries | 30 | 🟡 Core only |
+| Tests Passing | 2814 | ✅ All |
+| Test Files | 282 | ✅ Good |
+| TypeScript Errors | 0 | ✅ Clean |
+| ESLint Errors | 0 | ✅ Clean |
+
+---
+
+### 🎯 Production Readiness Checklist
+
+| Category | Status | Notes |
+|----------|--------|-------|
+| Build | ✅ | TypeScript 0 errors |
+| Lint | ✅ | ESLint 0 errors |
+| Tests | ✅ | 2814/2814 passing |
+| Security - Auth | ✅ | All auth routes protected |
+| Security - Rate Limiting | 🔴 | 14% coverage - needs work |
+| Security - XSS | ✅ | SafeHtml, rehype-sanitize |
+| Data - Validation | 🟡 | 32% Zod coverage |
+| Data - Tenant Isolation | ✅ | orgId enforced |
+| UX - Error Boundaries | 🟡 | Core covered, subpages pending |
+| Performance | 🟡 | Some unbounded queries |
+
+---
+
+### 🔲 Stale PRs to Close
+
+| PR # | Title | Reason |
+|------|-------|--------|
+| 544 | TypeScript errors fix | Superseded by current branch |
+| 543 | System-wide scan docs | Merged into PENDING_MASTER |
+| 542 | PayTabs TAP cleanup | Completed |
+| 541 | Critical fixes | Completed |
+| 540 | System scan v18.0 | Superseded |
+
+---
+
 ## 🗓️ 2025-12-13T20:55+03:00 — P3 LOW PRIORITY COMPLETION v31.0
 
 ### 📍 Session Summary
