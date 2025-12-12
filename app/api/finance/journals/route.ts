@@ -20,6 +20,7 @@ import { dbConnect } from "@/lib/mongodb-unified";
 import Journal from "@/server/models/finance/Journal";
 import postingService from "@/server/services/finance/postingService";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { Types } from "mongoose";
 import { z } from "zod";
@@ -110,6 +111,14 @@ async function getUserSession(req: NextRequest) {
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: 15 requests per minute per IP for journal writes
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-journals:create",
+    requests: 15,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 
@@ -194,6 +203,14 @@ export async function POST(req: NextRequest) {
 // ============================================================================
 
 export async function GET(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for reads
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-journals:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 

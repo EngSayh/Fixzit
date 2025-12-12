@@ -37,6 +37,7 @@ import type {
   LeaveRequestStatus,
 } from "@/server/models/hr.models";
 import { Types } from "mongoose";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type LeaveCreateBody = {
   employeeId: string;
@@ -51,6 +52,14 @@ type LeaveCreateBody = {
 const HR_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
 
 export async function GET(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "hr-leaves:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.orgId) {
@@ -82,6 +91,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for writes
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "hr-leaves:create",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.orgId || !session.user.id) {

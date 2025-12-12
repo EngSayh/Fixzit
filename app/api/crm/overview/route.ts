@@ -39,6 +39,7 @@ import {
 import CrmLead from "@/server/models/CrmLead";
 import CrmActivity from "@/server/models/CrmActivity";
 import { UserRole, type UserRoleType } from "@/types/user";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // PHASE-3 FIX: CRM access aligned with STRICT v4.1 canonical matrix
 // CRM should be accessible to: Super Admin, Admin/Corporate Admin, Team Members, Corporate Owner
@@ -82,6 +83,14 @@ async function resolveUser(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "crm-overview",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const user = await resolveUser(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

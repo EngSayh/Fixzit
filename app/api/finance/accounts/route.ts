@@ -24,6 +24,7 @@ import { z } from "zod";
 
 import { logger } from "@/lib/logger";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
@@ -66,6 +67,14 @@ async function getUserSession(_req: NextRequest) {
 // ============================================================================
 
 export async function GET(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for reads
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-accounts:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 
@@ -240,6 +249,14 @@ function filterTreeByAccountType(
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: 15 requests per minute per IP for writes
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-accounts:create",
+    requests: 15,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 

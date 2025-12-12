@@ -1,3 +1,78 @@
+## 🗓️ 2025-12-12T21:15+03:00 — P2 Medium Priority: Rate Limiting Expansion v30.4
+
+### 📍 Current Progress
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| **Branch** | `fix/graphql-resolver-todos` | ✅ Active |
+| **TypeScript Errors** | 0 | ✅ Clean |
+| **ESLint** | 0 errors | ✅ Clean |
+| **API Routes** | 352 | ✅ |
+| **Rate-Limited Routes** | 155/352 (44%) | 🟡 Improved +18 |
+| **Zod-Validated Routes** | 112/352 (32%) | 🟡 Expanding |
+| **Error Boundaries** | 14 | ✅ All critical modules |
+
+---
+
+### ✅ Completed This Session
+
+#### Rate Limiting Added (18 routes)
+
+| Module | File | Methods | Rate Limits |
+|--------|------|---------|-------------|
+| **HR** | `hr/employees/route.ts` | GET, POST | 60/min, 20/min |
+| **HR** | `hr/attendance/route.ts` | GET, POST | 60/min, 30/min |
+| **HR** | `hr/leaves/route.ts` | GET, POST | 60/min, 20/min |
+| **HR** | `hr/leave-types/route.ts` | GET, POST | 60/min, 20/min |
+| **HR** | `hr/payroll/runs/route.ts` | GET, POST | 60/min, 10/min |
+| **CRM** | `crm/contacts/route.ts` | GET, POST | 60/min, 30/min |
+| **CRM** | `crm/leads/log-call/route.ts` | POST | 30/min |
+| **CRM** | `crm/accounts/share/route.ts` | POST | 20/min |
+| **CRM** | `crm/overview/route.ts` | GET | 60/min |
+| **Finance** | `finance/expenses/route.ts` | GET, POST | 60/min, 20/min |
+| **Finance** | `finance/payments/route.ts` | GET, POST | 60/min, 15/min |
+| **Finance** | `finance/accounts/route.ts` | GET, POST | 60/min, 15/min |
+| **Finance** | `finance/journals/route.ts` | GET, POST | 60/min, 15/min |
+| **Finance** | `finance/ledger/route.ts` | GET | 60/min |
+| **Finance** | `finance/ledger/trial-balance/route.ts` | GET | 30/min |
+| **Finance** | `finance/reports/income-statement/route.ts` | GET | 30/min |
+| **Finance** | `finance/reports/balance-sheet/route.ts` | GET | 30/min |
+
+#### Try-Catch Coverage Verified
+
+| Route | Status | Notes |
+|-------|--------|-------|
+| `app/api/payments/callback/route.ts` | ✅ Has `wrapRoute` | Built-in error handling |
+| `app/api/aqar/chat/route.ts` | ✅ Has `wrapRoute` | Built-in error handling |
+| `app/api/properties/route.ts` | ✅ Has `wrapRoute` | Built-in error handling |
+| `app/api/souq/products/route.ts` | ✅ Has `wrapRoute` | Built-in error handling |
+| `app/api/assets/route.ts` | ✅ Has `wrapRoute` | Built-in error handling |
+
+**Conclusion:** All 5 routes use `wrapRoute` from `@/lib/api/route-wrapper` which provides try-catch error handling.
+
+---
+
+### 📊 Rate Limiting Status Update
+
+| Module | Previous | Current | Improvement |
+|--------|----------|---------|-------------|
+| **HR** | 0% (0/7) | 71% (5/7) | +5 routes |
+| **CRM** | 0% (0/4) | 100% (4/4) | +4 routes ✅ |
+| **Finance** | 5% (1/19) | 47% (9/19) | +8 routes |
+
+---
+
+### 🔲 Remaining Work
+
+| Priority | Task | Status |
+|----------|------|--------|
+| 🟡 P2 | Zod validation for FM routes | 🔲 Not started |
+| 🟡 P2 | Zod validation for Souq routes | 🔲 Not started |
+| 🟡 P2 | Zod validation for Aqar routes | 🔲 Not started |
+| 🟡 P2 | Zod validation for Admin routes | 🔲 Not started |
+
+---
+
 ## 🗓️ 2025-12-12T20:39+03:00 — Production Readiness Status v30.3
 
 ### 📍 Current Progress

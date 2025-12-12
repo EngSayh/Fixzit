@@ -35,12 +35,21 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { parseBodyOrNull } from "@/lib/api/parse-body";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // 🔒 STRICT v4.2: Payroll requires HR roles (optionally Corporate Admin) - no Finance role bleed
 const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
 
 // GET /api/hr/payroll/runs - List all payroll runs
 export async function GET(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "hr-payroll:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.orgId) {
@@ -90,6 +99,14 @@ export async function GET(req: NextRequest) {
 
 // POST /api/hr/payroll/runs - Create a new DRAFT payroll run
 export async function POST(req: NextRequest) {
+  // Rate limiting: 10 requests per minute per IP for payroll writes (sensitive)
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "hr-payroll:create",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.orgId) {

@@ -18,8 +18,17 @@ import { requirePermission } from "@/config/rbac.config";
 import { balanceSheet } from "@/server/finance/reporting.service";
 import { logger } from "@/lib/logger";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(req: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for report generation
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-reports:balance-sheet",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 

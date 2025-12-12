@@ -778,17 +778,23 @@ export const resolvers = {
         return null;
       }
 
+      // SEC-FIX: Require orgId to prevent cross-tenant data access (BUG-007 fix)
+      if (!ctx.orgId) {
+        logger.warn("[GraphQL] workOrder: Missing orgId in context", { userId: ctx.userId, id: args.id });
+        return null;
+      }
+
       try {
         await connectToDatabase();
+        setTenantContext({ orgId: ctx.orgId, userId: ctx.userId });
+
         const query: Record<string, unknown> = {
           _id: new Types.ObjectId(args.id),
+          orgId: Types.ObjectId.isValid(ctx.orgId)
+            ? new Types.ObjectId(ctx.orgId)
+            : ctx.orgId,
           ...softDeleteGuard,
         };
-        if (ctx.orgId) {
-          query.orgId = Types.ObjectId.isValid(ctx.orgId)
-            ? new Types.ObjectId(ctx.orgId)
-            : ctx.orgId;
-        }
 
         logger.debug("[GraphQL] Fetching work order", { id: args.id, orgId: ctx.orgId });
 
@@ -797,6 +803,8 @@ export const resolvers = {
       } catch (error) {
         logger.error("[GraphQL] Failed to fetch work order", { error, id: args.id });
         return null;
+      } finally {
+        clearTenantContext();
       }
     },
 

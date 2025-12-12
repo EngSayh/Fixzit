@@ -14,6 +14,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { dbConnect } from "@/lib/mongodb-unified";
 import { trialBalance as trialBalanceReport } from "@/server/finance/reporting.service";
@@ -45,6 +46,14 @@ async function getUserSession(_req: NextRequest) {
 // ============================================================================
 
 export async function GET(req: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for report generation
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-ledger:trial-balance",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 

@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
 
     const plans = await FMPMPlan.find(query)
       .sort({ nextScheduledDate: 1 })
+      .limit(500) // 🔒 SECURITY: Prevent unbounded query (BUG-008 fix)
       .lean();
 
     return NextResponse.json({
