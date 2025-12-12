@@ -15,6 +15,7 @@ import { WOAbility } from "@/types/work-orders/abilities";
 
 import { createSecureResponse } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const upsertSchema = z.object({
   sku: z.string().optional(),
@@ -45,6 +46,13 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ): Promise<NextResponse> {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "work-orders-materials:post",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await requireAbility(WOAbility.EDIT)(req);
     if (user instanceof NextResponse) return user;

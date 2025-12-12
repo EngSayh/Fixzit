@@ -13,6 +13,7 @@ import { requireAbility } from "@/server/middleware/withAuthRbac";
 import { WOAbility } from "@/types/work-orders/abilities";
 import { createSecureResponse } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Define type for exported work order fields
 interface WorkOrderExportDoc {
@@ -44,6 +45,13 @@ interface WorkOrderExportDoc {
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "work-orders-export:get",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await requireAbility(WOAbility.EXPORT)(req);
     if (user instanceof NextResponse) return user;

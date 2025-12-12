@@ -15,6 +15,7 @@ import { dbConnect } from "@/db/mongoose";
 import DiscountRule from "@/server/models/DiscountRule";
 import { requireSuperAdmin } from "@/lib/authz";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * Zod schema for annual discount request
@@ -27,6 +28,13 @@ const AnnualDiscountSchema = z.object({
  * Updates annual discount percentage
  */
 export async function PATCH(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "admin-billing-annual-discount:patch",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
     await requireSuperAdmin(req);

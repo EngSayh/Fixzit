@@ -15,6 +15,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { WOStatus } from "@/types/fm";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   getCanonicalUserId,
   mapWorkOrderDocument,
@@ -29,6 +30,13 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "fm-workorders:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const actor = await requireFmAbility("VIEW")(req);
     if (actor instanceof NextResponse) return actor;

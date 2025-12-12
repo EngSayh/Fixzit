@@ -16,6 +16,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { FooterContent } from "@/server/models/FooterContent";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 interface FooterDocument {
   page: string;
@@ -26,6 +27,14 @@ interface FooterDocument {
   [key: string]: unknown;
 }
 export async function POST(request: NextRequest) {
+  // Rate limiting: 10 requests per minute for admin operations
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "admin-footer:post",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Authentication & Authorization
     const user = await getSessionUser(request);

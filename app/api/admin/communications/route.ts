@@ -22,6 +22,7 @@ import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { ObjectId } from "mongodb";
 import { COLLECTIONS } from "@/lib/db/collections";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 interface MatchStage {
   userId?: ObjectId;
@@ -63,6 +64,13 @@ type PipelineStage =
  * - 500: Server error
  */
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "admin-communications:get",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // 1. Check authentication and authorization
     const session = await auth();

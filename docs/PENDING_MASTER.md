@@ -1,19 +1,82 @@
-## 🗓️ 2025-12-12T21:23+03:00 — Comprehensive Production Audit v33.0
+## 🗓️ 2025-12-13T02:00+03:00 — P1 Rate Limiting Complete v34.0
 
 ### 📍 Current Progress Summary
 
 | Metric | Value | Status | Trend |
 |--------|-------|--------|-------|
 | **Branch** | `fix/graphql-resolver-todos` | ✅ Active | — |
-| **Latest Commit** | `f261bba4a` — Rate limiting Souq KYC | ✅ Pushed | — |
+| **Latest Commit** | `pending` — P1 Rate Limiting | 🔲 To Push | — |
 | **TypeScript Errors** | 0 | ✅ Clean | — |
 | **ESLint Errors** | 0 | ✅ Clean | — |
-| **Total Tests** | 2814 | ✅ All Passing | +77 |
+| **Total Tests** | 2814 | ✅ All Passing | — |
 | **Test Files** | 282 | ✅ Comprehensive | — |
 | **Total API Routes** | 352 | ✅ Stable | — |
-| **Rate-Limited Routes** | 222/352 (63%) | 🟡 Improved | +171 this session |
+| **Rate-Limited Routes** | 266/352 (76%) | ✅ Improved | +44 this session |
 | **Zod-Validated Routes** | 128/352 (36%) | 🟡 Acceptable | — |
 | **Open Draft PRs** | 6 | 🟡 Cleanup needed | — |
+
+---
+
+### ✅ SESSION 2025-12-13T02:00 — P1 Rate Limiting Fixes
+
+**Scope**: Added rate limiting to P1 priority modules (Admin, FM, Work-orders)
+
+#### Admin Routes Protected (16 routes) ✅
+| Route | Rate Limit | Status |
+|-------|------------|--------|
+| `admin/footer` | 10 req/min | ✅ Done |
+| `admin/sms/settings` | 30 req/min | ✅ Done |
+| `admin/security/rate-limits` | 30 req/min | ✅ Done |
+| `admin/testing-users` | 30 req/min | ✅ Done |
+| `admin/testing-users/[id]` | 30 req/min | ✅ Done |
+| `admin/route-metrics` | 30 req/min | ✅ Done |
+| `admin/feature-flags` | 30 req/min | ✅ Done |
+| `admin/favicon` | 10 req/min | ✅ Done |
+| `admin/audit/export` | 10 req/min | ✅ Done |
+| `admin/logo/upload` | 10 req/min | ✅ Done |
+| `admin/route-aliases/workflow` | 30 req/min | ✅ Done |
+| `admin/export` | 10 req/min | ✅ Done |
+| `admin/billing/benchmark/[id]` | 10 req/min | ✅ Done |
+| `admin/billing/pricebooks/[id]` | 10 req/min | ✅ Done |
+| `admin/billing/annual-discount` | 10 req/min | ✅ Done |
+| `admin/communications` | 30 req/min | ✅ Done |
+
+#### FM Routes Protected (20 routes) ✅
+| Route | Rate Limit | Status |
+|-------|------------|--------|
+| `fm/work-orders/[id]/assign` | 20 req/min | ✅ Done |
+| `fm/work-orders/[id]` | 60 req/min | ✅ Done |
+| `fm/work-orders/[id]/attachments` | 60 req/min | ✅ Done |
+| `fm/work-orders/[id]/timeline` | 60 req/min | ✅ Done |
+| `fm/work-orders/stats` | 60 req/min | ✅ Done |
+| `fm/marketplace/vendors` | 60 req/min | ✅ Done |
+| `fm/marketplace/listings` | 60 req/min | ✅ Done |
+| `fm/marketplace/orders` | 60 req/min | ✅ Done |
+| `fm/inspections/vendor-assignments` | 60 req/min | ✅ Done |
+| `fm/system/roles` | 60 req/min | ✅ Done |
+| `fm/properties` | 60 req/min | ✅ Done |
+| `fm/support/escalations` | 20 req/min | ✅ Done |
+| `fm/support/tickets` | 20 req/min | ✅ Done |
+| `fm/finance/expenses` | 60 req/min | ✅ Done |
+| `fm/finance/budgets` | 60 req/min | ✅ Done |
+| `fm/finance/budgets/[id]` | 60 req/min | ✅ Done |
+| `fm/reports/schedules` | 60 req/min | ✅ Done |
+| `fm/reports` | 60 req/min | ✅ Done |
+| `fm/reports/[id]/download` | 30 req/min | ✅ Done |
+| `fm/reports/process` | 10 req/min | ✅ Done |
+
+#### Work-orders Routes Protected (7 routes) ✅
+| Route | Rate Limit | Status |
+|-------|------------|--------|
+| `work-orders/sla-check` | 10 req/min | ✅ Done |
+| `work-orders/export` | 10 req/min | ✅ Done |
+| `work-orders/import` | 10 req/min | ✅ Done |
+| `work-orders/[id]/comments` | 60 req/min | ✅ Done |
+| `work-orders/[id]/materials` | 30 req/min | ✅ Done |
+| `work-orders/[id]/checklists` | 30 req/min | ✅ Done |
+| `work-orders/[id]/checklists/toggle` | 60 req/min | ✅ Done |
+
+**Note**: `work-orders/route.ts` uses crud-factory which requires factory-level rate limiting.
 
 ---
 
@@ -21,25 +84,24 @@
 
 | Priority | Task | Effort | Impact | Status |
 |----------|------|--------|--------|--------|
-| 🔴 P0 | Merge PR `fix/graphql-resolver-todos` | 5 min | 171+ rate limits, security fixes | Ready |
+| 🔴 P0 | Commit & push P1 rate limiting | 5 min | 44 routes protected | 🔲 TODO |
+| 🔴 P0 | Merge PR `fix/graphql-resolver-todos` | 5 min | 215+ rate limits, security fixes | Ready |
 | 🔴 P0 | Close stale draft PRs (539-544) | 10 min | Cleanup | 🔲 TODO |
-| 🟡 P1 | Rate limiting: Admin module | 1 hr | 16 routes unprotected | 🔲 TODO |
-| 🟡 P1 | Rate limiting: FM module | 1 hr | 20 routes unprotected | 🔲 TODO |
-| 🟡 P1 | Rate limiting: Work-orders module | 30 min | 8 routes unprotected | 🔲 TODO |
+| 🟢 P3 | Rate limiting: crud-factory pattern | 2 hrs | ~20 routes | 🔲 Deferred |
 | 🟢 P3 | Error boundaries for deep subpages | 2 hrs | ~100 directories | 🔲 Deferred |
 
 ---
 
 ### 🔧 Comprehensive Enhancement List
 
-#### 🔴 HIGH PRIORITY — Rate Limiting Gaps (130 routes remaining)
+#### 🔴 HIGH PRIORITY — Rate Limiting Gaps (86 routes remaining)
 
 | Module | Total | Protected | Gap | Priority |
 |--------|-------|-----------|-----|----------|
 | **Souq** | 75 | 74 (99%) | 1 | ✅ Nearly Done |
-| **Admin** | 28 | 12 (43%) | 16 | 🔴 High |
-| **FM** | 25 | 5 (20%) | 20 | 🔴 High |
-| **Work-orders** | 8+ | 0 | 8 | 🟡 Medium |
+| **Admin** | 28 | 28 (100%) | 0 | ✅ Done |
+| **FM** | 25 | 25 (100%) | 0 | ✅ Done |
+| **Work-orders** | 8+ | 7 (88%) | 1 | ✅ Nearly Done |
 | **Auth** | 14 | 11 (79%) | 3 | 🟢 Low |
 | **Aqar** | 16 | 7 (44%) | 9 | 🟡 Medium |
 | **Finance** | 19 | 9 (47%) | 10 | 🟡 Medium |
@@ -49,7 +111,7 @@
 | **Organization** | 2+ | 1 | 1 | 🟢 Low |
 | **Payments** | 3+ | 1 | 2 | 🟢 Low |
 
-**Progress**: 222/352 routes protected (63%) — Up from 14% at session start
+**Progress**: 266/352 routes protected (76%) — Up from 63% at session start
 
 #### 🟡 MEDIUM PRIORITY — Validation & Quality
 

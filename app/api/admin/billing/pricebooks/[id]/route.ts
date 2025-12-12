@@ -15,6 +15,7 @@ import { dbConnect } from "@/db/mongoose";
 import PriceBook from "@/server/models/PriceBook";
 import { requireSuperAdmin } from "@/lib/authz";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { createSecureResponse } from "@/server/security/headers";
 
@@ -25,6 +26,13 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "admin-billing-pricebooks:patch",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
     await requireSuperAdmin(req);

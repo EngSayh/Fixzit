@@ -21,6 +21,7 @@ import { requireFmPermission } from "@/app/api/fm/permissions";
 import { resolveTenantId } from "@/app/api/fm/utils/tenant";
 import { FMErrors } from "@/app/api/fm/errors";
 import { getPresignedGetUrl } from "@/lib/storage/s3";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const COLLECTION = "fm_report_jobs";
 
@@ -28,6 +29,13 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "fm-reports-download:get",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const actor = await requireFmPermission(req, {
       module: ModuleKey.REPORTS,

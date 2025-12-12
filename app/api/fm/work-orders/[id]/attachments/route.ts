@@ -26,6 +26,7 @@ import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
 import type { WorkOrderPhoto } from "@/types/fm";
 import { WorkOrderAttachment } from "@/server/models/workorder/WorkOrderAttachment";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   assertWorkOrderQuota,
   getCanonicalUserId,
@@ -55,6 +56,13 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "fm-workorders-attachments:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const actor = await requireFmAbility("VIEW")(req);
     if (actor instanceof NextResponse) return actor;

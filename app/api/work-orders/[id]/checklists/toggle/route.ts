@@ -13,6 +13,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const schema = z.object({
   checklistIndex: z.number().int().nonnegative(),
@@ -41,6 +42,13 @@ export async function POST(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "work-orders-checklists-toggle:post",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectToDatabase();
     const user = await getSessionUser(req);

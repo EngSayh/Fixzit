@@ -14,6 +14,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const schema = z.object({ text: z.string().min(1) });
 
@@ -38,6 +39,13 @@ export async function GET(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "work-orders-comments:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await getSessionUser(req);
     const { id } = await props.params;

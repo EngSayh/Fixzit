@@ -15,6 +15,7 @@ import { WOAbility } from "@/types/work-orders/abilities";
 
 import { createSecureResponse } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const schema = z.object({
   title: z.string().min(2),
@@ -52,6 +53,13 @@ export async function POST(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "work-orders-checklists:post",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await requireAbility(WOAbility.EDIT)(req);
     if (user instanceof NextResponse) return user;

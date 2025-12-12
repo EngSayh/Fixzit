@@ -33,8 +33,16 @@ import {
   upsertAliasWorkflow,
   AliasWorkflowMap,
 } from "@/lib/routes/workflowStore";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "admin-route-aliases-workflow:get",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const session = await auth();
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

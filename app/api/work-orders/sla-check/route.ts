@@ -12,6 +12,7 @@ import { requireSuperAdmin } from "@/lib/authz";
 
 import { logger } from "@/lib/logger";
 import { parseDate } from "@/lib/date-utils";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 interface WorkOrderWithSLA {
   workOrderNumber: string;
@@ -33,6 +34,13 @@ interface WorkOrderWithSLA {
  * Production deployments should use a secure cron service with proper credentials.
  */
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "work-orders-sla-check:post",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   // SECURITY: Require SUPER_ADMIN for system-wide SLA checking
   // This endpoint runs across ALL tenants and should only be called by system cron
   try {

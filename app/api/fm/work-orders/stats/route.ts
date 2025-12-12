@@ -24,6 +24,7 @@ import { WOStatus, WOPriority, type WorkOrderStats } from "@/types/fm";
 import { FMErrors } from "../../errors";
 import { requireFmAbility } from "../../utils/fm-auth";
 import { resolveTenantId } from "../../utils/tenant";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const FINAL_STATUSES = new Set<WOStatus>([
   WOStatus.CLOSED,
@@ -32,6 +33,13 @@ const FINAL_STATUSES = new Set<WOStatus>([
 ]);
 
 export async function GET(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "fm-workorders-stats:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const actor = await requireFmAbility("VIEW")(req);
     if (actor instanceof NextResponse) return actor;

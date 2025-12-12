@@ -23,6 +23,7 @@ import { FMAction } from "@/types/fm/enums";
 import { FMErrors } from "@/app/api/fm/errors";
 import { requireFmPermission } from "@/app/api/fm/permissions";
 import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type BudgetDocument = {
   _id: ObjectId;
@@ -111,6 +112,13 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "fm-finance-budgets:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { id } = params;
     
