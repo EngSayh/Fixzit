@@ -47,11 +47,11 @@ export async function POST(req: NextRequest) {
     const parsed = ForgotPasswordSchema.safeParse(rawBody);
     
     if (!parsed.success) {
-      const errorMessage = parsed.error.errors[0]?.message || "Invalid request body";
+      const errorMessage = parsed.error.issues[0]?.message || "Invalid request body";
       return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
     
-    const { email } = parsed.data;
+    const { email, locale } = parsed.data;
 
     // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
     // MUST align with auth.config.ts to prevent environment drift
@@ -124,8 +124,7 @@ export async function POST(req: NextRequest) {
       req.nextUrl.origin;
     const resetLink = passwordResetLink(origin, token);
 
-    // Determine locale
-    const locale = body.locale || "en";
+    // Determine locale (already destructured from parsed.data)
     const userName = (user as { personal?: { firstName?: string } }).personal?.firstName || 
                      (user as { name?: string }).name || 
                      email.split("@")[0];

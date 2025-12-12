@@ -15,8 +15,12 @@
  * - Timeline entries per work order: 200 max
  */
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 import type { WorkOrderComment } from "@/types/fm";
 import { WorkOrderComment as WorkOrderCommentModel } from "@/server/models/workorder/WorkOrderComment";
 import {
@@ -31,6 +35,14 @@ import {
 import { resolveTenantId } from "../../../utils/tenant";
 import { requireFmAbility } from "../../../utils/fm-auth";
 import { FMErrors } from "../../../errors";
+
+/**
+ * Zod schema for comment creation
+ */
+const CreateCommentSchema = z.object({
+  comment: z.string().min(1, "Comment text is required").max(5000),
+  type: z.enum(["comment", "internal"]).optional().default("comment"),
+});
 
 interface CommentDocument {
   _id?: { toString?: () => string };
@@ -58,6 +70,11 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  // Rate limit: 60 requests per minute
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`fm:comments:list:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
   try {
     const actor = await requireFmAbility("VIEW")(req);
     if (actor instanceof NextResponse) return actor;
@@ -113,6 +130,11 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  // Rate limit: 30 comments per minute
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`fm:comments:create:${clientIp}`, 30, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
   try {
     const actor = await requireFmAbility("COMMENT")(req);
     if (actor instanceof NextResponse) return actor;
@@ -129,15 +151,17 @@ export async function POST(
       return FMErrors.invalidId("work order");
     }
 
-    const body = await req.json();
-    const comment = (body?.comment || "").trim();
-    const type: WorkOrderComment["type"] = COMMENT_TYPES.has(body?.type)
-      ? body.type
-      : "comment";
-
-    if (!comment) {
-      return FMErrors.validationError("Comment text is required");
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = CreateCommentSchema.safeParse(rawBody);
+    
+    if (!parsed.success) {
+      return FMErrors.validationError(
+        parsed.error.issues[0]?.message || "Invalid comment data"
+      );
     }
+    
+    const { comment, type } = parsed.data;
+    const attachments = (rawBody as Record<string, unknown>)?.attachments ?? [];
 
     await assertWorkOrderQuota(
       "workorder_comments",
@@ -151,7 +175,7 @@ export async function POST(
       workOrderId,
       comment,
       type,
-      attachments: body?.attachments ?? [],
+      attachments: attachments as unknown[],
       createdAt: now,
       createdBy: {
         id: actorId,

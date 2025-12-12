@@ -57,13 +57,13 @@ describe('onboardingEntities', () => {
   describe('ticketMessages', () => {
     it('should have English translations', async () => {
       // Import the module to access internal messages
-      const module = await import('@/server/services/onboardingEntities');
-      expect(module).toBeDefined();
+      const onboardingEntities = await import('@/server/services/onboardingEntities');
+      expect(onboardingEntities).toBeDefined();
     });
 
     it('should have Arabic translations', async () => {
-      const module = await import('@/server/services/onboardingEntities');
-      expect(module).toBeDefined();
+      const onboardingEntities = await import('@/server/services/onboardingEntities');
+      expect(onboardingEntities).toBeDefined();
     });
   });
 

@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     const parsed = VerifySendSchema.safeParse(rawBody);
     
     if (!parsed.success) {
-      const errorMessage = parsed.error.errors[0]?.message || "Invalid request body";
+      const errorMessage = parsed.error.issues[0]?.message || "Invalid request body";
       return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
     

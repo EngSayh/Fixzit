@@ -9,11 +9,15 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { WOStatus, WOPriority, type WorkOrder, WOCategory } from "@/types/fm";
 import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 import {
   mapWorkOrderDocument,
   recordTimelineEntry,
@@ -27,7 +31,37 @@ import {
 import { FMErrors } from "../errors";
 import { requireFmAbility } from "../utils/fm-auth";
 
+/**
+ * Zod schema for work order creation
+ */
+const CreateWorkOrderSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200),
+  description: z.string().min(1, "Description is required").max(5000),
+  priority: z.nativeEnum(WOPriority).optional(),
+  category: z.nativeEnum(WOCategory).optional(),
+  unitId: z.string().optional(),
+  propertyId: z.string().optional(),
+  location: z.object({
+    propertyId: z.string().optional(),
+    unitNumber: z.string().optional(),
+  }).optional(),
+  attachments: z.array(z.any()).optional(),
+  // Assignment fields
+  assigneeId: z.string().optional(),
+  assignedTo: z.string().optional(),
+  vendorId: z.string().optional(),
+  // Scheduling fields
+  scheduledAt: z.string().optional(),
+  estimatedCost: z.number().optional(),
+  currency: z.string().optional(),
+});
+
 export async function GET(req: NextRequest) {
+  // Rate limit: 60 requests per minute
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`fm:work-orders:list:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
   try {
     const abilityCheck = await requireFmAbility("VIEW")(req);
     if (abilityCheck instanceof NextResponse) return abilityCheck;
@@ -184,6 +218,11 @@ export async function GET(req: NextRequest) {
  * Create a new work order
  */
 export async function POST(req: NextRequest) {
+  // Rate limit: 30 work order creations per minute
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`fm:work-orders:create:${clientIp}`, 30, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
   try {
     const abilityCheck = await requireFmAbility("CREATE")(req);
     if (abilityCheck instanceof NextResponse) return abilityCheck;
@@ -192,17 +231,18 @@ export async function POST(req: NextRequest) {
       return FMErrors.missingTenant();
     }
 
-    const body = await req.json();
-
-    // Validate required fields
-    if (!body.title || !body.description) {
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = CreateWorkOrderSchema.safeParse(rawBody);
+    
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0];
       return FMErrors.validationError(
-        "Missing required fields: title, description",
-        {
-          required: ["title", "description"],
-        },
+        firstError?.message || "Invalid work order data",
+        { errors: parsed.error.issues.map((e) => ({ path: e.path.join('.'), message: e.message })) }
       );
     }
+    
+    const body = parsed.data;
 
     // Validate enum fields if provided
     if (body.priority && !Object.values(WOPriority).includes(body.priority)) {

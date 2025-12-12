@@ -14,8 +14,9 @@ const BillingQuoteSchema = z.object({
     moduleCode: z.string().min(1),
     seatCount: z.number().int().positive().optional(),
   })),
-  billingCycle: z.enum(["monthly", "annual"]).optional(),
-  seatTotal: z.number().int().positive().optional(),
+  billingCycle: z.enum(["monthly", "annual"]).default("monthly"),
+  seatTotal: z.number().int().positive().default(1),
+  isUnlimited: z.boolean().optional(),
 });
 
 /**
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.errors[0]?.message || "Invalid quote request" },
+        { error: parsed.error.issues[0]?.message || "Invalid quote request" },
         { status: 400 }
       );
     }
