@@ -42,6 +42,14 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // SEC-FIX: Require orgId - never fall back to userId to prevent cross-tenant data access
+    if (!user.orgId) {
+      return NextResponse.json(
+        { error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
+      );
+    }
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid favorite ID" },
