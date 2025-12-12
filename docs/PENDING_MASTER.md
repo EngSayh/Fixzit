@@ -1,13 +1,232 @@
 # 🎯 MASTER PENDING REPORT — Fixzit Project
 
-**Last Updated**: 2025-12-12T22:45+03:00  
-**Version**: 17.2  
+**Last Updated**: 2025-12-12T23:00+03:00  
+**Version**: 17.3  
 **Branch**: docs/pending-report-update  
-**Status**: ✅ PRODUCTION READY | All bugs verified & fixed | 0 vulnerabilities  
-**Total Pending Items**: 2 DevOps Actions only (GH-QUOTA, GH-ENVS)  
+**Status**: 🔴 BLOCKER: Login OTP not received | Footer & Theme enhancements planned  
+**Total Pending Items**: 1 Critical Blocker + 2 DevOps + 3 Enhancements  
 **Completed Items**: 350+ tasks completed  
 **Test Status**: ✅ Models 91 tests | ✅ TypeScript 0 errors | ✅ ESLint 0 errors | ✅ pnpm audit: 0 vulnerabilities  
-**CI Local Verification**: 2025-12-12T22:45+03:00 — typecheck ✅ | lint ✅ | audit ✅ | test:models ✅
+**CI Local Verification**: 2025-12-12T23:00+03:00 — typecheck ✅ | lint ✅ | audit ✅ | test:models ✅
+
+---
+
+## 🆕 SESSION 2025-12-12T23:00+03:00 — Critical Blocker & Enhancement Planning
+
+### 📊 PROGRESS SINCE LAST UPDATE
+
+| Area | Previous | Current | Status |
+|------|----------|---------|--------|
+| **TypeScript** | 0 errors | 0 errors | ✅ Stable |
+| **ESLint** | 0 errors | 0 errors | ✅ Stable |
+| **NPM Vulnerabilities** | 0 | 0 | ✅ Clean |
+| **PayTabs Cleanup** | In progress | Complete | ✅ Done |
+| **Login OTP** | Not reported | 🔴 BLOCKER | ❌ Not receiving SMS |
+
+### 🔴 CRITICAL BLOCKER: OTP/SMS NOT RECEIVED
+
+**Issue**: User cannot login to the production system — OTP verification SMS is not being received.
+
+| Aspect | Details |
+|--------|---------|
+| **Symptom** | Login requires OTP, but SMS never arrives |
+| **Impact** | 🔴 **CRITICAL** — System unusable for end users |
+| **SMS Provider** | Taqnyat (CITC-compliant for Saudi Arabia) |
+| **Config Location** | `lib/sms-providers/taqnyat.ts` |
+| **Env Variables** | `TAQNYAT_BEARER_TOKEN`, `TAQNYAT_SENDER_NAME` |
+| **OTP Store** | `lib/otp-store-redis.ts` (Redis → memory fallback) |
+| **API Endpoint** | `/api/auth/send-otp` or similar |
+
+#### 🔍 Potential Root Causes
+
+| # | Cause | Check | Status |
+|---|-------|-------|--------|
+| 1 | **Taqnyat API credentials missing/invalid** | Check Vercel env vars | ⏳ TODO |
+| 2 | **Sender ID not registered with CITC** | Verify sender name with Taqnyat | ⏳ TODO |
+| 3 | **Phone number format incorrect** | Should be `966XXXXXXXXX` (no +/00) | ⏳ TODO |
+| 4 | **Taqnyat service outage** | Check status.taqnyat.sa | ⏳ TODO |
+| 5 | **Rate limiting hit** | Check Taqnyat dashboard | ⏳ TODO |
+| 6 | **OTP not being stored** | Check Redis/memory store | ⏳ TODO |
+| 7 | **API route error** | Check Vercel logs for `/api/auth/*` | ⏳ TODO |
+
+#### 📋 ACTION PLAN: Fix OTP/SMS Issue
+
+| Step | Action | Owner | Priority |
+|------|--------|-------|----------|
+| 1 | Check Vercel env: `TAQNYAT_BEARER_TOKEN` exists | DevOps | 🔴 P0 |
+| 2 | Check Vercel env: `TAQNYAT_SENDER_NAME` matches CITC | DevOps | 🔴 P0 |
+| 3 | Test SMS directly via Taqnyat dashboard | DevOps | 🔴 P0 |
+| 4 | Check Vercel function logs for errors | DevOps | 🔴 P0 |
+| 5 | Verify phone number format in request | Agent | 🔴 P0 |
+| 6 | Add SMS delivery logging/alerts | Agent | 🟡 P1 |
+| 7 | Create SMS test endpoint for diagnostics | Agent | 🟡 P1 |
+
+---
+
+### 🆕 ENHANCEMENT PLAN: Footer Redesign (Vercel-Style)
+
+**Reference**: Vercel footer with Home, Docs, Knowledge Base, Academy, SDKs, Help, Contact, Legal menu
+
+#### Current Footer (`components/Footer.tsx`)
+- ✅ Has: Brand, Company links, Legal links, Support links
+- ❌ Missing: Theme toggle (system/light/dark)
+- ❌ Missing: Updated copyright with company name
+- ❌ Missing: Horizontal nav menu like Vercel
+- ❌ Missing: Status indicator
+
+#### Target Footer (Vercel-Style)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ▲  Home  Docs  Knowledge Base  Academy  SDKs ▼  Help  Contact  Legal ▼     │
+│                                                                             │
+│ ● Status indicator        [🔆 ⬤ 🌙] Theme toggle (System/Light/Dark)       │
+│                                                                             │
+│ © 2025 Sultan Al Hassni Real Estate LLC. All rights reserved. Saudi Arabia │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 📋 ACTION PLAN: Footer Redesign
+
+| Step | Task | Effort | Priority |
+|------|------|--------|----------|
+| 1 | Add theme toggle component (system/light/dark icons) | 1h | 🟡 P2 |
+| 2 | Update navigation to horizontal menu with dropdowns | 2h | 🟡 P2 |
+| 3 | Add status indicator (Web Analytics/Speed Insights style) | 1h | 🟢 P3 |
+| 4 | Update copyright text | 10m | 🟡 P2 |
+| 5 | Add translations for new footer elements | 30m | 🟡 P2 |
+| 6 | Test RTL layout with new design | 30m | 🟡 P2 |
+
+#### Footer Copyright Update
+
+**Current**: `© 2025 Fixzit. All rights reserved.`
+
+**Target**: `© 2025 Sultan Al Hassni Real Estate LLC. All rights reserved. Saudi Arabia`
+
+**Files to Update**:
+- `components/Footer.tsx` (line 131)
+- `i18n/chunks/en/footer.json`
+- `i18n/chunks/ar/footer.json`
+
+---
+
+### 🆕 ENHANCEMENT PLAN: Theme Toggle (System/Light/Dark)
+
+**Reference**: Vercel-style 3-state theme toggle with icons
+
+#### Current Theme System
+- Location: `contexts/ThemeContext.tsx`
+- States: `light | dark | system`
+- Has `setTheme()` and `resolvedTheme`
+
+#### Target Theme Toggle
+
+| State | Icon | Description |
+|-------|------|-------------|
+| System | 💻 | Follow OS preference |
+| Light | ☀️ | Force light mode |
+| Dark | 🌙 | Force dark mode |
+
+#### 📋 ACTION PLAN: Theme Toggle
+
+| Step | Task | Effort | Priority |
+|------|------|--------|----------|
+| 1 | Create `ThemeToggle.tsx` component | 1h | 🟡 P2 |
+| 2 | Add to Footer.tsx | 15m | 🟡 P2 |
+| 3 | Style with Tailwind (icon buttons) | 30m | 🟡 P2 |
+| 4 | Persist preference to localStorage | Already done | ✅ |
+| 5 | Test across all pages | 30m | 🟡 P2 |
+
+---
+
+### 🎯 CONSOLIDATED NEXT STEPS
+
+#### 🔴 CRITICAL — Must Fix Immediately
+
+| # | ID | Task | Owner | Status |
+|---|-----|------|-------|--------|
+| 1 | **OTP-001** | Diagnose SMS/OTP delivery failure | DevOps + Agent | ⏳ URGENT |
+| 2 | **OTP-002** | Verify Taqnyat API credentials in Vercel | DevOps | ⏳ URGENT |
+| 3 | **OTP-003** | Check Vercel function logs for auth errors | DevOps | ⏳ URGENT |
+
+#### 🟡 HIGH — DevOps Actions
+
+| # | ID | Task | Owner | Status |
+|---|-----|------|-------|--------|
+| 4 | **GH-QUOTA** | Resolve GitHub Actions quota | DevOps | ⏳ Pending |
+| 5 | **GH-ENVS** | Create GitHub Environments | DevOps | ⏳ Pending |
+
+#### 🟢 ENHANCEMENTS — UI/UX Improvements
+
+| # | ID | Task | Effort | Priority |
+|---|-----|------|--------|----------|
+| 6 | **FOOTER-001** | Redesign footer (Vercel-style) | 4h | 🟡 P2 |
+| 7 | **FOOTER-002** | Update copyright to Sultan Al Hassni Real Estate LLC | 30m | 🟡 P2 |
+| 8 | **THEME-001** | Add 3-state theme toggle (system/light/dark) | 2h | 🟡 P2 |
+
+---
+
+### 🔍 FINDINGS
+
+#### Bugs/Errors Detected This Session
+
+| Severity | Location | Issue | Status |
+|----------|----------|-------|--------|
+| 🔴 Critical | SMS/Taqnyat | OTP not being received for login | ⏳ Investigating |
+
+#### Efficiency/Process Improvements
+
+| # | Area | Finding | Recommendation |
+|---|------|---------|----------------|
+| 1 | **SMS Monitoring** | No alerts for OTP delivery failures | Add Grafana alert |
+| 2 | **Footer Design** | Outdated compared to industry standards | Modernize to Vercel-style |
+| 3 | **Theme UX** | Missing system theme option in visible toggle | Add 3-state toggle |
+
+#### De-duplication Notes
+
+- **OTP/SMS Issue**: New — not previously reported in this report
+- **Footer Enhancement**: New — related to `docs/UI_COMPONENTS_SPECIFICATION.md` (line 122)
+- **Theme Toggle**: Related to existing `contexts/ThemeContext.tsx` — already supports system mode
+
+---
+
+### 🧪 TESTS FOR PRODUCTION/DEPLOYED SYSTEM
+
+#### Pre-Deployment (Local)
+
+```bash
+pnpm typecheck        # ✅ 0 errors
+pnpm lint             # ✅ 0 errors  
+pnpm run test:models  # ✅ 91 tests passing
+pnpm audit            # ✅ No known vulnerabilities
+```
+
+#### Post-Deployment (Production) — 🔴 CURRENTLY BLOCKED
+
+| Priority | Test | Endpoint | Expected | Status |
+|----------|------|----------|----------|--------|
+| 🔴 Critical | **OTP SMS** | `/api/auth/send-otp` | SMS received | ❌ FAILING |
+| 🔴 Critical | Health | `GET /api/health` | 200 OK | ⏳ Untested |
+| 🔴 Critical | Auth | `/login` → `/dashboard` | Session | ❌ BLOCKED by OTP |
+| 🔴 Critical | TAP | Create subscription | Checkout URL | ⏳ Untested |
+| 🟡 High | i18n | Toggle AR/EN | UI updates | ⏳ Untested |
+| 🟡 High | RTL | Arabic pages | Correct layout | ⏳ Untested |
+
+#### SMS/OTP Diagnostic Tests
+
+```bash
+# 1. Check Taqnyat API connectivity
+curl -X POST https://api.taqnyat.sa/v1/messages \
+  -H "Authorization: Bearer $TAQNYAT_BEARER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"recipients": ["966XXXXXXXXX"], "body": "Test OTP: 123456", "sender": "SENDER_NAME"}'
+
+# 2. Check Vercel function logs
+vercel logs --follow fixzit.app
+
+# 3. Check Redis OTP store
+redis-cli GET "otp:966XXXXXXXXX"
+```
 
 ---
 
