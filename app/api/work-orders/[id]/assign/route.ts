@@ -18,6 +18,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
+import { logger } from "@/lib/logger";
 
 const schema = z
   .object({
@@ -58,52 +59,57 @@ export async function POST(
   req: NextRequest,
   props: { params: { id: string } },
 ): Promise<NextResponse> {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
+  try {
+    // Rate limiting
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
 
-  const { id } = props.params;
-  if (!id || !Types.ObjectId.isValid(id)) {
-    return createSecureResponse({ error: "Invalid work order id" }, 400, req);
-  }
-  const user = await requireAbility(WOAbility.ASSIGN)(req);
-  if (user instanceof NextResponse) return user;
-  await connectToDatabase();
+    const { id } = props.params;
+    if (!id || !Types.ObjectId.isValid(id)) {
+      return createSecureResponse({ error: "Invalid work order id" }, 400, req);
+    }
+    const user = await requireAbility(WOAbility.ASSIGN)(req);
+    if (user instanceof NextResponse) return user;
+    await connectToDatabase();
 
-  const body = schema.parse(await req.json());
+    const body = schema.parse(await req.json());
 
-  const orgCandidates =
-    Types.ObjectId.isValid(user.orgId) ? [user.orgId, new Types.ObjectId(user.orgId)] : [user.orgId];
-  const wo = await WorkOrder.findOne({ _id: id, orgId: { $in: orgCandidates } });
-  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+    const orgCandidates =
+      Types.ObjectId.isValid(user.orgId) ? [user.orgId, new Types.ObjectId(user.orgId)] : [user.orgId];
+    const wo = await WorkOrder.findOne({ _id: id, orgId: { $in: orgCandidates } });
+    if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
-  const now = new Date();
-  const nextStatus = wo.status === "SUBMITTED" ? "ASSIGNED" : wo.status;
-  const updated = await WorkOrder.findOneAndUpdate(
-    { _id: id, orgId: { $in: orgCandidates } },
-    {
-      $set: {
-        "assignment.assignedTo.userId": body.assigneeUserId ?? null,
-        "assignment.assignedTo.vendorId": body.assigneeVendorId ?? null,
-        "assignment.assignedBy": user.id,
-        "assignment.assignedAt": now,
-        status: nextStatus,
-      },
-      $push: {
-        statusHistory: {
-          fromStatus: wo.status,
-          toStatus: nextStatus,
-          changedBy: user.id,
-          changedAt: now,
-          notes: "Assignment updated via API",
+    const now = new Date();
+    const nextStatus = wo.status === "SUBMITTED" ? "ASSIGNED" : wo.status;
+    const updated = await WorkOrder.findOneAndUpdate(
+      { _id: id, orgId: { $in: orgCandidates } },
+      {
+        $set: {
+          "assignment.assignedTo.userId": body.assigneeUserId ?? null,
+          "assignment.assignedTo.vendorId": body.assigneeVendorId ?? null,
+          "assignment.assignedBy": user.id,
+          "assignment.assignedAt": now,
+          status: nextStatus,
+        },
+        $push: {
+          statusHistory: {
+            fromStatus: wo.status,
+            toStatus: nextStatus,
+            changedBy: user.id,
+            changedAt: now,
+            notes: "Assignment updated via API",
+          },
         },
       },
-    },
-    { new: true },
-  );
+      { new: true },
+    );
 
-  return createSecureResponse(updated ?? wo, 200, req);
+    return createSecureResponse(updated ?? wo, 200, req);
+  } catch (error) {
+    logger.error("[work-orders/assign] POST error", { error });
+    return createSecureResponse({ error: "Failed to assign work order" }, 500, req);
+  }
 }

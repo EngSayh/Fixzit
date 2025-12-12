@@ -11,8 +11,8 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-
 import { createSecureResponse } from "@/server/security/headers";
+import { logger } from "@/lib/logger";
 
 const schema = z.object({
   checklistIndex: z.number().int().nonnegative(),
@@ -41,24 +41,29 @@ export async function POST(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
-  await connectToDatabase();
-  const user = await getSessionUser(req);
-  const { id } = await props.params;
-  const { checklistIndex, itemIndex, done } = schema.parse(await req.json());
-  interface WorkOrderDoc {
-    checklists?: Array<{
-      items?: Array<{ done: boolean }>;
-    }>;
-    save: () => Promise<void>;
+  try {
+    await connectToDatabase();
+    const user = await getSessionUser(req);
+    const { id } = await props.params;
+    const { checklistIndex, itemIndex, done } = schema.parse(await req.json());
+    interface WorkOrderDoc {
+      checklists?: Array<{
+        items?: Array<{ done: boolean }>;
+      }>;
+      save: () => Promise<void>;
+    }
+    const wo = (await WorkOrder.findOne({
+      _id: id,
+      tenantId: user.tenantId,
+    })) as WorkOrderDoc | null;
+    if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+    if (!wo.checklists?.[checklistIndex]?.items?.[itemIndex])
+      return createSecureResponse({ error: "Bad index" }, 400, req);
+    wo.checklists[checklistIndex].items[itemIndex].done = done;
+    await wo.save();
+    return createSecureResponse(wo.checklists[checklistIndex], 200, req);
+  } catch (error) {
+    logger.error("[work-orders/checklists/toggle] POST error", { error });
+    return createSecureResponse({ error: "Failed to toggle checklist item" }, 500, req);
   }
-  const wo = (await WorkOrder.findOne({
-    _id: id,
-    tenantId: user.tenantId,
-  })) as WorkOrderDoc | null;
-  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
-  if (!wo.checklists?.[checklistIndex]?.items?.[itemIndex])
-    return createSecureResponse({ error: "Bad index" }, 400, req);
-  wo.checklists[checklistIndex].items[itemIndex].done = done;
-  await wo.save();
-  return createSecureResponse(wo.checklists[checklistIndex], 200, req);
 }

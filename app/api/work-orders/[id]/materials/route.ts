@@ -14,6 +14,7 @@ import { requireAbility } from "@/server/middleware/withAuthRbac";
 import { WOAbility } from "@/types/work-orders/abilities";
 
 import { createSecureResponse } from "@/server/security/headers";
+import { logger } from "@/lib/logger";
 
 const upsertSchema = z.object({
   sku: z.string().optional(),
@@ -44,41 +45,46 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ): Promise<NextResponse> {
-  const user = await requireAbility(WOAbility.EDIT)(req);
-  if (user instanceof NextResponse) return user;
-  await connectToDatabase();
-  const m = upsertSchema.parse(await req.json());
-  // Validate MongoDB ObjectId format
-  if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
-    return createSecureResponse({ error: "Invalid id" }, 400, req);
+  try {
+    const user = await requireAbility(WOAbility.EDIT)(req);
+    if (user instanceof NextResponse) return user;
+    await connectToDatabase();
+    const m = upsertSchema.parse(await req.json());
+    // Validate MongoDB ObjectId format
+    if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
+      return createSecureResponse({ error: "Invalid id" }, 400, req);
+    }
+    interface Material {
+      sku?: string;
+      name: string;
+      qty: number;
+      unitPrice: number;
+      currency: string;
+    }
+    interface WorkOrderDoc {
+      materials: Material[];
+      costSummary?: {
+        labor?: number;
+        materials?: number;
+        other?: number;
+        total?: number;
+      };
+      save: () => Promise<void>;
+    }
+    const wo = (await WorkOrder.findOne({
+      _id: params.id,
+      tenantId: user.tenantId,
+    })) as WorkOrderDoc | null;
+    if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+    wo.materials.push(m);
+    const materials = wo.materials.reduce((s, c) => s + c.qty * c.unitPrice, 0);
+    const total =
+      (wo.costSummary?.labor || 0) + materials + (wo.costSummary?.other || 0);
+    wo.costSummary = { ...(wo.costSummary || {}), materials, total };
+    await wo.save();
+    return createSecureResponse(wo.materials, 200, req);
+  } catch (error) {
+    logger.error("[work-orders/materials] POST error", { error });
+    return createSecureResponse({ error: "Failed to add material" }, 500, req);
   }
-  interface Material {
-    sku?: string;
-    name: string;
-    qty: number;
-    unitPrice: number;
-    currency: string;
-  }
-  interface WorkOrderDoc {
-    materials: Material[];
-    costSummary?: {
-      labor?: number;
-      materials?: number;
-      other?: number;
-      total?: number;
-    };
-    save: () => Promise<void>;
-  }
-  const wo = (await WorkOrder.findOne({
-    _id: params.id,
-    tenantId: user.tenantId,
-  })) as WorkOrderDoc | null;
-  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
-  wo.materials.push(m);
-  const materials = wo.materials.reduce((s, c) => s + c.qty * c.unitPrice, 0);
-  const total =
-    (wo.costSummary?.labor || 0) + materials + (wo.costSummary?.other || 0);
-  wo.costSummary = { ...(wo.costSummary || {}), materials, total };
-  await wo.save();
-  return createSecureResponse(wo.materials, 200, req);
 }
