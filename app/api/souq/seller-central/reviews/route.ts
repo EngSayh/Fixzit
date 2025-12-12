@@ -20,6 +20,7 @@ import { auth } from "@/auth";
 import { connectDb } from "@/lib/mongodb-unified";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const sellerReviewFiltersSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -34,6 +35,14 @@ const sellerReviewFiltersSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for seller reviews list
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "souq-seller-reviews:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user) {
