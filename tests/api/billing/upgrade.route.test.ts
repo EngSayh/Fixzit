@@ -26,9 +26,9 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue({}),
 }));
 
-// Mock canManageSubscriptions
+// Mock canManageSubscriptions - sync function that returns boolean
 vi.mock("@/lib/auth/role-guards", () => ({
-  canManageSubscriptions: vi.fn().mockResolvedValue(true),
+  canManageSubscriptions: vi.fn().mockReturnValue(true),
 }));
 
 // Mock Subscription model
@@ -108,9 +108,9 @@ describe("API /api/billing/upgrade", () => {
 
     it("returns 403 when user lacks subscription management permissions", async () => {
       vi.mocked(auth).mockResolvedValueOnce({
-        user: { id: "user123", orgId: "org123" },
+        user: { id: "user123", orgId: "org123", role: "USER" },
       } as never);
-      vi.mocked(canManageSubscriptions).mockResolvedValueOnce(false);
+      vi.mocked(canManageSubscriptions).mockReturnValueOnce(false);
 
       const req = createGetRequest();
       const res = await GET(req);
@@ -131,9 +131,9 @@ describe("API /api/billing/upgrade", () => {
 
     it("returns 403 when user lacks permissions", async () => {
       vi.mocked(auth).mockResolvedValueOnce({
-        user: { id: "user123", orgId: "org123" },
+        user: { id: "user123", orgId: "org123", role: "USER" },
       } as never);
-      vi.mocked(canManageSubscriptions).mockResolvedValueOnce(false);
+      vi.mocked(canManageSubscriptions).mockReturnValueOnce(false);
 
       const req = createPostRequest({ targetPlan: "PRO" });
       const res = await POST(req);
