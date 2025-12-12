@@ -93,9 +93,15 @@ function getInteger(key: string, fallback: number): number {
 // Environment Detection
 // =============================================================================
 
+// Detect if running in browser (client-side) vs Node.js (server-side)
+// CRITICAL: This module should only be used on the server, but if it gets
+// bundled into client code, we need to handle it gracefully
+const IS_BROWSER = typeof window !== "undefined";
+
 const NODE_ENV = (process.env.NODE_ENV || "development") as Environment;
 const IS_NEXT_BUILD = process.env.NEXT_PHASE === "phase-production-build";
 const SKIP_CONFIG_VALIDATION =
+  IS_BROWSER || // Skip validation on client-side
   getBoolean("SKIP_CONFIG_VALIDATION") ||
   getBoolean("SKIP_ENV_VALIDATION") ||
   getBoolean("DISABLE_MONGODB_FOR_BUILD") ||
@@ -110,13 +116,15 @@ const IS_BUILD_COMMAND = process.env.npm_lifecycle_event === "build";
 // injected (e.g., Vercel preview deployments). Production runtime still fails
 // fast when the secret is missing.
 const shouldAutoProvisionAuthSecret =
+  IS_BROWSER || // Don't run crypto on client-side
   IS_NEXT_BUILD ||
   IS_BUILD_COMMAND ||
   IS_VERCEL_PREVIEW ||
   IS_CI ||
   SKIP_CONFIG_VALIDATION;
 
-if (!process.env.NEXTAUTH_SECRET && shouldAutoProvisionAuthSecret) {
+// Only run crypto operations on server-side
+if (!IS_BROWSER && !process.env.NEXTAUTH_SECRET && shouldAutoProvisionAuthSecret) {
   const seed =
     process.env.AUTH_SECRET ||
     process.env.VERCEL_DEPLOYMENT_ID ||

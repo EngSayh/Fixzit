@@ -119,7 +119,7 @@ describe("Service Circuit Breakers", () => {
     // Only Taqnyat is supported for SMS (CITC-compliant for Saudi Arabia)
     expect(serviceCircuitBreakers).toHaveProperty("taqnyat");
     expect(serviceCircuitBreakers).toHaveProperty("sendgrid");
-    expect(serviceCircuitBreakers).toHaveProperty("paytabs");
+    expect(serviceCircuitBreakers).toHaveProperty("tap");
     expect(serviceCircuitBreakers).toHaveProperty("meilisearch");
     expect(serviceCircuitBreakers).toHaveProperty("zatca");
   });

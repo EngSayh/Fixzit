@@ -8,7 +8,7 @@ const createBreaker = (name: string, cooldownMs: number): CircuitBreaker =>
     cooldownMs,
   });
 
-const paytabsBreaker = createBreaker("paytabs", 30_000);
+const tapBreaker = createBreaker("tap", 30_000);
 const meilisearchBreaker = createBreaker("meilisearch", 15_000);
 const zatcaBreaker = createBreaker("zatca", 60_000);
 const sendgridBreaker = createBreaker("sendgrid", 30_000);
@@ -16,7 +16,7 @@ const sendgridBreaker = createBreaker("sendgrid", 30_000);
 const taqnyatBreaker = createBreaker("taqnyat", 20_000);
 
 export const serviceCircuitBreakers = {
-  paytabs: paytabsBreaker,
+  tap: tapBreaker,
   meilisearch: meilisearchBreaker,
   zatca: zatcaBreaker,
   sendgrid: sendgridBreaker,

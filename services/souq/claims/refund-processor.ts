@@ -1,8 +1,8 @@
 import { ObjectId as MongoObjectId, type Filter, type Document } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { createRequire } from 'module';
-import { createRefund, queryRefundStatus } from '@/lib/paytabs';
-import { validatePayTabsConfig } from '@/config/paytabs.config';
+import { tapPayments } from '@/lib/finance/tap-payments';
+import { assertTapConfig } from '@/lib/tapConfig';
 import { logger } from '@/lib/logger';
 import { ClaimService } from './claim-service';
 import type { Claim as ClaimModel } from './claim-service';
@@ -156,7 +156,7 @@ export class RefundProcessor {
   private static MAX_RETRIES = 3;
   private static MAX_STATUS_POLLS = 5;
   // 🔐 Production-appropriate delay: 30 seconds base delay for payment gateway retries
-  // PayTabs and similar gateways need time to process and may rate-limit rapid retries
+  // TAP and similar gateways need time to process and may rate-limit rapid retries
   private static RETRY_DELAY_MS = 30_000;
   // 🔐 Maximum retry delay cap (5 minutes) to prevent excessive waits
   private static MAX_RETRY_DELAY_MS = 300_000;
@@ -438,7 +438,7 @@ export class RefundProcessor {
   }
 
   /**
-   * Execute refund with payment gateway (PayTabs)
+   * Execute refund with payment gateway (TAP)
    */
   private static async executeRefund(refund: Refund): Promise<RefundResult> {
     // Atomically check and lock to prevent concurrent processing
@@ -473,7 +473,7 @@ export class RefundProcessor {
     }
 
     try {
-      // Call PayTabs refund API
+      // Call TAP refund API
       const gatewayResult = await this.callPaymentGateway(refund);
 
       // Clear processing lock on success/pending
@@ -482,7 +482,7 @@ export class RefundProcessor {
         { $unset: { processingLock: '' } }
       );
 
-      // 🔐 MAJOR FIX: Handle PayTabs pending correctly - don't treat as completed
+      // 🔐 MAJOR FIX: Handle TAP pending correctly - don't treat as completed
       if (gatewayResult.status === 'PENDING') {
         // Schedule a status check instead of re-calling the refund endpoint
         await this.scheduleStatusCheck({ ...refund, transactionId: gatewayResult.transactionId });
@@ -538,7 +538,7 @@ export class RefundProcessor {
   }
 
   /**
-   * Call payment gateway API - Using PayTabs for Saudi market
+   * Call payment gateway API - Using TAP for Saudi market
    */
   private static async callPaymentGateway(refund: Refund): Promise<{
     transactionId: string;
@@ -548,14 +548,13 @@ export class RefundProcessor {
       throw new Error('Missing original transaction reference for refund');
     }
 
-    // 🔐 Use shared PayTabs config validation (ensures both profileId and serverKey)
-    validatePayTabsConfig();
+    // 🔐 Validate TAP config
+    assertTapConfig('process refund');
 
-    // Use PayTabs refund API
-    const paytabsRefund = await createRefund({
-      originalTransactionId: refund.originalTransactionId,
-      refundId: refund.refundId,
-      amount: refund.amount, // PayTabs uses decimal SAR, not halalas
+    // Use TAP refund API
+    const tapRefund = await tapPayments.createRefund({
+      charge_id: refund.originalTransactionId,
+      amount: refund.amount,
       currency: 'SAR',
       reason: refund.reason,
       metadata: {
@@ -566,21 +565,16 @@ export class RefundProcessor {
       },
     });
 
-    if (!paytabsRefund.success) {
-      throw new Error(paytabsRefund.error || 'PayTabs refund failed');
-    }
-
-    // Map PayTabs status codes to internal status
-    // A = Approved, P = Pending, D = Declined
-    const status = paytabsRefund.status === 'A' ? 'SUCCEEDED' : 
-                   paytabsRefund.status === 'P' ? 'PENDING' : 'FAILED';
+    // Map TAP status codes to internal status
+    const status = tapRefund.status === 'SUCCEEDED' ? 'SUCCEEDED' : 
+                   tapRefund.status === 'PENDING' ? 'PENDING' : 'FAILED';
 
     if (status === 'FAILED') {
-      throw new Error(`PayTabs refund declined: ${paytabsRefund.message}`);
+      throw new Error(`TAP refund declined: ${tapRefund.response?.message || 'Unknown error'}`);
     }
 
     return {
-      transactionId: paytabsRefund.refundId!,
+      transactionId: tapRefund.id,
       status: status,
     };
   }
@@ -730,7 +724,7 @@ export class RefundProcessor {
     const updatedRefund = await latestCollection.findOne({ refundId, ...buildOrgScope(orgId) });
 
     if (updatedRefund && updatedRefund.status === 'processing') {
-      // If we already have a transactionId, perform a status check instead of re-calling PayTabs refund API
+      // If we already have a transactionId, perform a status check instead of re-calling TAP refund API
       if (updatedRefund.transactionId) {
         await this.processStatusCheckJob(refundId, orgId);
         return;
@@ -793,22 +787,17 @@ export class RefundProcessor {
 
     if (!refund.transactionId) {
       await this.updateRefundStatus(refundId, orgId, 'failed', {
-        failureReason: 'Missing transactionId for PayTabs status check',
+        failureReason: 'Missing transactionId for TAP status check',
       });
       return;
     }
 
     try {
-      const statusData = await queryRefundStatus(refund.transactionId);
-      const rawStatus =
-        (statusData as { payment_result?: { response_status?: string } }).payment_result
-          ?.response_status ?? (statusData as { status?: string }).status ?? 'P';
-      const normalizedStatus = typeof rawStatus === 'string' ? rawStatus.toUpperCase() : 'P';
-      const message =
-        (statusData as { payment_result?: { response_message?: string } }).payment_result
-          ?.response_message ?? (statusData as { message?: string }).message;
+      const statusData = await tapPayments.getRefund(refund.transactionId);
+      const normalizedStatus = statusData.status;
+      const message = statusData.response?.message;
 
-      if (normalizedStatus === 'A') {
+      if (normalizedStatus === 'SUCCEEDED') {
         const completedAt = new Date();
         await this.updateRefundStatus(refundId, orgId, 'completed', {
           transactionId: refund.transactionId,
@@ -829,7 +818,7 @@ export class RefundProcessor {
         return;
       }
 
-      if (normalizedStatus === 'P') {
+      if (normalizedStatus === 'PENDING') {
         await this.scheduleStatusCheck(refund);
         return;
       }

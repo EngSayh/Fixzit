@@ -15,6 +15,16 @@ const PayTabsInfoSchema = new Schema(
   { _id: false },
 );
 
+const TapInfoSchema = new Schema(
+  {
+    cardId: String, // Saved card token for recurring
+    customerId: String,
+    customerEmail: String,
+    lastChargeId: String,
+  },
+  { _id: false },
+);
+
 const BillingHistorySchema = new Schema(
   {
     date: { type: Date, required: true },
@@ -80,6 +90,9 @@ const SubscriptionSchema = new Schema(
       default: "INCOMPLETE",
     },
     paytabs: PayTabsInfoSchema,
+    tap: TapInfoSchema,
+    customerName: String,
+    customerEmail: String,
     next_billing_date: {
       type: Date,
       required: false,
@@ -154,6 +167,13 @@ interface IPayTabsInfo {
   cart_id?: string;
 }
 
+interface ITapInfo {
+  cardId?: string;
+  customerId?: string;
+  customerEmail?: string;
+  lastChargeId?: string;
+}
+
 interface IBillingHistory {
   date: Date;
   amount: number;
@@ -175,6 +195,9 @@ interface ISubscription extends Document {
   amount: number;
   status: "INCOMPLETE" | "ACTIVE" | "PAST_DUE" | "CANCELED";
   paytabs?: IPayTabsInfo;
+  tap?: ITapInfo;
+  customerName?: string;
+  customerEmail?: string;
   next_billing_date?: Date;
   current_period_start?: Date;
   current_period_end?: Date;

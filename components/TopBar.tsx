@@ -248,8 +248,9 @@ function TopBarContent() {
   });
 
   // Anchor refs for dropdown positioning
-  const notifBtnRef = useRef<HTMLButtonElement>(null!);
-  const userBtnRef = useRef<HTMLButtonElement>(null!);
+  // React 19 types: keep generic non-null so refs stay compatible with button forwardRef
+  const notifBtnRef = useRef<HTMLButtonElement>(null);
+  const userBtnRef = useRef<HTMLButtonElement>(null);
 
   // Panel positioning state
   type Pos = { top: number; left: number; width: number };

@@ -1,13 +1,13 @@
 /**
  * @fileoverview Payment Creation API
- * @description Initiates payment transactions via PayTabs gateway for invoice payments.
+ * @description Initiates payment transactions via TAP gateway for invoice payments.
  * Generates secure checkout URLs with customer and billing details.
  * @route POST /api/payments/create - Create payment page
  * @access Protected - Requires authenticated session
  * @module payments
  */
 import { NextRequest } from "next/server";
-import { createPaymentPage } from "@/lib/paytabs";
+import { tapPayments } from "@/lib/finance/tap-payments";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { Invoice } from "@/server/models/Invoice";
 import { connectToDatabase } from "@/lib/mongodb-unified";
@@ -79,12 +79,12 @@ import { joinUrl } from "@/lib/utils/url";
  *                 paymentUrl:
  *                   type: string
  *                   format: uri
- *                   description: Secure PayTabs payment page URL
- *                   example: "https://secure.paytabs.sa/payment/page/ABC123DEF456"
+ *                   description: Secure TAP payment page URL
+ *                   example: "https://checkout.payments.tap.company/..."
  *                 transactionId:
  *                   type: string
- *                   description: PayTabs transaction reference ID
- *                   example: "TST2024010112345678"
+ *                   description: TAP charge ID
+ *                   example: "chg_xxxxxxxxxxxxxx"
  *       400:
  *         description: Validation error - Invalid invoice ID, already paid, or missing required fields
  *       404:
@@ -134,52 +134,58 @@ export async function POST(req: NextRequest) {
       return validationError("Invoice is already paid");
     }
 
-    // Create payment request
-    const paymentRequest = {
-      amount: invoice.total,
-      currency: invoice.currency,
-      customerDetails: {
-        name: invoice.recipient?.name || "Unknown Customer",
+    // Create payment request via TAP
+    const charge = await tapPayments.createCharge({
+      amount: invoice.total ?? 0,
+      currency: invoice.currency || "SAR",
+      customer: {
+        first_name: invoice.recipient?.name?.split(" ")[0] || "Customer",
+        last_name: invoice.recipient?.name?.split(" ").slice(1).join(" ") || "",
         email: invoice.recipient?.email || `customer@${EMAIL_DOMAINS.primary}`,
-        phone: invoice.recipient?.phone || Config.company.supportPhone.replace(/\s/g, ""),
-        address: invoice.recipient?.address || "Saudi Arabia",
-        city: "Riyadh",
-        state: "Riyadh",
-        country: "SA",
-        zip: "11564",
+        phone: {
+          country_code: "966",
+          number: (invoice.recipient?.phone || Config.company.supportPhone).replace(/\s/g, "").replace(/^\+?966/, ""),
+        },
+      },
+      redirect: {
+        url: joinUrl(process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app, "/payments/success"),
+      },
+      post: {
+        url: joinUrl(process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app, "/api/payments/tap/webhook"),
       },
       description: `Payment for Invoice ${invoice.number}`,
-      invoiceId: invoice._id.toString(),
-      returnUrl: joinUrl(process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app, "/payments/success"),
-      callbackUrl: joinUrl(process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app, "/api/payments/callback"),
-    };
+      reference: {
+        transaction: invoice._id.toString(),
+        order: invoice.number,
+      },
+      metadata: {
+        invoiceId: invoice._id.toString(),
+        tenantId: user.orgId,
+      },
+    });
 
-    const paymentResponse = await createPaymentPage(
-      paymentRequest as unknown as Parameters<typeof createPaymentPage>[0],
-    );
-
-    if (paymentResponse.success) {
+    if (charge.id && charge.transaction?.url) {
       // Update invoice with payment transaction
       invoice.history.push({
         action: "PAYMENT_INITIATED",
         performedBy: user.id,
         performedAt: new Date(),
-        details: `Payment initiated with transaction ${paymentResponse.transactionId}`,
+        details: `Payment initiated with TAP charge ${charge.id}`,
       });
       await invoice.save();
 
       return createSecureResponse(
         {
           success: true,
-          paymentUrl: paymentResponse.paymentUrl,
-          transactionId: paymentResponse.transactionId,
+          paymentUrl: charge.transaction.url,
+          transactionId: charge.id,
         },
         200,
         req,
       );
     } else {
       return validationError(
-        paymentResponse.error || "Payment initialization failed",
+        charge.response?.message || "Payment initialization failed",
       );
     }
   } catch (error: unknown) {

@@ -738,18 +738,31 @@
         return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       }
 
+      // 🔒 SECURITY: HTML escape utility to prevent XSS from user input
+      function escapeHtml(text) {
+        if (typeof text !== 'string') return String(text);
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
       function highlightMatch(text, searchTerm) {
-        const regex = new RegExp(`(${escapeRegex(searchTerm)})`, "gi");
-        return text.replace(regex, '<span class="result-match">$1</span>');
+        // 🔒 SECURITY: Escape both text and searchTerm before highlighting
+        const escapedText = escapeHtml(text);
+        const escapedTerm = escapeHtml(searchTerm);
+        const regex = new RegExp(`(${escapeRegex(escapedTerm)})`, "gi");
+        return escapedText.replace(regex, '<span class="result-match">$1</span>');
       }
 
       function displayResults(searchTerm, results) {
         const resultsDiv = document.getElementById("results");
+        // 🔒 SECURITY: Escape searchTerm to prevent XSS injection
+        const safeSearchTerm = escapeHtml(searchTerm);
 
         if (results.length === 0) {
           resultsDiv.innerHTML = `
                     <div class="no-results">
-                        <h3>No results found for "${searchTerm}"</h3>
+                        <h3>No results found for "${safeSearchTerm}"</h3>
                         <p>Try searching for: workflow, layout audit, module, dashboard, or maintenance</p>
                     </div>
                 `;
@@ -758,16 +771,16 @@
 
         let html = `
                 <div class="result-header">
-                    <div class="result-count">${results.length} results found for "${searchTerm}"</div>
+                    <div class="result-count">${results.length} results found for "${safeSearchTerm}"</div>
                 </div>
             `;
 
         results.forEach((result) => {
           const moduleColor = getModuleColor(result.type);
           html += `
-                    <div class="result-item" style="border-left-color: ${moduleColor}">
+                    <div class="result-item" style="border-left-color: ${escapeHtml(moduleColor)}">
                         <div class="result-title">
-                            <span class="module-tag" style="background-color: ${moduleColor}">${result.module}</span>
+                            <span class="module-tag" style="background-color: ${escapeHtml(moduleColor)}">${escapeHtml(result.module)}</span>
                             ${highlightMatch(result.title, searchTerm)}
                         </div>
                         <div class="result-context">

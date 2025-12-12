@@ -1,15 +1,10 @@
 import Subscription from "@/server/models/Subscription";
 import { logger } from "@/lib/logger";
 import { parseDate } from "@/lib/date-utils";
+import { tapPayments } from "@/lib/finance/tap-payments";
 
 export async function chargeDueMonthlySubs() {
-  const paytabsDomain = process.env.PAYTABS_DOMAIN;
-  const paytabsProfileId = process.env.PAYTABS_PROFILE_ID;
-  const paytabsServerKey = process.env.PAYTABS_SERVER_KEY;
-
-  if (!paytabsDomain || !paytabsProfileId || !paytabsServerKey) {
-    throw new Error("PayTabs environment variables are not fully configured");
-  }
+  // TAP configuration is validated inside tapPayments client
 
   // 💰 FINANCIAL FIX (PR #47): Only charge subscriptions that are DUE
   // Calculate the start of today (00:00:00) in UTC
@@ -23,7 +18,7 @@ export async function chargeDueMonthlySubs() {
   const dueSubs = await Subscription.find({
     billing_cycle: "MONTHLY",
     status: "ACTIVE",
-    "paytabs.token": { $exists: true, $ne: null },
+    "tap.cardId": { $exists: true, $ne: null },
     // ✅ CRITICAL: Only charge if next_billing_date is today or in the past
     next_billing_date: { $lte: endOfToday },
   }).lean();
@@ -36,8 +31,8 @@ export async function chargeDueMonthlySubs() {
   };
 
   for (const subscription of dueSubs) {
-    if (!subscription.paytabs?.token) {
-      logger.warn("[Billing] Subscription missing PayTabs token, skipping", {
+    if (!subscription.tap?.cardId) {
+      logger.warn("[Billing] Subscription missing TAP card ID, skipping", {
         subscriptionId: subscription._id,
       });
       results.failed++;
@@ -45,27 +40,32 @@ export async function chargeDueMonthlySubs() {
     }
 
     try {
-      const response = await fetch(`${paytabsDomain}/payment/request`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${paytabsServerKey}`,
+      const charge = await tapPayments.createCharge({
+        amount: subscription.amount,
+        currency: subscription.currency || "SAR",
+        customer: {
+          first_name: subscription.customerName?.split(" ")[0] || "Customer",
+          last_name: subscription.customerName?.split(" ").slice(1).join(" ") || "",
+          email: subscription.customerEmail || "billing@fixzit.sa",
         },
-        body: JSON.stringify({
-          profile_id: paytabsProfileId,
-          tran_type: "sale",
-          tran_class: "recurring",
-          cart_id: `REN-${Date.now()}-${subscription._id}`,
-          cart_description: "Monthly subscription renewal",
-          cart_amount: subscription.amount,
-          cart_currency: subscription.currency,
-          token: subscription.paytabs.token,
-        }),
+        source: {
+          id: subscription.tap.cardId,
+        },
+        redirect: {
+          url: `${process.env.NEXT_PUBLIC_APP_URL || "https://fixzit.sa"}/billing/callback`,
+        },
+        description: "Monthly subscription renewal",
+        reference: {
+          transaction: `REN-${Date.now()}-${subscription._id}`,
+          order: String(subscription._id),
+        },
+        metadata: {
+          subscriptionId: String(subscription._id),
+          type: "recurring",
+        },
       });
 
-      const data = await response.json();
-
-      if (data.tran_ref && data.payment_result?.response_status === "A") {
+      if (charge.status === "CAPTURED" || charge.status === "AUTHORIZED") {
         // ✅ Payment successful - update next billing date
         const nextBillingDate = parseDate(
           subscription.next_billing_date,
@@ -80,7 +80,7 @@ export async function chargeDueMonthlySubs() {
               date: new Date(),
               amount: subscription.amount,
               currency: subscription.currency,
-              tran_ref: data.tran_ref,
+              tran_ref: charge.id,
               status: "SUCCESS",
             },
           },
@@ -89,12 +89,11 @@ export async function chargeDueMonthlySubs() {
         results.success++;
         logger.info("[Billing] Successfully charged subscription", {
           subscriptionId: subscription._id,
-          tranRef: data.tran_ref,
+          chargeId: charge.id,
         });
       } else {
         // ❌ Payment failed
-        const errorMsg =
-          data.payment_result?.response_message || "Payment declined";
+        const errorMsg = charge.response?.message || "Payment declined";
 
         await Subscription.findByIdAndUpdate(subscription._id, {
           status: "PAST_DUE",
@@ -103,7 +102,7 @@ export async function chargeDueMonthlySubs() {
               date: new Date(),
               amount: subscription.amount,
               currency: subscription.currency,
-              tran_ref: data.tran_ref,
+              tran_ref: charge.id,
               status: "FAILED",
               error: errorMsg,
             },

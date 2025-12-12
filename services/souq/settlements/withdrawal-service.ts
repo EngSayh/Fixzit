@@ -1,6 +1,5 @@
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
-import { createPayout } from "@/lib/paytabs";
 import { generateWithdrawalId } from "@/lib/id-generator";
 
 /**
@@ -107,15 +106,12 @@ export class WithdrawalService {
         orgId: request.orgId, // 🔐 Include orgId in logs for audit
       });
 
-      const paytabsHandled = await this.tryPayTabsPayout(withdrawalId, request);
-
-      if (!paytabsHandled) {
-        await this.markManualCompletion(
-          withdrawalId,
-          request,
-          "Manual payout per finance runbook",
-        );
-      }
+      // TAP doesn't support payouts - use manual bank transfer process
+      await this.markManualCompletion(
+        withdrawalId,
+        request,
+        "Manual payout per finance runbook",
+      );
 
       return {
         success: true,
@@ -304,85 +300,6 @@ export class WithdrawalService {
       .limit(limit)
       .toArray();
     return withdrawals;
-  }
-
-  private static isPayTabsEnabled(): boolean {
-    return (
-      process.env.PAYTABS_PAYOUT_ENABLED === "true" &&
-      !!process.env.PAYTABS_PROFILE_ID &&
-      !!process.env.PAYTABS_SERVER_KEY
-    );
-  }
-
-  private static async tryPayTabsPayout(
-    withdrawalId: string,
-    request: WithdrawalRequest,
-  ): Promise<boolean> {
-    if (!this.isPayTabsEnabled()) {
-      logger.debug(
-        "[Withdrawal] PayTabs payout disabled, falling back to manual process",
-        {
-          withdrawalId,
-        },
-      );
-      return false;
-    }
-
-    try {
-      const payout = await createPayout({
-        amount: request.amount,
-        currency: "SAR",
-        reference: `WD-${withdrawalId}`,
-        description: `Seller withdrawal ${withdrawalId}`,
-        beneficiary: {
-          name: request.bankAccount.accountHolderName,
-          iban: request.bankAccount.iban,
-          bank: request.bankAccount.bankName,
-          accountNumber: request.bankAccount.accountNumber,
-        },
-        metadata: {
-          sellerId: request.sellerId,
-          statementId: request.statementId,
-        },
-      });
-
-      if (!payout.success) {
-        logger.error(
-            "[Withdrawal] PayTabs payout failed, manual process required",
-          {
-            withdrawalId,
-            sellerId: request.sellerId,
-            error: payout.error,
-          },
-        );
-        return false;
-      }
-
-      const normalizedStatus =
-        payout.status?.toUpperCase() === "COMPLETED"
-          ? "completed"
-          : "processing";
-
-      await this.updateWithdrawalStatus(
-        withdrawalId,
-        normalizedStatus as Withdrawal["status"],
-        {
-          transactionId: payout.payoutId,
-          notes: "PayTabs payout submitted",
-        },
-      );
-
-      return true;
-    } catch (_error) {
-      const error =
-        _error instanceof Error ? _error : new Error(String(_error));
-      void error;
-      logger.error("[Withdrawal] PayTabs payout threw unexpected error", {
-        withdrawalId,
-        error,
-      });
-      return false;
-    }
   }
 
   private static async markManualCompletion(
