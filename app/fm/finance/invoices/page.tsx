@@ -45,52 +45,13 @@ import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
 import ClientDate from "@/components/ClientDate";
 import { parseDate } from "@/lib/date-utils";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
-
-interface InvoiceItem {
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  discount: number;
-  tax: {
-    type: string;
-    rate: number;
-    amount: number;
-  };
-  total: number;
-}
-
-interface InvoiceRecipient {
-  name: string;
-  taxId?: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  customerId?: string;
-}
-
-interface InvoiceZATCA {
-  status?: string;
-  qrCode?: string;
-}
-
-interface InvoicePayment {
-  date?: string;
-}
-
-interface Invoice {
-  id: string;
-  number: string;
-  recipient: InvoiceRecipient;
-  status: string;
-  total: number;
-  currency: string;
-  issueDate: string;
-  dueDate: string;
-  type: string;
-  items?: InvoiceItem[];
-  zatca?: InvoiceZATCA;
-  payments?: InvoicePayment[];
-}
+import type {
+  Invoice,
+  InvoiceLine as InvoiceItem,
+  InvoicePayment,
+  InvoiceRecipient,
+  InvoiceZatcaInfo as InvoiceZATCA,
+} from "@/types/invoice";
 
 export default function InvoicesPage() {
   return (
@@ -750,11 +711,14 @@ function CreateInvoiceForm({
   });
 
   const calculateItemTotal = (item: InvoiceItem): InvoiceItem => {
-    const subtotal = item.quantity * item.unitPrice - item.discount;
-    const taxAmount = subtotal * (item.tax.rate / 100);
+    const discount = item.discount ?? 0;
+    const taxRate = item.tax?.rate ?? 0;
+    const subtotal = item.quantity * item.unitPrice - discount;
+    const taxAmount = subtotal * (taxRate / 100);
     return {
       ...item,
-      tax: { ...item.tax, amount: taxAmount },
+      discount,
+      tax: { type: item.tax?.type ?? "VAT", rate: taxRate, amount: taxAmount },
       total: subtotal + taxAmount,
     };
   };

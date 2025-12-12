@@ -1,168 +1,85 @@
-// Core work order types - removed dependency on missing lib file
+import {
+  WorkOrder as FMWorkOrder,
+  WorkOrderCategory,
+  WorkOrderComment,
+  WorkOrderFilters as FMWorkOrderFilters,
+  WorkOrderFormData as FMWorkOrderFormData,
+  WorkOrderPhoto,
+  WorkOrderPriority,
+  WorkOrderProperty,
+  WorkOrderStats as FMWorkOrderStats,
+  WorkOrderStatus,
+  WorkOrderTimeline,
+  WorkOrderUnit,
+  WorkOrderUser,
+} from "@/types/fm/work-order";
 
-export type WorkOrderStatus =
-  | "draft"
-  | "submitted"
-  | "approved"
-  | "open"
-  | "assigned"
-  | "in_progress"
-  | "on_hold"
-  | "completed"
-  | "cancelled"
-  | "closed";
-
-export type WorkOrderPriority =
-  | "low"
-  | "medium"
-  | "high"
-  | "urgent"
-  | "emergency";
-
-export type WorkOrderCategory =
-  | "general"
-  | "maintenance"
-  | "plumbing"
-  | "electrical"
-  | "hvac"
-  | "cleaning"
-  | "security"
-  | "landscaping"
-  | "inspection"
-  | "it"
-  | "other";
-
-export interface WorkOrderUser {
-  id: string;
-  firstName: string;
-  lastName: string;
-  avatar?: string;
-  role?: string;
-  email?: string;
-  phone?: string;
-}
-
-export interface WorkOrderPhoto {
-  id: string;
-  url: string;
-  thumbnailUrl?: string;
-  type?: "before" | "after" | "attachment";
-  caption?: string;
-  uploadedAt?: string;
-}
-
-export interface WorkOrderComment {
-  id: string;
-  workOrderId: string;
-  comment: string;
-  type: "comment" | "internal";
-  createdAt: string;
-  user?: WorkOrderUser;
-}
-
-export interface WorkOrderTimeline {
-  id: string;
-  workOrderId: string;
-  action:
-    | "created"
-    | "assigned"
-    | "status_changed"
-    | "comment_added"
-    | "photo_uploaded"
-    | "priority_changed"
-    | "completed"
-    | "closed"
-    | "reopened"
-    | "updated"
-    | string;
-  description?: string;
-  performedAt: string;
-  user?: WorkOrderUser;
-  metadata?: Record<string, unknown>;
-}
-
-export interface WorkOrderProperty {
-  id: string;
-  name: string;
-  address: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  latitude?: number;
-  longitude?: number;
-}
-
-export interface WorkOrderUnit {
-  id: string;
-  unitNumber?: string;
-  floor?: string | number;
-  property?: string;
-}
-
-export interface WorkOrder {
-  id: string;
-  workOrderNumber?: string;
-  woNumber?: string;
-  title: string;
-  description: string;
-  status: WorkOrderStatus;
-  priority: WorkOrderPriority;
-  category: WorkOrderCategory;
-  property?: WorkOrderProperty | null;
-  unit?: WorkOrderUnit | null;
-  creator?: WorkOrderUser | null;
-  assignee?: WorkOrderUser | null;
-  timeline?: WorkOrderTimeline[];
-  comments?: WorkOrderComment[];
-  photos?: WorkOrderPhoto[];
-  dueDate?: string;
+export type WorkOrder = Pick<
+  FMWorkOrder,
+  | "id"
+  | "_id"
+  | "title"
+  | "description"
+  | "status"
+  | "priority"
+  | "category"
+  | "property"
+  | "unit"
+  | "requester"
+  | "assignee"
+  | "timeline"
+  | "comments"
+  | "photos"
+  | "dueDate"
+  | "estimatedCost"
+  | "actualCost"
+  | "completedAt"
+  | "workOrderNumber"
+  | "woNumber"
+> & {
+  /** @deprecated Use requester instead */
+  creator?: FMWorkOrder["requester"];
   estimatedHours?: number;
-  estimatedCost?: number;
   actualHours?: number;
-  actualCost?: number;
-  completedAt?: string;
-}
+};
 
-export interface WorkOrderFormData {
-  title: string;
-  description: string;
-  category: WorkOrderCategory;
-  priority: WorkOrderPriority;
-  propertyId?: string;
-  unitId?: string;
+export type WorkOrderFormData = Pick<
+  FMWorkOrderFormData,
+  | "title"
+  | "description"
+  | "category"
+  | "priority"
+  | "propertyId"
+  | "unitId"
+  | "assigneeId"
+  | "estimatedCost"
+  | "attachments"
+> & {
   dueDate?: string;
   estimatedHours?: number;
-  estimatedCost?: number;
-  assignedTo?: string;
-  photos: File[];
+  photos?: File[];
   tags?: string[];
-}
+};
 
-export interface WorkOrderFilters {
-  search?: string;
-  status?: WorkOrderStatus[];
-  priority?: WorkOrderPriority[];
-  category?: WorkOrderCategory[];
-  propertyId?: string;
-  assignedTo?: string;
-  createdBy?: string;
-  dateFrom?: string;
-  dateTo?: string;
+export type WorkOrderFilters = FMWorkOrderFilters & {
   tags?: string[];
-}
+};
 
-export interface WorkOrderStats {
-  total: number;
-  open: number;
-  inProgress: number;
-  completed: number;
-  cancelled: number;
-  onHold: number;
-  assigned: number;
-  emergency: number;
-  overdue: number;
+export type WorkOrderStats = FMWorkOrderStats & {
   draft?: number;
-}
+};
+
+export type {
+  WorkOrderStatus,
+  WorkOrderPriority,
+  WorkOrderCategory,
+  WorkOrderUser,
+  WorkOrderPhoto,
+  WorkOrderComment,
+  WorkOrderTimeline,
+  WorkOrderProperty,
+  WorkOrderUnit,
+};
 
 export const CATEGORY_CONFIG: Record<
   WorkOrderCategory,
@@ -378,5 +295,3 @@ export type SortOption = (typeof SORT_OPTIONS)[number]["value"];
 
 export const VIEW_MODES = ["grid", "table", "kanban"] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
-
-// Additional types can be added here as needed

@@ -19,6 +19,11 @@
 
 **Results**: 9 items verified → 5 FALSE POSITIVES removed, 1 confirmed valid, 3 already fixed/ROADMAP
 
+### ✅ UI/UX Enhancements Completed
+- Footer rebuilt in a Vercel-style layout with horizontal navigation dropdowns, live status pill, and compact selectors.
+- 3-state theme toggle (system/light/dark) implemented via ThemeContext and surfaced in the footer.
+- Copyright updated to "Sultan Al Hassni Real Estate LLC" across UI and translations (EN/AR).
+
 ### 🔍 HIGH Priority Verification Results
 
 | ID | Issue | File | Verdict | Details |
@@ -324,7 +329,7 @@ export async function parseBodyOrNull<T>(request: Request): Promise<T | null> {
 |---:|-------|----------|--------|-----|--------|
 | EFF-001 | 5× duplicate formatCurrency implementations | lib/payments/currencyUtils.ts, lib/date-utils.ts, lib/utils/currency-formatter.ts, components/ | Code bloat, maintenance burden | Consolidate to single lib/utils/currency-formatter.ts | ⏳ TODO |
 | EFF-002 | 3× duplicate CURRENCIES config | Various config files | Inconsistency risk | Use single source at config/currencies.ts | ⏳ TODO |
-| EFF-003 | 3× duplicate feature-flags.ts | lib/config/, configs/ | Flag confusion | Merge into lib/feature-flags.ts | ⏳ TODO |
+| EFF-003 | 3× duplicate feature-flags.ts | lib/feature-flags.ts, lib/config/feature-flags.ts, lib/souq/feature-flags.ts | Flag confusion | Merge into lib/feature-flags.ts | ⏳ TODO |
 | EFF-004 | Empty catch blocks swallowing errors | 20+ FM pages | Silent failures | Log errors before returning {} | ⏳ TODO |
 | EFF-005 | Hooks in wrong directories | lib/fm/use*.ts, components/**/use*.tsx | Inconsistent organization | Move to hooks/ directory | ⏳ TODO |
 
@@ -537,7 +542,7 @@ pnpm test:models      # ✅ 91 tests passing
 |---:|------|-------------|-----------|--------|------|
 | DUP-001 | Function | 4× formatCurrency | lib/currency-formatter.ts | CONSOLIDATE | 🟧 Major |
 | DUP-003 | Config | 3× CURRENCIES | config/currencies.ts | CONSOLIDATE | 🟨 Moderate |
-| DUP-004 | Config | 3× feature-flags.ts | lib/config/feature-flags.ts + configs/feature-flags.ts | MERGE | 🟧 Major |
+| DUP-004 | Config | 3× feature-flags.ts | lib/feature-flags.ts + lib/config/feature-flags.ts + lib/souq/feature-flags.ts | MERGE | 🟧 Major |
 | DUP-006 | Type | 3× WorkOrder interface | types/work-orders.ts | CONSOLIDATE with Pick<> | 🟥 Critical |
 | DUP-008 | Type | 4× ApiResponse interface | types/api.ts | DELETE local, import from types/ | 🟩 Minor |
 | DUP-011 | File | 6× auth.ts | Various | RENAME for clarity | 🟨 Moderate |
@@ -549,13 +554,13 @@ pnpm test:models      # ✅ 91 tests passing
 
 | Current Path | Proposed Path | Reason | Risk |
 |-------------|---------------|--------|------|
-| `lib/fm/useFmPermissions.ts` | `hooks/fm/useFmPermissions.ts` | Hook files belong in hooks/ | Medium |
-| `lib/fm/useFmOrgGuard.tsx` | `hooks/fm/useFmOrgGuard.tsx` | Hook files belong in hooks/ | Medium |
-| `components/topbar/usePermittedQuickActions.tsx` | `hooks/topbar/usePermittedQuickActions.tsx` | Hook files belong in hooks/ | Medium |
-| `i18n-impact-report.txt`, `i18n-translation-report.txt` | `reports/i18n/` | Reports should not be in root | Low |
-| `scripts/deployment/quick-fix-deployment.sh`, `setup-*.sh` | `scripts/deployment/` | Shell scripts in scripts/ | Low |
-| `tools/merge-memory (1).js`, `smart-chunker (1).js` | DELETE | Orphaned duplicate files | Low |
-| `configs/` directory | Merge into `config/` | Duplicate config directories | Medium |
+| `lib/fm/useFmPermissions.ts` | `hooks/fm/useFMPermissions.ts` | ✅ Hook moved into hooks/fm (compat shim retained) | Medium |
+| `lib/fm/useFmOrgGuard.tsx` | `hooks/fm/useFmOrgGuard.tsx` | ✅ Hook moved into hooks/fm (compat shim retained) | Medium |
+| `components/topbar/usePermittedQuickActions.tsx` | `hooks/topbar/usePermittedQuickActions.tsx` | ✅ Hook relocated under hooks/topbar | Medium |
+| `i18n-impact-report.txt`, `i18n-translation-report.txt` | `reports/i18n/` | ✅ Reports moved out of root | Low |
+| `scripts/deployment/quick-fix-deployment.sh`, `setup-*.sh` | `scripts/deployment/` | ✅ Shell scripts relocated under scripts/deployment | Low |
+| `tools/merge-memory (1).js`, `smart-chunker (1).js` | DELETE | ✅ Orphaned duplicate files removed | Low |
+| `configs/` directory | Merge into `config/` | ✅ Static configs merged into config/ (brand tokens, governance, org guard baseline, sidebar snapshot) | Medium |
 
 ---
 
@@ -656,50 +661,37 @@ pnpm test:e2e         # Recommended: Run full E2E suite
 
 ---
 
-### 🆕 ENHANCEMENT PLAN: Footer Redesign (Vercel-Style)
+### 🆕 ENHANCEMENT PLAN: Footer Redesign (Vercel-Style) — ✅ Completed
 
 **Reference**: Vercel footer with Home, Docs, Knowledge Base, Academy, SDKs, Help, Contact, Legal menu
 
-#### Current Footer (`components/Footer.tsx`)
-- ✅ Has: Brand, Company links, Legal links, Support links
-- ❌ Missing: Theme toggle (system/light/dark)
-- ❌ Missing: Updated copyright with company name
-- ❌ Missing: Horizontal nav menu like Vercel
-- ❌ Missing: Status indicator
+#### Delivered Footer Updates
+- ✅ Horizontal navigation with dropdown cards (Platform, Company, Resources, Support/Legal)
+- ✅ Live status indicator + control row (theme, language, currency) in the footer header
+- ✅ Updated copyright to "Sultan Al Hassni Real Estate LLC" with EN/AR translations
+- ✅ RTL-aware layout, compact selectors, and support ticket hook preserved
 
-#### Target Footer (Vercel-Style)
+#### Implementation Notes
+- Components: `components/Footer.tsx`, `components/ThemeToggle.tsx`, `components/StatusIndicator.tsx`
+- Translations: `i18n/sources/footer.translations.json` (EN/AR updated)
+- Status link routed to `/support` until a dedicated status page exists
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ ▲  Home  Docs  Knowledge Base  Academy  SDKs ▼  Help  Contact  Legal ▼     │
-│                                                                             │
-│ ● Status indicator        [🔆 ⬤ 🌙] Theme toggle (System/Light/Dark)       │
-│                                                                             │
-│ © 2025 Sultan Al Hassni Real Estate LLC. All rights reserved. Saudi Arabia │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+#### 📋 ACTION PLAN: Footer Redesign (Delivered)
 
-#### 📋 ACTION PLAN: Footer Redesign
-
-| Step | Task | Effort | Priority |
-|------|------|--------|----------|
-| 1 | Add theme toggle component (system/light/dark icons) | 1h | 🟡 P2 |
-| 2 | Update navigation to horizontal menu with dropdowns | 2h | 🟡 P2 |
-| 3 | Add status indicator (Web Analytics/Speed Insights style) | 1h | 🟢 P3 |
-| 4 | Update copyright text | 10m | 🟡 P2 |
-| 5 | Add translations for new footer elements | 30m | 🟡 P2 |
-| 6 | Test RTL layout with new design | 30m | 🟡 P2 |
+| Step | Task | Effort | Priority | Status |
+|------|------|--------|----------|--------|
+| 1 | Add theme toggle component (system/light/dark icons) | 1h | 🟡 P2 | ✅ Done |
+| 2 | Update navigation to horizontal menu with dropdowns | 2h | 🟡 P2 | ✅ Done |
+| 3 | Add status indicator (Web Analytics/Speed Insights style) | 1h | 🟢 P3 | ✅ Done |
+| 4 | Update copyright text | 10m | 🟡 P2 | ✅ Done |
+| 5 | Add translations for new footer elements | 30m | 🟡 P2 | ✅ Done |
+| 6 | Test RTL layout with new design | 30m | 🟡 P2 | ✅ Layout built with RTL-aware flex/classes; further QA welcome |
 
 #### Footer Copyright Update
 
 **Current**: `© 2025 Fixzit. All rights reserved.`
 
 **Target**: `© 2025 Sultan Al Hassni Real Estate LLC. All rights reserved. Saudi Arabia`
-
-**Files to Update**:
-- `components/Footer.tsx` (line 131)
-- `i18n/chunks/en/footer.json`
-- `i18n/chunks/ar/footer.json`
 
 ---
 
@@ -722,13 +714,13 @@ pnpm test:e2e         # Recommended: Run full E2E suite
 
 #### 📋 ACTION PLAN: Theme Toggle
 
-| Step | Task | Effort | Priority |
-|------|------|--------|----------|
-| 1 | Create `ThemeToggle.tsx` component | 1h | 🟡 P2 |
-| 2 | Add to Footer.tsx | 15m | 🟡 P2 |
-| 3 | Style with Tailwind (icon buttons) | 30m | 🟡 P2 |
-| 4 | Persist preference to localStorage | Already done | ✅ |
-| 5 | Test across all pages | 30m | 🟡 P2 |
+| Step | Task | Effort | Priority | Status |
+|------|------|--------|----------|--------|
+| 1 | Create `ThemeToggle.tsx` component | 1h | 🟡 P2 | ✅ Done |
+| 2 | Add to Footer.tsx | 15m | 🟡 P2 | ✅ Done |
+| 3 | Style with Tailwind (icon buttons) | 30m | 🟡 P2 | ✅ Done |
+| 4 | Persist preference to localStorage | Already done | ✅ | ✅ Done (ThemeContext handles persistence) |
+| 5 | Test across all pages | 30m | 🟡 P2 | ✅ Footer smoke + hydration check; broader regression pending |
 
 ---
 
@@ -751,11 +743,12 @@ pnpm test:e2e         # Recommended: Run full E2E suite
 
 #### 🟢 ENHANCEMENTS — UI/UX Improvements
 
-| # | ID | Task | Effort | Priority |
-|---|-----|------|--------|----------|
-| 6 | **FOOTER-001** | Redesign footer (Vercel-style) | 4h | 🟡 P2 |
-| 7 | **FOOTER-002** | Update copyright to Sultan Al Hassni Real Estate LLC | 30m | 🟡 P2 |
-| 8 | **THEME-001** | Add 3-state theme toggle (system/light/dark) | 2h | 🟡 P2 |
+| # | ID | Task | Effort | Description | Status |
+|---|-----|------|--------|-------------|--------|
+| 37 | **FOOTER-001** | Redesign footer (Vercel-style) | 4h | Horizontal nav with dropdown cards, status + control row | ✅ Done |
+| 38 | **FOOTER-002** | Update copyright to Sultan Al Hassni Real Estate LLC | 30m | EN/AR copy + translations refreshed | ✅ Done |
+| 39 | **THEME-001** | Add 3-state theme toggle (system/light/dark) | 2h | New icon toggle wired to ThemeContext and footer | ✅ Done |
+| 40 | **STATUS-001** | Add status indicator | 1h | Web analytics-style live uptime pill in footer | ✅ Done |
 
 ---
 
@@ -772,8 +765,8 @@ pnpm test:e2e         # Recommended: Run full E2E suite
 | # | Area | Finding | Recommendation |
 |---|------|---------|----------------|
 | 1 | **SMS Monitoring** | No alerts for OTP delivery failures | Add Grafana alert |
-| 2 | **Footer Design** | Outdated compared to industry standards | Modernize to Vercel-style |
-| 3 | **Theme UX** | Missing system theme option in visible toggle | Add 3-state toggle |
+| 2 | **Footer Design** | Outdated compared to industry standards | ✅ Completed: Vercel-style horizontal nav, dropdowns, and status pill |
+| 3 | **Theme UX** | Missing system theme option in visible toggle | ✅ Completed: 3-state toggle in footer using ThemeContext |
 
 #### De-duplication Notes
 
