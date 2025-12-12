@@ -25,7 +25,7 @@ import {
   type NotificationRecipient,
 } from "@/lib/fm-notifications";
 import { FMErrors } from "../errors";
-import { requireFmAbility } from "../utils/auth";
+import { requireFmAbility } from "../utils/fm-auth";
 
 export async function GET(req: NextRequest) {
   try {

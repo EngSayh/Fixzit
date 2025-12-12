@@ -22,7 +22,7 @@ import { COLLECTIONS } from "@/lib/db/collections";
 import { logger } from "@/lib/logger";
 import { WOStatus, WOPriority, type WorkOrderStats } from "@/types/fm";
 import { FMErrors } from "../../errors";
-import { requireFmAbility } from "../../utils/auth";
+import { requireFmAbility } from "../../utils/fm-auth";
 import { resolveTenantId } from "../../utils/tenant";
 
 const FINAL_STATUSES = new Set<WOStatus>([

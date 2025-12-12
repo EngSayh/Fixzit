@@ -58,7 +58,7 @@ interface WorkOrderForTransition {
   attachments?: Array<AttachmentWithCategory | string>;
   [key: string]: unknown;
 }
-import { requireFmAbility } from "../../../utils/auth";
+import { requireFmAbility } from "../../../utils/fm-auth";
 import type {
   NotificationChannel,
   NotificationRecipient,

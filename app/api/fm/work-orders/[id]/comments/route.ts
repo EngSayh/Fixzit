@@ -29,7 +29,7 @@ import {
   WORK_ORDER_TIMELINE_LIMIT,
 } from "../../utils";
 import { resolveTenantId } from "../../../utils/tenant";
-import { requireFmAbility } from "../../../utils/auth";
+import { requireFmAbility } from "../../../utils/fm-auth";
 import { FMErrors } from "../../../errors";
 
 interface CommentDocument {

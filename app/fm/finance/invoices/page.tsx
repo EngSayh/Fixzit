@@ -45,13 +45,7 @@ import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
 import ClientDate from "@/components/ClientDate";
 import { parseDate } from "@/lib/date-utils";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
-import type {
-  Invoice,
-  InvoiceLine as InvoiceItem,
-  InvoicePayment,
-  InvoiceRecipient,
-  InvoiceZatcaInfo as InvoiceZATCA,
-} from "@/types/invoice";
+import type { Invoice, InvoiceLine as InvoiceItem } from "@/types/invoice";
 
 export default function InvoicesPage() {
   return (
@@ -530,7 +524,7 @@ function InvoiceCard({
   const ZatcaIcon = zatcaStatus.icon;
 
   const daysOverdue =
-    invoice.status === "OVERDUE"
+    invoice.status === "OVERDUE" && invoice.dueDate
       ? Math.floor(
           (new Date().getTime() - new Date(invoice.dueDate).getTime()) /
             (1000 * 60 * 60 * 24),
@@ -547,8 +541,8 @@ function InvoiceCard({
               {invoice.recipient?.name}
             </p>
           </div>
-          <Badge className={getStatusColor(invoice.status)}>
-            {getStatusLabel(invoice.status)}
+          <Badge className={getStatusColor(invoice.status ?? 'DRAFT')}>
+            {getStatusLabel(invoice.status ?? 'DRAFT')}
           </Badge>
         </div>
       </CardHeader>
@@ -571,7 +565,7 @@ function InvoiceCard({
               {t("fm.invoices.issueDate", "Issue Date")}
             </p>
             <p className="font-medium">
-              <ClientDate date={invoice.issueDate} format="date-only" />
+              {invoice.issueDate ? <ClientDate date={invoice.issueDate} format="date-only" /> : '-'}
             </p>
           </div>
           <div>
@@ -581,7 +575,7 @@ function InvoiceCard({
             <p
               className={`font-medium ${daysOverdue > 0 ? "text-destructive" : ""}`}
             >
-              <ClientDate date={invoice.dueDate} format="date-only" />
+              {invoice.dueDate ? <ClientDate date={invoice.dueDate} format="date-only" /> : '-'}
               {daysOverdue > 0 &&
                 ` (${daysOverdue}${t("fm.invoices.overdueDays", "d overdue")})`}
             </p>
@@ -593,11 +587,11 @@ function InvoiceCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm">
             <Badge variant="outline" className="text-xs">
-              {getTypeLabel(invoice.type)}
+              {getTypeLabel(invoice.type ?? 'STANDARD')}
             </Badge>
-            {invoice.items?.length && (
+            {invoice.lines?.length && (
               <span className="text-muted-foreground">
-                {invoice.items.length} {t("fm.invoices.items", "items")}
+                {invoice.lines.length} {t("fm.invoices.items", "items")}
               </span>
             )}
           </div>
@@ -710,7 +704,17 @@ function CreateInvoiceForm({
     },
   });
 
-  const calculateItemTotal = (item: InvoiceItem): InvoiceItem => {
+  // Form item type with required fields (different from the optional Invoice type)
+  type FormLineItem = {
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    discount: number;
+    tax: { type: string; rate: number; amount: number };
+    total: number;
+  };
+
+  const calculateItemTotal = (item: FormLineItem): FormLineItem => {
     const discount = item.discount ?? 0;
     const taxRate = item.tax?.rate ?? 0;
     const subtotal = item.quantity * item.unitPrice - discount;

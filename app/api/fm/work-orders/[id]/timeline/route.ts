@@ -25,7 +25,7 @@ import { COLLECTIONS } from "@/lib/db/collections";
 import { logger } from "@/lib/logger";
 import type { WorkOrderTimeline } from "@/types/fm";
 import { buildWorkOrderUser } from "../../utils";
-import { requireFmAbility } from "../../../utils/auth";
+import { requireFmAbility } from "../../../utils/fm-auth";
 import { resolveTenantId } from "../../../utils/tenant";
 import { FMErrors } from "../../../errors";
 

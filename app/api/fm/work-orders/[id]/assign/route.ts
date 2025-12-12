@@ -30,7 +30,7 @@ import {
   type WorkOrderDocument,
 } from "../../utils";
 import { resolveTenantId } from "../../../utils/tenant";
-import { requireFmAbility } from "../../../utils/auth";
+import { requireFmAbility } from "../../../utils/fm-auth";
 import { FMErrors } from "../../../errors";
 
 export async function POST(
