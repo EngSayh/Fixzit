@@ -14,12 +14,21 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import jwt from "jsonwebtoken";
 import { validateRefreshJti, persistRefreshJti, revokeRefreshJti } from "@/lib/refresh-token-store";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 export const REFRESH_COOKIE = "fxz.refresh";
 export const ACCESS_COOKIE = "fxz.access";
 export const ACCESS_TTL_SECONDS = 15 * 60; // 15 minutes
 export const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+
 export async function POST(req: NextRequest) {
+  // Rate limit: 10 refreshes per minute per IP
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`auth:refresh:${clientIp}`, 10, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
   try {
     const refreshToken = req.cookies.get(REFRESH_COOKIE)?.value;
     if (!refreshToken) {

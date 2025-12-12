@@ -7,6 +7,9 @@
  * @returns {Object} ok: true confirming cookies have been cleared
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 export const runtime = 'nodejs';
 
@@ -14,7 +17,13 @@ export const runtime = 'nodejs';
 function _isIp(hostname: string): boolean {
   return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
 }
+
 export async function POST(req: NextRequest) {
+  // Rate limit: 20 logouts per minute per IP
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`auth:force-logout:${clientIp}`, 20, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
   try {
     const url = req.nextUrl;
     const host = url.hostname;

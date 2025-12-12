@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { computeQuote } from "@/lib/pricing";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
+
+/**
+ * Zod schema for billing quote request
+ */
+const BillingQuoteSchema = z.object({
+  items: z.array(z.object({
+    moduleCode: z.string().min(1),
+    seatCount: z.number().int().positive().optional(),
+  })),
+  billingCycle: z.enum(["monthly", "annual"]).optional(),
+  seatTotal: z.number().int().positive().optional(),
+});
 
 /**
  * @openapi
@@ -31,7 +44,17 @@ export async function POST(req: NextRequest) {
       return rateLimitError();
     }
 
-    const input = await req.json(); // {items:[{moduleCode, seatCount?}], billingCycle, seatTotal}
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = BillingQuoteSchema.safeParse(rawBody);
+    
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.errors[0]?.message || "Invalid quote request" },
+        { status: 400 }
+      );
+    }
+    
+    const input = parsed.data;
     const q = await computeQuote(input);
     return createSecureResponse(q);
   } catch (_error) {

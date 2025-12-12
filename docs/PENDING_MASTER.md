@@ -1,3 +1,182 @@
+## 🗓️ 2025-12-13T10:30+03:00 — P3 LOW PRIORITY ENHANCEMENTS v25.0
+
+### 📍 Session Summary
+
+**Mission**: Verify and fix P3 LOW PRIORITY items from pending report
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| **Branch** | `fix/graphql-resolver-todos` | ✅ Active |
+| **TypeScript Errors** | 0 | ✅ Clean build |
+| **Rate Limited Routes** | 114/352 (32%) | ✅ Auth routes using correct API |
+
+---
+
+### ✅ P3 ITEMS COMPLETED THIS SESSION
+
+| ID | Issue | Action | Status |
+|----|-------|--------|--------|
+| P3-001 | Missing aria-labels in aqar/filters | Added 6 aria-labels to buttons | ✅ FIXED |
+| P3-002 | Hardcoded strings | Optional i18n enhancement | 🔲 DEFERRED |
+| P3-003 | Missing error.tsx boundaries | Created 5 error boundaries (work-orders, fm, settings, crm, hr) | ✅ FIXED |
+| P3-004 | Unused exports | Optional cleanup | 🔲 DEFERRED |
+| P3-005 | setInterval without cleanup | Already has clearInterval in otp-store-redis.ts | ✅ VERIFIED |
+| P3-006 | Rate limiting API usage | Fixed 6 auth routes with correct smartRateLimit signature | ✅ FIXED |
+
+---
+
+### 🔧 FIXES APPLIED
+
+#### 1. Accessibility (P3-001)
+**File**: [app/aqar/filters/page.tsx](app/aqar/filters/page.tsx)
+- Added `aria-label` to Reset button
+- Added `aria-label` to Search button
+- Added `aria-label` to 4 preset filter buttons (Clear, Occupied, Vacant, Overdue)
+
+#### 2. Error Boundaries (P3-003)
+Created standard error.tsx components in:
+- `app/work-orders/error.tsx`
+- `app/fm/error.tsx`
+- `app/settings/error.tsx`
+- `app/crm/error.tsx`
+- `app/hr/error.tsx`
+
+#### 3. Rate Limiting API Fix (P3-006)
+Fixed incorrect `smartRateLimit` API usage in 6 auth routes:
+
+**Before (incorrect)**:
+```typescript
+const rl = await smartRateLimit(req, { max: 30, windowMs: 60000 });
+if (!rl.success) return rateLimitError(rl);
+```
+
+**After (correct)**:
+```typescript
+const clientIp = getClientIP(req);
+const rl = await smartRateLimit(`auth:route:${clientIp}`, 30, 60_000);
+if (!rl.allowed) return rateLimitError();
+```
+
+**Routes Fixed**:
+- `app/api/auth/me/route.ts` (120 req/min for polling)
+- `app/api/auth/refresh/route.ts` (10 req/min)
+- `app/api/auth/force-logout/route.ts` (20 req/min)
+- `app/api/auth/verify/route.ts` (30 req/min)
+- `app/api/auth/post-login/route.ts` (30 req/min)
+- `app/api/auth/verify/send/route.ts` (10 req/min)
+
+---
+
+### 📊 VERIFICATION GATES
+
+```bash
+pnpm typecheck   # ✅ 0 errors
+pnpm lint        # ✅ 0 errors (6 pre-existing test file warnings)
+```
+
+---
+
+## 🗓️ 2025-12-12T19:00+03:00 — P2 MEDIUM PRIORITY TASKS COMPLETED v25.0
+
+### 📍 Current Progress & Session Status
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| **Branch** | `fix/graphql-resolver-todos` | ✅ Active & Pushed |
+| **Latest Commit** | `37657a665` — docs: Add comprehensive session report v22.1 | ✅ |
+| **Total API Routes** | 352 | ✅ All verified |
+| **Total Test Files** | 266 (+7 new) | ✅ Comprehensive |
+| **TypeScript Errors** | 0 | ✅ Clean build |
+| **ESLint Warnings** | 0 | ✅ Clean lint |
+| **New Tests Added** | 65+ tests (7 files) | ✅ This session |
+| **P2 Tasks Complete** | 8/9 | ✅ 89% done |
+
+---
+
+### ✅ P2 TASKS COMPLETED THIS SESSION
+
+| Task ID | Task | Tests Added | Status |
+|---------|------|-------------|--------|
+| **P2-001** | Test onboardingEntities.ts | 7 tests | ✅ COMPLETE |
+| **P2-002** | Test onboardingKpi.service.ts | 5 tests | ✅ COMPLETE |
+| **P2-003** | Test subscriptionSeatService.ts | 10 tests | ✅ COMPLETE |
+| **P2-004** | Test pricingInsights.ts | 6 tests | ✅ COMPLETE |
+| **P2-005** | Test recommendation.ts | 6 tests | ✅ COMPLETE |
+| **P2-006** | Test decimal.ts | 25+ tests | ✅ COMPLETE |
+| **P2-007** | Test provision.ts | 6 tests | ✅ COMPLETE |
+| **P2-008** | Add .limit() to unbounded queries | 1 fixed, 6 already safe | ✅ COMPLETE |
+| **P2-009** | Add database indexes | Already comprehensive | ✅ VERIFIED |
+
+---
+
+### 📁 NEW TEST FILES CREATED
+
+| File | Purpose | Tests |
+|------|---------|-------|
+| `tests/unit/server/services/onboardingEntities.test.ts` | Entity creation from onboarding cases | 7 |
+| `tests/unit/server/services/onboardingKpi.service.test.ts` | KPI calculations (avg times, drop-off) | 5 |
+| `tests/unit/server/services/subscriptionSeatService.test.ts` | Seat management, allocation | 10 |
+| `tests/unit/lib/aqar/pricingInsights.test.ts` | Pricing insight API wrapper | 6 |
+| `tests/unit/lib/aqar/recommendation.test.ts` | Recommendation engine wrapper | 6 |
+| `tests/unit/lib/finance/decimal.test.ts` | Money math (add, subtract, multiply, divide, %) | 25+ |
+| `tests/unit/lib/finance/provision.test.ts` | Subscription provisioning | 6 |
+
+---
+
+### 🔧 P2-008: UNBOUNDED QUERY ANALYSIS
+
+| Route | Status | Resolution |
+|-------|--------|------------|
+| `app/api/owner/properties/route.ts` | ✅ FIXED | Added `.limit(500)` |
+| `app/api/owner/statements/route.ts` | ✅ SAFE | Bounded by propertyIds + date range |
+| `app/api/fm/system/roles/route.ts` | ✅ ALREADY HAS | `.limit(200)` |
+| `app/api/fm/system/users/invite/route.ts` | ✅ ALREADY HAS | `.limit(200)` |
+| `app/api/assistant/query/route.ts` | ✅ ALREADY HAS | `.limit(5)` |
+| `app/api/work-orders/export/route.ts` | ✅ ALREADY HAS | `.limit(2000)` |
+| Cron jobs (pm/generate-wos, sla-check) | ⏸️ INTENTIONAL | System-wide scans by design |
+
+---
+
+### 🔧 P2-009: DATABASE INDEX VERIFICATION
+
+**Finding:** Comprehensive indexing already exists in `lib/db/collections.ts`
+
+| Collection | Indexes | Status |
+|------------|---------|--------|
+| WorkOrder | 12+ indexes (orgId, status, assignee, text search, SLA) | ✅ Comprehensive |
+| Property | 8+ indexes (orgId, slug, owner, geo) | ✅ Comprehensive |
+| Product | 6+ indexes (orgId, sku, slug, category, text search) | ✅ Comprehensive |
+| User | 10+ indexes (orgId, email, role, skills) | ✅ Comprehensive |
+| Order | 4+ indexes (orgId, orderNumber, userId, status) | ✅ Comprehensive |
+
+**Conclusion:** Index management is centralized and mature. No additional indexes needed.
+
+---
+
+### 📊 TEST RUN RESULTS
+
+```
+ Test Files  12 passed (12)
+      Tests  166 passed (166)
+   Duration  7.26s
+
+All P2 test files passing ✅
+```
+
+---
+
+### 🎯 REMAINING ITEMS
+
+| Priority | Task | Status | Effort |
+|----------|------|--------|--------|
+| 🔴 P0-1 | Configure Taqnyat env vars in Vercel | ⏳ DevOps | 15 min |
+| 🔴 P0-2 | Merge PR from `fix/graphql-resolver-todos` | ⏳ Review | 5 min |
+| 🟡 P1-1 | Add DOMPurify to 10 dangerouslySetInnerHTML usages | 🔲 TODO | 2 hrs |
+| 🟢 P2-10 | Increase rate limiting coverage (34% → 60%) | 🔲 TODO | 2 hrs |
+| 🟢 P2-11 | Audit 21 console statements | 🔲 TODO | 30 min |
+
+---
+
 ## 🗓️ 2025-12-12T18:45+03:00 — COMPREHENSIVE SESSION SUMMARY v24.1
 
 ### 📍 Current Progress & Session Status

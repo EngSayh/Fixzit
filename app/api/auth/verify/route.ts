@@ -14,7 +14,16 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
 import { verifyVerificationToken } from "@/lib/auth/emailVerification";
 import { UserStatus } from "@/types/user";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
 export async function GET(req: NextRequest) {
+  // Rate limit: 30 verification attempts per minute
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`auth:verify:${clientIp}`, 30, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
   try {
     const token = req.nextUrl.searchParams.get("token");
     if (!token) {

@@ -28,8 +28,16 @@ import {
   REFRESH_TTL_SECONDS,
 } from "@/app/api/auth/refresh/route";
 import { persistRefreshJti } from "@/lib/refresh-token-store";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 30 post-login attempts per minute per IP
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`auth:post-login:${clientIp}`, 30, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
   try {
     const session = await auth();
     if (!session) {

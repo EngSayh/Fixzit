@@ -7,9 +7,18 @@
  * @returns {Object} authenticated: boolean, user: { id, email, name, role, orgId } | null
  */
 import { logger } from "@/lib/logger";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-export async function GET() {
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
+export async function GET(req: NextRequest) {
+  // Rate limit: 120 requests per minute (high for polling)
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`auth:me:${clientIp}`, 120, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
   try {
     const session = await auth();
 

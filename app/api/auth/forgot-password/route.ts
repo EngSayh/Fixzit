@@ -9,6 +9,7 @@
  * @throws {429} If rate limit exceeded
  */
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
 import { signPasswordResetToken, passwordResetLink } from "@/lib/auth/passwordReset";
@@ -19,10 +20,15 @@ import { getClientIP } from "@/server/security/headers";
 
 export const runtime = "nodejs";
 
-type ForgotPasswordBody = {
-  email?: string;
-  locale?: "en" | "ar";
-};
+/**
+ * Zod schema for forgot-password request body
+ */
+const ForgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email format").transform((v) => v.trim().toLowerCase()),
+  locale: z.enum(["en", "ar"]).optional().default("en"),
+});
+
+type _ForgotPasswordBody = z.infer<typeof ForgotPasswordSchema>;
 export async function POST(req: NextRequest) {
   try {
     // Rate limit: 5 requests per 15 minutes per IP
@@ -37,18 +43,15 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const body = (await req.json().catch(() => ({}))) as ForgotPasswordBody;
-    const email = body.email?.trim().toLowerCase();
-
-    if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = ForgotPasswordSchema.safeParse(rawBody);
+    
+    if (!parsed.success) {
+      const errorMessage = parsed.error.errors[0]?.message || "Invalid request body";
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
-    }
+    
+    const { email } = parsed.data;
 
     // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
     // MUST align with auth.config.ts to prevent environment drift
