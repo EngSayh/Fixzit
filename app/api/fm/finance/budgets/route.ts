@@ -47,6 +47,7 @@ type BudgetPayload = {
 };
 
 const COLLECTION = "fm_budgets";
+// Recommended index: { orgId: 1, unitId: 1, department: 1, updatedAt: -1 }
 
 const sanitizePayload = (payload: BudgetPayload) => {
   const sanitized: BudgetPayload = {};
@@ -179,6 +180,14 @@ export async function GET(req: NextRequest) {
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
+
+    // Super Admin cross-tenant access is not permitted for budgets without explicit tenant+unit selection
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Tenant and unit context required" },
+        { status: 400 },
+      );
+    }
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));

@@ -42,6 +42,9 @@ export default [
       "models/**",
       "server/models/**",
 
+      // Separate projects (has own package.json and tsconfig)
+      "issue-tracker/**",
+
       // Specific files
       "test-*.js",
       "test-auth.js",

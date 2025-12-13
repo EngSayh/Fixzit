@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import getServerSession from 'next-auth';
 import mongoose from 'mongoose';
 import Issue, {
   IssueCategory,

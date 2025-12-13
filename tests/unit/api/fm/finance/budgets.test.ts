@@ -19,6 +19,7 @@ type MockPermissionUser = {
   role: string;
   isSuperAdmin?: boolean;
   units?: string[];
+  unitId?: string;
 } | null;
 
 let mockPermissionUser: MockPermissionUser = null;
@@ -247,6 +248,21 @@ describe("GET /api/fm/finance/budgets", () => {
         tenantId: ORG_ID,
         role: "ADMIN",
         units: ["UNIT_A", "UNIT_B"],
+      };
+
+      const res = await GET(createGetRequest());
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects cross-tenant super admin listing without tenant/unit context", async () => {
+      mockTenantId = "*";
+      mockPermissionUser = {
+        id: USER_ID,
+        userId: USER_ID,
+        orgId: ORG_ID,
+        tenantId: ORG_ID,
+        role: "ADMIN",
+        isSuperAdmin: true,
       };
 
       const res = await GET(createGetRequest());
