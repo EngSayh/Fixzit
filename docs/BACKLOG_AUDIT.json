@@ -1,5 +1,5 @@
 {
-  "extracted_at": "2025-12-15T23:47:00+03:00",
+  "extracted_at": "2025-12-15T23:55:00+03:00",
   "source_file": "PENDING_MASTER.md",
   "applied_flags": {
     "format": "both",
@@ -11,8 +11,8 @@
     "resolved": 5,
     "pending": 8,
     "by_priority": { "P0": 0, "P1": 0, "P2": 4, "P3": 4 },
-    "by_category": { "Bugs": 1, "Logic Errors": 0, "Missing Tests": 6, "Efficiency": 0, "Security": 0, "Config": 0 },
-    "quick_wins": 2,
+    "by_category": { "Bugs": 1, "Logic Errors": 0, "Missing Tests": 5, "Efficiency": 0, "Security": 0, "Config": 0 },
+    "quick_wins": 0,
     "anomalies": 1
   },
   "anomalies": [

@@ -1,5 +1,66 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-15 23:55 (Asia/Riyadh) — SSOT Sync Update + New Aqar Tests Discovery
+**Context:** main | 8eed608a1 | post-TEST-SAFE-FETCH implementation  
+**DB Sync:** blocked (localhost:3000/api/issues/import unreachable); BACKLOG_AUDIT.json updated locally
+
+**✅ Resolved Today (verified in main):**
+- **SEC-TAP-001 (P0)** — Timing attack fixed (verified at lib/finance/tap-payments.ts:492)
+- **CONFIG-001 (P1)** — Dangerous VS Code tasks removed (verified .vscode/tasks.json clean)
+- **TEST-SAFE-FETCH (P2)** — safe-fetch.ts tests complete (21/21 passing, commit 8eed608a1)
+- **EFF-004 (P2)** — PM rate limiting added (app/api/pm/plans/[id]/route.ts)
+- **REF-002 (P2)** — Build workflow fork-safe (.github/workflows/build-sourcemaps.yml)
+
+**🆕 New Findings (untracked files discovered):**
+- **TEST-005-PARTIAL (P3)** — 5 new Aqar route tests created but untracked:
+  - tests/api/aqar/favorites-id.route.test.ts
+  - tests/api/aqar/listings-id.route.test.ts
+  - tests/api/aqar/listings-recommendations.route.test.ts
+  - tests/api/aqar/listings-search.route.test.ts
+  - tests/api/aqar/support-chatbot.route.test.ts
+  - Evidence: `git status -s` shows ?? entries
+  - Status: Files exist but need commit + verification
+
+**🟠 In Progress:**
+- TEST-005 — Aqar test coverage (5 new files pending commit)
+
+**🔴 Blocked:**
+- MongoDB Issue Tracker API sync (localhost:3000 unreachable)
+
+**📊 Backlog Status Update:**
+| Status | Count | Details |
+|--------|-------|---------|
+| Resolved | 5 | SEC-TAP-001, CONFIG-001, TEST-SAFE-FETCH, EFF-004, REF-002 |
+| In Progress | 1 | TEST-005 (5 new test files pending) |
+| P2 Pending | 3 | TEST-002 (HR), TEST-003 (Finance), REF-001 (CRM) |
+| P3 Pending | 3 | TEST-001 (Souq), TEST-004 (CRM routes), BUG-011 |
+
+**Modified Files (unstaged):**
+```
+M  .github/workflows/build-sourcemaps.yml
+M  .vscode/tasks.json
+M  app/api/pm/plans/[id]/route.ts
+M  lib/finance/tap-payments.ts
+?? tests/api/aqar/*.test.ts (5 files)
+?? tests/unit/api/aqar/
+?? .github/workflows/actionlint.yml
+```
+
+**Verification Results:**
+```bash
+pnpm vitest tests/unit/lib/utils/safe-fetch.test.ts  # ✅ 21/21 passed
+pnpm typecheck  # ✅ 0 errors
+pnpm lint       # ✅ 0 errors
+```
+
+**Next Steps (from DB items):**
+1. Review + commit 5 new Aqar test files (TEST-005)
+2. Run Aqar tests to verify they pass
+3. TEST-002 — Create HR module tests (employees CRUD, payroll) [P2, M effort]
+4. TEST-003 — Create Finance module tests (invoices, payments, billing) [P2, L effort]
+
+---
+
 ### 2025-12-15 23:50 (Asia/Riyadh) — Security Hardening Complete + Rate Limiting Added  
 **Context:** main | 2f5c6ed2d | post-PR #550 merge  
 **DB Sync:** blocked (localhost:3000/api/issues/import unreachable); BACKLOG_AUDIT.json updated locally
