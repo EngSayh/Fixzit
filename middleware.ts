@@ -4,6 +4,7 @@ import { handlePreflight } from '@/server/security/headers';
 import { isOriginAllowed } from '@/lib/security/cors-allowlist';
 import { logSecurityEvent } from '@/lib/monitoring/security-events';
 import { getClientIP } from '@/server/security/headers';
+import { getSuperadminSession, isIpAllowed as isSuperadminIpAllowed } from '@/lib/superadmin/auth';
 import {
   AUTH_ROUTES,
   MARKETING_ROUTES,
@@ -277,6 +278,49 @@ export async function middleware(request: NextRequest) {
   const stubPagesForPlaywright =
     process.env.PLAYWRIGHT_STUB_PAGES === 'true';
   const clientIp = getClientIP(sanitizedRequest) || 'unknown';
+  const robotsHeader = { 'X-Robots-Tag': 'noindex, nofollow' };
+
+  // Dedicated guard for superadmin emergency portal (independent of NextAuth)
+  const isSuperadminRoute =
+    pathname.startsWith('/superadmin');
+  const isSuperadminApiRoute =
+    pathname.startsWith('/api/superadmin');
+
+  if (isSuperadminRoute || isSuperadminApiRoute) {
+    if (!isSuperadminIpAllowed(clientIp)) {
+      if (isSuperadminApiRoute) {
+        return NextResponse.json(
+          { error: 'Forbidden' },
+          { status: 403, headers: robotsHeader }
+        );
+      }
+      return NextResponse.redirect(new URL('/superadmin/login', sanitizedRequest.url));
+    }
+
+    const isLogin = pathname.startsWith('/superadmin/login') || pathname.startsWith('/api/superadmin/login');
+    if (isLogin) {
+      const res = NextResponse.next();
+      res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+      return res;
+    }
+
+    const session = await getSuperadminSession(sanitizedRequest);
+    const isExpired = session ? session.expiresAt < Date.now() : true;
+
+    if (!session || isExpired) {
+      if (isSuperadminApiRoute) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401, headers: robotsHeader }
+        );
+      }
+      return NextResponse.redirect(new URL('/superadmin/login', sanitizedRequest.url));
+    }
+
+    const res = NextResponse.next();
+    res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    return res;
+  }
 
   // Lightweight rate limit specifically for credential callback to satisfy abuse protection and tests
   if (!isPlaywright && pathname === '/api/auth/callback/credentials' && method === 'POST') {

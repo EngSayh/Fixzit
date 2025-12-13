@@ -27,6 +27,7 @@ export default function SuperadminLoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [secretKey, setSecretKey] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -39,7 +40,7 @@ export default function SuperadminLoginPage() {
       const response = await fetch("/api/superadmin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, secretKey }),
       });
 
       const data = await response.json();
@@ -100,6 +101,17 @@ export default function SuperadminLoginPage() {
                 placeholder="Enter password"
                 autoComplete="current-password"
                 required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="secretKey">Access key (if required)</Label>
+              <Input
+                id="secretKey"
+                type="password"
+                value={secretKey}
+                onChange={(e) => setSecretKey(e.target.value)}
+                placeholder="Enter security key"
+                autoComplete="one-time-code"
               />
             </div>
           </CardContent>

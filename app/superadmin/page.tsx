@@ -7,10 +7,11 @@
 
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { SUPERADMIN_COOKIE_NAME } from "@/lib/superadmin/auth";
 
 export default async function SuperadminIndexPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("superadmin_token");
+  const token = cookieStore.get(SUPERADMIN_COOKIE_NAME);
   
   if (token) {
     redirect("/superadmin/issues");

@@ -225,8 +225,9 @@ export default function SuperadminIssuesPage() {
       }
 
       const data = await response.json();
-      setIssues(data.issues || []);
-      setTotalPages(data.pagination?.totalPages || 1);
+      const payload = data.data || data;
+      setIssues(payload.issues || []);
+      setTotalPages(payload.pagination?.totalPages || 1);
     } catch (_error) {
       toast({
         title: "Error",
@@ -289,8 +290,9 @@ export default function SuperadminIssuesPage() {
     try {
       const response = await fetch("/api/issues?limit=5000");
       const data = await response.json();
+      const payload = data.data || data;
       
-      const blob = new Blob([JSON.stringify(data.issues, null, 2)], {
+      const blob = new Blob([JSON.stringify(payload.issues, null, 2)], {
         type: "application/json",
       });
       
@@ -303,7 +305,7 @@ export default function SuperadminIssuesPage() {
 
       toast({
         title: "Export Complete",
-        description: `Exported ${data.issues.length} issues`,
+        description: `Exported ${(payload.issues || []).length} issues`,
       });
     } catch (_error) {
       toast({
@@ -343,9 +345,8 @@ export default function SuperadminIssuesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          source: "superadmin-ui",
           issues,
-          options: { dryRun, skipDuplicates: true },
+          dryRun,
         }),
       });
 
@@ -354,7 +355,7 @@ export default function SuperadminIssuesPage() {
       if (result.success) {
         toast({
           title: dryRun ? "Dry Run Complete" : "Import Complete",
-          description: `Imported: ${result.result.imported}, Updated: ${result.result.updated}, Skipped: ${result.result.skipped}`,
+          description: `Imported: ${result.result.created}, Updated: ${result.result.updated}, Skipped: ${result.result.skipped}`,
         });
 
         if (!dryRun) {

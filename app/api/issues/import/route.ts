@@ -1,379 +1,361 @@
-/**
- * Issues Import API Route Handler
- * POST /api/issues/import - Bulk import issues from various sources
- * 
- * @module app/api/issues/import/route
- */
-
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { createHash } from "crypto";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   Issue,
   IssueCategory,
-  IssuePriority,
-  IssueStatus,
+  IssueCategoryType,
   IssueEffort,
+  IssueEffortType,
+  IssuePriority,
+  IssuePriorityType,
   IssueSource,
-  type IssueCategoryType,
-  type IssuePriorityType,
-  type IssueEffortType,
+  IssueStatus,
+  IssueStatusType,
 } from "@/server/models/Issue";
+import IssueEvent from "@/server/models/IssueEvent";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { getSessionOrNull } from "@/lib/auth/safe-session";
-import { parseBodySafe } from "@/lib/api/parse-body";
+import { getSuperadminSession } from "@/lib/superadmin/auth";
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface ImportIssue {
-  id?: string;
-  legacyId?: string;
+interface IssueImport {
+  key: string;
+  externalId?: string | null;
   title: string;
-  description?: string;
   category?: string;
   priority?: string;
-  effort?: string;
   status?: string;
-  filePath?: string;
-  lineStart?: number;
-  lineEnd?: number;
-  functionName?: string;
-  module?: string;
-  subModule?: string;
-  action?: string;
-  rootCause?: string;
-  definitionOfDone?: string;
-  riskTags?: string[];
-  labels?: string[];
-  assignedTo?: string;
+  effort?: string;
+  location?: string;
+  sourcePath: string;
+  sourceRef: string;
+  evidenceSnippet: string;
+  description?: string;
 }
 
 interface ImportBody {
-  source: string;
-  issues: ImportIssue[];
-  options?: {
-    skipDuplicates?: boolean;
-    updateExisting?: boolean;
-    dryRun?: boolean;
-  };
+  issues: IssueImport[];
+  dryRun?: boolean;
 }
 
-interface ImportResult {
-  imported: number;
+interface ImportSummary {
+  created: number;
   updated: number;
   skipped: number;
-  errors: Array<{ index: number; error: string; issue?: ImportIssue }>;
+  errors: Array<{ index: number; error: string; key?: string }>;
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
+const REQUIRED_FIELDS = ["key", "title", "sourceRef", "evidenceSnippet", "sourcePath"] as const;
+const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
+
+function slugify(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
 
 function normalizeCategory(category?: string): IssueCategoryType {
-  if (!category) return IssueCategory.BUG;
-  
-  const normalized = category.toLowerCase().replace(/[_-]/g, '');
-  
-  const mapping: Record<string, IssueCategoryType> = {
-    bug: IssueCategory.BUG,
-    logicerror: IssueCategory.LOGIC_ERROR,
-    logic: IssueCategory.LOGIC_ERROR,
-    missingtest: IssueCategory.MISSING_TEST,
-    test: IssueCategory.MISSING_TEST,
-    efficiency: IssueCategory.EFFICIENCY,
-    performance: IssueCategory.EFFICIENCY,
-    security: IssueCategory.SECURITY,
-    feature: IssueCategory.FEATURE,
-    enhancement: IssueCategory.FEATURE,
-    refactor: IssueCategory.REFACTOR,
-    documentation: IssueCategory.DOCUMENTATION,
-    docs: IssueCategory.DOCUMENTATION,
-    nextstep: IssueCategory.NEXT_STEP,
-    todo: IssueCategory.NEXT_STEP,
-  };
-  
-  return mapping[normalized] || IssueCategory.BUG;
+  const normalized = (category || "").toLowerCase();
+  switch (normalized) {
+    case "logic":
+    case "logic_error":
+      return IssueCategory.LOGIC_ERROR;
+    case "missing_test":
+    case "test":
+      return IssueCategory.MISSING_TEST;
+    case "efficiency":
+    case "performance":
+      return IssueCategory.EFFICIENCY;
+    case "security":
+      return IssueCategory.SECURITY;
+    case "feature":
+      return IssueCategory.FEATURE;
+    case "refactor":
+      return IssueCategory.REFACTOR;
+    case "documentation":
+    case "docs":
+      return IssueCategory.DOCUMENTATION;
+    case "next_step":
+    case "task":
+      return IssueCategory.NEXT_STEP;
+    default:
+      return IssueCategory.BUG;
+  }
 }
 
 function normalizePriority(priority?: string): IssuePriorityType {
-  if (!priority) return IssuePriority.P2_MEDIUM;
-  
-  const normalized = priority.toUpperCase().replace(/[_-]/g, '');
-  
-  if (normalized.includes('P0') || normalized.includes('CRITICAL')) {
-    return IssuePriority.P0_CRITICAL;
-  }
-  if (normalized.includes('P1') || normalized.includes('HIGH')) {
-    return IssuePriority.P1_HIGH;
-  }
-  if (normalized.includes('P2') || normalized.includes('MEDIUM')) {
-    return IssuePriority.P2_MEDIUM;
-  }
-  if (normalized.includes('P3') || normalized.includes('LOW')) {
-    return IssuePriority.P3_LOW;
-  }
-  
+  const normalized = (priority || "P2").toUpperCase();
+  if (normalized.startsWith("P0")) return IssuePriority.P0_CRITICAL;
+  if (normalized.startsWith("P1")) return IssuePriority.P1_HIGH;
+  if (normalized.startsWith("P2")) return IssuePriority.P2_MEDIUM;
+  if (normalized.startsWith("P3")) return IssuePriority.P3_LOW;
   return IssuePriority.P2_MEDIUM;
 }
 
 function normalizeEffort(effort?: string): IssueEffortType {
-  if (!effort) return IssueEffort.M;
-  
-  const normalized = effort.toUpperCase().replace(/[_-]/g, '');
-  
-  if (normalized === 'XS' || normalized.includes('TINY')) return IssueEffort.XS;
-  if (normalized === 'S' || normalized.includes('SMALL')) return IssueEffort.S;
-  if (normalized === 'M' || normalized.includes('MEDIUM')) return IssueEffort.M;
-  if (normalized === 'L' || normalized.includes('LARGE')) return IssueEffort.L;
-  if (normalized === 'XL' || normalized.includes('XLARGE')) return IssueEffort.XL;
-  
+  const normalized = (effort || "M").toUpperCase();
+  if (normalized === "XS") return IssueEffort.XS;
+  if (normalized === "S") return IssueEffort.S;
+  if (normalized === "M") return IssueEffort.M;
+  if (normalized === "L") return IssueEffort.L;
+  if (normalized === "XL") return IssueEffort.XL;
   return IssueEffort.M;
 }
 
-function normalizeStatus(status?: string): string {
-  if (!status) return IssueStatus.OPEN;
-  
-  const normalized = status.toLowerCase().replace(/[_-]/g, '');
-  
-  const mapping: Record<string, string> = {
-    open: IssueStatus.OPEN,
-    new: IssueStatus.OPEN,
-    todo: IssueStatus.OPEN,
-    inprogress: IssueStatus.IN_PROGRESS,
-    wip: IssueStatus.IN_PROGRESS,
-    working: IssueStatus.IN_PROGRESS,
-    inreview: IssueStatus.IN_REVIEW,
-    review: IssueStatus.IN_REVIEW,
-    blocked: IssueStatus.BLOCKED,
-    resolved: IssueStatus.RESOLVED,
-    fixed: IssueStatus.RESOLVED,
-    closed: IssueStatus.CLOSED,
-    done: IssueStatus.CLOSED,
-    wontfix: IssueStatus.WONT_FIX,
-    invalid: IssueStatus.WONT_FIX,
-  };
-  
-  return mapping[normalized] || IssueStatus.OPEN;
+function normalizeStatus(status?: string): IssueStatusType {
+  const normalized = (status || "pending").toLowerCase();
+  switch (normalized) {
+    case "pending":
+    case "open":
+      return IssueStatus.OPEN;
+    case "in_progress":
+    case "in-progress":
+      return IssueStatus.IN_PROGRESS;
+    case "blocked":
+      return IssueStatus.BLOCKED;
+    case "resolved":
+    case "closed":
+      return IssueStatus.RESOLVED;
+    case "in_review":
+    case "review":
+      return IssueStatus.IN_REVIEW;
+    default:
+      return IssueStatus.OPEN;
+  }
 }
 
-function extractModule(filePath?: string): string {
-  if (!filePath) return 'general';
-  
-  // Extract module from path like "app/api/billing/..." or "components/..."
-  const parts = filePath.split('/').filter(Boolean);
-  
-  if (parts[0] === 'app' && parts[1] === 'api' && parts.length > 2) {
-    return parts[2];
-  }
-  if (parts[0] === 'app' && parts.length > 1) {
-    return parts[1].replace(/[()]/g, '');
-  }
-  if (parts[0] === 'components' || parts[0] === 'lib' || parts[0] === 'server') {
-    return parts.length > 1 ? parts[1] : parts[0];
-  }
-  
-  return parts[0] || 'general';
+function normalizeEvidence(snippet: string): string {
+  const words = snippet.split(/\s+/).filter(Boolean).slice(0, 25);
+  return words.join(" ");
 }
 
-// ============================================================================
-// POST /api/issues/import
-// ============================================================================
+function computeSourceHash(snippet: string, location: string): string {
+  return createHash("sha256")
+    .update(`${location || "unknown"}::${snippet}`)
+    .digest("hex");
+}
+
+function extractModule(location: string): string {
+  if (!location) return "general";
+  const parts = location.split("/").filter(Boolean);
+  if (parts[0] === "app" && parts[1]) return parts[1].replace(/[()]/g, "");
+  if (["components", "lib", "server"].includes(parts[0] || "")) {
+    return parts[0] || "general";
+  }
+  return parts[0] || "general";
+}
+
+async function resolveSession(request: NextRequest) {
+  const superadmin = await getSuperadminSession(request);
+  if (superadmin) {
+    return {
+      ok: true as const,
+      session: {
+        id: superadmin.username,
+        role: "super_admin",
+        orgId: superadmin.orgId,
+        email: superadmin.username,
+        isSuperAdmin: true,
+      },
+    };
+  }
+  return getSessionOrNull(request);
+}
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 5 bulk imports per minute (sensitive operation)
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "issues:import",
+    requests: 5,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
-    const result = await getSessionOrNull(request);
-    
-    if (!result.ok) {
-      return result.response;
+    const authResult = await resolveSession(request);
+    if (!authResult.ok) {
+      return authResult.response;
     }
-    
-    const session = result.session;
-    
+
+    const session = authResult.session;
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: ROBOTS_HEADER });
     }
-    
-    // Only super_admin and admin can import
-    const allowedRoles = ['super_admin', 'admin'];
+
+    const allowedRoles = ["super_admin", "admin", "developer"];
     if (!allowedRoles.includes(session.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: ROBOTS_HEADER });
     }
-    
-    const bodyResult = await parseBodySafe<ImportBody>(request);
-    
-    if (bodyResult.error || !bodyResult.data) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+
+    const body = typeof (request as any).json === "function"
+      ? ((await (request as any).json().catch(() => null)) as ImportBody | null)
+      : null;
+    if (!body || !Array.isArray(body.issues)) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400, headers: ROBOTS_HEADER });
     }
-    
-    const { source, issues, options = {} } = bodyResult.data;
-    
-    if (!issues || !Array.isArray(issues) || issues.length === 0) {
-      return NextResponse.json({ error: 'No issues to import' }, { status: 400 });
-    }
-    
-    if (issues.length > 1000) {
-      return NextResponse.json(
-        { error: 'Maximum 1000 issues per import' },
-        { status: 400 }
-      );
-    }
-    
+
+    const dryRun = Boolean(body.dryRun);
     await connectToDatabase();
-    
+
     const orgId = new mongoose.Types.ObjectId(session.orgId);
-    const importResult: ImportResult = {
-      imported: 0,
-      updated: 0,
-      skipped: 0,
-      errors: [],
-    };
-    
-    // Process in batches
-    const batchSize = 50;
-    const batches = [];
-    
-    for (let i = 0; i < issues.length; i += batchSize) {
-      batches.push(issues.slice(i, i + batchSize));
-    }
-    
-    for (const batch of batches) {
-      const bulkOps = [];
-      
-      for (let i = 0; i < batch.length; i++) {
-        const issue = batch[i];
-        const globalIndex = batches.indexOf(batch) * batchSize + i;
-        
-        try {
-          // Validate required fields
-          if (!issue.title || typeof issue.title !== 'string') {
-            importResult.errors.push({
-              index: globalIndex,
-              error: 'Missing or invalid title',
-              issue,
-            });
-            continue;
-          }
-          
-          const legacyId = issue.legacyId || issue.id || `import-${Date.now()}-${globalIndex}`;
-          
-          // Check for existing issue
-          if (options.skipDuplicates || options.updateExisting) {
-            const existing = await Issue.findOne({
-              orgId,
-              $or: [
-                { legacyId },
-                { title: issue.title, 'location.filePath': issue.filePath },
-              ],
-            });
-            
-            if (existing) {
-              if (options.skipDuplicates) {
-                importResult.skipped++;
-                continue;
-              }
-              
-              if (options.updateExisting && !options.dryRun) {
-                await Issue.updateOne(
-                  { _id: existing._id },
-                  {
-                    $set: {
-                      description: issue.description || existing.description,
-                      priority: normalizePriority(issue.priority),
-                      status: normalizeStatus(issue.status),
-                      labels: issue.labels || existing.labels,
-                      updatedAt: new Date(),
-                    },
-                  }
-                );
-                importResult.updated++;
-                continue;
-              }
+    const summary: ImportSummary = { created: 0, updated: 0, skipped: 0, errors: [] };
+
+    for (let i = 0; i < body.issues.length; i++) {
+      const raw = body.issues[i];
+      const missing = REQUIRED_FIELDS.filter((field) => !(raw as any)?.[field]);
+      if (missing.length > 0) {
+        summary.errors.push({ index: i, error: `Missing required fields: ${missing.join(", ")}`, key: raw.key });
+        summary.skipped += 1;
+        continue;
+      }
+
+      const key = slugify(raw.key);
+      if (!key) {
+        summary.errors.push({ index: i, error: "Invalid key", key: raw.key });
+        summary.skipped += 1;
+        continue;
+      }
+
+      const evidenceSnippet = normalizeEvidence(raw.evidenceSnippet);
+      const location = raw.location || raw.sourcePath;
+      const normalizedCategory = normalizeCategory(raw.category);
+      const normalizedPriority = normalizePriority(raw.priority);
+      const normalizedStatus = normalizeStatus(raw.status);
+      const normalizedEffort = normalizeEffort(raw.effort);
+      const sourceHash = computeSourceHash(evidenceSnippet, location);
+      const issueModule = extractModule(location);
+      const now = new Date();
+
+      const existing = await Issue.findOne({ orgId, key }).lean();
+      if (existing) {
+        const resolvedStates = new Set<IssueStatusType>([
+          IssueStatus.RESOLVED,
+          IssueStatus.CLOSED,
+          IssueStatus.WONT_FIX,
+        ]);
+        const existingStatus = existing.status as IssueStatusType;
+        const shouldUpdateStatus =
+          !resolvedStates.has(existingStatus) ||
+          resolvedStates.has(normalizedStatus);
+
+        if (!dryRun) {
+          await Issue.updateOne(
+            { _id: existing._id },
+            {
+              $set: {
+                title: raw.title.trim(),
+                externalId: raw.externalId || existing.externalId,
+                category: normalizedCategory,
+                priority: normalizedPriority,
+                effort: normalizedEffort,
+                status: shouldUpdateStatus ? normalizedStatus : existing.status,
+                sourcePath: raw.sourcePath,
+                sourceRef: raw.sourceRef,
+                evidenceSnippet,
+                sourceHash,
+                location: { ...(existing as any).location, filePath: location },
+                module: issueModule,
+                action: (existing as any).action || `Fix: ${raw.title}`,
+                lastSeenAt: now,
+              },
+              $inc: { mentionCount: 1 },
             }
-          }
-          
-          // Prepare new issue document
-          const issueModule = issue.module || extractModule(issue.filePath);
-          
-          const newIssue = {
+          );
+
+          await IssueEvent.create({
+            issueId: existing._id,
+            key,
+            type: shouldUpdateStatus && existing.status !== normalizedStatus ? "STATUS_CHANGED" : "UPDATED",
+            sourceRef: raw.sourceRef,
+            sourceHash,
             orgId,
-            title: issue.title.trim(),
-            description: issue.description || '',
-            category: normalizeCategory(issue.category),
-            priority: normalizePriority(issue.priority),
-            status: normalizeStatus(issue.status),
-            effort: normalizeEffort(issue.effort),
-            source: IssueSource.IMPORT,
-            sourceDetail: source,
-            legacyId,
-            location: {
-              filePath: issue.filePath || '',
-              lineStart: issue.lineStart,
-              lineEnd: issue.lineEnd,
-              functionName: issue.functionName,
+            metadata: {
+              priority: normalizedPriority,
+              status: shouldUpdateStatus ? normalizedStatus : existing.status,
             },
-            module: issueModule,
-            subModule: issue.subModule,
-            action: issue.action || `Fix: ${issue.title}`,
-            rootCause: issue.rootCause,
-            definitionOfDone: issue.definitionOfDone || 'Issue resolved and verified',
-            riskTags: issue.riskTags || [],
-            labels: issue.labels || [],
-            assignedTo: issue.assignedTo,
-            reportedBy: session.id,
-            firstSeenAt: new Date(),
-            sprintReady: false,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-          
-          if (!options.dryRun) {
-            bulkOps.push({
-              insertOne: { document: newIssue },
-            });
-          }
-          
-          importResult.imported++;
-          
-        } catch (error) {
-          importResult.errors.push({
-            index: globalIndex,
-            error: error instanceof Error ? error.message : 'Unknown error',
-            issue,
           });
         }
+
+        summary.updated += 1;
+        continue;
       }
-      
-      // Execute bulk operations
-      if (bulkOps.length > 0 && !options.dryRun) {
-        try {
-          await Issue.bulkWrite(bulkOps);
-        } catch (error) {
-          logger.error('[Issues Import] Bulk write error', { error });
-          // Errors in bulk write should be handled individually
-        }
+
+      const issueId = raw.externalId || (await Issue.generateIssueId(normalizedCategory));
+
+      const newIssue = new Issue({
+        key,
+        issueId,
+        externalId: raw.externalId || undefined,
+        legacyId: raw.externalId || key,
+        title: raw.title.trim(),
+        description: raw.description || raw.evidenceSnippet,
+        category: normalizedCategory,
+        priority: normalizedPriority,
+        status: normalizedStatus,
+        effort: normalizedEffort,
+        location: { filePath: location },
+        module: issueModule,
+        action: `Fix: ${raw.title}`,
+        rootCause: raw.description,
+        definitionOfDone: "Issue resolved and verified",
+        riskTags: [],
+        dependencies: [],
+        suggestedPrTitle: undefined,
+        validation: undefined,
+        labels: [],
+        source: IssueSource.IMPORT,
+        sourcePath: raw.sourcePath,
+        sourceRef: raw.sourceRef,
+        evidenceSnippet,
+        sourceHash,
+        sourceDetail: "BACKLOG_AUDIT",
+        reportedBy: session.email || session.id,
+        orgId,
+        sprintReady: true,
+        firstSeenAt: now,
+        lastSeenAt: now,
+        mentionCount: 1,
+      });
+
+      if (!dryRun) {
+        await newIssue.save();
+        await IssueEvent.create({
+          issueId: newIssue._id,
+          key,
+          type: "SYNCED",
+          sourceRef: raw.sourceRef,
+          sourceHash,
+          orgId,
+        });
       }
+
+      summary.created += 1;
     }
-    
-    logger.info('[Issues Import] Import completed', {
+
+    logger.info("[Issues Import] Import completed", {
       orgId: session.orgId,
-      source,
-      ...importResult,
-      dryRun: options.dryRun,
+      dryRun,
+      ...summary,
     });
-    
-    return NextResponse.json({
-      success: true,
-      dryRun: options.dryRun || false,
-      result: importResult,
-    });
-    
-  } catch (error) {
-    logger.error('[Issues Import] Error importing issues', { error });
+
     return NextResponse.json(
-      { error: 'Failed to import issues' },
-      { status: 500 }
+      {
+        success: true,
+        dryRun,
+        result: summary,
+      },
+      { headers: ROBOTS_HEADER }
+    );
+  } catch (error) {
+    logger.error("[Issues Import] Error importing issues", { error });
+    return NextResponse.json(
+      { error: "Failed to import issues" },
+      { status: 500, headers: ROBOTS_HEADER }
     );
   }
 }

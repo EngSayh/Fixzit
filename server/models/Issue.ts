@@ -147,8 +147,11 @@ export interface IAuditEntry {
 
 export interface IIssue extends Document {
   // Identifiers
+  key: string;              // Stable unique key for idempotent sync/dedupe
   issueId: string;           // Human-readable ID: BUG-0001, LOGIC-0001, etc.
+  externalId?: string;
   legacyId?: string;         // Original ID from PENDING_MASTER.md (e.g., BUG-1714)
+  evidenceSnippet?: string;  // Exact 25-word snippet from source for evidence
   
   // Core Fields
   title: string;
@@ -191,6 +194,8 @@ export interface IIssue extends Document {
   source: IssueSourceType;
   sourceDetail?: string;     // Additional source info (e.g., 'PENDING_MASTER.md v65.18')
   sourceHash?: string;       // SHA-256 hash for dedupe
+  sourcePath?: string;       // Path of source document
+  sourceRef?: string;        // Section/row reference
   sourceSnippet?: string;    // Original text snippet (first 500 chars)
   sourceRefs?: string[];     // References to source documents
   auditEntries: IAuditEntry[];
@@ -298,13 +303,30 @@ const AuditEntrySchema = new Schema<IAuditEntry>({
 
 const IssueSchema = new Schema<IIssue>({
   // Identifiers
+  key: { 
+    type: String,
+    required: true,
+    index: true,
+    default: function (this: IIssue) {
+      return (this as any).issueId;
+    },
+  },
   issueId: { 
     type: String, 
     required: true, 
     unique: true,
     index: true,
   },
+  externalId: { type: String },
   legacyId: { type: String, index: true },
+  
+  // Exact 25-word snippet from source for evidence tracking
+  evidenceSnippet: { 
+    type: String, 
+    maxlength: 300,  // ~25 words max
+  },
+  sourcePath: { type: String },
+  sourceRef: { type: String },
   
   // Core Fields
   title: { type: String, required: true, maxlength: 200 },
@@ -422,6 +444,10 @@ IssueSchema.index({ orgId: 1, category: 1, status: 1 });
 IssueSchema.index({ orgId: 1, module: 1, status: 1 });
 IssueSchema.index({ orgId: 1, assignedTo: 1, status: 1 });
 IssueSchema.index({ orgId: 1, sprintId: 1 });
+IssueSchema.index(
+  { orgId: 1, key: 1 },
+  { unique: true, partialFilterExpression: { key: { $exists: true, $type: "string", $ne: "" } } }
+);
 IssueSchema.index({ 'location.filePath': 1, status: 1 });
 IssueSchema.index({ firstSeenAt: 1 });
 IssueSchema.index({ updatedAt: -1 });

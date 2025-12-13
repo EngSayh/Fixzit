@@ -10,7 +10,10 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Superadmin | Fixzit",
   description: "System administration access",
-  robots: "noindex, nofollow",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function SuperadminLayout({

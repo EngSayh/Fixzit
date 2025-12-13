@@ -8,7 +8,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { createHash } from "crypto";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   Issue,
   IssueCategory,
@@ -20,6 +22,7 @@ import {
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { getSuperadminSession } from "@/lib/superadmin/auth";
 
 // ============================================================================
 // TYPES
@@ -70,6 +73,49 @@ interface CreateIssueBody {
   labels?: string[];
   legacyId?: string;
   source?: string;
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function slugify(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+function deriveIssueKey(body: CreateIssueBody, issueId: string): string {
+  if (body.legacyId) return slugify(body.legacyId);
+  const location = body.location?.filePath ? `|${body.location.filePath}` : "";
+  return slugify(`${body.title}|${body.category}${location}`) || slugify(issueId);
+}
+
+function computeSourceHash(snippet: string, location?: string): string {
+  return createHash("sha256")
+    .update(`${location || "none"}::${snippet}`)
+    .digest("hex");
+}
+
+async function resolveIssueSession(request: NextRequest) {
+  const superadmin = await getSuperadminSession(request);
+  if (superadmin) {
+    return {
+      ok: true as const,
+      session: {
+        id: superadmin.username,
+        role: "super_admin",
+        orgId: superadmin.orgId,
+        email: superadmin.username,
+        isSuperAdmin: true,
+      },
+    };
+  }
+
+  return getSessionOrNull(request);
 }
 
 // ============================================================================
@@ -156,7 +202,7 @@ function buildSortQuery(query: ListQuery): SortSpec {
 
 export async function GET(request: NextRequest) {
   try {
-    const result = await getSessionOrNull(request);
+    const result = await resolveIssueSession(request);
     
     if (!result.ok) {
       return result.response;
@@ -212,20 +258,23 @@ export async function GET(request: NextRequest) {
       Issue.getStats(orgId),
     ]);
     
-    return NextResponse.json({
+    const payload = {
       success: true,
-      data: {
-        issues,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-          hasNext: page * limit < total,
-          hasPrev: page > 1,
-        },
-        stats,
+      issues,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
       },
+      stats,
+    };
+
+    return NextResponse.json({
+      ...payload,
+      data: payload,
     });
     
   } catch (error) {
@@ -242,8 +291,16 @@ export async function GET(request: NextRequest) {
 // ============================================================================
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 30 issue creations per minute
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "issues:create",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
-    const result = await getSessionOrNull(request);
+    const result = await resolveIssueSession(request);
     
     if (!result.ok) {
       return result.response;
@@ -312,13 +369,28 @@ export async function POST(request: NextRequest) {
     if (duplicates.length > 0) {
       // Update existing issue instead of creating duplicate
       const existing = duplicates[0];
+      const duplicateKey = deriveIssueKey(
+        body,
+        String((existing as any)?.issueId || body.legacyId || 'issue')
+      );
+      const evidenceSnippet = (body.description || body.title).split(/\s+/).slice(0, 40).join(" ");
+      const sourceHash = computeSourceHash(evidenceSnippet, body.location.filePath);
+      const now = new Date();
+
       await Issue.findByIdAndUpdate(existing._id, {
         $inc: { mentionCount: 1 },
-        $set: { lastSeenAt: new Date() },
+        $set: { 
+          lastSeenAt: now,
+          key: (existing as any).key || duplicateKey,
+          sourcePath: body.location.filePath,
+          sourceRef: body.module,
+          evidenceSnippet,
+          sourceHash,
+        },
         $push: {
           auditEntries: {
             sessionId: `manual-${Date.now()}`,
-            timestamp: new Date(),
+            timestamp: now,
             findings: body.description,
           },
         },
@@ -334,12 +406,17 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    // Generate issue ID
+    // Generate identifiers
     const issueId = await Issue.generateIssueId(body.category as typeof IssueCategory[keyof typeof IssueCategory]);
+    const key = deriveIssueKey(body, issueId);
+    const evidenceSnippet = (body.description || body.title).split(/\s+/).slice(0, 40).join(" ");
+    const sourceHash = computeSourceHash(evidenceSnippet, body.location.filePath);
     
     // Create new issue
     const issue = new Issue({
+      key,
       issueId,
+      externalId: body.legacyId,
       legacyId: body.legacyId,
       title: body.title,
       description: body.description,
@@ -359,6 +436,10 @@ export async function POST(request: NextRequest) {
       validation: body.validation,
       labels: body.labels || [],
       source: body.source || IssueSource.MANUAL,
+      sourcePath: body.location.filePath,
+      sourceRef: body.module,
+      evidenceSnippet,
+      sourceHash,
       reportedBy: session.email || session.id,
       orgId,
       sprintReady: !body.dependencies?.length,

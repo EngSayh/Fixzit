@@ -162,8 +162,10 @@ export function applySuperadminCookies(
   const sameSite: "lax" | "strict" = "lax";
 
   for (const path of COOKIE_PATHS) {
-    if ("cookies" in response && typeof (response as any).cookies.set === "function") {
-      (response as any).cookies.set(SUPERADMIN_COOKIE_NAME, token, {
+    // Response may be NextResponse with cookies API
+    const respWithCookies = response as Response & { cookies?: { set: (name: string, value: string, opts: Record<string, unknown>) => void } };
+    if (respWithCookies.cookies && typeof respWithCookies.cookies.set === "function") {
+      respWithCookies.cookies.set(SUPERADMIN_COOKIE_NAME, token, {
         httpOnly: true,
         secure,
         sameSite,
@@ -177,8 +179,10 @@ export function applySuperadminCookies(
 
 export function clearSuperadminCookies(response: Response): void {
   for (const path of COOKIE_PATHS) {
-    if ("cookies" in response && typeof (response as any).cookies.set === "function") {
-      (response as any).cookies.set(SUPERADMIN_COOKIE_NAME, "", {
+    // Response may be NextResponse with cookies API
+    const respWithCookies = response as Response & { cookies?: { set: (name: string, value: string, opts: Record<string, unknown>) => void } };
+    if (respWithCookies.cookies && typeof respWithCookies.cookies.set === "function") {
+      respWithCookies.cookies.set(SUPERADMIN_COOKIE_NAME, "", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",

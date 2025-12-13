@@ -16,6 +16,26 @@ import {
 } from "@/server/models/Issue";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { getSessionOrNull } from "@/lib/auth/safe-session";
+import { getSuperadminSession } from "@/lib/superadmin/auth";
+
+async function resolveStatsSession(request: NextRequest) {
+  const superadmin = await getSuperadminSession(request);
+  if (superadmin) {
+    return {
+      ok: true as const,
+      session: {
+        id: superadmin.username,
+        role: "super_admin",
+        orgId: superadmin.orgId,
+        email: superadmin.username,
+        isSuperAdmin: true,
+      },
+    };
+  }
+  return getSessionOrNull(request);
+}
+
+const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" } as const;
 
 // ============================================================================
 // GET /api/issues/stats
@@ -23,7 +43,7 @@ import { getSessionOrNull } from "@/lib/auth/safe-session";
 
 export async function GET(request: NextRequest) {
   try {
-    const result = await getSessionOrNull(request);
+    const result = await resolveStatsSession(request);
     
     if (!result.ok) {
       return result.response;
@@ -32,13 +52,13 @@ export async function GET(request: NextRequest) {
     const session = result.session;
     
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: ROBOTS_HEADER });
     }
     
     // Check for allowed roles
     const allowedRoles = ['super_admin', 'admin', 'developer'];
     if (!allowedRoles.includes(session.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: ROBOTS_HEADER });
     }
     
     await connectToDatabase();
@@ -52,6 +72,7 @@ export async function GET(request: NextRequest) {
       categoryCounts,
       effortCounts,
       moduleCounts,
+      fileCounts,
       quickWinsCount,
       staleCount,
       sprintReadyCount,
@@ -87,6 +108,24 @@ export async function GET(request: NextRequest) {
       Issue.aggregate([
         { $match: { orgId } },
         { $group: { _id: '$module', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 },
+      ]),
+      
+      // Top files with open issues
+      Issue.aggregate([
+        { 
+          $match: { 
+            orgId,
+            status: { $in: [
+              IssueStatus.OPEN,
+              IssueStatus.IN_PROGRESS,
+              IssueStatus.IN_REVIEW,
+              IssueStatus.BLOCKED,
+            ]},
+          },
+        },
+        { $group: { _id: '$location.filePath', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 },
       ]),
@@ -172,6 +211,11 @@ export async function GET(request: NextRequest) {
       byModule[item._id || 'unknown'] = item.count;
     }
     
+    const topLocations = fileCounts.map((item: any) => ({
+      filePath: item._id || 'unknown',
+      count: item.count,
+    }));
+    
     // Calculate totals
     const totalOpen = (byStatus[IssueStatus.OPEN] || 0) + 
                       (byStatus[IssueStatus.IN_PROGRESS] || 0) +
@@ -204,6 +248,7 @@ export async function GET(request: NextRequest) {
       byCategory,
       byEffort,
       byModule,
+      topLocations,
       
       quickWins: quickWinsCount,
       stale: staleCount,
@@ -221,13 +266,13 @@ export async function GET(request: NextRequest) {
     
     logger.info('[Issues Stats] Generated stats', { orgId: session.orgId, total });
     
-    return NextResponse.json(stats);
+    return NextResponse.json(stats, { headers: ROBOTS_HEADER });
     
   } catch (error) {
     logger.error('[Issues Stats] Error fetching stats', { error });
     return NextResponse.json(
       { error: 'Failed to fetch issue stats' },
-      { status: 500 }
+      { status: 500, headers: ROBOTS_HEADER }
     );
   }
 }

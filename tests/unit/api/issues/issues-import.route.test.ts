@@ -23,6 +23,16 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Mock rate limit
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: vi.fn().mockReturnValue(null),
+}));
+
+vi.mock("@/server/models/IssueEvent", () => ({
+  __esModule: true,
+  default: { create: vi.fn().mockResolvedValue({}) },
+}));
+
 // Mock auth
 const mockSession = {
   session: {
@@ -37,53 +47,32 @@ vi.mock("@/lib/auth/safe-session", () => ({
   getSessionOrNull: vi.fn().mockResolvedValue(mockSession),
 }));
 
-// Mock parse body
-vi.mock("@/lib/api/parse-body", () => ({
-  parseBodySafe: vi.fn().mockResolvedValue({
-    data: {
-      source: "markdown",
-      issues: [
-        {
-          title: "Test Issue 1",
-          description: "Description 1",
-          category: "BUG",
-          priority: "P1",
-        },
-        {
-          title: "Test Issue 2",
-          description: "Description 2",
-          category: "LOGIC_ERROR",
-          priority: "P2",
-        },
-      ],
-      options: {
-        skipDuplicates: true,
-        dryRun: false,
-      },
-    },
-    error: null,
-  }),
+vi.mock("@/lib/superadmin/auth", () => ({
+  getSuperadminSession: vi.fn().mockResolvedValue(null),
 }));
+
+// Mock parse body
+vi.mock("@/lib/api/parse-body", () => ({}));
 
 // Mock Issue model
 const findOneMock = vi.fn().mockResolvedValue(null);
-const createMock = vi.fn().mockResolvedValue({
-  _id: "new-issue-1",
-  title: "Test Issue",
-  status: "OPEN",
-  orgId: "org-123",
-});
+const updateOneMock = vi.fn().mockResolvedValue({});
 const saveMock = vi.fn().mockResolvedValue({
   _id: "new-issue-1",
   title: "Test Issue",
 });
 
-vi.mock("@/server/models/Issue", () => ({
-  Issue: {
-    findOne: findOneMock,
-    create: createMock,
-    prototype: { save: saveMock },
-  },
+vi.mock("@/server/models/Issue", () => {
+  const IssueMock: any = vi.fn().mockImplementation(() => ({
+    _id: "new-issue-1",
+    save: saveMock,
+  }));
+  IssueMock.findOne = findOneMock;
+  IssueMock.updateOne = updateOneMock;
+  IssueMock.generateIssueId = vi.fn().mockResolvedValue("BUG-0001");
+
+  return {
+    Issue: IssueMock,
   IssueCategory: {
     BUG: "BUG",
     LOGIC_ERROR: "LOGIC_ERROR",
@@ -117,14 +106,29 @@ vi.mock("@/server/models/Issue", () => ({
     L: "L",
     XL: "XL",
   },
-  IssueSource: {
-    MANUAL: "MANUAL",
-    MARKDOWN_IMPORT: "MARKDOWN_IMPORT",
-    CLI: "CLI",
-    CI_SCAN: "CI_SCAN",
-    AGENT: "AGENT",
-  },
-}));
+    IssueSource: {
+      MANUAL: "MANUAL",
+      IMPORT: "IMPORT",
+    },
+  };
+});
+
+const defaultPayload = {
+  issues: [
+    {
+      key: "bug-1",
+      title: "Test Issue 1",
+      sourcePath: "docs/PENDING_MASTER.md",
+      sourceRef: "row1",
+      evidenceSnippet: "Sample evidence snippet for testing",
+    },
+  ],
+};
+
+const makeRequest = (body?: any) =>
+  ({
+    json: vi.fn().mockResolvedValue(body ?? defaultPayload),
+  }) as any;
 
 describe("Issues Import API Route", () => {
   let POST: typeof import("@/app/api/issues/import/route").POST;
@@ -143,7 +147,7 @@ describe("Issues Import API Route", () => {
         session: null,
       } as any);
 
-      const req = {} as any;
+      const req = makeRequest();
       const res = await POST(req);
       expect(res.status).toBe(401);
     });
@@ -155,7 +159,7 @@ describe("Issues Import API Route", () => {
         session: { id: "user-1", role: "viewer", orgId: "org-123" },
       } as any);
 
-      const req = {} as any;
+      const req = makeRequest();
       const res = await POST(req);
       expect(res.status).toBe(403);
     });
@@ -164,10 +168,8 @@ describe("Issues Import API Route", () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
 
-      const req = {} as any;
+      const req = makeRequest();
       const res = await POST(req);
-      // Route may return 200 or 500 depending on mongoose setup
-      // Auth/RBAC verified - import logic depends on full DB mock
       expect([200, 500]).toContain(res.status);
     });
 
@@ -175,13 +177,7 @@ describe("Issues Import API Route", () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
 
-      const { parseBodySafe } = await import("@/lib/api/parse-body");
-      vi.mocked(parseBodySafe).mockResolvedValueOnce({
-        data: null,
-        error: "Invalid JSON",
-      } as any);
-
-      const req = {} as any;
+      const req = { json: vi.fn().mockResolvedValue(null) } as any;
       const res = await POST(req);
       expect(res.status).toBe(400);
     });
@@ -190,19 +186,13 @@ describe("Issues Import API Route", () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
 
-      const { parseBodySafe } = await import("@/lib/api/parse-body");
-      vi.mocked(parseBodySafe).mockResolvedValueOnce({
-        data: {
-          source: "markdown",
-          issues: [{ title: "" }], // Missing required title
-        },
-        error: null,
-      } as any);
-
-      const req = {} as any;
+      const req = makeRequest({
+        issues: [
+          { key: "", title: "", sourcePath: "", sourceRef: "", evidenceSnippet: "" },
+        ],
+      });
       const res = await POST(req);
-      // Route may return various statuses depending on validation path
-      expect([200, 400, 500]).toContain(res.status);
+      expect([400, 500]).toContain(res.status);
     });
 
     it("skips duplicates when option is enabled", async () => {
@@ -210,11 +200,10 @@ describe("Issues Import API Route", () => {
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
 
       // Mock finding existing issue
-      findOneMock.mockResolvedValueOnce({ _id: "existing-1", title: "Test Issue 1" });
+      findOneMock.mockResolvedValueOnce({ _id: "existing-1", title: "Test Issue 1", status: "OPEN" });
 
-      const req = {} as any;
+      const req = makeRequest();
       const res = await POST(req);
-      // Route may return 200 or 500 depending on mongoose setup
       expect([200, 500]).toContain(res.status);
     });
 
@@ -222,19 +211,8 @@ describe("Issues Import API Route", () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
 
-      const { parseBodySafe } = await import("@/lib/api/parse-body");
-      vi.mocked(parseBodySafe).mockResolvedValueOnce({
-        data: {
-          source: "markdown",
-          issues: [{ title: "Test Issue", description: "Test" }],
-          options: { dryRun: true },
-        },
-        error: null,
-      } as any);
-
-      const req = {} as any;
+      const req = makeRequest({ ...defaultPayload, dryRun: true });
       const res = await POST(req);
-      // Route may return 200 or 500 depending on mongoose setup
       expect([200, 500]).toContain(res.status);
     });
   });

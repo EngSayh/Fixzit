@@ -23,6 +23,15 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Mock rate limit
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: vi.fn().mockReturnValue(null),
+}));
+
+vi.mock("@/lib/superadmin/auth", () => ({
+  getSuperadminSession: vi.fn().mockResolvedValue(null),
+}));
+
 // Mock auth
 const mockSession = {
   session: {

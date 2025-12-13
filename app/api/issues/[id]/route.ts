@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { logger } from '@/lib/logger';
+import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 import { 
   Issue,
   IssueStatus, 
@@ -17,9 +18,29 @@ import {
   IssueEffort,
   IssueStatusType,
 } from '@/server/models/Issue';
+import IssueEvent from '@/server/models/IssueEvent';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { parseBodySafe } from '@/lib/api/parse-body';
+import { getSuperadminSession } from '@/lib/superadmin/auth';
+
+async function resolveIssueSession(request: NextRequest) {
+  const superadmin = await getSuperadminSession(request);
+  if (superadmin) {
+    return {
+      ok: true as const,
+      session: {
+        id: superadmin.username,
+        role: 'super_admin',
+        orgId: superadmin.orgId,
+        email: superadmin.username,
+        isSuperAdmin: true,
+      },
+    };
+  }
+
+  return getSessionOrNull(request);
+}
 
 // ============================================================================
 // GET /api/issues/[id]
@@ -30,7 +51,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const result = await getSessionOrNull(request);
+    const result = await resolveIssueSession(request);
     
     if (!result.ok) {
       return result.response;
@@ -62,6 +83,9 @@ export async function GET(
         { error: 'Issue not found' },
         { status: 404 }
       );
+    }
+    if (!(issue as any).key) {
+      (issue as any).key = issue.issueId || (await params).id;
     }
     
     // Get related issues
@@ -130,8 +154,16 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Rate limit: 60 updates per minute
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "issues:update",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
-    const result = await getSessionOrNull(request);
+    const result = await resolveIssueSession(request);
     
     if (!result.ok) {
       return result.response;
@@ -157,6 +189,9 @@ export async function PATCH(
     }
     const body = bodyResult.data!;
     const orgId = new mongoose.Types.ObjectId(session.orgId);
+    let statusChanged = false;
+    let previousStatus: IssueStatusType | null = null;
+    let nextStatus: IssueStatusType | null = null;
     
     // Find issue
     const issue = await Issue.findOne({
@@ -183,12 +218,14 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      
+      previousStatus = issue.status as IssueStatusType;
+      nextStatus = body.status as IssueStatusType;
       await issue.changeStatus(
         body.status as IssueStatusType,
         session.email || session.id,
         body.statusReason
       );
+      statusChanged = true;
       delete body.status;
       delete body.statusReason;
     }
@@ -245,6 +282,18 @@ export async function PATCH(
       await issue.save();
     }
     
+    if (statusChanged && previousStatus && nextStatus) {
+      await IssueEvent.create({
+        issueId: issue._id,
+        key: (issue as any).key,
+        type: nextStatus === IssueStatus.RESOLVED ? "RESOLVED" : "STATUS_CHANGED",
+        sourceRef: "manual-update",
+        sourceHash: issue.sourceHash,
+        orgId,
+        metadata: { from: previousStatus, to: nextStatus },
+      });
+    }
+    
     return NextResponse.json({
       success: true,
       data: { issue },
@@ -267,8 +316,16 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Rate limit: 10 deletions per minute
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "issues:delete",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
-    const result = await getSessionOrNull(request);
+    const result = await resolveIssueSession(request);
     
     if (!result.ok) {
       return result.response;
@@ -281,7 +338,7 @@ export async function DELETE(
     }
     
     // Only super_admin can delete
-    if (session.role !== 'SUPER_ADMIN') {
+    if (session.role !== 'SUPER_ADMIN' && session.role !== 'super_admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     

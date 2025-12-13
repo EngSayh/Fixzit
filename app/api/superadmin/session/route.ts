@@ -6,76 +6,45 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createHmac } from "crypto";
 import { logger } from "@/lib/logger";
-
-const SUPERADMIN_JWT_SECRET = process.env.SUPERADMIN_JWT_SECRET || process.env.NEXTAUTH_SECRET || "default-secret-change-in-production";
-
-interface TokenPayload {
-  sub: string;
-  role: string;
-  iat: number;
-  exp: number;
-}
-
-function verifyToken(token: string): TokenPayload | null {
-  try {
-    const [payloadStr, signature] = token.split(".");
-    if (!payloadStr || !signature) return null;
-
-    // Verify signature
-    const expectedSignature = createHmac("sha256", SUPERADMIN_JWT_SECRET)
-      .update(payloadStr)
-      .digest("base64url");
-    
-    if (signature !== expectedSignature) return null;
-
-    // Decode payload
-    const payload = JSON.parse(Buffer.from(payloadStr, "base64url").toString()) as TokenPayload;
-
-    // Check expiration
-    if (payload.exp < Date.now()) return null;
-
-    return payload;
-  } catch {
-    return null;
-  }
-}
+import { decodeSuperadminToken, SUPERADMIN_COOKIE_NAME } from "@/lib/superadmin/auth";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(_request: NextRequest) {
+  // Rate limit: 60 requests per minute for session checks
+  const rateLimitResponse = enforceRateLimit(_request, {
+    keyPrefix: "superadmin:session",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
+  const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("superadmin_token")?.value;
+    const cookieHeader = _request.cookies.get(SUPERADMIN_COOKIE_NAME)?.value;
+    const payload = await decodeSuperadminToken(cookieHeader);
 
-    if (!token) {
-      return NextResponse.json(
-        { authenticated: false, error: "No session" },
-        { status: 401 }
-      );
-    }
-
-    const payload = verifyToken(token);
     if (!payload) {
       return NextResponse.json(
-        { authenticated: false, error: "Invalid or expired session" },
-        { status: 401 }
+        { authenticated: false, error: "No session" },
+        { status: 401, headers: ROBOTS_HEADER }
       );
     }
 
     return NextResponse.json({
       authenticated: true,
       user: {
-        username: payload.sub,
+        username: payload.username,
         role: payload.role,
       },
-      expiresAt: new Date(payload.exp).toISOString(),
-    });
+      orgId: payload.orgId,
+      expiresAt: new Date(payload.expiresAt).toISOString(),
+    }, { headers: ROBOTS_HEADER });
   } catch (error) {
     logger.error("[SUPERADMIN] Session check error", error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { authenticated: false, error: "Session verification failed" },
-      { status: 500 }
+      { status: 500, headers: ROBOTS_HEADER }
     );
   }
 }
