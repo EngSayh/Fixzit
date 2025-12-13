@@ -14,6 +14,7 @@
  * @throws {403} If organization context missing
  */
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
@@ -147,7 +148,19 @@ export async function POST(request: NextRequest) {
     }
     const orgIdStr = orgId;
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<{
+      action?: "initialize" | "receive";
+      listingId?: string;
+      productId?: string;
+      quantity?: number;
+      fulfillmentType?: string;
+      warehouseId?: string;
+      binLocation?: string;
+      reason?: string;
+    }>(request, { logPrefix: "[Souq Inventory]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const {
       action,
       listingId,
@@ -157,16 +170,7 @@ export async function POST(request: NextRequest) {
       warehouseId,
       binLocation,
       reason,
-    } = body as {
-      action?: "initialize" | "receive";
-      listingId?: string;
-      productId?: string;
-      quantity?: number;
-      fulfillmentType?: string;
-      warehouseId?: string;
-      binLocation?: string;
-      reason?: string;
-    };
+    } = body ?? {};
     const actionType = action ?? "receive";
     if (!["initialize", "receive"].includes(actionType)) {
       return NextResponse.json(

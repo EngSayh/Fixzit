@@ -29,6 +29,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 type BudgetDocument = {
   _id: ObjectId;
   orgId: string; // AUDIT-2025-11-26: Changed from org_id to orgId for consistency
+  unitId?: string;
   name: string;
   department: string;
   allocated: number;
@@ -38,6 +39,7 @@ type BudgetDocument = {
 };
 
 type BudgetPayload = {
+  unitId?: string;
   name?: string;
   department?: string;
   allocated?: number;
@@ -56,12 +58,19 @@ const sanitizePayload = (payload: BudgetPayload) => {
   ) {
     sanitized.allocated = payload.allocated;
   }
+  if (typeof payload.unitId === "string") {
+    const trimmed = payload.unitId.trim();
+    if (trimmed) sanitized.unitId = trimmed;
+  }
   if (payload.currency)
     sanitized.currency = payload.currency.trim().toUpperCase();
   return sanitized;
 };
 
 const validatePayload = (payload: BudgetPayload): string | null => {
+  if (payload.unitId !== undefined && !payload.unitId) {
+    return "Unit is required";
+  }
   if (!payload.name) return "Name is required";
   if (!payload.department) return "Department is required";
   if (typeof payload.allocated !== "number" || payload.allocated <= 0)
@@ -76,9 +85,72 @@ const mapBudget = (doc: BudgetDocument) => ({
   department: doc.department,
   allocated: doc.allocated,
   currency: doc.currency,
+  unitId: doc.unitId,
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
 });
+
+const normalizeUnits = (units?: string[] | null): string[] =>
+  (units ?? [])
+    .map((unit) => unit?.toString?.().trim())
+    .filter(Boolean) as string[];
+
+const resolveUnitScope = (params: {
+  requestedUnitId?: string | null;
+  actorUnits: string[];
+  isSuperAdmin?: boolean;
+}): { unitIds?: string[]; resolvedUnitId?: string; error?: NextResponse } => {
+  const { requestedUnitId, actorUnits, isSuperAdmin } = params;
+  const requested = requestedUnitId?.toString().trim();
+
+  if (isSuperAdmin) {
+    if (requested) return { unitIds: [requested], resolvedUnitId: requested };
+    return {};
+  }
+
+  const hasActorUnits = actorUnits.length > 0;
+  const allowedSet = hasActorUnits ? new Set(actorUnits) : null;
+
+  if (requested) {
+    if (allowedSet && !allowedSet.has(requested)) {
+      return {
+        error: NextResponse.json(
+          {
+            success: false,
+            error: "Unit access denied",
+          },
+          { status: 403 },
+        ),
+      };
+    }
+    return { unitIds: [requested], resolvedUnitId: requested };
+  }
+
+  if (hasActorUnits) {
+    if (actorUnits.length === 1) {
+      return { unitIds: actorUnits, resolvedUnitId: actorUnits[0] };
+    }
+    return {
+      error: NextResponse.json(
+        {
+          success: false,
+          error: "Unit context required for budgets",
+        },
+        { status: 400 },
+      ),
+    };
+  }
+
+  return {
+    error: NextResponse.json(
+      {
+        success: false,
+        error: "Unit context required for budgets",
+      },
+      { status: 400 },
+    ),
+  };
+};
 
 export async function GET(req: NextRequest) {
   const rateLimitResponse = enforceRateLimit(req, {
@@ -116,7 +188,19 @@ export async function GET(req: NextRequest) {
     );
     const q = searchParams.get("q");
 
-    const query: Record<string, unknown> = { ...buildTenantFilter(tenantId) }; // AUDIT-2025-11-27: Handle cross-tenant mode
+    const actorUnits = normalizeUnits((actor as { units?: string[] }).units);
+    const unitScope = resolveUnitScope({
+      requestedUnitId: searchParams.get("unitId"),
+      actorUnits,
+      isSuperAdmin: actor.isSuperAdmin,
+    });
+    if (unitScope.error) return unitScope.error;
+
+    const query: Record<string, unknown> = {
+      ...buildTenantFilter(tenantId, "orgId", {
+        unitIds: unitScope.unitIds,
+      }),
+    }; // AUDIT-2025-11-27: Handle cross-tenant mode
     // SEC-001 FIX: Use $and pattern for search to prevent overwriting role-based filters
     if (q) {
       const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -196,10 +280,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const actorUnits = normalizeUnits((actor as { units?: string[] }).units);
+    const unitScope = resolveUnitScope({
+      requestedUnitId: payload.unitId,
+      actorUnits,
+      isSuperAdmin: actor.isSuperAdmin,
+    });
+    if (unitScope.error) return unitScope.error;
+
     const now = new Date();
     const doc: BudgetDocument = {
       _id: new ObjectId(),
       orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
+      unitId: unitScope.resolvedUnitId,
       name: payload.name!,
       department: payload.department!,
       allocated: payload.allocated!,

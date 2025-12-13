@@ -15,6 +15,7 @@
  */
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { auth } from "@/auth";
@@ -80,8 +81,11 @@ export async function POST(request: Request) {
 
     await connectToDatabase();
 
-    const body = await request.json();
-    const { name, name_ar, slug, logo } = body;
+    const { data: body, error: parseError } = await parseBodySafe<{ name?: string; name_ar?: string; slug?: string; logo?: string }>(request, { logPrefix: "[Souq Brands]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { name, name_ar, slug, logo } = body ?? {};
 
     if (!name || !slug) {
       return NextResponse.json(

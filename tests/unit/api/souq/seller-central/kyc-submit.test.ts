@@ -99,6 +99,26 @@ describe("/api/souq/seller-central/kyc/submit", () => {
       );
       expect(res.status).toBe(403);
     });
+
+    it("returns 403 when role is not seller/vendor", async () => {
+      currentSession = {
+        user: {
+          id: SELLER_ID,
+          orgId: ORG_ID,
+          email: "seller@example.com",
+          role: "ADMIN",
+        },
+      };
+
+      const res = await POST(
+        createRequest({
+          step: "company_info",
+          data: { companyName: "Test Inc" },
+        }),
+      );
+
+      expect(res.status).toBe(403);
+    });
   });
 
   describe("Validation", () => {
