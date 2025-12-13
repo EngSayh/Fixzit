@@ -11,11 +11,12 @@
  */
 
 import mongoose from "mongoose";
-import { logger } from "@/lib/logger";
+// Use relative paths for standalone script execution
+import { logger } from "../lib/logger";
 
 // Import all models that need index sync
-import { Issue } from "@/server/models/Issue";
-import IssueEvent from "@/server/models/IssueEvent";
+import { Issue } from "../server/models/Issue";
+import IssueEvent from "../server/models/IssueEvent";
 
 const MODELS_TO_SYNC = [
   { name: "Issue", model: Issue },
@@ -48,7 +49,7 @@ async function syncIndexes() {
         // List created indexes
         const indexes = await model.collection.indexes();
         console.log(`   ✅ ${name}: ${indexes.length} indexes`);
-        indexes.forEach((idx) => {
+        indexes.forEach((idx: { key: Record<string, unknown>; name?: string; unique?: boolean }) => {
           const keys = Object.keys(idx.key).join(", ");
           const unique = idx.unique ? " (unique)" : "";
           console.log(`      - ${idx.name}: [${keys}]${unique}`);

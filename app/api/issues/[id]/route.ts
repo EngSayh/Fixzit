@@ -91,6 +91,7 @@ export async function GET(
     // Get related issues
     const relatedIssues = issue.relatedIssues?.length
       ? await Issue.find({
+          orgId,
           _id: { $in: issue.relatedIssues.map((r) => r.issueId) },
         })
           .select('issueId title status priority')

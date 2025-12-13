@@ -1,7 +1,18 @@
 # Fixzit Phase 2/3 Backlog Audit
 
 **Generated**: 2025-12-13  
-**Status**: Phase 1 MVP ✅ Merge-Ready | Phase 2/3 Backlog Documented
+**Status**: Phase 1 MVP ⚠️ test fix pending (billing/history 401→400) | Phase 2/3 Backlog Documented  
+**Tests**: 2553/2594 passing (1 failing; `pnpm vitest run --bail 1 --reporter=dot`)
+
+---
+
+## Open Items (SSOT snapshot)
+
+| Key | Title | Priority | Status | Source |
+|-----|-------|----------|--------|--------|
+| `add-rate-limiting-to-superadmin-routes` | Add enforceRateLimit to superadmin auth/session routes | P1 | Pending | docs/PENDING_MASTER.md:134-137 |
+| `add-rate-limiting-to-issues-api-routes` | Add enforceRateLimit to Issues API routes | P1 | Pending | docs/PENDING_MASTER.md:135-137 |
+| `billing-history-missing-org-returns-401` | Billing history returns 401 instead of 400 when org missing | P1 | Pending | tests/api/billing/history.route.test.ts:57-65 |
 
 ---
 
@@ -9,7 +20,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests** | 3309/3309 passing (100%) |
+| **Tests** | 2553/2594 passing (1 failing: /api/billing/history) |
 | **TypeScript** | 0 errors |
 | **ESLint** | 0 errors |
 | **Production Readiness** | 99.8% |
@@ -25,10 +36,10 @@
 | **ID** | `add-rate-limiting-to-superadmin-routes` |
 | **Category** | security |
 | **Module** | superadmin |
-| **Status** | ✅ IMPLEMENTED |
+| **Status** | 🟡 PARTIAL |
 | **Effort** | 30 minutes |
 | **Files** | `app/api/superadmin/session/route.ts`, `app/api/superadmin/logout/route.ts` |
-| **Notes** | Login already has rate limiting. Session and logout routes now protected. |
+| **Notes** | Login uses in-memory limiter; session/logout use `enforceRateLimit`. Add shared middleware + regression tests for consistency. |
 
 ### P1-002: Add Rate Limiting to Issues API Routes
 | Field | Value |
@@ -36,10 +47,10 @@
 | **ID** | `add-rate-limiting-to-issues-api-routes` |
 | **Category** | security |
 | **Module** | issues-api |
-| **Status** | ✅ IMPLEMENTED |
+| **Status** | 🔄 PENDING |
 | **Effort** | 30 minutes |
 | **Files** | `app/api/issues/route.ts`, `app/api/issues/[id]/route.ts`, `app/api/issues/import/route.ts`, `app/api/issues/stats/route.ts` |
-| **Notes** | All Issues API POST/PATCH/DELETE methods now rate-limited. |
+| **Notes** | Write methods have rate limits; GET/Stats/Import remain open. Add `enforceRateLimit` + tests across Issues routes. |
 
 ---
 
@@ -64,8 +75,8 @@
 | **Module** | crm |
 | **Status** | ✅ IMPLEMENTED |
 | **Effort** | 4 hours |
-| **Files** | `tests/unit/api/crm/contacts.route.test.ts`, `tests/unit/api/crm/leads.route.test.ts`, `tests/unit/api/crm/accounts.route.test.ts`, `tests/unit/api/crm/overview.route.test.ts` |
-| **Coverage** | CRUD operations, RBAC, tenant isolation |
+| **Files** | `tests/unit/api/crm/crm.test.ts` |
+| **Coverage** | RBAC validation (24 tests), tenant isolation, data model verification |
 
 ### P2-003: Expand Souq Test Coverage
 | Field | Value |
