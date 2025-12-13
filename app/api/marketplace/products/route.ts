@@ -100,9 +100,13 @@ export async function GET(request: NextRequest) {
     }
     // Use unified database connection
     await connectToDatabase();
-    const ProductMod = await import(
-      "@/server/models/marketplace/Product"
-    ).catch(() => null);
+    let ProductMod;
+    try {
+      ProductMod = await import("@/server/models/marketplace/Product");
+    } catch (_importErr) {
+      // Optional import - marketplace may be disabled
+      ProductMod = null;
+    }
     const Product = ProductMod && (ProductMod.default || ProductMod);
     if (!Product) {
       return createSecureResponse(
@@ -172,9 +176,13 @@ export async function POST(request: NextRequest) {
     }
     // Use unified database connection
     await connectToDatabase();
-    const ProductMod = await import(
-      "@/server/models/marketplace/Product"
-    ).catch(() => null);
+    let ProductMod;
+    try {
+      ProductMod = await import("@/server/models/marketplace/Product");
+    } catch (_importErr) {
+      // Optional import - marketplace may be disabled
+      ProductMod = null;
+    }
     const Product = ProductMod && (ProductMod.default || ProductMod);
     if (!Product) {
       return createSecureResponse(

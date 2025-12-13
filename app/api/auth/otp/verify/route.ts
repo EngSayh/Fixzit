@@ -134,10 +134,22 @@ export async function POST(request: NextRequest) {
       // Corporate login - resolve org from company code
       await connectToDatabase();
       const { Organization } = await import("@/server/models/Organization");
-      const org = await Organization.findOne({ code: normalizedCompanyCode })
-        .select({ _id: 1, orgId: 1 })
-        .lean<{ _id?: { toString: () => string }; orgId?: string }>()
-        .catch(() => null);
+      let org: { _id?: { toString: () => string }; orgId?: string } | null = null;
+      try {
+        org = await Organization.findOne({ code: normalizedCompanyCode })
+          .select({ _id: 1, orgId: 1 })
+          .lean<{ _id?: { toString: () => string }; orgId?: string }>();
+      } catch (dbErr) {
+        // Log DB/infra error and return 503
+        logger.error("[OTP Verify] DB error during org lookup", {
+          error: dbErr instanceof Error ? dbErr.message : "Unknown",
+          code: normalizedCompanyCode,
+        });
+        return NextResponse.json(
+          { success: false, error: "Service temporarily unavailable" },
+          { status: 503 },
+        );
+      }
 
       if (!org) {
         logger.warn("[OTP Verify] Invalid company code", {
