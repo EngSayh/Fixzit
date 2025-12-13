@@ -172,10 +172,10 @@ Time          Status   Duration   Error
 mongodb+srv://<user>:<password>@<host>/<db>?retryWrites=true&w=majority&appName=Fixzit
 ```
 
-**Components**:
+**Components** (redacted credentials):
 
-- **Username**: `EngSayh` ✅
-- **Password**: `EngSayh@1985` (URL-encoded as `EngSayh%401985`) ✅
+- **Username**: `<redacted>` ✅
+- **Password**: `<redacted>` ✅
 - **Cluster**: `fixzit.vgfiiff.mongodb.net` ✅
 - **Database**: `fixzit` ✅
 - **Options**: `retryWrites=true&w=majority&appName=Fixzit` ✅
@@ -188,6 +188,8 @@ MONGODB_URI    Encrypted    Production    3h ago
 ```
 
 ✅ **Configured**: Present in Vercel production environment
+
+⚠️ **Required for production**: `AWS_REGION`, `AWS_S3_BUCKET` (no fallbacks) and SuperAdmin rotation envs `SUPERADMIN_USERNAME`, `SUPERADMIN_PASSWORD`. Rotation script fails fast if these are missing to prevent accidental defaults.
 
 #### Network Access Status
 

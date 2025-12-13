@@ -282,10 +282,18 @@ Should have "readWrite" role on "fixzit" database
 
 ```bash
 cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
-echo 'MONGODB_URI=mongodb+srv://EngSayh:EngSayh%401985@fixzit.vgfiiff.mongodb.net/fixzit' > .env.local
+echo 'MONGODB_URI=mongodb+srv://<username>:<password>@fixzit.vgfiiff.mongodb.net/fixzit' > .env.local
 pnpm dev
 # Should connect successfully
 ```
+
+**Required production envs (no fallbacks):**
+- `AWS_REGION`
+- `AWS_S3_BUCKET`
+- `SUPERADMIN_USERNAME`
+- `SUPERADMIN_PASSWORD`
+
+The SuperAdmin rotation script (`pnpm exec tsx scripts/update-superadmin-credentials.ts`) will fail fast if these are missing to avoid unsafe defaults.
 
 ---
 

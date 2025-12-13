@@ -1,119 +1,33 @@
-# AI Agents Documentation
+# Fixizit - Agent Working Agreement (Codex + VS Code)
 
-This document provides guidelines for AI agents (GitHub Copilot, Claude, etc.) working on the Fixzit codebase.
+## Mission
+Eliminate false positives. Ship best-practice, evidence-backed fixes only.
 
-## Quick Start
+## Anti-false-positive rules
+- Do not hallucinate: never invent files/symbols/configs/results.
+- Every issue must cite exact code (file + line range) OR tool output.
+- Classify each item: CONFIRMED (>=80%), FALSE POSITIVE, NEEDS EVIDENCE.
+- For NEEDS EVIDENCE: stop for that item and list exact commands/outputs required.
 
-1. **Read the rules**: See `.github/copilot-instructions.md` for comprehensive guidelines
-2. **Check memory**: Review `ai-memory/master-index.json` for established patterns
-3. **Create branch**: Never work on main/master directly
-4. **Verify changes**: Run typecheck, lint, and tests before committing
+## Fix order (best practice)
+1) Fix config/resolution first (TS project, ESLint working directory, workspace root, stale servers).
+2) Then fix code analyzability/correctness (types/guards/tenant scope/RBAC).
+3) Last resort: narrow single-line suppression with justification + TODO. Never blanket-disable.
 
-## Memory-First Workflow
+## Fixizit invariants (apply when relevant)
+- Tenant isolation: org_id scope (+ property_owner_id where applicable)
+- RBAC: fixed 14 roles only (no invented roles)
+- Finance: Decimal128 storage; precision-safe calculations; compliance only when implementation exists
+- UI: design tokens + RTL/i18n consistency
 
-Before starting any complex task:
+## Output
+Single Markdown report with unified diffs + validation commands (do not assume results).
+End with: "Merge-ready for Fixizit Phase 1 MVP."
 
-```bash
-# Check memory system health
-node tools/memory-selfcheck.js
-
-# Review existing patterns
-cat ai-memory/master-index.json | jq '.entries[] | select(.type == "pattern")'
-
-# Search for relevant conventions
-grep -r "keyword" ai-memory/
-```
-
-## File Organization
-
-```
-Fixzit/
-├── ai-memory/              # AI memory system
-│   ├── master-index.json   # Consolidated knowledge base
-│   ├── batches/            # Source code batches for processing
-│   ├── outputs/            # AI-generated extractions
-│   └── backups/            # Auto-backups of master index
-├── tools/
-│   ├── smart-chunker.js    # Create batches from repo
-│   ├── merge-memory.js     # Merge outputs into index
-│   └── memory-selfcheck.js # Validate memory system
-├── lib/
-│   ├── sms-providers/      # SMS integration (Taqnyat only)
-│   └── ...
-└── .github/
-    └── copilot-instructions.md  # Comprehensive AI rules
-```
-
-## Key Conventions
-
-### SMS Integration
-- **Only Taqnyat** is supported as SMS provider
-- No Twilio, Unifonic, Nexmo, or AWS SNS
-- See `lib/sms-providers/taqnyat.ts` for implementation
-
-### Translation Keys
-- Format: `module.category.key`
-- Example: `finance.payment.bankName`
-- Always add to both EN and AR catalogs
-
-### Git Workflow
-- Branch naming: `feat/<task>`, `fix/<issue>`, `agent/<timestamp>`
-- Commit format: `<type>(<scope>): <subject>`
-- Always open PR, never push to main
-
-### Verification Gates
-```bash
-pnpm typecheck  # Must pass with 0 errors
-pnpm lint       # Must pass with 0 errors
-pnpm test       # All tests must pass
-```
-
-## Memory Pipeline Commands
-
-### Generate Batches
-```bash
-node tools/smart-chunker.js
-# Creates ai-memory/batches/batch-XXX.txt
-```
-
-### Merge Outputs
-```bash
-node tools/merge-memory.js
-# Merges ai-memory/outputs/*.json into master-index.json
-```
-
-### Validate System
-```bash
-node tools/memory-selfcheck.js      # Check only
-node tools/memory-selfcheck.js --fix # Auto-fix issues
-```
-
-## VS Code Tasks
-
-Access via Command Palette (Cmd+Shift+P) > Tasks: Run Task:
-
-- `AI Memory: Chunk Repository`
-- `AI Memory: Merge Outputs`
-- `AI Memory: Selfcheck`
-- `AI Memory: Selfcheck (Fix)`
-- `Build: Typecheck`
-- `Build: Lint`
-- `Test: Unit Tests`
-
-## Error Handling
-
-If you encounter issues:
-
-1. **TypeScript errors**: Fix all, never use `// @ts-ignore`
-2. **Lint errors**: Fix all, document warnings if acceptable
-3. **Test failures**: Fix tests, don't skip without justification
-4. **Memory corruption**: Restore from `ai-memory/backups/`
-
-## Contact
-
-For questions about AI integration, see the Engineering Team.
-
----
-
-**Last Updated**: 2025-01-01
-**Version**: 1.0
+## Manual chat prompt (when not using /fixizit-audit)
+Audit the selected/open files and Problems panel items using the Fixizit Evidence Protocol:
+1) Build an Issues Ledger (source + verbatim message + file+lines).
+2) Quote exact triggering code for each item and classify: CONFIRMED (>=80%), FALSE POSITIVE, or NEEDS EVIDENCE.
+3) Patch CONFIRMED items only using best-practice root fixes (config -> code -> narrow suppression with justification).
+4) Output ONE Markdown report with unified diffs, full updated files (only changed), and validation commands (do not assume results).
+End with "Merge-ready for Fixizit Phase 1 MVP."

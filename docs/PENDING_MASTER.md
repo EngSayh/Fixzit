@@ -1945,7 +1945,7 @@ All critical P0/P1 items have been verified and resolved. The codebase is in a *
 ### 🧩 Enhancements / Bugs / Logic / Missing Tests (Prod Readiness)
 | Type | Item | Location | Action |
 |------|------|----------|--------|
-| Security | Hardcoded SuperAdmin credentials + login URL | scripts/update-superadmin-credentials.ts:9-107 | Move username/password to required env vars with fail-fast; rotate any existing accounts; remove console echo of live credentials; add CI grep to block `EngSayh`/`EngSayh@1985` literals. |
+| Security | Hardcoded SuperAdmin credentials + login URL | scripts/update-superadmin-credentials.ts:9-107 | Move username/password to required env vars with fail-fast; rotate any existing accounts; remove console echo of live credentials; add CI grep to block legacy literals. |
 | Logic | Souq fraud/returns rule windows hardcoded (fraud thresholds, high-value caps, late-reporting/return days) | services/souq/claims/investigation-service.ts:20-41, services/souq/returns-service.ts:273-290 | Centralize in config per org/tenant; persist editable rule set; validate non-zero windows; expose admin override instead of static defaults. |
 | Efficiency | Sequential DB/notification work in Souq flows | services/souq/returns-service.ts, services/souq/claims/investigation-service.ts | Batch DB reads and notifications with Promise.all; share org scope; measure before/after latency for returns/claims flows. |
 | Bugs | S3 bucket default uses hardcoded `fixzit-uploads` fallback (prod risk) | lib/config/constants.ts:233-255, .env.example:457, docs/deployment/DEPLOYMENT_CHECKLIST.md:114 | Require bucket/region envs in production; add schema validation; align docs/env samples to mandatory values; add guard test to fail on fallback. |
@@ -18935,3 +18935,49 @@ No critical blockers remaining. Production is fully operational.
 - Auth abstraction drift: some routes now rely on `getSessionUser` (RBAC wrapper) while legacy tests still mock `@/auth`. Updating test fixtures to mock RBAC helpers avoids 401s; audit other API tests for the same mismatch (e.g., souq sellers/deals, onboarding routes) to keep expectations aligned.
 - Late-fee rounding: the helper in `tests/unit/aqar/property-management.test.ts` showed time-of-day inflation. If production rent invoicing uses similar `Math.ceil` on millis, it could overcharge; review domain implementations under `services/aqar` for consistent day-level calculations and add tests.
 - Org upload scoping: the scan/verify routes depend on `buildOrgAwareRateLimitKey`; missing mocks caused 500s. Ensure future org-scoped upload tests include both rate-limit key and session/token mocks so infra guards don't mask validation failures.
+## 🗓️ 2025-12-13T15:54+03:00 — Scan Tokens & E2E Gate v28.6
+
+### 📍 Current Progress & Planned Next Steps
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| Branch | `docs/pending-v60` | ✅ Active |
+| Commands | `pnpm typecheck`, `pnpm lint`, `SKIP_PLAYWRIGHT=true pnpm test`, `pnpm vitest run tests/unit/api/upload/scan-status.test.ts tests/unit/api/upload/org-scope.test.ts` | ✅ Partial (E2E skipped by flag) |
+| Scope | Per-org scan tokens, org-scoped upload enforcement, gate verification | ✅ Landed |
+| Typecheck/Lint/Tests | typecheck ✅; lint ✅; unit ✅; test:models ✅; Playwright e2e ⏭️ Skipped via SKIP_PLAYWRIGHT=true | ⚠️ Needs rerun without skip |
+
+- Progress: Documented per-org scan-status tokens in `.env.example` + `.env.test.example`; ensured scan/status/verify upload routes enforce tenant-prefixed keys; unit suites for org scoping and token auth are green. Full `pnpm test` passed with Playwright skipped via `SKIP_PLAYWRIGHT=true` after prior dev-server hang.
+- Next steps: Populate real tenant-token mapping in env (`SCAN_STATUS_TOKENS_BY_ORG` JSON or `SCAN_STATUS_TOKEN_ORG[_ID]` + `SCAN_STATUS_TOKEN`), clear skip flags, rerun `pnpm test:e2e` (or `PW_USE_BUILD=true PW_SKIP_BUILD=true pnpm test:e2e` if dev-server stalls). Keep clients consuming presign keys (already tenant-prefixed).
+
+### 🔧 Enhancements & Production Readiness
+
+#### Efficiency Improvements
+| Item | Status | Notes |
+|------|--------|-------|
+| Early reject unscoped S3 keys | ✅ Done | Shared validator short-circuits before S3/DB for scan/verify/status routes. |
+
+#### Bugs
+| ID | Location | Issue | Status |
+|----|----------|-------|--------|
+| BUG-1708 | app/api/upload/verify-metadata/route.ts:37-119 | Allowed arbitrary keys, leaking metadata across tenants. | 🟢 Fixed |
+| BUG-1709 | app/api/upload/scan/route.ts:44-92 | AV scans ran on unvalidated keys. | 🟢 Fixed |
+| BUG-1710 | app/api/upload/scan-status/route.ts:106-209 | Status lookup bypassed org scoping. | 🟢 Fixed |
+
+#### Logic Errors
+| ID | Location | Issue | Status |
+|----|----------|-------|--------|
+| LOGIC-124 | app/api/upload/scan-status/route.ts:83-210 | Static token not namespaced to tenant; cross-tenant polling risk. | 🟢 Fixed |
+| LOGIC-125 | app/api/upload/verify-metadata/route.ts:46-119 | Org-aware rate limit without org-bound key enforcement. | 🟢 Fixed |
+
+#### Missing Tests
+| Area | Gap | Status |
+|------|-----|--------|
+| Upload metadata/scan | Cross-tenant rejection + org-bound signing tests. | ✅ Added |
+| Scan token auth | Per-tenant token match/mismatch coverage. | ✅ Added |
+| Playwright e2e | Full suite with skip flags off. | ⏳ Pending rerun (prior timeout) |
+
+### 🔍 Deep-Dive: Similar/Identical Issue Patterns
+
+- Upload flows now require tenant-prefixed keys via `validateOrgScopedKey`; this pattern should be mirrored in any future upload/status endpoints to avoid regressions.
+- Token-based polling is now per-tenant; environments must supply either a JSON map (`SCAN_STATUS_TOKENS_BY_ORG`) or org+token pair. Missing/mismatched tokens return 401, blocking cross-tenant leakage.
+- Playwright gate remains the only unchecked path; previous hangs were in dev-server startup within `scripts/run-playwright.sh`. If reproducible, flip to build mode (`PW_USE_BUILD=true PW_SKIP_BUILD=true`) to bypass dev-server flakiness.
