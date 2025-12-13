@@ -149,25 +149,54 @@ const shouldAutoProvisionAuthSecret =
   IS_CI ||
   SKIP_CONFIG_VALIDATION;
 
-// Only run crypto operations on server-side
-if (!IS_BROWSER && !process.env.NEXTAUTH_SECRET && shouldAutoProvisionAuthSecret) {
-  const seed =
-    process.env.AUTH_SECRET ||
-    process.env.VERCEL_DEPLOYMENT_ID ||
-    process.env.VERCEL_PROJECT_ID ||
-    process.env.VERCEL_URL ||
-    process.env.VERCEL_BRANCH_URL ||
-    process.env.VERCEL_GIT_COMMIT_SHA ||
-    "fixzit-preview-fallback-secret";
+function resolveAuthSecret(): string {
+  if (IS_BROWSER) {
+    return (
+      process.env.NEXTAUTH_SECRET ||
+      process.env.AUTH_SECRET ||
+      "dev-secret-change-in-production"
+    );
+  }
 
-  process.env.NEXTAUTH_SECRET = createHash("sha256")
-    .update(seed)
-    .digest("hex");
+  const providedSecret =
+    process.env.NEXTAUTH_SECRET?.trim() || process.env.AUTH_SECRET?.trim();
 
-  logger.warn(
-    "[Config] NEXTAUTH_SECRET missing; generated a temporary secret for build/preview environments. Configure a real secret for production deployments.",
+  if (providedSecret) {
+    process.env.NEXTAUTH_SECRET = providedSecret;
+    if (!process.env.AUTH_SECRET) {
+      process.env.AUTH_SECRET = providedSecret;
+    }
+    return providedSecret;
+  }
+
+  if (shouldAutoProvisionAuthSecret) {
+    const seed =
+      process.env.AUTH_SECRET ||
+      process.env.VERCEL_DEPLOYMENT_ID ||
+      process.env.VERCEL_PROJECT_ID ||
+      process.env.VERCEL_URL ||
+      process.env.VERCEL_BRANCH_URL ||
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      "fixzit-preview-fallback-secret";
+
+    const generatedSecret = createHash("sha256").update(seed).digest("hex");
+    process.env.NEXTAUTH_SECRET = generatedSecret;
+    if (!process.env.AUTH_SECRET) {
+      process.env.AUTH_SECRET = generatedSecret;
+    }
+
+    logger.warn(
+      "[Config] NEXTAUTH_SECRET missing; generated a temporary secret for build/preview environments. Configure a real secret for production deployments.",
+    );
+    return generatedSecret;
+  }
+
+  throw new ConfigurationError(
+    "Required environment variable NEXTAUTH_SECRET (or AUTH_SECRET) is not set",
   );
 }
+
+const resolvedAuthSecret = resolveAuthSecret();
 
 /**
  * Get required environment variable (throws if missing in production)
@@ -248,7 +277,7 @@ export const Config = {
    * NextAuth / Authentication
    */
   auth: {
-    secret: getRequiredWithBuildSkip("NEXTAUTH_SECRET", "dev-secret-change-in-production"),
+    secret: resolvedAuthSecret,
     url: getOptional("NEXTAUTH_URL", "http://localhost:3000"),
 
     // Google OAuth

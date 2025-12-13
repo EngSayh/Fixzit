@@ -107,11 +107,7 @@
 			"type": "shell",
 			"command": "git status && echo '---' && git log --oneline -3"
 		},
-		{
-			"label": "Commit and Push",
-			"type": "shell",
-			"command": "git checkout -b agent/session-20251212-0330 2>&1 || echo 'Branch exists or on main' && git add docs/PENDING_MASTER.md && git commit -m 'docs: Update PENDING_MASTER to v14.4 with verification audit' && git push -u origin HEAD 2>&1 || echo 'Push may require auth'"
-		},
+
 		{
 			"label": "Final Git Status",
 			"type": "shell",
@@ -207,26 +203,13 @@
 			"type": "shell",
 			"command": "git log --oneline -1 2>&1 | head -5"
 		},
-		{
-			"label": "Commit No Verify",
-			"type": "shell",
-			"command": "git commit --no-verify -m 'fix(security): XSS hardening + BUG-009 fix + PENDING_MASTER v14.9'"
-		},
-		{
-			"label": "Push Changes",
-			"type": "shell",
-			"command": "git status --porcelain && git add .vscode/tasks.json && git commit --no-verify -m 'chore: Update VS Code tasks' && git push origin HEAD"
-		},
+
 		{
 			"label": "Check Status After",
 			"type": "shell",
 			"command": "git log --oneline -3 && git status -s"
 		},
-		{
-			"label": "Final Commit",
-			"type": "shell",
-			"command": "git add -A && git commit --no-verify -m 'chore: Update tasks.json and billing tests' && git push origin HEAD 2>&1 | tail -10"
-		},
+
 		{
 			"label": "Final Status",
 			"type": "shell",
@@ -297,11 +280,7 @@
 			"type": "shell",
 			"command": "find app/api -name 'route.ts' -type f | wc -l && echo '---' && find tests/api -name '*.test.ts' -type f 2>/dev/null | wc -l"
 		},
-		{
-			"label": "Commit v15.0",
-			"type": "shell",
-			"command": "git add docs/PENDING_MASTER.md && git commit --no-verify -m 'docs: Update PENDING_MASTER to v15.0 with deep dive scan' -m 'SESSION 2025-12-12T18:30:' -m '- Full codebase scan for production readiness' -m '- API test coverage gap: 6.4% (23/357 routes)' -m '- dangerouslySetInnerHTML: 10 instances, ALL SAFE' -m '- TypeScript escapes: 1 justified instance' -m '- ESLint disables: 20+ all documented' -m '- JSON.parse safety audit complete' && git push origin HEAD 2>&1 | tail -10"
-		},
+
 		{
 			"label": "Verify Commit",
 			"type": "shell",
@@ -312,11 +291,7 @@
 			"type": "shell",
 			"command": "git push origin HEAD 2>&1 | tail -15"
 		},
-		{
-			"label": "Force Push",
-			"type": "shell",
-			"command": "git push origin agent/process-efficiency-2025-12-11 --force-with-lease 2>&1 | tail -20"
-		},
+
 		{
 			"label": "Run New Tests",
 			"type": "shell",

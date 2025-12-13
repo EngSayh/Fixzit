@@ -471,15 +471,33 @@ class TapPaymentsClient {
       const hmac = crypto.createHmac("sha256", this.config.webhookSecret);
       const calculatedSignature = hmac.update(payload).digest("hex");
 
-      const isValid = calculatedSignature === signature;
+      // SEC-TAP-001: Use timing-safe comparison to prevent timing attacks
+      // Both signatures must be same length for timingSafeEqual
+      const calcBuffer = Buffer.from(calculatedSignature, "hex");
+      const sigBuffer = Buffer.from(signature, "hex");
+
+      // Length check first (not timing-sensitive since attacker controls signature)
+      if (calcBuffer.length !== sigBuffer.length) {
+        logger.error(
+          "Invalid webhook signature",
+          new Error("Signature length mismatch"),
+          {
+            providedLength: sigBuffer.length,
+            expectedLength: calcBuffer.length,
+          },
+        );
+        return false;
+      }
+
+      const isValid = crypto.timingSafeEqual(calcBuffer, sigBuffer);
 
       if (!isValid) {
         logger.error(
           "Invalid webhook signature",
           new Error("Signature mismatch"),
           {
-            provided: signature,
-            calculated: calculatedSignature,
+            // Don't log actual signatures in production to avoid leaking info
+            signatureProvided: true,
           },
         );
       }

@@ -84,6 +84,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "pm:plans:patch" });
   let orgId: string;
   try {
     const user = await getSessionUser(request);
@@ -173,6 +174,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "pm:plans:delete" });
   let orgId: string;
   try {
     const user = await getSessionUser(request);
