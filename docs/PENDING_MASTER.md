@@ -1,3 +1,279 @@
+## 🗓️ 2025-12-13T19:45+03:00 — Phase 1 Complete: Silent JSON Parse Hardening v63.0
+
+### 📍 Current Progress
+
+**Completed This Session:**
+- ✅ Replaced `.json().catch(() => ({}))` anti-pattern with `parseBodySafe` utility across **28 API routes**
+- ✅ All routes now return **400 Bad Request** on malformed JSON (fail-closed)
+- ✅ Added correlation ID logging for parse failures (observability)
+- ✅ Fixed TypeScript errors in `aqar/listings/route.ts` (listingPayload typing)
+- ✅ All verification gates passed: TypeScript (0 errors), ESLint (0 errors), git hooks (passed)
+- ✅ Pushed commits `8fcd7df5e` and `696b7bd05` to `docs/pending-v60` branch
+
+**Commits:**
+```
+696b7bd05 fix(aqar): Add proper typing to listingPayload to include intent field
+8fcd7df5e fix(reliability): Replace silent JSON parsing with parseBodySafe in 28 routes
+```
+
+**Routes Fixed (28 total):**
+| Module | Routes |
+|--------|--------|
+| FM | `work-orders`, `work-orders/[id]/comments`, `work-orders/[id]/transition`, `properties` (2 occurrences) |
+| Upload | `scan`, `scan-status`, `verify-metadata`, `presigned-url` |
+| Help | `ask`, `articles/[id]`, `articles/[id]/comments`, `escalate` |
+| Onboarding | `initiate`, `[caseId]`, `[caseId]/documents/request-upload`, `[caseId]/documents/confirm-upload`, `documents/[id]/review` |
+| Admin | `billing/annual-discount`, `feature-flags` |
+| Other | `billing/quote`, `i18n`, `jobs/process`, `souq/reviews/[id]/helpful`, `kb/search`, `kb/ingest`, `files/resumes/presign`, `trial-request`, `auth/verify/send` |
+
+### 🚧 Planned Next Steps
+
+| # | Priority | Task | Status |
+|---|----------|------|--------|
+| 1 | **P0** | Apply auth infra-aware helper to 20+ routes with `getSessionUser(...).catch(() => null)` | ⏳ Not Started |
+| 2 | **P1** | Commit remaining uncommitted files (9 modified, 4 new test files) | ⏳ Not Started |
+| 3 | **P1** | Add missing module tests (Souq 51 gap, Admin 22 gap, FM 17 gap) | ⏳ Not Started |
+| 4 | **P2** | Split large route files (>400 lines): auth/otp/send, payments/tap/webhook, search | ⏳ Not Started |
+
+### 🛠️ Enhancements for Production Readiness
+
+#### Efficiency Improvements
+| Item | Description | Impact | Status |
+|------|-------------|--------|--------|
+| `parseBodySafe` utility | Centralized JSON parsing with logging + correlation IDs | Reduced boilerplate, standardized 400s | ✅ Complete |
+| Silent parse audit | Reduced from 29 occurrences to 1 (acceptable: HTTP response parsing) | Data integrity | ✅ Complete |
+| Lint guard | `lint:json-fallbacks --strict` blocks new inline parsers in CI | Regression prevention | ✅ Active |
+
+#### Identified Bugs
+| ID | Severity | Location | Description | Status |
+|----|----------|----------|-------------|--------|
+| BUG-003 | 🟠 High | 28 routes | `.json().catch(() => ({}))` swallows parse errors | ✅ **FIXED** |
+| BUG-006 | 🟠 High | 20+ routes | `getSessionUser(...).catch(() => null)` masks auth infra failures as 401 | 🔴 TODO |
+| BUG-007 | 🟡 Medium | 9 uncommitted files | Previous session changes not yet committed | 🔴 TODO |
+
+#### Logic Errors
+| ID | Location | Issue | Recommended Fix | Status |
+|----|----------|-------|-----------------|--------|
+| LOGIC-005 | 20+ upload/help/onboarding routes | Auth failure treated as 401 (masks 503 infra errors) | Apply `getSessionOrError` wrapper | 🔴 TODO |
+| LOGIC-006 | `admin/notifications/test/route.ts:165` | HTTP response parsing uses `.catch(() => ({}))` | Acceptable (external response) | ✅ N/A |
+
+#### Missing Tests
+| Category | Description | Priority | Status |
+|----------|-------------|----------|--------|
+| Negative-path | JSON parse failure → 400 for updated routes | P1 | ⏳ Partially covered |
+| Auth-infra | Auth store failure → 503 for routes with `getSessionOrError` | P1 | 🔴 TODO |
+| Module coverage | 51 Souq routes, 22 Admin routes, 17 FM routes need tests | P1-P2 | 🔴 TODO |
+
+### 🔍 Deep-Dive: Similar/Identical Issue Patterns
+
+#### Pattern 1: Auth Infra Masking (20+ routes)
+**Location**: Routes using `getSessionUser(req).catch(() => null)`
+**Issue**: Auth service outages incorrectly return 401 (Unauthorized) instead of 503 (Service Unavailable)
+**Impact**: False positive auth failures during infrastructure issues; user confusion
+**Files Affected**:
+- `upload/verify-metadata/route.ts` (lines 38, 75)
+- `upload/scan-status/route.ts` (lines 117, 164)
+- `upload/scan/route.ts` (line 45)
+- `help/context/route.ts`, `help/ask/route.ts`, `help/articles/route.ts`, `help/escalate/route.ts`
+- `onboarding/route.ts`, `onboarding/initiate/route.ts`, `onboarding/[caseId]/route.ts` (2 occurrences)
+- `onboarding/documents/[id]/review/route.ts`, `onboarding/[caseId]/complete-tutorial/route.ts`
+- `onboarding/[caseId]/documents/confirm-upload/route.ts`, `onboarding/[caseId]/documents/request-upload/route.ts`
+- `kb/search/route.ts`, `souq/search/route.ts`, `cms/pages/[slug]/route.ts`
+- `work-orders/[id]/attachments/presign/route.ts`
+
+**Recommendation**: Create `getSessionOrError` utility that throws typed errors, allowing routes to distinguish between auth failure (401) and infra failure (503).
+
+#### Pattern 2: Uncommitted Session Changes (9 files)
+**Location**: Modified files from previous session
+**Issue**: Changes not committed may be lost or conflict with future work
+**Files**:
+- `app/api/aqar/packages/route.ts`
+- `app/api/auth/test/session/route.ts`
+- `app/api/files/resumes/[file]/route.ts`
+- `app/api/fm/finance/budgets/[id]/route.ts`
+- `app/api/fm/reports/process/route.ts`
+- `app/api/projects/route.ts`
+- `app/api/vendor/apply/route.ts`
+- `server/middleware/subscriptionCheck.ts`
+
+**New Files**:
+- `lib/api/health.ts`
+- `tests/unit/api/aqar-packages/`
+- `tests/unit/api/fm/reports/`
+- `tests/unit/api/upload/presigned-url.error.test.ts`
+- `tests/unit/api/vendor-apply/`
+
+**Recommendation**: Review and commit these changes in next session.
+
+#### Pattern 3: Test Coverage Gaps
+**Analysis**: 352 API routes, 268 test files
+**Gaps by Module**:
+| Module | Routes | Estimated Tests | Gap |
+|--------|--------|-----------------|-----|
+| Souq | 75 | 24 | 51 |
+| Admin | 28 | 6 | 22 |
+| FM | 25 | 8 | 17 |
+| Aqar | 16 | 5 | 11 |
+
+**Recommendation**: Prioritize P0 security tests (orgId leakage), then P1 reliability tests (DB/auth failures).
+
+### 📊 Session Statistics
+
+| Metric | Value |
+|--------|-------|
+| Files Modified | 29 |
+| Lines Added | 226 |
+| Lines Removed | 46 |
+| Routes Hardened | 28 |
+| TypeScript Errors Fixed | 5 |
+| Commits Pushed | 2 |
+| Silent Parse Patterns Remaining | 1 (acceptable) |
+| Auth Masking Patterns Remaining | 20+ |
+
+### 🧪 Verification Commands
+
+```bash
+# Verify TypeScript
+pnpm typecheck
+
+# Verify linting
+pnpm lint
+
+# Run tests
+pnpm vitest run --reporter=dot
+
+# Check remaining silent JSON patterns
+grep -rn "\.json()\.catch" app/api --include="*.ts"
+
+# Check auth masking patterns
+grep -rn "getSessionUser.*\.catch.*=> null" app/api --include="*.ts" | wc -l
+```
+
+---
+
+## 🗓️ 2025-12-13T14:33+03:00 — Silent Handling Hardening & Negative Tests v62.2
+
+### 📍 Current Progress
+- Hardened silent failure points: vendor apply now fails closed on DB connect errors; upload presign returns 503 on auth service failures; Aqar packages/listings use safe JSON parsing; FM budgets PATCH and projects API reject malformed JSON; resume download surfaces auth/storage errors with logging; subscription middleware distinguishes auth vs infra failures; FM reports worker short-circuits on AV scan outages and returns 503.
+- Added negative-path unit tests for DB/auth/parser/AV failures: vendor apply DB down, upload presign auth failure, Aqar packages malformed JSON, FM reports AV scanner offline.
+
+### 🚧 Planned Next Steps
+- Roll the telemetry-aware session helper to remaining upload/help/onboarding/settings routes still showing silent auth fallbacks in git status.
+- Extend safe parser adoption to remaining upload/scan/verify-metadata routes and ensure CI `lint:json-fallbacks` stays clean.
+- Add coverage for resume download storage failures in integration tests and surface AV scan health in monitoring/dashboards.
+
+### 🧪 Tests
+- `pnpm vitest run tests/unit/api/vendor-apply/route.test.ts tests/unit/api/upload/presigned-url.error.test.ts tests/unit/api/aqar-packages/parse-error.test.ts tests/unit/api/fm/reports/process-av.test.ts`
+
+## 🗓️ 2025-12-13T14:20+03:00 — JSON Parser & Auth Infra Guard Rollout
+
+### 📍 Current Progress
+
+- Added shared JSON parser with telemetry (`lib/api/parse-json.ts`); replaced inline fallbacks in:
+  - `/api/billing/quote`
+  - `/api/help/escalate`
+  - `/api/fm/work-orders/[id]/transition`
+  - Upload flows: `/api/upload/presigned-url`, `/api/upload/verify-metadata`, `/api/upload/scan`, `/api/upload/scan-status`
+  - Help articles/comments: `/api/help/articles/[id]`, `/api/help/articles/[id]/comments`
+- Introduced auth infra-aware helper (`lib/auth/safe-session.ts`) and applied to upload flows, help escalation, help articles/comments, and subscription middleware (503 on auth store failures instead of 401).
+- Added ops metrics logging for tenant-config load failures (`metric: tenant_config_load_failure`) and trial-request persistence (`metric: trial_request_persist_failure`), plus DLQ webhook fallback for trial-request when DB is down.
+- Added automated check script for silent JSON fallbacks: `npm run lint:json-fallbacks` (supports `--strict` to fail) and wired `lint:json-fallbacks --strict` into `lint:ci`.
+- Tests: `pnpm vitest tests/unit/api/auth-test-session.route.test.ts tests/unit/api/trial-request/route.test.ts tests/unit/lib/config/tenant.server.test.ts tests/api/souq/claims-get-error.route.test.ts` ✅
+
+### 📋 Planned Next Steps
+
+| # | Priority | Task |
+|---|----------|------|
+| 1 | **P0** | Roll shared JSON parser across remaining inline fallbacks (help list/context, Aqar listings/packages, FM budgets, projects test API, upload presign variants). |
+| 2 | **P0** | Apply auth infra-aware helper to onboarding/upload/settings logo/subscription-adjacent routes to distinguish 503 vs 401. |
+| 3 | **P1** | Keep `lint:json-fallbacks --strict` in CI and add allowlist only where absolutely necessary. |
+| 4 | **P1** | Add alerts/dashboards for tenant_config_load_failure, trial_request_persist_failure/DLQ sends, and auth store outage (503) events. |
+| 5 | **P2** | Extend negative-path tests for new parser/auth helper coverage (malformed JSON, auth store failures, DLQ webhook failure). |
+
+### 🛠️ Enhancements for Production Readiness
+
+**Efficiency**
+- Shared JSON parser removes per-route parsing boilerplate and standardizes responses/telemetry.
+- `lint:json-fallbacks` provides automated detection of silent parse fallbacks; enforced in CI.
+
+**Identified Bugs**
+- Remaining inline `req.json().catch(() => ({}|null))` still exist (help list/context, Aqar listings/packages, FM budgets, projects test API, upload presign variants). Risk: malformed JSON proceeds with defaults. Recommendation: migrate to shared parser.
+- Auth failures vs infra failures not yet separated in onboarding/upload/settings routes; outages still appear as 401. Recommendation: adopt `getSessionOrError` wrapper and log 503 with metric.
+
+**Logic Errors**
+- Trial-request now DLQs to webhook on DB failure; ensure webhook is set in prod or replace with durable queue.
+- Tenant-config callers still need to handle thrown errors; ensure upstream APIs map to 503 or explicit tenant-missing.
+
+**Missing Tests**
+- Add parser negative-path tests for updated routes and upcoming migrations.
+- Add auth-infra failure tests for routes adopting `getSessionOrError`.
+- Add DLQ webhook success/failure tests for trial-request when env is set.
+
+### 🔍 Deep-Dive: Similar/Identical Issue Patterns
+
+- **JSON parse fallbacks** remain across help listings/context, Aqar, FM budgets, projects test API, and upload flows; migrate to shared parser to avoid silent defaults.
+- **Auth infra masking** persists where `getSessionUser(...).catch(() => null)` is still used (onboarding/upload/settings/subscription-adjacent). Apply new helper to surface 503 on infra failure.
+- **Trial-request resilience**: DB outage now 503 + DLQ webhook; similar pattern could be applied to other public submission endpoints (e.g., vendor apply) to avoid silent drops.
+- **Tenant-config failures** now logged with metric; ensure dashboard/alerting consumes `tenant_config_load_failure` to avoid silent tenant degradation.
+
+### 🧭 Optional Enhancements
+
+- Add health-hints JSON in 503 responses (`code`, `retryable`, `traceId`) to speed triage.
+- Per-tenant feature flag to disable test-only endpoints (e.g., `/api/auth/test/session`) in shared/stage environments.
+- Promote trial-request DLQ to a durable queue writer (instead of webhook) to avoid drops during DB outages.
+- Add admin dashboard cards for tenant-config load status and last successful refresh.
+
+---
+
+## 🗓️ 2025-12-13T14:45+03:00 — Parser/Auth Rollout Progress & Health Hints
+
+### 📍 Current Progress
+
+- Extended shared JSON parser + auth infra-aware helper to upload flows (`presigned-url`, `verify-metadata`, `scan`, `scan-status`) and help articles/comments; subscription middleware now surfaces auth-store failures as 503.
+- Added health-hints helper (`lib/api/health.ts`) returning 503 with `code`, `retryable`, and `traceId`; applied to `/api/auth/test/session` and `/api/trial-request`.
+- `/api/auth/test/session`: now enforce allowed orgs via `TEST_SESSION_ALLOWED_ORGS`; returns 404 if org not allowed; 503s now include health hints.
+- `/api/trial-request`: DB failures now log metric, attempt webhook DLQ, and append to durable file DLQ (`TRIAL_REQUEST_DLQ_FILE`, default `_artifacts/trial-request-dlq.jsonl`), then return health-hinted 503.
+- CI: `lint:ci` now runs `lint:json-fallbacks --strict` to block new inline parsers.
+- Tests after this batch not yet rerun; prior targeted suite still passing.
+
+### 📋 Planned Next Steps
+
+| # | Priority | Task |
+|---|----------|------|
+| 1 | **P0** | Finish migrating remaining inline JSON fallbacks (help list/context, Aqar listings/packages, FM budgets, projects test API, remaining upload/onboarding routes). |
+| 2 | **P0** | Apply auth infra-aware helper to onboarding, settings logo, and remaining upload/subscription-adjacent routes; ensure 503 on auth-store outages. |
+| 3 | **P1** | Add alerts/dashboards for `tenant_config_load_failure`, `trial_request_persist_failure`, DLQ send/file write failures, and auth-store 503 events. |
+| 4 | **P1** | Add health-hints to other 503 surfaces (e.g., AV scan/config failures) and propagate traceId into logs. |
+| 5 | **P2** | Add durable queue option for trial-request DLQ beyond webhook/file (e.g., Redis/BQ/Kafka) and extend negative-path tests for parser/auth/health hints. |
+
+### 🛠️ Enhancements for Production Readiness
+
+**Efficiency**
+- Shared parser reduces per-route boilerplate; lint guard prevents regressions.
+- Health-hint helper standardizes 503 responses for faster triage.
+
+**Identified Bugs**
+- Remaining inline `req.json().catch(() => ({}|null))` in help list/context, Aqar listings/packages, FM budgets, projects test API, onboarding/upload variants. Risk: malformed JSON proceeds with defaults. Recommendation: migrate to shared parser.
+- Auth infra vs auth failure separation incomplete (onboarding/settings/upload remnants). Risk: outages look like 401. Recommendation: roll out `getSessionOrError`.
+
+**Logic Errors**
+- Trial-request DLQ webhook/file is best-effort; without durable queue, leads can still drop if both fail. Recommendation: add queue-backed DLQ.
+- Test-session endpoint gated by org; ensure staging/shared envs set `TEST_SESSION_ALLOWED_ORGS` to avoid accidental exposure.
+
+**Missing Tests**
+- Add negative-path tests for new parser/auth/health-hint behaviors (malformed JSON, auth-store failure, DLQ webhook/file failure).
+- Add tests for allowed-org gating on `/api/auth/test/session`.
+- Add tests for health-hint payload presence on 503 responses in routes using the helper.
+
+### 🔍 Deep-Dive: Similar/Identical Issue Patterns
+
+- **JSON parse fallbacks**: still present in help list/context, Aqar listings/packages, FM budgets, projects test API, and onboarding/upload flows. Apply shared parser + lint guard to eliminate silent defaults.
+- **Auth infra masking**: routes still using `getSessionUser(...).catch(() => null)` (onboarding, settings logo, remaining upload/subscription checks) will misclassify infra outages as 401. Roll out `getSessionOrError`.
+- **DLQ resilience**: trial-request now writes webhook + file; vendor-apply and other public submission endpoints should mirror durable DLQ to avoid silent drops during DB outages.
+- **Health hints**: currently on auth test session and trial-request; extend to AV scan/config 503s (upload scan, FM reports), tenant-config callers, and other infra-dependent routes for consistent triage.
+
+---
+
 ## 🗓️ 2025-12-13T17:30+03:00 — Comprehensive AI Improvement Analysis v62.2
 
 ### 📊 Executive Summary
