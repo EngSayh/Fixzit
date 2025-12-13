@@ -397,6 +397,44 @@ git diff --stat # 4 files: tap-payments.ts, tasks.json, pm/plans/[id]/route.ts, 
 
 ---
 
+### 2025-12-14 00:02 (Asia/Riyadh) — 🚨 P0 PRODUCTION OUTAGE: NEXTAUTH_SECRET Missing
+**Context:** main | 2f6fe64ab | Vercel production deployment broken  
+**DB Sync:** BACKLOG_AUDIT.json updated (CONFIG-002 added as P0 pending)
+
+**🔴 CRITICAL NEW ISSUE (P0):**
+- **CONFIG-002 — NEXTAUTH_SECRET missing in Vercel production**
+  - **Impact:** Complete production outage on fixzit.co - all pages throw ConfigurationError
+  - **Evidence:** Browser console error: `ConfigurationError: [Config Error] Required environment variable NEXTAUTH_SECRET is not set`
+  - **Location:** Vercel project environment variables
+  - **Root Cause:** NEXTAUTH_SECRET not configured in Vercel deployment settings
+  - **Resolution Required:**
+    ```bash
+    # In Vercel Dashboard > fixzit-frontend > Settings > Environment Variables
+    # Add:
+    # Variable: NEXTAUTH_SECRET
+    # Value: [generate with: openssl rand -base64 32]
+    # Environments: Production, Preview, Development
+    # Then redeploy
+    ```
+  - **Risk Tags:** PRODUCTION-DOWN, AUTH, CRITICAL
+  - **Effort:** XS (5 minutes)
+  - **Priority:** P0 (URGENT - blocking all users)
+
+**📊 Updated Backlog Summary:**
+| Metric | Value |
+|--------|-------|
+| Total Open | 9 (was 8) |
+| P0 Critical | 1 (CONFIG-002) ⚠️ |
+| P1 High | 0 |
+| P2 Medium | 4 |
+| P3 Low | 4 |
+
+**Next Steps (ONLY from DB items above):**
+- **IMMEDIATE:** Fix CONFIG-002 - Add NEXTAUTH_SECRET to Vercel and redeploy
+- SSOT import — rerun `pnpm issue-log import docs/BACKLOG_AUDIT.json` once API is reachable.
+
+---
+
 ### 2025-12-14 23:57 (Asia/Riyadh) — v65.27 Quick Wins Completion: TEST-005 + REF-003
 **Context:** main | dd1d94a4e | Quick wins sprint completed  
 **DB Sync:** BACKLOG_AUDIT.json updated (ready for import when server available)
