@@ -88,7 +88,7 @@ describe("/api/souq/seller-central/kyc/submit", () => {
   describe("Authorization", () => {
     it("returns 403 when orgId is missing", async () => {
       currentSession = {
-        user: { id: SELLER_ID, email: "seller@example.com" },
+        user: { id: SELLER_ID, email: "seller@example.com", role: "VENDOR" },
       };
 
       const res = await POST(
@@ -124,7 +124,7 @@ describe("/api/souq/seller-central/kyc/submit", () => {
   describe("Validation", () => {
     beforeEach(() => {
       currentSession = {
-        user: { id: SELLER_ID, orgId: ORG_ID, email: "seller@example.com" },
+        user: { id: SELLER_ID, orgId: ORG_ID, email: "seller@example.com", role: "VENDOR" },
       };
     });
 
@@ -196,7 +196,7 @@ describe("/api/souq/seller-central/kyc/submit", () => {
   describe("KYC Submission Flow", () => {
     beforeEach(() => {
       currentSession = {
-        user: { id: SELLER_ID, orgId: ORG_ID, email: "seller@example.com" },
+        user: { id: SELLER_ID, orgId: ORG_ID, email: "seller@example.com", role: "VENDOR" },
       };
     });
 
@@ -210,12 +210,15 @@ describe("/api/souq/seller-central/kyc/submit", () => {
         }),
       );
 
-      expect(mockSubmitKYC).toHaveBeenCalledWith({
-        sellerId: SELLER_ID,
-        orgId: ORG_ID,
-        step: "company_info",
-        data,
-      });
+      expect(mockSubmitKYC).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sellerId: SELLER_ID,
+          orgId: ORG_ID,
+          vendorId: SELLER_ID,
+          step: "company_info",
+          data,
+        }),
+      );
     });
 
     it("returns nextStep guidance after company_info", async () => {
@@ -261,7 +264,7 @@ describe("/api/souq/seller-central/kyc/submit", () => {
   describe("Error Handling", () => {
     beforeEach(() => {
       currentSession = {
-        user: { id: SELLER_ID, orgId: ORG_ID, email: "seller@example.com" },
+        user: { id: SELLER_ID, orgId: ORG_ID, email: "seller@example.com", role: "VENDOR" },
       };
     });
 
