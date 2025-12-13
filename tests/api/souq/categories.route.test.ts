@@ -58,6 +58,8 @@ const importRoute = async () => {
 describe("API /api/souq/categories", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset rate limit mock to allow requests through
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
 
   describe("GET - List Categories", () => {
