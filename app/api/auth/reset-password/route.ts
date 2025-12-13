@@ -16,6 +16,7 @@ import { verifyPasswordResetToken } from "@/lib/auth/passwordReset";
 import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { getClientIP } from "@/server/security/headers";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
@@ -56,7 +57,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json().catch(() => ({}));
+    const { data: body, error: parseError } = await parseBodySafe(req, { logPrefix: "[reset-password]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     
     // Validate input
     const parseResult = resetSchema.safeParse(body);
