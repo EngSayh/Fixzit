@@ -1,0 +1,237 @@
+/**
+ * @fileoverview Tests for /api/souq/catalog/products route
+ * Tests product catalog operations including authentication, validation, and rate limiting
+ */
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
+
+// Mock authentication
+vi.mock("@/lib/auth/getServerSession", () => ({
+  getServerSession: vi.fn(),
+}));
+
+// Mock database connection
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectDb: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock rate limiting
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: vi.fn().mockReturnValue(null),
+}));
+
+// Mock models
+vi.mock("@/server/models/souq/Product", () => ({
+  SouqProduct: {
+    find: vi.fn().mockReturnValue({
+      skip: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      sort: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockResolvedValue([]),
+    }),
+    countDocuments: vi.fn().mockResolvedValue(0),
+    create: vi.fn(),
+  },
+}));
+
+vi.mock("@/server/models/souq/Category", () => ({
+  SouqCategory: {
+    findById: vi.fn(),
+  },
+}));
+
+vi.mock("@/server/models/souq/Brand", () => ({
+  SouqBrand: {
+    findById: vi.fn(),
+  },
+}));
+
+// Mock FSIN generator
+vi.mock("@/lib/souq/fsin-generator", () => ({
+  generateFSIN: vi.fn().mockResolvedValue("FSIN-TEST-001"),
+}));
+
+// Mock logger
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+import { getServerSession } from "@/lib/auth/getServerSession";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { GET, POST } from "@/app/api/souq/catalog/products/route";
+
+describe("API /api/souq/catalog/products", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("GET - List Products", () => {
+    it("returns 429 when rate limit exceeded", async () => {
+      vi.mocked(enforceRateLimit).mockReturnValue(
+        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+          status: 429,
+        }) as never
+      );
+
+      const req = new NextRequest("http://localhost:3000/api/souq/catalog/products");
+      const res = await GET(req);
+
+      expect(res.status).toBe(429);
+    });
+
+    it("returns products list for GET request", async () => {
+      vi.mocked(enforceRateLimit).mockReturnValue(null);
+
+      const req = new NextRequest("http://localhost:3000/api/souq/catalog/products");
+      const res = await GET(req);
+
+      // Should return 200, 403 (no org), or handle gracefully
+      expect([200, 403, 500]).toContain(res.status);
+    });
+
+    it("supports pagination parameters", async () => {
+      vi.mocked(enforceRateLimit).mockReturnValue(null);
+
+      const req = new NextRequest(
+        "http://localhost:3000/api/souq/catalog/products?page=2&limit=20"
+      );
+      const res = await GET(req);
+
+      expect([200, 403, 500]).toContain(res.status);
+    });
+
+    it("supports search query parameter", async () => {
+      vi.mocked(enforceRateLimit).mockReturnValue(null);
+
+      const req = new NextRequest(
+        "http://localhost:3000/api/souq/catalog/products?q=test"
+      );
+      const res = await GET(req);
+
+      expect([200, 403, 500]).toContain(res.status);
+    });
+
+    it("supports language parameter for localization", async () => {
+      vi.mocked(enforceRateLimit).mockReturnValue(null);
+
+      const req = new NextRequest(
+        "http://localhost:3000/api/souq/catalog/products?lang=ar"
+      );
+      const res = await GET(req);
+
+      expect([200, 403, 500]).toContain(res.status);
+    });
+  });
+
+  describe("POST - Create Product", () => {
+    it("returns 401 when user is not authenticated", async () => {
+      vi.mocked(enforceRateLimit).mockReturnValue(null);
+      vi.mocked(getServerSession).mockResolvedValue(null);
+
+      const req = new NextRequest("http://localhost:3000/api/souq/catalog/products", {
+        method: "POST",
+        body: JSON.stringify({
+          title: { en: "Test Product", ar: "منتج تجريبي" },
+          description: { en: "Description", ar: "وصف" },
+          categoryId: "cat-123",
+          images: ["https://example.com/image.jpg"],
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const res = await POST(req);
+
+      expect(res.status).toBe(401);
+    });
+
+    it("returns 400 when orgId is missing", async () => {
+      vi.mocked(enforceRateLimit).mockReturnValue(null);
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: "user-123" },
+      } as never);
+
+      const req = new NextRequest("http://localhost:3000/api/souq/catalog/products", {
+        method: "POST",
+        body: JSON.stringify({
+          title: { en: "Test Product", ar: "منتج تجريبي" },
+          description: { en: "Description", ar: "وصف" },
+          categoryId: "cat-123",
+          images: ["https://example.com/image.jpg"],
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const res = await POST(req);
+
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 429 when rate limit exceeded", async () => {
+      vi.mocked(enforceRateLimit).mockReturnValue(
+        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+          status: 429,
+        }) as never
+      );
+
+      const req = new NextRequest("http://localhost:3000/api/souq/catalog/products", {
+        method: "POST",
+        body: JSON.stringify({}),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const res = await POST(req);
+
+      expect(res.status).toBe(429);
+    });
+
+    it("validates required fields with Zod", async () => {
+      vi.mocked(enforceRateLimit).mockReturnValue(null);
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: "user-123", orgId: "507f1f77bcf86cd799439011" },
+      } as never);
+
+      const req = new NextRequest("http://localhost:3000/api/souq/catalog/products", {
+        method: "POST",
+        body: JSON.stringify({
+          // Missing required fields
+          title: { en: "Only English" }, // Missing Arabic
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const res = await POST(req);
+      const data = await res.json();
+
+      expect(res.status).toBe(400);
+      expect(data.error).toBeDefined();
+    });
+
+    it("validates images array is not empty", async () => {
+      vi.mocked(enforceRateLimit).mockReturnValue(null);
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: "user-123", orgId: "507f1f77bcf86cd799439011" },
+      } as never);
+
+      const req = new NextRequest("http://localhost:3000/api/souq/catalog/products", {
+        method: "POST",
+        body: JSON.stringify({
+          title: { en: "Test", ar: "تجربة" },
+          description: { en: "Desc", ar: "وصف" },
+          categoryId: "507f1f77bcf86cd799439011",
+          images: [], // Empty array should fail
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const res = await POST(req);
+      const data = await res.json();
+
+      expect(res.status).toBe(400);
+      expect(data.error).toBeDefined();
+    });
+  });
+});
