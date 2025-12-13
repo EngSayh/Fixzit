@@ -1,3 +1,177 @@
+## 🗓️ 2025-12-13T17:30+03:00 — Test Coverage Gap Analysis & Route Refactoring v65.0
+
+### 📍 Current Progress & Planned Next Steps
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| Branch | `docs/pending-v60` | ✅ Active |
+| Commands | `pnpm typecheck`, `pnpm lint`, `pnpm vitest run` | ✅ All pass (2970 tests) |
+| Scope | Test coverage gap analysis + route size audit | ✅ Analyzed |
+| Typecheck/Lint/Tests | typecheck ✅; lint ✅; vitest 2970 tests ✅ | ✅ Complete |
+
+**Session Progress:**
+1. ✅ Created `lib/auth/safe-session.ts` with `getSessionOrError`/`getSessionOrNull` helpers
+2. ✅ Applied auth-infra-aware helper to 29 occurrences across 25 routes
+3. ✅ Committed 12 commits (utility files, tests, API fixes, services, docs)
+4. ✅ Pushed all commits to `docs/pending-v60` (HEAD: `d8aa6a892`)
+5. ✅ Analyzed test coverage gaps: Souq 51/75 missing, Admin 26/28 missing, FM 19/25 missing
+
+**Planned Next Steps:**
+- P1: Add priority module tests (Souq settlements/ads/seller-central, Admin notifications/billing, FM work-orders)
+- P2: Split large route files (auth/otp/send 1091 lines, payments/tap/webhook 815 lines)
+- P2: Add negative-path tests for auth infra failure scenarios
+
+### 🔧 Enhancements & Production Readiness
+
+#### Efficiency Improvements
+| Item | Status | Notes |
+|------|--------|-------|
+| Auth infra vs auth failure discrimination | ✅ Done | `getSessionOrNull` returns discriminated union with 503 on infra failure. |
+| Correlation ID logging | ✅ Done | All infra failures logged with UUID for ops debugging. |
+| Route file size audit | ✅ Done | Identified 20 routes >300 lines needing refactoring. |
+
+#### Test Coverage Gaps by Module
+
+| Module | Routes | Tests | Coverage | Priority Missing Tests |
+|--------|--------|-------|----------|----------------------|
+| **Souq** | 75 | 24 | 32% | ads/* (6), settlements/* (3), seller-central/* (10), repricer/* (3), buybox/* (2) |
+| **Admin** | 28 | 6 | 21% | notifications/* (4), billing/* (6), users/* (2), sms/* (2), security/* (1) |
+| **FM** | 25 | 9 | 36% | work-orders/* (6), marketplace/* (3), system/* (3), support/* (2), finance/* (2) |
+
+#### Souq Routes Missing Tests (51 routes)
+```
+app/api/souq/ads/campaigns/route.ts
+app/api/souq/ads/campaigns/[id]/route.ts
+app/api/souq/ads/campaigns/[id]/stats/route.ts
+app/api/souq/ads/impressions/route.ts
+app/api/souq/ads/reports/route.ts
+app/api/souq/ads/clicks/route.ts
+app/api/souq/settlements/transactions/route.ts
+app/api/souq/settlements/request-payout/route.ts
+app/api/souq/settlements/[id]/route.ts
+app/api/souq/listings/route.ts
+app/api/souq/catalog/products/route.ts
+app/api/souq/fulfillment/rates/route.ts
+app/api/souq/fulfillment/assign-fast-badge/route.ts
+app/api/souq/fulfillment/sla/[orderId]/route.ts
+app/api/souq/fulfillment/generate-label/route.ts
+app/api/souq/seller-central/kyc/submit/route.ts
+app/api/souq/seller-central/kyc/status/route.ts
+app/api/souq/seller-central/kyc/verify-document/route.ts
+app/api/souq/seller-central/kyc/approve/route.ts
+app/api/souq/seller-central/kyc/pending/route.ts
+app/api/souq/seller-central/health/route.ts
+app/api/souq/seller-central/health/violation/route.ts
+app/api/souq/seller-central/health/summary/route.ts
+app/api/souq/seller-central/reviews/route.ts
+app/api/souq/seller-central/reviews/[id]/respond/route.ts
+app/api/souq/repricer/settings/route.ts
+app/api/souq/repricer/analysis/[fsin]/route.ts
+app/api/souq/repricer/run/route.ts
+app/api/souq/buybox/offers/[fsin]/route.ts
+... (22 more)
+```
+
+#### Admin Routes Missing Tests (26 routes)
+```
+app/api/admin/audit-logs/route.ts
+app/api/admin/notifications/test/route.ts
+app/api/admin/notifications/config/route.ts
+app/api/admin/notifications/history/route.ts
+app/api/admin/notifications/send/route.ts
+app/api/admin/billing/benchmark/route.ts
+app/api/admin/billing/benchmark/[id]/route.ts
+app/api/admin/billing/pricebooks/route.ts
+app/api/admin/billing/pricebooks/[id]/route.ts
+app/api/admin/billing/annual-discount/route.ts
+app/api/admin/users/route.ts
+app/api/admin/users/[id]/route.ts
+app/api/admin/sms/settings/route.ts
+app/api/admin/sms/route.ts
+app/api/admin/security/rate-limits/route.ts
+... (11 more)
+```
+
+#### FM Routes Missing Tests (19 routes)
+```
+app/api/fm/work-orders/[id]/comments/route.ts
+app/api/fm/work-orders/[id]/transition/route.ts
+app/api/fm/work-orders/[id]/assign/route.ts
+app/api/fm/work-orders/[id]/route.ts
+app/api/fm/work-orders/[id]/attachments/route.ts
+app/api/fm/work-orders/[id]/timeline/route.ts
+app/api/fm/marketplace/vendors/route.ts
+app/api/fm/marketplace/listings/route.ts
+app/api/fm/marketplace/orders/route.ts
+app/api/fm/inspections/vendor-assignments/route.ts
+app/api/fm/system/roles/route.ts
+app/api/fm/system/integrations/[id]/toggle/route.ts
+app/api/fm/system/users/invite/route.ts
+app/api/fm/support/escalations/route.ts
+app/api/fm/support/tickets/route.ts
+app/api/fm/finance/expenses/route.ts
+app/api/fm/finance/budgets/[id]/route.ts
+app/api/fm/reports/schedules/route.ts
+app/api/fm/reports/[id]/download/route.ts
+```
+
+#### Large Route Files Requiring Refactoring
+| File | Lines | Priority | Refactoring Approach |
+|------|-------|----------|---------------------|
+| `auth/otp/send/route.ts` | 1091 | P2 | Extract SMS/email providers, validation, rate limiting into separate modules |
+| `payments/tap/webhook/route.ts` | 815 | P2 | Extract event handlers by type (payment, refund, subscription) |
+| `search/route.ts` | 794 | P3 | Extract search builders per entity type |
+| `admin/notifications/send/route.ts` | 644 | P3 | Extract channel handlers (email, SMS, push) |
+| `souq/orders/route.ts` | 585 | P3 | Extract order lifecycle handlers |
+| `fm/work-orders/[id]/transition/route.ts` | 581 | P3 | Extract state machine transitions |
+
+#### Bugs Identified
+| ID | Severity | Location | Issue | Status |
+|----|----------|----------|-------|--------|
+| BUG-006 | 🟠 High | 29 routes | `getSessionUser(...).catch(() => null)` masked infra failures | 🟢 Fixed (v64.0) |
+| BUG-1708-1710 | 🟠 High | upload/verify-metadata, scan, scan-status | Cross-tenant S3 key access | 🟢 Fixed (v28.5) |
+
+#### Logic Errors
+| ID | Location | Issue | Status |
+|----|----------|-------|--------|
+| LOGIC-126 | Large route files | God-object anti-pattern with multiple responsibilities per route | 🔴 Open (P2 refactor) |
+| LOGIC-127 | Test coverage gaps | Critical paths untested (settlements, KYC, billing) | 🔴 Open (P1 tests) |
+
+#### Missing Tests - Priority Matrix
+| Priority | Area | Test Type | Est. Effort |
+|----------|------|-----------|-------------|
+| P1 | Souq settlements | Integration + E2E | 4h |
+| P1 | Souq seller-central KYC | Integration | 3h |
+| P1 | Admin notifications | Unit + Integration | 2h |
+| P1 | Admin billing | Integration | 3h |
+| P1 | FM work-orders transitions | Unit + Integration | 3h |
+| P2 | Souq ads | Unit | 2h |
+| P2 | Souq repricer | Unit | 2h |
+| P2 | FM marketplace | Integration | 2h |
+| P2 | Auth infra failure | Negative-path | 2h |
+
+### 🔍 Deep-Dive: Pattern Analysis
+
+#### Test Coverage Anti-Patterns Found
+1. **Incomplete module coverage**: Souq at 32%, Admin at 21%, FM at 36% - well below 70% target
+2. **Missing integration tests**: Settlement flows, KYC verification, billing benchmarks have no coverage
+3. **Missing negative-path tests**: No tests for auth infra failures, DB outages, rate limit hits
+4. **No E2E for critical flows**: Settlements, payouts, KYC approval missing end-to-end validation
+
+#### Route File Size Anti-Patterns
+1. **God routes**: `auth/otp/send` at 1091 lines handles SMS, email, rate limiting, validation, OTP generation
+2. **Webhook monoliths**: `payments/tap/webhook` handles all payment event types in single file
+3. **Search complexity**: `search/route.ts` handles all entity search in 794 lines
+4. **Mixed concerns**: Large files mix HTTP handling, business logic, and persistence
+
+#### Recommended Refactoring Strategy
+1. **Extract service layers**: Move business logic to `services/` directory
+2. **Split by event type**: Webhook handlers should be dispatched to type-specific handlers
+3. **DRY validation**: Consolidate validation into shared schemas
+4. **Thin route handlers**: Routes should only handle HTTP concerns, delegate to services
+
+---
+
 ## 🗓️ 2025-12-13T16:00+03:00 — Auth Infra-Aware Session Helper v64.0
 
 ### 📍 Current Progress & Planned Next Steps
