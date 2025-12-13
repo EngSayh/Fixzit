@@ -155,7 +155,18 @@ export async function requireSubscription(
   orgId?: Types.ObjectId;
 }> {
   try {
-    const session = await getSessionUser(req).catch(() => null);
+    let session;
+    try {
+      session = await getSessionUser(req);
+    } catch (error) {
+      logger.error("[subscriptionCheck] Auth service failure", { error });
+      return {
+        error: NextResponse.json(
+          { error: "Authentication service unavailable" },
+          { status: 503 },
+        ),
+      };
+    }
     if (!session) {
       return {
         error: NextResponse.json(

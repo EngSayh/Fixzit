@@ -10,6 +10,7 @@ import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import { Config } from "@/lib/config/constants";
 import type { IOrder } from "@/server/models/souq/Order";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+import { getSouqRuleConfig } from "@/services/souq/rules-config";
 
 type OrderItem = IOrder["items"][number];
 type FbfShipmentItem = OrderItem & { warehouseId?: string };
@@ -152,6 +153,7 @@ class FulfillmentService {
         throw new Error("orgId is required to fulfill order (tenant scoping)");
       }
 
+      const ruleConfig = getSouqRuleConfig(request.orgId);
       const orgFilter = buildSouqOrgFilter(request.orgId) as Record<string, unknown>;
       const scopedQuery = {
         orderId: request.orderId,
@@ -224,6 +226,8 @@ class FulfillmentService {
         orderId: request.orderId,
         fbfItems: fbfItems.length,
         fbmItems: fbmItems.length,
+        isHighValue: (order.pricing?.total ?? 0) >= ruleConfig.highValueThreshold,
+        metric: "souq.rules.fulfillment.initiated",
       });
     } catch (_error) {
       const error =

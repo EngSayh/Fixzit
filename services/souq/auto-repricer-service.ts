@@ -9,6 +9,7 @@ import { BuyBoxService } from "./buybox-service";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import { logger } from "@/lib/logger";
 import { Types } from "mongoose";
+import { getSouqRuleConfig } from "@/services/souq/rules-config";
 
 interface RepricerRule {
   enabled: boolean;
@@ -131,6 +132,7 @@ export class AutoRepricerService {
       throw new Error("orgId is required for auto-repricer to ensure tenant isolation");
     }
 
+    const ruleConfig = getSouqRuleConfig(orgId);
     const sellerObjectId = Types.ObjectId.isValid(sellerId)
       ? new Types.ObjectId(sellerId)
       : null;
@@ -181,18 +183,29 @@ export class AutoRepricerService {
     let repriced = 0;
     let errors = 0;
 
-    for (const listing of listings) {
-      try {
-        // Get rule for this listing (specific rule or default)
-        const rule = this.resolveRule(
-          settings,
-          listing._id.toString(),
-          listing.fsin,
-        );
+      for (const listing of listings) {
+        try {
+          const isHighValue = (listing.price ?? 0) >= ruleConfig.highValueThreshold;
 
-        if (!rule?.enabled) {
-          continue;
-        }
+          // Get rule for this listing (specific rule or default)
+          const rule = this.resolveRule(
+            settings,
+            listing._id.toString(),
+            listing.fsin,
+          );
+
+          if (!rule?.enabled) {
+            continue;
+          }
+          if (isHighValue) {
+            logger.info("[AutoRepricer] High-value listing repricing", {
+              listingId: listing._id.toString(),
+              orgId,
+              price: listing.price,
+              threshold: ruleConfig.highValueThreshold,
+              metric: "souq.rules.high_value.reprice",
+            });
+          }
 
         // Get current Buy Box winner
         const rawWinner = await BuyBoxService.calculateBuyBoxWinner(
