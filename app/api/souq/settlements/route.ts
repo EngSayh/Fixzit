@@ -21,6 +21,7 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 /**
  * GET /api/souq/settlements - List seller settlements
@@ -167,7 +168,16 @@ export async function POST(request: Request) {
 
     await connectDb();
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<{
+      settlementId?: string;
+      action?: string;
+    }>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
     const { settlementId, action } = body;
 
     if (!settlementId || !action) {

@@ -31,6 +31,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { LeaveTypeService } from "@/server/services/hr/leave-type.service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { hasAllowedRole } from "@/lib/auth/role-guards";
 
 // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
 const HR_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
@@ -50,8 +51,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 🔒 RBAC check
-    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+    // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+    // Supports TEAM_MEMBER + subRole: HR_OFFICER pattern
+    const user = session.user as { role?: string; subRole?: string | null; orgId?: string };
+    if (!hasAllowedRole(user.role, user.subRole, HR_ALLOWED_ROLES)) {
       return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 
@@ -89,8 +92,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 🔒 RBAC check
-    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+    // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+    const user = session.user as { role?: string; subRole?: string | null; orgId?: string };
+    if (!hasAllowedRole(user.role, user.subRole, HR_ALLOWED_ROLES)) {
       return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 

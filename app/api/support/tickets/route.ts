@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SupportTicket } from "@/server/models/SupportTicket";
 import { z } from "zod";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import crypto from "crypto";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
@@ -92,7 +92,11 @@ const createSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "support:tickets:create" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const user = sessionResult.session;
     if (!user) {
       return createSecureResponse({ error: "Unauthorized" }, 401, req);
     }
@@ -154,20 +158,22 @@ export async function POST(req: NextRequest) {
 // Admin list with filters
 export async function GET(req: NextRequest) {
   try {
-    // Handle authentication separately to return 401 instead of 500
-    let user;
-    try {
-      user = await getSessionUser(req);
-      const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
-      if (!rl.allowed) {
-        return rateLimitError();
-      }
-    } catch (authError) {
-      logger.error(
-        "Authentication failed:",
-        authError instanceof Error ? authError.message : "Unknown error",
-      );
+    // Auth with infra awareness (503 on store outage, 401 on missing session)
+    const sessionResult = await getSessionOrNull(req, { route: "support:tickets:list" });
+    if (!sessionResult.ok) {
+      return sessionResult.response;
+    }
+    const user = sessionResult.session;
+    if (!user) {
       return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    }
+    const rl = await smartRateLimit(
+      buildOrgAwareRateLimitKey(req, user.orgId, user.id),
+      60,
+      60_000,
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
     }
 
     await connectToDatabase();

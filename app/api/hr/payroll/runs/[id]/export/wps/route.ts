@@ -37,6 +37,7 @@ import { logger } from "@/lib/logger";
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { generateWPSFile, validateWPSFile } from "@/services/hr/wpsService";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { hasAllowedRole } from "@/lib/auth/role-guards";
 
 // 🔒 STRICT v4.1 CRITICAL: WPS export contains banking data (IBANs, salaries)
 // Requires HR Officer, Finance Officer, or Admin role
@@ -55,8 +56,10 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 🔒 RBAC check - CRITICAL for banking data protection
-    if (!session.user.role || !PAYROLL_EXPORT_ALLOWED_ROLES.includes(session.user.role)) {
+    // 🔒 STRICT v4.1: RBAC check - CRITICAL for banking data protection
+    // Supports TEAM_MEMBER + subRole: HR_OFFICER/FINANCE_OFFICER pattern
+    const user = session.user as { role?: string; subRole?: string | null; orgId?: string; id?: string };
+    if (!hasAllowedRole(user.role, user.subRole, PAYROLL_EXPORT_ALLOWED_ROLES)) {
       logger.warn("WPS export access denied", { 
         userId: session.user.id, 
         role: session.user.role,

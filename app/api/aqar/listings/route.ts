@@ -20,6 +20,7 @@ import {
 } from "@/app/api/aqar/listings/normalizers";
 import { AqarRecommendationEngine } from "@/services/aqar/recommendation-engine";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { APIParseError, parseBody } from "@/lib/api/parse-body";
 
 export const runtime = "nodejs";
 
@@ -40,9 +41,14 @@ export async function POST(request: NextRequest) {
     const user = await getSessionUser(request);
 
     // JSON validation guard
-    const body = await request.json().catch(() => null);
-    if (!body || typeof body !== "object") {
-      return badRequest("Invalid JSON body", { correlationId });
+    let body: Record<string, any>;
+    try {
+      body = await parseBody<Record<string, any>>(request);
+    } catch (error) {
+      if (error instanceof APIParseError) {
+        return badRequest("Invalid JSON body", { correlationId });
+      }
+      throw error;
     }
 
     // Type-aware validation
@@ -119,10 +125,11 @@ export async function POST(request: NextRequest) {
       immersive: immersiveRaw,
       ...restBody
     } = body;
-    const listingPayload = {
+    const listingPayload: Record<string, unknown> = {
       ...restBody,
       orgId,
       listerId: user.id,
+      intent: body.intent,
       location: {
         addressLine: body.location?.addressLine || body.address,
         cityId: body.location?.cityId || body.city,

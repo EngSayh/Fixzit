@@ -14,6 +14,7 @@ import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import type { TenantConfig } from "./tenant";
 import { DEFAULT_TENANT_CONFIG, tenantCache } from "./tenant";
+import { logger } from "@/lib/logger";
 
 const pendingTenantFetches = new Map<string, Promise<void>>();
 
@@ -88,8 +89,11 @@ export async function loadTenantConfigFromDatabase(orgId: string): Promise<void>
 
       tenantCache.set(orgId, config);
     } catch (error) {
-      // Fail silently and keep default config; GraphQL/REST callers will still receive defaults
-      void error;
+      logger.error("[TenantConfig] Failed to load tenant configuration", {
+        orgId,
+        error,
+      });
+      throw error;
     } finally {
       pendingTenantFetches.delete(orgId);
     }

@@ -24,7 +24,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectMongo } from '@/lib/mongo';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { OnboardingCase, ONBOARDING_STATUSES, ONBOARDING_ROLES } from '@/server/models/onboarding/OnboardingCase';
 import { logger } from '@/lib/logger';
 import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
@@ -34,7 +34,11 @@ export async function GET(req: NextRequest) {
   const rateLimitResponse = enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "onboarding:list" });
   if (rateLimitResponse) return rateLimitResponse;
 
-  const user = await getSessionUser(req).catch(() => null);
+  const sessionResult = await getSessionOrNull(req, { route: "onboarding:list" });
+  if (!sessionResult.ok) {
+    return sessionResult.response; // 503 on infra error
+  }
+  const user = sessionResult.session;
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { searchParams } = new URL(req.url);

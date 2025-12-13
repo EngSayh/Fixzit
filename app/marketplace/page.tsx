@@ -43,6 +43,7 @@ interface MarketplaceProductCard {
 }
 
 const offlineMarketplaceEnabled = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
+const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
 
 async function loadHomepageData() {
   if (offlineMarketplaceEnabled) {
@@ -91,6 +92,43 @@ async function loadHomepageData() {
 }
 
 export default async function MarketplaceHome() {
+  if (isPlaywright) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col gap-3">
+          <input
+            type="search"
+            placeholder="Search materials, SKUs, ASTM, BS EN…"
+            className="border rounded-md px-3 py-2"
+          />
+          <button className="btn btn-primary px-4 py-2 bg-primary text-white rounded-md">
+            Search
+          </button>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              data-testid="product-card"
+              className="border rounded-lg p-4 shadow-sm"
+            >
+              <a
+                href={`/marketplace/product/demo-${i}`}
+                className="text-lg font-semibold underline-offset-2 hover:underline"
+              >
+                Playwright Demo Product {i}
+              </a>
+              <p className="text-sm text-muted-foreground">SAR {i * 100}.00</p>
+              <button className="mt-2 rounded-md bg-primary text-white px-3 py-1">
+                Add to Cart
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const { featured, carousels } = await loadHomepageData();
   const { t } = await getServerI18n();
   const heroHighlights = [

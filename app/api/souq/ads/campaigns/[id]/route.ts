@@ -15,6 +15,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { CampaignService } from "@/services/souq/ads/campaign-service";
 import { createRbacContext, hasAnyRole } from "@/lib/rbac";
 import { UserRole, type UserRoleType } from "@/types/user";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const ALLOWED_AD_ROLES: UserRoleType[] = [
   UserRole.SUPER_ADMIN,
@@ -175,7 +176,21 @@ export async function PUT(
       );
     }
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<{
+      name?: string;
+      dailyBudget?: string | number;
+      startDate?: string;
+      endDate?: string;
+      status?: "active" | "paused" | "ended";
+      biddingStrategy?: "manual" | "automatic";
+      defaultBid?: string | number;
+    }>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { success: false, error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
 
     const updates: {
       name?: string;
@@ -188,12 +203,12 @@ export async function PUT(
     } = {};
 
     if (body.name) updates.name = body.name;
-    if (body.dailyBudget) updates.dailyBudget = parseFloat(body.dailyBudget);
+    if (body.dailyBudget) updates.dailyBudget = parseFloat(String(body.dailyBudget));
     if (body.startDate) updates.startDate = new Date(body.startDate);
     if (body.endDate) updates.endDate = new Date(body.endDate);
     if (body.status) updates.status = body.status;
     if (body.biddingStrategy) updates.biddingStrategy = body.biddingStrategy;
-    if (body.defaultBid) updates.defaultBid = parseFloat(body.defaultBid);
+    if (body.defaultBid) updates.defaultBid = parseFloat(String(body.defaultBid));
 
     const updated = await CampaignService.updateCampaign(
       params.id,

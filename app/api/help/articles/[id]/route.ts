@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
@@ -54,7 +55,10 @@ export async function PATCH(
       return createSecureResponse({ error: "Unauthorized" }, 401, req);
     }
 
-    const body = await req.json().catch(() => ({}));
+    const { data: body, error: parseError } = await parseBodySafe(req, { logPrefix: "[help:articles:update]" });
+    if (parseError) {
+      return createSecureResponse({ error: "Invalid request body" }, 400, req);
+    }
     const data = patchSchema.parse(body);
     const db = await getDatabase();
     const coll = db.collection(COLLECTIONS.HELP_ARTICLES);

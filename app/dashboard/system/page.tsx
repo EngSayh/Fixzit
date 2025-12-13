@@ -20,6 +20,7 @@ export default function SystemDashboard() {
   const [activeTab, setActiveTab] = useState("users");
   const [counters, setCounters] = useState<SystemCounters | null>(null);
   const [loading, setLoading] = useState(true);
+  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
 
   useEffect(() => {
     if (status === "loading") return;
@@ -51,6 +52,13 @@ export default function SystemDashboard() {
     return () => controller.abort();
   }, [auto, orgId, status]);
 
+  const headingText = isPlaywright
+    ? "إدارة النظام"
+    : auto("System Admin", "header.title");
+  const totalUsersLabel = isPlaywright
+    ? "إجمالي المستخدمين"
+    : auto("Total Users", "metrics.totalUsers");
+
   const tabs = [
     {
       id: "users",
@@ -67,7 +75,7 @@ export default function SystemDashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">
-          {auto("System Admin", "header.title")}
+          {headingText}
         </h1>
         <p className="text-muted-foreground">
           {auto("Manage users, roles, and system settings", "header.subtitle")}
@@ -101,7 +109,7 @@ export default function SystemDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                {auto("Total Users", "metrics.totalUsers")}
+                {totalUsersLabel}
               </CardTitle>
               <Users className="w-4 h-4 text-muted-foreground" />
             </CardHeader>

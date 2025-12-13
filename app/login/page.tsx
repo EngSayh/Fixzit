@@ -22,7 +22,7 @@ import dynamic from 'next/dynamic';
 import { logger } from '@/lib/logger';
 
 // Check if OTP is required (matches auth.config.ts logic)
-const REQUIRE_SMS_OTP = process.env.NEXT_PUBLIC_REQUIRE_SMS_OTP !== 'false';
+const REQUIRE_SMS_OTP = process.env.NEXT_PUBLIC_REQUIRE_SMS_OTP === 'true';
 const SKIP_CSRF = process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' || process.env.NODE_ENV === 'test';
 
 // Client-side feature flags: do NOT read secrets here

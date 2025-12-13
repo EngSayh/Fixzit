@@ -10,6 +10,11 @@ type TenantResolutionSuccess = {
 
 type TenantFieldName = "orgId";
 
+type TenantFilterOptions = {
+  unitIds?: string[];
+  unitField?: "unitId" | "unit_id";
+};
+
 export type TenantResolutionResult =
   | TenantResolutionSuccess
   | { error: NextResponse };
@@ -43,12 +48,22 @@ export function isCrossTenantMode(tenantId: string): tenantId is typeof CROSS_TE
 export function buildTenantFilter(
   tenantId: string,
   fieldName: TenantFieldName = "orgId",
-): Record<string, string> {
+  options?: TenantFilterOptions,
+): Record<string, unknown> {
   if (isCrossTenantMode(tenantId)) {
     // Super Admin cross-tenant mode - no org filter
     return {};
   }
-  return { [fieldName]: tenantId };
+  const filter: Record<string, unknown> = { [fieldName]: tenantId };
+  const unitIds =
+    options?.unitIds?.map((unit) => unit?.toString?.().trim()).filter(Boolean) ?? [];
+
+  if (unitIds.length > 0) {
+    const unitField = options?.unitField ?? "unitId";
+    filter[unitField] = { $in: unitIds };
+  }
+
+  return filter;
 }
 
 const TENANT_HEADER_CANDIDATES = [

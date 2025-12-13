@@ -80,6 +80,8 @@ fi
 # Ensure Playwright-specific flags also set in dev-server mode
 export PLAYWRIGHT_TESTS="${PLAYWRIGHT_TESTS:-true}"
 export SKIP_ENV_VALIDATION="${SKIP_ENV_VALIDATION:-true}"
+export NEXT_PUBLIC_PLAYWRIGHT_TESTS="true"
+export PLAYWRIGHT_GLOBAL="true"
 
 CONFIG_FILE="${PLAYWRIGHT_CONFIG:-tests/playwright.config.ts}"
 CMD=("npx" "playwright" "test" "--config=${CONFIG_FILE}")

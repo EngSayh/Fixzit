@@ -27,7 +27,8 @@
  * - Secure response headers applied
  */
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { parseBodySafe } from "@/lib/api/parse-body";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { createSecureResponse } from "@/server/security/headers";
 import { scanS3Object } from "@/lib/security/av-scan";
 import { validateBucketPolicies } from "@/lib/security/s3-policy";
@@ -38,31 +39,52 @@ import {
   smartRateLimit,
 } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
+import { health503 } from "@/lib/api/health";
+import { validateOrgScopedKey } from "@/lib/storage/org-upload-keys";
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "upload:scan" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const user = sessionResult.session;
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
     const rlKey = buildOrgAwareRateLimitKey(req, user.orgId ?? null, user.id);
     const rl = await smartRateLimit(`${rlKey}:upload-scan`, 20, 60_000);
     if (!rl.allowed) return rateLimitError();
 
-    const { key } = await req.json().catch(() => ({}));
+    const { data: body, error: parseError } = await parseBodySafe<{ key?: string }>(req, { logPrefix: "[upload:scan]" });
+    if (parseError) {
+      return createSecureResponse({ error: "Invalid request body" }, 400, req);
+    }
+    const key = body?.key;
     if (!key || typeof key !== "string") {
       return createSecureResponse({ error: "Missing key" }, 400, req);
     }
+    const keyValidation = validateOrgScopedKey({
+      key,
+      allowedOrgId: user.tenantId ?? user.orgId,
+    });
+    if (!keyValidation.ok) {
+      return createSecureResponse(
+        { error: keyValidation.message },
+        keyValidation.status,
+        req,
+      );
+    }
 
     if (!Config.aws.s3.bucket || !Config.aws.scan.endpoint) {
-      return createSecureResponse({ error: "Scan not configured" }, 503, req);
+      return health503("Scan not configured", req, {
+        code: "scan_not_configured",
+      });
     }
 
     const policiesOk = await validateBucketPolicies();
     if (!policiesOk) {
-      return createSecureResponse(
-        { error: "Bucket policy/encryption invalid" },
-        503,
-        req,
-      );
+      return health503("Bucket policy/encryption invalid", req, {
+        code: "scan_bucket_invalid",
+      });
     }
 
     const clean = await scanS3Object(key, Config.aws.s3.bucket);

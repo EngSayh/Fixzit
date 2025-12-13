@@ -14,6 +14,7 @@
  * @throws {404} If claim not found
  */
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";
 import { logger } from "@/lib/logger";
@@ -55,9 +56,12 @@ export async function POST(
       );
     }
 
-    const body = await request.json();
-    const reasoning = body.reasoning ? String(body.reasoning).trim() : "";
-    const additionalEvidence = Array.isArray(body.additionalEvidence)
+    const { data: body, error: parseError } = await parseBodySafe<{ reasoning?: string; additionalEvidence?: unknown[] }>(request, { logPrefix: "[Souq Claims Appeal]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const reasoning = body?.reasoning ? String(body.reasoning).trim() : "";
+    const additionalEvidence = Array.isArray(body?.additionalEvidence)
       ? body.additionalEvidence
       : [];
 

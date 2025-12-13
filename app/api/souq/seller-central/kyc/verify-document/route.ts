@@ -17,6 +17,7 @@ import {
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 export async function POST(request: NextRequest) {
   // Rate limiting: 10 requests per minute per IP for document verification (sensitive action)
@@ -48,8 +49,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { sellerId, documentType, approved, rejectionReason, targetOrgId } = body;
+    const parseResult = await parseBodySafe<{
+      sellerId?: string;
+      documentType?: string;
+      approved?: boolean;
+      rejectionReason?: string;
+      targetOrgId?: string;
+    }>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const { sellerId, documentType, approved, rejectionReason, targetOrgId } = parseResult.data!;
 
     // Validation
     if (!sellerId || !documentType || approved === undefined) {
@@ -83,7 +96,7 @@ export async function POST(request: NextRequest) {
     await sellerKYCService.verifyDocument({
       sellerId,
       orgId: effectiveOrgId,
-      documentType,
+      documentType: documentType as "nationalId" | "commercialRegistration" | "vatCertificate" | "bankLetter",
       approved,
       verifiedBy: session.user.id,
       rejectionReason,

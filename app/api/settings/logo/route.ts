@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { BRAND_COLORS } from "@/lib/config/brand-colors";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
@@ -20,7 +20,11 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 export async function GET(request: NextRequest) {
   enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "settings:logo" });
   try {
-    const sessionUser = await getSessionUser(request).catch(() => null);
+    const sessionResult = await getSessionOrNull(request, { route: "settings:logo" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const sessionUser = sessionResult.session;
     await connectToDatabase();
 
     // Prefer authenticated org; fall back to configured default

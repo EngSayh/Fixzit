@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { Filter, Document } from "mongodb";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
@@ -69,38 +69,37 @@ const COLLECTION = "helparticles";
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
-  const allowPlaywright =
-    process.env.PLAYWRIGHT_TESTS === "true" && process.env.NODE_ENV === "test";
-  if (allowPlaywright) {
-    return NextResponse.json({
-      items: [
-        {
-          slug: "work-orders-101",
-          title: "Work Orders 101",
-          category: "General Overview",
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          slug: "general-overview",
-          title: "General Overview",
-          category: "General",
-          updatedAt: new Date().toISOString(),
-        },
-      ],
-      page: 1,
-      limit: 20,
-      total: 2,
-      hasMore: false,
-    });
-  }
-  if (process.env.PLAYWRIGHT_TESTS === "true" && process.env.NODE_ENV !== "test") {
-    // Prevent accidental public access if flag is set outside test
-    return NextResponse.json({ error: "Not Found" }, { status: 404 });
-  }
-
   try {
-    const user = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "help:articles" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const user = sessionResult.session;
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
+
+    if (process.env.PLAYWRIGHT_TESTS === "true") {
+      // Seeded data for E2E runs (requires authenticated session)
+      return NextResponse.json({
+        items: [
+          {
+            slug: "work-orders-101",
+            title: "Work Orders 101",
+            category: "General Overview",
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            slug: "general-overview",
+            title: "General Overview",
+            category: "General",
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        page: 1,
+        limit: 20,
+        total: 2,
+        hasMore: false,
+      });
+    }
 
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {

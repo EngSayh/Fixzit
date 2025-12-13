@@ -21,6 +21,7 @@ import { logger } from "@/lib/logger";
 import crypto from "crypto";
 import { z } from "zod";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 /**
  * Carrier webhook secrets - should be configured per carrier
@@ -88,7 +89,13 @@ export async function POST(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<z.infer<typeof TrackingWebhookSchema>>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid request body" },
+        { status: 400 },
+      );
+    }
 
     // Validate request body with Zod
     const parseResult = TrackingWebhookSchema.safeParse(body);

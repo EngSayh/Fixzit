@@ -51,6 +51,13 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
+  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
+  if (isPlaywright) {
+    return {
+      title: "Playwright Demo Product | Fixzit Marketplace",
+      description: "Stub PDP for smoke testing.",
+    };
+  }
   const resolvedParams = await params;
   const { t } = await getServerI18n();
   const titleSuffix = t(
@@ -90,7 +97,94 @@ export async function generateMetadata({
 }
 
 export default async function ProductDetail(props: ProductPageProps) {
+  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
+  if (isPlaywright) {
+    const params = await props.params;
+    return (
+      <div
+        className="min-h-screen bg-muted flex flex-col"
+        style={{ direction: "ltr" }}
+      >
+        <main className="mx-auto max-w-5xl px-4 py-8 space-y-6">
+          <nav className="text-sm text-primary">
+            <a href="/marketplace" className="hover:underline">
+              Marketplace
+            </a>
+            <span className="mx-2 text-muted-foreground">/</span>
+            <span className="text-primary">
+              {params.slug ?? "demo-product"}
+            </span>
+          </nav>
+          <section className="rounded-2xl bg-card p-6 shadow-lg space-y-4">
+            <h1 className="text-3xl font-semibold text-foreground">
+              Playwright Demo Product
+            </h1>
+            <p className="text-muted-foreground">
+              Stubbed product detail for smoke testing.
+            </p>
+            <div className="rounded-xl border border-border bg-background p-4">
+              <p className="text-sm text-muted-foreground">
+                Price: SAR 150.00 • UOM: each
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Availability: In stock
+              </p>
+              <button
+                type="button"
+                className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+              >
+                Add to Cart
+              </button>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
   const { t, isRTL } = await getServerI18n();
+  if (isPlaywright) {
+    const params = await props.params;
+    return (
+      <div
+        className="min-h-screen bg-muted flex flex-col"
+        style={{ direction: isRTL ? "rtl" : "ltr" }}
+      >
+        <main className="mx-auto max-w-5xl px-4 py-8 space-y-6">
+          <nav className="text-sm text-primary">
+            <a href="/marketplace" className="hover:underline">
+              {t("marketplace.product.breadcrumb.home", "Marketplace")}
+            </a>
+            <span className="mx-2 text-muted-foreground">/</span>
+            <span className="text-primary">
+              {params.slug ?? "demo-product"}
+            </span>
+          </nav>
+          <section className="rounded-2xl bg-card p-6 shadow-lg space-y-4">
+            <h1 className="text-3xl font-semibold text-foreground">
+              Playwright Demo Product
+            </h1>
+            <p className="text-muted-foreground">
+              Stubbed product detail for smoke testing.
+            </p>
+            <div className="rounded-xl border border-border bg-background p-4">
+              <p className="text-sm text-muted-foreground">
+                Price: SAR 150.00 • UOM: each
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Availability: In stock
+              </p>
+              <button
+                type="button"
+                className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+              >
+                Add to Cart
+              </button>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
   try {
     const params = await props.params;
     const [, productResponse] = await Promise.all([

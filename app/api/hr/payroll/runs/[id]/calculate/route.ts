@@ -38,6 +38,7 @@ import {
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { calculateNetPay } from "@/services/hr/ksaPayrollService";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { hasAllowedRole } from "@/lib/auth/role-guards";
 
 // 🔒 STRICT v4.1: Payroll calculation requires HR Officer, Finance Officer, or Admin role
 const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER', 'FINANCE', 'FINANCE_OFFICER'];
@@ -55,8 +56,9 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 🔒 RBAC check
-    if (!session.user.role || !PAYROLL_ALLOWED_ROLES.includes(session.user.role)) {
+    // 🔒 STRICT v4.1: Payroll requires HR/Finance roles - supports subRole pattern
+    const user = session.user as { role?: string; subRole?: string | null; orgId?: string };
+    if (!hasAllowedRole(user.role, user.subRole, PAYROLL_ALLOWED_ROLES)) {
       return NextResponse.json({ error: "Forbidden: HR/Finance access required" }, { status: 403 });
     }
 

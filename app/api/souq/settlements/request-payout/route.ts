@@ -16,6 +16,7 @@ import { SellerBalanceService } from "@/services/souq/settlements/balance-servic
 import { PayoutProcessorService } from "@/services/souq/settlements/payout-processor";
 import { connectDb } from "@/lib/mongodb-unified";
 import { Role, SubRole } from "@/lib/rbac/client-roles";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 // 🔐 STRICT v4.1: Roles allowed to request payouts for others
 const PAYOUT_ADMIN_ROLES: readonly string[] = [
@@ -70,12 +71,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { amount, statementId, bankAccount, sellerId: requestedSellerId } = body;
-
-    if (!statementId || !bankAccount || !bankAccount.iban) {
+    const parseResult = await parseBodySafe<{
+      amount?: number;
+      statementId?: string;
+      bankAccount?: {
+        iban: string;
+        accountHolderName: string;
+        bankName: string;
+        accountNumber: string;
+        swiftCode?: string;
+      };
+      sellerId?: string;
+    }>(request);
+    if (parseResult.error) {
       return NextResponse.json(
-        { error: "statementId and bankAccount with iban are required" },
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const { amount, statementId, bankAccount, sellerId: requestedSellerId } = parseResult.data!;
+
+    if (!statementId || !bankAccount || !bankAccount.iban || !bankAccount.accountHolderName || !bankAccount.bankName || !bankAccount.accountNumber) {
+      return NextResponse.json(
+        { error: "statementId and bankAccount with iban, accountHolderName, bankName, and accountNumber are required" },
         { status: 400 },
       );
     }

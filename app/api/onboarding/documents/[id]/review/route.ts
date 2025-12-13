@@ -16,8 +16,9 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
+import { parseBodySafe } from '@/lib/api/parse-body';
 import { connectMongo } from '@/lib/mongo';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { VerificationDocument, DOCUMENT_STATUSES } from '@/server/models/onboarding/VerificationDocument';
 import { VerificationLog } from '@/server/models/onboarding/VerificationLog';
 import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
@@ -36,11 +37,18 @@ export async function PATCH(
   const rateLimitResponse = enforceRateLimit(req, { requests: 30, windowMs: 60_000, keyPrefix: "onboarding:docs:review" });
   if (rateLimitResponse) return rateLimitResponse;
 
-  const user = await getSessionUser(req).catch(() => null);
+  const sessionResult = await getSessionOrNull(req, { route: "onboarding:docs:review" });
+  if (!sessionResult.ok) {
+    return sessionResult.response; // 503 on infra error
+  }
+  const user = sessionResult.session;
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as { decision?: string; rejection_reason?: string };
-  const { decision, rejection_reason } = body;
+  const { data: body, error: parseError } = await parseBodySafe<{ decision?: string; rejection_reason?: string }>(req, { logPrefix: '[onboarding:docs:review]' });
+  if (parseError) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { decision, rejection_reason } = body ?? {};
   if (!decision || !ALLOWED_DECISIONS.includes(decision as (typeof DOCUMENT_STATUSES)[number])) {
     return NextResponse.json({ error: 'Invalid decision' }, { status: 400 });
   }

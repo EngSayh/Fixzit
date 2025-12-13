@@ -11,6 +11,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { dbConnect } from "@/db/mongoose";
 import DiscountRule from "@/server/models/DiscountRule";
 import { requireSuperAdmin } from "@/lib/authz";
@@ -39,7 +40,10 @@ export async function PATCH(req: NextRequest) {
     await dbConnect();
     await requireSuperAdmin(req);
     
-    const rawBody = await req.json().catch(() => ({}));
+    const { data: rawBody, error: parseError } = await parseBodySafe(req, { logPrefix: "[admin:billing:annual-discount]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const parsed = AnnualDiscountSchema.safeParse(rawBody);
     
     if (!parsed.success) {

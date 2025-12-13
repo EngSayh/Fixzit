@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
@@ -98,7 +99,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Parse request body
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request, { logPrefix: "[User Profile]" });
+    if (parseError || !body) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
 
     // Guard: preferences updates should use dedicated endpoint
     if (body.preferences !== undefined) {
@@ -116,7 +120,7 @@ export async function PATCH(request: NextRequest) {
     // Filter to only allowed fields
     const updates: Record<string, unknown> = {};
     for (const field of allowedFields) {
-      if (body[field] !== undefined) {
+      if (body?.[field] !== undefined) {
         updates[field] = body[field];
       }
     }

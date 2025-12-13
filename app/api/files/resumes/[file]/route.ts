@@ -9,6 +9,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { logger } from "@/lib/logger";
 
 // Resume files are stored under a non-public project directory with UUID-based names
 const BASE_DIR = path.join(process.cwd(), "private-uploads", "resumes");
@@ -36,7 +37,13 @@ export async function GET(
 ) {
   try {
     const { file } = await props.params;
-    const user = await getSessionUser(req).catch(() => null);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (error) {
+      logger.error("[resumes] Auth service failure", { error });
+      return createSecureResponse({ error: "Authentication service unavailable" }, 503, req);
+    }
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
     const allowed = new Set(["SUPER_ADMIN", "ADMIN", "HR"]);
     if (!allowed.has(user.role || ""))
@@ -68,12 +75,25 @@ export async function GET(
     // Prefer S3 if configured; else local fallback
     if (process.env.AWS_S3_BUCKET) {
       const key = buildResumeKey(user.tenantId, safeName);
-      const urlSigned = await getPresignedGetUrl(key, 300);
-      return NextResponse.redirect(urlSigned, { status: 302 });
+      try {
+        const urlSigned = await getPresignedGetUrl(key, 300);
+        return NextResponse.redirect(urlSigned, { status: 302 });
+      } catch (error) {
+        logger.error("[resumes] Failed to presign resume download", { error, key });
+        return createSecureResponse({ error: "Failed to fetch file" }, 503, req);
+      }
     }
     const filePath = path.join(BASE_DIR, tenant, safeName);
-    const data = await fs.readFile(filePath).catch(() => null);
-    if (!data) return createSecureResponse({ error: "Not found" }, 404, req);
+    let data: Buffer;
+    try {
+      data = await fs.readFile(filePath);
+    } catch (error: any) {
+      if (error && error.code === "ENOENT") {
+        return createSecureResponse({ error: "Not found" }, 404, req);
+      }
+      logger.error("[resumes] File read failed", { error, filePath });
+      return createSecureResponse({ error: "Failed to fetch file" }, 503, req);
+    }
     const contentType = contentTypeFromName(safeName);
     const out = new Uint8Array(data.length);
     out.set(data);
@@ -96,7 +116,13 @@ export async function POST(
 ) {
   try {
     const { file } = await props.params;
-    const user = await getSessionUser(req).catch(() => null);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (error) {
+      logger.error("[resumes] Auth service failure (sign)", { error });
+      return createSecureResponse({ error: "Authentication service unavailable" }, 503, req);
+    }
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
     const allowed = new Set(["SUPER_ADMIN", "ADMIN", "HR"]);
     if (!allowed.has(user.role || ""))

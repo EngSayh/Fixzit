@@ -2,16 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const enforceRateLimitMock = vi.fn();
 const insertOneMock = vi.fn();
+const connectToDatabaseMock = vi.fn();
+const getDatabaseMock = vi.fn();
+const loggerErrorMock = vi.fn();
 
 vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: enforceRateLimitMock,
 }));
 
 vi.mock("@/lib/mongodb-unified", () => ({
-  connectToDatabase: vi.fn().mockResolvedValue(undefined),
-  getDatabase: vi.fn().mockResolvedValue({
-    collection: () => ({ insertOne: insertOneMock }),
-  }),
+  connectToDatabase: connectToDatabaseMock,
+  getDatabase: getDatabaseMock,
 }));
 
 vi.mock("@/server/security/headers", async (orig) => {
@@ -47,11 +48,23 @@ vi.mock("next/server", () => {
   };
 });
 
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    error: loggerErrorMock,
+    warn: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
 describe("POST /api/trial-request", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     enforceRateLimitMock.mockReturnValue(null);
     insertOneMock.mockResolvedValue({});
+    connectToDatabaseMock.mockResolvedValue(undefined);
+    getDatabaseMock.mockResolvedValue({
+      collection: () => ({ insertOne: insertOneMock }),
+    });
   });
 
   it("rejects via honeypot without persisting", async () => {
@@ -87,5 +100,28 @@ describe("POST /api/trial-request", () => {
     expect(res).toBe(limitResponse);
     expect(insertOneMock).not.toHaveBeenCalled();
     expect(enforceRateLimitMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns 503 when database is unavailable", async () => {
+    connectToDatabaseMock.mockRejectedValueOnce(new Error("db down"));
+
+    const { POST } = await import("@/app/api/trial-request/route");
+    const mod = await import("next/server");
+    const req = new (mod.NextRequest as any)("https://example.com/api/trial-request", {
+      name: "User",
+      email: "user@example.com",
+      company: "Co",
+    });
+
+    const res = (await POST(req)) as { status: number; body: unknown };
+    expect(res.status).toBe(503);
+    expect(loggerErrorMock).toHaveBeenCalledWith(
+      "[trial-request] DB persistence failed",
+      expect.objectContaining({
+        email: "user@example.com",
+        company: "Co",
+      }),
+    );
+    expect(insertOneMock).not.toHaveBeenCalled();
   });
 });

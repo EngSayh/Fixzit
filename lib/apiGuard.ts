@@ -22,6 +22,11 @@ import { auth } from "@/auth";
 import { can, createRbacContext } from "./rbac";
 import { audit } from "./audit";
 
+/**
+ * Derives orgId from session or headers.
+ * NOTE: Returns "unknown" as fallback for legacy compatibility.
+ * For strict tenant enforcement, use requireOrgId() from lib/auth/tenant-utils.ts
+ */
 function deriveOrgId(
   req: NextApiRequest,
   sessionOrgId?: string | null,
@@ -30,6 +35,8 @@ function deriveOrgId(
     (req.headers["x-org-id"] as string | undefined) ||
     (req.headers["x-organization-id"] as string | undefined);
   const orgId = sessionOrgId || headerOrg;
+  // WARNING: "unknown" fallback exists for audit logging, not for data access
+  // For tenant-scoped queries, always validate orgId before use
   return orgId?.trim() || "unknown";
 }
 

@@ -10,6 +10,7 @@
  * @throws {429} If rate limit exceeded
  */
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
@@ -47,7 +48,10 @@ export async function POST(request: NextRequest) {
     });
     if (rateLimitResponse) return rateLimitResponse;
 
-    const body = await request.json().catch(() => ({}));
+    const { data: body, error: parseError } = await parseBodySafe<{ locale?: Locale }>(request, { logPrefix: "[i18n]" });
+    if (parseError) {
+      return NextResponse.json({ ok: false, error: "Invalid request body" }, { status: 400 });
+    }
     const locale = body?.locale as Locale | undefined;
 
     if (!locale || !SUPPORTED_LOCALES.includes(locale)) {

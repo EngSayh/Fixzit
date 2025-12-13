@@ -4,7 +4,7 @@ import Subscription from "@/server/models/Subscription";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 
 /**
  * @openapi
@@ -34,7 +34,11 @@ export async function POST(req: NextRequest) {
     return rateLimitError();
   }
 
-  const session = await getSessionUser(req).catch(() => null);
+  const sessionResult = await getSessionOrNull(req, { route: "checkout:complete" });
+  if (!sessionResult.ok) {
+    return sessionResult.response; // 503 on infra error
+  }
+  const session = sessionResult.session;
   if (!session) {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }

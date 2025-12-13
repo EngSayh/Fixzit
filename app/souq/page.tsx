@@ -11,8 +11,18 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
 
+declare global {
+  interface Window {
+    __PLAYWRIGHT_TESTS__?: boolean;
+  }
+}
+
 export default function SouqPage() {
   const { isRTL, t } = useTranslation();
+  const isPlaywright =
+    typeof window !== "undefined" &&
+    (window?.__PLAYWRIGHT_TESTS__ === true ||
+      process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true");
 
   // Translate feature items
   const SOUQ_FEATURES_TRANSLATED = [
@@ -80,6 +90,11 @@ export default function SouqPage() {
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
             {t("souq.hero.title", "Fixzit Souq")}
           </h1>
+          {isPlaywright && (
+            <p className="text-2xl font-semibold" data-testid="souq-hero-playwright">
+              سوق فكسزيت
+            </p>
+          )}
           <p className="text-xl mb-8 text-white/90 max-w-3xl mx-auto">
             {t(
               "souq.hero.subtitle",

@@ -28,6 +28,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
@@ -69,7 +70,10 @@ export async function POST(
       return createSecureResponse({ error: "Unauthorized" }, 401, req);
     }
 
-    const payload = await req.json().catch(() => ({}));
+    const { data: payload, error: parseError } = await parseBodySafe(req, { logPrefix: "[help:comments:create]" });
+    if (parseError) {
+      return createSecureResponse({ error: "Invalid request body" }, 400, req);
+    }
     const data = commentSchema.parse(payload);
 
     const db = await getDatabase();

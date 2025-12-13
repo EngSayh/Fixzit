@@ -171,7 +171,8 @@ export function isUnauthorizedMarketplaceContext(
   context?: MarketplaceRequestContext | null,
 ): boolean {
   if (!context) return true;
-  const orgStr = context.orgId?.toString?.() || "";
+  // NOTE: Empty string here is used for validation, not as a fallback value
+  const orgStr = context.orgId?.toString?.() ?? "";
   return (
     context.tenantKey === "__unauthorized__" ||
     orgStr === "000000000000000000000000" ||

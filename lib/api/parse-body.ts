@@ -47,6 +47,7 @@ export async function parseBody<T = unknown>(request: Request): Promise<T> {
 /**
  * Parse request body as JSON, returning null on failure
  * Use when you want to handle invalid JSON gracefully without throwing
+ * @deprecated Use parseBodySafe instead for better observability
  */
 export async function parseBodyOrNull<T = unknown>(request: Request): Promise<T | null> {
   try {
@@ -59,6 +60,7 @@ export async function parseBodyOrNull<T = unknown>(request: Request): Promise<T 
 /**
  * Parse request body with a fallback value
  * Use when you need a default for optional request bodies
+ * @deprecated Use parseBodySafe instead for better observability
  */
 export async function parseBodyWithDefault<T>(
   request: Request,
@@ -69,5 +71,39 @@ export async function parseBodyWithDefault<T>(
     return body as T;
   } catch {
     return defaultValue;
+  }
+}
+
+/**
+ * Safe JSON body parser with observability
+ * Returns { data, error } tuple for explicit error handling
+ * Logs parse failures with correlation ID for debugging
+ * 
+ * @example
+ * ```ts
+ * const { data: body, error } = await parseBodySafe<MyBodyType>(req);
+ * if (error) {
+ *   return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+ * }
+ * // body is now typed as MyBodyType
+ * ```
+ */
+export async function parseBodySafe<T = unknown>(
+  request: Request,
+  options?: { logPrefix?: string }
+): Promise<{ data: T; error: null } | { data: null; error: string }> {
+  try {
+    const data = await request.json() as T;
+    return { data, error: null };
+  } catch (err) {
+    const correlationId = crypto.randomUUID();
+    // Dynamic import to avoid circular dependency
+    const { logger } = await import("@/lib/logger");
+    logger.warn(`${options?.logPrefix || "[API]"} JSON parse failed`, {
+      correlationId,
+      error: err instanceof Error ? err.message : String(err),
+      url: request.url,
+    });
+    return { data: null, error: `Invalid JSON body (ref: ${correlationId})` };
   }
 }

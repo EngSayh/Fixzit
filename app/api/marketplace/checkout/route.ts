@@ -15,6 +15,7 @@
  */
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { resolveMarketplaceContext } from "@/lib/marketplace/context";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { getOrCreateCart, recalcCartTotals } from "@/lib/marketplace/cart";
@@ -69,7 +70,10 @@ export async function POST(request: NextRequest) {
       return rateLimitError("Checkout rate limit exceeded");
     }
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request, { logPrefix: "[Marketplace Checkout]" });
+    if (parseError) {
+      return validationError("Invalid request body");
+    }
     const payload = CheckoutSchema.parse(body ?? {});
     await connectToDatabase();
 

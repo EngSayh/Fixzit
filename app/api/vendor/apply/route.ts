@@ -19,6 +19,7 @@ import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { z } from "zod";
+import { APIParseError, parseBody } from "@/lib/api/parse-body";
 
 /**
  * Zod schema for vendor application validation
@@ -45,48 +46,56 @@ export async function POST(req: NextRequest) {
   });
   if (rateLimitResponse) return rateLimitResponse;
 
-  // Parse and validate request body
-  let body: unknown;
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON body" },
-      { status: 400 },
-    );
-  }
+    const body = await parseBody(req);
+    const parseResult = VendorApplicationSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: parseResult.error.issues.map((i) => ({
+            field: i.path.join("."),
+            message: i.message,
+          })),
+        },
+        { status: 400 },
+      );
+    }
 
-  const parseResult = VendorApplicationSchema.safeParse(body);
-  if (!parseResult.success) {
-    return NextResponse.json(
-      {
-        error: "Validation failed",
-        details: parseResult.error.issues.map((i) => ({
-          field: i.path.join("."),
-          message: i.message,
-        })),
-      },
-      { status: 400 },
-    );
-  }
+    const { company, contactName, email, phone, services, notes } = parseResult.data;
 
-  const { company, contactName, email, phone, services, notes } = parseResult.data;
+    try {
+      await connectToDatabase();
+    } catch (error) {
+      logger.error("[vendor-apply] DB connection failed", { error });
+      return NextResponse.json(
+        { error: "Service temporarily unavailable. Please retry shortly." },
+        { status: 503 },
+      );
+    }
 
-  try {
-    await connectToDatabase().catch(() => null);
+    // Log sanitized application data (avoid logging full PII in production)
+    logger.info("[vendor-apply] Vendor application received", {
+      company,
+      contactName: contactName.substring(0, 3) + "***", // Partial name for privacy
+      emailDomain: email.split("@")[1], // Only log domain, not full email
+      hasPhone: !!phone,
+      hasServices: !!services,
+      hasNotes: !!notes,
+    });
+
+    return NextResponse.json({ ok: true });
   } catch (error) {
-    logger.warn("[vendor-apply] DB connection skipped", { error });
+    if (error instanceof APIParseError) {
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
+    logger.error("[vendor-apply] Unexpected error", { error });
+    return NextResponse.json(
+      { error: "Service temporarily unavailable. Please retry shortly." },
+      { status: 503 },
+    );
   }
-
-  // Log sanitized application data (avoid logging full PII in production)
-  logger.info("[vendor-apply] Vendor application received", {
-    company,
-    contactName: contactName.substring(0, 3) + "***", // Partial name for privacy
-    emailDomain: email.split("@")[1], // Only log domain, not full email
-    hasPhone: !!phone,
-    hasServices: !!services,
-    hasNotes: !!notes,
-  });
-
-  return NextResponse.json({ ok: true });
 }

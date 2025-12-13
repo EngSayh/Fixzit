@@ -26,6 +26,7 @@ import {
   buildOrgAwareRateLimitKey,
   smartRateLimit,
 } from "@/server/security/rateLimit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const TestNotificationSchema = z.object({
   phoneNumber: z.string().min(10).regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format"),
@@ -68,7 +69,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<z.infer<typeof TestNotificationSchema>>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
     const parseResult = TestNotificationSchema.safeParse(body);
 
     if (!parseResult.success) {

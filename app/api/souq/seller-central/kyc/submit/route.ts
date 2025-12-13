@@ -11,6 +11,9 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { sellerKYCService } from "@/services/souq/seller-kyc-service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { createRbacContext, hasAnyRole } from "@/lib/rbac";
+import { UserRole } from "@/types/user";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 export async function POST(request: NextRequest) {
   // Rate limiting: 10 requests per minute per IP for KYC submission (sensitive action)
@@ -27,8 +30,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { step, data } = body;
+    const roles =
+      (session.user as { roles?: string[]; role?: string }).roles ??
+      ((session.user as { role?: string }).role
+        ? [(session.user as { role?: string }).role as string]
+        : []);
+    const rbac = createRbacContext({
+      isSuperAdmin: (session.user as { isSuperAdmin?: boolean }).isSuperAdmin,
+      permissions: (session.user as { permissions?: string[] }).permissions,
+      roles,
+    });
+
+    const isAuthorized =
+      rbac.isSuperAdmin || hasAnyRole(rbac, [UserRole.VENDOR]);
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { error: "Forbidden: seller role required for KYC submission" },
+        { status: 403 },
+      );
+    }
+
+    const parseResult = await parseBodySafe<{ step?: string; data?: unknown }>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const { step, data } = parseResult.data!;
 
     // Validation
     if (!step || !data) {
@@ -62,8 +91,9 @@ export async function POST(request: NextRequest) {
     await sellerKYCService.submitKYC({
       sellerId: session.user.id,
       orgId,
-      step,
-      data,
+      vendorId: session.user.id,
+      step: step as "company_info" | "documents" | "bank_details",
+      data: data as Parameters<typeof sellerKYCService.submitKYC>[0]["data"],
     });
 
     return NextResponse.json({

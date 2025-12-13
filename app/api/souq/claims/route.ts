@@ -15,6 +15,7 @@
  * @throws {404} If order not found
  */
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import {
   ClaimService,
   type ClaimType,
@@ -71,8 +72,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { orderId, reason, description, requestedAmount, requestType } = body;
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request, { logPrefix: "[Souq Claims]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { orderId, reason, description, requestedAmount, requestType } = body as Record<string, unknown>;
 
     const missingFields: string[] = [];
     if (!orderId) missingFields.push("orderId");
@@ -90,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     let orderObjectId: ObjectId;
     try {
-      orderObjectId = new ObjectId(orderId);
+      orderObjectId = new ObjectId(orderId as string);
     } catch {
       return NextResponse.json({ error: "Invalid orderId" }, { status: 400 });
     }
@@ -200,13 +204,13 @@ export async function POST(request: NextRequest) {
       buyerId: session.user.id,
       sellerId,
       productId,
-      type: mapReasonToType(reason),
-      reason,
-      description,
+      type: mapReasonToType(reason as string),
+      reason: reason as string,
+      description: description as string,
       evidence: [],
       orderAmount: orderTotal,
       requestedAmount: Number(requestedAmount),
-      requestType,
+      requestType: requestType as string | undefined,
     });
 
     return NextResponse.json(

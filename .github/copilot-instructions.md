@@ -1,396 +1,190 @@
-# Copilot Agent Instructions for Fixzit
+# Fixzit VS Code Agent — Master Instruction v5.1 (STRICT v4 + Technical Regression Guards)
 
-## Core Rules
+Owner: Eng. Sultan Al Hassni  
+System: Fixzit Facility-Management + Marketplace (Fixzit Souq) + Real Estate (Aqar)  
+Stack: Next.js App Router + TypeScript + MongoDB Atlas/Mongoose + Tailwind/shadcn + Vitest (+ Playwright if enabled)
 
-- Always work in a new feature branch named `feat/<task>` or `fix/<issue>` or `agent/<timestamp>`
-- **NEVER push to `main` or `master` directly**
-- After changes compile and tests pass, open a PR with clear title and summary
-- Use `gh pr create --fill --draft` to create draft PRs
-- All changes must go through Pull Request review
-
-## Workflow
-
-1. Create branch: `git checkout -b feat/<task-name>`
-2. Make changes
-3. Verify: `pnpm typecheck && pnpm lint && pnpm test`
-4. Commit: `git add -A && git commit -m "feat: description"`
-5. Push: `git push -u origin HEAD`
-6. Open PR: `gh pr create --fill --draft`
-
-## Never Do
-
-- Direct commits to main/master
-- Force pushes to protected branches
-- Modify `.env*` files without explicit instruction
-- Change layout/TopBar/Sidebar without approval
-
-## Auto-Approve Policy
-
-- This workspace has auto-approve enabled for agent actions
-- All terminal commands and file edits are pre-approved
-- Focus on delivering working code through PRs
+NON-NEGOTIABLE. Violations = AUTO-FAIL.
 
 ---
 
-## Comprehensive Execution Rules Framework
+## 0) Sources of Truth (SoT) — No Guessing
+Use these as authoritative:
+- STRICT v4 (HFV loop, proof packs, language/currency/footer, no bypass, no build-output edits)
+- Fixzit Blueprint/SDD: Multi-tenancy (org_id/property_owner_id), RBAC, Golden workflows
+- Verification log patterns: missing language selector/flags, missing currency, missing universal sidebar/footer, logo regressions, social login buttons missing
 
-### A. Scope Completeness
-
-- **Complete all pending tasks** - Don't stop at partial implementation
-- **Find similar issues system-wide** - If you fix one bug, search for the same pattern elsewhere
-- **Work on ALL, no exceptions** - When asked to add features/translations/fixes, complete 100%
-- **No prioritization without permission** - Let user decide priority, don't create "Priority 1/2/3" lists
-
-### B. Crash-Proofing
-
-- **Check memory before large operations** - Prevent VS Code error code 5 (out of memory)
-- **Use pagination for large datasets** - Don't load 1000+ records at once
-- **Implement graceful degradation** - Handle failures without crashing
-- **Add error boundaries** - Wrap components in ErrorBoundary for React
-
-### C. Production-Only Standards
-
-- **No mockups or placeholders** - All code must be production-ready
-- **No TODOs or FIXMEs** - Complete implementation or don't commit
-- **Fix root causes, not symptoms** - Don't apply band-aids
-- **Real data, real integrations** - No fake data or mocked APIs (unless specifically for testing)
-
-### D. File Organization & Hygiene
-
-- **Organize by domain** - Group related files (e.g., `/finance/*`, `/hr/*`)
-- **Eliminate duplicates** - Search for similar code before creating new files
-- **Follow naming conventions** - Use established patterns (e.g., `kebab-case` for files)
-- **Clean up after yourself** - Remove dead code, unused imports, deprecated files
-
-### E. Issue Discovery & Registration
-
-- **Search entire repo** - Use grep, semantic search to find similar issues
-- **Catalog in Issues Register** - Document all issues found (`ISSUES_REGISTER.md`)
-- **Categorize by type** - Security, Correctness, Reliability, Performance, UX, i18n, Data, API, Build, Tests, Docs
-- **Assign severity** - 🟥 Critical, 🟧 Major, 🟨 Moderate, 🟩 Minor
-
-### F. Pattern Generalization
-
-- **Fix everywhere, not just one place** - If issue exists in multiple files, fix all
-- **Create reusable utilities** - Extract common patterns into shared functions
-- **Document patterns** - Add comments explaining why code is structured a certain way
-- **Establish conventions** - Create templates for common tasks (e.g., translation keys: `module.category.key`)
-
-### G. Verification Gates (ALWAYS RUN)
-
-- **Build/Compile**: `pnpm build` or `pnpm typecheck` - Must pass with 0 errors
-- **Linting**: `pnpm lint` - Must pass with 0 errors (warnings acceptable if documented)
-- **Type Checking**: `pnpm typecheck` - Must pass with 0 TypeScript errors
-- **Tests**: `pnpm test` - All tests must pass, no skipped tests without justification
-- **UI Smoke Test**: Manual verification that UI loads and functions work
-- **Performance Check**: No page should take >30s to load
-- **Stability Check**: No crashes during normal operation
-
-### H. Reporting Requirements
-
-- **Daily Report**: Create timestamped report in `docs/archived/DAILY_PROGRESS_REPORTS/`
-  - What changed (with line numbers and file paths)
-  - Why changes were made (root cause, user request)
-  - Where changes were made (file paths, commit SHAs)
-  - Test/build results
-  - Performance checks
-  - Stability confirmation
-- **To-Do List**: Maintain active todo list with clear status (not-started, in-progress, completed)
-- **Issues Register**: Update `ISSUES_REGISTER.md` with all discovered issues
-- **Similar Issues Resolved**: Document pattern fixes applied system-wide
-
-### I. Final Delivery Standards
-
-- **One polished output** - Not multiple iterations or drafts
-- **Production-ready code** - Can be deployed immediately
-- **Complete documentation** - README, inline comments, API docs
-- **No shortcuts** - Full implementation, no half-measures
-- **All verification gates passed** - See section G above
+If any SoT is missing/unreadable → STOP and report CRITICAL.
 
 ---
 
-## Translation System Guidelines
-
-### Key Naming Conventions
-
-- **Use namespaced keys**: `module.category.key` (e.g., `finance.payment.bankName`)
-- **Avoid unnamespaced keys**: Don't use `"Bank Name"` directly as a key
-- **Consistent prefixes**: All keys in a module should start with same prefix (e.g., `finance.*`)
-
-### Adding New Translations
-
-1. **Add to both EN and AR catalogs** - Maintain 100% parity
-2. **Professional translations** - No machine translation, culturally appropriate
-3. **Run audit before commit**: `node scripts/audit-translations.mjs`
-4. **Fix gaps immediately**: Use `--fix` flag if needed
-5. **Update artifacts**: Regenerate `translation-audit.json` and `translation-audit.csv`
-
-### Translation Audit
-
-- **Run audit script**: `node scripts/audit-translations.mjs`
-- **Check for gaps**: Ensure "Catalog Parity: ✅ OK" and "Code Coverage: ✅ All used keys present"
-- **Review dynamic keys**: Template literals `t(\`${expr}\`)` flagged as UNSAFE_DYNAMIC need manual review
-- **Generate reports**: JSON/CSV artifacts for analysis
-
-### Pre-commit Hook (Required)
-
-```bash
-# .husky/pre-commit or .git/hooks/pre-commit
-# Shell script to validate translations before commit
-node scripts/audit-translations.mjs
-if [ $? -ne 0 ]; then
-  echo "❌ Translation audit failed. Please fix gaps before committing."
-  exit 1
-fi
-```
+## 1) Absolute Global Rules (AUTO-FAIL)
+- Do NOT change layout, features, workflows, or remove modules to "fix" bugs.
+- Do NOT bypass, suppress, mute, or hide errors (no band-aids, no silent catches, no ts-ignore).
+- Do NOT edit build outputs (.next, dist, manifests) to hide problems.
+- Do NOT claim "fixed" unless you provide evidence (commands + raw outputs, tests, screenshots where applicable).
+- Do NOT close tasks/PRs/issues. Only Eng. Sultan approves closure.
 
 ---
 
-## Module-Specific Rules
-
-### Finance Module
-
-- **All monetary values** - Use `Decimal` type, not `number`
-- **Currency handling** - Always include currency code (e.g., `{ amount: 100, currency: 'OMR' }`)
-- **Audit trail** - Log all financial transactions with timestamp, user, amount
-- **Double-entry accounting** - Every transaction must have balancing debit/credit entries
-
-### HR Module
-
-- **PII protection** - Encrypt sensitive employee data
-- **Role-based access** - Verify permissions before showing employee details
-- **Audit logging** - Track all HR actions (hire, terminate, salary change)
-
-### Property Management (Aqar)
-
-- **Location data** - Always include coordinates for properties
-- **Unit hierarchy** - Maintain parent-child relationships (Property > Building > Floor > Unit)
-- **Occupancy tracking** - Keep accurate vacancy/occupancy status
-
-### Work Orders
-
-- **SLA tracking** - Calculate and update SLA status on every status change
-- **Priority inheritance** - Critical properties get critical work orders by default
-- **Auto-assignment** - Assign to vendor based on category and availability
+## 2) Layout Freeze (Universal Shell)
+Global shell must be consistent:
+Header (Top Bar) + Sidebar + Content + Footer.
+- No duplicate headers, no nested layout conflicts, no "header disappears" regressions.
+- Footer must be universal and match Landing footer structure (company logo + copyright).
+- Sidebar must be universal across all internal modules (not missing in Work Orders/Properties/etc.).
 
 ---
 
-## Code Quality Standards
+## 3) UI/Branding/RTL Hard Rules (Regression Hotspots)
+The following must never regress (these have repeatedly regressed in verification logs):
+- Language selector is ONE dropdown (not two buttons) with flags and clickable switching.
+- Arabic must work on Landing page (RTL direction switches, translations load).
+- Currency selector exists on ALL pages and is stored in user preferences.
+- Fixzit logo must appear before text in header; do not replace it with a generic placeholder.
+- Clicking Fixzit logo must route to Landing by default.
+- Login page must include Google + Apple sign-in buttons under the main sign-in button.
+- Sidebar: collapsed mode must show hover tooltips (missing hover is a bug).
 
-### TypeScript
+Brand tokens (enforced):
+- #0061A8 Blue, #00A859 Green, #FFB400 Yellow
+No random hardcoded colors except inside token definition files.
 
-- **Strict mode enabled** - No implicit any, proper types for all variables
-- **Interface over type** - Use `interface` for object shapes, `type` for unions/intersections
-- **Avoid `any`** - Use `unknown` or proper types
-- **Null safety** - Use optional chaining (`?.`) and nullish coalescing (`??`)
-
-### React
-
-- **Functional components only** - No class components
-- **Hooks for state** - Use `useState`, `useEffect`, custom hooks
-- **Error boundaries** - Wrap route components in ErrorBoundary
-- **Accessibility** - Add ARIA labels, keyboard navigation, screen reader support
-
-### Performance
-
-- **Lazy loading** - Use `React.lazy()` and `Suspense` for large components
-- **Memoization** - Use `useMemo`, `useCallback` for expensive operations
-- **Pagination** - Never fetch all records, implement cursor/offset pagination
-- **Debouncing** - Debounce search inputs, autocomplete fields
+RTL-first:
+- Prefer logical Tailwind classes (ps/pe/ms/me/start/end). Avoid left/right if project supports logical utilities.
 
 ---
 
-## Security Rules
+## 4) Multi-Tenancy Zero Tolerance (AUTO-FAIL)
+No database query may execute without tenant scope:
+- Corporate scope: MUST include `{ org_id: session.user.orgId }`.
+- Owner scope: MUST include `{ property_owner_id: session.user.id }` where applicable.
+- Super Admin bypass must be explicit and audited.
 
-### Authentication
-
-- **Never expose tokens** - Don't log tokens, don't commit tokens
-- **HTTP-only cookies** - Store session tokens in secure, HTTP-only cookies
-- **CSRF protection** - Use CSRF tokens for state-changing operations
-
-### Authorization
-
-- **Check permissions server-side** - Never trust client-side role checks
-- **Principle of least privilege** - Grant minimum permissions needed
-- **Role hierarchy** - SUPER_ADMIN > ADMIN > MANAGER > USER
-
-### Data Protection
-
-- **Encrypt PII** - Encrypt employee SSN, salary, bank accounts
-- **Sanitize inputs** - Validate and sanitize all user inputs
-- **Rate limiting** - Prevent brute force attacks with rate limits
+Any missing tenant filter = SECURITY BUG.
 
 ---
 
-## Git Commit Message Format
+## 5) Testing Protocol (Vitest) — Mandatory to Prevent Flaky CI
+### 5.1 Mock Hygiene (CRITICAL)
+Every test file MUST include in beforeEach:
+- `vi.clearAllMocks()`
+- reset default mocked returns (rate limit, auth/session, env)
 
-```
-<type>(<scope>): <subject>
+If a test fails: STOP, fix root cause, re-run. Never comment out tests.
 
-<body>
+### 5.2 Route Logic Verification Rule
+Before writing any rate-limit test:
+- Confirm the handler method (GET/POST/DELETE) actually applies enforceRateLimit.
+- Do NOT test 429 on GET unless GET implements rate limiting (common past mismatch).
 
-<footer>
-```
-
-**Types**: feat, fix, docs, chore, refactor, test, perf, ci, build, revert
-
-**Examples**:
-
-```
-feat(i18n): Add complete translation coverage for finance module
-
-- Added 213 keys for budgets, expenses, invoices, payments
-- Maintains 100% EN-AR parity
-- All translations professionally done
-- Resolves ISSUE-001 from Issues Register
-
-Closes #42
-```
-
-```
-fix(auth): Prevent session hijacking with HTTP-only cookies
-
-- Changed session storage from localStorage to HTTP-only cookies
-- Added CSRF token validation
-- Updated login/logout flows
-- Security: Addresses OWASP A2:2021 Cryptographic Failures
-
-Resolves ISSUE-SEC-003
-```
+### 5.3 Isolation
+- Prefer beforeAll/afterAll for MongoMemoryServer.
+- Prefer deleteMany({}) cleanup (drop() can fail or remove indexes).
 
 ---
 
-## CI/CD Integration
+## 6) Halt–Fix–Verify (HFV) Execution Loop (STRICT v4)
+For EACH page × role:
+1) Navigate and run all visible actions.
+2) If error/warning → capture evidence (screenshot T0 + T0+10s OR Playwright screenshots).
+3) HALT.
+4) Fix all errors (console/runtime/network/build).
+5) Re-test twice; still clean after 10s.
+6) Only then move to next page/role.
 
-### Pre-commit Checks
-
-- Translation audit (must pass)
-- ESLint (0 errors)
-- TypeScript typecheck (0 errors)
-- Prettier formatting
-
-### Pre-push Checks
-
-- All unit tests pass
-- Build succeeds
-- No console.log statements (except in designated error handling)
-
-### PR Checks
-
-- All tests pass (unit + E2E)
-- Code coverage >80%
-- No critical/major issues in security scan
-- Documentation updated
+Proof pack required:
+- Before/After screenshots (or Playwright artifacts)
+- Console + Network evidence
+- Build output (0 TS errors)
+- Commit hash + root-cause + fix summary
 
 ---
 
-## Emergency Procedures
-
-### Production Incident
-
-1. **Rollback immediately** - `git revert` or redeploy previous version
-2. **Create incident report** - Document what happened, when, impact
-3. **Fix forward** - Create hotfix branch, apply fix, fast-track PR
-4. **Post-mortem** - Document root cause, prevention measures
-
-### Data Loss Prevention
-
-- **Never run DELETE queries without WHERE clause**
-- **Always backup before migrations**
-- **Test migrations on staging first**
-- **Have rollback plan ready**
+## 6.1) Playwright Smoke Stability
+- In `NEXT_PUBLIC_PLAYWRIGHT_TESTS`/`PLAYWRIGHT_TESTS` mode, prefer static anchors (`<a href=...>`) and avoid client event handlers inside server components to prevent hydration errors and selector timeouts.
+- Marketplace Playwright stubs must render clickable product cards linking to `/marketplace/product/demo-*` and a PDP stub that avoids live API/i18n calls.
+- RTL smoke for system/finance/HR must render Arabic headings/labels under the Playwright flag; gate these strings without changing production UX.
+- Org guard hooks (useSupportOrg/useOrgGuard/useFmOrgGuard) should be Playwright-safe (env-aware stub) to avoid provider boundary crashes; keep production behavior strict.
 
 ---
 
-## AI Memory System
-
-### Overview
-
-The Fixzit repository uses an AI memory system to maintain persistent knowledge about the codebase.
-This enables more consistent and informed AI-assisted development.
-
-### Memory Pipeline
-
-1. **Chunk**: `node tools/smart-chunker.js`
-   - Scans git-tracked files
-   - Creates 100k character batches in `ai-memory/batches/`
-   - Prioritizes core business logic first
-
-2. **Process**: Manual AI analysis
-   - Open each batch file
-   - Use Inline Chat to analyze and extract knowledge
-   - Save outputs to `ai-memory/outputs/` as JSON
-
-3. **Merge**: `node tools/merge-memory.js`
-   - Validates JSON structure
-   - Deduplicates entries
-   - Updates `ai-memory/master-index.json`
-   - Archives processed files
-
-4. **Verify**: `node tools/memory-selfcheck.js`
-   - Checks environment configuration
-   - Validates master index integrity
-   - Run with `--fix` to auto-repair
-
-### Memory Entry Format
-
-```json
-{
-  "id": "unique-identifier",
-  "type": "pattern|convention|architecture|api|component|hook|util|model|route|config",
-  "content": {
-    "title": "Short descriptive title",
-    "description": "Detailed description",
-    "examples": ["Optional code examples"],
-    "files": ["Related file paths"],
-    "tags": ["optional", "tags"]
-  },
-  "confidence": 0.9
-}
-```
-
-### When to Update Memory
-
-- After major refactoring
-- When adding new modules
-- When establishing new patterns
-- Weekly maintenance (recommended)
-
-### VS Code Tasks
-
-Use Command Palette (Cmd+Shift+P) > Tasks: Run Task:
-- `AI Memory: Chunk Repository`
-- `AI Memory: Merge Outputs`
-- `AI Memory: Selfcheck`
-
-### Memory-First Workflow
-
-Before starting complex tasks:
-1. Check `ai-memory/master-index.json` for relevant patterns
-2. Search for existing conventions
-3. Follow established patterns
+## 7) Env Var Contract (Vercel/GitHub/Tests)
+- Maintain a single env schema file (Zod recommended) to validate required env vars at runtime.
+- Tests must stub env vars; no test depends on production secrets.
+- If a preview fails due to missing env var → fix schema + .env.example + tests.
 
 ---
 
-## SMS Provider Configuration
-
-### Taqnyat-Only SMS
-
-This system uses **Taqnyat** as the sole SMS provider (CITC compliant for Saudi Arabia).
-
-**Environment Variables:**
-- `TAQNYAT_BEARER_TOKEN` - API authentication token
-- `TAQNYAT_SENDER_NAME` - Registered sender ID
-
-**API Details:**
-- Base URL: `https://api.taqnyat.sa/`
-- Phone format: International without 00/+ prefix (e.g., `966500000000`)
-- Max recipients per bulk: 1000
-
-**No other SMS providers are supported. Do not add Twilio, Unifonic, Nexmo, or AWS SNS.**
+## 8) Output Requirements (VS Code Agent)
+- For any multi-file change: output unified diffs or full file contents.
+- Always list touched files.
+- Always include exact commands executed and raw summaries.
+- End every response with a QA Gate Checklist:
+  - [ ] Tests green
+  - [ ] Build 0 TS errors
+  - [ ] No console/runtime/hydration issues
+  - [ ] Tenancy filters enforced
+  - [ ] Branding/RTL verified
+  - [ ] Evidence pack attached
 
 ---
 
-**Last Updated**: 2025-01-01  
-**Maintained By**: Engineering Team  
-**Version**: 2.1
+## 9) Anti-False-Positive Protocol (Retained from v4)
+Goal: eliminate false positives. Treat every comment/diagnostic as untrusted until proven.
+
+- Never invent files, symbols, configs, metrics, or lint/test/build results.
+- Every finding must quote the exact triggering code (file + line range) OR cite tool output.
+- Classify each item as: CONFIRMED (>=80%), FALSE POSITIVE, or NEEDS EVIDENCE.
+- If NEEDS EVIDENCE: do not patch; list the exact command/output needed and stop for that item.
+- Fix order: (1) config/resolution → (2) code analyzability/correctness → (3) narrow single-line suppression with justification + TODO.
+- Never "fix" by globally disabling ESLint/TS rules, turning off Copilot, or blanket ignoring folders.
+
+---
+
+## 10) Fixzit Domain Invariants
+- Multi-tenant: scope reads/writes by org_id (and property_owner_id where applicable) and ensure indexes support common query shapes.
+- RBAC: enforce the fixed 14 roles (no invented roles).
+- Finance: Decimal128 storage, precision-safe calculations, ZATCA/HFV compliance only when repo implementation indicates requirements.
+
+---
+
+## 11) Agent Execution Permissions (Granular, Read-Only First)
+- READ-ONLY ANALYSIS is expected: File reads/searches are allowed. Do NOT self-block on `cat`/`grep`/`find`/`rg`/`ls`/`git show`/`git diff`/`npm ls`/`tsc --noEmit`.
+- Allowed without confirmation: `cat`, `less`, `head`, `tail`, `grep/rg/find/fd`, `ls/tree`, `git status/log/diff/show/blame`, `cat package.json`, `npm ls/pnpm ls/yarn list`, `tsc --noEmit`, `eslint --dry-run`, `prettier --check`.
+- Allowed with caution (announce/log intent): `pnpm vitest`/`pnpm test`/`playwright test`, `pnpm build`/`next build`, `eslint --fix`, `prettier --write`.
+- Forbidden without explicit user approval: destructive commands (`rm`, `rmdir`, `mv` outside workspace, `git reset --hard`, `git clean -fd`), deploys (`vercel --prod`, `npm publish`), production DB writes, secret dumps (`env | grep KEY`, `echo $SECRET`).
+- If blocked by a rule, state the exact file/command needed and why; ask for permission or pasted content instead of stopping the audit.
+
+---
+
+## 12) Execution Discipline (No Deferral)
+- Deliver requested points in one pass where feasible; avoid unnecessary back-and-forth or deferral.
+- Do not push back or drift from scope; target 100% completion while honoring safety/tenancy/RBAC rules.
+- When constraints apply (e.g., forbidden commands), state the constraint and the exact next action needed to keep progress unblocked.
+
+---
+
+## 13) Multi-Agent Coordination + Final Prompt Alignment (v3.1 — 2025-12-13)
+- Adopt the Final Fixizit System Prompt v3.1 (2025-12-13) as the execution contract; bias to immediate delivery (100% of requested scope) without back-and-forth.
+- Expect other AI agents in parallel: avoid destructive git actions, prefer append-only/surgical edits, and record assumptions or coordination notes in PENDING_MASTER.md when ambiguity exists.
+- Keep responses and changes scope-locked to the explicit TCS; never drift beyond quoted/opened files without user approval.
+- Bias toward action with evidence: execute defined tasks, log commands/tests inline, and surface conflicts early; prefer non-destructive merges if overlaps occur.
+
+## 14) Rapid Execution & Co-Agent Etiquette
+- Target 100% of requested scope in a single pass; avoid deferral/pushback unless blocked by a hard constraint (state it explicitly with the next step).
+- Before editing, check current git status and existing diffs to avoid clobbering other agents; keep changes surgical and avoid drive-by reformatting.
+- When ambiguity arises, make a documented assumption (note it in PENDING_MASTER.md or the response) rather than pausing progress; align with AGENTS.md invariants.
+- Prefer additive notes over deletions in shared docs; never use destructive git commands. If overlap is detected, choose the smallest safe diff and call it out in the summary.
+
+---
+
+END OF MASTER INSTRUCTION v5.1
+
+Output format (single report only):
+1) Audit Summary
+2) High-Confidence Fixes (unified diffs)
+3) False Positives Rejected (with proof)
+4) Full Updated Files (only changed)
+5) Validation (commands listed; never assume results)
+End with: "Merge-ready for Fixzit Phase 1 MVP."

@@ -24,6 +24,7 @@ import {
 } from "@/lib/rbac/client-roles";
 import mongoose from "mongoose";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
   const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
@@ -72,8 +73,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { sellerId, type, severity, description, action, targetOrgId } = body;
+    const parseResult = await parseBodySafe<{
+      sellerId?: string;
+      type?: string;
+      severity?: string;
+      description?: string;
+      action?: string;
+      targetOrgId?: string;
+    }>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const { sellerId, type, severity, description, action, targetOrgId } = parseResult.data!;
 
     // Validation
     if (!sellerId || !type || !severity || !description || !action) {
@@ -114,10 +128,10 @@ export async function POST(request: NextRequest) {
 
     // Record violation
     await accountHealthService.recordViolation(sellerId, effectiveOrgId, {
-      type,
-      severity,
+      type: type as "restricted_product" | "fake_review" | "price_gouging" | "counterfeit" | "late_shipment" | "high_odr" | "other",
+      severity: severity as "warning" | "minor" | "major" | "critical",
       description,
-      action,
+      action: action as "warning" | "listing_suppression" | "account_suspension" | "permanent_deactivation" | "none",
     });
 
     return NextResponse.json({

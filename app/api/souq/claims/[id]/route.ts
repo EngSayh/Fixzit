@@ -11,6 +11,7 @@
  * @throws {404} If claim not found
  */
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";
 import { getDatabase } from "@/lib/mongodb-unified";
@@ -65,14 +66,12 @@ export async function GET(
     if (ObjectId.isValid(orderIdValue)) {
       order = await db
         .collection(COLLECTIONS.ORDERS)
-        .findOne({ _id: new ObjectId(orderIdValue), ...orgFilter })
-        .catch(() => null);
+        .findOne({ _id: new ObjectId(orderIdValue), ...orgFilter });
     }
     if (!order) {
       order = await db
         .collection(COLLECTIONS.ORDERS)
-        .findOne({ orderId: orderIdValue, ...orgFilter })
-        .catch(() => null);
+        .findOne({ orderId: orderIdValue, ...orgFilter });
     }
     if (!order) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
@@ -82,13 +81,11 @@ export async function GET(
       ? await db
           .collection(COLLECTIONS.USERS)
           .findOne({ _id: new ObjectId(String(claim.buyerId)), ...orgFilter })
-          .catch(() => null)
       : null;
     const sellerDoc = ObjectId.isValid(String(claim.sellerId))
       ? await db
           .collection(COLLECTIONS.USERS)
           .findOne({ _id: new ObjectId(String(claim.sellerId)), ...orgFilter })
-          .catch(() => null)
       : null;
 
     return NextResponse.json({
@@ -126,8 +123,11 @@ export async function PUT(
     }
     const orgFilter = buildOrgScopeFilter(userOrgId.toString());
 
-    const body = await request.json();
-    const { status } = body;
+    const { data: body, error: parseError } = await parseBodySafe<{ status?: string }>(request, { logPrefix: "[Souq Claims]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { status } = body ?? {};
 
     const allowOrgless = process.env.NODE_ENV === "test";
     const claim = await ClaimService.getClaim(params.id, userOrgId, allowOrgless);
@@ -150,7 +150,11 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await ClaimService.updateStatus(params.id, userOrgId, status);
+    if (!status) {
+      return NextResponse.json({ error: "Status is required" }, { status: 400 });
+    }
+
+    await ClaimService.updateStatus(params.id, userOrgId, status as Parameters<typeof ClaimService.updateStatus>[2]);
 
     return NextResponse.json({
       success: true,

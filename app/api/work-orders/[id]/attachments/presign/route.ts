@@ -8,7 +8,7 @@
  */
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { getPresignedPutUrl } from "@/lib/storage/s3";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -48,7 +48,11 @@ export async function POST(
   props: { params: Promise<{ id: string }> },
 ) {
   try {
-    const user = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "work-orders:attachments:presign" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const user = sessionResult.session;
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
 
     if (!process.env.AWS_S3_BUCKET || !process.env.AWS_REGION) {
@@ -76,9 +80,13 @@ export async function POST(
 
     const { id } = await props.params;
 
-    const { name, type, size } = await req
-      .json()
-      .catch(() => ({}) as Record<string, unknown>);
+    let requestBody: Record<string, unknown>;
+    try {
+      requestBody = await req.json();
+    } catch {
+      return createSecureResponse({ error: "Invalid JSON body" }, 400, req);
+    }
+    const { name, type, size } = requestBody;
     if (!name || !type || typeof size !== "number") {
       return createSecureResponse({ error: "Missing name/type/size" }, 400, req);
     }

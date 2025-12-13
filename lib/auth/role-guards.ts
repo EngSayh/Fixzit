@@ -37,6 +37,10 @@ export function getEffectiveRole(
 /**
  * 🔒 STRICT v4.1: Check if role matches allowed roles (with subRole support)
  * 
+ * Checks BOTH the raw role string (uppercased) AND the FM-normalized canonical role.
+ * This allows checking for legacy roles like "HR", "FINANCE" which map to TEAM_MEMBER
+ * in the FM domain but should still match allowed lists containing "HR", "FINANCE".
+ * 
  * @param role - Primary role from session
  * @param subRole - Sub-role from session
  * @param allowedRoles - Array of allowed roles
@@ -47,17 +51,30 @@ export function hasAllowedRole(
   subRole?: string | null,
   allowedRoles: readonly string[] = []
 ): boolean {
-  const normalizedRole = normalizeRole(role);
-  const normalizedSubRole = normalizeRole(subRole);
-  
   const allowedSet = new Set(allowedRoles.map(r => r.toUpperCase()));
   
-  // Check if direct role matches
+  // Get both raw uppercased AND FM-normalized versions
+  const rawRole = typeof role === "string" ? role.trim().toUpperCase() : null;
+  const normalizedRole = normalizeRole(role);
+  const rawSubRole = typeof subRole === "string" ? subRole.trim().toUpperCase() : null;
+  const normalizedSubRole = normalizeRole(subRole);
+  
+  // Check if raw role matches (for legacy roles like HR, FINANCE)
+  if (rawRole && allowedSet.has(rawRole)) {
+    return true;
+  }
+  
+  // Check if FM-normalized role matches (for canonical roles like TEAM_MEMBER)
   if (normalizedRole && allowedSet.has(normalizedRole)) {
     return true;
   }
   
-  // Check if subRole matches (for TEAM_MEMBER + HR_OFFICER, etc.)
+  // Check if raw subRole matches
+  if (rawSubRole && allowedSet.has(rawSubRole)) {
+    return true;
+  }
+  
+  // Check if FM-normalized subRole matches
   if (normalizedSubRole && allowedSet.has(normalizedSubRole)) {
     return true;
   }

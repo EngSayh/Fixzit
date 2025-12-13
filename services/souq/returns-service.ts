@@ -22,6 +22,7 @@ import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 import { generateReturnTrackingNumber, generateRefundId, generateJobId } from "@/lib/id-generator";
+import { getSouqRuleConfig } from "@/services/souq/rules-config";
 
 /**
  * Contact information for notifications
@@ -188,8 +189,9 @@ class ReturnsService {
     if (!deliveryDate) {
       return { eligible: false, reason: 'Delivery date unavailable' };
     }
+    const ruleConfig = getSouqRuleConfig(orgId);
     const daysSinceDelivery = Math.floor((Date.now() - deliveryDate.getTime()) / (1000 * 60 * 60 * 24));
-    const returnWindow = parseInt(process.env.RETURN_WINDOW_DAYS || "30", 10);
+    const returnWindow = ruleConfig.returnWindowDays;
 
     if (daysSinceDelivery > returnWindow) {
       return { eligible: false, reason: `Return window expired (${returnWindow} days)` };
@@ -219,6 +221,7 @@ class ReturnsService {
    */
   async initiateReturn(params: InitiateReturnParams): Promise<string> {
     const { orderId, buyerId, items, buyerPhotos, orgId } = params;
+    const ruleConfig = getSouqRuleConfig(orgId);
 
     if (!orgId) {
       throw new Error('orgId is required to initiate return');
@@ -274,7 +277,7 @@ class ReturnsService {
 
     const orderWithDates = order as OrderWithDates;
     const deliveryDate = orderWithDates.deliveredAt || orderWithDates.updatedAt || new Date();
-    const returnWindowDays = parseInt(process.env.RETURN_WINDOW_DAYS || "30", 10);
+    const returnWindowDays = ruleConfig.returnWindowDays;
     const returnDeadline = new Date(deliveryDate);
     returnDeadline.setDate(returnDeadline.getDate() + returnWindowDays);
 

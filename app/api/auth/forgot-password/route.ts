@@ -17,6 +17,7 @@ import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { getClientIP } from "@/server/security/headers";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 export const runtime = "nodejs";
 
@@ -43,7 +44,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const rawBody = await req.json().catch(() => ({}));
+    const { data: rawBody, error: parseError } = await parseBodySafe(req, { logPrefix: "[forgot-password]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const parsed = ForgotPasswordSchema.safeParse(rawBody);
     
     if (!parsed.success) {

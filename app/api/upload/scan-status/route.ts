@@ -28,13 +28,19 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { Config } from "@/lib/config/constants";
+import {
+  extractOrgFromKey,
+  sanitizeTenantId,
+  validateOrgScopedKey,
+} from "@/lib/storage/org-upload-keys";
 
 type ScanStatus = "pending" | "clean" | "infected" | "error";
 
@@ -79,22 +85,6 @@ async function getStatusForKey(key: string) {
   } as const;
 }
 
-function getTokenConfig() {
-  const token = process.env.SCAN_STATUS_TOKEN || Config.aws.scan.statusToken;
-  const tokenRequiredEnv = process.env.SCAN_STATUS_TOKEN_REQUIRED;
-  const tokenRequired =
-    tokenRequiredEnv !== undefined
-      ? tokenRequiredEnv === "true"
-      : Config.aws.scan.statusTokenRequired;
-  return { token, tokenRequired };
-}
-
-function isTokenAuthorized(req: NextRequest) {
-  const token = req.headers.get("x-scan-token");
-  const { token: expected } = getTokenConfig();
-  return Boolean(expected && token && token === expected);
-}
-
 function cacheHeaders() {
   return {
     "Cache-Control": "public, max-age=5",
@@ -102,22 +92,131 @@ function cacheHeaders() {
   };
 }
 
-export async function GET(req: NextRequest) {
-  const tokenAuthorized = isTokenAuthorized(req);
-  const { tokenRequired } = getTokenConfig();
-  let userId: string | null = null;
-  let orgId: string | null = null;
+type TokenConfig = {
+  tokensByOrg: Map<string, string>;
+  tokenRequired: boolean;
+};
 
-  if (tokenRequired && !tokenAuthorized) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+const TOKEN_HEADER = "x-scan-token";
+
+function parseTokensByOrg(): Map<string, string> {
+  const map = new Map<string, string>();
+  const rawMap =
+    process.env.SCAN_STATUS_TOKENS_BY_ORG ||
+    process.env.SCAN_STATUS_TOKEN_MAP ||
+    "";
+  if (rawMap.trim()) {
+    try {
+      const parsed = JSON.parse(rawMap) as Record<string, string>;
+      Object.entries(parsed || {}).forEach(([org, token]) => {
+        const sanitizedOrg = sanitizeTenantId(org);
+        if (sanitizedOrg && token) {
+          map.set(sanitizedOrg, token);
+        }
+      });
+    } catch (error) {
+      logger.warn("[scan-status] Failed to parse SCAN_STATUS_TOKENS_BY_ORG", {
+        error,
+      });
+    }
   }
 
-  if (!tokenRequired && !tokenAuthorized) {
-    const user = await getSessionUser(req).catch(() => null);
+  const singleToken =
+    process.env.SCAN_STATUS_TOKEN || Config.aws.scan.statusToken;
+  const singleOrg =
+    process.env.SCAN_STATUS_TOKEN_ORG ||
+    process.env.SCAN_STATUS_TOKEN_ORG_ID ||
+    "";
+  const sanitizedSingleOrg = sanitizeTenantId(singleOrg);
+  if (!map.size && singleToken && sanitizedSingleOrg) {
+    map.set(sanitizedSingleOrg, singleToken);
+  }
+
+  return map;
+}
+
+function getTokenConfig(): TokenConfig {
+  const tokenRequiredEnv = process.env.SCAN_STATUS_TOKEN_REQUIRED;
+  const tokenRequired =
+    tokenRequiredEnv !== undefined
+      ? tokenRequiredEnv === "true"
+      : Config.aws.scan.statusTokenRequired;
+  return { tokensByOrg: parseTokensByOrg(), tokenRequired };
+}
+
+function authorizeWithToken(
+  keyOrg: string,
+  tokenHeader: string | null,
+  tokensByOrg: Map<string, string>,
+): { ok: true; org: string } | { ok: false; status: number; message: string } {
+  const expected = tokensByOrg.get(keyOrg);
+  if (!expected) {
+    return {
+      ok: false,
+      status: 401,
+      message: "Unauthorized",
+    };
+  }
+  if (!tokenHeader || tokenHeader !== expected) {
+    return {
+      ok: false,
+      status: 401,
+      message: "Unauthorized",
+    };
+  }
+  return { ok: true, org: keyOrg };
+}
+
+export async function GET(req: NextRequest) {
+  const { tokenRequired, tokensByOrg } = getTokenConfig();
+  const tokenHeader = req.headers.get(TOKEN_HEADER);
+  const { searchParams } = new URL(req.url);
+  const key = searchParams.get("key");
+  if (!key) {
+    return NextResponse.json({ error: "Missing key" }, { status: 400 });
+  }
+  const keyOrg = extractOrgFromKey(key);
+  if (!keyOrg) {
+    return NextResponse.json(
+      { error: "Key must include organization prefix" },
+      { status: 400 },
+    );
+  }
+
+  let userId: string | null = null;
+  let orgId: string | null = null;
+  const useTokenFlow = tokenRequired || Boolean(tokenHeader);
+
+  if (useTokenFlow) {
+    const result = authorizeWithToken(
+      keyOrg,
+      tokenHeader,
+      tokensByOrg,
+    );
+    if (!result.ok) {
+      return NextResponse.json({ error: result.message }, { status: result.status });
+    }
+    orgId = result.org;
+  } else {
+    const sessionResult = await getSessionOrNull(req, { route: "upload:scan-status" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const user = sessionResult.session;
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const keyValidation = validateOrgScopedKey({
+      key,
+      allowedOrgId: user.tenantId ?? user.orgId,
+    });
+    if (!keyValidation.ok) {
+      return NextResponse.json(
+        { error: keyValidation.message },
+        { status: keyValidation.status },
+      );
+    }
     userId = user.id;
-    orgId = user.orgId ?? null;
+    orgId = keyValidation.org;
   }
 
   const rl = await smartRateLimit(
@@ -126,12 +225,6 @@ export async function GET(req: NextRequest) {
     60_000,
   );
   if (!rl.allowed) return rateLimitError();
-
-  const { searchParams } = new URL(req.url);
-  const key = searchParams.get("key");
-  if (!key) {
-    return NextResponse.json({ error: "Missing key" }, { status: 400 });
-  }
 
   try {
     const result = await getStatusForKey(key);
@@ -150,37 +243,71 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const tokenAuthorized = isTokenAuthorized(req);
-  const { tokenRequired } = getTokenConfig();
+  const { tokenRequired, tokensByOrg } = getTokenConfig();
+  const tokenHeader = req.headers.get(TOKEN_HEADER);
   let userId: string | null = null;
   let orgId: string | null = null;
 
-  if (tokenRequired && !tokenAuthorized) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (!tokenRequired && !tokenAuthorized) {
-    const user = await getSessionUser(req).catch(() => null);
-    if (!user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    userId = user.id;
-    orgId = user.orgId ?? null;
-  }
-
-  const rl = await smartRateLimit(
-    buildOrgAwareRateLimitKey(req, orgId, userId),
-    60,
-    60_000,
-  );
-  if (!rl.allowed) return rateLimitError();
-
   let key = "";
   try {
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    key = typeof body.key === "string" ? body.key : "";
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(req, { logPrefix: "[upload:scan-status]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    key = typeof body?.key === "string" ? body.key : "";
     if (!key) {
       return NextResponse.json({ error: "Missing key" }, { status: 400 });
     }
+    const keyOrg = extractOrgFromKey(key);
+    if (!keyOrg) {
+      return NextResponse.json(
+        { error: "Key must include organization prefix" },
+        { status: 400 },
+      );
+    }
+    const useTokenFlow = tokenRequired || Boolean(tokenHeader);
+    if (useTokenFlow) {
+      const result = authorizeWithToken(
+        keyOrg,
+        tokenHeader,
+        tokensByOrg,
+      );
+      if (!result.ok) {
+        return NextResponse.json(
+          { error: result.message },
+          { status: result.status },
+        );
+      }
+      orgId = result.org;
+    } else {
+      const sessionResult = await getSessionOrNull(req, { route: "upload:scan-status" });
+      if (!sessionResult.ok) {
+        return sessionResult.response; // 503 on infra error
+      }
+      const user = sessionResult.session;
+      if (!user)
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const keyValidation = validateOrgScopedKey({
+        key,
+        allowedOrgId: user.tenantId ?? user.orgId,
+      });
+      if (!keyValidation.ok) {
+        return NextResponse.json(
+          { error: keyValidation.message },
+          { status: keyValidation.status },
+        );
+      }
+      userId = user.id;
+      orgId = keyValidation.org;
+    }
+
+    const rl = await smartRateLimit(
+      buildOrgAwareRateLimitKey(req, orgId, userId),
+      60,
+      60_000,
+    );
+    if (!rl.allowed) return rateLimitError();
+
     const result = await getStatusForKey(key);
     logger.info("[ScanStatus] Read status", { key, status: result.status });
     // Cache for 5 seconds to reduce DB load from polling

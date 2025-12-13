@@ -19,6 +19,7 @@ import { SouqOrder } from "@/server/models/souq/Order";
 import { SouqSeller } from "@/server/models/souq/Seller";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 /**
  * POST /api/souq/fulfillment/generate-label
@@ -40,8 +41,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { orderId, carrier = "spl" } = body;
+    const parseResult = await parseBodySafe<{ orderId?: string; carrier?: string }>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const { orderId, carrier = "spl" } = parseResult.data!;
     const orgId = (session.user as { orgId?: string }).orgId;
 
     if (!orderId) {

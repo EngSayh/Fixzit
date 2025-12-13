@@ -18,8 +18,9 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
+import { parseBodySafe } from '@/lib/api/parse-body';
 import { connectMongo } from '@/lib/mongo';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
 import { VerificationDocument } from '@/server/models/onboarding/VerificationDocument';
 import { VerificationLog } from '@/server/models/onboarding/VerificationLog';
@@ -35,18 +36,25 @@ export async function POST(
   const rateLimitResponse = enforceRateLimit(req, { requests: 20, windowMs: 60_000, keyPrefix: "onboarding:docs:confirm" });
   if (rateLimitResponse) return rateLimitResponse;
 
-  const user = await getSessionUser(req).catch(() => null);
+  const sessionResult = await getSessionOrNull(req, { route: "onboarding:docs:confirm-upload" });
+  if (!sessionResult.ok) {
+    return sessionResult.response; // 503 on infra error
+  }
+  const user = sessionResult.session;
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as {
+  const { data: body, error: parseError } = await parseBodySafe<{
     document_type_code?: string;
     file_storage_key?: string;
     original_name?: string;
     mime_type?: string;
     size_bytes?: number;
-  };
+  }>(req, { logPrefix: '[onboarding:docs:confirm-upload]' });
+  if (parseError) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
 
-  const { document_type_code, file_storage_key, original_name, mime_type, size_bytes } = body;
+  const { document_type_code, file_storage_key, original_name, mime_type, size_bytes } = body ?? {};
 
   if (!document_type_code || !file_storage_key || !original_name) {
     return NextResponse.json({ error: 'document_type_code, file_storage_key, and original_name are required' }, { status: 400 });

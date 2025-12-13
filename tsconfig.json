@@ -53,6 +53,7 @@
     "scripts",
     "tools",
     "tests",
-    "deployment"
+    "deployment",
+    "issue-tracker"
   ]
 }

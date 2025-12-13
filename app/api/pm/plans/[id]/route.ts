@@ -14,6 +14,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse } from "@/server/security/headers";
 import { UserRole } from "@/types/user";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const PM_ALLOWED_ROLES = [
   UserRole.SUPER_ADMIN,
@@ -97,7 +98,13 @@ export async function PATCH(
 
   try {
     const { id } = await params;
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { success: false, error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
 
     // Whitelist approach: only allow updating specific fields
     const allowedFields = [

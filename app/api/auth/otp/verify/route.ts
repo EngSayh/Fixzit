@@ -12,6 +12,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { randomBytes, randomUUID } from "crypto";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
@@ -74,7 +75,13 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. Parse and validate request body
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request, { logPrefix: "[OTP Verify]" });
+    if (parseError) {
+      return NextResponse.json(
+        { success: false, error: "Invalid request body" },
+        { status: 400 },
+      );
+    }
     const parsed = VerifyOTPSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -134,10 +141,22 @@ export async function POST(request: NextRequest) {
       // Corporate login - resolve org from company code
       await connectToDatabase();
       const { Organization } = await import("@/server/models/Organization");
-      const org = await Organization.findOne({ code: normalizedCompanyCode })
-        .select({ _id: 1, orgId: 1 })
-        .lean<{ _id?: { toString: () => string }; orgId?: string }>()
-        .catch(() => null);
+      let org: { _id?: { toString: () => string }; orgId?: string } | null = null;
+      try {
+        org = await Organization.findOne({ code: normalizedCompanyCode })
+          .select({ _id: 1, orgId: 1 })
+          .lean<{ _id?: { toString: () => string }; orgId?: string }>();
+      } catch (dbErr) {
+        // Log DB/infra error and return 503
+        logger.error("[OTP Verify] DB error during org lookup", {
+          error: dbErr instanceof Error ? dbErr.message : "Unknown",
+          code: normalizedCompanyCode,
+        });
+        return NextResponse.json(
+          { success: false, error: "Service temporarily unavailable" },
+          { status: 503 },
+        );
+      }
 
       if (!org) {
         logger.warn("[OTP Verify] Invalid company code", {

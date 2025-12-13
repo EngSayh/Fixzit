@@ -26,6 +26,7 @@
  * - Tracks who resolved duplicates for audit
  */
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 import { auth } from "@/auth";
 import {
@@ -59,12 +60,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const { aliasFile, owner, resolved } = body as {
+    const { data: body, error: parseError } = await parseBodySafe<{
       aliasFile?: string;
       owner?: string;
       resolved?: boolean;
-    };
+    }>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
+    const { aliasFile, owner, resolved } = body;
 
     if (!aliasFile) {
       return NextResponse.json(

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { CmsPage } from "@/server/models/CmsPage";
 import { z } from "zod";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { notFoundError } from "@/server/utils/errorResponses";
@@ -54,7 +54,11 @@ export async function PATCH(
   try {
     await connectToDatabase();
     const { slug } = await props.params;
-    const user = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "cms:pages:update" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const user = sessionResult.session;
     if (!user || !["SUPER_ADMIN", "CORPORATE_ADMIN"].includes(user.role)) {
       return createSecureResponse({ error: "Forbidden" }, 403, req);
     }

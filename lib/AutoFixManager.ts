@@ -10,6 +10,10 @@ export interface SystemCheck {
   fix?: () => Promise<boolean>;
   priority: "critical" | "high" | "medium" | "low";
   category: "api" | "database" | "component" | "network" | "auth" | "ui";
+  /** If true, skip this check when user is not authenticated (avoids 401/403 console noise) */
+  requiresAuth?: boolean;
+  /** If true, skip this check when user is not a super admin */
+  requiresSuperAdmin?: boolean;
 }
 
 export interface FixResult {
@@ -25,10 +29,17 @@ export class AutoFixManager {
   private checks: SystemCheck[] = [];
   private isRunning = false;
   private intervalId?: NodeJS.Timeout;
+  private isAuthenticated = false;
+  private isSuperAdmin = false;
 
   constructor() {
     this.initializeChecks();
-    this.startAutoMonitoring();
+  }
+
+  /** Update auth state to control which checks run */
+  public setAuthState(authenticated: boolean, superAdmin: boolean = false): void {
+    this.isAuthenticated = authenticated;
+    this.isSuperAdmin = superAdmin;
   }
 
   private initializeChecks(): void {
@@ -64,6 +75,7 @@ export class AutoFixManager {
         description: "Check help/articles endpoint",
         category: "api",
         priority: "high",
+        requiresAuth: true, // Endpoint requires authentication
         check: async () => {
           try {
             const res = await fetch("/api/help/articles");
@@ -88,6 +100,7 @@ export class AutoFixManager {
         description: "Check notifications endpoint",
         category: "api",
         priority: "high",
+        requiresAuth: true, // Endpoint requires authentication
         check: async () => {
           try {
             const res = await fetch("/api/notifications");
@@ -113,6 +126,7 @@ export class AutoFixManager {
         description: "Verify database connectivity",
         category: "database",
         priority: "critical",
+        requiresSuperAdmin: true, // /api/qa/health requires SUPER_ADMIN
         check: async () => {
           try {
             const res = await fetch("/api/qa/health");
@@ -237,6 +251,15 @@ export class AutoFixManager {
     const results: FixResult[] = [];
 
     for (const check of this.checks) {
+      // Skip checks that require authentication if user is not authenticated
+      if (check.requiresAuth && !this.isAuthenticated) {
+        continue;
+      }
+      // Skip checks that require super admin if user is not super admin
+      if (check.requiresSuperAdmin && !this.isSuperAdmin) {
+        continue;
+      }
+
       const startTime = Date.now();
 
       try {
@@ -297,6 +320,7 @@ export class AutoFixManager {
 
   public startAutoMonitoring(intervalMinutes: number = 5): void {
     if (this.isRunning) return;
+    if (typeof window === "undefined") return;
 
     this.isRunning = true;
 
@@ -323,6 +347,11 @@ export class AutoFixManager {
   }
 
   private async sendAlert(results: FixResult[]): Promise<void> {
+    // Only send alerts if user is authenticated as super admin
+    if (!this.isSuperAdmin) {
+      return;
+    }
+
     try {
       await fetch("/api/qa/alert", {
         method: "POST",

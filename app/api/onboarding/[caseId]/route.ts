@@ -12,8 +12,9 @@
  * @throws {404} If onboarding case is not found
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { parseBodySafe } from '@/lib/api/parse-body';
 import { connectMongo } from '@/lib/mongo';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { OnboardingCase, type OnboardingStatus } from '@/server/models/onboarding/OnboardingCase';
 import { logger } from '@/lib/logger';
 import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
@@ -29,7 +30,11 @@ export async function GET(
   const rateLimitResponse = enforceRateLimit(_req, { requests: 60, windowMs: 60_000, keyPrefix: "onboarding:case:get" });
   if (rateLimitResponse) return rateLimitResponse;
 
-  const user = await getSessionUser(_req).catch(() => null);
+  const sessionResult = await getSessionOrNull(_req, { route: "onboarding:case:get" });
+  if (!sessionResult.ok) {
+    return sessionResult.response; // 503 on infra error
+  }
+  const user = sessionResult.session;
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   await connectMongo();
   if (user.orgId) {
@@ -63,10 +68,17 @@ export async function PATCH(
   const rateLimitResponse = enforceRateLimit(req, { requests: 30, windowMs: 60_000, keyPrefix: "onboarding:case:update" });
   if (rateLimitResponse) return rateLimitResponse;
 
-  const user = await getSessionUser(req).catch(() => null);
+  const sessionResult = await getSessionOrNull(req, { route: "onboarding:case:update" });
+  if (!sessionResult.ok) {
+    return sessionResult.response; // 503 on infra error
+  }
+  const user = sessionResult.session;
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(req, { logPrefix: '[onboarding:case:update]' });
+  if (parseError || !body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const payload = body.payload as Record<string, unknown> | undefined;
   const basic_info = body.basic_info as Record<string, unknown> | undefined;
   const status = body.status as OnboardingStatus | undefined;

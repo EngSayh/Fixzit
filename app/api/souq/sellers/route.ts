@@ -18,6 +18,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
@@ -69,7 +70,10 @@ export async function POST(request: NextRequest) {
 
     await connectDb();
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request, { logPrefix: "[Souq Sellers]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const validatedData = sellerCreateSchema.parse(body);
 
     const sellerId = `SEL-${nanoid(10).toUpperCase()}`;

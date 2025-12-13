@@ -27,6 +27,7 @@ import {
 } from "@/lib/rbac/client-roles";
 import mongoose from "mongoose";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
   const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
@@ -63,8 +64,18 @@ export async function POST(request: NextRequest) {
     }
     userId = session.user.id;
 
-    const body = await request.json();
-    const { listingId, reservationId, orderId } = body as {
+    const parseResult = await parseBodySafe<{
+      listingId?: string;
+      reservationId?: string;
+      orderId?: string;
+    }>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const { listingId, reservationId, orderId } = parseResult.data as {
       listingId?: string;
       reservationId?: string;
       orderId?: string;

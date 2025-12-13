@@ -8,7 +8,8 @@
 import { NextRequest } from "next/server";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -57,14 +58,28 @@ export async function POST(req: NextRequest) {
   try {
     // Best-effort local rate limiting
     rateLimitAssert(req);
-    const user = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "kb:search" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const user = sessionResult.session;
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
 
-    const body = await req.json().catch(() => ({}));
+    const { data: body, error: parseError } = await parseBodySafe<{
+      query?: number[];
+      q?: string;
+      lang?: string;
+      role?: string;
+      route?: string;
+      limit?: number;
+    }>(req, { logPrefix: "[kb:search]" });
+    if (parseError) {
+      return createSecureResponse({ error: "Invalid request body" }, 400, req);
+    }
     const query = body?.query as number[] | undefined;
     const qText = typeof body?.q === "string" ? body.q : undefined;
     const lang = typeof body?.lang === "string" ? body.lang : undefined;

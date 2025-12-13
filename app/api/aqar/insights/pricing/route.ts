@@ -20,6 +20,7 @@ import { PricingInsightsService } from "@/services/aqar/pricing-insights-service
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { isValidObjectIdSafe } from "@/lib/api/validation";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 export const runtime = "nodejs";
 
@@ -94,7 +95,13 @@ export async function POST(request: NextRequest) {
   const correlationId = crypto.randomUUID();
   try {
     await getSessionUser(request); // require auth for recalculation
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<{ listingId?: string }>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body", correlationId },
+        { status: 400 },
+      );
+    }
     const listingId =
       typeof body.listingId === "string" ? body.listingId : undefined;
     if (!listingId || !isValidObjectIdSafe(listingId)) {

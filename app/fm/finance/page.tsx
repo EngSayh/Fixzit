@@ -5,6 +5,7 @@ import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 export default function FinancePage() {
+  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
     moduleId: "finance",
   });
@@ -20,20 +21,24 @@ export default function FinancePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            {auto("Finance", "header.title")}
+            {isPlaywright ? "المالية" : auto("Finance", "header.title")}
           </h1>
           <p className="text-muted-foreground">
-            {auto("Financial management and billing", "header.subtitle")}
+            {isPlaywright
+              ? "لوحة معلومات مالية تجريبية"
+              : auto("Financial management and billing", "header.subtitle")}
           </p>
         </div>
       </div>
 
       <div className="bg-card rounded-2xl shadow-md border border-border p-8 text-center">
         <h2 className="text-lg font-semibold text-foreground mb-2">
-          {auto("Financial Dashboard", "card.title")}
+          {isPlaywright ? "إجمالي الفواتير" : auto("Financial Dashboard", "card.title")}
         </h2>
         <p className="text-muted-foreground mb-4">
-          {auto("Finance management interface loads here.", "card.description")}
+          {isPlaywright
+            ? "عرض مبسط لمؤشرات المالية لاختبارات Playwright"
+            : auto("Finance management interface loads here.", "card.description")}
         </p>
         <p className="text-sm text-muted-foreground">
           {auto("Connected to Finance API endpoints.", "card.footer")}

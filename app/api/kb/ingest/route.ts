@@ -7,8 +7,9 @@
  * @module kb
  */
 import { NextRequest } from "next/server";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { upsertArticleEmbeddings, deleteArticleEmbeddings } from "@/kb/ingest";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -35,7 +36,11 @@ import { logger } from "@/lib/logger";
  */
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "kb:ingest" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const user = sessionResult.session;
     if (!user || !["SUPER_ADMIN", "ADMIN"].includes(user.role)) {
       return createSecureResponse({ error: "Forbidden" }, 403, req);
     }
@@ -43,8 +48,17 @@ export async function POST(req: NextRequest) {
     if (!rl.allowed) {
       return rateLimitError();
     }
-    const body = await req.json().catch(() => ({}) as unknown);
-    const { articleId, content, lang, roleScopes, route } = body || {};
+    const { data: body, error: parseError } = await parseBodySafe<{
+      articleId?: string;
+      content?: string;
+      lang?: string;
+      roleScopes?: string[];
+      route?: string;
+    }>(req, { logPrefix: "[kb:ingest]" });
+    if (parseError) {
+      return createSecureResponse({ error: "Invalid request body" }, 400, req);
+    }
+    const { articleId, content, lang, roleScopes, route } = body ?? {};
     if (!articleId || typeof content !== "string") {
       return createSecureResponse(
         { error: "Missing articleId or content" },
@@ -74,7 +88,11 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "kb:ingest:delete" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const user = sessionResult.session;
     if (!user || !["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(user.role)) {
       return createSecureResponse({ error: "Forbidden" }, 403, req);
     }

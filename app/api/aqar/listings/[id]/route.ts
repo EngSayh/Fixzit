@@ -23,6 +23,7 @@ import {
   clearTenantContext,
 } from "@/server/plugins/tenantIsolation";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 import mongoose from "mongoose";
 
@@ -165,7 +166,17 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<{
+      transactionValue?: number;
+      vatAmount?: number;
+      [key: string]: unknown;
+    }>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
     const transactionValue =
       typeof body.transactionValue === "number"
         ? body.transactionValue
@@ -201,7 +212,7 @@ export async function PATCH(
         // Validate enum fields using actual schema enums
         if (
           field === "furnishing" &&
-          !Object.values(FurnishingStatus).includes(value)
+          !Object.values(FurnishingStatus).includes(value as FurnishingStatus)
         ) {
           return NextResponse.json(
             { error: `Invalid furnishing: ${value}` },
@@ -210,7 +221,7 @@ export async function PATCH(
         }
         if (
           field === "status" &&
-          !Object.values(ListingStatus).includes(value)
+          !Object.values(ListingStatus).includes(value as ListingStatus)
         ) {
           return NextResponse.json(
             { error: `Invalid status: ${value}` },
@@ -278,7 +289,7 @@ export async function PATCH(
     if (statusChanged) {
       await AqarFmLifecycleService.handleStatusChange({
         listingId: id,
-        nextStatus: body.status,
+        nextStatus: body.status as ListingStatus,
         prevStatus,
         actorId: user.id,
         transactionValue,

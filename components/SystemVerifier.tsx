@@ -28,6 +28,8 @@ import {
 // ✅ FIXED: Add i18n support
 import { useTranslation } from "@/contexts/TranslationContext";
 import { logger } from "@/lib/logger";
+import { useSession } from "next-auth/react";
+import { UserRole } from "@/types/user";
 
 interface SystemStatus {
   overall: "healthy" | "degraded" | "critical";
@@ -52,8 +54,30 @@ export default function SystemVerifier() {
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isMonitoring, setIsMonitoring] = useState(false);
+  const { status: sessionStatus, data: session } = useSession();
+
+  const isSuperAdmin =
+    sessionStatus === "authenticated" &&
+    session?.user &&
+    (session.user.role === UserRole.SUPER_ADMIN ||
+      (session.user as { isSuperAdmin?: boolean }).isSuperAdmin === true);
 
   const runVerification = async () => {
+    if (!isSuperAdmin) {
+      setStatus({
+        overall: "degraded",
+        issues: [
+          t(
+            "system.verification.permission",
+            "System health checks require Super Admin access",
+          ),
+        ],
+        fixes: [],
+        lastCheck: new Date().toISOString(),
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const result = await autoFixManager.verifySystemHealth();
@@ -77,6 +101,7 @@ export default function SystemVerifier() {
   };
 
   const startMonitoring = () => {
+    if (!isSuperAdmin) return;
     setIsMonitoring(true);
     autoFixManager.startAutoMonitoring(1);
   };
@@ -114,8 +139,13 @@ export default function SystemVerifier() {
   };
 
   useEffect(() => {
+    if (!isSuperAdmin) {
+      setIsMonitoring(false);
+      autoFixManager.stopAutoMonitoring();
+      return;
+    }
     runVerification();
-  }, []);
+  }, [isSuperAdmin]);
 
   return (
     <div className="space-y-6">

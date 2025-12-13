@@ -12,6 +12,7 @@ import { FMPMPlan } from "@/server/models/FMPMPlan";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse } from "@/server/security/headers";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 /**
  * GET /api/pm/plans
@@ -75,7 +76,24 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<{
+      title?: string;
+      description?: string;
+      propertyId?: string;
+      category?: string;
+      recurrencePattern?: string;
+      startDate?: string;
+      status?: string;
+      assignedTo?: string;
+      estimatedDuration?: number;
+      instructions?: string;
+    }>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { success: false, error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
 
     // Validate required fields
     if (!body.title || !body.propertyId || !body.recurrencePattern) {

@@ -22,6 +22,7 @@ export interface IKYCDocumentFile {
 import {
   SouqSeller,
   type IKYCDocumentEntry,
+  type ISeller,
 } from "@/server/models/souq/Seller";
 import { Types } from "mongoose";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
@@ -121,6 +122,7 @@ export interface IKYCBankDetails {
 export interface ISubmitKYCParams {
   sellerId: string;
   orgId: string;
+  vendorId?: string;
   step: "company_info" | "documents" | "bank_details";
   data: IKYCCompanyInfo | IKYCDocuments | IKYCBankDetails;
 }
@@ -188,11 +190,33 @@ const buildVerificationSnapshot = (
 });
 
 class SellerKYCService {
+  private buildVendorFilter(vendorId?: string): Record<string, unknown> {
+    if (!vendorId) return {};
+    return {
+      userId: Types.ObjectId.isValid(vendorId)
+        ? new Types.ObjectId(vendorId)
+        : vendorId,
+    };
+  }
+
+  private ensureVendorOwnership(
+    seller: ISeller | null,
+    vendorId?: string,
+  ): void {
+    if (!seller || !vendorId || !seller.userId) return;
+    const normalizedVendor = Types.ObjectId.isValid(vendorId)
+      ? new Types.ObjectId(vendorId).toString()
+      : vendorId.toString();
+    if (seller.userId.toString() !== normalizedVendor) {
+      throw new Error("Seller does not belong to vendor");
+    }
+  }
+
   /**
    * Submit KYC information (multi-step)
    */
   async submitKYC(params: ISubmitKYCParams): Promise<void> {
-    const { sellerId, orgId, step, data } = params;
+    const { sellerId, orgId, step, data, vendorId } = params;
     if (!orgId) {
       throw new Error("orgId is required to submit KYC");
     }
@@ -200,24 +224,37 @@ class SellerKYCService {
     const sellerObjectId = Types.ObjectId.isValid(sellerId)
       ? new Types.ObjectId(sellerId)
       : undefined;
+    const orgFilter = buildOrgFilter(orgId);
+    const vendorFilter = this.buildVendorFilter(vendorId);
     const seller =
       (sellerObjectId
-        ? await SouqSeller.findOne({ _id: sellerObjectId, ...buildOrgFilter(orgId) })
-        : await SouqSeller.findOne({ _id: sellerId, ...buildOrgFilter(orgId) })) ||
-      (await SouqSeller.findOne({ sellerId, ...buildOrgFilter(orgId) }));
+        ? await SouqSeller.findOne({ _id: sellerObjectId, ...orgFilter, ...vendorFilter })
+        : await SouqSeller.findOne({ _id: sellerId, ...orgFilter, ...vendorFilter })) ||
+      (await SouqSeller.findOne({ sellerId, ...orgFilter, ...vendorFilter }));
     if (!seller) {
       throw new Error(`Seller not found for KYC submission: ${sellerId}`);
     }
+    this.ensureVendorOwnership(seller, vendorId);
 
     switch (step) {
       case "company_info":
-        await this.submitCompanyInfo(sellerId, orgId, data as IKYCCompanyInfo);
+        await this.submitCompanyInfo(
+          sellerId,
+          orgId,
+          data as IKYCCompanyInfo,
+          vendorId,
+        );
         break;
       case "documents":
-        await this.submitDocuments(sellerId, orgId, data as IKYCDocuments);
+        await this.submitDocuments(sellerId, orgId, data as IKYCDocuments, vendorId);
         break;
       case "bank_details":
-        await this.submitBankDetails(sellerId, orgId, data as IKYCBankDetails);
+        await this.submitBankDetails(
+          sellerId,
+          orgId,
+          data as IKYCBankDetails,
+          vendorId,
+        );
         break;
       default:
         throw new Error(`Invalid KYC step: ${step}`);
@@ -231,14 +268,25 @@ class SellerKYCService {
     sellerId: string,
     orgId: string,
     data: IKYCCompanyInfo,
+    vendorId?: string,
   ): Promise<void> {
+    const vendorFilter = this.buildVendorFilter(vendorId);
     const seller = await SouqSeller.findOne({
-      _id: sellerId,
       ...buildOrgFilter(orgId),
+      ...vendorFilter,
+      $or: [
+        {
+          _id: Types.ObjectId.isValid(sellerId)
+            ? new Types.ObjectId(sellerId)
+            : sellerId,
+        },
+        { sellerId },
+      ],
     });
     if (!seller) {
       throw new Error("Seller not found");
     }
+    this.ensureVendorOwnership(seller, vendorId);
 
     // Update seller with company info
     seller.businessName = data.businessName;
@@ -262,9 +310,9 @@ class SellerKYCService {
     // Update KYC status
     if (!seller.kycStatus) {
       seller.kycStatus = {
-        status: "pending",
+        status: "in_review",
         submittedAt: new Date(),
-        step: "company_info",
+        step: "documents",
         companyInfoComplete: true,
         documentsComplete: false,
         bankDetailsComplete: false,
@@ -275,10 +323,11 @@ class SellerKYCService {
     } else {
       seller.kycStatus.step = "documents";
       seller.kycStatus.companyInfoComplete = true;
+      if (seller.kycStatus.status !== "approved") {
+        seller.kycStatus.status = "in_review";
+      }
     }
 
-    seller.kycStatus.status = "approved";
-    seller.isActive = true;
     await seller.save();
 
     // Validate CR number via external API (if available)
@@ -300,14 +349,25 @@ class SellerKYCService {
     sellerId: string,
     orgId: string,
     data: IKYCDocuments,
+    vendorId?: string,
   ): Promise<void> {
+    const vendorFilter = this.buildVendorFilter(vendorId);
     const seller = await SouqSeller.findOne({
-      _id: sellerId,
       ...buildOrgFilter(orgId),
+      ...vendorFilter,
+      $or: [
+        {
+          _id: Types.ObjectId.isValid(sellerId)
+            ? new Types.ObjectId(sellerId)
+            : sellerId,
+        },
+        { sellerId },
+      ],
     });
     if (!seller) {
       throw new Error("Seller not found");
     }
+    this.ensureVendorOwnership(seller, vendorId);
 
     if (!seller.kycStatus?.companyInfoComplete) {
       throw new Error("Complete company information first");
@@ -368,14 +428,25 @@ class SellerKYCService {
     sellerId: string,
     orgId: string,
     data: IKYCBankDetails,
+    vendorId?: string,
   ): Promise<void> {
+    const vendorFilter = this.buildVendorFilter(vendorId);
     const seller = await SouqSeller.findOne({
-      _id: sellerId,
       ...buildOrgFilter(orgId),
+      ...vendorFilter,
+      $or: [
+        {
+          _id: Types.ObjectId.isValid(sellerId)
+            ? new Types.ObjectId(sellerId)
+            : sellerId,
+        },
+        { sellerId },
+      ],
     });
     if (!seller) {
       throw new Error("Seller not found");
     }
+    this.ensureVendorOwnership(seller, vendorId);
 
     if (!seller.kycStatus?.documentsComplete) {
       throw new Error("Complete documents upload first");
@@ -535,6 +606,7 @@ class SellerKYCService {
       ...buildOrgFilter(orgId),
     });
     if (!seller || !seller.documents) return;
+    if (!seller.kycStatus?.bankDetailsComplete) return;
 
     const requiredDocs: DocumentKey[] = [
       "commercialRegistration",

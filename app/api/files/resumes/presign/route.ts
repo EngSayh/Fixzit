@@ -1,7 +1,8 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { parseBodySafe } from "@/lib/api/parse-body";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { getPresignedPutUrl, buildResumeKey } from "@/lib/storage/s3";
 import { logger } from "@/lib/logger";
 
@@ -34,7 +35,11 @@ const MAX_SIZE_BYTES = 5 * 1024 * 1024;
  */
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "files:resumes:presign" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const user = sessionResult.session;
     if (user && !user.orgId) {
       logger.error("[Resumes Presign] Authenticated user missing orgId - denying to preserve tenant isolation", {
         userId: user.id,
@@ -79,7 +84,10 @@ export async function POST(req: NextRequest) {
       return rateLimitError();
     }
 
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(req, { logPrefix: "[files:resumes:presign]" });
+    if (parseError || !body) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const fileNameRaw = typeof body.fileName === "string" ? body.fileName : "";
     const contentType =
       typeof body.contentType === "string" ? body.contentType : "";

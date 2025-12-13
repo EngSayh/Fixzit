@@ -23,6 +23,7 @@ import {
   smartRateLimit,
 } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const ADMIN_USER_DETAIL_LIMIT = 20;
 
@@ -162,7 +163,13 @@ export async function PATCH(
     if (!Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
     }
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
 
     const UserSchema = new Schema(
       {

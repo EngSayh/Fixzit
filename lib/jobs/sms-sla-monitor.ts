@@ -61,7 +61,8 @@ export async function processSLABreaches(): Promise<SLABreachReport> {
         report.newBreaches++;
 
         // Group by org for notifications
-        const orgId = message.orgId || "global";
+        // NOTE: "global" bucket is for system messages without tenant context (not a security issue)
+        const orgId = message.orgId ?? "global";
         if (!breachesByOrg.has(orgId)) {
           breachesByOrg.set(orgId, []);
         }

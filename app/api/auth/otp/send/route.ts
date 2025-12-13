@@ -12,6 +12,7 @@
 import { randomBytes, randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import {
@@ -279,21 +280,29 @@ function generateOTP(): string {
 }
 
 // Resolve orgId from organization code to enforce tenant scoping for corporate logins
+// Returns: { orgId, error } - error is set if DB lookup fails (vs org not found)
 async function resolveOrgIdFromCompanyCode(
   companyCode: string,
-): Promise<string | null> {
+): Promise<{ orgId: string | null; error?: string }> {
   const { Organization } = await import("@/server/models/Organization");
-  const org = await Organization.findOne({ code: companyCode })
-    .select({ _id: 1, orgId: 1 })
-    .lean<{
-      _id?: ObjectId;
-      orgId?: string;
-    }>()
-    .catch(() => null);
+  try {
+    const org = await Organization.findOne({ code: companyCode })
+      .select({ _id: 1, orgId: 1 })
+      .lean<{
+        _id?: ObjectId;
+        orgId?: string;
+      }>();
 
-  if (!org) return null;
-  const orgId = org.orgId || org._id?.toString();
-  return orgId ?? null;
+    if (!org) return { orgId: null };
+    const orgId = org.orgId || org._id?.toString();
+    return { orgId: orgId ?? null };
+  } catch (error) {
+    logger.error("[auth:otp:send] Organization lookup failed", {
+      companyCode,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { orgId: null, error: "DB_ERROR" };
+  }
 }
 
 // Check rate limit (ASYNC for multi-instance Redis support)
@@ -343,7 +352,13 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. Parse and validate request body
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request, { logPrefix: "[OTP Send]" });
+    if (parseError) {
+      return NextResponse.json(
+        { success: false, error: "Invalid request body" },
+        { status: 400 },
+      );
+    }
     const parsed = SendOTPSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -564,9 +579,17 @@ export async function POST(request: NextRequest) {
         );
       }
       await connectToDatabase();
-      const resolvedCompanyOrgId = await resolveOrgIdFromCompanyCode(
+      const { orgId: resolvedCompanyOrgId, error: orgLookupError } = await resolveOrgIdFromCompanyCode(
         normalizedCompanyCode,
       );
+
+      // If DB lookup failed, return 503 (not 401) to avoid masking infra issues
+      if (orgLookupError) {
+        return NextResponse.json(
+          { success: false, error: "Service temporarily unavailable" },
+          { status: 503 },
+        );
+      }
 
       if (!resolvedCompanyOrgId) {
         logger.warn("[OTP] Invalid company code", {

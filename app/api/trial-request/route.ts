@@ -30,6 +30,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { z } from "zod";
@@ -39,6 +40,9 @@ import {
   smartRateLimit,
 } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
+import { health503 } from "@/lib/api/health";
+import fs from "node:fs";
+import path from "node:path";
 
 // SECURITY: Zod schema with proper email validation and honeypot field
 const trialRequestSchema = z.object({
@@ -66,7 +70,10 @@ export async function POST(req: NextRequest) {
   });
   if (rateLimitResponse) return rateLimitResponse;
 
-  const body = await req.json().catch(() => ({}));
+  const { data: body, error: parseError } = await parseBodySafe(req, { logPrefix: "[trial-request]" });
+  if (parseError) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   // SECURITY: Validate with Zod schema including email format and honeypot
   const result = trialRequestSchema.safeParse(body);
@@ -106,24 +113,70 @@ export async function POST(req: NextRequest) {
   const userAgent = req.headers.get("user-agent") || undefined;
 
   try {
-    // Best-effort: connect so the request can be persisted
-    await connectToDatabase().catch(() => null);
-    const db = await getDatabase().catch(() => null);
-    if (db) {
-      await db.collection("trial_requests").insertOne({
-        name,
-        email,
-        company,
-        plan: plan || "unspecified",
-        message,
-        phone,
-        clientIp,
-        userAgent,
-        createdAt: new Date(),
+    await connectToDatabase();
+    const db = await getDatabase();
+    await db.collection("trial_requests").insertOne({
+      name,
+      email,
+      company,
+      plan: plan || "unspecified",
+      message,
+      phone,
+      clientIp,
+      userAgent,
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    logger.error("[trial-request] DB persistence failed", {
+      error,
+      email,
+      company,
+      clientIp,
+    });
+    const dlqPayload = {
+      name,
+      email,
+      company,
+      plan: plan || "unspecified",
+      message,
+      phone,
+      clientIp,
+      userAgent,
+      createdAt: new Date().toISOString(),
+      source: "trial-request",
+      reason: "db_unavailable",
+    };
+    const dlqWebhook = process.env.TRIAL_REQUEST_DLQ_WEBHOOK;
+    if (dlqWebhook) {
+      // Best-effort DLQ to avoid lead loss during DB outages
+      try {
+        await fetch(dlqWebhook, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dlqPayload),
+        });
+      } catch (dlqError) {
+        logger.error("[trial-request] DLQ webhook failed", {
+          error: dlqError,
+          webhook: dlqWebhook,
+          metric: "trial_request_dlq_failure",
+        });
+      }
+    }
+    const dlqFile = process.env.TRIAL_REQUEST_DLQ_FILE || "_artifacts/trial-request-dlq.jsonl";
+    try {
+      fs.mkdirSync(path.dirname(dlqFile), { recursive: true });
+      fs.appendFileSync(dlqFile, JSON.stringify(dlqPayload) + "\n", { encoding: "utf8" });
+    } catch (fileError) {
+      logger.error("[trial-request] DLQ file write failed", {
+        error: fileError,
+        file: dlqFile,
+        metric: "trial_request_dlq_failure",
       });
     }
-  } catch (error) {
-    logger.warn("[trial-request] DB persistence skipped", { error });
+    return health503("Service unavailable", req, {
+      code: "trial_request_unavailable",
+    });
   }
 
   logger.info("[trial-request] Received trial request", {
