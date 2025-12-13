@@ -1,0 +1,53 @@
+name: 🔍 Workflow Lint (actionlint)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  actionlint:
+    name: Lint GitHub Actions Workflows
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Run actionlint
+        uses: reviewdog/action-actionlint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          filter_mode: nofilter
+          fail_on_error: true
+          actionlint_flags: |
+            -ignore 'SC2086:.*'
+            -ignore 'SC2016:.*'
+
+      - name: ✅ Lint complete
+        if: success()
+        run: echo "✅ All workflow files passed actionlint validation"
+
+      - name: ❌ Lint failed
+        if: failure()
+        run: |
+          echo "❌ Workflow lint failed. Please fix the issues reported above."
+          echo "Common issues:"
+          echo "  - Invalid workflow syntax"
+          echo "  - Missing required fields"
+          echo "  - Shellcheck errors in run commands"
+          echo "  - Invalid action references"
+          exit 1

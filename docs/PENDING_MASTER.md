@@ -210,6 +210,60 @@ git diff --stat # 4 files: tap-payments.ts, tasks.json, pm/plans/[id]/route.ts, 
 
 ---
 
+### 2025-12-14 23:57 (Asia/Riyadh) — v65.27 Quick Wins Completion: TEST-005 + REF-003
+**Context:** docs/pending-v60 | REF-002/EFF-004/BUG-011 already done, new: TEST-005 + REF-003  
+**DB Sync:** pending (will update SSOT)
+
+**✅ Resolved Today:**
+1. **TEST-005 (P3) — Aqar module test coverage [CLOSED]**
+   - Created 5 new test files for untested Aqar routes
+   - Files: `tests/api/aqar/{favorites-id,listings-id,listings-search,listings-recommendations,support-chatbot}.route.test.ts`
+   - Result: 16/16 Aqar tests passing (40 test cases total)
+   - Effort: S (completed)
+
+2. **REF-003 (P3) — Add actionlint workflow [CLOSED]**
+   - Created `.github/workflows/actionlint.yml`
+   - Uses reviewdog/action-actionlint@v1 with github-pr-review reporter
+   - Triggers on PR/push to .github/workflows/** and .github/actions/**
+   - Effort: S (completed)
+
+**✅ Already Complete (Verified):**
+3. **REF-002 (P2) — Fork-safe Mongo guard**
+   - `.github/workflows/build-sourcemaps.yml:54` already has `if: ${{ secrets.MONGODB_URI != '' }}`
+   - Status: Already implemented (no changes needed)
+
+4. **EFF-004 (P2) — PM routes rate limiting**
+   - `app/api/pm/plans/[id]/route.ts` already has enforceRateLimit on all methods (GET:60/min, PATCH:30/min, DELETE:10/min)
+   - Status: Already implemented (no changes needed)
+
+5. **BUG-011 (P3) — Notification .catch() chains**
+   - All .then() chains in `lib/mongo.ts:255`, `lib/mongodb-unified.ts:43`, `lib/db/collections.ts:2126` already have .catch()
+   - Status: Already implemented (no changes needed)
+
+**🟠 In Progress:**
+- None
+
+**🔴 Blocked:**
+- None
+
+**📊 Quick Wins Summary (5 items):**
+| ID | Title | Effort | Status |
+|----|-------|--------|--------|
+| REF-002 | Fork-safe Mongo guard | XS | ✅ Already done |
+| EFF-004 | PM routes rate limiting | S | ✅ Already done |
+| BUG-011 | Notification .catch() chains | S | ✅ Already done |
+| TEST-005 | Aqar module coverage | S | ✅ Completed |
+| REF-003 | actionlint workflow | S | ✅ Completed |
+
+**Files Changed:**
+- Created 5 new Aqar test files (all passing)
+- Created `.github/workflows/actionlint.yml`
+
+**Next Sprint Items (P2):**
+- TEST-002 (Work Order module coverage)
+- TEST-003 (Souq module coverage)
+- REF-001 (Consolidate duplicate rate limit logic)
+
 ### 2025-12-14 00:00 (Asia/Riyadh) — v65.26 Backlog Extractor v2.5 Sync
 **Context:** docs/pending-v60 | 53800eee4 | no PR  
 **DB Sync:** pending (BACKLOG_AUDIT.json ready for import)
