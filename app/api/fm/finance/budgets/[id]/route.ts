@@ -29,6 +29,7 @@ import { APIParseError, parseBody } from "@/lib/api/parse-body";
 type BudgetDocument = {
   _id: ObjectId;
   orgId: string;
+  unitId?: string;
   name: string;
   department: string;
   allocated: number;
@@ -105,9 +106,72 @@ const mapBudget = (doc: BudgetDocument) => ({
   department: doc.department,
   allocated: doc.allocated,
   currency: doc.currency,
+  unitId: doc.unitId,
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
 });
+
+const normalizeUnits = (units?: string[] | null): string[] =>
+  (units ?? [])
+    .map((unit) => unit?.toString?.().trim())
+    .filter(Boolean) as string[];
+
+const resolveUnitScope = (params: {
+  requestedUnitId?: string | null;
+  actorUnits: string[];
+  isSuperAdmin?: boolean;
+}): { unitIds?: string[]; error?: NextResponse } => {
+  const { requestedUnitId, actorUnits, isSuperAdmin } = params;
+  const requested = requestedUnitId?.toString().trim();
+
+  if (isSuperAdmin) {
+    if (requested) return { unitIds: [requested] };
+    return {};
+  }
+
+  const hasActorUnits = actorUnits.length > 0;
+  const allowedSet = hasActorUnits ? new Set(actorUnits) : null;
+
+  if (requested) {
+    if (allowedSet && !allowedSet.has(requested)) {
+      return {
+        error: NextResponse.json(
+          {
+            success: false,
+            error: "Unit access denied",
+          },
+          { status: 403 },
+        ),
+      };
+    }
+    return { unitIds: [requested] };
+  }
+
+  if (hasActorUnits) {
+    if (actorUnits.length === 1) {
+      return { unitIds: actorUnits };
+    }
+    return {
+      error: NextResponse.json(
+        {
+          success: false,
+          error: "Unit context required for budgets",
+        },
+        { status: 400 },
+      ),
+    };
+  }
+
+  return {
+    error: NextResponse.json(
+      {
+        success: false,
+        error: "Unit context required for budgets",
+      },
+      { status: 400 },
+    ),
+  };
+};
 
 export async function GET(
   req: NextRequest,
@@ -148,6 +212,13 @@ export async function GET(
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
 
+    const actorUnits = normalizeUnits((actor as { units?: string[] }).units);
+    const unitScope = resolveUnitScope({
+      actorUnits,
+      isSuperAdmin: actor.isSuperAdmin,
+    });
+    if (unitScope.error) return unitScope.error;
+
     // Reject cross-tenant mode for GET by id (must specify explicit tenant)
     if (isCrossTenantMode(tenantId)) {
       return NextResponse.json(
@@ -163,9 +234,9 @@ export async function GET(
     const db = await getDatabase();
     const collection = db.collection<BudgetDocument>(COLLECTION);
     
-    const query: Record<string, unknown> = { 
+    const query: Record<string, unknown> = {
       _id: new ObjectId(id),
-      ...buildTenantFilter(tenantId)
+      ...buildTenantFilter(tenantId, "orgId", { unitIds: unitScope.unitIds }),
     };
     
     const budget = await collection.findOne(query);
@@ -219,6 +290,13 @@ export async function PATCH(
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
 
+    const actorUnits = normalizeUnits((actor as { units?: string[] }).units);
+    const unitScope = resolveUnitScope({
+      actorUnits,
+      isSuperAdmin: actor.isSuperAdmin,
+    });
+    if (unitScope.error) return unitScope.error;
+
     // Reject cross-tenant mode for PATCH (must specify explicit tenant)
     if (isCrossTenantMode(tenantId)) {
       return NextResponse.json(
@@ -260,7 +338,9 @@ export async function PATCH(
     const db = await getDatabase();
     const collection = db.collection<BudgetDocument>(COLLECTION);
     
-    const tenantFilter = buildTenantFilter(tenantId);
+    const tenantFilter = buildTenantFilter(tenantId, "orgId", {
+      unitIds: unitScope.unitIds,
+    });
     const query = { 
       _id: new ObjectId(id),
       ...tenantFilter 
@@ -327,6 +407,13 @@ export async function DELETE(
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
 
+    const actorUnits = normalizeUnits((actor as { units?: string[] }).units);
+    const unitScope = resolveUnitScope({
+      actorUnits,
+      isSuperAdmin: actor.isSuperAdmin,
+    });
+    if (unitScope.error) return unitScope.error;
+
     // Reject cross-tenant mode for DELETE (must specify explicit tenant)
     if (isCrossTenantMode(tenantId)) {
       return NextResponse.json(
@@ -338,7 +425,9 @@ export async function DELETE(
     const db = await getDatabase();
     const collection = db.collection<BudgetDocument>(COLLECTION);
     
-    const tenantFilter = buildTenantFilter(tenantId);
+    const tenantFilter = buildTenantFilter(tenantId, "orgId", {
+      unitIds: unitScope.unitIds,
+    });
     const query = { 
       _id: new ObjectId(id),
       ...tenantFilter 

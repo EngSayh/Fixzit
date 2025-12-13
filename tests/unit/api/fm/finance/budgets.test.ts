@@ -9,6 +9,7 @@ import { ObjectId } from "mongodb";
 // ----- Mock Setup -----
 const ORG_ID = new ObjectId().toHexString();
 const USER_ID = new ObjectId().toHexString();
+const UNIT_ID = new ObjectId().toHexString();
 
 type MockPermissionUser = {
   id: string;
@@ -17,12 +18,25 @@ type MockPermissionUser = {
   tenantId: string;
   role: string;
   isSuperAdmin?: boolean;
+  units?: string[];
 } | null;
 
 let mockPermissionUser: MockPermissionUser = null;
 let mockPermissionResult: null | NextResponse = null;
 let mockBudgets: Record<string, unknown>[] = [];
 let mockInsertedDoc: Record<string, unknown> | null = null;
+let lastFindQuery: Record<string, unknown> | null = null;
+let mockTenantId: string | null = ORG_ID;
+
+const filterBudgets = (query: Record<string, unknown> = {}) => {
+  const unitFilter = (query.unitId as { $in?: string[] } | undefined)?.$in;
+  if (!unitFilter || unitFilter.length === 0) return mockBudgets;
+  const allowed = new Set(unitFilter.map((id) => id.toString()));
+  return mockBudgets.filter((budget) => {
+    const unitId = (budget.unitId ?? "").toString();
+    return allowed.has(unitId);
+  });
+};
 
 vi.mock("@/app/api/fm/permissions", () => ({
   requireFmPermission: vi.fn(async () => {
@@ -33,26 +47,40 @@ vi.mock("@/app/api/fm/permissions", () => ({
 
 vi.mock("@/app/api/fm/utils/tenant", () => ({
   resolveTenantId: vi.fn((_req, orgId: string) => {
-    if (!orgId) return { error: NextResponse.json({ error: "Tenant required" }, { status: 400 }) };
-    return { tenantId: orgId };
+    if (!mockTenantId && !orgId) {
+      return { error: NextResponse.json({ error: "Tenant required" }, { status: 400 }) };
+    }
+    return { tenantId: mockTenantId ?? orgId };
   }),
-  buildTenantFilter: vi.fn((tenantId: string) => ({ orgId: tenantId })),
+  buildTenantFilter: vi.fn(
+    (tenantId: string, _fieldName: string = "orgId", options?: { unitIds?: string[] }) => {
+      const filter: Record<string, unknown> = { orgId: tenantId };
+      if (options?.unitIds?.length) {
+        filter.unitId = { $in: options.unitIds };
+      }
+      return filter;
+    },
+  ),
   isCrossTenantMode: vi.fn((tenantId: string) => tenantId === "*"),
 }));
 
 vi.mock("@/lib/mongodb-unified", () => ({
   getDatabase: vi.fn(async () => ({
     collection: vi.fn(() => ({
-      find: vi.fn(() => ({
-        sort: vi.fn(() => ({
-          skip: vi.fn(() => ({
-            limit: vi.fn(() => ({
-              toArray: vi.fn(async () => mockBudgets),
+      find: vi.fn((query: Record<string, unknown>) => {
+        lastFindQuery = query;
+        const filtered = filterBudgets(query);
+        return {
+          sort: vi.fn(() => ({
+            skip: vi.fn(() => ({
+              limit: vi.fn(() => ({
+                toArray: vi.fn(async () => filtered),
+              })),
             })),
           })),
-        })),
-      })),
-      countDocuments: vi.fn(async () => mockBudgets.length),
+        };
+      }),
+      countDocuments: vi.fn(async (query: Record<string, unknown>) => filterBudgets(query).length),
       insertOne: vi.fn(async (doc: Record<string, unknown>) => {
         mockInsertedDoc = doc;
         return { insertedId: doc._id };
@@ -87,11 +115,18 @@ function createGetRequest(params: Record<string, string> = {}): NextRequest {
   return new NextRequest(url.toString(), { method: "GET" });
 }
 
-function createPostRequest(body: Record<string, unknown>): NextRequest {
+function createPostRequest(
+  body: Record<string, unknown>,
+  options?: { includeUnitId?: boolean },
+): NextRequest {
+  const payload = { ...body };
+  if (options?.includeUnitId !== false) {
+    payload.unitId = payload.unitId ?? UNIT_ID;
+  }
   return new NextRequest("http://localhost/api/fm/finance/budgets", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
 }
 
@@ -105,12 +140,16 @@ describe("GET /api/fm/finance/budgets", () => {
       orgId: ORG_ID,
       tenantId: ORG_ID,
       role: "ADMIN",
+      units: [UNIT_ID],
     };
     mockPermissionResult = null;
+    mockTenantId = ORG_ID;
+    lastFindQuery = null;
     mockBudgets = [
       {
         _id: new ObjectId(),
         orgId: ORG_ID,
+        unitId: UNIT_ID,
         name: "IT Budget",
         department: "IT",
         allocated: 100000,
@@ -121,6 +160,7 @@ describe("GET /api/fm/finance/budgets", () => {
       {
         _id: new ObjectId(),
         orgId: ORG_ID,
+        unitId: UNIT_ID,
         name: "HR Budget",
         department: "HR",
         allocated: 50000,
@@ -135,6 +175,8 @@ describe("GET /api/fm/finance/budgets", () => {
     mockPermissionUser = null;
     mockPermissionResult = null;
     mockBudgets = [];
+    lastFindQuery = null;
+    mockTenantId = ORG_ID;
   });
 
   describe("Authentication", () => {
@@ -185,6 +227,33 @@ describe("GET /api/fm/finance/budgets", () => {
     });
   });
 
+  describe("Unit Scoping", () => {
+    it("applies unit filter to queries", async () => {
+      const res = await GET(createGetRequest());
+      expect(res.status).toBe(200);
+      expect(lastFindQuery?.unitId).toEqual({ $in: [UNIT_ID] });
+    });
+
+    it("rejects access to disallowed unit", async () => {
+      const res = await GET(createGetRequest({ unitId: "OTHER_UNIT" }));
+      expect(res.status).toBe(403);
+    });
+
+    it("requires explicit unit when multiple units assigned", async () => {
+      mockPermissionUser = {
+        id: USER_ID,
+        userId: USER_ID,
+        orgId: ORG_ID,
+        tenantId: ORG_ID,
+        role: "ADMIN",
+        units: ["UNIT_A", "UNIT_B"],
+      };
+
+      const res = await GET(createGetRequest());
+      expect(res.status).toBe(400);
+    });
+  });
+
   describe("Response Format", () => {
     it("returns success with data array", async () => {
       const res = await GET(createGetRequest());
@@ -230,15 +299,18 @@ describe("POST /api/fm/finance/budgets", () => {
       orgId: ORG_ID,
       tenantId: ORG_ID,
       role: "ADMIN",
+      units: [UNIT_ID],
     };
     mockPermissionResult = null;
     mockInsertedDoc = null;
+    mockTenantId = ORG_ID;
   });
 
   afterEach(() => {
     mockPermissionUser = null;
     mockPermissionResult = null;
     mockInsertedDoc = null;
+    mockTenantId = ORG_ID;
   });
 
   describe("Authentication", () => {
@@ -343,16 +415,11 @@ describe("POST /api/fm/finance/budgets", () => {
       expect(res.status).toBe(201);
       expect(mockInsertedDoc).toBeDefined();
       expect(mockInsertedDoc?.orgId).toBe(ORG_ID);
+      expect(mockInsertedDoc?.unitId).toBe(UNIT_ID);
     });
 
     it("rejects cross-tenant mode for POST", async () => {
-      mockPermissionUser = {
-        id: USER_ID,
-        userId: USER_ID,
-        orgId: "*",
-        tenantId: "*",
-        role: "ADMIN",
-      };
+      mockTenantId = "*";
 
       const res = await POST(
         createPostRequest({
@@ -361,6 +428,48 @@ describe("POST /api/fm/finance/budgets", () => {
           allocated: 25000,
           currency: "SAR",
         }),
+      );
+
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects unit outside allowed scope", async () => {
+      const res = await POST(
+        createPostRequest(
+          {
+            name: "New Budget",
+            department: "Engineering",
+            allocated: 50000,
+            currency: "SAR",
+            unitId: "OTHER_UNIT",
+          },
+          { includeUnitId: false },
+        ),
+      );
+
+      expect(res.status).toBe(403);
+    });
+
+    it("requires unit when multiple units assigned", async () => {
+      mockPermissionUser = {
+        id: USER_ID,
+        userId: USER_ID,
+        orgId: ORG_ID,
+        tenantId: ORG_ID,
+        role: "ADMIN",
+        units: ["UNIT_A", "UNIT_B"],
+      };
+
+      const res = await POST(
+        createPostRequest(
+          {
+            name: "New Budget",
+            department: "Engineering",
+            allocated: 50000,
+            currency: "SAR",
+          },
+          { includeUnitId: false },
+        ),
       );
 
       expect(res.status).toBe(400);
@@ -385,6 +494,7 @@ describe("POST /api/fm/finance/budgets", () => {
       expect(body.data.department).toBe("Engineering");
       expect(body.data.allocated).toBe(50000);
       expect(body.data.currency).toBe("SAR");
+      expect(body.data.unitId).toBe(UNIT_ID);
     });
 
     it("sanitizes and trims input", async () => {
@@ -401,6 +511,7 @@ describe("POST /api/fm/finance/budgets", () => {
       expect(body.data.name).toBe("Budget Name");
       expect(body.data.department).toBe("Engineering");
       expect(body.data.currency).toBe("SAR");
+      expect(body.data.unitId).toBe(UNIT_ID);
     });
   });
 });
