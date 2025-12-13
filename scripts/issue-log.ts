@@ -101,6 +101,161 @@ async function fetchAPI(
 }
 
 // ============================================================================
+// MARKDOWN PARSING (for PENDING_MASTER.md)
+// ============================================================================
+
+interface ParsedIssue {
+  legacyId?: string;
+  title: string;
+  description?: string;
+  priority: string;
+  category: string;
+  effort?: string;
+  module?: string;
+  location?: { filePath?: string; lineStart?: number };
+  status?: string;
+  sourceSnippet?: string;
+  sourceHash?: string;
+  action?: string;
+}
+
+function parseMarkdownIssues(content: string, sourceFile: string): ParsedIssue[] {
+  const issues: ParsedIssue[] = [];
+  const lines = content.split('\n');
+  
+  // Patterns for different issue formats in PENDING_MASTER.md
+  // Format 1: Table row: | ID | Title | Priority | ...
+  const tableRowPattern = /^\|\s*([A-Z]+-\d+)\s*\|([^|]+)\|([^|]+)\|/;
+  
+  // Format 2: List item: - [ ] BUG-001: Title (P1)
+  const listItemPattern = /^[-*]\s*\[[ x]\]\s*([A-Z]+-\d+):\s*(.+?)\s*\(([P][0-3])\)/i;
+  
+  // Format 3: Heading with ID: ### BUG-001: Title
+  const headingPattern = /^#{2,4}\s*([A-Z]+-\d+):\s*(.+)/;
+  
+  // Format 4: Simple bullet: - BUG-001: Title
+  const bulletPattern = /^[-*]\s*([A-Z]+-\d+):\s*(.+)/;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let match: RegExpMatchArray | null;
+    
+    // Try table row format
+    match = line.match(tableRowPattern);
+    if (match) {
+      const [, id, titleRaw, priorityRaw] = match;
+      const priority = priorityRaw.trim().match(/P[0-3]/)?.[0] || 'P2';
+      const title = titleRaw.trim();
+      
+      if (title && !title.startsWith('---') && !title.toLowerCase().includes('title')) {
+        issues.push({
+          legacyId: id.trim(),
+          title,
+          priority,
+          category: detectCategory(id),
+          sourceSnippet: line.slice(0, 500),
+          sourceHash: generateHash(id + title),
+        });
+      }
+      continue;
+    }
+    
+    // Try list item format
+    match = line.match(listItemPattern);
+    if (match) {
+      const [, id, title, priority] = match;
+      issues.push({
+        legacyId: id.trim(),
+        title: title.trim(),
+        priority: priority.toUpperCase(),
+        category: detectCategory(id),
+        status: line.includes('[x]') ? 'closed' : 'open',
+        sourceSnippet: line.slice(0, 500),
+        sourceHash: generateHash(id + title),
+      });
+      continue;
+    }
+    
+    // Try heading format
+    match = line.match(headingPattern);
+    if (match) {
+      const [, id, title] = match;
+      // Look for description in following lines
+      let description = '';
+      for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+        if (lines[j].trim() && !lines[j].startsWith('#')) {
+          description = lines[j].trim();
+          break;
+        }
+      }
+      
+      issues.push({
+        legacyId: id.trim(),
+        title: title.trim(),
+        priority: detectPriority(line + description),
+        category: detectCategory(id),
+        description,
+        sourceSnippet: line.slice(0, 500),
+        sourceHash: generateHash(id + title),
+      });
+      continue;
+    }
+    
+    // Try simple bullet format
+    match = line.match(bulletPattern);
+    if (match) {
+      const [, id, title] = match;
+      issues.push({
+        legacyId: id.trim(),
+        title: title.trim(),
+        priority: detectPriority(line),
+        category: detectCategory(id),
+        sourceSnippet: line.slice(0, 500),
+        sourceHash: generateHash(id + title),
+      });
+    }
+  }
+  
+  logInfo(`Parsed from: ${sourceFile}`);
+  return issues;
+}
+
+function detectCategory(id: string): string {
+  const prefix = id.split('-')[0].toLowerCase();
+  const categoryMap: Record<string, string> = {
+    bug: 'bug',
+    sec: 'security',
+    security: 'security',
+    logic: 'logic_error',
+    perf: 'efficiency',
+    eff: 'efficiency',
+    test: 'missing_test',
+    doc: 'documentation',
+    feat: 'enhancement',
+    high: 'enhancement',
+  };
+  return categoryMap[prefix] || 'bug';
+}
+
+function detectPriority(text: string): string {
+  if (/P0|critical|urgent|blocker/i.test(text)) return 'P0';
+  if (/P1|high|important/i.test(text)) return 'P1';
+  if (/P3|low|minor|nice.?to.?have/i.test(text)) return 'P3';
+  return 'P2';
+}
+
+function generateHash(input: string): string {
+  // Simple hash for deduplication
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    const char = input.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0');
+}
+
+// ============================================================================
 // COMMANDS
 // ============================================================================
 
@@ -254,15 +409,29 @@ async function importIssues(args: Record<string, string>): Promise<void> {
     const fileContent = fs.readFileSync(absolutePath, 'utf-8');
     let issues: unknown[];
     
-    try {
-      issues = JSON.parse(fileContent);
-    } catch {
-      logError('Invalid JSON file');
-      return;
+    // Detect file type and parse accordingly
+    const ext = path.extname(absolutePath).toLowerCase();
+    
+    if (ext === '.md' || ext === '.markdown') {
+      // Parse markdown file (PENDING_MASTER.md format)
+      issues = parseMarkdownIssues(fileContent, absolutePath);
+      logInfo(`Parsed ${issues.length} issues from markdown`);
+    } else {
+      try {
+        issues = JSON.parse(fileContent);
+      } catch {
+        logError('Invalid JSON file');
+        return;
+      }
     }
     
     if (!Array.isArray(issues)) {
       issues = [issues];
+    }
+    
+    if (issues.length === 0) {
+      logInfo('No issues found in file');
+      return;
     }
     
     const response = await fetchAPI('/import', {

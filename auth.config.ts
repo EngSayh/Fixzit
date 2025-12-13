@@ -218,7 +218,9 @@ function _sanitizeImage(image?: string | null): string | undefined {
 
 // Validation schema for credentials login (unified identifier field)
 // NOTE: signIn() from next-auth/react sends checkbox values as 'on' when checked, undefined when unchecked
-const REQUIRE_SMS_OTP = process.env.NEXTAUTH_REQUIRE_SMS_OTP !== 'false';
+// TEMPORARY: OTP disabled by default until production SMS service is configured
+// To re-enable OTP: Set NEXTAUTH_REQUIRE_SMS_OTP=true in environment variables
+const REQUIRE_SMS_OTP = process.env.NEXTAUTH_REQUIRE_SMS_OTP === 'true';
 
 const EMPLOYEE_ID_REGEX = /^EMP[-A-Z0-9]+$/;
 

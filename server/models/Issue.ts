@@ -125,10 +125,24 @@ export interface IRelatedIssue {
   relationship: 'blocks' | 'blocked_by' | 'duplicates' | 'related_to' | 'parent' | 'child';
 }
 
+export type AuditAction = 
+  | 'CREATED'
+  | 'UPDATED'
+  | 'STATUS_CHANGED'
+  | 'COMMENTED'
+  | 'MENTIONED'
+  | 'SYNCED'
+  | 'IMPORTED'
+  | 'DEDUPE_MERGED';
+
 export interface IAuditEntry {
   sessionId: string;
   timestamp: Date;
+  action?: AuditAction;
   findings: string;
+  agentId?: string;
+  sourceFile?: string;
+  lineRange?: { start: number; end: number };
 }
 
 export interface IIssue extends Document {
@@ -175,6 +189,10 @@ export interface IIssue extends Document {
   
   // Tracking
   source: IssueSourceType;
+  sourceDetail?: string;     // Additional source info (e.g., 'PENDING_MASTER.md v65.18')
+  sourceHash?: string;       // SHA-256 hash for dedupe
+  sourceSnippet?: string;    // Original text snippet (first 500 chars)
+  sourceRefs?: string[];     // References to source documents
   auditEntries: IAuditEntry[];
   mentionCount: number;      // How many times seen in audits
   firstSeenAt: Date;
@@ -265,7 +283,17 @@ const RelatedIssueSchema = new Schema<IRelatedIssue>({
 const AuditEntrySchema = new Schema<IAuditEntry>({
   sessionId: { type: String, required: true },
   timestamp: { type: Date, required: true },
+  action: { 
+    type: String, 
+    enum: ['CREATED', 'UPDATED', 'STATUS_CHANGED', 'COMMENTED', 'MENTIONED', 'SYNCED', 'IMPORTED', 'DEDUPE_MERGED'],
+  },
   findings: { type: String, required: true },
+  agentId: { type: String },
+  sourceFile: { type: String },
+  lineRange: {
+    start: { type: Number },
+    end: { type: Number },
+  },
 }, { _id: false });
 
 const IssueSchema = new Schema<IIssue>({
@@ -343,6 +371,10 @@ const IssueSchema = new Schema<IIssue>({
     enum: Object.values(IssueSource), 
     default: IssueSource.MANUAL,
   },
+  sourceDetail: { type: String },
+  sourceHash: { type: String, index: true },
+  sourceSnippet: { type: String, maxlength: 500 },
+  sourceRefs: [{ type: String }],
   auditEntries: [AuditEntrySchema],
   mentionCount: { type: Number, default: 1 },
   firstSeenAt: { type: Date, default: Date.now },
