@@ -727,12 +727,14 @@ export const resolvers = {
 
         logger.debug("[GraphQL] Fetching work orders", { filter: args.filter, orgId: ctx.orgId });
 
-        const docs = await WorkOrder.find(query)
-          .sort({ _id: -1 })
-          .limit(limit + 1)
-          .lean();
-
-        const totalCount = await WorkOrder.countDocuments(baseQuery);
+        // E1: Parallelize find and countDocuments for performance
+        const [docs, totalCount] = await Promise.all([
+          WorkOrder.find(query)
+            .sort({ _id: -1 })
+            .limit(limit + 1)
+            .lean(),
+          WorkOrder.countDocuments(baseQuery),
+        ]);
         const hasNextPage = docs.length > limit;
         const nodes = hasNextPage ? docs.slice(0, -1) : docs;
         const edges = nodes.map((doc) => {
