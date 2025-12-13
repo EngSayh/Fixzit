@@ -21,6 +21,26 @@ class ConfigurationError extends Error {
   }
 }
 
+export function validateAwsConfig(env: NodeJS.ProcessEnv): void {
+  if (env.NODE_ENV !== "production") {
+    return;
+  }
+
+  const region = env.AWS_REGION?.trim();
+  const bucket = env.AWS_S3_BUCKET?.trim();
+
+  if (!region) {
+    throw new ConfigurationError(
+      "Required environment variable AWS_REGION is not set (no fallback provided)",
+    );
+  }
+  if (!bucket) {
+    throw new ConfigurationError(
+      "Required environment variable AWS_S3_BUCKET is not set (no fallback provided)",
+    );
+  }
+}
+
 /**
  * Get required environment variable (throws if missing in production)
  * @deprecated Use getRequiredWithBuildSkip for variables needed at runtime but not build time
@@ -171,6 +191,17 @@ function getRequiredWithBuildSkip(key: string, fallback?: string): string {
   return value;
 }
 
+function getRequiredWithTestFallback(
+  key: string,
+  testFallback: string,
+): string {
+  const fallback =
+    process.env.NODE_ENV === "production" ? undefined : testFallback;
+  return getRequiredWithBuildSkip(key, fallback);
+}
+
+validateAwsConfig(process.env);
+
 export const Config = {
   /**
    * Environment configuration
@@ -239,13 +270,13 @@ export const Config = {
    * AWS Configuration
    */
   aws: {
-    region: getOptional("AWS_REGION", "us-east-1"),
+    region: getRequiredWithTestFallback("AWS_REGION", "test-region"),
     accessKeyId: getOptional("AWS_ACCESS_KEY_ID"),
     secretAccessKey: getOptional("AWS_SECRET_ACCESS_KEY"),
 
     // S3 Configuration
     s3: {
-      bucket: getOptional("AWS_S3_BUCKET", getOptional("S3_BUCKET_NAME", "fixzit-uploads")),
+      bucket: getRequiredWithTestFallback("AWS_S3_BUCKET", "test-s3-bucket"),
       uploadsPrefix: getOptional("S3_UPLOADS_PREFIX", "uploads/"),
       publicUrl: getOptional("S3_PUBLIC_URL", ""),
     },
@@ -326,6 +357,16 @@ export const Config = {
       maxPageLimit: getInteger("SOUQ_REVIEWS_MAX_PAGE_LIMIT", 100),
       /** Number of unique reports before auto-flagging a review (default: 3) */
       reportFlagThreshold: getInteger("SOUQ_REVIEWS_REPORT_FLAG_THRESHOLD", 3),
+    },
+    /**
+     * Rule windows and thresholds
+     */
+    rules: {
+      returnWindowDays: getInteger("SOUQ_RETURN_WINDOW_DAYS", 30),
+      lateReportingDays: getInteger("SOUQ_LATE_REPORTING_DAYS", 14),
+      fraudThreshold: getInteger("SOUQ_FRAUD_THRESHOLD", 70),
+      highValueThreshold: getInteger("SOUQ_HIGH_VALUE_THRESHOLD", 500),
+      multipleClaimsPeriodDays: getInteger("SOUQ_MULTIPLE_CLAIMS_PERIOD_DAYS", 30),
     },
   },
 

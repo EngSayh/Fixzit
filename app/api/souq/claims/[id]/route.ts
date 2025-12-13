@@ -65,14 +65,12 @@ export async function GET(
     if (ObjectId.isValid(orderIdValue)) {
       order = await db
         .collection(COLLECTIONS.ORDERS)
-        .findOne({ _id: new ObjectId(orderIdValue), ...orgFilter })
-        .catch(() => null);
+        .findOne({ _id: new ObjectId(orderIdValue), ...orgFilter });
     }
     if (!order) {
       order = await db
         .collection(COLLECTIONS.ORDERS)
-        .findOne({ orderId: orderIdValue, ...orgFilter })
-        .catch(() => null);
+        .findOne({ orderId: orderIdValue, ...orgFilter });
     }
     if (!order) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
@@ -82,13 +80,11 @@ export async function GET(
       ? await db
           .collection(COLLECTIONS.USERS)
           .findOne({ _id: new ObjectId(String(claim.buyerId)), ...orgFilter })
-          .catch(() => null)
       : null;
     const sellerDoc = ObjectId.isValid(String(claim.sellerId))
       ? await db
           .collection(COLLECTIONS.USERS)
           .findOne({ _id: new ObjectId(String(claim.sellerId)), ...orgFilter })
-          .catch(() => null)
       : null;
 
     return NextResponse.json({

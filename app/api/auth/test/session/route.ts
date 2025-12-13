@@ -16,6 +16,7 @@ import { User } from "@/server/models/User";
 import { encode } from "next-auth/jwt";
 import { Types } from "mongoose";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
@@ -53,16 +54,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await connectToDatabase().catch(() => {});
-    const user = await User.findOne({ email, orgId: resolvedOrgId }).lean<{
+    try {
+      await connectToDatabase();
+    } catch (error) {
+      logger.error("[auth:test:session] Mongo connection failed", {
+        error,
+        email,
+        orgId: resolvedOrgId,
+      });
+      return NextResponse.json(
+        { error: "Service unavailable" },
+        { status: 503 },
+      );
+    }
+
+    type UserDoc = {
       _id: Types.ObjectId;
       email: string;
-      professional?: { role?: string };
+      professional?: { role?: string } | null;
       orgId?: Types.ObjectId | string;
       isSuperAdmin?: boolean;
       permissions?: string[];
       roles?: string[];
-    }>().catch(() => null);
+    };
+    
+    let user: UserDoc | null = null;
+    try {
+      user = (await User.findOne({ email, orgId: resolvedOrgId }).lean()) as UserDoc | null;
+    } catch (error) {
+      logger.error("[auth:test:session] User lookup failed", {
+        error,
+        email,
+        orgId: resolvedOrgId,
+      });
+      return NextResponse.json(
+        { error: "Service unavailable" },
+        { status: 503 },
+      );
+    }
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
     const fallbackOrg =
       resolvedOrgId ||

@@ -106,24 +106,30 @@ export async function POST(req: NextRequest) {
   const userAgent = req.headers.get("user-agent") || undefined;
 
   try {
-    // Best-effort: connect so the request can be persisted
-    await connectToDatabase().catch(() => null);
-    const db = await getDatabase().catch(() => null);
-    if (db) {
-      await db.collection("trial_requests").insertOne({
-        name,
-        email,
-        company,
-        plan: plan || "unspecified",
-        message,
-        phone,
-        clientIp,
-        userAgent,
-        createdAt: new Date(),
-      });
-    }
+    await connectToDatabase();
+    const db = await getDatabase();
+    await db.collection("trial_requests").insertOne({
+      name,
+      email,
+      company,
+      plan: plan || "unspecified",
+      message,
+      phone,
+      clientIp,
+      userAgent,
+      createdAt: new Date(),
+    });
   } catch (error) {
-    logger.warn("[trial-request] DB persistence skipped", { error });
+    logger.error("[trial-request] DB persistence failed", {
+      error,
+      email,
+      company,
+      clientIp,
+    });
+    return NextResponse.json(
+      { error: "Service unavailable" },
+      { status: 503 },
+    );
   }
 
   logger.info("[trial-request] Received trial request", {
