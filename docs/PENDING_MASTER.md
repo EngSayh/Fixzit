@@ -1,3 +1,66 @@
+**IMPORTANT: MASTER_PENDING_REPORT.md at repo root is now the PRIMARY SSOT.**  
+This file (docs/PENDING_MASTER.md) remains as a detailed session log/changelog.  
+MongoDB Issue Tracker API is the ultimate source of truth when available.
+
+### 2025-12-14 00:00 (Asia/Riyadh) — Workspace-Wide Audit Complete + MASTER SSOT Created
+**Context:** main | 2f6fe64ab | comprehensive system scan  
+**Scanner:** Fixzit System Organizer v2.5  
+
+**✅ Created MASTER_PENDING_REPORT.md (Primary SSOT):**
+- Location: /MASTER_PENDING_REPORT.md (repo root)
+- Scope: Full workspace audit (881 TypeScript files scanned)
+- Health Score: 89/100
+- Total Issues: 7 (🔴 1 Critical, 🟠 2 High, 🟡 3 Medium, 🟢 1 Low)
+
+**🚨 New Critical Issues Discovered:**
+
+| ID | Priority | Issue | Location | Impact |
+|----|----------|-------|----------|--------|
+| **SEC-001** | 🔴 P0 | NEXTAUTH_SECRET fallback insufficient - crashes when only AUTH_SECRET set | lib/config/constants.ts:20-45 | Production ConfigurationError crash |
+| **SEC-002** | 🟠 P1 | 50+ DB queries missing tenant scope validation | app/api/**/route.ts | Potential cross-tenant data leaks (IDOR) |
+| **BUG-001** | 🟠 P1 | 40+ direct process.env accesses in client code | app/**/*.tsx | SSR/hydration breaks, secret exposure risk |
+
+**📊 Pattern Clusters Identified:**
+1. **Direct process.env Access** (40+ occurrences) - Migrate to Config export
+2. **Unvalidated Tenant Scope** (50+ DB operations) - Add org_id enforcement
+3. **Missing .lean()** (10+ read-only queries) - Performance optimization
+4. **@ts-expect-error Without Justification** (3 occurrences) - Documentation needed
+
+**✅ Verified Safe (No Action):**
+- dangerouslySetInnerHTML: 6 uses, all wrapped in SafeHtml/DOMPurify
+- eslint-disable: 50+ uses, all documented with inline justifications
+- @ts-expect-error: 3 uses, 2 have justifications (1 needs docs)
+
+**📋 Backlog Integration:**
+- Merged resolved items from previous sessions (SEC-TAP-001, CONFIG-001, TEST-SAFE-FETCH, EFF-004, REF-002)
+- Integrated test coverage gaps from BACKLOG_AUDIT.json (TEST-001 through TEST-005)
+- Cross-referenced PENDING_MASTER sessions with new findings
+
+**🔧 Recommended Fixes (Priority Order):**
+1. **Immediate (P0):** Implement resolveAuthSecret() in lib/config/constants.ts (user-provided diff available)
+2. **Sprint (P1):** Audit 50+ DB operations for tenant scope, add org_id validation
+3. **Sprint (P1):** Migrate 40+ process.env reads to Config export
+4. **Next Sprint (P2):** Add JSON.parse error handling in 20+ POST routes
+5. **Backlog (P3):** Complete test coverage for HR/Finance/Souq modules
+
+**Verification Commands Provided:**
+```bash
+pnpm typecheck  # 0 errors expected
+pnpm lint       # 0 errors expected
+pnpm vitest run --coverage  # 80%+ coverage target
+pnpm lint:ci    # Security + RBAC checks
+# Process.env audit: grep -r "process\.env\." app/ | wc -l (should be 0)
+```
+
+**Next Actions:**
+1. Review MASTER_PENDING_REPORT.md and prioritize fixes
+2. Implement SEC-001 fix (NEXTAUTH_SECRET fallback)
+3. Create tenant scope audit sprint (SEC-002)
+4. Add ESLint rules for process.env + DB query patterns
+5. Schedule weekly SSOT review (2025-12-21)
+
+---
+
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
 ### 2025-12-15 v65.20 — Aqar Test Coverage Complete + Code Quality 100%
