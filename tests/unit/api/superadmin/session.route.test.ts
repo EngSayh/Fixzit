@@ -4,6 +4,13 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+// Type for our mock response
+interface MockResponse {
+  status: number;
+  body: Record<string, unknown>;
+  json: () => Promise<Record<string, unknown>>;
+}
+
 // Mock NextResponse
 vi.mock("next/server", () => ({
   NextRequest: class {
@@ -14,7 +21,7 @@ vi.mock("next/server", () => ({
     };
   },
   NextResponse: {
-    json: (body: unknown, init?: ResponseInit) => {
+    json: (body: Record<string, unknown>, init?: ResponseInit): MockResponse => {
       const status = init?.status ?? 200;
       return { 
         status, 
@@ -60,7 +67,7 @@ describe("GET /api/superadmin/session", () => {
       },
     };
 
-    const response = await GET(request as any);
+    const response = await GET(request as any) as MockResponse;
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty("authenticated", false);
   });
@@ -78,7 +85,7 @@ describe("GET /api/superadmin/session", () => {
       },
     };
 
-    const response = await GET(request as any);
+    const response = await GET(request as any) as MockResponse;
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty("authenticated", false);
   });
@@ -102,12 +109,13 @@ describe("GET /api/superadmin/session", () => {
       },
     };
 
-    const response = await GET(request as any);
+    const response = await GET(request as any) as MockResponse;
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("authenticated", true);
     expect(response.body).toHaveProperty("user");
-    expect(response.body.user).toHaveProperty("username", "admin");
-    expect(response.body.user).toHaveProperty("role", "super_admin");
+    const user = response.body.user as Record<string, unknown>;
+    expect(user).toHaveProperty("username", "admin");
+    expect(user).toHaveProperty("role", "super_admin");
   });
 
   it("should include orgId in response", async () => {
@@ -129,7 +137,7 @@ describe("GET /api/superadmin/session", () => {
       },
     };
 
-    const response = await GET(request as any);
+    const response = await GET(request as any) as MockResponse;
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("orgId", "org-456");
   });
@@ -154,7 +162,7 @@ describe("GET /api/superadmin/session", () => {
       },
     };
 
-    const response = await GET(request as any);
+    const response = await GET(request as any) as MockResponse;
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("expiresAt");
   });

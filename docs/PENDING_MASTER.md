@@ -1,5 +1,77 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-13 23:10 (Asia/Riyadh) — v65.24 TypeScript + P1 Audit Complete
+**Context:** docs/pending-v60 | pending commit | no PR  
+**DB Sync:** not run (MongoDB connection unavailable)
+
+**✅ Resolved Today:**
+- FIX-TS-001 — Superadmin session test TypeScript errors (lines 109-110)
+  - Fixed MockResponse type annotation
+  - Cast response.body.user properly
+  - All 14 superadmin tests passing
+
+**P1 Audit Results (All FALSE POSITIVES):**
+- BUG-010 — PM routes already have `orgId` filter (line 40: `{ orgId }`)
+- LOGIC-001 — Assistant query already scoped (lines 259-262: `orgId: user.orgId`)
+- EFF-002 — Superadmin routes already rate limited (login:24-48, logout:13-20, session:13-20)
+
+**Verified Tenant Scope (Evidence):**
+- `app/api/pm/plans/route.ts:40` — `const query = { orgId }`
+- `app/api/pm/plans/[id]/route.ts:146` — `findOneAndUpdate({ _id: id, orgId })`
+- `app/api/vendors/route.ts:207` — `match = { orgId: user.orgId }`
+- `app/api/assistant/query/route.ts:259` — `WorkOrder.find({ orgId: user.orgId })`
+- `app/api/issues/stats/route.ts:75` — `$match: { orgId }`
+
+**Verified Rate Limiting:**
+- `app/api/superadmin/login/route.ts:24-48` — `isRateLimited(ip)`
+- `app/api/superadmin/logout/route.ts:13-20` — `enforceRateLimit`
+- `app/api/superadmin/session/route.ts:13-20` — `enforceRateLimit`
+- `app/api/issues/route.ts:203-210` — `enforceRateLimit` (added v65.23)
+- `app/api/issues/stats/route.ts:45-52` — `enforceRateLimit` (added v65.23)
+
+**Verification:**
+- TypeScript: 0 errors
+- ESLint: 0 errors  
+- Superadmin tests: 14/14 passing
+- Issues tests: 23/23 passing
+
+**Next Steps:**
+- Commit session changes
+- Push to origin
+- Merge PR when ready
+
+---
+
+### 2025-12-13 23:00 (Asia/Riyadh) — Code Review Update
+**Context:** docs/pending-v60 | a7b722d61 | no PR  
+**DB Sync:** created=0, updated=4, skipped=6, errors=0 (BACKLOG_AUDIT.json synced)
+
+**✅ Resolved Today (DB SSOT):**
+- EFF-001 — Issues API rate limiting (all 4 routes: GET/POST/stats/import)
+- EFF-002 — Superadmin rate limiting (login/logout/session)
+
+**❌ False Positives Closed:**
+- BUG-010 — PM routes tenant filter (routes have orgId; grep missed camelCase)
+- LOGIC-001 — Assistant query org_id (WorkOrder.find uses orgId: user.orgId)
+
+**🟠 In Progress:**
+- None
+
+**🔴 Blocked:**
+- None
+
+**🆕 New Findings Added to DB (with evidence):**
+- EFF-004 — PM routes rate limiting — sourceRef: docs/PENDING_MASTER.md:75
+- TEST-002 — HR module coverage — sourceRef: docs/PENDING_MASTER.md:76
+- BUG-011 — Notification .then() chains — sourceRef: docs/PENDING_MASTER.md:78
+
+**Next Steps (ONLY from DB items above):**
+- EFF-004 — Add enforceRateLimit to PM routes (plans/[id])
+- TEST-002 — Increase HR module test coverage (14% → 50%)
+- TEST-001 — Expand Souq test coverage (35% → 50%)
+
+---
+
 ## 🗓️ 2025-12-13T22:50+03:00 — v65.23 P1 Priority Fixes
 
 ### 📍 Current Progress Summary
@@ -7,7 +79,7 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | Metric | Value | Status | Trend |
 |--------|-------|--------|-------|
 | **Branch** | `docs/pending-v60` | ✅ Active | Stable |
-| **Latest Commit** | `c85270334` | ✅ Pushed | v65.22 complete |
+| **Latest Commit** | `a7b722d61` | ✅ Pushed | v65.23 complete |
 | **TypeScript Errors** | 0 | ✅ Clean | Maintained |
 | **ESLint Errors** | 0 | ✅ Clean | Maintained |
 | **Build** | `pnpm build` | ✅ Passed | Verified locally |

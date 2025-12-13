@@ -15,12 +15,21 @@ import {
   validateSecondFactor,
   verifySuperadminPassword,
 } from "@/lib/superadmin/auth";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/logger";
 
 const SUPERADMIN_USERNAME = process.env.SUPERADMIN_USERNAME || "superadmin";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
 export async function POST(request: NextRequest) {
+  // Primary rate limiting via enforceRateLimit middleware (5 req/min for login)
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "superadmin:login",
+    requests: 5,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const ip = getClientIp(request);
 
   if (!isIpAllowed(ip)) {
@@ -30,6 +39,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Secondary rate limiting (defense-in-depth, per-IP in-memory)
   if (isRateLimited(ip)) {
     return NextResponse.json(
       { error: "Too many attempts. Please try again later." },

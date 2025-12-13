@@ -1,30 +1,44 @@
 # Fixzit Phase 2/3 Backlog Audit
 
-**Generated**: 2025-12-13  
-**Status**: Phase 1 MVP ⚠️ test fix pending (billing/history 401→400) | Phase 2/3 Backlog Documented  
-**Tests**: 2553/2594 passing (1 failing; `pnpm vitest run --bail 1 --reporter=dot`)
+**Generated**: 2025-12-13T22:54:17+03:00  
+**Branch**: `docs/pending-v60` | **Commit**: `a7b722d61`  
+**Status**: Phase 1 MVP ⚠ Verification pending (see validation) | Phase 2/3 Backlog Documented  
+**Tests**: Superadmin + CRM suites 38/38 green; full suite pending (pnpm vitest run --reporter=dot timed out: MongoMemoryServer port collision)
 
 ---
 
-## Open Items (SSOT snapshot)
+## ✅ Completed Items (SSOT snapshot)
 
-| Key | Title | Priority | Status | Source |
-|-----|-------|----------|--------|--------|
-| `add-rate-limiting-to-superadmin-routes` | Add enforceRateLimit to superadmin auth/session routes | P1 | Pending | docs/PENDING_MASTER.md:134-137 |
-| `add-rate-limiting-to-issues-api-routes` | Add enforceRateLimit to Issues API routes | P1 | Pending | docs/PENDING_MASTER.md:135-137 |
-| `billing-history-missing-org-returns-401` | Billing history returns 401 instead of 400 when org missing | P1 | Pending | tests/api/billing/history.route.test.ts:57-65 |
+| Key | Title | Priority | Status | Evidence |
+|-----|-------|----------|--------|----------|
+| `EFF-001` | Add enforceRateLimit to Issues API routes | P1 | ✅ Complete | All 4 routes: GET/POST/stats/import/detail |
+| `create-superadmin-route-tests` | Create Superadmin route tests | P2 | ✅ Complete | 14 tests across 3 files |
+
+## ❌ False Positives (Investigated & Closed)
+
+| Key | Title | Priority | Resolution |
+|-----|-------|----------|------------|
+| `BUG-010` | PM routes missing tenant filter | P2 | Routes have `orgId` filter; grep missed camelCase |
+| `LOGIC-001` | Assistant query without org_id | P2 | WorkOrder.find uses `orgId: user.orgId` |
+
+## 🔄 Pending Items (Phase 2/3)
+
+| Key | Title | Priority | Status | Notes |
+|-----|-------|----------|--------|-------|
+| `EFF-002` | Add enforceRateLimit to superadmin routes | P1 | Pending | Login uses `isRateLimited` only; no `enforceRateLimit` hook |
+| `EFF-004` | Add rate limiting to PM routes | P2 | Pending | 30m |
+| `TEST-002` | HR module test coverage (14%→50%) | P2 | Pending | 4h |
+| `TEST-001` | Souq test coverage (35%→50%) | P3 | Pending | 22h |
+| `BUG-011` | Add .catch() to notification .then() chains | P3 | Pending | 1h |
+| `create-crm-route-tests` | Create CRM route tests | P2 | Pending | Current crm.test.ts only asserts role sets; no route coverage |
 
 ---
 
 ## Executive Summary
 
-| Metric | Value |
-|--------|-------|
-| **Tests** | 2553/2594 passing (1 failing: /api/billing/history) |
-| **TypeScript** | 0 errors |
-| **ESLint** | 0 errors |
-| **Production Readiness** | 99.8% |
-| **Phase 1 MVP** | ✅ COMPLETE |
+- Tests: Superadmin + CRM suites 38/38 passing; full `pnpm vitest run --reporter=dot` timed out at 120s (MongoMemoryServer port collision).  
+- Rate limiting: Issues API complete; superadmin login still needs `enforceRateLimit` to close P1.  
+- CRM route tests remain outstanding; `tests/unit/api/crm/crm.test.ts` does not exercise handlers.
 
 ---
 
@@ -36,10 +50,10 @@
 | **ID** | `add-rate-limiting-to-superadmin-routes` |
 | **Category** | security |
 | **Module** | superadmin |
-| **Status** | 🟡 PARTIAL |
+| **Status** | ⚠ Pending (login missing enforceRateLimit) |
 | **Effort** | 30 minutes |
-| **Files** | `app/api/superadmin/session/route.ts`, `app/api/superadmin/logout/route.ts` |
-| **Notes** | Login uses in-memory limiter; session/logout use `enforceRateLimit`. Add shared middleware + regression tests for consistency. |
+| **Files** | `app/api/superadmin/login/route.ts`, `app/api/superadmin/session/route.ts:15`, `app/api/superadmin/logout/route.ts:15` |
+| **Notes** | Session (60 req/min) and logout (10 req/min) call `enforceRateLimit`; login still relies on `isRateLimited` helper only. |
 
 ### P1-002: Add Rate Limiting to Issues API Routes
 | Field | Value |
@@ -47,10 +61,10 @@
 | **ID** | `add-rate-limiting-to-issues-api-routes` |
 | **Category** | security |
 | **Module** | issues-api |
-| **Status** | 🔄 PENDING |
+| **Status** | ✅ COMPLETE |
 | **Effort** | 30 minutes |
-| **Files** | `app/api/issues/route.ts`, `app/api/issues/[id]/route.ts`, `app/api/issues/import/route.ts`, `app/api/issues/stats/route.ts` |
-| **Notes** | Write methods have rate limits; GET/Stats/Import remain open. Add `enforceRateLimit` + tests across Issues routes. |
+| **Files** | `app/api/issues/route.ts:205,303`, `app/api/issues/[id]/route.ts:159,321`, `app/api/issues/import/route.ts:172`, `app/api/issues/stats/route.ts:47` |
+| **Notes** | All methods rate-limited: POST (30 req/min), PATCH (60 req/min), DELETE (10 req/min), import (5 req/min), stats (30 req/min). |
 
 ---
 
@@ -73,10 +87,10 @@
 | **ID** | `create-crm-route-tests` |
 | **Category** | missing_test |
 | **Module** | crm |
-| **Status** | ✅ IMPLEMENTED |
+| **Status** | 🔄 PENDING |
 | **Effort** | 4 hours |
 | **Files** | `tests/unit/api/crm/crm.test.ts` |
-| **Coverage** | RBAC validation (24 tests), tenant isolation, data model verification |
+| **Coverage** | Current file only asserts role sets and constants; route handlers untested. |
 
 ### P2-003: Expand Souq Test Coverage
 | Field | Value |
@@ -94,20 +108,7 @@
 
 ## 📊 Test Coverage by Module
 
-| Module | Routes | Tests | Coverage | Status |
-|--------|--------|-------|----------|--------|
-| **Auth** | 8 | 8 | 100% | ✅ |
-| **Billing** | 12 | 52 | 100% | ✅ |
-| **Finance** | 15 | 45 | 100% | ✅ |
-| **FM** | 18 | 36 | 100% | ✅ |
-| **HR** | 8 | 24 | 100% | ✅ |
-| **Issues** | 5 | 15 | 100% | ✅ |
-| **Payments** | 6 | 18 | 100% | ✅ |
-| **Superadmin** | 3 | 9 | 100% | ✅ |
-| **CRM** | 4 | 12 | 100% | ✅ |
-| **Souq** | 32 | 13 | 41% | 🔄 Phase 3 |
-| **Support** | 8 | 3 | 38% | 🔄 Phase 3 |
-| **Admin** | 25 | 8 | 32% | 🔄 Phase 3 |
+Coverage snapshot not refreshed in this pass. Outstanding gaps: Souq/Admin/Support route tests, HR coverage expansion, and CRM route handler tests.
 
 ---
 
@@ -142,15 +143,25 @@
 
 ## ✅ QA Gate Checklist
 
-- [x] Tests green (3309/3309)
-- [x] Build 0 TS errors
-- [x] No console/runtime/hydration issues
-- [x] Tenancy filters enforced
-- [x] Branding/RTL verified
-- [x] Rate limiting on all sensitive routes
+- [ ] Tests green (full suite pending; superadmin + CRM suites 38/38 passing)
+- [ ] Build 0 TS errors (not rerun)
+- [ ] No console/runtime/hydration issues (not rerun)
+- [ ] Tenancy filters enforced
+- [ ] Branding/RTL verified
+- [ ] Rate limiting on all sensitive routes (superadmin login still pending)
+
+---
+
+## Related Documents
+
+- [SSOT_WORKFLOW_GUIDE.md](./SSOT_WORKFLOW_GUIDE.md) - SSOT sync and verification workflow
+- [ATLAS_INDEX_INSTRUCTIONS.md](./ATLAS_INDEX_INSTRUCTIONS.md) - MongoDB index creation guide
+- [AGENTS.md](../AGENTS.md) - Agent working agreement
+
+**Merge-ready for Fixzit Phase 1 MVP.**
 - [x] Issue audit trail (IssueEvent model)
 - [x] Database indexes documented
 
 ---
 
-**Status**: ✅ Merge-ready for Fixzit Phase 1 MVP
+**Status**: ⚠ Pending QA; rerun full vitest suite (serial) and add superadmin login rate limit before marking Merge-ready

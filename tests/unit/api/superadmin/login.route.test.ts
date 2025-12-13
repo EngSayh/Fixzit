@@ -53,6 +53,11 @@ vi.mock("@/lib/superadmin/auth", () => ({
   SUPERADMIN_COOKIE_NAME: "superadmin_token",
 }));
 
+// Mock rate-limit middleware
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: vi.fn().mockReturnValue(null),
+}));
+
 vi.mock("@/server/security/headers", () => ({
   getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
 }));
