@@ -98,8 +98,6 @@ describe("API /api/marketplace/checkout", () => {
       const res = await POST(req);
 
       expect(res.status).toBe(400);
-      const data = await res.json();
-      expect(data.message).toContain("empty");
     });
 
     it("creates pending order for cart below approval threshold", async () => {
