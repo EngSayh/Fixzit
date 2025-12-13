@@ -110,8 +110,8 @@ NEXTAUTH_SECRET=<generate with: openssl rand -base64 32>
 # AWS S3 (for file uploads)
 AWS_ACCESS_KEY_ID=your_aws_key
 AWS_SECRET_ACCESS_KEY=your_aws_secret
-AWS_REGION=us-east-1
-AWS_S3_BUCKET=fixzit-uploads-prod
+AWS_REGION=us-east-1 # required, no fallback
+AWS_S3_BUCKET=fixzit-uploads-prod # required, no fallback
 
 # SendGrid (for emails)
 SENDGRID_API_KEY=SG.your_sendgrid_key

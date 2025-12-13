@@ -2,6 +2,10 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { ClaimService, Claim, DecisionOutcome } from "./claim-service";
 import { logger } from "@/lib/logger";
 import { ObjectId as MongoObjectId, type Filter } from "mongodb";
+import {
+  getSouqRuleConfig,
+  type SouqRuleConfig,
+} from "@/services/souq/rules-config";
 
 export interface InvestigationResult {
   claimId: string;
@@ -24,10 +28,6 @@ export interface FraudIndicators {
 }
 
 export class InvestigationService {
-  private static FRAUD_THRESHOLD = 70; // Score above 70 requires manual review
-  private static HIGH_VALUE_THRESHOLD = 500; // SAR
-  private static MULTIPLE_CLAIMS_PERIOD = 30; // days
-  private static LATE_REPORTING_DAYS = parseInt(process.env.LATE_REPORTING_DAYS || "14", 10); // days after delivery
   private static async claimsCollection() {
     // Use ClaimService.ensureIndexes to guarantee index bootstrap before heavy queries
     return ClaimService.ensureIndexes();
@@ -40,6 +40,7 @@ export class InvestigationService {
     if (!orgId) {
       throw new Error("orgId is required for investigation (tenant isolation)");
     }
+    const ruleConfig = getSouqRuleConfig(orgId);
     const claim = await ClaimService.getClaim(claimId, orgId);
     if (!claim) throw new Error("Claim not found");
 
@@ -55,6 +56,7 @@ export class InvestigationService {
       trackingInfo,
       sellerHistory,
       buyerHistory,
+      ruleConfig,
     });
 
     // Calculate fraud score
@@ -72,6 +74,7 @@ export class InvestigationService {
       buyerHistory,
       fraudScore,
       evidenceQuality,
+      ruleConfig.fraudThreshold,
     );
 
     return recommendation;
@@ -91,8 +94,9 @@ export class InvestigationService {
       totalClaims: number;
     };
     buyerHistory: { claimCount: number; claimRate: number; totalOrders: number };
+    ruleConfig: SouqRuleConfig;
   }): Promise<FraudIndicators> {
-    const { claim, orgId, trackingInfo, sellerHistory, buyerHistory } = params;
+    const { claim, orgId, trackingInfo, sellerHistory, buyerHistory, ruleConfig } = params;
     const orgCandidates = MongoObjectId.isValid(orgId)
       ? [orgId, new MongoObjectId(orgId)]
       : [orgId];
@@ -111,7 +115,8 @@ export class InvestigationService {
       ...orgScope,
       filedAt: {
         $gte: new Date(
-          Date.now() - this.MULTIPLE_CLAIMS_PERIOD * 24 * 60 * 60 * 1000,
+          Date.now() -
+            ruleConfig.multipleClaimsPeriodDays * 24 * 60 * 60 * 1000,
         ),
       },
     } as Filter<Claim>);
@@ -124,7 +129,7 @@ export class InvestigationService {
       ? (Date.now() - new Date(trackingInfo.deliveredAt).getTime()) /
         (1000 * 60 * 60 * 24)
       : 0;
-    const lateReporting = daysSinceDelivery > this.LATE_REPORTING_DAYS;
+    const lateReporting = daysSinceDelivery > ruleConfig.lateReportingDays;
 
     const sellerHistoryGood =
       sellerHistory.claimRate < 0.05 && sellerHistory.rating >= 4.0; // <5% claim rate, 4+ stars
@@ -133,7 +138,7 @@ export class InvestigationService {
 
     return {
       multipleClaimsInShortPeriod: recentClaims >= 3,
-      highValueClaim: claim.orderAmount > this.HIGH_VALUE_THRESHOLD,
+      highValueClaim: claim.orderAmount > ruleConfig.highValueThreshold,
       inconsistentEvidence: this.checkEvidenceConsistency(claim),
       sellerHistoryGood,
       buyerHistoryPoor,
@@ -341,6 +346,7 @@ export class InvestigationService {
     },
     fraudScore: number,
     evidenceQuality: "poor" | "fair" | "good" | "excellent",
+    fraudThreshold: number,
   ): InvestigationResult {
     const reasoning: string[] = [];
     let recommendedOutcome: DecisionOutcome = "needs_more_info";
@@ -348,7 +354,7 @@ export class InvestigationService {
     let requiresManualReview = false;
 
     // High fraud score always requires manual review
-    if (fraudScore >= this.FRAUD_THRESHOLD) {
+    if (fraudScore >= fraudThreshold) {
       requiresManualReview = true;
       reasoning.push(
         `High fraud score (${fraudScore}/100) requires manual review`,

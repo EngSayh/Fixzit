@@ -22,6 +22,7 @@ import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 import { generateReturnTrackingNumber, generateRefundId, generateJobId } from "@/lib/id-generator";
+import { getSouqRuleConfig } from "@/services/souq/rules-config";
 
 /**
  * Contact information for notifications
@@ -274,7 +275,7 @@ class ReturnsService {
 
     const orderWithDates = order as OrderWithDates;
     const deliveryDate = orderWithDates.deliveredAt || orderWithDates.updatedAt || new Date();
-    const returnWindowDays = parseInt(process.env.RETURN_WINDOW_DAYS || "30", 10);
+    const { returnWindowDays } = getSouqRuleConfig(orgId);
     const returnDeadline = new Date(deliveryDate);
     returnDeadline.setDate(returnDeadline.getDate() + returnWindowDays);
 
