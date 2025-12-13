@@ -1,5 +1,50 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-15 23:50 (Asia/Riyadh) — Security Hardening Complete + Rate Limiting Added  
+**Context:** main | 2f5c6ed2d | post-PR #550 merge  
+**DB Sync:** blocked (localhost:3000/api/issues/import unreachable); BACKLOG_AUDIT.json updated locally
+
+**✅ Resolved Today (DB SSOT via local JSON):**
+- **SEC-TAP-001 (P0)** — Tap Payments webhook timing attack fixed (lib/finance/tap-payments.ts:492)  
+  - Evidence: `const isValid = crypto.timingSafeEqual(calcBuffer, sigBuffer);`
+  - Resolution: Replaced `===` with timing-safe comparison to prevent timing attacks
+- **CONFIG-001 (P1)** — Dangerous VS Code tasks removed (.vscode/tasks.json)  
+  - Evidence: Removed tasks with `--no-verify` and hardcoded branch names
+  - Resolution: Deleted 'Commit No Verify', 'Push Changes', 'Commit and Push' tasks
+- **EFF-004 (P2)** — PM routes rate limiting added (app/api/pm/plans/[id]/route.ts:87,177)  
+  - Evidence: `enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "pm:plans:patch" })`
+  - Resolution: PATCH: 30 req/min, DELETE: 10 req/min
+- **REF-002 (P2)** — Build workflow fork-safe guard (.github/workflows/build-sourcemaps.yml:54)  
+  - Evidence: `if: ${{ secrets.MONGODB_URI != '' }}`
+  - Resolution: Added secret check, removed localhost fallback
+
+**🟠 In Progress:**
+- None
+
+**🔴 Blocked:**
+- MongoDB Issue Tracker API sync (localhost:3000 unreachable)
+
+**📊 Backlog Status After Update:**
+| Status | Count | Details |
+|--------|-------|---------|
+| Resolved | 5 | SEC-TAP-001, CONFIG-001, EFF-004, REF-002, TEST-SAFE-FETCH (from prev session) |
+| P2 Pending | 4 | TEST-002 (HR), TEST-003 (Finance), REF-001 (CRM), create-crm-route-tests |
+| P3 Pending | 4 | TEST-001 (Souq), TEST-004 (CRM), TEST-005 (Aqar), BUG-011, REF-003 |
+
+**Verification Results:**
+```bash
+pnpm typecheck  # ✅ 0 errors
+pnpm lint       # ✅ 0 errors
+git diff --stat # 4 files: tap-payments.ts, tasks.json, pm/plans/[id]/route.ts, build-sourcemaps.yml
+```
+
+**Next Steps (from remaining DB items):**
+- TEST-002 — Create HR module tests (employees CRUD, payroll) [P2, M effort]
+- TEST-003 — Create Finance module tests (invoices, payments, billing) [P2, L effort]
+- REF-001 — Add CRM route handler tests [P2, M effort]
+
+---
+
 ### 2025-12-15 23:48 (Asia/Riyadh) — TEST-SAFE-FETCH Implementation Complete
 **Context:** main | 2f5c6ed2d | no PR
 **DB Sync:** pending (MongoDB Issue Tracker API unavailable)
