@@ -201,6 +201,14 @@ function buildSortQuery(query: ListQuery): SortSpec {
 // ============================================================================
 
 export async function GET(request: NextRequest) {
+  // Rate limit: 60 requests per minute for listing issues
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "issues:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const result = await resolveIssueSession(request);
     

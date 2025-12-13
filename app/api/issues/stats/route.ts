@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   Issue,
   IssuePriority,
@@ -42,6 +43,14 @@ const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" } as const;
 // ============================================================================
 
 export async function GET(request: NextRequest) {
+  // Rate limit: 30 requests per minute for stats aggregation
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "issues:stats",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const result = await resolveStatsSession(request);
     
