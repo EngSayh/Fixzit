@@ -1,5 +1,5 @@
 {
-  "extracted_at": "2025-12-14T00:02:00+03:00",
+  "extracted_at": "2025-12-14T00:20:00+03:00",
   "source_file": "PENDING_MASTER.md",
   "applied_flags": {
     "format": "both",
@@ -8,10 +8,10 @@
   },
   "counts": {
     "total": 14,
-    "resolved": 5,
-    "pending": 9,
-    "by_priority": { "P0": 1, "P1": 0, "P2": 4, "P3": 4 },
-    "by_category": { "Bugs": 1, "Logic Errors": 0, "Missing Tests": 5, "Efficiency": 0, "Security": 0, "Config": 1 },
+    "resolved": 6,
+    "pending": 8,
+    "by_priority": { "P0": 0, "P1": 0, "P2": 4, "P3": 4 },
+    "by_category": { "Bugs": 1, "Logic Errors": 0, "Missing Tests": 5, "Efficiency": 0, "Security": 0, "Config": 0 },
     "quick_wins": 0,
     "anomalies": 1
   },
@@ -36,22 +36,23 @@
       "displayRef": "CONFIG-002",
       "category": "Config",
       "priority": "P0",
-      "status": "pending",
+      "status": "resolved",
       "title": "NEXTAUTH_SECRET missing in Vercel production deployment",
       "issue": "Production site (fixzit.co) throws ConfigurationError on all pages: Required environment variable NEXTAUTH_SECRET is not set",
       "action": "Add NEXTAUTH_SECRET to Vercel project environment variables (production/preview/development)",
+      "resolution": "FIXED in 488b7209a: Implemented resolveAuthSecret() in lib/config/constants.ts with AUTH_SECRET fallback. Added tests/server/config/auth-secret.test.ts (2/2 passing). Auto-generates secrets for build/preview/CI. Throws only when neither secret in production runtime.",
       "riskTags": ["PRODUCTION-DOWN", "AUTH", "CRITICAL"],
       "effort": "XS",
       "impact": 10,
       "impactBasis": "P0 base (10) - complete production outage",
-      "location": "Vercel environment variables",
+      "location": "lib/config/constants.ts",
       "sourceRef": "code-review:browser-console:2025-12-14",
       "evidenceSnippet": "ConfigurationError: Required environment variable NEXTAUTH_SECRET is not set",
       "sourceHash12": "config002auth",
       "firstSeen": "2025-12-14",
       "lastSeen": "2025-12-14",
       "mentions": 1,
-      "sprintBucket": "URGENT"
+      "sprintBucket": "Resolved"
     },
     {
       "key": "sec-tap-001-timing-attack",
