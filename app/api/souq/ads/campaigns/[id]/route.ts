@@ -15,6 +15,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { CampaignService } from "@/services/souq/ads/campaign-service";
 import { createRbacContext, hasAnyRole } from "@/lib/rbac";
 import { UserRole, type UserRoleType } from "@/types/user";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const ALLOWED_AD_ROLES: UserRoleType[] = [
   UserRole.SUPER_ADMIN,
@@ -175,7 +176,21 @@ export async function PUT(
       );
     }
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<{
+      name?: string;
+      dailyBudget?: string | number;
+      startDate?: string;
+      endDate?: string;
+      status?: "active" | "paused" | "ended";
+      biddingStrategy?: "manual" | "automatic";
+      defaultBid?: string | number;
+    }>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { success: false, error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
 
     const updates: {
       name?: string;

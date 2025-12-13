@@ -28,6 +28,7 @@ import {
 } from "@/lib/rbac/client-roles";
 import mongoose from "mongoose";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
   const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
@@ -72,13 +73,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { listingId, quantity, type, reason } = body as {
+    const parseResult = await parseBodySafe<{
       listingId?: string;
       quantity?: number;
       type?: string;
       reason?: string;
-    };
+    }>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const { listingId, quantity, type, reason } = parseResult.data!;
 
     // Validation
     if (!listingId || !quantity || !type || !reason) {

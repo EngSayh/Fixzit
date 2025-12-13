@@ -26,6 +26,7 @@ import { isValidObjectId } from "@/lib/utils/objectid";
 import { Role } from "@/lib/rbac/client-roles";
 import { buildOrgScopeFilter } from "@/services/souq/org-scope";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const ELIGIBLE_STATUSES = [
   "submitted",
@@ -79,8 +80,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { action, claimIds, reason } = body;
+    const parseResult = await parseBodySafe<{
+      action?: string;
+      claimIds?: unknown[];
+      reason?: string;
+    }>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const { action, claimIds, reason } = parseResult.data!;
 
     // Validate input
     if (!action || !["approve", "reject"].includes(action)) {

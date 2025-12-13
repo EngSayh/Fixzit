@@ -1,5 +1,4 @@
 import React from "react";
-import Link from "next/link";
 import { logger } from "@/lib/logger";
 import ProductCard from "@/components/marketplace/ProductCard";
 import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
@@ -113,12 +112,12 @@ export default async function MarketplaceHome() {
               data-testid="product-card"
               className="border rounded-lg p-4 shadow-sm"
             >
-              <Link
+              <a
                 href={`/marketplace/product/demo-${i}`}
                 className="text-lg font-semibold underline-offset-2 hover:underline"
               >
                 Playwright Demo Product {i}
-              </Link>
+              </a>
               <p className="text-sm text-muted-foreground">SAR {i * 100}.00</p>
               <button className="mt-2 rounded-md bg-primary text-white px-3 py-1">
                 Add to Cart

@@ -24,6 +24,7 @@ import {
 } from "@/lib/rbac/client-roles";
 import mongoose from "mongoose";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
   const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
@@ -72,8 +73,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { sellerId, type, severity, description, action, targetOrgId } = body;
+    const parseResult = await parseBodySafe<{
+      sellerId?: string;
+      type?: string;
+      severity?: string;
+      description?: string;
+      action?: string;
+      targetOrgId?: string;
+    }>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const { sellerId, type, severity, description, action, targetOrgId } = parseResult.data!;
 
     // Validation
     if (!sellerId || !type || !severity || !description || !action) {

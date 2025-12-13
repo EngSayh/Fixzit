@@ -22,6 +22,7 @@ import {
 import mongoose from "mongoose";
 import { z } from "zod";
 import { Role, SubRole, normalizeRole, normalizeSubRole } from "@/domain/fm/fm-lite";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 // Validation schema for lead creation
 const LeadCreateSchema = z.object({
@@ -93,7 +94,13 @@ export async function POST(request: NextRequest) {
       // Public inquiry - no auth required
     }
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<z.infer<typeof LeadCreateSchema>>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
 
     // Validate request body with Zod
     const validation = LeadCreateSchema.safeParse(body);

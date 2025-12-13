@@ -18,6 +18,7 @@ import { getServerSession } from "@/lib/auth/getServerSession";
 import { fulfillmentService } from "@/services/souq/fulfillment-service";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 /**
  * POST /api/souq/fulfillment/rates
@@ -39,8 +40,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { origin, destination, weight, dimensions, serviceType } = body;
+    const parseResult = await parseBodySafe<{
+      origin?: unknown;
+      destination?: unknown;
+      weight?: number;
+      dimensions?: unknown;
+      serviceType?: string;
+    }>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const { origin, destination, weight, dimensions, serviceType } = parseResult.data!;
 
     // Validation
     if (!origin || !destination || !weight) {

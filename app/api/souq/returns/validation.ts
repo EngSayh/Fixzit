@@ -95,7 +95,13 @@ export const listQuerySchema = z.object({
 export const parseJsonBody = async <T>(
   request: JsonRequest,
   schema: z.ZodSchema<T>
-) => schema.safeParse(await request.json());
+) => {
+  try {
+    return schema.safeParse(await request.json());
+  } catch {
+    return { success: false as const, error: new z.ZodError([{ code: 'custom', path: [], message: 'Invalid JSON payload' }]) };
+  }
+};
 
 export const parseQueryParams = <T>(
   searchParams: URLSearchParams,

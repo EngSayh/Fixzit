@@ -11,6 +11,7 @@ import { AuctionEngine } from "@/services/souq/ads/auction-engine";
 import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { getClientIP } from "@/server/security/headers";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 /**
  * POST /api/souq/ads/impressions
@@ -31,7 +32,20 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<{
+      bidId?: string;
+      campaignId?: string;
+      orgId?: string;
+      query?: string;
+      category?: string;
+      productId?: string;
+    }>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { success: false, error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
 
     const { bidId, campaignId, orgId, query, category, productId } = body;
 

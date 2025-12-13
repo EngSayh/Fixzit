@@ -17,6 +17,7 @@ import { fulfillmentService } from "@/services/souq/fulfillment-service";
 import { SouqListing } from "@/server/models/souq/Listing";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 /**
  * POST /api/souq/fulfillment/assign-fast-badge
@@ -44,7 +45,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    body = await request.json();
+    const parseResult = await parseBodySafe<{ listingId?: string; sellerId?: string; targetOrgId?: string }>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    body = parseResult.data!;
     const isPlatformAdmin = session.user.role === "SUPER_ADMIN" || session.user.isSuperAdmin;
     const sessionOrgId = (session.user as { orgId?: string }).orgId;
     const requestedOrgId = body?.targetOrgId?.trim();

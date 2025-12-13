@@ -18,6 +18,7 @@ import { SouqBrand } from "@/server/models/souq/Brand";
 import { connectDb } from "@/lib/mongodb-unified";
 import { getServerSession } from "@/lib/auth/getServerSession";
 import { Types } from "mongoose";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 interface LocalizedField {
   en?: string;
@@ -107,7 +108,14 @@ export async function POST(request: NextRequest) {
 
     await connectDb();
 
-    const body = await request.json();
+    const parseResult = await parseBodySafe<unknown>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const body = parseResult.data!;
     const validated = CreateProductSchema.parse(body);
 
     // Check category exists and is not restricted (or seller has approval)

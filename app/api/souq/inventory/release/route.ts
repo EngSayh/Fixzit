@@ -17,6 +17,7 @@ import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 /**
  * POST /api/souq/inventory/release
@@ -38,8 +39,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { listingId, reservationId } = body as { listingId?: string; reservationId?: string };
+    const parseResult = await parseBodySafe<{ listingId?: string; reservationId?: string }>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const { listingId, reservationId } = parseResult.data!;
 
     // Validation
     if (!listingId || !reservationId) {

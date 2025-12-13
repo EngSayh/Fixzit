@@ -16,6 +16,7 @@ import { logger } from "@/lib/logger";
 import { AutoRepricerService } from "@/services/souq/auto-repricer-service";
 import { SouqSeller } from "@/server/models/souq/Seller";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 /**
  * GET /api/souq/repricer/settings
@@ -105,8 +106,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { settings } = body;
+    const parseResult = await parseBodySafe<{ settings?: unknown }>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const { settings } = parseResult.data!;
 
     if (!settings) {
       return NextResponse.json(

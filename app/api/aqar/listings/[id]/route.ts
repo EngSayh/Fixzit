@@ -23,6 +23,7 @@ import {
   clearTenantContext,
 } from "@/server/plugins/tenantIsolation";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 import mongoose from "mongoose";
 
@@ -165,7 +166,17 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<{
+      transactionValue?: number;
+      vatAmount?: number;
+      [key: string]: unknown;
+    }>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
     const transactionValue =
       typeof body.transactionValue === "number"
         ? body.transactionValue

@@ -13,6 +13,7 @@ import { sellerKYCService } from "@/services/souq/seller-kyc-service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { createRbacContext, hasAnyRole } from "@/lib/rbac";
 import { UserRole } from "@/types/user";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 export async function POST(request: NextRequest) {
   // Rate limiting: 10 requests per minute per IP for KYC submission (sensitive action)
@@ -49,8 +50,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { step, data } = body;
+    const parseResult = await parseBodySafe<{ step?: string; data?: unknown }>(request);
+    if (parseResult.error) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+    const { step, data } = parseResult.data!;
 
     // Validation
     if (!step || !data) {
