@@ -9,6 +9,7 @@ const mockRequireFmPermission = vi.fn();
 const mockResolveTenantId = vi.fn();
 const mockBuildTenantFilter = vi.fn();
 const mockIsCrossTenantMode = vi.fn();
+const UNIT_ID = "unit-123";
 
 vi.mock("@/lib/mongodb-unified", () => ({
   getDatabase: vi.fn().mockResolvedValue({
@@ -46,7 +47,7 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-const tenantFilter = { orgId: "tenant-123" };
+const tenantFilter = { orgId: "tenant-123", unitId: { $in: [UNIT_ID] } };
 
 const makeReq = (body?: unknown) => {
   const req = {
@@ -65,6 +66,7 @@ describe("FM Budgets by id API", () => {
       tenantId: "tenant-123",
       isSuperAdmin: false,
       userId: "user-1",
+      units: [UNIT_ID],
     });
     mockResolveTenantId.mockReturnValue({
       tenantId: "tenant-123",
@@ -78,6 +80,7 @@ describe("FM Budgets by id API", () => {
     const updatedDoc = {
       _id: new ObjectId("65d2d2d2d2d2d2d2d2d2d2d2"),
       orgId: "tenant-123",
+      unitId: UNIT_ID,
       name: "Ops Budget",
       department: "Ops",
       allocated: 5000,
@@ -93,10 +96,13 @@ describe("FM Budgets by id API", () => {
       { params: { id: "65d2d2d2d2d2d2d2d2d2d2d2" } }
     );
 
-    expect(mockBuildTenantFilter).toHaveBeenCalledWith("tenant-123");
+    expect(mockBuildTenantFilter).toHaveBeenCalledWith("tenant-123", "orgId", {
+      unitIds: [UNIT_ID],
+    });
     expect(mockFindOneAndUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         orgId: "tenant-123",
+        unitId: { $in: [UNIT_ID] },
         _id: expect.any(ObjectId),
       }),
       expect.objectContaining({
@@ -123,6 +129,7 @@ describe("FM Budgets by id API", () => {
     const deletedDoc = {
       _id: new ObjectId("65d2d2d2d2d2d2d2d2d2d2d2"),
       orgId: "tenant-123",
+      unitId: UNIT_ID,
       name: "Ops Budget",
       department: "Ops",
       allocated: 5000,
@@ -137,10 +144,13 @@ describe("FM Budgets by id API", () => {
       { params: { id: "65d2d2d2d2d2d2d2d2d2d2d2" } }
     );
 
-    expect(mockBuildTenantFilter).toHaveBeenCalledWith("tenant-123");
+    expect(mockBuildTenantFilter).toHaveBeenCalledWith("tenant-123", "orgId", {
+      unitIds: [UNIT_ID],
+    });
     expect(mockFindOneAndDelete).toHaveBeenCalledWith(
       expect.objectContaining({
         orgId: "tenant-123",
+        unitId: { $in: [UNIT_ID] },
         _id: expect.any(ObjectId),
       }),
     );
