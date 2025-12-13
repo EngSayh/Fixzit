@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
     await sellerKYCService.submitKYC({
       sellerId: session.user.id,
       orgId,
+      vendorId: session.user.id,
       step,
       data,
     });
