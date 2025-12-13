@@ -14,6 +14,7 @@
  * @throws {403} If not admin (POST)
  */
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import { auth } from "@/auth";
 import Category from "@/server/models/souq/Category";
@@ -82,8 +83,11 @@ export async function POST(request: Request) {
 
     await connectToDatabase();
 
-    const body = await request.json();
-    const { name, name_ar, slug, parentId, level } = body;
+    const { data: body, error: parseError } = await parseBodySafe<{ name?: string; name_ar?: string; slug?: string; parentId?: string; level?: number }>(request, { logPrefix: "[Souq Categories]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { name, name_ar, slug, parentId, level } = body ?? {};
 
     if (!name || !slug) {
       return NextResponse.json(

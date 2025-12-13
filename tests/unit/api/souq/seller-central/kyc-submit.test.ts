@@ -149,7 +149,7 @@ describe("/api/souq/seller-central/kyc/submit", () => {
           data: { companyName: "Test Inc", registrationNumber: "12345" },
         }),
       );
-      expect([200, 500]).toContain(res.status); // May fail on service mock
+      expect(res.status).toBe(200);
     });
 
     it("accepts valid step: documents", async () => {
@@ -159,7 +159,7 @@ describe("/api/souq/seller-central/kyc/submit", () => {
           data: { documentType: "cr", documentUrl: "https://example.com/doc.pdf" },
         }),
       );
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("accepts valid step: bank_details", async () => {
@@ -169,7 +169,7 @@ describe("/api/souq/seller-central/kyc/submit", () => {
           data: { bankName: "Al Rajhi", iban: "SA0000000000000000000000" },
         }),
       );
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
   });
 
@@ -205,11 +205,10 @@ describe("/api/souq/seller-central/kyc/submit", () => {
           data: { companyName: "Test Inc" },
         }),
       );
-      
-      if (res.status === 200) {
-        const body = await res.json();
-        expect(body.nextStep).toBe("documents");
-      }
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.nextStep).toBe("documents");
     });
 
     it("returns nextStep guidance after documents", async () => {
@@ -219,11 +218,10 @@ describe("/api/souq/seller-central/kyc/submit", () => {
           data: { documentType: "cr" },
         }),
       );
-      
-      if (res.status === 200) {
-        const body = await res.json();
-        expect(body.nextStep).toBe("bank_details");
-      }
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.nextStep).toBe("bank_details");
     });
 
     it("returns verification as final step after bank_details", async () => {
@@ -233,11 +231,10 @@ describe("/api/souq/seller-central/kyc/submit", () => {
           data: { bankName: "Al Rajhi" },
         }),
       );
-      
-      if (res.status === 200) {
-        const body = await res.json();
-        expect(body.nextStep).toBe("verification");
-      }
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.nextStep).toBe("verification");
     });
   });
 

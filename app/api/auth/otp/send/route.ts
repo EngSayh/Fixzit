@@ -12,6 +12,7 @@
 import { randomBytes, randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import {
@@ -351,7 +352,13 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. Parse and validate request body
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request, { logPrefix: "[OTP Send]" });
+    if (parseError) {
+      return NextResponse.json(
+        { success: false, error: "Invalid request body" },
+        { status: 400 },
+      );
+    }
     const parsed = SendOTPSchema.safeParse(body);
 
     if (!parsed.success) {

@@ -12,6 +12,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { randomBytes, randomUUID } from "crypto";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
@@ -74,7 +75,13 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. Parse and validate request body
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request, { logPrefix: "[OTP Verify]" });
+    if (parseError) {
+      return NextResponse.json(
+        { success: false, error: "Invalid request body" },
+        { status: 400 },
+      );
+    }
     const parsed = VerifyOTPSchema.safeParse(body);
 
     if (!parsed.success) {

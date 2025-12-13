@@ -344,6 +344,27 @@ describe("POST /api/fm/finance/budgets", () => {
       expect(mockInsertedDoc).toBeDefined();
       expect(mockInsertedDoc?.orgId).toBe(ORG_ID);
     });
+
+    it("rejects cross-tenant mode for POST", async () => {
+      mockPermissionUser = {
+        id: USER_ID,
+        userId: USER_ID,
+        orgId: "*",
+        tenantId: "*",
+        role: "ADMIN",
+      };
+
+      const res = await POST(
+        createPostRequest({
+          name: "Cross Tenant Budget",
+          department: "Finance",
+          allocated: 25000,
+          currency: "SAR",
+        }),
+      );
+
+      expect(res.status).toBe(400);
+    });
   });
 
   describe("Successful Creation", () => {

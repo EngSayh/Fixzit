@@ -14,6 +14,7 @@
  * @throws {404} If claim not found or user lacks admin role
  */
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";
 import { getDatabase } from "@/lib/mongodb-unified";
@@ -67,12 +68,15 @@ export async function POST(
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
 
-    const body = await request.json();
-    const decisionRaw = body.decision
+    const { data: body, error: parseError } = await parseBodySafe<{ decision?: string; reasoning?: string; refundAmount?: unknown }>(request, { logPrefix: "[Souq Claims Decision]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const decisionRaw = body?.decision
       ? String(body.decision).toLowerCase()
       : "";
-    const reasoning = body.reasoning ? String(body.reasoning).trim() : "";
-    const refundAmountInput = body.refundAmount;
+    const reasoning = body?.reasoning ? String(body.reasoning).trim() : "";
+    const refundAmountInput = body?.refundAmount;
 
     if (!decisionRaw || !reasoning) {
       return NextResponse.json(

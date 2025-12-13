@@ -11,6 +11,8 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { sellerKYCService } from "@/services/souq/seller-kyc-service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { createRbacContext, hasAnyRole } from "@/lib/rbac";
+import { UserRole } from "@/types/user";
 
 export async function POST(request: NextRequest) {
   // Rate limiting: 10 requests per minute per IP for KYC submission (sensitive action)
@@ -25,6 +27,26 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const roles =
+      (session.user as { roles?: string[]; role?: string }).roles ??
+      ((session.user as { role?: string }).role
+        ? [(session.user as { role?: string }).role as string]
+        : []);
+    const rbac = createRbacContext({
+      isSuperAdmin: (session.user as { isSuperAdmin?: boolean }).isSuperAdmin,
+      permissions: (session.user as { permissions?: string[] }).permissions,
+      roles,
+    });
+
+    const isAuthorized =
+      rbac.isSuperAdmin || hasAnyRole(rbac, [UserRole.VENDOR]);
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { error: "Forbidden: seller role required for KYC submission" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();

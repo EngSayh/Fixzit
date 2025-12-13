@@ -15,6 +15,7 @@
  * @throws {403} If not SUPER_ADMIN
  */
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { auth } from "@/auth";
 import { connectDb } from "@/lib/mongo";
 import { Schema, model, models } from "mongoose";
@@ -205,7 +206,10 @@ export async function POST(request: NextRequest) {
 
     await connectDb();
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request, { logPrefix: "[Admin Users]" });
+    if (parseError || !body) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
 
     // Validate required fields
     if (!body.email || !body.username) {
@@ -280,27 +284,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(body.password, 12); // 12 rounds = industry standard
+    const hashedPassword = await bcrypt.hash(body.password as string, 12); // 12 rounds = industry standard
 
     const newUser = await UserModel.create({
       orgId,  // ✅ Already validated above
-      code: body.code || `USER-${crypto.randomUUID()}`, // SECURITY: Use crypto instead of Date.now()
-      username: body.username,
-      email: body.email,
+      code: (body.code as string) || `USER-${crypto.randomUUID()}`, // SECURITY: Use crypto instead of Date.now()
+      username: body.username as string,
+      email: body.email as string,
       password: hashedPassword, // FIXED: Now properly hashed
-      phone: body.phone,
+      phone: body.phone as string | undefined,
       personal: {
-        firstName: body.firstName,
-        lastName: body.lastName,
+        firstName: body.firstName as string | undefined,
+        lastName: body.lastName as string | undefined,
       },
       professional: {
-        role: body.role || "user",
-        title: body.title,
-        department: body.department,
+        role: body.role as string || "user",
+        title: body.title as string | undefined,
+        department: body.department as string | undefined,
       },
       security: {
-        accessLevel: body.accessLevel || "READ",
-        permissions: body.permissions || [],
+        accessLevel: body.accessLevel as string || "READ",
+        permissions: body.permissions as string[] || [],
         locked: false,
       },
       status: "ACTIVE",

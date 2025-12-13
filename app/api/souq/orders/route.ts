@@ -21,6 +21,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { nanoid } from "nanoid";
 import { Types } from "mongoose";
 import { logger } from "@/lib/logger";
@@ -189,7 +190,10 @@ export async function POST(request: NextRequest) {
 
     await connectDb();
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request, { logPrefix: "[Souq Orders]" });
+    if (parseError) {
+      return SouqErrors.validationError("Invalid request body");
+    }
     const validatedData = orderCreateSchema.parse(body);
     const customerObjectId = new Types.ObjectId(validatedData.customerId);
     const listingObjectIds = validatedData.items.map(

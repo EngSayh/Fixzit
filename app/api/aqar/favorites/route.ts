@@ -14,6 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import mongoose from "mongoose";
 import { connectDb } from "@/lib/mongo";
@@ -230,9 +231,12 @@ export async function POST(request: NextRequest) {
     }
     const tenantOrgId = user.orgId;
 
-    const body = await request.json();
-    const { targetId, targetType } = body;
-    let { notes, tags } = body;
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(request, { logPrefix: "[Aqar Favorites]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { targetId, targetType } = body as { targetId?: string; targetType?: string };
+    let { notes, tags } = body as { notes?: string; tags?: unknown[] };
 
     if (!targetId || !targetType) {
       return NextResponse.json(

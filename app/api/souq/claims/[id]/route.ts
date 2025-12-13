@@ -11,6 +11,7 @@
  * @throws {404} If claim not found
  */
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";
 import { getDatabase } from "@/lib/mongodb-unified";
@@ -122,8 +123,11 @@ export async function PUT(
     }
     const orgFilter = buildOrgScopeFilter(userOrgId.toString());
 
-    const body = await request.json();
-    const { status } = body;
+    const { data: body, error: parseError } = await parseBodySafe<{ status?: string }>(request, { logPrefix: "[Souq Claims]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { status } = body ?? {};
 
     const allowOrgless = process.env.NODE_ENV === "test";
     const claim = await ClaimService.getClaim(params.id, userOrgId, allowOrgless);
@@ -146,7 +150,11 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await ClaimService.updateStatus(params.id, userOrgId, status);
+    if (!status) {
+      return NextResponse.json({ error: "Status is required" }, { status: 400 });
+    }
+
+    await ClaimService.updateStatus(params.id, userOrgId, status as Parameters<typeof ClaimService.updateStatus>[2]);
 
     return NextResponse.json({
       success: true,

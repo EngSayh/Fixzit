@@ -264,7 +264,7 @@ class SellerKYCService {
       seller.kycStatus = {
         status: "pending",
         submittedAt: new Date(),
-        step: "company_info",
+        step: "documents",
         companyInfoComplete: true,
         documentsComplete: false,
         bankDetailsComplete: false,
@@ -275,10 +275,11 @@ class SellerKYCService {
     } else {
       seller.kycStatus.step = "documents";
       seller.kycStatus.companyInfoComplete = true;
+      if (seller.kycStatus.status === "approved") {
+        seller.kycStatus.status = "pending";
+      }
     }
 
-    seller.kycStatus.status = "approved";
-    seller.isActive = true;
     await seller.save();
 
     // Validate CR number via external API (if available)

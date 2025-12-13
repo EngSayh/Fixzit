@@ -15,6 +15,7 @@
  * @throws {429} If rate limit exceeded
  */
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { resolveRequestSession } from "@/lib/auth/request-session";
@@ -62,7 +63,10 @@ export async function POST(
         description = descValue;
       }
     } else {
-      const body = await request.json();
+      const { data: body, error: parseError } = await parseBodySafe<{ file?: Blob | File; description?: string }>(request, { logPrefix: "[Souq Claims Evidence]" });
+      if (parseError) {
+        return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+      }
       if (body?.file) {
         file = body.file;
       }
