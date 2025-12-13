@@ -80,9 +80,13 @@ export async function POST(
 
     const { id } = await props.params;
 
-    const { name, type, size } = await req
-      .json()
-      .catch(() => ({}) as Record<string, unknown>);
+    let requestBody: Record<string, unknown>;
+    try {
+      requestBody = await req.json();
+    } catch {
+      return createSecureResponse({ error: "Invalid JSON body" }, 400, req);
+    }
+    const { name, type, size } = requestBody;
     if (!name || !type || typeof size !== "number") {
       return createSecureResponse({ error: "Missing name/type/size" }, 400, req);
     }

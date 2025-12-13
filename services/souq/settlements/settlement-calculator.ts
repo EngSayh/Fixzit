@@ -259,7 +259,9 @@ const computeSellerOrderSnapshot = (
     orderId: order._id?.toString?.() ?? "",
     listingId,
     sellerId,
-    orgId: order.orgId?.toString?.() || "",
+    // NOTE: orgId empty string is valid for settlement aggregation (seller-centric, not tenant-centric)
+    // Settlement records are keyed by sellerId, not orgId
+    orgId: order.orgId?.toString?.() ?? "",
     escrowAccountId,
     orderValue,
     itemPrice: subtotal,

@@ -40,8 +40,9 @@ export function getSouqRuleConfig(orgId?: string): SouqRuleConfig {
       metric: "souq.rules.override.used",
     });
   } else {
+    // INFO: orgId may be undefined for global/default config lookup (not a security issue)
     logger.info("[souq.rules] Using base rule config", {
-      orgId: orgId || "unknown",
+      orgId: orgId ?? "(not provided)",
       metric: "souq.rules.base.used",
     });
   }
