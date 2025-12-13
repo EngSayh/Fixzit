@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { APIParseError, parseBody } from "@/lib/api/parse-body";
 
 /**
  * SECURITY: This is a TEST-ONLY endpoint for Playwright E2E tests.
@@ -115,7 +116,10 @@ export async function POST(req: NextRequest) {
   const user = await getAuthenticatedUser(req);
   if (!user) return unauthorized();
 
-  const body = await req.json().catch(() => null);
+  const body = await parseBody(req).catch((error) => {
+    if (error instanceof APIParseError) return null;
+    throw error;
+  });
   const result = projectSchema.safeParse(body);
   if (!result.success) {
     const { fieldErrors, formErrors } = result.error.flatten();

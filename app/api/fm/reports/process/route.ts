@@ -56,6 +56,7 @@ const COLLECTION = "fm_report_jobs";
  * @security Requires FM REPORTS/EXPORT permission
  */
 export async function POST(req: NextRequest) {
+  let avUnavailable = false;
   const rateLimitResponse = enforceRateLimit(req, {
     keyPrefix: "fm-reports-process:post",
     requests: 10,
@@ -131,7 +132,32 @@ export async function POST(req: NextRequest) {
         });
 
         await putObjectBuffer(key, report.buffer, report.mime);
-        const clean = await scanS3Object(key).catch(() => false);
+        let clean: boolean | null = null;
+        try {
+          clean = await scanS3Object(key);
+        } catch (error) {
+          avUnavailable = true;
+          logger.error("FM Reports worker AV scan unavailable", error as Error, {
+            jobId: id,
+            key,
+          });
+          clean = null;
+        }
+
+        if (clean === null) {
+          await collection.updateOne(
+            { _id: jobDoc._id },
+            {
+              $set: {
+                status: "failed",
+                updatedAt: new Date(),
+                notes: "AV scan unavailable",
+              },
+            },
+          );
+          break;
+        }
+
         await collection.updateOne(
           { _id: jobDoc._id },
           {
@@ -183,9 +209,22 @@ export async function POST(req: NextRequest) {
       }),
     );
 
+    if (avUnavailable) {
+      return NextResponse.json(
+        { success: false, error: "AV scanning unavailable", processed },
+        { status: 503 },
+      );
+    }
+
     return NextResponse.json({ success: true, processed, ready: urls });
   } catch (error) {
     logger.error("FM Reports worker API - POST error", error as Error);
+    if (avUnavailable) {
+      return NextResponse.json(
+        { success: false, error: "AV scanning unavailable" },
+        { status: 503 },
+      );
+    }
     return FMErrors.internalError();
   }
 }

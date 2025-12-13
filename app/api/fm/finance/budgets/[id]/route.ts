@@ -24,6 +24,7 @@ import { FMErrors } from "@/app/api/fm/errors";
 import { requireFmPermission } from "@/app/api/fm/permissions";
 import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { APIParseError, parseBody } from "@/lib/api/parse-body";
 
 type BudgetDocument = {
   _id: ObjectId;
@@ -226,7 +227,10 @@ export async function PATCH(
       );
     }
 
-    const rawBody = await req.json().catch(() => null);
+    const rawBody = await parseBody<Record<string, unknown>>(req).catch((error) => {
+      if (error instanceof APIParseError) return null;
+      throw error;
+    });
     if (!rawBody || typeof rawBody !== "object" || Array.isArray(rawBody)) {
       return NextResponse.json(
         { success: false, error: "Invalid payload" },

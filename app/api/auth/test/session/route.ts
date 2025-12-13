@@ -17,6 +17,14 @@ import { encode } from "next-auth/jwt";
 import { Types } from "mongoose";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/logger";
+import { health503 } from "@/lib/api/health";
+import { parseJsonBody } from "@/lib/api/parse-json";
+import { z } from "zod";
+
+const TestSessionBody = z.object({
+  email: z.string().email(),
+  orgId: z.string().optional(),
+});
 
 export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
@@ -33,10 +41,13 @@ export async function POST(req: NextRequest) {
     // Use string secret directly for NextAuth JWT encode
     const secret = jwtSecret;
 
-    const body = await req
-      .json()
-      .catch(() => ({}) as { email?: string; orgId?: string });
-    const email = typeof body.email === "string" ? body.email.toLowerCase() : "";
+    const parsedBody = await parseJsonBody(req, TestSessionBody, {
+      route: "auth:test:session",
+      schemaName: "TestSessionBody",
+    });
+    if (!parsedBody.ok) return parsedBody.response;
+    const body = parsedBody.data;
+    const email = body.email.toLowerCase();
     if (!email) {
       return NextResponse.json({ error: "email required" }, { status: 400 });
     }
@@ -54,6 +65,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const allowedOrgsEnv = process.env.TEST_SESSION_ALLOWED_ORGS;
+    if (allowedOrgsEnv) {
+      const allowed = new Set(
+        allowedOrgsEnv
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean),
+      );
+      if (!allowed.has(resolvedOrgId)) {
+        return NextResponse.json({ error: "Endpoint disabled for this org" }, { status: 404 });
+      }
+    }
+
     try {
       await connectToDatabase();
     } catch (error) {
@@ -62,10 +86,9 @@ export async function POST(req: NextRequest) {
         email,
         orgId: resolvedOrgId,
       });
-      return NextResponse.json(
-        { error: "Service unavailable" },
-        { status: 503 },
-      );
+      return health503("Service unavailable", req, {
+        code: "mongo_unavailable",
+      });
     }
 
     type UserDoc = {
@@ -87,10 +110,9 @@ export async function POST(req: NextRequest) {
         email,
         orgId: resolvedOrgId,
       });
-      return NextResponse.json(
-        { error: "Service unavailable" },
-        { status: 503 },
-      );
+      return health503("Service unavailable", req, {
+        code: "user_lookup_failed",
+      });
     }
 
     if (!user) {

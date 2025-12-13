@@ -24,6 +24,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { logger } from "@/lib/logger";
 import { getServerTranslation } from "@/lib/i18n/server";
+import { APIParseError, parseBody } from "@/lib/api/parse-body";
 
 export const runtime = "nodejs";
 
@@ -86,9 +87,14 @@ export async function POST(request: NextRequest) {
 
     const user = await getSessionUser(request);
 
-    const body = await request.json().catch(() => null);
-    if (!body || typeof body !== "object") {
-      return badRequest("Invalid JSON", { correlationId });
+    let body: Record<string, unknown>;
+    try {
+      body = await parseBody<Record<string, unknown>>(request);
+    } catch (error) {
+      if (error instanceof APIParseError) {
+        return badRequest("Invalid JSON", { correlationId });
+      }
+      throw error;
     }
 
     const packageType = body.type;
