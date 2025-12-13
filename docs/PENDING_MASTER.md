@@ -1,3 +1,43 @@
+## 🗓️ 2025-12-13T18:45+03:00 — JSON-PARSE Security Fix v65.7
+
+### 📍 Summary
+Fixed JSON-PARSE vulnerability in 18 critical routes by replacing direct `request.json()` with `parseBodySafe`.
+
+### 🔒 Security Fixes
+
+| Issue ID | Routes Fixed | Pattern | Status |
+|----------|--------------|---------|--------|
+| **JSON-PARSE** | 18 routes | `request.json()` → `parseBodySafe()` | ✅ Fixed |
+| **BUG-1701-1710** | GraphQL + Upload | Tenant leak | ✅ Already Fixed |
+| **LOGIC-124-125** | Upload scan/verify | Token scoping | ✅ Already Fixed |
+
+### 📁 Routes Fixed (18)
+**Auth (2):** otp/send, otp/verify  
+**Marketplace (2):** products, checkout  
+**Souq (10):** orders, claims, listings, reviews, categories, claims/[id], claims/[id]/appeal, decision, evidence, response, seller-central/kyc/submit  
+**Admin (1):** users  
+**User (1):** profile  
+
+### 🔍 Remaining JSON-PARSE Routes: 47
+- Souq: ads/*, deals, fulfillment/*, inventory/*, repricer/*, settlements/*
+- Admin: footer, sms, testing-users, export
+- Aqar: leads, listings/[id], insights/pricing
+- Marketplace: cart, rfq, vendor/products
+- FM: inspections/vendor-assignments
+- PM: plans
+
+### ✅ QA Gate
+| Check | Status |
+|-------|--------|
+| TypeScript | 0 errors |
+| ESLint | 0 errors |
+| Tests | Not executed (static analysis) |
+
+### 🔗 Commit
+`1e7a0237b` on branch `docs/pending-v60`
+
+---
+
 ## 🗓️ 2025-01-14T18:20:00+03:00 — Production Readiness Fixes v65.4
 
 ### 📍 Summary
