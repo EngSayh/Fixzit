@@ -1,0 +1,197 @@
+{
+  "timestamp": "2025-12-14T00:30:00Z",
+  "source": "MASTER_PENDING_REPORT.md",
+  "branch": "main",
+  "commit": "488b7209a",
+  "issues": [
+    {
+      "key": "SEC-002",
+      "externalId": "SEC-002",
+      "title": "50+ database queries missing tenant scope validation",
+      "category": "security",
+      "priority": "P1",
+      "status": "open",
+      "location": "app/api/**/route.ts",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:MASTER_PENDING_REPORT.md:47-48",
+      "evidenceSnippet": "50+ database queries detected without explicit tenant scope validation - potential cross-tenant data leaks",
+      "impact": "HIGH - IDOR risk if tenancy filters missing from query construction",
+      "proposedFix": "Audit each DB operation: (1) Verify org_id/property_owner_id in filter, (2) Add integration tests validating tenant isolation, (3) Implement query interceptor/middleware enforcing tenant scope",
+      "effort": "L",
+      "riskTags": ["SECURITY", "MULTI_TENANT", "DATA_INTEGRITY"],
+      "detectedAt": "2025-12-14T00:00:00Z"
+    },
+    {
+      "key": "BUG-001",
+      "externalId": "BUG-001",
+      "title": "process.env accessed directly in 40+ client components",
+      "category": "bug",
+      "priority": "P1",
+      "status": "open",
+      "location": "app/login/page.tsx:25-30, app/marketplace/page.tsx:45-46, app/error.tsx:26",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:MASTER_PENDING_REPORT.md:53-54",
+      "evidenceSnippet": "process.env accessed directly in 40+ client components - breaks SSR/hydration, exposes server vars to client",
+      "impact": "HIGH - Runtime errors in production (NEXT_PUBLIC_ prefix missing), hydration mismatches, potential secret exposure",
+      "proposedFix": "Migrate all process.env reads to lib/config/constants.ts Config export; use NEXT_PUBLIC_ prefix for client-safe vars",
+      "effort": "M",
+      "riskTags": ["SECURITY", "REGRESSION"],
+      "detectedAt": "2025-12-14T00:00:00Z"
+    },
+    {
+      "key": "PERF-001",
+      "externalId": "PERF-001",
+      "title": "20+ Mongoose aggregate operations without .limit() or pagination",
+      "category": "efficiency",
+      "priority": "P2",
+      "status": "open",
+      "location": "issue-tracker/app/api/issues/stats/route.ts:51-181, app/api/aqar/map/route.ts:128",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:MASTER_PENDING_REPORT.md:61-62",
+      "evidenceSnippet": "20+ Mongoose aggregate operations without .limit() or pagination - potential memory exhaustion",
+      "impact": "MEDIUM - Unbounded aggregations can timeout/OOM on large datasets; affects analytics/stats routes",
+      "proposedFix": "Add .limit(1000) default + pagination support; implement cursor-based pagination for stats endpoints",
+      "effort": "M",
+      "riskTags": ["PERFORMANCE"],
+      "detectedAt": "2025-12-14T00:00:00Z"
+    },
+    {
+      "key": "TEST-004",
+      "externalId": "TEST-004",
+      "title": "Missing JSON.parse error handling in 20+ POST routes",
+      "category": "missing_test",
+      "priority": "P2",
+      "status": "open",
+      "location": "app/api/**/route.ts",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:MASTER_PENDING_REPORT.md:71-72",
+      "evidenceSnippet": "Missing JSON.parse error handling in 20+ POST routes (unguarded request.json())",
+      "impact": "MEDIUM - Uncaught exceptions on malformed JSON payloads",
+      "proposedFix": "Add try-catch to request.json() calls or use parseBody utility from lib/api/parse-body.ts",
+      "effort": "S",
+      "riskTags": ["TEST_GAP"],
+      "detectedAt": "2025-12-14T00:00:00Z"
+    },
+    {
+      "key": "TEST-002",
+      "externalId": "TEST-002",
+      "title": "HR module test coverage at 14% - needs 50%",
+      "category": "missing_test",
+      "priority": "P2",
+      "status": "open",
+      "location": "tests/api/hr/*",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:MASTER_PENDING_REPORT.md:70",
+      "evidenceSnippet": "14% coverage (1/7 routes) - missing employees CRUD, payroll tests",
+      "impact": "MEDIUM - Insufficient test coverage for critical HR functionality",
+      "proposedFix": "Add tests for employees CRUD, payroll calculations, leave management",
+      "effort": "L",
+      "riskTags": ["TEST_GAP"],
+      "detectedAt": "2025-12-14T00:00:00Z"
+    },
+    {
+      "key": "TEST-003",
+      "externalId": "TEST-003",
+      "title": "Finance module test coverage gaps - 15/19 routes untested",
+      "category": "missing_test",
+      "priority": "P2",
+      "status": "open",
+      "location": "tests/api/finance/*",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:MASTER_PENDING_REPORT.md:71",
+      "evidenceSnippet": "21% coverage (4/19 routes) - missing invoices, payments, billing tests",
+      "impact": "MEDIUM - Insufficient test coverage for financial operations",
+      "proposedFix": "Add tests for invoices, payments, billing endpoints",
+      "effort": "L",
+      "riskTags": ["TEST_GAP", "FINANCIAL"],
+      "detectedAt": "2025-12-14T00:00:00Z"
+    },
+    {
+      "key": "PERF-002",
+      "externalId": "PERF-002",
+      "title": "Missing .lean() on 10+ read-only Mongoose queries",
+      "category": "efficiency",
+      "priority": "P3",
+      "status": "open",
+      "location": "app/api/onboarding/documents/[id]/review/route.ts:107-108",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:MASTER_PENDING_REPORT.md:63-64",
+      "evidenceSnippet": "Missing .lean() on 10+ read-only Mongoose queries - fetches full Mongoose documents unnecessarily",
+      "impact": "LOW - Minor performance hit (Mongoose hydration overhead)",
+      "proposedFix": "Add .lean() to all read-only queries",
+      "effort": "XS",
+      "riskTags": ["PERFORMANCE"],
+      "detectedAt": "2025-12-14T00:00:00Z"
+    }
+  ],
+  "resolvedItems": [
+    {
+      "key": "SEC-001",
+      "externalId": "SEC-001",
+      "title": "NEXTAUTH_SECRET fallback insufficient",
+      "category": "security",
+      "priority": "P0",
+      "status": "resolved",
+      "location": "lib/config/constants.ts:148-218",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:lib/config/constants.ts:148-218",
+      "evidenceSnippet": "resolveAuthSecret() now falls back to AUTH_SECRET, synchronizes both env vars",
+      "resolution": "Implemented resolveAuthSecret() function with AUTH_SECRET fallback + 2 passing tests",
+      "resolvedAt": "2025-12-14T00:13:00Z",
+      "commitRef": "488b7209a",
+      "testFile": "tests/server/config/auth-secret.test.ts"
+    },
+    {
+      "key": "SEC-TAP-001",
+      "externalId": "SEC-TAP-001",
+      "title": "TAP Payments integration hardcoded credentials",
+      "status": "resolved",
+      "resolvedAt": "2025-12-13T00:00:00Z"
+    },
+    {
+      "key": "CONFIG-001",
+      "externalId": "CONFIG-001",
+      "title": "Configuration validation missing",
+      "status": "resolved",
+      "resolvedAt": "2025-12-13T00:00:00Z"
+    },
+    {
+      "key": "TEST-SAFE-FETCH",
+      "externalId": "TEST-SAFE-FETCH",
+      "title": "Safe fetch wrapper test coverage",
+      "status": "resolved",
+      "resolvedAt": "2025-12-13T00:00:00Z"
+    },
+    {
+      "key": "EFF-004",
+      "externalId": "EFF-004",
+      "title": "Efficiency improvements in data fetching",
+      "status": "resolved",
+      "resolvedAt": "2025-12-13T00:00:00Z"
+    },
+    {
+      "key": "REF-002",
+      "externalId": "REF-002",
+      "title": "Refactoring technical debt",
+      "status": "resolved",
+      "resolvedAt": "2025-12-13T00:00:00Z"
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "open": 7,
+    "resolved": 6,
+    "byPriority": {
+      "P0": 0,
+      "P1": 2,
+      "P2": 4,
+      "P3": 1
+    },
+    "byCategory": {
+      "security": 1,
+      "bug": 1,
+      "efficiency": 2,
+      "missing_test": 3
+    }
+  }
+}

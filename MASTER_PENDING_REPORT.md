@@ -1,9 +1,14 @@
 # 🛡️ Fixzit System Master Report (SSOT)
 
-**Last Updated:** 2025-12-14T00:00:00Z  
+> **⚠️ SSOT HIERARCHY:**  
+> **PRIMARY SSOT:** MongoDB Issue Tracker (`/api/issues/*`)  
+> **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
+> **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
+
+**Last Updated:** 2025-12-14T00:30:00Z  
 **Scanner Version:** v2.5  
 **Branch:** main  
-**Commit:** 2f6fe64ab
+**Commit:** 488b7209a
 
 ---
 
@@ -251,6 +256,32 @@ grep -rn "await request.json()" app/api --include="*.ts" | grep -v "try\|catch" 
 ---
 
 ## 🧾 Changelog
+### 2025-12-14T00:30:00+03:00 (Asia/Riyadh) — SSOT Backlog Sync + Protocol Update
+**Context:** main | 488b7209a | No PR  
+**DB Sync:** ⏳ PENDING (dev server offline; BACKLOG_AUDIT.json prepared for next sync)
+
+**📋 Backlog Extraction:**
+- Created BACKLOG_AUDIT.json with 7 open issues + 6 resolved items
+- Ready for import via `POST /api/issues/import` when server available
+
+**📊 Current State:**
+- 7 open issues: SEC-002 (P1), BUG-001 (P1), PERF-001 (P2), TEST-004 (P2), TEST-002 (P2), TEST-003 (P2), PERF-002 (P3)
+- 6 resolved items archived: SEC-001, SEC-TAP-001, CONFIG-001, TEST-SAFE-FETCH, EFF-004, REF-002
+- Health Score: 92/100 (maintained after SEC-001 resolution)
+
+**🔄 Protocol Update:**
+- Added SSOT hierarchy note to file header
+- MongoDB Issue Tracker confirmed as PRIMARY SSOT
+- This file + docs/PENDING_MASTER.md confirmed as DERIVED LOGS
+
+**📝 Next Actions (awaiting DB sync):**
+1. Start dev server: `pnpm dev`
+2. Import backlog: `curl -X POST http://localhost:3000/api/issues/import -H "Content-Type: application/json" -d @BACKLOG_AUDIT.json`
+3. Verify stats: `curl http://localhost:3000/api/issues/stats`
+4. Begin P1 work: SEC-002 (tenant scope audit), BUG-001 (process.env migration)
+
+---
+
 ### 2025-12-14T00:13:00Z (SEC-001 Resolution)
 | Action | Count |
 |--------|-------|

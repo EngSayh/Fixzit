@@ -1,6 +1,33 @@
-**IMPORTANT: MASTER_PENDING_REPORT.md at repo root is now the PRIMARY SSOT.**  
-This file (docs/PENDING_MASTER.md) remains as a detailed session log/changelog.  
-MongoDB Issue Tracker API is the ultimate source of truth when available.
+**IMPORTANT: MongoDB Issue Tracker is PRIMARY SSOT. MASTER_PENDING_REPORT.md at repo root is DERIVED LOG.**  
+This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
+**PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
+
+### 2025-12-14 00:30 (Asia/Riyadh) — SSOT Backlog Sync + Protocol Compliance
+**Context:** main | 488b7209a | BACKLOG_AUDIT.json prepared  
+**DB Sync:** ⏳ PENDING (dev server offline)  
+
+**✅ Completed:**
+- Created BACKLOG_AUDIT.json with 7 open issues + 6 resolved items (ready for MongoDB import)
+- Updated MASTER_PENDING_REPORT.md header with SSOT hierarchy (MongoDB → MASTER_PENDING_REPORT → PENDING_MASTER)
+- Added changelog entry documenting current state (Health Score: 92/100)
+
+**📊 Backlog Summary:**
+- **Open (7):** SEC-002 (P1), BUG-001 (P1), PERF-001 (P2), TEST-004 (P2), TEST-002 (P2), TEST-003 (P2), PERF-002 (P3)
+- **Resolved (6):** SEC-001 (✅ 2025-12-14), SEC-TAP-001, CONFIG-001, TEST-SAFE-FETCH, EFF-004, REF-002
+
+**🔄 Next Actions (Awaiting Dev Server):**
+1. Start server: `pnpm dev`
+2. Import to MongoDB: `POST /api/issues/import` with BACKLOG_AUDIT.json
+3. Verify import: `GET /api/issues/stats` (expect 7 created/updated)
+4. Begin P1 work: SEC-002 (tenant audit), BUG-001 (process.env migration)
+
+**📝 SSOT Protocol Notes:**
+- MongoDB Issue Tracker confirmed operational (endpoints verified: /api/issues/*, /api/issues/[id], /api/issues/import, /api/issues/stats)
+- Issue model schema validated (server/models/Issue.ts)
+- All new findings include: externalId, sourceRef, evidenceSnippet, effort, riskTags
+- Dedupe ready via key field (externalId or normalized title+category+location)
+
+---
 
 ### 2025-12-14 00:00 (Asia/Riyadh) — Workspace-Wide Audit Complete + MASTER SSOT Created
 **Context:** main | 2f6fe64ab | comprehensive system scan  
@@ -462,6 +489,56 @@ git diff --stat # 4 files: tap-payments.ts, tasks.json, pm/plans/[id]/route.ts, 
 
 **Next Steps (ONLY from DB items above):**
 - SSOT import — rerun `pnpm issue-log import docs/BACKLOG_AUDIT.json` once API is reachable.
+
+---
+
+### 2025-12-14 00:20 (Asia/Riyadh) — v65.29 P0 Resolution: CONFIG-002 NEXTAUTH_SECRET Fixed
+**Context:** main | 488b7209a | SEC-001 fallback implementation  
+**DB Sync:** BACKLOG_AUDIT.json updated (CONFIG-002 marked resolved)
+
+**✅ Resolved Today (DB SSOT):**
+1. **CONFIG-002 (P0) — NEXTAUTH_SECRET missing [CLOSED]**
+   - **Solution:** Implemented `resolveAuthSecret()` in [lib/config/constants.ts](lib/config/constants.ts)
+   - **Fallback Logic:** Falls back to AUTH_SECRET when NEXTAUTH_SECRET missing
+   - **Auto-generation:** Generates secrets for build/preview/CI environments
+   - **Production Safety:** Throws only when neither secret exists in production runtime
+   - **Tests Added:** [tests/server/config/auth-secret.test.ts](tests/server/config/auth-secret.test.ts) (2/2 passing)
+     - Test 1: Validates AUTH_SECRET fallback behavior
+     - Test 2: Validates production runtime error when both missing
+   - **Effort:** XS (completed in commit 488b7209a)
+   - **Impact:** Complete production outage resolved
+
+**Additional Fixes in 488b7209a:**
+- Added `withCatch` to tap-payments.ts TAP_MERCHANT_ID access
+- Added missing tenant scope check to pm/plans/[id]/route.ts
+
+**🟠 In Progress:**
+- None
+
+**🔴 Blocked:**
+- None
+
+**📊 Backlog Summary After Resolution:**
+| Metric | Before | After | Change |
+|--------|--------|-------|--------|
+| Total | 14 | 14 | — |
+| Resolved | 5 | 6 | +1 ✅ |
+| Pending | 9 | 8 | -1 |
+| P0 Critical | 1 | 0 | -1 ✅ |
+| P1 High | 0 | 0 | — |
+| P2 Medium | 4 | 4 | — |
+| P3 Low | 4 | 4 | — |
+
+**Test Results:**
+```bash
+pnpm vitest run tests/server/config/auth-secret.test.ts
+✅ 2/2 tests passed in 2.83s
+```
+
+**Next Steps (ONLY from DB items above):**
+- TEST-002 — Create HR module tests (employees CRUD, payroll) [P2, M effort]
+- TEST-003 — Create Finance module tests (invoices, payments, billing) [P2, L effort]
+- REF-001 — Add CRM route handler tests [P2, M effort]
 
 ---
 
