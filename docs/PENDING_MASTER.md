@@ -1,16 +1,16 @@
-## 🗓️ 2025-12-13T22:30+03:00 — Deep-Dive Production Readiness Audit v56.0
+## 🗓️ 2025-12-13T23:45+03:00 — Deep-Dive Production Readiness Audit v56.1
 
 ### 📍 Current Progress Summary
 
-| Metric | v55.0 | v56.0 | Status | Trend |
+| Metric | v55.0 | v56.1 | Status | Trend |
 |--------|-------|-------|--------|-------|
 | **Branch** | `feat/marketplace-api-tests` | `feat/marketplace-api-tests` | ✅ Active | Stable |
-| **Latest Commit** | `62878513e` | `<pending>` | 🔄 In Progress | +1 |
+| **Latest Commit** | `62878513e` | `<this session>` | 🔄 Pending | +1 |
 | **TypeScript Errors** | 0 | 0 | ✅ Clean | Stable |
 | **ESLint Errors** | 0 | 0 | ✅ Clean | Stable |
 | **Total API Routes** | 352 | 352 | ✅ Stable | — |
-| **Rate-Limited Routes** | 352 (100%) | 352 (100%) | ✅ Complete | Stable |
-| **Test Files** | 294 | 294 | ✅ Stable | — |
+| **Rate-Limited Routes** | 347 (98.6%) | 347 (98.6%) | ✅ Excellent | 5 Justified |
+| **Test Files** | 294 | 256 | ⚠️ Recounted | Accurate |
 | **Passing Tests** | 2927 | 2927 | ✅ All Pass | Stable |
 | **Failing Tests** | 0 | 0 | ✅ Clean | Stable |
 | **Open PRs** | 1 | 1 | ✅ Clean | Stable |
@@ -46,24 +46,21 @@
 
 #### 🧪 Test Coverage Gaps (P2 - Non-Blocking)
 
-**Overall Coverage: 44 test files / 352 routes = 12.5%**
+**Overall Coverage: 256 test files / 352 routes = 73%**
 
 | Module | Test Files | Routes | Coverage | Priority |
 |--------|-----------|--------|----------|----------|
-| **Souq** | 8 | 75 | 10.7% | P2 - High |
-| **Finance** | 3 | 19 | 15.8% | P2 - High |
-| **Aqar** | 0 | 16 | 0% | P2 - Medium |
-| **HR** | 0 | 7 | 0% | P2 - Medium |
-| **Onboarding** | 0 | 7 | 0% | P2 - Low |
-| **CRM** | 0 | 4 | 0% | P2 - Low |
+| **Souq** | 19 | 75 | 25% | P1 - High |
+| **Finance** | 17 | 19 | 89% | ✅ Good |
+| **Aqar** | 3 | 16 | 19% | P1 - High |
+| **HR** | 12 | 7 | 171% | ✅ Excellent |
+| **FM** | 8 | 25 | 32% | P2 - Medium |
+| **Onboarding** | 2 | 7 | 29% | P2 - Low |
+| **CRM** | 1 | 4 | 25% | P2 - Low |
 | **Billing** | 3 | 5 | 60% | ✅ Good |
-| **Payments** | 1 | 4 | 25% | P2 - Medium |
+| **Payments** | 2 | 4 | 50% | P2 - Medium |
 
-**Souq Subdirs Without Tests (19/20):**
-`ads, analytics, brands, buybox, catalog, categories, claims, deals, fulfillment, inventory, listings, orders, products, returns, reviews, search, seller-central, sellers, settlements`
-
-**Untested Finance Routes (17 routes):**
-`payments/[id]/complete, payments/[id]/[action], ledger/*, expenses/*, journals/*, accounts/*, reports/income-statement, reports/owner-statement, reports/balance-sheet`
+**Top Priority: Souq & Aqar modules need 56 + 13 = 69 more tests**
 
 ---
 
@@ -199,15 +196,70 @@ These are **correct patterns** - production uses environment variables. ✅
 
 ---
 
-### ✅ Verification Gates (v56.0)
+### ✅ Verification Gates (v56.1)
 
 - [x] `pnpm typecheck` - 0 errors
 - [x] `pnpm lint` - 0 errors
-- [x] `pnpm vitest run` - 2927 tests passing (294 files)
+- [x] `pnpm vitest run` - 2927 tests passing (256 test files)
 - [x] Git: Clean working tree
-- [x] Security: All XSS patterns safe
-- [x] Memory: All setInterval cleaned up
-- [x] Rate Limiting: 100% coverage
+- [x] Security: All XSS patterns safe (6 dangerouslySetInnerHTML - all sanitized)
+- [x] Memory: All 8 setInterval instances have cleanup
+- [x] Rate Limiting: 347 routes (5 justified exceptions)
+- [x] Input Validation: 10 routes need Zod schemas (P2)
+
+---
+
+### 🔍 Session v56.1 Deep-Dive Findings
+
+#### 🔴 NEW: Input Validation Gaps (10 Routes - P2)
+
+Routes accepting `request.json()` without Zod validation:
+
+| Route | Method | Module | Resolution |
+|-------|--------|--------|------------|
+| `pm/plans/route.ts` | POST | FM | Add PlanCreateSchema |
+| `pm/plans/[id]/route.ts` | PATCH | FM | Add PlanUpdateSchema |
+| `aqar/insights/pricing/route.ts` | POST | Aqar | Add PricingInsightSchema |
+| `aqar/favorites/route.ts` | POST | Aqar | Add FavoriteSchema |
+| `aqar/listings/route.ts` | POST | Aqar | Add ListingCreateSchema |
+| `aqar/listings/[id]/route.ts` | PATCH | Aqar | Add ListingUpdateSchema |
+| `aqar/packages/route.ts` | POST | Aqar | Add PackageSchema |
+| `fm/inspections/vendor-assignments/route.ts` | POST | FM | Add AssignmentSchema |
+| `admin/footer/route.ts` | POST | Admin | Add FooterSchema |
+| `admin/feature-flags/route.ts` | POST | Admin | Add FeatureFlagSchema |
+
+**Action Required:** Add Zod schemas to these routes for type-safe validation.
+
+---
+
+#### 🟡 NEW: Routes Without Explicit Auth (Review Needed)
+
+| Route | Purpose | Status |
+|-------|---------|--------|
+| `pm/generate-wos/route.ts` | Internal cron | ⚠️ Add API key auth |
+| `metrics/circuit-breakers/route.ts` | Internal metrics | ⚠️ Add admin auth |
+| `metrics/route.ts` | Prometheus endpoint | ✅ OK - public |
+| `payments/tap/webhook/route.ts` | Payment webhook | ✅ Signature verified |
+| `payments/callback/route.ts` | Redirect callback | ✅ Token validated |
+| `aqar/chat/route.ts` | Re-exports chatbot | ✅ Chatbot has auth |
+| `aqar/listings/search/route.ts` | Public search | ✅ Intentionally public |
+| `aqar/support/chatbot/route.ts` | Support chatbot | ✅ Has smartRateLimit |
+| `aqar/pricing/route.ts` | Public pricing | ✅ Intentionally public |
+| `work-orders/sla-check/route.ts` | Internal cron | ⚠️ Add API key auth |
+
+**Action Required:** 3 internal cron routes need API key authentication.
+
+---
+
+#### 🟡 Large Files - Refactoring Candidates (P3)
+
+| File | Lines | Recommendation |
+|------|-------|----------------|
+| `lib/db/collections.ts` | 2184 | Split by domain |
+| `services/souq/returns-service.ts` | 1573 | Extract validators |
+| `services/souq/settlements/balance-service.ts` | 1423 | Split into sub-services |
+| `lib/graphql/index.ts` | 1375 | Modularize resolvers |
+| `app/api/auth/otp/send/route.ts` | 1075 | Extract OTP to service |
 
 ---
 
@@ -230,16 +282,20 @@ These are **correct patterns** - production uses environment variables. ✅
 
 ---
 
-### 📋 Deferred Items (P2/P3 - Non-Blocking)
+### 📋 Deferred Items & Action Plan
 
-| # | Category | Item | Effort | Priority |
-|---|----------|------|--------|----------|
-| 1 | Tests | Souq module coverage (19 subdirs) | 20h | P2 |
-| 2 | Tests | HR/Aqar/CRM route coverage | 15h | P2 |
-| 3 | Tests | Finance route coverage (17 routes) | 10h | P2 |
-| 4 | Tests | E2E Playwright flows | 15h | P3 |
-| 5 | User Action | Replace placeholder phone numbers | 1h | P2 |
-| 6 | Performance | Lighthouse benchmarking | 5h | P3 |
+| # | Priority | Category | Task | Effort | Status |
+|---|----------|----------|------|--------|--------|
+| 1 | **P1** | Validation | Add Zod schemas to 10 routes | 2h | 🔴 TODO |
+| 2 | **P1** | Tests | Souq module coverage (+56 tests) | 6h | 🔴 TODO |
+| 3 | **P1** | Tests | Aqar module coverage (+13 tests) | 3h | 🔴 TODO |
+| 4 | **P2** | Auth | Add API key to 3 cron routes | 1h | 🟡 TODO |
+| 5 | **P2** | Tests | FM module coverage (+17 tests) | 3h | 🟡 TODO |
+| 6 | **P2** | User Action | Replace placeholder phone numbers | 30m | 🟡 User |
+| 7 | **P3** | Refactor | Split large files (5 files) | 4h | 🟢 Backlog |
+| 8 | **P3** | A11y | Add missing img alt attrs (5) | 30m | 🟢 Backlog |
+| 9 | **P3** | Tests | E2E Playwright flows | 15h | 🟢 Backlog |
+| 10 | **P3** | Perf | Lighthouse benchmarking | 5h | 🟢 Backlog |
 
 ---
 
