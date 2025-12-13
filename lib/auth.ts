@@ -22,7 +22,7 @@
  *   console.log('User ID:', payload.id);
  * }
  *
- * @see {@link https://github.com/EngSayh/Fixzit/docs/AUTH_FLOW.md} for authentication flow
+ * @see {@link docs/AUTH_FLOW.md} for authentication flow
  */
 
 import jwt from "jsonwebtoken";
