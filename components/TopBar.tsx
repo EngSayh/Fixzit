@@ -1033,7 +1033,7 @@ function UserMenuPopup({
     <div className="user-menu-container relative">
       <SimpleTooltip content={t("nav.profile", "Profile")} side="bottom">
         <Button
-          ref={userBtnRef}
+          ref={userBtnRef as React.LegacyRef<HTMLButtonElement>}
           variant="ghost"
           size="sm"
           data-testid="user-menu"
