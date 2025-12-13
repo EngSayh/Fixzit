@@ -40,6 +40,9 @@ vi.mock("@/lib/mongoUtils.server", async (importOriginal) => {
 vi.mock("@/lib/logger", () => ({
   logger: {
     error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 

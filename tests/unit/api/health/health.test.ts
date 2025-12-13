@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { NextRequest } from "next/server";
 
 // Default mocks for happy path
 vi.mock("@/lib/mongo", () => ({
@@ -36,6 +37,17 @@ vi.mock("@/lib/logger", () => ({
     error: vi.fn(),
   },
 }));
+
+// Mock rate limiting to always pass
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: vi.fn().mockReturnValue(null),
+  rateLimit: vi.fn().mockReturnValue(null),
+}));
+
+// Helper to create mock request
+function createMockRequest(url = "http://localhost:3000/api/health/ready") {
+  return new NextRequest(url);
+}
 
 describe("Health Endpoints", () => {
   beforeEach(() => {
@@ -91,8 +103,13 @@ describe("Health Endpoints", () => {
         logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
       }));
 
+      vi.doMock("@/lib/middleware/rate-limit", () => ({
+        enforceRateLimit: vi.fn().mockReturnValue(null),
+        rateLimit: vi.fn().mockReturnValue(null),
+      }));
+
       const { GET: getReady } = await import("@/app/api/health/ready/route");
-      const response = await getReady();
+      const response = await getReady(createMockRequest());
       const json = await response.json();
 
       expect(response.status).toBe(200);
@@ -131,8 +148,13 @@ describe("Health Endpoints", () => {
         logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
       }));
 
+      vi.doMock("@/lib/middleware/rate-limit", () => ({
+        enforceRateLimit: vi.fn().mockReturnValue(null),
+        rateLimit: vi.fn().mockReturnValue(null),
+      }));
+
       const { GET: getReadyFresh } = await import("@/app/api/health/ready/route");
-      const response = await getReadyFresh();
+      const response = await getReadyFresh(createMockRequest());
       const json = await response.json();
 
       expect(response.status).toBe(503);
@@ -172,8 +194,13 @@ describe("Health Endpoints", () => {
         logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
       }));
 
+      vi.doMock("@/lib/middleware/rate-limit", () => ({
+        enforceRateLimit: vi.fn().mockReturnValue(null),
+        rateLimit: vi.fn().mockReturnValue(null),
+      }));
+
       const { GET: getReadyFresh } = await import("@/app/api/health/ready/route");
-      const response = await getReadyFresh();
+      const response = await getReadyFresh(createMockRequest());
       const json = await response.json();
 
       expect(response.status).toBe(503);
@@ -214,8 +241,13 @@ describe("Health Endpoints", () => {
         logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
       }));
 
+      vi.doMock("@/lib/middleware/rate-limit", () => ({
+        enforceRateLimit: vi.fn().mockReturnValue(null),
+        rateLimit: vi.fn().mockReturnValue(null),
+      }));
+
       const { GET: getReadyFresh } = await import("@/app/api/health/ready/route");
-      const response = await getReadyFresh();
+      const response = await getReadyFresh(createMockRequest());
       const json = await response.json();
 
       expect(response.status).toBe(200);

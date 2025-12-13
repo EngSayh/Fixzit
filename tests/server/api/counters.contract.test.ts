@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { NextRequest } from "next/server";
 
 // Mock auth to return an org-scoped session
 vi.mock("@/auth", () => ({
@@ -12,6 +13,11 @@ vi.mock("@/lib/queries", () => ({
     rfqs: { open: 5 },
     hrApplications: { pending: 3 },
   }),
+}));
+
+// Mock rate limiting
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
 
 // Ensure offline flag is false
@@ -35,7 +41,8 @@ describe("/api/counters contract", () => {
   });
 
   it("returns approvals, rfqs, and hrApplications counters", async () => {
-    const resp = await GET();
+    const req = new NextRequest("http://localhost:3000/api/counters");
+    const resp = await GET(req);
     const data = await resp.json();
 
     expect(data).toMatchObject({

@@ -38,10 +38,12 @@ describe("ICS Service", () => {
 
     it("should include attendees", () => {
       const ics = generateInterviewICS(baseInput);
+      // ICS may fold long lines, so unfold before checking
+      const unfolded = ics.replace(/\r\n /g, "");
 
-      expect(ics).toContain("ATTENDEE");
-      expect(ics).toContain("mailto:john@example.com");
-      expect(ics).toContain("mailto:panel@company.com");
+      expect(unfolded).toContain("ATTENDEE");
+      expect(unfolded).toContain("mailto:john@example.com");
+      expect(unfolded).toContain("mailto:panel@company.com");
     });
 
     it("should include description when provided", () => {
@@ -127,10 +129,12 @@ describe("ICS Service", () => {
         ],
       };
       const ics = generateInterviewICS(input);
+      // ICS may fold long lines, so unfold before checking
+      const unfolded = ics.replace(/\r\n /g, "");
 
-      expect(ics).toContain("mailto:a1@example.com");
-      expect(ics).toContain("mailto:a2@example.com");
-      expect(ics).toContain("mailto:a3@example.com");
+      expect(unfolded).toContain("mailto:a1@example.com");
+      expect(unfolded).toContain("mailto:a2@example.com");
+      expect(unfolded).toContain("mailto:a3@example.com");
     });
 
     it("should handle attendee without name", () => {
@@ -139,8 +143,10 @@ describe("ICS Service", () => {
         attendees: [{ email: "anonymous@example.com" }],
       };
       const ics = generateInterviewICS(input);
+      // ICS may fold long lines, so unfold before checking
+      const unfolded = ics.replace(/\r\n /g, "");
 
-      expect(ics).toContain("mailto:anonymous@example.com");
+      expect(unfolded).toContain("mailto:anonymous@example.com");
     });
   });
 });

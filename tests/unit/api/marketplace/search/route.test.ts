@@ -63,6 +63,15 @@ vi.mock("@/server/models/marketplace/Category", () => ({
 
 vi.mock("@/server/security/headers", () => ({
   createSecureResponse: createSecureResponseMock,
+  getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
+}));
+
+vi.mock("@/server/security/rateLimit", () => ({
+  rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+}));
+
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock("@/server/utils/errorResponses", () => ({

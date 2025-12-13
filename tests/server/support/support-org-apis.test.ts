@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
 import { GET, POST, DELETE } from '@/app/api/support/impersonation/route';
 import { GET as searchGET } from '@/app/api/support/organizations/search/route';
 import { auth } from '@/auth';
@@ -10,6 +11,11 @@ vi.mock('@/auth', () => ({
 
 vi.mock('@/lib/mongodb-unified', () => ({
   connectToDatabase: vi.fn(),
+}));
+
+// Mock rate limiting
+vi.mock('@/lib/middleware/rate-limit', () => ({
+  enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
 
 let findOneMock: vi.Mock;
@@ -132,7 +138,8 @@ describe('Support org search API', () => {
 
   it('rejects non super admins', async () => {
     authMock.mockResolvedValue(null);
-    const res = await searchGET(createRequest({ url: 'https://fixzit.test/api?q=1' }));
+    const req = new NextRequest('https://fixzit.test/api/support/organizations/search?q=1');
+    const res = await searchGET(req);
     expect(res.status).toBe(403);
   });
 
@@ -151,11 +158,8 @@ describe('Support org search API', () => {
       ])
     );
 
-    const res = await searchGET(
-      createRequest({
-        url: 'https://fixzit.test/api/support/organizations/search?identifier=select',
-      })
-    );
+    const req = new NextRequest('https://fixzit.test/api/support/organizations/search?identifier=select');
+    const res = await searchGET(req);
 
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({
