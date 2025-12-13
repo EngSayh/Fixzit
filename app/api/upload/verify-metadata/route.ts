@@ -27,15 +27,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { parseBodySafe } from "@/lib/api/parse-body";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { getS3Client } from "@/lib/storage/s3";
 import { Config } from "@/lib/config/constants";
+import { validateOrgScopedKey } from "@/lib/storage/org-upload-keys";
 
 export async function GET(req: NextRequest) {
-  const user = await getSessionUser(req).catch(() => null);
+  const sessionResult = await getSessionOrNull(req, { route: "upload:verify-metadata" });
+  if (!sessionResult.ok) {
+    return sessionResult.response; // 503 on infra error
+  }
+  const user = sessionResult.session;
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -45,6 +50,16 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const key = searchParams.get("key");
   if (!key) return NextResponse.json({ error: "Missing key" }, { status: 400 });
+  const keyValidation = validateOrgScopedKey({
+    key,
+    allowedOrgId: user.tenantId ?? user.orgId,
+  });
+  if (!keyValidation.ok) {
+    return NextResponse.json(
+      { error: keyValidation.message },
+      { status: keyValidation.status },
+    );
+  }
 
   try {
     const client = getS3Client();
@@ -72,7 +87,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getSessionUser(req).catch(() => null);
+  const sessionResult = await getSessionOrNull(req, { route: "upload:verify-metadata" });
+  if (!sessionResult.ok) {
+    return sessionResult.response; // 503 on infra error
+  }
+  const user = sessionResult.session;
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -85,6 +104,16 @@ export async function POST(req: NextRequest) {
   }
   const key = typeof body?.key === "string" ? body.key : "";
   if (!key) return NextResponse.json({ error: "Missing key" }, { status: 400 });
+  const keyValidation = validateOrgScopedKey({
+    key,
+    allowedOrgId: user.tenantId ?? user.orgId,
+  });
+  if (!keyValidation.ok) {
+    return NextResponse.json(
+      { error: keyValidation.message },
+      { status: keyValidation.status },
+    );
+  }
 
   try {
     const client = getS3Client();

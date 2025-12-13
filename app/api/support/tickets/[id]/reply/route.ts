@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SupportTicket } from "@/server/models/SupportTicket";
 import { z } from "zod";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { Types } from "mongoose";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
@@ -47,7 +47,11 @@ export async function POST(
 ) {
   try {
     // Authenticate user first
-    const user = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "support:tickets:reply" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const user = sessionResult.session;
     if (!user) {
       return createSecureResponse({ error: "Authentication required" }, 401, req);
     }

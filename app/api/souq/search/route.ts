@@ -31,7 +31,7 @@ import {
   isUnauthorizedMarketplaceContext,
   resolveMarketplaceContext,
 } from "@/lib/marketplace/context";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { escapeMeiliFilterValue } from "@/lib/marketplace/meiliFilters";
 import { DEFAULT_CURRENCY } from "@/config/currencies";
 import crypto from "node:crypto";
@@ -215,7 +215,11 @@ export async function GET(req: NextRequest) {
     const filters: string[] = [];
 
     // Enforce tenant scoping from trusted context (session first, marketplace fallback)
-    const sessionUser = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "souq:search" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const sessionUser = sessionResult.session;
     const marketplaceContext = await resolveMarketplaceContext(req);
     const orgIdFromContext =
       sessionUser?.orgId?.toString() || marketplaceContext?.orgId?.toString();

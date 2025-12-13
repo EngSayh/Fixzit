@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { getDatabase } from "@/lib/mongodb-unified";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import Redis from "ioredis";
 import { Filter, Document } from "mongodb";
 
@@ -184,7 +184,11 @@ export async function POST(req: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
-    const user = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "help:ask" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const user = sessionResult.session;
     // Distributed rate limit per IP (uses Redis if available, falls back to in-memory)
     await rateLimitAssert(req);
     const { data: body, error: parseError } = await parseBodySafe<AskRequest>(req, { logPrefix: "[help:ask]" });

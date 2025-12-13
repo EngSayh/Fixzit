@@ -21,7 +21,7 @@
  * - Module-aware escalation routing
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { resolveEscalationContact } from '@/server/services/escalation.service';
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
@@ -32,7 +32,11 @@ export async function GET(req: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
-    const user = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "help:context" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const user = sessionResult.session;
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const moduleParam = new URL(req.url).searchParams.get('module') || '';

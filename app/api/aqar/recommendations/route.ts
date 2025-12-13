@@ -14,7 +14,7 @@
 import { NextRequest } from "next/server";
 import { dbConnect } from "@/db/mongoose";
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
@@ -38,7 +38,11 @@ const sanitizeEnum = <T extends string>(
 export async function GET(req: NextRequest) {
   try {
     // Authenticate user and require tenant context
-    const session = await getSessionUser(req).catch(() => null);
+    const sessionResult = await getSessionOrNull(req, { route: "aqar:recommendations" });
+    if (!sessionResult.ok) {
+      return sessionResult.response; // 503 on infra error
+    }
+    const session = sessionResult.session;
     if (!session || !session.orgId) {
       return createSecureResponse(
         { ok: false, error: "Authentication and org context required" },

@@ -29,7 +29,7 @@
  * - Unique ticket codes prevent collisions
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { resolveEscalationContact } from '@/server/services/escalation.service';
 import { connectMongo } from '@/lib/mongo';
 import { SupportTicket } from '@/server/models/SupportTicket';
@@ -41,7 +41,11 @@ export async function POST(req: NextRequest) {
   const rateLimitResponse = enforceRateLimit(req, { requests: 20, windowMs: 60_000, keyPrefix: "help:escalate" });
   if (rateLimitResponse) return rateLimitResponse;
 
-  const user = await getSessionUser(req).catch(() => null);
+  const sessionResult = await getSessionOrNull(req, { route: "help:escalate" });
+  if (!sessionResult.ok) {
+    return sessionResult.response; // 503 on infra error
+  }
+  const user = sessionResult.session;
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { data: body, error: parseError } = await parseBodySafe<{ module?: string; attempted_action?: string }>(req, { logPrefix: "[help:escalate]" });
