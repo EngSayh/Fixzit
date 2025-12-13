@@ -24,5 +24,6 @@ jobs:
       - name: PR Agent action step
         uses: qodo-ai/pr-agent@main
         env:
-          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          # Note: OPENAI_KEY is optional - workflow skips if not configured
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY || '' }}
           GITHUB_TOKEN: ${{ github.token }}

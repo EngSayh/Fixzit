@@ -38,6 +38,7 @@ import type {
 } from "@/server/models/hr.models";
 import { Types } from "mongoose";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { hasAllowedRole } from "@/lib/auth/role-guards";
 import { z } from "zod";
 
 // Zod schema for leave request creation
@@ -70,8 +71,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 🔒 RBAC check
-    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+    // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+    // Supports TEAM_MEMBER + subRole: HR_OFFICER pattern
+    const user = session.user as { role?: string; subRole?: string | null; orgId?: string };
+    if (!hasAllowedRole(user.role, user.subRole, HR_ALLOWED_ROLES)) {
       return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 
@@ -109,8 +112,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 🔒 RBAC check
-    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+    // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+    const user = session.user as { role?: string; subRole?: string | null; orgId?: string };
+    if (!hasAllowedRole(user.role, user.subRole, HR_ALLOWED_ROLES)) {
       return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 
@@ -168,8 +172,9 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 🔒 RBAC check
-    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+    // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+    const user = session.user as { role?: string; subRole?: string | null; orgId?: string };
+    if (!hasAllowedRole(user.role, user.subRole, HR_ALLOWED_ROLES)) {
       return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 

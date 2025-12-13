@@ -36,6 +36,7 @@ import { logger } from "@/lib/logger";
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { hasAllowedRole } from "@/lib/auth/role-guards";
 import { z } from "zod";
 
 // Zod schema for payroll run creation
@@ -121,8 +122,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 🔒 RBAC check
-    if (!session.user.role || !PAYROLL_ALLOWED_ROLES.includes(session.user.role)) {
+    // 🔒 STRICT v4.2: Payroll requires HR roles - supports subRole pattern
+    const user = session.user as { role?: string; subRole?: string | null; orgId?: string };
+    if (!hasAllowedRole(user.role, user.subRole, PAYROLL_ALLOWED_ROLES)) {
       return NextResponse.json({ error: "Forbidden: HR/Finance access required" }, { status: 403 });
     }
 

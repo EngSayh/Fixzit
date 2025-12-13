@@ -117,7 +117,7 @@ export async function sendEmailNotification(
           triggeredBy: metadata.triggeredBy,
           triggeredByEmail: metadata.triggeredByEmail,
         },
-      }).catch(() => {}),
+      }).catch((err) => { logger.debug("[Notification] Logging failed (non-blocking)", { err }); }),
     );
 
     return false;
@@ -161,7 +161,7 @@ export async function sendSmsNotification(
           triggeredBy: metadata.triggeredBy,
           segments: Math.max(1, Math.ceil(smsBody.length / 160)),
         },
-      }).catch(() => {}),
+      }).catch((err) => { logger.debug("[Notification] Logging failed (non-blocking)", { err }); }),
     );
 
     if (!smsResult.success) {
@@ -196,7 +196,7 @@ export async function sendSmsNotification(
           broadcastId: metadata.broadcastId,
           triggeredBy: metadata.triggeredBy,
         },
-      }).catch(() => {}),
+      }).catch((err) => { logger.debug("[Notification] Logging failed (non-blocking)", { err }); }),
     );
 
     return false;
@@ -245,7 +245,7 @@ export async function sendWhatsAppNotification(
             broadcastId: metadata.broadcastId,
             triggeredBy: metadata.triggeredBy,
           },
-        }).catch(() => {}),
+        }).catch((err) => { logger.debug("[Notification] Logging failed (non-blocking)", { err }); }),
       );
 
       return false;
@@ -275,7 +275,7 @@ export async function sendWhatsAppNotification(
           triggeredBy: metadata.triggeredBy,
           messageId: result.messageId,
         },
-      }).catch(() => {}),
+      }).catch((err) => { logger.debug("[Notification] Logging failed (non-blocking)", { err }); }),
     );
 
     if (!result.success) {

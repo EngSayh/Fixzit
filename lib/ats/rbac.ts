@@ -102,8 +102,10 @@ export async function atsRBAC(
   }
 
   // Fallback to platform default
+  // NOTE: This fallback is for ATS public job listings which don't require tenant context
+  // SECURITY: All tenant-scoped operations validate orgId before DB access
   if (!orgId) {
-    orgId = process.env.NEXT_PUBLIC_ORG_ID || "fixzit-platform";
+    orgId = process.env.NEXT_PUBLIC_ORG_ID ?? "fixzit-platform";
   }
 
   // Check if user has any of the required permissions

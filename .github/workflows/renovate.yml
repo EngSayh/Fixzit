@@ -23,8 +23,10 @@ jobs:
         uses: renovatebot/github-action@v44.0.5
         with:
           configurationFile: renovate.json
-          token: ${{ secrets.RENOVATE_TOKEN != '' && secrets.RENOVATE_TOKEN || github.token }}
+          # Note: Falls back to github.token if RENOVATE_TOKEN not configured
+          token: ${{ secrets.RENOVATE_TOKEN || github.token }}
         env:
           LOG_LEVEL: info
           RENOVATE_REPOSITORY: ${{ github.repository }}
-          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN != '' && secrets.RENOVATE_TOKEN || github.token }}
+          # Note: Falls back to github.token if RENOVATE_TOKEN not configured
+          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN || github.token }}

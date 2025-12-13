@@ -29,12 +29,12 @@ export default function Error({
       </p>
       <div className="flex gap-3">
         <Button onClick={reset} variant="default">
-          <RefreshCw className="w-4 h-4 mr-2" />
+          <RefreshCw className="w-4 h-4 me-2" />
           Try Again
         </Button>
         <Button asChild variant="outline">
           <Link href="/">
-            <Home className="w-4 h-4 mr-2" />
+            <Home className="w-4 h-4 me-2" />
             Go Home
           </Link>
         </Button>

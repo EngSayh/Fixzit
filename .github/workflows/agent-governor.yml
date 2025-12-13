@@ -46,7 +46,8 @@ jobs:
       - name: Setup pnpm cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.STORE_PATH }}
+          # Note: STORE_PATH is set in the previous step via GITHUB_ENV
+          path: ${{ env.STORE_PATH || '~/.local/share/pnpm/store' }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
@@ -97,7 +98,8 @@ jobs:
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          # Note: NEXTAUTH_URL is optional, defaults to localhost for CI builds
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
           NEXT_PUBLIC_APP_URL: http://localhost:3000
           DISABLE_MONGODB_FOR_BUILD: "true"
           SKIP_ENV_VALIDATION: "true"
