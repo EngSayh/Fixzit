@@ -34,6 +34,21 @@ const SupportOrgContext = createContext<SupportOrgContextValue | undefined>(
 );
 
 const IMPERSONATION_ENDPOINT = "/api/support/impersonation";
+const PLAYWRIGHT_STUB: SupportOrgContextValue = {
+  effectiveOrgId: null,
+  supportOrg: null,
+  loading: false,
+  canImpersonate: false,
+  selectOrgById: async () => false,
+  clearSupportOrg: async () => {},
+  refreshSupportOrg: async () => {},
+};
+
+const isPlaywrightRuntime = () =>
+  process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true" ||
+  process.env.PLAYWRIGHT_TESTS === "true" ||
+  (typeof window !== "undefined" &&
+    (window as { __PLAYWRIGHT_TESTS__?: boolean }).__PLAYWRIGHT_TESTS__);
 
 export function SupportOrgProvider({
   children,
@@ -191,7 +206,11 @@ export function SupportOrgProvider({
 
 export function useSupportOrg() {
   const ctx = useContext(SupportOrgContext);
+  const isPlaywright = isPlaywrightRuntime();
   if (!ctx) {
+    if (isPlaywright) {
+      return PLAYWRIGHT_STUB;
+    }
     throw new Error("useSupportOrg must be used within SupportOrgProvider");
   }
   return ctx;

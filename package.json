@@ -29,7 +29,7 @@
     "lint:prod:baseline": "eslint app components lib services --ext .ts,.tsx,.js,.jsx --format json -o _artifacts/eslint-baseline.json",
     "lint:scripts": "eslint scripts tools --ext .ts,.tsx,.js,.jsx",
     "lint:collections": "node scripts/lint-collections.js",
-    "lint:ci": "npm run lint:prod && npm run lint:inventory-org && npm run rbac:client:check && npm run lint:rbac && npm run typecheck",
+    "lint:ci": "npm run lint:prod && npm run lint:inventory-org && npm run rbac:client:check && npm run lint:rbac && npm run typecheck && pnpm vitest run tests/unit/security/banned-literals.test.ts",
     "lint:next": "next lint",
     "lint:rtl": "node scripts/check-rtl-logical.js",
     "lint:rbac": "npx tsx scripts/lint-rbac-parity.ts",

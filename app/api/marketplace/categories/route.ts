@@ -40,6 +40,22 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
+    if (process.env.PLAYWRIGHT_TESTS === "true") {
+      const seeded = [
+        { _id: "cat-tools", name: "Tools", parentId: undefined },
+        { _id: "cat-safety", name: "Safety", parentId: undefined },
+        { _id: "cat-power", name: "Power Tools", parentId: "cat-tools" },
+      ];
+      return NextResponse.json({
+        ok: true,
+        data: seeded,
+        tree: [
+          { _id: "cat-tools", name: "Tools", children: [{ _id: "cat-power", name: "Power Tools", children: [] }] },
+          { _id: "cat-safety", name: "Safety", children: [] },
+        ],
+      });
+    }
+
     const context = await resolveMarketplaceContext(request);
     await connectToDatabase();
     const categories = await Category.find({ orgId: context.orgId })

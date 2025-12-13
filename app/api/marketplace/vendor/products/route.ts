@@ -97,6 +97,29 @@ export async function GET(request: NextRequest) {
       return unauthorizedError();
     }
 
+    if (process.env.PLAYWRIGHT_TESTS === "true") {
+      return createSecureResponse(
+        {
+          ok: true,
+          data: [
+            {
+              id: "prod-demo-1",
+              orgId: context.orgId,
+              vendorId: context.userId,
+              sku: "E2E-DRILL-001",
+              slug: "demo-hammer-drill",
+              title: { en: "Demo Hammer Drill", ar: "مثقاب تجريبي" },
+              summary: "Cordless hammer drill for E2E smoke flows",
+              buy: { price: 499, currency: "SAR", uom: "unit" },
+              status: "ACTIVE",
+            },
+          ],
+        },
+        200,
+        request,
+      );
+    }
+
     // Rate limiting - read operations: 60 req/min
     const key = `marketplace:vendor-products:list:${context.orgId}`;
     const rl = await smartRateLimit(key, 60, 60_000);

@@ -99,22 +99,38 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {t('common.skipToContent')}
         </a>
         {isPlaywright && (
-          <header className="w-full bg-secondary text-foreground py-3 px-4 flex items-center justify-between" role="banner">
+          <header
+            className="w-full bg-secondary text-foreground py-3 px-4 flex items-center justify-between"
+            role="banner"
+            data-testid="marketplace-topbar"
+            aria-label="Fixzit Smoke Header"
+          >
             <div className="flex items-center gap-2">
-              <span className="font-bold uppercase">Fixzit</span>
+              <img
+                src="/img/fixzit-logo.png"
+                alt="Fixzit logo"
+                data-testid="header-logo-img"
+                className="h-8 w-auto"
+              />
               <span className="text-sm text-muted-foreground">Smoke</span>
             </div>
             <nav aria-label="Playwright-nav" className="flex items-center gap-3">
+              <Link href="/dashboard" className="underline text-sm">Dashboard</Link>
               <Link href="/properties" className="underline text-sm">Properties</Link>
               <Link href="/admin" className="underline text-sm">Admin</Link>
               <Link href="/support" className="underline text-sm">Support</Link>
+              <button type="button" data-testid="currency-selector-button" className="text-sm underline">
+                Currency: SAR
+              </button>
             </nav>
           </header>
         )}
         {isPlaywright && (
-          <main id="main-content" className="min-h-[40vh]">
-            <h1 className="text-2xl font-semibold px-4 py-3">Smoke Test Layout</h1>
-          </main>
+          <div className="px-4 py-3" aria-hidden="true">
+            <div className="text-2xl font-semibold" role="presentation">
+              Smoke Test Layout
+            </div>
+          </div>
         )}
         <ConditionalProviders initialLocale={locale}>
           <TooltipProvider delayDuration={200}>

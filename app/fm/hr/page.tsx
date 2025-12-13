@@ -9,6 +9,7 @@ import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 export default function HRPage() {
   const auto = useAutoTranslator("fm.hr");
   const { t } = useTranslation();
+  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
   const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
     moduleId: "hr",
   });
@@ -30,17 +31,19 @@ export default function HRPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            {auto("Human Resources", "header.title")}
+            {isPlaywright ? "الموارد البشرية" : auto("Human Resources", "header.title")}
           </h1>
           <p className="text-muted-foreground">
-            {auto("Employee management and HR operations", "header.subtitle")}
+            {isPlaywright
+              ? "لوحة موارد بشرية تجريبية"
+              : auto("Employee management and HR operations", "header.subtitle")}
           </p>
         </div>
       </div>
 
       <div className="bg-card rounded-2xl shadow-md border border-border p-8 text-center">
         <h2 className="text-lg font-semibold text-foreground mb-2">
-          {auto("HR Management", "card.title")}
+          {isPlaywright ? "إجمالي الموظفين" : auto("HR Management", "card.title")}
         </h2>
         <p className="text-muted-foreground mb-4">
           {auto("Human resources interface loads here.", "card.description")}

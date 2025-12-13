@@ -163,6 +163,7 @@ async function globalSetup(config: FullConfig) {
             roles: [normalizedRole],
             orgId: OFFLINE_ORG_ID,
             org_id: OFFLINE_ORG_ID,
+            tenantId: OFFLINE_ORG_ID,
             isSuperAdmin,
             sub: userId,
           },
