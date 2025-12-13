@@ -27,10 +27,12 @@ import {
   serializeProduct,
 } from "@/lib/marketplace/serializers";
 import { getOrCreateCart, recalcCartTotals } from "@/lib/marketplace/cart";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import {
   unauthorizedError,
   notFoundError,
   rateLimitError,
+  createErrorResponse,
   zodValidationError,
 } from "@/server/utils/errorResponses";
 import { Types } from "mongoose";
@@ -153,7 +155,10 @@ export async function POST(request: NextRequest) {
       return rateLimitError();
     }
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<z.infer<typeof AddToCartSchema>>(request);
+    if (parseError || !body) {
+      return createErrorResponse(parseError || "Invalid JSON body", 400);
+    }
     const payload = AddToCartSchema.parse(body);
     await connectToDatabase();
 

@@ -1,0 +1,32 @@
+{
+  "name": "@your-org/issue-tracker",
+  "version": "1.0.0",
+  "description": "Development Issue Tracker with MongoDB, Dashboard, and CLI",
+  "main": "index.js",
+  "bin": {
+    "issue-log": "./dist/scripts/issue-log.js"
+  },
+  "scripts": {
+    "build:cli": "tsc scripts/issue-log.ts --outDir dist/scripts --esModuleInterop --resolveJsonModule",
+    "issue-log": "npx ts-node scripts/issue-log.ts",
+    "db:seed": "npx ts-node scripts/seed-issues.ts",
+    "db:migrate": "npx ts-node scripts/migrate-issues.ts"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "mongoose": "^8.0.0",
+    "next": "^14.0.0",
+    "next-auth": "^4.24.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

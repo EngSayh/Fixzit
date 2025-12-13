@@ -28,6 +28,7 @@ import {
   enqueueExistingSMS,
   removePendingSMSJobs,
 } from "@/lib/queues/sms-queue";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { smartRateLimit } from "@/server/security/rateLimit";
@@ -212,7 +213,13 @@ export async function POST(request: NextRequest) {
 
     await connectToDatabase();
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<z.infer<typeof ActionSchema>>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
     const parsed = ActionSchema.safeParse(body);
 
     if (!parsed.success) {

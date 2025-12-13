@@ -128,10 +128,10 @@ export async function POST(request: NextRequest) {
 
     // Record violation
     await accountHealthService.recordViolation(sellerId, effectiveOrgId, {
-      type,
-      severity,
+      type: type as "restricted_product" | "fake_review" | "price_gouging" | "counterfeit" | "late_shipment" | "high_odr" | "other",
+      severity: severity as "warning" | "minor" | "major" | "critical",
       description,
-      action,
+      action: action as "warning" | "listing_suppression" | "account_suspension" | "permanent_deactivation" | "none",
     });
 
     return NextResponse.json({

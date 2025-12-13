@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       listingId,
       rmaId,
       quantity,
-      condition,
+      condition: condition as "sellable" | "unsellable",
       orgId,
     });
 

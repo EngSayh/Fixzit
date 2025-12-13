@@ -606,6 +606,7 @@ class SellerKYCService {
       ...buildOrgFilter(orgId),
     });
     if (!seller || !seller.documents) return;
+    if (!seller.kycStatus?.bankDetailsComplete) return;
 
     const requiredDocs: DocumentKey[] = [
       "commercialRegistration",

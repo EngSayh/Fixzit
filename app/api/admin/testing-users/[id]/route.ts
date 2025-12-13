@@ -21,6 +21,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -122,7 +123,13 @@ export async function PUT(
 
     await connectToDatabase();
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<z.infer<typeof UpdateTestingUserSchema>>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
     const parsed = UpdateTestingUserSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -282,7 +289,13 @@ export async function PATCH(
 
     await connectToDatabase();
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<z.infer<typeof PatchActionSchema>>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
     const parsed = PatchActionSchema.safeParse(body);
 
     if (!parsed.success) {

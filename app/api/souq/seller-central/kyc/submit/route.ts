@@ -92,8 +92,8 @@ export async function POST(request: NextRequest) {
       sellerId: session.user.id,
       orgId,
       vendorId: session.user.id,
-      step,
-      data,
+      step: step as "company_info" | "documents" | "bank_details",
+      data: data as Parameters<typeof sellerKYCService.submitKYC>[0]["data"],
     });
 
     return NextResponse.json({

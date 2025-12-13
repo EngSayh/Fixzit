@@ -21,6 +21,7 @@ import { TestingUser, TestingUserStatus, TestingUserRole, TTestingUserRole, TTes
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 export async function GET(request: NextRequest) {
   // Rate limiting: 30 requests per minute for admin reads
@@ -153,7 +154,13 @@ export async function POST(request: NextRequest) {
 
     await connectToDatabase();
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<z.infer<typeof CreateTestingUserSchema>>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
     const parsed = CreateTestingUserSchema.safeParse(body);
 
     if (!parsed.success) {

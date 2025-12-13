@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
 
     await connectDb();
 
-    const normalizedIds = claimIds.map((id: string) => String(id));
+    const normalizedIds = (claimIds as string[]).map((id) => String(id));
     const objectIds = normalizedIds
       .filter((id: string) => Types.ObjectId.isValid(id))
       .map((id: string) => new Types.ObjectId(id));

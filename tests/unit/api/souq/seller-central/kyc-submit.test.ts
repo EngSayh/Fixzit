@@ -25,6 +25,17 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn(() => null),
 }));
 
+vi.mock("@/lib/api/parse-body", () => ({
+  parseBodySafe: vi.fn(async (req: { json: () => unknown }) => {
+    try {
+      const data = await req.json();
+      return { data, error: null };
+    } catch {
+      return { data: null, error: "parse_error" };
+    }
+  }),
+}));
+
 vi.mock("@/services/souq/seller-kyc-service", () => ({
   sellerKYCService: {
     submitKYC: (...args: unknown[]) => mockSubmitKYC(...args),
@@ -37,14 +48,12 @@ const ORG_ID = "507f1f77bcf86cd799439011";
 const SELLER_ID = "507f1f77bcf86cd799439012";
 
 function createRequest(body: Record<string, unknown>): NextRequest {
-  return new NextRequest(
-    "http://localhost:3000/api/souq/seller-central/kyc/submit",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    },
-  );
+  return {
+    method: "POST",
+    headers: new Headers({ "Content-Type": "application/json" }),
+    nextUrl: new URL("http://localhost:3000/api/souq/seller-central/kyc/submit"),
+    json: async () => body,
+  } as unknown as NextRequest;
 }
 
 describe("/api/souq/seller-central/kyc/submit", () => {

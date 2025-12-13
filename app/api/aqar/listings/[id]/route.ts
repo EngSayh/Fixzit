@@ -212,7 +212,7 @@ export async function PATCH(
         // Validate enum fields using actual schema enums
         if (
           field === "furnishing" &&
-          !Object.values(FurnishingStatus).includes(value)
+          !Object.values(FurnishingStatus).includes(value as FurnishingStatus)
         ) {
           return NextResponse.json(
             { error: `Invalid furnishing: ${value}` },
@@ -221,7 +221,7 @@ export async function PATCH(
         }
         if (
           field === "status" &&
-          !Object.values(ListingStatus).includes(value)
+          !Object.values(ListingStatus).includes(value as ListingStatus)
         ) {
           return NextResponse.json(
             { error: `Invalid status: ${value}` },
@@ -289,7 +289,7 @@ export async function PATCH(
     if (statusChanged) {
       await AqarFmLifecycleService.handleStatusChange({
         listingId: id,
-        nextStatus: body.status,
+        nextStatus: body.status as ListingStatus,
         prevStatus,
         actorId: user.id,
         transactionValue,

@@ -23,8 +23,10 @@ import {
   rateLimitError,
   duplicateKeyError,
   handleApiError,
+  createErrorResponse,
 } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const UpsertSchema = z.object({
   id: z.string().optional(),
@@ -311,7 +313,10 @@ export async function POST(request: NextRequest) {
     if (!rl.allowed) return rateLimitError();
 
     // Input validation
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<z.infer<typeof UpsertSchema>>(request);
+    if (parseError || !body) {
+      return createErrorResponse(parseError || "Invalid JSON body", 400);
+    }
     const payload = UpsertSchema.parse(body);
 
     // Database connection

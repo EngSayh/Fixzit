@@ -41,11 +41,11 @@ export async function POST(request: NextRequest) {
     }
 
     const parseResult = await parseBodySafe<{
-      origin?: unknown;
-      destination?: unknown;
+      origin?: string;
+      destination?: string;
       weight?: number;
-      dimensions?: unknown;
-      serviceType?: string;
+      dimensions?: { length: number; width: number; height: number; unit?: string };
+      serviceType?: "standard" | "express" | "same_day";
     }>(request);
     if (parseResult.error) {
       return NextResponse.json(
@@ -70,13 +70,13 @@ export async function POST(request: NextRequest) {
       origin,
       destination,
       weight,
-      dimensions: dimensions || {
+      dimensions: dimensions ?? {
         length: 20,
         width: 15,
         height: 10,
         unit: "cm",
       },
-      serviceType: serviceType || "standard",
+      serviceType: serviceType ?? "standard",
     });
 
     // Sort by price (cheapest first)

@@ -203,12 +203,12 @@ export async function PUT(
     } = {};
 
     if (body.name) updates.name = body.name;
-    if (body.dailyBudget) updates.dailyBudget = parseFloat(body.dailyBudget);
+    if (body.dailyBudget) updates.dailyBudget = parseFloat(String(body.dailyBudget));
     if (body.startDate) updates.startDate = new Date(body.startDate);
     if (body.endDate) updates.endDate = new Date(body.endDate);
     if (body.status) updates.status = body.status;
     if (body.biddingStrategy) updates.biddingStrategy = body.biddingStrategy;
-    if (body.defaultBid) updates.defaultBid = parseFloat(body.defaultBid);
+    if (body.defaultBid) updates.defaultBid = parseFloat(String(body.defaultBid));
 
     const updated = await CampaignService.updateCampaign(
       params.id,

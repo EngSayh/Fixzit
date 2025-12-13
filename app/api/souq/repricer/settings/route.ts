@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
 
     await AutoRepricerService.enableAutoRepricer(
       seller._id.toString(),
-      settings,
+      settings as Parameters<typeof AutoRepricerService.enableAutoRepricer>[1],
       orgId,
     );
 

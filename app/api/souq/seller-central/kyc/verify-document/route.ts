@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     await sellerKYCService.verifyDocument({
       sellerId,
       orgId: effectiveOrgId,
-      documentType,
+      documentType: documentType as "nationalId" | "commercialRegistration" | "vatCertificate" | "bankLetter",
       approved,
       verifiedBy: session.user.id,
       rejectionReason,

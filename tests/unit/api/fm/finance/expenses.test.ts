@@ -130,7 +130,7 @@ describe("/api/fm/finance/expenses", () => {
         mockPermissionUser = { id: USER_ID, orgId: ORG_ID, role: "ADMIN" };
 
         const res = await GET(createGetRequest());
-        expect([200, 500]).toContain(res.status);
+        expect(res.status).toBe(200);
       });
     });
 
@@ -193,12 +193,10 @@ describe("/api/fm/finance/expenses", () => {
         });
 
         const res = await GET(createGetRequest());
-        if (res.status === 200) {
-          const body = await res.json();
-          // Route returns { success: true, data: [...] }
-          expect(body.success).toBe(true);
-          expect(Array.isArray(body.data)).toBe(true);
-        }
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body.success).toBe(true);
+        expect(Array.isArray(body.data)).toBe(true);
       });
     });
   });
@@ -301,10 +299,9 @@ describe("/api/fm/finance/expenses", () => {
             description: "Monthly maintenance",
           }),
         );
-        
-        if (res.status === 200 || res.status === 201) {
-          expect(mockInsertOne).toHaveBeenCalled();
-        }
+
+        expect(res.status).toBe(201);
+        expect(mockInsertOne).toHaveBeenCalled();
       });
 
       it("sets initial status to pending", async () => {
@@ -341,14 +338,10 @@ describe("/api/fm/finance/expenses", () => {
           }),
         );
 
-        // If the insert was called, verify orgId was included
-        if (mockInsertOne.mock.calls.length > 0) {
-          const insertedDoc = mockInsertOne.mock.calls[0][0];
-          expect(insertedDoc.orgId).toBeDefined();
-        } else {
-          // Otherwise check response status is acceptable
-          expect([200, 201, 400, 500]).toContain(res.status);
-        }
+        expect(res.status).toBe(201);
+        expect(mockInsertOne).toHaveBeenCalled();
+        const insertedDoc = mockInsertOne.mock.calls[0][0];
+        expect(insertedDoc.orgId).toBeDefined();
       });
     });
   });

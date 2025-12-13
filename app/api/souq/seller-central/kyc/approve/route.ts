@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         sellerId,
         effectiveOrgId,
         session.user.id,
-        rejectionReason,
+        rejectionReason ?? "",
       );
     }
 

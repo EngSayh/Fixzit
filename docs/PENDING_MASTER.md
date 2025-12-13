@@ -642,6 +642,54 @@ Fixed JSON-PARSE vulnerability in 18 critical routes by replacing direct `reques
 
 ---
 
+## 🗓️ 2025-12-13T19:36:01+03:00 — Typecheck/Lint Gate Status & Outstanding Work v28.9
+
+### 📍 Progress & Planned Next Steps
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| Scope | Souq KYC RBAC+tests; FM budgets unit scope; typecheck/lint triage started | ✅ In progress |
+| Commands | `pnpm vitest run tests/unit/api/souq/seller-central/kyc-submit.test.ts`, `pnpm vitest run tests/unit/api/fm/finance/budgets.test.ts` | ✅ Passed |
+| Gates | `pnpm typecheck` ❌ (50+ TS errors); `pnpm lint` ❌ (135 errors) | ⏳ Pending fixes |
+
+**Completed/Ongoing**
+- Souq KYC submit: seller-only RBAC guard; company_info no longer auto-approves; vendorId passed into service; unit tests tightened and passing.
+- FM budgets route: unitId scoping enforced via `resolveUnitScope` and `buildTenantFilter` unit support; tests passing.
+- Typecheck/lint triage: identified failing files (aqar listings, issues API, marketplace ads/cart/rfq/vendor products, issue-tracker app/models/scripts).
+
+**Next Steps**
+- Typecheck Pass 1 (issue-tracker & issues API): fix imports/types, null guards, getServerSession wiring, virtual typings, missing deps; re-run `pnpm typecheck`.
+- Typecheck Pass 2 (aqar/marketplace): fix enum/nullable handling in aqar listing route; correct Zod error handling/unknown casting in marketplace cart/rfq/vendor products and souq ads campaigns; re-run `pnpm typecheck` until clean.
+- Lint cleanup: remove console/any/unused vars across issue-tracker, app/api/issues/route.ts, and app/marketplace/page.tsx; re-run `pnpm lint`.
+- Follow-ups: add KYC integration tests for document/bank verification and super-admin override; add FM budgets compound index `{ orgId, unitId, department, updatedAt: -1 }` and unitId persistence/rejection tests.
+
+### 🛠️ Enhancements Needed for Production Readiness
+**Efficiency improvements**
+- Marketplace ads/campaigns: reuse parsed payloads and avoid multiple Date casts; normalize Zod error handling to reduce duplicate parsing.
+- FM budgets: add compound index `{ orgId, unitId, department, updatedAt: -1 }` to prevent scans on filtered listings.
+
+**Identified bugs**
+- aqar listings `[id]`: furnishing/listing status casts accept `{}`/null, causing TS errors and potential runtime mismatches.
+- issue-tracker routes: missing modules (`@/models/issue`, `@/lib/db`, `@/lib/auth`) and outdated `getServerSession` import; causes typecheck failures and potential runtime crashes.
+- marketplace cart/rfq/vendor products: constructing ZodError from arrays; incorrect types passed to validation helpers.
+- souq ads campaigns: unknown values assigned to enums (type errors), potential runtime validation gaps.
+
+**Logic errors**
+- issue-tracker model virtuals: `age`/`isStale` typings missing, effort/priority enums mismatched in model methods (P0/L not allowed by types).
+- issue-tracker scripts: implicit any parameters and missing commander import break CLI typing and may fail at runtime.
+
+**Missing tests**
+- Souq KYC: integration tests for document/bank verification flows and super-admin override/vendor ownership assertion.
+- FM budgets: tests for unitId persistence on insert and rejection when unit not assigned; coverage for new compound index behavior (query projections).
+- Marketplace/aqar: add regression tests for enum parsing and Zod validation paths once fixed.
+
+### 🔎 Deep-Dive Analysis (Similar/Identical Issue Patterns)
+- **Auth/import drift in issue-tracker**: multiple routes import non-existent `@/models/issue`/`@/lib/db`/`@/lib/auth` causing consistent TS failures; indicates a stale copy of Next auth/db wiring in subapp.
+- **Validation typing gaps**: marketplace routes construct Zod errors from plain arrays; similar pattern across cart/rfq/vendor products/souq ads campaigns leads to TS errors and weak validation.
+- **Enum/nullable misuse**: aqar listings and souq ads campaigns assign `{}`/unknown to enums, mirroring earlier finance/souq cases where loose casting caused typecheck breaks and runtime risk.
+
+---
+
 ## 🗓️ 2025-12-13T19:04:44+03:00 — Souq KYC RBAC + Budgets Tests v28.8
 
 ### 📍 Progress & Planned Next Steps

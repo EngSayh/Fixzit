@@ -101,6 +101,14 @@ Proof pack required:
 
 ---
 
+## 6.1) Playwright Smoke Stability
+- In `NEXT_PUBLIC_PLAYWRIGHT_TESTS`/`PLAYWRIGHT_TESTS` mode, prefer static anchors (`<a href=...>`) and avoid client event handlers inside server components to prevent hydration errors and selector timeouts.
+- Marketplace Playwright stubs must render clickable product cards linking to `/marketplace/product/demo-*` and a PDP stub that avoids live API/i18n calls.
+- RTL smoke for system/finance/HR must render Arabic headings/labels under the Playwright flag; gate these strings without changing production UX.
+- Org guard hooks (useSupportOrg/useOrgGuard/useFmOrgGuard) should be Playwright-safe (env-aware stub) to avoid provider boundary crashes; keep production behavior strict.
+
+---
+
 ## 7) Env Var Contract (Vercel/GitHub/Tests)
 - Maintain a single env schema file (Zod recommended) to validate required env vars at runtime.
 - Tests must stub env vars; no test depends on production secrets.
@@ -147,6 +155,27 @@ Goal: eliminate false positives. Treat every comment/diagnostic as untrusted unt
 - Allowed with caution (announce/log intent): `pnpm vitest`/`pnpm test`/`playwright test`, `pnpm build`/`next build`, `eslint --fix`, `prettier --write`.
 - Forbidden without explicit user approval: destructive commands (`rm`, `rmdir`, `mv` outside workspace, `git reset --hard`, `git clean -fd`), deploys (`vercel --prod`, `npm publish`), production DB writes, secret dumps (`env | grep KEY`, `echo $SECRET`).
 - If blocked by a rule, state the exact file/command needed and why; ask for permission or pasted content instead of stopping the audit.
+
+---
+
+## 12) Execution Discipline (No Deferral)
+- Deliver requested points in one pass where feasible; avoid unnecessary back-and-forth or deferral.
+- Do not push back or drift from scope; target 100% completion while honoring safety/tenancy/RBAC rules.
+- When constraints apply (e.g., forbidden commands), state the constraint and the exact next action needed to keep progress unblocked.
+
+---
+
+## 13) Multi-Agent Coordination + Final Prompt Alignment (v3.1 — 2025-12-13)
+- Adopt the Final Fixizit System Prompt v3.1 (2025-12-13) as the execution contract; bias to immediate delivery (100% of requested scope) without back-and-forth.
+- Expect other AI agents in parallel: avoid destructive git actions, prefer append-only/surgical edits, and record assumptions or coordination notes in PENDING_MASTER.md when ambiguity exists.
+- Keep responses and changes scope-locked to the explicit TCS; never drift beyond quoted/opened files without user approval.
+- Bias toward action with evidence: execute defined tasks, log commands/tests inline, and surface conflicts early; prefer non-destructive merges if overlaps occur.
+
+## 14) Rapid Execution & Co-Agent Etiquette
+- Target 100% of requested scope in a single pass; avoid deferral/pushback unless blocked by a hard constraint (state it explicitly with the next step).
+- Before editing, check current git status and existing diffs to avoid clobbering other agents; keep changes surgical and avoid drive-by reformatting.
+- When ambiguity arises, make a documented assumption (note it in PENDING_MASTER.md or the response) rather than pausing progress; align with AGENTS.md invariants.
+- Prefer additive notes over deletions in shared docs; never use destructive git commands. If overlap is detected, choose the smallest safe diff and call it out in the summary.
 
 ---
 

@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const VENDOR_ASSIGNMENTS_API_ENABLED =
   process.env.VENDOR_ASSIGNMENTS_API_ENABLED === "true";
@@ -224,7 +225,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<{
+      inspectionId?: string;
+      propertyId?: string;
+      vendorId?: string;
+      trade?: string;
+      scheduledDate?: string;
+    }>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { success: false, error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
     const { inspectionId, propertyId, vendorId, trade, scheduledDate } = body;
 
     const mode = resolveVendorAssignmentsMode();

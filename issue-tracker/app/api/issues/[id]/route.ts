@@ -8,18 +8,16 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import mongoose from 'mongoose';
-import { logger } from '@/lib/logger';
-import { 
-  Issue,
+import Issue, { 
   IssueStatus, 
   IssuePriority, 
   IssueEffort,
   IssueStatusType,
-} from '@/server/models/Issue';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { getSessionOrNull } from '@/lib/auth/safe-session';
-import { parseBodySafe } from '@/lib/api/parse-body';
+} from '@/models/issue';
+import { connectDB } from '@/lib/db';
+import { authOptions } from '@/lib/auth';
 
 // ============================================================================
 // GET /api/issues/[id]
@@ -27,25 +25,19 @@ import { parseBodySafe } from '@/lib/api/parse-body';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const result = await getSessionOrNull(request);
+    const session = await getServerSession(authOptions);
     
-    if (!result.ok) {
-      return result.response;
-    }
-    
-    const session = result.session;
-    
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    await connectToDatabase();
+    await connectDB();
     
-    const { id } = await params;
-    const orgId = new mongoose.Types.ObjectId(session.orgId);
+    const { id } = params;
+    const orgId = new mongoose.Types.ObjectId(session.user.orgId);
     
     // Find by issueId (e.g., BUG-0001) or MongoDB _id
     const issue = await Issue.findOne({
@@ -67,7 +59,7 @@ export async function GET(
     // Get related issues
     const relatedIssues = issue.relatedIssues?.length
       ? await Issue.find({
-          _id: { $in: issue.relatedIssues.map((r) => r.issueId) },
+          _id: { $in: issue.relatedIssues.map((r: any) => r.issueId) },
         })
           .select('issueId title status priority')
           .lean()
@@ -84,7 +76,7 @@ export async function GET(
     });
     
   } catch (error) {
-    logger.error('GET /api/issues/[id] error:', error as Error);
+    console.error('GET /api/issues/[id] error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -96,67 +88,27 @@ export async function GET(
 // PATCH /api/issues/[id]
 // ============================================================================
 
-interface UpdateIssueBody {
-  status?: string;
-  statusReason?: string;
-  comment?: { content: string; isInternal?: boolean };
-  title?: string;
-  description?: string;
-  priority?: string;
-  effort?: string;
-  location?: { filePath: string; lineStart?: number; lineEnd?: number };
-  module?: string;
-  subModule?: string;
-  action?: string;
-  rootCause?: string;
-  resolution?: string;
-  definitionOfDone?: string;
-  acceptanceCriteria?: string[];
-  riskTags?: string[];
-  dependencies?: string[];
-  blockedBy?: string;
-  assignedTo?: string;
-  reviewedBy?: string;
-  validation?: { type: string; command?: string; expectedResult?: string };
-  sprintReady?: boolean;
-  sprintId?: string;
-  storyPoints?: number;
-  labels?: string[];
-  externalLinks?: { jira?: string; github?: string; notion?: string };
-  suggestedPrTitle?: string;
-}
-
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const result = await getSessionOrNull(request);
+    const session = await getServerSession(authOptions);
     
-    if (!result.ok) {
-      return result.response;
-    }
-    
-    const session = result.session;
-    
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     const allowedRoles = ['super_admin', 'admin', 'developer'];
-    if (!allowedRoles.includes(session.role)) {
+    if (!allowedRoles.includes(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    await connectToDatabase();
+    await connectDB();
     
-    const { id } = await params;
-    const bodyResult = await parseBodySafe<UpdateIssueBody>(request);
-    if (bodyResult.error) {
-      return NextResponse.json({ error: bodyResult.error }, { status: 400 });
-    }
-    const body = bodyResult.data!;
-    const orgId = new mongoose.Types.ObjectId(session.orgId);
+    const { id } = params;
+    const body = await request.json();
+    const orgId = new mongoose.Types.ObjectId(session.user.orgId);
     
     // Find issue
     const issue = await Issue.findOne({
@@ -177,7 +129,7 @@ export async function PATCH(
     
     // Handle status change with history
     if (body.status && body.status !== issue.status) {
-      if (!Object.values(IssueStatus).includes(body.status as IssueStatusType)) {
+      if (!Object.values(IssueStatus).includes(body.status)) {
         return NextResponse.json(
           { error: `Invalid status. Must be one of: ${Object.values(IssueStatus).join(', ')}` },
           { status: 400 }
@@ -186,7 +138,7 @@ export async function PATCH(
       
       await issue.changeStatus(
         body.status as IssueStatusType,
-        session.email || session.id,
+        session.user.email || session.user.id,
         body.statusReason
       );
       delete body.status;
@@ -196,7 +148,7 @@ export async function PATCH(
     // Handle adding comment
     if (body.comment) {
       await issue.addComment(
-        session.email || session.id,
+        session.user.email || session.user.id,
         body.comment.content,
         body.comment.isInternal || false
       );
@@ -204,14 +156,14 @@ export async function PATCH(
     }
     
     // Validate other fields
-    if (body.priority && !Object.values(IssuePriority).includes(body.priority as typeof IssuePriority[keyof typeof IssuePriority])) {
+    if (body.priority && !Object.values(IssuePriority).includes(body.priority)) {
       return NextResponse.json(
         { error: `Invalid priority. Must be one of: ${Object.values(IssuePriority).join(', ')}` },
         { status: 400 }
       );
     }
     
-    if (body.effort && !Object.values(IssueEffort).includes(body.effort as typeof IssueEffort[keyof typeof IssueEffort])) {
+    if (body.effort && !Object.values(IssueEffort).includes(body.effort)) {
       return NextResponse.json(
         { error: `Invalid effort. Must be one of: ${Object.values(IssueEffort).join(', ')}` },
         { status: 400 }
@@ -226,18 +178,18 @@ export async function PATCH(
       'dependencies', 'blockedBy', 'assignedTo', 'reviewedBy',
       'validation', 'sprintReady', 'sprintId', 'storyPoints',
       'labels', 'externalLinks', 'suggestedPrTitle',
-    ] as const;
+    ];
     
-    const updates: Record<string, unknown> = {};
+    const updates: any = {};
     for (const key of allowedUpdates) {
-      if (body[key as keyof UpdateIssueBody] !== undefined) {
-        updates[key] = body[key as keyof UpdateIssueBody];
+      if (body[key] !== undefined) {
+        updates[key] = body[key];
       }
     }
     
     // Update sprint readiness based on dependencies
     if (updates.dependencies !== undefined) {
-      updates.sprintReady = (updates.dependencies as string[]).length === 0 && !updates.blockedBy;
+      updates.sprintReady = updates.dependencies.length === 0 && !updates.blockedBy;
     }
     
     if (Object.keys(updates).length > 0) {
@@ -251,7 +203,7 @@ export async function PATCH(
     });
     
   } catch (error) {
-    logger.error('PATCH /api/issues/[id] error:', error as Error);
+    console.error('PATCH /api/issues/[id] error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -265,30 +217,24 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const result = await getSessionOrNull(request);
+    const session = await getServerSession(authOptions);
     
-    if (!result.ok) {
-      return result.response;
-    }
-    
-    const session = result.session;
-    
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     // Only super_admin can delete
-    if (session.role !== 'SUPER_ADMIN') {
+    if (session.user.role !== 'super_admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    await connectToDatabase();
+    await connectDB();
     
-    const { id } = await params;
-    const orgId = new mongoose.Types.ObjectId(session.orgId);
+    const { id } = params;
+    const orgId = new mongoose.Types.ObjectId(session.user.orgId);
     
     const issue = await Issue.findOneAndDelete({
       orgId,
@@ -315,7 +261,7 @@ export async function DELETE(
     });
     
   } catch (error) {
-    logger.error('DELETE /api/issues/[id] error:', error as Error);
+    console.error('DELETE /api/issues/[id] error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

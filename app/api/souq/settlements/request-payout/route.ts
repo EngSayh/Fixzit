@@ -74,7 +74,13 @@ export async function POST(request: NextRequest) {
     const parseResult = await parseBodySafe<{
       amount?: number;
       statementId?: string;
-      bankAccount?: { iban?: string };
+      bankAccount?: {
+        iban: string;
+        accountHolderName: string;
+        bankName: string;
+        accountNumber: string;
+        swiftCode?: string;
+      };
       sellerId?: string;
     }>(request);
     if (parseResult.error) {
@@ -85,9 +91,9 @@ export async function POST(request: NextRequest) {
     }
     const { amount, statementId, bankAccount, sellerId: requestedSellerId } = parseResult.data!;
 
-    if (!statementId || !bankAccount || !bankAccount.iban) {
+    if (!statementId || !bankAccount || !bankAccount.iban || !bankAccount.accountHolderName || !bankAccount.bankName || !bankAccount.accountNumber) {
       return NextResponse.json(
-        { error: "statementId and bankAccount with iban are required" },
+        { error: "statementId and bankAccount with iban, accountHolderName, bankName, and accountNumber are required" },
         { status: 400 },
       );
     }

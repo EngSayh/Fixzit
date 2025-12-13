@@ -110,15 +110,15 @@ export async function POST(request: NextRequest) {
     const campaign = await CampaignService.createCampaign({
       orgId: userOrgId, // Required for tenant isolation (STRICT v4.1)
       sellerId: session.user.id,
-      name: body.name,
-      type: body.type,
-      dailyBudget: parseFloat(body.dailyBudget),
-      startDate: new Date(body.startDate),
-      endDate: body.endDate ? new Date(body.endDate) : undefined,
-      biddingStrategy: body.biddingStrategy,
-      defaultBid: body.defaultBid ? parseFloat(body.defaultBid) : undefined,
-      targeting: body.targeting,
-      products: body.products,
+      name: body.name as string,
+      type: body.type as "sponsored_products" | "sponsored_brands" | "product_display",
+      dailyBudget: parseFloat(String(body.dailyBudget)),
+      startDate: new Date(body.startDate as string | number),
+      endDate: body.endDate ? new Date(body.endDate as string | number) : undefined,
+      biddingStrategy: body.biddingStrategy as "manual" | "automatic",
+      defaultBid: body.defaultBid ? parseFloat(String(body.defaultBid)) : undefined,
+      targeting: body.targeting as Parameters<typeof CampaignService.createCampaign>[0]["targeting"],
+      products: body.products as string[],
     });
 
     return NextResponse.json({

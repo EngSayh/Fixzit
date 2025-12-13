@@ -19,8 +19,10 @@ import {
   zodValidationError,
   rateLimitError,
   handleApiError,
+  createErrorResponse,
 } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const CreateRFQSchema = z.object({
   title: z.string().min(1).max(200),
@@ -197,7 +199,10 @@ export async function POST(request: NextRequest) {
     if (!rl.allowed) return rateLimitError();
 
     // Input validation
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<z.infer<typeof CreateRFQSchema>>(request);
+    if (parseError || !body) {
+      return createErrorResponse(parseError || "Invalid JSON body", 400);
+    }
     const payload = CreateRFQSchema.parse(body);
 
     // Database connection

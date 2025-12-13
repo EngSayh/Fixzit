@@ -17,6 +17,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import mongoose from "mongoose";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const ExportSchema = z.object({
   format: z.enum(["json", "csv"]).default("json"),
@@ -361,7 +362,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<z.infer<typeof ExportSchema>>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
     const parseResult = ExportSchema.safeParse(body);
 
     if (!parseResult.success) {

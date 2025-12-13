@@ -17,6 +17,7 @@ import { FooterContent } from "@/server/models/FooterContent";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 interface FooterDocument {
   page: string;
@@ -49,7 +50,17 @@ export async function POST(request: NextRequest) {
 
     await connectToDatabase();
 
-    const body = await request.json();
+    const { data: body, error: parseError } = await parseBodySafe<{
+      page?: string;
+      contentEn?: string;
+      contentAr?: string;
+    }>(request);
+    if (parseError || !body) {
+      return NextResponse.json(
+        { error: parseError || "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
     const { page, contentEn, contentAr } = body;
 
     // Validation
