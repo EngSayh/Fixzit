@@ -6,9 +6,10 @@ on:
   pull_request:
     types: [opened, reopened, ready_for_review]
   issue_comment:
+    types: [created]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: pr-agent-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
   cancel-in-progress: true
 
 permissions:
@@ -18,12 +19,29 @@ permissions:
 
 jobs:
   pr_agent_job:
-    if: ${{ github.event.sender.type != 'Bot' }}
+    # - ignore bots
+    # - run only for PR events or PR comments (not issue comments)
+    # - avoid fork PRs for pull_request event (secrets not exposed)
+    if: >-
+      ${{
+        github.event.sender.type != 'Bot' &&
+        (
+          github.event_name == 'pull_request' ||
+          (github.event_name == 'issue_comment' && github.event.issue.pull_request)
+        ) &&
+        (
+          github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository
+        )
+      }}
     runs-on: ubuntu-latest
+    env:
+      # If secret is not set (or on fork PR), this becomes empty string.
+      OPENAI_KEY: ${{ secrets['OPENAI_KEY'] }}
+      GITHUB_TOKEN: ${{ github.token }}
+
     steps:
       - name: PR Agent action step
+        # Skip cleanly if not configured
+        if: ${{ env.OPENAI_KEY != '' }}
         uses: qodo-ai/pr-agent@main
-        env:
-          # Note: OPENAI_KEY is optional - workflow skips if not configured
-          OPENAI_KEY: ${{ secrets.OPENAI_KEY || '' }}
-          GITHUB_TOKEN: ${{ github.token }}
