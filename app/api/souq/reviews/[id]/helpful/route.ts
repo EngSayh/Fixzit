@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { reviewService } from "@/services/souq/reviews/review-service";
 import { auth } from "@/auth";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
@@ -74,7 +75,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
           ? found.org_id
           : found.orgId?.toString?.() ?? found.org_id?.toString?.() ?? "";
 
-    const body = await req.json().catch(() => ({}));
+    const { data: body, error: parseError } = await parseBodySafe(req, { logPrefix: "[souq:reviews:helpful]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const { action } = helpfulActionSchema.parse(body ?? {});
 
     const review =

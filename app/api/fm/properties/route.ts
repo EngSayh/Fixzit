@@ -20,6 +20,7 @@ import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
+import { parseBodySafe } from "@/lib/api/parse-body";
 // RBAC-DRIFT-FIX: Import from fm.types.ts (canonical RBAC source)
 import { ModuleKey, SubmoduleKey } from "@/domain/fm/fm.types";
 import { FMAction } from "@/types/fm/enums";
@@ -285,7 +286,11 @@ export async function POST(req: NextRequest) {
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
 
-    const body = sanitizePayload(await req.json().catch(() => ({})));
+    const { data: rawBody, error: parseError } = await parseBodySafe(req, { logPrefix: "[fm:properties:create]" });
+    if (parseError) {
+      return FMErrors.validationError("Invalid request body");
+    }
+    const body = sanitizePayload(rawBody ?? {});
     if (!body.name) {
       return FMErrors.validationError("Property name is required");
     }
@@ -369,7 +374,11 @@ export async function PATCH(req: NextRequest) {
       return FMErrors.invalidId("property");
     }
 
-    const payload = sanitizePayload(await req.json().catch(() => ({})));
+    const { data: rawPayload, error: parseError } = await parseBodySafe(req, { logPrefix: "[fm:properties:update]" });
+    if (parseError) {
+      return FMErrors.validationError("Invalid request body");
+    }
+    const payload = sanitizePayload(rawPayload ?? {});
     if (!Object.keys(payload).length) {
       return FMErrors.validationError("At least one field is required");
     }

@@ -27,6 +27,7 @@
  * - Secure response headers applied
  */
 import { NextRequest, NextResponse } from "next/server";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse } from "@/server/security/headers";
 import { scanS3Object } from "@/lib/security/av-scan";
@@ -47,7 +48,11 @@ export async function POST(req: NextRequest) {
     const rl = await smartRateLimit(`${rlKey}:upload-scan`, 20, 60_000);
     if (!rl.allowed) return rateLimitError();
 
-    const { key } = await req.json().catch(() => ({}));
+    const { data: body, error: parseError } = await parseBodySafe<{ key?: string }>(req, { logPrefix: "[upload:scan]" });
+    if (parseError) {
+      return createSecureResponse({ error: "Invalid request body" }, 400, req);
+    }
+    const key = body?.key;
     if (!key || typeof key !== "string") {
       return createSecureResponse({ error: "Missing key" }, 400, req);
     }

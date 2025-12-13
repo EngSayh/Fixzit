@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Session } from "next-auth";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
@@ -78,7 +79,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const body = await request.json().catch(() => null);
+    const { data: body, error: parseError } = await parseBodySafe<{ id?: string; enabled?: boolean }>(request, { logPrefix: "[admin:feature-flags]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const flagId = body?.id as string | undefined;
     const enabled = body?.enabled as boolean | undefined;
 

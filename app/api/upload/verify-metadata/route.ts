@@ -26,6 +26,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -78,8 +79,11 @@ export async function POST(req: NextRequest) {
   const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
   if (!rl.allowed) return rateLimitError();
 
-  const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-  const key = typeof body.key === "string" ? body.key : "";
+  const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(req, { logPrefix: "[upload:verify-metadata]" });
+  if (parseError) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const key = typeof body?.key === "string" ? body.key : "";
   if (!key) return NextResponse.json({ error: "Missing key" }, { status: 400 });
 
   try {

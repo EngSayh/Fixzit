@@ -9,6 +9,7 @@ import { NextRequest } from "next/server";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -64,7 +65,17 @@ export async function POST(req: NextRequest) {
       return rateLimitError();
     }
 
-    const body = await req.json().catch(() => ({}));
+    const { data: body, error: parseError } = await parseBodySafe<{
+      query?: number[];
+      q?: string;
+      lang?: string;
+      role?: string;
+      route?: string;
+      limit?: number;
+    }>(req, { logPrefix: "[kb:search]" });
+    if (parseError) {
+      return createSecureResponse({ error: "Invalid request body" }, 400, req);
+    }
     const query = body?.query as number[] | undefined;
     const qText = typeof body?.q === "string" ? body.q : undefined;
     const lang = typeof body?.lang === "string" ? body.lang : undefined;

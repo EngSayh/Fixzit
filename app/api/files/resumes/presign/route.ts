@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getPresignedPutUrl, buildResumeKey } from "@/lib/storage/s3";
 import { logger } from "@/lib/logger";
@@ -79,7 +80,10 @@ export async function POST(req: NextRequest) {
       return rateLimitError();
     }
 
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(req, { logPrefix: "[files:resumes:presign]" });
+    if (parseError || !body) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const fileNameRaw = typeof body.fileName === "string" ? body.fileName : "";
     const contentType =
       typeof body.contentType === "string" ? body.contentType : "";

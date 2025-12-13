@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ObjectId } from "mongodb";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { WOStatus, WOPriority, type WorkOrder, WOCategory } from "@/types/fm";
@@ -231,7 +232,10 @@ export async function POST(req: NextRequest) {
       return FMErrors.missingTenant();
     }
 
-    const rawBody = await req.json().catch(() => ({}));
+    const { data: rawBody, error: parseError } = await parseBodySafe(req, { logPrefix: "[fm:work-orders]" });
+    if (parseError) {
+      return FMErrors.validationError("Invalid request body");
+    }
     const parsed = CreateWorkOrderSchema.safeParse(rawBody);
     
     if (!parsed.success) {

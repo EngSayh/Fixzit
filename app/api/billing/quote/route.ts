@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { computeQuote } from "@/lib/pricing";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -45,7 +46,10 @@ export async function POST(req: NextRequest) {
       return rateLimitError();
     }
 
-    const rawBody = await req.json().catch(() => ({}));
+    const { data: rawBody, error: parseError } = await parseBodySafe(req, { logPrefix: "[billing:quote]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const parsed = BillingQuoteSchema.safeParse(rawBody);
     
     if (!parsed.success) {

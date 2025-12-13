@@ -18,6 +18,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
+import { parseBodySafe } from '@/lib/api/parse-body';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
@@ -38,15 +39,18 @@ export async function POST(
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as {
+  const { data: body, error: parseError } = await parseBodySafe<{
     document_type_code?: string;
     file_storage_key?: string;
     original_name?: string;
     mime_type?: string;
     size_bytes?: number;
-  };
+  }>(req, { logPrefix: '[onboarding:docs:confirm-upload]' });
+  if (parseError) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
 
-  const { document_type_code, file_storage_key, original_name, mime_type, size_bytes } = body;
+  const { document_type_code, file_storage_key, original_name, mime_type, size_bytes } = body ?? {};
 
   if (!document_type_code || !file_storage_key || !original_name) {
     return NextResponse.json({ error: 'document_type_code, file_storage_key, and original_name are required' }, { status: 400 });

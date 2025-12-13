@@ -38,6 +38,7 @@ import { createSecureResponse } from "@/server/security/headers";
 import { getPresignedPutUrl } from "@/lib/storage/s3";
 import { Config } from "@/lib/config/constants";
 import { logger } from "@/lib/logger";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 const ALLOWED_TYPES = new Set([
   "application/pdf",
@@ -78,7 +79,13 @@ function buildKey(
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser(req).catch(() => null);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (error) {
+      logger.error("[Presign] Auth service failure", { error });
+      return createSecureResponse({ error: "Auth service unavailable" }, 503, req);
+    }
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
 
     if (!Config.aws.s3.bucket || !Config.aws.region) {
@@ -110,7 +117,10 @@ export async function POST(req: NextRequest) {
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId, userId), 30, 60_000);
     if (!rl.allowed) return rateLimitError();
 
-    const body = await req.json().catch(() => ({}));
+    const { data: body, error: parseError } = await parseBodySafe<{ fileName?: string; fileType?: string; fileSize?: number; category?: string }>(req, { logPrefix: "[upload:presigned-url]" });
+    if (parseError) {
+      return createSecureResponse({ error: "Invalid request body" }, 400, req);
+    }
     const { fileName, fileType, fileSize, category } = body || {};
 
     if (!fileName || !fileType || typeof fileSize !== "number") {

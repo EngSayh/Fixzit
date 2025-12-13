@@ -28,6 +28,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
@@ -176,8 +177,11 @@ export async function POST(req: NextRequest) {
 
   let key = "";
   try {
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    key = typeof body.key === "string" ? body.key : "";
+    const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(req, { logPrefix: "[upload:scan-status]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    key = typeof body?.key === "string" ? body.key : "";
     if (!key) {
       return NextResponse.json({ error: "Missing key" }, { status: 400 });
     }

@@ -31,6 +31,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
+import { parseBodySafe } from '@/lib/api/parse-body';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { OnboardingCase, ONBOARDING_ROLES, type OnboardingRole } from '@/server/models/onboarding/OnboardingCase';
@@ -51,8 +52,11 @@ export async function POST(req: NextRequest) {
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as InitiateBody;
-  const { role, basic_info, payload, country } = body;
+  const { data: body, error: parseError } = await parseBodySafe<InitiateBody>(req, { logPrefix: '[onboarding:initiate]' });
+  if (parseError) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { role, basic_info, payload, country } = body ?? {};
 
   if (!role || !ONBOARDING_ROLES.includes(role)) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import { JobQueue, Job } from "@/lib/jobs/queue";
 import sgMail from "@sendgrid/mail";
@@ -35,9 +36,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json().catch(() => ({}));
-    const jobType = body.type; // Optional: process specific job type only
-    const maxJobs = body.maxJobs || 10;
+    const { data: body, error: parseError } = await parseBodySafe<{ type?: string; maxJobs?: number }>(request, { logPrefix: "[jobs:process]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const jobType = body?.type as Parameters<typeof JobQueue.claimJob>[0]; // Optional: process specific job type only
+    const maxJobs = body?.maxJobs || 10;
 
     const processed: { success: string[]; failed: string[] } = {
       success: [],

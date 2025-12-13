@@ -12,6 +12,7 @@
  * @throws {404} If onboarding case is not found
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { parseBodySafe } from '@/lib/api/parse-body';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { OnboardingCase, type OnboardingStatus } from '@/server/models/onboarding/OnboardingCase';
@@ -66,7 +67,10 @@ export async function PATCH(
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const { data: body, error: parseError } = await parseBodySafe<Record<string, unknown>>(req, { logPrefix: '[onboarding:case:update]' });
+  if (parseError || !body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const payload = body.payload as Record<string, unknown> | undefined;
   const basic_info = body.basic_info as Record<string, unknown> | undefined;
   const status = body.status as OnboardingStatus | undefined;

@@ -35,6 +35,7 @@ import { connectMongo } from '@/lib/mongo';
 import { SupportTicket } from '@/server/models/SupportTicket';
 import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 export async function POST(req: NextRequest) {
   const rateLimitResponse = enforceRateLimit(req, { requests: 20, windowMs: 60_000, keyPrefix: "help:escalate" });
@@ -43,8 +44,11 @@ export async function POST(req: NextRequest) {
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as { module?: string; attempted_action?: string };
-  const { module: moduleParam, attempted_action } = body;
+  const { data: body, error: parseError } = await parseBodySafe<{ module?: string; attempted_action?: string }>(req, { logPrefix: "[help:escalate]" });
+  if (parseError) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { module: moduleParam, attempted_action } = body || {};
   const moduleNormalized = ['FM', 'Souq', 'Aqar', 'Account', 'Billing', 'Other'].includes(
     moduleParam || '',
   )

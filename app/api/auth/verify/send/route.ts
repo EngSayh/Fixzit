@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
 import {
@@ -40,7 +41,10 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) return rateLimitError();
 
   try {
-    const rawBody = await req.json().catch(() => ({}));
+    const { data: rawBody, error: parseError } = await parseBodySafe(req, { logPrefix: "[auth:verify:send]" });
+    if (parseError) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const parsed = VerifySendSchema.safeParse(rawBody);
     
     if (!parsed.success) {

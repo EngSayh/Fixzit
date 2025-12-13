@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ObjectId } from "mongodb";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -151,7 +152,10 @@ export async function POST(
       return FMErrors.invalidId("work order");
     }
 
-    const rawBody = await req.json().catch(() => ({}));
+    const { data: rawBody, error: parseError } = await parseBodySafe(req, { logPrefix: "[fm:work-order-comments]" });
+    if (parseError) {
+      return FMErrors.validationError("Invalid request body");
+    }
     const parsed = CreateCommentSchema.safeParse(rawBody);
     
     if (!parsed.success) {

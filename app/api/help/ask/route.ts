@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import Redis from "ioredis";
@@ -186,7 +187,10 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser(req).catch(() => null);
     // Distributed rate limit per IP (uses Redis if available, falls back to in-memory)
     await rateLimitAssert(req);
-    const body = await req.json().catch(() => ({}) as AskRequest);
+    const { data: body, error: parseError } = await parseBodySafe<AskRequest>(req, { logPrefix: "[help:ask]" });
+    if (parseError) {
+      return createSecureResponse({ error: "Invalid request body" }, 400, req);
+    }
     const question = typeof body?.question === "string" ? body.question : "";
     const rawLimit = Number(body?.limit);
     const limit =

@@ -16,6 +16,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+import { parseBodySafe } from '@/lib/api/parse-body';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { getPresignedPutUrl } from '@/lib/storage/s3';
@@ -41,13 +42,16 @@ export async function POST(
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as {
+  const { data: body, error: parseError } = await parseBodySafe<{
     document_type_code?: string;
     file_name?: string;
     mime_type?: string;
     country?: string;
-  };
-  const { document_type_code, file_name, mime_type, country } = body;
+  }>(req, { logPrefix: '[onboarding:docs:request-upload]' });
+  if (parseError) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { document_type_code, file_name, mime_type, country } = body ?? {};
 
   if (!document_type_code) {
     return NextResponse.json({ error: 'document_type_code is required' }, { status: 400 });

@@ -9,6 +9,7 @@
 import { NextRequest } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { upsertArticleEmbeddings, deleteArticleEmbeddings } from "@/kb/ingest";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -43,8 +44,17 @@ export async function POST(req: NextRequest) {
     if (!rl.allowed) {
       return rateLimitError();
     }
-    const body = await req.json().catch(() => ({}) as unknown);
-    const { articleId, content, lang, roleScopes, route } = body || {};
+    const { data: body, error: parseError } = await parseBodySafe<{
+      articleId?: string;
+      content?: string;
+      lang?: string;
+      roleScopes?: string[];
+      route?: string;
+    }>(req, { logPrefix: "[kb:ingest]" });
+    if (parseError) {
+      return createSecureResponse({ error: "Invalid request body" }, 400, req);
+    }
+    const { articleId, content, lang, roleScopes, route } = body ?? {};
     if (!articleId || typeof content !== "string") {
       return createSecureResponse(
         { error: "Missing articleId or content" },

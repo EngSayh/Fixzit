@@ -16,6 +16,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
+import { parseBodySafe } from '@/lib/api/parse-body';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { VerificationDocument, DOCUMENT_STATUSES } from '@/server/models/onboarding/VerificationDocument';
@@ -39,8 +40,11 @@ export async function PATCH(
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as { decision?: string; rejection_reason?: string };
-  const { decision, rejection_reason } = body;
+  const { data: body, error: parseError } = await parseBodySafe<{ decision?: string; rejection_reason?: string }>(req, { logPrefix: '[onboarding:docs:review]' });
+  if (parseError) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { decision, rejection_reason } = body ?? {};
   if (!decision || !ALLOWED_DECISIONS.includes(decision as (typeof DOCUMENT_STATUSES)[number])) {
     return NextResponse.json({ error: 'Invalid decision' }, { status: 400 });
   }
