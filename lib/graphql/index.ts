@@ -1251,7 +1251,9 @@ export const resolvers = {
 export function isGraphQLAvailable(): boolean {
   try {
     // Check if graphql-yoga is installed
-    require.resolve("graphql-yoga");
+    // Use dynamic string to prevent webpack from trying to resolve at build time
+    const moduleName = "graphql" + "-yoga";
+    require.resolve(moduleName);
     return true;
   } catch {
     return false;
@@ -1314,8 +1316,10 @@ export function createGraphQLHandler() {
     // If we get here, graphql-yoga should be available
     // Dynamic import to avoid build errors when not installed
     try {
+      // Use dynamic string to prevent webpack from trying to resolve at build time
+      const moduleName = "graphql" + "-yoga";
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const graphqlYoga = require("graphql-yoga") as {
+      const graphqlYoga = require(moduleName) as {
         createYoga: (config: unknown) => { fetch: (req: Request) => Promise<Response> };
         createSchema: (config: { typeDefs: string; resolvers: unknown }) => unknown;
       };
