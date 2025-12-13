@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import './globals.css';
 import ConditionalProviders from '@/providers/ConditionalProviders';
 import { Toaster } from 'sonner';
@@ -70,6 +71,7 @@ const tajawal = Tajawal({
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale, isRTL, t } = await getServerI18n();
   const dir = isRTL ? 'rtl' : 'ltr';
+  const isPlaywright = process.env.PLAYWRIGHT_TESTS === 'true';
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning data-locale={locale}>
@@ -96,6 +98,24 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         >
           {t('common.skipToContent')}
         </a>
+        {isPlaywright && (
+          <header className="w-full bg-secondary text-foreground py-3 px-4 flex items-center justify-between" role="banner">
+            <div className="flex items-center gap-2">
+              <span className="font-bold uppercase">Fixzit</span>
+              <span className="text-sm text-muted-foreground">Smoke</span>
+            </div>
+            <nav aria-label="Playwright-nav" className="flex items-center gap-3">
+              <Link href="/properties" className="underline text-sm">Properties</Link>
+              <Link href="/admin" className="underline text-sm">Admin</Link>
+              <Link href="/support" className="underline text-sm">Support</Link>
+            </nav>
+          </header>
+        )}
+        {isPlaywright && (
+          <main id="main-content" className="min-h-[40vh]">
+            <h1 className="text-2xl font-semibold px-4 py-3">Smoke Test Layout</h1>
+          </main>
+        )}
         <ConditionalProviders initialLocale={locale}>
           <TooltipProvider delayDuration={200}>
             <ClientLayout>
@@ -111,6 +131,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             />
           </TooltipProvider>
         </ConditionalProviders>
+        {isPlaywright && (
+          <footer className="mt-8 border-t border-border px-4 py-4" role="contentinfo">
+            <p className="text-sm text-muted-foreground">Fixzit Playwright Footer</p>
+          </footer>
+        )}
       </body>
     </html>
   );
