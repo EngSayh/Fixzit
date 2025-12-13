@@ -1,5 +1,5 @@
 {
-  "extracted_at": "2025-12-14T00:00:00+03:00",
+  "extracted_at": "2025-12-15T18:45:00+03:00",
   "source_file": "PENDING_MASTER.md",
   "applied_flags": {
     "format": "both",
@@ -7,27 +7,96 @@
     "category": "all"
   },
   "counts": {
-    "total": 10,
-    "by_priority": { "P0": 0, "P1": 0, "P2": 6, "P3": 4 },
-    "by_category": { "Bugs": 1, "Logic Errors": 0, "Missing Tests": 6, "Efficiency": 3, "Next Steps": 0 },
-    "quick_wins": 3,
+    "total": 13,
+    "by_priority": { "P0": 1, "P1": 1, "P2": 7, "P3": 4 },
+    "by_category": { "Bugs": 1, "Logic Errors": 0, "Missing Tests": 7, "Efficiency": 3, "Security": 1, "Config": 1 },
+    "quick_wins": 4,
     "anomalies": 1
   },
   "anomalies": [
     {
       "type": "Repeated theme",
       "pattern": "test coverage gaps",
-      "affected_keys": ["TEST-001", "TEST-002", "TEST-003", "TEST-004", "TEST-005", "create-crm-route-tests"]
+      "affected_keys": ["TEST-001", "TEST-002", "TEST-003", "TEST-004", "TEST-005", "TEST-SAFE-FETCH", "create-crm-route-tests"]
     }
   ],
   "file_heat_map": [
-    { "rank": 1, "file": "tests/api/souq/*", "issues": 1, "category": "Missing Tests" },
-    { "rank": 2, "file": "tests/api/hr/*", "issues": 1, "category": "Missing Tests" },
-    { "rank": 3, "file": "tests/api/finance/*", "issues": 1, "category": "Missing Tests" },
-    { "rank": 4, "file": "app/api/pm/*", "issues": 1, "category": "Efficiency" },
-    { "rank": 5, "file": "lib/notifications/*", "issues": 1, "category": "Bugs" }
+    { "rank": 1, "file": "lib/finance/tap-payments.ts", "issues": 1, "category": "Security" },
+    { "rank": 2, "file": ".vscode/tasks.json", "issues": 1, "category": "Config" },
+    { "rank": 3, "file": "lib/utils/safe-fetch.ts", "issues": 1, "category": "Missing Tests" },
+    { "rank": 4, "file": "tests/api/souq/*", "issues": 1, "category": "Missing Tests" },
+    { "rank": 5, "file": "tests/api/hr/*", "issues": 1, "category": "Missing Tests" }
   ],
   "issues": [
+    {
+      "key": "sec-tap-001-timing-attack",
+      "externalId": "SEC-TAP-001",
+      "displayRef": "SEC-TAP-001",
+      "category": "Security",
+      "priority": "P0",
+      "status": "pending",
+      "title": "Tap Payments webhook uses === instead of timingSafeEqual",
+      "issue": "lib/finance/tap-payments.ts:474 uses string equality for signature comparison, vulnerable to timing attacks",
+      "action": "Replace `calculatedSignature === signature` with `crypto.timingSafeEqual(Buffer.from(calculatedSignature), Buffer.from(signature))`",
+      "riskTags": ["SECURITY", "TIMING-ATTACK"],
+      "effort": "XS",
+      "impact": 10,
+      "impactBasis": "P0 base (10) + SECURITY (critical)",
+      "location": "lib/finance/tap-payments.ts:474",
+      "sourceRef": "PR #550 CodeRabbit review",
+      "evidenceSnippet": "const isValid = calculatedSignature === signature;",
+      "sourceHash12": "sec001timing",
+      "firstSeen": "2025-12-15",
+      "lastSeen": "2025-12-15",
+      "mentions": 1,
+      "sprintBucket": "Immediate"
+    },
+    {
+      "key": "config-001-dangerous-tasks",
+      "externalId": "CONFIG-001",
+      "displayRef": "CONFIG-001",
+      "category": "Config",
+      "priority": "P1",
+      "status": "pending",
+      "title": "Remove dangerous repo-mutating tasks from .vscode/tasks.json",
+      "issue": ".vscode/tasks.json contains 5+ tasks with --no-verify, --force-with-lease, and hardcoded branch names",
+      "action": "Remove or move dangerous tasks to personal settings; remove hardcoded branch names",
+      "riskTags": ["CONFIG", "GIT-SAFETY"],
+      "effort": "XS",
+      "impact": 8,
+      "impactBasis": "P1 base (8) + potential repo corruption",
+      "location": ".vscode/tasks.json:213,218,228,303,318",
+      "sourceRef": "PR #550 CodeRabbit review",
+      "evidenceSnippet": "git commit --no-verify, git push --force-with-lease, agent/process-efficiency-2025-12-11",
+      "sourceHash12": "config001tasks",
+      "firstSeen": "2025-12-15",
+      "lastSeen": "2025-12-15",
+      "mentions": 1,
+      "sprintBucket": "Next Sprint"
+    },
+    {
+      "key": "test-safe-fetch-coverage",
+      "externalId": "TEST-SAFE-FETCH",
+      "displayRef": "TEST-SAFE-FETCH",
+      "category": "Missing Tests",
+      "priority": "P2",
+      "status": "pending",
+      "title": "Add tests for safe-fetch.ts utilities",
+      "issue": "lib/utils/safe-fetch.ts fetchWithCancel utility has no test coverage",
+      "action": "Create tests/unit/lib/utils/safe-fetch.test.ts with timeout, abort, and error handling tests",
+      "riskTags": ["TEST-GAP"],
+      "effort": "S",
+      "impact": 6,
+      "impactBasis": "P2 base (5) + TEST-GAP (+1)",
+      "location": "lib/utils/safe-fetch.ts",
+      "sourceRef": "PR #550 CodeRabbit review",
+      "evidenceSnippet": "fetchWithCancel utility has no test coverage",
+      "sourceHash12": "testsafefetch",
+      "firstSeen": "2025-12-15",
+      "lastSeen": "2025-12-15",
+      "mentions": 1,
+      "sprintBucket": "Next Sprint"
+    },
     {
       "key": "eff-004-pm-rate-limiting",
       "externalId": "EFF-004",
