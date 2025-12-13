@@ -1,5 +1,35 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-13 23:15 (Asia/Riyadh) — v65.25 P1 Rate Limiting Complete
+**Context:** docs/pending-v60 | a7b722d61 | no PR  
+**DB Sync:** BACKLOG_AUDIT.json synced; created=0, updated=2, errors=0
+
+**✅ Resolved Today (DB SSOT):**
+- EFF-002 — Superadmin rate limiting COMPLETE
+  - Added `enforceRateLimit` to `app/api/superadmin/login/route.ts:25-30` (5 req/min)
+  - Session (60/min) and logout (10/min) already had it
+  - Retained `isRateLimited()` as defense-in-depth
+- EFF-001 — Issues API rate limiting (verified complete from v65.23)
+
+**🟠 In Progress:**
+- None
+
+**🔴 Blocked:**
+- None
+
+**Verification:**
+- TypeScript: 0 errors
+- ESLint: 0 errors
+- Tests: 3347/3347 passing (full suite with serial runner)
+- Superadmin tests: 14/14 passing
+
+**Next Steps (from DB):**
+- EFF-004 — Add rate limiting to PM routes
+- TEST-002 — Increase HR module test coverage
+- create-crm-route-tests — Add actual handler tests (current tests only assert role sets)
+
+---
+
 ### 2025-12-13 23:10 (Asia/Riyadh) — v65.24 TypeScript + P1 Audit Complete
 **Context:** docs/pending-v60 | pending commit | no PR  
 **DB Sync:** not run (MongoDB connection unavailable)

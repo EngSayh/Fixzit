@@ -1,139 +1,59 @@
 {
-  "generatedAt": "2025-12-13T22:54:17+03:00",
-  "syncedAt": "2025-12-13T22:54:17+03:00",
+  "generatedAt": "2025-12-13T23:10:00+03:00",
+  "syncedAt": "2025-12-13T23:10:00+03:00",
   "branch": "docs/pending-v60",
   "commit": "a7b722d61",
   "testResults": {
-    "scope": "tests/unit/api/superadmin + tests/unit/api/crm",
-    "total": 38,
-    "passed": 38,
-    "failed": 0,
-    "note": "Full suite pnpm vitest run --reporter=dot timed out at 120s (MongoMemoryServer port collision); rerun serially to verify remaining suites."
+    "lint": "pass",
+    "tests": {
+      "status": "failed",
+      "note": "pnpm vitest run --reporter=dot --pool=threads --poolOptions.threads.singleThread=true --testTimeout=180000 timed out; MongoMemoryServer port 49540 in use during tests/security/log-sanitizer.test.ts"
+    }
   },
   "issues": [
     {
-      "key": "add-rate-limiting-to-superadmin-routes",
-      "externalId": "EFF-002",
-      "title": "Add enforceRateLimit to superadmin auth/session routes",
-      "category": "security",
-      "priority": "P1",
-      "status": "pending",
-      "location": "app/api/superadmin/*",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "docs/PENDING_MASTER.md:147-151",
-      "evidenceSnippet": "Session/logout use enforceRateLimit; login still uses custom isRateLimited (no enforceRateLimit) in app/api/superadmin/login/route.ts"
-    },
-    {
-      "key": "add-rate-limiting-to-issues-api-routes",
-      "externalId": "EFF-001",
-      "title": "Add enforceRateLimit to Issues API routes (GET included)",
-      "category": "security",
-      "priority": "P1",
-      "status": "completed",
-      "location": "app/api/issues/*",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "docs/PENDING_MASTER.md:135-137",
-      "evidenceSnippet": "Issues routes have rate limiting: GET list 60/min, POST create 30/min, PATCH update 60/min, DELETE 10/min, import 5/min, stats 30/min.",
-      "completedAt": "2025-12-13T22:50:00+03:00"
-    },
-    {
-      "key": "bug-010-pm-routes-tenant-filter",
-      "externalId": "BUG-010",
-      "title": "PM routes missing tenant filter",
-      "category": "bug",
-      "priority": "P2",
-      "status": "false_positive",
-      "location": "app/api/pm/*",
-      "sourcePath": "code-review",
-      "sourceRef": "code-review:app/api/pm/plans/route.ts:40",
-      "evidenceSnippet": "Routes already have orgId filter; grep missed camelCase",
-      "resolvedAt": "2025-12-13T22:50:00+03:00",
-      "resolution": "FALSE POSITIVE - orgId scoping confirmed"
-    },
-    {
-      "key": "logic-001-assistant-query-org-id",
-      "externalId": "LOGIC-001",
-      "title": "Assistant query without org_id in WorkOrder.find",
-      "category": "logic",
-      "priority": "P2",
-      "status": "false_positive",
-      "location": "app/api/assistant/query/route.ts",
-      "sourcePath": "code-review",
-      "sourceRef": "code-review:app/api/assistant/query/route.ts:259-262",
-      "evidenceSnippet": "WorkOrder.find uses orgId: user.orgId; KB search properly scoped",
-      "resolvedAt": "2025-12-13T22:50:00+03:00",
-      "resolution": "FALSE POSITIVE - tenant scoping confirmed"
-    },
-    {
-      "key": "eff-004-pm-routes-rate-limiting",
-      "externalId": "EFF-004",
+      "key": "EFF-004",
       "title": "Add rate limiting to PM routes (plans/[id])",
       "category": "efficiency",
       "priority": "P2",
       "status": "pending",
       "location": "app/api/pm/*",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "docs/PENDING_MASTER.md:75",
-      "evidenceSnippet": "PM routes at 60% rate limit coverage; plans/[id] missing"
+      "sourceRef": "docs/PENDING_MASTER.md:145",
+      "evidenceSnippet": "Add rate limiting to PM routes (plans/[id])"
     },
     {
-      "key": "test-002-hr-module-coverage",
-      "externalId": "TEST-002",
+      "key": "TEST-002",
       "title": "Increase HR module test coverage (14% → 50%)",
       "category": "missing_test",
       "priority": "P2",
       "status": "pending",
       "location": "tests/api/hr/*",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "docs/PENDING_MASTER.md:76",
-      "evidenceSnippet": "HR module has 7 routes, 1 test file; employees CRUD, payroll need coverage"
+      "sourceRef": "docs/PENDING_MASTER.md:146",
+      "evidenceSnippet": "Increase HR module test coverage (14% → 50%)"
     },
     {
-      "key": "test-001-souq-test-coverage",
-      "externalId": "TEST-001",
+      "key": "TEST-001",
       "title": "Increase Souq test coverage (35% → 50%)",
       "category": "missing_test",
       "priority": "P3",
       "status": "pending",
       "location": "tests/api/souq/*",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "docs/PENDING_MASTER.md:77",
-      "evidenceSnippet": "Souq has 75 routes, 26 tests; checkout, fulfillment, repricer need coverage"
+      "sourceRef": "docs/PENDING_MASTER.md:147",
+      "evidenceSnippet": "Increase Souq test coverage (35% → 50%)"
     },
     {
-      "key": "bug-011-notification-then-chains",
-      "externalId": "BUG-011",
+      "key": "BUG-011",
       "title": "Add .catch() to notification .then() chains",
       "category": "bug",
       "priority": "P3",
       "status": "pending",
       "location": "lib/notifications/*",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "docs/PENDING_MASTER.md:78",
-      "evidenceSnippet": "Unhandled .then() chains in notification handlers; add .catch()"
-    },
-    {
-      "key": "create-superadmin-route-tests",
-      "title": "Create Superadmin route tests",
-      "category": "missing_test",
-      "priority": "P2",
-      "status": "completed",
-      "location": "tests/unit/api/superadmin/*",
-      "sourcePath": "backlog-audit",
-      "sourceRef": "backlog-audit",
-      "evidenceSnippet": "14 tests across login, session, logout routes",
-      "completedAt": "2025-12-13T22:00:00+03:00"
-    },
-    {
-      "key": "create-crm-route-tests",
-      "title": "Create CRM route tests",
-      "category": "missing_test",
-      "priority": "P2",
-      "status": "pending",
-      "location": "tests/unit/api/crm/*",
-      "sourcePath": "backlog-audit",
-      "sourceRef": "backlog-audit",
-      "evidenceSnippet": "tests/unit/api/crm/crm.test.ts only asserts role sets; CRM route handlers still untested"
+      "sourceRef": "docs/PENDING_MASTER.md:148",
+      "evidenceSnippet": "Add .catch() to notification handlers"
     }
   ]
 }

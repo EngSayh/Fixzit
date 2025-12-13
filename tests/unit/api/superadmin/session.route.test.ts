@@ -37,8 +37,9 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 // Mock rate limit
+const mockEnforceRateLimit = vi.fn();
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: mockEnforceRateLimit,
 }));
 
 // Mock superadmin auth
@@ -52,6 +53,9 @@ vi.mock("@/lib/superadmin/auth", () => ({
 describe("GET /api/superadmin/session", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEnforceRateLimit.mockReturnValue(null);
+    mockDecodeToken.mockReset();
+    mockDecodeToken.mockResolvedValue(null);
   });
 
   it("should return 401 when no session cookie", async () => {
