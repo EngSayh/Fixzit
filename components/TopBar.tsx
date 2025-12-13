@@ -839,7 +839,7 @@ function NotificationPopup({
     <div className="notification-container relative">
       <SimpleTooltip content={t("nav.notifications", "Notifications")} side="bottom">
         <Button
-          ref={notifBtnRef}
+          ref={notifBtnRef as React.LegacyRef<HTMLButtonElement>}
           variant="ghost"
           size="icon"
           onClick={() => {

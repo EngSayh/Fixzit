@@ -76,9 +76,12 @@ export interface OTPData {
   expiresAt: number;
   attempts: number;
   userId: string;
-  phone: string;
+  phone?: string;
+  email?: string;
   orgId?: string | null;
   companyCode?: string | null;
+  /** Delivery method used: 'sms' or 'email' */
+  deliveryMethod?: "sms" | "email";
   /** Indicates this OTP was created via production bypass for authorized users */
   __bypassed?: boolean;
 }
