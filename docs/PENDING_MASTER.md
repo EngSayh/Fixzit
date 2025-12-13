@@ -1,3 +1,139 @@
+## 🗓️ 2025-12-13T19:45+03:00 — Route Refactoring + Critical Module Tests v65.1
+
+### 📍 Current Progress & Planned Next Steps
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| Branch | `docs/pending-v60` | ✅ Active |
+| Commits | `bc5f60662` (HEAD) | ✅ Pushed |
+| Tests | 3,130 passing (319 files) | ✅ All pass |
+| Typecheck | Clean | ✅ Complete |
+
+**Session Progress (v65.1):**
+1. ✅ **Route Refactoring (P2)**: Extracted helpers from 2 large route files
+   - `auth/otp/send` (1091 lines) → extracted to `lib/auth/otp/test-users.ts` + `lib/auth/otp/helpers.ts`
+   - `payments/tap/webhook` (815 lines) → extracted to `lib/finance/tap-webhook/handlers.ts` + `persistence.ts`
+2. ✅ **P1 Module Tests Added**: 97 new tests across 6 critical routes
+   - Souq: `kyc-submit.test.ts` (17), `claims.route.test.ts` (22)
+   - Admin: `benchmark.test.ts` (10), `users.route.test.ts` (18)
+   - FM: `expenses.test.ts` (12), `budgets.test.ts` (18)
+3. ✅ **Fixed lint errors**: Removed unused imports in extracted modules
+4. ✅ **Fixed layout warning**: Converted `<a>` to `<Link>` in Playwright nav
+
+**Commits This Session:**
+- `a29893220` - refactor(P2): extract helpers from large routes + P1 module tests
+- `bc5f60662` - test(P1): add critical module tests - claims, users, budgets
+
+**Planned Next Steps:**
+- P1: Add more Souq tests (ads, settlements, repricer)
+- P1: Add more Admin tests (notifications, sms, security)
+- P2: Continue route refactoring (search 794 lines, notifications/send 644 lines)
+- P2: Add negative-path tests for auth infra failure scenarios
+
+### 🔧 Enhancements & Production Readiness
+
+#### Efficiency Improvements
+| Item | Status | Notes |
+|------|--------|-------|
+| Route file extraction | ✅ Done | Extracted 1,229 lines from 2 god-routes into reusable modules |
+| Test coverage expansion | ✅ Done | Added 97 tests for critical Souq/Admin/FM flows |
+| Refactored webhook pattern | ✅ Done | Created `route.refactored.ts` showing slim 170-line pattern |
+
+#### New Extracted Modules
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `lib/auth/otp/test-users.ts` | 238 | Demo/test user config, password matching, user building |
+| `lib/auth/otp/helpers.ts` | 111 | OTP generation, rate limiting, org resolution |
+| `lib/finance/tap-webhook/handlers.ts` | 248 | Webhook event handlers (charge, refund) |
+| `lib/finance/tap-webhook/persistence.ts` | 445 | DB operations for transactions, payments, refunds |
+| `lib/finance/tap-webhook/index.ts` | 7 | Module re-exports |
+
+#### Test Coverage Status (Updated)
+
+| Module | Routes | Tests | Coverage | Delta |
+|--------|--------|-------|----------|-------|
+| **Souq** | 75 | 11 files | ~15% → ~35% | +4 files |
+| **Admin** | 28 | 9 files | ~21% → ~32% | +2 files |
+| **FM** | 25 | 7 files | ~36% → ~52% | +2 files |
+
+#### New Tests Added This Session
+
+| Test File | Tests | Coverage |
+|-----------|-------|----------|
+| `souq/seller-central/kyc-submit.test.ts` | 17 | KYC submission auth, validation, flow |
+| `souq/claims/claims.route.test.ts` | 22 | A-to-Z claims POST/GET, duplicate prevention |
+| `admin/billing/benchmark.test.ts` | 10 | Billing benchmarks auth, tenant isolation |
+| `admin/users/users.route.test.ts` | 18 | User CRUD, password hashing, duplicate prevention |
+| `fm/finance/expenses.test.ts` | 12 | FM expenses CRUD, tenant isolation |
+| `fm/finance/budgets.test.ts` | 18 | FM budgets CRUD, validation, tenant isolation |
+
+#### Bugs Identified
+| ID | Severity | Location | Issue | Status |
+|----|----------|----------|-------|--------|
+| BUG-007 | 🟡 Medium | `marketplace/products/route.ts` | `.catch(() => null)` on session lookup (2 occurrences) | 🔴 Open |
+| BUG-008 | 🟡 Medium | `auth/otp/verify/route.ts` | `.catch(() => null)` on session update | 🔴 Open |
+
+#### Logic Errors
+| ID | Location | Issue | Status |
+|----|----------|-------|--------|
+| LOGIC-126 | Large route files | God-object anti-pattern (search, notifications/send) | 🟠 Partial (2/6 refactored) |
+| LOGIC-127 | Test coverage gaps | Critical paths untested (ads, repricer, sms) | 🟠 Partial (97 tests added) |
+
+#### Missing Tests - Priority Matrix (Updated)
+| Priority | Area | Test Type | Est. Effort | Status |
+|----------|------|-----------|-------------|--------|
+| P1 | Souq settlements | Integration + E2E | 4h | ✅ Done (v65.0) |
+| P1 | Souq seller-central KYC | Integration | 3h | ✅ Done (v65.1) |
+| P1 | Souq claims | Integration | 2h | ✅ Done (v65.1) |
+| P1 | Admin notifications | Unit + Integration | 2h | ✅ Done (v65.0) |
+| P1 | Admin billing | Integration | 3h | ✅ Done (v65.1) |
+| P1 | Admin users | Integration | 2h | ✅ Done (v65.1) |
+| P1 | FM work-orders transitions | Unit + Integration | 3h | ✅ Done (v65.0) |
+| P1 | FM expenses | Integration | 2h | ✅ Done (v65.1) |
+| P1 | FM budgets | Integration | 2h | ✅ Done (v65.1) |
+| P2 | Souq ads | Unit | 2h | 🔴 Open |
+| P2 | Souq repricer | Unit | 2h | 🔴 Open |
+| P2 | FM marketplace | Integration | 2h | 🔴 Open |
+| P2 | Auth infra failure | Negative-path | 2h | 🔴 Open |
+
+### 🔍 Deep-Dive: Pattern Analysis
+
+#### Residual `.catch(() => null)` Anti-Pattern
+Found 3 remaining occurrences in API routes that should use infra-aware helpers:
+
+1. **marketplace/products/route.ts:105,177** - Session lookup fallback masks infra failures
+2. **auth/otp/verify/route.ts:140** - Session update swallows errors
+
+**Recommendation**: Apply `getSessionOrError` from `lib/auth/safe-session.ts` to these routes.
+
+#### Route Refactoring Progress
+| File | Lines | Priority | Status |
+|------|-------|----------|--------|
+| `auth/otp/send/route.ts` | 1091 | P2 | ✅ Extracted helpers |
+| `payments/tap/webhook/route.ts` | 815 | P2 | ✅ Extracted handlers |
+| `search/route.ts` | 794 | P3 | 🔴 Open |
+| `admin/notifications/send/route.ts` | 644 | P3 | 🔴 Open |
+| `souq/orders/route.ts` | 585 | P3 | 🔴 Open |
+| `fm/work-orders/[id]/transition/route.ts` | 581 | P3 | 🔴 Open |
+
+#### Extracted Module Pattern (Best Practice)
+The new `lib/finance/tap-webhook/` structure demonstrates the recommended pattern:
+```
+lib/finance/tap-webhook/
+├── handlers.ts      # Event-specific handlers (pure functions)
+├── persistence.ts   # DB operations (side effects isolated)
+└── index.ts         # Clean re-exports
+```
+
+This pattern:
+1. Separates HTTP concerns from business logic
+2. Makes handlers unit-testable without HTTP mocking
+3. Isolates side effects (DB) for easier mocking
+4. Enables handler reuse across routes
+
+---
+
 ## 🗓️ 2025-12-13T17:30+03:00 — Test Coverage Gap Analysis & Route Refactoring v65.0
 
 ### 📍 Current Progress & Planned Next Steps
