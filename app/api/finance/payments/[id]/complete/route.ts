@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
 import { Payment, PaymentStatus } from "@/server/models/finance/Payment";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
@@ -28,6 +29,13 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 30,
+    windowMs: 60_000,
+    keyPrefix: "finance:payments:complete",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { id } = params;
     const user = await getUserSession(req);

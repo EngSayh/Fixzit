@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";
 import { DOMAINS } from "@/lib/config/domains";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { createSecureResponse } from "@/server/security/headers";
 
@@ -24,41 +25,43 @@ export const dynamic = "force-dynamic";
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET() {
-  // Check if ATS feeds are enabled
-  if (process.env.ATS_ENABLED !== "true") {
-    return createSecureResponse(
-      { error: "ATS feeds not available in this deployment" },
-      501,
-    );
-  }
+export async function GET(request: NextRequest) {
+  enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "feeds:linkedin" });
+  try {
+    // Check if ATS feeds are enabled
+    if (process.env.ATS_ENABLED !== "true") {
+      return createSecureResponse(
+        { error: "ATS feeds not available in this deployment" },
+        501,
+      );
+    }
 
-  // Define type for job fields needed in XML
-  interface JobFeedDoc {
-    slug?: string;
-    title?: string;
-    location?: {
-      city?: string;
-      country?: string;
-    };
-    description?: string;
-    jobType?: string;
-    publishedAt?: Date;
-    createdAt?: Date;
-  }
+    // Define type for job fields needed in XML
+    interface JobFeedDoc {
+      slug?: string;
+      title?: string;
+      location?: {
+        city?: string;
+        country?: string;
+      };
+      description?: string;
+      jobType?: string;
+      publishedAt?: Date;
+      createdAt?: Date;
+    }
 
-  await connectToDatabase();
-  // PUBLIC FEEDS: Intentionally cross-tenant for job aggregation.
-  // This exposes only public, published jobs from all organizations
-  // as part of the platform-wide careers feed. This is by design for
-  // job board integrations (LinkedIn, Indeed, etc.).
-  const jobs = (await Job.find({ status: "published", visibility: "public" })
-    .sort({ publishedAt: -1 })
-    .lean()) as JobFeedDoc[];
+    await connectToDatabase();
+    // PUBLIC FEEDS: Intentionally cross-tenant for job aggregation.
+    // This exposes only public, published jobs from all organizations
+    // as part of the platform-wide careers feed. This is by design for
+    // job board integrations (LinkedIn, Indeed, etc.).
+    const jobs = (await Job.find({ status: "published", visibility: "public" })
+      .sort({ publishedAt: -1 })
+      .lean()) as JobFeedDoc[];
 
-  const items = (jobs as JobFeedDoc[])
-    .map(
-      (j) => `
+    const items = (jobs as JobFeedDoc[])
+      .map(
+        (j) => `
     <job>
       <id>${j.slug}</id>
       <title><![CDATA[${j.title}]]></title>
@@ -70,15 +73,18 @@ export async function GET() {
       <listingType>Job Posting</listingType>
       <postedAt>${new Date(j.publishedAt || j.createdAt || Date.now()).toISOString()}</postedAt>
     </job>`,
-    )
-    .join("");
+      )
+      .join("");
 
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
   <jobs>
     ${items}
   </jobs>`;
 
-  return new NextResponse(xml, {
-    headers: { "Content-Type": "application/xml; charset=utf-8" },
-  });
+    return new NextResponse(xml, {
+      headers: { "Content-Type": "application/xml; charset=utf-8" },
+    });
+  } catch (_error) {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

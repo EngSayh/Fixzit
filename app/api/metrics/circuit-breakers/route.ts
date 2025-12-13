@@ -10,10 +10,12 @@
  * - format=json - JSON format
  */
 import { NextRequest, NextResponse } from "next/server";
-import { 
-  getPrometheusMetrics, 
-  getCircuitBreakerSummary 
+import {
+  getPrometheusMetrics,
+  getCircuitBreakerSummary,
 } from "@/lib/resilience/circuit-breaker-metrics";
+import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -44,33 +46,41 @@ function isAuthorized(request: NextRequest): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  // Optional authentication
-  if (!isAuthorized(request)) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
-  }
+  enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "metrics:circuit-breakers" });
+  try {
+    // Optional authentication
+    if (!isAuthorized(request)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const format = request.nextUrl.searchParams.get("format") ?? "prometheus";
+    const format = request.nextUrl.searchParams.get("format") ?? "prometheus";
 
-  if (format === "json") {
-    const summary = getCircuitBreakerSummary();
-    return NextResponse.json(summary, {
+    if (format === "json") {
+      const summary = getCircuitBreakerSummary();
+      return NextResponse.json(summary, {
+        headers: {
+          "Cache-Control": "no-store, max-age=0",
+        },
+      });
+    }
+
+    // Default: Prometheus text format
+    const metrics = getPrometheusMetrics();
+
+    return new NextResponse(metrics, {
+      status: 200,
       headers: {
+        "Content-Type": "text/plain; version=0.0.4; charset=utf-8",
         "Cache-Control": "no-store, max-age=0",
       },
     });
+  } catch (error) {
+    logger.error("[metrics/circuit-breakers] Failed to render metrics", {
+      error,
+    });
+    return NextResponse.json(
+      { error: "Failed to load circuit breaker metrics" },
+      { status: 500 },
+    );
   }
-
-  // Default: Prometheus text format
-  const metrics = getPrometheusMetrics();
-  
-  return new NextResponse(metrics, {
-    status: 200,
-    headers: {
-      "Content-Type": "text/plain; version=0.0.4; charset=utf-8",
-      "Cache-Control": "no-store, max-age=0",
-    },
-  });
 }

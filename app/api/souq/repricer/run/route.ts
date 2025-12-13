@@ -14,12 +14,21 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { AutoRepricerService } from "@/services/souq/auto-repricer-service";
 import { SouqSeller } from "@/server/models/souq/Seller";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * POST /api/souq/repricer/run
  * Manually trigger repricing for current seller
  */
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
+  // Rate limiting: 10 requests per minute per IP for repricing runs (resource-intensive)
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-repricer:run",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

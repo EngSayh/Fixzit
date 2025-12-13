@@ -60,9 +60,24 @@ vi.mock("@/components/TopBar", () => ({
   default: () => React.createElement("div", { "data-testid": "mock-topbar" }, "TopBar"),
 }));
 
+// Mock ThemeContext to avoid "useThemeCtx must be used within ThemeProvider" error
+vi.mock("@/contexts/ThemeContext", () => ({
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+  useThemeCtx: vi.fn(() => ({
+    theme: "light",
+    setTheme: vi.fn(),
+    toggleTheme: vi.fn(),
+  })),
+}));
+
 // Mock Sidebar to avoid complex dependencies
 vi.mock("@/components/Sidebar", () => ({
   default: () => React.createElement("div", { "data-testid": "mock-sidebar" }, "Sidebar"),
+}));
+
+// Mock Footer to avoid Tooltip provider dependency from ThemeToggle
+vi.mock("@/components/Footer", () => ({
+  default: () => React.createElement("footer", { "data-testid": "mock-footer" }, "Footer"),
 }));
 
 // Mock dynamic imports

@@ -23,6 +23,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import type { WithId } from "mongodb";
 import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   getCanonicalUserId,
   mapWorkOrderDocument,
@@ -30,13 +31,20 @@ import {
   type WorkOrderDocument,
 } from "../../utils";
 import { resolveTenantId } from "../../../utils/tenant";
-import { requireFmAbility } from "../../../utils/auth";
+import { requireFmAbility } from "../../../utils/fm-auth";
 import { FMErrors } from "../../../errors";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "fm-workorders-assign:post",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const actor = await requireFmAbility("ASSIGN")(req);
     if (actor instanceof NextResponse) return actor;

@@ -12,9 +12,43 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { audit } from "@/lib/audit";
-export async function GET(_request: NextRequest) {
+import type { Session } from "next-auth";
+import {
+  buildOrgAwareRateLimitKey,
+  smartRateLimit,
+} from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+
+const ADMIN_NOTIFICATIONS_CONFIG_RL_LIMIT = 20;
+
+const enforceNotificationConfigRateLimit = async (
+  req: NextRequest,
+  session: Session | null,
+) => {
+  const sessionUser = session?.user as { id?: string; orgId?: string } | undefined;
+  const key = buildOrgAwareRateLimitKey(
+    req,
+    sessionUser?.orgId ?? null,
+    sessionUser?.id ?? null,
+  );
+  const rl = await smartRateLimit(
+    `${key}:admin-notification-config`,
+    ADMIN_NOTIFICATIONS_CONFIG_RL_LIMIT,
+    60_000,
+  );
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+  return null;
+};
+export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = (await auth()) as Session | null;
+    const rateLimited = await enforceNotificationConfigRateLimit(
+      request,
+      session,
+    );
+    if (rateLimited) return rateLimited;
 
     if (!session?.user) {
       await audit({

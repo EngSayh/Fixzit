@@ -3,7 +3,7 @@
 import React from "react";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { WorkOrdersView } from "@/components/fm/WorkOrdersView";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { WORK_ORDERS_MODULE_ID } from "@/config/navigation/constants";
 

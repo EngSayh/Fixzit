@@ -18,6 +18,7 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { existsSync } from "fs";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 interface PlatformSettingsDocument {
   logoUrl?: string;
@@ -28,6 +29,13 @@ interface PlatformSettingsDocument {
   [key: string]: unknown;
 }
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "admin-logo:upload",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Authentication & Authorization
     const user = await getSessionUser(request);

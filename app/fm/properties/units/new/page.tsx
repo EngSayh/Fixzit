@@ -10,7 +10,7 @@ import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { ClipboardCheck, Compass, Upload } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 export default function CreatePropertyUnitPage() {
   const auto = useAutoTranslator("fm.properties.units.new");

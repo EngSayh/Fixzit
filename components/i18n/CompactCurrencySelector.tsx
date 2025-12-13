@@ -29,7 +29,7 @@ export default function CompactCurrencySelector({
         <DollarSign className="h-4 w-4 text-muted-foreground" />
         <select
           value={currency}
-          onChange={(e) => handleChange(e.target.value)}
+          onChange={(e) => handleChange(e.target.value as CurrencyCode)}
           className="appearance-none bg-transparent border-none outline-none text-sm text-foreground font-medium cursor-pointer pe-1"
           aria-label="Select currency"
         >

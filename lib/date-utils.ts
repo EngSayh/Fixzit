@@ -1,3 +1,5 @@
+import { formatCurrency as formatCurrencyDisplay } from "@/lib/currency-formatter";
+
 export type DateInput = Date | number | string | null | undefined;
 
 function normalizeDate(value: DateInput): Date | null {
@@ -145,31 +147,7 @@ export function formatRelativeTime(value: DateInput, locale?: string): string {
   }
 }
 
-/**
- * Format currency amount with proper locale handling.
- *
- * @param amount - Numeric amount
- * @param currency - Currency code (defaults to SAR)
- * @param locale - Optional locale override
- */
-export function formatCurrency(
-  amount: number,
-  currency = "SAR",
-  locale?: string,
-): string {
-  const resolvedLocale = locale || (typeof navigator !== "undefined" ? navigator.language : "ar-SA");
-
-  try {
-    return new Intl.NumberFormat(resolvedLocale, {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${amount.toLocaleString()} ${currency}`;
-  }
-}
+export const formatCurrency = formatCurrencyDisplay;
 
 /**
  * Format number with proper locale handling.

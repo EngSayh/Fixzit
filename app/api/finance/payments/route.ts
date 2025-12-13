@@ -20,8 +20,10 @@ import { Invoice } from "@/server/models/Invoice";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
+import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { Types } from "mongoose";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError } from "@/server/utils/errorResponses";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { logger } from "@/lib/logger";
 const PaymentAllocationSchema = z.object({
@@ -97,6 +99,14 @@ async function getUserSession(req: NextRequest) {
  * Create a new payment
  */
 export async function POST(req: NextRequest) {
+  // Rate limiting: 15 requests per minute per IP for payment writes
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-payments:create",
+    requests: 15,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await getUserSession(req);
     if (!user) {
@@ -107,7 +117,13 @@ export async function POST(req: NextRequest) {
     requirePermission(user.role, "finance.payments.create");
 
     // Parse request body
-    const body = await req.json();
+    const body = await parseBodyOrNull(req);
+    if (!body) {
+      return NextResponse.json(
+        { success: false, error: "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
     const data = CreatePaymentSchema.parse(body);
 
     // Execute with proper context
@@ -192,6 +208,14 @@ export async function POST(req: NextRequest) {
  * List payments with filters
  */
 export async function GET(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for reads
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-payments:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await getUserSession(req);
     if (!user) {

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 type ModuleOption = (typeof MODULE_OPTIONS)[number];
 type PriorityOption = (typeof PRIORITY_OPTIONS)[number];

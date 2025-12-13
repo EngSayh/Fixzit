@@ -5,6 +5,9 @@ import { connectDb } from '@/lib/mongo';
 import { APP_DEFAULTS } from '@/config/constants';
 import { logger } from '@/lib/logger';
 import { isTruthy } from '@/lib/utils/env';
+import { buildOrgAwareRateLimitKey, smartRateLimit } from '@/server/security/rateLimit';
+import { rateLimitError } from '@/server/utils/errorResponses';
+import type { Session } from 'next-auth';
 
 type ThemePreference = 'light' | 'dark' | 'system' | 'LIGHT' | 'DARK' | 'SYSTEM' | 'AUTO';
 
@@ -27,6 +30,8 @@ const DEFAULT_NOTIFICATIONS = {
   push: true,
   sms: false,
 };
+
+const getSession = () => auth() as unknown as Promise<Session | null>;
 
 const NOTIFICATION_KEYS = ['email', 'push', 'sms'] as const;
 
@@ -52,6 +57,25 @@ const DEFAULT_PREFERENCES = {
   dateFormat: 'YYYY-MM-DD',
   theme: APP_DEFAULTS.theme,
   notifications: DEFAULT_NOTIFICATIONS,
+};
+
+const PREFERENCES_READ_LIMIT = 60;
+const PREFERENCES_WRITE_LIMIT = 30;
+
+const enforcePreferencesRateLimit = async (
+  req: NextRequest,
+  session: Session | null,
+  limit: number,
+) => {
+  const sessionUser = session?.user as { id?: string; orgId?: string } | undefined;
+  const orgId = sessionUser?.orgId ?? null;
+  const userId = sessionUser?.id ?? null;
+  const key = buildOrgAwareRateLimitKey(req, orgId, userId);
+  const rl = await smartRateLimit(`${key}:preferences`, limit, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+  return null;
 };
 
 const normalizeThemePreference = (value?: unknown): ThemePreference | null => {
@@ -128,11 +152,17 @@ function deepMerge(...objects: Array<Record<string, unknown> | undefined>) {
  *
  * Get current user's preferences (language, theme, notifications, etc.)
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   const allowPlaywright =
     process.env.PLAYWRIGHT_TESTS === 'true' && process.env.NODE_ENV === 'test';
   try {
-    const session = await auth();
+    const session = await getSession();
+    const rateLimited = await enforcePreferencesRateLimit(
+      req,
+      session,
+      PREFERENCES_READ_LIMIT,
+    );
+    if (rateLimited) return rateLimited;
     if (!session?.user) {
       if (allowPlaywright) {
         logger.warn('PLAYWRIGHT_TESTS=true: no session detected, returning default preferences');
@@ -189,7 +219,13 @@ export async function GET() {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await getSession();
+    const rateLimited = await enforcePreferencesRateLimit(
+      request,
+      session,
+      PREFERENCES_WRITE_LIMIT,
+    );
+    if (rateLimited) return rateLimited;
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

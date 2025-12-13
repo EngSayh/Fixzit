@@ -17,7 +17,7 @@ vi.mock("swr", () => ({
   default: (...args: Parameters<typeof mockUseSWR>) => mockUseSWR(...args),
 }));
 
-vi.mock("@/components/fm/useFmOrgGuard", () => ({
+vi.mock("@/hooks/fm/useFmOrgGuard", () => ({
   useFmOrgGuard: () => mockUseOrgGuard(),
 }));
 

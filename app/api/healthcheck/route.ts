@@ -6,5 +6,8 @@
  * @module health
  */
 
+import { wrapRoute } from "@/lib/api/route-wrapper";
+import { GET as healthGet } from "../health/route";
+
 export { dynamic } from "../health/route";
-export { GET } from "../health/route";
+export const GET = wrapRoute(healthGet, "api.healthcheck.get.catch");

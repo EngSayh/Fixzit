@@ -26,11 +26,15 @@ import { VerificationLog } from '@/server/models/onboarding/VerificationLog';
 import { DocumentProfile } from '@/server/models/onboarding/DocumentProfile';
 import { enqueueOnboardingOcr } from '@/jobs/onboarding-queue';
 import { logger } from '@/lib/logger';
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { caseId: string } },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, { requests: 20, windowMs: 60_000, keyPrefix: "onboarding:docs:confirm" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

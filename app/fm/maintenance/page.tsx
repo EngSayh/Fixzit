@@ -27,7 +27,7 @@ import {
   Loader2,
 } from "lucide-react";
 import ClientDate from "@/components/ClientDate";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { CardGridSkeleton } from "@/components/skeletons";
 
 interface MaintenanceTask {

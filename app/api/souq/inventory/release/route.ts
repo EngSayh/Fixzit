@@ -16,12 +16,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { inventoryService } from "@/services/souq/inventory-service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * POST /api/souq/inventory/release
  * Release a reservation (order cancelled or expired)
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for inventory release
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-inventory:release",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

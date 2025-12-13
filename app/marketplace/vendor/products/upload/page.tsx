@@ -11,6 +11,7 @@ import { FormWithNavigation } from "@/components/ui/navigation-buttons";
 
 import { logger } from "@/lib/logger";
 import { nanoid } from "nanoid";
+import { safeJsonParseWithFallback } from "@/lib/utils/safe-json";
 
 interface ProductImage {
   id: string;
@@ -148,7 +149,7 @@ export default function VendorProductUploadPage() {
           ? formData.standards.split(",").map((s) => s.trim())
           : [],
         specifications: formData.specifications
-          ? JSON.parse(formData.specifications)
+          ? safeJsonParseWithFallback<Record<string, unknown>>(formData.specifications, {})
           : {},
         status: "PENDING_APPROVAL",
       };

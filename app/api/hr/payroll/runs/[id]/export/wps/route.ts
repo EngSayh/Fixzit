@@ -36,6 +36,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { generateWPSFile, validateWPSFile } from "@/services/hr/wpsService";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // 🔒 STRICT v4.1 CRITICAL: WPS export contains banking data (IBANs, salaries)
 // Requires HR Officer, Finance Officer, or Admin role
@@ -47,6 +48,7 @@ export async function GET(
   _req: NextRequest,
   props: { params: Promise<RouteParams> },
 ) {
+  enforceRateLimit(_req, { requests: 10, windowMs: 60_000, keyPrefix: "hr:payroll:wps" });
   try {
     const session = await auth();
     if (!session?.user?.orgId) {

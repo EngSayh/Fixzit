@@ -35,6 +35,7 @@ import { ObjectId } from "mongodb";
 import { createSecureResponse } from "@/server/security/headers";
 import { validationError } from "@/server/utils/errorResponses";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const commentSchema = z.object({
   comment: z.string().min(1).max(2000),
@@ -58,6 +59,9 @@ export async function POST(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, { requests: 20, windowMs: 60_000, keyPrefix: "help:comments:create" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const params = await props.params;
     const user = await getSessionUser(req);

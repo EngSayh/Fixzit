@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { PlatformSettings } from "@/server/models/PlatformSettings";
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { writeFile, mkdir, copyFile, unlink } from "fs/promises";
 import path from "path";
 import { existsSync } from "fs";
@@ -37,6 +38,13 @@ interface PlatformSettingsDocument {
  * Uploads and sets a new favicon for the platform
  */
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "admin-favicon:upload",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Authentication & Authorization
     const user = await getSessionUser(request);

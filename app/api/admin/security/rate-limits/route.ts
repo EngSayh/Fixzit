@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import {
@@ -6,10 +6,19 @@ import {
   getRateLimitBreakdown,
 } from "@/lib/security/monitoring";
 import { getRedisClient, getRedisMetrics } from "@/lib/redis";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const ADMIN_ROLES = new Set(["SUPER_ADMIN"]);
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Rate limiting: 30 requests per minute for admin dashboard
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "admin-security:rate-limits",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

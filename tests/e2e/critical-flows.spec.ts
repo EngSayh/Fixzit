@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { getRequiredTestCredentials, getTestOrgIdOptional, hasTestCredentials } from './utils/credentials';
-import { attemptLogin } from './utils/auth';
+import { attemptLogin } from './utils/auth-helpers';
 
 /**
  * Critical User Flows E2E Tests

@@ -13,11 +13,17 @@ vi.mock("@/auth", () => ({
 // Mock rate limiter
 vi.mock("@/server/security/rateLimit", () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  rateLimit: vi.fn().mockReturnValue({ allowed: true }),
   rateLimitError: vi.fn().mockReturnValue(
     new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
       status: 429,
     })
   ),
+}));
+
+// Mock rate limit middleware
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
 
 // Mock database

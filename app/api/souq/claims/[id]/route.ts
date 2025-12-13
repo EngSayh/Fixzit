@@ -18,6 +18,7 @@ import { COLLECTIONS } from "@/lib/db/collections";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import { buildOrgScopeFilter } from "@/services/souq/org-scope";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/souq/claims/[id]
@@ -27,6 +28,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  // Rate limiting: 60 requests per minute per IP for claim details
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-claims:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await resolveRequestSession(request);
     const userOrgId = session?.user?.orgId;

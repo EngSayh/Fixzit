@@ -11,6 +11,9 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { requireAbility } from "@/server/middleware/withAuthRbac";
 import { WOAbility } from "@/types/work-orders/abilities";
+import { createSecureResponse } from "@/server/security/headers";
+import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Define type for exported work order fields
 interface WorkOrderExportDoc {
@@ -42,51 +45,63 @@ interface WorkOrderExportDoc {
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const user = await requireAbility(WOAbility.EXPORT)(req);
-  if (user instanceof NextResponse) return user;
-  await connectToDatabase();
-
-  // Use .lean() to get plain JavaScript objects instead of Mongoose documents
-  const docs = await WorkOrder.find({
-    orgId: user.orgId,
-    isDeleted: { $ne: true },
-  })
-    .limit(2000)
-    .lean<WorkOrderExportDoc[]>();
-
-  const header = [
-    "workOrderNumber",
-    "title",
-    "status",
-    "priority",
-    "propertyId",
-    "assigneeUserId",
-    "assigneeVendorId",
-    "createdAt",
-    "resolutionDeadline",
-  ];
-  const lines = [header.join(",")].concat(
-    docs.map((d: WorkOrderExportDoc) =>
-      [
-        d.workOrderNumber || "",
-        JSON.stringify(d.title || ""),
-        d.status || "",
-        d.priority || "",
-        d.location?.propertyId || "",
-        d.assignment?.assignedTo?.userId || "",
-        d.assignment?.assignedTo?.vendorId || "",
-        d.createdAt?.toISOString() || "",
-        d.sla?.resolutionDeadline?.toISOString() || "",
-      ].join(","),
-    ),
-  );
-
-  const csv = lines.join("\n");
-  return new NextResponse(csv, {
-    status: 200,
-    headers: {
-      "content-type": "text/csv; charset=utf-8",
-      "content-disposition": "attachment; filename=work-orders.csv",
-    },
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "work-orders-export:get",
+    requests: 10,
+    windowMs: 60_000,
   });
+  if (rateLimitResponse) return rateLimitResponse;
+
+  try {
+    const user = await requireAbility(WOAbility.EXPORT)(req);
+    if (user instanceof NextResponse) return user;
+    await connectToDatabase();
+
+    // Use .lean() to get plain JavaScript objects instead of Mongoose documents
+    const docs = await WorkOrder.find({
+      orgId: user.orgId,
+      isDeleted: { $ne: true },
+    })
+      .limit(2000)
+      .lean<WorkOrderExportDoc[]>();
+
+    const header = [
+      "workOrderNumber",
+      "title",
+      "status",
+      "priority",
+      "propertyId",
+      "assigneeUserId",
+      "assigneeVendorId",
+      "createdAt",
+      "resolutionDeadline",
+    ];
+    const lines = [header.join(",")].concat(
+      docs.map((d: WorkOrderExportDoc) =>
+        [
+          d.workOrderNumber || "",
+          JSON.stringify(d.title || ""),
+          d.status || "",
+          d.priority || "",
+          d.location?.propertyId || "",
+          d.assignment?.assignedTo?.userId || "",
+          d.assignment?.assignedTo?.vendorId || "",
+          d.createdAt?.toISOString() || "",
+          d.sla?.resolutionDeadline?.toISOString() || "",
+        ].join(","),
+      ),
+    );
+
+    const csv = lines.join("\n");
+    return new NextResponse(csv, {
+      status: 200,
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": "attachment; filename=work-orders.csv",
+      },
+    });
+  } catch (error) {
+    logger.error("[work-orders/export] Error exporting work orders", { error });
+    return createSecureResponse({ error: "Failed to export work orders" }, 500, req);
+  }
 }

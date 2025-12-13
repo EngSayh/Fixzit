@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 import fs from "fs";
 
-const snap = "configs/sidebar.snapshot.json";
+const snap = "config/sidebar.snapshot.json";
 if (!fs.existsSync(snap)) {
   const baseline = [
     "dashboard",

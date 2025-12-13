@@ -42,7 +42,7 @@ export interface IEscrowTransaction {
   currency: string;
   idempotencyKey?: string;
   externalRef?: string;
-  provider?: "PAYTABS" | "SADAD" | "SPAN" | "MANUAL" | "UNKNOWN";
+  provider?: "TAP" | "SADAD" | "SPAN" | "MANUAL" | "UNKNOWN";
   reason?: string;
   failureReason?: string;
   metadata?: Record<string, unknown>;
@@ -80,7 +80,7 @@ const EscrowTransactionSchema = new Schema<IEscrowTransaction>(
     externalRef: { type: String },
     provider: {
       type: String,
-      enum: ["PAYTABS", "SADAD", "SPAN", "MANUAL", "UNKNOWN"],
+      enum: ["TAP", "SADAD", "SPAN", "MANUAL", "UNKNOWN"],
       default: "UNKNOWN",
     },
     reason: { type: String },

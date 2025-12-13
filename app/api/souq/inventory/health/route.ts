@@ -20,12 +20,21 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/souq/inventory/health
  * Get inventory health report for a seller
  */
 export async function GET(request: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for inventory health reports
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-inventory:health",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

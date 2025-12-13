@@ -16,6 +16,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { dbConnect } from "@/lib/mongodb-unified";
 import Journal from "@/server/models/finance/Journal";
@@ -52,6 +53,13 @@ export async function POST(
   req: NextRequest,
   context: RouteContext<{ id: string }>,
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 30,
+    windowMs: 60_000,
+    keyPrefix: "finance:journals:post",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 

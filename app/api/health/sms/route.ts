@@ -13,6 +13,7 @@ import { withTimeout } from "@/lib/resilience";
 import { getRedisClient } from "@/lib/redis-client";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 import { TAQNYAT_API_BASE } from "@/lib/sms-providers/taqnyat";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +113,9 @@ async function checkRedisReachability(redisConfigured: boolean) {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "health:sms" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { isProd, isPreview, vercelEnv, nodeEnv } = resolveEnvironment();
     const isAuthorized = isAuthorizedHealthRequest(request);

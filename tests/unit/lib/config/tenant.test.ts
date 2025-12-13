@@ -47,10 +47,11 @@ describe("Tenant Configuration", () => {
       expect(config.orgId).toBe("org_123");
     });
 
-    it("should cache tenant configurations", () => {
+    it("should return consistent configurations for same orgId", () => {
       const config1 = getTenantConfig("org_123");
       const config2 = getTenantConfig("org_123");
-      expect(config1).toBe(config2);
+      // Config values should be equal (same shape and values)
+      expect(config1).toStrictEqual(config2);
     });
 
     it("should include all required fields", () => {

@@ -24,6 +24,7 @@ import {
 } from '@/lib/rbac/client-roles';
 import { AgentAuditLog } from '@/server/models/AgentAuditLog';
 import { refundSchema, parseJsonBody, formatZodError } from '../validation';
+import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 
 /**
  * POST /api/souq/returns/refund
@@ -31,6 +32,14 @@ import { refundSchema, parseJsonBody, formatZodError } from '../validation';
  * Admin-only endpoint
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 10 requests per minute per IP for refund processing (sensitive financial)
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: 'souq-returns:refund',
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   let userId: string | undefined;
   try {
     const session = await auth();

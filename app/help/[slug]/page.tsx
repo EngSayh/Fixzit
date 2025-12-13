@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { renderMarkdownSanitized } from "@/lib/markdown";
+import { sanitizeHtml } from "@/lib/sanitize-html";
+import { SafeHtml } from "@/components/SafeHtml";
 
 export const revalidate = 60;
 
@@ -40,6 +42,7 @@ export default async function HelpArticlePage({
   if (!a) {
     notFound();
   }
+  const contentHtml = sanitizeHtml(await renderMarkdown(a.content));
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
@@ -65,10 +68,7 @@ export default async function HelpArticlePage({
           {a.updatedAt ? new Date(a.updatedAt).toISOString().slice(0, 10) : ""}
         </p>
 
-        <div
-          className="prose prose-neutral max-w-none"
-          dangerouslySetInnerHTML={{ __html: await renderMarkdown(a.content) }}
-        />
+        <SafeHtml className="prose prose-neutral max-w-none" html={contentHtml} />
       </article>
     </div>
   );

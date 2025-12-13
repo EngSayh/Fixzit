@@ -20,6 +20,7 @@ import { connectDb } from "@/lib/mongo";
 import { AqarPackage, AqarPayment, PackageType } from "@/server/models/aqar";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { ok, badRequest, serverError } from "@/lib/api/http";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { logger } from "@/lib/logger";
 import { getServerTranslation } from "@/lib/i18n/server";
@@ -28,6 +29,14 @@ export const runtime = "nodejs";
 
 // GET /api/aqar/packages
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for reads
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:packages:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDb();
 
@@ -62,6 +71,14 @@ export async function GET(request: NextRequest) {
 
 // POST /api/aqar/packages
 export async function POST(request: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for package purchases
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:packages:post",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const correlationId = crypto.randomUUID();
 
   try {
@@ -94,6 +111,15 @@ export async function POST(request: NextRequest) {
       }
     ).getPricing(packageType as PackageType);
 
+    // SEC-FIX: Require orgId - never fall back to userId to prevent cross-tenant writes
+    if (!user.orgId) {
+      return NextResponse.json(
+        { error: "Organization context is required to purchase packages" },
+        { status: 403 },
+      );
+    }
+    const orgId = user.orgId;
+
     // Use atomic transaction for multi-document operation
     const session = await mongoose.startSession();
     let pkg: InstanceType<typeof AqarPackage> | undefined;
@@ -103,7 +129,7 @@ export async function POST(request: NextRequest) {
       // Create package
       pkg = new AqarPackage({
         userId: user.id,
-        orgId: user.orgId || user.id,
+        orgId,
         type: packageType,
         listingsAllowed: pricing.listings,
         validityDays: pricing.days,
@@ -114,7 +140,7 @@ export async function POST(request: NextRequest) {
       // Create payment
       payment = new AqarPayment({
         userId: user.id,
-        orgId: user.orgId || user.id,
+        orgId,
         type: "PACKAGE",
         amount: pricing.price,
         currency: "SAR",

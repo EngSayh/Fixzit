@@ -13,10 +13,12 @@
  * @throws {403} If lacking FINANCE permission
  */
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { dbConnect } from "@/lib/mongodb-unified";
 import LedgerEntry from "@/server/models/finance/LedgerEntry";
@@ -24,6 +26,22 @@ import LedgerEntry from "@/server/models/finance/LedgerEntry";
 import { Types } from "mongoose";
 
 import { logger } from "@/lib/logger";
+
+// ============================================================================
+// QUERY VALIDATION SCHEMA
+// ============================================================================
+
+const _LedgerQuerySchema = z.object({
+  accountId: z.string().refine(val => !val || Types.ObjectId.isValid(val), "Invalid account ID").optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  propertyId: z.string().refine(val => !val || Types.ObjectId.isValid(val), "Invalid property ID").optional(),
+  unitId: z.string().refine(val => !val || Types.ObjectId.isValid(val), "Invalid unit ID").optional(),
+  workOrderId: z.string().refine(val => !val || Types.ObjectId.isValid(val), "Invalid work order ID").optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(100),
+});
+
 // ============================================================================
 // HELPER: Get User Session
 // ============================================================================
@@ -47,6 +65,14 @@ async function getUserSession(_req: NextRequest) {
 // ============================================================================
 
 export async function GET(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for ledger reads
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-ledger:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 

@@ -27,6 +27,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 import { withIdempotency } from "@/server/security/idempotency";
+import type { InvoicePayment as CanonicalInvoicePayment } from "@/types/invoice";
 
 interface TransactionEvent {
   type: string;
@@ -35,12 +36,11 @@ interface TransactionEvent {
   payload: unknown;
 }
 
-interface InvoicePayment {
+type InvoicePayment = CanonicalInvoicePayment & {
   transactionId?: string;
   status?: string;
   notes?: string;
-  [key: string]: unknown;
-}
+};
 
 /**
  * POST /api/payments/tap/webhook

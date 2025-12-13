@@ -34,7 +34,7 @@ echo "🔴 CRITICAL: MongoDB Atlas Connection"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "You need MongoDB Atlas connection string in format:"
-echo "mongodb+srv://username:password@cluster.mongodb.net/fixzit"
+echo "mongodb+srv://USERNAME:PASSWORD[at]CLUSTER-HOST/fixzit"
 echo ""
 echo "If you don't have MongoDB Atlas:"
 echo "1. Visit: https://cloud.mongodb.com/signup"
@@ -59,8 +59,7 @@ if [[ ! "$MONGODB_URI" =~ ^mongodb(\+srv)?:// ]]; then
     echo "❌ Invalid MongoDB URI format!"
     echo "Should start with: mongodb+srv://"
     echo ""
-    echo "Example:"
-    echo "mongodb+srv://fixzit-admin:password123@cluster0.xyz.mongodb.net/fixzit"
+    echo "Example: mongodb+srv://USERNAME:PASSWORD[at]CLUSTER-HOST/fixzit"
     exit 1
 fi
 

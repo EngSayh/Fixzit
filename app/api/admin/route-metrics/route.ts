@@ -33,6 +33,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { existsSync, readdirSync } from "fs";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
@@ -83,6 +84,13 @@ function readHistorySnapshots(limit = HISTORY_LIMIT) {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "admin-route-metrics:get",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const jsonPath = path.join(process.cwd(), "_artifacts/route-aliases.json");
   const refresh = request.nextUrl.searchParams.get("refresh") === "1";
   const historyRequested = request.nextUrl.searchParams.get("history") === "1";

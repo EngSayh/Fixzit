@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useDebounce } from "@/hooks/useDebounce";
 import ClientDate from "@/components/ClientDate";
 

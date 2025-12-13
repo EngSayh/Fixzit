@@ -33,7 +33,7 @@ I've created a setup script that will configure everything:
 
 ```bash
 cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
-./setup-vercel-env.sh
+./scripts/deployment/setup-vercel-env.sh
 ```
 
 **You'll need:**
@@ -85,7 +85,7 @@ vercel env add PUBLIC_ORG_ID production
 vercel env add MARKETPLACE_ENABLED production
 # Enter: true
 
-# ... (see full list in setup-vercel-env.sh)
+# ... (see full list in scripts/deployment/setup-vercel-env.sh)
 
 > Security hygiene: The original document contained hardcoded SendGrid and Twilio credentials. Regenerate those keys/tokens in their dashboards and store only in your secrets manager before running these commands.
 ```
@@ -277,7 +277,7 @@ Should show:
 
    ```bash
    cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
-   ./setup-vercel-env.sh
+   ./scripts/deployment/setup-vercel-env.sh
    ```
 
    - Enter MongoDB Atlas connection string when prompted
@@ -300,7 +300,7 @@ Should show:
 ### Script Permission Error
 
 ```bash
-chmod +x setup-vercel-env.sh
+chmod +x scripts/deployment/setup-vercel-env.sh
 ```
 
 ### "No MongoDB Atlas"

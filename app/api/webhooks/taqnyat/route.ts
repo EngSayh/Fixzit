@@ -10,13 +10,17 @@
  * @param {Object} body.recipient - Phone number that received the SMS
  * @returns {Object} success: true if status processed
  * @throws {400} If payload is invalid
+ * @throws {401} If webhook signature is invalid
  * @security SMS provider limited to Taqnyat only (no Twilio, Unifonic, etc.)
+ * @security Webhook signature verification using HMAC-SHA256
  */
 
+import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SMSMessage } from "@/server/models/SMSMessage";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * Taqnyat delivery status codes mapping
@@ -45,28 +49,72 @@ interface TaqnyatWebhookPayload {
 }
 
 /**
- * Verify webhook signature (if Taqnyat provides one)
+ * Verify webhook signature using HMAC-SHA256
+ * 
+ * @security CRITICAL: This function validates that webhooks originate from Taqnyat
+ * Without this verification, attackers could forge SMS delivery status updates
+ * 
+ * @param request - Incoming webhook request
+ * @param rawBody - Raw request body as string (for signature calculation)
+ * @returns true if signature is valid, false otherwise
  */
 function verifyWebhookSignature(
-  _request: NextRequest,
-  _payload: TaqnyatWebhookPayload
+  request: NextRequest,
+  rawBody: string,
 ): boolean {
-  // Taqnyat may provide a signature header for webhook verification
-  // Implement signature verification if available in their API
   const webhookSecret = process.env.TAQNYAT_WEBHOOK_SECRET;
   
+  // SECURITY: Require explicit bypass flag for non-production testing
   if (!webhookSecret) {
-    // No secret configured - allow all webhooks (not recommended for production)
-    logger.warn("[Taqnyat Webhook] No webhook secret configured - skipping signature verification");
-    return true;
+    // To bypass verification in non-production, set SKIP_TAQNYAT_WEBHOOK_VERIFICATION=true
+    if (process.env.NODE_ENV !== "production" && process.env.SKIP_TAQNYAT_WEBHOOK_VERIFICATION === "true") {
+      logger.warn("[Taqnyat Webhook] Skipping signature verification due to SKIP_TAQNYAT_WEBHOOK_VERIFICATION flag");
+      return true;
+    }
+    logger.error("[Taqnyat Webhook] SECURITY: TAQNYAT_WEBHOOK_SECRET not configured - rejecting webhook");
+    return false;
   }
 
-  // ROADMAP: Implement signature verification when Taqnyat provides HMAC documentation
-  // Taqnyat API currently doesn't document webhook signatures. Monitor their API updates.
-  // const signature = request.headers.get("x-taqnyat-signature");
-  // return verifyHMAC(signature, JSON.stringify(payload), webhookSecret);
-  
-  return true;
+  // Get signature from headers (try multiple common header names)
+  const signature = 
+    request.headers.get("x-taqnyat-signature") ||
+    request.headers.get("x-signature") ||
+    request.headers.get("x-webhook-signature");
+
+  if (!signature) {
+    logger.error("[Taqnyat Webhook] SECURITY: Missing signature header");
+    return false;
+  }
+
+  try {
+    // Calculate expected HMAC-SHA256 signature
+    const hmac = crypto.createHmac("sha256", webhookSecret);
+    const expectedSignature = hmac.update(rawBody).digest("hex");
+
+    // Use timing-safe comparison to prevent timing attacks
+    const signatureBuffer = Buffer.from(signature, "hex");
+    const expectedBuffer = Buffer.from(expectedSignature, "hex");
+
+    if (signatureBuffer.length !== expectedBuffer.length) {
+      logger.error("[Taqnyat Webhook] SECURITY: Signature length mismatch");
+      return false;
+    }
+
+    const isValid = crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
+
+    if (!isValid) {
+      logger.error("[Taqnyat Webhook] SECURITY: Invalid signature", {
+        providedPrefix: signature.substring(0, 10) + "...",
+      });
+    }
+
+    return isValid;
+  } catch (error) {
+    logger.error("[Taqnyat Webhook] SECURITY: Signature verification error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
 }
 
 /**
@@ -75,23 +123,45 @@ function verifyWebhookSignature(
  * Handle Taqnyat SMS delivery status webhooks
  */
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 100, windowMs: 60_000, keyPrefix: "webhooks:taqnyat" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
-    const payload: TaqnyatWebhookPayload = await request.json();
+    // Read raw body for signature verification
+    const rawBody = await request.text();
+    const MAX_PAYLOAD_BYTES = 512 * 1024; // 512KB safety cap
+    if (Buffer.byteLength(rawBody, "utf8") > MAX_PAYLOAD_BYTES) {
+      logger.error("[Taqnyat Webhook] Payload too large", {
+        size: Buffer.byteLength(rawBody, "utf8"),
+      });
+      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+    }
+    
+    // Verify webhook authenticity FIRST (before parsing)
+    if (!verifyWebhookSignature(request, rawBody)) {
+      logger.warn("[Taqnyat Webhook] Rejected - invalid signature");
+      return NextResponse.json(
+        { error: "Invalid webhook signature" },
+        { status: 401 }
+      );
+    }
+
+    // Parse payload after verification
+    let payload: TaqnyatWebhookPayload;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch (error) {
+      logger.error("[Taqnyat Webhook] Invalid JSON payload", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    }
 
     logger.info("[Taqnyat Webhook] Received delivery status", {
       messageId: payload.messageId || payload.msgId,
       status: payload.status || payload.statusCode,
       recipient: payload.recipient || payload.to,
     });
-
-    // Verify webhook authenticity
-    if (!verifyWebhookSignature(request, payload)) {
-      logger.warn("[Taqnyat Webhook] Invalid signature");
-      return NextResponse.json(
-        { error: "Invalid webhook signature" },
-        { status: 401 }
-      );
-    }
 
     const messageId = payload.messageId || payload.msgId;
     const statusCode = payload.status || payload.statusCode || "";
@@ -182,7 +252,10 @@ export async function POST(request: NextRequest) {
  *
  * Health check for webhook endpoint
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "webhooks:taqnyat:health" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   return NextResponse.json({
     status: "ok",
     provider: "taqnyat",

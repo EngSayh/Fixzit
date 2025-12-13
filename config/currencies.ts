@@ -3,7 +3,17 @@
  * Single source of truth for supported currencies across the application
  */
 
-export type CurrencyCode = "SAR" | "USD" | "EUR" | "GBP" | "AED";
+export type CurrencyCode =
+  | "SAR"
+  | "USD"
+  | "EUR"
+  | "GBP"
+  | "AED"
+  | "OMR"
+  | "KWD"
+  | "BHD"
+  | "QAR"
+  | "EGP";
 
 export interface Currency {
   code: CurrencyCode;
@@ -11,6 +21,11 @@ export interface Currency {
   symbol: string;
   locale: string;
   flag: string;
+  decimals?: number;
+  symbolPosition?: "before" | "after";
+  thousandSeparator?: string;
+  decimalSeparator?: string;
+  minorUnit?: string;
 }
 
 /**
@@ -24,6 +39,11 @@ export const CURRENCIES: readonly Currency[] = [
     symbol: "ر.س",
     locale: "ar-SA",
     flag: "🇸🇦",
+    decimals: 2,
+    symbolPosition: "after",
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+    minorUnit: "halalas",
   },
   {
     code: "AED",
@@ -31,6 +51,11 @@ export const CURRENCIES: readonly Currency[] = [
     symbol: "د.إ",
     locale: "ar-AE",
     flag: "🇦🇪",
+    decimals: 2,
+    symbolPosition: "after",
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+    minorUnit: "fils",
   },
   {
     code: "USD",
@@ -38,6 +63,11 @@ export const CURRENCIES: readonly Currency[] = [
     symbol: "$",
     locale: "en-US",
     flag: "🇺🇸",
+    decimals: 2,
+    symbolPosition: "before",
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+    minorUnit: "cents",
   },
   {
     code: "EUR",
@@ -45,6 +75,11 @@ export const CURRENCIES: readonly Currency[] = [
     symbol: "€",
     locale: "de-DE",
     flag: "🇪🇺",
+    decimals: 2,
+    symbolPosition: "after",
+    thousandSeparator: ".",
+    decimalSeparator: ",",
+    minorUnit: "cents",
   },
   {
     code: "GBP",
@@ -52,6 +87,71 @@ export const CURRENCIES: readonly Currency[] = [
     symbol: "£",
     locale: "en-GB",
     flag: "🇬🇧",
+    decimals: 2,
+    symbolPosition: "before",
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+    minorUnit: "pence",
+  },
+  {
+    code: "OMR",
+    name: "Omani Rial",
+    symbol: "ر.ع.",
+    locale: "ar-OM",
+    flag: "🇴🇲",
+    decimals: 3,
+    symbolPosition: "after",
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+    minorUnit: "baisa",
+  },
+  {
+    code: "KWD",
+    name: "Kuwaiti Dinar",
+    symbol: "د.ك",
+    locale: "ar-KW",
+    flag: "🇰🇼",
+    decimals: 3,
+    symbolPosition: "after",
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+    minorUnit: "fils",
+  },
+  {
+    code: "BHD",
+    name: "Bahraini Dinar",
+    symbol: "د.ب",
+    locale: "ar-BH",
+    flag: "🇧🇭",
+    decimals: 3,
+    symbolPosition: "after",
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+    minorUnit: "fils",
+  },
+  {
+    code: "QAR",
+    name: "Qatari Riyal",
+    symbol: "ر.ق",
+    locale: "ar-QA",
+    flag: "🇶🇦",
+    decimals: 2,
+    symbolPosition: "after",
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+    minorUnit: "dirham",
+  },
+  {
+    code: "EGP",
+    name: "Egyptian Pound",
+    symbol: "ج.م",
+    locale: "ar-EG",
+    flag: "🇪🇬",
+    decimals: 2,
+    symbolPosition: "before",
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+    minorUnit: "piastre",
   },
 ] as const;
 
@@ -59,6 +159,17 @@ export const CURRENCIES: readonly Currency[] = [
  * Default currency (KSA-first policy)
  */
 export const DEFAULT_CURRENCY: CurrencyCode = "SAR";
+
+/**
+ * Quick lookup map for currency metadata keyed by code
+ */
+export const CURRENCY_MAP: Record<CurrencyCode, Currency> = CURRENCIES.reduce(
+  (acc, currency) => {
+    acc[currency.code] = currency;
+    return acc;
+  },
+  {} as Record<CurrencyCode, Currency>,
+);
 
 /**
  * Get default currency (SAR for KSA-first)

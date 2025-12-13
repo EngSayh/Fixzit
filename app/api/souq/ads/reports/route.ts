@@ -26,6 +26,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { createRbacContext, hasAnyRole } from "@/lib/rbac";
 import { CampaignService } from "@/services/souq/ads/campaign-service";
 import { UserRole, type UserRoleType } from "@/types/user";
@@ -54,6 +55,14 @@ const buildRbacContext = (user: {
   });
 
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for ad reports
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-ads:reports",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

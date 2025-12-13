@@ -21,6 +21,7 @@ import { FMAction } from "@/types/fm/enums";
 import { requireFmPermission } from "@/app/api/fm/permissions";
 import { resolveTenantId, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
 import { FMErrors } from "@/app/api/fm/errors";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type EscalationDocument = {
   _id: ObjectId;
@@ -81,6 +82,13 @@ const validatePayload = (payload: EscalationPayload): string | null => {
 };
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "fm-support-escalations:post",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const actor = await requireFmPermission(req, {
       module: ModuleKey.SUPPORT,

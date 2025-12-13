@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 interface EvidenceItem {
   type: string;
@@ -33,6 +34,14 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  // Rate limiting: 10 requests per minute per IP for claim appeals
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-claims:appeal",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await resolveRequestSession(request);
     if (!session?.user?.id) {

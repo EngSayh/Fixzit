@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 // Mocks
 vi.mock("@/auth", () => ({
@@ -12,6 +12,11 @@ vi.mock("@/lib/queries", () => ({
 
 vi.mock("@/lib/utils/env", () => ({
   isTruthy: vi.fn().mockReturnValue(false),
+}));
+
+// Mock rate limiting
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
 
 let auth: typeof import("@/auth").auth;
@@ -45,7 +50,8 @@ describe("GET /api/counters", () => {
     });
     (getAllCounters as vi.Mock).mockResolvedValue(mockCounters);
 
-    const res = (await GET()) as NextResponse;
+    const req = new NextRequest("http://localhost:3000/api/counters");
+    const res = (await GET(req)) as NextResponse;
     const json = await res.json();
 
     // Debug assertion path visibility during development
@@ -62,7 +68,8 @@ describe("GET /api/counters", () => {
   it("returns empty object for guests", async () => {
     (auth as vi.Mock).mockResolvedValue(null);
 
-    const res = (await GET()) as NextResponse;
+    const req = new NextRequest("http://localhost:3000/api/counters");
+    const res = (await GET(req)) as NextResponse;
     const json = await res.json();
 
     expect(res.status).toBe(200);

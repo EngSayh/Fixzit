@@ -11,6 +11,7 @@
  * @throws {500} If NEXTAUTH_SECRET not configured
  */
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
@@ -19,16 +20,35 @@ import {
   verificationLink,
 } from "@/lib/auth/emailVerification";
 import { sendEmail } from "@/lib/email";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
-type VerifyRequestBody = {
-  email?: string;
-  locale?: "en" | "ar";
-};
+/**
+ * Zod schema for verify/send request body
+ */
+const VerifySendSchema = z.object({
+  email: z.string().email("Invalid email format").transform((v) => v.trim().toLowerCase()),
+  locale: z.enum(["en", "ar"]).optional().default("en"),
+});
+
+type _VerifyRequestBody = z.infer<typeof VerifySendSchema>;
 export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => ({}))) as VerifyRequestBody;
-  if (!body.email) {
-    return NextResponse.json({ error: "email is required" }, { status: 400 });
-  }
+  // Rate limit: 10 verification email requests per minute per IP (prevent abuse)
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`auth:verify-send:${clientIp}`, 10, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
+  try {
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = VerifySendSchema.safeParse(rawBody);
+    
+    if (!parsed.success) {
+      const errorMessage = parsed.error.issues[0]?.message || "Invalid request body";
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
+    }
+    
+    const body = parsed.data;
   // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
   // MUST align with auth.config.ts to prevent environment drift
   const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
@@ -184,4 +204,8 @@ export async function POST(req: NextRequest) {
     { error: "Failed to send verification email. Please try again." },
     { status: 500 }
   );
+  } catch (_error) {
+    logger.error("[auth/verify/send] Unexpected error", { error: String(_error) });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

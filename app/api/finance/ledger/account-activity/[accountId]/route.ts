@@ -13,7 +13,9 @@
  * @throws {404} If account not found
  */
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { dbConnect } from "@/lib/mongodb-unified";
@@ -32,6 +34,18 @@ interface LedgerEntryDocument {
 }
 
 import { logger } from "@/lib/logger";
+
+// ============================================================================
+// QUERY VALIDATION SCHEMA
+// ============================================================================
+
+const _AccountActivityQuerySchema = z.object({
+  startDate: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+  endDate: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(50),
+});
+
 // ============================================================================
 // HELPER: Get User Session
 // ============================================================================
@@ -58,6 +72,13 @@ export async function GET(
   req: NextRequest,
   context: { params: { accountId: string } | Promise<{ accountId: string }> },
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 60,
+    windowMs: 60_000,
+    keyPrefix: "finance:ledger:account-activity",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 

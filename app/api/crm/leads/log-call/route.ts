@@ -48,6 +48,7 @@ import { getClientIP } from "@/server/security/headers";
 import CrmLead from "@/server/models/CrmLead";
 import CrmActivity from "@/server/models/CrmActivity";
 import { UserRole, type UserRoleType } from "@/types/user";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
   UserRole.SUPER_ADMIN,
@@ -91,6 +92,14 @@ async function resolveUser(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "crm-leads:log-call",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const user = await resolveUser(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

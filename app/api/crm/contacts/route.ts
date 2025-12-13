@@ -52,6 +52,7 @@ import { getClientIP } from "@/server/security/headers";
 import CrmLead from "@/server/models/CrmLead";
 import type { CrmLeadKind } from "@/server/models/CrmLead";
 import { UserRole, type UserRoleType } from "@/types/user";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // 🔒 STRICT v4: CRM access restricted to Admin roles + SUPPORT_AGENT sub-role
 // EMPLOYEE role removed - use specific sub-roles (SUPPORT_AGENT for CRM access)
@@ -116,6 +117,14 @@ function estimateValue(
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "crm-contacts:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const user = await resolveUser(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -163,6 +172,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for writes
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "crm-contacts:create",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const user = await resolveUser(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

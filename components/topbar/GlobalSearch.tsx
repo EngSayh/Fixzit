@@ -8,7 +8,7 @@ import { useTopBar } from "@/contexts/TopBarContext";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { CommandPalette } from "./CommandPalette";
 import type { GlobalSearchResult } from "./types";
-import { usePermittedQuickActions } from "./usePermittedQuickActions";
+import { usePermittedQuickActions } from "@/hooks/topbar/usePermittedQuickActions";
 import { logger } from "@/lib/logger";
 import { fetchWithAuth } from "@/lib/http/fetchWithAuth";
 import type { SavedSearchConfig } from "@/config/topbar-modules";

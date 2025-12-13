@@ -25,6 +25,7 @@ import { auth } from "@/auth";
 import { SouqSeller } from "@/server/models/souq/Seller";
 import { connectDb } from "@/lib/mongodb-unified";
 import { nanoid } from "nanoid";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const sellerCreateSchema = z.object({
   legalName: z.string().min(2).max(200),
@@ -43,6 +44,14 @@ const sellerCreateSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Rate limiting: 10 requests per minute per IP for seller registration
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-sellers:register",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Authentication check
     const session = await auth();

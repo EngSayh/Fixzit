@@ -4,7 +4,7 @@ import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import {

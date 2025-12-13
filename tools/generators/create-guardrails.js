@@ -45,7 +45,7 @@ write(
   "scripts/sidebar/snapshot_check.ts",
   `#!/usr/bin/env tsx
 import fs from 'fs';
-const snap = 'configs/sidebar.snapshot.json';
+const snap = 'config/sidebar.snapshot.json';
 if (!fs.existsSync(snap)) fs.writeFileSync(snap, JSON.stringify(['dashboard'], null, 2));
 console.log('OK');`,
 );

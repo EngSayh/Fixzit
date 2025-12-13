@@ -8,6 +8,7 @@ import { deleteObject } from "@/lib/storage/s3";
 import { DOMAINS } from "@/lib/config/domains";
 import { joinUrl } from "@/lib/utils/url";
 import { verifySecretHeader } from "@/lib/security/verify-secret-header";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * POST /api/jobs/process
@@ -18,6 +19,7 @@ import { verifySecretHeader } from "@/lib/security/verify-secret-header";
  * Can be triggered manually or by a cron job
  */
 export async function POST(request: NextRequest) {
+  enforceRateLimit(request, { requests: 20, windowMs: 60_000, keyPrefix: "jobs:process" });
   try {
     const session = await auth();
 

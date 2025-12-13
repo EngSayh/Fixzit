@@ -10,23 +10,56 @@
  * @throws {400} If percentage is invalid
  */
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { dbConnect } from "@/db/mongoose";
 import DiscountRule from "@/server/models/DiscountRule";
 import { requireSuperAdmin } from "@/lib/authz";
+import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+
+/**
+ * Zod schema for annual discount request
+ */
+const AnnualDiscountSchema = z.object({
+  percentage: z.number().min(0).max(100, "Percentage must be between 0 and 100"),
+});
 
 /**
  * Updates annual discount percentage
  */
 export async function PATCH(req: NextRequest) {
-  await dbConnect();
-  await requireSuperAdmin(req);
-  const { percentage } = await req.json();
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "admin-billing-annual-discount:patch",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
 
-  const doc = await DiscountRule.findOneAndUpdate(
-    { key: "ANNUAL_PREPAY" },
-    { percentage },
-    { upsert: true, new: true },
-  );
+  try {
+    await dbConnect();
+    await requireSuperAdmin(req);
+    
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = AnnualDiscountSchema.safeParse(rawBody);
+    
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || "Invalid percentage" },
+        { status: 400 }
+      );
+    }
+    
+    const { percentage } = parsed.data;
 
-  return NextResponse.json({ ok: true, discount: doc?.percentage });
+    const doc = await DiscountRule.findOneAndUpdate(
+      { key: "ANNUAL_PREPAY" },
+      { percentage },
+      { upsert: true, new: true },
+    );
+
+    return NextResponse.json({ ok: true, discount: doc?.percentage });
+  } catch (error) {
+    logger.error("[admin/billing/annual-discount] PATCH error", { error });
+    return NextResponse.json({ error: "Failed to update discount" }, { status: 500 });
+  }
 }

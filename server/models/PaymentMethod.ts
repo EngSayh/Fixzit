@@ -18,7 +18,7 @@ const PaymentMethodSchema = new Schema(
       ref: "User",
       // Note: required conditionally in validation - see validate hook below
     },
-    gateway: { type: String, default: "PAYTABS" },
+    gateway: { type: String, default: "TAP" },
     pt_token: { type: String },
     pt_masked_card: String,
     pt_customer_email: String,

@@ -21,9 +21,48 @@ import { Schema, model, models } from "mongoose";
 import bcrypt from "bcryptjs";
 
 import { logger } from "@/lib/logger";
+import type { Session } from "next-auth";
+import {
+  buildOrgAwareRateLimitKey,
+  smartRateLimit,
+} from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+
+const ADMIN_USERS_READ_LIMIT = 60;
+const ADMIN_USERS_WRITE_LIMIT = 20;
+
+const enforceAdminUsersRateLimit = async (
+  req: NextRequest,
+  session: Session | null,
+  limit: number,
+  action: "list" | "mutate",
+) => {
+  const sessionUser = session?.user as { id?: string; orgId?: string } | undefined;
+  const key = buildOrgAwareRateLimitKey(
+    req,
+    sessionUser?.orgId ?? null,
+    sessionUser?.id ?? null,
+  );
+  const rl = await smartRateLimit(
+    `${key}:admin-users:${action}`,
+    limit,
+    60_000,
+  );
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+  return null;
+};
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = (await auth()) as Session | null;
+    const rateLimited = await enforceAdminUsersRateLimit(
+      request,
+      session,
+      ADMIN_USERS_READ_LIMIT,
+      "list",
+    );
+    if (rateLimited) return rateLimited;
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -144,7 +183,14 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = (await auth()) as Session | null;
+    const rateLimited = await enforceAdminUsersRateLimit(
+      request,
+      session,
+      ADMIN_USERS_WRITE_LIMIT,
+      "mutate",
+    );
+    if (rateLimited) return rateLimited;
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

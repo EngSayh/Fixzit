@@ -14,7 +14,9 @@
  * @throws {403} If not admin (POST)
  */
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { auth } from "@/auth";
 import Brand from "@/server/models/souq/Brand";
 import { connectToDatabase } from "@/lib/mongodb-unified";
@@ -29,7 +31,15 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
  * Authorization is handled via brand gating (authorizedSellers) for who can SELL,
  * but all users can VIEW the brand catalog.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Rate limiting: 120 requests per minute per IP for brand catalog reads
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-brands:list",
+    requests: 120,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectToDatabase();
 

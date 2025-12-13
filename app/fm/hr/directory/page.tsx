@@ -12,7 +12,7 @@ import ClientDate from "@/components/ClientDate";
 import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 type EmploymentStatus = "ACTIVE" | "INACTIVE" | "ON_LEAVE" | "TERMINATED";
 

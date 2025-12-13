@@ -20,6 +20,8 @@ const TapInfoSchema = new Schema(
     cardId: String, // Saved card token for recurring
     customerId: String,
     customerEmail: String,
+    // chargeId retained for backward compatibility; lastChargeId is canonical
+    chargeId: String,
     lastChargeId: String,
   },
   { _id: false },
@@ -171,6 +173,7 @@ interface ITapInfo {
   cardId?: string;
   customerId?: string;
   customerEmail?: string;
+  chargeId?: string;
   lastChargeId?: string;
 }
 

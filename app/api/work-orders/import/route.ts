@@ -15,6 +15,7 @@ import { z } from "zod";
 import { WOAbility } from "@/types/work-orders/abilities";
 
 import { createSecureResponse } from "@/server/security/headers";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Validation schema for import rows
 const ImportRowSchema = z.object({
@@ -45,6 +46,13 @@ const ImportRequestSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "work-orders-import:post",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const user = await requireAbility(WOAbility.EDIT)(req);
   if (user instanceof NextResponse) return user;
   await connectToDatabase();

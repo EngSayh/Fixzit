@@ -8,8 +8,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { ModifyResult, ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
@@ -58,11 +62,20 @@ interface WorkOrderForTransition {
   attachments?: Array<AttachmentWithCategory | string>;
   [key: string]: unknown;
 }
-import { requireFmAbility } from "../../../utils/auth";
+import { requireFmAbility } from "../../../utils/fm-auth";
 import type {
   NotificationChannel,
   NotificationRecipient,
 } from "@/lib/fm-notifications";
+
+/**
+ * Zod schema for transition request
+ */
+const TransitionSchema = z.object({
+  toStatus: z.string().min(1, "Target status is required"),
+  comment: z.string().max(2000).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
 
 /**
  * POST - Transition work order to new status
@@ -71,6 +84,11 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  // Rate limit: 30 transitions per minute
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`fm:transition:${clientIp}`, 30, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
   try {
     const abilityCheck = await requireFmAbility("STATUS")(req);
     if (abilityCheck instanceof NextResponse) return abilityCheck;
@@ -85,8 +103,16 @@ export async function POST(
       return FMErrors.invalidId("work order");
     }
 
-    const body = await req.json();
-    const { toStatus, comment, metadata } = body;
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = TransitionSchema.safeParse(rawBody);
+    
+    if (!parsed.success) {
+      return FMErrors.validationError(
+        parsed.error.issues[0]?.message || "Invalid transition data"
+      );
+    }
+    
+    const { toStatus, comment, metadata } = parsed.data;
 
     if (!isWOStatus(toStatus)) {
       return FMErrors.validationError("Invalid target status");

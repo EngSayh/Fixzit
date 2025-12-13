@@ -18,6 +18,7 @@ import { NextRequest } from "next/server";
 import * as svc from "@/server/finance/invoice.service";
 import { getUserFromToken } from "@/lib/auth";
 import { z } from "zod";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { zodValidationError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
@@ -38,6 +39,14 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  // Rate limit: 30 req/min per IP for update operations
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 30,
+    windowMs: 60_000,
+    keyPrefix: "finance:invoices:patch",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Authentication & Authorization
     const token = req.headers

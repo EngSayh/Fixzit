@@ -6,8 +6,9 @@
  * @module souq
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { auth } from "@/auth";
 import { connectDb } from "@/lib/mongodb-unified";
 import { SouqSettlement } from "@/server/models/souq/Settlement";
@@ -24,7 +25,15 @@ import {
 /**
  * GET /api/souq/settlements - List seller settlements
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for settlement reads
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-settlements:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user) {

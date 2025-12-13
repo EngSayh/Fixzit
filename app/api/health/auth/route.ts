@@ -10,6 +10,7 @@ import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 import { createSecureResponse } from "@/server/security/headers";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,9 @@ function checkEnvVar(name: string): { set: boolean; length?: number } {
 }
 
 export async function GET(_request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(_request, { requests: 120, windowMs: 60_000, keyPrefix: "health:auth" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { isProd, isPreview, vercelEnv, nodeEnv } = resolveEnvironment();
     const isAuthorized = isAuthorizedHealthRequest(_request);

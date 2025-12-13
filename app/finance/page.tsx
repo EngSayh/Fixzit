@@ -25,6 +25,7 @@ import ClientDate from "@/components/ClientDate";
 import IncomeStatementWidget from "@/components/finance/IncomeStatementWidget";
 import BalanceSheetWidget from "@/components/finance/BalanceSheetWidget";
 import OwnerStatementWidget from "@/components/finance/OwnerStatementWidget";
+import type { InvoiceLine as DomainInvoiceLine } from "@/types/invoice";
 
 export default function FinancePage() {
   const { t } = useTranslation();
@@ -321,20 +322,19 @@ function Action({
   );
 }
 
-interface InvoiceLine {
+type InvoiceLineState = Pick<DomainInvoiceLine, "description"> & {
   id: string;
-  description: string;
   qty: string;
   unitPrice: string;
   vatRate: string;
-}
+};
 
 function InvoiceLineItem({
   line,
   onUpdate,
   t,
 }: {
-  line: InvoiceLine;
+  line: InvoiceLineState;
   onUpdate: (id: string, key: string, val: string) => void;
   t: (key: string, fallback: string) => string;
 }) {
@@ -396,7 +396,7 @@ function CreateInvoice({
   const [open, setOpen] = useState(false);
   const [issue, setIssue] = useState(""); // ✅ HYDRATION FIX: Initialize empty
   const [due, setDue] = useState(""); // ✅ HYDRATION FIX: Initialize empty
-  const [lines, setLines] = useState<InvoiceLine[]>([
+  const [lines, setLines] = useState<InvoiceLineState[]>([
     {
       id: crypto.randomUUID(),
       description: "Maintenance Service",

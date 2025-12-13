@@ -34,8 +34,12 @@ import { resolveEscalationContact } from '@/server/services/escalation.service';
 import { connectMongo } from '@/lib/mongo';
 import { SupportTicket } from '@/server/models/SupportTicket';
 import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, { requests: 20, windowMs: 60_000, keyPrefix: "help:escalate" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

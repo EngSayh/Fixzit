@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveCopilotSession } from "@/server/copilot/session";
 import { getPermittedTools } from "@/server/copilot/policy";
+import { logger } from "@/lib/logger";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -34,25 +35,30 @@ export const dynamic = "force-dynamic";
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
+  try {
+    // Rate limiting
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const session = await resolveCopilotSession(req);
+    const tools = getPermittedTools(session.role);
+
+    return NextResponse.json({
+      session,
+      tools,
+      quickActions: tools.map((tool) => ({
+        name: tool,
+        label: mapToolToLabel(tool, session.locale),
+        description: mapToolToDescription(tool, session.locale),
+      })),
+    });
+  } catch (error) {
+    logger.error("[copilot/profile] GET error", { error });
+    return NextResponse.json({ error: "Failed to load profile" }, { status: 500 });
   }
-
-  const session = await resolveCopilotSession(req);
-  const tools = getPermittedTools(session.role);
-
-  return NextResponse.json({
-    session,
-    tools,
-    quickActions: tools.map((tool) => ({
-      name: tool,
-      label: mapToolToLabel(tool, session.locale),
-      description: mapToolToDescription(tool, session.locale),
-    })),
-  });
 }
 
 function mapToolToLabel(tool: string, locale: string) {

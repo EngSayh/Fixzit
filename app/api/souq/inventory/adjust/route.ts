@@ -27,6 +27,7 @@ import {
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
 import mongoose from "mongoose";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
   const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
@@ -46,6 +47,14 @@ const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
  * Adjust inventory for damage/loss (admin or seller only)
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for inventory adjustments
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-inventory:adjust",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   let userId: string | undefined;
   try {
     const session = await auth();

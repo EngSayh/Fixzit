@@ -14,6 +14,8 @@ import { NextRequest } from "next/server";
 import { dbConnect } from "@/db/mongoose";
 import PriceBook from "@/server/models/PriceBook";
 import { requireSuperAdmin } from "@/lib/authz";
+import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { createSecureResponse } from "@/server/security/headers";
 
@@ -24,23 +26,35 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  await dbConnect();
-  await requireSuperAdmin(req);
-  const body = await req.json();
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "admin-billing-pricebooks:patch",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
 
-  // AUDIT-2025-12-08: Whitelist allowed fields to prevent mass assignment
-  const allowedFields = ['name', 'description', 'prices', 'currency', 'effectiveDate', 'expiryDate', 'isActive', 'metadata'];
-  const sanitizedBody: Record<string, unknown> = {};
-  for (const key of allowedFields) {
-    if (body[key] !== undefined) {
-      sanitizedBody[key] = body[key];
+  try {
+    await dbConnect();
+    await requireSuperAdmin(req);
+    const body = await req.json();
+
+    // AUDIT-2025-12-08: Whitelist allowed fields to prevent mass assignment
+    const allowedFields = ['name', 'description', 'prices', 'currency', 'effectiveDate', 'expiryDate', 'isActive', 'metadata'];
+    const sanitizedBody: Record<string, unknown> = {};
+    for (const key of allowedFields) {
+      if (body[key] !== undefined) {
+        sanitizedBody[key] = body[key];
+      }
     }
-  }
 
-  const doc = await PriceBook.findByIdAndUpdate(params.id, sanitizedBody, { new: true });
-  if (!doc) {
-    return createSecureResponse({ error: "NOT_FOUND" }, 404, req);
-  }
+    const doc = await PriceBook.findByIdAndUpdate(params.id, sanitizedBody, { new: true });
+    if (!doc) {
+      return createSecureResponse({ error: "NOT_FOUND" }, 404, req);
+    }
 
-  return createSecureResponse(doc, 200, req);
+    return createSecureResponse(doc, 200, req);
+  } catch (error) {
+    logger.error("[admin/billing/pricebooks/[id]] PATCH error", { error });
+    return createSecureResponse({ error: "Failed to update pricebook" }, 500, req);
+  }
 }

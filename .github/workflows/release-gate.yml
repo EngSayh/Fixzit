@@ -34,6 +34,11 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  GH_ENV_STAGING: ${{ vars.GH_ENV_STAGING || 'staging' }}
+  GH_ENV_PROD_APPROVAL: ${{ vars.GH_ENV_PROD_APPROVAL || 'production-approval' }}
+  GH_ENV_PRODUCTION: ${{ vars.GH_ENV_PRODUCTION || 'production' }}
+
 jobs:
   # Stage 1: Build and validate
   build:
@@ -85,7 +90,7 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || !fromJSON(inputs.skip_staging || 'false') }}
     runs-on: ubuntu-latest
     environment:
-      name: staging
+      name: ${{ env.GH_ENV_STAGING }}
       url: ${{ steps.deploy.outputs.url }}
     outputs:
       staging_url: ${{ steps.deploy.outputs.url }}
@@ -178,7 +183,7 @@ jobs:
     needs: [build, deploy-staging, smoke-tests]
     runs-on: ubuntu-latest
     environment:
-      name: production-approval
+      name: ${{ env.GH_ENV_PROD_APPROVAL }}
     steps:
       - name: Approval checkpoint
         run: |
@@ -194,7 +199,7 @@ jobs:
     needs: [build, deploy-staging, approval-gate]
     runs-on: ubuntu-latest
     environment:
-      name: production
+      name: ${{ env.GH_ENV_PRODUCTION }}
       url: https://fixzit.app
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

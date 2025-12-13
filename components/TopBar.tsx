@@ -839,7 +839,7 @@ function NotificationPopup({
     <div className="notification-container relative">
       <SimpleTooltip content={t("nav.notifications", "Notifications")} side="bottom">
         <Button
-          ref={notifBtnRef}
+          ref={notifBtnRef as React.LegacyRef<HTMLButtonElement>}
           variant="ghost"
           size="icon"
           onClick={() => {
@@ -1033,7 +1033,7 @@ function UserMenuPopup({
     <div className="user-menu-container relative">
       <SimpleTooltip content={t("nav.profile", "Profile")} side="bottom">
         <Button
-          ref={userBtnRef}
+          ref={userBtnRef as React.LegacyRef<HTMLButtonElement>}
           variant="ghost"
           size="sm"
           data-testid="user-menu"

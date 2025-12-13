@@ -16,7 +16,7 @@ import {
 import { useMemo, useState, useEffect } from "react";
 import { useProperties } from "@/hooks/fm/useProperties";
 import { toast } from "sonner";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 export default function PropertyInspectionWorkspace() {
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({

@@ -20,7 +20,17 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { TestingUser, TestingUserStatus, TestingUserRole, TTestingUserRole, TTestingUserStatus } from "@/server/models/TestingUser";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+
 export async function GET(request: NextRequest) {
+  // Rate limiting: 30 requests per minute for admin reads
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "admin-testing-users:get",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

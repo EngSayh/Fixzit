@@ -7,4 +7,11 @@
  * @module souq
  */
 
-export { GET, POST } from "@/app/api/souq/catalog/products/route";
+import { wrapRoute } from "@/lib/api/route-wrapper";
+import {
+  GET as catalogGet,
+  POST as catalogPost,
+} from "@/app/api/souq/catalog/products/route";
+
+export const GET = wrapRoute(catalogGet, "api.souq.products.get.catch");
+export const POST = wrapRoute(catalogPost, "api.souq.products.post.catch");

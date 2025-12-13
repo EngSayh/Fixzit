@@ -15,12 +15,21 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { AutoRepricerService } from "@/services/souq/auto-repricer-service";
 import { SouqSeller } from "@/server/models/souq/Seller";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/souq/repricer/settings
  * Get auto-repricer settings for current seller
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for repricer settings
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-repricer:settings-get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -73,6 +82,14 @@ export async function GET(_request: NextRequest) {
  * Enable/update auto-repricer settings
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for repricer settings updates
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-repricer:settings-update",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

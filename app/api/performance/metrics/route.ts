@@ -15,8 +15,10 @@ import {
   getExceededMetrics,
 } from "@/lib/performance";
 import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(req: NextRequest) {
+  enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "performance:metrics" });
   // SEC-001: Restrict to SUPER_ADMIN - performance metrics expose internal system info
   try {
     const session = await getSessionUser(req);

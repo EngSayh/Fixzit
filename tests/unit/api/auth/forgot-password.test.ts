@@ -23,7 +23,7 @@ describe("POST /api/auth/forgot-password - Input Validation", () => {
     const json = await res.json();
 
     expect(res.status).toBe(400);
-    expect(json.error).toBe("Email is required");
+    expect(json.error).toContain("Invalid input");
   });
 
   it("returns 400 for invalid email format", async () => {
@@ -43,6 +43,6 @@ describe("POST /api/auth/forgot-password - Input Validation", () => {
     const json = await res.json();
 
     expect(res.status).toBe(400);
-    expect(json.error).toBe("Email is required");
+    expect(json.error).toBe("Invalid email format");
   });
 });

@@ -13,6 +13,7 @@ import { logger } from "@/lib/logger";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 import { createSecureResponse } from "@/server/security/headers";
 import { withTimeout } from "@/lib/resilience";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,9 @@ export const dynamic = "force-dynamic";
 const PING_TIMEOUT_MS = 2_000;
 
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "health:main" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const isAuthorized = isAuthorizedHealthRequest(request);
     

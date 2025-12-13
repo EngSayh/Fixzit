@@ -258,7 +258,7 @@ describe("STRICT v4.1 - Data Scope Filters", () => {
   });
 
   describe("TENANT", () => {
-    it("filters by org_id, unit_id, and tenant_id", () => {
+    it("filters by org_id and unit_id (tenant scoped to their units)", () => {
       const ctx: ResourceCtx = {
         orgId: "org-123",
         plan: Plan.STANDARD,
@@ -269,10 +269,10 @@ describe("STRICT v4.1 - Data Scope Filters", () => {
       };
 
       const filter = buildDataScopeFilter(ctx);
+      // TENANT role is scoped by org_id + their assigned units, not tenant_id
       expect(filter).toEqual({
         org_id: "org-123",
         unit_id: { $in: ["unit-1", "unit-2"] },
-        tenant_id: "tenant-101",
       });
     });
   });

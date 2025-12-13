@@ -17,12 +17,48 @@ import { auth } from "@/auth";
 import { connectDb } from "@/lib/mongo";
 import { Schema, model, models, Types } from "mongoose";
 import { logger } from "@/lib/logger";
+import type { Session } from "next-auth";
+import {
+  buildOrgAwareRateLimitKey,
+  smartRateLimit,
+} from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+
+const ADMIN_USER_DETAIL_LIMIT = 20;
+
+const enforceAdminUserDetailRateLimit = async (
+  req: NextRequest,
+  session: Session | null,
+  action: "delete" | "update",
+) => {
+  const sessionUser = session?.user as { id?: string; orgId?: string } | undefined;
+  const key = buildOrgAwareRateLimitKey(
+    req,
+    sessionUser?.orgId ?? null,
+    sessionUser?.id ?? null,
+  );
+  const rl = await smartRateLimit(
+    `${key}:admin-users:${action}`,
+    ADMIN_USER_DETAIL_LIMIT,
+    60_000,
+  );
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+  return null;
+};
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await auth();
+    const session = (await auth()) as Session | null;
+    const rateLimited = await enforceAdminUserDetailRateLimit(
+      request,
+      session,
+      "delete",
+    );
+    if (rateLimited) return rateLimited;
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -101,7 +137,13 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await auth();
+    const session = (await auth()) as Session | null;
+    const rateLimited = await enforceAdminUserDetailRateLimit(
+      request,
+      session,
+      "update",
+    );
+    if (rateLimited) return rateLimited;
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -28,8 +28,12 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { OnboardingCase, ONBOARDING_STATUSES, ONBOARDING_ROLES } from '@/server/models/onboarding/OnboardingCase';
 import { logger } from '@/lib/logger';
 import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "onboarding:list" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

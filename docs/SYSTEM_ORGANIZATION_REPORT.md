@@ -16,7 +16,7 @@
 | **File Duplicates Resolved** | ✅ 5 files cleaned | Shims and wrappers deleted |
 | **API Route Duplicates** | ✅ None | Domain-specific variants are intentional |
 | **Mongoose Schema Duplicates** | ✅ None | Same-name models in different domains |
-| **Config Folder Inconsistency** | 🟡 Acceptable | config/ vs configs/ serves different purposes |
+| **Config Folder Inconsistency** | 🟢 Resolved | Static configs merged into `config/` (brand tokens, governance, org baseline) |
 | **MongoDB Connection Files** | 🟢 Clean | 4 files form proper hierarchy |
 | **Env Files** | 🟡 Acceptable | 5 files serve different purposes |
 | **GitHub Workflows** | 🟡 Overlap | test-runner.yml is lighter gate for pushes |
@@ -126,8 +126,7 @@ The root has **100+ files** including:
 | `server/` | Backend models, plugins, services | ✅ Clean separation |
 | `services/` | Domain-specific business logic | ✅ Proper domain grouping |
 | `components/` | React components | ✅ Organized by domain |
-| `config/` | Runtime config files | ⚠️ Naming conflict with `configs/` |
-| `configs/` | Governance/static configs | ⚠️ Should consolidate |
+| `config/` | Runtime + static configs (governance, tokens, org guard baseline, sidebar snapshot) | ✅ Consolidated |
 | `domain/` | FM behavior logic | ✅ Single purpose |
 | `modules/` | organizations, users | ✅ Modular |
 | `types/` | TypeScript definitions | ✅ Centralized types |
@@ -281,14 +280,9 @@ export function log(message, level = "info", context) {
 
 #### Folder Naming Inconsistency
 
-| Folder | Contents |
-|--------|----------|
-| `config/` | Runtime configs: `constants.ts`, `navigation.ts`, `paytabs.config.ts`, `rbac.config.ts`, etc. |
-| `configs/` | Static configs: `brand.tokens.json`, `fixzit.governance.yaml`, `org-guard-baseline.json` |
-
-**Recommendation**: Consolidate into single `config/` folder with subfolders:
-- `config/runtime/` - Dynamic config files
-- `config/static/` - JSON/YAML snapshots
+| Folder | Contents | Status |
+|--------|----------|--------|
+| `config/` | Runtime + static configs: `constants.ts`, `navigation.ts`, `rbac.config.ts`, `brand.tokens.json`, `fixzit.governance.yaml`, `org-guard-baseline.json`, `sidebar.snapshot.json` | ✅ Consolidated (configs/ removed) |
 
 #### Environment Files
 
@@ -317,7 +311,7 @@ Found 8+ env-related files:
 | Current | New | Reason |
 |---------|-----|--------|
 | `lib/finance/paytabs.ts` | `lib/finance/paytabs-subscription.ts` | Distinguish from API client |
-| `configs/` | `config/static/` | Consolidate config folders |
+| `configs/` | `config/` | Consolidated: move static JSON/YAML alongside runtime configs |
 
 ### Phase 3: Move Misplaced Files (Higher Risk)
 
@@ -382,9 +376,9 @@ grep -r "@/server/lib/logger" --include="*.ts" --include="*.tsx"
    - Create shared connection factory
    - Keep separate cache and queue clients but share connection
 
-7. **Unify config folders**
-   - Merge `configs/` into `config/static/`
-   - Update all import paths
+7. **Unify config folders** — ✅ Done
+   - Static configs moved into `config/` (brand tokens, governance, org-guard baseline, sidebar snapshot)
+   - Import paths updated
 
 ---
 
@@ -546,15 +540,10 @@ lib/database.ts ← Health checks + shutdown handlers
 
 | Folder | Type | Files |
 |--------|------|-------|
-| `config/` | TypeScript (runtime) | constants.ts, navigation.ts, rbac.config.ts, etc. |
-| `configs/` | JSON/YAML (static) | brand.tokens.json, governance.yaml, etc. |
+| `config/` | TypeScript + JSON/YAML snapshots | `constants.ts`, `navigation.ts`, `rbac.config.ts`, `brand.tokens.json`, `fixzit.governance.yaml`, `org-guard-baseline.json`, `sidebar.snapshot.json` |
 
 ### Verdict
-The split is **intentional and reasonable**:
-- `config/` = Code that runs (TypeScript)
-- `configs/` = Data files (JSON/YAML)
-
-**Recommendation**: Keep as-is. The naming difference actually clarifies the distinction.
+Config folders have been **consolidated** into `config/` to avoid drift between runtime and static assets.
 
 ---
 

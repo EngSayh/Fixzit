@@ -12,15 +12,25 @@
  */
 
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { BuyBoxService } from "@/services/souq/buybox-service";
 import { connectDb } from "@/lib/mongodb-unified";
 import { getServerSession } from "@/lib/auth/getServerSession";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   context: { params: { fsin: string } },
 ) {
+  // Rate limiting: 120 requests per minute per IP for buybox data
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-buybox:get",
+    requests: 120,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Authentication check
     const session = await getServerSession();

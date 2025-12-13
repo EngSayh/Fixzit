@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import YAML from "yaml";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -11,7 +12,8 @@ const swaggerEnabled =
     process.env.NEXT_PUBLIC_SWAGGER_UI_ENABLED ??
     "true") !== "false";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  enforceRateLimit(request, { requests: 60, windowMs: 60_000, keyPrefix: "docs:openapi" });
   if (!swaggerEnabled) {
     return NextResponse.json({ ok: false }, { status: 404 });
   }

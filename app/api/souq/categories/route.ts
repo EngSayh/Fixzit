@@ -13,16 +13,25 @@
  * @throws {401} If not authenticated (POST)
  * @throws {403} If not admin (POST)
  */
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { auth } from "@/auth";
 import Category from "@/server/models/souq/Category";
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * GET /api/souq/categories - List all categories with hierarchy
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Rate limiting: 120 requests per minute per IP for category listing
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-categories:list",
+    requests: 120,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectToDatabase();
 
@@ -51,6 +60,14 @@ export async function GET() {
  * POST /api/souq/categories - Create new category (Admin only)
  */
 export async function POST(request: Request) {
+  // Rate limiting: 20 requests per minute per IP for category creation
+  const rateLimitResponse = enforceRateLimit(request as NextRequest, {
+    keyPrefix: "souq-categories:create",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user) {

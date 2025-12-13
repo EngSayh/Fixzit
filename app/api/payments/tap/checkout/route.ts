@@ -11,6 +11,7 @@ import { randomUUID } from "crypto";
 import { Types } from "mongoose";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   tapPayments,
   buildTapCustomer,
@@ -22,7 +23,8 @@ import {
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { TapTransaction } from "@/server/models/finance/TapTransaction";
-import { Invoice } from "@/server/models/Invoice";
+import { Invoice as InvoiceModel } from "@/server/models/Invoice";
+import type { InvoiceRecipient } from "@/types/invoice";
 
 interface SessionUser {
   id: string;
@@ -31,17 +33,10 @@ interface SessionUser {
   [key: string]: unknown;
 }
 
-interface InvoiceRecipient {
-  name?: string;
-  customerId?: string;
-  [key: string]: unknown;
-}
-
-interface InvoiceDocument {
+type InvoiceDocument = {
   _id: Types.ObjectId;
   recipient?: InvoiceRecipient;
-  [key: string]: unknown;
-}
+} & Record<string, unknown>;
 
 // SECURITY: Explicit non-empty string validation (not just truthy check)
 // Environment-aware key selection: TAP_ENVIRONMENT=live uses LIVE keys, else TEST keys
@@ -141,6 +136,14 @@ const CheckoutRequestSchema = z.object({
  * }
  */
 export async function POST(req: NextRequest) {
+  // Rate limit: 10 req/min per IP to prevent payment abuse
+  const rateLimitResult = await enforceRateLimit(req, {
+    requests: 10,
+    windowMs: 60_000,
+    keyPrefix: "payments:tap:checkout",
+  });
+  if (rateLimitResult) return rateLimitResult;
+
   const correlationId = randomUUID();
 
   try {
@@ -187,7 +190,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let invoiceDoc: Awaited<ReturnType<typeof Invoice.findById>> | null = null;
+    let invoiceDoc:
+      | Awaited<ReturnType<typeof InvoiceModel.findById>>
+      | null = null;
     let invoiceObjectId: Types.ObjectId | undefined;
     if (invoiceId) {
       if (!Types.ObjectId.isValid(invoiceId)) {
@@ -202,7 +207,7 @@ export async function POST(req: NextRequest) {
         _id: invoiceObjectId,
         $or: [{ orgId: orgObjectId }, { org_id: orgObjectId }, { orgId: user.orgId }, { org_id: user.orgId }],
       };
-      invoiceDoc = await Invoice.findOne(orgScopedInvoiceFilter).lean();
+      invoiceDoc = await InvoiceModel.findOne(orgScopedInvoiceFilter).lean();
       if (!invoiceDoc) {
         return NextResponse.json(
           { error: "Invoice not found" },

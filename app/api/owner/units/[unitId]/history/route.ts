@@ -16,6 +16,9 @@ import {
   setTenantContext,
 } from "@/server/plugins/tenantIsolation";
 import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 interface PropertyUnit {
   unitNumber: string;
@@ -73,6 +76,13 @@ export async function GET(
   { params }: { params: { unitId: string } },
 ) {
   try {
+    // Rate limiting: 30 requests per minute per IP
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(`owner:unit-history:${clientIp}`, 30, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     // Check subscription
     const subCheck = await requireSubscription(req, {
       requirePlan: "BASIC",

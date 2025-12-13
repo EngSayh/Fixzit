@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * SECURITY: This is a TEST-ONLY endpoint for Playwright E2E tests.
@@ -109,6 +110,7 @@ export async function POST(req: NextRequest) {
   if (!IS_TEST_ENV) {
     return notFound();
   }
+  enforceRateLimit(req, { requests: 10, windowMs: 60_000, keyPrefix: "test:projects" });
 
   const user = await getAuthenticatedUser(req);
   if (!user) return unauthorized();
@@ -165,6 +167,7 @@ export async function GET(req: NextRequest) {
   if (!IS_TEST_ENV) {
     return notFound();
   }
+  enforceRateLimit(req, { requests: 30, windowMs: 60_000, keyPrefix: "test:projects:list" });
 
   const user = await getAuthenticatedUser(req);
   if (!user) return unauthorized();

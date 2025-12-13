@@ -18,6 +18,7 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongodb-unified";
 import { z } from "zod";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type RouteContext = {
   params: Promise<{
@@ -30,6 +31,14 @@ const sellerResponseSchema = z.object({
 });
 
 export async function POST(req: NextRequest, context: RouteContext) {
+  // Rate limiting: 20 requests per minute per IP for review responses
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "souq-seller-reviews:respond",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user) {

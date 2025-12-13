@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { Plus, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { logger } from "@/lib/logger";
-import { usePermittedQuickActions } from "./usePermittedQuickActions";
+import { usePermittedQuickActions } from "@/hooks/topbar/usePermittedQuickActions";
 
 export default function QuickActions() {
   const { quickActions } = useTopBar();

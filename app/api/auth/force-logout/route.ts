@@ -7,6 +7,9 @@
  * @returns {Object} ok: true confirming cookies have been cleared
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 export const runtime = 'nodejs';
 
@@ -14,47 +17,57 @@ export const runtime = 'nodejs';
 function _isIp(hostname: string): boolean {
   return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
 }
+
 export async function POST(req: NextRequest) {
-  const url = req.nextUrl;
-  const host = url.hostname;
-  const isHttps = url.protocol === 'https:';
+  // Rate limit: 20 logouts per minute per IP
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`auth:force-logout:${clientIp}`, 20, 60_000);
+  if (!rl.allowed) return rateLimitError();
 
-  const cookieNames = [
-    'authjs.session-token',
-    '__Secure-authjs.session-token',
-    'next-auth.session-token',
-    '__Secure-next-auth.session-token',
-    'authjs.callback-url',
-    'next-auth.callback-url',
-    'authjs.csrf-token',
-    'next-auth.csrf-token',
-    'fxz.access',
-    'fxz.refresh',
-    'fxz.otp',
-  ];
+  try {
+    const url = req.nextUrl;
+    const host = url.hostname;
+    const isHttps = url.protocol === 'https:';
 
-  const response = NextResponse.json({ ok: true });
-  const expires = new Date(0);
+    const cookieNames = [
+      'authjs.session-token',
+      '__Secure-authjs.session-token',
+      'next-auth.session-token',
+      '__Secure-next-auth.session-token',
+      'authjs.callback-url',
+      'next-auth.callback-url',
+      'authjs.csrf-token',
+      'next-auth.csrf-token',
+      'fxz.access',
+      'fxz.refresh',
+      'fxz.otp',
+    ];
 
-  const domains = [undefined, host].filter(Boolean) as (string | undefined)[];
+    const response = NextResponse.json({ ok: true });
+    const expires = new Date(0);
 
-  for (const name of cookieNames) {
-    const secure = name.startsWith('__Secure-') || isHttps;
-    const baseOptions = {
-      path: '/',
-      httpOnly: true,
-      sameSite: 'lax' as const,
-      secure,
-      expires,
-    };
+    const domains = [undefined, host].filter(Boolean) as (string | undefined)[];
 
-    for (const domain of domains) {
-      response.cookies.set(name, '', {
-        ...baseOptions,
-        ...(domain ? { domain } : {}),
-      });
+    for (const name of cookieNames) {
+      const secure = name.startsWith('__Secure-') || isHttps;
+      const baseOptions = {
+        path: '/',
+        httpOnly: true,
+        sameSite: 'lax' as const,
+        secure,
+        expires,
+      };
+
+      for (const domain of domains) {
+        response.cookies.set(name, '', {
+          ...baseOptions,
+          ...(domain ? { domain } : {}),
+        });
+      }
     }
-  }
 
-  return response;
+    return response;
+  } catch (_error) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

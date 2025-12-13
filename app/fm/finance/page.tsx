@@ -1,7 +1,7 @@
 "use client";
 
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 export default function FinancePage() {

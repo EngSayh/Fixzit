@@ -19,6 +19,7 @@ import mongoose from "mongoose";
 import { connectDb } from "@/lib/mongo";
 import { AqarFavorite, AqarListing, AqarProject } from "@/server/models/aqar";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -42,6 +43,14 @@ interface AqarFavoriteDocument {
 
 // GET /api/aqar/favorites
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:favorites:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDb();
 
@@ -58,8 +67,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Consistent tenant isolation - use orgId if available, fallback to userId
-    const tenantOrgId = user.orgId || user.id;
+    // SEC-FIX: Require orgId - never fall back to userId to prevent cross-tenant data access
+    if (!user.orgId) {
+      return NextResponse.json(
+        { error: "Organization context is required" },
+        { status: 403 },
+      );
+    }
+    const tenantOrgId = user.orgId;
 
     const { searchParams } = new URL(request.url);
     const targetType = searchParams.get("targetType"); // LISTING|PROJECT
@@ -182,6 +197,14 @@ export async function GET(request: NextRequest) {
 
 // POST /api/aqar/favorites
 export async function POST(request: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for writes
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:favorites:post",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await connectDb();
 
@@ -198,8 +221,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Consistent tenant isolation - use orgId if available, fallback to userId
-    const tenantOrgId = user.orgId || user.id;
+    // SEC-FIX: Require orgId - never fall back to userId to prevent cross-tenant writes
+    if (!user.orgId) {
+      return NextResponse.json(
+        { error: "Organization context is required" },
+        { status: 403 },
+      );
+    }
+    const tenantOrgId = user.orgId;
 
     const body = await request.json();
     const { targetId, targetType } = body;

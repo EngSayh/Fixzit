@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Session } from "next-auth";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   isFeatureEnabled,
   listFeatureFlags,
@@ -21,7 +22,14 @@ function buildContext(session: Session): FeatureFlagContext {
   };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "admin-feature-flags:get",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

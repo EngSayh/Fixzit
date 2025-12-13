@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { SellerBalanceService } from "@/services/souq/settlements/balance-service";
 import {
   Role,
@@ -19,6 +20,14 @@ import {
 } from "@/lib/rbac/client-roles";
 
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for transaction reads
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-settlements:transactions",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user) {

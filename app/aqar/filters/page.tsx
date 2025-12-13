@@ -508,6 +508,7 @@ export default function FiltersPage() {
                 onClick={handleReset}
                 className="px-6 py-2 border border-border text-foreground rounded-2xl hover:bg-muted transition-colors"
                 data-testid="reset-btn"
+                aria-label={t("aqar.filters.reset", "Reset Filters")}
               >
                 {t("aqar.filters.reset", "Reset Filters")}
               </button>
@@ -515,6 +516,7 @@ export default function FiltersPage() {
                 type="submit"
                 className="px-6 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors inline-flex items-center gap-2"
                 data-testid="search-btn"
+                aria-label={t("aqar.filters.search", "Search Properties")}
               >
                 <Filter className="w-4 h-4" />
                 {t("aqar.filters.search", "Search Properties")}
@@ -545,6 +547,7 @@ export default function FiltersPage() {
                 pushSearch(next);
               }}
               className="px-4 py-3 border border-border rounded-2xl hover:bg-muted transition-colors text-sm"
+              aria-label={t("aqar.filters.preset.familyApartment", "2BR Apartment in Riyadh")}
             >
               {t(
                 "aqar.filters.preset.familyApartment",
@@ -564,6 +567,7 @@ export default function FiltersPage() {
                 pushSearch(next);
               }}
               className="px-4 py-3 border border-border rounded-2xl hover:bg-muted transition-colors text-sm"
+              aria-label={t("aqar.filters.preset.luxuryVilla", "Luxury Villa in Jeddah")}
             >
               {t("aqar.filters.preset.luxuryVilla", "Luxury Villa in Jeddah")}
             </button>
@@ -579,6 +583,7 @@ export default function FiltersPage() {
                 pushSearch(next);
               }}
               className="px-4 py-3 border border-border rounded-2xl hover:bg-muted transition-colors text-sm"
+              aria-label={t("aqar.filters.preset.affordableStudio", "Affordable Studio")}
             >
               {t("aqar.filters.preset.affordableStudio", "Affordable Studio")}
             </button>
@@ -594,6 +599,7 @@ export default function FiltersPage() {
                 pushSearch(next);
               }}
               className="px-4 py-3 border border-border rounded-2xl hover:bg-muted transition-colors text-sm"
+              aria-label={t("aqar.filters.preset.commercialOffice", "Commercial Office")}
             >
               {t("aqar.filters.preset.commercialOffice", "Commercial Office")}
             </button>

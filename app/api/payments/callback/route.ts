@@ -8,4 +8,10 @@
 
 // Backwards-compatibility shim: `/api/payments/callback` now defers to the
 // TAP webhook handler that lives under `/api/payments/tap/webhook`.
-export { POST } from "../tap/webhook/route";
+import { wrapRoute } from "@/lib/api/route-wrapper";
+import { POST as tapWebhookPost } from "../tap/webhook/route";
+
+export const POST = wrapRoute(
+  tapWebhookPost,
+  "api.payments.callback.post.catch",
+);

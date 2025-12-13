@@ -19,6 +19,7 @@
 
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { SouqDeal } from "@/server/models/souq/Deal";
@@ -62,6 +63,14 @@ const dealCreateSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for deal creation
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-deals:create",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   // SEC-001: Authentication required - only sellers/admins can create deals
   let session;
   try {
@@ -190,6 +199,14 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for deal reads
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-deals:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   // SEC-002: Authentication required for listing deals
   let session;
   try {

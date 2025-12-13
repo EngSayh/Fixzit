@@ -55,6 +55,28 @@ if ! pnpm run scan:i18n:audit; then
   echo "   Resolve by adding the missing keys listed above."
 fi
 
+# EFF-003: Check API routes for try-catch error handling
+echo "🛡️  Checking API routes for error handling..."
+API_ROUTES_CHANGED=$(git diff --cached --name-only | grep -E "^app/api/.*route\.ts$")
+if [ -n "$API_ROUTES_CHANGED" ]; then
+  MISSING_TRY_CATCH=0
+  for route in $API_ROUTES_CHANGED; do
+    # Skip routes that use crud-factory (already has try-catch)
+    if grep -q "createCrudHandlers" "$route" 2>/dev/null; then
+      continue
+    fi
+    # Check if route has try-catch
+    if ! grep -q "try\s*{" "$route" 2>/dev/null; then
+      echo "⚠️  Missing try-catch in: $route"
+      MISSING_TRY_CATCH=$((MISSING_TRY_CATCH + 1))
+    fi
+  done
+  if [ $MISSING_TRY_CATCH -gt 0 ]; then
+    echo "⚠️  $MISSING_TRY_CATCH API route(s) missing try-catch (non-blocking)"
+    echo "   Add try-catch or use createCrudHandlers from lib/api/crud-factory.ts"
+  fi
+fi
+
 # Run high-fidelity coverage check (EN/AR only, non-blocking warning)
 echo "🌐 Checking translation coverage..."
 pnpm run i18n:coverage -- --locales=en,ar --silent || {

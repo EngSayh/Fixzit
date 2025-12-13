@@ -1,6 +1,22 @@
+/**
+ * Subscription Checkout Service
+ * 
+ * Creates subscription checkout sessions using TAP Payments API.
+ * This module handles the complete checkout flow including:
+ * - Price book lookup
+ * - Quote generation
+ * - Subscription creation
+ * - Payment session initiation
+ * 
+ * @module lib/finance/checkout
+ * @since v2.0.0 - Migrated from PayTabs to TAP Payments
+ */
+
 import PriceBook from "@/server/models/PriceBook";
 import Subscription from "@/server/models/Subscription";
 import { quotePrice, BillingCycle, QuoteResult } from "./pricing";
+import { tapPayments, buildTapCustomer, type TapChargeRequest } from "./tap-payments";
+import { logger } from "@/lib/logger";
 
 type QuoteSuccess = Extract<QuoteResult, { requiresQuote: false }>;
 
@@ -38,19 +54,24 @@ interface CheckoutRequiresQuote {
   quote: QuoteFailure;
 }
 
+/**
+ * Create a subscription checkout session using TAP Payments
+ * 
+ * @param input - Checkout parameters including customer, modules, and billing options
+ * @returns Checkout result with redirect URL or quote request
+ * @throws Error if TAP is not configured or PriceBook not found
+ */
 export async function createSubscriptionCheckout(
   input: CheckoutInput,
 ): Promise<CheckoutSuccess | CheckoutRequiresQuote> {
   const billingCycle = input.billingCycle;
   const currency = input.currency;
 
-  const paytabsDomain = process.env.PAYTABS_DOMAIN;
-  const paytabsProfileId = process.env.PAYTABS_PROFILE_ID;
-  const paytabsServerKey = process.env.PAYTABS_SERVER_KEY;
-  const appUrl = process.env.APP_URL;
+  // Validate TAP configuration
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
 
-  if (!paytabsDomain || !paytabsProfileId || !paytabsServerKey || !appUrl) {
-    throw new Error("PayTabs environment variables are not fully configured");
+  if (!appUrl) {
+    throw new Error("APP_URL environment variable is not configured");
   }
 
   const priceBook = input.priceBookId
@@ -76,6 +97,7 @@ export async function createSubscriptionCheckout(
   const periodLengthDays = billingCycle === "ANNUAL" ? 365 : 30;
   const periodEnd = new Date(now.getTime() + periodLengthDays * 24 * 60 * 60 * 1000);
 
+  // Create subscription with TAP payment info
   const subscription = await Subscription.create({
     tenant_id:
       input.subscriberType === "CORPORATE" ? input.tenantId : undefined,
@@ -89,9 +111,8 @@ export async function createSubscriptionCheckout(
     price_book_id: priceBook._id,
     amount: quote.total,
     status: "INCOMPLETE",
-    paytabs: {
-      profile_id: paytabsProfileId,
-      customer_email: input.customer.email,
+    tap: {
+      customerEmail: input.customer.email,
     },
     metadata: input.metadata,
     current_period_start: now,
@@ -100,61 +121,80 @@ export async function createSubscriptionCheckout(
   });
 
   const cartId = `SUB-${subscription._id.toString()}`;
-  const payload: Record<string, unknown> = {
-    profile_id: paytabsProfileId,
-    tran_type: "sale",
-    tran_class: "ecom",
-    cart_id: cartId,
-    cart_description: `${input.subscriberType} subscription`,
-    cart_amount: quote.total,
-    cart_currency: currency,
-    customer_details: {
-      name: input.customer.name,
+
+  // Parse customer name into first/last
+  const nameParts = input.customer.name.trim().split(/\s+/);
+  const firstName = nameParts[0] || "Customer";
+  const lastName = nameParts.slice(1).join(" ") || "";
+
+  // Build TAP charge request
+  const chargeRequest: TapChargeRequest = {
+    amount: quote.total,
+    currency,
+    customer: buildTapCustomer({
+      firstName,
+      lastName,
       email: input.customer.email,
-      phone: input.customer.phone ?? "N/A",
-      street1: "N/A",
-      city: "N/A",
-      state: "N/A",
-      country: "SA",
-      zip: "00000",
+      phone: input.customer.phone,
+    }),
+    redirect: {
+      url: `${appUrl}/api/payments/tap/callback?subscription_id=${subscription._id.toString()}`,
     },
-    return: `${appUrl}/api/paytabs/return`,
-    callback: `${appUrl}/api/paytabs/callback`,
+    post: {
+      url: `${appUrl}/api/payments/tap/webhook`,
+    },
+    description: `${input.subscriberType} subscription - ${input.modules.join(", ")}`,
+    metadata: {
+      subscriptionId: subscription._id.toString(),
+      cartId,
+      subscriberType: input.subscriberType,
+      ...(input.tenantId && { tenantId: input.tenantId }),
+      ...(input.ownerUserId && { ownerUserId: input.ownerUserId }),
+    },
+    reference: {
+      transaction: subscription._id.toString(),
+      order: cartId,
+    },
+    receipt: {
+      email: true,
+      sms: Boolean(input.customer.phone),
+    },
   };
 
-  if (billingCycle === "MONTHLY") {
-    payload.tokenise = 2;
-  }
+  try {
+    // Create TAP charge
+    const chargeResponse = await tapPayments.createCharge(chargeRequest);
 
-  const response = await fetch(`${paytabsDomain}/payment/request`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${paytabsServerKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
+    // Update subscription with TAP charge info
+    subscription.tap = {
+      customerEmail: input.customer.email,
+      // chargeId kept for backward compatibility; lastChargeId is canonical
+      chargeId: chargeResponse.id,
+      lastChargeId: chargeResponse.id,
+    };
+    subscription.amount = quote.total;
+    await subscription.save();
 
-  const json = await response.json();
+    logger.info("[Checkout] TAP charge created", {
+      subscriptionId: subscription._id.toString(),
+      chargeId: chargeResponse.id,
+      amount: quote.total,
+      currency,
+    });
 
-  if (!json.redirect_url) {
+    return {
+      requiresQuote: false,
+      subscriptionId: subscription._id.toString(),
+      cartId,
+      redirectUrl: chargeResponse.transaction.url,
+      quote,
+    };
+  } catch (error) {
+    // Clean up subscription on failure
     await subscription.deleteOne();
-    throw new Error("Failed to create PayTabs session");
+    logger.error("[Checkout] Failed to create TAP charge", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new Error(`Failed to create payment session: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
-
-  subscription.paytabs = {
-    profile_id: paytabsProfileId,
-    customer_email: input.customer.email,
-    cart_id: cartId,
-  };
-  subscription.amount = quote.total;
-  await subscription.save();
-
-  return {
-    requiresQuote: false,
-    subscriptionId: subscription._id.toString(),
-    cartId,
-    redirectUrl: json.redirect_url,
-    quote,
-  };
 }

@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
 import { z } from "zod";
 import { Expense } from "@/server/models/finance/Expense";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
@@ -43,6 +44,13 @@ export async function GET(
   req: NextRequest,
   context: RouteContext<{ id: string }>,
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 60,
+    windowMs: 60_000,
+    keyPrefix: "finance:expenses:read",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await getUserSession(req);
     if (!user) {
@@ -129,6 +137,13 @@ export async function PUT(
   req: NextRequest,
   context: RouteContext<{ id: string }>,
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 30,
+    windowMs: 60_000,
+    keyPrefix: "finance:expenses:update",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await getUserSession(req);
     if (!user) {
@@ -219,6 +234,13 @@ export async function DELETE(
   req: NextRequest,
   context: RouteContext<{ id: string }>,
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 30,
+    windowMs: 60_000,
+    keyPrefix: "finance:expenses:delete",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await getUserSession(req);
     if (!user) {

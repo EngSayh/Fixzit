@@ -18,7 +18,7 @@ vi.mock('@/app/api/fm/utils/tenant', () => ({
   resolveTenantId: vi.fn(() => ({ tenantId: 'tenant-1', source: 'session' })),
 }));
 
-vi.mock('@/app/api/fm/utils/auth', () => ({
+vi.mock('@/app/api/fm/utils/fm-auth', () => ({
   requireFmAbility: vi.fn(),
 }));
 
@@ -26,7 +26,7 @@ import { GET } from '@/app/api/fm/work-orders/stats/route';
 import { makeGetRequest } from '@/tests/helpers/request';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { resolveTenantId } from '@/app/api/fm/utils/tenant';
-import { requireFmAbility } from '@/app/api/fm/utils/auth';
+import { requireFmAbility } from '@/app/api/fm/utils/fm-auth';
 import { FMErrors } from '@/app/api/fm/errors';
 
 describe('api/fm/work-orders/stats route', () => {

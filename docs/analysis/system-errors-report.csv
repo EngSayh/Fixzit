@@ -141,7 +141,7 @@ Category,Type,File,Line,Code
 "lintErrors","Console Statement","create-guardrails.js",25,"console.log('Updated: package.json\n');"
 "lintErrors","Console Statement","create-guardrails.js",29,"write('scripts/dedup/consolidate.ts', '#!/usr/bin/env tsx\nconst DRY = process.argv.includes(\""--dry\"");\nconsole.log(DRY ? \""DRY RUN\"" : \""APPLYING\"""
 "lintErrors","Console Statement","create-guardrails.js",30,"write('scripts/ui/ui_freeze_check.ts', '#!/usr/bin/env tsx\nimport fs from \""fs\"";\nif (fs.existsSync(\""app/layout.tsx\"")) console.log(\""OK\"");');"
-"lintErrors","Console Statement","create-guardrails.js",31,"write('scripts/sidebar/snapshot_check.ts', '#!/usr/bin/env tsx\nimport fs from \""fs\"";\nconst snap = \""configs/sidebar.snapshot.json\"";\nif (!fs.exist"
+"lintErrors","Console Statement","create-guardrails.js",31,"write('scripts/sidebar/snapshot_check.ts', '#!/usr/bin/env tsx\nimport fs from \""fs\"";\nconst snap = \""config/sidebar.snapshot.json\"";\nif (!fs.exist"
 "lintErrors","Console Statement","create-guardrails.js",32,"write('scripts/i18n/check_language_selector.ts', '#!/usr/bin/env tsx\nconsole.log(\""Language selector OK\"");');"
 "lintErrors","Console Statement","create-guardrails.js",48,"console.log('\nAll files created successfully!');"
 "lintErrors","Console Statement","components/ErrorTest.tsx",31,"console.warn('Unable to verify user role for QA tools:', error);"

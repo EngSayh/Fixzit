@@ -26,6 +26,7 @@ import { getServerSession } from "@/lib/auth/getServerSession";
 import { reviewService } from "@/services/souq/reviews/review-service";
 import { SouqReview } from "@/server/models/souq/Review";
 import { ObjectId } from "mongodb";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const reviewCreateSchema = z.object({
   productId: z.string().min(1),
@@ -59,6 +60,14 @@ const reviewListQuerySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for review submission
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-reviews:create",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await getServerSession();
     if (!session?.user) {
@@ -73,7 +82,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const payload = reviewCreateSchema.parse(body);
 
-    const orgId = session.user.orgId ?? session.user.id;
+    // SEC-FIX: Require orgId - never fall back to userId to prevent cross-tenant writes
+    if (!session.user.orgId) {
+      return NextResponse.json(
+        { error: "Forbidden", message: "Organization context is required" },
+        { status: 403 },
+      );
+    }
+    const orgId = session.user.orgId;
     const review = await reviewService.submitReview(orgId, {
       ...payload,
       customerId: session.user.id,
@@ -108,6 +124,14 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for listing reviews
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-reviews:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await getServerSession();
     if (!session?.user) {

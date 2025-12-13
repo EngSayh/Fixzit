@@ -1,10 +1,10 @@
 /**
- * @description Sends OTP code via SMS for passwordless authentication.
+ * @description Sends OTP code via SMS or Email for passwordless authentication.
  * Supports email, employee ID, or phone number identification.
  * Implements rate limiting and Redis-backed OTP storage with expiry.
  * @route POST /api/auth/otp/send
  * @access Public - Rate limited to prevent abuse
- * @param {Object} body - identifier (email/phone/employeeId), companyCode (optional)
+ * @param {Object} body - identifier (email/phone/employeeId), companyCode (optional), deliveryMethod ('sms' | 'email')
  * @returns {Object} success: true, expiresIn: number (seconds)
  * @throws {400} If identifier is invalid or not found
  * @throws {429} If rate limit exceeded (max 5 sends per window)
@@ -14,7 +14,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { sendOTP, isValidSaudiPhone, isSMSDevModeEnabled } from "@/lib/sms";
+import {
+  sendOTP,
+  isValidSaudiPhone,
+  isSMSDevModeEnabled,
+  isSmsOperational,
+} from "@/lib/sms";
+import { sendEmail } from "@/lib/email";
 import { logCommunication } from "@/lib/communication-logger";
 import {
   redisOtpStore,
@@ -264,6 +270,7 @@ const SendOTPSchema = z.object({
   identifier: z.string().trim().min(1, "Email, phone, or employee number is required"),
   password: z.string().trim().optional(),
   companyCode: z.string().trim().optional(),
+  deliveryMethod: z.enum(["sms", "email"]).default("sms"),
 });
 
 // Generate random OTP
@@ -350,7 +357,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { identifier: identifierRaw, password } = parsed.data;
+    const { identifier: identifierRaw, password, deliveryMethod } = parsed.data;
     const smsDevMode = isSMSDevModeEnabled();
 
     // PRODUCTION OTP BYPASS: Allow bypassing OTP for superadmin and test users
@@ -771,50 +778,101 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (!userPhone) {
-      logger.error("[OTP] User has no phone number", {
-        userId: user._id?.toString?.() || loginIdentifier,
-      });
-      return NextResponse.json(
-        {
-          success: false,
-          error: "No phone number registered. Please contact support.",
-        },
-        { status: 400 },
-      );
+    // Phone validation only required for SMS delivery
+    if (deliveryMethod === "sms") {
+      if (!userPhone) {
+        logger.error("[OTP] User has no phone number", {
+          userId: user._id?.toString?.() || loginIdentifier,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "No phone number registered. Please use email delivery or contact support.",
+          },
+          { status: 400 },
+        );
+      }
+
+      // 9. Validate phone number (Saudi format)
+      if (!isValidSaudiPhone(userPhone)) {
+        logger.error("[OTP] Invalid phone number format", {
+          userId: user._id?.toString?.() || loginIdentifier,
+          phone: redactPhoneNumber(userPhone),
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid phone number format. Please update your profile.",
+          },
+          { status: 400 },
+        );
+      }
+
+      // 9a. Fail fast if SMS is not operational (prevents silent OTP loss)
+      if (!isSmsOperational()) {
+        logger.error("[OTP] SMS provider not configured", {
+          userId: user._id?.toString?.() || loginIdentifier,
+          phone: redactPhoneNumber(userPhone),
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "SMS is not configured. Please use email delivery or contact support.",
+          },
+          { status: 503 },
+        );
+      }
+
+      // 9b. SECURITY: Per-phone rate limiting to prevent SMS bombing
+      // Limits OTP sends to the same phone number regardless of which user account
+      const phoneRateLimitKey = `otp-phone:${userPhone}`;
+      const phoneRateLimit = await checkRateLimit(phoneRateLimitKey);
+      if (!phoneRateLimit.allowed) {
+        logger.warn("[OTP] Phone rate limit exceeded", {
+          phone: `****${userPhone.slice(-4)}`,
+          userId: user._id?.toString?.() || loginIdentifier,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Too many OTP requests to this phone. Please try again later.",
+          },
+          { status: 429 },
+        );
+      }
     }
 
-    // 9. Validate phone number (Saudi format)
-    if (!isValidSaudiPhone(userPhone)) {
-      logger.error("[OTP] Invalid phone number format", {
-        userId: user._id?.toString?.() || loginIdentifier,
-        phone: redactPhoneNumber(userPhone),
-      });
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid phone number format. Please update your profile.",
-        },
-        { status: 400 },
-      );
-    }
+    // Email validation for email delivery
+    if (deliveryMethod === "email") {
+      if (!user.email) {
+        logger.error("[OTP] User has no email address for email delivery", {
+          userId: user._id?.toString?.() || loginIdentifier,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "No email address registered. Please use SMS delivery or contact support.",
+          },
+          { status: 400 },
+        );
+      }
 
-    // 9b. SECURITY: Per-phone rate limiting to prevent SMS bombing
-    // Limits OTP sends to the same phone number regardless of which user account
-    const phoneRateLimitKey = `otp-phone:${userPhone}`;
-    const phoneRateLimit = await checkRateLimit(phoneRateLimitKey);
-    if (!phoneRateLimit.allowed) {
-      logger.warn("[OTP] Phone rate limit exceeded", {
-        phone: `****${userPhone.slice(-4)}`,
-        userId: user._id?.toString?.() || loginIdentifier,
-      });
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Too many OTP requests to this phone. Please try again later.",
-        },
-        { status: 429 },
-      );
+      // Per-email rate limiting to prevent email bombing
+      const emailRateLimitKey = `otp-email:${user.email}`;
+      const emailRateLimit = await checkRateLimit(emailRateLimitKey);
+      if (!emailRateLimit.allowed) {
+        logger.warn("[OTP] Email rate limit exceeded", {
+          email: `****@${user.email.split("@")[1] || "***"}`,
+          userId: user._id?.toString?.() || loginIdentifier,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Too many OTP requests to this email. Please try again later.",
+          },
+          { status: 429 },
+        );
+      }
     }
 
     // 10. Generate OTP
@@ -829,33 +887,94 @@ export async function POST(request: NextRequest) {
       attempts: 0,
       userId: user._id?.toString?.() || loginIdentifier,
       phone: userPhone,
+      email: user.email,
       orgId: orgScopeId,
       companyCode: normalizedCompanyCode,
+      deliveryMethod, // Track which method was used
     });
 
-    // 12. Send OTP via SMS
-    const smsResult = await sendOTP(userPhone, otp);
+    // 12. Send OTP via SMS or Email based on deliveryMethod
+    let deliveryResult: { success: boolean; error?: string; messageSid?: string; cost?: number; segments?: number };
+    let deliveryRecipient: string;
+    let maskedRecipient: string;
+
+    if (deliveryMethod === "email") {
+      // Email delivery
+      const userEmail = user.email;
+      if (!userEmail) {
+        await redisOtpStore.delete(otpKey);
+        logger.error("[OTP] User has no email address", {
+          userId: user._id?.toString?.() || loginIdentifier,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "No email address registered. Please use SMS or contact support.",
+          },
+          { status: 400 },
+        );
+      }
+
+      deliveryRecipient = userEmail;
+      const expiryMinutes = Math.floor(OTP_EXPIRY_MS / 60000);
+      const emailResult = await sendEmail(
+        userEmail,
+        "Fixzit Login Verification Code",
+        `Your verification code is: ${otp}\n\nThis code expires in ${expiryMinutes} minutes.\n\nIf you did not request this code, please ignore this email.`,
+        {
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #333; border-bottom: 2px solid #0070f3; padding-bottom: 10px;">Login Verification</h2>
+              <p style="margin: 20px 0; line-height: 1.6; color: #666;">Your verification code is:</p>
+              <div style="font-size: 32px; font-weight: bold; color: #0070f3; text-align: center; padding: 20px; background: #f5f5f5; border-radius: 8px; letter-spacing: 4px;">${otp}</div>
+              <p style="margin: 20px 0; line-height: 1.6; color: #666;">This code expires in <strong>${expiryMinutes} minutes</strong>.</p>
+              <p style="margin: 20px 0; line-height: 1.6; color: #999; font-size: 12px;">If you did not request this code, please ignore this email.</p>
+            </div>
+          `,
+        },
+      );
+
+      deliveryResult = {
+        success: emailResult.success,
+        error: emailResult.error,
+        messageSid: emailResult.messageId,
+      };
+      // Mask email: j***@example.com
+      const [emailUser, emailDomain] = userEmail.split("@");
+      maskedRecipient = emailUser && emailDomain 
+        ? `${emailUser.slice(0, 1)}***@${emailDomain}` 
+        : "***@***";
+    } else {
+      // SMS delivery (default)
+      // userPhone is guaranteed to be defined here because we validated it earlier
+      deliveryRecipient = userPhone!;
+      const smsResult = await sendOTP(userPhone!, otp);
+      deliveryResult = smsResult;
+      // Mask phone: 966****1234
+      maskedRecipient = userPhone!.replace(/(\d{3})\d+(\d{4})/, "$1****$2");
+    }
 
     if (!OFFLINE_MODE) {
       const logResult = await logCommunication({
         orgId: userOrgId || undefined, // SECURITY: Include orgId for tenant isolation (SEC-003)
         userId: user._id?.toString?.() || loginIdentifier,
-        channel: "otp",
+        channel: deliveryMethod === "email" ? "email" : "otp",
         type: "otp",
-        recipient: userPhone,
+        recipient: deliveryRecipient,
         subject: "Login verification OTP",
-        message: `SMS OTP login requested for ${loginIdentifier}`,
-        status: smsResult.success ? "sent" : "failed",
-        errorMessage: smsResult.success ? undefined : smsResult.error,
+        message: `${deliveryMethod.toUpperCase()} OTP login requested for ${loginIdentifier}`,
+        status: deliveryResult.success ? "sent" : "failed",
+        errorMessage: deliveryResult.success ? undefined : deliveryResult.error,
         metadata: {
-          phone: userPhone,
+          ...(deliveryMethod === "sms" && userPhone && { phone: userPhone }),
+          ...(deliveryMethod === "email" && { email: user.email }),
           otpExpiresAt: new Date(expiresAt),
           otpAttempts: MAX_ATTEMPTS,
           rateLimitRemaining: rateLimitResult.remaining,
           identifier: otpKey,
-          taqnyatId: smsResult.messageSid,
-          cost: smsResult.cost,
-          segments: smsResult.segments,
+          ...(deliveryResult.messageSid && { messageId: deliveryResult.messageSid }),
+          ...(deliveryResult.cost && { cost: deliveryResult.cost }),
+          ...(deliveryResult.segments && { segments: deliveryResult.segments }),
         },
       });
 
@@ -866,38 +985,42 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!smsResult.success) {
+    if (!deliveryResult.success) {
       await redisOtpStore.delete(otpKey);
-      logger.error("[OTP] Failed to send SMS", {
+      logger.error(`[OTP] Failed to send ${deliveryMethod.toUpperCase()}`, {
         userId: user._id?.toString?.() || loginIdentifier,
-        error: smsResult.error,
-        phone: redactPhoneNumber(userPhone),
+        error: deliveryResult.error,
+        deliveryMethod,
+        recipient: maskedRecipient,
       });
       return NextResponse.json(
         {
           success: false,
-          error: "Failed to send OTP. Please try again.",
+          error: `Failed to send OTP via ${deliveryMethod}. Please try again.`,
         },
         { status: 500 },
       );
     }
 
-    logger.info("[OTP] OTP sent successfully", {
+    logger.info(`[OTP] OTP sent successfully via ${deliveryMethod.toUpperCase()}`, {
       userId: user._id?.toString?.() || redactIdentifier(loginIdentifier),
       identifier: redactIdentifier(otpKey),
-      phone: redactPhoneNumber(userPhone),
+      deliveryMethod,
+      recipient: maskedRecipient,
     });
 
-    // 13. Return success response (mask phone number)
-    const maskedPhone = userPhone.replace(/(\d{3})\d+(\d{4})/, "$1****$2");
-
+    // 13. Return success response (mask recipient)
     const responseData: {
-      phone: string;
+      phone?: string;
+      email?: string;
+      deliveryMethod: string;
       expiresIn: number;
       attemptsRemaining: number;
       devCode?: string;
     } = {
-      phone: maskedPhone,
+      deliveryMethod,
+      ...(deliveryMethod === "sms" && { phone: maskedRecipient }),
+      ...(deliveryMethod === "email" && { email: maskedRecipient }),
       expiresIn: OTP_EXPIRY_MS / 1000, // seconds
       attemptsRemaining: MAX_ATTEMPTS,
     };

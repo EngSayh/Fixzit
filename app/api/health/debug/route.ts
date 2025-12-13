@@ -9,10 +9,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "health:debug" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   // Return 404 if token not configured (hide endpoint in production)
   if (!process.env.HEALTH_CHECK_TOKEN) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

@@ -11,11 +11,15 @@ import mongoose from "mongoose";
 import { MongoClient } from "mongodb";
 import { db } from "@/lib/mongo";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "health:db-diag" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   // Return 404 if token not configured (hide endpoint in production)
   if (!process.env.HEALTH_CHECK_TOKEN) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

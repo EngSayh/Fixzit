@@ -15,6 +15,7 @@ import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { AuditLogModel } from "@/server/models/AuditLog";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Helper to escape CSV fields
 function escapeCsvField(value: unknown): string {
@@ -70,6 +71,13 @@ function auditToCsvRow(log: {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "admin-audit-export:get",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication
     const session = await auth();

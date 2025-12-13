@@ -10,7 +10,7 @@ import { BudgetMath, Money } from "@/lib/finance/decimal";
 import type { BudgetCategory } from "@/lib/finance/schemas";
 import type Decimal from "decimal.js";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 export default function NewBudgetPage() {
   const { t } = useTranslation();

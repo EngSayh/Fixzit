@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { MarketplaceProduct } from "@/server/models/MarketplaceProduct";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type RouteParams =
   | { params: { slug: string } }
@@ -71,6 +72,9 @@ function buildBuyBox(product: {
 }
 
 export async function GET(_request: NextRequest, route: RouteParams) {
+  const rateLimitResponse = enforceRateLimit(_request, { requests: 60, windowMs: 60_000, keyPrefix: "marketplace:products:get" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const params = isPromise(route.params) ? await route.params : route.params;
   const { slug } = params;
   const decodedSlug = decodeURIComponent(slug);

@@ -21,6 +21,7 @@ import { requireFmPermission } from "@/app/api/fm/permissions";
 import { resolveTenantId, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
 import { ModuleKey } from "@/domain/fm/fm.behavior";
 import { FMAction } from "@/types/fm/enums";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type RoleDocument = {
   _id: ObjectId;
@@ -70,6 +71,13 @@ const mapRole = (doc: RoleDocument) => ({
 });
 
 export async function GET(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "fm-system-roles:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const actor = await requireFmPermission(req, {
       module: ModuleKey.FINANCE,

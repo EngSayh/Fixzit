@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { CreateTenantForm } from "@/components/fm/tenants/CreateTenantForm";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 export default function NewTenantPage() {
   const { t } = useTranslation();

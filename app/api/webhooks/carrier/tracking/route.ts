@@ -20,6 +20,7 @@ import { fulfillmentService } from "@/services/souq/fulfillment-service";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
 import { z } from "zod";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * Carrier webhook secrets - should be configured per carrier
@@ -83,6 +84,9 @@ function verifyWebhookSignature(
  * Accepts updates from Aramex, SMSA, SPL
  */
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 100, windowMs: 60_000, keyPrefix: "webhooks:carrier:tracking" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await request.json();
 
@@ -133,7 +137,10 @@ export async function POST(request: NextRequest) {
  * GET /api/webhooks/carrier/tracking
  * Health check endpoint
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "webhooks:carrier:health" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   return NextResponse.json({
     status: "ok",
     service: "carrier-tracking-webhook",

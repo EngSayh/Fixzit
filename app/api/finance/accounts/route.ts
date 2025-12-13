@@ -18,11 +18,13 @@ import { dbConnect } from "@/lib/mongodb-unified";
 import ChartAccount from "@/server/models/finance/ChartAccount";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
+import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { Types } from "mongoose";
 import { z } from "zod";
 
 import { logger } from "@/lib/logger";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
@@ -65,6 +67,14 @@ async function getUserSession(_req: NextRequest) {
 // ============================================================================
 
 export async function GET(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for reads
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-accounts:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 
@@ -239,6 +249,14 @@ function filterTreeByAccountType(
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: 15 requests per minute per IP for writes
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-accounts:create",
+    requests: 15,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 
@@ -252,7 +270,10 @@ export async function POST(req: NextRequest) {
     requirePermission(user.role, "finance.accounts.create");
 
     // Parse and validate request body
-    const body = await req.json();
+    const body = await parseBodyOrNull(req);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const validated = CreateAccountSchema.parse(body);
 
     // Execute with proper context

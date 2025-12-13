@@ -31,8 +31,15 @@ import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Organization } from "@/server/models/Organization";
 import { logger } from "@/lib/logger";
+import {
+  buildOrgAwareRateLimitKey,
+  smartRateLimit,
+} from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import type { Session } from "next-auth";
 
 const COOKIE_NAME = "support_org_id";
+const IMPERSONATION_RL_LIMIT = 10;
 
 function serializeOrganization(org: {
   orgId: string;
@@ -50,18 +57,46 @@ function serializeOrganization(org: {
   };
 }
 
-async function ensureSuperAdmin() {
-  const session = await auth();
-  if (!session?.user?.isSuperAdmin) {
-    return null;
+async function enforceImpersonationRateLimit(
+  req: NextRequest,
+  session: Session | null,
+) {
+  const sessionUser = session?.user as { id?: string; orgId?: string } | undefined;
+  const key = buildOrgAwareRateLimitKey(
+    req,
+    sessionUser?.orgId ?? null,
+    sessionUser?.id ?? null,
+  );
+  const rl = await smartRateLimit(
+    `${key}:support-impersonation`,
+    IMPERSONATION_RL_LIMIT,
+    60_000,
+  );
+  if (!rl.allowed) {
+    return rateLimitError();
   }
-  return session;
+  return null;
+}
+
+async function ensureSuperAdmin(req: NextRequest): Promise<{
+  session: Session | null;
+  response?: NextResponse;
+}> {
+  const session = (await auth()) as Session | null;
+  const rateLimited = await enforceImpersonationRateLimit(req, session);
+  if (rateLimited) {
+    return { session: null, response: rateLimited };
+  }
+  if (!session?.user?.isSuperAdmin) {
+    return { session: null, response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  }
+  return { session };
 }
 
 export async function GET(req: NextRequest) {
-  const session = await ensureSuperAdmin();
-  if (!session) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { response } = await ensureSuperAdmin(req);
+  if (response) {
+    return response;
   }
 
   const cookieOrgId = req.cookies.get(COOKIE_NAME)?.value;
@@ -84,9 +119,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await ensureSuperAdmin();
-  if (!session) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { response } = await ensureSuperAdmin(req);
+  if (response) {
+    return response;
   }
 
   let body: { orgId?: string; corporateId?: string; identifier?: string } = {};
@@ -137,10 +172,10 @@ export async function POST(req: NextRequest) {
   return res;
 }
 
-export async function DELETE() {
-  const session = await ensureSuperAdmin();
-  if (!session) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+export async function DELETE(req: NextRequest) {
+  const { response } = await ensureSuperAdmin(req);
+  if (response) {
+    return response;
   }
   const res = NextResponse.json({ ok: true });
   res.cookies.set({

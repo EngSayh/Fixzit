@@ -4,6 +4,7 @@ import Link from "next/link";
 import { renderMarkdownSanitized } from "@/lib/markdown";
 import { cookies } from "next/headers";
 import ClientDate from "@/components/ClientDate";
+import { SafeHtml } from "@/components/SafeHtml";
 import { logger } from "@/lib/logger";
 import { getStaticCmsPage } from "@/data/static-content";
 import { isMongoUnavailableError } from "@/lib/mongo-build-guards";
@@ -116,6 +117,7 @@ export default async function CmsPageScreen(props: {
       </div>
     );
   }
+  const contentHtml = await renderMarkdownSanitized(page.content);
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col">
       {/* Hero Section */}
@@ -129,11 +131,10 @@ export default async function CmsPageScreen(props: {
       {/* Content */}
       <div className="mx-auto max-w-4xl px-6 py-10">
         <div className="bg-card rounded-2xl shadow-md border border-border p-8">
-          <article
+          <SafeHtml
+            as="article"
             className="prose prose-neutral dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{
-              __html: await renderMarkdownSanitized(page.content),
-            }}
+            html={contentHtml}
           />
 
           <div className="mt-8 pt-6 border-t border-border">

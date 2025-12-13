@@ -20,6 +20,7 @@ import { getPresignedGetUrl, putObjectBuffer } from "@/lib/storage/s3";
 import { scanS3Object } from "@/lib/security/av-scan";
 import { generateReport } from "@/lib/reports/generator";
 import { validateBucketPolicies } from "@/lib/security/s3-policy";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type ReportJob = {
   _id: { toString(): string };
@@ -55,6 +56,13 @@ const COLLECTION = "fm_report_jobs";
  * @security Requires FM REPORTS/EXPORT permission
  */
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "fm-reports-process:post",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const actor = await requireFmPermission(req, {
       module: ModuleKey.REPORTS,

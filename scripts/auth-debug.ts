@@ -94,7 +94,26 @@ async function main() {
   }
   const parsed = LoginSchema.safeParse({ identifier: `test-admin@${EMAIL_DOMAIN}`, password: 'Test@1234', rememberMe: 'on' });
   console.log('schema valid:', parsed.success, parsed.success ? parsed.data : parsed.error.flatten());
-  const cred = (authConfig.providers as any[]).find((p: any) => p.id === 'credentials');
+
+type CredentialsProviderLike = {
+  id?: string;
+  authorize?: (
+    credentials: Record<string, unknown>,
+    req: unknown,
+  ) => Promise<unknown>;
+  options?: {
+    authorize?: (
+      credentials: Record<string, unknown>,
+      req: unknown,
+    ) => Promise<unknown>;
+  };
+};
+
+  const providers = Array.isArray(authConfig.providers)
+    ? (authConfig.providers as CredentialsProviderLike[])
+    : [];
+  const cred = providers.find((p) => p.id === 'credentials');
+
   console.log('cred provider keys:', cred ? Object.keys(cred) : null);
   if (cred?.authorize) {
     console.log('authorize snippet:', cred.authorize.toString().slice(0, 200));
@@ -102,9 +121,20 @@ async function main() {
   if (cred?.options?.authorize) {
     console.log('options authorize snippet:', cred.options.authorize.toString().slice(0, 200));
   }
-  const res = await cred.authorize({ identifier: `test-admin@${EMAIL_DOMAIN}`, password: 'Test@1234', rememberMe: 'on' }, {} as any);
+  const emptyRequest: Record<string, unknown> = {};
+  const res = cred?.authorize
+    ? await cred.authorize(
+        { identifier: `test-admin@${EMAIL_DOMAIN}`, password: 'Test@1234', rememberMe: 'on' },
+        emptyRequest,
+      )
+    : null;
   console.log('authorize result:', res);
-  const resOptions = await cred.options.authorize({ identifier: `test-admin@${EMAIL_DOMAIN}`, password: 'Test@1234', rememberMe: 'on' }, {} as any);
+  const resOptions = cred?.options?.authorize
+    ? await cred.options.authorize(
+        { identifier: `test-admin@${EMAIL_DOMAIN}`, password: 'Test@1234', rememberMe: 'on' },
+        emptyRequest,
+      )
+    : null;
   console.log('options authorize result:', resOptions);
 }
 

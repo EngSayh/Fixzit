@@ -3,9 +3,9 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
-vi.mock("@/components/fm/useFmOrgGuard", () => ({
+vi.mock("@/hooks/fm/useFmOrgGuard", () => ({
   useFmOrgGuard: vi.fn(),
 }));
 

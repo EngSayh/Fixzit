@@ -1,5 +1,7 @@
 // MongoDB Models with TypeScript interfaces
 import type { ObjectId } from "mongodb";
+import type { WorkOrder as FMWorkOrder } from "@/types/fm/work-order";
+export { WOStatus, WOPriority } from "@/types/fm/work-order";
 
 /**
  * @deprecated Import Role from '@/domain/fm/fm-lite' instead.
@@ -45,40 +47,25 @@ export interface Property {
   updatedAt: Date;
 }
 
-export interface WorkOrder {
-  _id?: string;
-  tenantId: string;
-  code: string;
-  title: string;
-  description: string;
-  status: WOStatus;
-  priority: WOPriority;
-  propertyId?: string;
-  requesterId?: string;
-  assigneeId?: string;
-  scheduledAt?: Date;
-  startedAt?: Date;
-  completedAt?: Date;
-  slaHours: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export enum WOStatus {
-  NEW = "NEW",
-  ASSIGNED = "ASSIGNED",
-  IN_PROGRESS = "IN_PROGRESS",
-  ON_HOLD = "ON_HOLD",
-  COMPLETED = "COMPLETED",
-  CANCELLED = "CANCELLED",
-}
-
-export enum WOPriority {
-  LOW = "LOW",
-  MEDIUM = "MEDIUM",
-  HIGH = "HIGH",
-  CRITICAL = "CRITICAL",
-}
+export type WorkOrder = Pick<
+  FMWorkOrder,
+  | "_id"
+  | "tenantId"
+  | "code"
+  | "title"
+  | "description"
+  | "status"
+  | "priority"
+  | "propertyId"
+  | "requesterId"
+  | "assigneeId"
+  | "scheduledAt"
+  | "startedAt"
+  | "completedAt"
+  | "slaHours"
+  | "createdAt"
+  | "updatedAt"
+>;
 
 // Marketplace Models
 export interface Category {
@@ -191,41 +178,35 @@ export enum OrderStatus {
   REFUNDED = "REFUNDED",
 }
 
-export interface Invoice {
-  _id?: string;
-  tenantId: string;
-  invoiceNumber: string;
-  orderId?: string;
-  workOrderId?: string;
-  customerRef: string;
-  issueDate: Date;
-  dueDate: Date;
+export type InvoiceStatus = import("@/types/invoice").InvoiceStatus;
+
+export type Invoice = Pick<
+  import("@/types/invoice").Invoice,
+  | "_id"
+  | "tenantId"
+  | "invoiceNumber"
+  | "orderId"
+  | "workOrderId"
+  | "customerRef"
+  | "issueDate"
+  | "dueDate"
+  | "subtotal"
+  | "vatRate"
+  | "vatAmount"
+  | "total"
+  | "currency"
+  | "status"
+  | "zatca"
+  | "createdAt"
+  | "updatedAt"
+> & {
   lines: InvoiceLine[];
-  subtotal: number;
-  vatRate: number;
-  vatAmount: number;
-  total: number;
-  currency: string;
-  status: InvoiceStatus;
-  zatcaQr?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+};
 
-export interface InvoiceLine {
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  total: number;
-}
-
-export enum InvoiceStatus {
-  DRAFT = "DRAFT",
-  ISSUED = "ISSUED",
-  PAID = "PAID",
-  OVERDUE = "OVERDUE",
-  CANCELLED = "CANCELLED",
-}
+export type InvoiceLine = Pick<
+  import("@/types/invoice").InvoiceLine,
+  "description" | "quantity" | "unitPrice" | "total" | "tax" | "discount"
+>;
 
 // Marketplace - RFQ
 

@@ -10,7 +10,7 @@ import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { Plug, Check, X, Settings } from "lucide-react";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 

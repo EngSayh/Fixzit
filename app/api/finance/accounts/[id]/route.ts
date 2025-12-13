@@ -14,12 +14,14 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { dbConnect } from "@/lib/mongodb-unified";
 import ChartAccount from "@/server/models/finance/ChartAccount";
 import LedgerEntry from "@/server/models/finance/LedgerEntry";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
+import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { Types } from "mongoose";
 import { z } from "zod";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
@@ -65,6 +67,13 @@ export async function GET(
   req: NextRequest,
   context: RouteContext<{ id: string }>,
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 60,
+    windowMs: 60_000,
+    keyPrefix: "finance:accounts:read",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 
@@ -167,6 +176,13 @@ export async function PUT(
   req: NextRequest,
   context: RouteContext<{ id: string }>,
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 30,
+    windowMs: 60_000,
+    keyPrefix: "finance:accounts:update",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 
@@ -191,7 +207,10 @@ export async function PUT(
     }
 
     // Parse and validate request body
-    const body = await req.json();
+    const body = await parseBodyOrNull(req);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const validated = UpdateAccountSchema.parse(body);
 
     // Execute with proper context
@@ -290,6 +309,13 @@ export async function DELETE(
   req: NextRequest,
   context: RouteContext<{ id: string }>,
 ) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 30,
+    windowMs: 60_000,
+    keyPrefix: "finance:accounts:delete",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 

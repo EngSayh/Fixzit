@@ -16,6 +16,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import mongoose from "mongoose";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const ExportSchema = z.object({
   format: z.enum(["json", "csv"]).default("json"),
@@ -137,6 +138,13 @@ const COLLECTION_PROJECTIONS: Record<string, Record<string, 0>> = {
  * SUPER_ADMIN only - scoped to organization with batching
  */
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "admin-export:get",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

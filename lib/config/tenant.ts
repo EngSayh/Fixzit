@@ -4,6 +4,9 @@
  * Provides organization-specific configuration for multi-tenant support.
  * Enables white-label and rebrand compatibility.
  *
+ * This module is CLIENT-SAFE and can be imported by any component.
+ * For server-side database loading, import from '@/lib/config/tenant.server'
+ *
  * @module lib/config/tenant
  */
 
@@ -45,7 +48,7 @@ export interface TenantConfig {
 /**
  * Default tenant configuration from environment
  */
-const DEFAULT_TENANT_CONFIG: TenantConfig = {
+export const DEFAULT_TENANT_CONFIG: TenantConfig = {
   orgId: "default",
   name: process.env.NEXT_PUBLIC_COMPANY_NAME || Config.company.name,
   domain: process.env.NEXT_PUBLIC_BASE_URL || "https://fixzit.co",
@@ -67,12 +70,16 @@ const DEFAULT_TENANT_CONFIG: TenantConfig = {
 };
 
 /**
- * Cache for tenant configurations
+ * Cache for tenant configurations (shared between client and server)
  */
-const tenantCache = new Map<string, TenantConfig>();
+export const tenantCache = new Map<string, TenantConfig>();
 
 /**
  * Get tenant configuration by organization ID
+ *
+ * This returns cached configuration or defaults. On the server side,
+ * use getTenantConfigAsync from '@/lib/config/tenant.server' for
+ * database-backed configuration.
  *
  * @param orgId - Organization ID (use 'default' for system defaults)
  * @returns Tenant configuration
@@ -95,16 +102,9 @@ export function getTenantConfig(orgId?: string): TenantConfig {
     return cached;
   }
 
-  // TODO: Fetch from database when multi-tenant is implemented
-  // For now, return default config with orgId override
-  const config = {
-    ...DEFAULT_TENANT_CONFIG,
-    orgId,
-  };
-
-  // Cache the result
-  tenantCache.set(orgId, config);
-  return config;
+  // Return default config with orgId override
+  // Server-side code should use getTenantConfigAsync for DB lookup
+  return { ...DEFAULT_TENANT_CONFIG, orgId };
 }
 
 /**

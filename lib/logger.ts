@@ -226,6 +226,7 @@ class Logger {
 
   /**
    * Send log to monitoring service (Sentry integration)
+   * NOTE: Uses webpack-safe dynamic import pattern to avoid build errors
    */
   private async sendToMonitoring(
     level: LogLevel,
@@ -239,7 +240,11 @@ class Logger {
     }
 
     try {
-      const Sentry = await import("@sentry/nextjs").catch((importError) => {
+      // Use variable to prevent webpack static analysis of the import
+      // This avoids "createFilename" errors in next-flight-loader
+      const sentryModuleName = "@sentry/nextjs";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const Sentry: any = await import(/* webpackIgnore: true */ sentryModuleName).catch((importError) => {
         console.error("[Logger] Failed to import Sentry:", importError);
         return null;
       });
@@ -286,14 +291,16 @@ class Logger {
       };
 
       if (level === "error") {
-        Sentry.withScope((scope) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Sentry.withScope((scope: any) => {
           applyScope(scope);
           scope.setLevel("error");
           const err = errorToCapture ?? new Error(message);
           Sentry.captureException(err);
         });
       } else if (level === "warn") {
-        Sentry.withScope((scope) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Sentry.withScope((scope: any) => {
           applyScope(scope);
           scope.setLevel("warning");
           if (scope.setFingerprint) {

@@ -26,6 +26,13 @@ export class ApiError extends Error {
 }
 
 /**
+ * Type guard for objects that may have status or code properties
+ */
+function hasStatusOrCode(err: unknown): err is { status?: number; code?: string } {
+  return typeof err === 'object' && err !== null;
+}
+
+/**
  * Determine whether an error represents a forbidden/authorization failure without relying on brittle message substring checks.
  */
 export function isForbidden(error: unknown): boolean {
@@ -35,10 +42,10 @@ export function isForbidden(error: unknown): boolean {
     return true;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const anyErr = error as any;
-  if (anyErr?.status === 403 || anyErr?.code === "FORBIDDEN") {
-    return true;
+  if (hasStatusOrCode(error)) {
+    if (error.status === 403 || error.code === "FORBIDDEN") {
+      return true;
+    }
   }
 
   if (error instanceof Error) {

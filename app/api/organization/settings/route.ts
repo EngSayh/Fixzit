@@ -10,6 +10,7 @@ import { connectDb } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createHash } from "crypto";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Default branding for unauthenticated or fallback scenarios
 // Colors aligned with design tokens from tailwind.config.js
@@ -52,14 +53,16 @@ const brandingCache = new Map<string, CachedBranding>();
  *       500:
  *         description: Server error
  */
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
+  enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "org:settings" });
+
   try {
     await connectDb();
 
     // SECURITY FIX: Get org from authenticated session, not arbitrary first org
     let orgId: string | undefined;
     try {
-      const user = await getSessionUser(req);
+      const user = await getSessionUser(request);
       orgId = user.orgId;
     } catch {
       // Unauthenticated - return default branding

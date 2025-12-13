@@ -15,18 +15,54 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { sendSMS } from "@/lib/sms";
-import { handleApiError } from "@/server/utils/errorResponses";
+import {
+  handleApiError,
+  rateLimitError,
+} from "@/server/utils/errorResponses";
 import { audit } from "@/lib/audit";
 import { redactPhoneNumber } from "@/lib/sms-providers/phone-utils";
+import type { Session } from "next-auth";
+import {
+  buildOrgAwareRateLimitKey,
+  smartRateLimit,
+} from "@/server/security/rateLimit";
 
 const TestNotificationSchema = z.object({
   phoneNumber: z.string().min(10).regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format"),
   channel: z.enum(["sms", "whatsapp"]),
   message: z.string().min(1).max(1600),
 });
+
+const ADMIN_TEST_NOTIFICATION_RL_LIMIT = 5;
+
+const enforceAdminTestNotificationRateLimit = async (
+  req: NextRequest,
+  session: Session | null,
+) => {
+  const sessionUser = session?.user as { id?: string; orgId?: string } | undefined;
+  const key = buildOrgAwareRateLimitKey(
+    req,
+    sessionUser?.orgId ?? null,
+    sessionUser?.id ?? null,
+  );
+  const rl = await smartRateLimit(
+    `${key}:admin-notification-test`,
+    ADMIN_TEST_NOTIFICATION_RL_LIMIT,
+    60_000,
+  );
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+  return null;
+};
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = (await auth()) as Session | null;
+    const rateLimited = await enforceAdminTestNotificationRateLimit(
+      request,
+      session,
+    );
+    if (rateLimited) return rateLimited;
 
     if (!session?.user || session.user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

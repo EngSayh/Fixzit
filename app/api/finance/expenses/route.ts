@@ -20,8 +20,10 @@ import ChartAccount from "@/server/models/finance/ChartAccount";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
+import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { Types } from "mongoose";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { logger } from "@/lib/logger";
 // Validation schemas
@@ -132,6 +134,14 @@ async function getUserSession(req: NextRequest) {
  * Create a new expense (draft or submitted)
  */
 export async function POST(req: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for writes
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-expenses:create",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await getUserSession(req);
     if (!user) {
@@ -142,7 +152,10 @@ export async function POST(req: NextRequest) {
     requirePermission(user.role, "finance.expenses.create");
 
     // Parse request body
-    const body = await req.json();
+    const body = await parseBodyOrNull(req);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const data = CreateExpenseSchema.parse(body);
 
     // Execute with proper context
@@ -249,6 +262,14 @@ export async function POST(req: NextRequest) {
  * List expenses with filters
  */
 export async function GET(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for reads
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-expenses:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await getUserSession(req);
     if (!user) {

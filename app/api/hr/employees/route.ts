@@ -30,6 +30,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { EmployeeService } from "@/server/services/hr/employee.service";
 import { hasAllowedRole } from "@/lib/auth/role-guards";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Define session user type with subRole support
 interface SessionUser {
@@ -40,6 +41,14 @@ interface SessionUser {
 
 // GET /api/hr/employees - List all employees for the organization
 export async function GET(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "hr-employees:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.orgId) {
@@ -142,6 +151,14 @@ export async function GET(req: NextRequest) {
 
 // POST /api/hr/employees - Create a new employee
 export async function POST(req: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for writes
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "hr-employees:create",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.orgId) {

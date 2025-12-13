@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { SellerBalanceService } from "@/services/souq/settlements/balance-service";
 import { PayoutProcessorService } from "@/services/souq/settlements/payout-processor";
 import { connectDb } from "@/lib/mongodb-unified";
@@ -32,6 +33,14 @@ const SELF_PAYOUT_ROLES: readonly string[] = [
 ];
 
 export async function POST(request: NextRequest) {
+  // Rate limiting: 5 requests per minute per IP for payout requests (sensitive)
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-settlements:request-payout",
+    requests: 5,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user) {

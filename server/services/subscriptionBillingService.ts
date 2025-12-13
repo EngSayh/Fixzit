@@ -19,7 +19,7 @@
  * });
  * 
  * // Charge recurring billing
- * await chargeRecurringBilling(subscription._id, payTabsClient);
+ * await chargeRecurringBilling(subscription._id, tapPayments);
  */
 
 import { Types } from "mongoose";
@@ -29,10 +29,10 @@ import { connectToDatabase } from "../../lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 
 /**
- * Result from PayTabs recurring charge API
+ * Result from TAP recurring charge API
  */
-export interface PayTabsChargeResult {
-  /** Transaction reference from PayTabs */
+export interface TapChargeResult {
+  /** Transaction reference from TAP */
   tran_ref: string;
   /** Charge status */
   status: "SUCCESS" | "FAILED";
@@ -45,22 +45,32 @@ export interface PayTabsChargeResult {
 }
 
 /**
- * PayTabs client interface for recurring charges
+ * TAP payments client interface for recurring charges
  */
-export interface PayTabsClient {
+export interface TapPaymentsClient {
   /**
-   * Charge a saved card token for recurring billing
-   * @param payload - Charge parameters
-   * @returns Promise resolving to charge result
+   * Create a charge using a saved card token
+   * @param request - Charge parameters
+   * @returns Promise resolving to charge response
    */
-  chargeRecurring(_payload: {
-    profileId: string;
-    token: string;
-    customerEmail: string;
+  createCharge(request: {
     amount: number;
     currency: string;
-    cartId?: string;
-  }): Promise<PayTabsChargeResult>;
+    customer: {
+      first_name: string;
+      last_name: string;
+      email: string;
+      phone: { country_code: string; number: string };
+    };
+    source?: { id: string };
+    redirect: { url: string };
+    description?: string;
+    metadata?: Record<string, string | number | boolean | undefined>;
+  }): Promise<{
+    id: string;
+    status: string;
+    response?: { code: string; message: string };
+  }>;
 }
 
 /**
@@ -155,7 +165,7 @@ export async function createSubscriptionFromCheckout(
 
 export async function markSubscriptionPaid(
   subscriptionId: string,
-  charge: PayTabsChargeResult,
+  charge: TapChargeResult,
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
@@ -195,7 +205,7 @@ export async function markSubscriptionPaid(
 }
 
 export async function runRecurringBillingJob(
-  payTabsClient: PayTabsClient,
+  tapClient: TapPaymentsClient,
   now = new Date(),
 ): Promise<{ processed: number; succeeded: number; failed: number }> {
   await connectToDatabase();
@@ -212,7 +222,11 @@ export async function runRecurringBillingJob(
   for (const sub of dueSubs) {
     processed++;
 
-    if (!sub.paytabs || !sub.paytabs.token) {
+    // Prefer TAP, fallback to PayTabs for legacy subscriptions
+    const hasTap = sub.tap && sub.tap.cardId;
+    const hasPaytabs = sub.paytabs && sub.paytabs.token;
+    
+    if (!hasTap && !hasPaytabs) {
       sub.status = "PAST_DUE";
       sub.billing_history.push({
         date: now,
@@ -220,7 +234,7 @@ export async function runRecurringBillingJob(
         currency: sub.currency,
         tran_ref: "",
         status: "FAILED",
-        error: "Missing PayTabs token",
+        error: "Missing payment token",
       });
       await sub.save();
       failed++;
@@ -228,14 +242,32 @@ export async function runRecurringBillingJob(
     }
 
     try {
-      const result = await payTabsClient.chargeRecurring({
-        profileId: sub.paytabs.profile_id || "",
-        token: sub.paytabs.token,
-        customerEmail: sub.paytabs.customer_email || "",
+      // Use TAP for recurring charges
+      const customerEmail = sub.tap?.customerEmail || sub.paytabs?.customer_email || "";
+      const cardId = sub.tap?.cardId || sub.paytabs?.token || "";
+      
+      const chargeResponse = await tapClient.createCharge({
         amount: sub.amount,
         currency: sub.currency,
-        cartId: sub.paytabs.cart_id,
+        customer: {
+          first_name: "Customer",
+          last_name: "",
+          email: customerEmail,
+          phone: { country_code: "966", number: "" },
+        },
+        source: { id: cardId },
+        redirect: { url: process.env.NEXT_PUBLIC_APP_URL || "https://fixzit.app/billing/callback" },
+        description: `Subscription renewal - ${sub._id}`,
+        metadata: { subscriptionId: sub._id.toString() },
       });
+
+      const result: TapChargeResult = {
+        tran_ref: chargeResponse.id,
+        status: chargeResponse.status === "CAPTURED" ? "SUCCESS" : "FAILED",
+        error_message: chargeResponse.response?.message,
+        amount: sub.amount,
+        currency: sub.currency,
+      };
 
       await markSubscriptionPaid(sub._id.toString(), result);
       if (result.status === "SUCCESS") succeeded++;

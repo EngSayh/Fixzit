@@ -45,52 +45,7 @@ import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
 import ClientDate from "@/components/ClientDate";
 import { parseDate } from "@/lib/date-utils";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
-
-interface InvoiceItem {
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  discount: number;
-  tax: {
-    type: string;
-    rate: number;
-    amount: number;
-  };
-  total: number;
-}
-
-interface InvoiceRecipient {
-  name: string;
-  taxId?: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  customerId?: string;
-}
-
-interface InvoiceZATCA {
-  status?: string;
-  qrCode?: string;
-}
-
-interface InvoicePayment {
-  date?: string;
-}
-
-interface Invoice {
-  id: string;
-  number: string;
-  recipient: InvoiceRecipient;
-  status: string;
-  total: number;
-  currency: string;
-  issueDate: string;
-  dueDate: string;
-  type: string;
-  items?: InvoiceItem[];
-  zatca?: InvoiceZATCA;
-  payments?: InvoicePayment[];
-}
+import type { Invoice } from "@/types/invoice";
 
 export default function InvoicesPage() {
   return (
@@ -106,6 +61,100 @@ type InvoicesContentProps = {
   orgId: string;
   supportOrg?: { name?: string } | null;
 };
+
+type InvoiceFormLineItem = {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  tax: { type: string; rate: number; amount: number };
+  total: number;
+};
+
+type InvoiceFormData = {
+  type: string;
+  issuer: {
+    name: string;
+    taxId: string;
+    address: string;
+    phone: string;
+    email: string;
+    registration: string;
+    license: string;
+  };
+  recipient: {
+    name: string;
+    taxId: string;
+    address: string;
+    phone: string;
+    email: string;
+    customerId: string;
+  };
+  issueDate: string;
+  dueDate: string;
+  description: string;
+  items: InvoiceFormLineItem[];
+  currency: string;
+  payment: {
+    method: string;
+    terms: string;
+    instructions: string;
+    account: {
+      bank: string;
+      accountNumber: string;
+      iban: string;
+      swift: string;
+    };
+  };
+};
+
+const createDefaultLineItem = (): InvoiceFormLineItem => ({
+  description: "",
+  quantity: 1,
+  unitPrice: 0,
+  discount: 0,
+  tax: { type: "VAT", rate: 15, amount: 0 },
+  total: 0,
+});
+
+const createInitialFormData = (): InvoiceFormData => ({
+  type: "SALES",
+  issuer: {
+    name: "Fixzit Enterprise Co.",
+    taxId: "300000000000003",
+    address: "King Fahd Road, Riyadh 11564, Saudi Arabia",
+    phone: "+966 11 123 4567",
+    email: EMAIL_DOMAINS.invoices,
+    registration: "CR-1234567890",
+    license: "L-1234567890",
+  },
+  recipient: {
+    name: "",
+    taxId: "",
+    address: "",
+    phone: "",
+    email: "",
+    customerId: "",
+  },
+  issueDate: new Date().toISOString().split("T")[0],
+  dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0],
+  description: "",
+  items: [createDefaultLineItem()],
+  currency: "SAR",
+  payment: {
+    method: "BANK_TRANSFER",
+    terms: "Net 30",
+    instructions: "Please transfer to the following account:",
+    account: {
+      bank: "Al Rajhi Bank",
+      accountNumber: "1234567890",
+      iban: "SA0380000000608010167519",
+      swift: "RJHISARI",
+    },
+  },
+});
 
 function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
   const { t } = useTranslation();
@@ -568,11 +617,14 @@ function InvoiceCard({
   const zatcaStatus = getZATCAStatus(invoice.zatca?.status || "PENDING");
   const ZatcaIcon = zatcaStatus.icon;
 
+  const dueDateValue =
+    invoice.status === "OVERDUE" && invoice.dueDate
+      ? new Date(invoice.dueDate)
+      : null;
   const daysOverdue =
-    invoice.status === "OVERDUE"
+    dueDateValue != null
       ? Math.floor(
-          (new Date().getTime() - new Date(invoice.dueDate).getTime()) /
-            (1000 * 60 * 60 * 24),
+          (Date.now() - dueDateValue.getTime()) / (1000 * 60 * 60 * 24),
         )
       : 0;
 
@@ -586,8 +638,8 @@ function InvoiceCard({
               {invoice.recipient?.name}
             </p>
           </div>
-          <Badge className={getStatusColor(invoice.status)}>
-            {getStatusLabel(invoice.status)}
+          <Badge className={getStatusColor(invoice.status ?? 'DRAFT')}>
+            {getStatusLabel(invoice.status ?? 'DRAFT')}
           </Badge>
         </div>
       </CardHeader>
@@ -610,7 +662,7 @@ function InvoiceCard({
               {t("fm.invoices.issueDate", "Issue Date")}
             </p>
             <p className="font-medium">
-              <ClientDate date={invoice.issueDate} format="date-only" />
+              {invoice.issueDate ? <ClientDate date={invoice.issueDate} format="date-only" /> : '-'}
             </p>
           </div>
           <div>
@@ -620,7 +672,7 @@ function InvoiceCard({
             <p
               className={`font-medium ${daysOverdue > 0 ? "text-destructive" : ""}`}
             >
-              <ClientDate date={invoice.dueDate} format="date-only" />
+              {invoice.dueDate ? <ClientDate date={invoice.dueDate} format="date-only" /> : '-'}
               {daysOverdue > 0 &&
                 ` (${daysOverdue}${t("fm.invoices.overdueDays", "d overdue")})`}
             </p>
@@ -632,11 +684,11 @@ function InvoiceCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm">
             <Badge variant="outline" className="text-xs">
-              {getTypeLabel(invoice.type)}
+              {getTypeLabel(invoice.type ?? 'STANDARD')}
             </Badge>
-            {invoice.items?.length && (
+            {invoice.lines?.length && (
               <span className="text-muted-foreground">
-                {invoice.items.length} {t("fm.invoices.items", "items")}
+                {invoice.lines.length} {t("fm.invoices.items", "items")}
               </span>
             )}
           </div>
@@ -697,64 +749,21 @@ function CreateInvoiceForm({
 }) {
   const { t } = useTranslation();
 
-  const [formData, setFormData] = useState({
-    type: "SALES",
-    issuer: {
-      name: "Fixzit Enterprise Co.",
-      taxId: "300000000000003",
-      address: "King Fahd Road, Riyadh 11564, Saudi Arabia",
-      phone: "+966 11 123 4567",
-      email: EMAIL_DOMAINS.invoices,
-      registration: "CR-1234567890",
-      license: "L-1234567890",
-    },
-    recipient: {
-      name: "",
-      taxId: "",
-      address: "",
-      phone: "",
-      email: "",
-      customerId: "",
-    },
-    issueDate: new Date().toISOString().split("T")[0],
-    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0],
-    description: "",
-    items: [
-      {
-        description: "",
-        quantity: 1,
-        unitPrice: 0,
-        discount: 0,
-        tax: {
-          type: "VAT",
-          rate: 15,
-          amount: 0,
-        },
-        total: 0,
-      },
-    ],
-    currency: "SAR",
-    payment: {
-      method: "BANK_TRANSFER",
-      terms: "Net 30",
-      instructions: "Please transfer to the following account:",
-      account: {
-        bank: "Al Rajhi Bank",
-        accountNumber: "1234567890",
-        iban: "SA0380000000608010167519",
-        swift: "RJHISARI",
-      },
-    },
-  });
+  const [formData, setFormData] = useState<InvoiceFormData>(() =>
+    createInitialFormData(),
+  );
 
-  const calculateItemTotal = (item: InvoiceItem): InvoiceItem => {
-    const subtotal = item.quantity * item.unitPrice - item.discount;
-    const taxAmount = subtotal * (item.tax.rate / 100);
+  const calculateItemTotal = (
+    item: InvoiceFormLineItem,
+  ): InvoiceFormLineItem => {
+    const discount = item.discount ?? 0;
+    const taxRate = item.tax?.rate ?? 0;
+    const subtotal = item.quantity * item.unitPrice - discount;
+    const taxAmount = subtotal * (taxRate / 100);
     return {
       ...item,
-      tax: { ...item.tax, amount: taxAmount },
+      discount,
+      tax: { type: item.tax?.type ?? "VAT", rate: taxRate, amount: taxAmount },
       total: subtotal + taxAmount,
     };
   };
@@ -764,34 +773,28 @@ function CreateInvoiceForm({
     field: string,
     value: number | string | { type: string; rate: number; amount: number },
   ) => {
-    const newItems = [...formData.items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    newItems[index] = calculateItemTotal(newItems[index]);
-    setFormData({ ...formData, items: newItems });
+    setFormData((prev) => {
+      const newItems = [...prev.items];
+      newItems[index] = calculateItemTotal({
+        ...newItems[index],
+        [field]: value,
+      });
+      return { ...prev, items: newItems };
+    });
   };
 
   const addItem = () => {
-    setFormData({
-      ...formData,
-      items: [
-        ...formData.items,
-        {
-          description: "",
-          quantity: 1,
-          unitPrice: 0,
-          discount: 0,
-          tax: { type: "VAT", rate: 15, amount: 0 },
-          total: 0,
-        },
-      ],
-    });
+    setFormData((prev) => ({
+      ...prev,
+      items: [...prev.items, createDefaultLineItem()],
+    }));
   };
 
   const removeItem = (index: number) => {
-    setFormData({
-      ...formData,
-      items: formData.items.filter((_, i) => i !== index),
-    });
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -818,11 +821,11 @@ function CreateInvoiceForm({
           },
           // Include issuer data
           issuer: formData.issuer,
-          lines: formData.items.map((it: InvoiceItem) => ({
+          lines: formData.items.map((it: InvoiceFormLineItem) => ({
             description: it.description,
             qty: it.quantity,
             unitPrice: it.unitPrice,
-            discount: it.discount,
+            discount: it.discount ?? 0,
             vatRate: it.tax?.rate ?? 15,
           })),
           // Include payment terms

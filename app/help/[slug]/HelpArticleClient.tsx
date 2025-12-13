@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import ClientDate from "@/components/ClientDate";
+import { sanitizeRichTextHtmlClient } from "@/lib/sanitize-html.client";
 
 type HelpArticleClientProps = {
   article: {
@@ -45,6 +46,10 @@ export default function HelpArticleClient({
   const [commentStatus, setCommentStatus] = useState<
     "idle" | "success" | "error"
   >("idle");
+  const safeContentHtml = useMemo(
+    () => sanitizeRichTextHtmlClient(article.contentHtml),
+    [article.contentHtml],
+  );
 
   const submitComment = async (event: FormEvent) => {
     event.preventDefault();
@@ -94,7 +99,7 @@ export default function HelpArticleClient({
           <div className="bg-card rounded-2xl shadow-md border border-border p-8">
             <article
               className="prose prose-lg max-w-none prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground"
-              dangerouslySetInnerHTML={{ __html: article.contentHtml }}
+              dangerouslySetInnerHTML={{ __html: safeContentHtml }}
             />
 
             <div className="mt-8 pt-6 border-t border-border">

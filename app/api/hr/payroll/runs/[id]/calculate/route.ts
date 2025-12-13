@@ -37,6 +37,7 @@ import {
 } from "@/server/models/hr.models";
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { calculateNetPay } from "@/services/hr/ksaPayrollService";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // 🔒 STRICT v4.1: Payroll calculation requires HR Officer, Finance Officer, or Admin role
 const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER', 'FINANCE', 'FINANCE_OFFICER'];
@@ -47,6 +48,7 @@ export async function POST(
   _req: NextRequest,
   props: { params: Promise<RouteParams> },
 ) {
+  enforceRateLimit(_req, { requests: 10, windowMs: 60_000, keyPrefix: "hr:payroll:calculate" });
   try {
     const session = await auth();
     if (!session?.user?.orgId) {

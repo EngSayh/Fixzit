@@ -49,7 +49,7 @@ const CURRENCY_FLAGS: Record<CurrencyCode, string> = {
 export const CURRENCY_OPTIONS: readonly CurrencyOption[] = CURRENCY_ORDER.map(
   (code) => ({
     code,
-    name: CURRENCIES[code].nameEn,
+    name: CURRENCIES[code].name,
     symbol: CURRENCIES[code].symbol,
     flag: CURRENCY_FLAGS[code] ?? "🏳️",
   }),

@@ -1,37 +1,41 @@
-import createDOMPurify from "isomorphic-dompurify";
-import { JSDOM } from "jsdom";
+/**
+ * HTML Sanitization Utility
+ *
+ * Provides secure HTML sanitization using DOMPurify.
+ * Uses isomorphic-dompurify which handles both client and server environments.
+ *
+ * @module lib/sanitize-html
+ */
 
-let domPurifyInstance: ReturnType<typeof createDOMPurify> | null = null;
+import DOMPurify from "isomorphic-dompurify";
+import {
+  SANITIZE_RICHTEXT_CONFIG,
+  SANITIZE_STRICT_CONFIG,
+} from "./sanitize-html.config";
 
-function getDOMPurify() {
-  if (domPurifyInstance) return domPurifyInstance;
-  const windowLike: Window & typeof globalThis =
-    typeof window === "undefined"
-      ? (new JSDOM("").window as unknown as Window & typeof globalThis)
-      : (window as unknown as Window & typeof globalThis);
-  domPurifyInstance = createDOMPurify(windowLike);
-  return domPurifyInstance;
+export type SanitizeHtmlOptions = {
+  allowedTags?: string[];
+  allowedAttributes?: string[];
+};
+
+export function sanitizeHtml(
+  html: string,
+  options?: SanitizeHtmlOptions,
+): string {
+  const config = {
+    ...SANITIZE_STRICT_CONFIG,
+    ALLOWED_TAGS: options?.allowedTags ?? SANITIZE_STRICT_CONFIG.ALLOWED_TAGS,
+    ALLOWED_ATTR:
+      options?.allowedAttributes ?? SANITIZE_STRICT_CONFIG.ALLOWED_ATTR,
+  };
+
+  return DOMPurify.sanitize(html ?? "", config);
 }
 
-export function sanitizeHtml(html: string) {
-  return getDOMPurify().sanitize(html ?? "", {
-    ALLOWED_TAGS: [
-      "p",
-      "strong",
-      "em",
-      "u",
-      "a",
-      "ul",
-      "ol",
-      "li",
-      "br",
-      "span",
-      "div",
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-    ],
-    ALLOWED_ATTR: ["href", "target", "rel", "style", "class"],
-  });
+/**
+ * Sanitizes richer HTML/Markdown content while keeping common formatting tags intact.
+ * Uses DOMPurify's default HTML profile (server-compatible via isomorphic-dompurify).
+ */
+export function sanitizeRichTextHtml(html: string) {
+  return DOMPurify.sanitize(html ?? "", SANITIZE_RICHTEXT_CONFIG);
 }

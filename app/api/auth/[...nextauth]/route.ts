@@ -9,9 +9,16 @@
  */
 
 import { handlers } from "@/auth";
+import { wrapRoute } from "@/lib/api/route-wrapper";
 
-export const GET = handlers.GET;
-export const POST = handlers.POST;
+export const GET = wrapRoute(
+  handlers.GET,
+  "api.auth.nextauth.get.catch",
+);
+export const POST = wrapRoute(
+  handlers.POST,
+  "api.auth.nextauth.post.catch",
+);
 
 // Ensure credentials/Bcrypt stay on the Node runtime
 export const runtime = 'nodejs';

@@ -18,6 +18,7 @@ import { fulfillmentService } from "@/services/souq/fulfillment-service";
 import { SouqOrder } from "@/server/models/souq/Order";
 import { SouqSeller } from "@/server/models/souq/Seller";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * POST /api/souq/fulfillment/generate-label
@@ -25,6 +26,14 @@ import { logger } from "@/lib/logger";
  * Seller-only endpoint
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for label generation
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-fulfillment:generate-label",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await getServerSession();
     if (!session?.user?.id) {

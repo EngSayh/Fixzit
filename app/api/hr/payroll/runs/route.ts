@@ -34,13 +34,30 @@ import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { PayrollService } from "@/server/services/hr/payroll.service";
+import { parseBodyOrNull } from "@/lib/api/parse-body";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { z } from "zod";
 
-// 🔒 STRICT v4.1: Payroll requires HR Officer, Finance Officer, or Admin role
-// Finance Officer included because payroll is a financial function
-const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER', 'FINANCE', 'FINANCE_OFFICER'];
+// Zod schema for payroll run creation
+const PayrollRunCreateSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  periodStart: z.string().min(1, "Period start date is required"),
+  periodEnd: z.string().min(1, "Period end date is required"),
+});
+
+// 🔒 STRICT v4.2: Payroll requires HR roles (optionally Corporate Admin) - no Finance role bleed
+const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
 
 // GET /api/hr/payroll/runs - List all payroll runs
 export async function GET(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "hr-payroll:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.orgId) {
@@ -90,6 +107,14 @@ export async function GET(req: NextRequest) {
 
 // POST /api/hr/payroll/runs - Create a new DRAFT payroll run
 export async function POST(req: NextRequest) {
+  // Rate limiting: 10 requests per minute per IP for payroll writes (sensitive)
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "hr-payroll:create",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.orgId) {
@@ -103,17 +128,26 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    const body = await req.json();
-
-    if (!body.periodStart || !body.periodEnd || !body.name) {
+    const body = (await parseBodyOrNull(req)) as Record<string, unknown> | null;
+    if (!body) {
       return NextResponse.json(
-        { error: "Missing required fields: name, periodStart, periodEnd" },
+        { error: "Invalid JSON body" },
         { status: 400 },
       );
     }
 
-    const periodStart = new Date(body.periodStart);
-    const periodEnd = new Date(body.periodEnd);
+    // Validate with Zod schema
+    const parseResult = PayrollRunCreateSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: parseResult.error.format() },
+        { status: 400 },
+      );
+    }
+
+    const { name, periodStart: periodStartStr, periodEnd: periodEndStr } = parseResult.data;
+    const periodStart = new Date(periodStartStr);
+    const periodEnd = new Date(periodEndStr);
 
     const overlap = await PayrollService.existsOverlap(
       session.user.orgId,
@@ -129,7 +163,7 @@ export async function POST(req: NextRequest) {
 
     const run = await PayrollService.create({
       orgId: session.user.orgId,
-      name: body.name,
+      name,
       periodStart,
       periodEnd,
     });

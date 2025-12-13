@@ -29,11 +29,13 @@
  * - Authenticated users only
  * - Tenant-scoped: Returns only current tenant's subscription
  */
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getSubscriptionForTenant } from "@/server/services/subscriptionSeatService";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  enforceRateLimit(request, { requests: 30, windowMs: 60_000, keyPrefix: "subscriptions:tenant" });
   try {
     const session = await auth();
     if (!session?.user?.tenantId) {

@@ -11,6 +11,7 @@ import { logger } from "@/lib/logger";
 import { checkDatabaseHealth, getDatabase } from "@/lib/mongodb-unified";
 import { createSecureResponse } from "@/server/security/headers";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * @openapi
@@ -30,6 +31,9 @@ import { isAuthorizedHealthRequest } from "@/server/security/health-token";
  *         description: Rate limit exceeded
  */
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, { requests: 120, windowMs: 60_000, keyPrefix: "health:database" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const startTime = Date.now();
   const isAuthorized = isAuthorizedHealthRequest(request);
 

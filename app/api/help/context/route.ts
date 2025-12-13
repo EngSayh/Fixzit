@@ -23,21 +23,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { resolveEscalationContact } from '@/server/services/escalation.service';
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const MODULES = ['FM', 'Souq', 'Aqar', 'Account', 'Billing', 'Other'] as const;
 
 export async function GET(req: NextRequest) {
-  const user = await getSessionUser(req).catch(() => null);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const rateLimitResponse = enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "help:context" });
+  if (rateLimitResponse) return rateLimitResponse;
 
-  const moduleParam = new URL(req.url).searchParams.get('module') || '';
-  const moduleNormalized = MODULES.includes(moduleParam as (typeof MODULES)[number])
-    ? (moduleParam as (typeof MODULES)[number])
-    : 'Other';
+  try {
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const escalation = await resolveEscalationContact(user, moduleNormalized);
+    const moduleParam = new URL(req.url).searchParams.get('module') || '';
+    const moduleNormalized = MODULES.includes(moduleParam as (typeof MODULES)[number])
+      ? (moduleParam as (typeof MODULES)[number])
+      : 'Other';
 
-  // ROADMAP: Integrate KnowledgeBase collection for contextual articles
-  // Currently returns empty articles array with escalation contact only
-  return NextResponse.json({ articles: [], escalation }, { status: 200 });
+    const escalation = await resolveEscalationContact(user, moduleNormalized);
+
+    // ROADMAP: Integrate KnowledgeBase collection for contextual articles
+    // Currently returns empty articles array with escalation contact only
+    return NextResponse.json({ articles: [], escalation }, { status: 200 });
+  } catch (_error) {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

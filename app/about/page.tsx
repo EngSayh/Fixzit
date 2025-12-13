@@ -9,6 +9,8 @@ import {
   Mail,
 } from "lucide-react";
 import { renderMarkdownSanitized } from "@/lib/markdown";
+import { sanitizeHtml } from "@/lib/sanitize-html";
+import { SafeHtml } from "@/components/SafeHtml";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { CONTACT_INFO } from "@/config/contact";
@@ -150,6 +152,7 @@ export default async function AboutPage() {
     // swallow errors and use default content
   }
 
+  // renderMarkdownSanitized already includes sanitization via rehype-sanitize
   const renderedContent = await renderMarkdownSanitized(content);
 
   // Strip duplicate H1 from CMS markdown content if present
@@ -208,17 +211,19 @@ export default async function AboutPage() {
       "query-input": "required name=search_term_string",
     },
   };
+  const organizationJson = sanitizeHtml(JSON.stringify(organizationSchema));
+  const websiteJson = sanitizeHtml(JSON.stringify(websiteSchema));
 
   return (
     <>
       {/* JSON-LD Structured Data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        dangerouslySetInnerHTML={{ __html: organizationJson }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        dangerouslySetInnerHTML={{ __html: websiteJson }}
       />
 
       <div
@@ -312,7 +317,7 @@ export default async function AboutPage() {
           <div className="mx-auto max-w-4xl px-4 lg:px-6">
             <div className="bg-card rounded-2xl shadow-md border border-border p-8 md:p-12">
               <article className="prose prose-lg max-w-none text-start prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground">
-                <div dangerouslySetInnerHTML={{ __html: contentWithoutH1 }} />
+                <SafeHtml html={contentWithoutH1} />
               </article>
             </div>
           </div>

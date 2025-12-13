@@ -16,6 +16,9 @@ import {
   setTenantContext,
 } from "@/server/plugins/tenantIsolation";
 import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 interface StatementLine {
   date: Date;
@@ -82,6 +85,13 @@ interface AgentContractResponse {
 
 export async function GET(req: NextRequest) {
   try {
+    // Rate limiting: 30 requests per minute per IP (financial data is heavier)
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(`owner:statements:${clientIp}`, 30, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     // Check subscription
     const subCheck = await requireSubscription(req, {
       requirePlan: "BASIC",

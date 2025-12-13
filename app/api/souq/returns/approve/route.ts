@@ -26,6 +26,7 @@ import {
   inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
 import { approveSchema, parseJsonBody, formatZodError } from "../validation";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 /**
  * POST /api/souq/returns/approve
@@ -33,6 +34,14 @@ import { approveSchema, parseJsonBody, formatZodError } from "../validation";
  * Admin-only endpoint with explicit org scoping
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for return approvals
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-returns:approve",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

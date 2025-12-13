@@ -31,6 +31,7 @@ import { SouqOrder } from "@/server/models/souq/Order";
 import { SouqListing } from "@/server/models/souq/Listing";
 import { escrowService } from "@/services/souq/settlements/escrow-service";
 import { EscrowSource } from "@/server/models/finance/EscrowAccount";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const objectIdSchema = z
   .string()
@@ -98,6 +99,14 @@ const orderCreateSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for order creation
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-orders:create",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   type Reservation = {
     listing: ListingDocument;
     quantity: number;
@@ -477,6 +486,14 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for order listing
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-orders:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

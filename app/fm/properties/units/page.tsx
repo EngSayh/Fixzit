@@ -8,7 +8,7 @@ import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { Filter, Plus, AlertCircle } from "lucide-react";
 import { useMemo } from "react";
 import { useProperties } from "@/hooks/fm/useProperties";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 export default function PropertiesUnitsWorkspace() {
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({

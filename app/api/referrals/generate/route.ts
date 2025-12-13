@@ -5,7 +5,7 @@
  * @access Private - Requires authentication and organization context
  * @module referrals
  */
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { ReferralCodeModel } from "@/server/models/ReferralCode";
 import { connectDb } from "@/lib/mongo";
@@ -15,6 +15,7 @@ import {
   getReferralValidity,
 } from "@/config/referrals.config";
 import { Types } from "mongoose";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { logger } from "@/lib/logger";
 /**
@@ -22,7 +23,8 @@ import { logger } from "@/lib/logger";
  *
  * Generate a new referral code for the current user
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
+  enforceRateLimit(request, { requests: 10, windowMs: 60_000, keyPrefix: "referrals:generate" });
   try {
     const session = await auth();
 

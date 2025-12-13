@@ -26,6 +26,7 @@ import {
 } from "@/lib/rbac/client-roles";
 import { SouqListing } from "@/server/models/souq/Listing";
 import mongoose from "mongoose";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
   const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
@@ -45,6 +46,14 @@ const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
  * Get seller's inventory list with optional filters
  */
 export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per IP for inventory listing
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "souq-inventory:list",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

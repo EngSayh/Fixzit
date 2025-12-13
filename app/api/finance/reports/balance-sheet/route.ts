@@ -11,6 +11,7 @@
  * @throws {403} If lacking report permission
  */
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { dbConnect } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
@@ -18,8 +19,26 @@ import { requirePermission } from "@/config/rbac.config";
 import { balanceSheet } from "@/server/finance/reporting.service";
 import { logger } from "@/lib/logger";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+
+// ============================================================================
+// QUERY VALIDATION SCHEMA
+// ============================================================================
+
+const _BalanceSheetQuerySchema = z.object({
+  asOf: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+  format: z.enum(["json", "pdf", "excel"]).default("json"),
+});
 
 export async function GET(req: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP for report generation
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "finance-reports:balance-sheet",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     await dbConnect();
 

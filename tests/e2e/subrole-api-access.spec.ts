@@ -1,5 +1,5 @@
 import { test, expect, Page, APIRequestContext } from '@playwright/test';
-import { attemptLogin } from './utils/auth';
+import { attemptLogin } from './utils/auth-helpers';
 import {
   getRequiredTestCredentials,
   getTestOrgIdOptional,

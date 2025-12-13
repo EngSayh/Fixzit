@@ -31,6 +31,7 @@ import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Organization } from "@/server/models/Organization";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 function sanitize(text: string) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -53,6 +54,7 @@ const serialize = (org: {
 });
 
 export async function GET(req: NextRequest) {
+  enforceRateLimit(req, { requests: 30, windowMs: 60_000, keyPrefix: "support:org:search" });
   const session = await auth();
   if (!session?.user?.isSuperAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

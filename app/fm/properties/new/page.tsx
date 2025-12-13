@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { CreatePropertyForm } from "../page";
-import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 export default function NewPropertyPage() {
   const router = useRouter();
