@@ -38,15 +38,19 @@ import type {
 } from "@/server/models/hr.models";
 import { Types } from "mongoose";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { z } from "zod";
 
-type LeaveCreateBody = {
-  employeeId: string;
-  leaveTypeId: string;
-  startDate: string;
-  endDate: string;
-  numberOfDays: number;
-  reason?: string;
-};
+// Zod schema for leave request creation
+const LeaveCreateSchema = z.object({
+  employeeId: z.string().refine((val) => Types.ObjectId.isValid(val), { message: "Invalid employee ID" }),
+  leaveTypeId: z.string().refine((val) => Types.ObjectId.isValid(val), { message: "Invalid leave type ID" }),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  numberOfDays: z.number().positive("Number of days must be positive"),
+  reason: z.string().optional(),
+});
+
+type LeaveCreateBody = z.infer<typeof LeaveCreateSchema>;
 
 // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
 const HR_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
@@ -117,26 +121,17 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    const { employeeId, leaveTypeId, startDate, endDate, numberOfDays, reason } = body;
-    const missing = [
-      !employeeId && "employeeId",
-      !leaveTypeId && "leaveTypeId",
-      !startDate && "startDate",
-      !endDate && "endDate",
-      typeof numberOfDays !== "number" && "numberOfDays",
-    ].filter(Boolean) as string[];
-    if (missing.length > 0) {
+
+    // Validate with Zod schema
+    const parseResult = LeaveCreateSchema.safeParse(body);
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: `Missing fields: ${missing.join(", ")}` },
+        { error: "Invalid request body", details: parseResult.error.format() },
         { status: 400 },
       );
     }
-    if (!startDate || !endDate) {
-      return NextResponse.json(
-        { error: "startDate and endDate are required" },
-        { status: 400 },
-      );
-    }
+
+    const { employeeId, leaveTypeId, startDate, endDate, numberOfDays, reason } = parseResult.data;
 
     await connectToDatabase();
 

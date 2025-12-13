@@ -36,6 +36,14 @@ import { logger } from "@/lib/logger";
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { z } from "zod";
+
+// Zod schema for payroll run creation
+const PayrollRunCreateSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  periodStart: z.string().min(1, "Period start date is required"),
+  periodEnd: z.string().min(1, "Period end date is required"),
+});
 
 // 🔒 STRICT v4.2: Payroll requires HR roles (optionally Corporate Admin) - no Finance role bleed
 const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
@@ -120,13 +128,7 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    const body = (await parseBodyOrNull(req)) as
-      | {
-          periodStart?: string;
-          periodEnd?: string;
-          name?: string;
-        }
-      | null;
+    const body = (await parseBodyOrNull(req)) as Record<string, unknown> | null;
     if (!body) {
       return NextResponse.json(
         { error: "Invalid JSON body" },
@@ -134,15 +136,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!body.periodStart || !body.periodEnd || !body.name) {
+    // Validate with Zod schema
+    const parseResult = PayrollRunCreateSchema.safeParse(body);
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: "Missing required fields: name, periodStart, periodEnd" },
+        { error: "Invalid request body", details: parseResult.error.format() },
         { status: 400 },
       );
     }
 
-    const periodStart = new Date(body.periodStart);
-    const periodEnd = new Date(body.periodEnd);
+    const { name, periodStart: periodStartStr, periodEnd: periodEndStr } = parseResult.data;
+    const periodStart = new Date(periodStartStr);
+    const periodEnd = new Date(periodEndStr);
 
     const overlap = await PayrollService.existsOverlap(
       session.user.orgId,
@@ -158,7 +163,7 @@ export async function POST(req: NextRequest) {
 
     const run = await PayrollService.create({
       orgId: session.user.orgId,
-      name: body.name,
+      name,
       periodStart,
       periodEnd,
     });

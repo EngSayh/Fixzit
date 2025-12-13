@@ -152,12 +152,12 @@ export default async function AboutPage() {
     // swallow errors and use default content
   }
 
+  // renderMarkdownSanitized already includes sanitization via rehype-sanitize
   const renderedContent = await renderMarkdownSanitized(content);
-  const sanitizedContent = sanitizeHtml(renderedContent);
 
   // Strip duplicate H1 from CMS markdown content if present
   // CMS editors often add an H1 which duplicates the hero title
-  const contentWithoutH1 = sanitizedContent.replace(/<h1[^>]*>.*?<\/h1>/i, "");
+  const contentWithoutH1 = renderedContent.replace(/<h1[^>]*>.*?<\/h1>/i, "");
   const contactPhone = (CONTACT_INFO.phone || "").trim();
   const sanitizedTel = contactPhone ? contactPhone.replace(/[^+\d]/g, "") : "";
 

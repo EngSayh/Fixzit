@@ -19,6 +19,20 @@ import { logger } from "@/lib/logger";
 import { createHmac, timingSafeEqual } from "crypto";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { getClientIP } from "@/server/security/headers";
+import { z } from "zod";
+
+// Zod schema for click tracking request validation
+const ClickTrackingSchema = z.object({
+  bidId: z.string().min(1, "bidId is required"),
+  campaignId: z.string().min(1, "campaignId is required"),
+  orgId: z.string().min(1, "orgId is required"),
+  actualCpc: z.number().positive("actualCpc must be positive"),
+  query: z.string().optional(),
+  category: z.string().optional(),
+  productId: z.string().optional(),
+  timestamp: z.number().int().positive("timestamp is required"),
+  signature: z.string().min(1, "signature is required"),
+});
 
 // SEC-001: Click signature validation to prevent click fraud
 const CLICK_SECRET = process.env.AD_CLICK_SECRET || process.env.NEXTAUTH_SECRET || "";
@@ -74,9 +88,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (typeof rawBody !== "object" || rawBody === null) {
+    // Validate request body with Zod schema
+    const parseResult = ClickTrackingSchema.safeParse(rawBody);
+    if (!parseResult.success) {
       return NextResponse.json(
-        { success: false, error: "Invalid request body" },
+        {
+          success: false,
+          error: "Invalid request body",
+          details: parseResult.error.format(),
+        },
         { status: 400 },
       );
     }
@@ -91,27 +111,7 @@ export async function POST(request: NextRequest) {
       productId,
       timestamp,
       signature,
-    } = rawBody as {
-      bidId?: unknown;
-      campaignId?: unknown;
-      orgId?: unknown;
-      actualCpc?: unknown;
-      query?: unknown;
-      category?: unknown;
-      productId?: unknown;
-      timestamp?: unknown;
-      signature?: unknown;
-    };
-
-    if (!bidId || !campaignId || !orgId || !actualCpc) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Missing required fields: bidId, campaignId, orgId, actualCpc",
-        },
-        { status: 400 },
-      );
-    }
+    } = parseResult.data;
 
     // SEC-001: Validate click signature to prevent fraud
     if (!timestamp || !signature) {

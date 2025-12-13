@@ -102,6 +102,31 @@
 
 ---
 
+## 🗓️ 2025-12-13T12:38+03:00 — Hardcoded Values Sweep & Production Readiness Delta v57.2
+
+### 📍 Current Progress & Next Steps
+- Ran repo-wide `rg -n "hardcod"` sweep across app/lib/scripts/docs to re-confirm remaining hardcoded risks; no new code changes applied.
+- Branch: `feat/marketplace-api-tests`; working tree already dirty from prior sessions (`app/about/page.tsx`, `app/api/hr/leaves/route.ts`, `app/api/hr/payroll/runs/route.ts`, `app/api/souq/ads/clicks/route.ts`, `app/api/webhooks/taqnyat/route.ts`).
+- Next: parameterize residual hardcoded credentials/config, centralize Souq rule windows, enforce env-driven storage config, then run `pnpm typecheck && pnpm lint && pnpm test`.
+
+### 🧩 Enhancements / Bugs / Logic / Missing Tests (Prod Readiness)
+| Type | Item | Location | Action |
+|------|------|----------|--------|
+| Security | Hardcoded SuperAdmin credentials + login URL | scripts/update-superadmin-credentials.ts:9-107 | Move username/password to required env vars with fail-fast; rotate any existing accounts; remove console echo of live credentials; add CI grep to block `EngSayh`/`EngSayh@1985` literals. |
+| Logic | Souq fraud/returns rule windows hardcoded (fraud thresholds, high-value caps, late-reporting/return days) | services/souq/claims/investigation-service.ts:20-41, services/souq/returns-service.ts:273-290 | Centralize in config per org/tenant; persist editable rule set; validate non-zero windows; expose admin override instead of static defaults. |
+| Efficiency | Sequential DB/notification work in Souq flows | services/souq/returns-service.ts, services/souq/claims/investigation-service.ts | Batch DB reads and notifications with Promise.all; share org scope; measure before/after latency for returns/claims flows. |
+| Bugs | S3 bucket default uses hardcoded `fixzit-uploads` fallback (prod risk) | lib/config/constants.ts:233-255, .env.example:457, docs/deployment/DEPLOYMENT_CHECKLIST.md:114 | Require bucket/region envs in production; add schema validation; align docs/env samples to mandatory values; add guard test to fail on fallback. |
+| Missing Tests | Tenancy/auth + malformed-body regressions (dirty files) | app/about/page.tsx; app/api/hr/leaves/route.ts; app/api/hr/payroll/runs/route.ts; app/api/souq/ads/clicks/route.ts; app/api/webhooks/taqnyat/route.ts | Add regression tests for org isolation/auth + 400-on-bad-json; rerun typecheck/lint/test after fixes. |
+| Missing Tests | Config enforcement for hardcoded-sensitive values | config/s3, Souq rule config, credential scripts | Add unit tests that fail when default/fallback values are used in prod builds and when credential literals are present. |
+
+### 🔍 Deep-Dive: Similar/Identical Issues Observed
+- Hardcoded credentials pattern repeats across code + docs: scripts/update-superadmin-credentials.ts, docs/analysis/COMPREHENSIVE_DEPLOYMENT_AUDIT.md:178, and deployment guides echo `EngSayh@1985`; add repo-level grep gate and rotate any credentials exposed in documentation.
+- Storage config strings duplicated: `fixzit-uploads` appears in lib/config/constants.ts, .env.example, DEPLOYMENT_GUIDE.md, and deployment checklists—risk of drift between prod/stage; single source config + required envs will prevent accidental writes to wrong bucket.
+- Business-rule day windows duplicated: LATE_REPORTING_DAYS (claims) and RETURN_WINDOW_DAYS (returns) live as separate defaults; consolidate to shared rule config to keep tenant behavior consistent and make updates auditable.
+- Rebrand/i18n hardcoded references persist (domains/currency/phone placeholders) per `rg -n "hardcod"` hits; keep `scripts/security/check-hardcoded-uris.sh` + translation scans in CI to prevent regressions while we finish replacement plan.
+
+---
+
 ## 🗓️ 2025-12-13T23:45+03:00 — Deep-Dive Production Readiness Audit v56.1
 | `help/[slug]/HelpArticleClient.tsx` | ✅ Safe | `safeContentHtml` via rehype-sanitize |
 | `components/SafeHtml.tsx` (x2) | ✅ Safe | Central sanitization component |

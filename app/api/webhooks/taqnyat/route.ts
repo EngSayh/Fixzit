@@ -64,15 +64,15 @@ function verifyWebhookSignature(
 ): boolean {
   const webhookSecret = process.env.TAQNYAT_WEBHOOK_SECRET;
   
-  // SECURITY: In production, require webhook secret
+  // SECURITY: Require explicit bypass flag for non-production testing
   if (!webhookSecret) {
-    if (process.env.NODE_ENV === "production") {
-      logger.error("[Taqnyat Webhook] SECURITY: TAQNYAT_WEBHOOK_SECRET not configured in production - rejecting all webhooks");
-      return false;
+    // To bypass verification in non-production, set SKIP_TAQNYAT_WEBHOOK_VERIFICATION=true
+    if (process.env.NODE_ENV !== "production" && process.env.SKIP_TAQNYAT_WEBHOOK_VERIFICATION === "true") {
+      logger.warn("[Taqnyat Webhook] Skipping signature verification due to SKIP_TAQNYAT_WEBHOOK_VERIFICATION flag");
+      return true;
     }
-    // Allow in development for testing (with warning)
-    logger.warn("[Taqnyat Webhook] TAQNYAT_WEBHOOK_SECRET not configured - allowing webhook in development mode");
-    return true;
+    logger.error("[Taqnyat Webhook] SECURITY: TAQNYAT_WEBHOOK_SECRET not configured - rejecting webhook");
+    return false;
   }
 
   // Get signature from headers (try multiple common header names)
