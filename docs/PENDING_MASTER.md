@@ -1,5 +1,115 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-13 23:26 (Asia/Riyadh) — Code Review Update
+**Context:** docs/pending-v60 | 36a9929c5 | no PR  
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (fetch failed: localhost:3000/api/issues/import unreachable)
+
+**✅ Resolved Today (DB SSOT):**
+- None (mock hygiene fix in superadmin session tests already landed; no backlog item)
+
+**🟠 In Progress:**
+- None
+
+**🔴 Blocked:**
+- SSOT sync blocked — `pnpm issue-log import docs/BACKLOG_AUDIT.json --dry-run` failed (localhost:3000 refused connection)
+
+**🆕 New Findings Added to DB (with evidence):**
+- None
+
+**Next Steps (ONLY from DB items above):**
+- SSOT import — rerun `pnpm issue-log import docs/BACKLOG_AUDIT.json` once API is reachable.
+
+---
+
+### 2025-12-14 00:00 (Asia/Riyadh) — v65.26 Backlog Extractor v2.5 Sync
+**Context:** docs/pending-v60 | 53800eee4 | no PR  
+**DB Sync:** pending (BACKLOG_AUDIT.json ready for import)
+
+**✅ Resolved Today (DB SSOT):**
+- None (extraction only)
+
+**🟠 In Progress:**
+- None
+
+**🔴 Blocked:**
+- None
+
+**📊 Backlog Extraction Summary (v2.5 Format):**
+| Metric | Value |
+|--------|-------|
+| Total Pending | 10 |
+| P0 (Critical) | 0 |
+| P1 (High) | 0 |
+| P2 (Medium) | 6 |
+| P3 (Low) | 4 |
+| Quick Wins | 3 |
+
+**By Category:**
+- Missing Tests: 6
+- Efficiency: 3
+- Bugs: 1
+
+**Sprint Buckets:**
+- **Next Sprint (P2):** EFF-004, TEST-002, TEST-003, REF-001, REF-002
+- **Backlog (P3):** TEST-001, TEST-004, TEST-005, BUG-011, REF-003
+
+**Anomaly Detected:** 6 items share "test coverage gaps" theme — recommend dedicated test sprint.
+
+**Files Updated:**
+- `docs/BACKLOG_AUDIT.json` — v2.5 format with 10 pending issues
+- `docs/BACKLOG_AUDIT.md` — Human-readable report
+
+**Next Steps (ONLY from DB items above):**
+- EFF-004 — Add rate limiting to PM routes (S effort)
+- TEST-002 — Increase HR module test coverage (M effort)
+- REF-002 — Add fork-safe Mongo guard (XS effort, quick win)
+
+---
+
+### 2025-12-14 23:25 (Asia/Riyadh) — Code Review & Test Run
+**Context:** docs/pending-v60 | 53800eee4 | no PR  
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (MongoDB unavailable; import not run)
+
+**✅ Resolved Today (DB SSOT):**
+- None.
+
+**🟠 In Progress:**
+- None.
+
+**🔴 Blocked:**
+- SSOT sync blocked (MongoDB unavailable); BACKLOG_AUDIT.json not imported.
+- Playwright STRICT v4 copilot scenarios failing (cross-tenant isolation/layout); `pnpm test` timed out after 120s.
+
+**🆕 New Findings Added to DB (with evidence):**
+- None (DB sync blocked).
+
+**Next Steps (ONLY from DB items above):**
+- EFF-004 — Add rate limiting to PM routes.
+- TEST-002 — Increase HR module test coverage.
+- create-crm-route-tests — Add actual handler tests.
+
+### 2025-12-13 23:10 (Asia/Riyadh) — SSOT Correction (no DB sync)
+**Context:** docs/pending-v60 | a7b722d61 | no PR  
+**DB Sync:** not run (MongoDB connection unavailable)
+
+**✅ Resolved Today (DB SSOT):**
+- None (verification only)
+
+**🟠 In Progress:**
+- None
+
+**🔴 Blocked:**
+- None
+
+**🆕 New Findings Added to DB (with evidence):**
+- None (no new issues beyond PENDING_MASTER open items)
+
+**Next Steps (ONLY from DB items above):**
+- EFF-004 — Add enforceRateLimit to PM plans/[id]
+- TEST-002 — Expand HR coverage to 50%
+- TEST-001 — Expand Souq coverage to 50%
+- BUG-011 — Add .catch() to notification .then() chains
+
 ### 2025-12-13 23:15 (Asia/Riyadh) — v65.25 P1 Rate Limiting Complete
 **Context:** docs/pending-v60 | a7b722d61 | no PR  
 **DB Sync:** BACKLOG_AUDIT.json synced; created=0, updated=2, errors=0
