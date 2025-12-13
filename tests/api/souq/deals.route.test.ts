@@ -15,6 +15,15 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
 
+// Mock auth+RBAC middleware
+vi.mock("@/server/middleware/withAuthRbac", () => {
+  class MockUnauthorizedError extends Error {}
+  return {
+    getSessionUser: vi.fn(),
+    UnauthorizedError: MockUnauthorizedError,
+  };
+});
+
 // Mock Deal model
 vi.mock("@/server/models/souq/Deal", () => ({
   SouqDeal: {
@@ -46,6 +55,7 @@ vi.mock("@/lib/mongodb-unified", () => ({
 
 import { auth } from "@/auth";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
 
 const importRoute = async () => {
   try {
@@ -60,6 +70,12 @@ describe("API /api/souq/deals", () => {
     vi.clearAllMocks();
     // Reset rate limit mock to allow requests through
     vi.mocked(enforceRateLimit).mockReturnValue(null);
+    // Default: authenticated session
+    vi.mocked(getSessionUser).mockResolvedValue({
+      id: "user-123",
+      orgId: "org-123",
+      role: "ADMIN",
+    } as never);
   });
 
   describe("GET - List Deals", () => {
@@ -149,7 +165,9 @@ describe("API /api/souq/deals", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue(null);
+      vi.mocked(getSessionUser).mockRejectedValue(
+        new UnauthorizedError("Unauthenticated"),
+      );
 
       const req = new NextRequest("http://localhost:3000/api/souq/deals", {
         method: "POST",

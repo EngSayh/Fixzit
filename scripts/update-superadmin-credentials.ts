@@ -6,8 +6,8 @@
  * OTP is disabled for SuperAdmin; SMS OTP is restricted to Taqnyat-only flows.
  * 
  * SuperAdmin Credentials:
- * - Username: EngSayh
- * - Password: EngSayh@1985
+ * - Username: SUPERADMIN_USERNAME (required env)
+ * - Password: SUPERADMIN_PASSWORD (required env)
  * - Email: Uses centralized demo-users config
  */
 
@@ -15,10 +15,15 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { User } from '@/server/models/User';
 import bcrypt from 'bcryptjs';
 import { getDemoEmail } from '@/lib/config/demo-users';
+import { requireEnv } from '@/lib/env';
 
 const SUPERADMIN_EMAIL = getDemoEmail('superadmin');
-const NEW_USERNAME = 'EngSayh';
-const NEW_PASSWORD = 'EngSayh@1985';
+const NEW_USERNAME = requireEnv('SUPERADMIN_USERNAME', {
+  testFallback: 'superadmin',
+});
+const NEW_PASSWORD = requireEnv('SUPERADMIN_PASSWORD', {
+  testFallback: 'ChangeMe!123',
+});
 
 async function updateSuperAdminCredentials() {
   console.log('🔐 Updating SuperAdmin credentials...\n');
@@ -87,16 +92,6 @@ async function updateSuperAdminCredentials() {
       console.log('   Status:   ', updatedUser.status);
       console.log('   OTP:      ', updatedUser.preferences?.otpDisabled ? '❌ DISABLED' : '✅ ENABLED');
       console.log('   ═══════════════════════════════════════════\n');
-
-      if (passwordValid) {
-        console.log('🎉 LOGIN CREDENTIALS:');
-        console.log('   ═══════════════════════════════════════════');
-        console.log(`   📧 Email:    ${SUPERADMIN_EMAIL}`);
-        console.log('   👤 Username: EngSayh');
-        console.log('   🔑 Password: EngSayh@1985');
-        console.log('   ═══════════════════════════════════════════\n');
-        console.log('   Login URL: https://fixzit.co/login\n');
-      }
     }
 
   } catch (error) {

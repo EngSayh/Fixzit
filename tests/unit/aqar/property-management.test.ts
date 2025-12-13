@@ -291,16 +291,20 @@ describe('Property Management (Aqar)', () => {
 
     const calculateLateFee = (payment: RentPayment, lateFeePerDay: number, gracePeriodDays: number = 5): number => {
       if (payment.status === 'paid' || payment.status === 'waived') return 0;
-      
+
       const now = new Date();
       const dueDate = new Date(payment.dueDate);
       const graceDate = new Date(dueDate);
       graceDate.setDate(graceDate.getDate() + gracePeriodDays);
 
-      if (now <= graceDate) return 0;
+      // Normalize to whole days so partial-day differences don't inflate the fee
+      const normalizedNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const normalizedGrace = new Date(graceDate.getFullYear(), graceDate.getMonth(), graceDate.getDate());
 
-      const daysLate = Math.ceil((now.getTime() - graceDate.getTime()) / (1000 * 60 * 60 * 24));
-      return daysLate * lateFeePerDay;
+      if (normalizedNow <= normalizedGrace) return 0;
+
+      const daysLate = Math.floor((normalizedNow.getTime() - normalizedGrace.getTime()) / (1000 * 60 * 60 * 24));
+      return Math.max(0, daysLate * lateFeePerDay);
     };
 
     const getPaymentStatus = (payment: RentPayment): string => {

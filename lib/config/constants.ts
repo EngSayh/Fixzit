@@ -30,11 +30,17 @@ export function validateAwsConfig(env: NodeJS.ProcessEnv): void {
   const bucket = env.AWS_S3_BUCKET?.trim();
 
   if (!region) {
+    logger.error("[config] AWS region missing", {
+      metric: "config.aws.region.missing",
+    });
     throw new ConfigurationError(
       "Required environment variable AWS_REGION is not set (no fallback provided)",
     );
   }
   if (!bucket) {
+    logger.error("[config] AWS S3 bucket missing", {
+      metric: "config.aws.bucket.missing",
+    });
     throw new ConfigurationError(
       "Required environment variable AWS_S3_BUCKET is not set (no fallback provided)",
     );
