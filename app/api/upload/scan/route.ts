@@ -32,6 +32,7 @@ import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { createSecureResponse } from "@/server/security/headers";
 import { scanS3Object } from "@/lib/security/av-scan";
 import { validateBucketPolicies } from "@/lib/security/s3-policy";
+import { assertS3Configured, S3NotConfiguredError } from "@/lib/storage/s3-config";
 import { Config } from "@/lib/config/constants";
 import { logger } from "@/lib/logger";
 import {
@@ -74,7 +75,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!Config.aws.s3.bucket || !Config.aws.scan.endpoint) {
+    // Check S3 configuration
+    let s3Config;
+    try {
+      s3Config = assertS3Configured();
+    } catch (error) {
+      if (error instanceof S3NotConfiguredError) {
+        return createSecureResponse(error.toJSON(), 501, req);
+      }
+      throw error;
+    }
+
+    if (!Config.aws.scan.endpoint) {
       return health503("Scan not configured", req, {
         code: "scan_not_configured",
       });
@@ -87,7 +99,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const clean = await scanS3Object(key, Config.aws.s3.bucket);
+    const clean = await scanS3Object(key, s3Config.bucket);
     if (!clean) {
       return createSecureResponse(
         {

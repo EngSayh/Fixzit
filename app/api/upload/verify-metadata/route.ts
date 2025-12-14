@@ -32,7 +32,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { getS3Client } from "@/lib/storage/s3";
-import { Config } from "@/lib/config/constants";
+import { assertS3Configured, S3NotConfiguredError, getS3Config } from "@/lib/storage/s3-config";
 import { validateOrgScopedKey } from "@/lib/storage/org-upload-keys";
 
 export async function GET(req: NextRequest) {
@@ -43,6 +43,17 @@ export async function GET(req: NextRequest) {
   const user = sessionResult.session;
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Check S3 configuration
+  try {
+    assertS3Configured();
+  } catch (error) {
+    if (error instanceof S3NotConfiguredError) {
+      return NextResponse.json(error.toJSON(), { status: 501 });
+    }
+    throw error;
+  }
+  const s3Config = getS3Config()!;
 
   const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
   if (!rl.allowed) return rateLimitError();
@@ -64,7 +75,7 @@ export async function GET(req: NextRequest) {
   try {
     const client = getS3Client();
     const cmd = new HeadObjectCommand({
-      Bucket: Config.aws.s3.bucket,
+      Bucket: s3Config.bucket,
       Key: key,
     });
     const res = await client.send(cmd);
@@ -95,6 +106,17 @@ export async function POST(req: NextRequest) {
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Check S3 configuration
+  try {
+    assertS3Configured();
+  } catch (error) {
+    if (error instanceof S3NotConfiguredError) {
+      return NextResponse.json(error.toJSON(), { status: 501 });
+    }
+    throw error;
+  }
+  const s3Config = getS3Config()!;
+
   const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
   if (!rl.allowed) return rateLimitError();
 
@@ -118,7 +140,7 @@ export async function POST(req: NextRequest) {
   try {
     const client = getS3Client();
     const cmd = new HeadObjectCommand({
-      Bucket: Config.aws.s3.bucket,
+      Bucket: s3Config.bucket,
       Key: key,
     });
     const res = await client.send(cmd);

@@ -1,32 +1,40 @@
 import {
-  S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
   type PutObjectCommandInput,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-
-const REGION = process.env.AWS_REGION || "us-east-1";
-const BUCKET = process.env.AWS_S3_BUCKET || "";
-const KMS_KEY_ID = process.env.AWS_S3_KMS_KEY_ID || "";
+import { 
+  getS3Client as getClient,
+  assertS3Configured,
+  getS3Config,
+} from "./s3-config";
 
 type PresignedPut = {
   url: string;
   headers: Record<string, string>;
 };
 
+/**
+ * Get S3 client - throws if not configured
+ * @deprecated Use getS3Client from s3-config instead
+ */
 export function getS3Client() {
-  if (!BUCKET) throw new Error("AWS_S3_BUCKET not configured");
-  return new S3Client({ region: REGION });
+  const client = getClient();
+  if (!client) {
+    throw new Error("AWS_S3_BUCKET not configured");
+  }
+  return client;
 }
 
 export async function getPresignedGetUrl(
   key: string,
   expiresSeconds = 600,
 ): Promise<string> {
+  const config = assertS3Configured(); // Throws if not configured
   const client = getS3Client();
   const { GetObjectCommand } = await import("@aws-sdk/client-s3");
-  const getCmd = new GetObjectCommand({ Bucket: BUCKET, Key: key });
+  const getCmd = new GetObjectCommand({ Bucket: config.bucket, Key: key });
   return await getSignedUrl(client, getCmd, { expiresIn: expiresSeconds });
 }
 
@@ -35,16 +43,18 @@ function buildPutCommandInput(
   contentType: string,
   metadata?: Record<string, string>,
 ): PutObjectCommandInput {
+  const config = assertS3Configured();
+  
   const base: PutObjectCommandInput = {
-    Bucket: BUCKET,
+    Bucket: config.bucket,
     Key: key,
     ContentType: contentType,
     Metadata: metadata,
   };
 
-  if (KMS_KEY_ID) {
+  if (config.kmsKeyId) {
     base.ServerSideEncryption = "aws:kms";
-    base.SSEKMSKeyId = KMS_KEY_ID;
+    base.SSEKMSKeyId = config.kmsKeyId;
   } else {
     base.ServerSideEncryption = "AES256";
   }
@@ -68,9 +78,10 @@ export async function getPresignedPutUrl(
   );
   const url = await getSignedUrl(client, cmd, { expiresIn: expiresSeconds });
 
+  const config = getS3Config()!; // Already validated by assertS3Configured
   const headers: Record<string, string> = {
     "Content-Type": contentType,
-    "x-amz-server-side-encryption": KMS_KEY_ID ? "aws:kms" : "AES256",
+    "x-amz-server-side-encryption": config.kmsKeyId ? "aws:kms" : "AES256",
     ...Object.entries(mergedMetadata).reduce(
       (acc, [k, v]) => {
         acc[`x-amz-meta-${k.toLowerCase()}`] = v;
@@ -80,8 +91,8 @@ export async function getPresignedPutUrl(
     ),
   };
 
-  if (KMS_KEY_ID) {
-    headers["x-amz-server-side-encryption-aws-kms-key-id"] = KMS_KEY_ID;
+  if (config.kmsKeyId) {
+    headers["x-amz-server-side-encryption-aws-kms-key-id"] = config.kmsKeyId;
   }
 
   return { url, headers };
@@ -101,8 +112,10 @@ export async function putObjectBuffer(
 }
 
 export async function deleteObject(key: string) {
+  const config = assertS3Configured();
   const client = getS3Client();
-  const cmd = new DeleteObjectCommand({ Bucket: BUCKET, Key: key });
+  const cmd = new DeleteObjectCommand({ Bucket: config.bucket, Key: key });
+  await client.send(cmd);
   await client.send(cmd);
 }
 

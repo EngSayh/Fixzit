@@ -36,6 +36,7 @@ import { rateLimitError } from "@/server/utils/errorResponses";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { createSecureResponse } from "@/server/security/headers";
 import { getPresignedPutUrl } from "@/lib/storage/s3";
+import { assertS3Configured, S3NotConfiguredError, buildS3Key } from "@/lib/storage/s3-config";
 import { Config } from "@/lib/config/constants";
 import { logger } from "@/lib/logger";
 import { parseBodySafe } from "@/lib/api/parse-body";
@@ -58,24 +59,8 @@ const MAX_SIZE_BYTES: Record<string, number> = {
 
 type PresignCategory = "kyc" | "resume" | "invoice" | "document";
 
-function sanitizeFileName(name: string): string {
-  // Remove path separators and limit to safe characters
-  const sanitized = name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  return sanitized.slice(-128); // cap length to avoid overly long keys
-}
 
-function buildKey(
-  tenantId: string | null | undefined,
-  userId: string,
-  category: PresignCategory,
-  fileName: string,
-) {
-  const safeTenant = (tenantId || "global").replace(/[^a-zA-Z0-9_-]/g, "-");
-  const safeUser = userId.replace(/[^a-zA-Z0-9_-]/g, "-");
-  const safeFile = sanitizeFileName(fileName);
-  const prefix = category || "document";
-  return `${safeTenant}/${prefix}/${safeUser}/${Date.now()}-${safeFile}`;
-}
+// Removed: buildKey() replaced with buildS3Key() from s3-config module
 
 export async function POST(req: NextRequest) {
   try {
@@ -88,12 +73,14 @@ export async function POST(req: NextRequest) {
     }
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
 
-    if (!Config.aws.s3.bucket || !Config.aws.region) {
-      return createSecureResponse(
-        { error: "Storage not configured" },
-        500,
-        req,
-      );
+    // Check S3 configuration (returns 501 if not configured)
+    try {
+      assertS3Configured();
+    } catch (error) {
+      if (error instanceof S3NotConfiguredError) {
+        return createSecureResponse(error.toJSON(), 501, req);
+      }
+      throw error;
     }
     const scanEnforced = Config.aws.scan.required;
     if (scanEnforced && !Config.aws.scan.endpoint) {
@@ -163,7 +150,15 @@ export async function POST(req: NextRequest) {
           : "document"
     ) as PresignCategory;
 
-    const key = buildKey(tenantId, userId, cat, fileName);
+    // Use buildS3Key() for org-scoped path format: org/{orgId}/uploads/{category}/{yyyy}/{mm}/{uuid}-{filename}
+    const { randomUUID } = await import("crypto");
+    const key = buildS3Key({
+      orgId: orgId,
+      module: "uploads",
+      entityId: cat,
+      filename: fileName,
+      uuid: randomUUID(),
+    });
     const { url: uploadUrl, headers: uploadHeaders } = await getPresignedPutUrl(
       key,
       fileType,
@@ -172,6 +167,7 @@ export async function POST(req: NextRequest) {
         category: cat,
         user: userId,
         tenant: tenantId || "global",
+        orgId: orgId, // NEW: Add orgId to metadata
       },
     ); // 15 minutes
     const expiresAt = new Date(Date.now() + 900_000).toISOString();

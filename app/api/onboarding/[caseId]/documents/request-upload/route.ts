@@ -20,6 +20,7 @@ import { parseBodySafe } from '@/lib/api/parse-body';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { getPresignedPutUrl } from '@/lib/storage/s3';
+import { assertS3Configured, S3NotConfiguredError, buildS3Key } from '@/lib/storage/s3-config';
 import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
 import { DocumentProfile } from '@/server/models/onboarding/DocumentProfile';
 import { DocumentType } from '@/server/models/onboarding/DocumentType';
@@ -28,9 +29,6 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const DEFAULT_COUNTRY = 'SA';
 
-function sanitizeFileName(name: string): string {
-  return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-128);
-}
 
 export async function POST(
   req: NextRequest,
@@ -45,6 +43,16 @@ export async function POST(
   }
   const user = sessionResult.session;
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Check S3 configuration
+  try {
+    assertS3Configured();
+  } catch (error) {
+    if (error instanceof S3NotConfiguredError) {
+      return NextResponse.json(error.toJSON(), { status: 501 });
+    }
+    throw error;
+  }
 
   const { data: body, error: parseError } = await parseBodySafe<{
     document_type_code?: string;
@@ -94,8 +102,15 @@ export async function POST(
     }
 
     const contentType = requestedType;
-    const safeName = sanitizeFileName(file_name || document_type_code);
-    const key = `onboarding/${onboarding._id}/${Date.now()}-${randomUUID()}-${document_type_code}-${safeName}`;
+    
+    // Build org-scoped S3 key
+    const key = buildS3Key({
+      orgId: user.orgId,
+      module: 'onboarding',
+      entityId: String(onboarding._id),
+      filename: `${document_type_code}-${file_name || 'document'}`,
+      uuid: randomUUID(),
+    });
 
     const { url: uploadUrl, headers: uploadHeaders } = await getPresignedPutUrl(
       key,

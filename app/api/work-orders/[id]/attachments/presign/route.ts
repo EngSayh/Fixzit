@@ -10,6 +10,7 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { getPresignedPutUrl } from "@/lib/storage/s3";
+import { assertS3Configured, S3NotConfiguredError, buildS3Key } from "@/lib/storage/s3-config";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
@@ -55,9 +56,16 @@ export async function POST(
     const user = sessionResult.session;
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
 
-    if (!process.env.AWS_S3_BUCKET || !process.env.AWS_REGION) {
-      return createSecureResponse({ error: "Storage not configured" }, 500, req);
+    // Check S3 configuration (returns 501 if not configured)
+    try {
+      assertS3Configured();
+    } catch (error) {
+      if (error instanceof S3NotConfiguredError) {
+        return createSecureResponse(error.toJSON(), 501, req);
+      }
+      throw error;
     }
+
     const scanEnforced = process.env.S3_SCAN_REQUIRED === "true";
     if (scanEnforced && !process.env.AV_SCAN_ENDPOINT) {
       return createSecureResponse(
@@ -105,10 +113,15 @@ export async function POST(
       return createSecureResponse({ error: "File too large" }, 400, req);
     }
 
-    const safeName = encodeURIComponent(
-      String(name).replace(/[^a-zA-Z0-9._-]/g, "_"),
-    );
-    const key = `wo/${id}/${Date.now()}-${randomUUID()}-${safeName}`;
+    // Build S3 key with org scoping
+    const key = buildS3Key({
+      orgId: user.orgId,
+      module: "work-orders",
+      entityId: id,
+      filename: String(name),
+      uuid: randomUUID(),
+    });
+
     const { url: putUrl, headers } = await getPresignedPutUrl(
       key,
       String(type),
@@ -118,6 +131,7 @@ export async function POST(
         user: user.id,
         tenant: user.tenantId || "global",
         workOrderId: id,
+        orgId: user.orgId,
       },
     );
     const expiresAt = new Date(Date.now() + 900_000).toISOString();
