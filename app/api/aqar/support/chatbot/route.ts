@@ -49,10 +49,20 @@ export async function POST(request: NextRequest) {
     }
 
     // AUDIT-2025-12-08: Zod validation with max length
-    const parseResult = chatbotRequestSchema.safeParse(await request.json());
+    let rawBody: unknown;
+    try {
+      rawBody = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON payload", correlationId },
+        { status: 400 },
+      );
+    }
+    
+    const parseResult = chatbotRequestSchema.safeParse(rawBody);
     if (!parseResult.success) {
       return NextResponse.json(
-        { error: parseResult.error.issues[0]?.message || "Invalid request" },
+        { error: parseResult.error.issues[0]?.message || "Invalid request", correlationId },
         { status: 400 },
       );
     }
