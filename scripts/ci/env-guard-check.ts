@@ -30,7 +30,9 @@ async function main() {
   
   console.log('🔍 Running environment validation checks...\n');
   console.log(`Environment: ${process.env.VERCEL_ENV || process.env.NODE_ENV || 'unknown'}\n`);
-
+  
+  // Note: validateProductionEnvCli never prints env values, only validation results
+  // Guard errors reference env var names but do not print their values
   const exitCode = validateProductionEnvCli();
   process.exit(exitCode);
 }

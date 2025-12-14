@@ -5,6 +5,50 @@
 
 ---
 
+## ⚠️ ROLLOUT ORDER (CRITICAL - DO NOT SKIP)
+
+**To avoid production outage, you MUST execute these steps in exact order:**
+
+### Step 1: Fix Vercel Environment Variables (15 minutes)
+1. Recreate secrets as Sensitive (delete + re-add with Prod/Preview only)
+2. Split MONGODB_URI by environment (least-privilege users)
+3. Remove OTP bypass from Production/Preview
+4. **Redeploy Preview** to verify guards pass
+5. Test Preview deployment connects to MongoDB
+
+### Step 2: Fix Atlas Database Users (5 minutes)
+1. Clear `fixzitadmin` Description field (exposed secret)
+2. Rotate `fixzitadmin` password immediately
+3. Create least-privilege runtime users (fixzit-app-prod, fixzit-app-preview, fixzit-app-dev)
+4. Update Vercel env vars with new connection strings
+5. **Redeploy Preview** to verify connection
+
+### Step 3: Remove Atlas 0.0.0.0/0 (After Static IPs)
+1. Enable Vercel Static IPs (Project Settings → Connectivity)
+2. Add Vercel egress IPs to Atlas Network Access (/32 entries)
+3. **Test Preview** deployment connects
+4. Delete 0.0.0.0/0 from Atlas Network Access
+5. **Verify Preview** still connects
+
+### Step 4: Merge PR → Deploy Production
+1. Merge this PR to main
+2. **Production deployment will now enforce guards**
+3. Verify Production connects to MongoDB
+4. Monitor for any issues
+
+**WHY THIS ORDER MATTERS:**
+
+The new code includes **runtime guards** that will **fail startup** if:
+- OTP bypass is enabled in Production/Preview
+- MongoDB URI points to localhost in Vercel environments
+- Critical secrets are missing in Production
+
+**If you merge first**, your next deployment may fail or take production down.
+
+**Safe rollout:** Fix Vercel → Fix Atlas → Test Preview → Merge → Deploy Production.
+
+---
+
 ## 🚨 Critical Finding: Secrets Are Currently Revealable
 
 ### What "Click to Reveal" Means
@@ -281,6 +325,27 @@ vercel env ls | grep MONGODB_URI
 
 ## 🔍 Step 9: Verify Secrets Are Not Tracked in Git
 
+### Verify .gitignore Coverage
+
+**Check .gitignore contains required patterns:**
+```bash
+# Should find .env.* pattern
+grep -n '\.env\.\*' .gitignore
+# Expected: Line number and pattern (e.g., 23:.env.*)
+
+# Should find .artifacts/ pattern
+grep -n '\.artifacts/' .gitignore
+# Expected: Line number and pattern (e.g., 117:.artifacts/)
+```
+
+**If missing, add to .gitignore:**
+```bash
+echo '.env.*' >> .gitignore
+echo '.artifacts/' >> .gitignore
+git add .gitignore
+git commit -m 'chore: Ensure .env.* and .artifacts/ are ignored'
+```
+
 ### Commands (Run Locally)
 
 ```bash
@@ -300,6 +365,18 @@ git ls-files --error-unmatch .artifacts/import-report.json >/dev/null 2>&1 && \
   echo "❌ import-report.json is TRACKED (BAD)" || \
   echo "✅ import-report.json is NOT tracked"
 # Expected: ✅ import-report.json is NOT tracked
+```
+
+**Why Both Checks:**
+
+- `git check-ignore` proves the ignore rule exists in .gitignore
+- `git ls-files --error-unmatch` proves the file isn't already tracked (classic gotcha: if a file was committed before `.gitignore` was updated, the ignore rule won't remove it)
+
+**If a file is tracked but should be ignored:**
+```bash
+git rm --cached .env.local
+git rm --cached -r .artifacts/
+git commit -m 'chore: Remove accidentally tracked secrets/artifacts'
 ```
 
 **Why Both Checks:**

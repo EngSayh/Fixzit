@@ -9,7 +9,14 @@
  * 2. Block localhost MongoDB URIs in Vercel deployments
  * 3. Require critical secrets in Production
  * 
+ * Enforcement Points:
+ * - Primary: instrumentation-node.ts (runs on server startup)
+ * - Secondary: lib/mongo.ts connectToDatabase() (guards DB connection path)
+ * - CI: scripts/ci/env-guard-check.ts (pre-deployment validation)
+ * 
  * Usage: Call validateProductionEnv() in instrumentation.ts or app startup
+ * 
+ * Security Note: This module never logs env var values, only validation results.
  */
 
 /* eslint-disable no-console */
