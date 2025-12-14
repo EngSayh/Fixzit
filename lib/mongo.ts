@@ -219,11 +219,15 @@ if (shouldConnect) {
       const isSrvUri = connectionUri.includes("mongodb+srv://");
       const hasExplicitTlsParam =
         connectionUri.includes("tls=true") || connectionUri.includes("ssl=true");
+      const isLocalhost = connectionUri.includes("127.0.0.1") || 
+                         connectionUri.includes("localhost");
       // For non-SRV URIs, enforce TLS by default unless explicitly disabled via local allowances.
       // For SRV URIs (Atlas), TLS is handled automatically by the driver - don't override.
+      // For localhost, never enforce TLS (local MongoDB typically doesn't have SSL configured)
       const enforceTls =
         !isSrvUri &&
         !hasExplicitTlsParam &&
+        !isLocalhost &&
         !getAllowLocalMongo() &&
         !getDisableMongoForBuild();
 

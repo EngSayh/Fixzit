@@ -1,11 +1,12 @@
 {
-  "extracted_at": "2025-12-14T00:27:12+0300",
+  "extracted_at": "2025-12-14T20:15:00+0300",
   "source_file": "docs/PENDING_MASTER.md",
   "counts": {
-    "total": 11,
+    "total": 12,
     "pending": 11,
-    "by_priority": { "P0": 1, "P1": 2, "P2": 3, "P3": 5 },
-    "by_category": { "security": 2, "bug": 2, "efficiency": 2, "missing_tests": 5 }
+    "resolved": 1,
+    "by_priority": { "P0": 1, "P1": 2, "P2": 4, "P3": 5 },
+    "by_category": { "security": 2, "bug": 3, "efficiency": 2, "missing_tests": 5 }
   },
   "issues": [
     {
@@ -150,6 +151,25 @@
       "evidenceSnippet": "BUG-011 | Add .catch() to notification .then() chains | Pending",
       "riskTags": [],
       "effort": "S"
+    },
+    {
+      "key": "BUG-012",
+      "externalId": "BUG-012",
+      "category": "bug",
+      "priority": "P2",
+      "status": "resolved",
+      "title": "MongoDB localhost SSL enforcement breaks local development",
+      "location": "lib/mongo.ts",
+      "sourceRef": "code-review:lib/mongo.ts:219-232",
+      "evidenceSnippet": "enforceTls blocked localhost MongoDB; added isLocalhost detection to disable SSL for local dev",
+      "riskTags": ["CONFIG", "DEV-EXPERIENCE"],
+      "effort": "S",
+      "resolution": {
+        "resolvedAt": "2025-12-14T20:15:00+0300",
+        "commit": "uncommitted",
+        "description": "Added localhost detection (127.0.0.1, localhost) to skip TLS enforcement. Production/Atlas connections still enforce TLS by default.",
+        "files": ["lib/mongo.ts"]
+      }
     }
   ]
 }
