@@ -18,6 +18,14 @@
 
 **Database credentials are NOT used for superadmin login.**
 
+### Common Misunderstanding: `NEXTAUTH_SUPERADMIN_EMAIL` vs `SUPERADMIN_USERNAME`
+
+**`NEXTAUTH_SUPERADMIN_EMAIL` does NOT define superadmin portal credentials.**
+- It's used by `/api/auth/otp/*` routes (normal login flow) to flag a user as superadmin after they authenticate through NextAuth.
+- It does NOT control access to https://fixzit.co/superadmin/login
+
+**`SUPERADMIN_USERNAME` + `SUPERADMIN_PASSWORD_HASH`** are the actual credentials for the superadmin portal (/superadmin/login).
+
 ---
 
 ## Production Fix (Vercel)
@@ -36,6 +44,14 @@ In **Vercel → fixzit → Settings → Environment Variables → Production**:
 
 #### Optional 2FA
 | Variable | Notes |
+|----------|-------|
+| `SUPERADMIN_SECRET_KEY` | (strong secret) | If set, "Access key" field becomes mandatory (mark **Sensitive**) |
+
+#### Remove These (Security Risk)
+| Variable | Reason |
+|----------|--------|
+| `NEXTAUTH_BYPASS_OTP_CODE` | ❌ Remove from Production - backdoor that bypasses OTP verification |
+| `NEXTAUTH_BYPASS_OTP_ALL` | ❌ Remove from Production - disables OTP entirely |
 **Option A: Using the hash generator script**
 ```bash
 read -s SUPERADMIN_PASSWORD && echo
