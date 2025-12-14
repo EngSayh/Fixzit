@@ -96,11 +96,12 @@ function guardOtpBypass(env: Environment): EnvGuardError[] {
   for (const varName of bypassVars) {
     const value = process.env[varName];
 
-    // Treat any non-empty value as enabled (even "false" string is risky)
-    if (value && value !== 'false' && value !== '0' && value !== '') {
+    // 🔒 SECURITY: Treat ANY presence (even "false" string) as violation in prod/preview
+    // Rationale: Environment variables should not exist at all in these environments
+    if (value !== undefined) {
       errors.push({
         code: 'OTP_BYPASS_IN_PRODUCTION',
-        message: `${varName} is set in ${env} environment (value: ${value})`,
+        message: `${varName} must not be set in ${env} environment`,
         severity: 'error',
         remediation: `Remove ${varName} from Vercel ${env} environment. OTP bypass must only exist in Development.`,
       });
@@ -156,22 +157,26 @@ function guardRequiredSecrets(env: Environment): EnvGuardError[] {
     return errors;
   }
 
-  const requiredSecrets = [
-    'AUTH_SECRET',
-    'MONGODB_URI',
-  ];
+  // Check AUTH_SECRET or NEXTAUTH_SECRET (accept either, prefer AUTH_SECRET)
+  const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!authSecret || authSecret.trim() === '') {
+    errors.push({
+      code: 'REQUIRED_SECRET_MISSING',
+      message: `AUTH_SECRET or NEXTAUTH_SECRET is not set in ${env} environment`,
+      severity: 'error',
+      remediation: `Set AUTH_SECRET in Vercel ${env} environment as a Sensitive variable (NEXTAUTH_SECRET also accepted for backward compatibility).`,
+    });
+  }
 
-  for (const secret of requiredSecrets) {
-    const value = process.env[secret];
-
-    if (!value || value.trim() === '') {
-      errors.push({
-        code: 'REQUIRED_SECRET_MISSING',
-        message: `${secret} is not set in ${env} environment`,
-        severity: 'error',
-        remediation: `Set ${secret} in Vercel ${env} environment as a Sensitive variable.`,
-      });
-    }
+  // Check MONGODB_URI
+  const mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri || mongoUri.trim() === '') {
+    errors.push({
+      code: 'REQUIRED_SECRET_MISSING',
+      message: `MONGODB_URI is not set in ${env} environment`,
+      severity: 'error',
+      remediation: `Set MONGODB_URI in Vercel ${env} environment as a Sensitive variable.`,
+    });
   }
 
   return errors;

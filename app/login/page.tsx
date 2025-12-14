@@ -337,7 +337,7 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
         if (result?.error) {
           // 🔒 PORTAL SEPARATION FIX: Auto-redirect superadmin to correct portal
           if (result.error === 'SUPERADMIN_WRONG_PORTAL') {
-            logger.info('[Login] Superadmin detected - redirecting to /superadmin/login');
+            // Silent redirect (no console log to avoid exposing superadmin path in production)
             router.replace('/superadmin/login');
             return;
           }
@@ -475,7 +475,7 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
         if (result?.error) {
           // 🔒 PORTAL SEPARATION FIX: Auto-redirect superadmin to correct portal
           if (result.error === 'SUPERADMIN_WRONG_PORTAL') {
-            logger.info('[Login] Superadmin detected in OTP flow - redirecting to /superadmin/login');
+            // Silent redirect (no console log to avoid exposing superadmin path in production)
             router.replace('/superadmin/login');
             return;
           }

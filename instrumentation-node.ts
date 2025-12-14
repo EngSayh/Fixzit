@@ -30,13 +30,16 @@ export async function registerNode(): Promise<void> {
       const { validateProductionEnv } = await import("@/lib/config/env-guards");
       const guardResult = validateProductionEnv({ throwOnError: false });
       
-      if (!guardResult.passed && guardResult.environment === 'production') {
-        logger.error("[Instrumentation] Production env guards failed", {
+      // 🔒 SECURITY: Enforce safety guards in BOTH production AND preview
+      const isEnforcedEnv = guardResult.environment === 'production' || guardResult.environment === 'preview';
+      
+      if (!guardResult.passed && isEnforcedEnv) {
+        logger.error("[Instrumentation] Environment safety guards failed", {
           errors: guardResult.errors,
           environment: guardResult.environment,
         });
-        // Fail startup in production with safety violations
-        throw new Error("Production environment safety guards failed; see logs for details");
+        // Fail startup in production/preview with safety violations
+        throw new Error(`${guardResult.environment} environment safety guards failed; see logs for details`);
       }
       
       if (guardResult.warnings.length > 0) {
@@ -48,8 +51,13 @@ export async function registerNode(): Promise<void> {
       logger.error("[Instrumentation] Env guard check failed", {
         error: guardError instanceof Error ? guardError.message : String(guardError),
       });
-      // Re-throw to stop startup in production
-      if (process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production") {
+      // 🔒 SECURITY: Re-throw to stop startup in production OR preview
+      const isEnforcedEnv = 
+        process.env.NODE_ENV === "production" || 
+        process.env.VERCEL_ENV === "production" ||
+        process.env.VERCEL_ENV === "preview";
+      
+      if (isEnforcedEnv) {
         throw guardError;
       }
     }

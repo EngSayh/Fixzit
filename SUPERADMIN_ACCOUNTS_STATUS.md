@@ -45,7 +45,9 @@ Created:      December 8, 2025
 **Email:** `sultan.a.hassni@gmail.com`  
 **Password:** The password you set when creating this account  
 **OTP:** Delivered via the configured provider; do not publish or reuse bypass codes  
-**Login URL:** https://fixzit.co/login or http://localhost:3000/login
+**Login URL (SuperAdmin Portal):** https://fixzit.co/superadmin/login or http://localhost:3000/superadmin/login
+
+⚠️ **IMPORTANT:** SuperAdmin accounts MUST use `/superadmin/login`. Do NOT use the normal `/login` portal (it will auto-redirect but wastes a round-trip).
 
 **✅ OTP Enforcement:** `NEXTAUTH_BYPASS_OTP_ALL` remains `false`; OTP should be required for SuperAdmin sign-in.
 
