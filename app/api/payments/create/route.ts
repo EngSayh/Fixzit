@@ -148,10 +148,10 @@ export async function POST(req: NextRequest) {
         },
       },
       redirect: {
-        url: joinUrl(process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app, "/payments/success"),
+        url: joinUrl(Config.app.url || DOMAINS.app, "/payments/success"),
       },
       post: {
-        url: joinUrl(process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app, "/api/payments/tap/webhook"),
+        url: joinUrl(Config.app.url || DOMAINS.app, "/api/payments/tap/webhook"),
       },
       description: `Payment for Invoice ${invoice.number}`,
       reference: {

@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
       ? (vercelUrl.startsWith("http") ? vercelUrl : `https://${vercelUrl}`)
       : undefined;
     const origin =
-      process.env.NEXT_PUBLIC_APP_URL ||
+      Config.app.url ||
       normalizedVercelUrl ||
       req.nextUrl.origin;
     const resetLink = passwordResetLink(origin, token);

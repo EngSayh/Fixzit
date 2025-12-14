@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
  * Returns webhook URL that should be configured in Tap dashboard
  */
 export async function GET(req: NextRequest) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || req.nextUrl.origin;
+  const baseUrl = Config.app.baseUrl || req.nextUrl.origin;
   const webhookUrl = `${baseUrl}/api/payments/tap/webhook`;
 
   return NextResponse.json({

@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     const code = await ReferralCodeModel.generateCode(orgId);
 
     // Build referral URL from environment variable
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL;
+    const baseUrl = Config.app.baseUrl || Config.app.url;
     if (!baseUrl) {
       return NextResponse.json(
         { error: "BASE_URL not configured. Contact system administrator." },

@@ -281,7 +281,7 @@ export async function POST(req: NextRequest) {
             ? (vercelUrl.startsWith("http") ? vercelUrl : `https://${vercelUrl}`)
             : undefined;
           const origin =
-            process.env.NEXT_PUBLIC_APP_URL ||
+            Config.app.url ||
             normalizedVercelUrl ||
             new URL(req.url).origin;
           const verificationLink = buildVerificationLink(origin, token);

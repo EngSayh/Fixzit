@@ -256,7 +256,14 @@ export const Config = {
    * Application URLs
    */
   app: {
-    url: getOptional("APP_URL", "http://localhost:3000"),
+    url: getOptional(
+      "APP_URL", 
+      getOptional("NEXT_PUBLIC_APP_URL", "http://localhost:3000")
+    ),
+    baseUrl: getOptional(
+      "NEXT_PUBLIC_BASE_URL",
+      getOptional("NEXT_PUBLIC_APP_URL", getOptional("APP_URL", "http://localhost:3000"))
+    ),
     frontendUrl: getOptional("FRONTEND_URL", "http://localhost:3000"),
     corsOrigins: getOptional("CORS_ORIGINS", ""),
   },

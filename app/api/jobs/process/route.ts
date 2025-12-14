@@ -139,7 +139,7 @@ async function processEmailInvitation(job: Job): Promise<void> {
 
   sgMail.setApiKey(config.apiKey);
 
-  const baseAppUrl = process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app || DOMAINS.primary;
+  const baseAppUrl = Config.app.url || DOMAINS.app || DOMAINS.primary;
   const inviteLink = joinUrl(baseAppUrl, `/signup?invite=${inviteId}`);
 
   const emailContent = {

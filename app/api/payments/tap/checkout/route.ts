@@ -249,7 +249,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Build redirect URLs (user will be sent here after payment)
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const baseUrl = Config.app.baseUrl;
     const redirectUrls = buildRedirectUrls(
       baseUrl,
       successPath || "/payments/success",
