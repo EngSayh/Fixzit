@@ -150,7 +150,34 @@ async function loadRBACData(
     const PermissionModel = (await import("@/server/models/Permission")).default;
     const { default: mongoose } = await import("mongoose");
 
-    // Query user with populated roles
+    // Query user (without populate first to inspect roles)
+    const rawUser = await User.findOne({
+      _id: new mongoose.Types.ObjectId(userId),
+      orgId: orgId,
+    })
+      .select("isSuperAdmin roles")
+      .lean();
+
+    if (!rawUser) {
+      logger.warn("[RBAC] User not found for RBAC loading", { userId, orgId });
+      return {
+        isSuperAdmin: false,
+        permissions: [],
+        roles: [],
+      };
+    }
+
+    // Filter out invalid role references (e.g., string "SUPER_ADMIN" instead of ObjectId)
+    const validRoleIds = (rawUser.roles || []).filter((role: any) => {
+      if (!role) return false;
+      if (typeof role === "string" && !mongoose.Types.ObjectId.isValid(role)) {
+        logger.warn("[RBAC] Invalid role reference (not ObjectId)", { userId, role, type: typeof role });
+        return false;
+      }
+      return true;
+    });
+
+    // Now populate with cleaned role IDs
     const user = await User.findOne({
       _id: new mongoose.Types.ObjectId(userId),
       orgId: orgId,
@@ -160,6 +187,7 @@ async function loadRBACData(
         path: "roles",
         model: RoleModel,
         select: "slug wildcard permissions",
+        match: { _id: { $in: validRoleIds } },
         populate: {
           path: "permissions",
           model: PermissionModel,
