@@ -2,6 +2,26 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-14 00:45 (Asia/Riyadh) — Code Review Update
+**Context:** main | b132ccca1 | no PR  
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (curl localhost:3000/api/issues/import → connection refused)
+
+**✅ Resolved Today (DB SSOT):**
+- SEC-001 — NEXTAUTH_SECRET/AUTH_SECRET resolver added (files: lib/config/constants.ts, tests/server/config/auth-secret.test.ts)
+
+**🟠 In Progress:**
+- None
+
+**🔴 Blocked:**
+- MongoDB Issue Tracker import — blocker: dev server offline (localhost:3000 refused)
+
+**🆕 New Findings Added to DB (with evidence):**
+- None (blocked by API availability)
+
+**Next Steps (ONLY from DB items above):**
+- SEC-002 — Tenant-scope audit and re-import when API reachable
+- JSON-PARSE — Add guarded body parsing to 66 routes and sync to DB
+
 ### 2025-12-14 00:30 (Asia/Riyadh) — SSOT Backlog Sync + Protocol Compliance
 **Context:** main | 488b7209a | BACKLOG_AUDIT.json prepared  
 **DB Sync:** ⏳ PENDING (dev server offline)  

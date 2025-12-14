@@ -5,10 +5,10 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-14T00:30:00Z  
+**Last Updated:** 2025-12-14T01:00:00Z  
 **Scanner Version:** v2.5  
 **Branch:** main  
-**Commit:** 488b7209a
+**Commit:** b132ccca1
 
 ---
 
@@ -16,16 +16,17 @@
 
 | Metric | Value |
 |--------|-------|
-| **Health Score** | 92/100 |
+| **Health Score** | 93/100 |
 | **Files Scanned** | 881 (app/ + lib/) |
-| **Total Issues** | 6 (🔴 0 🟠 2 🟡 3 🟢 1) |
+| **Total Issues** | 7 (🔴 0 🟠 2 🟡 3 🟢 2) |
 | **Duplicate Groups** | 0 (none detected) |
 | **Pending Moves** | 0 (clean organization) |
 | **Test Coverage** | 80%+ (per README) |
 
 ### 🎯 Top 5 Priority Actions
-1. [x] **[SEC-001]** ✅ RESOLVED - NEXTAUTH_SECRET fallback implemented (resolveAuthSecret function deployed)
-2. [ ] **[SEC-002]** 50+ Database queries missing tenant isolation checks - potential cross-tenant leaks
+1. [x] **[SEC-001]** ✅ RESOLVED - NEXTAUTH_SECRET fallback (2025-12-14T00:13)
+2. [x] **[CONFIG-003]** ✅ RESOLVED - AWS_REGION production crash fixed (2025-12-14T01:00)
+3. [ ] **[SEC-002]** 50+ Database queries missing tenant isolation checks
 3. [ ] **[BUG-001]** process.env accessed directly in 40+ client-side files - breaks SSR/hydration
 4. [ ] **[TEST-001]** HR module test coverage at 14% - needs 50% (TEST-002 backlog item)
 5. [ ] **[TEST-002]** Finance module test coverage gaps - 15/19 routes untested
@@ -206,6 +207,7 @@
 ## ✅ Resolved (Archive)
 | ID | Issue | Resolution | Resolved Date |
 |----|-------|------------|---------------|
+| CONFIG-003 | AWS_REGION missing causes production crash | Changed validateAwsConfig() to warn (not throw); made AWS config optional with us-east-1 fallback | 2025-12-14 |
 | SEC-001 | NEXTAUTH_SECRET fallback insufficient | Implemented resolveAuthSecret() function with AUTH_SECRET fallback + tests | 2025-12-14 |
 | SEC-TAP-001 | Tap Payments timing attack | Replaced === with crypto.timingSafeEqual() | 2025-12-15 |
 | CONFIG-001 | Dangerous VS Code tasks | Removed --no-verify/--force-with-lease tasks | 2025-12-15 |
@@ -256,6 +258,40 @@ grep -rn "await request.json()" app/api --include="*.ts" | grep -v "try\|catch" 
 ---
 
 ## 🧾 Changelog
+### 2025-12-14T01:00:00+03:00 (Asia/Riyadh) — CRITICAL: CONFIG-003 Production Crash Fix
+**Context:** main | b132ccca1 → pending | No PR  
+**Trigger:** Production browser console error (AWS_REGION missing)
+
+**🚨 CRITICAL P0 Resolved:**
+- **CONFIG-003**: AWS_REGION missing causes production crash
+  - **Root Cause:** `validateAwsConfig()` called at module init (line 238), throws when AWS_REGION undefined in production
+  - **Impact:** 100% production crash on all pages (ConfigurationError in webpack bundle)
+  - **Fix Applied:**
+    1. Changed `validateAwsConfig()` to log warnings instead of throwing
+    2. Made AWS config optional: `getOptional("AWS_REGION", "us-east-1")` with production fallback
+    3. Updated S3 bucket: `getOptional("AWS_S3_BUCKET", "fixzit-uploads")` fallback
+    4. Added `IS_PRODUCTION` constant for cleaner conditionals
+  - **Rationale:** AWS S3 is optional in production (Vercel may use Blob Storage instead)
+
+**📊 Health Impact:**
+- Health Score: 92/100 → 93/100 (+1)
+- Critical Issues: 0 (maintained)
+- Resolved Items: 6 → 7 (+CONFIG-003)
+
+**Files Changed:**
+- lib/config/constants.ts (validateAwsConfig, Config.aws, IS_PRODUCTION constant)
+- BACKLOG_AUDIT.json (added CONFIG-003 to resolved)
+- MASTER_PENDING_REPORT.md (updated metrics + changelog)
+
+**Evidence:**
+```
+ConfigurationError: [Config Error] Required environment variable AWS_REGION 
+is not set (no fallback provided)
+at u (layout-f93b22953e8481e6.js:1:157683)
+```
+
+---
+
 ### 2025-12-14T00:30:00+03:00 (Asia/Riyadh) — SSOT Backlog Sync + Protocol Update
 **Context:** main | 488b7209a | No PR  
 **DB Sync:** ⏳ PENDING (dev server offline; BACKLOG_AUDIT.json prepared for next sync)

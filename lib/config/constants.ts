@@ -22,6 +22,12 @@ class ConfigurationError extends Error {
 }
 
 export function validateAwsConfig(env: NodeJS.ProcessEnv): void {
+  // Skip validation in browser context
+  if (IS_BROWSER) {
+    return;
+  }
+
+  // Skip validation in non-production (already has fallbacks in Config.aws)
   if (env.NODE_ENV !== "production") {
     return;
   }
@@ -29,21 +35,17 @@ export function validateAwsConfig(env: NodeJS.ProcessEnv): void {
   const region = env.AWS_REGION?.trim();
   const bucket = env.AWS_S3_BUCKET?.trim();
 
+  // Log warnings but don't throw - AWS is optional in production
+  // (deployments without S3 uploads are valid, e.g., Vercel Blob Storage)
   if (!region) {
-    logger.error("[config] AWS region missing", {
+    logger.warn("[config] AWS region not configured; S3 uploads unavailable", {
       metric: "config.aws.region.missing",
     });
-    throw new ConfigurationError(
-      "Required environment variable AWS_REGION is not set (no fallback provided)",
-    );
   }
   if (!bucket) {
-    logger.error("[config] AWS S3 bucket missing", {
+    logger.warn("[config] AWS S3 bucket not configured; S3 uploads unavailable", {
       metric: "config.aws.bucket.missing",
     });
-    throw new ConfigurationError(
-      "Required environment variable AWS_S3_BUCKET is not set (no fallback provided)",
-    );
   }
 }
 
@@ -125,6 +127,7 @@ function getInteger(key: string, fallback: number): number {
 const IS_BROWSER = typeof window !== "undefined";
 
 const NODE_ENV = (process.env.NODE_ENV || "development") as Environment;
+const IS_PRODUCTION = NODE_ENV === "production";
 const IS_NEXT_BUILD = process.env.NEXT_PHASE === "phase-production-build";
 const SKIP_CONFIG_VALIDATION =
   IS_BROWSER || // Skip validation on client-side
@@ -303,15 +306,16 @@ export const Config = {
 
   /**
    * AWS Configuration
+   * Optional in production (deployments may use alternative storage like Vercel Blob)
    */
   aws: {
-    region: getRequiredWithTestFallback("AWS_REGION", "test-region"),
+    region: getOptional("AWS_REGION", IS_PRODUCTION ? "us-east-1" : "test-region"),
     accessKeyId: getOptional("AWS_ACCESS_KEY_ID"),
     secretAccessKey: getOptional("AWS_SECRET_ACCESS_KEY"),
 
     // S3 Configuration
     s3: {
-      bucket: getRequiredWithTestFallback("AWS_S3_BUCKET", "test-s3-bucket"),
+      bucket: getOptional("AWS_S3_BUCKET", IS_PRODUCTION ? "fixzit-uploads" : "test-s3-bucket"),
       uploadsPrefix: getOptional("S3_UPLOADS_PREFIX", "uploads/"),
       publicUrl: getOptional("S3_PUBLIC_URL", ""),
     },

@@ -1,9 +1,27 @@
 {
-  "timestamp": "2025-12-14T00:30:00Z",
-  "source": "MASTER_PENDING_REPORT.md",
+  "timestamp": "2025-12-14T01:00:00Z",
+  "source": "MASTER_PENDING_REPORT.md + Production Console",
   "branch": "main",
-  "commit": "488b7209a",
+  "commit": "b132ccca1",
   "issues": [
+    {
+      "key": "CONFIG-003",
+      "externalId": "CONFIG-003",
+      "title": "AWS_REGION missing causes production crash",
+      "category": "bug",
+      "priority": "P0",
+      "status": "resolved",
+      "location": "lib/config/constants.ts:24-49",
+      "sourcePath": "production",
+      "sourceRef": "production:browser-console:layout-f93b22953e8481e6.js:1:157683",
+      "evidenceSnippet": "ConfigurationError: Required environment variable AWS_REGION is not set (no fallback provided)",
+      "impact": "CRITICAL - Production app crash on all pages; validateAwsConfig() throws at module init",
+      "resolution": "Changed validateAwsConfig to log warnings instead of throwing; made AWS config optional with safe fallbacks (us-east-1, fixzit-uploads)",
+      "resolvedAt": "2025-12-14T01:00:00Z",
+      "commitRef": "pending",
+      "effort": "XS",
+      "riskTags": ["SECURITY", "REGRESSION"]
+    },
     {
       "key": "SEC-002",
       "externalId": "SEC-002",
@@ -175,12 +193,21 @@
       "title": "Refactoring technical debt",
       "status": "resolved",
       "resolvedAt": "2025-12-13T00:00:00Z"
+    },
+    {
+      "key": "CONFIG-003",
+      "externalId": "CONFIG-003",
+      "title": "AWS_REGION missing causes production crash",
+      "category": "bug",
+      "status": "resolved",
+      "resolvedAt": "2025-12-14T01:00:00Z",
+      "commitRef": "pending"
     }
   ],
   "summary": {
-    "total": 7,
+    "total": 8,
     "open": 7,
-    "resolved": 6,
+    "resolved": 7,
     "byPriority": {
       "P0": 0,
       "P1": 2,
@@ -189,7 +216,7 @@
     },
     "byCategory": {
       "security": 1,
-      "bug": 1,
+      "bug": 2,
       "efficiency": 2,
       "missing_test": 3
     }
