@@ -22,11 +22,17 @@
 
 **Verify in Vercel UI:** https://vercel.com/[team]/[project]/settings/environment-variables
 
+**🔍 UI-Level Proof Required:**
+- If you see **"Click to reveal"** button → Secret is **NOT Sensitive** (FAIL)
+- If secret value is **never shown** → Sensitive is enabled (PASS)
+
+**This is the ONLY reliable verification. CI cannot see Vercel UI policy state.**
+
 - [ ] **All secrets re-created as Sensitive** (no "Click to reveal" for Prod/Preview)
-  - [ ] `MONGODB_URI` - Sensitive enabled, Prod/Preview only
-  - [ ] `AUTH_SECRET` / `NEXTAUTH_SECRET` - Sensitive enabled
-  - [ ] `TAQNYAT_BEARER_TOKEN` - Sensitive enabled
-  - [ ] `SENDGRID_API_KEY` - Sensitive enabled (if used)
+  - [ ] `MONGODB_URI` - **Must NOT be revealable** in Prod/Preview
+  - [ ] `AUTH_SECRET` / `NEXTAUTH_SECRET` - **Must NOT be revealable**
+  - [ ] `TAQNYAT_BEARER_TOKEN` - **Must NOT be revealable**
+  - [ ] `SENDGRID_API_KEY` - **Must NOT be revealable** (if used)
 
 - [ ] **OTP bypass vars DO NOT EXIST in Prod/Preview**
   - [ ] `NEXTAUTH_BYPASS_OTP_ALL` - Deleted from Production
@@ -48,14 +54,24 @@
 
 **Verify in Atlas UI:** https://cloud.mongodb.com/ → Database Access
 
-- [ ] **fixzitadmin Description field cleared**
-- [ ] **fixzitadmin password rotated** (treat as compromised)
-- [ ] **Least-privilege runtime users created:**
-  - [ ] User: `fixzit-app-prod` → Role: `readWrite` on `fixzit` DB ONLY
+**🚨 P0: Database Users Exposure**
+- [ ] **ALL user Description fields are EMPTY** (never store secrets in non-encrypted UI metadata)
+  - Atlas → Database Access → fixzitadmin → Edit → Description = **EMPTY**
+  - Check ALL users (EngSayh, fixzitadmin, any app users)
+
+**🔐 P0: Credential Rotation**
+- [ ] **fixzitadmin password rotated** (treat as compromised - was visible in Description)
+
+**🔒 Least-Privilege Runtime Users**
+- [ ] **Create dedicated app users:**
+  - [ ] User: `fixzit-app-prod` → Role: `readWrite` on `fixzit` DB ONLY (NOT `atlasAdmin`)
   - [ ] User: `fixzit-app-preview` → Role: `readWrite` on `fixzit` DB ONLY
   - [ ] User: `fixzit-app-dev` → Role: `readWrite` on `fixzit` DB ONLY
-- [ ] **Vercel MONGODB_URI updated** with new users (Prod/Preview/Dev)
-- [ ] **atlasAdmin reserved for break-glass only** (not used by app)
+- [ ] **Vercel MONGODB_URI updated** with new users:
+  - Production: `mongodb+srv://fixzit-app-prod:<password>@...`
+  - Preview: `mongodb+srv://fixzit-app-preview:<password>@...`
+  - Development: `mongodb+srv://fixzit-app-dev:<password>@...`
+- [ ] **atlasAdmin reserved for break-glass only** (not used by app runtime)
 
 **Verification:** Redeploy Preview → Check logs for ✅ "Connected to MongoDB Atlas"
 
@@ -65,16 +81,35 @@
 
 **Verify in Atlas UI:** https://cloud.mongodb.com/ → Network Access
 
-**⚠️ Do NOT remove 0.0.0.0/0 until controlled egress exists**
+**🚨 P0: Network Exposure**
+- Current state: `0.0.0.0/0` (Allow from anywhere) = **Internet-exposed cluster**
+- Target state: Controlled egress via Vercel Static IPs ONLY
 
+**⚠️ IMPORTANT: Do NOT remove 0.0.0.0/0 until controlled egress exists**
+
+**Rollout Steps:**
 - [ ] **Vercel Static IPs enabled** (Vercel Pro/Enterprise required)
+  - Vercel → Project Settings → Connectivity → Static IPs → Enable
+  - Copy egress IPs (2-3 IPs per region)
 - [ ] **Vercel egress IPs added to Atlas** as `/32` entries
-- [ ] **Preview tested with new allowlist** (still connects)
-- [ ] **0.0.0.0/0 removed from Atlas**
-- [ ] **Preview still connects after wildcard removal**
+  - Atlas → Network Access → Add IP Address
+  - Add each Vercel IP individually (exact IP, not ranges)
+  - Comment: `Vercel Static IP - [Region]`
+- [ ] **Preview tested with new allowlist** (redeploy and verify connection)
+- [ ] **0.0.0.0/0 REMOVED from Atlas Network Access**
+  - Atlas → Network Access → Find `0.0.0.0/0 (Allow from anywhere)`
+  - Click DELETE → Confirm
+- [ ] **Preview still connects after wildcard removal** (final verification)
+
+**If Static IPs cannot be enabled (cost/plan limitations):**
+- [ ] **Document exception** in SECURITY_ATLAS_CHECKLIST.md:
+  - Reason: [Vercel plan limitation / cost]
+  - Compensating controls: [IP rotation monitoring / rate limiting / etc.]
+  - Target removal date: [YYYY-MM-DD]
+  - Approval: Eng. Sultan Al Hassni
 
 **Optional (Enterprise only):**
-- [ ] MongoDB Resource Policy applied (see SECURITY_ATLAS_CHECKLIST.md)
+- [ ] MongoDB Resource Policy applied to prevent wildcard IP from returning (see SECURITY_ATLAS_CHECKLIST.md)
 
 ---
 
@@ -114,20 +149,63 @@
 
 ## ✅ Code Verification Results (Already Passed)
 
-### Local Verification
+### Local Verification - No Secret Leaks
+
+**Safe scans (pattern-only, no secret output):**
+
 ```bash
-# 1. Secrets not tracked in git
-git ls-files --error-unmatch .env.local 2>&1 | grep -q "error" && echo "✅ NOT tracked" || echo "❌ TRACKED"
-# Result: ✅ NOT tracked
+# 1. Detect env logging (dangerous patterns)
+rg -n "logger\..*process\.env|console\..*process\.env" . --type ts
+# Expected: 0 matches (or only in commented examples)
 
-# 2. Env guards pass locally
-pnpm env:check
-# Result: ✅ Environment validation passed (development)
+# 2. OTP bypass flags present anywhere
+rg -n "NEXTAUTH_BYPASS_OTP_(ALL|CODE)|ALLOW_TEST_USER_OTP_BYPASS" . --type ts
+# Expected: Only in env guard validation logic (not runtime code)
 
-# 3. Lint + typecheck
-pnpm lint --max-warnings=0  # ✅ 0 errors
-pnpm typecheck              # ✅ 0 errors
+# 3. Mongo URIs printed or hardcoded
+rg -n "mongodb(\+srv)?:\/\/" . --type ts | grep -v "mongodb+srv://\[" | grep -v "masked" | grep -v "example"
+# Expected: Only connection logic with masking functions
+
+# 4. Cookies/Auth tokens accidentally logged
+rg -n "(Authorization:|Set-Cookie|Cookie:|Bearer\s+[A-Za-z0-9\-_]+\.)" . --type ts
+# Expected: Only header definitions, not logged values
+
+# 5. "Secret-ish" keys printed (pattern-only)
+rg -n "(SECRET|TOKEN|API_KEY|PRIVATE_KEY|PASSWORD)\b" . --type ts | grep -v "process.env" | grep -v "//"
+# Expected: Only type definitions and validation logic
 ```
+
+### Env Guards + Proof Artifacts
+
+```bash
+# 1. Env guards pass locally
+pnpm env:check
+# Expected: ✅ Environment validation passed (development)
+
+# 2. Lint + typecheck
+pnpm lint --max-warnings=0
+pnpm typecheck
+# Expected: 0 errors
+
+# 3. Secrets not tracked in git
+git check-ignore -v .env.local || true
+git ls-files --error-unmatch .env.local >/dev/null 2>&1 && echo "❌ .env.local TRACKED" || echo "✅ .env.local NOT tracked"
+
+git check-ignore -v .artifacts/import-report.json || true
+git ls-files --error-unmatch .artifacts/import-report.json >/dev/null 2>&1 && echo "❌ import-report TRACKED" || echo "✅ import-report NOT tracked"
+
+# 4. Verify .gitignore entries
+grep -n "\.env" .gitignore  # Expected: Line 23 or similar
+grep -n "\.artifacts" .gitignore  # Expected: Line 117 or similar
+```
+
+**Results:**
+- ✅ No env logging detected
+- ✅ OTP bypass flags only in guard validation
+- ✅ MongoDB URIs properly masked
+- ✅ No auth token leaks
+- ✅ Secrets not tracked in git
+- ✅ .env.local and .artifacts/ gitignored
 
 ---
 
