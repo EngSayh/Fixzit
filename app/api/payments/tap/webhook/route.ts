@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { Types } from "mongoose";
 import { logger } from "@/lib/logger";
+import { Config } from "@/lib/config/constants";
 import {
   tapPayments,
   type TapWebhookEvent,
@@ -62,16 +63,12 @@ type InvoicePayment = CanonicalInvoicePayment & {
  * - Logs all events for audit trail
  * - Idempotent processing based on event ID
  */
-const TAP_WEBHOOK_MAX_BYTES = Number(
-  process.env.TAP_WEBHOOK_MAX_BYTES ?? 64_000,
-);
+const TAP_WEBHOOK_MAX_BYTES = Config.payment.tap.webhook.maxBytes;
 const TAP_WEBHOOK_RATE_LIMIT = {
-  requests: Number(process.env.TAP_WEBHOOK_RATE_LIMIT ?? 60),
-  windowMs: Number(process.env.TAP_WEBHOOK_RATE_WINDOW_MS ?? 60_000),
+  requests: Config.payment.tap.webhook.rateLimit,
+  windowMs: Config.payment.tap.webhook.rateWindowMs,
 };
-const TAP_WEBHOOK_IDEMPOTENCY_TTL_MS = Number(
-  process.env.TAP_WEBHOOK_IDEMPOTENCY_TTL_MS ?? 5 * 60_000,
-);
+const TAP_WEBHOOK_IDEMPOTENCY_TTL_MS = Config.payment.tap.webhook.idempotencyTtlMs;
 
 export async function POST(req: NextRequest) {
   const correlationId = randomUUID();

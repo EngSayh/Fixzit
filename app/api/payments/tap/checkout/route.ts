@@ -11,6 +11,7 @@ import { randomUUID } from "crypto";
 import { Types } from "mongoose";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { Config } from "@/lib/config/constants";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   tapPayments,
@@ -40,13 +41,13 @@ type InvoiceDocument = {
 
 // SECURITY: Explicit non-empty string validation (not just truthy check)
 // Environment-aware key selection: TAP_ENVIRONMENT=live uses LIVE keys, else TEST keys
-const tapEnvIsLive = process.env.TAP_ENVIRONMENT === "live" || process.env.NODE_ENV === "production";
+const tapEnvIsLive = process.env.TAP_ENVIRONMENT === "live" || Config.env.isProduction;
 const tapSecretKey = tapEnvIsLive 
-  ? process.env.TAP_LIVE_SECRET_KEY 
-  : process.env.TAP_TEST_SECRET_KEY;
+  ? Config.payment.tap.liveSecretKey 
+  : Config.payment.tap.testSecretKey;
 const tapPublicKey = tapEnvIsLive 
-  ? process.env.NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY 
-  : process.env.NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY;
+  ? Config.payment.tap.livePublicKey 
+  : Config.payment.tap.testPublicKey;
 const TAP_PAYMENTS_CONFIGURED =
   typeof tapSecretKey === "string" &&
   tapSecretKey.trim() !== "" &&

@@ -342,6 +342,18 @@ export const Config = {
       clientKey: getOptional("PAYTABS_CLIENT_KEY"),
       baseUrl: getOptional("PAYTABS_BASE_URL", "https://secure.paytabs.sa"),
     },
+    tap: {
+      liveSecretKey: getOptional("TAP_LIVE_SECRET_KEY"),
+      testSecretKey: getOptional("TAP_TEST_SECRET_KEY"),
+      livePublicKey: getOptional("NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY"),
+      testPublicKey: getOptional("NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY"),
+      webhook: {
+        maxBytes: getInteger("TAP_WEBHOOK_MAX_BYTES", 64_000),
+        rateLimit: getInteger("TAP_WEBHOOK_RATE_LIMIT", 60),
+        rateWindowMs: getInteger("TAP_WEBHOOK_RATE_WINDOW_MS", 60_000),
+        idempotencyTtlMs: getInteger("TAP_WEBHOOK_IDEMPOTENCY_TTL_MS", 5 * 60_000),
+      },
+    },
   },
 
   /**
