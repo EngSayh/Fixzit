@@ -301,6 +301,13 @@ export const Config = {
 
     // Session configuration
     sessionMaxAge: getInteger("SESSION_MAX_AGE", 30 * 24 * 60 * 60), // 30 days
+
+    // SuperAdmin configuration
+    superAdmin: {
+      email: getOptional("NEXTAUTH_SUPERADMIN_EMAIL"),
+      bypassOtpAll: getBoolean("NEXTAUTH_BYPASS_OTP_ALL", false),
+      bypassOtpCode: getOptional("NEXTAUTH_BYPASS_OTP_CODE"),
+    },
   },
 
   /**

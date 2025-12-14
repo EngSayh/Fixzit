@@ -7,21 +7,22 @@
 
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
+import { Config } from "@/lib/config/constants";
 
 async function testSuperAdminLogin() {
   try {
     console.log("🧪 Testing SuperAdmin Login Configuration\n");
 
-    // Check environment variables
-    const superadminEmail = process.env.NEXTAUTH_SUPERADMIN_EMAIL;
-    const bypassCode = process.env.NEXTAUTH_BYPASS_OTP_CODE;
-    const bypassAll = process.env.NEXTAUTH_BYPASS_OTP_ALL;
+    // Check environment variables from Config module
+    const superadminEmail = Config.auth.superAdmin.email;
+    const bypassCode = Config.auth.superAdmin.bypassOtpCode;
+    const bypassAll = Config.auth.superAdmin.bypassOtpAll;
 
     console.log("📋 Environment Configuration:");
     console.log("   ═══════════════════════════════════════════");
     console.log("   NEXTAUTH_SUPERADMIN_EMAIL:", superadminEmail || "❌ NOT SET");
     console.log("   NEXTAUTH_BYPASS_OTP_CODE:", bypassCode ? `✅ SET (${bypassCode.length} chars)` : "❌ NOT SET");
-    console.log("   NEXTAUTH_BYPASS_OTP_ALL:", bypassAll || "❌ NOT SET");
+    console.log("   NEXTAUTH_BYPASS_OTP_ALL:", bypassAll ? "✅ true" : "❌ NOT SET");
     console.log("   ═══════════════════════════════════════════\n");
 
     if (!superadminEmail) {
@@ -36,7 +37,7 @@ async function testSuperAdminLogin() {
       process.exit(1);
     }
 
-    if (bypassAll !== 'true') {
+    if (!bypassAll) {
       console.log("⚠️  NEXTAUTH_BYPASS_OTP_ALL is not set to 'true'");
       console.log("   Add to .env.local: NEXTAUTH_BYPASS_OTP_ALL=\"true\"");
     }
@@ -100,7 +101,7 @@ async function testSuperAdminLogin() {
     console.log("   1. Go to: http://localhost:3000/login or https://fixzit.co/login");
     console.log(`   2. Email: ${superadminEmail}`);
     console.log("   3. Password: The password you set during account creation");
-    console.log(`   4. OTP Code (if prompted): ${bypassCode}`);
+    console.log(`   4. OTP Code (if prompted): Use the value from NEXTAUTH_BYPASS_OTP_CODE`);
     console.log("\n💡 OTP Bypass is enabled, so you may not even need to enter the OTP code!");
 
     process.exit(0);

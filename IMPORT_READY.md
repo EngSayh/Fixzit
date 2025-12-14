@@ -9,7 +9,7 @@
 
 ### 1. Start Fixzit Development Server (Issue Tracker API Included)
 ```bash
-cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+# From the Fixzit project root directory
 pnpm dev
 # Server will start on http://localhost:3000
 # Wait for "Ready in XXXms" message
@@ -23,7 +23,7 @@ curl http://localhost:3000/api/issues/stats
 
 ### 3. Import BACKLOG_AUDIT.json
 ```bash
-cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+# From the Fixzit project root directory
 curl -X POST http://localhost:3000/api/issues/import \
   -H "Content-Type: application/json" \
   -d @docs/BACKLOG_AUDIT.json

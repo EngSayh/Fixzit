@@ -13,12 +13,21 @@
  *   0 - All checks passed
  *   1 - Critical errors found
  *   2 - Warnings found (only fails in --strict mode)
+ * 
+ * Note: This script uses direct process.env access intentionally to diagnose
+ * environment variable configuration issues. Normal application code should
+ * use the Config module from lib/config/constants.ts instead.
  */
 
-const isProduction = process.env.NODE_ENV === "production";
+import { Config } from "@/lib/config/constants";
+
+// Environment detection using Config module
+const isProduction = Config.env.isProduction;
+const isStrictMode = process.argv.includes("--strict");
+
+// Platform detection - minimal process.env for diagnostics only
 const isVercel = process.env.VERCEL === "1";
 const isCI = process.env.CI === "true";
-const isStrictMode = process.argv.includes("--strict");
 
 interface CheckResult {
   key: string;
@@ -29,6 +38,10 @@ interface CheckResult {
 
 const results: CheckResult[] = [];
 
+/**
+ * Check if a canonical key or its aliases are set
+ * This is a diagnostic function that needs to inspect process.env directly
+ */
 function check(
   key: string,
   aliases: string[],
@@ -85,7 +98,7 @@ function check(
 // =============================================================================
 
 console.log("🩺 Environment Doctor - Checking Configuration...\n");
-console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
+console.log(`📍 Environment: ${Config.env.NODE_ENV}`);
 console.log(`📍 Platform: ${isVercel ? "Vercel" : isCI ? "CI" : "Local"}`);
 console.log(`📍 Mode: ${isStrictMode ? "STRICT" : "NORMAL"}\n`);
 console.log("=".repeat(70));

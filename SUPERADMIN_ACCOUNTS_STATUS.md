@@ -12,8 +12,8 @@ Your `.env.local` has been updated with the following from Vercel production:
 ```env
 NEXTAUTH_SUPERADMIN_EMAIL="sultan.a.hassni@gmail.com"
 NEXTAUTH_BYPASS_OTP_ALL="true"
-NEXTAUTH_BYPASS_OTP_CODE="EngSayh@1985#Fixzit"
-MONGODB_URI="mongodb+srv://EngSayh:EngSayh%401985@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit"
+NEXTAUTH_BYPASS_OTP_CODE="<your-secure-bypass-code>"
+MONGODB_URI="mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority"
 ```
 
 These match your Vercel production secrets added on **December 8, 2025**.
@@ -44,7 +44,7 @@ Created:      December 8, 2025
 
 **Email:** `sultan.a.hassni@gmail.com`  
 **Password:** The password you set when creating this account  
-**OTP Code (if prompted):** `EngSayh@1985#Fixzit` *(OTP bypass is enabled)*  
+**OTP Code (if prompted):** Use the value from `NEXTAUTH_BYPASS_OTP_CODE` env var *(OTP bypass is enabled)*  
 **Login URL:** https://fixzit.co/login or http://localhost:3000/login
 
 **✅ OTP Bypass Enabled:** The system recognizes `sultan.a.hassni@gmail.com` as the SuperAdmin (from `NEXTAUTH_SUPERADMIN_EMAIL`) and will accept the bypass code instead of sending an SMS.
@@ -58,10 +58,12 @@ SUPERADMIN_EMAIL=sultan.a.hassni@gmail.com SUPERADMIN_PASSWORD=NewSecurePass123!
 
 ## 📝 Environment Configuration
 
-Your `.env.local` has been updated with:
+Your `.env.local` should contain:
 ```env
-MONGODB_URI="mongodb+srv://EngSayh:EngSayh%401985@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit"
+MONGODB_URI="mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority"
 ```
+
+**Note:** Replace `<username>`, `<password>`, `<cluster>`, and `<database>` with your actual MongoDB Atlas credentials.
 
 **Backup created:** `.env.local.backup`
 

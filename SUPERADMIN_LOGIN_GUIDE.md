@@ -18,13 +18,10 @@
    # Or manually copy from: https://vercel.com/your-team/fixzit/settings/environment-variables
    ```
 
-2. **Update .env.local** (lines 5-6):
+2. **Update .env.local** (or copy from Vercel):
    ```bash
-   # Replace this:
-   MONGODB_URI=mongodb://localhost:27017/fixzit
-   
-   # With your production URI:
-   MONGODB_URI=mongodb+srv://your-username:your-password@cluster.mongodb.net/fixzit?retryWrites=true&w=majority
+   # Replace placeholder values with your actual credentials
+   MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority
    ```
 
 3. **Check SuperAdmin accounts**:
