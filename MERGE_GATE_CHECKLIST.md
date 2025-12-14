@@ -3,11 +3,11 @@
 **PR**: #555 - fix(security): P0 hardening + Superadmin portal separation  
 **Branch**: `fix/security-atlas-vercel-hardening-20251214-1341`  
 **Latest Commit**: `cd0d04547` - fix(security): P0 hardening - remove secret leaks + enforce preview guards  
-**Vercel Preview**: https://fixzit-git-fix-security-atlas-vercel-hardening-20-2f8d23-fixzit.vercel.app  
+**Vercel Preview (branch alias)**: https://fixzit-git-fix-security-atlas-vercel-hardening-20-2f8d23-fixzit.vercel.app  
 **Status**: ⏳ **WAITING FOR MANUAL ACTIONS**  
 **Validation Date**: December 14, 2025
 
-> **Note**: Using branch alias URL (not deployment ID) - always points to latest preview build
+> **Note**: Always test against the branch alias (stable) URL above; do not pin to a deployment ID.
 
 ---
 
@@ -230,8 +230,11 @@ grep -n "/superadmin/login" SUPERADMIN_ACCOUNTS_STATUS.md
 
 ## 🧪 Functional Testing Checklist
 
+**Set once for all tests:**  
+`PREVIEW_ALIAS=https://fixzit-git-fix-security-atlas-vercel-hardening-20-2f8d23-fixzit.vercel.app`
+
 ### Test 1: Superadmin Login at `/login` (Auto-Redirect)
-**URL**: `https://fixzit-git-fix-security-atlas-vercel-hardening-20-2f8d23-fixzit.vercel.app/login`
+**URL**: `${PREVIEW_ALIAS}/login`
 
 **Steps**:
 1. Navigate to `/login`
@@ -251,7 +254,7 @@ grep -n "/superadmin/login" SUPERADMIN_ACCOUNTS_STATUS.md
 ---
 
 ### Test 2: Superadmin Direct Access to FM Routes
-**URL**: `https://fixzit-git-fix-security-atlas-vercel-hardening-20-2f8d23-fixzit.vercel.app/fm/dashboard`
+**URL**: `${PREVIEW_ALIAS}/fm/dashboard`
 
 **Steps**:
 1. Login as superadmin via `/superadmin/login`
@@ -269,7 +272,7 @@ grep -n "/superadmin/login" SUPERADMIN_ACCOUNTS_STATUS.md
 ---
 
 ### Test 3: Normal User Login (No Regression)
-**URL**: `https://fixzit-git-fix-security-atlas-vercel-hardening-20-2f8d23-fixzit.vercel.app/login`
+**URL**: `${PREVIEW_ALIAS}/login`
 
 **Steps**:
 1. Navigate to `/login`
