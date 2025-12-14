@@ -9,5 +9,6 @@
 import { wrapRoute } from "@/lib/api/route-wrapper";
 import { GET as healthGet } from "../health/route";
 
-export { dynamic } from "../health/route";
+// Define directly instead of re-exporting to satisfy Next.js static analysis
+export const dynamic = "force-dynamic";
 export const GET = wrapRoute(healthGet, "api.healthcheck.get.catch");
