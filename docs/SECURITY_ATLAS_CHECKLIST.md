@@ -6,22 +6,76 @@
 
 **STATUS: ACTIVE IN PRODUCTION**
 
-### 1. **✗ INTERNET-EXPOSED CLUSTER** (P0 - HIGHEST RISK)
+### 0. **✗ VERCEL SECRETS ARE REVEALABLE** (P0 - MOST URGENT)
+
+**From Vercel Team Environment Variables screen:**
+
+- **What:** Secrets show "Click to reveal" button (NOT configured as Vercel "Sensitive" variables)
+- **Risk:** Any team member with Vercel UI access can reveal these secrets
+- **Impact:** `MONGODB_URI`, `AUTH_SECRET`, `TAQNYAT_BEARER_TOKEN`, and other secrets are readable
+- **Vercel Warning:** Sensitive variables "cannot be revealed after saving" - yours can be revealed
+
+**Immediate Action:** See [VERCEL_ENV_HARDENING.md](./VERCEL_ENV_HARDENING.md) for step-by-step remediation.
+
+**Quick Summary:**
+1. **Delete** each secret from Vercel UI
+2. **Re-add** with same name, but select **Production + Preview ONLY** (not Development)
+3. **Enable "Sensitive"** toggle (appears when Development is not selected)
+4. **Add separate Development values** (non-sensitive, dev-only credentials)
+
+---
+
+### 1. **✗ ATLAS DATABASE USERS EXPOSURE** (P0 - CRITICAL)
+
+**From Atlas Database Users screen:**
+
+- **What:** User `fixzitadmin` has **plaintext secret in Description field**
+- **Risk:** Description is **non-encrypted UI metadata** visible to all Atlas users
+- **Impact:** Treat credential as **compromised** (must rotate immediately)
+
+**Additional Issue:**
+- Both `EngSayh` and `fixzitadmin` have **`atlasAdmin@admin`** on **All Resources**
+- This is **too permissive** for app runtime (can create/delete databases, modify cluster settings)
+- Violates least-privilege principle
+
+**Immediate Actions (Do in Atlas UI NOW):**
+
+1. **Clear Description field** for `fixzitadmin`:
+   - Atlas → Database Access → Click `fixzitadmin` → Edit → Clear "Description" → Save
+
+2. **Rotate password immediately**:
+   - Atlas → Database Access → Click `fixzitadmin` → Edit Password → Generate new password → Save
+   - Update `MONGODB_URI` in Vercel Production + Preview environments (as Sensitive vars)
+   - **Redeploy** Vercel production (env changes only apply to new deployments)
+
+3. **Create least-privilege runtime users**:
+   ```
+   Username: fixzit-app-prod
+   Role: readWrite on fixzit database ONLY (not atlasAdmin)
+   Environment: Vercel Production
+   
+   Username: fixzit-app-preview  
+   Role: readWrite on fixzit database ONLY
+   Environment: Vercel Preview
+   
+   Username: fixzit-app-dev
+   Role: readWrite on fixzit database ONLY
+   Environment: Local Development
+   ```
+
+4. **Update Vercel env vars** with new least-privilege users:
+   - See [VERCEL_ENV_HARDENING.md](./VERCEL_ENV_HARDENING.md) for exact steps
+
+5. **Keep `atlasAdmin@admin` for human break-glass only** (not used by app)
+
+---
+
+### 2. **✗ INTERNET-EXPOSED CLUSTER** (P0 - HIGHEST RISK)
 - **What:** `0.0.0.0/0 (Allow from anywhere)` is Active ✅ in Network Access
 - **Risk:** Cluster is reachable from ANY IP on the internet
 - **Impact:** The /32 IP entry is meaningless when 0.0.0.0/0 exists
 - **MongoDB Warning:** "Allow access from anywhere" explicitly flagged as risky
-- **Priority:** FIX THIS FIRST (before other items)
-
-### 2. **✗ EXPOSED SECRET** (P0)
-- **What:** User `fixzitadmin` has password/secret in Description field
-- **Risk:** Any Atlas user can see this password (non-encrypted UI metadata)
-- **Impact:** Compromised credential, must rotate immediately
-
-### 3. **✗ EXCESSIVE PRIVILEGES** (P1)
-- **What:** Both `EngSayh` and `fixzitadmin` have `atlasAdmin@admin`
-- **Risk:** Full cluster admin access (create/delete databases, modify settings)
-- **Impact:** App runtime has more privileges than needed
+- **Priority:** FIX AFTER rotating credentials (STEP 0/1 first)
 
 ---
 
@@ -152,30 +206,25 @@ MongoDB explicitly documents blocking wildcard IP via **Atlas Resource Policies*
 
 ```json
 {
-  "name": "Block Wildcard IP Access",
-  "description": "Prevent 0.0.0.0/0 from being added to any cluster",
-  "version": "1.0",
-  "rules": [
+  "name": "Policy Restricting Wildcard IP",
+  "policies": [
     {
-      "effect": "DENY",
-      "actions": [
-        "CREATE",
-        "UPDATE"
-      ],
-      "resources": [
-        "CLUSTER"
-      ],
-      "conditions": [
-        {
-          "operator": "CONTAINS",
-          "property": "ipAccessList.ipAddress",
-          "value": "0.0.0.0/0"
-        }
-      ]
+      "body": "forbid(principal, action == ResourcePolicy::Action::\"project.ipAccessList.modify\", resource) when { context.project.ipAccessList.contains(ip(\"0.0.0.0/0\")) };"
     }
   ]
 }
 ```
+
+**Format Explanation:**
+- MongoDB Atlas Resource Policies use **Cedar policy language** inside a JSON wrapper
+- Structure: `{"name": "...", "policies": [{"body": "..."}]}`  
+- The `body` contains Cedar syntax: `forbid(...) when {...}`
+- Source: [MongoDB Resource Policies Documentation](https://www.mongodb.com/docs/atlas/security/resource-policies/)
+
+**Key Details:**
+- **Scope:** Org-wide by default (applies to all projects)
+- **Required Role:** Organization Owner (to create/update policies)
+- **Action:** Blocks `project.ipAccessList.modify` when `0.0.0.0/0` is present
 
 3. Apply policy to organization
 4. Test: Try to add 0.0.0.0/0 → Should be blocked with policy violation error

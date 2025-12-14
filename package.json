@@ -62,6 +62,7 @@
     "verify:org-context": "tsx scripts/verify-org-context.ts && SKIP_GLOBAL_MONGO=true vitest run tests/smoke/org-context-flow.test.tsx tests/server/support/support-org-apis.test.ts",
     "guard:static": "bash scripts/check-org-guards.sh",
     "guard:prod-env": "node scripts/ci/verify-prod-env.js",
+    "env:check": "tsx scripts/ci/env-guard-check.ts",
     "check:route-aliases": "tsx scripts/check-route-aliases.ts",
     "check:route-aliases:json": "tsx scripts/check-route-aliases.ts --json _artifacts/route-aliases.json",
     "archive:route-metrics": "tsx scripts/archive-route-aliases.ts",

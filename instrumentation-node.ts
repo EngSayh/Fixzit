@@ -25,6 +25,35 @@ export async function registerNode(): Promise<void> {
     !isPlaywright;
 
   try {
+    // Run production environment safety guards (blocks OTP bypass, localhost MongoDB in prod)
+    try {
+      const { validateProductionEnv } = await import("@/lib/config/env-guards");
+      const guardResult = validateProductionEnv({ throwOnError: false });
+      
+      if (!guardResult.passed && guardResult.environment === 'production') {
+        logger.error("[Instrumentation] Production env guards failed", {
+          errors: guardResult.errors,
+          environment: guardResult.environment,
+        });
+        // Fail startup in production with safety violations
+        throw new Error("Production environment safety guards failed; see logs for details");
+      }
+      
+      if (guardResult.warnings.length > 0) {
+        logger.warn("[Instrumentation] Environment warnings", {
+          warnings: guardResult.warnings,
+        });
+      }
+    } catch (guardError) {
+      logger.error("[Instrumentation] Env guard check failed", {
+        error: guardError instanceof Error ? guardError.message : String(guardError),
+      });
+      // Re-throw to stop startup in production
+      if (process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production") {
+        throw guardError;
+      }
+    }
+
     // Validate environment variables
     const { validateAllEnv } = await import("@/lib/env-validation");
     const envResult = validateAllEnv({ strict: strictValidation });
