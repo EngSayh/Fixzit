@@ -7,16 +7,16 @@
 
 ## 🔐 SuperAdmin Configuration (from Vercel Secrets)
 
-Your `.env.local` has been updated with the following from Vercel production:
+Environment values are stored in Vercel production secrets (not committed to the repo). Verify the following settings:
 
 ```env
 NEXTAUTH_SUPERADMIN_EMAIL="sultan.a.hassni@gmail.com"
-NEXTAUTH_BYPASS_OTP_ALL="true"
-NEXTAUTH_BYPASS_OTP_CODE="EngSayh@1985#Fixzit"
-MONGODB_URI="mongodb+srv://EngSayh:EngSayh%401985@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit"
+NEXTAUTH_BYPASS_OTP_ALL="false" # keep OTP enforced for all users
+# NEXTAUTH_BYPASS_OTP_CODE is intentionally unset; rotate and set only for audited emergency access
+MONGODB_URI="<set in Vercel secrets; do not commit raw connection strings>"
 ```
 
-These match your Vercel production secrets added on **December 8, 2025**.
+These match the current Vercel production secrets added on **December 8, 2025**, with OTP bypass disabled.
 
 ---
 
@@ -44,26 +44,24 @@ Created:      December 8, 2025
 
 **Email:** `sultan.a.hassni@gmail.com`  
 **Password:** The password you set when creating this account  
-**OTP Code (if prompted):** `EngSayh@1985#Fixzit` *(OTP bypass is enabled)*  
+**OTP:** Delivered via the configured provider; do not publish or reuse bypass codes  
 **Login URL:** https://fixzit.co/login or http://localhost:3000/login
 
-**✅ OTP Bypass Enabled:** The system recognizes `sultan.a.hassni@gmail.com` as the SuperAdmin (from `NEXTAUTH_SUPERADMIN_EMAIL`) and will accept the bypass code instead of sending an SMS.
+**✅ OTP Enforcement:** `NEXTAUTH_BYPASS_OTP_ALL` remains `false`; OTP should be required for SuperAdmin sign-in.
 
 ### If You Forgot the Password:
 ```bash
-SUPERADMIN_EMAIL=sultan.a.hassni@gmail.com SUPERADMIN_PASSWORD=NewSecurePass123! pnpm exec tsx scripts/setup-production-superadmin.ts
+SUPERADMIN_EMAIL=sultan.a.hassni@gmail.com SUPERADMIN_PASSWORD="<new password>" pnpm exec tsx scripts/setup-production-superadmin.ts
 ```
 
 ---
 
 ## 📝 Environment Configuration
 
-Your `.env.local` has been updated with:
+Your `.env.local` should load the MongoDB connection string from Vercel secrets (no plaintext credentials stored locally). If you need a local override, set a placeholder and pull the real value from 1Password/Vercel:
 ```env
-MONGODB_URI="mongodb+srv://EngSayh:EngSayh%401985@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit"
+MONGODB_URI="<pulled-from-secret-manager>"
 ```
-
-**Backup created:** `.env.local.backup`
 
 ---
 
