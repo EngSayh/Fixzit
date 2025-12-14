@@ -44,7 +44,7 @@ async function main() {
     const base = path.basename(rel);
     if (rel.startsWith("scripts/")) {
       const isSeed = base.startsWith("seed");
-      const isSuperadminFix = base === "fix-superadmin-password.js";
+      const isSuperadminFix = false; // fix-superadmin-password.js deleted (obsolete)
       if (!isSeed && !isSuperadminFix) {
         continue;
       }

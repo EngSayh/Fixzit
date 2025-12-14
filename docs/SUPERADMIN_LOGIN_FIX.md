@@ -4,6 +4,8 @@
 
 **Root Cause**: Production environment variables don't match login credentials.
 
+**Important**: This document describes the tooling fix. The actual production 401 is fixed only by setting correct Vercel env vars and redeploying.
+
 ---
 
 ## Authentication Logic
@@ -101,6 +103,22 @@ After changing env vars, trigger a **new Production deployment** in Vercel.
 ## P2: Top-Level Await (Separate Issue)
 
 Vercel build warnings about `lib/mongo.ts` are unrelated to the 401 error. Track as P2 cleanup after auth is fixed.
+
+---
+
+## References to Obsolete Scripts
+
+The following scripts were deleted (auth is env-based, not DB-based):
+- `scripts/setup-production-superadmin.ts`
+- `scripts/fix-superadmin-login.ts`
+- `scripts/fix-superadmin-password.js`
+- `scripts/quick-fix-superadmin.ts`
+- `scripts/update-superadmin-credentials.ts`
+- `scripts/setup-superadmin.sh`
+- `scripts/setup-superadmin-simple.js`
+- `scripts/run-fixzit-superadmin-tests.sh`
+
+If you need to reference superadmin setup, use this document instead.
 
 ---
 

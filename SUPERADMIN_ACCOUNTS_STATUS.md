@@ -53,7 +53,8 @@ Created:      December 8, 2025
 
 ### If You Forgot the Password:
 ```bash
-SUPERADMIN_EMAIL=sultan.a.hassni@gmail.com SUPERADMIN_PASSWORD="<new password>" pnpm exec tsx scripts/setup-production-superadmin.ts
+# OBSOLETE: scripts/setup-production-superadmin.ts deleted (auth is env-based, not DB-based)
+# See docs/SUPERADMIN_LOGIN_FIX.md for correct procedure
 ```
 
 ---
