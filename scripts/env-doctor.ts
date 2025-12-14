@@ -14,9 +14,11 @@
  *   1 - Critical errors found
  *   2 - Warnings found (only fails in --strict mode)
  * 
- * Note: This script uses direct process.env access intentionally to diagnose
- * environment variable configuration issues. Normal application code should
- * use the Config module from lib/config/constants.ts instead.
+ * Note: This is a diagnostic script that validates environment variable configuration.
+ * It uses direct process.env access in the check() function to detect which keys
+ * are set vs. missing. The rest of the script uses the Config module for reading
+ * environment values (NODE_ENV, etc.). Normal application code should always use
+ * the Config module from lib/config/constants.ts.
  */
 
 import { Config } from "@/lib/config/constants";

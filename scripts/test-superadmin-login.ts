@@ -101,7 +101,7 @@ async function testSuperAdminLogin() {
     console.log("   1. Go to: http://localhost:3000/login or https://fixzit.co/login");
     console.log(`   2. Email: ${superadminEmail}`);
     console.log("   3. Password: The password you set during account creation");
-    console.log(`   4. OTP Code (if prompted): Use the value from NEXTAUTH_BYPASS_OTP_CODE`);
+    console.log("   4. OTP Code (if prompted): Check your configured bypass code");
     console.log("\n💡 OTP Bypass is enabled, so you may not even need to enter the OTP code!");
 
     process.exit(0);
