@@ -229,7 +229,8 @@ function getRequiredWithBuildSkip(key: string, fallback?: string): string {
   return value;
 }
 
-function getRequiredWithTestFallback(
+// Reserved for future test scaffolding; prefix with _ to indicate intentionally unused
+function _getRequiredWithTestFallback(
   key: string,
   testFallback: string,
 ): string {

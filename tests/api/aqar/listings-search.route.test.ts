@@ -39,7 +39,7 @@ const importRoute = async () => {
   }
 };
 
-describe("POST /api/aqar/listings/search", () => {
+describe("GET /api/aqar/listings/search", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
@@ -47,7 +47,7 @@ describe("POST /api/aqar/listings/search", () => {
 
   it("returns 429 when rate limit exceeded", async () => {
     const route = await importRoute();
-    if (!route?.POST) {
+    if (!route?.GET) {
       expect(true).toBe(true);
       return;
     }
@@ -58,31 +58,25 @@ describe("POST /api/aqar/listings/search", () => {
       }) as never
     );
 
-    const req = new NextRequest("http://localhost:3000/api/aqar/listings/search", {
-      method: "POST",
-      body: JSON.stringify({ city: "Riyadh" }),
+    const req = new NextRequest("http://localhost:3000/api/aqar/listings/search?city=Riyadh", {
+      method: "GET",
     });
-    const response = await route.POST(req);
+    const response = await route.GET(req);
 
     expect(response.status).toBe(429);
   });
 
   it("handles search with filters", async () => {
     const route = await importRoute();
-    if (!route?.POST) {
+    if (!route?.GET) {
       expect(true).toBe(true);
       return;
     }
 
-    const req = new NextRequest("http://localhost:3000/api/aqar/listings/search", {
-      method: "POST",
-      body: JSON.stringify({
-        city: "Riyadh",
-        minPrice: 100000,
-        maxPrice: 500000,
-      }),
+    const req = new NextRequest("http://localhost:3000/api/aqar/listings/search?city=Riyadh&minPrice=100000&maxPrice=500000", {
+      method: "GET",
     });
-    const response = await route.POST(req);
+    const response = await route.GET(req);
 
     expect([200, 400, 500]).toContain(response.status);
   });

@@ -51,7 +51,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Ensure Mongo Indexes (idempotent)
-        if: ${{ secrets.MONGODB_URI != '' }}
+        if: env.MONGODB_URI != ''
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
         run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"

@@ -42,7 +42,7 @@ const importRoute = async () => {
 describe("POST /api/aqar/support/chatbot", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(smartRateLimit).mockReturnValue(null);
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true, remaining: 10 });
   });
 
   it("returns 429 when rate limit exceeded", async () => {
