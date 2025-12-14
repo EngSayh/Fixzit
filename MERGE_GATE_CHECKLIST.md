@@ -137,13 +137,38 @@
 
 **These did NOT stop Preview build but are tech debt:**
 
-- ⏳ Next.js config warning: `experimental.modularizeImports` unrecognized key
-- ⏳ Dynamic server usage errors (marketplace routes with no-store fetch)
-- ⏳ Preview hitting `https://fixzit.co/api/...` (production domain dependency)
-- ⏳ TAP_WEBHOOK_SECRET not set → webhook verification disabled
-- ⏳ Redis not configured warnings (budget tracking fallback)
+- ⏳ **Next.js config warning**: `experimental.modularizeImports` unrecognized key
+  - Impact: Build warning only (no runtime issue)
+  - Fix: Move `modularizeImports` out of experimental or update to Next 15 format
+  - File: `next.config.js`
 
-**Recommendation:** Create separate PR(s) after this security PR is merged.
+- ⏳ **API route dynamic export not recognized**: `/api/healthcheck/route`
+  - Impact: Static generation warning
+  - Fix: Export `dynamic` directly in route file (don't re-export)
+  - File: `app/api/healthcheck/route.ts`
+
+- ⏳ **topLevelAwait + async/await target warning**: `lib/mongo.ts`
+  - Impact: **POTENTIAL RUNTIME LANDMINE** if leaked into edge/client bundles
+  - Fix: Ensure Mongo/auth DB modules are server-only; remove top-level await patterns
+  - Files: `lib/mongo.ts`, `lib/auth/**`
+  - Priority: **P2** (can become critical if compilation target changes)
+
+- ⏳ **Dynamic server usage errors**: Marketplace routes with no-store fetch
+  - Impact: SSG/ISR routes can't be statically generated
+  - Fix: Choose per route - either `export const dynamic = 'force-dynamic'` OR remove no-store and use revalidate
+  - Files: `app/marketplace/**/**/page.tsx`
+
+- ⏳ **Preview hitting production domain**: `https://fixzit.co/api/...`
+  - Impact: Preview may be calling production APIs during pre-render
+  - Fix: Environment-aware API URL resolution
+
+- ⏳ **TAP_WEBHOOK_SECRET not set**: Webhook verification disabled
+  - Impact: Tap Payments webhooks not validated (development only)
+
+- ⏳ **Redis not configured**: Budget tracking fallback
+  - Impact: Budget counters use in-memory fallback (development only)
+
+**Recommendation:** Create "Build Warnings Cleanup" PR after #555 merge. Priority order: topLevelAwait (P2) → dynamic exports (P3) → config cleanup (P3).
 
 ---
 
@@ -151,29 +176,40 @@
 
 ### Local Verification - No Secret Leaks
 
-**Safe scans (pattern-only, no secret output):**
+**Safe scans (list files only - NEVER echo matching lines to avoid leaking secrets):**
 
 ```bash
 # 1. Detect env logging (dangerous patterns)
-rg -n "logger\..*process\.env|console\..*process\.env" . --type ts
-# Expected: 0 matches (or only in commented examples)
+rg -l "logger\..*process\.env|console\..*process\.env" . --type ts
+# Expected: Empty (or only debug scripts in tools/scripts/)
+# Then manually inspect flagged files
 
 # 2. OTP bypass flags present anywhere
-rg -n "NEXTAUTH_BYPASS_OTP_(ALL|CODE)|ALLOW_TEST_USER_OTP_BYPASS" . --type ts
-# Expected: Only in env guard validation logic (not runtime code)
+rg -l "NEXTAUTH_BYPASS_OTP_(ALL|CODE)|ALLOW_TEST_USER_OTP_BYPASS" . --type ts
+# Expected: Only lib/config/env-guards.ts, instrumentation-node.ts, tests/
+# Then verify these files only CHECK for presence (don't log values)
 
 # 3. Mongo URIs printed or hardcoded
-rg -n "mongodb(\+srv)?:\/\/" . --type ts | grep -v "mongodb+srv://\[" | grep -v "masked" | grep -v "example"
-# Expected: Only connection logic with masking functions
+rg -l "mongodb(\+srv)?:\/\/[^*\[]" . --type ts
+# Expected: Only lib/mongo.ts, validators, tests
+# Then verify URIs are from process.env (not hardcoded credentials)
 
 # 4. Cookies/Auth tokens accidentally logged
-rg -n "(Authorization:|Set-Cookie|Cookie:|Bearer\s+[A-Za-z0-9\-_]+\.)" . --type ts
-# Expected: Only header definitions, not logged values
+rg -l "(Authorization:|Set-Cookie|Cookie:|Bearer\s+[A-Za-z0-9\-_]+\.)" . --type ts
+# Expected: Only header definitions (lib/auth, middleware)
+# Then verify no logger.info/console.log of actual token values
 
 # 5. "Secret-ish" keys printed (pattern-only)
-rg -n "(SECRET|TOKEN|API_KEY|PRIVATE_KEY|PASSWORD)\b" . --type ts | grep -v "process.env" | grep -v "//"
-# Expected: Only type definitions and validation logic
+rg -l "(SECRET|TOKEN|API_KEY|PRIVATE_KEY|PASSWORD)\b" . --type ts | grep -v test | head -20
+# Expected: Only type definitions (env.ts, config/, tests/)
+# Then verify these are only variable NAMES (not logged values)
 ```
+
+**Why `-l` flag?**
+- Lists filenames only (not matching lines)
+- Prevents accidental secret exposure in terminal output/screenshares/logs
+- Same detection power, zero risk
+- Requires manual file inspection (deliberate security step)
 
 ### Env Guards + Proof Artifacts
 
