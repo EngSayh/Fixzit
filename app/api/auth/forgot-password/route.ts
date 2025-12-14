@@ -10,6 +10,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Config } from "@/lib/config/constants";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
 import { signPasswordResetToken, passwordResetLink } from "@/lib/auth/passwordReset";

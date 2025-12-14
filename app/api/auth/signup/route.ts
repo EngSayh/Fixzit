@@ -11,6 +11,7 @@
  * @throws {429} If rate limit exceeded
  */
 import { NextRequest } from "next/server";
+import { Config } from "@/lib/config/constants";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
 import { getNextAtomicUserCode } from "@/lib/mongoUtils.server";

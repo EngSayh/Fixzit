@@ -6,6 +6,7 @@
  * @module referrals
  */
 import { NextRequest, NextResponse } from "next/server";
+import { Config } from "@/lib/config/constants";
 import { auth } from "@/auth";
 import { ReferralCodeModel } from "@/server/models/ReferralCode";
 import { connectDb } from "@/lib/mongo";
