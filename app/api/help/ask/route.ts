@@ -368,10 +368,63 @@ const MAX_RATE_PER_MIN =
     ? Math.floor(MAX_RATE_PER_MIN_ENV)
     : 30;
 
+function maskRedisUrl(url: string | undefined) {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url);
+    if (parsed.password) parsed.password = "****";
+    if (parsed.username) parsed.username = "****";
+    return parsed.toString();
+  } catch {
+    return url.length > 12 ? `${url.slice(0, 6)}****${url.slice(-4)}` : "****";
+  }
+}
+
+function isFatalRedisError(error: Error) {
+  const code = (error as { code?: string }).code || "";
+  return (
+    code === "ENOTFOUND" ||
+    code === "EAI_AGAIN" ||
+    error.message.includes("ENOTFOUND") ||
+    error.message.includes("EAI_AGAIN")
+  );
+}
+
+function disableRedis(reason: string, error?: Error) {
+  if (redisDisabled) return;
+  redisDisabled = true;
+  if (redis) {
+    try {
+      redis.disconnect();
+    } catch (disconnectErr) {
+      logger.warn(
+        "Redis disconnect failed after fatal error",
+        {
+          error: disconnectErr instanceof Error
+            ? disconnectErr
+            : new Error(String(disconnectErr)),
+          route: "/api/help/ask",
+          context: "redis-disable",
+        },
+      );
+    } finally {
+      redis = null;
+    }
+  }
+  logger.warn("Redis disabled for help/ask, using in-memory rate limit only", {
+    route: "/api/help/ask",
+    context: "redis-disable",
+    reason,
+    error: error?.message,
+    redisUrl: maskRedisUrl(redisConnectionUrl),
+  });
+}
+
 // Initialize Redis client if connection URL is provided
 // Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
 const redisConnectionUrl = process.env.REDIS_URL || process.env.REDIS_KEY;
 let redis: Redis | null = null;
+let redisDisabled = false;
 if (redisConnectionUrl) {
   try {
     redis = new Redis(redisConnectionUrl, {
@@ -383,14 +436,20 @@ if (redisConnectionUrl) {
 
     // Handle connection events for monitoring
     redis.on("error", (err) => {
-      logger.error(
-        "Redis connection error",
-        err instanceof Error ? err : new Error(String(err)),
-        { route: "/api/help/ask", context: "redis-connection" },
-      );
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error("Redis connection error", error, {
+        route: "/api/help/ask",
+        context: "redis-connection",
+        redisUrl: maskRedisUrl(redisConnectionUrl),
+        code: (error as { code?: string }).code,
+      });
+      if (isFatalRedisError(error)) {
+        disableRedis("fatal-dns-error", error);
+      }
     });
 
     redis.on("close", () => {
+      if (redisDisabled) return;
       logger.warn(
         "Redis connection closed, will attempt to reconnect automatically",
       );
@@ -398,18 +457,24 @@ if (redisConnectionUrl) {
     });
 
     redis.on("reconnecting", () => {
+      if (redisDisabled) return;
       logger.info("Redis reconnecting...");
     });
 
     redis.on("ready", () => {
+      if (redisDisabled) return;
       logger.info("Redis connection restored");
     });
   } catch (err) {
-    logger.error(
-      "Failed to initialize Redis client",
-      err instanceof Error ? err : new Error(String(err)),
-      { route: "/api/help/ask", context: "redis-init" },
-    );
+    const error = err instanceof Error ? err : new Error(String(err));
+    logger.error("Failed to initialize Redis client", error, {
+      route: "/api/help/ask",
+      context: "redis-init",
+      redisUrl: maskRedisUrl(redisConnectionUrl),
+    });
+    if (isFatalRedisError(error)) {
+      disableRedis("init-fatal", error);
+    }
   }
 }
 
@@ -421,7 +486,7 @@ async function rateLimitAssert(req: NextRequest) {
   const key = `help:ask:${ip}`;
 
   // Try Redis first if available
-  if (redis) {
+  if (redis && !redisDisabled) {
     try {
       const multi = redis.multi();
       multi.incr(key);
@@ -439,6 +504,9 @@ async function rateLimitAssert(req: NextRequest) {
       return;
     } catch (_err: Error | unknown) {
       if ((_err as Error).message === "Rate limited") throw _err;
+      if (_err instanceof Error && isFatalRedisError(_err)) {
+        disableRedis("fatal-dns-error", _err);
+      }
       logger.error(
         "Redis rate limit check failed, falling back to in-memory",
         _err instanceof Error ? _err : new Error(String(_err)),

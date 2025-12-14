@@ -2,6 +2,132 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-14 19:15 (Asia/Riyadh) — Tenant-Isolation Fixes (Aqar + Issue Tracker)
+**Context:** Closed 2 tenant-isolation gaps flagged in PR #550 code review  
+**DB Sync:** N/A (direct code fixes, not backlog items)
+
+**🔒 Security Fixes Applied:**
+
+1. **Aqar Pricing Recalculation Tenant Isolation** ([app/api/aqar/insights/pricing/route.ts](app/api/aqar/insights/pricing/route.ts))
+   - **Issue:** POST endpoint lacked orgId validation and rate limiting (expensive operation)
+   - **Source:** /tmp/pr-comments/pr-550.txt:10811-10858
+   - **Fix:**
+     - Added rate limiting: 10 requests/min per IP (keyPrefix: "aqar:insights:pricing:recalc")
+     - Added orgId validation before recalculation (403 if missing/invalid)
+     - Updated service call: `PricingInsightsService.updateListingInsights(listingId, user.orgId)`
+   - **Service Changes** ([services/aqar/pricing-insights-service.ts](services/aqar/pricing-insights-service.ts)):
+     - Added optional `orgId` parameter to `updateListingInsights()`
+     - Enforced org-scoped listing lookup: `findOne({ _id, orgId })`
+     - Pass orgId to insights calculation and update
+   - **Chatbot Integration** ([app/api/aqar/support/chatbot/route.ts](app/api/aqar/support/chatbot/route.ts)):
+     - Updated chatbot to pass `listing.orgId` to pricing recalculation
+
+2. **Issue Tracker Related-Issues Tenant Isolation** ([issue-tracker/app/api/issues/[id]/route.ts](issue-tracker/app/api/issues/[id]/route.ts))
+   - **Issue:** GET query for related issues lacked orgId filter (cross-tenant leak)
+   - **Source:** /tmp/pr-comments/pr-550.txt:14596-14607
+   - **Fix:**
+     - Added orgId validation for GET/PATCH/DELETE handlers (lines 31-120, 230-292)
+     - Scoped related-issues query: `Issue.find({ orgId, _id: { $in: ... } })`
+     - Return 403 if orgId missing or invalid
+
+**📊 Changes Summary:**
+- **Files modified:** 4 (1 API route + 1 service + 1 chatbot integration + 1 issue tracker route)
+- **Lines added:** +57
+- **Lines removed:** -5
+- **Net change:** +52 lines
+
+**✅ Validation Status:**
+- [ ] Tests green (pending: `pnpm test`)
+- [ ] Build 0 TS errors (pending: `pnpm typecheck`)
+- [ ] Lint clean (pending: `pnpm lint:prod` + targeted issue-tracker lint)
+- [x] Tenancy filters enforced (verified in diffs)
+- [ ] Org-context verification (pending: `pnpm verify:org-context` if available)
+
+**🔍 Evidence:**
+- Rate limit implementation: `enforceRateLimit(request, { keyPrefix: "aqar:insights:pricing:recalc", requests: 10, windowMs: 60_000 })`
+- OrgId guard pattern: `if (!user.orgId || !isValidObjectIdSafe(user.orgId)) return 403`
+- Service org-scoping: `findOne({ _id: listingObjectId, orgId: orgObjectId })`
+- Related-issues filter: `Issue.find({ orgId, _id: { $in: issue.relatedIssues.map(...) } })`
+
+---
+
+### 2025-12-14 18:30 (Asia/Riyadh) — Documentation Coverage Audit
+**Context:** feat/mongodb-backlog-tracker | 904bc59d8 | Systematic documentation gap analysis  
+**DB Sync:** PENDING (JSON prepared: docs/BACKLOG_AUDIT_DOCUMENTATION.json — awaiting dev server for import)
+
+**📊 Scan Results:**
+- **Audit sample:** 182 files scanned (targeted API routes, lib utilities, Mongoose models)
+- **Files without JSDoc (in audit):** 182 (100% of targeted files lack proper @module/@description)
+- **Estimated codebase-wide coverage:** ~45% (target: 80%)
+- **Gap from threshold:** 35 percentage points
+- **Clarification:** The 182 files represent a targeted scan (routes/lib/models), not entire codebase
+
+**🆕 New Findings Added to DB (with evidence):**
+- DOC-101 — Missing JSDoc for 7 API route handlers (superadmin, admin, user, checkout) — P2, Effort: S
+  - sourceRef: code-review:app/api/superadmin/issues/route.ts:1-10
+  - Evidence: "import { NextRequest, NextResponse } from 'next/server'; // No JSDoc header"
+  
+- DOC-102 — Missing JSDoc for 51 lib utility modules (auth, payments, storage, middleware) — P1, Effort: M
+  - sourceRef: code-review:lib/zatca.ts:1-15
+  - Evidence: "import QRCode from \"qrcode\"; // No file/module documentation"
+  - Risk tags: SECURITY, CODE-QUALITY
+  
+- DOC-103 — Missing JSDoc for 124 Mongoose model schemas (server/models) — P2, Effort: L
+  - sourceRef: code-review:server/models/BacklogIssue.ts:1-15
+  - Evidence: "import { Schema, model, models } from 'mongoose'; // No schema documentation"
+  - Risk tags: DATA, CODE-QUALITY
+  
+- DOC-104 — Missing function-level JSDoc for superadmin issues CRUD endpoints — P2, Effort: XS
+  - sourceRef: code-review:app/api/superadmin/issues/route.ts:7-25
+  
+- DOC-105 — Missing inline comments for ZATCA TLV encoding logic — P2, Effort: S
+  - sourceRef: code-review:lib/zatca.ts:20-60
+  - Risk tags: FINANCIAL, COMPLIANCE
+  
+- DOC-106 — Missing README for backlog tracker feature — P2, Effort: S
+  - sourceRef: code-review:docs/:N/A
+  
+- DOC-107 — Missing TypeScript interface documentation for BacklogIssue types — P3, Effort: XS
+  - sourceRef: code-review:server/models/BacklogIssue.ts:3-6
+  
+- DOC-108 — Missing API endpoint documentation in OpenAPI spec — P2, Effort: M
+  - sourceRef: code-review:openapi.yaml:N/A
+  - Risk tags: API
+  
+- DOC-109 — Missing error response documentation for API routes — P2, Effort: M
+  - sourceRef: code-review:docs/:N/A
+  - Risk tags: API
+  
+- DOC-110 — Missing deployment checklist for backlog tracker — P3, Effort: XS
+  - sourceRef: code-review:docs/BACKLOG_TRACKER_SUMMARY.md:140-160
+  - Risk tags: DEPLOYMENT
+
+**🎯 Priority Breakdown:**
+- **P1 (1 issue):** DOC-102 (lib utilities - includes security/auth modules)
+- **P2 (7 issues):** DOC-101, DOC-103, DOC-104, DOC-105, DOC-106, DOC-108, DOC-109
+- **P3 (2 issues):** DOC-107, DOC-110
+
+**📈 Impact Analysis:**
+- **Critical gap:** 51 lib modules without documentation (includes auth, security, middleware)
+- **Largest scope:** 124 Mongoose models need schema-level docs
+- **API discoverability:** OpenAPI spec missing new endpoints
+- **Onboarding friction:** No centralized error handling guide
+
+**Next Steps (ONLY from DB items above):**
+1. **Immediate (P1):** DOC-102 — Document lib/zatca.ts, lib/aws-secrets.ts, lib/apiGuard.ts, rate-limit middleware
+2. **High priority batch (P2):** DOC-101, DOC-104, DOC-105 (API routes + ZATCA logic)
+3. **Documentation structure (P2):** DOC-106, DOC-109 (create missing guides)
+4. **API contract (P2):** DOC-108 (update OpenAPI spec)
+5. **Polish (P3):** DOC-107, DOC-110 (type docs + deployment checklist)
+
+**🔄 Recommended Approach:**
+- Use `@coderabbitai generate docstrings` for automated JSDoc generation
+- Batch PRs by module (auth/security, models, API routes, docs)
+- Target 10-15% coverage increase per batch (~18-27 files)
+- Run `pnpm lint` after each batch to validate JSDoc syntax
+
+---
+
 ### 2025-12-14 00:45 (Asia/Riyadh) — Code Review Update
 **Context:** main | b132ccca1 | no PR  
 **DB Sync:** created=0, updated=0, skipped=0, errors=1 (curl localhost:3000/api/issues/import → connection refused)

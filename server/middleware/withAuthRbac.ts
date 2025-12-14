@@ -167,15 +167,45 @@ async function loadRBACData(
       };
     }
 
-    // Filter out invalid role references (e.g., string "SUPER_ADMIN" instead of ObjectId)
-    const validRoleIds = (rawUser.roles || []).filter((role: any) => {
-      if (!role) return false;
-      if (typeof role === "string" && !mongoose.Types.ObjectId.isValid(role)) {
-        logger.warn("[RBAC] Invalid role reference (not ObjectId)", { userId, role, type: typeof role });
-        return false;
+    // Resolve role references: keep ObjectIds and translate slug strings to ObjectIds
+    const roleIds = new Set<string>();
+    const roleSlugs = new Set<string>();
+
+    for (const role of rawUser.roles || []) {
+      if (!role) continue;
+
+      if (mongoose.Types.ObjectId.isValid(role)) {
+        roleIds.add(String(new mongoose.Types.ObjectId(role as unknown as string)));
+        continue;
       }
-      return true;
-    });
+
+      if (typeof role === "string") {
+        roleSlugs.add(role);
+        continue;
+      }
+
+      logger.warn("[RBAC] Invalid role reference (unrecognized type)", { userId, role, type: typeof role });
+    }
+
+    if (roleSlugs.size > 0) {
+      const rolesFromSlugs = await RoleModel.find({
+        slug: { $in: Array.from(roleSlugs) },
+      })
+        .select("_id slug")
+        .lean();
+
+      for (const resolved of rolesFromSlugs) {
+        roleIds.add(String(resolved._id));
+      }
+
+      if (rolesFromSlugs.length < roleSlugs.size) {
+        const resolvedSlugs = new Set(rolesFromSlugs.map((r) => r.slug));
+        const unresolvedSlugs = Array.from(roleSlugs).filter((slug) => !resolvedSlugs.has(slug));
+        logger.warn("[RBAC] Could not resolve role slugs to ObjectIds", { userId, unresolvedSlugs });
+      }
+    }
+
+    const resolvedRoleIds = Array.from(roleIds).map((id) => new mongoose.Types.ObjectId(id));
 
     // Now populate with cleaned role IDs
     const user = await User.findOne({
@@ -187,7 +217,7 @@ async function loadRBACData(
         path: "roles",
         model: RoleModel,
         select: "slug wildcard permissions",
-        match: { _id: { $in: validRoleIds } },
+        match: { _id: { $in: resolvedRoleIds } },
         populate: {
           path: "permissions",
           model: PermissionModel,

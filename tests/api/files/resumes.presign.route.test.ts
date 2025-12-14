@@ -62,6 +62,8 @@ describe('POST /api/files/resumes/presign', () => {
     vi.clearAllMocks();
     process.env.AWS_S3_BUCKET = 'test-bucket';
     process.env.AWS_REGION = 'us-east-1';
+    process.env.AWS_ACCESS_KEY_ID = 'test-key-id';
+    process.env.AWS_SECRET_ACCESS_KEY = 'test-secret-key';
     process.env.S3_SCAN_REQUIRED = 'false';
     getSessionUser.mockResolvedValue(null);
     getPresignedPutUrl.mockResolvedValue({

@@ -42,12 +42,43 @@ vi.mock("@/lib/security/s3-policy", () => ({
   validateBucketPolicies: vi.fn().mockResolvedValue(true),
 }));
 
+vi.mock("@/lib/storage/s3-config", () => ({
+  assertS3Configured: vi.fn(() => ({
+    region: "us-east-1",
+    bucket: "test-s3-bucket",
+    accessKeyId: "test-key",
+    secretAccessKey: "test-secret",
+  })),
+  getS3Config: vi.fn(() => ({
+    region: "us-east-1",
+    bucket: "test-s3-bucket",
+    accessKeyId: "test-key",
+    secretAccessKey: "test-secret",
+  })),
+  buildS3Key: vi.fn((tenant: string, path: string) => `${tenant}/${path}`),
+  S3NotConfiguredError: class S3NotConfiguredError extends Error {
+    statusCode = 501;
+    missing: string[];
+    constructor(missing: string[]) {
+      super("S3_NOT_CONFIGURED");
+      this.missing = missing;
+    }
+    toJSON() {
+      return { error: "S3_NOT_CONFIGURED", missing: this.missing };
+    }
+  },
+}));
+
 describe("Upload org scoping", () => {
   const session = { id: "user-1", orgId: "tenant-1", tenantId: "tenant-1" };
   const tenantKey = "tenant-1/documents/file.pdf";
 
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.AWS_S3_BUCKET = "test-s3-bucket";
+    process.env.AWS_REGION = "us-east-1";
+    process.env.AWS_ACCESS_KEY_ID = "test-key-id";
+    process.env.AWS_SECRET_ACCESS_KEY = "test-secret-key";
     (getSessionOrNull as vi.Mock).mockResolvedValue({ ok: true, session });
     (smartRateLimit as vi.Mock).mockResolvedValue({ allowed: true });
     Config.aws.scan.endpoint = "https://scan-endpoint.test";

@@ -84,7 +84,7 @@ export async function resolveCopilotSession(
           permissions,
         };
       }
-    } catch (err) {
+    } catch (_err) {
       // Session decryption failed (e.g., AUTH_SECRET changed, expired session, wrong salt)
       // Fall through to guest session - user will need to re-authenticate
       // This is safe: copilot falls back to guest role with minimal permissions

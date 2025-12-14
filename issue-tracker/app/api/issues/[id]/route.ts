@@ -33,6 +33,13 @@ export async function GET(
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    if (!session.user.orgId || !mongoose.isValidObjectId(session.user.orgId)) {
+      return NextResponse.json(
+        { error: 'Invalid organization context' },
+        { status: 403 }
+      );
+    }
     
     await connectDB();
     
@@ -59,6 +66,7 @@ export async function GET(
     // Get related issues
     const relatedIssues = issue.relatedIssues?.length
       ? await Issue.find({
+          orgId,
           _id: { $in: issue.relatedIssues.map((r: any) => r.issueId) },
         })
           .select('issueId title status priority')
@@ -102,6 +110,13 @@ export async function PATCH(
     const allowedRoles = ['super_admin', 'admin', 'developer'];
     if (!allowedRoles.includes(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (!session.user.orgId || !mongoose.isValidObjectId(session.user.orgId)) {
+      return NextResponse.json(
+        { error: 'Invalid organization context' },
+        { status: 403 }
+      );
     }
     
     await connectDB();
@@ -229,6 +244,13 @@ export async function DELETE(
     // Only super_admin can delete
     if (session.user.role !== 'super_admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (!session.user.orgId || !mongoose.isValidObjectId(session.user.orgId)) {
+      return NextResponse.json(
+        { error: 'Invalid organization context' },
+        { status: 403 }
+      );
     }
     
     await connectDB();

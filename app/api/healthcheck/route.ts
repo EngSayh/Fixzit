@@ -6,9 +6,21 @@
  * @module health
  */
 
-import { wrapRoute } from "@/lib/api/route-wrapper";
+import { NextRequest } from "next/server";
+import { internalServerError } from "@/server/utils/errorResponses";
+import { logger } from "@/lib/logger";
 import { GET as healthGet } from "../health/route";
 
-// Define directly instead of re-exporting to satisfy Next.js static analysis
 export const dynamic = "force-dynamic";
-export const GET = wrapRoute(healthGet, "api.healthcheck.get.catch");
+
+// Inline try/catch wrapper keeps the alias simple for Next.js static analysis
+export async function GET(request: NextRequest) {
+  try {
+    return await healthGet(request);
+  } catch (error) {
+    logger.error("api.healthcheck.get.catch", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return internalServerError();
+  }
+}

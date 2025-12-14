@@ -93,8 +93,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const correlationId = crypto.randomUUID();
+  // Rate limiting: 10 requests per minute per IP (recalculation is expensive)
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:insights:pricing:recalc",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
-    await getSessionUser(request); // require auth for recalculation
+    const user = await getSessionUser(request); // require auth for recalculation
+    if (!user.orgId || !isValidObjectIdSafe(user.orgId)) {
+      return NextResponse.json(
+        { error: "Organization context is required", correlationId },
+        { status: 403 },
+      );
+    }
     const { data: body, error: parseError } = await parseBodySafe<{ listingId?: string }>(request);
     if (parseError || !body) {
       return NextResponse.json(
@@ -111,7 +125,7 @@ export async function POST(request: NextRequest) {
       );
     }
     const pricingInsights =
-      await PricingInsightsService.updateListingInsights(listingId);
+      await PricingInsightsService.updateListingInsights(listingId, user.orgId);
     if (!pricingInsights) {
       return NextResponse.json({ error: "Listing not found" }, { status: 404 });
     }
