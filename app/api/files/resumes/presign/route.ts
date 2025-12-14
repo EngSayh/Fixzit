@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
+import { Config } from "@/lib/config/constants";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { getSessionOrNull } from "@/lib/auth/safe-session";
 import { getPresignedPutUrl } from "@/lib/storage/s3";
@@ -58,8 +59,8 @@ export async function POST(req: NextRequest) {
       throw error;
     }
     
-    const scanEnforced = process.env.S3_SCAN_REQUIRED === "true";
-    if (scanEnforced && !process.env.AV_SCAN_ENDPOINT) {
+    const scanEnforced = Config.aws.scan.required;
+    if (scanEnforced && !Config.aws.scan.endpoint) {
       return createSecureResponse(
         { error: "AV scanning not configured" },
         503,
