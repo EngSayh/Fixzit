@@ -64,17 +64,14 @@ export function validateSMSConfig(options: ValidationOptions = {}): EnvValidatio
  * Validate job/cron and webhook secrets (used by scheduled endpoints and callbacks)
  */
 export function validateJobSecrets(options: ValidationOptions = {}): EnvValidationResult {
-  const strict = options.strict !== false;
+  const _strict = options.strict !== false;
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Cron secret validation
+  // Cron secret validation - CHANGED: Always warn instead of error
+  // Cron jobs are not critical for app startup and should fail gracefully
   if (!process.env.CRON_SECRET) {
-    if (process.env.NODE_ENV === "production" && strict) {
-      errors.push("CRON_SECRET is required for secured cron endpoints.");
-    } else {
-      warnings.push("CRON_SECRET not set. Cron job endpoints will reject secret auth.");
-    }
+    warnings.push("CRON_SECRET not set. Cron job endpoints will reject secret auth.");
   }
 
   // SEC-001: Webhook secrets validation

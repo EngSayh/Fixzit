@@ -4,6 +4,8 @@ import Link from "next/link";
 import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
 import { getServerI18n } from "@/lib/i18n/server";
 
+export const dynamic = 'force-dynamic';
+
 interface SearchPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }

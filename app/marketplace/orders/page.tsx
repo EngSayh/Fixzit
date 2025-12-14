@@ -3,6 +3,8 @@ import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
 import ClientDate from "@/components/ClientDate";
 import { getServerI18n } from "@/lib/i18n/server";
 
+export const dynamic = 'force-dynamic';
+
 interface OrderLine {
   productId: string;
   qty: number;
