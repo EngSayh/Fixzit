@@ -20,17 +20,40 @@
 
 ## Production Fix (Vercel)
 
-### Step 1: Set Environment Variables
+### Step 1: Define Superadmin Credentials (Environment Variables Only)
+
+**Superadmin credentials are NOT stored in the database.** They are defined entirely by Vercel Production environment variables.
 
 In **Vercel → fixzit → Settings → Environment Variables → Production**:
 
-| Variable | Value | Notes |
-|----------|-------|-------|
-| `SUPERADMIN_USERNAME` | (your choice) | Must match exactly what you type in login form |
-| `SUPERADMIN_PASSWORD_HASH` | (bcrypt hash) | Generate with script below |
-| `SUPERADMIN_SECRET_KEY` | (optional) | If set, "Access key" field becomes **required** |
-| `NEXTAUTH_URL` | `https://fixzit.co` | Required for session stability |
-| `AUTH_SECRET` | (stable secret) | Mark as **Sensitive** |
+#### Required
+| Variable | Example Value | Notes |
+|----------|---------------|-------|
+| `SUPERADMIN_USERNAME` | `superadmin@fixzit.co` | Must match **exactly** what you type in login form |
+| `SUPERADMIN_PASSWORD_HASH` | (bcrypt hash) | Generate with script below (mark **Sensitive**) |
+
+#### Optional 2FA
+| Variable | Notes |
+**Option A: Using the hash generator script**
+```bash
+read -s SUPERADMIN_PASSWORD && echo
+node scripts/generate-superadmin-hash.js
+unset SUPERADMIN_PASSWORD
+```
+
+**Option B: Inline (no dependencies)**
+```bash
+read -s SUPERADMIN_PASSWORD && echo
+node - <<'NODE'
+(async () => {
+  const pwd = process.env.SUPERADMIN_PASSWORD;
+  if (!pwd) throw new Error("Missing SUPERADMIN_PASSWORD");
+  let bcrypt;
+  try { bcrypt = require("bcryptjs"); } catch { bcrypt = require("bcrypt"); }
+  const hash = await bcrypt.hash(pwd, 12);
+  console.log(hash);
+})();
+NODEtable secret, mark **Sensitive**) |
 
 ### Step 2: Generate Password Hash Securely
 
@@ -41,10 +64,16 @@ read -s SUPERADMIN_PASSWORD && echo
 # Generate bcrypt hash
 node scripts/generate-superadmin-hash.js
 
-# Clear the variable
-unset SUPERADMIN_PASSWORD
-```
+Go to https://fixzit.co/superadmin/login and enter:
 
+- **Username**: Whatever you set in `SUPERADMIN_USERNAME` (e.g., `superadmin@fixzit.co`)
+- **Password**: The password you used to generate the hash
+- **Access key**: Only if you set `SUPERADMIN_SECRET_KEY` (otherwise leave blank)
+
+**Expected results:**
+1. Network tab: `POST /api/superadmin/login` returns **200** (not 401)
+2. Cookie is set
+3. Refresh maintains authentication
 Copy the hash output and set it as `SUPERADMIN_PASSWORD_HASH` in Vercel (mark as **Sensitive**).
 
 ### Step 3: Redeploy Production
