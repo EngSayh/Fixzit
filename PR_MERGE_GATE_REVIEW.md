@@ -49,10 +49,10 @@ rg -l "(SECRET|TOKEN|API_KEY|PRIVATE_KEY|PASSWORD)\b" .
 
 # Proof artifacts
 git check-ignore -v .env.local || true
-git ls-files --error-unmatch .env.local 2>&1 | grep -q "error" && echo "✅ NOT tracked" || echo "❌ TRACKED"
+git ls-files --error-unmatch .env.local >/dev/null 2>&1 && echo "❌ TRACKED" || echo "✅ NOT tracked"
 
 git check-ignore -v .artifacts/import-report.json || true
-git ls-files --error-unmatch .artifacts/import-report.json 2>&1 | grep -q "error" && echo "✅ NOT tracked" || echo "❌ TRACKED"
+git ls-files --error-unmatch .artifacts/import-report.json >/dev/null 2>&1 && echo "❌ TRACKED" || echo "✅ NOT tracked"
 ```
 
 ---
