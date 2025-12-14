@@ -170,12 +170,15 @@ This is the #1 reason "perfect PR" merges still cause production incidents.
 
 - ⏳ **Dynamic server usage errors**: Marketplace routes with no-store fetch
   - Impact: SSG/ISR routes can't be statically generated
+  - **Cross-environment smell**: Preview build touching production origin (`https://fixzit.co/api/marketplace/categories`)
   - Fix: Choose per route - either `export const dynamic = 'force-dynamic'` OR remove no-store and use revalidate
+  - Also fix: Environment-aware API URL resolution (preview should call preview APIs, not production)
   - Files: `app/marketplace/**/**/page.tsx`
+  - Priority: **P2** (cross-environment calls can cause data integrity issues)
 
 - ⏳ **Preview hitting production domain**: `https://fixzit.co/api/...`
-  - Impact: Preview may be calling production APIs during pre-render
-  - Fix: Environment-aware API URL resolution
+  - Impact: Preview may be calling production APIs during pre-render (see marketplace issue above)
+  - Fix: Environment-aware API URL resolution (use `NEXT_PUBLIC_API_URL` or same-origin calls)
 
 - ⏳ **TAP_WEBHOOK_SECRET not set**: Webhook verification disabled
   - Impact: Tap Payments webhooks not validated (development only)
@@ -194,37 +197,48 @@ This is the #1 reason "perfect PR" merges still cause production incidents.
 **Safe scans (list files only - NEVER echo matching lines to avoid leaking secrets):**
 
 ```bash
+# Create artifacts directory for audit trail
+mkdir -p .artifacts
+
 # 1. Detect env logging (dangerous patterns)
-rg -l "logger\..*process\.env|console\..*process\.env" . --type ts
+rg -l "logger\..*process\.env|console\..*process\.env" . --type ts | sort -u | tee .artifacts/scan_env_logging_files.txt
 # Expected: Empty (or only debug scripts in tools/scripts/)
 # Then manually inspect flagged files
 
 # 2. OTP bypass flags present anywhere
-rg -l "NEXTAUTH_BYPASS_OTP_(ALL|CODE)|ALLOW_TEST_USER_OTP_BYPASS" . --type ts
+rg -l "NEXTAUTH_BYPASS_OTP_(ALL|CODE)|ALLOW_TEST_USER_OTP_BYPASS" . --type ts | sort -u | tee .artifacts/scan_otp_bypass_files.txt
 # Expected: Only lib/config/env-guards.ts, instrumentation-node.ts, tests/
 # Then verify these files only CHECK for presence (don't log values)
 
 # 3. Mongo URIs printed or hardcoded
-rg -l "mongodb(\+srv)?:\/\/[^*\[]" . --type ts
+rg -l "mongodb(\+srv)?:\/\/[^*\[]" . --type ts | sort -u | tee .artifacts/scan_mongodb_uri_files.txt
 # Expected: Only lib/mongo.ts, validators, tests
 # Then verify URIs are from process.env (not hardcoded credentials)
 
 # 4. Cookies/Auth tokens accidentally logged
-rg -l "(Authorization:|Set-Cookie|Cookie:|Bearer\s+[A-Za-z0-9\-_]+\.)" . --type ts
+rg -l "(Authorization:|Set-Cookie|Cookie:|Bearer\s+[A-Za-z0-9\-_]+\.)" . --type ts | sort -u | tee .artifacts/scan_auth_token_files.txt
 # Expected: Only header definitions (lib/auth, middleware)
 # Then verify no logger.info/console.log of actual token values
 
 # 5. "Secret-ish" keys printed (pattern-only)
-rg -l "(SECRET|TOKEN|API_KEY|PRIVATE_KEY|PASSWORD)\b" . --type ts | grep -v test | head -20
+rg -l "(SECRET|TOKEN|API_KEY|PRIVATE_KEY|PASSWORD)\b" . --type ts | grep -v test | sort -u | tee .artifacts/scan_secret_keys_files.txt
 # Expected: Only type definitions (env.ts, config/, tests/)
 # Then verify these are only variable NAMES (not logged values)
+
+# Summary of scan results (file counts only)
+echo "=== Secret Leak Scan Summary ==="
+wc -l .artifacts/scan_*_files.txt
 ```
 
-**Why `-l` flag?**
+**Why `-l` flag + artifact persistence?**
 - Lists filenames only (not matching lines)
 - Prevents accidental secret exposure in terminal output/screenshares/logs
 - Same detection power, zero risk
+- `sort -u` ensures unique results (no duplicates)
+- `tee .artifacts/scan_*.txt` creates audit trail without printing secrets
+- `wc -l` provides evidence of scan completeness
 - Requires manual file inspection (deliberate security step)
+- **No `head` caps** - security gates must show ALL matches
 
 ### Env Guards + Proof Artifacts
 
