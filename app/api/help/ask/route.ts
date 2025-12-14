@@ -368,6 +368,12 @@ const MAX_RATE_PER_MIN =
     ? Math.floor(MAX_RATE_PER_MIN_ENV)
     : 30;
 
+// Initialize Redis client if connection URL is provided
+// Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
+const redisConnectionUrl = process.env.REDIS_URL || process.env.REDIS_KEY;
+let redis: Redis | null = null;
+let redisDisabled = false;
+
 function maskRedisUrl(url: string | undefined) {
   if (!url) return undefined;
   try {
@@ -420,11 +426,6 @@ function disableRedis(reason: string, error?: Error) {
   });
 }
 
-// Initialize Redis client if connection URL is provided
-// Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
-const redisConnectionUrl = process.env.REDIS_URL || process.env.REDIS_KEY;
-let redis: Redis | null = null;
-let redisDisabled = false;
 if (redisConnectionUrl) {
   try {
     redis = new Redis(redisConnectionUrl, {
