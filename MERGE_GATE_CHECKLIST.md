@@ -11,6 +11,21 @@
 
 ---
 
+## 🚨 CRITICAL: ROLLOUT ORDER (Prevents Production Outage)
+
+**Because this PR enforces security at boot, you MUST follow this order:**
+
+1. **FIRST:** Fix Vercel env vars (Section A below) → Redeploy Preview → Verify guards pass
+2. **SECOND:** Fix Atlas DB users (Section B below) → Redeploy Preview → Verify connection works
+3. **THIRD:** Fix Atlas Network (Section C below) → Redeploy Preview → Verify still connects
+4. **FOURTH:** Merge PR → Deploy Production → Run smoke tests
+
+**⚠️ If you merge BEFORE completing steps 1-3, the new startup guards will intentionally FAIL and BLOCK production deployment.**
+
+This is the #1 reason "perfect PR" merges still cause production incidents.
+
+---
+
 ## ⚠️ CRITICAL: Safe-to-Merge Gate (Must Complete BEFORE Merge)
 
 **The runtime guards will FAIL STARTUP if these are not done.**  
