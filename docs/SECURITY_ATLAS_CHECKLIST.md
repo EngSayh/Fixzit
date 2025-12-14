@@ -29,33 +29,43 @@
 
 ### STEP 0: Remove Internet Wildcard Access (DO THIS FIRST)
 
-**Current State:** `0.0.0.0/0 (Allow from anywhere)` is Active  
+**Current State:** `0.0.0.0/0 (Allow from anywhere)` is Active ✅  
 **Target State:** Atlas accessible only from Vercel + your office/VPN
 
 **Why This Matters:**  
-MongoDB explicitly warns: "0.0.0.0/0 allows access from anywhere on the internet." This is the #1 red flag in your Atlas security posture.
+MongoDB explicitly warns: "0.0.0.0/0 allows access from anywhere on the internet." This is the #1 red flag in your Atlas security posture. As long as 0.0.0.0/0 exists, it effectively overrides any tighter allowlist entries.
+
+**🚨 CRITICAL DEPENDENCY CHECK:**
+
+If you're using the **MongoDB Atlas ↔ Vercel integration workflow**, MongoDB's own docs state:
+> "Vercel deployments use dynamic IP addresses, and Atlas must allow all IP addresses (0.0.0.0/0); Atlas may even add it automatically as part of the integration."
+
+**You CANNOT "just delete" 0.0.0.0/0 and keep the integration working.** You must switch to manual `MONGODB_URI` connection (Option A below) to remove the wildcard.
 
 ---
 
 #### **Option A: Production-Grade (Recommended) - Vercel Static IPs**
 
-Vercel now supports Static IPs (egress) on Pro/Enterprise plans, designed specifically for database allowlisting.
+**This is the correct fix to remove 0.0.0.0/0 permanently.**
+
+Vercel provides Static IPs for fixed outbound egress IP addresses from deployments (builds/functions), specifically designed for allowlisting databases.
 
 **Prerequisites:**
-- Vercel Pro or Enterprise plan
-- Must NOT be using MongoDB Atlas <-> Vercel integration (which auto-adds 0.0.0.0/0)
-- Connect via manual `MONGODB_URI` env var instead
+- Vercel Pro or Enterprise plan (Static IPs not available on Free tier)
+- Must use manual `MONGODB_URI` env var (NOT the MongoDB Atlas ↔ Vercel integration)
+- Willing to switch from integration to manual connection
 
-**Steps:**
+**Do This Exactly:**
 
-1. **Enable Vercel Static IPs**
-   - Go to: [Vercel Dashboard](https://vercel.com/dashboard) → Your Team Settings
-   - Navigate to: **Connectivity** → **Static IPs**
-   - Click **Enable Static IPs**
-   - Select region(s) closest to your Atlas cluster (e.g., `us-east-1` if Atlas is in Virginia)
-   - **Copy the static egress IPs** (usually 2-3 IPs per region)
+**Step 1: Enable Vercel Static IPs**
+- Go to: [Vercel Dashboard](https://vercel.com/dashboard) → Your **Project** Settings
+- Navigate to: **Connectivity** → **Static IPs**
+- Click **Enable Static IPs**
+- Select region(s) closest to your Atlas cluster (e.g., `us-east-1` if Atlas is in Virginia)
+- **Copy the egress IPs** Vercel gives you (usually 2-3 IPs per region)
+- Reference: https://vercel.com/docs/security/static-ip
 
-2. **Add Vercel IPs to Atlas**
+**Step 2: Add Vercel IPs to Atlas**
    - Go to: [MongoDB Atlas](https://cloud.mongodb.com/) → Security → **Network Access**
    - Click **ADD IP ADDRESS**
    - For each Vercel static IP:
@@ -64,22 +74,26 @@ Vercel now supports Static IPs (egress) on Pro/Enterprise plans, designed specif
      - Comment: `Vercel Production (Static IP)`
    - Click **Confirm**
 
-3. **Add Your Office/VPN IPs** (Optional but recommended)
-   - Click **ADD IP ADDRESS**
-   - Enter your office/VPN IP (or your current IP)
-   - Comment: `Office - ${LOCATION}`
-   - Click **Confirm**
+**Step 3: Remove the Wildcard**
+- Go to: [MongoDB Atlas](https://cloud.mongodb.com/) → Security → **Network Access**
+- Find: `0.0.0.0/0 (Allow from anywhere)` with Active ✅
+- Click **DELETE** (trash icon)
+- Confirm deletion
+- **Result:** Cluster is no longer open to the public internet
 
-4. **Delete the Wildcard Entry**
-   - Find: `0.0.0.0/0 (Allow from anywhere)`
-   - Click **DELETE** (trash icon)
-   - Confirm deletion
+**Step 4: Deploy and Verify**
+- Deploy to Vercel (or trigger redeploy)
+- Check Vercel deployment logs: Should see MongoDB connection success
+- Verify: App connects successfully from Vercel
+- Verify: Cannot connect from unauthorized IPs (try from your phone's cellular network)
 
-5. **Deploy & Verify**
-   - Deploy your Vercel app (or trigger redeploy)
-   - Check: `MONGODB_URI` in Vercel env vars uses manual connection string (not integration)
-   - Verify: App connects successfully from Vercel
-   - Verify: Cannot connect from unauthorized IPs
+**Step 5: Add Your Office/VPN IPs** (Optional but recommended for dev access)
+- Click **ADD IP ADDRESS**
+- Enter your office/VPN IP (or your current IP)
+- Comment: `Office - ${LOCATION}` or `Dev - ${YOUR_NAME}`
+- Click **Confirm**
+
+**Keep only /32 entries (exact IPs), no more wildcards.**
 
 **Verification:**
 ```bash
@@ -123,20 +137,60 @@ pnpm tsx scripts/verify-import.ts
 
 #### **Option C: Lock Down Governance (Prevent Future Wildcards)**
 
-Once you remove 0.0.0.0/0, prevent anyone from adding it back:
+**After removing 0.0.0.0/0, prevent it from coming back.**
 
-**MongoDB Atlas Resource Policies** (Enterprise only):
-- Can make it technically impossible to add wildcard IPs (org-wide)
-- Requires Atlas Enterprise plan
-- Contact MongoDB support to enable
+MongoDB explicitly documents blocking wildcard IP via **Atlas Resource Policies** (org-level guardrails).
 
-**Alternative (all plans):**
-- Document the policy in this file
-- Add pre-commit hook to check Atlas API for 0.0.0.0/0
+**Prerequisites:**
+- MongoDB Atlas Enterprise plan (or Enterprise trial)
+- Org-level admin access
+
+**How to Block 0.0.0.0/0 Permanently:**
+
+1. Go to: [MongoDB Atlas](https://cloud.mongodb.com/) → Organization Settings → **Resource Policies**
+2. Create a new policy:
+
+```json
+{
+  "name": "Block Wildcard IP Access",
+  "description": "Prevent 0.0.0.0/0 from being added to any cluster",
+  "version": "1.0",
+  "rules": [
+    {
+      "effect": "DENY",
+      "actions": [
+        "CREATE",
+        "UPDATE"
+      ],
+      "resources": [
+        "CLUSTER"
+      ],
+      "conditions": [
+        {
+          "operator": "CONTAINS",
+          "property": "ipAccessList.ipAddress",
+          "value": "0.0.0.0/0"
+        }
+      ]
+    }
+  ]
+}
+```
+
+3. Apply policy to organization
+4. Test: Try to add 0.0.0.0/0 → Should be blocked with policy violation error
+
+**Note:** This will also block workflows (like the Atlas ↔ Vercel integration) that try to auto-add 0.0.0.0/0. **That's usually a good thing in production.**
+
+**Alternative (All Plans):**
+- Document "No 0.0.0.0/0" policy in this file
+- Add pre-commit hook to check Atlas API for wildcard IPs
 - Regular security audits (quarterly)
+- Monitor Atlas audit logs for IP Access List changes
 
-**Reference:**
-- [MongoDB Atlas Resource Policies](https://www.mongodb.com/docs/atlas/security/resource-policies/)
+**References:**
+- [MongoDB Resource Policies - Block Wildcard IP](https://www.mongodb.com/docs/atlas/security/resource-policies/#std-label-resource-policy-examples)
+- [Atlas Audit Logs](https://www.mongodb.com/docs/atlas/reference/api/auditing/)
 
 ---
 
@@ -361,11 +415,29 @@ pnpm tsx scripts/import-backlog.ts
 - [ ] Tenant scope queries working (org_id filtering)
 
 ### Secrets Management
-- [ ] `.env.local` is gitignored (not in git)
+- [ ] `.env.local` is gitignored AND not tracked in git (see verification commands below)
+- [ ] `.artifacts/` is gitignored AND not tracked in git
 - [ ] No plaintext passwords in code/comments/docs
 - [ ] All passwords stored in password manager
 - [ ] Vercel environment variables set correctly
 - [ ] GitHub Actions secrets updated (if applicable)
+
+**Verification Commands:**
+```bash
+# Check .env.local is ignored AND not tracked
+git check-ignore -v .env.local
+# Expected: .gitignore:23:.env.*    .env.local
+
+git ls-files --error-unmatch .env.local >/dev/null 2>&1 && echo "❌ .env.local is tracked (BAD)" || echo "✅ .env.local not tracked"
+# Expected: ✅ .env.local not tracked
+
+# Check .artifacts/ is ignored AND not tracked
+git check-ignore -v .artifacts/import-report.json
+# Expected: .gitignore:117:.artifacts/
+
+git ls-files --error-unmatch .artifacts/import-report.json >/dev/null 2>&1 && echo "❌ import-report.json is tracked (BAD)" || echo "✅ import-report.json not tracked"
+# Expected: ✅ import-report.json not tracked
+```
 
 ---
 
