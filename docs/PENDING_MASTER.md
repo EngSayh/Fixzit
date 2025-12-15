@@ -23,34 +23,47 @@ env:
 ```
 The `if` condition runs before `env` is applied, so `env.MONGODB_URI` was always empty.
 
-**Solution Applied:**
+**Attempted Fix #1 (Invalid Syntax):**
 ```yaml
-# FIXED (line 54 after fix)
+# INVALID - Cannot compare secrets directly in conditionals
 if: ${{ secrets.MONGODB_URI != '' }}
+```
+GitHub Actions does not allow secrets in `if` conditionals - they are only available in `env` and `with` blocks.
+
+**Correct Solution (Applied):**
+```yaml
+# Job-level env (line 32)
+env:
+  HAS_MONGODB_URI: ${{ secrets.MONGODB_URI != '' }}  # Evaluate at job scope
+
+# Step conditional (line 54)
+if: ${{ env.HAS_MONGODB_URI == 'true' }}
 env:
   MONGODB_URI: ${{ secrets.MONGODB_URI }}
 ```
-Changed conditional to check `secrets.MONGODB_URI` directly in GitHub Actions context.
+Evaluate secret check at job level, then use env var in step conditional.
 
 **Impact:**
 - ✅ MongoDB indexes now seed correctly when `MONGODB_URI` secret exists
 - ✅ Prevents missing index errors during Sentry sourcemap uploads
 - ✅ No behavior change when secret is unset (step still skips correctly)
+- ✅ Proper GitHub Actions syntax (no validation errors)
 
 **📊 Changes Summary:**
 - **Files modified:** 1 ([.github/workflows/build-sourcemaps.yml](../.github/workflows/build-sourcemaps.yml))
-- **Lines changed:** 1 (line 54)
-- **Change type:** Conditional fix (`env.X` → `secrets.X`)
+- **Lines changed:** 2 (added job-level env line 32, updated conditional line 54)
+- **Change type:** Conditional fix (`env.X` → job-level guard + `env.HAS_MONGODB_URI`)
 
 **✅ Validation:**
-- ✅ **Syntax:** GitHub Actions YAML valid
-- ✅ **Logic:** Conditional now properly checks secret existence
-- ✅ **Security:** No credential exposure (secret accessed correctly)
+- ✅ **Syntax:** GitHub Actions YAML valid (no more "Unrecognized named-value: secrets" errors)
+- ✅ **Logic:** Conditional now properly checks secret existence via job-level env
+- ✅ **Security:** No credential exposure (secret accessed correctly in step env)
 - ✅ **Idempotency:** Index creation remains idempotent (safe to run multiple times)
 
 **🔍 Evidence:**
-- **Before:** `if: env.MONGODB_URI != ''` → always false → step skipped
-- **After:** `if: ${{ secrets.MONGODB_URI != '' }}` → true when secret set → step runs
+- **Before (v1):** `if: env.MONGODB_URI != ''` → undefined env → always false → step skipped
+- **Before (v2):** `if: ${{ secrets.MONGODB_URI != '' }}` → syntax error (secrets not allowed in conditionals)
+- **After:** `HAS_MONGODB_URI: ${{ secrets.MONGODB_URI != '' }}` at job level + `if: ${{ env.HAS_MONGODB_URI == 'true' }}` → correct evaluation
 
 ---
 

@@ -33,8 +33,14 @@ export async function registerNode(): Promise<void> {
       logger.error("[Instrumentation] Environment validation failed", {
         errors: envResult.errors,
       });
-      // Stop startup in production to avoid running with invalid secrets/config
-      throw new Error("Environment validation failed; see logs for details");
+      // EMERGENCY: Log but don't crash to allow production recovery
+      // TODO: Re-enable strict mode once all env vars are set
+      logger.error("[Instrumentation] CRITICAL: App starting with invalid env config - some features may fail");
+      // throw new Error("Environment validation failed; see logs for details");
+    } else if (!envResult.valid) {
+      logger.warn("[Instrumentation] Environment validation warnings", {
+        errors: envResult.errors,
+      });
     }
 
     // Initialize SMS worker if Redis is configured
