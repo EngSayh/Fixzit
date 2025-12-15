@@ -52,7 +52,7 @@ export default function SignupPage() {
     lastName: "",
     email: "",
     phone: "",
-    companyName: "",
+    orgName: "",
     userType: "personal",
     password: "",
     confirmPassword: "",
@@ -110,7 +110,7 @@ export default function SignupPage() {
     Object.assign(errors, authErrors);
 
     // Add company name validation for corporate accounts
-    if (formData.userType === "corporate" && !formData.companyName.trim()) {
+    if (formData.userType === "corporate" && !formData.orgName.trim()) {
       errors.orgName = t(
         "signup.validation.companyRequired",
         "Company name is required for corporate accounts"
@@ -156,8 +156,11 @@ export default function SignupPage() {
       const preferredCurrency =
         localStorage.getItem(STORAGE_KEYS.currency) || APP_DEFAULTS.currency;
 
+      const { orgName, ...rest } = formData;
+
       const signupData = {
-        ...formData,
+        ...rest,
+        companyName: formData.userType === "corporate" ? orgName : undefined,
         fullName: `${formData.firstName} ${formData.lastName}`,
         preferredLanguage,
         preferredCurrency,
@@ -183,7 +186,7 @@ export default function SignupPage() {
           // Fall back to general error
           setError(data.error || "Signup failed");
         }
-        throw new Error(data.error || "Signup failed");
+        return;
       }
 
       if (data.ok) {
@@ -194,10 +197,7 @@ export default function SignupPage() {
         }, 2000);
       }
     } catch (err) {
-      // If we haven't already set field-level errors, set general error
-      if (Object.keys(fieldErrors).length === 0) {
-        setError(err instanceof Error ? err.message : "Signup failed");
-      }
+      setError(err instanceof Error ? err.message : "Signup failed");
     } finally {
       setLoading(false);
     }
@@ -439,12 +439,12 @@ export default function SignupPage() {
               {/* Company Name (for corporate accounts) */}
               {formData.userType === "corporate" && (
                 <FormField
-                  name="companyName"
+                  name="orgName"
                   label={t("signup.fields.companyName", "Company Name")}
                   required
                   type="text"
-                  value={formData.companyName}
-                  onChange={(val) => handleChange("companyName", val)}
+                  value={formData.orgName}
+                  onChange={(val) => handleChange("orgName", val)}
                   error={fieldErrors.orgName}
                   placeholder={t(
                     "signup.placeholders.companyName",
