@@ -23,12 +23,19 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+type FieldErrors = {
+  username?: string;
+  password?: string;
+  secretKey?: string;
+};
+
 export default function SuperadminLoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [secretKey, setSecretKey] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showSecretKey, setShowSecretKey] = useState(false);
@@ -36,6 +43,7 @@ export default function SuperadminLoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
     setLoading(true);
 
     try {
@@ -48,7 +56,18 @@ export default function SuperadminLoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Authentication failed");
+        const errorMessage = data.error || "Authentication failed";
+        setError(errorMessage);
+        
+        // Set field-specific error and focus the failing field
+        if (data.field) {
+          setFieldErrors({ [data.field]: errorMessage });
+          
+          // Auto-focus the failing field
+          setTimeout(() => {
+            document.getElementById(data.field)?.focus();
+          }, 100);
+        }
         return;
       }
 
@@ -82,7 +101,9 @@ export default function SuperadminLoginPage() {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">
+                Username <span className="text-red-600">*</span>
+              </Label>
               <Input
                 id="username"
                 type="text"
@@ -91,10 +112,17 @@ export default function SuperadminLoginPage() {
                 placeholder="Enter username"
                 autoComplete="username"
                 required
+                className={fieldErrors.username ? "border-red-500 focus-visible:ring-red-500" : ""}
+                aria-invalid={!!fieldErrors.username}
               />
+              {fieldErrors.username && (
+                <p className="text-sm text-red-600">{fieldErrors.username}</p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">
+                Password <span className="text-red-600">*</span>
+              </Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -104,7 +132,8 @@ export default function SuperadminLoginPage() {
                   placeholder="Enter password"
                   autoComplete="current-password"
                   required
-                  className="pe-10"
+                  className={`pe-10 ${fieldErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                  aria-invalid={!!fieldErrors.password}
                 />
                 <button
                   type="button"
@@ -115,6 +144,9 @@ export default function SuperadminLoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {fieldErrors.password && (
+                <p className="text-sm text-red-600">{fieldErrors.password}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="secretKey">Access key (if required)</Label>
@@ -124,9 +156,10 @@ export default function SuperadminLoginPage() {
                   type={showSecretKey ? "text" : "password"}
                   value={secretKey}
                   onChange={(e) => setSecretKey(e.target.value)}
-                  placeholder="Enter security key"
+                  placeholder="Leave empty unless required"
                   autoComplete="one-time-code"
-                  className="pe-10"
+                  className={`pe-10 ${fieldErrors.secretKey ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                  aria-invalid={!!fieldErrors.secretKey}
                 />
                 <button
                   type="button"
@@ -137,6 +170,12 @@ export default function SuperadminLoginPage() {
                   {showSecretKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {fieldErrors.secretKey && (
+                <p className="text-sm text-red-600">{fieldErrors.secretKey}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Only required if server has SUPERADMIN_SECRET_KEY configured
+              </p>
             </div>
           </CardContent>
           <CardFooter>
