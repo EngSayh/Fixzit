@@ -35,19 +35,43 @@ export async function registerNode(): Promise<void> {
       const isTrueProduction = guardResult.environment === 'production';
       const isPreview = guardResult.environment === 'preview';
       
+      // 🔍 DIAGNOSTIC: Safe diagnostic data (no secrets, only presence booleans + error codes)
+      const safeDiag = {
+        env: guardResult.environment,
+        errorCodes: (guardResult.errors || []).map((e) => e.code),
+        hasMongo: Boolean(process.env.MONGODB_URI),
+        hasAuthSecret: Boolean(process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET),
+        hasJwt: Boolean(process.env.JWT_SECRET),
+        mongoPrefixCheck: process.env.MONGODB_URI?.substring(0, 20) || 'MISSING',
+        otpBypassFlags: {
+          NEXTAUTH_BYPASS_OTP_CODE: Boolean(process.env.NEXTAUTH_BYPASS_OTP_CODE),
+          NEXTAUTH_BYPASS_OTP_ALL: Boolean(process.env.NEXTAUTH_BYPASS_OTP_ALL),
+          ALLOW_TEST_USER_OTP_BYPASS: Boolean(process.env.ALLOW_TEST_USER_OTP_BYPASS),
+        },
+      };
+      
+      // ✅ Always print diagnostic to console so Vercel Logs shows it
+      if (!guardResult.passed && (isTrueProduction || isPreview)) {
+        console.error("[Instrumentation] Env guard diagnostic:", JSON.stringify(safeDiag, null, 2));
+      }
+      
       if (!guardResult.passed && isTrueProduction) {
         logger.error("[Instrumentation] CRITICAL: Production environment safety guards failed", {
           errors: guardResult.errors,
           environment: guardResult.environment,
+          diagnostic: safeDiag,
         });
-        // BLOCK startup in true production only
-        throw new Error(`Production environment safety guards failed; see logs for details`);
+        // BLOCK startup in true production only - include codes in error message
+        throw new Error(
+          `Production environment safety guards failed. codes=${safeDiag.errorCodes.join(",") || "unknown"}`
+        );
       }
       
       if (!guardResult.passed && isPreview) {
         logger.warn("[Instrumentation] Preview environment safety warnings", {
           errors: guardResult.errors,
           environment: guardResult.environment,
+          diagnostic: safeDiag,
           message: "These would block production deployment",
         });
         // Log but don't block preview
