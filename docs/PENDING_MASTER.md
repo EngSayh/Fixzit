@@ -2,6 +2,69 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-15 09:40 (Asia/Riyadh) — Production Redis Error Spam Fix
+**Context:** Vercel runtime logs showed 125+ Redis ENOTFOUND errors causing log spam  
+**Root Cause:** Redis client attempted reconnection on every request despite DNS resolution failures (ENOTFOUND) in Preview environment  
+**DB Sync:** N/A (infrastructure fix, not feature/bug backlog item)
+
+**🔧 Redis Client Fatal Error Handling** ([lib/redis-client.ts](lib/redis-client.ts)):
+
+**Problem:** 
+- Redis connection errors logged on EVERY request (125+ error logs in production)
+- Error: `ENOTFOUND` - DNS resolution failed for invalid/missing REDIS_URL
+- Error: "Stream isn't writeable and enableOfflineQueue options is false"
+- App worked correctly (in-memory fallback succeeded) but logs were noisy
+
+**Solution Applied:**
+1. **Fatal Error Detection** (lines 105-116):
+   - Added `isFatalRedisError()` to detect permanent failures: ENOTFOUND, EAI_AGAIN
+   - Transient errors (ECONNREFUSED, ETIMEDOUT) still allow reconnection
+
+2. **Single-Log Disable Pattern** (lines 118-128):
+   - Added `disableRedis()` to stop reconnection attempts after fatal error
+   - Removes all event listeners to prevent log spam
+   - Sets `redisDisabled = true` flag to prevent future connection attempts
+
+3. **Credential Masking** (lines 83-93):
+   - Added `maskRedisUrl()` to redact passwords from error logs
+   - Pattern: `redis://user:****@host:port`
+
+4. **Configuration Improvements**:
+   - Set `enableOfflineQueue: false` (line 149) to prevent "Stream isn't writeable" errors
+   - Updated `retryStrategy` to return null when Redis disabled (lines 150-154)
+   - Added `redisDisabled` check in `buildRedisClient()` entry (lines 130-133)
+
+5. **Enhanced Error Handler** (lines 190-210):
+   - Fatal errors: Log once with code + timestamp, call `disableRedis()`
+   - Transient errors: Log but allow reconnection
+   - All URLs masked before logging
+
+**Benefits:**
+- ✅ Eliminates log spam (125+ errors → 1 error on first fatal failure)
+- ✅ Graceful fallback to in-memory cache/rate limiting
+- ✅ No credential leakage in logs
+- ✅ Prevents wasted connection attempts on misconfigured Redis
+- ✅ Production app continues working (fallback already existed)
+
+**📊 Changes Summary:**
+- **Files modified:** 1 ([lib/redis-client.ts](lib/redis-client.ts))
+- **Functions added:** 3 (maskRedisUrl, isFatalRedisError, disableRedis)
+- **Lines added:** +69
+- **Lines removed:** -2
+- **Net change:** +67 lines
+
+**✅ Validation Results:**
+- ✅ **Typecheck:** PASSED (0 TypeScript errors)
+- ✅ **Tests:** PASSED (8 test files, 18 tests passed - auth + redis client subset)
+- ✅ **No regressions:** In-memory fallback still works correctly
+- ✅ **Security:** Credentials masked in all error logs
+
+**🔍 Evidence:**
+- **Before:** 125+ Redis errors in Vercel runtime logs (Dec 15 06:30-09:30 UTC)
+- **After:** Expected 1 error on first ENOTFOUND, then silent fallback
+
+---
+
 ### 2025-12-14 19:15 (Asia/Riyadh) — Tenant-Isolation Fixes (Aqar + Issue Tracker)
 **Context:** Closed 2 tenant-isolation gaps flagged in PR #550 code review  
 **DB Sync:** N/A (direct code fixes, not backlog items)

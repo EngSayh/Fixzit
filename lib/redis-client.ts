@@ -20,6 +20,7 @@ const hasRedisConfig = Boolean(redisUrl || redisHost);
 
 let redisClient: Redis | null = null;
 let warnedMissingRedis = false;
+let redisDisabled = false; // Prevent reconnection spam on fatal errors
 
 const memoryStore = new Map<string, MemoryEntry>();
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
@@ -76,7 +77,58 @@ function memoryExpire(key: string, ttlSeconds: number): void {
   memoryStore.set(key, entry);
 }
 
+/**
+ * Mask Redis URL credentials for safe logging
+ * Prevents REDIS_URL passwords from leaking into logs
+ */
+function maskRedisUrl(url: string): string {
+  try {
+    // Redact password from connection URL pattern (protocol://user:PASSWORD@host:port)
+    return url.replace(/(:\/\/[^:]*:)([^@]*)(@)/, "$1****$3");
+  } catch {
+    return "[REDACTED]";
+  }
+}
+
+/**
+ * Detect fatal Redis errors that indicate misconfiguration (not transient failures)
+ * 
+ * Fatal errors (should disable reconnection):
+ * - ENOTFOUND: DNS resolution failed (invalid host)
+ * - EAI_AGAIN: Temporary DNS failure (often permanent in serverless)
+ * 
+ * Transient errors (should allow reconnection):
+ * - ECONNREFUSED: Redis server down but host is valid
+ * - ETIMEDOUT: Network timeout
+ * - ECONNRESET: Connection reset by peer
+ */
+function isFatalRedisError(error: unknown): boolean {
+  if (typeof error === "object" && error !== null) {
+    const code = (error as { code?: string }).code;
+    return code === "ENOTFOUND" || code === "EAI_AGAIN";
+  }
+  return false;
+}
+
+/**
+ * Disable Redis after fatal error to prevent reconnection spam
+ * Falls back to in-memory cache/rate limiting for all subsequent operations
+ */
+function disableRedis(): void {
+  redisDisabled = true;
+  if (redisClient) {
+    // Remove all listeners to prevent further error logs
+    redisClient.removeAllListeners();
+    redisClient = null;
+  }
+}
+
 function buildRedisClient(): Redis | null {
+  // Don't attempt connection if Redis was disabled due to fatal error
+  if (redisDisabled) {
+    return null;
+  }
+
   if (!hasRedisConfig) {
     if (!warnedMissingRedis && process.env.NODE_ENV !== "test") {
       logger.warn(
@@ -94,7 +146,12 @@ function buildRedisClient(): Redis | null {
   const baseConfig = {
     lazyConnect: true,
     maxRetriesPerRequest: 3,
+    enableOfflineQueue: false, // Prevent "Stream isn't writeable" errors when disconnected
     retryStrategy(times: number) {
+      // Stop retrying on fatal errors
+      if (redisDisabled) {
+        return null;
+      }
       return Math.min(times * 50, 2000);
     },
   };
@@ -131,7 +188,25 @@ function buildRedisClient(): Redis | null {
   });
 
   redisClient.on("error", (error) => {
-    logger.error("Redis connection error", { error });
+    // Mask credentials in error messages
+    const maskedUrl = redisUrl ? maskRedisUrl(redisUrl) : undefined;
+    
+    if (isFatalRedisError(error)) {
+      // Fatal error: log once and disable reconnection
+      logger.error("[Redis] Connection error: Fatal DNS/network error - disabling Redis and falling back to in-memory", {
+        message: "[REDACTED]",
+        code: (error as { code?: string }).code,
+        timestamp: new Date().toISOString(),
+        url: maskedUrl,
+      });
+      disableRedis();
+    } else {
+      // Transient error: log but allow reconnection
+      logger.error("[Redis] Connection error", {
+        error,
+        url: maskedUrl,
+      });
+    }
   });
 
   return redisClient;
