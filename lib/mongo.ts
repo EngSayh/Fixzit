@@ -1,3 +1,5 @@
+import "server-only";
+
 import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getEnv } from "@/lib/env";

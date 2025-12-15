@@ -1,3 +1,5 @@
+import "server-only";
+
 import { logger } from "@/lib/logger";
 import mongoose from "mongoose";
 import { connectMongo as ensureDatabaseHandle } from "@/lib/mongo";
