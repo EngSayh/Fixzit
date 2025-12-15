@@ -194,17 +194,16 @@ export function validateDatabaseConfig(options: ValidationOptions = {}): EnvVali
 }
 
 /**
- * Validate payment gateway configuration (PayTabs, Tap)
+ * Validate payment gateway configuration (Tap Payments only)
+ * 
+ * IMPORTANT: This system uses TAP PAYMENTS ONLY as the payment gateway.
+ * Legacy PayTabs has been removed from the entire codebase.
  */
 export function validatePaymentConfig(options: ValidationOptions = {}): EnvValidationResult {
   const _strict = options.strict !== false;
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  const hasPaytabs =
-    Boolean(process.env.PAYTABS_SERVER_KEY) &&
-    Boolean(process.env.PAYTABS_PROFILE_ID);
-  
   // Tap: Environment-aware key detection
   const tapEnvIsLive = process.env.TAP_ENVIRONMENT === "live" || process.env.NODE_ENV === "production";
   const tapSecretKey = tapEnvIsLive 
@@ -212,22 +211,14 @@ export function validatePaymentConfig(options: ValidationOptions = {}): EnvValid
     : process.env.TAP_TEST_SECRET_KEY;
   const hasTap = Boolean(tapSecretKey);
 
-  if (!hasPaytabs && !hasTap) {
+  if (!hasTap) {
     const tapKeyName = tapEnvIsLive ? "TAP_LIVE_SECRET_KEY" : "TAP_TEST_SECRET_KEY";
-    const msg =
-      `Payment gateway not configured. Configure Tap (TAP_ENVIRONMENT + ${tapKeyName}) or PayTabs (PAYTABS_SERVER_KEY, PAYTABS_PROFILE_ID).`;
+    const msg = `Tap Payments not configured. Set TAP_ENVIRONMENT and ${tapKeyName} to enable payments.`;
     // CHANGED: Payment is optional - warn instead of error to allow graceful degradation
     warnings.push(msg);
   } else {
-    if (!hasTap) {
-      const tapKeyName = tapEnvIsLive ? "TAP_LIVE_SECRET_KEY" : "TAP_TEST_SECRET_KEY";
-      warnings.push(`Tap secret key missing (${tapKeyName}) - Tap payments disabled.`);
-    }
     if (!process.env.TAP_WEBHOOK_SECRET) {
-      warnings.push("Tap webhook secret missing (TAP_WEBHOOK_SECRET) - Tap callbacks will be rejected.");
-    }
-    if (!hasPaytabs) {
-      warnings.push("PayTabs credentials missing (PAYTABS_SERVER_KEY, PAYTABS_PROFILE_ID) - PayTabs disabled.");
+      warnings.push("TAP_WEBHOOK_SECRET not set - Tap payment webhooks will be rejected.");
     }
   }
 
@@ -335,11 +326,6 @@ export function getConfigStatus(): Record<string, { configured: boolean; details
         process.env.AWS_S3_BUCKET &&
         process.env.AWS_ACCESS_KEY_ID &&
         process.env.AWS_SECRET_ACCESS_KEY
-      ),
-    },
-    paytabs: {
-      configured: Boolean(
-        process.env.PAYTABS_SERVER_KEY && process.env.PAYTABS_PROFILE_ID
       ),
     },
     tap: {

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -12,8 +11,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Eye,
-  EyeOff,
   UserPlus,
   Mail,
   Lock,
@@ -23,6 +20,7 @@ import {
   ArrowLeft,
   CheckCircle,
   AlertCircle,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -37,6 +35,15 @@ import { STORAGE_KEYS, APP_DEFAULTS } from "@/config/constants";
 import LanguageSelector from "@/components/i18n/LanguageSelector";
 import CurrencySelector from "@/components/i18n/CurrencySelector";
 
+// Field-level error system
+import {
+  type FieldErrors as StandardFieldErrors,
+  validateAuthFields,
+  extractFieldErrors,
+  focusField,
+} from "@/lib/errors/field-errors";
+import { FormField } from "@/components/ui/form-field";
+
 export default function SignupPage() {
   const { t } = useTranslation();
 
@@ -45,7 +52,7 @@ export default function SignupPage() {
     lastName: "",
     email: "",
     phone: "",
-    companyName: "",
+    orgName: "",
     userType: "personal",
     password: "",
     confirmPassword: "",
@@ -54,10 +61,9 @@ export default function SignupPage() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<StandardFieldErrors>({});
+  const [error, setError] = useState(""); // General error
   const [success, setSuccess] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   // ✅ REMOVED: showLangDropdown, showCurrencyDropdown, selectedLang, selectedCurrency state
   // Standard components handle their own state internally
 
@@ -75,49 +81,70 @@ export default function SignupPage() {
     }));
     // Clear errors when user starts typing
     if (error) setError("");
+    if (fieldErrors[field as keyof StandardFieldErrors]) {
+      setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
   };
 
-  // Form validation
-  const validateForm = () => {
-    const passwordStrength = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
-    if (!formData.firstName.trim())
-      return t("signup.validation.firstNameRequired", "First name is required");
-    if (!formData.lastName.trim())
-      return t("signup.validation.lastNameRequired", "Last name is required");
-    if (!formData.email.trim())
-      return t("signup.validation.emailRequired", "Email is required");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
-      return t("signup.validation.emailInvalid", "Please enter a valid email");
-    if (!formData.phone.trim())
-      return t("signup.validation.phoneRequired", "Phone number is required");
-    if (formData.userType === "corporate" && !formData.companyName.trim())
-      return t(
+  // Form validation with field-level errors
+  const validateForm = (): boolean => {
+    const errors: StandardFieldErrors = {};
+
+    // Name validation
+    if (!formData.firstName.trim()) {
+      errors.firstName = t("signup.validation.firstNameRequired", "First name is required");
+    }
+    if (!formData.lastName.trim()) {
+      errors.lastName = t("signup.validation.lastNameRequired", "Last name is required");
+    }
+
+    // Use validateAuthFields for standardized validation
+    const authErrors = validateAuthFields({
+      email: formData.email,
+      phone: formData.phone,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
+    });
+
+    // Merge errors
+    Object.assign(errors, authErrors);
+
+    // Add company name validation for corporate accounts
+    if (formData.userType === "corporate" && !formData.orgName.trim()) {
+      errors.orgName = t(
         "signup.validation.companyRequired",
-        "Company name is required for corporate accounts",
+        "Company name is required for corporate accounts"
       );
-    if (!passwordStrength.test(formData.password))
-      return t(
-        "signup.validation.passwordStrength",
-        "Password must be at least 8 characters and include letters, numbers, and symbols",
-      );
-    if (formData.password !== formData.confirmPassword)
-      return t("signup.validation.passwordMatch", "Passwords do not match");
-    if (!formData.termsAccepted)
-      return t(
+    }
+
+    // Add terms and conditions validation
+    if (!formData.termsAccepted) {
+      setError(t(
         "signup.validation.termsRequired",
-        "Please accept the terms and conditions",
-      );
-    return null;
+        "Please accept the terms and conditions"
+      ));
+      return false;
+    }
+
+    // Check if there are any errors
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      // Focus the first error field
+      const firstErrorField = Object.keys(errors)[0];
+      focusField(firstErrorField);
+      return false;
+    }
+
+    return true;
   };
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setFieldErrors({});
 
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
+    if (!validateForm()) {
       setLoading(false);
       return;
     }
@@ -129,8 +156,13 @@ export default function SignupPage() {
       const preferredCurrency =
         localStorage.getItem(STORAGE_KEYS.currency) || APP_DEFAULTS.currency;
 
+      const { orgName, ...rest } = formData;
+      const normalizedOrgName = orgName.trim();
+
       const signupData = {
-        ...formData,
+        ...rest,
+        companyName:
+          formData.userType === "personal" ? undefined : normalizedOrgName || undefined,
         fullName: `${formData.firstName} ${formData.lastName}`,
         preferredLanguage,
         preferredCurrency,
@@ -147,7 +179,21 @@ export default function SignupPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Signup failed");
+        // Try to extract field-level errors from API response
+        if (data.field && data.code) {
+          const normalizedField =
+            data.field === "companyName"
+              ? "orgName"
+              : data.field;
+
+          const errors = extractFieldErrors({ ...data, field: normalizedField });
+          setFieldErrors(errors);
+          focusField(normalizedField);
+        } else {
+          // Fall back to general error
+          setError(data.error || "Signup failed");
+        }
+        return;
       }
 
       if (data.ok) {
@@ -333,217 +379,128 @@ export default function SignupPage() {
 
               {/* Name Fields */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label
-                    htmlFor="firstName"
-                    className="block text-sm font-medium text-foreground mb-2"
-                  >
-                    {t("signup.fields.firstName", "First Name")} *
-                  </Label>
-                  <Input
-                    id="firstName"
-                    type="text"
-                    placeholder={t(
-                      "signup.placeholders.firstName",
-                      "Enter your first name",
-                    )}
-                    value={formData.firstName}
-                    onChange={(e) => handleChange("firstName", e.target.value)}
-                    className="h-12"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label
-                    htmlFor="lastName"
-                    className="block text-sm font-medium text-foreground mb-2"
-                  >
-                    {t("signup.fields.lastName", "Last Name")} *
-                  </Label>
-                  <Input
-                    id="lastName"
-                    type="text"
-                    placeholder={t(
-                      "signup.placeholders.lastName",
-                      "Enter your last name",
-                    )}
-                    value={formData.lastName}
-                    onChange={(e) => handleChange("lastName", e.target.value)}
-                    className="h-12"
-                    required
-                  />
-                </div>
+                <FormField
+                  name="firstName"
+                  label={t("signup.fields.firstName", "First Name")}
+                  required
+                  type="text"
+                  value={formData.firstName}
+                  onChange={(val) => handleChange("firstName", val)}
+                  error={fieldErrors.firstName}
+                  placeholder={t(
+                    "signup.placeholders.firstName",
+                    "Enter your first name"
+                  )}
+                  icon={User}
+                />
+                <FormField
+                  name="lastName"
+                  label={t("signup.fields.lastName", "Last Name")}
+                  required
+                  type="text"
+                  value={formData.lastName}
+                  onChange={(val) => handleChange("lastName", val)}
+                  error={fieldErrors.lastName}
+                  placeholder={t(
+                    "signup.placeholders.lastName",
+                    "Enter your last name"
+                  )}
+                  icon={User}
+                />
               </div>
 
               {/* Email Field */}
-              <div>
-                <Label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-foreground mb-2"
-                >
-                  {t("signup.fields.email", "Email Address")} *
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder={t(
-                      "signup.placeholders.email",
-                      "Enter your email address",
-                    )}
-                    value={formData.email}
-                    onChange={(e) => handleChange("email", e.target.value)}
-                    className="ps-10 h-12"
-                    required
-                  />
-                </div>
-              </div>
+              <FormField
+                name="email"
+                label={t("signup.fields.email", "Email Address")}
+                required
+                type="email"
+                value={formData.email}
+                onChange={(val) => handleChange("email", val)}
+                error={fieldErrors.email}
+                placeholder={t(
+                  "signup.placeholders.email",
+                  "Enter your email address"
+                )}
+                autoComplete="email"
+                icon={Mail}
+              />
 
               {/* Phone Field */}
-              <div>
-                <Label
-                  htmlFor="phone"
-                  className="block text-sm font-medium text-foreground mb-2"
-                >
-                  {t("signup.fields.phone", "Phone Number")} *
-                </Label>
-                <div className="relative">
-                  <Phone className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder={t(
-                      "signup.placeholders.phone",
-                      "+966 XX XXX XXXX",
-                    )}
-                    value={formData.phone}
-                    onChange={(e) => handleChange("phone", e.target.value)}
-                    className="ps-10 h-12"
-                    required
-                  />
-                </div>
-              </div>
+              <FormField
+                name="phone"
+                label={t("signup.fields.phone", "Phone Number")}
+                required
+                type="tel"
+                value={formData.phone}
+                onChange={(val) => handleChange("phone", val)}
+                error={fieldErrors.phone}
+                placeholder={t(
+                  "signup.placeholders.phone",
+                  "+966 XX XXX XXXX"
+                )}
+                autoComplete="tel"
+                icon={Phone}
+              />
 
               {/* Company Name (for corporate accounts) */}
               {formData.userType === "corporate" && (
-                <div>
-                  <Label
-                    htmlFor="companyName"
-                    className="block text-sm font-medium text-foreground mb-2"
-                  >
-                    {t("signup.fields.companyName", "Company Name")} *
-                  </Label>
-                  <div className="relative">
-                    <Building2 className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="companyName"
-                      type="text"
-                      placeholder={t(
-                        "signup.placeholders.companyName",
-                        "Enter your company name",
-                      )}
-                      value={formData.companyName}
-                      onChange={(e) =>
-                        handleChange("companyName", e.target.value)
-                      }
-                      className="ps-10 h-12"
-                      required
-                    />
-                  </div>
-                </div>
+                <FormField
+                  name="orgName"
+                  label={t("signup.fields.companyName", "Company Name")}
+                  required
+                  type="text"
+                  value={formData.orgName}
+                  onChange={(val) => handleChange("orgName", val)}
+                  error={fieldErrors.orgName}
+                  placeholder={t(
+                    "signup.placeholders.companyName",
+                    "Enter your company name"
+                  )}
+                  autoComplete="organization"
+                  icon={Building2}
+                />
               )}
 
               {/* Password Fields */}
               <div className="space-y-4">
-                <div>
-                  <Label
-                    htmlFor="password"
-                    className="block text-sm font-medium text-foreground mb-2"
-                  >
-                    {t("signup.fields.password", "Password")} *
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder={t(
-                        "signup.placeholders.password",
-                        "Create a strong password",
-                      )}
-                      value={formData.password}
-                      onChange={(e) => handleChange("password", e.target.value)}
-                      className="ps-10 pe-10 h-12"
-                      required
-                      minLength={8}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute end-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      aria-label={
-                        showPassword
-                          ? t("a11y.hidePassword", "Hide password")
-                          : t("a11y.showPassword", "Show password")
-                      }
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
+                <FormField
+                  name="password"
+                  label={t("signup.fields.password", "Password")}
+                  required
+                  type="password"
+                  value={formData.password}
+                  onChange={(val) => handleChange("password", val)}
+                  error={fieldErrors.password}
+                  placeholder={t(
+                    "signup.placeholders.password",
+                    "Create a strong password"
+                  )}
+                  autoComplete="new-password"
+                  showPasswordToggle
+                  icon={Lock}
+                  helpText={t(
+                    "signup.passwordHelp",
+                    "At least 8 characters with letters, numbers, and symbols"
+                  )}
+                />
 
-                <div>
-                  <Label
-                    htmlFor="confirmPassword"
-                    className="block text-sm font-medium text-foreground mb-2"
-                  >
-                    {t("signup.fields.confirmPassword", "Confirm Password")} *
-                  </Label>
-                  <div className="relative">
-                    <Lock
-                      className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                    <Input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder={t(
-                        "signup.placeholders.confirmPassword",
-                        "Confirm your password",
-                      )}
-                      value={formData.confirmPassword}
-                      onChange={(e) =>
-                        handleChange("confirmPassword", e.target.value)
-                      }
-                      className="ps-10 pe-10 h-12"
-                      required
-                      minLength={8}
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="absolute end-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      aria-label={
-                        showConfirmPassword
-                          ? t("a11y.hidePassword", "Hide password")
-                          : t("a11y.showPassword", "Show password")
-                      }
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
+                <FormField
+                  name="confirmPassword"
+                  label={t("signup.fields.confirmPassword", "Confirm Password")}
+                  required
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={(val) => handleChange("confirmPassword", val)}
+                  error={fieldErrors.confirmPassword}
+                  placeholder={t(
+                    "signup.placeholders.confirmPassword",
+                    "Confirm your password"
+                  )}
+                  autoComplete="new-password"
+                  showPasswordToggle
+                  icon={Lock}
+                />
               </div>
 
               {/* Error Message */}

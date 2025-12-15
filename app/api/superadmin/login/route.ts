@@ -53,18 +53,25 @@ export async function POST(request: NextRequest) {
       : null;
     const { username, password, secretKey } = body || {};
 
-    // Validate input
-    if (!username || !password) {
+    // Validate input with field-specific errors
+    if (!username || !username.trim()) {
       return NextResponse.json(
-        { error: "Username and password required" },
+        { error: "Username is required", field: "username", code: "MISSING_USERNAME" },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
+
+    if (!password) {
+      return NextResponse.json(
+        { error: "Password is required", field: "password", code: "MISSING_PASSWORD" },
         { status: 400, headers: ROBOTS_HEADER }
       );
     }
 
     if (username !== SUPERADMIN_USERNAME) {
-      logger.warn("[SUPERADMIN] Failed login attempt", { username });
+      logger.warn("[SUPERADMIN] Failed login attempt - invalid username", { username });
       return NextResponse.json(
-        { error: "Invalid credentials" },
+        { error: "Username is incorrect", field: "username", code: "INVALID_USERNAME" },
         { status: 401, headers: ROBOTS_HEADER }
       );
     }
@@ -73,20 +80,43 @@ export async function POST(request: NextRequest) {
     if (!passwordOk) {
       logger.warn("[SUPERADMIN] Failed password attempt", { username, ip });
       return NextResponse.json(
-        { error: "Invalid credentials" },
+        { error: "Password is incorrect", field: "password", code: "INVALID_PASSWORD" },
         { status: 401, headers: ROBOTS_HEADER }
       );
     }
 
-    if (!validateSecondFactor(secretKey)) {
-      logger.warn("[SUPERADMIN] Missing/invalid second factor", { username, ip });
+    const secondFactorResult = validateSecondFactor(secretKey);
+    if (!secondFactorResult) {
+      const envSecret = process.env.SUPERADMIN_SECRET_KEY;
+      if (envSecret && !secretKey) {
+        logger.warn("[SUPERADMIN] Missing required access key", { username, ip });
+        return NextResponse.json(
+          { error: "Access key is required by server policy", field: "secretKey", code: "ACCESS_KEY_REQUIRED" },
+          { status: 401, headers: ROBOTS_HEADER }
+        );
+      }
+      logger.warn("[SUPERADMIN] Invalid access key", { username, ip });
       return NextResponse.json(
-        { error: "Invalid credentials" },
+        { error: "Access key is incorrect", field: "secretKey", code: "INVALID_ACCESS_KEY" },
         { status: 401, headers: ROBOTS_HEADER }
       );
     }
 
-    const token = await signSuperadminToken(username);
+    let token: string;
+    try {
+      token = await signSuperadminToken(username);
+    } catch (tokenError) {
+      // Handle missing org id configuration
+      logger.error("[SUPERADMIN] Token signing failed", tokenError instanceof Error ? tokenError : new Error(String(tokenError)));
+      return NextResponse.json(
+        { 
+          error: "Server configuration error. Please contact system administrator.", 
+          details: tokenError instanceof Error ? tokenError.message : "Token generation failed"
+        },
+        { status: 500, headers: ROBOTS_HEADER }
+      );
+    }
+
     const response = NextResponse.json(
       {
         success: true,

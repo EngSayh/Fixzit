@@ -139,16 +139,16 @@ if (!skipSecretValidation) {
   
   // Google OAuth credentials are optional (can use credentials provider only)
   if (!GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_SECRET) {
-    // Both missing - credentials-only auth mode
+    // Both missing - credentials-only auth mode (valid configuration)
     if (process.env.NODE_ENV === 'production') {
-      logger.warn('⚠️  [PRODUCTION] Google OAuth not configured. Only credentials authentication available.');
-      logger.warn('   Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable OAuth login.');
+      logger.info('ℹ️  [PRODUCTION] Google OAuth not configured. Using credentials-only authentication.');
+      logger.info('   To enable OAuth: Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to environment.');
     } else {
       logger.info('ℹ️  Google OAuth not configured (optional). Using credentials-only authentication.');
       logger.info('   To enable Google OAuth: Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local');
     }
   } else if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    // One is set, other is missing - configuration error
+    // One is set, other is missing - configuration error (ONLY THIS IS AN ERROR)
     if (!GOOGLE_CLIENT_ID) missingSecrets.push('GOOGLE_CLIENT_ID');
     if (!GOOGLE_CLIENT_SECRET) missingSecrets.push('GOOGLE_CLIENT_SECRET');
     logger.error('❌ Google OAuth partial configuration detected!');

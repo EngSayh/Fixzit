@@ -28,6 +28,8 @@ jobs:
       SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
       # expose release to build/runtime; SDKs read SENTRY_RELEASE
       SENTRY_RELEASE: ${{ github.sha }}
+      # MongoDB conditional guard (evaluate secret at job level for step conditionals)
+      HAS_MONGODB_URI: ${{ secrets.MONGODB_URI != '' }}
 
     steps:
       - name: 📦 Checkout
@@ -51,7 +53,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Ensure Mongo Indexes (idempotent)
-        if: env.MONGODB_URI != ''
+        if: ${{ env.HAS_MONGODB_URI == 'true' }}
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
         run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"

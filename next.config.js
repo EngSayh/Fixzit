@@ -127,6 +127,25 @@ const nextConfig = {
   // If you need source maps for Sentry/monitoring, upload them during CI/CD instead
   productionBrowserSourceMaps: false,
   
+  // 🚀 Modularize Imports - Tree-shake large libraries (moved from experimental in Next.js 15.5+)
+  modularizeImports: {
+    lodash: {
+      transform: 'lodash/{{member}}',
+    },
+    'date-fns': {
+      transform: 'date-fns/{{member}}',
+    },
+    '@mui/material': {
+      transform: '@mui/material/{{member}}',
+    },
+    '@mui/icons-material': {
+      transform: '@mui/icons-material/{{member}}',
+    },
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{member}}',
+    },
+  },
+  
   // 🚀 SPEED OPTIMIZATIONS - Memory-optimized for constrained environments
   experimental: {
     // Enable optimized package imports (reduces bundle size & build time)
@@ -160,23 +179,6 @@ const nextConfig = {
     parallelServerCompiles: false,
     // 🔧 MEMORY FIX: Reduce parallel server builds
     parallelServerBuildTraces: false,
-    modularizeImports: {
-      lodash: {
-        transform: 'lodash/{{member}}',
-      },
-      'date-fns': {
-        transform: 'date-fns/{{member}}',
-      },
-      '@mui/material': {
-        transform: '@mui/material/{{member}}',
-      },
-      '@mui/icons-material': {
-        transform: '@mui/icons-material/{{member}}',
-      },
-      'lucide-react': {
-        transform: 'lucide-react/dist/esm/icons/{{member}}',
-      },
-    },
   },
   // ⚡ FIX BUILD TIMEOUT: Add reasonable timeout for static page generation
   // Default is infinite which can cause CI to kill the process (exit 143 = SIGTERM)

@@ -127,6 +127,7 @@ async function buildReply(
       ? listing.pricingInsights
       : await PricingInsightsService.updateListingInsights(
           listing._id.toHexString(),
+          listing.orgId?.toString(),
         );
     const price = listing.price?.amount
       ? `${listing.price.amount.toLocaleString()} ﷼`

@@ -6,8 +6,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // Mock rate limiting
-vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+}));
+
+vi.mock("@/server/security/headers", () => ({
+  getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
 }));
 
 // Mock database
@@ -29,7 +33,7 @@ vi.mock("@/lib/analytics/incrementWithRetry", () => ({
   incrementAnalyticsWithRetry: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 
 const importRoute = async () => {
   try {
@@ -42,7 +46,7 @@ const importRoute = async () => {
 describe("GET /api/aqar/listings/search", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
   });
 
   it("returns 429 when rate limit exceeded", async () => {
@@ -52,11 +56,7 @@ describe("GET /api/aqar/listings/search", () => {
       return;
     }
 
-    vi.mocked(enforceRateLimit).mockReturnValue(
-      new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-        status: 429,
-      }) as never
-    );
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false });
 
     const req = new NextRequest("http://localhost:3000/api/aqar/listings/search?city=Riyadh", {
       method: "GET",

@@ -40,7 +40,8 @@ function resolveOrgId(): string | null {
     null;
 
   if (!orgId) {
-    logger.error("[SUPERADMIN] Missing org id (SUPERADMIN_ORG_ID / PUBLIC_ORG_ID / DEFAULT_ORG_ID)");
+    logger.error("[SUPERADMIN] CRITICAL: Missing org id (SUPERADMIN_ORG_ID / PUBLIC_ORG_ID / DEFAULT_ORG_ID / TEST_ORG_ID). Superadmin login will fail.");
+    logger.error("[SUPERADMIN] Please set one of these environment variables in production");
   }
 
   return orgId;

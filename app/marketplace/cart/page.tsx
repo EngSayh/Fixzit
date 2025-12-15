@@ -3,6 +3,8 @@ import Image from "next/image";
 import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
 import { getServerI18n } from "@/lib/i18n/server";
 
+export const dynamic = 'force-dynamic';
+
 interface CartLine {
   productId: string;
   product?: {

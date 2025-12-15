@@ -6,6 +6,8 @@ import { MARKETPLACE_OFFLINE_DATA } from "@/data/marketplace-offline";
 import { getServerI18n } from "@/lib/i18n/server";
 import { isTruthy } from "@/lib/utils/env";
 
+export const dynamic = 'force-dynamic';
+
 interface Category {
   id: string;
   slug: string;

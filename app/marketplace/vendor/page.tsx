@@ -2,6 +2,8 @@ import { logger } from "@/lib/logger";
 import VendorCatalogueManager from "@/components/marketplace/VendorCatalogueManager";
 import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
 
+export const dynamic = 'force-dynamic';
+
 interface Category {
   slug: string;
   name?: { en?: string };

@@ -20,6 +20,8 @@ import { BrandLogoWithCard } from '@/components/brand';
 import dynamic from 'next/dynamic';
 
 import { logger } from '@/lib/logger';
+import { extractFieldErrors, focusField } from '@/lib/errors/field-errors';
+import { FormField } from '@/components/ui/form-field';
 
 // Check if OTP is required (matches auth.config.ts logic)
 const REQUIRE_SMS_OTP = process.env.NEXT_PUBLIC_REQUIRE_SMS_OTP === 'true';
@@ -69,6 +71,9 @@ interface FormErrors {
   general?: string;
   // PHASE-4 FIX: Company code error for corporate login
   companyCode?: string;
+  // Support for field-level error system
+  email?: string;
+  employeeNumber?: string;
 }
 
 // OTP state interface
@@ -335,26 +340,47 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
         });
 
         if (result?.error) {
-          // 🔒 PORTAL SEPARATION FIX: Auto-redirect superadmin to correct portal
-          if (result.error === 'SUPERADMIN_WRONG_PORTAL') {
-            // Silent redirect (no console log to avoid exposing superadmin path in production)
-            router.replace('/superadmin/login');
-            return;
-          }
-          
-          if (result.error === 'EMAIL_NOT_VERIFIED') {
-            setPendingVerificationEmail(identifier);
-            setErrors({
-              general: t('login.errors.emailNotVerified', 'Your email is not verified. Please check your inbox or resend verification.'),
-            });
-          } else if (result.error === 'ACCOUNT_LOCKED') {
-            setErrors({
-              general: t('login.errors.accountLocked', 'Your account is locked due to too many failed attempts. Try again later or contact support.'),
-            });
-          } else {
-            setErrors({
-              general: t('login.errors.invalidCredentials', 'Invalid email/employee number or password')
-            });
+          // Parse field-level errors if available
+          try {
+            const errorData = typeof result.error === 'string' ? JSON.parse(result.error) : result.error;
+            if (errorData.field && errorData.code) {
+              // Field-level error from API
+              const fieldErrors = extractFieldErrors(errorData);
+              setErrors(fieldErrors);
+              focusField(errorData.field);
+            } else {
+              // Legacy error handling
+              if (result.error === 'EMAIL_NOT_VERIFIED') {
+                setPendingVerificationEmail(identifier);
+                setErrors({
+                  general: t('login.errors.emailNotVerified', 'Your email is not verified. Please check your inbox or resend verification.'),
+                });
+              } else if (result.error === 'ACCOUNT_LOCKED') {
+                setErrors({
+                  general: t('login.errors.accountLocked', 'Your account is locked due to too many failed attempts. Try again later or contact support.'),
+                });
+              } else {
+                setErrors({
+                  general: t('login.errors.invalidCredentials', 'Invalid email/employee number or password')
+                });
+              }
+            }
+          } catch {
+            // Fallback to generic error handling
+            if (result.error === 'EMAIL_NOT_VERIFIED') {
+              setPendingVerificationEmail(identifier);
+              setErrors({
+                general: t('login.errors.emailNotVerified', 'Your email is not verified. Please check your inbox or resend verification.'),
+              });
+            } else if (result.error === 'ACCOUNT_LOCKED') {
+              setErrors({
+                general: t('login.errors.accountLocked', 'Your account is locked due to too many failed attempts. Try again later or contact support.'),
+              });
+            } else {
+              setErrors({
+                general: t('login.errors.invalidCredentials', 'Invalid email/employee number or password')
+              });
+            }
           }
           setLoading(false);
           return;
@@ -390,23 +416,52 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
       const otpData = await otpResponse.json();
 
       if (!otpResponse.ok) {
-        // Handle OTP send errors
-        if (otpResponse.status === 401) {
-          setErrors({
-            general: t('login.errors.invalidCredentials', 'Invalid email/employee number or password')
-          });
-        } else if (otpResponse.status === 429) {
-          setErrors({
-            general: t('login.errors.rateLimited', 'Too many attempts. Please try again later.')
-          });
-        } else if (otpResponse.status === 400 && otpData.error?.includes('phone')) {
-          setErrors({
-            general: t('login.errors.noPhone', 'No phone number registered. Please contact support.')
-          });
-        } else {
-          setErrors({
-            general: t('login.errors.otpFailed', 'Failed to send verification code. Please try again.')
-          });
+        // Handle OTP send errors with field-level support
+        try {
+          if (otpData.field && otpData.code) {
+            // Field-level error from API
+            const fieldErrors = extractFieldErrors(otpData);
+            setErrors(fieldErrors);
+            focusField(otpData.field);
+          } else {
+            // Legacy error handling
+            if (otpResponse.status === 401) {
+              setErrors({
+                general: t('login.errors.invalidCredentials', 'Invalid email/employee number or password')
+              });
+            } else if (otpResponse.status === 429) {
+              setErrors({
+                general: t('login.errors.rateLimited', 'Too many attempts. Please try again later.')
+              });
+            } else if (otpResponse.status === 400 && otpData.error?.includes('phone')) {
+              setErrors({
+                general: t('login.errors.noPhone', 'No phone number registered. Please contact support.')
+              });
+            } else {
+              setErrors({
+                general: t('login.errors.otpFailed', 'Failed to send verification code. Please try again.')
+              });
+            }
+          }
+        } catch {
+          // Fallback to legacy error handling
+          if (otpResponse.status === 401) {
+            setErrors({
+              general: t('login.errors.invalidCredentials', 'Invalid email/employee number or password')
+            });
+          } else if (otpResponse.status === 429) {
+            setErrors({
+              general: t('login.errors.rateLimited', 'Too many attempts. Please try again later.')
+            });
+          } else if (otpResponse.status === 400 && otpData.error?.includes('phone')) {
+            setErrors({
+              general: t('login.errors.noPhone', 'No phone number registered. Please contact support.')
+            });
+          } else {
+            setErrors({
+              general: t('login.errors.otpFailed', 'Failed to send verification code. Please try again.')
+            });
+          }
         }
         setLoading(false);
         return;
@@ -473,26 +528,47 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
       });
 
         if (result?.error) {
-          // 🔒 PORTAL SEPARATION FIX: Auto-redirect superadmin to correct portal
-          if (result.error === 'SUPERADMIN_WRONG_PORTAL') {
-            // Silent redirect (no console log to avoid exposing superadmin path in production)
-            router.replace('/superadmin/login');
-            return;
-          }
-          
-          if (result.error === 'EMAIL_NOT_VERIFIED') {
-            setPendingVerificationEmail(identifier);
-            setErrors({
-              general: t('login.errors.emailNotVerified', 'Your email is not verified. Please check your inbox or resend verification.'),
-            });
-          } else if (result.error === 'ACCOUNT_LOCKED') {
-            setErrors({
-              general: t('login.errors.accountLocked', 'Your account is locked due to too many failed attempts. Try again later or contact support.'),
-            });
-          } else {
-            setErrors({
-              general: t('login.errors.loginFailed', 'Login failed. Please try again.')
-            });
+          // Parse field-level errors if available
+          try {
+            const errorData = typeof result.error === 'string' ? JSON.parse(result.error) : result.error;
+            if (errorData.field && errorData.code) {
+              // Field-level error from API
+              const fieldErrors = extractFieldErrors(errorData);
+              setErrors(fieldErrors);
+              focusField(errorData.field);
+            } else {
+              // Legacy error handling
+              if (result.error === 'EMAIL_NOT_VERIFIED') {
+                setPendingVerificationEmail(identifier);
+                setErrors({
+                  general: t('login.errors.emailNotVerified', 'Your email is not verified. Please check your inbox or resend verification.'),
+                });
+              } else if (result.error === 'ACCOUNT_LOCKED') {
+                setErrors({
+                  general: t('login.errors.accountLocked', 'Your account is locked due to too many failed attempts. Try again later or contact support.'),
+                });
+              } else {
+                setErrors({
+                  general: t('login.errors.loginFailed', 'Login failed. Please try again.')
+                });
+              }
+            }
+          } catch {
+            // Fallback to legacy error handling
+            if (result.error === 'EMAIL_NOT_VERIFIED') {
+              setPendingVerificationEmail(identifier);
+              setErrors({
+                general: t('login.errors.emailNotVerified', 'Your email is not verified. Please check your inbox or resend verification.'),
+              });
+            } else if (result.error === 'ACCOUNT_LOCKED') {
+              setErrors({
+                general: t('login.errors.accountLocked', 'Your account is locked due to too many failed attempts. Try again later or contact support.'),
+              });
+            } else {
+              setErrors({
+                general: t('login.errors.loginFailed', 'Login failed. Please try again.')
+              });
+            }
           }
           setLoading(false);
           setShowOTP(false);
@@ -787,163 +863,117 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
 
               {/* PHASE-4 FIX: Company Code Field for Corporate Login */}
               {loginMethod === 'corporate' && (
-                <div>
-                  <label htmlFor="companyCode" className="block text-sm font-medium text-foreground mb-2">
-                    {t('login.companyNumber', 'Company Number')}
-                  </label>
-                  <div className="relative">
-                    <Shield className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
-                    <Input
-                      id="companyCode"
-                      name="companyCode"
-                      data-testid="login-company-code"
-                      type="text"
-                      inputMode="text"
-                      enterKeyHint="next"
-                      autoComplete="organization"
-                      placeholder={t('login.enterCompanyNumber', 'Enter your company number (e.g., ORG-001)')}
-                      value={companyCode}
-                      onChange={(e) => {
-                        setCompanyCode(e.target.value);
-                        clearError('companyCode');
-                        clearError('general');
-                      }}
-                      className={`${isRTL ? 'pe-10' : 'ps-10'} h-12 ${errors.companyCode ? 'border-destructive focus:ring-destructive' : ''}`}
-                      aria-invalid={!!errors.companyCode}
-                      aria-describedby={errors.companyCode ? 'companyCode-error' : undefined}
-                      disabled={loading || phoneMode}
-                      autoFocus
-                      required={!phoneMode}
-                    />
-                  </div>
-                  {errors.companyCode && (
-                    <p id="companyCode-error" className="mt-1 text-sm text-destructive flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.companyCode}
-                    </p>
-                  )}
-                </div>
+                <FormField
+                  name="companyCode"
+                  label={t('login.companyNumber', 'Company Number')}
+                  required
+                  type="text"
+                  value={companyCode}
+                  onChange={setCompanyCode}
+                  error={errors.companyCode}
+                  placeholder={t('login.enterCompanyNumber', 'Enter your company number (e.g., ORG-001)')}
+                  autoComplete="organization"
+                  disabled={loading || phoneMode}
+                  autoFocus
+                  icon={Shield}
+                />
               )}
 
               {/* Email or Employee Number */}
-              <div>
-                <label htmlFor={loginMethod === 'personal' ? 'email' : 'employeeNumber'} className="block text-sm font-medium text-foreground mb-2">
-                  {identifierLabel}
-                </label>
-                <div className="relative">
-                  {loginMethod === 'personal' ? (
-                    <Mail className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
-                  ) : (
-                    <User className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
-                  )}
-                  <Input
-                    id={loginMethod === 'personal' ? 'email' : 'employeeNumber'}
-                    name="identifier"
-                    data-testid="login-email"
-                    type="text"
-                    aria-label={identifierLabel}
-                    inputMode={phoneMode ? 'tel' : loginMethod === 'personal' ? 'email' : 'text'}
-                    enterKeyHint="next"
-                    autoComplete={phoneMode ? 'tel' : loginMethod === 'personal' ? 'email' : 'username'}
-                    placeholder={
-                      phoneMode
-                        ? t('login.enterPhone', 'Enter your phone number')
-                        : loginMethod === 'personal'
-                          ? t('login.enterEmail', 'Enter your personal email')
-                          : t('login.enterEmployeeNumber', 'Enter your employee number')
-                    }
-                    value={phoneMode ? email : loginMethod === 'personal' ? email : employeeNumber}
-                    onChange={(e) => {
-                      if (phoneMode) {
-                        setEmail(e.target.value);
-                      } else if (loginMethod === 'personal') {
-                        setEmail(e.target.value);
-                      } else {
-                        setEmployeeNumber(e.target.value);
-                      }
-                      clearError('identifier');
-                      clearError('general');
-                    }}
-                    className={`${isRTL ? 'pe-10' : 'ps-10'} h-12 ${errors.identifier ? 'border-destructive focus:ring-destructive' : ''}`}
-                    aria-invalid={!!errors.identifier}
-                    aria-describedby={errors.identifier ? 'identifier-error' : undefined}
-                    disabled={loading}
-                    autoFocus={loginMethod === 'personal'}
-                    required
-                  />
-                </div>
-                {loginMethod === 'corporate' && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {t('login.corporateHelp', 'Enter your company number, employee number, and password to sign in.')}
-                  </p>
-                )}
-                {errors.identifier && (
-                  <p id="identifier-error" className="mt-1 text-sm text-destructive flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {errors.identifier}
-                  </p>
-                )}
-              </div>
+              <FormField
+                name={loginMethod === 'personal' ? 'email' : 'employeeNumber'}
+                label={identifierLabel}
+                required
+                type={phoneMode ? 'tel' : loginMethod === 'personal' ? 'email' : 'text'}
+                value={phoneMode ? email : loginMethod === 'personal' ? email : employeeNumber}
+                onChange={(val) => {
+                  if (phoneMode) {
+                    setEmail(val);
+                  } else if (loginMethod === 'personal') {
+                    setEmail(val);
+                  } else {
+                    setEmployeeNumber(val);
+                  }
+                  clearError('identifier');
+                  clearError('email');
+                  clearError('employeeNumber');
+                  clearError('general');
+                }}
+                error={errors.identifier || errors.email || errors.employeeNumber}
+                placeholder={
+                  phoneMode
+                    ? t('login.enterPhone', 'Enter your phone number')
+                    : loginMethod === 'personal'
+                      ? t('login.enterEmail', 'Enter your personal email')
+                      : t('login.enterEmployeeNumber', 'Enter your employee number')
+                }
+                autoComplete={phoneMode ? 'tel' : loginMethod === 'personal' ? 'email' : 'username'}
+                disabled={loading}
+                autoFocus={loginMethod === 'personal'}
+                icon={loginMethod === 'personal' ? Mail : User}
+                data-testid="login-email"
+                helpText={
+                  loginMethod === 'corporate'
+                    ? t('login.corporateHelp', 'Enter your company number, employee number, and password to sign in.')
+                    : undefined
+                }
+              />
 
               {/* Password */}
-              <div>
-                {!phoneMode && (
+              {!phoneMode ? (
+                <div>
                   <div className="flex items-center justify-between mb-2">
                     <label htmlFor="password" className="block text-sm font-medium text-foreground">
-                      {t('common.password', 'Password')}
+                      {t('common.password', 'Password')} <span className="text-red-600">*</span>
                     </label>
                     <Link href="/forgot-password" className="text-sm text-primary hover:text-primary transition-colors">
                       {t('common.forgotPassword', 'Forgot?')}
                     </Link>
                   </div>
-                )}
-                <div className="relative">
-                  <Lock className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
-                  <Input
-                    id="password"
-                    name="password"
-                    data-testid="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    inputMode="text"
-                    enterKeyHint="send"
-                    autoComplete="current-password"
-                    placeholder={t('login.enterPassword', 'Enter your password')}
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      clearError('password');
-                      clearError('general');
-                    }}
-                    className={`${isRTL ? 'pe-10 ps-10' : 'ps-10 pe-10'} h-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
-                    style={{ direction: 'ltr' }}
-                    aria-invalid={!!errors.password}
-                    disabled={loading || phoneMode}
-                    required={!phoneMode}
-                  />
-                  {!phoneMode && (
+                  <div className="relative">
+                    <Lock className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      name="password"
+                      data-testid="login-password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      placeholder={t('login.enterPassword', 'Enter your password')}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        clearError('password');
+                        clearError('general');
+                      }}
+                      className={`ps-10 pe-10 h-12 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
+                      style={{ direction: 'ltr' }}
+                      aria-invalid={!!errors.password}
+                      disabled={loading}
+                      required
+                    />
                     <button
                       type="button"
                       onClick={() => setShowPassword(s => !s)}
-                      className={`absolute ${isRTL ? 'start-3' : 'end-3'} top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground`}
+                      className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       aria-label={showPassword ? t('login.hidePassword', 'Hide password') : t('login.showPassword', 'Show password')}
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
+                  </div>
+                  {capsLockOn && (
+                    <p className="mt-1 text-sm text-warning flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {t('login.capsLockOn', 'Caps Lock is on')}
+                    </p>
+                  )}
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1" role="alert">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.password}
+                    </p>
                   )}
                 </div>
-                {capsLockOn && (
-                  <p className="mt-1 text-sm text-warning flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    {t('login.capsLockOn', 'Caps Lock is on')}
-                  </p>
-                )}
-                {errors.password && (
-                  <p className="mt-1 text-sm text-destructive flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {errors.password}
-                  </p>
-                )}
-              </div>
+              ) : null}
 
               {/* Remember Me */}
               {!phoneMode && (

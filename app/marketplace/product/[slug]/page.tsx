@@ -7,6 +7,8 @@ import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 
+export const dynamic = 'force-dynamic';
+
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
 }

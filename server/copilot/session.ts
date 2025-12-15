@@ -61,27 +61,33 @@ export async function resolveCopilotSession(
 
   const authSecret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
   if (authSecret && token) {
-    const decoded = await decodeAuthJwt({ 
-      token, 
-      secret: authSecret,
-      salt: "authjs.session-token" // Default salt for next-auth session tokens
-    });
-    if (decoded) {
-      const userId = (decoded.id || decoded.sub || "guest") as string;
-      const tenantId = (decoded as { orgId?: string }).orgId || "public";
-      const role = ((decoded as { role?: string }).role || "GUEST") as CopilotRole;
-      const permissions = Array.isArray((decoded as { permissions?: unknown }).permissions)
-        ? ((decoded as { permissions: string[] }).permissions)
-        : undefined;
-      return {
-        userId,
-        tenantId,
-        role,
-        email: (decoded as { email?: string }).email,
-        name: (decoded as { name?: string }).name,
-        locale,
-        permissions,
-      };
+    try {
+      const decoded = await decodeAuthJwt({ 
+        token, 
+        secret: authSecret,
+        salt: "authjs.session-token" // Default salt for next-auth session tokens
+      });
+      if (decoded) {
+        const userId = (decoded.id || decoded.sub || "guest") as string;
+        const tenantId = (decoded as { orgId?: string }).orgId || "public";
+        const role = ((decoded as { role?: string }).role || "GUEST") as CopilotRole;
+        const permissions = Array.isArray((decoded as { permissions?: unknown }).permissions)
+          ? ((decoded as { permissions: string[] }).permissions)
+          : undefined;
+        return {
+          userId,
+          tenantId,
+          role,
+          email: (decoded as { email?: string }).email,
+          name: (decoded as { name?: string }).name,
+          locale,
+          permissions,
+        };
+      }
+    } catch (_err) {
+      // Session decryption failed (e.g., AUTH_SECRET changed, expired session, wrong salt)
+      // Fall through to guest session - user will need to re-authenticate
+      // This is safe: copilot falls back to guest role with minimal permissions
     }
   }
 

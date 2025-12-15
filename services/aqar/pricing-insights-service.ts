@@ -131,14 +131,27 @@ export class PricingInsightsService {
 
   static async updateListingInsights(
     listingId: string,
+    orgId?: string,
   ): Promise<IListingPricingInsights | null> {
     if (!Types.ObjectId.isValid(listingId)) {
       return null;
     }
+
+    const listingObjectId = new Types.ObjectId(listingId);
+    const orgObjectId =
+      orgId && Types.ObjectId.isValid(orgId)
+        ? new Types.ObjectId(orgId)
+        : null;
+
     await connectDb();
+    const listingFilter: FilterQuery<IListing> = { _id: listingObjectId };
+    if (orgObjectId) {
+      listingFilter.orgId = orgObjectId;
+    }
+
     const listing = await listingModel
-      .findById(listingId)
-      .select("city neighborhood propertyType intent areaSqm price")
+      .findOne(listingFilter)
+      .select("city neighborhood propertyType intent areaSqm price orgId")
       .lean<{
         city?: string;
         neighborhood?: string;
@@ -146,6 +159,7 @@ export class PricingInsightsService {
         intent?: ListingIntent;
         areaSqm?: number;
         price?: { amount: number };
+        orgId?: Types.ObjectId;
       } | null>();
 
     if (!listing) {
@@ -157,6 +171,7 @@ export class PricingInsightsService {
       neighborhood: listing.neighborhood,
       propertyType: listing.propertyType,
       intent: listing.intent,
+      orgId: listing.orgId?.toHexString() ?? orgId,
     });
 
     const insights: IListingPricingInsights = {
@@ -170,7 +185,7 @@ export class PricingInsightsService {
       lastComputedAt: new Date(),
     };
 
-    await listingModel.findByIdAndUpdate(listingId, {
+    await listingModel.findOneAndUpdate(listingFilter, {
       $set: { pricingInsights: insights },
     });
 

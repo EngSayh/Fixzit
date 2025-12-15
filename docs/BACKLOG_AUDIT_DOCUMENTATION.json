@@ -1,0 +1,264 @@
+{
+  "generatedAt": "2025-12-14T18:30:00+03:00",
+  "timezone": "Asia/Riyadh",
+  "source": "code-review-scan",
+  "context": {
+    "branch": "feat/mongodb-backlog-tracker",
+    "commit": "904bc59d8",
+    "scanType": "documentation-coverage-audit"
+  },
+  "summary": {
+    "totalIssues": 10,
+    "byPriority": {
+      "P1": 1,
+      "P2": 7,
+      "P3": 2
+    },
+    "byCategory": {
+      "documentation": 10
+    },
+    "byStatus": {
+      "pending": 10
+    }
+  },
+  "issues": [
+    {
+      "key": "DOC-101",
+      "externalId": "DOC-101",
+      "category": "documentation",
+      "title": "Missing JSDoc for 7 API route handlers (superadmin, admin, user, checkout)",
+      "description": "Seven API route files lack module-level JSDoc documentation headers (@module, @description). Affects superadmin issues routes, admin security/feature-flags, user profile/preferences, checkout flow, and tenant management.",
+      "action": "Add JSDoc headers with @module, @description, @requires tags for each route handler",
+      "location": {
+        "file": "app/api/superadmin/issues/route.ts",
+        "lines": "1-10",
+        "section": "API Routes"
+      },
+      "priority": "P2",
+      "effort": "S",
+      "impact": 5,
+      "riskTags": ["DOCUMENTATION", "CODE-QUALITY"],
+      "status": "pending",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:app/api/superadmin/issues/route.ts:1-10",
+      "evidenceSnippet": "import { NextRequest, NextResponse } from 'next/server'; // No JSDoc header",
+      "mentionCount": 1,
+      "sourceEntries": ["2025-12-14"]
+    },
+    {
+      "key": "DOC-102",
+      "externalId": "DOC-102",
+      "category": "documentation",
+      "title": "Missing JSDoc for 51 lib utility modules (auth, payments, storage, middleware)",
+      "description": "Fifty-one TypeScript files in lib/ directory lack module-level JSDoc. Includes critical modules: zatca.ts, aws-secrets.ts, apiGuard.ts, rate-limit middleware, RBAC utilities, payment parsers, SMS providers, and type definitions.",
+      "action": "Add JSDoc headers (@file, @module, @description) to all lib modules, prioritizing security/auth/middleware files first",
+      "location": {
+        "file": "lib/zatca.ts",
+        "lines": "1-15",
+        "section": "Lib Utilities"
+      },
+      "priority": "P1",
+      "effort": "M",
+      "impact": 8,
+      "riskTags": ["DOCUMENTATION", "CODE-QUALITY", "SECURITY"],
+      "status": "pending",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:lib/zatca.ts:1-15",
+      "evidenceSnippet": "import QRCode from \"qrcode\"; // No file/module documentation",
+      "mentionCount": 1,
+      "sourceEntries": ["2025-12-14"]
+    },
+    {
+      "key": "DOC-103",
+      "externalId": "DOC-103",
+      "category": "documentation",
+      "title": "Missing JSDoc for 124 Mongoose model schemas (server/models)",
+      "description": "124 Mongoose model files in server/models/ lack schema-level documentation. Includes Invoice, FeatureFlag, NotificationLog, Project, and all Aqar domain models (ViewingRequest, PropertyListing, Favorite, Lead, SavedSearch, etc.).",
+      "action": "Add JSDoc headers to all model files with @module, @description, schema field documentation, and usage examples",
+      "location": {
+        "file": "server/models/BacklogIssue.ts",
+        "lines": "1-15",
+        "section": "Models"
+      },
+      "priority": "P2",
+      "effort": "L",
+      "impact": 7,
+      "riskTags": ["DOCUMENTATION", "CODE-QUALITY", "DATA"],
+      "status": "pending",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:server/models/BacklogIssue.ts:1-15",
+      "evidenceSnippet": "import { Schema, model, models } from 'mongoose'; // No schema documentation",
+      "mentionCount": 1,
+      "sourceEntries": ["2025-12-14"]
+    },
+    {
+      "key": "DOC-104",
+      "externalId": "DOC-104",
+      "category": "documentation",
+      "title": "Missing function-level JSDoc for superadmin issues CRUD endpoints",
+      "description": "GET and POST handlers in app/api/superadmin/issues/route.ts lack function-level JSDoc describing parameters, returns, authentication requirements, and error responses.",
+      "action": "Add @function, @param, @returns, @throws JSDoc to GET and POST handlers with example responses",
+      "location": {
+        "file": "app/api/superadmin/issues/route.ts",
+        "lines": "7-25",
+        "section": "API Routes"
+      },
+      "priority": "P2",
+      "effort": "XS",
+      "impact": 4,
+      "riskTags": ["DOCUMENTATION"],
+      "status": "pending",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:app/api/superadmin/issues/route.ts:7-25",
+      "evidenceSnippet": "export async function GET(req: NextRequest) { // No function JSDoc",
+      "mentionCount": 1,
+      "sourceEntries": ["2025-12-14"]
+    },
+    {
+      "key": "DOC-105",
+      "externalId": "DOC-105",
+      "category": "documentation",
+      "title": "Missing inline comments for ZATCA TLV encoding logic",
+      "description": "lib/zatca.ts contains complex TLV (Tag-Length-Value) encoding for ZATCA QR code generation but lacks inline comments explaining the encoding steps, byte packing, and validation rules.",
+      "action": "Add inline comments explaining TLV format, ZATCA spec requirements, and validation logic",
+      "location": {
+        "file": "lib/zatca.ts",
+        "lines": "20-60",
+        "section": "Lib Utilities"
+      },
+      "priority": "P2",
+      "effort": "S",
+      "impact": 6,
+      "riskTags": ["DOCUMENTATION", "FINANCIAL", "COMPLIANCE"],
+      "status": "pending",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:lib/zatca.ts:20-60",
+      "evidenceSnippet": "const MAX_TLV_FIELD_LENGTH = 256; // ZATCA specification limits",
+      "mentionCount": 1,
+      "sourceEntries": ["2025-12-14"]
+    },
+    {
+      "key": "DOC-106",
+      "externalId": "DOC-106",
+      "category": "documentation",
+      "title": "Missing README for backlog tracker feature",
+      "description": "New backlog tracker feature (feat/mongodb-backlog-tracker) lacks a comprehensive README explaining setup, usage, API endpoints, environment variables, and deployment instructions.",
+      "action": "Create docs/BACKLOG_TRACKER.md with setup guide, API documentation, UI usage, and troubleshooting",
+      "location": {
+        "file": "docs/",
+        "section": "Documentation"
+      },
+      "priority": "P2",
+      "effort": "S",
+      "impact": 5,
+      "riskTags": ["DOCUMENTATION"],
+      "status": "pending",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:docs/:N/A",
+      "evidenceSnippet": "docs/BACKLOG_TRACKER_SUMMARY.md exists but not comprehensive README",
+      "mentionCount": 1,
+      "sourceEntries": ["2025-12-14"]
+    },
+    {
+      "key": "DOC-107",
+      "externalId": "DOC-107",
+      "category": "documentation",
+      "title": "Missing TypeScript interface documentation for BacklogIssue types",
+      "description": "Type exports (BacklogCategory, BacklogPriority, BacklogEffort, BacklogStatus) in server/models/BacklogIssue.ts lack JSDoc explaining valid values, constraints, and usage context.",
+      "action": "Add @typedef JSDoc for each exported type with enum value descriptions",
+      "location": {
+        "file": "server/models/BacklogIssue.ts",
+        "lines": "3-6",
+        "section": "Models"
+      },
+      "priority": "P3",
+      "effort": "XS",
+      "impact": 3,
+      "riskTags": ["DOCUMENTATION"],
+      "status": "pending",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:server/models/BacklogIssue.ts:3-6",
+      "evidenceSnippet": "export type BacklogCategory = 'bug' | 'logic' | 'test' | 'efficiency' | 'next_step';",
+      "mentionCount": 1,
+      "sourceEntries": ["2025-12-14"]
+    },
+    {
+      "key": "DOC-108",
+      "externalId": "DOC-108",
+      "category": "documentation",
+      "title": "Missing API endpoint documentation in OpenAPI spec",
+      "description": "New backlog tracker API endpoints (/api/superadmin/issues, /api/superadmin/issues/import, /api/superadmin/issues/report) are not documented in openapi.yaml or auto-generated API docs.",
+      "action": "Add OpenAPI schema definitions for backlog tracker endpoints with request/response examples",
+      "location": {
+        "file": "openapi.yaml",
+        "section": "API Specification"
+      },
+      "priority": "P2",
+      "effort": "M",
+      "impact": 6,
+      "riskTags": ["DOCUMENTATION", "API"],
+      "status": "pending",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:openapi.yaml:N/A",
+      "evidenceSnippet": "openapi.yaml does not include /api/superadmin/issues endpoints",
+      "mentionCount": 1,
+      "sourceEntries": ["2025-12-14"]
+    },
+    {
+      "key": "DOC-109",
+      "externalId": "DOC-109",
+      "category": "documentation",
+      "title": "Missing error response documentation for API routes",
+      "description": "API route handlers lack standardized error response documentation. No central guide for HTTP status codes, error formats, correlation IDs, and retry logic.",
+      "action": "Create docs/API_ERROR_HANDLING.md documenting standard error responses and update route JSDoc to reference it",
+      "location": {
+        "file": "docs/",
+        "section": "Documentation"
+      },
+      "priority": "P2",
+      "effort": "M",
+      "impact": 7,
+      "riskTags": ["DOCUMENTATION", "API"],
+      "status": "pending",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:docs/:N/A",
+      "evidenceSnippet": "No centralized error response documentation exists",
+      "mentionCount": 1,
+      "sourceEntries": ["2025-12-14"]
+    },
+    {
+      "key": "DOC-110",
+      "externalId": "DOC-110",
+      "category": "documentation",
+      "title": "Missing deployment checklist for backlog tracker",
+      "description": "Backlog tracker requires specific environment variables (SUPERADMIN_USERNAME, SUPERADMIN_PASSWORD_HASH, SUPERADMIN_SESSION_SECRET) but lacks deployment checklist in docs/BACKLOG_TRACKER_SUMMARY.md.",
+      "action": "Enhance docs/BACKLOG_TRACKER_SUMMARY.md with pre-deployment checklist, post-deployment verification, and rollback procedures",
+      "location": {
+        "file": "docs/BACKLOG_TRACKER_SUMMARY.md",
+        "lines": "140-160",
+        "section": "Documentation"
+      },
+      "priority": "P3",
+      "effort": "XS",
+      "impact": 4,
+      "riskTags": ["DOCUMENTATION", "DEPLOYMENT"],
+      "status": "pending",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:docs/BACKLOG_TRACKER_SUMMARY.md:140-160",
+      "evidenceSnippet": "Deployment checklist exists but lacks verification and rollback steps",
+      "mentionCount": 1,
+      "sourceEntries": ["2025-12-14"]
+    }
+  ],
+  "resolved": [],
+  "metadata": {
+    "scanScope": "app/api, lib, server/models, docs",
+    "auditSampleSize": 182,
+    "filesWithoutJSDocInSample": 182,
+    "sampleCoverageNote": "100% of audited files lack proper JSDoc (targeted scan of routes/lib/models)",
+    "estimatedCodebaseWideCoverage": "~45%",
+    "coverageThreshold": "80%",
+    "gapFromThresholdPercentagePoints": 35,
+    "scanMethod": "find + grep -L @module/@description"
+  }
+}

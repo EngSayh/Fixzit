@@ -150,7 +150,64 @@ async function loadRBACData(
     const PermissionModel = (await import("@/server/models/Permission")).default;
     const { default: mongoose } = await import("mongoose");
 
-    // Query user with populated roles
+    // Query user (without populate first to inspect roles)
+    const rawUser = await User.findOne({
+      _id: new mongoose.Types.ObjectId(userId),
+      orgId: orgId,
+    })
+      .select("isSuperAdmin roles")
+      .lean();
+
+    if (!rawUser) {
+      logger.warn("[RBAC] User not found for RBAC loading", { userId, orgId });
+      return {
+        isSuperAdmin: false,
+        permissions: [],
+        roles: [],
+      };
+    }
+
+    // Resolve role references: keep ObjectIds and translate slug strings to ObjectIds
+    const roleIds = new Set<string>();
+    const roleSlugs = new Set<string>();
+
+    for (const role of rawUser.roles || []) {
+      if (!role) continue;
+
+      if (mongoose.Types.ObjectId.isValid(role)) {
+        roleIds.add(String(new mongoose.Types.ObjectId(role as unknown as string)));
+        continue;
+      }
+
+      if (typeof role === "string") {
+        roleSlugs.add(role);
+        continue;
+      }
+
+      logger.warn("[RBAC] Invalid role reference (unrecognized type)", { userId, role, type: typeof role });
+    }
+
+    if (roleSlugs.size > 0) {
+      const rolesFromSlugs = await RoleModel.find({
+        slug: { $in: Array.from(roleSlugs) },
+      })
+        .select("_id slug")
+        .lean();
+
+      for (const resolved of rolesFromSlugs) {
+        roleIds.add(String(resolved._id));
+      }
+
+      if (rolesFromSlugs.length < roleSlugs.size) {
+        const resolvedSlugs = new Set(rolesFromSlugs.map((r) => r.slug));
+        const unresolvedSlugs = Array.from(roleSlugs).filter((slug) => !resolvedSlugs.has(slug));
+        logger.warn("[RBAC] Could not resolve role slugs to ObjectIds", { userId, unresolvedSlugs });
+      }
+    }
+
+    const resolvedRoleIds = Array.from(roleIds).map((id) => new mongoose.Types.ObjectId(id));
+
+    // Now populate with cleaned role IDs
     const user = await User.findOne({
       _id: new mongoose.Types.ObjectId(userId),
       orgId: orgId,
@@ -160,6 +217,7 @@ async function loadRBACData(
         path: "roles",
         model: RoleModel,
         select: "slug wildcard permissions",
+        match: { _id: { $in: resolvedRoleIds } },
         populate: {
           path: "permissions",
           model: PermissionModel,

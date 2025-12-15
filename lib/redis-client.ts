@@ -2,10 +2,15 @@
  * Redis Client Configuration
  * Used for caching, rate limiting, and BullMQ job queues.
  * Provides in-memory fallbacks when Redis is not configured.
+ * 
+ * CRITICAL: Uses dynamic import for ioredis to prevent boot crashes
+ * when REDIS_URL is invalid/malformed. This matches lib/redis.ts pattern.
  */
 
-import Redis from "ioredis";
 import { logger } from "@/lib/logger";
+
+// Use type import to avoid compile errors
+import type Redis from "ioredis";
 
 type MemoryEntry = { value: string; expiresAt: number };
 
@@ -20,9 +25,31 @@ const hasRedisConfig = Boolean(redisUrl || redisHost);
 
 let redisClient: Redis | null = null;
 let warnedMissingRedis = false;
+let redisDisabled = false; // Prevent reconnection spam on fatal errors
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let RedisModule: (new (...args: any[]) => Redis) | null = null;
 
 const memoryStore = new Map<string, MemoryEntry>();
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
+/**
+ * Dynamically import ioredis to prevent boot crashes
+ * Returns null if ioredis is not available
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getRedisCtor(): (new (...args: any[]) => Redis) | null {
+  if (RedisModule) return RedisModule;
+  if (typeof require === "undefined") return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("ioredis");
+    RedisModule = mod.default || mod;
+    return RedisModule;
+  } catch (error) {
+    logger.warn("[Redis] ioredis not available in this runtime", { error });
+    return null;
+  }
+}
 
 function cleanupMemoryEntry(key: string): MemoryEntry | null {
   const entry = memoryStore.get(key);
@@ -76,7 +103,58 @@ function memoryExpire(key: string, ttlSeconds: number): void {
   memoryStore.set(key, entry);
 }
 
+/**
+ * Mask Redis URL credentials for safe logging
+ * Prevents REDIS_URL passwords from leaking into logs
+ */
+function maskRedisUrl(url: string): string {
+  try {
+    // Redact password from connection URL pattern (protocol://user:PASSWORD@host:port)
+    return url.replace(/(:\/\/[^:]*:)([^@]*)(@)/, "$1****$3");
+  } catch {
+    return "[REDACTED]";
+  }
+}
+
+/**
+ * Detect fatal Redis errors that indicate misconfiguration (not transient failures)
+ * 
+ * Fatal errors (should disable reconnection):
+ * - ENOTFOUND: DNS resolution failed (invalid host)
+ * - EAI_AGAIN: Temporary DNS failure (often permanent in serverless)
+ * 
+ * Transient errors (should allow reconnection):
+ * - ECONNREFUSED: Redis server down but host is valid
+ * - ETIMEDOUT: Network timeout
+ * - ECONNRESET: Connection reset by peer
+ */
+function isFatalRedisError(error: unknown): boolean {
+  if (typeof error === "object" && error !== null) {
+    const code = (error as { code?: string }).code;
+    return code === "ENOTFOUND" || code === "EAI_AGAIN";
+  }
+  return false;
+}
+
+/**
+ * Disable Redis after fatal error to prevent reconnection spam
+ * Falls back to in-memory cache/rate limiting for all subsequent operations
+ */
+function disableRedis(): void {
+  redisDisabled = true;
+  if (redisClient) {
+    // Remove all listeners to prevent further error logs
+    redisClient.removeAllListeners();
+    redisClient = null;
+  }
+}
+
 function buildRedisClient(): Redis | null {
+  // Don't attempt connection if Redis was disabled due to fatal error
+  if (redisDisabled) {
+    return null;
+  }
+
   if (!hasRedisConfig) {
     if (!warnedMissingRedis && process.env.NODE_ENV !== "test") {
       logger.warn(
@@ -91,23 +169,45 @@ function buildRedisClient(): Redis | null {
     return redisClient;
   }
 
+  // Get Redis constructor dynamically to prevent boot crashes
+  const RedisCtorLocal = getRedisCtor();
+  if (!RedisCtorLocal) {
+    logger.warn("[Redis] ioredis module not available - falling back to in-memory cache");
+    return null;
+  }
+
   const baseConfig = {
     lazyConnect: true,
     maxRetriesPerRequest: 3,
+    enableOfflineQueue: false, // Prevent "Stream isn't writeable" errors when disconnected
     retryStrategy(times: number) {
+      // Stop retrying on fatal errors
+      if (redisDisabled) {
+        return null;
+      }
       return Math.min(times * 50, 2000);
     },
   };
 
-  redisClient = redisUrl
-    ? new Redis(redisUrl, baseConfig)
-    : new Redis({
-        host: redisHost!,
-        port: redisPort,
-        password: redisPassword,
-        db: redisDb,
-        ...baseConfig,
-      });
+  try {
+    redisClient = redisUrl
+      ? new RedisCtorLocal(redisUrl, baseConfig)
+      : new RedisCtorLocal({
+          host: redisHost!,
+          port: redisPort,
+          password: redisPassword,
+          db: redisDb,
+          ...baseConfig,
+        });
+  } catch (error) {
+    logger.error("[Redis] Failed to instantiate Redis client - invalid configuration", {
+      error: error instanceof Error ? error.message : String(error),
+      hasUrl: Boolean(redisUrl),
+      hasHost: Boolean(redisHost),
+    });
+    disableRedis();
+    return null;
+  }
 
   redisClient.on("connect", () => {
     // Mask credentials in URL before logging to prevent leakage
@@ -130,8 +230,26 @@ function buildRedisClient(): Redis | null {
     logger.warn("Redis connection closed");
   });
 
-  redisClient.on("error", (error) => {
-    logger.error("Redis connection error", { error });
+  redisClient.on("error", (error: Error) => {
+    // Mask credentials in error messages
+    const maskedUrl = redisUrl ? maskRedisUrl(redisUrl) : undefined;
+    
+    if (isFatalRedisError(error)) {
+      // Fatal error: log once and disable reconnection
+      logger.error("[Redis] Connection error: Fatal DNS/network error - disabling Redis and falling back to in-memory", {
+        message: "[REDACTED]",
+        code: (error as { code?: string }).code,
+        timestamp: new Date().toISOString(),
+        url: maskedUrl,
+      });
+      disableRedis();
+    } else {
+      // Transient error: log but allow reconnection
+      logger.error("[Redis] Connection error", {
+        error,
+        url: maskedUrl,
+      });
+    }
   });
 
   return redisClient;
