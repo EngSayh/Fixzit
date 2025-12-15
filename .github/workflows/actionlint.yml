@@ -32,7 +32,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
           fail_level: any
-          fail_on_error: true
           actionlint_flags: |
             -ignore 'SC2086:.*'
             -ignore 'SC2016:.*'

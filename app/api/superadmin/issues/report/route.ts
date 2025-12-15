@@ -13,21 +13,22 @@ export async function GET(req: NextRequest) {
   const format = url.searchParams.get('format') || 'json';
 
   const issues = await BacklogIssue.find().sort({ priority: 1, impact: -1 }).lean();
+  type Issue = (typeof issues)[number];
 
   const total = issues.length;
   const byStatus = Object.fromEntries(
-    ['pending', 'in_progress', 'resolved', 'wont_fix'].map((s) => [
+    (['pending', 'in_progress', 'resolved', 'wont_fix'] as const).map((s) => [
       s,
-      issues.filter((i) => i.status === s).length,
+      issues.filter((i: Issue) => i.status === s).length,
     ])
   );
   const byPriority = Object.fromEntries(
-    ['P0', 'P1', 'P2', 'P3'].map((p) => [p, issues.filter((i) => i.priority === p).length])
+    (['P0', 'P1', 'P2', 'P3'] as const).map((p) => [p, issues.filter((i: Issue) => i.priority === p).length])
   );
   const byCategory = Object.fromEntries(
-    ['bug', 'logic', 'test', 'efficiency', 'next_step'].map((c) => [
+    (['bug', 'logic', 'test', 'efficiency', 'next_step'] as const).map((c) => [
       c,
-      issues.filter((i) => i.category === c).length,
+      issues.filter((i: Issue) => i.category === c).length,
     ])
   );
 
