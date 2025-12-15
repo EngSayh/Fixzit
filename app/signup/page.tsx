@@ -157,10 +157,12 @@ export default function SignupPage() {
         localStorage.getItem(STORAGE_KEYS.currency) || APP_DEFAULTS.currency;
 
       const { orgName, ...rest } = formData;
+      const normalizedOrgName = orgName.trim();
 
       const signupData = {
         ...rest,
-        companyName: formData.userType === "corporate" ? orgName : undefined,
+        companyName:
+          formData.userType === "personal" ? undefined : normalizedOrgName || undefined,
         fullName: `${formData.firstName} ${formData.lastName}`,
         preferredLanguage,
         preferredCurrency,
@@ -179,9 +181,14 @@ export default function SignupPage() {
       if (!response.ok) {
         // Try to extract field-level errors from API response
         if (data.field && data.code) {
-          const errors = extractFieldErrors(data);
+          const normalizedField =
+            data.field === "companyName"
+              ? "orgName"
+              : data.field;
+
+          const errors = extractFieldErrors({ ...data, field: normalizedField });
           setFieldErrors(errors);
-          focusField(data.field);
+          focusField(normalizedField);
         } else {
           // Fall back to general error
           setError(data.error || "Signup failed");
