@@ -17,16 +17,16 @@ export async function GET(req: NextRequest) {
 
   const total = issues.length;
   const byStatus = Object.fromEntries(
-    (['pending', 'in_progress', 'resolved', 'wont_fix'] as const).map((s) => [
+    (['pending', 'in_progress', 'resolved', 'wont_fix'] as const).map((s: string) => [
       s,
       issues.filter((i: Issue) => i.status === s).length,
     ])
   );
   const byPriority = Object.fromEntries(
-    (['P0', 'P1', 'P2', 'P3'] as const).map((p) => [p, issues.filter((i: Issue) => i.priority === p).length])
+    (['P0', 'P1', 'P2', 'P3'] as const).map((p: string) => [p, issues.filter((i: Issue) => i.priority === p).length])
   );
   const byCategory = Object.fromEntries(
-    (['bug', 'logic', 'test', 'efficiency', 'next_step'] as const).map((c) => [
+    (['bug', 'logic', 'test', 'efficiency', 'next_step'] as const).map((c: string) => [
       c,
       issues.filter((i: Issue) => i.category === c).length,
     ])
