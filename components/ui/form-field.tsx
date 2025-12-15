@@ -50,6 +50,15 @@ export interface FormFieldProps {
   
   /** Help text displayed below field */
   helpText?: string;
+  
+  /** Auto focus on mount */
+  autoFocus?: boolean;
+  
+  /** Icon component to display (lucide-react icon) */
+  icon?: React.ComponentType<{ className?: string }>;
+  
+  /** Data test ID for testing */
+  "data-testid"?: string;
 }
 
 /**
@@ -69,6 +78,9 @@ export function FormField({
   disabled = false,
   showPasswordToggle = false,
   helpText,
+  autoFocus = false,
+  icon: Icon,
+  "data-testid": dataTestId,
 }: FormFieldProps) {
   const [showPassword, setShowPassword] = React.useState(false);
   
@@ -77,7 +89,7 @@ export function FormField({
   
   // Build input className with error state
   const inputClassName = getFieldClassName(
-    showPasswordToggle ? "pe-10" : "",
+    Icon ? "ps-10" : (showPasswordToggle ? "pe-10" : ""),
     !!error
   );
   
@@ -88,6 +100,9 @@ export function FormField({
       </Label>
       
       <div className="relative">
+        {Icon && (
+          <Icon className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        )}
         <Input
           id={name}
           name={name}
@@ -98,7 +113,9 @@ export function FormField({
           autoComplete={autoComplete}
           required={required}
           disabled={disabled}
-          className={`${inputClassName} ${className}`}
+          autoFocus={autoFocus}
+          data-testid={dataTestId}
+          className={`${inputClassName} ${showPasswordToggle && Icon ? "ps-10 pe-10" : ""} ${className}`}
           aria-invalid={!!error}
           aria-describedby={error ? `${name}-error` : helpText ? `${name}-help` : undefined}
         />
@@ -107,7 +124,7 @@ export function FormField({
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute end-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+            className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             aria-label={showPassword ? `Hide ${label}` : `Show ${label}`}
             tabIndex={-1}
           >

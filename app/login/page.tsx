@@ -920,64 +920,60 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
               />
 
               {/* Password */}
-              <div>
-                {!phoneMode && (
+              {!phoneMode ? (
+                <div>
                   <div className="flex items-center justify-between mb-2">
                     <label htmlFor="password" className="block text-sm font-medium text-foreground">
-                      {t('common.password', 'Password')}
+                      {t('common.password', 'Password')} <span className="text-red-600">*</span>
                     </label>
                     <Link href="/forgot-password" className="text-sm text-primary hover:text-primary transition-colors">
                       {t('common.forgotPassword', 'Forgot?')}
                     </Link>
                   </div>
-                )}
-                <div className="relative">
-                  <Lock className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
-                  <Input
-                    id="password"
-                    name="password"
-                    data-testid="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    inputMode="text"
-                    enterKeyHint="send"
-                    autoComplete="current-password"
-                    placeholder={t('login.enterPassword', 'Enter your password')}
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      clearError('password');
-                      clearError('general');
-                    }}
-                    className={`${isRTL ? 'pe-10 ps-10' : 'ps-10 pe-10'} h-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
-                    style={{ direction: 'ltr' }}
-                    aria-invalid={!!errors.password}
-                    disabled={loading || phoneMode}
-                    required={!phoneMode}
-                  />
-                  {!phoneMode && (
+                  <div className="relative">
+                    <Lock className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      name="password"
+                      data-testid="login-password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      placeholder={t('login.enterPassword', 'Enter your password')}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        clearError('password');
+                        clearError('general');
+                      }}
+                      className={`ps-10 pe-10 h-12 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
+                      style={{ direction: 'ltr' }}
+                      aria-invalid={!!errors.password}
+                      disabled={loading}
+                      required
+                    />
                     <button
                       type="button"
                       onClick={() => setShowPassword(s => !s)}
-                      className={`absolute ${isRTL ? 'start-3' : 'end-3'} top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground`}
+                      className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       aria-label={showPassword ? t('login.hidePassword', 'Hide password') : t('login.showPassword', 'Show password')}
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
+                  </div>
+                  {capsLockOn && (
+                    <p className="mt-1 text-sm text-warning flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {t('login.capsLockOn', 'Caps Lock is on')}
+                    </p>
+                  )}
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1" role="alert">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.password}
+                    </p>
                   )}
                 </div>
-                {capsLockOn && (
-                  <p className="mt-1 text-sm text-warning flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    {t('login.capsLockOn', 'Caps Lock is on')}
-                  </p>
-                )}
-                {errors.password && (
-                  <p className="mt-1 text-sm text-destructive flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {errors.password}
-                  </p>
-                )}
-              </div>
+              ) : null}
 
               {/* Remember Me */}
               {!phoneMode && (
