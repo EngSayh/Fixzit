@@ -1,9 +1,23 @@
-import "server-only";
-
 import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getEnv } from "@/lib/env";
 import { isTruthy } from "@/lib/utils/env";
+
+// Next.js hint: keep this file server-only without breaking tsx/ts-node scripts
+void import("server-only").catch(() => {
+  /* no-op when not transformed by Next.js */
+});
+
+const isEdgeRuntime =
+  typeof (globalThis as { EdgeRuntime?: string }).EdgeRuntime !== "undefined" ||
+  process.env.NEXT_RUNTIME === "edge" ||
+  process.env.NEXT_RUNTIME === "experimental-edge";
+
+if (typeof window !== "undefined" || isEdgeRuntime) {
+  throw new Error(
+    "[Mongo] This module is server-only and cannot run in the browser or Edge runtime.",
+  );
+}
 
 // Vercel Functions database pool management for serverless optimization
 let attachDatabasePool: ((client: unknown) => void) | undefined;

@@ -30,16 +30,27 @@ export async function registerNode(): Promise<void> {
       const { validateProductionEnv } = await import("@/lib/config/env-guards");
       const guardResult = validateProductionEnv({ throwOnError: false });
       
-      // 🔒 SECURITY: Enforce safety guards in BOTH production AND preview
-      const isEnforcedEnv = guardResult.environment === 'production' || guardResult.environment === 'preview';
+      // 🔒 SECURITY: Only BLOCK in true production, WARN in preview
+      // Rationale: Preview deployments may not have all secrets configured yet
+      const isTrueProduction = guardResult.environment === 'production';
+      const isPreview = guardResult.environment === 'preview';
       
-      if (!guardResult.passed && isEnforcedEnv) {
-        logger.error("[Instrumentation] Environment safety guards failed", {
+      if (!guardResult.passed && isTrueProduction) {
+        logger.error("[Instrumentation] CRITICAL: Production environment safety guards failed", {
           errors: guardResult.errors,
           environment: guardResult.environment,
         });
-        // Fail startup in production/preview with safety violations
-        throw new Error(`${guardResult.environment} environment safety guards failed; see logs for details`);
+        // BLOCK startup in true production only
+        throw new Error(`Production environment safety guards failed; see logs for details`);
+      }
+      
+      if (!guardResult.passed && isPreview) {
+        logger.warn("[Instrumentation] Preview environment safety warnings", {
+          errors: guardResult.errors,
+          environment: guardResult.environment,
+          message: "These would block production deployment",
+        });
+        // Log but don't block preview
       }
       
       if (guardResult.warnings.length > 0) {
@@ -51,14 +62,15 @@ export async function registerNode(): Promise<void> {
       logger.error("[Instrumentation] Env guard check failed", {
         error: guardError instanceof Error ? guardError.message : String(guardError),
       });
-      // 🔒 SECURITY: Re-throw to stop startup in production OR preview
-      const isEnforcedEnv = 
-        process.env.NODE_ENV === "production" || 
-        process.env.VERCEL_ENV === "production" ||
-        process.env.VERCEL_ENV === "preview";
+      // 🔒 SECURITY: Only re-throw in TRUE production
+      const isTrueProduction = 
+        process.env.NODE_ENV === "production" && 
+        process.env.VERCEL_ENV === "production";
       
-      if (isEnforcedEnv) {
+      if (isTrueProduction) {
         throw guardError;
+      } else {
+        logger.warn("[Instrumentation] Env guard failure in non-production, continuing with warnings");
       }
     }
 

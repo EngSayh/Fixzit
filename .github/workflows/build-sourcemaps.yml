@@ -22,14 +22,8 @@ jobs:
       CI: "true"
       NODE_OPTIONS: --max-old-space-size=8192
       NEXT_TELEMETRY_DISABLED: "1"
-      # Sentry configuration (now required and provisioned in repo secrets)
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
       # expose release to build/runtime; SDKs read SENTRY_RELEASE
       SENTRY_RELEASE: ${{ github.sha }}
-      # MongoDB conditional guard (evaluate secret at job level for step conditionals)
-      HAS_MONGODB_URI: ${{ secrets.MONGODB_URI != '' }}
 
     steps:
       - name: 📦 Checkout
@@ -53,7 +47,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Ensure Mongo Indexes (idempotent)
-        if: ${{ env.HAS_MONGODB_URI == 'true' }}
+        if: ${{ secrets.MONGODB_URI != '' }}
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
         run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
@@ -67,14 +61,19 @@ jobs:
       # Sentry release + sourcemaps (v3, with Debug ID injection)
       - name: 🚀 Create & upload Sentry release (non-blocking)
         id: sentry
-        if: ${{ env.SENTRY_AUTH_TOKEN != '' }}
+        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT != '' }}
         uses: getsentry/action-release@v3
         continue-on-error: true
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_RELEASE: ${{ github.sha }}
         with:
           environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
           # v3 uses 'release' for the release name
           release: ${{ github.sha }}
-          projects: ${{ env.SENTRY_PROJECT || 'fixzit-frontend' }}
+          projects: ${{ secrets.SENTRY_PROJECT || 'fixzit-frontend' }}
           # Upload all Next.js client/server maps; v3 injects Debug IDs by default
           sourcemaps: .next
           url_prefix: "~/_next"
@@ -84,6 +83,9 @@ jobs:
 
       - name: 🧾 Build summary
         if: always()
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_RELEASE: ${{ github.sha }}
         run: |
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "✅ Production build completed" >> $GITHUB_STEP_SUMMARY
@@ -91,10 +93,10 @@ jobs:
           echo "🗺️ Source maps: $MAP_COUNT files" >> $GITHUB_STEP_SUMMARY
           TOTAL_SIZE=$(find .next -name "*.map" -type f -exec du -ch {} + 2>/dev/null | awk '/total/{print $1}')
           echo "💾 Total .map size: ${TOTAL_SIZE:-0}" >> $GITHUB_STEP_SUMMARY
-          if [ -n "${{ env.SENTRY_AUTH_TOKEN }}" ]; then
+          if [ -n "${SENTRY_AUTH_TOKEN}" ]; then
             if [ "${{ steps.sentry.outcome }}" = "success" ]; then
               SENTRY_ENV="${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}"
-              echo "✅ Sentry release uploaded (release: ${{ env.SENTRY_RELEASE }}, env: ${SENTRY_ENV})" >> $GITHUB_STEP_SUMMARY
+              echo "✅ Sentry release uploaded (release: ${SENTRY_RELEASE}, env: ${SENTRY_ENV})" >> $GITHUB_STEP_SUMMARY
             else
               echo "⚠️ Sentry upload step did not complete successfully (non-blocking). Check logs." >> $GITHUB_STEP_SUMMARY
             fi

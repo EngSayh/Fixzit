@@ -1,9 +1,23 @@
-import "server-only";
-
 import { logger } from "@/lib/logger";
 import mongoose from "mongoose";
 import { connectMongo as ensureDatabaseHandle } from "@/lib/mongo";
 import { isTruthy } from "@/lib/utils/env";
+
+// Next.js hint: keep this file server-only without breaking tsx/ts-node scripts
+void import("server-only").catch(() => {
+  /* no-op when not transformed by Next.js */
+});
+
+const isEdgeRuntime =
+  typeof (globalThis as { EdgeRuntime?: string }).EdgeRuntime !== "undefined" ||
+  process.env.NEXT_RUNTIME === "edge" ||
+  process.env.NEXT_RUNTIME === "experimental-edge";
+
+if (typeof window !== "undefined" || isEdgeRuntime) {
+  throw new Error(
+    "[MongoDB] This module is server-only and cannot run in the browser or Edge runtime.",
+  );
+}
 
 declare global {
   var _mongooseConnection: typeof mongoose | undefined;

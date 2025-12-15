@@ -35,13 +35,12 @@ jobs:
         )
       }}
     runs-on: ubuntu-latest
-    env:
-      # If secret is not set (or on fork PR), this becomes empty string.
-      OPENAI_KEY: ${{ secrets['OPENAI_KEY'] }}
-      GITHUB_TOKEN: ${{ github.token }}
 
     steps:
       - name: PR Agent action step
         # Skip cleanly if not configured
-        if: ${{ env.OPENAI_KEY != '' }}
+        if: ${{ secrets.OPENAI_KEY != '' }}
         uses: qodo-ai/pr-agent@main
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
