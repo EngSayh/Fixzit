@@ -28,6 +28,8 @@ jobs:
       SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
       # expose release to build/runtime; SDKs read SENTRY_RELEASE
       SENTRY_RELEASE: ${{ github.sha }}
+      # MongoDB conditional guard (evaluate secret at job level for step conditionals)
+      HAS_MONGODB_URI: ${{ secrets.MONGODB_URI != '' }}
 
     steps:
       - name: 📦 Checkout

@@ -340,15 +340,12 @@ export const Config = {
   },
 
   /**
-   * Payment Gateway Configuration
+   * Payment Gateway Configuration (Tap Payments only)
+   * 
+   * IMPORTANT: This system uses TAP PAYMENTS ONLY.
+   * Legacy PayTabs has been removed.
    */
   payment: {
-    paytabs: {
-      profileId: getOptional("PAYTABS_PROFILE_ID"),
-      serverKey: getOptional("PAYTABS_SERVER_KEY"),
-      clientKey: getOptional("PAYTABS_CLIENT_KEY"),
-      baseUrl: getOptional("PAYTABS_BASE_URL", "https://secure.paytabs.sa"),
-    },
     tap: {
       liveSecretKey: getOptional("TAP_LIVE_SECRET_KEY"),
       testSecretKey: getOptional("TAP_TEST_SECRET_KEY"),

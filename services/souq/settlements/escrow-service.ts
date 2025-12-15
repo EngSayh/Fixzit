@@ -50,7 +50,7 @@ type EscrowMoneyMovement = {
   amount: number;
   currency?: string;
   idempotencyKey?: string;
-  provider?: "PAYTABS" | "SADAD" | "SPAN" | "MANUAL" | "UNKNOWN";
+  provider?: "TAP" | "SADAD" | "SPAN" | "MANUAL" | "UNKNOWN";
   actorId?: Types.ObjectId;
   reason?: string;
   force?: boolean;

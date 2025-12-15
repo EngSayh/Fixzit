@@ -161,8 +161,7 @@ export const EXTERNAL_URLS = {
   /** OpenAI API */
   openAi: "https://api.openai.com/v1",
 
-  /** PayTabs payment gateway */
-  payTabs: process.env.PAYTABS_BASE_URL || "https://secure.paytabs.sa",
+  // PayTabs removed - using Tap Payments only
 
   /** ZATCA e-invoicing */
   zatca: "https://gw-fatoora.zatca.gov.sa",

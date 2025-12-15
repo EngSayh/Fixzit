@@ -28,20 +28,8 @@ export function validateStartup(): void {
     errors.push(error instanceof Error ? error.message : String(error));
   }
 
-  // Payment gateway secrets - warn (or fail in production) when missing
-  const paytabsMissing =
-    !process.env.PAYTABS_SERVER_KEY || !process.env.PAYTABS_PROFILE_ID;
-  if (paytabsMissing) {
-    const msg =
-      "PayTabs gateway secrets missing (PAYTABS_SERVER_KEY, PAYTABS_PROFILE_ID)";
-    if (process.env.NODE_ENV === "production") {
-      errors.push(msg);
-    } else {
-      warnings.push(msg);
-    }
-  }
-
-  // Tap: Check for environment-aware keys based on TAP_ENVIRONMENT
+  // Tap Payments: Check for environment-aware keys based on TAP_ENVIRONMENT
+  // IMPORTANT: This system uses TAP PAYMENTS ONLY (PayTabs removed)
   const tapEnvIsLive = process.env.TAP_ENVIRONMENT === "live" || process.env.NODE_ENV === "production";
   const tapSecretKey = tapEnvIsLive 
     ? process.env.TAP_LIVE_SECRET_KEY 

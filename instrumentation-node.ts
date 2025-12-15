@@ -33,10 +33,8 @@ export async function registerNode(): Promise<void> {
       logger.error("[Instrumentation] Environment validation failed", {
         errors: envResult.errors,
       });
-      // EMERGENCY: Log but don't crash to allow production recovery
-      // TODO: Re-enable strict mode once all env vars are set
-      logger.error("[Instrumentation] CRITICAL: App starting with invalid env config - some features may fail");
-      // throw new Error("Environment validation failed; see logs for details");
+      logger.error("[Instrumentation] Blocking startup due to invalid environment configuration");
+      throw new Error("Environment validation failed; see logs for details");
     } else if (!envResult.valid) {
       logger.warn("[Instrumentation] Environment validation warnings", {
         errors: envResult.errors,

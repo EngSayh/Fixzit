@@ -2,10 +2,15 @@
  * Redis Client Configuration
  * Used for caching, rate limiting, and BullMQ job queues.
  * Provides in-memory fallbacks when Redis is not configured.
+ * 
+ * CRITICAL: Uses dynamic import for ioredis to prevent boot crashes
+ * when REDIS_URL is invalid/malformed. This matches lib/redis.ts pattern.
  */
 
-import Redis from "ioredis";
 import { logger } from "@/lib/logger";
+
+// Use type import to avoid compile errors
+import type Redis from "ioredis";
 
 type MemoryEntry = { value: string; expiresAt: number };
 
@@ -21,9 +26,30 @@ const hasRedisConfig = Boolean(redisUrl || redisHost);
 let redisClient: Redis | null = null;
 let warnedMissingRedis = false;
 let redisDisabled = false; // Prevent reconnection spam on fatal errors
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let RedisModule: (new (...args: any[]) => Redis) | null = null;
 
 const memoryStore = new Map<string, MemoryEntry>();
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
+/**
+ * Dynamically import ioredis to prevent boot crashes
+ * Returns null if ioredis is not available
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getRedisCtor(): (new (...args: any[]) => Redis) | null {
+  if (RedisModule) return RedisModule;
+  if (typeof require === "undefined") return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("ioredis");
+    RedisModule = mod.default || mod;
+    return RedisModule;
+  } catch (error) {
+    logger.warn("[Redis] ioredis not available in this runtime", { error });
+    return null;
+  }
+}
 
 function cleanupMemoryEntry(key: string): MemoryEntry | null {
   const entry = memoryStore.get(key);
@@ -143,6 +169,13 @@ function buildRedisClient(): Redis | null {
     return redisClient;
   }
 
+  // Get Redis constructor dynamically to prevent boot crashes
+  const RedisCtorLocal = getRedisCtor();
+  if (!RedisCtorLocal) {
+    logger.warn("[Redis] ioredis module not available - falling back to in-memory cache");
+    return null;
+  }
+
   const baseConfig = {
     lazyConnect: true,
     maxRetriesPerRequest: 3,
@@ -156,15 +189,25 @@ function buildRedisClient(): Redis | null {
     },
   };
 
-  redisClient = redisUrl
-    ? new Redis(redisUrl, baseConfig)
-    : new Redis({
-        host: redisHost!,
-        port: redisPort,
-        password: redisPassword,
-        db: redisDb,
-        ...baseConfig,
-      });
+  try {
+    redisClient = redisUrl
+      ? new RedisCtorLocal(redisUrl, baseConfig)
+      : new RedisCtorLocal({
+          host: redisHost!,
+          port: redisPort,
+          password: redisPassword,
+          db: redisDb,
+          ...baseConfig,
+        });
+  } catch (error) {
+    logger.error("[Redis] Failed to instantiate Redis client - invalid configuration", {
+      error: error instanceof Error ? error.message : String(error),
+      hasUrl: Boolean(redisUrl),
+      hasHost: Boolean(redisHost),
+    });
+    disableRedis();
+    return null;
+  }
 
   redisClient.on("connect", () => {
     // Mask credentials in URL before logging to prevent leakage
@@ -187,7 +230,7 @@ function buildRedisClient(): Redis | null {
     logger.warn("Redis connection closed");
   });
 
-  redisClient.on("error", (error) => {
+  redisClient.on("error", (error: Error) => {
     // Mask credentials in error messages
     const maskedUrl = redisUrl ? maskRedisUrl(redisUrl) : undefined;
     
