@@ -1,0 +1,575 @@
+# MongoDB Atlas Security Checklist
+
+**🚨 CRITICAL: These issues are LIVE in production Atlas right now (verified 2025-12-14)**
+
+## 🔥 CONFIRMED CRITICAL ISSUES (User-Verified)
+
+**STATUS: ACTIVE IN PRODUCTION**
+
+### 0. **✗ VERCEL SECRETS ARE REVEALABLE** (P0 - MOST URGENT)
+
+**From Vercel Team Environment Variables screen:**
+
+- **What:** Secrets show "Click to reveal" button (NOT configured as Vercel "Sensitive" variables)
+- **Risk:** Any team member with Vercel UI access can reveal these secrets
+- **Impact:** `MONGODB_URI`, `AUTH_SECRET`, `TAQNYAT_BEARER_TOKEN`, and other secrets are readable
+- **Vercel Warning:** Sensitive variables "cannot be revealed after saving" - yours can be revealed
+
+**Immediate Action:** See [VERCEL_ENV_HARDENING.md](./VERCEL_ENV_HARDENING.md) for step-by-step remediation.
+
+**Quick Summary:**
+1. **Delete** each secret from Vercel UI
+2. **Re-add** with same name, but select **Production + Preview ONLY** (not Development)
+3. **Enable "Sensitive"** toggle (appears when Development is not selected)
+4. **Add separate Development values** (non-sensitive, dev-only credentials)
+
+---
+
+### 1. **✗ ATLAS DATABASE USERS EXPOSURE** (P0 - CRITICAL)
+
+**From Atlas Database Users screen:**
+
+- **What:** User `fixzitadmin` has **plaintext secret in Description field**
+- **Risk:** Description is **non-encrypted UI metadata** visible to all Atlas users
+- **Impact:** Treat credential as **compromised** (must rotate immediately)
+
+**Additional Issue:**
+- Both `EngSayh` and `fixzitadmin` have **`atlasAdmin@admin`** on **All Resources**
+- This is **too permissive** for app runtime (can create/delete databases, modify cluster settings)
+- Violates least-privilege principle
+
+**Immediate Actions (Do in Atlas UI NOW):**
+
+1. **Clear Description field** for `fixzitadmin`:
+   - Atlas → Database Access → Click `fixzitadmin` → Edit → Clear "Description" → Save
+
+2. **Rotate password immediately**:
+   - Atlas → Database Access → Click `fixzitadmin` → Edit Password → Generate new password → Save
+   - Update `MONGODB_URI` in Vercel Production + Preview environments (as Sensitive vars)
+   - **Redeploy** Vercel production (env changes only apply to new deployments)
+
+3. **Create least-privilege runtime users**:
+   ```
+   Username: fixzit-app-prod
+   Role: readWrite on fixzit database ONLY (not atlasAdmin)
+   Environment: Vercel Production
+   
+   Username: fixzit-app-preview  
+   Role: readWrite on fixzit database ONLY
+   Environment: Vercel Preview
+   
+   Username: fixzit-app-dev
+   Role: readWrite on fixzit database ONLY
+   Environment: Local Development
+   ```
+
+4. **Update Vercel env vars** with new least-privilege users:
+   - See [VERCEL_ENV_HARDENING.md](./VERCEL_ENV_HARDENING.md) for exact steps
+
+5. **Keep `atlasAdmin@admin` for human break-glass only** (not used by app)
+
+---
+
+### 2. **✗ INTERNET-EXPOSED CLUSTER** (P0 - HIGHEST RISK)
+- **What:** `0.0.0.0/0 (Allow from anywhere)` is Active ✅ in Network Access
+- **Risk:** Cluster is reachable from ANY IP on the internet
+- **Impact:** The /32 IP entry is meaningless when 0.0.0.0/0 exists
+- **MongoDB Warning:** "Allow access from anywhere" explicitly flagged as risky
+- **Priority:** FIX AFTER rotating credentials (STEP 0/1 first)
+
+---
+
+## 🚨 Immediate Actions (Execute in This Exact Order)
+
+### STEP 0: Remove Internet Wildcard Access (DO THIS FIRST)
+
+**Current State:** `0.0.0.0/0 (Allow from anywhere)` is Active ✅  
+**Target State:** Atlas accessible only from Vercel + your office/VPN
+
+**Why This Matters:**  
+MongoDB explicitly warns: "0.0.0.0/0 allows access from anywhere on the internet." This is the #1 red flag in your Atlas security posture. As long as 0.0.0.0/0 exists, it effectively overrides any tighter allowlist entries.
+
+**🚨 CRITICAL DEPENDENCY CHECK:**
+
+If you're using the **MongoDB Atlas ↔ Vercel integration workflow**, MongoDB's own docs state:
+> "Vercel deployments use dynamic IP addresses, and Atlas must allow all IP addresses (0.0.0.0/0); Atlas may even add it automatically as part of the integration."
+
+**You CANNOT "just delete" 0.0.0.0/0 and keep the integration working.** You must switch to manual `MONGODB_URI` connection (Option A below) to remove the wildcard.
+
+---
+
+#### **Option A: Production-Grade (Recommended) - Vercel Static IPs**
+
+**This is the correct fix to remove 0.0.0.0/0 permanently.**
+
+Vercel provides Static IPs for fixed outbound egress IP addresses from deployments (builds/functions), specifically designed for allowlisting databases.
+
+**Prerequisites:**
+- Vercel Pro or Enterprise plan (Static IPs not available on Free tier)
+- Must use manual `MONGODB_URI` env var (NOT the MongoDB Atlas ↔ Vercel integration)
+- Willing to switch from integration to manual connection
+
+**Do This Exactly:**
+
+**Step 1: Enable Vercel Static IPs**
+- Go to: [Vercel Dashboard](https://vercel.com/dashboard) → Your **Project** Settings
+- Navigate to: **Connectivity** → **Static IPs**
+- Click **Enable Static IPs**
+- Select region(s) closest to your Atlas cluster (e.g., `us-east-1` if Atlas is in Virginia)
+- **Copy the egress IPs** Vercel gives you (usually 2-3 IPs per region)
+- Reference: https://vercel.com/docs/security/static-ip
+
+**Step 2: Add Vercel IPs to Atlas**
+   - Go to: [MongoDB Atlas](https://cloud.mongodb.com/) → Security → **Network Access**
+   - Click **ADD IP ADDRESS**
+   - For each Vercel static IP:
+     - Paste the IP address
+     - Use `/32` suffix (exact IP match)
+     - Comment: `Vercel Production (Static IP)`
+   - Click **Confirm**
+
+**Step 3: Remove the Wildcard**
+- Go to: [MongoDB Atlas](https://cloud.mongodb.com/) → Security → **Network Access**
+- Find: `0.0.0.0/0 (Allow from anywhere)` with Active ✅
+- Click **DELETE** (trash icon)
+- Confirm deletion
+- **Result:** Cluster is no longer open to the public internet
+
+**Step 4: Deploy and Verify**
+- Deploy to Vercel (or trigger redeploy)
+- Check Vercel deployment logs: Should see MongoDB connection success
+- Verify: App connects successfully from Vercel
+- Verify: Cannot connect from unauthorized IPs (try from your phone's cellular network)
+
+**Step 5: Add Your Office/VPN IPs** (Optional but recommended for dev access)
+- Click **ADD IP ADDRESS**
+- Enter your office/VPN IP (or your current IP)
+- Comment: `Office - ${LOCATION}` or `Dev - ${YOUR_NAME}`
+- Click **Confirm**
+
+**Keep only /32 entries (exact IPs), no more wildcards.**
+
+**Verification:**
+```bash
+# From Vercel deployment logs:
+# Should see: ✅ Connected to MongoDB
+
+# From local machine (if not in allowlist):
+# Should see: MongoServerError: connection refused
+
+# Test from allowed IP:
+pnpm tsx scripts/verify-import.ts
+# Should output: ✅ Connected, Total Issues: 12
+```
+
+**References:**
+- [Vercel Static IPs Documentation](https://vercel.com/docs/security/static-ip)
+- [MongoDB Network Access Best Practices](https://www.mongodb.com/docs/atlas/security/ip-access-list/)
+
+---
+
+#### **Option B: Temporary Workaround (Not Ideal) - Keep 0.0.0.0/0**
+
+**Only use this if:**
+- You're using MongoDB Atlas <-> Vercel integration (which requires 0.0.0.0/0)
+- You can't enable Vercel Static IPs yet (Free tier / waiting for approval)
+- You need time to migrate to Option A
+
+**If you must keep 0.0.0.0/0 temporarily:**
+
+**Compensating Controls (Required):**
+1. ✅ Least-privilege DB users (NO atlasAdmin for runtime) - see STEP 3 below
+2. ✅ Strong passwords (64+ chars) + immediate rotation on exposure
+3. ✅ Tight RBAC at app layer (tenant isolation, role checks)
+4. ✅ Enable MongoDB Atlas audit logs and monitoring
+5. ✅ Set up alerts for failed auth attempts
+6. 📅 **Plan migration to Static IPs within 30 days**
+
+**Treat Atlas as "internet-exposed" and compensate hard at app/DB layers.**
+
+---
+
+#### **Option C: Lock Down Governance (Prevent Future Wildcards)**
+
+**After removing 0.0.0.0/0, prevent it from coming back.**
+
+MongoDB explicitly documents blocking wildcard IP via **Atlas Resource Policies** (org-level guardrails).
+
+**Prerequisites:**
+- MongoDB Atlas Enterprise plan (or Enterprise trial)
+- Org-level admin access
+
+**How to Block 0.0.0.0/0 Permanently:**
+
+1. Go to: [MongoDB Atlas](https://cloud.mongodb.com/) → Organization Settings → **Resource Policies**
+2. Create a new policy:
+
+```json
+{
+  "name": "Policy Restricting Wildcard IP",
+  "policies": [
+    {
+      "body": "forbid(principal, action == ResourcePolicy::Action::\"project.ipAccessList.modify\", resource) when { context.project.ipAccessList.contains(ip(\"0.0.0.0/0\")) };"
+    }
+  ]
+}
+```
+
+**Format Explanation:**
+- MongoDB Atlas Resource Policies use **Cedar policy language** inside a JSON wrapper
+- Structure: `{"name": "...", "policies": [{"body": "..."}]}`  
+- The `body` contains Cedar syntax: `forbid(...) when {...}`
+- Source: [MongoDB Resource Policies Documentation](https://www.mongodb.com/docs/atlas/security/resource-policies/)
+
+**Key Details:**
+- **Scope:** Org-wide by default (applies to all projects)
+- **Required Role:** Organization Owner (to create/update policies)
+- **Action:** Blocks `project.ipAccessList.modify` when `0.0.0.0/0` is present
+
+3. Apply policy to organization
+4. Test: Try to add 0.0.0.0/0 → Should be blocked with policy violation error
+
+**Note:** This will also block workflows (like the Atlas ↔ Vercel integration) that try to auto-add 0.0.0.0/0. **That's usually a good thing in production.**
+
+**Alternative (All Plans):**
+- Document "No 0.0.0.0/0" policy in this file
+- Add pre-commit hook to check Atlas API for wildcard IPs
+- Regular security audits (quarterly)
+- Monitor Atlas audit logs for IP Access List changes
+
+**References:**
+- [MongoDB Resource Policies - Block Wildcard IP](https://www.mongodb.com/docs/atlas/security/resource-policies/#std-label-resource-policy-examples)
+- [Atlas Audit Logs](https://www.mongodb.com/docs/atlas/reference/api/auditing/)
+
+---
+
+### STEP 1: Remove Secret from Description Field (IMMEDIATE)
+
+**User:** `fixzitadmin`  
+**Issue:** Password/secret visible in Description field
+
+**Action:**
+1. Go to: [MongoDB Atlas](https://cloud.mongodb.com/) → Security → Database Access
+2. Find user: `fixzitadmin`
+3. Click **Edit** (pencil icon)
+4. **Clear** the Description field (remove all content)
+5. Click **Update User**
+
+**Why:** Description is visible to anyone with Atlas UI access. MongoDB stores it as non-encrypted metadata.
+
+**Verification:**
+```bash
+# After clearing, verify Description is empty in Atlas UI
+# User list should show: fixzitadmin | atlasAdmin | [blank description]
+```
+
+---
+
+### STEP 2: Rotate Compromised Password (IMMEDIATE)
+
+**User:** `fixzitadmin` (password was exposed in Description)
+
+**Action:**
+1. Atlas → Security → Database Access → Edit `fixzitadmin`
+2. Click **Edit Password**
+3. Click **Autogenerate Secure Password** (or use password manager)
+4. **Copy** the new password immediately
+5. Click **Update User**
+
+**Update Credentials:**
+```bash
+# .env.local (development)
+MONGODB_URI="mongodb+srv://fixzitadmin:NEW_PASSWORD_HERE@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit"
+
+# URL-encode special characters:
+# @ → %40
+# # → %23
+# / → %2F
+# : → %3A
+
+# Example with special chars:
+# Password: MyP@ss#123
+# Encoded: MyP%40ss%23123
+```
+
+**Store Securely:**
+- 1Password / LastPass / Bitwarden
+- Vercel Environment Variables (production)
+- Never commit to git
+
+**Verification:**
+```bash
+# Test connection with new password
+pnpm tsx scripts/check-superadmin.ts
+# Should output: ✅ Connected to database
+```
+
+---
+
+### STEP 3: Create Least-Privilege App Users (REQUIRED)
+
+**Current Issue:** Both DB users have `atlasAdmin@admin` (full cluster access)  
+**MongoDB Best Practice:** Unique users per app/environment + least privilege
+
+#### A) Development User
+
+**Action:**
+1. Atlas → Security → Database Access → **ADD NEW DATABASE USER**
+2. Authentication Method: **Password**
+3. Username: `fixzit-app-dev`
+4. Password: Click **Autogenerate Secure Password** → Copy
+5. Database User Privileges:
+   - Select **Built-in Role**
+   - Role: **readWrite**
+   - Database: **fixzit** (NOT admin)
+6. Restrict Access to Specific Clusters: (optional)
+   - Select your dev cluster only
+7. Click **Add User**
+
+**Update .env.local:**
+```bash
+MONGODB_URI="mongodb+srv://fixzit-app-dev:NEW_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit"
+```
+
+#### B) Production User
+
+**Action:**
+1. Atlas → Security → Database Access → **ADD NEW DATABASE USER**
+2. Username: `fixzit-app-prod`
+3. Password: Autogenerate → Store in Vercel
+4. Privileges: **readWrite** on database **fixzit**
+5. Click **Add User**
+
+**Update Vercel:**
+1. Vercel Dashboard → Project Settings → Environment Variables
+2. Update `MONGODB_URI` for Production environment
+3. Redeploy after updating
+
+#### C) Keep Admin User for Humans Only
+
+**Rename `EngSayh` user:**
+1. Atlas → Database Access → Edit `EngSayh`
+2. Rename to: `sultan-admin` (human identity, not app)
+3. Keep `atlasAdmin@admin` (for break-glass scenarios)
+4. **Never use in app connection strings**
+
+**Delete or Disable `fixzitadmin`:**
+1. After rotating password and creating least-privilege users
+2. Atlas → Database Access → Delete `fixzitadmin`
+3. OR: Change password again and document as "deprecated"
+
+---
+
+### STEP 4: Verify IP Access List (PRODUCTION SAFETY)
+
+**Check Current Configuration:**
+1. Atlas → Network Access → IP Access List
+2. Look for: `0.0.0.0/0` (CIDR) with comment "Allow access from anywhere"
+
+**If `0.0.0.0/0` exists:**
+- ⚠️ **Remove for production clusters**
+- ✅ **OK for development/testing** (but document)
+
+**Production Best Practice:**
+```
+Vercel IPs (production):
+- Add Vercel's static IP ranges
+- OR: Use Vercel integration (automatic IP management)
+
+Development:
+- Add your office/home IP
+- OR: Use VPN with known IP range
+```
+
+**Action:**
+1. Click **ADD IP ADDRESS**
+2. For Vercel:
+   - Use [Vercel IP Ranges](https://vercel.com/docs/concepts/edge-network/headers#x-forwarded-for)
+   - OR: Enable Vercel MongoDB Atlas Integration
+3. Remove `0.0.0.0/0` after adding specific IPs
+
+**Verification:**
+```bash
+# Test connection still works after IP restriction
+pnpm tsx scripts/check-superadmin.ts
+```
+
+---
+
+## 📋 Completion Checklist
+
+Execute in order and check off:
+
+- [ ] **STEP 1:** Cleared Description field for `fixzitadmin` user
+- [ ] **STEP 2:** Rotated `fixzitadmin` password + updated .env.local
+- [ ] **STEP 3A:** Created `fixzit-app-dev` user (readWrite@fixzit)
+- [ ] **STEP 3B:** Created `fixzit-app-prod` user (readWrite@fixzit) 
+- [ ] **STEP 3C:** Renamed `EngSayh` → `sultan-admin` (human admin only)
+- [ ] **STEP 3D:** Deleted or disabled `fixzitadmin` user
+- [ ] **STEP 4:** Verified IP Access List (no wildcard in production)
+- [ ] **VERIFY:** Ran `pnpm tsx scripts/check-superadmin.ts` successfully
+- [ ] **VERIFY:** App connects with least-privilege user
+- [ ] **VERIFY:** Updated Vercel production env vars
+
+---
+
+## 🔐 Final Verification Commands
+
+```bash
+# 1. Test local connection
+pnpm tsx scripts/check-superadmin.ts
+# Expected: ✅ Connected to database (using least-privilege user)
+
+# 2. Import backlog (no auth required)
+pnpm tsx scripts/import-backlog.ts
+# Expected: Created: X, Updated: Y, Errors: 0
+
+# 3. Verify production (Vercel)
+# Deploy and check logs for MongoDB connection success
+```
+
+---
+
+## ✅ Final Verification Checklist
+
+**After completing all steps, verify this checklist:**
+
+### Network Security
+- [ ] `0.0.0.0/0` DELETED from Network Access (or documented exception with compensating controls)
+- [ ] Vercel Static IPs added (if using Option A)
+- [ ] Office/VPN IPs added (optional)
+- [ ] Test connection from Vercel: ✅ Success
+- [ ] Test connection from unauthorized IP: ❌ Connection refused (expected)
+
+### Database Users
+- [ ] `fixzitadmin` Description field is BLANK (no secrets visible)
+- [ ] `fixzitadmin` password rotated (new 64+ char password)
+- [ ] `fixzit-app-dev` created with readWrite@fixzit only
+- [ ] `fixzit-app-prod` created with readWrite@fixzit only
+- [ ] `.env.local` updated with new dev credentials
+- [ ] Vercel env vars updated with new prod credentials
+- [ ] Old credentials stored in password manager (for rollback)
+
+### User Privileges
+- [ ] `EngSayh` (or `sultan-admin`) keeps atlasAdmin (human break-glass only)
+- [ ] `fixzit-app-dev` has readWrite@fixzit ONLY (no atlasAdmin)
+- [ ] `fixzit-app-prod` has readWrite@fixzit ONLY (no atlasAdmin)
+- [ ] `fixzitadmin` user DELETED (after creating replacements)
+
+### Application Testing
+- [ ] Dev environment connects with `fixzit-app-dev`
+- [ ] Production Vercel connects with `fixzit-app-prod`
+- [ ] SSOT import works: `pnpm tsx scripts/import-backlog.ts --confirm`
+- [ ] No console errors related to MongoDB connection
+- [ ] Tenant scope queries working (org_id filtering)
+
+### Secrets Management
+- [ ] `.env.local` is gitignored AND not tracked in git (see verification commands below)
+- [ ] `.artifacts/` is gitignored AND not tracked in git
+- [ ] No plaintext passwords in code/comments/docs
+- [ ] All passwords stored in password manager
+- [ ] Vercel environment variables set correctly
+- [ ] GitHub Actions secrets updated (if applicable)
+
+**Verification Commands:**
+```bash
+# Check .env.local is ignored AND not tracked
+git check-ignore -v .env.local
+# Expected: .gitignore:23:.env.*    .env.local
+
+git ls-files --error-unmatch .env.local >/dev/null 2>&1 && echo "❌ .env.local is tracked (BAD)" || echo "✅ .env.local not tracked"
+# Expected: ✅ .env.local not tracked
+
+# Check .artifacts/ is ignored AND not tracked
+git check-ignore -v .artifacts/import-report.json
+# Expected: .gitignore:117:.artifacts/
+
+git ls-files --error-unmatch .artifacts/import-report.json >/dev/null 2>&1 && echo "❌ import-report.json is tracked (BAD)" || echo "✅ import-report.json not tracked"
+# Expected: ✅ import-report.json not tracked
+```
+
+---
+
+## 🎯 What Good Security Looks Like
+
+**Atlas Network Access page should show:**
+```
+IP Address List:
+✅ 192.0.2.1/32     (Vercel Production - Static IP 1)
+✅ 192.0.2.2/32     (Vercel Production - Static IP 2)
+✅ 203.0.113.5/32   (Office - Riyadh)
+❌ 0.0.0.0/0        (DELETED - no longer present)
+```
+
+**Atlas Database Access page should show:**
+```
+Database Users:
+✅ sultan-admin      | atlasAdmin@admin       | [blank]
+✅ fixzit-app-dev    | readWrite@fixzit       | Dev environment
+✅ fixzit-app-prod   | readWrite@fixzit       | Production (Vercel)
+❌ fixzitadmin       (DELETED - was compromised)
+```
+
+**Local .env.local should contain:**
+```bash
+# Development (least-privilege user)
+MONGODB_URI="mongodb+srv://fixzit-app-dev:NEW_DEV_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit"
+```
+
+**Vercel Production Environment Variables:**
+```bash
+# Production (least-privilege user + Static IP source)
+MONGODB_URI=mongodb+srv://fixzit-app-prod:NEW_PROD_PASSWORD@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
+```
+
+**Connection Test Output:**
+```bash
+$ pnpm tsx scripts/verify-import.ts
+🔌 Connecting to MongoDB...
+   URI: mongodb+srv://fixzit-app-dev:*****@fixzit.vgfiiff.mongodb.net/fixzit
+✅ Connected
+📊 Total Issues: 12
+```
+
+---
+
+## 🚨 What to Do If Something Breaks
+
+### Connection refused after removing 0.0.0.0/0
+**Cause:** Your current IP is not in the Atlas allowlist  
+**Fix:** Add your IP to Network Access (temporary for debugging)
+
+### "Authentication failed" errors
+**Cause:** Wrong username/password or user doesn't exist  
+**Fix:** 
+1. Verify username spelling in MONGODB_URI
+2. Check password is URL-encoded correctly
+3. Verify user exists in Atlas Database Access
+4. Try regenerating password
+
+### Vercel deployment fails to connect
+**Cause:** Vercel Static IPs not added to Atlas  
+**Fix:**
+1. Verify Static IPs are enabled in Vercel Team Settings
+2. Copy exact IP addresses from Vercel
+3. Add each IP to Atlas Network Access as /32
+4. Redeploy Vercel app
+
+### SSOT import fails with "permission denied"
+**Cause:** Dev user doesn't have write access to fixzit database  
+**Fix:**
+1. Check user has readWrite role (not read-only)
+2. Check role is scoped to fixzit database (not admin)
+3. Try with atlasAdmin user temporarily to isolate issue
+
+---
+
+## 📚 References
+
+- [MongoDB Security Checklist](https://www.mongodb.com/docs/manual/administration/security-checklist/)
+- [Atlas Database User Privileges](https://www.mongodb.com/docs/atlas/security-add-mongodb-users/)
+- [Atlas Network Access](https://www.mongodb.com/docs/atlas/security/ip-access-list/)
+- [Vercel Static IPs](https://vercel.com/docs/security/static-ip)
+- [Vercel MongoDB Integration](https://vercel.com/integrations/mongodbatlas)
+- [Atlas Resource Policies](https://www.mongodb.com/docs/atlas/security/resource-policies/)
+- [Connection String URL Encoding](https://www.mongodb.com/docs/manual/reference/connection-string/#components)

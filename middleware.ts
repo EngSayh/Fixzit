@@ -634,8 +634,28 @@ export async function middleware(request: NextRequest) {
   }
 
   // Optional org requirement for FM
-  if (REQUIRE_ORG_ID_FOR_FM && matchesAnyRoute(pathname, fmRoutes) && !user.orgId) {
-    return NextResponse.redirect(new URL('/login', sanitizedRequest.url));
+  if (matchesAnyRoute(pathname, fmRoutes)) {
+    // 🔒 PORTAL SEPARATION ESCAPE HATCH: Superadmin should never access /fm/* routes
+    // Redirect to superadmin area instead of creating a login loop
+    if (user.isSuperAdmin) {
+      logger.warn('[Middleware] Superadmin attempted /fm/* access - redirecting to /superadmin/issues', {
+        pathname,
+        userId: user.id,
+        clientIp,
+      });
+      return NextResponse.redirect(new URL('/superadmin/issues', sanitizedRequest.url));
+    }
+    
+    // Normal users require orgId for FM routes
+    if (REQUIRE_ORG_ID_FOR_FM && !user.orgId) {
+      logger.warn('[Middleware] User missing orgId for FM route - redirecting to login', {
+        pathname,
+        userId: user.id,
+        role: user.role,
+        clientIp,
+      });
+      return NextResponse.redirect(new URL('/login', sanitizedRequest.url));
+    }
   }
 
   // Attach x-user headers for FM and protected marketplace actions

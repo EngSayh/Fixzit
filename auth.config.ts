@@ -542,6 +542,18 @@ export const authConfig = {
 
           // 7.5. ✅ FIX: Validate orgId for non-superadmin users (tenant isolation)
           const isSuperAdmin = Boolean((user as { isSuperAdmin?: boolean }).isSuperAdmin);
+          
+          // 🔒 PORTAL SEPARATION FIX: Block superadmin from using normal user login
+          // Superadmin MUST use /superadmin/login to avoid middleware orgId conflicts
+          // This prevents the "logged in successfully but stuck" experience
+          if (isSuperAdmin) {
+            logger.warn('[NextAuth] Superadmin attempted normal portal login - rejected', {
+              loginIdentifier: redactIdentifier(loginIdentifier),
+              userId: user._id.toString(),
+            });
+            throw new Error('SUPERADMIN_WRONG_PORTAL');
+          }
+          
           if (!user.orgId && !isSuperAdmin) {
             logger.error('[NextAuth] Credentials login rejected: Missing orgId for non-superadmin user', { 
               loginIdentifier: redactIdentifier(loginIdentifier),

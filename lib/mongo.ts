@@ -215,15 +215,40 @@ if (shouldConnect) {
       validateMongoUri(connectionUri);
       assertNotLocalhostInProd(connectionUri);
       assertAtlasUriInProd(connectionUri);
+      
+      // Second enforcement point: Run env guards before DB connection
+      // (Primary enforcement is in instrumentation-node.ts)
+      if (process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview') {
+        try {
+          const { validateProductionEnv } = await import('@/lib/config/env-guards');
+          const guardResult = validateProductionEnv({ throwOnError: false });
+          if (!guardResult.passed) {
+            logger.error('[Mongo] Environment guards failed before DB connection', {
+              errors: guardResult.errors,
+              environment: guardResult.environment,
+            });
+            throw new Error('Environment validation failed: Cannot connect to database with unsafe configuration');
+          }
+        } catch (guardError) {
+          logger.error('[Mongo] Env guard check failed', {
+            error: guardError instanceof Error ? guardError.message : String(guardError),
+          });
+          throw guardError;
+        }
+      }
 
       const isSrvUri = connectionUri.includes("mongodb+srv://");
       const hasExplicitTlsParam =
         connectionUri.includes("tls=true") || connectionUri.includes("ssl=true");
+      const isLocalhost = connectionUri.includes("127.0.0.1") || 
+                         connectionUri.includes("localhost");
       // For non-SRV URIs, enforce TLS by default unless explicitly disabled via local allowances.
       // For SRV URIs (Atlas), TLS is handled automatically by the driver - don't override.
+      // For localhost, never enforce TLS (local MongoDB typically doesn't have SSL configured)
       const enforceTls =
         !isSrvUri &&
         !hasExplicitTlsParam &&
+        !isLocalhost &&
         !getAllowLocalMongo() &&
         !getDisableMongoForBuild();
 

@@ -2,6 +2,54 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-14 20:15 (Asia/Riyadh) — MongoDB Local Connection Fix + SSOT Sync
+**Context:** main (uncommitted) | PR #553 ready  
+**DB Sync:** ⏳ PENDING (server offline - will sync when started)
+
+**✅ Resolved Today (DB SSOT):**
+- BUG-012 — MongoDB localhost SSL enforcement breaks local development (files: lib/mongo.ts)
+  - Root cause: TLS was enforced for all non-SRV URIs including localhost
+  - Fix: Added isLocalhost detection to skip TLS for 127.0.0.1/localhost
+  - Impact: Local MongoDB connections now work without SSL configuration
+  - Verification: ✅ check-superadmin.ts script now connects successfully (found 3 SuperAdmin accounts)
+
+**🟠 In Progress:**
+- None
+
+**🔴 Blocked:**
+- MongoDB Issue Tracker sync — blocker: dev server offline (POST /api/issues/import unavailable)
+- Will sync BACKLOG_AUDIT.json (12 items: 11 pending + 1 resolved today) when server starts
+
+**🆕 New Findings Added to Audit (with evidence):**
+- BUG-012 — MongoDB localhost SSL enforcement (lib/mongo.ts:219-232) [RESOLVED]
+
+**📊 Backlog Status:**
+- Total: 12 items (11 pending + 1 resolved today)
+- Pending by priority: P0=1, P1=2, P2=4, P3=5
+- Pending by category: security=2, bug=2, efficiency=2, missing_tests=5
+
+**Next Steps (when API available):**
+1. Start dev server: `pnpm dev`
+2. Import to MongoDB: `POST /api/issues/import` with docs/BACKLOG_AUDIT.json
+3. Verify: `GET /api/issues/stats` (expect 11 created/updated + 1 resolved)
+4. Continue P1 work: SEC-002 (tenant audit), BUG-001 (process.env migration)
+
+**🔧 Technical Changes:**
+```diff
+lib/mongo.ts:219-232
++ const isLocalhost = connectionUri.includes("127.0.0.1") || 
++                    connectionUri.includes("localhost");
++ // For localhost, never enforce TLS (local MongoDB typically doesn't have SSL configured)
+  const enforceTls =
+    !isSrvUri &&
+    !hasExplicitTlsParam &&
++   !isLocalhost &&
+    !getAllowLocalMongo() &&
+    !getDisableMongoForBuild();
+```
+
+---
+
 ### 2025-12-14 00:45 (Asia/Riyadh) — Code Review Update
 **Context:** main | b132ccca1 | no PR  
 **DB Sync:** created=0, updated=0, skipped=0, errors=1 (curl localhost:3000/api/issues/import → connection refused)

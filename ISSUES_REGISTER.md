@@ -2389,8 +2389,8 @@ Multiple TypeScript errors across scripts and test files preventing clean builds
 - `qa/tests/auth-flows.spec.ts`: Fixed TEST_USER.password type narrowing
 - `tests/copilot/copilot.spec.ts`: Added required `salt` parameter to encodeJwt
 - `scripts/auth-debug.ts`: Use Object.defineProperty for NODE_ENV
-- `scripts/fix-superadmin-login.ts`: Changed @/ imports to relative paths, added type assertions
-- `scripts/quick-fix-superadmin.ts`: Changed @/ imports to relative paths
+- `scripts/fix-superadmin-login.ts` (DELETED - obsolete, auth is env-based)
+- `scripts/quick-fix-superadmin.ts` (DELETED - obsolete, auth is env-based)
 - `scripts/validate-notification-env.ts`: Changed @/ import to dotenv
 - `scripts/seed-e2e-test-users.ts`: Fixed emailVerified property access
 
@@ -2409,7 +2409,7 @@ All TypeScript errors in affected files resolved. Main typecheck passes cleanly.
 Demo/seed scripts were logging actual password values to stdout. In CI or shared logs, this leaks demo/superadmin credentials.
 
 **Files Fixed**:
-- `scripts/quick-fix-superadmin.ts`: Changed password log to `[use DEMO_SUPERADMIN_PASSWORD env value]`
+- `scripts/quick-fix-superadmin.ts` (DELETED - script obsolete, auth is env-based)
 - `scripts/create-demo-users.ts`: Changed password logs to `[DEMO_*_PASSWORD]` placeholders
 - `scripts/seed-demo-users.ts`: Changed password logs to `[DEMO_*_PASSWORD]` placeholders
 

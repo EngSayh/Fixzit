@@ -25,6 +25,43 @@ export async function registerNode(): Promise<void> {
     !isPlaywright;
 
   try {
+    // Run production environment safety guards (blocks OTP bypass, localhost MongoDB in prod)
+    try {
+      const { validateProductionEnv } = await import("@/lib/config/env-guards");
+      const guardResult = validateProductionEnv({ throwOnError: false });
+      
+      // 🔒 SECURITY: Enforce safety guards in BOTH production AND preview
+      const isEnforcedEnv = guardResult.environment === 'production' || guardResult.environment === 'preview';
+      
+      if (!guardResult.passed && isEnforcedEnv) {
+        logger.error("[Instrumentation] Environment safety guards failed", {
+          errors: guardResult.errors,
+          environment: guardResult.environment,
+        });
+        // Fail startup in production/preview with safety violations
+        throw new Error(`${guardResult.environment} environment safety guards failed; see logs for details`);
+      }
+      
+      if (guardResult.warnings.length > 0) {
+        logger.warn("[Instrumentation] Environment warnings", {
+          warnings: guardResult.warnings,
+        });
+      }
+    } catch (guardError) {
+      logger.error("[Instrumentation] Env guard check failed", {
+        error: guardError instanceof Error ? guardError.message : String(guardError),
+      });
+      // 🔒 SECURITY: Re-throw to stop startup in production OR preview
+      const isEnforcedEnv = 
+        process.env.NODE_ENV === "production" || 
+        process.env.VERCEL_ENV === "production" ||
+        process.env.VERCEL_ENV === "preview";
+      
+      if (isEnforcedEnv) {
+        throw guardError;
+      }
+    }
+
     // Validate environment variables
     const { validateAllEnv } = await import("@/lib/env-validation");
     const envResult = validateAllEnv({ strict: strictValidation });

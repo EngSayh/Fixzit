@@ -335,6 +335,13 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
         });
 
         if (result?.error) {
+          // 🔒 PORTAL SEPARATION FIX: Auto-redirect superadmin to correct portal
+          if (result.error === 'SUPERADMIN_WRONG_PORTAL') {
+            // Silent redirect (no console log to avoid exposing superadmin path in production)
+            router.replace('/superadmin/login');
+            return;
+          }
+          
           if (result.error === 'EMAIL_NOT_VERIFIED') {
             setPendingVerificationEmail(identifier);
             setErrors({
@@ -466,6 +473,13 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
       });
 
         if (result?.error) {
+          // 🔒 PORTAL SEPARATION FIX: Auto-redirect superadmin to correct portal
+          if (result.error === 'SUPERADMIN_WRONG_PORTAL') {
+            // Silent redirect (no console log to avoid exposing superadmin path in production)
+            router.replace('/superadmin/login');
+            return;
+          }
+          
           if (result.error === 'EMAIL_NOT_VERIFIED') {
             setPendingVerificationEmail(identifier);
             setErrors({
