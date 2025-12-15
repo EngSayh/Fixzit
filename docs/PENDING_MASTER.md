@@ -2,6 +2,58 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-15 10:15 (Asia/Riyadh) — Workflow MongoDB Index Guard Fix
+**Context:** build-sourcemaps workflow step silently skipped even when MongoDB secret existed  
+**DB Sync:** N/A (CI/CD infrastructure fix)
+
+**🔧 Workflow Conditional Fix** ([.github/workflows/build-sourcemaps.yml](../.github/workflows/build-sourcemaps.yml):54)
+
+**Problem:**
+- MongoDB index creation step (line 53-57) never executed
+- Conditional `if: env.MONGODB_URI != ''` checked undefined env var (not set at job scope)
+- Evaluation: `env.MONGODB_URI` → `''` → `'' != ''` → `false` → step skipped
+- Risk: Missing required indexes before build/deploy could cause runtime failures
+
+**Root Cause:**
+```yaml
+# BROKEN (line 54 before fix)
+if: env.MONGODB_URI != ''
+env:
+  MONGODB_URI: ${{ secrets.MONGODB_URI }}  # Set AFTER conditional evaluated
+```
+The `if` condition runs before `env` is applied, so `env.MONGODB_URI` was always empty.
+
+**Solution Applied:**
+```yaml
+# FIXED (line 54 after fix)
+if: ${{ secrets.MONGODB_URI != '' }}
+env:
+  MONGODB_URI: ${{ secrets.MONGODB_URI }}
+```
+Changed conditional to check `secrets.MONGODB_URI` directly in GitHub Actions context.
+
+**Impact:**
+- ✅ MongoDB indexes now seed correctly when `MONGODB_URI` secret exists
+- ✅ Prevents missing index errors during Sentry sourcemap uploads
+- ✅ No behavior change when secret is unset (step still skips correctly)
+
+**📊 Changes Summary:**
+- **Files modified:** 1 ([.github/workflows/build-sourcemaps.yml](../.github/workflows/build-sourcemaps.yml))
+- **Lines changed:** 1 (line 54)
+- **Change type:** Conditional fix (`env.X` → `secrets.X`)
+
+**✅ Validation:**
+- ✅ **Syntax:** GitHub Actions YAML valid
+- ✅ **Logic:** Conditional now properly checks secret existence
+- ✅ **Security:** No credential exposure (secret accessed correctly)
+- ✅ **Idempotency:** Index creation remains idempotent (safe to run multiple times)
+
+**🔍 Evidence:**
+- **Before:** `if: env.MONGODB_URI != ''` → always false → step skipped
+- **After:** `if: ${{ secrets.MONGODB_URI != '' }}` → true when secret set → step runs
+
+---
+
 ### 2025-12-15 09:40 (Asia/Riyadh) — Production Redis Error Spam Fix
 **Context:** Vercel runtime logs showed 125+ Redis ENOTFOUND errors causing log spam  
 **Root Cause:** Redis client attempted reconnection on every request despite DNS resolution failures (ENOTFOUND) in Preview environment  

@@ -102,7 +102,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const token = await signSuperadminToken(username);
+    let token: string;
+    try {
+      token = await signSuperadminToken(username);
+    } catch (tokenError) {
+      // Handle missing org id configuration
+      logger.error("[SUPERADMIN] Token signing failed", tokenError instanceof Error ? tokenError : new Error(String(tokenError)));
+      return NextResponse.json(
+        { 
+          error: "Server configuration error. Please contact system administrator.", 
+          details: tokenError instanceof Error ? tokenError.message : "Token generation failed"
+        },
+        { status: 500, headers: ROBOTS_HEADER }
+      );
+    }
+
     const response = NextResponse.json(
       {
         success: true,
