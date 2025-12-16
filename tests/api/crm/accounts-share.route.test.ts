@@ -212,7 +212,7 @@ describe("API /api/crm/accounts/share", () => {
       const rateLimitResponse = Response.json(
         { error: "Rate limit exceeded" }, 
         { status: 429 }
-      );
+      ) as any; // Cast to satisfy NextResponse type
       vi.mocked(enforceRateLimit).mockReturnValueOnce(rateLimitResponse);
 
       const req = new NextRequest("http://localhost:3000/api/crm/accounts/share", {
