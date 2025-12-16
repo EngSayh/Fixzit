@@ -218,6 +218,7 @@ export async function POST(req: NextRequest) {
     const probability = payload.type === "ACCOUNT" ? 0.85 : 0.3;
     const stage = payload.type === "ACCOUNT" ? "CUSTOMER" : "QUALIFYING";
     const lead = await CrmLead.create({
+      orgId: user.orgId, // 🔒 TENANT SCOPE: Persist org isolation on writes
       kind: payload.type,
       contactName: payload.contact,
       company: payload.company.trim(),

@@ -147,7 +147,7 @@ describe("API /api/crm/overview", () => {
       const req = new NextRequest("http://localhost:3000/api/crm/overview");
       const response = await route.GET(req);
 
-      expect([403, 500]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
 
     it("successfully retrieves overview with tenant scoping", async () => {

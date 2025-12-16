@@ -82,6 +82,9 @@ describe("API /api/hr/employees", () => {
       limit: 25,
     });
     vi.mocked(EmployeeService.getByCode).mockResolvedValue(null);
+    vi.mocked(EmployeeService.upsert).mockResolvedValue({
+      employeeCode: "EMP-001",
+    } as never);
   });
 
   describe("GET - List Employees", () => {
@@ -165,25 +168,27 @@ describe("API /api/hr/employees", () => {
       const mockEmployees = [
         {
           _id: "emp_001",
-          name: "John Doe",
+          firstName: "John",
+          lastName: "Doe",
           email: "john@example.com",
           department: "Engineering",
-          status: "ACTIVE",
+          employmentStatus: "ACTIVE",
         },
         {
           _id: "emp_002",
-          name: "Jane Smith",
+          firstName: "Jane",
+          lastName: "Smith",
           email: "jane@example.com",
           department: "HR",
-          status: "ACTIVE",
+          employmentStatus: "ACTIVE",
         },
       ];
 
-      vi.mocked(EmployeeService.list).mockResolvedValue({
-        employees: mockEmployees,
+      vi.mocked(EmployeeService.searchWithPagination).mockResolvedValue({
+        items: mockEmployees,
         total: 2,
         page: 1,
-        pages: 1,
+        limit: 25,
       } as never);
 
       const req = new NextRequest("http://localhost:3000/api/hr/employees");
@@ -192,11 +197,12 @@ describe("API /api/hr/employees", () => {
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data.employees).toHaveLength(2);
-      expect(data.total).toBe(2);
+      expect(data.pagination.total).toBe(2);
 
       // Verify tenant scoping was enforced
-      expect(EmployeeService.list).toHaveBeenCalledWith(
-        expect.objectContaining({ orgId: mockOrgId })
+      expect(EmployeeService.searchWithPagination).toHaveBeenCalledWith(
+        expect.objectContaining({ orgId: mockOrgId }),
+        expect.any(Object)
       );
     });
 
@@ -207,11 +213,11 @@ describe("API /api/hr/employees", () => {
         return;
       }
 
-      vi.mocked(EmployeeService.list).mockResolvedValue({
-        employees: [],
+      vi.mocked(EmployeeService.searchWithPagination).mockResolvedValue({
+        items: [],
         total: 50,
         page: 2,
-        pages: 5,
+        limit: 10,
       } as never);
 
       const req = new NextRequest(
@@ -220,7 +226,8 @@ describe("API /api/hr/employees", () => {
       const response = await route.GET(req);
 
       expect(response.status).toBe(200);
-      expect(EmployeeService.list).toHaveBeenCalledWith(
+      expect(EmployeeService.searchWithPagination).toHaveBeenCalledWith(
+        expect.objectContaining({ orgId: mockOrgId }),
         expect.objectContaining({ page: 2, limit: 10 })
       );
     });
@@ -232,11 +239,11 @@ describe("API /api/hr/employees", () => {
         return;
       }
 
-      vi.mocked(EmployeeService.list).mockResolvedValue({
-        employees: [],
+      vi.mocked(EmployeeService.searchWithPagination).mockResolvedValue({
+        items: [],
         total: 0,
         page: 1,
-        pages: 0,
+        limit: 25,
       } as never);
 
       const req = new NextRequest(
@@ -245,8 +252,9 @@ describe("API /api/hr/employees", () => {
       const response = await route.GET(req);
 
       expect(response.status).toBe(200);
-      expect(EmployeeService.list).toHaveBeenCalledWith(
-        expect.objectContaining({ status: "INACTIVE" })
+      expect(EmployeeService.searchWithPagination).toHaveBeenCalledWith(
+        expect.objectContaining({ employmentStatus: "INACTIVE" }),
+        expect.any(Object)
       );
     });
   });

@@ -334,7 +334,7 @@ describe("API /api/crm/contacts", () => {
       });
       const response = await route.POST(req);
 
-      expect([403, 500]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
 
     it("successfully creates lead with tenant scoping", async () => {

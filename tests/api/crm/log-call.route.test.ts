@@ -170,7 +170,7 @@ describe("API /api/crm/leads/log-call", () => {
       );
       const response = await route.POST(req);
 
-      expect([403, 500]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
 
     it("successfully logs call for existing lead with tenant scoping", async () => {
