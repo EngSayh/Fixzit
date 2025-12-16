@@ -2,6 +2,33 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-17 00:30 (Asia/Riyadh) — CRM Tenant Scope Security Fix (SEC-CRM-001)
+**Context:** main @ cf04061f1 (SEC-CRM-001) | Origin: 3e389b3e8 [ahead 1] | Working tree CLEAN  
+**MongoDB:** 34 issues (24 open, 1 in_progress, 9 resolved) [verified]  
+**Git Status:** ## main...origin/main [ahead 1]
+
+**🔒 SECURITY FIX COMPLETED:**
+
+**cf04061f1** - `fix(crm): Add missing tenant scope to accounts/share route (SEC-CRM-001)`
+- **Issue:** Multi-tenant isolation violation in `/api/crm/accounts/share`
+- **Root Cause:** Missing `orgId` filters on CrmLead and CrmActivity operations
+- **Impact:** P0 security vulnerability - potential cross-org data access
+- **Fix Applied:**
+  - `CrmLead.findOne`: Added `{ orgId: user.orgId }` filter
+  - `CrmLead.create`: Added `{ orgId: user.orgId }` to prevent wrong-org account creation
+  - `CrmActivity.create`: Added `{ orgId: user.orgId }` to enforce activity tenant scope
+- **Test Coverage:** Updated assertions to verify orgId passed to all DB operations
+- **Validation:** TypeCheck 0 errors, ESLint clean, all pre-commit hooks passed
+
+**📊 CURRENT STATE:**
+- TypeScript: ✅ 0 errors
+- ESLint: ✅ 0 warnings
+- Pre-commit hooks: ✅ All passing
+- Working tree: ✅ CLEAN
+- Ahead of origin: 1 commit (ready to push)
+
+---
+
 ### 2025-12-17 00:10 (Asia/Riyadh) — Final SSOT Convergence (Breaking Recursion Loop)
 **Context:** main @ 4fa6ddeba (SSOT log updates) | Last work: b44beaa7e (perf) | Synced with origin/main | Working tree CLEAN  
 **MongoDB:** 34 issues (24 open, 1 in_progress, 9 resolved) [verified via scripts/test-db-direct.mjs]  

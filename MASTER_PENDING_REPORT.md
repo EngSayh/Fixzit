@@ -5,10 +5,11 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-17T00:10:00+03:00 (Asia/Riyadh)  
+**Last Updated:** 2025-12-17T00:30:00+03:00 (Asia/Riyadh)  
 **Scanner Version:** v2.9  
 **Branch:** main  
-**Commit:** 4fa6ddeba (SSOT log updates) | Last work: b44beaa7e (perf)  
+**Commit:** cf04061f1 (CRM tenant scope fix) | Origin: 3e389b3e8 [ahead 1]  
+**Last Work:** cf04061f1 (SEC-CRM-001 security fix)  
 **MongoDB Status:** 34 issues (24 open, 1 in_progress, 9 resolved)  
 **Working Tree:** CLEAN (0 uncommitted changes)
 
