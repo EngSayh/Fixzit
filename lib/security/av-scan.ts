@@ -1,8 +1,19 @@
 /**
- * Lightweight AV scan client for S3 objects.
- * Expects an external scanning service at AV_SCAN_ENDPOINT that accepts:
- *   POST { bucket: string, key: string }
- * and returns { clean: boolean }.
+ * Antivirus Scan Client for S3 Objects
+ * 
+ * Lightweight client for external AV scanning service.
+ * Validates uploaded files for malware before processing.
+ * 
+ * @module lib/security/av-scan
+ * 
+ * Configuration:
+ * - AV_SCAN_ENDPOINT: External scanner service URL
+ * - AWS_S3_BUCKET: S3 bucket containing files to scan
+ * 
+ * Protocol:
+ * - POST to scanner with { bucket, key }
+ * - Expects response { clean: boolean }
+ * - Defaults to clean if scanner not configured
  */
 export async function scanS3Object(
   key: string,

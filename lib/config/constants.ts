@@ -1,12 +1,18 @@
 /**
  * Centralized Configuration Constants
  *
- * Single source of truth for all environment variables
- * Provides type-safe access with runtime validation
- * Replaces direct process.env.* access throughout the codebase
+ * Single source of truth for all environment variables.
+ * Provides type-safe access with runtime validation.
+ * Replaces direct process.env.* access throughout the codebase.
  *
- * SECURITY: All env vars are validated at module load time
- * Missing required vars in production will throw errors immediately
+ * @module lib/config/constants
+ *
+ * SECURITY: All env vars are validated at module load time.
+ * Missing required vars in production will throw errors immediately.
+ *
+ * @example
+ * import { Config } from '@/lib/config/constants';
+ * const dbUri = Config.MONGODB_URI;
  */
 
 import { createHash } from "crypto";

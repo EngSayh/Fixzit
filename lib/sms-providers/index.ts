@@ -2,9 +2,15 @@
  * SMS Provider Factory
  *
  * Factory for creating SMS providers based on configuration.
+ * Fixzit uses Taqnyat as the ONLY production SMS provider
+ * (CITC-compliant for Saudi Arabia market).
  * 
- * NOTE: Fixzit uses Taqnyat as the ONLY production SMS provider
- * (CITC-compliant for Saudi Arabia market). Other providers have been removed.
+ * @module lib/sms-providers/index
+ * 
+ * @example
+ * import { createSMSProvider } from '@/lib/sms-providers';
+ * const sms = createSMSProvider('taqnyat');
+ * await sms.send('+966501234567', 'Your code: 123456');
  */
 
 import { logger } from "@/lib/logger";

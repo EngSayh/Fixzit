@@ -1,3 +1,16 @@
+/**
+ * Email Verification Token Utilities
+ * 
+ * Generates and validates HMAC-signed tokens for email verification.
+ * Tokens are stateless (no database storage) with 24-hour expiry.
+ * 
+ * @module lib/auth/emailVerification
+ * 
+ * Security:
+ * - HMAC-SHA256 signature prevents tampering
+ * - 24-hour expiry window
+ * - Base64url encoding for URL safety
+ */
 import crypto from "crypto";
 
 const TOKEN_TTL_MS = 1000 * 60 * 60 * 24; // 24 hours

@@ -1,3 +1,22 @@
+/**
+ * Rate Limiting Middleware
+ * 
+ * Provides adaptive rate limiting with IP reputation scoring.
+ * Protects API endpoints from abuse and DDoS attacks.
+ * 
+ * @module lib/middleware/rate-limit
+ * 
+ * Features:
+ * - Configurable request limits per time window
+ * - IP-based tracking with reputation system
+ * - Automatic limit adjustment based on IP score
+ * - Security event logging for rate limit violations
+ * 
+ * @example
+ * import { enforceRateLimit } from '@/lib/middleware/rate-limit';
+ * const response = enforceRateLimit(request, { keyPrefix: 'api:auth', requests: 10 });
+ * if (response) return response; // 429 Too Many Requests
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";

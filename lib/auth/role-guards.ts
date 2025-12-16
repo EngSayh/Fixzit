@@ -1,3 +1,16 @@
+/**
+ * Role-Based Access Control (RBAC) Guards
+ * 
+ * Provides role checking utilities for authorization and permission enforcement.
+ * Supports role normalization, effective role resolution (with subRole),
+ * and boolean guard functions for common permission patterns.
+ * 
+ * @module lib/auth/role-guards
+ * 
+ * @example
+ * import { hasRole, isAdmin, isSuperAdmin } from '@/lib/auth/role-guards';
+ * if (hasRole('ADMIN')(session.user.role)) { ... }
+ */
 import { UserRole, type UserRoleType } from "@/types/user";
 import { normalizeRole as normalizeFmRole } from "@/domain/fm/fm.behavior";
 

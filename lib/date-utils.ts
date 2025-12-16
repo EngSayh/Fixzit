@@ -1,3 +1,16 @@
+/**
+ * Date Formatting and Manipulation Utilities
+ * 
+ * Provides consistent date/time formatting across the application.
+ * Supports locale-aware formatting, timezone handling, and relative dates.
+ * 
+ * @module lib/date-utils
+ * 
+ * @example
+ * import { formatDate, formatRelativeDate } from '@/lib/date-utils';
+ * formatDate(new Date(), 'en'); // "Jan 15, 2025"
+ * formatRelativeDate(yesterday); // "1 day ago"
+ */
 import { formatCurrency as formatCurrencyDisplay } from "@/lib/currency-formatter";
 
 export type DateInput = Date | number | string | null | undefined;

@@ -1,4 +1,15 @@
-// Unified currency formatting utilities for consistent multi-currency handling
+/**
+ * Unified Currency Utilities
+ * 
+ * Provides consistent multi-currency handling, formatting, and parsing
+ * for payment flows. Supports SAR, USD, EUR, AED with locale-aware formatting.
+ * 
+ * @module lib/payments/currencyUtils
+ * 
+ * @example
+ * import { formatCurrency, parseCurrency } from '@/lib/payments/currencyUtils';
+ * const formatted = formatCurrency(1000, 'SAR'); // "1,000.00 ر.س"
+ */
 import { CURRENCY_MAP, DEFAULT_CURRENCY, type CurrencyCode } from "@/config/currencies";
 import {
   formatCurrency as formatDisplayCurrency,

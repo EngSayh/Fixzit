@@ -1,3 +1,17 @@
+/**
+ * Password Reset Token Utilities
+ * 
+ * Generates and validates HMAC-signed tokens for password reset flows.
+ * Tokens include random component to prevent reuse across multiple reset requests.
+ * 
+ * @module lib/auth/passwordReset
+ * 
+ * Security:
+ * - HMAC-SHA256 signature prevents tampering
+ * - 1-hour expiry (shorter than email verification)
+ * - Random nonce prevents token reuse
+ * - Stateless validation (no database lookup)
+ */
 import crypto from "crypto";
 
 const TOKEN_TTL_MS = 1000 * 60 * 60; // 1 hour (shorter than verification for security)

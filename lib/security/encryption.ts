@@ -4,6 +4,8 @@
  * Provides AES-256-GCM encryption for sensitive PII fields.
  * Uses environment-based encryption keys with key rotation support.
  * 
+ * @module lib/security/encryption
+ * 
  * SECURITY:
  * - AES-256-GCM authenticated encryption (NIST recommended)
  * - Unique IV (initialization vector) per encryption operation
