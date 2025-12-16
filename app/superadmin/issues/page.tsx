@@ -183,7 +183,7 @@ export default function SuperadminIssuesPage() {
     (status: string) => {
       const key = `superadmin.issues.statuses.${status}`;
       const value = t(key);
-      return value === key ? status.replace("_", " ") : value;
+      return value === key ? status.replaceAll("_", " ") : value;
     },
     [t],
   );
@@ -192,7 +192,7 @@ export default function SuperadminIssuesPage() {
     (category: string) => {
       const key = `superadmin.issues.categories.${category}`;
       const value = t(key);
-      return value === key ? category.replace("_", " ") : value;
+      return value === key ? category.replaceAll("_", " ") : value;
     },
     [t],
   );
