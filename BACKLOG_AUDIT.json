@@ -204,7 +204,8 @@
     },
     {
       "key": "TEST-005",
-      "externalId": "TEST-005",COMPLETE)",
+      "externalId": "TEST-005",
+      "title": "Aqar real estate test coverage (COMPLETE)",
       "category": "missing_test",
       "priority": "P3",
       "status": "resolved",
@@ -222,7 +223,6 @@
         "commitHash": "308697666",
         "notes": "Aqar test suite complete. Validation: pnpm vitest tests/api/aqar --run → 16 files passed, 40 tests passed (13.17s). Coverage includes property management, lease contracts, tenant management, rental payments."
       }
-      "riskTags": ["TEST_GAP"]
     }
   ]
 }
