@@ -4,19 +4,44 @@ import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 import { auditPlugin } from "@/server/plugins/auditPlugin";
 
 /**
- * FMApproval Model - Approval Workflow Persistence
+ * @module server/models/FMApproval
+ * @description Approval workflow persistence for facilities management entities with immutable audit trail.
+ *              Supports multi-stage approvals, delegation, escalation, and DoA (Delegation of Authority) enforcement.
  *
- * Stores approval decisions with immutable audit trail for:
- * - Quotation approvals (DoA thresholds)
- * - Work order approvals
- * - Budget approvals
- * - Purchase order approvals
+ * @features
+ * - Approval types: QUOTATION, WORK_ORDER, BUDGET, PURCHASE_ORDER, INVOICE
+ * - Status workflow: PENDING → APPROVED/REJECTED/DELEGATED/ESCALATED/CANCELLED
+ * - Multi-stage approval chains with sequence tracking
+ * - Delegation support (temporary authority transfer)
+ * - Timeout escalation (auto-escalate after deadline)
+ * - DoA threshold enforcement (amount-based routing)
+ * - Immutable approval history (stage snapshots)
+ * - Reason tracking for rejections and escalations
  *
- * Features:
- * - Multi-stage approval workflows
- * - Delegation support
- * - Timeout escalation
- * - Immutable audit trail
+ * @statuses
+ * - PENDING: Awaiting approver action
+ * - APPROVED: Approved by authorized user
+ * - REJECTED: Rejected with reason
+ * - DELEGATED: Delegated to another approver
+ * - ESCALATED: Auto-escalated due to timeout or manual escalation
+ * - CANCELLED: Cancelled by requester or system
+ *
+ * @indexes
+ * - { orgId: 1, approvalNumber: 1 } (unique) — Unique approval identifier per tenant
+ * - { orgId: 1, entityId: 1, type: 1 } — Query approvals for specific entity
+ * - { orgId: 1, approverId: 1, status: 1 } — Approver's pending tasks
+ * - { orgId: 1, requesterId: 1, createdAt: -1 } — Requester's approval history
+ * - { orgId: 1, status: 1, dueDate: 1 } — Escalation cron queries
+ *
+ * @relationships
+ * - References User model (requesterId, approverId, delegatedFrom, delegatedTo)
+ * - Polymorphic reference via entityType + entityId (Quotation, WorkOrder, etc.)
+ * - Integrates with notification system for approval requests
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - approvedAt, rejectedAt: Manual timestamps for decision tracking
+ * - stageHistory: Immutable array of approval stage snapshots
  */
 
 const ApprovalStatus = [

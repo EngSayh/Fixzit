@@ -1,3 +1,38 @@
+/**
+ * @module server/models/marketplace/RFQ
+ * @description Request for Quote (RFQ) workflow for B2B marketplace (Fixzit Souq).
+ *              Allows corporate buyers to solicit bids from multiple vendors.
+ *
+ * @features
+ * - RFQ lifecycle: OPEN → CLOSED → AWARDED
+ * - Budget and quantity specification
+ * - Deadline management for bid submissions
+ * - Category linking for vendor matching
+ * - Bid references (NOT embedded; links to ProjectBid model)
+ * - Multi-currency support (SAR default)
+ * - Tenant-scoped RFQs (orgId isolation)
+ *
+ * @statuses
+ * - OPEN: Accepting vendor bids
+ * - CLOSED: No longer accepting bids, evaluation in progress
+ * - AWARDED: Contract awarded to winning vendor
+ *
+ * @indexes
+ * - { orgId: 1, status: 1 } — Dashboard filters (open RFQs)
+ * - { orgId: 1, requesterId: 1, createdAt: -1 } — User's RFQ history
+ * - { orgId: 1, categoryId: 1 } — RFQs by category
+ * - { orgId: 1, deadline: 1, status: 1 } — Upcoming deadline alerts
+ *
+ * @relationships
+ * - References User model (requesterId)
+ * - References MarketplaceCategory model (categoryId)
+ * - References ProjectBid model (bids array)
+ * - Integrates with vendor notification system for RFQ alerts
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - timestamps: createdAt, updatedAt from Mongoose
+ */
 import { Schema, model, models, Types, Model } from "mongoose";
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";

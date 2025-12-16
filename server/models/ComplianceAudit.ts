@@ -1,3 +1,32 @@
+/**
+ * @module server/models/ComplianceAudit
+ * @description Compliance audit planning, execution, and tracking for organizational audit trails.
+ *              Supports regulatory compliance (ZATCA, HFV, GAZT, GOSI) and internal audits.
+ *
+ * @features
+ * - Audit lifecycle: PLANNED → IN_PROGRESS → FOLLOW_UP → COMPLETED
+ * - Risk-based audit prioritization: LOW, MEDIUM, HIGH, CRITICAL
+ * - Findings counter and open issues tracking
+ * - Checklist management for systematic audit execution
+ * - Lead auditor assignment + supporting teams
+ * - Attachment storage (audit reports, evidence documents)
+ * - Tags for categorization (e.g., "ZATCA", "FIRE_SAFETY", "FINANCIAL")
+ *
+ * @indexes
+ * - { orgId: 1, status: 1, riskLevel: -1 } — Dashboard queries (high-risk audits first)
+ * - { orgId: 1, startDate: 1, endDate: 1 } — Timeline view
+ * - { orgId: 1, leadAuditor: 1 } — Auditor workload reports
+ * - { orgId: 1, tags: 1 } — Filter by compliance domain
+ *
+ * @relationships
+ * - Linked to CompliancePolicy (policies being audited)
+ * - References User model (leadAuditor, supportingTeams, createdBy, updatedBy)
+ * - Integrates with AuditLog for detailed change history
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - lastStatusAt: Manual timestamp for status transitions
+ */
 import { Schema, Document } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";

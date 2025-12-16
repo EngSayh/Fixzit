@@ -1,3 +1,32 @@
+/**
+ * @module server/models/marketplace/AttributeSet
+ * @description Product attribute schema definitions for B2B marketplace (Fixzit Souq).
+ *              Defines reusable attribute templates for product specifications.
+ *
+ * @features
+ * - Reusable attribute templates (e.g., "Electronics Specs", "HVAC Specs")
+ * - Multi-language labels (en/ar) per attribute
+ * - Unit specification (kg, m³, kW, etc.)
+ * - Required/optional attribute flags
+ * - Tenant-scoped attribute sets (orgId isolation)
+ *
+ * @example
+ * AttributeSet: "HVAC Equipment Specs"
+ * - { key: "coolingCapacity", label: { en: "Cooling Capacity", ar: "قدرة التبريد" }, unit: "kW", required: true }
+ * - { key: "energyRating", label: { en: "Energy Rating", ar: "تصنيف الطاقة" }, unit: "", required: false }
+ *
+ * @indexes
+ * - { orgId: 1 } — List all attribute sets for tenant
+ * - { orgId: 1, title: 1 } — Search attribute sets by title
+ *
+ * @relationships
+ * - Referenced by MarketplaceProduct model (products link to attribute sets)
+ * - Integrates with product catalog for structured specs
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - timestamps: createdAt, updatedAt from Mongoose
+ */
 import { Schema, model, models, Types, Model } from "mongoose";
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";

@@ -5,19 +5,54 @@ import { auditPlugin } from "@/server/plugins/auditPlugin";
 import { encryptionPlugin } from "@/server/plugins/encryptionPlugin";
 
 /**
- * FMFinancialTransaction Model
+ * @module server/models/FMFinancialTransaction
+ * @description Financial transaction ledger for facilities management operations.
+ *              Tracks expenses, invoices, payments, and adjustments with reconciliation support.
  *
- * Tracks all financial transactions related to facilities management:
- * - Work order expenses
- * - Invoices to tenants/owners
- * - Payments received
- * - Owner statements
+ * @features
+ * - Transaction types: EXPENSE, INVOICE, PAYMENT, ADJUSTMENT
+ * - Status workflow: PENDING → POSTED → PAID/CANCELLED/REFUNDED
+ * - Decimal128 storage for precision-safe financial calculations
+ * - Property and unit-level allocation
+ * - Work order and invoice linking
+ * - Payment method tracking (CASH, CARD, TRANSFER, CHECK)
+ * - Reconciliation support (reconciled flag + date)
+ * - Owner statement aggregation
+ * - Encrypted payment details (card numbers, bank accounts)
  *
- * Features:
- * - Multi-tenancy support (orgId)
- * - Immutable audit trail
- * - Reconciliation support
- * - Statement aggregation
+ * @statuses
+ * - PENDING: Transaction created but not yet posted to ledger
+ * - POSTED: Posted to ledger, affects financial reports
+ * - PAID: Payment received/sent (for invoices/expenses)
+ * - CANCELLED: Cancelled transaction (no financial impact)
+ * - REFUNDED: Refund issued (creates reversal transaction)
+ *
+ * @indexes
+ * - { orgId: 1, transactionNumber: 1 } (unique) — Unique transaction identifier per tenant
+ * - { orgId: 1, propertyId: 1, transactionDate: -1 } — Property financial reports
+ * - { orgId: 1, workOrderId: 1, type: 1 } — Work order cost tracking
+ * - { orgId: 1, invoiceId: 1, type: 1 } — Invoice payment status
+ * - { orgId: 1, status: 1, transactionDate: 1 } — Posted transactions for period reports
+ * - { orgId: 1, ownerId: 1, transactionDate: -1 } — Owner statement queries
+ * - { orgId: 1, reconciled: 1, transactionDate: 1 } — Unreconciled transactions
+ *
+ * @relationships
+ * - References Property model (propertyId)
+ * - References WorkOrder model (workOrderId)
+ * - References Invoice model (invoiceId)
+ * - References User model (ownerId, payeeId, createdBy, updatedBy)
+ *
+ * @compliance
+ * - Decimal128 precision for ZATCA/GAZT compliance
+ * - Audit trail for financial investigations
+ * - Immutable transaction history (corrections via ADJUSTMENT type)
+ *
+ * @encryption
+ * - paymentDetails: Encrypted via encryptionPlugin (card numbers, bank accounts)
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - postedAt, paidAt: Manual timestamps for transaction lifecycle
  */
 
 const TransactionType = [

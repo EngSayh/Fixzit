@@ -1,3 +1,35 @@
+/**
+ * @module server/models/FamilyMember
+ * @description Family member management for family-tier accounts and property access control.
+ *              Tracks family relationships, invitation workflow, and shared property access permissions.
+ *
+ * @features
+ * - Primary user (family admin) + invited members (spouse, children, parents, etc.)
+ * - Invitation workflow: PENDING → ACCEPTED/DECLINED/EXPIRED
+ * - Member role hierarchy: ADMIN, MEMBER, VIEWER
+ * - National ID encryption for compliance (GDPR, KSA PDL)
+ * - Property access permissions per member
+ * - Emergency contact support
+ * - Notification preferences per member
+ *
+ * @indexes
+ * - { orgId: 1, primaryUserId: 1 } — Query family members by primary user
+ * - { orgId: 1, email: 1 } — Check existing invitations
+ * - { orgId: 1, userId: 1 } — Lookup members with linked accounts
+ * - { orgId: 1, invitationStatus: 1, invitationExpiry: 1 } — Expire invitations via cron
+ *
+ * @relationships
+ * - References User model (primaryUserId, userId)
+ * - Links to Property model via propertyAccess array
+ * - Integrates with access control middleware for family-tier features
+ *
+ * @encryption
+ * - nationalId: Encrypted via encryptionPlugin (AES-256-GCM)
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - Tracks invitation acceptance timestamps and invitation sender
+ */
 import { Schema, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";

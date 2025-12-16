@@ -4,20 +4,46 @@ import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 import { auditPlugin } from "@/server/plugins/auditPlugin";
 
 /**
- * FMPMPlan Model - Preventive Maintenance Plans
+ * @module server/models/FMPMPlan
+ * @description Preventive maintenance (PM) plan scheduler for facilities management.
+ *              Defines recurring maintenance schedules that auto-generate work orders.
  *
- * Defines recurring maintenance schedules that auto-generate work orders:
- * - Equipment servicing (AC, elevators, generators)
- * - Building inspections (fire safety, electrical)
- * - Landscaping and cleaning
- * - Compliance checks
+ * @features
+ * - Recurrence patterns: DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY, CUSTOM
+ * - Asset category classification: HVAC, ELECTRICAL, PLUMBING, ELEVATOR, GENERATOR, FIRE_SAFETY, LANDSCAPING, CLEANING, OTHER
+ * - Status lifecycle: ACTIVE → INACTIVE/SUSPENDED/EXPIRED
+ * - Auto-WO generation with lead time (generate WO X days before due date)
+ * - Holiday skip logic (prevent WO generation on holidays)
+ * - Cost budgeting and actual cost tracking
+ * - Vendor assignment and SLA enforcement
+ * - Asset/equipment linkage for maintenance history
+ * - Property and unit-level allocation
+ * - Checklist templates for PM tasks
  *
- * Features:
- * - Flexible recurrence patterns (daily, weekly, monthly, quarterly, yearly)
- * - Asset/equipment linkage
- * - Auto-WO generation with lead time
- * - Skip generation on holidays
- * - Cost budgeting and tracking
+ * @statuses
+ * - ACTIVE: Auto-generating work orders per schedule
+ * - INACTIVE: Paused, no WO generation
+ * - SUSPENDED: Temporarily paused (e.g., during renovations)
+ * - EXPIRED: End date passed, no longer active
+ *
+ * @indexes
+ * - { orgId: 1, planNumber: 1 } (unique) — Unique plan identifier per tenant
+ * - { orgId: 1, propertyId: 1, status: 1 } — Active PM plans per property
+ * - { orgId: 1, status: 1, nextDueDate: 1 } — Upcoming PM WO generation (cron job)
+ * - { orgId: 1, assetId: 1, status: 1 } — Asset maintenance history
+ * - { orgId: 1, category: 1, status: 1 } — PM plans by asset category
+ * - { orgId: 1, assignedVendorId: 1, status: 1 } — Vendor PM workload
+ *
+ * @relationships
+ * - References Property model (propertyId)
+ * - References WorkOrder model (generated WOs tracked in lastGeneratedWO, generatedWOs array)
+ * - References Vendor model (assignedVendorId)
+ * - References User model (createdBy, updatedBy)
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - lastGeneratedAt: Timestamp of last auto-generated work order
+ * - generatedWOs: Array of generated work order IDs for history tracking
  */
 
 const RecurrencePattern = [

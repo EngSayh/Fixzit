@@ -1,3 +1,32 @@
+/**
+ * @module server/models/CompliancePolicy
+ * @description Organizational policy management for compliance and operational standards.
+ *              Tracks policy lifecycle, versioning, review schedules, and acknowledgements.
+ *
+ * @features
+ * - Policy lifecycle: DRAFT → UNDER_REVIEW → ACTIVE → RETIRED
+ * - Category classification: OPERATIONS, FINANCE, HR, SAFETY, COMPLIANCE, VENDOR
+ * - Version control and review frequency tracking
+ * - Employee acknowledgement tracking (count)
+ * - Related document linking (procedures, forms, checklists)
+ * - Effective date and review date management
+ * - Tags for searchability and categorization
+ *
+ * @indexes
+ * - { orgId: 1, status: 1, category: 1 } — Dashboard filters (active HR policies, etc.)
+ * - { orgId: 1, reviewDate: 1 } — Upcoming policy reviews (cron job)
+ * - { orgId: 1, tags: 1 } — Tag-based policy search
+ * - { orgId: 1, title: "text" } — Full-text search on policy titles
+ *
+ * @relationships
+ * - Linked to ComplianceAudit (policies under audit)
+ * - References User model (owner, createdBy, updatedBy)
+ * - Tracks employee acknowledgements (future: link to Employee model)
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - Version field: Manually incremented on policy updates
+ */
 import { Schema, Document } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
