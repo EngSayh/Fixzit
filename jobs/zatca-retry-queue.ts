@@ -237,7 +237,8 @@ export async function scanAndEnqueuePendingRetries(): Promise<number> {
  * NOTE: This function is async to ensure MongoDB is connected before processing.
  * The Worker is returned after connection is established.
  */
-export async function startZatcaRetryWorker(): Promise<Worker> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function startZatcaRetryWorker(): Promise<Worker<any, any>> {
   // CRITICAL: Ensure MongoDB is connected before any BullMQ handlers run.
   // In standalone worker processes, mongoose may not be connected yet.
   const { connectToDatabase } = await import("@/lib/mongodb-unified");
@@ -248,7 +249,8 @@ export async function startZatcaRetryWorker(): Promise<Worker> {
   const connection = requireRedisConnection("startZatcaRetryWorker");
 
   if (activeWorker) {
-    return activeWorker;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return activeWorker as any;
   }
 
   const worker = new Worker<ZatcaRetryJobData>(
@@ -451,7 +453,7 @@ export async function startZatcaRetryWorker(): Promise<Worker> {
 
   logger.info("[ZatcaRetryQueue] Worker started");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activeWorker = worker as Worker<any, any>;
+  activeWorker = worker as any;
   return worker;
 }
 

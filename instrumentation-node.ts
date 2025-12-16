@@ -52,6 +52,7 @@ export async function registerNode(): Promise<void> {
       
       // ✅ Always print diagnostic to console so Vercel Logs shows it
       if (!guardResult.passed && (isTrueProduction || isPreview)) {
+        // eslint-disable-next-line no-console
         console.error("[Instrumentation] Env guard diagnostic:", JSON.stringify(safeDiag, null, 2));
       }
       

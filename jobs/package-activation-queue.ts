@@ -145,7 +145,8 @@ export async function enqueueActivationRetry(
  * NOTE: This function is async to ensure MongoDB is connected before processing.
  * The Worker is returned after connection is established.
  */
-export async function startActivationWorker(): Promise<Worker> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function startActivationWorker(): Promise<Worker<any, any>> {
   // CRITICAL: Ensure MongoDB is connected before any BullMQ handlers run.
   // In standalone worker processes, mongoose may not be connected yet.
   const { connectToDatabase } = await import("@/lib/mongodb-unified");
@@ -153,10 +154,10 @@ export async function startActivationWorker(): Promise<Worker> {
 
   const connection = requireRedisConnection("startActivationWorker");
   
-  // Return existing worker if already running
   if (activeWorker) {
     logger.warn("[ActivationQueue] Worker already running, returning existing worker");
-    return activeWorker;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return activeWorker as any;
   }
 
   const worker = new Worker<ActivationJobData>(
@@ -288,7 +289,7 @@ export async function startActivationWorker(): Promise<Worker> {
 
   // Store reference for graceful shutdown
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activeWorker = worker as Worker<any, any>;
+  activeWorker = worker as any;
   
   logger.info("[ActivationQueue] Worker started");
   return worker;

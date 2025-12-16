@@ -3,7 +3,6 @@ import Link from 'next/link';
 import './globals.css';
 import ConditionalProviders from '@/providers/ConditionalProviders';
 import { Toaster } from 'sonner';
-import { SpeedInsights } from '@vercel/speed-insights/next';
 import { 
   Bricolage_Grotesque, 
   Space_Mono, 
@@ -148,7 +147,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             />
           </TooltipProvider>
         </ConditionalProviders>
-        <SpeedInsights />
         {isPlaywright && (
           <footer className="mt-8 border-t border-border px-4 py-4" role="contentinfo">
             <p className="text-sm text-muted-foreground">Fixzit Playwright Footer</p>

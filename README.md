@@ -21,7 +21,7 @@ Fixzit is an enterprise-grade platform built for Saudi Arabian property and faci
 | **Property Management (Aqar)** | Real estate portfolio operations | Tenant management, lease tracking, rent collection |
 | **Marketplace (Souq)** | B2B procurement platform | Product catalog, order management, vendor marketplace |
 | **Human Resources (HR)** | Employee management | Payroll, attendance, performance reviews |
-| **Finance** | Financial operations | Invoicing, budgets, expenses, TAP/PayTabs payments |
+| **Finance** | Financial operations | Invoicing, budgets, expenses, TAP payment gateway |
 | **Applicant Tracking (ATS)** | Recruitment pipeline | Job postings, applications, interview scheduling |
 | **CRM** | Customer relationship management | Leads, contacts, sales pipeline |
 | **Compliance** | Regulatory compliance | Document management, audit trails |
@@ -38,7 +38,7 @@ Fixzit is an enterprise-grade platform built for Saudi Arabian property and faci
 | **Testing** | Vitest + Playwright | 2,524 unit + 424 E2E tests |
 | **Monitoring** | OpenTelemetry + Sentry | Full observability |
 | **SMS** | Taqnyat | CITC-compliant (Saudi Arabia) |
-| **Payments** | TAP + PayTabs | Production-ready gateways |
+| **Payments** | TAP | Production-ready gateway |
 | **Deployment** | Vercel / Docker | Edge-optimized |
 
 ## 📊 Project Status
@@ -91,9 +91,7 @@ NEXTAUTH_SECRET=your-secret-here
 TAQNYAT_BEARER_TOKEN=your-token
 TAQNYAT_SENDER_NAME=Fixzit
 
-# Payments
-PAYTABS_SERVER_KEY=your-key
-PAYTABS_PROFILE_ID=your-profile
+# Payments (TAP Gateway)
 TAP_LIVE_SECRET_KEY=your-tap-key
 TAP_ENVIRONMENT=live
 ```
@@ -236,7 +234,7 @@ if (isFeatureEnabled("graphqlApi")) {
 ### Grafana Dashboards
 - System overview with SLIs
 - SMS delivery metrics (Taqnyat)
-- Payment gateway health (TAP/PayTabs)
+- Payment gateway health (TAP)
 - Work order SLA tracking
 
 ### Alerts

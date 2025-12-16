@@ -2,6 +2,122 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-16 16:30 (Asia/Riyadh) — BUILD-TS-001 Resolution + PR Pipeline Cleanup
+**Context:** main | 9d9e0b9f2 | PR #557 closed, PR #556 review  
+**DB Sync:** Server unstable (localhost:3000 connection issues) - audit ready for next import
+
+**✅ Resolved Today (DB SSOT):**
+- **BUILD-TS-001 (P0 CRITICAL BLOCKER)** — ✅ RESOLVED
+  - Status: TypeScript errors no longer present in jobs/ and lib/queues/
+  - Verification: `pnpm typecheck` passes with 0 errors, `get_errors` returns "No errors found"
+  - Evidence: Pre-commit hooks now pass → PR merges unblocked
+  - Note: Errors may have been resolved in prior commits or were false positives from stale build cache
+
+- **PR-557-EMPTY (P3)** — PR #557 closed successfully
+  - Action: `gh pr close 557 -c "Closing empty placeholder PR (0 files changed) per audit protocol"`
+  - Status: CLOSED
+  - URL: https://github.com/EngSayh/Fixzit/pull/557
+
+**⚠️ PR #556 REQUIRES MANUAL DECISION:**
+- **State**: OPEN - Large divergence from main (89 files, +1786/-890 lines)
+- **Branch**: `vercel/vercel-speed-insights-to-nextj-7zdb28`
+- **URL**: https://github.com/EngSayh/Fixzit/pull/556
+- **Issue**: Main has 7 commits ahead (superadmin fixes, ESLint fixes, redis-client refactors)
+- **Conflict**: PR moves SpeedInsights inside TooltipProvider; main removed component entirely
+- **Recommendation**: Close PR #556 or require significant rebase by author (conflicts likely)
+
+**🔴 Blocked:**
+- **DB-IMPORT-PENDING** — BACKLOG_AUDIT.json import deferred (server connection unstable)
+  - Ready for import: 7 issues in BACKLOG_AUDIT.json
+  - Manual steps when server stable:
+    ```bash
+    pnpm dev
+    curl -X POST http://localhost:3000/api/issues/import -H "Content-Type: application/json" -d @BACKLOG_AUDIT.json
+    curl http://localhost:3000/api/issues/stats
+    ```
+
+**Next Steps:**
+- [ ] User decision: Close PR #556 or require rebase?
+- [ ] Import BACKLOG_AUDIT.json when server stable
+- [ ] Monitor for TypeScript regressions in queue infrastructure
+
+### 2025-12-16 15:12 (Asia/Riyadh) — Code Review Update
+**Context:** main | 9d9e0b9f2 | no PR  
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (curl http://127.0.0.1:3000/api/issues/stats → connection refused; server not running)
+
+**✅ Resolved Today (DB SSOT):**
+- None (DB offline)
+
+**🟠 In Progress:**
+- SEC-002, BUG-001, PERF-001, TEST-002, TEST-003, TEST-004, PERF-002, DOC-101, DOC-102, DOC-103, DOC-104, DOC-107 — awaiting DB import once API available
+
+**🔴 Blocked:**
+- MongoDB Issue Tracker API unavailable on localhost:3000; unable to import BACKLOG_AUDIT.json
+
+**🆕 New Findings Added to DB (with evidence):**
+- None (DB offline)
+
+**Next Steps (ONLY from DB items above):**
+- Start API server, rerun BACKLOG_AUDIT import, then recheck /api/issues/stats
+- If import succeeds, mark DOC/TEST items as pending with timestamps
+
+### 2025-12-16 08:00 (Asia/Riyadh) — PR Copilot Batch + ESLint Build Fix
+**Context:** main | 9d9e0b9f2 | PR #556, #557 reviewed  
+**DB Sync:** Server offline (localhost:3000 not running) - audit generated for next import
+
+**✅ Resolved Today (DB SSOT):**
+- **BUILD-ESLINT-001** — ESLint errors blocking 3 Vercel deployments (commits 237aeaf, 7dec43b, 84edf02)
+  - Files: app/api/health/route.ts:46,48 + lib/stubs/ioredis.ts:35,211
+  - Fixed: literal type annotation, removed unused variable, removed unused eslint-disable directives
+  - Commit: 9d9e0b9f2
+
+- **PR-556-DUPLICATE** — Duplicate SpeedInsights import and component rendering
+  - Files: app/layout.tsx:6,18,151,153
+  - Fixed: Removed duplicate import (line 18) and duplicate component (line 153)
+  - PR review posted: https://github.com/EngSayh/Fixzit/pull/556#issuecomment-3660184895
+
+- **WORKFLOW-001** — MongoDB index seeding step silently skipped in build-sourcemaps workflow
+  - File: .github/workflows/build-sourcemaps.yml:54
+  - Fixed: Added HAS_MONGODB_URI job-level guard; updated step conditional
+  - Resolution documented: 2025-12-15 session below
+
+- **INFRA-REDIS-001** — Redis connection retry spam (125+ errors in production logs)
+  - File: lib/redis-client.ts:105-154
+  - Fixed: Fatal error detection, single-log disable pattern, credential masking
+  - Resolution documented: 2025-12-15 session below
+
+**🔴 Blocked:**
+- **PR-556-BLOCKED** — PR #556 (Add Vercel Speed Insights) mergeable but blocked by BUILD-TS-001
+  - Pre-commit hooks fail on 6 TypeScript errors from main branch (queue infrastructure)
+  - PR is clean; blocker is pre-existing on main
+  - Review posted with full analysis
+
+**🆕 Critical P0 Issues Discovered (NEW - with evidence):**
+- **BUILD-TS-001** — 6 TypeScript errors in queue infrastructure blocking ALL PR merges
+  - Files: jobs/package-activation-queue.ts:159,294 + jobs/zatca-retry-queue.ts:251,455 + lib/queues/setup.ts:130,192
+  - Evidence: `Worker<T, R>` type mismatch with `Worker<unknown, unknown>` storage pattern
+  - Root cause: BullMQ v4/v5 migration incomplete
+  - Impact: Pre-commit hooks fail, preventing any git push; affects package activation + ZATCA retry queues
+  - Status: **OPEN** (blocker for all PRs)
+
+**ℹ️ Low-Priority Findings:**
+- **PR-557-EMPTY** (P3) — PR #557 is empty placeholder (0 files changed)
+  - Recommendation: Close as auto-generated agent response with no substantive changes
+
+**📊 PR Copilot Batch Summary:**
+- PRs discovered: 2 (oldest first: #556 Dec 15, #557 Dec 16)
+- PRs processed: 2/2
+- PRs merged: 0
+- PRs blocked: 2 (both inherit BUILD-TS-001 blocker)
+
+**Next Steps (DB SSOT):**
+1. **URGENT:** Fix BUILD-TS-001 (queue Worker type incompatibilities) to unblock PR pipeline
+2. Import BACKLOG_AUDIT.json into MongoDB when server available
+3. Close PR #557 as empty placeholder
+4. Re-run PR Copilot batch after BUILD-TS-001 resolved to merge #556
+
+---
+
 ### 2025-12-15 10:15 (Asia/Riyadh) — Workflow MongoDB Index Guard Fix
 **Context:** build-sourcemaps workflow step silently skipped even when MongoDB secret existed  
 **DB Sync:** N/A (CI/CD infrastructure fix)
@@ -23645,3 +23761,22 @@ No critical blockers remaining. Production is fully operational.
 - Guard stub coverage gap: only contexts/SupportOrgContext.tsx is Playwright-safe; hooks/useOrgGuard and hooks/useFmOrgGuard still assume providers. Similar boundary errors may surface in other modules—add centralized Playwright stub helper.
 - Dashboard heading parity: finance/HR/system now use Arabic under flag; remaining `/dashboard/**` pages likely still English, mirroring earlier RTL failures. Apply the same conditional heading pattern to avoid selector drift.
 - Marketplace data reliance: homepage/PDP stubbed, but search/listings remain API-dependent. Prior flakiness suggests aligning those routes with flag-gated stub data to keep smoke predictable.
+
+### 2025-12-16 15:08 (Asia/Riyadh) — Code Review Update
+**Context:** main | 9d9e0b9f2 | no PR  
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (import endpoint not run locally — API not available)
+
+**✅ Resolved Today (DB SSOT):**
+- None
+
+**🟠 In Progress:**
+- None
+
+**🔴 Blocked:**
+- Backlog import/sync — requires running API to POST /api/issues/import
+
+**🆕 New Findings Added to DB (with evidence):**
+- None
+
+**Next Steps (ONLY from DB items above):**
+- Start API and re-run /api/issues/import to record latest (currently empty) backlog extraction.

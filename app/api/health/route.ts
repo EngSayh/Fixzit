@@ -45,6 +45,8 @@ export async function GET(request: NextRequest) {
     // Redis has been removed; report as not configured
     const redisStatus = "not_configured" as const;
     const redisLatency = 0;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- used in diagnostics object
+    const _redisConfigured = false;
 
     const isHealthy = dbStatus === "connected";
     

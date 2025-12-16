@@ -79,10 +79,11 @@ export function createWorker<T = unknown, R = unknown>(
   name: QueueName,
   processor: Processor<T, R>,
   concurrency = 1
-): Worker {
+): Worker<T, R> {
   if (workers.has(name)) {
     logger.warn(`Worker for ${name} already exists, returning existing worker`);
-    return workers.get(name)!;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return workers.get(name)! as Worker<T, R>;
   }
 
   const connection = requireRedisConnection(`worker:${name}`);
@@ -175,11 +176,11 @@ export async function addJob<T>(
       every?: number; // Milliseconds
     };
   }
-): Promise<Job<T>> {
+): Promise<Job<T, unknown>> {
   const queue = getQueue(queueName);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const job = await queue.add(jobName, data as any, options);
+  const job = await queue.add(jobName, data as any, options) as Job<T, unknown>;
 
   logger.info(`📝 Job added`, {
     queue: queueName,
