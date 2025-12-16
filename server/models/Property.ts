@@ -1,8 +1,52 @@
+/**
+ * Property Model - Core real estate asset management
+ * 
+ * @module server/models/Property
+ * @description Represents physical properties managed across FM and Aqar modules.
+ * Supports multi-tenancy, geolocation, ownership tracking, and work order linkage.
+ * 
+ * @features
+ * - Multi-tenant isolation (property_owner_id per property)
+ * - Geolocation with lat/lng coordinates
+ * - SPL National Address support (Saudi postal system)
+ * - Ownership and occupancy tracking
+ * - Financial metrics (value, rental income)
+ * - Unit hierarchy (properties can contain units)
+ * - Work order association for maintenance
+ * 
+ * @types
+ * - RESIDENTIAL: Houses, apartments, villas
+ * - COMMERCIAL: Offices, retail spaces
+ * - INDUSTRIAL: Warehouses, factories
+ * - MIXED_USE: Combined residential/commercial
+ * - LAND: Undeveloped plots
+ * 
+ * @statuses
+ * - ACTIVE: Operational and available
+ * - UNDER_MAINTENANCE: Temporarily unavailable
+ * - VACANT: No current occupants
+ * - OCCUPIED: Currently inhabited/used
+ * - SOLD: Ownership transferred
+ * - RENTED: Leased to tenant
+ * 
+ * @indexes
+ * - Unique: { orgId, code }
+ * - Compound: { type, status } for filtering
+ * - Geospatial: { address.coordinates } for location queries
+ * - Index: { property_owner_id } for ownership lookups
+ * 
+ * @relationships
+ * - property_owner_id → Owner model
+ * - units → Array of sub-properties
+ * - Work orders reference property_id
+ */
+
 import { Schema, Model, InferSchemaType } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
+/** Property classification types */
 const PropertyType = [
   "RESIDENTIAL",
   "COMMERCIAL",
@@ -10,6 +54,8 @@ const PropertyType = [
   "MIXED_USE",
   "LAND",
 ] as const;
+
+/** Property operational statuses */
 const PropertyStatus = [
   "ACTIVE",
   "UNDER_MAINTENANCE",
@@ -19,6 +65,25 @@ const PropertyStatus = [
   "RENTED",
 ] as const;
 
+/**
+ * Property schema definition
+ * 
+ * @property {string} code - Unique property code (e.g., PROP-001)
+ * @property {string} name - Display name/title
+ * @property {string} [description] - Detailed property description
+ * @property {PropertyType} type - Property classification
+ * @property {string} [subtype] - Specific category (e.g., Villa, Office)
+ * @property {object} address - Location details with coordinates
+ * @property {number} address.coordinates.lat - Latitude (required)
+ * @property {number} address.coordinates.lng - Longitude (required)
+ * @property {string} [address.nationalAddress] - SPL postal code
+ * @property {number} [totalArea] - Total square meters
+ * @property {number} [builtUpArea] - Built area square meters
+ * @property {ObjectId} property_owner_id - Owner reference
+ * @property {PropertyStatus} status - Current operational status
+ * @property {number} [estimatedValue] - Market value estimate
+ * @property {number} [rentalIncome] - Monthly rental income
+ */
 const PropertySchema = new Schema(
   {
     // Multi-tenancy - will be added by plugin

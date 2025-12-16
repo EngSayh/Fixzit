@@ -1,3 +1,35 @@
+/**
+ * User Model - Core authentication and authorization entity
+ * 
+ * @module server/models/User
+ * @description Represents system users across all modules (FM, Souq, Aqar, Admin).
+ * Supports multi-tenancy via orgId, role-based access control (RBAC), and encrypted sensitive fields.
+ * 
+ * @features
+ * - Multi-tenant isolation via orgId (applied by tenantIsolationPlugin)
+ * - 14 predefined roles (super_admin, admin, owner, tenant, vendor, etc.)
+ * - Field-level encryption for sensitive data (NID, passport, IBAN)
+ * - Audit trail for all modifications (auditPlugin)
+ * - Email/phone verification workflows
+ * - Session management and device tracking
+ * 
+ * @security
+ * - Passwords hashed with bcrypt (never stored plain)
+ * - Sensitive fields encrypted at rest (AES-256-GCM)
+ * - Tenant scope enforced on all queries
+ * - RBAC permissions validated before mutations
+ * 
+ * @indexes
+ * - Unique: { orgId, code }
+ * - Unique: { orgId, email }
+ * - Unique: { orgId, username }
+ * - Index: { role, status } for permission queries
+ * - Index: { mobile } for SMS lookups
+ * 
+ * @see {@link UserRole} for role definitions
+ * @see {@link UserStatus} for status definitions
+ */
+
 import {
   Schema,
   Model,
@@ -16,6 +48,27 @@ import { logger } from "@/lib/logger";
 // Re-export for backward compatibility
 export { UserRole };
 
+/**
+ * User schema definition
+ * 
+ * @property {string} code - Unique user code within organization (e.g., USR-001)
+ * @property {string} username - Display name for the user
+ * @property {string} email - Email address (unique per org, used for login)
+ * @property {string} password - Bcrypt hashed password (never plain text)
+ * @property {string} [phone] - Primary phone number
+ * @property {string} [mobile] - Mobile number (used for SMS/WhatsApp)
+ * @property {UserRole} role - User's system role (determines permissions)
+ * @property {UserStatus} status - Account status (active/inactive/suspended)
+ * @property {string} [nid] - National ID (encrypted at rest)
+ * @property {string} [passport] - Passport number (encrypted)
+ * @property {string} [iban] - Bank IBAN (encrypted)
+ * @property {boolean} emailVerified - Whether email is verified
+ * @property {boolean} phoneVerified - Whether phone is verified
+ * @property {Date} [lastLoginAt] - Last successful login timestamp
+ * @property {Date} [passwordChangedAt] - Last password change timestamp
+ * 
+ * @timestamps Managed by Mongoose (createdAt, updatedAt)
+ */
 const UserSchema = new Schema(
   {
     // Multi-tenancy key - will be added by tenantIsolationPlugin
