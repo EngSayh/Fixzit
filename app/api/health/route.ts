@@ -43,9 +43,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Redis has been removed; report as not configured
-    const redisStatus: "not_configured" = "not_configured";
+    const redisStatus = "not_configured" as const;
     const redisLatency = 0;
-    const redisConfigured = false;
 
     const isHealthy = dbStatus === "connected";
     

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import './globals.css';
 import ConditionalProviders from '@/providers/ConditionalProviders';
 import { Toaster } from 'sonner';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { 
   Bricolage_Grotesque, 
   Space_Mono, 
@@ -14,7 +15,6 @@ import ClientLayout from '@/components/ClientLayout';
 import CustomCursor from '@/components/CustomCursor';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { getServerI18n } from '@/lib/i18n/server';
-import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata: Metadata = {
   title: 'Fixzit Enterprise Platform',

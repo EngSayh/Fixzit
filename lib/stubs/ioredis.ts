@@ -32,7 +32,6 @@ class RedisMulti {
   async exec(): Promise<Array<[null, unknown]>> {
     const results: Array<[null, unknown]> = [];
     for (const op of this.ops) {
-      // eslint-disable-next-line no-await-in-loop
       results.push([null, await op()]);
     }
     return results;
@@ -208,7 +207,6 @@ export default class Redis {
   }
 
   // Lua eval stub tailored for the existing budget script pattern
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async eval(_script: string, _numKeys: number, key: string, amount?: string, budget?: string, ttlSeconds?: string): Promise<number> {
     const amountNum = Number(amount ?? 0);
     const budgetNum = Number(budget ?? 0);
