@@ -1,0 +1,3 @@
+// Re-export the finance reports page which already wires useFmOrgGuard.
+export { default } from "@/app/(fm)/fm/finance/reports/page";
+export * from "@/app/(fm)/fm/finance/reports/page";

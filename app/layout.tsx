@@ -10,7 +10,6 @@ import {
   DM_Sans,
   Tajawal
 } from 'next/font/google';
-import ClientLayout from '@/components/ClientLayout';
 import CustomCursor from '@/components/CustomCursor';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { getServerI18n } from '@/lib/i18n/server';
@@ -135,9 +134,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
         <ConditionalProviders initialLocale={locale}>
           <TooltipProvider delayDuration={200}>
-            <ClientLayout>
-              {children}
-            </ClientLayout>
+            {children}
             {/* Custom cursor with trailing particles */}
             <CustomCursor />
             <Toaster
