@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import dynamic from "next/dynamic";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { logger } from "@/lib/logger";
 
 // Dynamic imports for client components
 const ClientSidebar = dynamic(() => import("@/app/_shell/ClientSidebar"));
@@ -29,7 +30,17 @@ export default async function DashboardLayout({
 }) {
   // Server-side authentication check
   const session = await auth();
-  const allowTestBypass = process.env.ALLOW_DASHBOARD_TEST_AUTH === "true";
+  // BUG-001 FIX: Add logging + strict production guard to security bypass
+  const allowTestBypass = 
+    process.env.ALLOW_DASHBOARD_TEST_AUTH === "true" && 
+    process.env.NODE_ENV !== 'production';
+  
+  if (allowTestBypass) {
+    logger.warn('⚠️  Dashboard auth bypass enabled - TEST MODE ONLY', {
+      component: 'DashboardLayout',
+      env: process.env.NODE_ENV
+    });
+  }
 
   if (!session && !allowTestBypass) {
     redirect("/login");

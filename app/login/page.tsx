@@ -25,7 +25,8 @@ import { FormField } from '@/components/ui/form-field';
 
 // Check if OTP is required (matches auth.config.ts logic)
 const REQUIRE_SMS_OTP = process.env.NEXT_PUBLIC_REQUIRE_SMS_OTP === 'true';
-const SKIP_CSRF = process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' || process.env.NODE_ENV === 'test';
+// BUG-001 FIX: NEXTAUTH_SKIP_CSRF_CHECK is server-only - removed from client bundle
+// CSRF validation happens server-side in auth.config.ts
 
 // Client-side feature flags: do NOT read secrets here
 const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === 'true';
@@ -122,9 +123,8 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const { t, isRTL, setLanguage, setLocale } = useTranslation();
   const { status } = useSession();
-  const isE2E =
-    process.env.PLAYWRIGHT === 'true' ||
-    process.env.NEXT_PUBLIC_E2E === 'true';
+  // BUG-001 FIX: Use NEXT_PUBLIC_ prefix consistently to prevent hydration mismatch
+  const isE2E = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === 'true';
 
   const identifierLabel = isE2E ? 'Email or Employee Number' : t('login.identifierLabel', 'Email or Employee Number');
 
@@ -161,10 +161,7 @@ export default function LoginPage() {
   useEffect(() => {
     const fetchCsrf = async () => {
       try {
-        if (SKIP_CSRF) {
-          setCsrfToken('csrf-disabled');
-          return;
-        }
+        // BUG-001 FIX: Always fetch CSRF token - server-side config decides validation
         const token = await getCsrfToken();
         setCsrfToken(token || undefined);
       } catch (error) {
@@ -310,7 +307,7 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
       const normalizedCompanyCode = loginMethod === 'corporate' ? resolveCompanyCode() : undefined;
       const ensureCsrfToken = async () => {
         if (csrfToken) return csrfToken;
-        if (SKIP_CSRF) return 'csrf-disabled';
+        // BUG-001 FIX: Always fetch CSRF token from server
         try {
           const token = await getCsrfToken();
           setCsrfToken(token || undefined);
@@ -495,12 +492,9 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
     try {
       let tokenToUse = csrfToken;
       if (!tokenToUse) {
-        if (SKIP_CSRF) {
-          tokenToUse = 'csrf-disabled';
-        } else {
-          tokenToUse = await getCsrfToken();
-          setCsrfToken(tokenToUse || undefined);
-        }
+        // BUG-001 FIX: Always fetch CSRF token
+        tokenToUse = await getCsrfToken();
+        setCsrfToken(tokenToUse || undefined);
       }
       if (!tokenToUse) {
         tokenToUse = 'csrf-disabled';

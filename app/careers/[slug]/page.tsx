@@ -90,8 +90,8 @@ export default async function JobDetailPage({
   params: { slug: string };
 }) {
   const { t } = await getServerI18n();
-  const orgId =
-    process.env.ORG_ID || process.env.NEXT_PUBLIC_ORG_ID || "fixzit-platform";
+  // BUG-001 FIX: Use server-only ORG_ID, no public fallback (prevents secret exposure)
+  const orgId = process.env.ORG_ID || "fixzit-platform";
   const job = await fetchCareerJob(params.slug, orgId);
 
   // Use Next.js notFound() for proper 404 handling

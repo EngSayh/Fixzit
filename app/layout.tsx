@@ -71,7 +71,8 @@ const tajawal = Tajawal({
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale, isRTL, t } = await getServerI18n();
   const dir = isRTL ? 'rtl' : 'ltr';
-  const isPlaywright = process.env.PLAYWRIGHT_TESTS === 'true';
+  // BUG-001 FIX: Standardized flag naming (was PLAYWRIGHT_TESTS, now NEXT_PUBLIC_PLAYWRIGHT_TESTS)
+  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === 'true';
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning data-locale={locale}>

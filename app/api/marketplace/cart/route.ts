@@ -109,7 +109,11 @@ export async function GET(request: NextRequest) {
       context.userId,
     )) as unknown as CartDocument;
     const productIds = cart.lines.map((line) => line.productId);
-    const products = await Product.find({ _id: { $in: productIds } }).lean();
+    // SEC-002 FIX: Add orgId filter to prevent cross-tenant product data exposure (IDOR)
+    const products = await Product.find({ 
+      _id: { $in: productIds },
+      orgId: context.orgId 
+    }).lean();
     const productMap = new Map(
       products.map((product) => {
         const id = (product as { _id: Types.ObjectId })._id.toString();

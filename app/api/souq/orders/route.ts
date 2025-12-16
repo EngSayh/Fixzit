@@ -205,8 +205,13 @@ export async function POST(request: NextRequest) {
         type: typeof SouqListing.find,
       });
     }
+    // SEC-002 FIX: Add orgId filter to prevent cross-tenant order hijacking (IDOR)
     const listingsQuery = SouqListing.find({
       _id: { $in: listingObjectIds },
+      $or: [
+        { orgId: new Types.ObjectId(sellerOrgId) },
+        { org_id: new Types.ObjectId(sellerOrgId) }
+      ]
     });
     const listingsResult =
       typeof (
