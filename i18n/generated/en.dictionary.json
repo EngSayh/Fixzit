@@ -13490,19 +13490,50 @@
   "footer.breadcrumbLabel": "Fixzit trail",
   "footer.careers": "Careers",
   "footer.company": "Company",
-  "footer.copyright": "Fixzit. All rights reserved.",
+  "footer.copyright": "Sultan Al Hassni Real Estate LLC. All rights reserved.",
   "footer.crumb.fixzit": "Fixzit",
   "footer.crumb.platform": "Design System",
   "footer.crumb.version": "v2",
   "footer.description": "Facility management + marketplaces in one platform.",
+  "footer.docs": "API Docs",
+  "footer.docsDescription": "OpenAPI reference and integration guides",
+  "footer.finance": "Finance",
+  "footer.financeDescription": "Invoices, receipts, payouts, and ZATCA-ready billing",
   "footer.help": "Help Center",
   "footer.legal": "Legal",
+  "footer.marketplace": "Souq Marketplace",
+  "footer.marketplaceDescription": "Catalog, vendor onboarding, and orders",
+  "footer.nav.company": "Company",
+  "footer.nav.companyDesc": "Team, careers, and pricing details",
+  "footer.nav.platform": "Platform",
+  "footer.nav.platformDesc": "Operations, finance, and marketplace tools",
+  "footer.nav.resources": "Resources",
+  "footer.nav.resourcesDesc": "Docs, reports, and live health metrics",
+  "footer.nav.supportDesc": "Help center, policies, and support desk",
+  "footer.navigationLabel": "Footer navigation",
   "footer.pricing": "Pricing",
   "footer.privacy": "Privacy",
+  "footer.privacyDescription": "How we process and safeguard data",
+  "footer.properties": "Properties",
+  "footer.propertiesDescription": "Units, leases, inspections, and maintenance",
+  "footer.reports": "Reports & Analytics",
+  "footer.reportsDescription": "Dashboards and monitoring across modules",
+  "footer.status": "Status",
+  "footer.status.operational": "All systems operational",
+  "footer.status.realtime": "Live analytics | <180ms P95",
+  "footer.statusDetail": "Uptime, incidents, and maintenance windows",
   "footer.support": "Support",
   "footer.terms": "Terms",
+  "footer.termsDescription": "Platform terms and acceptable use",
+  "footer.theme.dark": "Dark",
+  "footer.theme.light": "Light",
+  "footer.theme.system": "System",
+  "footer.themeToggleLabel": "Theme",
   "footer.ticket": "Open a ticket",
   "footer.ticket_aria": "Open a support ticket",
+  "footer.ticketDescription": "Create a support case with Fixzit",
+  "footer.workOrders": "Work Orders",
+  "footer.workOrdersDescription": "Dispatch, SLA timers, and technician routing",
   "forensicInvestigation.acquisition": "Data Acquisition",
   "forensicInvestigation.analysis": "Forensic Analysis",
   "forensicInvestigation.artifacts": "Artifact Analysis",
@@ -27241,6 +27272,91 @@
   "successionPlanning.talent": "Talent Pipeline",
   "successionPlanning.tracking": "Succession Tracking",
   "successionPlanning.transition": "Leadership Transition",
+  "superadmin.issues.add": "Add Issue",
+  "superadmin.issues.categories.bug": "Bug",
+  "superadmin.issues.categories.efficiency": "Efficiency",
+  "superadmin.issues.categories.logic_error": "Logic Error",
+  "superadmin.issues.categories.missing_test": "Missing Test",
+  "superadmin.issues.categories.security": "Security",
+  "superadmin.issues.deleteSuccess": "Deleted successfully",
+  "superadmin.issues.empty": "No issues found",
+  "superadmin.issues.emptyHint": "Try adjusting your filters or import issues",
+  "superadmin.issues.error": "Failed to load issues",
+  "superadmin.issues.export": "Export",
+  "superadmin.issues.exportSuccess": "Exported successfully",
+  "superadmin.issues.filters.all": "All",
+  "superadmin.issues.filters.category": "Category",
+  "superadmin.issues.filters.priority": "Priority",
+  "superadmin.issues.filters.status": "Status",
+  "superadmin.issues.import": "Import",
+  "superadmin.issues.importDataLabel": "Issues Data",
+  "superadmin.issues.importDesc": "Paste JSON array of issues or simple text (one title per line)",
+  "superadmin.issues.importDryRun": "Dry Run",
+  "superadmin.issues.importing": "Importing...",
+  "superadmin.issues.importPlaceholder": "[{\"title\": \"Fix bug...\", \"priority\": \"P1\"}]",
+  "superadmin.issues.importSuccess": "Imported successfully",
+  "superadmin.issues.importTitle": "Import Issues",
+  "superadmin.issues.loading": "Loading...",
+  "superadmin.issues.pagination.next": "Next",
+  "superadmin.issues.pagination.pageOf": "Page {page} of {total}",
+  "superadmin.issues.pagination.previous": "Previous",
+  "superadmin.issues.priorities.p0": "P0 Critical",
+  "superadmin.issues.priorities.p1": "P1 High",
+  "superadmin.issues.priorities.p2": "P2 Medium",
+  "superadmin.issues.priorities.p3": "P3 Low",
+  "superadmin.issues.refresh": "Refresh",
+  "superadmin.issues.search": "Search issues...",
+  "superadmin.issues.stats.blocked": "Blocked",
+  "superadmin.issues.stats.closed": "Closed",
+  "superadmin.issues.stats.healthScore": "Health Score",
+  "superadmin.issues.stats.open": "Open",
+  "superadmin.issues.stats.quickWins": "Quick Wins",
+  "superadmin.issues.stats.recentlyClosed": "Recently Closed",
+  "superadmin.issues.stats.recentlyResolved": "This Week",
+  "superadmin.issues.stats.stale": "Stale",
+  "superadmin.issues.stats.total": "Total",
+  "superadmin.issues.statuses.blocked": "Blocked",
+  "superadmin.issues.statuses.closed": "Closed",
+  "superadmin.issues.statuses.in_progress": "In Progress",
+  "superadmin.issues.statuses.in_review": "In Review",
+  "superadmin.issues.statuses.open": "Open",
+  "superadmin.issues.statuses.resolved": "Resolved",
+  "superadmin.issues.statuses.wont_fix": "Won't Fix",
+  "superadmin.issues.subtitle": "Full system access • Track and manage all issues",
+  "superadmin.issues.table.actions": "Actions",
+  "superadmin.issues.table.category": "Category",
+  "superadmin.issues.table.id": "ID",
+  "superadmin.issues.table.location": "Location",
+  "superadmin.issues.table.module": "Module",
+  "superadmin.issues.table.priority": "Priority",
+  "superadmin.issues.table.seen": "Seen",
+  "superadmin.issues.table.status": "Status",
+  "superadmin.issues.table.title": "Title",
+  "superadmin.issues.table.updated": "Updated",
+  "superadmin.issues.tableDescription": "Click on an issue to view details and update status",
+  "superadmin.issues.title": "System Issue Tracker",
+  "superadmin.issues.toast.errorTitle": "Error",
+  "superadmin.issues.toast.exportComplete": "Export Complete",
+  "superadmin.issues.toast.exportFailed": "Could not export issues",
+  "superadmin.issues.toast.exportFailedTitle": "Export Failed",
+  "superadmin.issues.toast.exportSummary": "Exported {count} issues",
+  "superadmin.issues.toast.importComplete": "Import Complete",
+  "superadmin.issues.toast.importDryRunComplete": "Dry Run Complete",
+  "superadmin.issues.toast.importFailed": "Could not import issues. Check format.",
+  "superadmin.issues.toast.importFailedTitle": "Import Failed",
+  "superadmin.issues.toast.importSummary": "Imported: {created}, Updated: {updated}, Skipped: {skipped}",
+  "superadmin.issues.toast.loadFailed": "Failed to load issues",
+  "superadmin.issues.toast.noDataDescription": "Please paste issues JSON or markdown",
+  "superadmin.issues.toast.noDataTitle": "No Data",
+  "superadmin.issues.updateSuccess": "Updated successfully",
+  "superadmin.issues.views.all": "All Issues",
+  "superadmin.issues.views.quickWins": "Quick Wins",
+  "superadmin.issues.views.resolved": "Resolved",
+  "superadmin.issues.views.stale": "Stale (>30d)",
+  "superadmin.logout": "Logout",
+  "superadmin.settings": "Settings",
+  "superadmin.title": "Superadmin",
+  "superadmin.verifyingAccess": "Verifying access...",
   "Supplier": "Supplier",
   "supplierManagement.active": "Active",
   "supplierManagement.agreement": "Agreement",
@@ -31284,93 +31400,5 @@
   "workspaceSettings.timeFormat": "Time Format",
   "workspaceSettings.timezone": "Default Timezone",
   "workspaceSettings.visibility": "Visibility",
-  "workspaceSettings.workspace": "Workspace",
-  "auto": {
-    "fm": {
-      "hr": {
-        "directory": {
-          "new": {
-            "toast": {
-              "success": "Employee created successfully",
-              "error": "Failed to create employee"
-            },
-            "breadcrumbs": "HR / Directory",
-            "header": {
-              "title": "Add New Employee",
-              "subtitle": "Fill in the details to add a new employee"
-            },
-            "sections": {
-              "profile": {
-                "title": "Profile Basics",
-                "description": "Basic information about the employee"
-              },
-              "role": {
-                "title": "Role Details",
-                "description": "Position and reporting information"
-              },
-              "compensation": {
-                "title": "Compensation & Notes",
-                "description": "Salary and additional notes"
-              }
-            },
-            "actions": {
-              "cancel": "Cancel",
-              "saving": "Saving...",
-              "submit": "Create employee"
-            },
-            "form": {
-              "compensationType": {
-                "label": "Compensation Type",
-                "placeholder": "Select compensation type"
-              },
-              "salary": {
-                "label": "Base Pay"
-              },
-              "notes": {
-                "label": "Additional Notes",
-                "placeholder": "Enter any additional notes..."
-              },
-              "firstName": {
-                "label": "First Name",
-                "placeholder": "Enter first name"
-              },
-              "lastName": {
-                "label": "Last Name",
-                "placeholder": "Enter last name"
-              },
-              "workEmail": {
-                "label": "Work Email"
-              },
-              "phone": {
-                "label": "Phone"
-              },
-              "reportsTo": {
-                "label": "Reports To",
-                "placeholder": "Select manager"
-              },
-              "jobTitle": {
-                "label": "Job Title",
-                "placeholder": "Enter job title"
-              },
-              "department": {
-                "label": "Department",
-                "placeholder": "Select department"
-              },
-              "employmentType": {
-                "label": "Employment Type",
-                "placeholder": "Select employment type"
-              },
-              "workModel": {
-                "label": "Work Model",
-                "placeholder": "Select work model"
-              },
-              "startDate": {
-                "label": "Start Date"
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+  "workspaceSettings.workspace": "Workspace"
 }

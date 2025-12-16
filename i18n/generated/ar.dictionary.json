@@ -13490,19 +13490,50 @@
   "footer.breadcrumbLabel": "مسار فيكزت",
   "footer.careers": "الوظائف",
   "footer.company": "الشركة",
-  "footer.copyright": "فيكزيت. جميع الحقوق محفوظة.",
+  "footer.copyright": "سلطان الحسني العقارية ذ.م.م. جميع الحقوق محفوظة.",
   "footer.crumb.fixzit": "فيكزت",
   "footer.crumb.platform": "نظام التصميم",
   "footer.crumb.version": "الإصدار 2",
   "footer.description": "إدارة المنشآت + الأسواق في منصة واحدة.",
+  "footer.docs": "واجهات برمجة التطبيقات",
+  "footer.docsDescription": "مرجع OpenAPI وأدلة التكامل",
+  "footer.finance": "المالية",
+  "footer.financeDescription": "الفواتير، الإيصالات، المدفوعات، وفوترة زاتكا",
   "footer.help": "مركز المساعدة",
   "footer.legal": "قانوني",
+  "footer.marketplace": "سوق فيكزيت",
+  "footer.marketplaceDescription": "الكتالوج، تأهيل الموردين، والطلبات",
+  "footer.nav.company": "الشركة",
+  "footer.nav.companyDesc": "الفريق، الوظائف، والتسعير",
+  "footer.nav.platform": "المنصة",
+  "footer.nav.platformDesc": "أدوات العمليات والمالية والسوق",
+  "footer.nav.resources": "المصادر",
+  "footer.nav.resourcesDesc": "الوثائق، التقارير، وصحة النظام الحية",
+  "footer.nav.supportDesc": "مركز المساعدة والسياسات ومكتب الدعم",
+  "footer.navigationLabel": "تصفح التذييل",
   "footer.pricing": "الأسعار",
   "footer.privacy": "الخصوصية",
+  "footer.privacyDescription": "كيف نعالج البيانات ونحميها",
+  "footer.properties": "العقارات",
+  "footer.propertiesDescription": "الوحدات، العقود، التفتيشات، والصيانة",
+  "footer.reports": "التقارير والتحليلات",
+  "footer.reportsDescription": "لوحات معلومات ورصد لكل الوحدات",
+  "footer.status": "الحالة",
+  "footer.status.operational": "جميع الأنظمة تعمل",
+  "footer.status.realtime": "تحليلات فورية | أقل من 180 مللي ثانية P95",
+  "footer.statusDetail": "الجاهزية، الحوادث، وفترات الصيانة",
   "footer.support": "الدعم",
   "footer.terms": "الشروط",
+  "footer.termsDescription": "شروط المنصة وسياسة الاستخدام",
+  "footer.theme.dark": "داكن",
+  "footer.theme.light": "فاتح",
+  "footer.theme.system": "النظام",
+  "footer.themeToggleLabel": "السمة",
   "footer.ticket": "فتح تذكرة",
   "footer.ticket_aria": "افتح تذكرة دعم",
+  "footer.ticketDescription": "إنشاء تذكرة دعم مع فيكزيت",
+  "footer.workOrders": "أوامر العمل",
+  "footer.workOrdersDescription": "التوجيه، مؤقتات SLA، وجدولة الفنيين",
   "forensicInvestigation.acquisition": "الحصول على البيانات",
   "forensicInvestigation.analysis": "التحليل الشرعي",
   "forensicInvestigation.artifacts": "تحليل القطع الأثرية",
@@ -27241,6 +27272,91 @@
   "successionPlanning.talent": "خط أنابيب المواهب",
   "successionPlanning.tracking": "تتبع التعاقب",
   "successionPlanning.transition": "انتقال القيادة",
+  "superadmin.issues.add": "إضافة مشكلة",
+  "superadmin.issues.categories.bug": "خطأ",
+  "superadmin.issues.categories.efficiency": "كفاءة",
+  "superadmin.issues.categories.logic_error": "خطأ منطقي",
+  "superadmin.issues.categories.missing_test": "اختبار مفقود",
+  "superadmin.issues.categories.security": "أمن",
+  "superadmin.issues.deleteSuccess": "تم الحذف بنجاح",
+  "superadmin.issues.empty": "لم يتم العثور على مشاكل",
+  "superadmin.issues.emptyHint": "جرّب تعديل الفلاتر أو استيراد المشاكل",
+  "superadmin.issues.error": "خطأ في تحميل المشاكل",
+  "superadmin.issues.export": "تصدير",
+  "superadmin.issues.exportSuccess": "تم التصدير بنجاح",
+  "superadmin.issues.filters.all": "الكل",
+  "superadmin.issues.filters.category": "الفئة",
+  "superadmin.issues.filters.priority": "الأولوية",
+  "superadmin.issues.filters.status": "الحالة",
+  "superadmin.issues.import": "استيراد",
+  "superadmin.issues.importDataLabel": "بيانات المشاكل",
+  "superadmin.issues.importDesc": "الصق مصفوفة JSON للمشاكل أو نص بسيط (عنوان واحد لكل سطر)",
+  "superadmin.issues.importDryRun": "تشغيل تجريبي",
+  "superadmin.issues.importing": "جارٍ الاستيراد...",
+  "superadmin.issues.importPlaceholder": "[{\"title\": \"إصلاح خطأ...\", \"priority\": \"P1\"}]",
+  "superadmin.issues.importSuccess": "تم الاستيراد بنجاح",
+  "superadmin.issues.importTitle": "استيراد المشاكل",
+  "superadmin.issues.loading": "جاري التحميل...",
+  "superadmin.issues.pagination.next": "التالي",
+  "superadmin.issues.pagination.pageOf": "الصفحة {page} من {total}",
+  "superadmin.issues.pagination.previous": "السابق",
+  "superadmin.issues.priorities.p0": "P0 حرجة",
+  "superadmin.issues.priorities.p1": "P1 عالية",
+  "superadmin.issues.priorities.p2": "P2 متوسطة",
+  "superadmin.issues.priorities.p3": "P3 منخفضة",
+  "superadmin.issues.refresh": "تحديث",
+  "superadmin.issues.search": "بحث في المشاكل...",
+  "superadmin.issues.stats.blocked": "محظورة",
+  "superadmin.issues.stats.closed": "مغلقة",
+  "superadmin.issues.stats.healthScore": "درجة الصحة",
+  "superadmin.issues.stats.open": "مفتوحة",
+  "superadmin.issues.stats.quickWins": "إصلاحات سريعة",
+  "superadmin.issues.stats.recentlyClosed": "مغلقة مؤخراً",
+  "superadmin.issues.stats.recentlyResolved": "هذا الأسبوع",
+  "superadmin.issues.stats.stale": "قديمة",
+  "superadmin.issues.stats.total": "الإجمالي",
+  "superadmin.issues.statuses.blocked": "محظورة",
+  "superadmin.issues.statuses.closed": "مغلقة",
+  "superadmin.issues.statuses.in_progress": "قيد التنفيذ",
+  "superadmin.issues.statuses.in_review": "قيد المراجعة",
+  "superadmin.issues.statuses.open": "مفتوحة",
+  "superadmin.issues.statuses.resolved": "محلولة",
+  "superadmin.issues.statuses.wont_fix": "لن يتم الإصلاح",
+  "superadmin.issues.subtitle": "وصول كامل للنظام • تتبع وإدارة جميع المشاكل",
+  "superadmin.issues.table.actions": "الإجراءات",
+  "superadmin.issues.table.category": "الفئة",
+  "superadmin.issues.table.id": "المعرّف",
+  "superadmin.issues.table.location": "الموقع",
+  "superadmin.issues.table.module": "الوحدة",
+  "superadmin.issues.table.priority": "الأولوية",
+  "superadmin.issues.table.seen": "مرات الظهور",
+  "superadmin.issues.table.status": "الحالة",
+  "superadmin.issues.table.title": "العنوان",
+  "superadmin.issues.table.updated": "آخر تحديث",
+  "superadmin.issues.tableDescription": "انقر على المشكلة لعرض التفاصيل وتحديث الحالة",
+  "superadmin.issues.title": "متتبع مشاكل النظام",
+  "superadmin.issues.toast.errorTitle": "خطأ",
+  "superadmin.issues.toast.exportComplete": "تم التصدير",
+  "superadmin.issues.toast.exportFailed": "تعذر تصدير المشاكل",
+  "superadmin.issues.toast.exportFailedTitle": "فشل التصدير",
+  "superadmin.issues.toast.exportSummary": "تم تصدير {count} مشكلة",
+  "superadmin.issues.toast.importComplete": "تم الاستيراد",
+  "superadmin.issues.toast.importDryRunComplete": "اكتمل التشغيل التجريبي",
+  "superadmin.issues.toast.importFailed": "تعذر استيراد المشاكل. تحقق من التنسيق.",
+  "superadmin.issues.toast.importFailedTitle": "فشل الاستيراد",
+  "superadmin.issues.toast.importSummary": "تم الاستيراد: {created}، التحديث: {updated}، المتخطى: {skipped}",
+  "superadmin.issues.toast.loadFailed": "فشل تحميل المشاكل",
+  "superadmin.issues.toast.noDataDescription": "يرجى لصق JSON للمشاكل أو نص عادي",
+  "superadmin.issues.toast.noDataTitle": "لا توجد بيانات",
+  "superadmin.issues.updateSuccess": "تم التحديث بنجاح",
+  "superadmin.issues.views.all": "جميع المشاكل",
+  "superadmin.issues.views.quickWins": "إصلاحات سريعة",
+  "superadmin.issues.views.resolved": "محلولة",
+  "superadmin.issues.views.stale": "قديمة (>30 يوم)",
+  "superadmin.logout": "تسجيل الخروج",
+  "superadmin.settings": "الإعدادات",
+  "superadmin.title": "المسؤول الأعلى",
+  "superadmin.verifyingAccess": "جارٍ التحقق من الوصول...",
   "Supplier": "مورد",
   "supplierManagement.active": "نشط",
   "supplierManagement.agreement": "الاتفاقية",
@@ -31284,93 +31400,5 @@
   "workspaceSettings.timeFormat": "تنسيق الوقت",
   "workspaceSettings.timezone": "المنطقة الزمنية الافتراضية",
   "workspaceSettings.visibility": "الظهور",
-  "workspaceSettings.workspace": "مساحة العمل",
-  "auto": {
-    "fm": {
-      "hr": {
-        "directory": {
-          "new": {
-            "toast": {
-              "success": "تم إنشاء الموظف بنجاح",
-              "error": "فشل في إنشاء الموظف"
-            },
-            "breadcrumbs": "الموارد البشرية / الدليل",
-            "header": {
-              "title": "إضافة موظف جديد",
-              "subtitle": "املأ التفاصيل لإضافة موظف جديد"
-            },
-            "sections": {
-              "profile": {
-                "title": "المعلومات الأساسية",
-                "description": "المعلومات الأساسية عن الموظف"
-              },
-              "role": {
-                "title": "تفاصيل الوظيفة",
-                "description": "المنصب ومعلومات التقارير"
-              },
-              "compensation": {
-                "title": "التعويضات والملاحظات",
-                "description": "الراتب والملاحظات الإضافية"
-              }
-            },
-            "actions": {
-              "cancel": "إلغاء",
-              "saving": "جارٍ الحفظ...",
-              "submit": "إنشاء موظف"
-            },
-            "form": {
-              "compensationType": {
-                "label": "نوع التعويض",
-                "placeholder": "اختر نوع التعويض"
-              },
-              "salary": {
-                "label": "الراتب الأساسي"
-              },
-              "notes": {
-                "label": "ملاحظات إضافية",
-                "placeholder": "أدخل أي ملاحظات إضافية..."
-              },
-              "firstName": {
-                "label": "الاسم الأول",
-                "placeholder": "أدخل الاسم الأول"
-              },
-              "lastName": {
-                "label": "اسم العائلة",
-                "placeholder": "أدخل اسم العائلة"
-              },
-              "workEmail": {
-                "label": "البريد الإلكتروني للعمل"
-              },
-              "phone": {
-                "label": "الهاتف"
-              },
-              "reportsTo": {
-                "label": "المدير المباشر",
-                "placeholder": "اختر المدير"
-              },
-              "jobTitle": {
-                "label": "المسمى الوظيفي",
-                "placeholder": "أدخل المسمى الوظيفي"
-              },
-              "department": {
-                "label": "القسم",
-                "placeholder": "اختر القسم"
-              },
-              "employmentType": {
-                "label": "نوع التوظيف",
-                "placeholder": "اختر نوع التوظيف"
-              },
-              "workModel": {
-                "label": "نموذج العمل",
-                "placeholder": "اختر نموذج العمل"
-              },
-              "startDate": {
-                "label": "تاريخ البدء"
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+  "workspaceSettings.workspace": "مساحة العمل"
 }
