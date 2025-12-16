@@ -25,12 +25,12 @@ const ActivationJobDataSchema = z.object({
 });
 
 type ActivationJobData = z.infer<typeof ActivationJobDataSchema>;
+type ActivationWorker = Worker<ActivationJobData, unknown>;
+type ActivationQueue = Queue<ActivationJobData>;
 
 // Queue and worker instances (for graceful shutdown)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let queue: Queue<ActivationJobData> | null = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let activeWorker: Worker<ActivationJobData, any> | null = null;
+let queue: ActivationQueue | null = null;
+let activeWorker: ActivationWorker | null = null;
 
 /**
  * Require Redis connection - fail fast if not configured
@@ -51,11 +51,11 @@ function requireRedisConnection(context: string) {
  * Get or create the activation retry queue
  * Throws if Redis is not configured (fail-fast for critical queue)
  */
-export function getActivationQueue(): Queue {
+export function getActivationQueue(): ActivationQueue {
   const connection = requireRedisConnection("getActivationQueue");
 
   if (!queue) {
-    queue = new Queue(QUEUE_NAME, {
+    queue = new Queue<ActivationJobData>(QUEUE_NAME, {
       connection,
       defaultJobOptions: {
         attempts: MAX_ATTEMPTS,
@@ -145,8 +145,7 @@ export async function enqueueActivationRetry(
  * NOTE: This function is async to ensure MongoDB is connected before processing.
  * The Worker is returned after connection is established.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function startActivationWorker(): Promise<Worker<any, any>> {
+export async function startActivationWorker(): Promise<ActivationWorker> {
   // CRITICAL: Ensure MongoDB is connected before any BullMQ handlers run.
   // In standalone worker processes, mongoose may not be connected yet.
   const { connectToDatabase } = await import("@/lib/mongodb-unified");
@@ -156,11 +155,10 @@ export async function startActivationWorker(): Promise<Worker<any, any>> {
   
   if (activeWorker) {
     logger.warn("[ActivationQueue] Worker already running, returning existing worker");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return activeWorker as any;
+    return activeWorker;
   }
 
-  const worker = new Worker<ActivationJobData>(
+  const worker: ActivationWorker = new Worker<ActivationJobData>(
     QUEUE_NAME,
     async (job: Job<ActivationJobData>) => {
       // Validate job data with Zod schema (fail-closed on invalid)
@@ -288,8 +286,7 @@ export async function startActivationWorker(): Promise<Worker<any, any>> {
   });
 
   // Store reference for graceful shutdown
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activeWorker = worker as any;
+  activeWorker = worker;
   
   logger.info("[ActivationQueue] Worker started");
   return worker;
