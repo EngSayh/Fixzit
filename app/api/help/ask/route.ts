@@ -430,7 +430,7 @@ if (redisConnectionUrl) {
   try {
     redis = new Redis(redisConnectionUrl, {
       maxRetriesPerRequest: 3,
-      retryStrategy: (times) => Math.min(times * 50, 2000),
+      retryStrategy: (times: number) => Math.min(times * 50, 2000),
       connectTimeout: 5000,
       commandTimeout: 5000,
     });

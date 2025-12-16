@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "TAP and PayTabs Payment Gateway Metrics",
+  "description": "Tap Payment Gateway Metrics",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -327,7 +327,7 @@
   "refresh": "30s",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["fixzit", "payments", "tap", "paytabs"],
+          "tags": ["fixzit", "payments", "tap"],
   "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},

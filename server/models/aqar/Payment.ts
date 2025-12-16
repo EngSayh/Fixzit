@@ -166,7 +166,7 @@ const PaymentSchema = new Schema<IPayment>(
       clearanceId: { type: String },
       clearedAt: { type: Date },
       retryCompletedAt: { type: Date },
-      // Evidence fields for compliance audit trail (written by PayTabs callback)
+      // Evidence fields for compliance audit trail (written by payment callbacks)
       lastError: { type: String },
       submittedAt: { type: Date },
       // Sensitive: Invoice payload may contain business details

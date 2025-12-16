@@ -33,8 +33,10 @@ type ZatcaRetryJobData = z.infer<typeof ZatcaRetryJobDataSchema>;
 const zatcaResilience = SERVICE_RESILIENCE.zatca;
 
 // Queue and worker instances (for graceful shutdown)
-let queue: Queue | null = null;
-let activeWorker: Worker | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let queue: Queue<ZatcaRetryJobData> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let activeWorker: Worker<ZatcaRetryJobData, any> | null = null;
 
 /**
  * Require Redis connection - fail fast if not configured.
@@ -307,7 +309,7 @@ export async function startZatcaRetryWorker(): Promise<Worker> {
           vatAmount: String(+(amount * 0.15).toFixed(2)),
           items: [
             {
-              description: "Payment via PayTabs (Retry)",
+              description: "Payment via Tap (Retry)",
               quantity: 1,
               unitPrice: amount,
               vatRate: 0.15,
@@ -367,7 +369,7 @@ export async function startZatcaRetryWorker(): Promise<Worker> {
                 "zatca.clearanceId": clearanceId,
                 "zatca.clearedAt": new Date(),
                 "zatca.retryCompletedAt": new Date(),
-                // Evidence fields for compliance audit trail (aligned with PayTabs callback)
+                // Evidence fields for compliance audit trail (aligned with Tap callback)
                 "zatca.submittedAt": new Date(),
                 "zatca.invoicePayload": invoicePayload,
               },
@@ -448,7 +450,8 @@ export async function startZatcaRetryWorker(): Promise<Worker> {
   });
 
   logger.info("[ZatcaRetryQueue] Worker started");
-  activeWorker = worker;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  activeWorker = worker as Worker<any, any>;
   return worker;
 }
 

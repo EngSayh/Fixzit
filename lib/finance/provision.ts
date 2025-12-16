@@ -2,10 +2,7 @@ import Subscription from "@/server/models/Subscription";
 
 export async function provisionSubscriber(cartIdOrSubscriptionId: string) {
   const subscription = await Subscription.findOne({
-    $or: [
-      { _id: cartIdOrSubscriptionId },
-      { "paytabs.cart_id": cartIdOrSubscriptionId },
-    ],
+    _id: cartIdOrSubscriptionId,
   });
 
   if (!subscription) {

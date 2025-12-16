@@ -18,7 +18,8 @@ const SECRET_FALLBACK =
   "change-me-superadmin-secret";
 
 export const SUPERADMIN_COOKIE_NAME = "superadmin_session";
-const COOKIE_PATHS = ["/superadmin", "/api/superadmin", "/api/issues"];
+const SUPERADMIN_COOKIE_PATH = "/";
+const LEGACY_COOKIE_PATHS = ["/superadmin", "/api/superadmin", "/api/issues"];
 
 const RATE_LIMIT_WINDOW_MS =
   Number(process.env.SUPERADMIN_LOGIN_WINDOW_MS) || 60_000;
@@ -162,14 +163,14 @@ export function applySuperadminCookies(
   const secure = process.env.NODE_ENV === "production";
   const sameSite: "lax" | "strict" = "lax";
 
-  // Set cookie with /superadmin path so it's accessible on all superadmin routes
+  // Single root-scoped cookie so UI (/superadmin) and API (/api/superadmin, /api/issues) both receive it
   const respWithCookies = response as Response & { cookies?: { set: (name: string, value: string, opts: Record<string, unknown>) => void } };
   if (respWithCookies.cookies && typeof respWithCookies.cookies.set === "function") {
     respWithCookies.cookies.set(SUPERADMIN_COOKIE_NAME, token, {
       httpOnly: true,
       secure,
       sameSite,
-      path: "/superadmin",
+      path: SUPERADMIN_COOKIE_PATH,
       maxAge: maxAgeSeconds,
       priority: "high",
     });
@@ -179,13 +180,20 @@ export function applySuperadminCookies(
 export function clearSuperadminCookies(response: Response): void {
   const respWithCookies = response as Response & { cookies?: { set: (name: string, value: string, opts: Record<string, unknown>) => void } };
   if (respWithCookies.cookies && typeof respWithCookies.cookies.set === "function") {
-    respWithCookies.cookies.set(SUPERADMIN_COOKIE_NAME, "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/superadmin",
-      maxAge: 0,
-    });
+    const cookieNames = [SUPERADMIN_COOKIE_NAME, `${SUPERADMIN_COOKIE_NAME}.legacy`];
+    const cookiePaths = Array.from(new Set([SUPERADMIN_COOKIE_PATH, ...LEGACY_COOKIE_PATHS]));
+
+    for (const name of cookieNames) {
+      for (const path of cookiePaths) {
+        respWithCookies.cookies.set(name, "", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path,
+          maxAge: 0,
+        });
+      }
+    }
   }
 }
 

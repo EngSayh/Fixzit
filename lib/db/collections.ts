@@ -521,9 +521,6 @@ export async function createIndexes() {
       { orgId: 1, subscriptionId: 1, status: 1 },
       { background: true, name: "subscriptioninvoices_orgId_subscription_status" },
     );
-  await db
-    .collection(COLLECTIONS.SUBSCRIPTION_INVOICES)
-    .createIndex({ paytabsRef: 1 }, { background: true, sparse: true, name: "subscriptioninvoices_paytabsRef" });
 
   // Assets
   await db

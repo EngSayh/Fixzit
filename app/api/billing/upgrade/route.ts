@@ -1,7 +1,7 @@
 /**
  * @description Handles subscription plan upgrades with prorated billing.
  * Supports upgrading between STANDARD, PRO, PREMIUM, and ENTERPRISE plans.
- * Calculates prorated amounts and creates PayTabs checkout for the difference.
+ * Calculates prorated amounts and creates Tap checkout for the difference.
  * GET returns available upgrade options and pricing for current subscription.
  * @route GET /api/billing/upgrade - Get available upgrade options and pricing
  * @route POST /api/billing/upgrade - Initiate plan upgrade checkout

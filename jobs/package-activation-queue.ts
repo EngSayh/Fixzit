@@ -27,8 +27,10 @@ const ActivationJobDataSchema = z.object({
 type ActivationJobData = z.infer<typeof ActivationJobDataSchema>;
 
 // Queue and worker instances (for graceful shutdown)
-let queue: Queue | null = null;
-let activeWorker: Worker | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let queue: Queue<ActivationJobData> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let activeWorker: Worker<ActivationJobData, any> | null = null;
 
 /**
  * Require Redis connection - fail fast if not configured
@@ -285,7 +287,8 @@ export async function startActivationWorker(): Promise<Worker> {
   });
 
   // Store reference for graceful shutdown
-  activeWorker = worker;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  activeWorker = worker as Worker<any, any>;
   
   logger.info("[ActivationQueue] Worker started");
   return worker;

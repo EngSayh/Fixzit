@@ -343,7 +343,7 @@ export const Config = {
    * Payment Gateway Configuration (Tap Payments only)
    * 
    * IMPORTANT: This system uses TAP PAYMENTS ONLY.
-   * Legacy PayTabs has been removed.
+   * Legacy non-Tap gateways have been removed.
    */
   payment: {
     tap: {

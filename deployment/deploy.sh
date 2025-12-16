@@ -141,13 +141,6 @@ else
     error "❌ MongoDB health check failed"
 fi
 
-# Check Redis
-if docker-compose exec redis redis-cli ping | grep -q "PONG"; then
-    log "✅ Redis is healthy"
-else
-    error "❌ Redis health check failed"
-fi
-
 # Run database migrations
 log "Running database migrations..."
 docker-compose exec web npm run db:migrate || warn "Database migration failed"

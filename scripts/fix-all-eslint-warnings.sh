@@ -45,7 +45,6 @@ FIXED=$((FIXED + 30))
 # Fix unused 'user', 'userId', 'client', 'payload' variables
 sed -i 's/const user = /const _user = /g' app/api/ats/moderation/route.ts
 sed -i 's/const userId = /const _userId = /g' app/api/ats/jobs/[id]/publish/route.ts
-sed -i 's/const client = /const _client = /g' app/api/billing/callback/paytabs/route.ts
 sed -i 's/const client = /const _client = /g' app/api/billing/charge-recurring/route.ts
 
 # Fix unused in help/ask/route.ts
@@ -136,8 +135,6 @@ FIXED=$((FIXED + 400))
 # ============================================================================
 echo "${YELLOW}PHASE 5: Fixing lib/ directory TypeScript 'any' types...${NC}"
 
-# Fix lib/paytabs/subscription.ts
-find lib/paytabs -name "*.ts" -type f -exec sed -i 's/: any/: Record<string, unknown>/g' {} \;
 
 # Fix lib/pricing.ts
 sed -i 's/: any/: Record<string, unknown>/g' lib/pricing.ts

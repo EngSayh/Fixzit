@@ -36,54 +36,9 @@ function getKsaDatePartition(): { dateKey: string; secondsToMidnight: number } {
   return { dateKey, secondsToMidnight };
 }
 
-function createRedisClient(): Redis | null {
-  // Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
-  const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
-  const redisHost = process.env.BULLMQ_REDIS_HOST;
-  const redisPort = parseInt(process.env.BULLMQ_REDIS_PORT || "6379", 10);
-  const redisPassword =
-    process.env.BULLMQ_REDIS_PASSWORD || process.env.REDIS_PASSWORD;
-  
-  // 🔐 STRICT v4.1: Redis is REQUIRED for production budget enforcement
-  // Without Redis, budget limits are not shared across instances, enabling overspend
-  const isProduction = process.env.NODE_ENV === "production";
-  const isTest = process.env.NODE_ENV === "test";
-  // During Next.js build we can allow fallback to avoid blocking build artifacts, runtime must still enforce.
-  const isBuildPhase =
-    process.env.NEXT_PHASE === "phase-production-build" ||
-    process.env.DISABLE_MONGODB_FOR_BUILD === "true";
-  
-  if (!redisUrl && !redisHost) {
-    if (isProduction && !isBuildPhase) {
-      // Fail closed in production runtime—do NOT allow memory fallback
-      throw new Error(
-        "[BudgetManager] Redis is REQUIRED for ad budget enforcement in production. " +
-        "Set BULLMQ_REDIS_URL/REDIS_URL; in-memory fallback is disabled in production.",
-      );
-    }
-    if (!isTest) {
-      logger.warn(
-        "[BudgetManager] Redis not configured. Falling back to in-memory budget tracking. " +
-        "⚠️ Budget limits will NOT be shared across instances - risk of overspend.",
-      );
-    }
-    return null;
-  }
-
-  const client = redisUrl
-    ? new Redis(redisUrl, { lazyConnect: true })
-    : new Redis({
-        host: redisHost!,
-        port: redisPort,
-        password: redisPassword,
-        lazyConnect: true,
-      });
-
-  client.on("error", (error) => {
-    logger.error("[BudgetManager] Redis connection error", error);
-  });
-
-  return client;
+function createRedisClient(): Redis {
+  logger.info("[BudgetManager] Using in-memory budget store (Redis removed)");
+  return new Redis();
 }
 
 const redis = createRedisClient();

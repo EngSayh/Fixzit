@@ -91,21 +91,6 @@ const requiredSecrets = {
       note: "AWS credentials",
       howToGet: "From AWS IAM console",
     },
-    PAYTABS_PROFILE_ID: {
-      status: "missing",
-      note: "Payment processing",
-      howToGet: "From PayTabs dashboard",
-    },
-    PAYTABS_SERVER_KEY: {
-      status: "missing",
-      note: "Payment processing",
-      howToGet: "From PayTabs dashboard",
-    },
-    PAYTABS_CLIENT_KEY: {
-      status: "missing",
-      note: "Payment processing",
-      howToGet: "From PayTabs dashboard",
-    },
     // Tap Payments - Standardized env var names
     TAP_ENVIRONMENT: {
       status: "missing",
@@ -411,10 +396,7 @@ console.log("vercel env add INVOICE_ENABLED production");
 console.log("vercel env add PROPERTY_ENABLED production");
 
 console.log("\n# Payment (if needed):");
-console.log("vercel env add PAYTABS_PROFILE_ID production");
-console.log("vercel env add PAYTABS_SERVER_KEY production");
-console.log("vercel env add PAYTABS_CLIENT_KEY production");
-
+console.log("vercel env add TAP_ENVIRONMENT production");
 console.log("\n\n" + "═".repeat(70));
 console.log("⚠️  IMPORTANT NOTES");
 console.log("═".repeat(70));
@@ -434,9 +416,9 @@ console.log(`
 4. URLs should all be set to: https://fixzit.co
    - This fixes email links, OAuth redirects, etc.
 
-5. Payment gateways (PayTabs/Tap) optional
+5. Payment gateway (Tap) optional
    - Only needed for e-commerce features
-   - Get credentials from respective dashboards
+   - Get credentials from Tap dashboard
 
 6. After adding secrets, redeploy:
    vercel --cwd Fixzit --prod --yes

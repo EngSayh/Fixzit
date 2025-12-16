@@ -16,7 +16,6 @@ const ENHANCED_ROUTES = new Set([
   "app/api/auth/signup/route.ts",
   "app/api/auth/me/route.ts",
   "app/api/auth/logout/route.ts",
-  "app/api/payments/paytabs/callback/route.ts",
   "app/api/payments/create/route.ts",
   "app/api/marketplace/rfq/route.ts",
   "app/api/subscribe/corporate/route.ts",

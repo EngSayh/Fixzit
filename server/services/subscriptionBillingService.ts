@@ -222,11 +222,9 @@ export async function runRecurringBillingJob(
   for (const sub of dueSubs) {
     processed++;
 
-    // Prefer TAP, fallback to PayTabs for legacy subscriptions
     const hasTap = sub.tap && sub.tap.cardId;
-    const hasPaytabs = sub.paytabs && sub.paytabs.token;
-    
-    if (!hasTap && !hasPaytabs) {
+
+    if (!hasTap) {
       sub.status = "PAST_DUE";
       sub.billing_history.push({
         date: now,
@@ -243,8 +241,8 @@ export async function runRecurringBillingJob(
 
     try {
       // Use TAP for recurring charges
-      const customerEmail = sub.tap?.customerEmail || sub.paytabs?.customer_email || "";
-      const cardId = sub.tap?.cardId || sub.paytabs?.token || "";
+      const customerEmail = sub.tap?.customerEmail || "";
+      const cardId = sub.tap?.cardId || "";
       
       const chargeResponse = await tapClient.createCharge({
         amount: sub.amount,

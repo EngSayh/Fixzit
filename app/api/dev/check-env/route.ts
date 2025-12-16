@@ -53,11 +53,7 @@ export async function GET(request: NextRequest) {
     MEILI_HOST: !!process.env.MEILI_HOST,
     MEILI_MASTER_KEY: !!process.env.MEILI_MASTER_KEY,
 
-    // Payment
-    PAYTABS_PROFILE_ID: !!process.env.PAYTABS_PROFILE_ID,
-    PAYTABS_SERVER_KEY: !!process.env.PAYTABS_SERVER_KEY,
-    PAYTABS_CLIENT_KEY: !!process.env.PAYTABS_CLIENT_KEY,
-    // Tap: Environment-aware keys
+    // Payment (Tap only)
     TAP_ENVIRONMENT: process.env.TAP_ENVIRONMENT || "test",
     TAP_LIVE_SECRET_KEY: !!process.env.TAP_LIVE_SECRET_KEY,
     TAP_TEST_SECRET_KEY: !!process.env.TAP_TEST_SECRET_KEY,

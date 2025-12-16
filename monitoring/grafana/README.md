@@ -10,7 +10,7 @@ monitoring/grafana/
 ├── dashboards/               # JSON dashboard definitions
 │   ├── fixzit-overview.json  # Application health overview
 │   ├── fixzit-database.json  # MongoDB metrics
-│   └── fixzit-payments.json  # TAP/PayTabs payment flows
+│   └── fixzit-payments.json  # Tap payment flows
 └── alerts/
     └── fixzit-alerts.yaml    # Alert rules
 ```

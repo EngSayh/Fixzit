@@ -30,7 +30,7 @@ import { joinUrl } from "@/lib/utils/url";
  * /api/payments/create:
  *   post:
  *     summary: Create payment transaction
- *     description: Initiates a payment transaction for an invoice using PayTabs payment gateway. Generates a secure payment URL for customer checkout. Requires authentication.
+ *     description: Initiates a payment transaction for an invoice using Tap payment gateway. Generates a secure payment URL for customer checkout. Requires authentication.
  *     tags:
  *       - Payments
  *     security:
@@ -92,12 +92,12 @@ import { joinUrl } from "@/lib/utils/url";
  *       429:
  *         description: Rate limit exceeded
  *       500:
- *         description: Internal server error or PayTabs API failure
+ *         description: Internal server error or Tap API failure
  */
 export async function POST(req: NextRequest) {
   try {
     // Rate limiting: 10 req/5min (300000ms) for payment creation (high sensitivity)
-    // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+    // SECURITY: In-memory limiter (Redis removed)
     const user = await getSessionUser(req);
     const rl = await smartRateLimit(`payment-create:${user.id}`, 10, 300000); // 5 minutes = 300,000ms
     if (!rl.allowed) {

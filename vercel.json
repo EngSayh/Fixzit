@@ -13,5 +13,9 @@
     "autoAlias": true,
     "silent": false
   },
-  "regions": ["cdg1"]
+  "regions": ["cdg1"],
+  "crons": [{
+    "path": "/api/cron",
+    "schedule": "0 10 * * *"
+  }]
 }

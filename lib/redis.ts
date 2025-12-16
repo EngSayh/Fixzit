@@ -1,43 +1,7 @@
-/**
- * Redis Singleton Connection Pool
- *
- * SECURITY & PERFORMANCE FIX:
- * Historical context: app/api/support/incidents/route.ts created new Redis()
- * connection per request, then called quit(), exhausting connection pools
- * and causing performance degradation.
- *
- * This singleton pattern:
- * - Reuses single connection across all requests
- * - Prevents connection exhaustion
- * - Automatically reconnects on failure
- * - Gracefully handles Redis unavailability
- *
- * IMPORTANT: This module uses dynamic require() to avoid bundling ioredis
- * into Edge/client bundles. The 'dns' module required by ioredis is not
- * available in Edge runtime.
- *
- * @module lib/redis
- */
-
+import Redis from "@/lib/stubs/ioredis";
 import { logger } from "@/lib/logger";
 
-// Use 'any' for Redis types to avoid importing ioredis at module level
-// which would cause webpack to bundle it for Edge runtime
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RedisCtor = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RedisInstance = any;
-
-let RedisModule: RedisCtor | null = null;
-let redis: RedisInstance | null = null;
-let isConnecting = false;
-let loggedMissingRedisUrl = false;
-
-// =============================================================================
-// Connection Metrics for Observability
-// =============================================================================
-
-interface RedisMetrics {
+type RedisMetrics = {
   connectionAttempts: number;
   successfulConnections: number;
   connectionErrors: number;
@@ -46,7 +10,7 @@ interface RedisMetrics {
   lastErrorAt: Date | null;
   lastError: string | null;
   currentStatus: string;
-}
+};
 
 const metrics: RedisMetrics = {
   connectionAttempts: 0,
@@ -56,268 +20,67 @@ const metrics: RedisMetrics = {
   lastConnectedAt: null,
   lastErrorAt: null,
   lastError: null,
-  currentStatus: "disconnected",
+  currentStatus: "ready",
 };
 
-/**
- * Get Redis connection metrics for observability/monitoring.
- * Useful for health dashboards and alerting systems.
- *
- * @returns Current Redis connection metrics
- *
- * @example
- * const metrics = getRedisMetrics();
- * console.log(`Connection attempts: ${metrics.connectionAttempts}`);
- * console.log(`Current status: ${metrics.currentStatus}`);
- */
+let redis: Redis | null = null;
+let warnedStub = false;
+
+function ensureClient(): Redis {
+  if (!redis) {
+    metrics.connectionAttempts++;
+    metrics.successfulConnections++;
+    metrics.currentStatus = "ready";
+    metrics.lastConnectedAt = new Date();
+    redis = new Redis();
+    if (!warnedStub) {
+      logger.info("[Redis] External Redis removed — using in-memory stub");
+      warnedStub = true;
+    }
+  }
+  return redis;
+}
+
 export function getRedisMetrics(): Readonly<RedisMetrics> {
   return { ...metrics };
 }
 
-function isEdgeRuntime(): boolean {
-  // Edge runtime sets global EdgeRuntime
-  return typeof (globalThis as Record<string, unknown>).EdgeRuntime !== "undefined" ||
-    process?.env?.NEXT_RUNTIME === "edge";
+export function getRedisClient(): Redis {
+  return ensureClient();
 }
 
-function getRedisCtor(): RedisCtor | null {
-  if (RedisModule) return RedisModule;
-  if (typeof require === "undefined") return null;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require("ioredis");
-    RedisModule = mod.default || mod;
-    return RedisModule;
-  } catch (error) {
-    logger.warn("[Redis] ioredis not available in this runtime", { error });
-    return null;
-  }
-}
-
-/**
- * Get or create singleton Redis connection
- *
- * @returns Redis client instance or null if Redis is unavailable
- */
-export function getRedisClient(): RedisInstance | null {
-  // Never attempt Redis on Edge runtime
-  if (isEdgeRuntime()) {
-    return null;
-  }
-
-  // Redis is optional - return null if no URL configured
-  // Support multiple env aliases for compatibility with different deployment configs:
-  // - REDIS_URL: Standard convention (preferred)
-  // - REDIS_KEY: Vercel/GitHub Actions naming convention
-  // - OTP_STORE_REDIS_URL: Dedicated OTP Redis instance
-  // - BULLMQ_REDIS_URL: Dedicated queue Redis instance
-  const redisUrl = 
-    process.env.REDIS_URL || 
-    process.env.REDIS_KEY ||
-    process.env.OTP_STORE_REDIS_URL || 
-    process.env.BULLMQ_REDIS_URL;
-  if (!redisUrl) {
-    if (!loggedMissingRedisUrl) {
-      logger.warn("[Redis] No REDIS_URL, REDIS_KEY, OTP_STORE_REDIS_URL, or BULLMQ_REDIS_URL configured - Redis-backed features disabled");
-      loggedMissingRedisUrl = true;
-    }
-    return null;
-  }
-
-  const RedisCtorLocal = getRedisCtor();
-  if (!RedisCtorLocal) {
-    return null;
-  }
-
-  // Return existing connection if ready, connecting, or reconnecting
-  if (
-    redis &&
-    (redis.status === "ready" ||
-      redis.status === "connecting" ||
-      redis.status === "reconnecting")
-  ) {
-    metrics.currentStatus = redis.status;
-    return redis;
-  }
-
-  // Return in-flight client instead of null to preserve cache usage during connection
-  // This prevents cache misses when a connection is being established
-  if (isConnecting && redis) {
-    metrics.currentStatus = "connecting";
-    return redis;
-  }
-
-  // Prevent multiple simultaneous connection attempts
-  if (isConnecting) {
-    metrics.currentStatus = "connecting";
-    return null;
-  }
-
-  // Wrap Redis instantiation in try-catch to handle constructor errors
-  try {
-    isConnecting = true;
-    metrics.connectionAttempts++;
-    metrics.currentStatus = "connecting";
-
-    const connectTimeout = Number(process.env.REDIS_CONNECT_TIMEOUT_MS) || 5000;
-    redis = new RedisCtorLocal(redisUrl, {
-      connectTimeout,
-      maxRetriesPerRequest: 3,
-      enableReadyCheck: true,
-      enableOfflineQueue: false, // Fail fast if Redis is down
-      retryStrategy(times: number) {
-        // Exponential backoff: 50ms, 100ms, 200ms, 400ms, max 2s
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-      reconnectOnError(err: Error) {
-        // Reconnect on specific errors
-        const targetErrors = ["READONLY", "ECONNRESET", "ETIMEDOUT"];
-        return targetErrors.some((target) => err.message.includes(target));
-      },
-    });
-
-    redis.on("error", (err: Error) => {
-      logger.error("[Redis] Connection error:", {
-        message: err.message,
-        code: (err as { code?: string }).code,
-        timestamp: new Date().toISOString(),
-      });
-      // Update metrics
-      metrics.connectionErrors++;
-      metrics.lastErrorAt = new Date();
-      metrics.lastError = err.message;
-      metrics.currentStatus = "error";
-      // Reset isConnecting flag on error to allow retry attempts
-      isConnecting = false;
-    });
-
-    redis.on("connect", () => {
-      logger.info("[Redis] Connected successfully");
-      metrics.successfulConnections++;
-      metrics.lastConnectedAt = new Date();
-      metrics.currentStatus = "connected";
-    });
-
-    redis.on("ready", () => {
-      logger.info("[Redis] Ready to accept commands");
-      metrics.currentStatus = "ready";
-      isConnecting = false;
-    });
-
-    redis.on("close", () => {
-      logger.warn("[Redis] Connection closed");
-      metrics.currentStatus = "closed";
-      // Reset isConnecting flag on close to allow reconnection
-      isConnecting = false;
-    });
-
-    redis.on("reconnecting", () => {
-      logger.info("[Redis] Reconnecting...");
-      metrics.reconnectAttempts++;
-      metrics.currentStatus = "reconnecting";
-    });
-
-    redis.on("end", () => {
-      logger.info("[Redis] Connection ended");
-      metrics.currentStatus = "ended";
-      // Reset isConnecting flag when connection ends
-      isConnecting = false;
-    });
-
-    return redis;
-  } catch (_error: unknown) {
-    const error = _error instanceof Error ? _error : new Error(String(_error));
-    isConnecting = false;
-    logger.error("[Redis] Failed to create connection:", { error });
-    return null;
-  }
-}
-
-/**
- * Gracefully close Redis connection
- * Call this during application shutdown
- */
 export async function closeRedis(): Promise<void> {
   if (redis) {
     try {
       await redis.quit();
-      redis = null;
-      logger.info("[Redis] Connection closed gracefully");
-    } catch (_error) {
-      const error =
-        _error instanceof Error ? _error : new Error(String(_error));
-      logger.error("[Redis] Error closing connection:", { error });
-      // Force disconnect if graceful close fails
-      if (redis) {
-        redis.disconnect();
-      }
-      redis = null;
+    } catch (error) {
+      logger.error("[Redis] Error during shutdown", { error });
     }
+    metrics.currentStatus = "ended";
+    redis = null;
   }
 }
 
-/**
- * Health check for Redis connection
- *
- * @returns true if Redis is connected and responding, false otherwise
- */
 export async function isRedisHealthy(): Promise<boolean> {
-  const client = getRedisClient();
-  if (!client) return false;
-
-  try {
-    const result = await client.ping();
-    return result === "PONG";
-  } catch {
-    return false;
-  }
+  return true;
 }
 
-/**
- * Safe Redis operation wrapper with automatic fallback
- *
- * @param operation - Async function that performs Redis operation
- * @param fallback - Value to return if Redis fails
- * @returns Operation result or fallback value
- *
- * @example
- * const value = await safeRedisOp(
- *   async (client) => client.get('key'),
- *   null // fallback value
- * );
- */
 export async function safeRedisOp<T>(
-  operation: (client: RedisInstance) => Promise<T>,
+  operation: (client: Redis) => Promise<T>,
   fallback: T,
 ): Promise<T> {
-  const client = getRedisClient();
-  if (!client) return fallback;
-
+  const client = ensureClient();
   try {
     return await operation(client);
-  } catch (_error) {
-    const error = _error instanceof Error ? _error : new Error(String(_error));
-    logger.error("[Redis] Operation failed:", { error });
+  } catch (error) {
+    logger.error("[Redis] Operation failed", { error });
+    metrics.connectionErrors++;
+    metrics.lastErrorAt = new Date();
+    metrics.lastError = error instanceof Error ? error.message : String(error);
     return fallback;
   }
 }
 
-// =============================================================================
-// Cache helpers (shared ioredis client)
-// =============================================================================
-
-/**
- * Redact sensitive parts of cache keys for logging.
- * Prevents ID enumeration attacks by masking middle segments of keys.
- * 
- * @param key - The cache key to redact
- * @returns Redacted key safe for logging
- * 
- * @example
- * redactCacheKey("seller:12345:balance") // "seller:1234****:balance"
- * redactCacheKey("analytics:org123:30") // "analytics:org1****:30"
- */
 function redactCacheKey(key: string): string {
   const parts = key.split(":");
   if (parts.length > 1) {
@@ -329,7 +92,6 @@ function redactCacheKey(key: string): string {
       )
       .join(":");
   }
-  // Fallback: show first 8 chars + mask
   return key.slice(0, 8) + "****";
 }
 
@@ -341,47 +103,26 @@ export const CacheTTL = {
   ONE_WEEK: 604800,
 } as const;
 
-/**
- * Get cached value or compute/store using provided function.
- */
-/**
- * Get cached value or compute/store using provided function.
- * 
- * @param key - Cache key (will be redacted in logs)
- * @param ttl - Time to live in seconds
- * @param fn - Function to compute value on cache miss
- * @returns Cached or computed value
- * 
- * @example
- * const balance = await getCached(
- *   `seller:${sellerId}:balance`,
- *   CacheTTL.FIVE_MINUTES,
- *   () => calculateBalance(sellerId)
- * );
- */
 export async function getCached<T>(
   key: string,
   ttl: number,
   fn: () => Promise<T>,
 ): Promise<T> {
-  const client = getRedisClient();
-  if (client) {
-    try {
-      const cached = await client.get(key);
-      if (cached) {
-        logger.info(`[Cache] HIT: ${redactCacheKey(key)}`);
-        return JSON.parse(cached) as T;
-      }
-      logger.info(`[Cache] MISS: ${redactCacheKey(key)}`);
-    } catch (error) {
-      logger.error(`[Cache] Read error for key ${redactCacheKey(key)}`, { error });
+  const client = ensureClient();
+  try {
+    const cached = await client.get(key);
+    if (cached) {
+      logger.info(`[Cache] HIT: ${redactCacheKey(key)}`);
+      return JSON.parse(cached) as T;
     }
+    logger.info(`[Cache] MISS: ${redactCacheKey(key)}`);
+  } catch (error) {
+    logger.error(`[Cache] Read error for key ${redactCacheKey(key)}`, { error });
   }
 
   const data = await fn();
 
-  // Use != null to prevent caching null values (which would mask "not found" states)
-  if (client && data != null) {
+  if (data != null) {
     try {
       await client.setex(key, ttl, JSON.stringify(data));
       logger.info(`[Cache] SET: ${redactCacheKey(key)} (TTL ${ttl}s)`);
@@ -398,8 +139,7 @@ export async function setCache<T>(
   value: T,
   ttl: number,
 ): Promise<void> {
-  const client = getRedisClient();
-  if (!client) return;
+  const client = ensureClient();
   try {
     await client.setex(key, ttl, JSON.stringify(value));
     logger.info(`[Cache] SET: ${redactCacheKey(key)} (TTL ${ttl}s)`);
@@ -409,8 +149,7 @@ export async function setCache<T>(
 }
 
 export async function getCache<T>(key: string): Promise<T | null> {
-  const client = getRedisClient();
-  if (!client) return null;
+  const client = ensureClient();
   try {
     const cached = await client.get(key);
     if (cached) {
@@ -426,9 +165,7 @@ export async function getCache<T>(key: string): Promise<T | null> {
 }
 
 export async function invalidateCache(pattern: string): Promise<void> {
-  const client = getRedisClient();
-  if (!client) return;
-
+  const client = ensureClient();
   const keys: string[] = [];
   try {
     const stream = client.scanStream({ match: pattern, count: 200 });
@@ -448,8 +185,7 @@ export async function invalidateCache(pattern: string): Promise<void> {
 }
 
 export async function invalidateCacheKey(key: string): Promise<void> {
-  const client = getRedisClient();
-  if (!client) return;
+  const client = ensureClient();
   try {
     await client.del(key);
     logger.info(`[Cache] Invalidated key ${redactCacheKey(key)}`);

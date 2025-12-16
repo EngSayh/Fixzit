@@ -21,7 +21,6 @@ FILES=(
   "lib/apiGuard.ts"
   "lib/errors/secureErrorResponse.tsx"
   "lib/fm-auth-middleware.ts"
-  "lib/paytabs.ts"
   "lib/secrets.ts"
   "server/lib/authContext.ts"
   "server/lib/rbac.config.ts"

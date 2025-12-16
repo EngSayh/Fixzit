@@ -13,7 +13,6 @@ export interface ISubscriptionInvoice extends Document {
   periodEnd: Date; // ✅ ADDED: Billing period end
   paidAt?: Date;
   paymentMethod?: string;
-  paytabsRef?: string; // ✅ ADDED: PayTabs transaction reference
   createdAt: Date;
   updatedAt: Date;
   createdBy?: Types.ObjectId; // Added by auditPlugin
@@ -60,7 +59,6 @@ const subscriptionInvoiceSchema = new Schema<ISubscriptionInvoice>(
     },
     paidAt: Date,
     paymentMethod: String,
-    paytabsRef: String, // ✅ ADDED: PayTabs transaction reference
   },
   {
     timestamps: true,

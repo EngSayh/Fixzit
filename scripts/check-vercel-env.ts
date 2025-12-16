@@ -35,11 +35,6 @@ const envVars = {
   MEILI_HOST: !!process.env.MEILI_HOST,
   MEILI_MASTER_KEY: !!process.env.MEILI_MASTER_KEY,
 
-  // Payment - PayTabs
-  PAYTABS_PROFILE_ID: !!process.env.PAYTABS_PROFILE_ID,
-  PAYTABS_SERVER_KEY: !!process.env.PAYTABS_SERVER_KEY,
-  PAYTABS_CLIENT_KEY: !!process.env.PAYTABS_CLIENT_KEY,
-
   // Payment - Tap (standardized names)
   TAP_ENVIRONMENT: !!process.env.TAP_ENVIRONMENT,
   TAP_TEST_SECRET_KEY: !!process.env.TAP_TEST_SECRET_KEY,
@@ -142,11 +137,6 @@ const categories = {
     "AWS_SECRET_ACCESS_KEY",
   ],
   "🔍 Search": ["MEILI_HOST", "MEILI_MASTER_KEY"],
-  "💳 Payment - PayTabs": [
-    "PAYTABS_PROFILE_ID",
-    "PAYTABS_SERVER_KEY",
-    "PAYTABS_CLIENT_KEY",
-  ],
   "💰 Payment - Tap": [
     "TAP_ENVIRONMENT",
     "TAP_TEST_SECRET_KEY",

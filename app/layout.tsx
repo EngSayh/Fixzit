@@ -14,6 +14,7 @@ import ClientLayout from '@/components/ClientLayout';
 import CustomCursor from '@/components/CustomCursor';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { getServerI18n } from '@/lib/i18n/server';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata: Metadata = {
   title: 'Fixzit Enterprise Platform',
@@ -147,6 +148,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             />
           </TooltipProvider>
         </ConditionalProviders>
+        <SpeedInsights />
         {isPlaywright && (
           <footer className="mt-8 border-t border-border px-4 py-4" role="contentinfo">
             <p className="text-sm text-muted-foreground">Fixzit Playwright Footer</p>

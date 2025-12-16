@@ -19,7 +19,6 @@ find lib -name "*.ts" -type f -exec sed -i 's/} catch (err) {/} catch (_err) {/g
 echo "Fixing specific unused variables..."
 [ -f app/api/ats/moderation/route.ts ] && sed -i 's/const user = await/const _user = await/g' app/api/ats/moderation/route.ts
 [ -f app/api/ats/jobs/\\[id\\]/publish/route.ts ] && sed -i 's/const userId = /const _userId = /g' "app/api/ats/jobs/[id]/publish/route.ts"
-[ -f app/api/billing/callback/paytabs/route.ts ] && sed -i 's/const client = /const _client = /g' app/api/billing/callback/paytabs/route.ts
 [ -f app/api/billing/charge-recurring/route.ts ] && sed -i 's/const client = /const _client = /g' app/api/billing/charge-recurring/route.ts
 
 # Fix escape characters

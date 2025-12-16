@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSuperadmin } from '@/lib/superadmin/require';
+import { getSuperadminSession } from '@/lib/superadmin/auth';
 import { connectMongo } from '@/lib/db/mongoose';
 import BacklogIssue from '@/server/models/BacklogIssue';
 
 export async function GET(req: NextRequest) {
-  const sa = await requireSuperadmin();
-  if (!sa) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await getSuperadminSession(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   await connectMongo();
 

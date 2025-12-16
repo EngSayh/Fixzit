@@ -199,7 +199,6 @@ const conflictingFiles = [
   "app/api/finance/invoices/route.ts",
   "app/api/kb/ingest/route.ts",
   "app/api/marketplace/products/route.ts",
-  "app/api/payments/paytabs/callback/route.ts",
   "app/api/projects/route.ts",
   "app/api/qa/alert/route.ts",
   "app/api/qa/log/route.ts",

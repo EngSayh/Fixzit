@@ -25,8 +25,10 @@ export const QUEUE_NAMES = {
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
 
 // Queue instances registry
-const queues = new Map<QueueName, Queue>();
-const workers = new Map<QueueName, Worker>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const queues = new Map<QueueName, Queue<any>>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const workers = new Map<QueueName, Worker<any, any>>();
 const queueEvents = new Map<QueueName, QueueEvents>();
 
 function requireRedisConnection(context: string): Redis {
@@ -120,7 +122,8 @@ export function createWorker<T = unknown, R = unknown>(
     logger.warn(`Job stalled`, { queue: name, jobId });
   });
 
-  workers.set(name, worker);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  workers.set(name, worker as Worker<any, any>);
   
   logger.info(`👷 Worker started: ${name} (concurrency: ${concurrency})`);
 
@@ -175,7 +178,8 @@ export async function addJob<T>(
 ): Promise<Job<T>> {
   const queue = getQueue(queueName);
 
-  const job = await queue.add(jobName, data, options);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const job = await queue.add(jobName, data as any, options);
 
   logger.info(`📝 Job added`, {
     queue: queueName,
@@ -256,7 +260,7 @@ export async function cleanQueue(
  */
 export async function obliterateQueue(name: QueueName): Promise<void> {
   const queue = getQueue(name);
-  await queue.obliterate({ force: true });
+  await queue.obliterate();
   logger.warn(`💥 Queue obliterated: ${name}`);
 }
 

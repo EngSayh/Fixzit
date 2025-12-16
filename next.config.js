@@ -6,6 +6,8 @@ const isTruthy = (value) => value === 'true' || value === '1';
 const path = require('path');
 const fs = require('fs');
 const resolveFromRoot = (...segments) => path.resolve(__dirname, ...segments);
+const redisStub = resolveFromRoot('lib', 'stubs', 'ioredis.ts');
+const bullmqStub = resolveFromRoot('lib', 'stubs', 'bullmq.ts');
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
   analyzerMode: 'static',
@@ -35,9 +37,6 @@ if (isVercelDeploy) {
     Boolean(tapPublicKey) &&
     Boolean(tapSecretKey) &&
     Boolean(process.env.TAP_WEBHOOK_SECRET);
-  const paytabsConfigured =
-    Boolean(process.env.PAYTABS_PROFILE_ID) &&
-    Boolean(process.env.PAYTABS_SERVER_KEY);
   
   // Critical security checks for all Vercel deployments
   if (isTruthy(process.env.SKIP_ENV_VALIDATION)) {
@@ -47,13 +46,11 @@ if (isVercelDeploy) {
     violations.push('DISABLE_MONGODB_FOR_BUILD must be false in production');
   }
   
-  // Payment provider guardrails (at least one provider configured in production)
-  if (isProdDeploy) {
-    if (!tapConfigured && !paytabsConfigured) {
-      warnings.push(
-        'No payment provider configured: set PayTabs (PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY) or Tap (TAP_PUBLIC_KEY, TAP_WEBHOOK_SECRET)',
-      );
-    }
+  // Payment provider guardrails (Tap only)
+  if (isProdDeploy && !tapConfigured) {
+    warnings.push(
+      'Tap payment provider not configured: set TAP_* keys to enable online payments',
+    );
   }
 
   if (violations.length > 0) {
@@ -225,8 +222,6 @@ const nextConfig = {
   serverExternalPackages: [
     'mongoose', 
     'bcryptjs',
-    'ioredis', // Keep ioredis server-side only - requires 'dns' module not available in Edge
-    'bullmq', // Keep bullmq server-side only - uses path, child_process, worker_threads, crypto
     'twilio', // Keep twilio server-side only - uses crypto, stream, etc.
   ],
 
@@ -414,6 +409,8 @@ const nextConfig = {
       ...config.resolve.alias,
       '@opentelemetry/api/build/esm/internal/global-utils': otelShim,
       '@opentelemetry/api/build/esm/internal/global-utils.js': otelShim,
+      ioredis: redisStub,
+      bullmq: bullmqStub,
     };
     
     // Silence vendor dynamic-require warnings from OpenTelemetry/Sentry bundles
@@ -439,18 +436,14 @@ const nextConfig = {
         '@/lib/mongoUtils.server': false,
         'bcryptjs': false,
         'async_hooks': false,
-        'ioredis': false, // ioredis uses 'dns' module not available in Edge
       };
     }
 
-    // Avoid bundling server-only packages on the client to prevent:
-    // - mongoose: schema errors during Playwright runs
-    // - ioredis: "Cannot find module 'dns'" error in browser bundles
+    // Avoid bundling server-only packages on the client to prevent schema errors during Playwright runs
     if (nextRuntime === 'web') {
       config.resolve.alias = {
         ...config.resolve.alias,
         mongoose: false,
-        ioredis: false, // ioredis requires 'dns' module not available in browser
       };
     }
 
@@ -470,7 +463,6 @@ const nextConfig = {
       tls: false,
       dns: false, // Required by ioredis but not available in browser/Edge
       mongoose: false, // Exclude mongoose from client/edge bundles
-      ioredis: false, // Exclude ioredis from client/edge bundles (uses dns)
       async_hooks: false, // Node.js core module - not available in browser
     }
     

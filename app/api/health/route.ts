@@ -8,11 +8,9 @@
 
 import { NextRequest } from "next/server";
 import { pingDatabase } from "@/lib/mongo";
-import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 import { createSecureResponse } from "@/server/security/headers";
-import { withTimeout } from "@/lib/resilience";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -44,34 +42,12 @@ export async function GET(request: NextRequest) {
       logger.error("[Health Check] Database error", { error: pingResult.error, latency: dbLatency });
     }
 
-    // Check Redis connection if configured
-    let redisStatus: "ok" | "error" | "not_configured" = "not_configured";
-    let redisLatency = 0;
-    const redisConfigured = Boolean(process.env.REDIS_URL);
+    // Redis has been removed; report as not configured
+    const redisStatus: "not_configured" = "not_configured";
+    const redisLatency = 0;
+    const redisConfigured = false;
 
-    if (redisConfigured) {
-      const redisStart = Date.now();
-      try {
-        const redis = getRedisClient();
-        if (redis) {
-          await withTimeout(
-            async () => {
-              await redis.ping();
-            },
-            { timeoutMs: PING_TIMEOUT_MS },
-          );
-          redisStatus = "ok";
-        }
-        redisLatency = Date.now() - redisStart;
-      } catch (redisError) {
-        redisLatency = Date.now() - redisStart;
-        redisStatus = "error";
-        logger.warn("[Health Check] Redis ping failed", { error: redisError instanceof Error ? redisError.message : String(redisError) });
-      }
-    }
-
-    const redisOk = !redisConfigured || redisStatus === "ok";
-    const isHealthy = dbStatus === "connected" && redisOk;
+    const isHealthy = dbStatus === "connected";
     
     const health = {
       status: isHealthy ? "healthy" : "unhealthy",
@@ -79,7 +55,7 @@ export async function GET(request: NextRequest) {
       uptime: process.uptime(),
       // Always include basic DB and Redis status for monitoring (not sensitive)
       database: dbStatus,
-      redis: redisConfigured ? redisStatus : "not_configured",
+      redis: redisStatus,
       // Authorized callers get detailed diagnostics
       ...(isAuthorized && {
         diagnostics: {
@@ -87,10 +63,7 @@ export async function GET(request: NextRequest) {
             status: dbStatus,
             latencyMs: dbLatency,
           },
-          redis: redisConfigured ? {
-            status: redisStatus,
-            latencyMs: redisLatency,
-          } : { status: "not_configured" },
+          redis: { status: redisStatus, latencyMs: redisLatency },
           memory: {
             usedMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
             totalMB: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),

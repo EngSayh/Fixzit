@@ -8,9 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { pingDatabase } from "@/lib/mongo";
-import { getRedisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
-import { withTimeout } from "@/lib/resilience";
 import { getAllCircuitBreakerStats, hasOpenCircuitBreakers } from "@/lib/resilience/service-circuit-breakers";
 import { createTaqnyatProvider } from "@/lib/sms-providers/taqnyat";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
@@ -88,30 +86,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       });
     }
 
-    // Check Redis (optional - if configured)
-    const redisConfigured = Boolean(process.env.REDIS_URL);
-    const redisClient = getRedisClient();
-    if (redisClient) {
-      const redisStart = Date.now();
-      try {
-        await withTimeout(
-          async () => {
-            await redisClient.ping();
-          },
-          { timeoutMs: HEALTH_CHECK_TIMEOUT_MS }
-        );
-        status.checks.redis = "ok";
-        status.latency.redis = Date.now() - redisStart;
-      } catch (redisError) {
-        status.latency.redis = Date.now() - redisStart;
-        const isTimeout = redisError instanceof Error && redisError.message.includes("timeout");
-        status.checks.redis = isTimeout ? "timeout" : "error";
-        logger.warn("[Health/Ready] Redis check failed", {
-          error: redisError instanceof Error ? redisError.message : String(redisError),
-        });
-      }
-    }
-
     // Check SMS provider (Taqnyat) configuration - non-blocking
     try {
       const smsProvider = createTaqnyatProvider();
@@ -120,12 +94,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       status.checks.sms = "not_configured";
     }
 
-    // Ready if MongoDB is OK and Redis is OK when configured
-    // This gates readiness on Redis when it's configured to prevent traffic
-    // routing to pods that can't reach the Redis dependency
-    const redisOk = !redisConfigured || status.checks.redis === "ok";
-    status.ready = status.checks.mongodb === "ok" && redisOk;
-    status.requiresRedis = redisConfigured;
+    // Ready if MongoDB is OK; Redis is intentionally disabled
+    status.ready = status.checks.mongodb === "ok";
 
     // Add circuit breaker states for observability
     status.circuitBreakers = {

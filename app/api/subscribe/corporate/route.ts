@@ -17,7 +17,7 @@ import { createSecureResponse } from "@/server/security/headers";
  * /api/subscribe/corporate:
  *   post:
  *     summary: Create corporate subscription
- *     description: Initiates a corporate subscription checkout for multiple users/seats. Requires admin privileges. Creates PayTabs payment session for subscription.
+ *     description: Initiates a corporate subscription checkout for multiple users/seats. Requires admin privileges. Creates Tap payment session for subscription.
  *     tags:
  *       - Subscriptions
  *     security:

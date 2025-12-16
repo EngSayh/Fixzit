@@ -197,7 +197,7 @@ export function validateDatabaseConfig(options: ValidationOptions = {}): EnvVali
  * Validate payment gateway configuration (Tap Payments only)
  * 
  * IMPORTANT: This system uses TAP PAYMENTS ONLY as the payment gateway.
- * Legacy PayTabs has been removed from the entire codebase.
+ * Legacy non-Tap gateways have been removed from the entire codebase.
  */
 export function validatePaymentConfig(options: ValidationOptions = {}): EnvValidationResult {
   const _strict = options.strict !== false;

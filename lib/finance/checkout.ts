@@ -9,7 +9,7 @@
  * - Payment session initiation
  * 
  * @module lib/finance/checkout
- * @since v2.0.0 - Migrated from PayTabs to TAP Payments
+ * @since v2.0.0 - Migrated to TAP Payments
  */
 
 import PriceBook from "@/server/models/PriceBook";

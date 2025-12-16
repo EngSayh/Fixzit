@@ -1,19 +1,7 @@
-import { Schema, Document, Types } from "mongoose";
+import { Schema, Document } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { MODULE_KEYS } from "./Module";
-
-const PayTabsInfoSchema = new Schema(
-  {
-    profile_id: String,
-    token: String,
-    customer_email: String,
-    last_tran_ref: String,
-    agreement_id: String,
-    cart_id: String,
-  },
-  { _id: false },
-);
 
 const TapInfoSchema = new Schema(
   {
@@ -91,7 +79,6 @@ const SubscriptionSchema = new Schema(
       enum: ["INCOMPLETE", "ACTIVE", "PAST_DUE", "CANCELED"],
       default: "INCOMPLETE",
     },
-    paytabs: PayTabsInfoSchema,
     tap: TapInfoSchema,
     customerName: String,
     customerEmail: String,
@@ -112,7 +99,6 @@ const SubscriptionSchema = new Schema(
       type: [BillingHistorySchema],
       default: [],
     },
-    paytabs_token_id: { type: Schema.Types.ObjectId, ref: "PaymentMethod" },
     metadata: { type: Schema.Types.Mixed },
   },
   { timestamps: true },
@@ -160,15 +146,6 @@ SubscriptionSchema.index({ status: 1 });
 SubscriptionSchema.index({ billing_cycle: 1, status: 1, next_billing_date: 1 });
 
 // TypeScript-safe model export
-interface IPayTabsInfo {
-  profile_id?: string;
-  token?: string;
-  customer_email?: string;
-  last_tran_ref?: string;
-  agreement_id?: string;
-  cart_id?: string;
-}
-
 interface ITapInfo {
   cardId?: string;
   customerId?: string;
@@ -197,7 +174,6 @@ interface ISubscription extends Document {
   price_book_id: Schema.Types.ObjectId;
   amount: number;
   status: "INCOMPLETE" | "ACTIVE" | "PAST_DUE" | "CANCELED";
-  paytabs?: IPayTabsInfo;
   tap?: ITapInfo;
   customerName?: string;
   customerEmail?: string;
@@ -205,7 +181,6 @@ interface ISubscription extends Document {
   current_period_start?: Date;
   current_period_end?: Date;
   billing_history: IBillingHistory[];
-  paytabs_token_id?: Types.ObjectId;
   metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;

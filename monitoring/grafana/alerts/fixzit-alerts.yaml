@@ -242,7 +242,7 @@ groups:
           summary: "Payment failure rate >5%"
           description: |
             Payment failure rate is {{ $value | printf "%.2f" }}% over the last hour.
-            Check TAP/PayTabs gateway status and API connectivity.
+            Check Tap gateway status and API connectivity.
           runbook_url: https://fixzit.atlassian.net/wiki/spaces/OPS/pages/124/Payment+Failures
         labels:
           severity: critical
@@ -260,7 +260,7 @@ groups:
             datasourceUid: prometheus
             model:
               expr: |
-                sum(up{job=~"tap-gateway|paytabs-gateway"}) == 0
+                sum(up{job=~"tap-gateway"}) == 0
               intervalMs: 1000
               maxDataPoints: 43200
         execErrState: Error

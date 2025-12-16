@@ -115,7 +115,6 @@ export async function GET(req: NextRequest) {
       periodEnd: inv.periodEnd?.toISOString(),
       dueDate: inv.dueDate?.toISOString(),
       paidAt: inv.paidAt?.toISOString() || null,
-      paytabsRef: inv.paytabsRef || null,
     }));
 
     return NextResponse.json({

@@ -36,13 +36,6 @@ const INTEGRATIONS = [
     icon: "💬",
   },
   {
-    id: "paytabs",
-    name: "PayTabs",
-    description: "Payment gateway for online transactions",
-    status: "connected",
-    icon: "💳",
-  },
-  {
     id: "aws-s3",
     name: "AWS S3",
     description: "Cloud storage for documents and media",

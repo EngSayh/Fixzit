@@ -161,7 +161,7 @@ export const EXTERNAL_URLS = {
   /** OpenAI API */
   openAi: "https://api.openai.com/v1",
 
-  // PayTabs removed - using Tap Payments only
+  // Legacy gateway removed - using Tap Payments only
 
   /** ZATCA e-invoicing */
   zatca: "https://gw-fatoora.zatca.gov.sa",

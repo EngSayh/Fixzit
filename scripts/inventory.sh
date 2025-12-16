@@ -25,7 +25,7 @@ fi
 echo ""
 echo "🔍 Scanning payment hotspots..."
 if command -v rg &> /dev/null; then
-  rg --line-number --no-heading "(createPaymentPage|verifyPayment|validateCallback|paytabs|PayTabs)" \
+rg --line-number --no-heading "(createPaymentPage|verifyPayment|validateCallback)" \
     -g "!**/node_modules/**" -g "!**/.next/**" -S > "$OUT_DIR/hotspots.txt" || true
   echo "✅ Hotspots written to $OUT_DIR/hotspots.txt"
 else

@@ -1,401 +1,60 @@
-/**
- * Redis Client Configuration
- * Used for caching, rate limiting, and BullMQ job queues.
- * Provides in-memory fallbacks when Redis is not configured.
- * 
- * CRITICAL: Uses dynamic import for ioredis to prevent boot crashes
- * when REDIS_URL is invalid/malformed. This matches lib/redis.ts pattern.
- */
+import { getRedisClient as getSharedRedisClient } from "@/lib/redis";
+type RedisClient = ReturnType<typeof getSharedRedisClient>;
 
-import { logger } from "@/lib/logger";
-
-// Use type import to avoid compile errors
-import type Redis from "ioredis";
-
-type MemoryEntry = { value: string; expiresAt: number };
-
-// Resolution order: BULLMQ_REDIS_URL → REDIS_URL → REDIS_KEY (Vercel/GitHub naming)
-const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
-const redisHost = process.env.REDIS_HOST;
-const redisPort = parseInt(process.env.REDIS_PORT || "6379", 10);
-const redisPassword = process.env.REDIS_PASSWORD;
-const redisDb = parseInt(process.env.REDIS_DB || "0", 10);
-
-const hasRedisConfig = Boolean(redisUrl || redisHost);
-
-let redisClient: Redis | null = null;
-let warnedMissingRedis = false;
-let redisDisabled = false; // Prevent reconnection spam on fatal errors
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let RedisModule: (new (...args: any[]) => Redis) | null = null;
-
-const memoryStore = new Map<string, MemoryEntry>();
-const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
-
-/**
- * Dynamically import ioredis to prevent boot crashes
- * Returns null if ioredis is not available
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getRedisCtor(): (new (...args: any[]) => Redis) | null {
-  if (RedisModule) return RedisModule;
-  if (typeof require === "undefined") return null;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require("ioredis");
-    RedisModule = mod.default || mod;
-    return RedisModule;
-  } catch (error) {
-    logger.warn("[Redis] ioredis not available in this runtime", { error });
-    return null;
-  }
+function client(): RedisClient {
+  return getSharedRedisClient();
 }
 
-function cleanupMemoryEntry(key: string): MemoryEntry | null {
-  const entry = memoryStore.get(key);
-  if (!entry) return null;
-  if (
-    entry.expiresAt !== Number.POSITIVE_INFINITY &&
-    entry.expiresAt <= Date.now()
-  ) {
-    memoryStore.delete(key);
-    return null;
-  }
-  return entry;
-}
-
-function memoryGet(key: string): string | null {
-  const entry = cleanupMemoryEntry(key);
-  return entry ? entry.value : null;
-}
-
-function memorySet(key: string, value: string, ttlSeconds?: number): void {
-  const expiresAt = ttlSeconds
-    ? Date.now() + ttlSeconds * 1000
-    : Number.POSITIVE_INFINITY;
-  memoryStore.set(key, { value, expiresAt });
-}
-
-function memoryDel(key: string): void {
-  memoryStore.delete(key);
-}
-
-function memoryDelPattern(pattern: string): void {
-  const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
-  for (const key of memoryStore.keys()) {
-    if (regex.test(key)) {
-      memoryStore.delete(key);
-    }
-  }
-}
-
-function memoryIncr(key: string): number {
-  const current = Number(memoryGet(key) || "0");
-  const next = current + 1;
-  memorySet(key, next.toString());
-  return next;
-}
-
-function memoryExpire(key: string, ttlSeconds: number): void {
-  const entry = memoryStore.get(key);
-  if (!entry) return;
-  entry.expiresAt = Date.now() + ttlSeconds * 1000;
-  memoryStore.set(key, entry);
-}
-
-/**
- * Mask Redis URL credentials for safe logging
- * Prevents REDIS_URL passwords from leaking into logs
- */
-function maskRedisUrl(url: string): string {
-  try {
-    // Redact password from connection URL pattern (protocol://user:PASSWORD@host:port)
-    return url.replace(/(:\/\/[^:]*:)([^@]*)(@)/, "$1****$3");
-  } catch {
-    return "[REDACTED]";
-  }
-}
-
-/**
- * Detect fatal Redis errors that indicate misconfiguration (not transient failures)
- * 
- * Fatal errors (should disable reconnection):
- * - ENOTFOUND: DNS resolution failed (invalid host)
- * - EAI_AGAIN: Temporary DNS failure (often permanent in serverless)
- * 
- * Transient errors (should allow reconnection):
- * - ECONNREFUSED: Redis server down but host is valid
- * - ETIMEDOUT: Network timeout
- * - ECONNRESET: Connection reset by peer
- */
-function isFatalRedisError(error: unknown): boolean {
-  if (typeof error === "object" && error !== null) {
-    const code = (error as { code?: string }).code;
-    return code === "ENOTFOUND" || code === "EAI_AGAIN";
-  }
-  return false;
-}
-
-/**
- * Disable Redis after fatal error to prevent reconnection spam
- * Falls back to in-memory cache/rate limiting for all subsequent operations
- */
-function disableRedis(): void {
-  redisDisabled = true;
-  if (redisClient) {
-    // Remove all listeners to prevent further error logs
-    redisClient.removeAllListeners();
-    redisClient = null;
-  }
-}
-
-function buildRedisClient(): Redis | null {
-  // Don't attempt connection if Redis was disabled due to fatal error
-  if (redisDisabled) {
-    return null;
-  }
-
-  if (!hasRedisConfig) {
-    if (!warnedMissingRedis && process.env.NODE_ENV !== "test") {
-      logger.warn(
-        "[Redis] REDIS_URL/REDIS_HOST not configured. Redis-backed features disabled.",
-      );
-      warnedMissingRedis = true;
-    }
-    return null;
-  }
-
-  if (redisClient) {
-    return redisClient;
-  }
-
-  // Get Redis constructor dynamically to prevent boot crashes
-  const RedisCtorLocal = getRedisCtor();
-  if (!RedisCtorLocal) {
-    logger.warn("[Redis] ioredis module not available - falling back to in-memory cache");
-    return null;
-  }
-
-  const baseConfig = {
-    lazyConnect: true,
-    maxRetriesPerRequest: 3,
-    enableOfflineQueue: false, // Prevent "Stream isn't writeable" errors when disconnected
-    retryStrategy(times: number) {
-      // Stop retrying on fatal errors
-      if (redisDisabled) {
-        return null;
-      }
-      return Math.min(times * 50, 2000);
-    },
-  };
-
-  try {
-    redisClient = redisUrl
-      ? new RedisCtorLocal(redisUrl, baseConfig)
-      : new RedisCtorLocal({
-          host: redisHost!,
-          port: redisPort,
-          password: redisPassword,
-          db: redisDb,
-          ...baseConfig,
-        });
-  } catch (error) {
-    logger.error("[Redis] Failed to instantiate Redis client - invalid configuration", {
-      error: error instanceof Error ? error.message : String(error),
-      hasUrl: Boolean(redisUrl),
-      hasHost: Boolean(redisHost),
-    });
-    disableRedis();
-    return null;
-  }
-
-  redisClient.on("connect", () => {
-    // Mask credentials in URL before logging to prevent leakage
-    const maskedUrl = redisUrl ? redisUrl.replace(/:(\/\/)?[^@/]*@/, "$1****@") : undefined;
-    logger.info(
-      "🔴 Redis connected",
-      maskedUrl ? { url: maskedUrl } : { host: redisHost, port: redisPort },
-    );
-  });
-
-  redisClient.on("ready", () => {
-    logger.info("✅ Redis ready for commands");
-  });
-
-  redisClient.on("reconnecting", () => {
-    logger.info("Redis reconnecting...");
-  });
-
-  redisClient.on("close", () => {
-    logger.warn("Redis connection closed");
-  });
-
-  redisClient.on("error", (error: Error) => {
-    // Mask credentials in error messages
-    const maskedUrl = redisUrl ? maskRedisUrl(redisUrl) : undefined;
-    
-    if (isFatalRedisError(error)) {
-      // Fatal error: log once and disable reconnection
-      logger.error("[Redis] Connection error: Fatal DNS/network error - disabling Redis and falling back to in-memory", {
-        message: "[REDACTED]",
-        code: (error as { code?: string }).code,
-        timestamp: new Date().toISOString(),
-        url: maskedUrl,
-      });
-      disableRedis();
-    } else {
-      // Transient error: log but allow reconnection
-      logger.error("[Redis] Connection error", {
-        error,
-        url: maskedUrl,
-      });
-    }
-  });
-
-  return redisClient;
-}
-
-export function getRedisClient(): Redis | null {
-  return buildRedisClient();
+export function getRedisClient(): RedisClient {
+  return client();
 }
 
 export async function connectRedis(): Promise<void> {
-  const client = getRedisClient();
-  if (!client) {
-    logger.warn("connectRedis skipped - Redis not configured");
-    return;
-  }
-  if (client.status === "ready") return;
-  await client.connect();
-  logger.info("Redis client connected successfully");
+  await client().connect();
 }
 
 export async function disconnectRedis(): Promise<void> {
-  if (redisClient) {
-    await redisClient.quit();
-    redisClient = null;
-    logger.info("Redis client disconnected");
-  }
+  await client().quit();
 }
 
 export const cache = {
   async get<T>(key: string): Promise<T | null> {
-    const client = getRedisClient();
-    if (client) {
-      try {
-        const value = await client.get(key);
-        return value ? (JSON.parse(value) as T) : null;
-      } catch (_error) {
-        const error =
-          _error instanceof Error ? _error : new Error(String(_error));
-        void error;
-        logger.error("Cache get error", { key, error });
-      }
-    }
-    const memoryValue = memoryGet(key);
-    return memoryValue ? (JSON.parse(memoryValue) as T) : null;
+    const value = await client().get(key);
+    return value ? (JSON.parse(value) as T) : null;
   },
 
   async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
     const serialized = JSON.stringify(value);
-    const client = getRedisClient();
-    if (client) {
-      try {
-        if (ttlSeconds) {
-          await client.setex(key, ttlSeconds, serialized);
-        } else {
-          await client.set(key, serialized);
-        }
-        return;
-      } catch (_error) {
-        const error =
-          _error instanceof Error ? _error : new Error(String(_error));
-        void error;
-        logger.error("Cache set error", { key, error });
-      }
+    if (ttlSeconds) {
+      await client().setex(key, ttlSeconds, serialized);
+    } else {
+      await client().set(key, serialized);
     }
-    memorySet(key, serialized, ttlSeconds);
   },
 
   async del(key: string): Promise<void> {
-    const client = getRedisClient();
-    if (client) {
-      try {
-        await client.del(key);
-        return;
-      } catch (_error) {
-        const error =
-          _error instanceof Error ? _error : new Error(String(_error));
-        void error;
-        logger.error("Cache delete error", { key, error });
-      }
-    }
-    memoryDel(key);
+    await client().del(key);
   },
 
   async delPattern(pattern: string): Promise<void> {
-    const client = getRedisClient();
-    if (client) {
-      try {
-        const keys = await client.keys(pattern);
-        if (keys.length) {
-          await client.del(...keys);
-        }
-        return;
-      } catch (_error) {
-        const error =
-          _error instanceof Error ? _error : new Error(String(_error));
-        void error;
-        logger.error("Cache delete pattern error", { pattern, error });
+    const stream = client().scanStream({ match: pattern });
+    for await (const chunk of stream as AsyncIterable<string[]>) {
+      if (chunk.length) {
+        await client().del(...chunk);
       }
     }
-    memoryDelPattern(pattern);
   },
 
   async exists(key: string): Promise<boolean> {
-    const client = getRedisClient();
-    if (client) {
-      try {
-        return (await client.exists(key)) === 1;
-      } catch (_error) {
-        const error =
-          _error instanceof Error ? _error : new Error(String(_error));
-        void error;
-        logger.error("Cache exists error", { key, error });
-      }
-    }
-    return memoryGet(key) !== null;
+    return (await client().get(key)) !== null;
   },
 
   async incr(key: string): Promise<number> {
-    const client = getRedisClient();
-    if (client) {
-      try {
-        return await client.incr(key);
-      } catch (_error) {
-        const error =
-          _error instanceof Error ? _error : new Error(String(_error));
-        void error;
-        logger.error("Cache increment error", { key, error });
-      }
-    }
-    return memoryIncr(key);
+    return client().incr(key);
   },
 
   async expire(key: string, ttlSeconds: number): Promise<void> {
-    const client = getRedisClient();
-    if (client) {
-      try {
-        await client.expire(key, ttlSeconds);
-        return;
-      } catch (_error) {
-        const error =
-          _error instanceof Error ? _error : new Error(String(_error));
-        void error;
-        logger.error("Cache expire error", { key, error });
-      }
-    }
-    memoryExpire(key, ttlSeconds);
+    await client().expire(key, ttlSeconds);
   },
 };
 
@@ -405,43 +64,15 @@ export const rateLimit = {
     limit: number,
     windowSeconds: number,
   ): Promise<{ allowed: boolean; remaining: number; resetAt: Date }> {
-    const client = getRedisClient();
-    if (client) {
-      try {
-        const rateKey = `ratelimit:${key}`;
-        const current = await client.incr(rateKey);
-        if (current === 1) {
-          await client.expire(rateKey, windowSeconds);
-        }
-        const ttl = await client.ttl(rateKey);
-        const resetAt = new Date(Date.now() + ttl * 1000);
-        const remaining = Math.max(0, limit - current);
-        return { allowed: current <= limit, remaining, resetAt };
-      } catch (_error) {
-        const error =
-          _error instanceof Error ? _error : new Error(String(_error));
-        void error;
-        logger.error("Rate limit check error", { key, error });
-      }
+    const redis = client();
+    const current = await redis.incr(key);
+    if (current === 1) {
+      await redis.expire(key, windowSeconds);
     }
-
-    const now = Date.now();
-    const bucket = rateLimitBuckets.get(key);
-    if (!bucket || bucket.resetAt <= now) {
-      const resetAt = now + windowSeconds * 1000;
-      rateLimitBuckets.set(key, { count: 1, resetAt });
-      return {
-        allowed: true,
-        remaining: limit - 1,
-        resetAt: new Date(resetAt),
-      };
-    }
-
-    bucket.count += 1;
-    const allowed = bucket.count <= limit;
-    const remaining = Math.max(0, limit - bucket.count);
-    rateLimitBuckets.set(key, bucket);
-    return { allowed, remaining, resetAt: new Date(bucket.resetAt) };
+    const ttl = await redis.ttl(key);
+    const resetAt = new Date(Date.now() + Math.max(0, ttl) * 1000);
+    const remaining = Math.max(0, limit - current);
+    return { allowed: current <= limit, remaining, resetAt };
   },
 };
 

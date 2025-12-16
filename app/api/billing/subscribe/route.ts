@@ -1,14 +1,14 @@
 /**
- * @description Creates new subscription checkout sessions for FM module packages.
+ * @description Creates new subscription checkout sessions for FM module packages using Tap Payments.
  * Supports both CORPORATE_FM (organization) and OWNER_FM (individual) plan types.
- * Calculates pricing, creates PayTabs checkout, and provisions subscription.
+ * Calculates pricing, creates checkout session, and provisions subscription.
  * @route POST /api/billing/subscribe
  * @access Private - Authenticated users with subscription management permissions
  * @param {Object} body.customer - Customer details (type, name, billingEmail, country)
  * @param {Object} body.planType - Plan type: 'CORPORATE_FM' or 'OWNER_FM'
  * @param {Object} body.items - Array of module items with pricing and seat counts
  * @param {Object} body.billingCycle - Optional billing cycle: 'monthly' or 'annual'
- * @returns {Object} checkoutUrl: PayTabs payment URL, subscriptionId: created subscription ID
+ * @returns {Object} checkoutUrl: Tap payment URL, subscriptionId: created subscription ID
  * @throws {401} If user is not authenticated
  * @throws {403} If user lacks subscription management permissions
  * @throws {400} If validation fails or plan type is invalid
@@ -52,13 +52,12 @@ const subscriptionSchema = z.object({
   )),
   seatTotal: z.number().positive(),
   billingCycle: z.enum(["monthly", "annual"]),
-  paytabsRegion: z.string().optional(),
   returnUrl: z.string().url(),
   callbackUrl: z.string().url(),
   priceBookId: z.string().optional(),
 });
 
-// Require: {customer:{type:'ORG'|'OWNER',...}, planType:'CORPORATE_FM'|'OWNER_FM', items:[], seatTotal, billingCycle, paytabsRegion, returnUrl, callbackUrl}
+// Require: {customer:{type:'ORG'|'OWNER',...}, planType:'CORPORATE_FM'|'OWNER_FM', items:[], seatTotal, billingCycle, returnUrl, callbackUrl}
 /**
  * @openapi
  * /api/billing/subscribe:
@@ -77,7 +76,7 @@ const subscriptionSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting - SECURITY: Use distributed rate limiting (Redis)
+  // Rate limiting - SECURITY: In-memory limiter (Redis removed)
   const clientIp = getClientIP(req);
   const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300000);
   if (!rl.allowed) {

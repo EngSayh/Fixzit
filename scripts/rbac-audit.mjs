@@ -28,9 +28,7 @@ const INTENTIONALLY_PUBLIC = [
   '/api/webhooks',       // Webhooks use signature verification
   '/api/payments/tap/webhook',    // Webhook signature verified
   '/api/payments/callback',       // Payment callback
-  '/api/payments/paytabs',        // Payment webhook
   '/api/billing/callback',        // Billing callback
-  '/api/paytabs/',                // PayTabs callbacks
   '/api/aqar/listings/search',    // Public listing search
   '/api/aqar/pricing',            // Public pricing insights
   '/api/aqar/support/chatbot',    // Public chatbot endpoint

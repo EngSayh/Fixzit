@@ -302,7 +302,8 @@ async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
 // WORKER INITIALIZATION
 // ============================================================================
 
-let worker: Worker | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let worker: Worker<any, any> | null = null;
 
 /**
  * Start the search indexing worker
@@ -350,7 +351,7 @@ export function startSearchIndexWorker() {
  * Stop the search indexing worker
  */
 export async function stopSearchIndexWorker() {
-  if (!worker) {
+  if (worker === null) {
     logger.warn("[SearchIndex] Worker not running");
     return;
   }

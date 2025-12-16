@@ -10,7 +10,6 @@ echo ""
 # 1. Core Security Updates
 echo "📦 Updating core dependencies with security fixes..."
 pnpm update axios@latest
-pnpm update ioredis@latest
 pnpm update mongoose@latest
 
 # 2. AWS SDK Security Updates

@@ -29,7 +29,7 @@ export function validateStartup(): void {
   }
 
   // Tap Payments: Check for environment-aware keys based on TAP_ENVIRONMENT
-  // IMPORTANT: This system uses TAP PAYMENTS ONLY (PayTabs removed)
+  // IMPORTANT: This system uses TAP PAYMENTS ONLY (legacy gateways removed)
   const tapEnvIsLive = process.env.TAP_ENVIRONMENT === "live" || process.env.NODE_ENV === "production";
   const tapSecretKey = tapEnvIsLive 
     ? process.env.TAP_LIVE_SECRET_KEY 

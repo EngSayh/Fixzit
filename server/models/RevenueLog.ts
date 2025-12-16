@@ -134,7 +134,6 @@ const RevenueLogSchema = new Schema<IRevenueLog>(
         "CREDIT_CARD",
         "CHECK",
         "TAP",
-        "PAYTABS",
         "OTHER",
       ],
     },

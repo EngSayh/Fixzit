@@ -425,15 +425,12 @@ async function testPaymentEndpoints() {
         respStatus: "A",
         respCode: "000",
         respMessage: "Approved",
-        amount: "100.00",
-        currency: "SAR",
-      },
-      headers: {
-        "x-paytabs-signature": "test-signature", // Would need real signature in prod
-      },
-      skipOnFilter: true,
+      amount: "100.00",
+      currency: "SAR",
     },
-  );
+    skipOnFilter: true,
+  },
+);
   results.push(callbackResult);
 
   // Test Tap payment checkout creation

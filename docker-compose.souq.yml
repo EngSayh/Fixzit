@@ -1,22 +1,6 @@
 version: "3.8"
 
 services:
-  # Redis - Caching + BullMQ job queues
-  redis:
-    image: redis:7-alpine
-    container_name: fixzit-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-
   # Meilisearch - Product search engine
   meilisearch:
     image: getmeili/meilisearch:latest
@@ -80,8 +64,6 @@ services:
       retries: 3
 
 volumes:
-  redis_data:
-    driver: local
   meilisearch_data:
     driver: local
   minio_data:

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSuperadmin } from '@/lib/superadmin/require';
+import { getSuperadminSession } from '@/lib/superadmin/auth';
 import { connectMongo } from '@/lib/db/mongoose';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { importPendingMaster } from '@/lib/backlog/importPendingMaster';
 
-export async function POST(_req: NextRequest) {
-  const sa = await requireSuperadmin();
-  if (!sa) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function POST(req: NextRequest) {
+  const session = await getSuperadminSession(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   await connectMongo();
 
@@ -20,7 +20,7 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json({ error: 'PENDING_MASTER.md not found' }, { status: 404 });
   }
 
-  const result = await importPendingMaster(md, sa.username);
+  const result = await importPendingMaster(md, session.username);
 
   return NextResponse.json({ success: true, ...result });
 }

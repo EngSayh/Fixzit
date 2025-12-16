@@ -2026,26 +2026,6 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /billing/callback/paytabs:
-    post:
-      summary: Create paytabs
-      tags: [Billing]
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        "201":
-          description: Created
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
   /billing/history:
     get:
       summary: Retrieve history
@@ -5038,46 +5018,6 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /payments/paytabs:
-    post:
-      summary: Create paytabs
-      tags: [Payments]
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        "201":
-          description: Created
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
-  /payments/paytabs/callback:
-    post:
-      summary: Create callback
-      tags: [Payments]
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        "201":
-          description: Created
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
   /payments/tap/checkout:
     post:
       summary: Create checkout
@@ -5132,20 +5072,6 @@ paths:
     get:
       summary: Retrieve webhook
       tags: [Payments]
-      security:
-        - bearerAuth: []
-      responses:
-        "200":
-          description: Success
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
-  /paytabs/return:
-    get:
-      summary: Retrieve return
-      tags: [Other]
       security:
         - bearerAuth: []
       responses:
@@ -9254,57 +9180,6 @@ components:
                     type: string
         "400":
           $ref: "#/components/responses/BadRequest"
-
-  # PayTabs Callback Webhook
-  /paytabs/callback:
-    post:
-      summary: PayTabs payment callback webhook
-      tags: [Payments]
-      description: Webhook endpoint for PayTabs payment status notifications
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                tran_ref:
-                  type: string
-                  description: PayTabs transaction reference
-                cart_id:
-                  type: string
-                  description: Original cart/invoice ID
-                payment_result:
-                  type: object
-                  properties:
-                    response_status:
-                      type: string
-                      enum: [A, H, P, V, E]
-                      description: Payment status (A=Approved, H=Hold, P=Pending, V=Voided, E=Error)
-                    response_code:
-                      type: string
-                    response_message:
-                      type: string
-                    transaction_time:
-                      type: string
-                      format: date-time
-      responses:
-        "200":
-          description: Webhook processed successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  correlationId:
-                    type: string
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
 
   # ============================================
   # Facility Management (FM) API

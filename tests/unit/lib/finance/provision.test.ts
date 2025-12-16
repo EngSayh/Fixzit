@@ -31,34 +31,7 @@ describe('provision.ts', () => {
       const { provisionSubscriber } = await import('@/lib/finance/provision');
       const result = await provisionSubscriber('sub123');
 
-      expect(Subscription.findOne).toHaveBeenCalledWith({
-        $or: [
-          { _id: 'sub123' },
-          { 'paytabs.cart_id': 'sub123' },
-        ],
-      });
-      expect(result).toEqual(mockSubscription);
-    });
-
-    it('should find subscription by paytabs cart_id', async () => {
-      const Subscription = (await import('@/server/models/Subscription')).default;
-      const mockSubscription = {
-        _id: 'sub456',
-        paytabs: { cart_id: 'cart_123' },
-        status: 'ACTIVE',
-      };
-
-      vi.mocked(Subscription.findOne).mockResolvedValue(mockSubscription as any);
-
-      const { provisionSubscriber } = await import('@/lib/finance/provision');
-      const result = await provisionSubscriber('cart_123');
-
-      expect(Subscription.findOne).toHaveBeenCalledWith({
-        $or: [
-          { _id: 'cart_123' },
-          { 'paytabs.cart_id': 'cart_123' },
-        ],
-      });
+      expect(Subscription.findOne).toHaveBeenCalledWith({ _id: 'sub123' });
       expect(result).toEqual(mockSubscription);
     });
 

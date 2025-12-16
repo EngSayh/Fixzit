@@ -167,8 +167,8 @@ export async function POST(request: NextRequest) {
       throw new Error("Transaction failed to create package or payment");
     }
 
-    // FUTURE: Integrate payment gateway (PayTabs/Stripe) for real payment processing.
-    // Currently returns manual payment link. See /api/payments/paytabs for integration pattern.
+    // FUTURE: Integrate payment gateway (Tap/Stripe) for real payment processing.
+    // Currently returns manual payment link until unified gateway flow is added.
 
     return ok(
       {

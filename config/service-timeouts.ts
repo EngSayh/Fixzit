@@ -5,16 +5,16 @@ const toNumber = (value: string | undefined, fallback: number): number => {
 };
 
 export const SERVICE_RESILIENCE = {
-  paytabs: {
+  tap: {
     timeouts: {
-      paymentMs: toNumber(process.env.PAYTABS_TIMEOUT_MS, 15_000),
-      payoutMs: toNumber(process.env.PAYTABS_PAYOUT_TIMEOUT_MS, 15_000),
-      verifyMs: toNumber(process.env.PAYTABS_VERIFY_TIMEOUT_MS, 8_000),
-      refundMs: toNumber(process.env.PAYTABS_REFUND_TIMEOUT_MS, 12_000),
+      paymentMs: toNumber(process.env.TAP_TIMEOUT_MS, 15_000),
+      payoutMs: toNumber(process.env.TAP_PAYOUT_TIMEOUT_MS, 15_000),
+      verifyMs: toNumber(process.env.TAP_VERIFY_TIMEOUT_MS, 8_000),
+      refundMs: toNumber(process.env.TAP_REFUND_TIMEOUT_MS, 12_000),
     },
     retries: {
-      maxAttempts: toNumber(process.env.PAYTABS_MAX_ATTEMPTS, 3),
-      baseDelayMs: toNumber(process.env.PAYTABS_RETRY_DELAY_MS, 750),
+      maxAttempts: toNumber(process.env.TAP_MAX_ATTEMPTS, 3),
+      baseDelayMs: toNumber(process.env.TAP_RETRY_DELAY_MS, 750),
     },
   },
   // Taqnyat - ONLY production SMS provider (CITC-compliant for Saudi Arabia)

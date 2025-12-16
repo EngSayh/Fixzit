@@ -10,7 +10,6 @@ import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { createSecureResponse } from "@/server/security/headers";
 import { withTimeout } from "@/lib/resilience";
-import { getRedisClient } from "@/lib/redis-client";
 import { isAuthorizedHealthRequest } from "@/server/security/health-token";
 import { TAQNYAT_API_BASE } from "@/lib/sms-providers/taqnyat";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
@@ -18,7 +17,6 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 export const dynamic = "force-dynamic";
 
 const TAQNYAT_TIMEOUT_MS = 3_000;
-const REDIS_TIMEOUT_MS = 1_500;
 
 /**
  * Resolve production/preview flags so that Vercel preview deployments do not
@@ -87,29 +85,7 @@ async function checkRedisReachability(redisConfigured: boolean) {
   if (!redisConfigured) {
     return { reachable: false, latencyMs: null, error: "Redis not configured" };
   }
-
-  try {
-    const client = getRedisClient();
-    if (!client) {
-      return { reachable: false, latencyMs: null, error: "Redis client unavailable" };
-    }
-
-    if (client.status === "wait") {
-      await withTimeout(() => client.connect(), { timeoutMs: REDIS_TIMEOUT_MS });
-    }
-
-    const start = Date.now();
-    await withTimeout(() => client.ping(), { timeoutMs: REDIS_TIMEOUT_MS });
-
-    return { reachable: true, latencyMs: Date.now() - start, error: null };
-  } catch (error) {
-    logger.warn("[SMS Health Check] Redis reachability failed", { error });
-    return {
-      reachable: false,
-      latencyMs: null,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
+  return { reachable: false, latencyMs: null, error: "Redis removed" };
 }
 
 export async function GET(request: NextRequest) {
@@ -135,11 +111,7 @@ export async function GET(request: NextRequest) {
       (process.env.SMS_DEV_MODE === "true" ||
         process.env.SMS_DEV_MODE === undefined);
 
-    const redisConfigured = Boolean(
-      process.env.REDIS_URL ||
-        process.env.REDIS_KEY ||
-        process.env.OTP_STORE_REDIS_URL,
-    );
+    const redisConfigured = false;
 
     // Check if demo auth is enabled (should be false in production)
     const demoAuthEnabled =

@@ -14,8 +14,6 @@ FILES_WITH_DUPLICATES=(
   "app/api/health/database/route.ts"
   "app/api/invoices/[id]/route.ts"
   "app/api/marketplace/products/[slug]/route.ts"
-  "app/api/payments/paytabs/callback/route.ts"
-  "app/api/payments/paytabs/route.ts"
   "app/api/projects/[id]/route.ts"
   "app/api/qa/alert/route.ts"
   "app/api/qa/health/route.ts"

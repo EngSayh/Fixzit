@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSuperadmin } from '@/lib/superadmin/require';
+import { getSuperadminSession } from '@/lib/superadmin/auth';
 import { connectMongo } from '@/lib/db/mongoose';
 import BacklogIssue from '@/server/models/BacklogIssue';
 import BacklogEvent from '@/server/models/BacklogEvent';
 
 export async function GET(req: NextRequest) {
-  const sa = await requireSuperadmin();
-  if (!sa) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await getSuperadminSession(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   await connectMongo();
 
@@ -26,8 +26,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const sa = await requireSuperadmin();
-  if (!sa) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await getSuperadminSession(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   await connectMongo();
 
@@ -39,13 +39,15 @@ export async function POST(req: NextRequest) {
   const issue = await BacklogIssue.findOne({ key });
   if (!issue) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  const actor = session.username || session.email || 'superadmin';
+
   if (status) {
     issue.status = status;
     await BacklogEvent.create({
       issueKey: key,
       type: 'status_change',
       message: `Status changed to ${status}`,
-      actor: sa.username,
+      actor,
       meta: { newStatus: status },
     });
   }
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
       issueKey: key,
       type: 'comment',
       message: comment,
-      actor: sa.username,
+      actor,
     });
   }
 

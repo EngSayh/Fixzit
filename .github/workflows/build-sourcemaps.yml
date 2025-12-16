@@ -22,6 +22,9 @@ jobs:
       CI: "true"
       NODE_OPTIONS: --max-old-space-size=8192
       NEXT_TELEMETRY_DISABLED: "1"
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
       # expose release to build/runtime; SDKs read SENTRY_RELEASE
       SENTRY_RELEASE: ${{ github.sha }}
 

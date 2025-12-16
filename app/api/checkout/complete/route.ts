@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
   if (body.payload) {
     return createSecureResponse(
-      { error: "Use /api/paytabs/callback for PayTabs payloads" },
+      { error: "Unexpected payload for checkout completion" },
       400,
       req,
     );
@@ -62,15 +62,14 @@ export async function POST(req: NextRequest) {
   /**
    * Subscription Retrieval
    * Try to find subscription by either:
-   * 1. Direct subscription ID (preferred)
-   * 2. PayTabs cart ID (fallback for payment callbacks)
-   */
+ * 1. Direct subscription ID (required)
+ */
   const subscriptionId = body.subscriptionId;
-  const cartId = body.cartId;
+  if (!subscriptionId) {
+    return createSecureResponse({ error: "SUBSCRIPTION_ID_REQUIRED" }, 400, req);
+  }
 
-  const subscription = subscriptionId
-    ? await Subscription.findById(subscriptionId)
-    : await Subscription.findOne({ "paytabs.cart_id": cartId });
+  const subscription = await Subscription.findById(subscriptionId);
 
   if (!subscription) {
     return createSecureResponse({ error: "SUBSCRIPTION_NOT_FOUND" }, 404, req);

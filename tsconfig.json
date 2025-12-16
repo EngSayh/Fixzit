@@ -28,6 +28,12 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "ioredis": [
+        "./lib/stubs/ioredis"
+      ],
+      "bullmq": [
+        "./lib/stubs/bullmq"
       ]
     }
   },
