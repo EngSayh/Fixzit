@@ -84,6 +84,7 @@ describe("API /api/crm/accounts/share", () => {
   const mockUser = {
     id: "user_admin_123",
     orgId: mockOrgId,
+    tenantId: mockOrgId,
     role: "ADMIN",
   };
 
@@ -208,8 +209,8 @@ describe("API /api/crm/accounts/share", () => {
         return;
       }
 
-      const rateLimitResponse = new Response(
-        JSON.stringify({ error: "Rate limit exceeded" }), 
+      const rateLimitResponse = Response.json(
+        { error: "Rate limit exceeded" }, 
         { status: 429 }
       );
       vi.mocked(enforceRateLimit).mockReturnValueOnce(rateLimitResponse);
