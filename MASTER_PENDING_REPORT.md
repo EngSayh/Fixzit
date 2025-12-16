@@ -5,10 +5,11 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-14T01:00:00Z  
+**Last Updated:** 2025-12-16T19:10:00Z (Asia/Riyadh)  
 **Scanner Version:** v2.5  
 **Branch:** main  
-**Commit:** b132ccca1
+**Commit:** 307122047  
+**MongoDB Status:** 24 issues (23 open, 1 resolved)
 
 ---
 
@@ -18,18 +19,23 @@
 |--------|-------|
 | **Health Score** | 93/100 |
 | **Files Scanned** | 881 (app/ + lib/) |
-| **Total Issues** | 7 (🔴 0 🟠 2 🟡 3 🟢 2) |
-| **Duplicate Groups** | 0 (none detected) |
-| **Pending Moves** | 0 (clean organization) |
-| **Test Coverage** | 80%+ (per README) |
+| **Total Issues** | 24 (🔴 3 🟠 15 🟢 6) |
+| **Test Coverage** | 100% API (78/78 passing) |
+| **Build Status** | ✅ 0 TS errors, 0 ESLint errors |
 
 ### 🎯 Top 5 Priority Actions
-1. [x] **[SEC-001]** ✅ RESOLVED - NEXTAUTH_SECRET fallback (2025-12-14T00:13)
-2. [x] **[CONFIG-003]** ✅ RESOLVED - AWS_REGION production crash fixed (2025-12-14T01:00)
-3. [ ] **[SEC-002]** 50+ Database queries missing tenant isolation checks
-3. [ ] **[BUG-001]** process.env accessed directly in 40+ client-side files - breaks SSR/hydration
-4. [ ] **[TEST-001]** HR module test coverage at 14% - needs 50% (TEST-002 backlog item)
-5. [ ] **[TEST-002]** Finance module test coverage gaps - 15/19 routes untested
+1. [ ] **[SEC-002]** 50+ Database queries missing tenant isolation checks
+2. [ ] **[BUG-001]** process.env accessed directly in 40+ client-side files - breaks SSR/hydration
+3. [ ] **[JSON-PARSE]** Missing JSON.parse error handling in 20+ POST routes
+4. [ ] **[DOC-102]** Missing JSDoc for 51 lib utility modules (auth, payments, storage, middleware)
+5. [ ] **[DOC-103]** Missing JSDoc for 124 Mongoose model schemas
+
+### ✅ Recently Resolved (2025-12-16)
+1. **[UI-001]** ✅ Superadmin language selector refactored (dropdown with flags)
+2. **[I18N-001]** ✅ Superadmin layout locale normalization robustness
+3. **[OPS-001]** ✅ GitHub Actions workflow order fix (pnpm before Node setup)
+4. **[OPS-002]** ✅ PR Agent workflow dependency update (Codium-ai)
+5. **[TEST-ALIGNMENT-001/002/003/004]** ✅ All API tests passing (78/78)
 
 ---
 
