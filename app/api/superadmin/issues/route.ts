@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const issue = await BacklogIssue.findOne({ key });
   if (!issue) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const actor = session.username || session.email || 'superadmin';
+  const actor = (session as {username?: string; email?: string}).username || (session as {username?: string; email?: string}).email || 'superadmin';
 
   if (status) {
     issue.status = status;
