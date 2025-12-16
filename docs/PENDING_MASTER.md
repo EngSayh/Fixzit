@@ -105,9 +105,13 @@ $ git diff --stat HEAD scripts/import-backlog.mjs
 
 ---
 
+### 2025-12-16 19:31 (Asia/Riyadh) — Tenant-Scoped Import + Superadmin Issues UI (524b35ce5)
+**Context:** main | 524b35ce5 → 0b2124c2e → 6961f2d64 (3 commits ready to push)  
+**DB Sync:** created=0, updated=7, repaired=0, skipped=2 | MongoDB: 33 issues (29 open, 3 resolved)
+
 ### 2025-12-16 19:10 (Asia/Riyadh) — GitHub Actions Workflow Fixes + Problems Panel Audit (68 Diagnostics)
-**Context:** main | pending-push | Code review of VS Code Problems panel + GitHub Actions failures  
-**DB Sync:** created=8, updated=0, skipped=1, errors=0 | MongoDB: 33 issues (30 open, 3 resolved)
+**Context:** main | 5adbf33b4 (pushed as part of session)  
+**DB Sync:** created=8, updated=0, skipped=1, errors=0 | MongoDB: 33 issues tracked
 
 **✅ RESOLVED TODAY (P2 - WORKFLOW RELIABILITY):**
 - **WORKFLOW-001** — build-sourcemaps.yml: pnpm setup after node setup causes cache failure

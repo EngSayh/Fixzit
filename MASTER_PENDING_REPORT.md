@@ -5,11 +5,11 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-16T19:10:00Z (Asia/Riyadh)  
+**Last Updated:** 2025-12-16T19:35:00Z (Asia/Riyadh)  
 **Scanner Version:** v2.5  
 **Branch:** main  
-**Commit:** 5adbf33b4 (pending push)  
-**MongoDB Status:** 33 issues (30 open, 3 resolved)
+**Commit:** 524b35ce5 (pending push)  
+**MongoDB Status:** 33 issues (29 open, 3 resolved)
 
 ---
 
@@ -30,12 +30,12 @@
 4. [ ] **[DOC-102]** Missing JSDoc for 51 lib utility modules (auth, payments, storage, middleware)
 5. [ ] **[DOC-103]** Missing JSDoc for 124 Mongoose model schemas
 
-### ✅ Recently Resolved (2025-12-16 - Session at 19:10)
-1. **[WORKFLOW-001]** ✅ build-sourcemaps.yml pnpm setup order fixed (was after node setup)
-2. **[WORKFLOW-002]** ✅ pr_agent.yml action reference updated (qodo-ai → Codium-ai)
-3. **[UI-001]** ✅ Superadmin language selector with flags + aria-label
-4. **[HEADER-OBSERV]** ✅ SuperadminHeader structured logging (session/logout errors)
-5. **[TEST-ALIGNMENT-001/002/003/004]** ✅ All API tests passing (78/78)
+### ✅ Recently Resolved (2025-12-16 - Sessions 19:10/19:24/19:31)
+1. **[NAV-001]** ✅ Superadmin issue navigation fixed (/admin → /superadmin) + detail page
+2. **[TENANT-GUARD-001]** ✅ Backlog import tenant scoping (orgId validation)
+3. **[SCHEMA-SAFE-001]** ✅ Issue document normalization (full schema compliance)
+4. **[WORKFLOW-001]** ✅ build-sourcemaps.yml pnpm setup order fixed
+5. **[WORKFLOW-002]** ✅ pr_agent.yml action reference updated (qodo-ai → Codium-ai)
 
 ---
 
