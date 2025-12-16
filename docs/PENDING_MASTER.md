@@ -2,6 +2,39 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-16 17:00 (Asia/Riyadh) — MongoDB Atlas App Services Export
+**Context:** main | 6d2850293 | Atlas triggers/functions export  
+**Action:** Exported MongoDB Atlas App Services configuration for backup/version control
+
+**✅ Completed:**
+- **INFRA-ATLAS-EXPORT** — MongoDB Atlas App Services configuration exported
+  - Tool: `atlas-app-services-cli` (npm global install)
+  - App ID: `triggers-qvevnvh` (App Name: "Triggers")
+  - Client App ID: `68e1374772f6cc59c9e53423`
+  - Group ID: `68c4655a947b201f060f807d`
+  - Region: AWS US-East-1
+  - Deployment Model: LOCAL
+  - Exported to: `./Triggers/` directory
+  - Data Source: "Fixzit" cluster (MongoDB Atlas, primary read preference)
+  - Status: No active functions or triggers configured (empty config)
+  - Added to `.gitignore`: `/Triggers/` and `/.mdb/` (regenerate with `appservices pull`)
+
+**Configuration Details:**
+- Environments: development, testing, qa, production, no-environment
+- Functions: 0 (empty config.json)
+- Triggers: 0 (empty directory)
+- Data Sources: 1 (Fixzit cluster connection)
+
+**Security Note:**
+- API keys used for export (Public: qefjbwzu, Private: 22d1***24)
+- ⚠️ **CRITICAL**: Rotate these API keys immediately after backup/documentation is complete
+- Keys have full access to App Services configuration
+
+**Next Steps:**
+- [ ] Rotate API keys in MongoDB Atlas (public key: qefjbwzu)
+- [ ] Document trigger/function development workflow if needed
+- [ ] Consider setting up triggers for Issue Tracker sync automation
+
 ### 2025-12-16 16:30 (Asia/Riyadh) — BUILD-TS-001 Resolution + PR Pipeline Cleanup
 **Context:** main | 9d9e0b9f2 | PR #557 closed, PR #556 review  
 **DB Sync:** Server unstable (localhost:3000 connection issues) - audit ready for next import
@@ -49,17 +82,21 @@ This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.
 - None (DB offline)
 
 **🟠 In Progress:**
-- SEC-002, BUG-001, PERF-001, TEST-002, TEST-003, TEST-004, PERF-002, DOC-101, DOC-102, DOC-103, DOC-104, DOC-107 — awaiting DB import once API available
+- TEST-005 — Aqar test coverage (5 new files pending commit)
+- TEST-002, TEST-003, REF-001 — HR/Finance/CRM test suites pending
+- TEST-001, TEST-004, BUG-011 — Souq/CRM coverage + notification .catch() hardening
+- SEC-002, BUG-001, PERF-001, PERF-002, DOC-101/102/103/104/105/106/107/108/109/110 — awaiting DB import once API available
 
 **🔴 Blocked:**
 - MongoDB Issue Tracker API unavailable on localhost:3000; unable to import BACKLOG_AUDIT.json
 
 **🆕 New Findings Added to DB (with evidence):**
-- None (DB offline)
+- OPS-OTP-BYPASS — Production blocked by OTP bypass env var — sourceRef: code-review:lib/config/env-guards.ts:81-108
 
 **Next Steps (ONLY from DB items above):**
+- Remove OTP bypass env vars from Vercel Production/Preview; redeploy to clear instrumentation block
 - Start API server, rerun BACKLOG_AUDIT import, then recheck /api/issues/stats
-- If import succeeds, mark DOC/TEST items as pending with timestamps
+- Commit/verify Aqar tests (TEST-005) and continue HR/Finance/CRM coverage (TEST-002/TEST-003/REF-001)
 
 ### 2025-12-16 08:00 (Asia/Riyadh) — PR Copilot Batch + ESLint Build Fix
 **Context:** main | 9d9e0b9f2 | PR #556, #557 reviewed  

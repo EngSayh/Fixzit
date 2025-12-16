@@ -28,6 +28,10 @@ tsconfig.tsbuildinfo
 *.key
 *.crt
 
+# MongoDB Atlas App Services (exported config - contains IDs, regenerate with appservices pull)
+/Triggers/
+/.mdb/
+
 # Dev login credentials (never commit real credentials)
 /app/dev/login-helpers/credentials.ts
 /dev/credentials.local.ts
