@@ -1,3 +1,36 @@
+/**
+ * @module server/models/SLA
+ * @description Service Level Agreement (SLA) definitions for work order response and resolution targets.
+ *              Enforces tiered service commitments with escalation rules and performance tracking.
+ *
+ * @features
+ * - SLA types: RESPONSE_TIME, RESOLUTION_TIME, UPTIME, AVAILABILITY, MAINTENANCE
+ * - Priority tiers: LOW, MEDIUM, HIGH, CRITICAL
+ * - Target metrics (response time, resolution time, uptime percentage)
+ * - Penalty rules for SLA breaches (credits, discounts, escalation)
+ * - Business hours configuration (24/7 vs 9-5 vs custom)
+ * - Holiday and exclusion day handling
+ * - Category-based SLA assignments (Work Orders, Maintenance, Support Tickets)
+ * - Escalation paths for overdue tickets
+ * - Performance tracking (met/breached/near-breach counts)
+ *
+ * @indexes
+ * - { orgId: 1, code: 1 } (unique) — Unique SLA code per tenant
+ * - { orgId: 1, category: 1, priority: 1 } — SLA lookup by category and priority
+ * - { orgId: 1, type: 1 } — Query by SLA type
+ * - { orgId: 1, status: 1 } — Filter active/inactive SLAs
+ *
+ * @relationships
+ * - Referenced by WorkOrder model (workOrder.sla field)
+ * - Referenced by SupportTicket model (ticket.sla field)
+ * - Integrates with notification system for SLA breach alerts
+ * - Links to AuditLog for SLA modification tracking
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - timestamps: createdAt, updatedAt from Mongoose
+ * - SLA changes logged in AuditLog for compliance
+ */
 import { Schema, InferSchemaType, Types } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";

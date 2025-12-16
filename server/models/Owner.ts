@@ -1,3 +1,52 @@
+/**
+ * @module server/models/Owner
+ * @description Property owner (landlord) management for facilities management and real estate operations.
+ *              Tracks owner profiles, contact information, banking details, and property portfolios.
+ *
+ * @features
+ * - Owner types: INDIVIDUAL, COMPANY, TRUST, GOVERNMENT
+ * - Status lifecycle: ACTIVE → INACTIVE/SUSPENDED
+ * - National ID and commercial registration tracking (tenant-scoped uniqueness)
+ * - Banking details for rent distributions and owner statements
+ * - Emergency contact and communication preferences
+ * - Property portfolio linkage (multiple properties per owner)
+ * - Financial statement generation (monthly/quarterly owner reports)
+ * - Tax ID and VAT registration tracking
+ * - Document management (contracts, IDs, ownership deeds)
+ *
+ * @statuses
+ * - ACTIVE: Owner actively managing properties
+ * - INACTIVE: Owner no longer managing properties (historical records)
+ * - SUSPENDED: Temporarily suspended (e.g., payment disputes, compliance issues)
+ *
+ * @indexes
+ * - { orgId: 1, code: 1 } (unique) — Unique owner code per tenant
+ * - { orgId: 1, userId: 1 } — Link owner to auth user account
+ * - { orgId: 1, nationalId: 1 } (unique, sparse) — Unique national ID per tenant (sparse for companies)
+ * - { orgId: 1, status: 1 } — Filter active/inactive owners
+ * - { orgId: 1, type: 1 } — Query by owner type
+ * - { orgId: 1, taxNumber: 1 } — Tax compliance queries
+ *
+ * @relationships
+ * - References User model (userId) for authentication
+ * - Linked to Property model (property.owner_id)
+ * - Generates OwnerStatement records (monthly/quarterly financial reports)
+ * - Receives FMFinancialTransaction distributions (rent payments, expense deductions)
+ * - Links to Invoice model (owner billing for management fees)
+ *
+ * @encryption
+ * - nationalId: Encrypted via encryptionPlugin (AES-256-GCM) for KSA PDL compliance
+ * - bankAccount.accountNumber: Encrypted for PCI-DSS compliance
+ *
+ * @compliance
+ * - KSA Personal Data Law (PDL): National ID encryption
+ * - ZATCA e-invoicing: Tax number validation and storage
+ * - Anti-Money Laundering (AML): Owner identity verification and KYC documents
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - Ownership changes logged in AuditLog for legal compliance
+ */
 import { Schema, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";

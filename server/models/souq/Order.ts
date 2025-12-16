@@ -1,6 +1,59 @@
 /**
- * Souq Order Model - Marketplace orders
  * @module server/models/souq/Order
+ * @description Fixzit Souq marketplace order management with escrow integration and seller settlement.
+ *              Supports multi-seller orders, split payments, and fulfillment tracking.
+ *
+ * @features
+ * - Multi-seller order support (items from different sellers in single order)
+ * - Order lifecycle: PENDING → CONFIRMED → PROCESSING → SHIPPED → DELIVERED/CANCELLED/REFUNDED
+ * - Escrow account integration (buyer payment held until delivery confirmation)
+ * - Split payment allocation (per-seller settlement after delivery)
+ * - Shipping address and contact info tracking
+ * - Order item detail (product, quantity, price, seller)
+ * - Payment method tracking (card, bank transfer, cash on delivery)
+ * - Shipping and tracking number linkage
+ * - Return and refund support (via RMA workflow)
+ * - Multi-currency support (SAR default)
+ * - Tax calculation (VAT per Saudi VAT law)
+ *
+ * @statuses
+ * - PENDING: Order created, awaiting payment confirmation
+ * - CONFIRMED: Payment confirmed, awaiting seller acceptance
+ * - PROCESSING: Seller preparing order for shipment
+ * - SHIPPED: Order shipped, tracking number assigned
+ * - DELIVERED: Customer confirmed delivery
+ * - CANCELLED: Order cancelled by customer or seller
+ * - REFUNDED: Payment refunded to customer
+ *
+ * @indexes
+ * - { orgId: 1, orderId: 1 } (unique) — Unique order ID per tenant (optional orgId)
+ * - { customerId: 1, createdAt: -1 } — Customer order history
+ * - { items.sellerId: 1, createdAt: -1 } — Seller order queue
+ * - { status: 1, createdAt: -1 } — Order status dashboard
+ * - { escrowAccountId: 1, escrowState: 1 } — Escrow settlement queries
+ * - { shippingTrackingNumber: 1 } — Tracking number lookup
+ *
+ * @relationships
+ * - References User model (customerId)
+ * - References souq/Listing model (items.listingId)
+ * - References souq/Product model (items.productId)
+ * - References souq/Seller model (items.sellerId)
+ * - References EscrowAccount model (escrowAccountId)
+ * - Generates Settlement records (seller payouts after delivery)
+ * - Links to RMA model (return merchandise authorization)
+ * - Links to Review model (customer product reviews)
+ * - Integrates with Inventory model (stock deduction on order)
+ *
+ * @compliance
+ * - VAT calculation per Saudi VAT law (15% standard rate)
+ * - Escrow compliance (buyer protection until delivery)
+ * - Audit trail for financial disputes
+ * - Immutable order records (corrections via refunds)
+ *
+ * @audit
+ * - timestamps: createdAt, updatedAt from Mongoose
+ * - Status change history tracked in statusHistory array
+ * - Payment and settlement events logged in Transaction model
  */
 
 import mongoose, { Schema, type Document } from "mongoose";

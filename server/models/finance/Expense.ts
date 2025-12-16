@@ -1,19 +1,62 @@
 /**
- * Expense Model - Finance Pack Phase 2
+ * @module server/models/finance/Expense
+ * @description Business expense management with approval workflow, receipt management, and GL account integration.
+ *              Tracks operational, capital, reimbursable, and project-specific expenses.
  *
- * Tracks business expenses with approval workflow, receipt management,
- * and integration with Chart of Accounts and Work Orders.
+ * @features
+ * - Expense types: OPERATIONAL, CAPITAL, REIMBURSABLE, PROJECT, VENDOR_PAYMENT, UTILITY, MAINTENANCE
+ * - Multi-level approval workflow (configurable approval chains)
+ * - Receipt/attachment management (image, PDF, scanned documents)
+ * - Category and GL account mapping (auto-posting to Chart of Accounts)
+ * - Work Order, Project, and Property linking (cost allocation)
+ * - Reimbursement tracking (employee expense claims)
+ * - Budget tracking and overspend alerts
+ * - VAT calculation and tax category tagging
+ * - Decimal128 precision for financial calculations
+ * - Multi-currency support with exchange rate tracking
+ * - Status workflow: DRAFT → PENDING_APPROVAL → APPROVED → PAID/REJECTED
  *
- * Features:
- * - Multi-level approval workflow
- * - Receipt/attachment management
- * - Category and GL account mapping
- * - WO/Project/Property linking
- * - Reimbursement tracking
- * - Budget tracking and alerts
- * - VAT calculation
+ * @statuses
+ * - DRAFT: Expense created but not submitted
+ * - PENDING_APPROVAL: Awaiting approver action
+ * - APPROVED: Approved and ready for payment
+ * - PAID: Payment issued to vendor/employee
+ * - REJECTED: Rejected by approver (with reason)
+ * - CANCELLED: Cancelled by requester
+ *
+ * @indexes
+ * - { orgId: 1, expenseNumber: 1 } (unique) — Unique expense identifier per tenant
+ * - { orgId: 1, requesterId: 1, createdAt: -1 } — User's expense history
+ * - { orgId: 1, approverId: 1, status: 1 } — Approver's pending tasks
+ * - { orgId: 1, workOrderId: 1, status: 1 } — Work order cost tracking
+ * - { orgId: 1, projectId: 1, status: 1 } — Project cost tracking
+ * - { orgId: 1, propertyId: 1, expenseDate: -1 } — Property expense reports
+ * - { orgId: 1, category: 1, expenseDate: -1 } — Category-based analytics
+ * - { orgId: 1, glAccountId: 1, status: 1 } — GL account posting queries
+ * - { orgId: 1, isReimbursable: 1, status: 1 } — Employee reimbursement reports
+ *
+ * @relationships
+ * - References User model (requesterId, approverId, createdBy, updatedBy)
+ * - References ChartAccount model (glAccountId)
+ * - References WorkOrder model (workOrderId)
+ * - References Project model (projectId)
+ * - References Property model (propertyId)
+ * - References Vendor model (vendorId) for vendor payments
+ * - Generates Journal entries (double-entry bookkeeping)
+ * - Links to Payment model (payment tracking after approval)
+ * - Links to Budget model (budget vs actual tracking)
+ *
+ * @compliance
+ * - Decimal128 precision for ZATCA/GAZT compliance
+ * - VAT calculation per Saudi VAT law (15% standard rate)
+ * - Audit trail for financial investigations
+ * - Immutable expense records (corrections via adjusting entries)
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - approvedAt, paidAt: Manual timestamps for workflow lifecycle
+ * - Approval history tracked in approvalHistory array
  */
-
 import { Schema, model, models, Types, Document } from "mongoose";
 import { getModel, MModel } from "@/types/mongoose-compat";
 import { ensureMongoConnection } from "@/server/lib/db";

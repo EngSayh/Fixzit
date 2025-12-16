@@ -1,10 +1,60 @@
 /**
- * Aqar Souq - Listing Model (2025 enhancements)
+ * @module server/models/aqar/Listing
+ * @description Aqar real estate listing platform for property sales, rentals, daily bookings, and auctions.
+ *              Supports multi-channel publishing, VR tours, geospatial search, boost forecasting, and compliance tracking.
  *
- * Supports auctions, RNPL, VR media, compliance (FAL/Nafath/foreign ownership),
- * boost forecasting, analytics, and geospatial search.
+ * @features
+ * - Listing intents: BUY, RENT, DAILY, AUCTION
+ * - Property types: APARTMENT, VILLA, LAND, COMMERCIAL, BUILDING, FLOOR, ROOM, SHOP, OFFICE, WAREHOUSE
+ * - Auction support with bidding workflow and countdown timers
+ * - RNPL (Rent Now Pay Later) eligibility tagging
+ * - VR media support (360° tours, virtual walkthroughs)
+ * - Compliance tracking: FAL (Foreign Affairs License), Nafath verification, foreign ownership restrictions
+ * - Boost forecasting (predicted engagement based on ML models)
+ * - Analytics tracking (views, favorites, lead conversions)
+ * - Geospatial search (GeoJSON location, distance queries)
+ * - Multi-language support (en/ar)
+ * - Agent commission tracking
+ * - Featured/promoted listing flags
+ * - Expiration and auto-renewal logic
+ *
+ * @statuses
+ * - DRAFT: Listing under preparation
+ * - PENDING: Awaiting admin approval
+ * - ACTIVE: Live and searchable
+ * - EXPIRED: Listing expired (can be renewed)
+ * - SOLD: Property sold (archived)
+ * - RENTED: Property rented (archived)
+ * - WITHDRAWN: Removed by owner/agent
+ *
+ * @indexes
+ * - { orgId: 1, status: 1, createdAt: -1 } — Dashboard queries (active listings)
+ * - { orgId: 1, agentId: 1, status: 1 } — Agent portfolio queries
+ * - { orgId: 1, intent: 1, propertyType: 1, status: 1 } — Category filters
+ * - { location: "2dsphere" } — Geospatial proximity search
+ * - { orgId: 1, isFeatured: 1, status: 1 } — Featured listings
+ * - { orgId: 1, expiresAt: 1, status: 1 } — Expiration cron jobs
+ * - { orgId: 1, auctionEndDate: 1, intent: 1 } — Auction countdown queries
+ *
+ * @relationships
+ * - References User model (agentId, createdBy)
+ * - References RealEstateAgent model (agent profiles)
+ * - Generates Lead records (property inquiries)
+ * - Links to Favorite model (user favorites)
+ * - Links to ViewingRequest model (scheduled viewings)
+ * - Integrates with Boost model (paid promotion forecasts)
+ * - Links to Package model (subscription-based listing limits)
+ *
+ * @compliance
+ * - FAL (Foreign Affairs License): Required for certain property types
+ * - Nafath verification: Saudi national identity verification
+ * - Foreign ownership: Restrictions tracked per region
+ *
+ * @audit
+ * - createdBy, updatedBy: Via tenantIsolationPlugin
+ * - timestamps: createdAt, updatedAt from Mongoose
+ * - Status transitions logged in PersonalizationEvent for analytics
  */
-
 import mongoose, { Schema, Document } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";

@@ -1,18 +1,55 @@
 /**
- * Payment Model - Finance Pack Phase 2
+ * @module server/models/finance/Payment
+ * @description Payment processing and tracking for tenant/customer payments and vendor/supplier disbursements.
+ *              Integrates with journal/ledger for double-entry bookkeeping and bank reconciliation.
  *
- * Tracks payments received from tenants/customers and payments made to vendors/suppliers.
- * Integrates with Journal/Ledger for double-entry bookkeeping.
- *
- * Features:
- * - Multi-method support (cash, card, bank transfer, cheque)
- * - Bank reconciliation tracking
- * - Receipt generation and attachment
+ * @features
+ * - Payment types: RECEIVED (from customers/tenants), PAID (to vendors/suppliers)
+ * - Multi-method support: CASH, CARD, BANK_TRANSFER, CHEQUE, ONLINE, MOBILE_WALLET
+ * - Bank reconciliation tracking (matched, unmatched, pending)
+ * - Receipt generation and attachment storage
  * - Payment splitting across multiple invoices
- * - Refund and reversal support
- * - Integration with Chart of Accounts
+ * - Refund and reversal support (creates reversing journal entries)
+ * - Chart of Accounts integration (GL account mapping)
+ * - Payment gateway integration (Tap, Stripe, PayPal)
+ * - Decimal128 precision for financial calculations
+ * - Multi-currency support with exchange rate tracking
+ * - Payment status workflow: PENDING → CLEARED → BOUNCED/REFUNDED
+ *
+ * @statuses
+ * - PENDING: Payment initiated but not cleared
+ * - CLEARED: Payment confirmed and reconciled
+ * - BOUNCED: Payment failed (e.g., insufficient funds for cheques)
+ * - REFUNDED: Payment refunded to payer
+ *
+ * @indexes
+ * - { orgId: 1, paymentNumber: 1 } (unique) — Unique payment identifier per tenant
+ * - { orgId: 1, payerId: 1, createdAt: -1 } — Payer payment history
+ * - { orgId: 1, invoiceIds: 1 } — Invoice payment lookup
+ * - { orgId: 1, status: 1, paymentDate: 1 } — Cleared payments for period reports
+ * - { orgId: 1, method: 1, status: 1 } — Payment method analytics
+ * - { orgId: 1, bankAccountId: 1, reconciledAt: 1 } — Bank reconciliation queries
+ * - { orgId: 1, gatewayTransactionId: 1 } — Payment gateway lookup
+ *
+ * @relationships
+ * - References Invoice model (invoiceIds array for payment allocation)
+ * - References ChartAccount model (debitAccountId, creditAccountId)
+ * - References User model (payerId, receiverId, createdBy, updatedBy)
+ * - Generates Journal entries (double-entry bookkeeping)
+ * - Links to LedgerEntry model (GL posting)
+ * - References BankAccount model (bankAccountId for reconciliation)
+ *
+ * @compliance
+ * - Decimal128 precision for ZATCA/GAZT compliance (no floating-point rounding)
+ * - Audit trail for financial investigations
+ * - Immutable payment records (corrections via reversals)
+ * - PCI-DSS: No card numbers stored (tokenized via payment gateway)
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - clearedAt, reconciledAt: Manual timestamps for payment lifecycle
+ * - Payment modifications logged in AuditLog
  */
-
 import { Schema, model, models, Types, Document } from "mongoose";
 import { getModel, MModel } from "@/types/mongoose-compat";
 import Decimal from "decimal.js";

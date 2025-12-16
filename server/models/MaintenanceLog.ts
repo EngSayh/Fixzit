@@ -1,12 +1,42 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
-
 /**
- * MaintenanceLog Model
- * Tracks all maintenance activities per unit for reporting and cost analysis
+ * @module server/models/MaintenanceLog
+ * @description Maintenance activity ledger for property units with cost analysis and reporting.
+ *              Tracks preventive, corrective, emergency, and inspection maintenance activities.
  *
- * @version 1.0.0
- * @date 2024-12-04
+ * @features
+ * - Maintenance types: PREVENTIVE, CORRECTIVE, EMERGENCY, INSPECTION, OTHER
+ * - Categories: PLUMBING, ELECTRICAL, HVAC, STRUCTURAL, APPLIANCE, PAINTING, CLEANING, PEST_CONTROL, LANDSCAPING, OTHER
+ * - Cost tracking (labor, materials, vendor fees)
+ * - Work order linkage for traceability
+ * - Technician assignment and completion tracking
+ * - Warranty status tracking
+ * - Priority-based scheduling (LOW, MEDIUM, HIGH, CRITICAL)
+ * - Property and unit-level maintenance history
+ * - Preventive maintenance schedule tracking
+ * - Compliance and inspection records
+ *
+ * @indexes
+ * - { org_id: 1, unit_id: 1, date: -1 } — Unit maintenance history queries
+ * - { org_id: 1, property_id: 1, date: -1 } — Property-wide maintenance reports
+ * - { org_id: 1, work_order_id: 1 } — Work order linkage queries
+ * - { org_id: 1, type: 1, date: -1 } — Maintenance type analytics
+ * - { org_id: 1, category: 1, date: -1 } — Category-based cost analysis
+ * - { org_id: 1, technician: 1, date: -1 } — Technician workload reports
+ *
+ * @relationships
+ * - References Property model (property_id)
+ * - References Unit model (unit_id) via property units array
+ * - References WorkOrder model (work_order_id)
+ * - References User model (technician) for assignment tracking
+ * - Integrates with FMPMPlan for preventive maintenance scheduling
+ * - Links to FMFinancialTransaction for cost reconciliation
+ *
+ * @audit
+ * - created_at, updated_at: Mongoose timestamps
+ * - Manual audit trail via description and notes fields
+ * - Immutable records (corrections via new entries)
  */
+import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IMaintenanceLog extends Document {
   unit_id: mongoose.Types.ObjectId;

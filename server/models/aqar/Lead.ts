@@ -1,10 +1,60 @@
 /**
- * Aqar Souq - Lead Model
+ * @module server/models/aqar/Lead
+ * @description Aqar property inquiry leads with CRM integration and state machine workflow.
+ *              Tracks lead lifecycle from inquiry to deal closure with validation rules.
  *
- * Property inquiry leads for CRM integration
- * Links to Fixzit CRM module
+ * @features
+ * - Lead lifecycle: NEW → CONTACTED → QUALIFIED → VIEWING → NEGOTIATING → WON/LOST/SPAM
+ * - State machine validation (enforces valid state transitions, prevents illegal moves)
+ * - Terminal states: WON, LOST, SPAM (no outgoing transitions)
+ * - Listing linkage (which property inquiry is about)
+ * - Buyer profile tracking (budget, preferences, timeline)
+ * - Agent assignment and workload distribution
+ * - Lead scoring (interest level, responsiveness, qualification)
+ * - Viewing request integration
+ * - CRM module integration (syncs with main Fixzit CRM)
+ * - Lead source tracking (organic, paid, referral, agent)
+ * - Follow-up reminders and task generation
+ *
+ * @statuses
+ * - NEW: Fresh inquiry (uncontacted)
+ * - CONTACTED: Agent reached out to lead
+ * - QUALIFIED: Genuine interest confirmed (budget + timeline verified)
+ * - VIEWING: Property viewing scheduled
+ * - NEGOTIATING: Offer/counteroffer in progress
+ * - WON: Deal closed (property sold/rented)
+ * - LOST: Deal lost (competitor, budget mismatch, lost interest)
+ * - SPAM: Marked as spam/fake inquiry
+ *
+ * @stateTransitions
+ * Valid transitions enforced via BIZ-001 state machine:
+ * - NEW → CONTACTED, QUALIFIED, SPAM
+ * - CONTACTED → QUALIFIED, LOST, SPAM
+ * - QUALIFIED → VIEWING, NEGOTIATING, LOST
+ * - VIEWING → NEGOTIATING, QUALIFIED, LOST
+ * - NEGOTIATING → WON, LOST
+ * - WON, LOST, SPAM: Terminal states (no transitions)
+ *
+ * @indexes
+ * - { orgId: 1, status: 1, createdAt: -1 } — Dashboard queries (active leads)
+ * - { orgId: 1, listingId: 1, status: 1 } — Leads per listing
+ * - { orgId: 1, agentId: 1, status: 1 } — Agent workload queries
+ * - { orgId: 1, email: 1 } — Duplicate lead detection
+ * - { orgId: 1, phone: 1 } — Lead lookup by phone
+ * - { orgId: 1, leadSource: 1, createdAt: -1 } — Lead source analytics
+ *
+ * @relationships
+ * - References Listing model (listingId)
+ * - References User model (agentId, createdBy)
+ * - Links to ViewingRequest model (scheduled viewings)
+ * - Integrates with CrmLead model (Fixzit main CRM sync)
+ * - Links to CrmActivity model (lead activity timeline)
+ *
+ * @audit
+ * - createdBy, updatedBy: Via tenantIsolationPlugin
+ * - timestamps: createdAt, updatedAt from Mongoose
+ * - Status change history tracked in statusHistory array
  */
-
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { getModel, MModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";

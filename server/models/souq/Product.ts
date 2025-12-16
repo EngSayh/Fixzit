@@ -1,6 +1,42 @@
 /**
- * Souq Product Model - Base product/FSIN entity
  * @module server/models/souq/Product
+ * @description Fixzit Souq base product catalog (FSIN entity) for B2B marketplace.
+ *              Supports multi-language, category classification, and attribute-based specifications.
+ *
+ * @features
+ * - FSIN (Fixzit Standard Item Number): Unique product identifier across marketplace
+ * - Multi-language support (en/ar) for title, description, and attributes
+ * - Category and brand classification
+ * - Attribute-based specifications (color, size, material, etc.)
+ * - Media management (images, videos, product manuals, spec sheets)
+ * - Seller/vendor linkage (multiple sellers can list same FSIN)
+ * - Status workflow: ACTIVE, INACTIVE, DISCONTINUED
+ * - Search optimization (keywords, tags, category filters)
+ * - Listing variations (via souq/Listing model - size, color, SKU)
+ *
+ * @statuses
+ * - ACTIVE: Product available for listing
+ * - INACTIVE: Temporarily unavailable
+ * - DISCONTINUED: No longer offered (archived)
+ *
+ * @indexes
+ * - { orgId: 1, fsin: 1 } (unique) — Unique FSIN per tenant
+ * - { orgId: 1, categoryId: 1, status: 1 } — Category browse queries
+ * - { orgId: 1, brandId: 1, status: 1 } — Brand catalog queries
+ * - { orgId: 1, title: "text", description: "text" } — Full-text search
+ * - { orgId: 1, status: 1, createdAt: -1 } — New product listings
+ *
+ * @relationships
+ * - References Category model (categoryId)
+ * - References Brand model (brandId)
+ * - Referenced by souq/Listing model (listing.productId links to FSIN)
+ * - Referenced by souq/Variation model (product variations - SKUs)
+ * - Links to AttributeSet model (structured product specs)
+ * - Integrates with souq/Inventory model (stock tracking per listing)
+ *
+ * @audit
+ * - timestamps: createdAt, updatedAt from Mongoose
+ * - Product catalog changes logged in AuditLog
  */
 
 import mongoose, { Schema, type Document } from "mongoose";
