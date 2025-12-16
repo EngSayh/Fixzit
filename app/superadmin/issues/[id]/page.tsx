@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,30 +9,84 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Calendar, User, Tag, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+type IssueStatus =
+  | "open"
+  | "in_progress"
+  | "in_review"
+  | "blocked"
+  | "resolved"
+  | "closed"
+  | "wont_fix";
+
+type IssueComment = {
+  id: string;
+  content: string;
+  author: string;
+  createdAt: string;
+};
+
 interface Issue {
   id: string;
+  issueId?: string;
   title: string;
   description: string;
-  status: string;
+  status: IssueStatus;
   priority: string;
   category: string;
   assignedTo: string | null;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-  comments: Array<{
-    id: string;
-    content: string;
-    author: string;
-    createdAt: string;
-  }>;
+  reportedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  comments: IssueComment[];
 }
 
-const STATUS_COLORS = {
+interface IssueApiComment {
+  _id?: string;
+  id?: string;
+  content: string;
+  author: string;
+  createdAt: string;
+}
+
+interface IssueApiResponse {
+  data?: {
+    issue?: {
+      _id?: string;
+      issueId?: string;
+      title: string;
+      description: string;
+      status: IssueStatus;
+      priority: string;
+      category: string;
+      assignedTo?: string | null;
+      reportedBy?: string;
+      createdAt?: string;
+      updatedAt?: string;
+      comments?: IssueApiComment[];
+    };
+  };
+}
+
+type IssueApiPayload = NonNullable<IssueApiResponse["data"]>["issue"];
+
+const STATUS_COLORS: Record<IssueStatus, string> = {
   open: "bg-blue-500",
-  "in-progress": "bg-yellow-500",
-  resolved: "bg-green-500",
+  in_progress: "bg-yellow-500",
+  in_review: "bg-purple-500",
+  blocked: "bg-red-600",
+  resolved: "bg-green-600",
   closed: "bg-gray-500",
+  wont_fix: "bg-gray-400",
+};
+
+const STATUS_LABELS: Record<IssueStatus, string> = {
+  open: "Open",
+  in_progress: "In progress",
+  in_review: "In review",
+  blocked: "Blocked",
+  resolved: "Resolved",
+  closed: "Closed",
+  wont_fix: "Won't fix",
 };
 
 const PRIORITY_COLORS = {
@@ -42,11 +96,54 @@ const PRIORITY_COLORS = {
   P3: "bg-blue-500",
 };
 
+const formatDate = (value?: string) =>
+  value ? new Date(value).toLocaleDateString() : "—";
+
+function normalizeIssue(payload?: IssueApiPayload): Issue | null {
+  if (!payload) return null;
+
+  const comments = (payload.comments || []).map((comment: IssueApiComment) => ({
+    id: comment._id || comment.id || comment.createdAt,
+    content: comment.content,
+    author: comment.author,
+    createdAt: comment.createdAt,
+  }));
+
+  const id = payload.issueId || payload._id || "";
+  if (!id) return null;
+
+  return {
+    id,
+    issueId: payload.issueId,
+    title: payload.title,
+    description: payload.description,
+    status: payload.status,
+    priority: payload.priority,
+    category: payload.category,
+    assignedTo: payload.assignedTo ?? null,
+    reportedBy: payload.reportedBy,
+    createdAt: payload.createdAt,
+    updatedAt: payload.updatedAt,
+    comments,
+  };
+}
+
 export default function IssueDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const issueId = params?.id as string;
+
+  const statusActions = useMemo(
+    () =>
+      [
+        "open",
+        "in_progress",
+        "resolved",
+        "closed",
+      ] as IssueStatus[],
+    [],
+  );
 
   const [issue, setIssue] = useState<Issue | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,8 +160,12 @@ export default function IssueDetailPage() {
       try {
         const response = await fetch(`/api/issues/${issueId}`);
         if (!response.ok) throw new Error("Failed to fetch issue");
-        const data = await response.json();
-        setIssue(data);
+        const data: IssueApiResponse = await response.json();
+        const normalized = normalizeIssue(data?.data?.issue);
+        if (!normalized) {
+          throw new Error("Issue payload missing");
+        }
+        setIssue(normalized);
       } catch (_error) {
         toast({
           title: "Error",
@@ -77,30 +178,27 @@ export default function IssueDetailPage() {
     };
 
     fetchIssue();
-  }, [issueId]);
+  }, [issueId, toast]);
 
   const handleAddComment = async () => {
     if (!comment.trim()) return;
 
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/issues/${issueId}/comments`, {
-        method: "POST",
+      const response = await fetch(`/api/issues/${issueId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: comment }),
+        body: JSON.stringify({ comment: { content: comment.trim() } }),
       });
 
       if (!response.ok) throw new Error("Failed to add comment");
 
-      const newComment = await response.json();
-      setIssue((prev) =>
-        prev
-          ? {
-              ...prev,
-              comments: [...prev.comments, newComment],
-            }
-          : null
-      );
+      const data: IssueApiResponse = await response.json();
+      const normalized = normalizeIssue(data?.data?.issue);
+      if (!normalized) {
+        throw new Error("Comment response missing issue");
+      }
+      setIssue(normalized);
       setComment("");
       toast({
         title: "Success",
@@ -117,7 +215,7 @@ export default function IssueDetailPage() {
     }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: IssueStatus) => {
     try {
       const response = await fetch(`/api/issues/${issueId}`, {
         method: "PATCH",
@@ -127,10 +225,15 @@ export default function IssueDetailPage() {
 
       if (!response.ok) throw new Error("Failed to update status");
 
-      setIssue((prev) => (prev ? { ...prev, status: newStatus } : null));
+      const data: IssueApiResponse = await response.json();
+      const normalized = normalizeIssue(data?.data?.issue);
+      if (!normalized) {
+        throw new Error("Status response missing issue");
+      }
+      setIssue(normalized);
       toast({
         title: "Success",
-        description: `Status updated to ${newStatus}`,
+        description: `Status updated to ${STATUS_LABELS[newStatus] ?? newStatus}`,
       });
     } catch (_error) {
       toast({
@@ -179,8 +282,8 @@ export default function IssueDetailPage() {
             <div className="flex-1">
               <CardTitle className="text-2xl mb-2">{issue.title}</CardTitle>
               <div className="flex flex-wrap gap-2">
-                <Badge className={STATUS_COLORS[issue.status as keyof typeof STATUS_COLORS] || "bg-gray-500"}>
-                  {issue.status}
+                <Badge className={STATUS_COLORS[issue.status] || "bg-gray-500"}>
+                  {STATUS_LABELS[issue.status] || issue.status}
                 </Badge>
                 <Badge className={PRIORITY_COLORS[issue.priority as keyof typeof PRIORITY_COLORS] || "bg-gray-500"}>
                   {issue.priority}
@@ -192,34 +295,16 @@ export default function IssueDetailPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant={issue.status === "open" ? "default" : "outline"}
-                onClick={() => handleStatusChange("open")}
-              >
-                Open
-              </Button>
-              <Button
-                size="sm"
-                variant={issue.status === "in-progress" ? "default" : "outline"}
-                onClick={() => handleStatusChange("in-progress")}
-              >
-                In Progress
-              </Button>
-              <Button
-                size="sm"
-                variant={issue.status === "resolved" ? "default" : "outline"}
-                onClick={() => handleStatusChange("resolved")}
-              >
-                Resolved
-              </Button>
-              <Button
-                size="sm"
-                variant={issue.status === "closed" ? "default" : "outline"}
-                onClick={() => handleStatusChange("closed")}
-              >
-                Closed
-              </Button>
+              {statusActions.map((statusOption) => (
+                <Button
+                  key={statusOption}
+                  size="sm"
+                  variant={issue.status === statusOption ? "default" : "outline"}
+                  onClick={() => handleStatusChange(statusOption)}
+                >
+                  {STATUS_LABELS[statusOption]}
+                </Button>
+              ))}
             </div>
           </div>
         </CardHeader>
@@ -237,7 +322,7 @@ export default function IssueDetailPage() {
                 <User className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm">
                   <span className="font-medium">Created by:</span>{" "}
-                  {issue.createdBy}
+                  {issue.reportedBy || "Unknown"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -251,14 +336,14 @@ export default function IssueDetailPage() {
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm">
                   <span className="font-medium">Created:</span>{" "}
-                  {new Date(issue.createdAt).toLocaleDateString()}
+                  {formatDate(issue.createdAt)}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm">
                   <span className="font-medium">Updated:</span>{" "}
-                  {new Date(issue.updatedAt).toLocaleDateString()}
+                  {formatDate(issue.updatedAt)}
                 </span>
               </div>
             </div>
