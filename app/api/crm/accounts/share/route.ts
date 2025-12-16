@@ -130,10 +130,12 @@ export async function POST(req: NextRequest) {
   try {
     const account =
       (await CrmLead.findOne({
+        orgId: user.orgId,
         company: payload.company.trim(),
         kind: "ACCOUNT",
       })) ??
       (await CrmLead.create({
+        orgId: user.orgId,
         kind: "ACCOUNT",
         company: payload.company.trim(),
         segment: payload.segment,
@@ -149,6 +151,7 @@ export async function POST(req: NextRequest) {
       }));
 
     await CrmActivity.create({
+      orgId: user.orgId,
       leadId: account._id,
       type: "HANDOFF",
       summary: payload.notes ?? "Shared with customer success",

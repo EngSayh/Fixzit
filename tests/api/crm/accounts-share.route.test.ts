@@ -125,8 +125,27 @@ describe("API /api/crm/accounts/share", () => {
       const res = await route.POST(req);
       
       expect(res.status).toBe(200);
-      expect(CrmLead.create).toHaveBeenCalled();
-      expect(CrmActivity.create).toHaveBeenCalled();
+      expect(CrmLead.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orgId: mockOrgId,
+          company: "New Corp",
+          kind: "ACCOUNT",
+        })
+      );
+      expect(CrmLead.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orgId: mockOrgId,
+          company: "New Corp",
+          kind: "ACCOUNT",
+        })
+      );
+      expect(CrmActivity.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orgId: mockOrgId,
+          leadId: mockCreatedAccount._id,
+          type: "HANDOFF",
+        })
+      );
       expect(setTenantContext).toHaveBeenCalledWith({ orgId: mockOrgId });
       expect(clearTenantContext).toHaveBeenCalled();
     });
@@ -157,8 +176,21 @@ describe("API /api/crm/accounts/share", () => {
       const res = await route.POST(req);
       
       expect(res.status).toBe(200);
+      expect(CrmLead.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orgId: mockOrgId,
+          company: "Existing Corp",
+          kind: "ACCOUNT",
+        })
+      );
       expect(CrmLead.create).not.toHaveBeenCalled();
-      expect(CrmActivity.create).toHaveBeenCalled();
+      expect(CrmActivity.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orgId: mockOrgId,
+          leadId: mockExistingAccount._id,
+          type: "HANDOFF",
+        })
+      );
     });
 
     it("should reject request without authentication", async () => {
