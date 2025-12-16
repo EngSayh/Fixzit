@@ -734,18 +734,20 @@ export class ClaimService {
     const overdueClaims = await this.getOverdueClaims(orgId);
     const collection = await this.collection();
 
-    for (const claim of overdueClaims) {
-      await collection.updateOne(
-        { claimId: claim.claimId, ...this.buildOrgFilter(orgId) },
-        {
-          $set: {
-            status: "escalated",
-            priority: "high",
-            updatedAt: new Date(),
+    await Promise.all(
+      overdueClaims.map((claim) =>
+        collection.updateOne(
+          { claimId: claim.claimId, ...this.buildOrgFilter(orgId) },
+          {
+            $set: {
+              status: "escalated",
+              priority: "high",
+              updatedAt: new Date(),
+            },
           },
-        },
-      );
-    }
+        )
+      )
+    );
 
     return overdueClaims.length;
   }

@@ -344,17 +344,19 @@ class FulfillmentService {
         {},
       );
 
-      // Notify each seller to fulfill their items
-      for (const [sellerId, sellerItems] of Object.entries(itemsBySeller)) {
-        await addJob("souq:notifications", "fbm_fulfillment_required", {
-          orderId: order.orderId,
-          sellerId,
-          orgId: order.orgId?.toString?.(), // 🔒 SECURITY: Include orgId for tenant routing
-          items: sellerItems,
-          shippingAddress,
-          deadline: this.calculateHandlingDeadline(order.createdAt, "standard"),
-        });
-      }
+      // Notify each seller to fulfill their items (in parallel to reduce latency)
+      await Promise.all(
+        Object.entries(itemsBySeller).map(([sellerId, sellerItems]) =>
+          addJob("souq:notifications", "fbm_fulfillment_required", {
+            orderId: order.orderId,
+            sellerId,
+            orgId: order.orgId?.toString?.(), // 🔒 SECURITY: Include orgId for tenant routing
+            items: sellerItems,
+            shippingAddress,
+            deadline: this.calculateHandlingDeadline(order.createdAt, "standard"),
+          })
+        )
+      );
 
       order.fulfillmentStatus = "pending_seller";
       await order.save();
