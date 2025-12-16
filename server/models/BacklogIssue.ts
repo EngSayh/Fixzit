@@ -1,3 +1,53 @@
+/**
+ * @module server/models/BacklogIssue
+ * @description Backlog Issue model for project issue tracking and MongoDB SSOT sync.
+ * Tracks bugs, tests, efficiency improvements, and next steps with prioritization and effort estimates.
+ *
+ * @features
+ * - Issue categorization (bug, logic, test, efficiency, next_step)
+ * - Priority scoring (P0-P3 with impact rating 1-10)
+ * - Effort estimation (XS, S, M, L, XL)
+ * - Status workflow (pending, in_progress, resolved, wont_fix)
+ * - Location tracking (file, lines, section)
+ * - External ID sync (for GitHub Issues, Jira, etc.)
+ * - Mention count (frequency of issue references)
+ * - Source tracking (audit logs, code comments, reviews)
+ * - Risk tags (SECURITY, PERFORMANCE, DATA_INTEGRITY, etc.)
+ * - First/last seen timestamps (recurrence tracking)
+ * - Unique key identifier (internal reference)
+ * - MongoDB SSOT synchronization (import/export)
+ *
+ * @statuses
+ * - pending: Issue identified, not started
+ * - in_progress: Actively being worked on
+ * - resolved: Fix completed and verified
+ * - wont_fix: Accepted as-is (technical debt, low priority)
+ *
+ * @indexes
+ * - { key: 1 } unique - Internal issue key
+ * - { externalId: 1 } unique sparse - External system sync
+ * - { category: 1 } - Category filtering
+ * - { priority: 1 } - Priority sorting
+ * - { effort: 1 } - Effort-based queries
+ * - { impact: 1 } - Impact sorting
+ * - { status: 1 } - Status filtering
+ * - { priority: 1, impact: -1, updatedAt: -1 } - Priority/impact dashboard
+ * - { 'location.file': 1, status: 1 } - File-based issue tracking
+ *
+ * @relationships
+ * - BACKLOG_AUDIT.json: Export/import sync for MongoDB SSOT
+ * - External systems: externalId links to GitHub/Jira/etc.
+ *
+ * @compliance
+ * - SSOT protocol (MongoDB as single source of truth)
+ * - Immutable audit trail (firstSeen, lastSeen, mentionCount)
+ *
+ * @audit
+ * - firstSeen: Initial issue discovery
+ * - lastSeen: Most recent mention
+ * - mentionCount: Occurrence frequency
+ * - createdAt/updatedAt: Record lifecycle
+ */
 import { Schema, model, models } from 'mongoose';
 
 export type BacklogCategory = 'bug' | 'logic' | 'test' | 'efficiency' | 'next_step';

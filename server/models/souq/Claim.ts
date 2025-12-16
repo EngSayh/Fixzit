@@ -2,7 +2,58 @@ import { Schema, type Document } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 
 /**
- * A-to-Z Claim Model
+ * @module server/models/souq/Claim
+ * @description A-to-Z Claim model for buyer protection disputes.
+ * Handles order disputes (not delivered, significantly different, damaged) with evidence collection and resolution workflow.
+ *
+ * @features
+ * - Claim type categorization (not_received, significantly_different, damaged, defective, counterfeit, unauthorized_charge)
+ * - Buyer/seller evidence uploads (photos, documents, videos)
+ * - Claim timeline tracking (status changes, notes)
+ * - Decision workflow (approved, denied, partial_refund)
+ * - Seller funds hold during investigation
+ * - Automated deadline enforcement (seller response, admin decision)
+ * - Refund amount calculation and disbursement
+ * - Evidence-based decision reasoning
+ * - Seller rebuttal submission
+ * - Escalation to admin review
+ * - Claim closure with outcome tracking
+ * - Tenant isolation (orgId per marketplace)
+ *
+ * @statuses
+ * - OPEN: Claim submitted, awaiting seller response
+ * - PENDING_REVIEW: Seller responded, awaiting admin decision
+ * - INVESTIGATING: Admin reviewing evidence
+ * - RESOLVED: Claim closed with decision
+ * - WITHDRAWN: Buyer withdrew claim
+ * - EXPIRED: Seller missed response deadline (auto-approve)
+ *
+ * @indexes
+ * - { claimId: 1 } unique - Claim ID lookup
+ * - { orderId: 1 } - Order claims lookup
+ * - { buyerId: 1, status: 1 } - Buyer claim dashboard
+ * - { sellerId: 1, status: 1 } - Seller claim dashboard
+ * - { orgId: 1, status: 1 } - Tenant claim management
+ * - { status: 1, claimDeadline: 1 } - Deadline monitoring
+ *
+ * @relationships
+ * - SouqOrder: orderId links to disputed order
+ * - SouqBuyer/SouqSeller: buyerId/sellerId (User refs)
+ * - Organization: orgId (marketplace tenant)
+ *
+ * @compliance
+ * - A-to-Z Guarantee policy enforcement
+ * - Dispute resolution timeline (5-7 days seller response, 14 days admin decision)
+ * - Funds hold protection (prevent seller withdrawal during claim)
+ * - Evidence retention (photo/document storage)
+ *
+ * @audit
+ * - timeline: Full status change history with timestamps
+ * - evidence: Uploaded files with uploader tracking
+ * - decision: Admin resolution with reasoning
+ * - fundsHold: Held/released/transferred audit trail
+ *
+ * A-to-Z Claim Model (legacy comment retained below)
  * Buyer protection claims for order disputes (not delivered, significantly different, damaged)
  */
 

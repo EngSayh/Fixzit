@@ -1,3 +1,31 @@
+/**
+ * @module server/models/onboarding/DocumentType
+ * @description Document Type registry for onboarding KYC documents.
+ * Defines validation rules, file constraints, and localization for identity/license/contract documents.
+ *
+ * @features
+ * - Document type catalog (national ID, commercial license, contract, etc.)
+ * - Bilingual names (Arabic/English) for UI display
+ * - Role applicability (which roles require which docs)
+ * - File validation rules (max size, MIME types)
+ * - Expiry tracking flag (licenses vs. one-time docs)
+ * - Review workflow requirement flag
+ * - Mandatory/optional designation per document type
+ *
+ * @indexes
+ * - { code: 1 } unique - Document type code lookup
+ *
+ * @relationships
+ * - DocumentProfile: Profiles reference document codes
+ * - VerificationDocument: Uploaded docs reference document_type_code
+ *
+ * @compliance
+ * - ZATCA KYC standards (national ID, commercial license)
+ * - GDPR/PII handling (identity documents)
+ *
+ * @audit
+ * - No audit trail (reference data, admin-managed)
+ */
 import { Schema, type Document } from 'mongoose';
 import { getModel } from '@/types/mongoose-compat';
 import { ONBOARDING_ROLES, type OnboardingRole } from './OnboardingCase';

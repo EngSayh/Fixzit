@@ -1,3 +1,36 @@
+/**
+ * @module server/models/qa/QaAlert
+ * @description QA Alert model for critical quality assurance events.
+ * Tracks high-priority system events requiring immediate attention with 30-day TTL.
+ *
+ * @features
+ * - Critical event logging (errors, failures, anomalies)
+ * - Tenant isolation (orgId sparse index for multi-tenant)
+ * - User action tracking (userId, IP, userAgent)
+ * - Automatic TTL expiry (30 days retention)
+ * - Event type categorization
+ * - Flexible data payload for event context
+ * - High-performance sparse indexes for multi-tenant queries
+ *
+ * @indexes
+ * - { orgId: 1, timestamp: -1 } sparse - Tenant-scoped alerts (most recent first)
+ * - { orgId: 1, event: 1, timestamp: -1 } sparse - Filtered tenant alerts
+ * - { timestamp: -1 } - Global alerts timeline
+ * - { event: 1, timestamp: -1 } - Event type timeline
+ * - { timestamp: 1 } TTL 30d - Auto-delete after 30 days
+ *
+ * @relationships
+ * - User: userId references user who triggered alert
+ * - Organization: orgId (sparse, tenant context)
+ *
+ * @compliance
+ * - 30-day retention policy (TTL index)
+ * - Audit trail for critical events
+ *
+ * @audit
+ * - timestamp: Event occurrence time
+ * - userId/ip/userAgent: User context
+ */
 import { Schema, Model, models, InferSchemaType } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 

@@ -1,5 +1,50 @@
 /**
- * Testing User Model
+ * @module server/models/TestingUser
+ * @description Testing User model for superadmin-managed production test accounts.
+ * Real testing users with encrypted credentials, audit trails, and expiry management.
+ *
+ * @features
+ * - Superadmin-managed test accounts (not demo users)
+ * - Encrypted password storage (bcrypt hashing)
+ * - Role-based access (SUPER_ADMIN, ADMIN, MANAGER, USER, VENDOR, TENANT)
+ * - Status management (ACTIVE, DISABLED, EXPIRED)
+ * - Expiry date enforcement (automatic status update)
+ * - Password change requirements (requirePasswordChange flag)
+ * - Login attempt tracking (success/failure logs)
+ * - Access audit trail (IP, userAgent, timestamps)
+ * - Account lockout after failed attempts (configurable threshold)
+ * - Usage notes and description (purpose documentation)
+ * - Created/modified by tracking (superadmin actions)
+ * - On-demand enable/disable controls
+ *
+ * @statuses
+ * - ACTIVE: Account enabled and valid
+ * - DISABLED: Manually disabled by superadmin
+ * - EXPIRED: Past expiresAt date (automatic)
+ *
+ * @indexes
+ * - { email: 1 } unique - Email uniqueness
+ * - { username: 1 } unique - Username uniqueness
+ * - { status: 1, expiresAt: 1 } - Active account queries
+ * - { role: 1 } - Role-based filtering
+ *
+ * @relationships
+ * - User: No direct link (separate from production users)
+ * - Organization: testOrgId may reference test org
+ *
+ * @compliance
+ * - Password encryption (bcrypt 10+ rounds)
+ * - Login audit trail (60-day retention)
+ * - Superadmin-only access control
+ * - Automatic account expiry
+ *
+ * @audit
+ * - loginLogs: Full access history with IP/userAgent
+ * - createdAt/updatedAt: Account lifecycle
+ * - createdBy/updatedBy: Superadmin actions
+ * - passwordLastChanged: Security tracking
+ *
+ * Testing User Model (legacy comment retained below)
  *
  * Superadmin-managed testing users for production system testing.
  * These are NOT demo users - they are real testing accounts with
@@ -11,8 +56,6 @@
  * - Full audit trail of access
  * - Can be enabled/disabled on demand
  * - Supports expiry dates
- *
- * @module server/models/TestingUser
  */
 
 import { Schema, model, models, HydratedDocument, Types } from "mongoose";

@@ -5,7 +5,36 @@ import { getModel } from "@/types/mongoose-compat";
 import { BRAND_COLORS } from "@/lib/config/brand-colors";
 
 /**
- * PlatformSettings Model
+ * @module server/models/PlatformSettings
+ * @description Platform Settings model for global branding and configuration.
+ * Manages logo, favicon, brand colors, and platform name. Super Admin only.
+ *
+ * @features
+ * - Logo upload and storage (URL, storage key, MIME type, file size)
+ * - Favicon management
+ * - Brand name customization (default: "Fixzit Enterprise")
+ * - Brand color configuration (default: #0061A8 Business.sa blue)
+ * - Tenant isolation (tenantIsolationPlugin for multi-org support)
+ * - Audit trail for settings changes (auditPlugin)
+ * - Super Admin access control (modification restricted)
+ * - Cloud storage integration for logo/favicon
+ *
+ * @indexes
+ * - { tenantId: 1 } (from tenantIsolationPlugin) - Tenant-scoped settings
+ *
+ * @relationships
+ * - Organization: tenantId references tenant (from plugin)
+ * - User: updatedBy/createdBy (from auditPlugin)
+ *
+ * @compliance
+ * - Super Admin only modifications
+ * - Audit trail for branding changes
+ *
+ * @audit
+ * - createdAt/updatedAt: Settings lifecycle (from timestamps)
+ * - createdBy/updatedBy: Admin actions (from auditPlugin)
+ *
+ * PlatformSettings Model (legacy comment retained below)
  * Manages global platform settings including logo, branding, etc.
  * Super Admin only access for modifications
  */

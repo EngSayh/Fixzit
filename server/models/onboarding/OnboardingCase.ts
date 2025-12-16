@@ -1,3 +1,49 @@
+/**
+ * @module server/models/onboarding/OnboardingCase
+ * @description Onboarding Case model for tenant/vendor/owner KYC workflows.
+ * Tracks multi-step onboarding process from draft through approval with document verification.
+ *
+ * @features
+ * - Multi-role onboarding (TENANT, PROPERTY_OWNER, OWNER, VENDOR, AGENT)
+ * - Step-by-step wizard tracking (current_step 1-4)
+ * - Status workflow (DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED/REJECTED)
+ * - Document collection and verification pipeline
+ * - SLA deadline tracking for review turnaround
+ * - Tutorial completion tracking
+ * - Multi-channel submission (web, mobile, admin portal)
+ * - PII encryption for sensitive data (name, email, phone)
+ * - Country-specific flows (SA default)
+ * - Property/unit assignment for tenant onboarding
+ *
+ * @statuses
+ * - DRAFT: Initial creation, user filling form
+ * - SUBMITTED: User submitted, awaiting review
+ * - UNDER_REVIEW: Admin reviewing documents
+ * - DOCS_PENDING: Additional documents requested
+ * - APPROVED: Onboarding complete, user/vendor/owner activated
+ * - REJECTED: Failed KYC/compliance checks
+ * - CANCELLED: User or admin cancelled
+ *
+ * @indexes
+ * - { orgId: 1, status: 1 } - Tenant-scoped case listing
+ * - { status: 1 } - Status-based queries
+ *
+ * @relationships
+ * - VerificationDocument: documents array references uploaded docs
+ * - User: subject_user_id links to created user (post-approval)
+ * - Organization: orgId (corporate tenant), subjectOrgId (vendor org)
+ * - Property/Unit: For tenant onboarding property assignment
+ *
+ * @compliance
+ * - ZATCA KYC requirements (SA vendor registration)
+ * - PII encryption (basic_info fields)
+ * - GDPR right to erasure (delete with docs)
+ *
+ * @audit
+ * - createdAt/updatedAt: Submission and review timing
+ * - created_by_id: User who initiated onboarding
+ * - verified_by_id: Admin who approved/rejected
+ */
 import { Schema, Types, type HydratedDocument } from 'mongoose';
 import { getModel } from '@/types/mongoose-compat';
 import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';

@@ -2,7 +2,53 @@ import mongoose, { Schema, type Document } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 
 /**
- * Inventory Model
+ * @module server/models/souq/Inventory
+ * @description Inventory model for marketplace stock management.
+ * Tracks available units, reservations during checkout, transaction history, and inventory health metrics.
+ *
+ * @features
+ * - Real-time stock availability (availableQuantity = total - reserved - unsellable)
+ * - Checkout reservation system (auto-expire after timeout)
+ * - FBM vs FBF fulfillment tracking (merchant vs Fixzit warehouses)
+ * - Warehouse bin location tracking (physical shelf)
+ * - Transaction history (receive, sale, return, damage, adjustment)
+ * - Inventory health metrics (aging, stranded, unsellable units)
+ * - Low stock threshold alerts
+ * - Restock request automation
+ * - Inbound shipment tracking
+ * - Multi-listing support (same product, multiple listings)
+ * - Tenant isolation (orgId per seller)
+ *
+ * @statuses
+ * Reservation status: active (pending checkout), converted (order placed), expired (timeout)
+ * Transaction types: receive, sale, return, damage, lost, adjustment
+ *
+ * @indexes
+ * - { listingId: 1 } - Listing stock lookup
+ * - { productId: 1 } - Product inventory aggregation
+ * - { sellerId: 1, availableQuantity: 1 } - Seller low-stock monitoring
+ * - { orgId: 1, fulfillmentType: 1 } - Tenant FBM/FBF inventory
+ * - { fulfillmentType: 1, warehouseId: 1 } - FBF warehouse inventory
+ * - { 'reservations.expiresAt': 1 } - Auto-expire cleanup
+ *
+ * @relationships
+ * - SouqListing: listingId links to product listing
+ * - SouqProduct: productId references FSIN
+ * - SouqSeller: sellerId references seller account
+ * - SouqOrder: Transaction orderId/rmaId references
+ * - Organization: orgId (seller tenant scope)
+ *
+ * @compliance
+ * - Real-time stock sync for marketplace integrity
+ * - Audit trail for inventory adjustments
+ * - Stranded inventory detection (no active listings)
+ *
+ * @audit
+ * - transactions: Full transaction history with timestamps
+ * - createdAt/updatedAt: Inventory record lifecycle
+ * - Transaction performedBy: User/system tracking
+ *
+ * Inventory Model (legacy comment retained below)
  * Tracks available stock per listing, reservations during checkout,
  * and inventory health metrics (aging, stranded, unfulfillable)
  */

@@ -1,4 +1,17 @@
 /**
+ * @module server/models/Employee
+ * @description DEPRECATED legacy Employee model. Use hr.models.ts Employee instead.
+ * Retained for backward compatibility during migration. DO NOT USE for new code.
+ *
+ * @features
+ * - Basic personal info (firstName, lastName, email, phone)
+ * - Professional details (role, department, title, startDate)
+ * - Status tracking (ACTIVE, INACTIVE, ONBOARDING)
+ * - Metadata payload (flexible JSON)
+ * - Tenant isolation (orgId via tenantIsolationPlugin)
+ * - Audit trail (auditPlugin)
+ * - Unique email per tenant
+ *
  * @deprecated LEGACY MODEL - DO NOT USE
  *
  * This model is DEPRECATED and will be removed in a future release.
@@ -13,6 +26,21 @@
  * ```typescript
  * import { Employee } from "@/server/models/hr.models";
  * ```
+ *
+ * @indexes
+ * - { orgId: 1, 'personal.email': 1 } unique (partial) - Tenant-scoped unique email
+ *
+ * @relationships
+ * - Organization: orgId tenant scope
+ * - User: May link to User model via email
+ *
+ * @compliance
+ * - PII encryption NOT IMPLEMENTED (use hr.models.ts)
+ * - GOSI/ZATCA fields MISSING (use hr.models.ts)
+ *
+ * @audit
+ * - createdAt/updatedAt: Record lifecycle
+ * - createdBy/updatedBy: User actions (from auditPlugin)
  *
  * @see /server/models/hr.models.ts for the canonical Employee model
  * @since 2025-11-29 - Marked as deprecated

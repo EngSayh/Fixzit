@@ -2,7 +2,44 @@ import mongoose, { Schema, type Document } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 
 /**
- * Fee Schedule Model
+ * @module server/models/souq/FeeSchedule
+ * @description Fee Schedule model for marketplace commission and service fees.
+ * Defines category-based referral fees, FBF fulfillment costs, advertising rates, and payment processing charges.
+ *
+ * @features
+ * - Category-based referral fees (commission % and minimum)
+ * - Closing fees (fixed per-item charges)
+ * - FBF fees by weight tier (fulfillment, storage, pick-pack)
+ * - Advertising fees (CPC bidding ranges, platform cut)
+ * - Payment processing fees by method (Mada, Visa, STCPay, ApplePay)
+ * - Refund admin fees (restocking, processing)
+ * - High-volume seller discounts (tiered by GMV)
+ * - Version control (quarterly fee updates)
+ * - Effective date ranges (effectiveFrom/To)
+ * - Active status flag (single active version per org)
+ * - Tenant isolation (per-org fee structures)
+ *
+ * @indexes
+ * - { orgId: 1, version: 1 } unique - Prevent duplicate versions
+ * - { orgId: 1, isActive: 1, effectiveFrom: 1 } - Active fee lookup
+ * - { effectiveFrom: 1, effectiveTo: 1 } - Date range queries
+ *
+ * @relationships
+ * - SouqProduct/Order: Fee calculation for transactions
+ * - SouqSeller: High-volume discounts based on seller GMV
+ * - Organization: orgId (marketplace tenant)
+ *
+ * @compliance
+ * - Transparent fee disclosure (buyer/seller visibility)
+ * - ZATCA VAT handling (fees may be VAT-exempt or inclusive)
+ * - Version audit trail for fee changes
+ *
+ * @audit
+ * - version: Fee schedule version (e.g., "2025-Q1")
+ * - effectiveFrom/To: Date range for fee applicability
+ * - createdAt/updatedAt: Version creation/update tracking
+ *
+ * Fee Schedule Model (legacy comment retained below)
  * Defines commission structure, FBF fees, and other charges per category
  */
 

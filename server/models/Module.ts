@@ -1,3 +1,32 @@
+/**
+ * @module server/models/Module
+ * @description Module registry for platform feature modules.
+ * Defines available modules (FM_CORE, PM, MARKETPLACE_PRO, etc.) with enablement defaults.
+ *
+ * @features
+ * - Module catalog (FM_CORE, PM, MARKETPLACE_PRO, ANALYTICS_PRO, COMPLIANCE, HR_LITE, CRM_LITE)
+ * - Global module registry (not tenant-scoped)
+ * - Module key uniqueness (single source of truth)
+ * - Enablement defaults (enabledByDefault flag)
+ * - Module descriptions for UI/documentation
+ * - Audit trail for module changes (auditPlugin)
+ * - Organization.enabledModules references
+ *
+ * @indexes
+ * - { key: 1 } unique - Module key lookup
+ *
+ * @relationships
+ * - Organization: Organization.enabledModules references Module.key
+ * - FeatureFlag: Feature flags may be module-scoped
+ *
+ * @compliance
+ * - Global reference data (no tenant isolation)
+ * - Admin-only modifications
+ *
+ * @audit
+ * - createdAt/updatedAt: Module definition lifecycle
+ * - createdBy/updatedBy: Admin who created/updated module
+ */
 import { Schema, model, models, Model, Document } from "mongoose";
 import { getModel, MModel } from "@/types/mongoose-compat";
 import { auditPlugin } from "../plugins/auditPlugin";

@@ -1,3 +1,47 @@
+/**
+ * @module server/models/onboarding/VerificationDocument
+ * @description Verification Document model for uploaded KYC documents.
+ * Stores file metadata, OCR extraction results, verification status, and rejection reasons.
+ *
+ * @features
+ * - Document upload tracking (storage key, MIME type, file size)
+ * - Status workflow (UPLOADED → PROCESSING → UNDER_REVIEW → VERIFIED/REJECTED)
+ * - OCR data extraction and confidence scoring
+ * - Expiry date tracking for licenses/IDs
+ * - Bilingual rejection reasons (Arabic/English)
+ * - Verification audit trail (uploaded_by, verified_by)
+ * - Document type validation (references DocumentType.code)
+ * - Automatic expiry notifications
+ *
+ * @statuses
+ * - UPLOADED: File received, pending OCR
+ * - PROCESSING: OCR extraction in progress
+ * - UNDER_REVIEW: Manual admin review
+ * - VERIFIED: Document approved
+ * - REJECTED: Document rejected (wrong type, expired, unreadable)
+ * - EXPIRED: Document past expiry_date
+ *
+ * @indexes
+ * - { onboarding_case_id: 1 } - Case documents lookup
+ * - { document_type_code: 1 } - Document type queries
+ * - { status: 1 } - Status-based filtering
+ * - { status: 1, expiry_date: 1 } - Expiry monitoring
+ * - { onboarding_case_id: 1, status: 1 } - Case document status
+ *
+ * @relationships
+ * - OnboardingCase: onboarding_case_id links to parent case
+ * - DocumentType: document_type_code references DocumentType.code
+ * - User: uploaded_by_id (submitter), verified_by_id (reviewer)
+ *
+ * @compliance
+ * - ZATCA document retention (7 years)
+ * - GDPR right to erasure (delete files on case deletion)
+ * - PII protection (file storage encryption)
+ *
+ * @audit
+ * - createdAt/updatedAt: Upload and review timestamps
+ * - uploaded_by_id/verified_by_id: User actions
+ */
 import { Schema, Types, type HydratedDocument } from 'mongoose';
 import { getModel } from '@/types/mongoose-compat';
 

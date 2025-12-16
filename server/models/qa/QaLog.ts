@@ -1,3 +1,37 @@
+/**
+ * @module server/models/qa/QaLog
+ * @description QA Log model for general quality assurance event tracking.
+ * Detailed event logging for testing, debugging, and quality monitoring with 90-day TTL.
+ *
+ * @features
+ * - General event logging (info, warnings, debug events)
+ * - Tenant isolation (orgId sparse index)
+ * - Session tracking (sessionIdHash for user flows)
+ * - User action tracking (userId, IP, userAgent)
+ * - Automatic TTL expiry (90 days retention)
+ * - Event type categorization
+ * - Flexible data payload for event context
+ * - Longer retention than QaAlert (90d vs 30d)
+ *
+ * @indexes
+ * - { orgId: 1, timestamp: -1 } sparse - Tenant-scoped logs
+ * - { orgId: 1, event: 1, timestamp: -1 } sparse - Filtered tenant logs
+ * - { timestamp: -1 } - Global timeline
+ * - { event: 1, timestamp: -1 } - Event type timeline
+ * - { timestamp: 1 } TTL 90d - Auto-delete after 90 days
+ *
+ * @relationships
+ * - User: userId references user in session
+ * - Organization: orgId (sparse, tenant context)
+ *
+ * @compliance
+ * - 90-day retention policy (TTL index)
+ * - Audit trail for QA activities
+ *
+ * @audit
+ * - timestamp: Event occurrence time
+ * - userId/ip/userAgent/sessionIdHash: User context
+ */
 import { Schema, Model, models, InferSchemaType } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 
