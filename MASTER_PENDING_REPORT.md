@@ -5,11 +5,11 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-16T19:45:00Z (Asia/Riyadh)  
+**Last Updated:** 2025-12-16T19:50:00Z (Asia/Riyadh)  
 **Scanner Version:** v2.5  
 **Branch:** main  
-**Commit:** 52de324dd (ready to push)  
-**MongoDB Status:** 33 issues (29 open, 3 resolved, 1 in_progress)
+**Commit:** 4931bf2a0 (ready to push)  
+**MongoDB Status:** 33 issues (29 open, 1 in_progress, 3 resolved)
 
 ---
 
@@ -30,12 +30,12 @@
 4. [ ] **[DOC-102]** Missing JSDoc for 51 lib utility modules (auth, payments, storage, middleware)
 5. [ ] **[DOC-103]** Missing JSDoc for 124 Mongoose model schemas
 
-### ✅ Recently Resolved (2025-12-16 - Sessions 19:10/19:24/19:31)
-1. **[NAV-001]** ✅ Superadmin issue navigation fixed (/admin → /superadmin) + detail page
-2. **[TENANT-GUARD-001]** ✅ Backlog import tenant scoping (orgId validation)
-3. **[SCHEMA-SAFE-001]** ✅ Issue document normalization (full schema compliance)
-4. **[WORKFLOW-001]** ✅ build-sourcemaps.yml pnpm setup order fixed
-5. **[WORKFLOW-002]** ✅ pr_agent.yml action reference updated (qodo-ai → Codium-ai)
+### ✅ Recently Resolved (2025-12-16 - Sessions 19:10/19:24/19:31/19:42/19:49)
+1. **[RUNTIME-CRASH-001]** ✅ P0 server/client boundary violation fixed (superadmin/login crash)
+2. **[TYPE-SAFE-001]** ✅ Issues detail page type safety (IssueStatus union, API contract)
+3. **[NAV-001]** ✅ Superadmin issue navigation fixed (/admin → /superadmin) + detail page
+4. **[TENANT-GUARD-001]** ✅ Backlog import tenant scoping (orgId validation)
+5. **[SCHEMA-SAFE-001]** ✅ Issue document normalization (full schema compliance)
 
 ---
 

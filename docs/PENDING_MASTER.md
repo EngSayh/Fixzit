@@ -2,9 +2,26 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-16 19:49 (Asia/Riyadh) — P0 Runtime Crash: Server/Client Boundary Fix (4931bf2a0)
+**Context:** main | 1 ahead origin/main | Critical fix for superadmin/login crash  
+**MongoDB:** 33 issues (29 open, 1 in_progress, 3 resolved)
+
+**✅ RESOLVED (P0 - RUNTIME CRASH):**
+- **RUNTIME-CRASH-001** — Server/client boundary violation in superadmin layout
+  - **Root Cause:** Server component (superadmin/layout.tsx) imported normalizeLocale from 'use client' marked I18nProvider.tsx
+  - **Symptom:** /superadmin/login showing error page, Next.js boundary violation
+  - **Fixed:** Created [i18n/normalize-locale.ts](i18n/normalize-locale.ts) as server-safe shared module
+  - **Changes:**
+    - Extracted normalizeLocale() from I18nProvider.tsx (+23 lines new file)
+    - Updated [app/superadmin/layout.tsx](app/superadmin/layout.tsx#L5) import path
+    - Updated [i18n/I18nProvider.tsx](i18n/I18nProvider.tsx#L3) to re-export from normalize-locale
+    - Added 'export const runtime = "nodejs"' to superadmin layout (explicit server)
+  - **Impact:** ✅ Superadmin login accessible; no more boundary violations
+  - **Files:** 3 changed (+28/-9)
+
 ### 2025-12-16 19:45 (Asia/Riyadh) — Superadmin Issues Detail: Type Safety + API Contract (52de324dd)
-**Context:** main | synced with origin | Type-safe refactor of issues UI  
-**MongoDB:** 33 issues (29 open, 3 resolved, 1 in_progress)
+**Context:** main | commit 52de324dd (pushed as c7ea20672) | Type-safe refactor of issues UI  
+**MongoDB:** 33 issues (29 open, 1 in_progress, 3 resolved)
 
 ### 2025-12-16 19:29 (Asia/Riyadh) — Backlog Import: Tenant Scoping + Schema-Safe Issue Documents  
 **Context:** main | commit 524b35ce5 | Security hardening of MongoDB import tooling  
