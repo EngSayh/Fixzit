@@ -2,9 +2,13 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
-### 2025-12-16 19:29 (Asia/Riyadh) — Backlog Import: Tenant Scoping + Schema-Safe Issue Documents
-**Context:** main | 1 ahead origin/main | Security hardening of MongoDB import tooling  
-**DB Sync:** created=0, updated=7, repaired=0, skipped=2, errors=0 | MongoDB: 21 issues (19 open, 2 resolved, tenant: 68dc8955a1ba6ed80ff372dc)
+### 2025-12-16 19:45 (Asia/Riyadh) — Superadmin Issues Detail: Type Safety + API Contract (52de324dd)
+**Context:** main | synced with origin | Type-safe refactor of issues UI  
+**MongoDB:** 33 issues (29 open, 3 resolved, 1 in_progress)
+
+### 2025-12-16 19:29 (Asia/Riyadh) — Backlog Import: Tenant Scoping + Schema-Safe Issue Documents  
+**Context:** main | commit 524b35ce5 | Security hardening of MongoDB import tooling  
+**DB Sync:** created=0, updated=7, repaired=0, skipped=2, errors=0
 
 **✅ CONFIRMED SECURITY IMPROVEMENTS (P1 - MULTI-TENANT INTEGRITY):**
 - **TENANT-GUARD-001** — import-backlog.mjs now enforces tenant scope validation
