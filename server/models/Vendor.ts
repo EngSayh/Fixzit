@@ -1,9 +1,62 @@
+/**
+ * Vendor Model - Service provider and supplier management
+ * 
+ * @module server/models/Vendor
+ * @description Manages external vendors for work orders, procurement, and services.
+ * Core entity for vendor onboarding, approval workflows, and performance tracking.
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Vendor approval workflow (PENDING → APPROVED → ACTIVE)
+ * - Service category specialization
+ * - Rating and performance metrics
+ * - Financial tracking (total contracts, payments)
+ * - Insurance and compliance document management
+ * - Contact information with encryption
+ * - Blacklist and suspension capabilities
+ * 
+ * @statuses
+ * - PENDING: Onboarding/verification in progress
+ * - APPROVED: Verified and ready for assignment
+ * - SUSPENDED: Temporarily inactive (performance issues)
+ * - REJECTED: Failed verification or compliance
+ * - BLACKLISTED: Permanently banned
+ * 
+ * @types
+ * - SUPPLIER: Product/material suppliers
+ * - CONTRACTOR: Construction/renovation contractors
+ * - SERVICE_PROVIDER: Maintenance/repair services
+ * - CONSULTANT: Professional advisory services
+ * 
+ * @indexes
+ * - Unique: { orgId, code } - Tenant-scoped vendor codes
+ * - Index: { status } for vendor filtering
+ * - Index: { type } for category searches
+ * - Index: { rating } for performance sorting
+ * 
+ * @relationships
+ * - WorkOrder.assigned_to → Vendor._id
+ * - Invoice.vendorId → Vendor._id
+ * - User records reference vendor_id
+ * 
+ * @encryption
+ * - contactEmail encrypted via encryptionPlugin
+ * - contactPhone encrypted
+ * - Bank details encrypted
+ * 
+ * @audit
+ * - Status changes logged
+ * - Payment history tracked
+ * - Performance metrics recorded
+ */
+
 import { Schema, Model, models, InferSchemaType } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { encryptionPlugin } from "../plugins/encryptionPlugin";
 
+/** Vendor approval and operational statuses */
 const VendorStatus = [
   "PENDING",
   "APPROVED",
@@ -11,6 +64,8 @@ const VendorStatus = [
   "REJECTED",
   "BLACKLISTED",
 ] as const;
+
+/** Vendor business classification */
 const VendorType = [
   "SUPPLIER",
   "CONTRACTOR",

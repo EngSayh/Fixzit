@@ -1,9 +1,67 @@
+/**
+ * Invoice Model - Financial billing and receivables
+ * 
+ * @module server/models/Invoice
+ * @description Tracks invoices across FM (work orders), Souq (orders), and Aqar (rentals).
+ * Supports ZATCA e-invoicing compliance for Saudi Arabia.
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Line items with product/service details
+ * - Tax calculation (VAT 15% for SA)
+ * - Multiple payment terms (NET_30, NET_60, etc.)
+ * - ZATCA compliance fields (TIN, QR code)
+ * - Payment status tracking
+ * - Multi-currency support
+ * - Discount and adjustment handling
+ * - Encrypted sensitive financial data
+ * 
+ * @statuses
+ * - DRAFT: Created but not finalized
+ * - SENT: Delivered to customer
+ * - VIEWED: Customer opened invoice
+ * - APPROVED: Management approved
+ * - REJECTED: Rejected by customer/manager
+ * - PAID: Fully paid
+ * - OVERDUE: Past due date
+ * - CANCELLED: Voided/cancelled
+ * 
+ * @types
+ * - SALES: Revenue invoices (Souq orders)
+ * - PURCHASE: Expense invoices (vendor payments)
+ * - RENTAL: Rent invoices (Aqar leases)
+ * - SERVICE: Service fee invoices (FM)
+ * - MAINTENANCE: Maintenance invoices (FM work orders)
+ * 
+ * @compliance
+ * - ZATCA Phase 2 ready
+ * - VAT registration number stored
+ * - QR code generation for e-invoice
+ * - Arabic/English bilingual support
+ * 
+ * @indexes
+ * - Unique: { orgId, number }
+ * - Compound: { status, dueDate } for AR aging
+ * - Index: { customerId } for customer lookups
+ * - Index: { issueDate, dueDate } for date filtering
+ * 
+ * @relationships
+ * - customerId → User model (customer)
+ * - relatedEntity → WorkOrder/Order/LeaseContract
+ * - Payment records reference invoice_id
+ * 
+ * @decimals
+ * - All monetary fields use Decimal128 for precision
+ * - Calculations maintain 2 decimal places
+ */
+
 import { Schema, Model, InferSchemaType } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { encryptionPlugin } from "../plugins/encryptionPlugin";
 
+/** Invoice payment status */
 const InvoiceStatus = [
   "DRAFT",
   "SENT",
@@ -14,6 +72,8 @@ const InvoiceStatus = [
   "OVERDUE",
   "CANCELLED",
 ] as const;
+
+/** Invoice classification by business context */
 const InvoiceType = [
   "SALES",
   "PURCHASE",

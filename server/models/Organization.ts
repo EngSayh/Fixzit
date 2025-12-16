@@ -1,9 +1,62 @@
+/**
+ * Organization Model - Multi-tenant core entity
+ * 
+ * @module server/models/Organization
+ * @description Represents tenant organizations in multi-tenant architecture.
+ * Central entity for tenant isolation, subscription management, and compliance tracking.
+ * 
+ * @features
+ * - Unique organization IDs for tenant scoping
+ * - Subscription and billing management
+ * - ZATCA compliance tracking for Saudi orgs
+ * - Multiple organization types (Corporate, Government, Individual, etc.)
+ * - Location-based configuration (timezone, currency, country)
+ * - Feature flags per organization
+ * - Storage limits and usage tracking
+ * 
+ * @types
+ * - CORPORATE: Business entities (facilities, property management companies)
+ * - GOVERNMENT: Government agencies
+ * - INDIVIDUAL: Single property owners
+ * - NONPROFIT: NGOs and charitable organizations
+ * - STARTUP: Small startups and ventures
+ * 
+ * @subscription_statuses
+ * - TRIAL: Trial period active
+ * - ACTIVE: Paid subscription active
+ * - SUSPENDED: Payment failed or violation
+ * - CANCELLED: Subscription terminated
+ * - EXPIRED: Trial/subscription expired
+ * 
+ * @compliance_statuses
+ * - COMPLIANT: Meets all regulatory requirements (ZATCA Phase 2)
+ * - NON_COMPLIANT: Missing required compliance elements
+ * - PENDING_REVIEW: Under compliance audit
+ * - UNDER_AUDIT: Active regulatory audit
+ * 
+ * @indexes
+ * - Unique: { code } - Organization identifier
+ * - Unique: { slug } - URL-friendly name
+ * - Index: { subscriptionStatus } for billing queries
+ * - Index: { type } for organization filtering
+ * 
+ * @relationships
+ * - Users reference orgId
+ * - Properties reference orgId
+ * - All tenant-scoped models reference orgId
+ * 
+ * @audit
+ * - Full change tracking via auditPlugin
+ * - Subscription change history
+ * - Feature flag updates logged
+ */
+
 import { Schema, model, models, HydratedDocument } from "mongoose";
 import { MModel } from "@/types/mongoose-compat";
 import { customAlphabet } from "nanoid";
 import { auditPlugin } from "../plugins/auditPlugin";
 
-// ---------- Enums ----------
+/** Organization classification types */
 const OrganizationType = [
   "CORPORATE",
   "GOVERNMENT",

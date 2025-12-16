@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, beforeEach, beforeAll, test, expect, vi, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 
-import InvoiceCreationForOpsPage from '@/app/fm/invoices/new/page';
+import InvoiceCreationForOpsPage from '@/app/(fm)/fm/invoices/new/page';
 
 const mockUseFmOrgGuard = vi.fn();
 const toastSuccess = vi.fn();

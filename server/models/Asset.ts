@@ -1,9 +1,62 @@
+/**
+ * Asset Model - Equipment and facility asset tracking
+ * 
+ * @module server/models/Asset
+ * @description Manages physical assets (HVAC, elevators, equipment) across properties.
+ * Supports preventive maintenance scheduling, depreciation, warranty tracking.
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Equipment lifecycle management
+ * - Preventive maintenance scheduling
+ * - Warranty and service contract tracking
+ * - Location tracking (property/unit assignment)
+ * - Depreciation calculation
+ * - Maintenance history linkage
+ * - QR code asset tagging
+ * 
+ * @types
+ * - HVAC: Heating, ventilation, air conditioning systems
+ * - ELECTRICAL: Electrical panels, transformers
+ * - PLUMBING: Water systems, pumps
+ * - SECURITY: Cameras, access control
+ * - ELEVATOR: Elevators and lifts
+ * - GENERATOR: Backup power generators
+ * - FIRE_SYSTEM: Fire alarms, sprinklers
+ * - IT_EQUIPMENT: Servers, networking equipment
+ * - VEHICLE: Company vehicles
+ * - OTHER: Miscellaneous equipment
+ * 
+ * @maintenance_types
+ * - PREVENTIVE: Scheduled routine maintenance
+ * - CORRECTIVE: Repair after failure
+ * - PREDICTIVE: Condition-based maintenance
+ * - INSPECTION: Regular safety inspections
+ * 
+ * @indexes
+ * - Unique: { orgId, code } - Tenant-scoped asset codes
+ * - Index: { property_id } for property asset lookups
+ * - Index: { type } for equipment category filtering
+ * - Index: { nextMaintenanceDate } for PM scheduling
+ * 
+ * @relationships
+ * - property_id → Property model
+ * - unit_id → Property model (specific unit)
+ * - WorkOrder records reference asset_id
+ * - MaintenanceSchedule references asset_id
+ * 
+ * @audit
+ * - Maintenance history tracked
+ * - Status changes logged
+ * - Location transfers recorded
+ */
+
 import { Schema, model, models, InferSchemaType, Model } from "mongoose";
 import { getModel, MModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
-// Asset types for equipment registry
+/** Asset types for equipment registry */
 const AssetType = [
   "HVAC",
   "ELECTRICAL",
@@ -17,6 +70,7 @@ const AssetType = [
   "OTHER",
 ] as const;
 
+/** Maintenance strategy types */
 const MaintenanceType = [
   "PREVENTIVE",
   "CORRECTIVE",

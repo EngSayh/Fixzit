@@ -1,10 +1,66 @@
+/**
+ * Tenant Model - Property occupant management
+ * 
+ * @module server/models/Tenant
+ * @description Manages property tenants (occupants) for rental properties.
+ * Note: Different from Organization (which represents tenant orgs in multi-tenancy).
+ * This Tenant is a property occupant/renter.
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Individual and company tenant support
+ * - Lease contract association
+ * - Emergency contact management
+ * - Payment history tracking
+ * - Document management (ID, contracts)
+ * - Move-in/move-out tracking
+ * - Encrypted sensitive contact data
+ * 
+ * @types
+ * - INDIVIDUAL: Single person or family
+ * - COMPANY: Corporate tenant
+ * - GOVERNMENT: Government agency occupant
+ * 
+ * @lease_statuses
+ * - ACTIVE: Current valid lease
+ * - EXPIRED: Lease ended
+ * - TERMINATED: Lease cancelled early
+ * - RENEWAL_PENDING: Renewal in progress
+ * - UNDER_NEGOTIATION: New lease being negotiated
+ * 
+ * @indexes
+ * - Unique: { orgId, code } - Tenant-scoped tenant codes
+ * - Index: { property_id } for property tenant lists
+ * - Index: { leaseStatus } for lease management
+ * - Index: { leaseEndDate } for expiry tracking
+ * 
+ * @relationships
+ * - property_id → Property model
+ * - unit_id → Property model (specific unit)
+ * - leaseContract_id → LeaseContract model
+ * - Invoice records reference tenant_id
+ * 
+ * @encryption
+ * - contact.primary.email encrypted
+ * - contact.primary.phone encrypted
+ * - emergency contacts encrypted
+ * 
+ * @audit
+ * - Lease status changes logged
+ * - Contact updates tracked
+ * - Payment history recorded
+ */
+
 import { Schema, Model, models, InferSchemaType } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { encryptionPlugin } from "../plugins/encryptionPlugin";
 
+/** Tenant classification types (occupant types) */
 const TenantType = ["INDIVIDUAL", "COMPANY", "GOVERNMENT"] as const;
+
+/** Lease contract status */
 const LeaseStatus = [
   "ACTIVE",
   "EXPIRED",

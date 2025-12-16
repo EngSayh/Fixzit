@@ -2,7 +2,7 @@ import React from "react";
 import { describe, beforeEach, test, expect, vi } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 
-import NewBudgetPage from "@/app/fm/finance/budgets/new/page";
+import NewBudgetPage from "@/app/(fm)/fm/finance/budgets/new/page";
 
 const mockUseOrgGuard = vi.fn();
 

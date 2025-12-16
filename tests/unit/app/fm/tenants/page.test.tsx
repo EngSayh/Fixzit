@@ -2,7 +2,7 @@ import React from "react";
 import { vi, describe, beforeEach, test, expect, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-import TenantsPage from "@/app/fm/tenants/page";
+import TenantsPage from "@/app/(fm)/fm/tenants/page";
 
 const mockUseSession = vi.fn();
 const mockUseOrgGuard = vi.fn();

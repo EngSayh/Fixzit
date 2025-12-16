@@ -1,9 +1,60 @@
+/**
+ * WorkOrder Model - Facility management maintenance requests
+ * 
+ * @module server/models/WorkOrder
+ * @description Tracks maintenance requests, repairs, and service tickets for properties.
+ * Core entity for FM module operations with workflow state management.
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Property and unit association
+ * - Priority-based scheduling (LOW/MEDIUM/HIGH/URGENT/CRITICAL)
+ * - Status workflow (DRAFT → SUBMITTED → ASSIGNED → IN_PROGRESS → COMPLETED → CLOSED)
+ * - Vendor assignment and tracking
+ * - Cost estimation and actual cost tracking
+ * - Photo/attachment support
+ * - SLA compliance monitoring
+ * 
+ * @workflow
+ * DRAFT → created but incomplete
+ * SUBMITTED → ready for assignment
+ * ASSIGNED → assigned to vendor
+ * IN_PROGRESS → work started
+ * ON_HOLD → temporarily paused
+ * PENDING_APPROVAL → work completed, awaiting review
+ * COMPLETED → approved by owner
+ * VERIFIED → quality checked
+ * CLOSED → finalized and archived
+ * CANCELLED → request cancelled
+ * REJECTED → rejected by manager
+ * 
+ * @priorities
+ * - LOW: Routine maintenance (5-7 days)
+ * - MEDIUM: Standard repairs (2-3 days)
+ * - HIGH: Important issues (24-48 hours)
+ * - URGENT: Emergency/safety (same day)
+ * - CRITICAL: Life-threatening/property damage (immediate)
+ * 
+ * @indexes
+ * - Unique: { orgId, code }
+ * - Compound: { status, priority } for queue management
+ * - Index: { property_id } for property lookups
+ * - Index: { assigned_to } for vendor workload
+ * - Index: { createdAt } for time-based queries
+ * 
+ * @relationships
+ * - property_id → Property model
+ * - unit_id → Property model (sub-unit)
+ * - created_by → User model (requester)
+ * - assigned_to → User model (vendor)
+ */
+
 import { Schema, Model, models, InferSchemaType } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
-// Work Order Status - State Machine as per specification
+/** Work Order Status - State Machine as per specification */
 const WorkOrderStatus = [
   "DRAFT",
   "SUBMITTED",
@@ -18,6 +69,7 @@ const WorkOrderStatus = [
   "REJECTED",
 ] as const;
 
+/** Priority levels for work order scheduling */
 const Priority = ["LOW", "MEDIUM", "HIGH", "URGENT", "CRITICAL"] as const;
 const WorkOrderType = [
   "MAINTENANCE",

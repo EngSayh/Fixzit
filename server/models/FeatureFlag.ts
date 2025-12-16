@@ -1,3 +1,59 @@
+/**
+ * FeatureFlag Model - Feature toggle system
+ * 
+ * @module server/models/FeatureFlag
+ * @description Manages feature flags for A/B testing, gradual rollouts, and feature toggles.
+ * Supports org-specific overrides, percentage rollouts, and whitelist/blacklist strategies.
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Global and org-specific feature flags
+ * - Percentage-based gradual rollouts
+ * - Whitelist/blacklist user targeting
+ * - Category-based organization (UI/API/Integration/etc.)
+ * - Beta and deprecated feature marking
+ * - Audit trail for flag changes
+ * - Real-time flag evaluation
+ * 
+ * @statuses
+ * - ENABLED: Feature active for all targeted users
+ * - DISABLED: Feature inactive
+ * - BETA: Feature in beta testing (limited users)
+ * - DEPRECATED: Feature scheduled for removal
+ * 
+ * @categories
+ * - UI: Frontend feature flags
+ * - BACKEND: Server-side features
+ * - API: API endpoint toggles
+ * - INTEGRATION: Third-party integrations
+ * - SECURITY: Security features
+ * - PAYMENT: Payment gateway features
+ * - NOTIFICATION: Notification channels
+ * - REPORTING: Reporting features
+ * - MAINTENANCE: Maintenance mode flags
+ * - OTHER: Miscellaneous features
+ * 
+ * @rollout_strategies
+ * - ALL: Enable for all users
+ * - PERCENTAGE: Gradual rollout (e.g., 25% of users)
+ * - WHITELIST: Specific user/org whitelist
+ * - BLACKLIST: Exclude specific users/orgs
+ * 
+ * @indexes
+ * - Unique: { orgId, key } - Tenant-scoped feature keys
+ * - Index: { status } for active flag queries
+ * - Index: { category } for category filtering
+ * 
+ * @relationships
+ * - Referenced by feature check utilities
+ * - Cached in Redis for performance
+ * 
+ * @audit
+ * - Flag status changes logged
+ * - Rollout percentage updates tracked
+ * - Whitelist/blacklist modifications recorded
+ */
+
 import { Schema, InferSchemaType } from "mongoose";
 import { logger } from "@/lib/logger";
 import {
@@ -7,7 +63,10 @@ import {
 import { auditPlugin } from "../plugins/auditPlugin";
 import { getModel } from "@/types/mongoose-compat";
 
+/** Feature flag operational status */
 const FeatureStatus = ["ENABLED", "DISABLED", "BETA", "DEPRECATED"] as const;
+
+/** Feature categorization */
 const FeatureCategory = [
   "UI",
   "BACKEND",
@@ -21,6 +80,7 @@ const FeatureCategory = [
   "OTHER",
 ] as const;
 
+/** Rollout targeting strategies */
 const RolloutStrategy = [
   "ALL",
   "PERCENTAGE",

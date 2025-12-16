@@ -1,6 +1,69 @@
+/**
+ * AuditLog Model - System-wide audit trail
+ * 
+ * @module server/models/AuditLog
+ * @description Comprehensive audit logging for compliance and security.
+ * Tracks all user actions, data changes, and system events.
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Action-based event tracking (CREATE/UPDATE/DELETE/LOGIN/etc.)
+ * - Before/after state snapshots
+ * - IP address and user agent capture
+ * - Entity-type categorization
+ * - Search and filter capabilities
+ * - Retention policy support
+ * - Immutable records (no updates/deletes)
+ * 
+ * @action_types
+ * - CREATE: New record creation
+ * - READ: Data access (sensitive operations)
+ * - UPDATE: Record modifications
+ * - DELETE: Record deletion
+ * - LOGIN/LOGOUT: Authentication events
+ * - EXPORT/IMPORT: Data transfer operations
+ * - APPROVE/REJECT: Workflow decisions
+ * - SEND/RECEIVE: Communication events
+ * - UPLOAD/DOWNLOAD: File operations
+ * - SHARE: Data sharing events
+ * - ARCHIVE/RESTORE: Lifecycle operations
+ * - ACTIVATE/DEACTIVATE: Status changes
+ * - CUSTOM: Application-specific events
+ * 
+ * @entity_types
+ * - USER: User accounts
+ * - PROPERTY: Real estate properties
+ * - TENANT: Property occupants
+ * - WORK_ORDER: Maintenance requests
+ * - INVOICE: Financial documents
+ * - VENDOR: Service providers
+ * - ASSET: Equipment and facilities
+ * - ORGANIZATION: Tenant organizations
+ * - (see full list in ActionType enum)
+ * 
+ * @indexes
+ * - Index: { orgId, createdAt } for tenant audit queries
+ * - Index: { userId, actionType } for user activity tracking
+ * - Index: { entityType, entityId } for entity audit trails
+ * - Index: { actionType, createdAt } for action-based filtering
+ * 
+ * @compliance
+ * - GDPR audit requirements
+ * - ZATCA compliance logging
+ * - ISO 27001 audit trails
+ * - Retention: 7 years (configurable)
+ * 
+ * @security
+ * - Immutable records (insert-only)
+ * - No delete operations
+ * - No update operations
+ * - IP tracking for forensics
+ */
+
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { logger } from "@/lib/logger";
 
+/** Audit action types */
 const ActionType = [
   "CREATE",
   "READ",
@@ -24,6 +87,7 @@ const ActionType = [
   "CUSTOM",
 ] as const;
 
+/** Entity types for audit tracking */
 const EntityType = [
   "USER",
   "PROPERTY",

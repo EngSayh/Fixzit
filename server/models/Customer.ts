@@ -1,3 +1,40 @@
+/**
+ * Customer Model - CRM and billing customer records
+ * 
+ * @module server/models/Customer
+ * @description Manages customer records for invoicing, payments, and CRM.
+ * Used across Souq (marketplace buyers), FM (service customers), Aqar (property clients).
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Encrypted contact information
+ * - Billing and shipping address management
+ * - Credit limit tracking
+ * - Payment terms configuration (NET_30, etc.)
+ * - VAT/tax number storage
+ * - Invoice relationship tracking
+ * 
+ * @indexes
+ * - Unique: { orgId, email } - Prevent duplicate customers per org
+ * - Index: { isActive } for active customer filtering
+ * - Index: { name } for customer search
+ * 
+ * @relationships
+ * - Invoice.customerId → Customer._id
+ * - Order.customerId → Customer._id
+ * - Payment records reference customer_id
+ * 
+ * @encryption
+ * - email encrypted via encryptionPlugin
+ * - phone encrypted
+ * - billingContact.email encrypted
+ * 
+ * @audit
+ * - Contact updates logged
+ * - Credit limit changes tracked
+ * - Payment term modifications recorded
+ */
+
 import { Schema, model, models, Document } from "mongoose";
 import { getModel, MModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
