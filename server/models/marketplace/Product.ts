@@ -1,3 +1,53 @@
+/**
+ * Product Model - Fixzit Souq marketplace product catalog
+ * 
+ * @module server/models/marketplace/Product
+ * @description Manages product catalog for Fixzit Souq B2B marketplace.
+ * Supports facility supplies, equipment, materials, and services with multi-tenant isolation.
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Product catalog with SKU/barcode management
+ * - Multi-language support (Arabic/English)
+ * - Rich media gallery (images, MSDS, COA documents)
+ * - Stock tracking (on-hand, reserved, location)
+ * - Pricing with UOM (unit of measure) and currency
+ * - Rating and review aggregation
+ * - Category and attribute set association
+ * - Lead time and minimum order quantity
+ * - SEO-friendly slug generation
+ * 
+ * @media_roles
+ * - GALLERY: Product images for display
+ * - MSDS: Material Safety Data Sheets (compliance)
+ * - COA: Certificate of Analysis (quality assurance)
+ * 
+ * @indexes
+ * - Unique: { orgId, sku } - Tenant-scoped SKU codes
+ * - Unique: { orgId, slug } - SEO-friendly URLs
+ * - Index: { categoryId } for category browsing
+ * - Index: { attrSetId } for attribute filtering
+ * - Index: { name.en, name.ar } for text search
+ * - Index: { buy.price } for price-based sorting
+ * 
+ * @relationships
+ * - categoryId → MarketplaceCategory._id
+ * - attrSetId → AttributeSet._id
+ * - Order line items reference productId
+ * - RFQ (Request for Quote) items reference productId
+ * 
+ * @types
+ * - MarketplaceMedia: Product images and documents
+ * - MarketplaceBuyDetail: Pricing and purchase terms
+ * - MarketplaceStockInfo: Inventory levels
+ * - MarketplaceRating: Aggregated customer ratings
+ * 
+ * @audit
+ * - Price changes logged
+ * - Stock updates tracked
+ * - Product status changes recorded
+ */
+
 import { Schema, model, models, Types, Model } from "mongoose";
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";

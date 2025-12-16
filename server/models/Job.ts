@@ -1,3 +1,62 @@
+/**
+ * Job Model - ATS job posting and recruitment
+ * 
+ * @module server/models/Job
+ * @description Manages job postings for Fixzit Applicant Tracking System (ATS).
+ * Supports job publishing, application tracking, and hiring workflow management.
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Job posting lifecycle (draft → published → closed → archived)
+ * - Internal and public job visibility
+ * - Multiple job types (full-time, part-time, contract, internship)
+ * - Work mode flexibility (onsite, remote, hybrid)
+ * - Requirements and qualifications management
+ * - Application tracking integration
+ * - Hiring team assignment
+ * 
+ * @statuses
+ * - draft: Job created but not published
+ * - pending: Awaiting approval
+ * - published: Active and accepting applications
+ * - closed: No longer accepting applications
+ * - archived: Historical record
+ * 
+ * @visibilities
+ * - internal: Only visible to internal employees
+ * - public: Posted on careers page and job boards
+ * 
+ * @types
+ * - full-time: Permanent full-time position
+ * - part-time: Permanent part-time position
+ * - contract: Fixed-term contract
+ * - temporary: Temporary staffing
+ * - internship: Internship program
+ * - remote: Fully remote position
+ * - hybrid: Mix of remote and onsite
+ * 
+ * @work_modes
+ * - onsite: Must work from office/site
+ * - remote: Fully remote work allowed
+ * - hybrid: Flexible onsite/remote mix
+ * 
+ * @indexes
+ * - Unique: { orgId, slug } - SEO-friendly job URLs
+ * - Compound: { status, visibility } for job board filtering
+ * - Index: { publishedAt } for date-based sorting
+ * - Index: { department } for department filtering
+ * 
+ * @relationships
+ * - Application.jobId → Job._id
+ * - hiringManager → User._id
+ * - recruiter → User._id
+ * 
+ * @audit
+ * - Job status changes logged
+ * - Publication dates tracked
+ * - Application counts updated
+ */
+
 import {
   Schema,
   model,
@@ -10,6 +69,7 @@ import { getModel, MModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
+/** Job posting status lifecycle */
 const JobStatuses = [
   "draft",
   "pending",
@@ -17,7 +77,11 @@ const JobStatuses = [
   "closed",
   "archived",
 ] as const;
+
+/** Job visibility settings */
 const JobVisibilities = ["internal", "public"] as const;
+
+/** Employment types */
 const JobTypes = [
   "full-time",
   "part-time",
@@ -27,6 +91,8 @@ const JobTypes = [
   "remote",
   "hybrid",
 ] as const;
+
+/** Work location modes */
 const WorkModes = ["onsite", "remote", "hybrid"] as const;
 
 type JobStatus = (typeof JobStatuses)[number];

@@ -1,3 +1,41 @@
+/**
+ * Category Model - Fixzit Souq product taxonomy
+ * 
+ * @module server/models/marketplace/Category
+ * @description Hierarchical product categorization for Fixzit Souq marketplace.
+ * Supports multi-level category trees with parent-child relationships.
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Hierarchical category tree (parent-child)
+ * - Multi-language names (Arabic/English)
+ * - SEO-friendly slugs
+ * - Attribute set association for category-specific filters
+ * - Unlimited nesting depth
+ * 
+ * @indexes
+ * - Unique: { orgId, slug } - SEO-friendly URLs per tenant
+ * - Index: { parentId } for child category lookups
+ * - Index: { attrSetId } for attribute filtering
+ * 
+ * @relationships
+ * - parentId → MarketplaceCategory._id (self-referential)
+ * - attrSetId → AttributeSet._id (category-specific attributes)
+ * - Product.categoryId → Category._id
+ * 
+ * @example_hierarchy
+ * - Facility Supplies (parent: null)
+ *   - Cleaning Products (parent: Facility Supplies)
+ *     - Floor Cleaners (parent: Cleaning Products)
+ *   - Safety Equipment (parent: Facility Supplies)
+ *     - PPE (parent: Safety Equipment)
+ * 
+ * @audit
+ * - Category renames tracked
+ * - Hierarchy changes logged
+ * - Attribute set associations recorded
+ */
+
 import { Schema, model, models, Types, Model } from "mongoose";
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";

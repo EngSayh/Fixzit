@@ -1,3 +1,54 @@
+/**
+ * Application Model - ATS job application workflow
+ * 
+ * @module server/models/Application
+ * @description Tracks job applications from submission through hiring decision.
+ * Manages application stages, knockout screening, interviews, and hiring workflow.
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Application workflow (applied → screening → interview → offer → hired)
+ * - Knockout question auto-rejection
+ * - Interview scheduling and notes
+ * - Offer management
+ * - Stage history timeline
+ * - Rejection reason tracking
+ * - Withdrawal handling
+ * 
+ * @stages
+ * - applied: Application submitted
+ * - screening: Resume review and screening
+ * - interview: Interview scheduled/in-progress
+ * - offer: Offer extended to candidate
+ * - hired: Candidate accepted and onboarded
+ * - rejected: Application rejected
+ * - withdrawn: Candidate withdrew application
+ * - archived: Historical record
+ * 
+ * @knockout_rules
+ * - Experience requirements: Auto-reject if below minimum years
+ * - Skill requirements: Auto-reject if missing required skills
+ * - Location requirements: Auto-reject if not in target location
+ * 
+ * @indexes
+ * - Unique: { candidateId, jobId } - One application per candidate per job
+ * - Compound: { jobId, stage } for applicant pipeline
+ * - Index: { stage, appliedAt } for stage-based reporting
+ * - Index: { recruiter } for recruiter workload
+ * 
+ * @relationships
+ * - candidateId → Candidate._id
+ * - jobId → Job._id
+ * - recruiter → User._id
+ * - hiringManager → User._id
+ * 
+ * @audit
+ * - Stage transitions logged in history
+ * - Rejection reasons recorded
+ * - Offer details tracked
+ * - Interview notes preserved
+ */
+
 import {
   Schema,
   model,
@@ -9,6 +60,7 @@ import {
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
+/** Application stage progression */
 const ApplicationStages = [
   "applied",
   "screening",

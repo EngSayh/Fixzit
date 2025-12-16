@@ -1,3 +1,53 @@
+/**
+ * Candidate Model - ATS candidate profiles
+ * 
+ * @module server/models/Candidate
+ * @description Manages candidate profiles and resumes for Fixzit ATS.
+ * Stores applicant information, skills, experience, and consent tracking.
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Resume storage (URL + parsed text)
+ * - Skills and experience tracking
+ * - LinkedIn profile integration
+ * - Privacy consent management (GDPR compliant)
+ * - Email normalization (case-insensitive lookups)
+ * - Source tracking (careers page, referral, job board)
+ * - Encrypted contact information
+ * 
+ * @consents
+ * - privacy: GDPR privacy policy acceptance
+ * - contact: Permission to contact candidate
+ * - dataRetention: Data storage consent
+ * 
+ * @sources
+ * - careers: Fixzit careers page
+ * - referral: Employee referral
+ * - linkedin: LinkedIn application
+ * - indeed: Indeed job board
+ * - direct: Direct application
+ * 
+ * @indexes
+ * - Unique: { orgId, emailLower } - Prevent duplicate candidates per org
+ * - Index: { skills } for skill-based search
+ * - Index: { source } for source analysis
+ * - Index: { createdAt } for chronological sorting
+ * 
+ * @relationships
+ * - Application.candidateId → Candidate._id
+ * - Interview records reference candidateId
+ * 
+ * @encryption
+ * - email encrypted via encryptionPlugin
+ * - phone encrypted
+ * - Personal data protected
+ * 
+ * @audit
+ * - Profile updates logged
+ * - Consent changes tracked
+ * - Application submissions recorded
+ */
+
 import {
   Schema,
   model,

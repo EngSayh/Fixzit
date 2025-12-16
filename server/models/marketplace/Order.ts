@@ -1,3 +1,56 @@
+/**
+ * Order Model - Fixzit Souq B2B orders and fulfillment
+ * 
+ * @module server/models/marketplace/Order
+ * @description Manages purchase orders from cart to delivery for Fixzit Souq marketplace.
+ * Tracks order lifecycle, line items, totals, shipping, and payment status.
+ * 
+ * @features
+ * - Multi-tenant isolation per organization
+ * - Order workflow (CART → PENDING → APPROVAL → CONFIRMED → FULFILLED → DELIVERED)
+ * - Line item management with pricing snapshots
+ * - VAT calculation (15% for Saudi Arabia)
+ * - Shipping address and delivery tracking
+ * - Payment terms and status
+ * - Multi-currency support
+ * - Approval workflow for corporate buyers
+ * 
+ * @statuses
+ * - CART: Shopping cart (not yet submitted)
+ * - PENDING: Order submitted, awaiting review
+ * - APPROVAL: Requires manager approval (large orders)
+ * - CONFIRMED: Approved, ready for fulfillment
+ * - FULFILLED: Items picked and shipped
+ * - DELIVERED: Received by customer
+ * - CANCELLED: Order cancelled
+ * 
+ * @indexes
+ * - Unique: { orgId, orderNumber } - Tenant-scoped order numbers
+ * - Compound: { customerId, status } for customer order history
+ * - Index: { status, createdAt } for order queue management
+ * - Index: { buyerId } for buyer lookups
+ * 
+ * @relationships
+ * - customerId → Customer._id (buyer organization)
+ * - buyerId → User._id (individual buyer)
+ * - lines[].productId → Product._id (product references)
+ * - Invoice records reference orderId
+ * 
+ * @types
+ * - MarketplaceOrderLine: Individual order line items
+ * - MarketplaceOrderTotals: Subtotal, VAT, grand total
+ * - MarketplaceShipTo: Shipping address
+ * 
+ * @audit
+ * - Order status changes logged
+ * - Price modifications tracked
+ * - Fulfillment updates recorded
+ * 
+ * @compliance
+ * - VAT calculation for ZATCA compliance
+ * - Audit trail for financial records
+ */
+
 import { Schema, model, models, Types, Model } from "mongoose";
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";
