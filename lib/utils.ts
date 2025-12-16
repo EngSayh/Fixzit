@@ -1,3 +1,24 @@
+/**
+ * @module lib/utils
+ * @description General utility functions for the Fixzit platform.
+ *
+ * Provides common helpers for styling, slug generation, and shared operations
+ * used across components and modules.
+ *
+ * @features
+ * - Tailwind class merging with conflict resolution (cn)
+ * - URL-safe slug generation (generateSlug)
+ * - Unicode support (Arabic, Chinese, etc.)
+ * - Leading/trailing hyphen preservation
+ * - 100-character slug limit
+ *
+ * @usage
+ * ```typescript
+ * const classes = cn('text-base', 'text-lg');         // 'text-lg' (merged)
+ * const slug = generateSlug('  Product Name 123  ');  // 'product-name-123'
+ * const arabicSlug = generateSlug('منتج');             // 'منتج'
+ * ```
+ */
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 

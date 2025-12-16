@@ -1,14 +1,28 @@
 /**
- * Shared OTP store for SMS verification
+ * @module lib/otp-store
+ * @description Shared OTP store for SMS verification with Redis/in-memory fallback.
  *
- * This module provides a unified interface for OTP storage that:
- * - Uses Redis when REDIS_URL is configured (production/distributed)
- * - Falls back to in-memory Maps when Redis unavailable (dev/local)
+ * Provides a unified interface for OTP storage that uses Redis when REDIS_URL
+ * is configured (production/distributed) or falls back to in-memory Maps when
+ * Redis is unavailable (dev/local).
  *
+ * @features
+ * - Redis-backed storage for distributed deployments (Vercel, K8s)
+ * - In-memory fallback for local development
+ * - OTP data storage (code, attempts, expiry)
+ * - Rate limiting storage (send count, window tracking)
+ * - OTP login session storage (temporary auth state)
+ * - Type-safe interfaces (OTPData, RateLimitData, OTPLoginSession)
+ *
+ * @usage
+ * ```typescript
+ * import { redisOtpStore, OTP_EXPIRY_MS } from '@/lib/otp-store';
+ * await redisOtpStore.set(key, { code, attempts: 0, expiresAt });
+ * ```
+ *
+ * @deployment
  * For multi-instance deployments (Vercel, K8s, etc.), configure REDIS_URL
  * to ensure OTP state is shared across all instances.
- *
- * @module lib/otp-store
  */
 
 import {

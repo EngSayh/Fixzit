@@ -1,8 +1,21 @@
 /**
- * Shared Phone Number Utilities for SMS Providers
+ * @module lib/sms-providers/phone-utils
+ * @description Shared phone number utilities for SMS providers.
  *
- * Centralized phone formatting and validation for Saudi Arabian numbers.
- * Used by Taqnyat (ONLY supported SMS provider - CITC compliant for Saudi Arabia).
+ * Provides centralized phone formatting and validation for Saudi Arabian numbers.
+ * Used by Taqnyat SMS provider (CITC-compliant production provider).
+ *
+ * @features
+ * - E.164 format conversion (+966XXXXXXXXX)
+ * - Multi-format input support (local 05X, country code 966, international 00966)
+ * - Saudi phone number validation (9 digits after country code)
+ * - Automatic prefix normalization
+ *
+ * @usage
+ * ```typescript
+ * const formatted = formatSaudiPhoneNumber('0501234567'); // '+966501234567'
+ * const isValid = isValidSaudiPhone('+966501234567');    // true
+ * ```
  */
 
 /**

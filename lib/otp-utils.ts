@@ -1,8 +1,22 @@
 /**
- * Shared OTP utilities for authentication flows.
- * Extracted from send/verify routes to eliminate duplication.
- * 
  * @module lib/otp-utils
+ * @description Shared OTP utilities for authentication flows.
+ *
+ * Extracted from send/verify routes to eliminate duplication and provide
+ * consistent OTP key generation and validation across corporate/personal logins.
+ *
+ * @features
+ * - Employee ID validation (regex pattern matching)
+ * - Company code normalization (uppercase, trimmed)
+ * - Composite OTP key generation (tenant-isolated)
+ * - Support for corporate (employee ID + company code) and personal (email) logins
+ * - Tenant scoping via orgId parameter
+ *
+ * @usage
+ * ```typescript
+ * const key = buildOtpKey('EMP001', 'ACME-001', session.user.orgId);
+ * const normalized = normalizeCompanyCode('  acme-001  '); // 'ACME-001'
+ * ```
  */
 
 /**

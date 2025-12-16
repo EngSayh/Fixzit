@@ -1,7 +1,22 @@
 /**
- * Numeric utility helpers shared between finance/FM modules.
+ * @module lib/numbers
+ * @description Numeric utility helpers shared between finance/FM modules.
+ *
  * Provides safe parsing that preserves legitimate zero values while
- * filtering out NaN/undefined inputs.
+ * filtering out NaN/undefined inputs. Prevents common input validation bugs.
+ *
+ * @features
+ * - Safe number parsing with fallback (toFiniteNumber)
+ * - Input value normalization (fromInputValue)
+ * - Zero preservation (legitimate 0 values not converted to fallback)
+ * - Type-safe handling (number, string, null, undefined)
+ * - Finance/FM module compatibility
+ *
+ * @usage
+ * ```typescript
+ * const amount = toFiniteNumber(input, 0);     // Safe parse with 0 fallback
+ * const qty = fromInputValue(inputVal, 1);     // HTML input value handling
+ * ```
  */
 export function toFiniteNumber(value: unknown, fallback = 0): number {
   if (typeof value === "number") {

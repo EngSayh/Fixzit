@@ -1,8 +1,24 @@
 /**
- * Taqnyat SMS Provider
+ * @module lib/sms-providers/taqnyat
+ * @description Taqnyat SMS Provider - CITC-compliant SMS service for Saudi Arabia.
  *
- * CITC-compliant SMS provider for Saudi Arabia.
- * This is the ONLY production SMS provider for Fixzit.
+ * This is the ONLY production SMS provider for Fixzit. Supports single SMS,
+ * bulk SMS (up to 1000 recipients), and delivery status tracking.
+ *
+ * @features
+ * - Single SMS sending with Unicode support (Arabic)
+ * - Bulk SMS operations (max 1000 recipients per request)
+ * - Delivery status tracking via status endpoint
+ * - Environment-based configuration (bearer token, sender name)
+ * - CITC compliance for Saudi telecommunications
+ *
+ * @usage
+ * ```typescript
+ * const provider = new TaqnyatProvider();
+ * if (provider.isConfigured()) {
+ *   const result = await provider.sendSMS('+966501234567', 'Hello');
+ * }
+ * ```
  *
  * @see https://taqnyat.sa/documentation
  */

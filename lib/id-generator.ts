@@ -1,13 +1,27 @@
 /**
- * Centralized ID generation utilities for the Fixzit platform.
+ * @module lib/id-generator
+ * @description Centralized ID generation utilities for the Fixzit platform.
  *
  * These functions replace Date.now()-based ID generation, which can collide
  * when multiple operations happen in the same millisecond (especially under
- * high load or in parallel processing).
+ * high load or in parallel processing). Uses nanoid for short, URL-safe unique IDs.
  *
- * Uses `nanoid` for short, URL-safe unique identifiers.
+ * @features
+ * - Collision-resistant unique IDs (nanoid-based)
+ * - Human-readable prefixed formats (REF-XXXXXXXX, TXN-XXXXXXXX, CLM-XXXXXXXX)
+ * - Uppercase alphanumeric alphabet (no confusing chars like 0/O, 1/I/L)
+ * - 8-character unique suffixes
+ * - Domain-specific generators (refund, transaction, claim, return, cancellation, shipment IDs)
  *
- * @module lib/id-generator
+ * @usage
+ * ```typescript
+ * const refundId = generateRefundId();     // 'REF-A3K7HM2P'
+ * const txnId = generateTransactionId();   // 'TXN-B4M8JN3Q'
+ * const suffix = uniqueSuffix();           // 'C5N9KP4R'
+ * ```
+ *
+ * @performance
+ * Nanoid generates ~2.3M IDs per second, safe for high-throughput operations.
  */
 
 import { nanoid, customAlphabet } from "nanoid";

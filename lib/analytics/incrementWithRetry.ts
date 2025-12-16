@@ -1,8 +1,28 @@
 /**
- * Analytics Increment Helper with Retry Logic
+ * @module lib/analytics/incrementWithRetry
+ * @description Analytics increment helper with linear backoff retry logic.
  *
  * Provides a shared retry mechanism for incrementing analytics counters
- * across different models. Helps prevent duplicate retry logic across API routes.
+ * across different models (products, vendors, marketplace). Prevents duplicate
+ * retry logic across API routes and ensures counter reliability.
+ *
+ * @features
+ * - Linear backoff retry strategy (baseDelay * attempt)
+ * - Configurable max attempts and base delay
+ * - Type-safe interface with generic document types
+ * - Error suppression (logs but doesn't throw)
+ * - Tenant-scoped operation support
+ *
+ * @usage
+ * ```typescript
+ * await incrementAnalyticsWithRetry({
+ *   filter: { _id: productId, org_id: session.user.orgId },
+ *   update: { $inc: { 'analytics.views': 1 } },
+ *   model: Product,
+ *   maxAttempts: 5,
+ *   baseDelayMs: 100,
+ * });
+ * ```
  */
 
 import { logger } from "@/lib/logger";

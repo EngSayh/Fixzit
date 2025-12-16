@@ -1,8 +1,22 @@
 /**
- * Server-Safe Date Formatting Utilities
+ * @module lib/formatServerDate
+ * @description Server-safe date formatting utilities for Server Components and API routes.
  *
- * These utilities can be imported by Server Components and API routes.
- * They do NOT use 'use client' directive.
+ * These utilities do NOT rely on browser APIs or 'use client' directive.
+ * For Client Components, use the i18n date utils from '@/i18n/utils'.
+ *
+ * @features
+ * - Multiple format types (full, long, medium, short, time, date, relative)
+ * - Locale-aware formatting (en-US, ar-SA)
+ * - Relative date formatting ("2 days ago", "in 3 hours")
+ * - Server Component compatible (no client dependencies)
+ * - Date parsing from string/number/Date inputs
+ *
+ * @usage
+ * ```typescript
+ * const formatted = formatServerDate(new Date(), 'long', 'en-US');
+ * const relative = formatRelative(pastDate, 'ar-SA');
+ * ```
  */
 
 import { logger } from "@/lib/logger";

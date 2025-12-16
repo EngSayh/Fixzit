@@ -1,10 +1,21 @@
 /**
- * SMS Provider Type Definitions
+ * @module lib/sms-providers/types
+ * @description SMS provider type definitions and interfaces.
  *
- * Shared types for all SMS provider implementations.
- * 
- * NOTE: Fixzit uses Taqnyat as the ONLY production SMS provider
- * (CITC-compliant for Saudi Arabia market).
+ * Defines the contract for SMS providers, delivery statuses, and result types.
+ * Fixzit uses Taqnyat as the ONLY production provider (CITC-compliant).
+ *
+ * @features
+ * - SMSProvider interface (sendSMS, bulk operations, status tracking)
+ * - Delivery status enum (pending, sent, delivered, failed, unknown)
+ * - Result types (SMSResult, SMSStatusResult)
+ * - Provider type enum (taqnyat is production, mock for testing)
+ *
+ * @usage
+ * ```typescript
+ * import type { SMSProvider, SMSResult } from '@/lib/sms-providers/types';
+ * const result: SMSResult = await provider.sendSMS(phone, message);
+ * ```
  */
 
 /**
