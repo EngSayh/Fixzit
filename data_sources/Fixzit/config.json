@@ -1,0 +1,10 @@
+{
+    "name": "Fixzit",
+    "type": "mongodb-atlas",
+    "config": {
+        "clusterName": "Fixzit",
+        "readPreference": "primary",
+        "wireProtocolEnabled": false
+    },
+    "version": 1
+}
