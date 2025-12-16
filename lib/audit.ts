@@ -1,12 +1,41 @@
+/**
+ * @module lib/audit
+ * @description Audit logging system for security-critical actions.
+ *
+ * Logs all privileged operations (grant/revoke/impersonate) for compliance and forensics.
+ * Integrates with AuditLogModel (MongoDB), Sentry, and external logging services.
+ *
+ * @features
+ * - Database persistence (AuditLogModel collection)
+ * - Sentry integration (external logging service)
+ * - Sensitive data redaction (passwords, tokens, PII)
+ * - RBAC correlation (actor role/subRole tracking)
+ * - Multi-tenancy support (orgId scoping)
+ * - Success/failure tracking (action outcomes)
+ * - IP address and user agent logging
+ *
+ * @usage
+ * ```typescript
+ * import { auditLog } from '@/lib/audit';
+ * 
+ * await auditLog({
+ *   actorId: session.user.id,
+ *   actorEmail: session.user.email,
+ *   actorRole: session.user.role,
+ *   action: 'user.grantSuperAdmin',
+ *   target: targetUserId,
+ *   targetType: 'user',
+ *   ipAddress: req.headers['x-forwarded-for'],
+ *   orgId: session.user.orgId,
+ *   success: true,
+ * });
+ * ```
+ *
+ * @compliance
+ * Critical for SOC 2, ISO 27001, and audit trail requirements.
+ */
 import { logger } from '@/lib/logger';
 import { AuditLogModel } from '@/server/models/AuditLog';
-
-/**
- * Audit Logging System
- * 
- * Logs all security-critical actions for compliance and forensics.
- * Especially important for Super Admin actions (grant/revoke/impersonate).
- */
 
 export type AuditEvent = {
   actorId: string;      // User ID performing the action

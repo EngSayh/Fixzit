@@ -1,10 +1,37 @@
 /**
- * OpenTelemetry Tracing Configuration
- *
- * This module provides distributed tracing using OpenTelemetry.
- * It exports a tracer and utilities for instrumenting the application.
- *
  * @module lib/tracing
+ * @description OpenTelemetry distributed tracing configuration and utilities.
+ *
+ * Provides tracer instrumentation for distributed tracing across services.
+ * Exports tracer, span utilities, and trace context propagation helpers.
+ *
+ * @features
+ * - OpenTelemetry tracer initialization
+ * - Span creation and management (internal, server, client, producer, consumer)
+ * - Trace context propagation (traceId, spanId, traceFlags)
+ * - Span attributes and events
+ * - Span status tracking (ok, error, unset)
+ * - Performance metrics (start/end time, duration)
+ *
+ * @usage
+ * ```typescript
+ * import { startSpan, endSpan, addSpanEvent } from '@/lib/tracing';
+ * 
+ * const span = startSpan({
+ *   name: 'database.query',
+ *   attributes: { table: 'users', operation: 'SELECT' },
+ *   kind: 'client',
+ * });
+ * 
+ * try {
+ *   await db.query('SELECT * FROM users');
+ *   endSpan(span, { status: 'ok' });
+ * } catch (error) {
+ *   addSpanEvent(span, 'error', { message: error.message });
+ *   endSpan(span, { status: 'error' });
+ * }
+ * ```
+ *
  * @see https://opentelemetry.io/docs/languages/js/
  */
 

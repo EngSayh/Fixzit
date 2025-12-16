@@ -2,10 +2,39 @@ import { logger } from "@/lib/logger";
 import { getRedisClient, safeRedisOp } from "@/lib/redis";
 
 /**
- * Distributed refresh token replay protection
+ * @module lib/refresh-token-store
+ * @description Distributed refresh token replay protection with Redis/memory fallback.
  *
  * Stores refresh token JTIs with TTL to detect reuse across instances.
- * Falls back to in-memory storage when Redis is unavailable (development only).
+ * Falls back to in-memory storage when Redis unavailable (development only).
+ *
+ * @features
+ * - Redis-backed JTI storage (shared across instances)
+ * - In-memory fallback (development/single-instance)
+ * - TTL-based expiration (matches token lifetime)
+ * - Replay attack detection (JTI validation)
+ * - Production-critical warnings (Redis unavailable alerts)
+ * - User-scoped keys (userId + JTI composite key)
+ *
+ * @usage
+ * ```typescript
+ * import { persistRefreshJti, validateRefreshJti, revokeRefreshJti } from '@/lib/refresh-token-store';
+ * 
+ * // After issuing refresh token
+ * await persistRefreshJti(userId, jti, 7 * 24 * 3600); // 7 days
+ * 
+ * // Before accepting refresh token
+ * const isValid = await validateRefreshJti(userId, jti);
+ * if (!isValid) {
+ *   throw new Error('Token replay detected');
+ * }
+ * 
+ * // On logout
+ * await revokeRefreshJti(userId, jti);
+ * ```
+ *
+ * @security
+ * Critical for preventing refresh token replay attacks in distributed deployments.
  */
 const memoryStore = new Map<string, number>();
 let warnedMemoryFallback = false;

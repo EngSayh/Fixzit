@@ -1,3 +1,33 @@
+/**
+ * @module lib/mongo
+ * @description MongoDB Database Abstraction Layer with Vercel optimization.
+ *
+ * Provides a singleton MongoDB connection with Next.js hot-reload protection,
+ * Vercel database pool attachment, and comprehensive connection health monitoring.
+ *
+ * @features
+ * - Singleton connection pattern (prevents connection leaks)
+ * - Next.js hot-reload protection (preserves connection across dev changes)
+ * - Vercel Functions database pool optimization
+ * - Automatic TLS/SSL detection (Atlas SRV, explicit params)
+ * - Connection health metrics (status, attempts, errors, memory usage)
+ * - Forced disconnect support (testing/cleanup)
+ * - Environment validation (server-only, no Edge runtime)
+ *
+ * @usage
+ * ```typescript
+ * import { connectDB, getConnectionStatus } from '@/lib/mongo';
+ * 
+ * await connectDB(); // Idempotent, safe to call multiple times
+ * 
+ * const status = getConnectionStatus();
+ * console.log(status.isConnected); // true
+ * ```
+ *
+ * @deployment
+ * Requires MONGODB_URI environment variable.
+ * Automatically optimizes for Vercel serverless functions.
+ */
 import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getEnv } from "@/lib/env";

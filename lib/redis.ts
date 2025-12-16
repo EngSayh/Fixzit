@@ -1,3 +1,32 @@
+/**
+ * @module lib/redis
+ * @description Redis client with in-memory stub fallback for development.
+ *
+ * Provides a unified Redis interface that automatically falls back to an in-memory
+ * stub when REDIS_URL is not configured. Includes connection metrics and health monitoring.
+ *
+ * @features
+ * - In-memory stub fallback for local development (no Redis required)
+ * - Connection metrics (attempts, errors, reconnects, status)
+ * - Automatic client initialization (lazy loading)
+ * - Health monitoring (last connected/error timestamps)
+ * - Type-safe Redis operations via ioredis interface
+ *
+ * @usage
+ * ```typescript
+ * import { getRedisClient, getRedisMetrics } from '@/lib/redis';
+ * 
+ * const client = getRedisClient();
+ * await client.set('key', 'value', 'EX', 3600);
+ * 
+ * const metrics = getRedisMetrics();
+ * console.log(metrics.currentStatus); // 'ready'
+ * ```
+ *
+ * @deployment
+ * Production: Set REDIS_URL environment variable.
+ * Development: Uses in-memory stub automatically.
+ */
 import Redis from "@/lib/stubs/ioredis";
 import { logger } from "@/lib/logger";
 

@@ -1,6 +1,36 @@
 /**
- * Secure Error Response Utility
- * Sanitizes error messages to prevent internal details leakage
+ * @module lib/errors/secureErrorResponse
+ * @description Secure error response utility that sanitizes error messages.
+ *
+ * Prevents internal details leakage by filtering error messages and logging
+ * original errors securely. Safe for production use in public APIs.
+ *
+ * @features
+ * - Automatic error message sanitization (blocks sensitive patterns)
+ * - Safe error pattern whitelist (Authentication, Unauthorized, Not found, etc.)
+ * - Original error logging (development mode)
+ * - Type-safe error handling (unknown → Error → string)
+ * - Default fallback messages (prevents empty responses)
+ * - Integration with marketplace security headers
+ *
+ * @usage
+ * ```typescript
+ * import { secureErrorResponse } from '@/lib/errors/secureErrorResponse';
+ * 
+ * try {
+ *   await riskyOperation();
+ * } catch (error) {
+ *   return secureErrorResponse({
+ *     error,
+ *     defaultMessage: 'Operation failed',
+ *     statusCode: 500,
+ *     logError: true,
+ *   });
+ * }
+ * ```
+ *
+ * @security
+ * Prevents exposure of: stack traces, DB errors, internal paths, env variables.
  */
 
 import { logger } from "@/lib/logger";

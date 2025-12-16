@@ -1,10 +1,33 @@
 /**
- * CSRF Token Utility
- * 
- * Client-side utility for managing CSRF tokens.
- * Automatically includes CSRF tokens in state-changing requests.
- * 
  * @module lib/csrf
+ * @description Client-side CSRF token utility for state-changing requests.
+ *
+ * Provides cryptographically secure CSRF token generation and cookie-based
+ * token retrieval. Automatically includes tokens in mutation requests.
+ *
+ * @features
+ * - Cryptographically secure token generation (crypto.randomUUID or Uint8Array)
+ * - Cookie-based token storage (csrf-token cookie)
+ * - Client-side and server-side support (environment detection)
+ * - Fallback for older environments (Math.random if crypto unavailable)
+ * - URL-decoded cookie values (handles special characters)
+ *
+ * @usage
+ * ```typescript
+ * import { generateCSRFToken, getCSRFToken } from '@/lib/csrf';
+ * 
+ * // Generate new token
+ * const token = generateCSRFToken(); // '550e8400-e29b-41d4-a716-446655440000'
+ * 
+ * // Retrieve from cookies
+ * const csrfToken = getCSRFToken(); // null if not set
+ * 
+ * // Include in fetch
+ * await fetch('/api/resource', {
+ *   method: 'POST',
+ *   headers: { 'X-CSRF-Token': csrfToken },
+ * });
+ * ```
  */
 
 /**

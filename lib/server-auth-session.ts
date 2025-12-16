@@ -1,12 +1,41 @@
 "use server";
-
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import type { AuthSession, ExtendedUser } from "@/types/auth-session";
 
 /**
- * Server-side session helper (for Server Components and API routes)
- * Kept separate from the client hook to avoid bundling ioredis into client builds.
+ * @module lib/server-auth-session
+ * @description Server-side authentication session helper for Server Components and API routes.
+ *
+ * Provides session retrieval with RBAC fields (STRICT v4.1) and tenant isolation.
+ * Separated from client hooks to avoid bundling server dependencies (ioredis) into client builds.
+ *
+ * @features
+ * - Server-only session access (auth() from @/auth)
+ * - RBAC fields (role, subRole, permissions, roles array)
+ * - Multi-tenancy (orgId, tenantId)
+ * - Seller marketplace support (sellerId)
+ * - Super Admin detection (isSuperAdmin flag)
+ * - Missing field warnings (role, orgId, tenantId validation)
+ *
+ * @usage
+ * ```typescript
+ * import { getServerAuthSession } from '@/lib/server-auth-session';
+ * 
+ * export async function GET() {
+ *   const session = await getServerAuthSession();
+ *   if (!session) {
+ *     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+ *   }
+ *   
+ *   // Tenant-scoped query
+ *   const data = await Model.find({ org_id: session.orgId });
+ *   return NextResponse.json(data);
+ * }
+ * ```
+ *
+ * @compliance
+ * STRICT v4.1: All server routes MUST use this for session access.
  */
 export async function getServerAuthSession(): Promise<AuthSession | null> {
   const session = await auth();

@@ -1,17 +1,32 @@
 /**
- * StandardError Response Utility
+ * @module lib/errors/ErrorResponse
+ * @description Standardized error response utility for consistent API error handling.
  *
- * Zero-Tolerance Gate 2.G Compliance
+ * Provides type-safe error codes, correlation IDs, and i18n-ready error structures
+ * across all API routes. Implements Zero-Tolerance Gate 2.G compliance.
  *
- * This utility provides standardized error responses across the entire application.
- * All API routes MUST use these standardized error codes and structures.
+ * @features
+ * - Standardized error codes (40+ predefined codes)
+ * - Correlation IDs for debugging (traces across services)
+ * - Type-safe error handling (ErrorCode enum)
+ * - i18n-ready error messages (client translates based on code)
+ * - Consistent JSON structure ({ error, code, correlationId, details })
+ * - HTTP status code mapping (401, 403, 404, 429, 500, etc.)
  *
- * Benefits:
- * - Consistent error format across all APIs
- * - Client-friendly error codes for i18n
- * - Correlation IDs for debugging
- * - Type-safe error handling
- * - Centralized error taxonomy
+ * @usage
+ * ```typescript
+ * import { ErrorResponse, ERROR_CODES } from '@/lib/errors/ErrorResponse';
+ * 
+ * return ErrorResponse(
+ *   ERROR_CODES.UNAUTHORIZED,
+ *   'Session expired',
+ *   401,
+ *   { userId: session.user.id }
+ * );
+ * ```
+ *
+ * @compliance
+ * Zero-Tolerance Gate 2.G: All API routes MUST use standardized error codes.
  */
 
 import { NextResponse } from "next/server";

@@ -1,9 +1,26 @@
 /* eslint-disable no-console -- This IS the logger utility, console calls are intentional */
 /**
- * Production-safe logging utility
- * - Structured JSON logging when LOG_FORMAT=json
- * - Sentry context tagging for FM/Souq/Aqar modules
- * - Environment-aware console output (dev vs prod vs test)
+ * @module lib/logger
+ * @description Production-safe logging utility with structured JSON logging and Sentry integration.
+ *
+ * Provides environment-aware logging with automatic module detection for FM/Souq/Aqar domains.
+ * Sanitizes sensitive data and supports correlation IDs for distributed tracing.
+ *
+ * @features
+ * - Structured JSON logging (LOG_FORMAT=json)
+ * - Sentry context tagging for module-specific errors (FM, Souq, Aqar)
+ * - Environment-aware output (dev, prod, test)
+ * - Sensitive data sanitization (passwords, tokens, PII)
+ * - Correlation IDs for request tracking
+ * - Type-safe log levels (info, warn, error, debug)
+ *
+ * @usage
+ * ```typescript
+ * import { logger } from '@/lib/logger';
+ * 
+ * logger.info('Operation successful', { userId: '123', module: 'fm' });
+ * logger.error('Database connection failed', { error, orgId: session.user.orgId });
+ * ```
  */
 
 import { sanitizeError, sanitizeLogParams } from "@/lib/security/log-sanitizer";
