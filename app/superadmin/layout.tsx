@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import enDict from "@/i18n/dictionaries/en";
 import arDict from "@/i18n/dictionaries/ar";
 import { getServerI18n } from "@/lib/i18n/server";
+import { normalizeLocale } from "@/i18n/I18nProvider";
 import type { Locale } from "@/i18n/config";
 import { SuperadminLayoutClient } from "@/components/superadmin/SuperadminLayoutClient";
 
@@ -18,7 +19,8 @@ export default async function SuperadminLayout({
   children: ReactNode;
 }) {
   const { locale: serverLocale } = await getServerI18n();
-  const normalizedLocale: Locale = serverLocale === "ar" ? "ar" : "en";
+  // ✅ Use normalizeLocale to handle ar-SA, AR-SA, ar_SA → ar
+  const normalizedLocale: Locale = normalizeLocale(serverLocale);
   const initialDict = DICTIONARIES[normalizedLocale] ?? DICTIONARIES.en;
 
   return (

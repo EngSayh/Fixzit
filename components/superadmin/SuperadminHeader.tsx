@@ -9,20 +9,65 @@
 
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/useI18n";
-import { LogOut, Settings, User, Globe } from "lucide-react";
+import { LogOut, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { logger } from "@/lib/logger";
 import dynamic from "next/dynamic";
+import { Select, SelectItem } from "@/components/ui/select";
+import {
+  LANGUAGE_OPTIONS,
+  type LanguageOption,
+} from "@/config/language-options";
+import type { Locale } from "@/i18n/config";
 
 const CurrencySelector = dynamic(
   () => import("@/components/i18n/CurrencySelector"),
   { ssr: false }
 );
 
+const ENABLED_LOCALES: (LanguageOption & { language: Locale })[] =
+  LANGUAGE_OPTIONS.filter(
+    (option): option is LanguageOption & { language: Locale } =>
+      !option.comingSoon &&
+      (option.language === "en" || option.language === "ar"),
+  );
+
+function SuperadminLanguageDropdown() {
+  const { t, locale, setLocale } = useI18n();
+  const active =
+    ENABLED_LOCALES.find((option) => option.language === locale) ??
+    ENABLED_LOCALES[0];
+
+  const handleChange = (value: string) => {
+    const next = ENABLED_LOCALES.find(
+      (option) => option.language === value,
+    )?.language;
+    const normalized: Locale = next === "ar" ? "ar" : "en";
+    setLocale(normalized);
+  };
+
+  return (
+    <Select
+      aria-label={t("i18n.selectLanguageLabel")}
+      value={active.language}
+      onValueChange={handleChange}
+      wrapperClassName="min-w-[160px]"
+      className="h-10 bg-slate-900 text-slate-100 border-slate-700 pe-9 ps-3"
+      data-testid="superadmin-language-dropdown"
+    >
+      {ENABLED_LOCALES.map((option) => (
+        <SelectItem key={option.language} value={option.language}>
+          {option.flag} {option.native}
+        </SelectItem>
+      ))}
+    </Select>
+  );
+}
+
 export function SuperadminHeader() {
   const router = useRouter();
-  const { t, locale, setLocale } = useI18n();
+  const { t } = useI18n();
   const [loggingOut, setLoggingOut] = useState(false);
   const [username, setUsername] = useState<string>("Admin");
 
@@ -90,12 +135,6 @@ export function SuperadminHeader() {
     }
   };
 
-  const handleLanguageSwitch = () => {
-    const newLocale = locale === "ar" ? "en" : "ar";
-    setLocale(newLocale);
-    localStorage.setItem("locale", newLocale);
-  };
-
   return (
     <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6">
       {/* Title */}
@@ -110,16 +149,8 @@ export function SuperadminHeader() {
 
       {/* Actions */}
       <div className="flex items-center gap-3">
-        {/* Language Switcher */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleLanguageSwitch}
-          className="text-slate-300 hover:text-white"
-        >
-          <Globe className="h-4 w-4 me-2" />
-          {locale === "ar" ? "EN" : "العربية"}
-        </Button>
+        {/* Language Selector (dropdown with flags) */}
+        <SuperadminLanguageDropdown />
 
         {/* Currency Selector */}
         <div className="text-slate-300">

@@ -2,6 +2,56 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-16 19:05 (Asia/Riyadh) — SSOT Backlog Sync + Workflow Quality Improvements
+**Context:** main | 9b1cac982 | MongoDB SSOT: 24 issues (23 open, 1 resolved)  
+**Activity:** Workflow improvements + Superadmin UX enhancements (uncommitted)
+
+**📊 DB SSOT Status:**
+- Total issues in MongoDB: 24 (23 open, 1 resolved)
+- P0/P1 items: 3 (SEC-002, BUG-001, JSON-PARSE)
+- P2 items: 15 (TEST-*, DOC-*, PERF-*)
+- P3 items: 5 (minor optimizations)
+
+**✅ CHANGES (Uncommitted - QA Pending):**
+
+- **UI-001** — Superadmin language selector refactored
+  - **Modified:** [components/superadmin/SuperadminHeader.tsx](components/superadmin/SuperadminHeader.tsx)
+  - **Change:** Replaced toggle button with proper dropdown (Select component)
+  - **Features:** 
+    - Flag icons in dropdown (🇺🇸 English / 🇸🇦 العربية)
+    - Accessible aria-label for i18n selector
+    - Consistent with main app language selector pattern
+    - Removed unused Globe icon import
+  - **Impact:** Better UX consistency across admin and main app
+  - **Status:** Ready for commit (typecheck ✅, lint ✅)
+
+- **OPS-001** — GitHub Actions workflow order fix
+  - **Modified:** [.github/workflows/build-sourcemaps.yml](.github/workflows/build-sourcemaps.yml)
+  - **Change:** Moved pnpm setup BEFORE Node.js setup (correct dependency order)
+  - **Rationale:** pnpm/action-setup@v2 should run before actions/setup-node (pnpm cache requires pnpm installed)
+  - **Impact:** Improved CI reliability
+  - **Status:** Ready for commit
+
+- **OPS-002** — PR Agent workflow dependency update
+  - **Modified:** [.github/workflows/pr_agent.yml](.github/workflows/pr_agent.yml)
+  - **Change:** Updated action from `qodo-ai/pr-agent@v0.9` → `Codium-ai/pr-agent@main`
+  - **Rationale:** qodo-ai is deprecated repo; Codium-ai/pr-agent@main is actively maintained
+  - **Impact:** Ensures PR Agent continues working (prevents future breakage)
+  - **Status:** Ready for commit
+
+**Validation:**
+- ✅ pnpm typecheck - 0 errors
+- ✅ pnpm lint - 0 errors
+- ✅ MongoDB SSOT operational (scripts/test-db-direct.mjs verified)
+- ✅ All 24 DB issues properly tracked
+
+**Next Steps:**
+1. Commit UI-001 + OPS-001 + OPS-002 changes
+2. Continue P0/P1 item resolution (SEC-002, BUG-001, JSON-PARSE)
+3. Playwright test triage (29 failing specs - deferred P2)
+
+---
+
 ### 2025-12-16 19:00 (Asia/Riyadh) — TEST SUITE COMPLETE: All 78 API Tests Passing ✅
 **Context:** main | Post-CRM security fixes | 100% test coverage achieved  
 **Achievement:** 29 failed → 0 failed (78/78 tests passing across CRM/HR/Finance)
