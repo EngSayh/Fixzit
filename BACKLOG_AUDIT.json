@@ -7,9 +7,9 @@
   "workingTree": "CLEAN",
   "mongodbIssues": 34,
   "mongodbBreakdown": {
-    "open": 25,
+    "open": 24,
     "in_progress": 1,
-    "resolved": 8
+    "resolved": 9
   },
   "recentlyCompleted": [
     "DOC-101: JSDoc to 7 API routes (b3dd8ecd5)",

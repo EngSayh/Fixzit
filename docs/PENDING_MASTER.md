@@ -4,7 +4,7 @@ This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.
 
 ### 2025-12-17 00:10 (Asia/Riyadh) — Final SSOT Convergence (Breaking Recursion Loop)
 **Context:** main @ 4fa6ddeba (SSOT log updates) | Last work: b44beaa7e (perf) | Synced with origin/main | Working tree CLEAN  
-**MongoDB:** 34 issues (25 open, 1 in_progress, 8 resolved) [verified via scripts/test-db-direct.mjs]  
+**MongoDB:** 34 issues (24 open, 1 in_progress, 9 resolved) [verified via scripts/test-db-direct.mjs]  
 **Git Status:** ## main...origin/main
 
 **📝 SSOT CONVERGENCE STRATEGY:**
@@ -17,7 +17,7 @@ Adopting work-reference convention to break infinite recursion loop:
 - DOC-103: 100% complete (71/71 models documented)
 - Performance improvements: Parallelized FBM notifications + claim escalations (b44beaa7e)
 - All SSOT logs synchronized to current HEAD
-- MongoDB verified: 34 issues (25/1/8)
+- MongoDB verified: 34 issues (24/9/1)
 - Working tree: CLEAN
 - Pre-commit hooks: passing
 - Pre-push hooks: passing

@@ -9,7 +9,7 @@
 **Scanner Version:** v2.9  
 **Branch:** main  
 **Commit:** 4fa6ddeba (SSOT log updates) | Last work: b44beaa7e (perf)  
-**MongoDB Status:** 34 issues (25 open, 1 in_progress, 8 resolved)  
+**MongoDB Status:** 34 issues (24 open, 1 in_progress, 9 resolved)  
 **Working Tree:** CLEAN (0 uncommitted changes)
 
 ---
