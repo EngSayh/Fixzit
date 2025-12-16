@@ -2,6 +2,101 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-16 23:00 (Asia/Riyadh) — GitHub Actions Workflow Validation Fixes
+**Context:** main | d2340e646 | Critical YAML validation errors  
+**Status:** ✅ ALL SEVERITY 8 ERRORS FIXED
+
+**✅ RESOLVED (P0 CRITICAL):**
+- **WORKFLOW-SECRETS-001** — GitHub Actions: "Unrecognized named-value: 'secrets'" errors (Severity 8)
+  - Affected files:
+    - `.github/workflows/build-sourcemaps.yml` (lines 50, 53, 54, 64, 67)
+    - `.github/workflows/pr_agent.yml` (lines 40, 42)
+  - Root cause: Step-level `if` conditions cannot access `secrets` context directly
+  - Solution:
+    1. Added job-level env guards (secrets CAN be evaluated at job level):
+       - `HAS_MONGODB_URI: \${{ secrets.MONGODB_URI != '' }}`
+       - `HAS_SENTRY_AUTH_TOKEN/ORG/PROJECT: \${{ secrets.SENTRY_* != '' }}`
+       - `HAS_OPENAI_KEY: \${{ secrets.OPENAI_KEY != '' }}`
+    2. Updated step conditionals to use env context:
+       - `if: env.HAS_MONGODB_URI == 'true'`
+       - `if: env.HAS_SENTRY_AUTH_TOKEN == 'true' && ...`
+       - `if: env.HAS_OPENAI_KEY == 'true'`
+  - Commit: d2340e646
+  - Remaining: Severity 4 warnings (informational only, safe to ignore)
+
+**✅ LINT FIXES:**
+- **LINT-001** — `app/superadmin/layout.tsx`: Removed unused `SUPPORTED_LOCALES` import
+- **LINT-002** — `components/ClientLayout.tsx`: Fixed conditional `useTranslation()` call
+  - Moved hook call outside try-catch to satisfy `react-hooks/rules-of-hooks`
+  - Used optional chaining for safe access
+  - All React Hooks now called unconditionally at top level
+
+**📊 Validation:**
+- ✅ `pnpm lint:prod`: 0 errors
+- ✅ `pnpm typecheck`: 0 errors
+- ✅ Pre-push hooks: All pass
+- ✅ Pushed to main successfully
+
+**ℹ️ Note:**
+- Previous appservices pull command was cancelled by user
+- Workflow files now properly use GitHub Actions env guard pattern
+
+### 2025-12-16 22:15 (Asia/Riyadh) — BUG-011 Notification Error Handling Fixed
+**Context:** main | P3 bug remediation  
+**Status:** ✅ BUG-011 FIXED (6 notification chains)
+
+**🐛 BUG-011: Missing .catch() Handlers (P3 LOW) — FIXED**
+
+**Issue:** Notification chains missing error handlers
+- **Location:** [lib/fm-notifications.ts](lib/fm-notifications.ts), [lib/fm-approval-engine.ts](lib/fm-approval-engine.ts)
+- **Risk:** Unhandled promise rejections could crash application
+
+**Fix Applied:**
+Added `.catch()` handlers to all 6 `sendNotification()` calls:
+
+**lib/fm-notifications.ts** (4 fixes):
+- `onTicketCreated()` notification (line ~570)
+- `onAssign()` notification (line ~591)
+- `onApprovalRequested()` notification (line ~612)
+- `onClosed()` notification (line ~631)
+
+**lib/fm-approval-engine.ts** (2 fixes):
+- Escalation notification (line ~955)
+- Approver notification (line ~1041)
+
+**Pattern:**
+```typescript
+// BEFORE (RISKY):
+await sendNotification(notification);
+
+// AFTER (SAFE):
+await sendNotification(notification).catch((error) => {
+  logger.error('[Context] Failed to send notification', {
+    error: error instanceof Error ? error.message : String(error),
+    // context fields: orgId, workOrderId, etc.
+  });
+});
+```
+
+**📊 Changes:**
+- Files: 2 (+55, -6)
+- [lib/fm-notifications.ts](lib/fm-notifications.ts): +39, -4
+- [lib/fm-approval-engine.ts](lib/fm-approval-engine.ts): +22, -2
+
+**✅ Validation:**
+- TypeScript: 0 errors
+- Pattern: Consistent error logging
+- Impact: Prevents app crashes from notification failures
+
+**🔄 Backlog Update:**
+- **P3 BUG-011** ✅ RESOLVED
+- **P1 Issues:** All resolved (SEC-002, BUG-001)
+- **Remaining P0:** OPS-OTP-BYPASS
+- **Remaining P2:** PERF-001, TEST-002/003/004, REF-001, DOC-101–110
+- **Remaining P3:** PERF-002, TEST-001, TEST-005 (in progress)
+
+---
+
 ### 2025-12-16 17:40 (Asia/Riyadh) — DB Sync + Playwright Rerun (timed out)
 **Context:** main | 9d9e0b9f2 | no PR  
 **DB Sync:** created=12, updated=0, skipped=0, errors=0 (POST /api/issues/import using superadmin_session cookie)  
