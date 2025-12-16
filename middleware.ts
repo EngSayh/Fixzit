@@ -319,6 +319,11 @@ export async function middleware(request: NextRequest) {
 
     const res = NextResponse.next();
     res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    // Force fresh page loads for superadmin routes (prevent stale cache issues)
+    res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.headers.set('Pragma', 'no-cache');
+    res.headers.set('Expires', '0');
+    res.headers.set('X-Superadmin-Route', 'true');
     return res;
   }
 

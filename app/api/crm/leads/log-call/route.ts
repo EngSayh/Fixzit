@@ -129,10 +129,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const lead =
-      (await CrmLead.findOne({ company: payload.company.trim() }).sort({
+      (await CrmLead.findOne({ 
+        orgId: user.orgId, // 🔒 TENANT SCOPE: Enforce org isolation
+        company: payload.company.trim() 
+      }).sort({
         updatedAt: -1,
       })) ??
       (await CrmLead.create({
+        orgId: user.orgId, // 🔒 TENANT SCOPE: Enforce org isolation
         kind: "LEAD",
         contactName: payload.contact,
         company: payload.company.trim(),
@@ -151,6 +155,7 @@ export async function POST(req: NextRequest) {
     await lead.save();
 
     await CrmActivity.create({
+      orgId: user.orgId, // 🔒 TENANT SCOPE: Enforce org isolation
       leadId: lead._id,
       type: "CALL",
       summary: payload.notes,

@@ -37,8 +37,9 @@ vi.mock("@/lib/auth/role-guards", () => ({
 // Mock EmployeeService
 vi.mock("@/server/services/hr/employee.service", () => ({
   EmployeeService: {
-    list: vi.fn(),
-    create: vi.fn(),
+    searchWithPagination: vi.fn(),
+    upsert: vi.fn(),
+    getByCode: vi.fn(),
   },
 }));
 
@@ -46,6 +47,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { auth } from "@/auth";
 import { hasAllowedRole } from "@/lib/auth/role-guards";
 import { EmployeeService } from "@/server/services/hr/employee.service";
+import type { SessionUser } from "@/types/auth";
 
 const importRoute = async () => {
   try {
@@ -57,10 +59,13 @@ const importRoute = async () => {
 
 describe("API /api/hr/employees", () => {
   const mockOrgId = "org_123456789";
-  const mockUser = {
+  const mockUser: SessionUser = {
+    id: "user_123",
     orgId: mockOrgId,
     role: "HR",
     subRole: null,
+    email: "hr@test.com",
+    isSuperAdmin: false,
   };
 
   beforeEach(() => {
@@ -70,6 +75,13 @@ describe("API /api/hr/employees", () => {
       user: mockUser,
     } as never);
     vi.mocked(hasAllowedRole).mockReturnValue(true);
+    vi.mocked(EmployeeService.searchWithPagination).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      limit: 25,
+    });
+    vi.mocked(EmployeeService.getByCode).mockResolvedValue(null);
   });
 
   describe("GET - List Employees", () => {

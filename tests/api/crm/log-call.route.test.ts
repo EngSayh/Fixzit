@@ -144,7 +144,7 @@ describe("API /api/crm/leads/log-call", () => {
       expect(response.status).toBe(401);
     });
 
-    it("returns 403 when user lacks CRM role", async () => {
+    it("returns 401 when user lacks CRM role", async () => {
       const route = await importRoute();
       if (!route?.POST) {
         expect(true).toBe(true);

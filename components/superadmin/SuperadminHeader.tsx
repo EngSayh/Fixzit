@@ -12,6 +12,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { LogOut, Settings, User, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import dynamic from "next/dynamic";
 
 const CurrencySelector = dynamic(
@@ -27,16 +28,40 @@ export function SuperadminHeader() {
 
   // Fetch superadmin session on mount
   useEffect(() => {
-    fetch("/api/superadmin/session")
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (data?.user?.username) {
+    let isMounted = true;
+
+    const loadSession = async () => {
+      try {
+        const response = await fetch("/api/superadmin/session", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          logger.warn("[SUPERADMIN] Session fetch failed", {
+            component: "SuperadminHeader",
+            action: "fetch-session",
+            status: response.status,
+          });
+          return;
+        }
+
+        const data = await response.json();
+        if (isMounted && data?.user?.username) {
           setUsername(data.user.username);
         }
-      })
-      .catch(() => {
-        // Graceful fallback - keep default "Admin"
-      });
+      } catch (error) {
+        logger.error("[SUPERADMIN] Session fetch error", error, {
+          component: "SuperadminHeader",
+          action: "fetch-session",
+        });
+      }
+    };
+
+    void loadSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -48,9 +73,18 @@ export function SuperadminHeader() {
 
       if (response.ok) {
         router.push("/superadmin/login");
+      } else {
+        logger.warn("[SUPERADMIN] Logout failed", {
+          component: "SuperadminHeader",
+          action: "logout",
+          status: response.status,
+        });
       }
-    } catch (_error) {
-      // Logout error handled silently, user can retry
+    } catch (error) {
+      logger.error("[SUPERADMIN] Logout error", error, {
+        component: "SuperadminHeader",
+        action: "logout",
+      });
     } finally {
       setLoggingOut(false);
     }

@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
       status: isHealthy ? "healthy" : "unhealthy",
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
+      commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 9) || process.env.GIT_COMMIT_SHA?.slice(0, 9) || "unknown",
       // Always include basic DB and Redis status for monitoring (not sensitive)
       database: dbStatus,
       redis: redisStatus,
@@ -70,7 +71,14 @@ export async function GET(request: NextRequest) {
           },
           environment: process.env.NODE_ENV || "development",
           version: process.env.npm_package_version || "unknown",
-          commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || process.env.GIT_COMMIT_SHA?.slice(0, 7) || "unknown",
+          commit: process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT_SHA || "unknown",
+          features: {
+            superadminBypass: true, // Confirms ClientLayout superadmin bypass is deployed
+            localeNormalization: true, // Confirms normalizeLocale() is deployed
+            currencySelector: true, // Confirms BRAND-001 fix deployed
+            dynamicUsername: true, // Confirms BRAND-003 fix deployed
+            universalFooter: true, // Confirms BRAND-002 fix deployed
+          },
         },
       }),
     };

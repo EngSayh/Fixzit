@@ -58,10 +58,10 @@ vi.mock("@/server/models/finance/ChartAccount", () => ({
 
 // Mock error responses
 vi.mock("@/server/utils/errorResponses", () => ({
-  forbiddenError: vi.fn(),
-  handleApiError: vi.fn(),
-  isForbidden: vi.fn(),
-  unauthorizedError: vi.fn(),
+  forbiddenError: vi.fn(() => new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 })),
+  handleApiError: vi.fn((error) => new Response(JSON.stringify({ error: String(error) }), { status: 500 })),
+  isForbidden: vi.fn(() => false),
+  unauthorizedError: vi.fn(() => new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })),
 }));
 
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";

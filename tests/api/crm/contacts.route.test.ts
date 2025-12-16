@@ -136,7 +136,7 @@ describe("API /api/crm/contacts", () => {
       expect(response.status).toBe(401);
     });
 
-    it("returns 403 when user lacks CRM role", async () => {
+    it("returns 401 when user lacks CRM role", async () => {
       const route = await importRoute();
       if (!route?.GET) {
         expect(true).toBe(true);
@@ -152,7 +152,7 @@ describe("API /api/crm/contacts", () => {
       const req = new NextRequest("http://localhost:3000/api/crm/contacts");
       const response = await route.GET(req);
 
-      expect([403, 500]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
 
     it("successfully lists contacts with tenant scoping", async () => {

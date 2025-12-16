@@ -139,7 +139,9 @@ export async function GET(req: NextRequest) {
     : 25;
   const search = url.searchParams.get("search")?.trim();
 
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, unknown> = {
+    orgId: user.orgId, // 🔒 TENANT SCOPE: Enforce org isolation
+  };
   if (kind && (kind === "LEAD" || kind === "ACCOUNT")) {
     filter.kind = kind;
   }
