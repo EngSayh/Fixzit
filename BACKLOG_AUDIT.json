@@ -21,7 +21,8 @@
     "CRM-TEST-001: accounts-share test type fixes (a9e88771e)",
     "DOC-103 Batch 4: JSDoc to 10 models (bffeae037 - Owner, OwnerStatement, MaintenanceLog, SLA, Aqar Listing/Lead, Finance Payment/Expense, Souq Product/Order)",
     "DOC-103 Batch 5: JSDoc to 10 models (ae1dc4901 - Finance Budget/ChartAccount/Journal/LedgerEntry, Aqar Booking/Favorite/ViewingRequest/Package, Souq Seller/Review)",
-    "DOC-103 Batch 6: JSDoc to 15 models (b70da40c0 - Onboarding (5), QA (2), Souq (3), Admin (3), Testing (1), Backlog (1) - 100% COMPLETE)"
+    "DOC-103 Batch 6: JSDoc to 15 models (b70da40c0 - Onboarding (5), QA (2), Souq (3), Admin (3), Testing (1), Backlog (1) - 100% COMPLETE)",
+    "PERF-002: Parallelize FBM notifications and claim escalations (b44beaa7e - fulfillment-service, claim-service)"
   ],
   "issues": [
     {
@@ -223,15 +224,15 @@
     {
       "key": "PERF-002",
       "externalId": "PERF-002",
-      "title": "Sequential updates in fulfillment/claims services",
+      "title": "Sequential updates in fulfillment/claims services (RESOLVED)",
       "category": "efficiency",
       "priority": "P3",
-      "status": "open",
-      "location": "services/fulfillment/",
+      "status": "resolved",
+      "location": "services/souq/fulfillment-service.ts, services/souq/claims/claim-service.ts",
       "sourcePath": "audit",
-      "sourceRef": "PENDING_MASTER:2025-12-17-session",
-      "evidenceSnippet": "Fulfillment and claims services perform sequential database updates that could be parallelized with Promise.all",
-      "impact": "Slower order processing; increased latency for high-volume operations",
+      "sourceRef": "PENDING_MASTER:2025-12-16-perf002-complete",
+      "evidenceSnippet": "Parallelized FBM seller notifications (fulfillment-service) and overdue claim escalations (claim-service) using Promise.all. Sequential for-loops replaced with parallel batch updates. Impact: O(n) → O(1) time for multi-seller/multi-claim operations. Tenant isolation (orgId scoping) preserved.",
+      "impact": "Reduced latency for order processing and claim handling. Improved throughput for high-volume operations. No functional changes, performance gain only.",
       "effort": "M",
       "riskTags": ["PERFORMANCE"]
     },
