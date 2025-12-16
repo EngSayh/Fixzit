@@ -2,6 +2,29 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-18 01:45 (Asia/Riyadh) — DOC-103 Batch 2 Complete + SSOT Sync
+**Context:** main @ 308697666 | Synced with origin (2 commits behind) | Working tree CLEAN  
+**MongoDB:** 33 issues (29 open, 1 in_progress, 3 resolved)  
+**Git Status:** ## main (308697666, origin at 8469e5dfe, local ahead by 1)
+
+**✅ COMPLETED THIS SESSION:**
+
+**DOC-103 Batch 2** - Add JSDoc to 10 Core Models (commit 308697666)
+- [server/models/hr.models.ts](server/models/hr.models.ts) - Employee, Attendance, Leave, Payroll schemas
+- [server/models/CrmLead.ts](server/models/CrmLead.ts) - Sales lead management
+- [server/models/CrmActivity.ts](server/models/CrmActivity.ts) - Sales activity timeline
+- [server/models/marketplace/Product.ts](server/models/marketplace/Product.ts) - Souq product catalog
+- [server/models/marketplace/Order.ts](server/models/marketplace/Order.ts) - E-commerce orders
+- [server/models/marketplace/Category.ts](server/models/marketplace/Category.ts) - Product taxonomy
+- [server/models/Job.ts](server/models/Job.ts) - Careers job postings
+- [server/models/Application.ts](server/models/Application.ts) - Job applications
+- [server/models/Candidate.ts](server/models/Candidate.ts) - Candidate profiles
+- [server/models/ServiceContract.ts](server/models/ServiceContract.ts) - FM service agreements
+- Result: +521 lines comprehensive JSDoc (module docs, features, indexes, relationships)
+- Validation: ✅ pnpm typecheck clean, pre-commit hooks passed
+
+**PREVIOUS SESSION SUMMARY (2025-12-16 23:20):**
+
 ### 2025-12-16 23:20 (Asia/Riyadh) — SSOT Sync: DOC-101/REF-001/DOC-102 Complete + Route Group Fix
 **Context:** main @ 898f7b882 | Synced with origin | Working tree CLEAN  
 **MongoDB:** 33 issues (29 open, 1 in_progress, 3 resolved)  

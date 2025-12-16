@@ -5,10 +5,10 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-16T23:20:00+03:00 (Asia/Riyadh)  
-**Scanner Version:** v2.6  
+**Last Updated:** 2025-12-18T01:45:00+03:00 (Asia/Riyadh)  
+**Scanner Version:** v2.7  
 **Branch:** main  
-**Commit:** 898f7b882 (synced with origin/main)  
+**Commit:** 308697666 (local ahead by 1, origin at 8469e5dfe)  
 **MongoDB Status:** 33 issues (29 open, 1 in_progress, 3 resolved)  
 **Working Tree:** CLEAN (0 uncommitted changes)
 
@@ -29,15 +29,23 @@
 2. [x] **[REF-001]** ✅ COMPLETED - Created CRM unit tests (accounts/share, 7 tests) (commit b0ed68c72)
 3. [x] **[DOC-102]** ✅ COMPLETED - Added JSDoc to 10 core lib modules (commit f80139758)
 4. [x] **[LAYOUT-FIX-001]** ✅ COMPLETED - Route group restructuring (commit 898f7b882)
-5. [ ] **[SEC-002]** 50+ Database queries missing tenant isolation checks (deferred)
-5. [ ] **[DOC-103]** Missing JSDoc for 124 Mongoose model schemas
+5. [x] **[DOC-103 Batch 2]** ✅ COMPLETED - Added JSDoc to 10 core models (commit 308697666)
+6. [ ] **[SEC-002]** 50+ Database queries missing tenant isolation checks (deferred)
+7. [ ] **[DOC-103 Remaining]** 56 Mongoose model schemas still need JSDoc (10/66 done)
 
-### ✅ Recently Resolved (2025-12-16 - Sessions 19:10/19:24/19:31/19:42/19:49)
-1. **[RUNTIME-CRASH-001]** ✅ P0 server/client boundary violation fixed (superadmin/login crash)
-2. **[TYPE-SAFE-001]** ✅ Issues detail page type safety (IssueStatus union, API contract)
-3. **[NAV-001]** ✅ Superadmin issue navigation fixed (/admin → /superadmin) + detail page
-4. **[TENANT-GUARD-001]** ✅ Backlog import tenant scoping (orgId validation)
-5. **[SCHEMA-SAFE-001]** ✅ Issue document normalization (full schema compliance)
+### ✅ Recently Resolved (2025-12-18 Session + 2025-12-16 Sessions)
+1. **[DOC-103 Batch 2]** ✅ P2 (2025-12-18) Added comprehensive JSDoc to 10 core models:
+   - HR: hr.models.ts (Employee, Attendance, Leave, Payroll)
+   - CRM: CrmLead, CrmActivity
+   - Souq: Product, Order, Category
+   - Careers: Job, Application, Candidate
+   - FM: ServiceContract
+   - Result: +521 lines documentation, all models now have module docs/indexes/relationships
+2. **[RUNTIME-CRASH-001]** ✅ P0 server/client boundary violation fixed (superadmin/login crash)
+3. **[TYPE-SAFE-001]** ✅ Issues detail page type safety (IssueStatus union, API contract)
+4. **[NAV-001]** ✅ Superadmin issue navigation fixed (/admin → /superadmin) + detail page
+5. **[TENANT-GUARD-001]** ✅ Backlog import tenant scoping (orgId validation)
+6. **[SCHEMA-SAFE-001]** ✅ Issue document normalization (full schema compliance)
 
 ---
 
