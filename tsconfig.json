@@ -29,6 +29,33 @@
       "@/*": [
         "./*"
       ],
+      "@/app/marketplace/*": [
+        "./app/(app)/marketplace/*"
+      ],
+      "@/app/souq/*": [
+        "./app/(app)/souq/*"
+      ],
+      "@/app/aqar/*": [
+        "./app/(app)/aqar/*"
+      ],
+      "@/app/login/*": [
+        "./app/(app)/login/*"
+      ],
+      "@/app/signup/*": [
+        "./app/(app)/signup/*"
+      ],
+      "@/app/profile/*": [
+        "./app/(app)/profile/*"
+      ],
+      "@/app/help/*": [
+        "./app/(app)/help/*"
+      ],
+      "@/app/logout/*": [
+        "./app/(app)/logout/*"
+      ],
+      "@/app/fm/*": [
+        "./app/(fm)/fm/*"
+      ],
       "ioredis": [
         "./lib/stubs/ioredis"
       ],
