@@ -22,6 +22,11 @@ jobs:
       CI: "true"
       NODE_OPTIONS: --max-old-space-size=8192
       NEXT_TELEMETRY_DISABLED: "1"
+      # Job-level guards (secrets can be checked at job level)
+      HAS_MONGODB_URI: ${{ secrets.MONGODB_URI != '' }}
+      HAS_SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
+      HAS_SENTRY_ORG: ${{ secrets.SENTRY_ORG != '' }}
+      HAS_SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT != '' }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
       SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
@@ -50,7 +55,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Ensure Mongo Indexes (idempotent)
-        if: ${{ secrets.MONGODB_URI != '' }}
+        if: env.HAS_MONGODB_URI == 'true'
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
         run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
@@ -64,7 +69,7 @@ jobs:
       # Sentry release + sourcemaps (v3, with Debug ID injection)
       - name: 🚀 Create & upload Sentry release (non-blocking)
         id: sentry
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT != '' }}
+        if: env.HAS_SENTRY_AUTH_TOKEN == 'true' && env.HAS_SENTRY_ORG == 'true' && env.HAS_SENTRY_PROJECT == 'true'
         uses: getsentry/action-release@v3
         continue-on-error: true
         env:

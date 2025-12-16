@@ -20,6 +20,20 @@ import { logger } from "@/lib/logger";
 // Each dictionary is 27k lines (~500KB). Loading both upfront wastes 500KB + 200ms parse time.
 // With dynamic imports, only the active locale is loaded, saving ~250KB and 100ms.
 // Note: Only enabled locales (en, ar) have dictionaries. fr/es marked comingSoon.
+
+/**
+ * Normalize locale codes (ar-SA, AR_SA, ar-sa) → ar
+ * Handles browser locale strings like "ar-SA" from navigator.language
+ * @public - exported for use in other components
+ */
+export function normalizeLocale(raw?: string): Locale {
+  if (!raw) return DEFAULT_LOCALE;
+  const normalized = raw.toLowerCase().split(/[-_]/)[0];
+  return SUPPORTED_LOCALES.includes(normalized as Locale)
+    ? (normalized as Locale)
+    : DEFAULT_LOCALE;
+}
+
 const DICTIONARIES: Record<
   LanguageCode,
   () => Promise<{ default: Record<string, unknown> }>
@@ -70,9 +84,10 @@ export const I18nProvider: React.FC<{
     }
 
     let cancelled = false;
+    const normalizedLocale = normalizeLocale(locale);
 
     setIsLoading(true);
-    DICTIONARIES[locale]()
+    DICTIONARIES[normalizedLocale]()
       .then((module) => {
         if (!cancelled) {
           setDict(module.default);
@@ -82,6 +97,7 @@ export const I18nProvider: React.FC<{
       .catch((error) => {
         logger.error('[I18nProvider] Failed to load dictionary:', error, {
           locale,
+          normalizedLocale,
           availableLocales: Object.keys(DICTIONARIES).join(', ')
         });
         if (!cancelled) {

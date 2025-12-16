@@ -35,9 +35,11 @@ jobs:
         )
       }}
     runs-on: ubuntu-latest
+    env:
+      HAS_OPENAI_KEY: ${{ secrets.OPENAI_KEY != '' }}
     steps:
       - name: PR Agent action step
-        if: ${{ secrets.OPENAI_KEY != '' }}
+        if: env.HAS_OPENAI_KEY == 'true'
         uses: qodo-ai/pr-agent@v0.9
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}

@@ -567,7 +567,14 @@ export async function onTicketCreated(
     recipients,
   );
 
-  await sendNotification(notification);
+  // BUG-011 FIX: Add .catch() to prevent unhandled promise rejection
+  await sendNotification(notification).catch((error) => {
+    logger.error('[Notifications] Failed to send onTicketCreated notification', {
+      error: error instanceof Error ? error.message : String(error),
+      orgId,
+      workOrderId,
+    });
+  });
 }
 
 export async function onAssign(
@@ -588,7 +595,15 @@ export async function onAssign(
     recipients,
   );
 
-  await sendNotification(notification);
+  // BUG-011 FIX: Add .catch() to prevent unhandled promise rejection
+  await sendNotification(notification).catch((error) => {
+    logger.error('[Notifications] Failed to send onAssign notification', {
+      error: error instanceof Error ? error.message : String(error),
+      orgId,
+      workOrderId,
+      technicianName,
+    });
+  });
 }
 
 export async function onApprovalRequested(
@@ -609,7 +624,15 @@ export async function onApprovalRequested(
     recipients,
   );
 
-  await sendNotification(notification);
+  // BUG-011 FIX: Add .catch() to prevent unhandled promise rejection
+  await sendNotification(notification).catch((error) => {
+    logger.error('[Notifications] Failed to send onApprovalRequested notification', {
+      error: error instanceof Error ? error.message : String(error),
+      orgId,
+      quotationId,
+      amount,
+    });
+  });
 }
 
 export async function onClosed(
@@ -628,5 +651,13 @@ export async function onClosed(
     recipients,
   );
 
-  await sendNotification(notification);
+  // BUG-011 FIX: Add .catch() to prevent unhandled promise rejection
+  await sendNotification(notification).catch((error) => {
+    logger.error('[Notifications] Failed to send onClosed notification', {
+      error: error instanceof Error ? error.message : String(error),
+      orgId,
+      workOrderId,
+      propertyId,
+    });
+  });
 }

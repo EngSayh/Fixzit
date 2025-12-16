@@ -8,9 +8,9 @@
  * @module app/superadmin/layout
  */
 
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { I18nProvider, normalizeLocale } from "@/i18n/I18nProvider";
 import { useEffect, useState } from "react";
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
 import { SuperadminSidebar } from "@/components/superadmin/SuperadminSidebar";
 import { SuperadminHeader } from "@/components/superadmin/SuperadminHeader";
 import { usePathname } from "next/navigation";
@@ -32,20 +32,15 @@ export default function SuperadminLayout({
     const resolveLocale = (): Locale => {
       try {
         const storedLocale = localStorage.getItem("locale") as Locale | null;
-        if (storedLocale && SUPPORTED_LOCALES.includes(storedLocale)) {
-          return storedLocale;
+        if (storedLocale) {
+          return normalizeLocale(storedLocale);
         }
       } catch {
         // Ignore storage errors (private browsing or disabled storage)
       }
 
-      const [languageCode] = navigator.language.split("-");
-      const browserLocale = languageCode as Locale;
-      if (browserLocale && SUPPORTED_LOCALES.includes(browserLocale)) {
-        return browserLocale;
-      }
-
-      return DEFAULT_LOCALE;
+      const browserLocale = navigator.language;
+      return normalizeLocale(browserLocale);
     };
 
     const nextLocale = resolveLocale();

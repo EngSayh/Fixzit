@@ -952,7 +952,17 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
           escalationRecipients,
         );
 
-        await sendNotification(notification);
+        // BUG-011 FIX: Add .catch() to prevent unhandled promise rejection
+        await sendNotification(notification).catch((notifyError) => {
+          logger.error(
+            "[Approval] Failed to send escalation notification",
+            notifyError,
+            {
+              approvalId: approval._id,
+              escalateToRoles: approvalPolicy.escalateTo,
+            },
+          );
+        });
 
         logger.info("[Approval] Escalation notification sent", {
           approvalId: approval._id,
@@ -1038,7 +1048,15 @@ export async function notifyApprovers(
       recipients,
     );
 
-    await sendNotification(notification);
+    // BUG-011 FIX: Add .catch() to prevent unhandled promise rejection
+    await sendNotification(notification).catch((error) => {
+      logger.error("[Approval] Failed to send approver notification", {
+        error: error instanceof Error ? error.message : String(error),
+        workflowId: workflow.requestId,
+        stage: stage.stage,
+        recipientCount: recipients.length,
+      });
+    });
 
     logger.info("[Approval] Notifications sent", {
       workflowId: workflow.requestId,

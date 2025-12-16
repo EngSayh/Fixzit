@@ -192,6 +192,9 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const marketingRoutes = new Set<string>(MARKETING_ROUTES);
   const marketingRoutePrefixes = MARKETING_ROUTE_PREFIXES;
   const authRoutes = new Set<string>(AUTH_ROUTES);
+  
+  // Check if this is a superadmin route
+  const isSuperadminRoute = pathname.startsWith("/superadmin");
 
   const isMarketingPage =
     marketingRoutes.has(pathname) ||
@@ -201,8 +204,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const isAuthPage =
     authRoutes.has(pathname) ||
     pathname.startsWith("/login") ||
-    pathname.startsWith("/signup") ||
-    pathname.startsWith("/superadmin");
+    pathname.startsWith("/signup");
 
   // Use a single source of truth for what's protected on the client
   const protectedPrefixes = PROTECTED_ROUTE_PREFIXES;
@@ -210,19 +212,10 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
 
-  // Safe translation access
-  let language = "ar";
-  let isRTL = false;
-  try {
-    const translationContext = useTranslation();
-    language = translationContext.language;
-    isRTL = translationContext.isRTL;
-  } catch (e) {
-    // Expected: TranslationContext may not be available in some routes
-    if (process.env.NODE_ENV === "development") {
-      logger.debug("TranslationContext unavailable, using defaults:", e);
-    }
-  }
+  // Safe translation access (hooks must be called unconditionally)
+  const translationContext = useTranslation();
+  const language = translationContext?.language || "ar";
+  const isRTL = translationContext?.isRTL ?? false;
 
   // Early lang/dir update
   useEffect(() => {
@@ -401,7 +394,10 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       loading: () => null,
     },
   );
-
+  // ✅ Superadmin routes use their own shell - no FM header/sidebar
+  if (isSuperadminRoute) {
+    return <>{children}</>;
+  }
   // Public/landing pages => full layout with TopBar and Footer but no sidebar
   if (isMarketingPage) {
     return (
