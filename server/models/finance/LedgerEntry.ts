@@ -1,16 +1,42 @@
 /**
- * LedgerEntry Model
+ * @module server/models/finance/LedgerEntry
+ * @description Individual ledger postings derived from journal entries for account balance calculations.
+ *              Each journal line creates one ledger entry (flat structure for fast queries).
  *
- * Individual ledger postings derived from journal entries.
- * Each journal line creates one ledger entry.
- * Used for account balance calculations and financial reporting.
+ * @features
+ * - One ledger entry per journal line (flat structure vs hierarchical journal)
+ * - Linked to journal entries (immutable, traceability)
+ * - Fast balance queries per account (optimized indexes)
+ * - Multi-dimensional tracking (property, owner, tenant, vendor)
+ * - Account type classification (ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE)
+ * - Decimal128 precision for financial calculations
+ * - Period-based reporting (month/quarter/year rollups)
+ * - Denormalized fields (accountCode, accountName) for reporting performance
  *
- * Features:
- * - Multi-tenant isolation (orgId)
- * - Linked to journal entries (immutable)
- * - Fast balance queries per account
- * - Property/owner/tenant/vendor tracking
- * - Audit trail
+ * @indexes
+ * - { orgId: 1, journalId: 1, lineNumber: 1 } (unique) — Link to journal line
+ * - { orgId: 1, accountId: 1, postingDate: -1 } — Account ledger queries
+ * - { orgId: 1, accountId: 1, postingDate: 1, _id: 1 } — Balance calculation (running total)
+ * - { orgId: 1, propertyId: 1, postingDate: -1 } — Property financial reports
+ * - { orgId: 1, ownerId: 1, postingDate: -1 } — Owner statement queries
+ * - { orgId: 1, accountType: 1, postingDate: -1 } — Trial balance by account type
+ *
+ * @relationships
+ * - References Journal model (journalId, immutable link)
+ * - References ChartAccount model (accountId)
+ * - References Property, Owner, Tenant, Vendor models (multi-dimensional tracking)
+ * - Aggregated for financial reports (Trial Balance, P&L, Balance Sheet)
+ *
+ * @compliance
+ * - Decimal128 precision for ZATCA/GAZT compliance
+ * - Immutable ledger entries (audit trail integrity)
+ * - Source traceability via journal linkage
+ * - Account type classification for financial statements
+ *
+ * @audit
+ * - Derived from Journal entries (no direct edits)
+ * - postingDate: Date when journal was posted
+ * - All changes via journal void/reversal (audit trail)
  */
 
 import { Schema, Types, type FilterQuery } from "mongoose";

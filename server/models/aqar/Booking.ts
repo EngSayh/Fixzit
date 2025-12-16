@@ -1,19 +1,58 @@
 /**
- * Aqar Souq - Booking Model (hotel-style daily rentals)
- * 
- * **Production Features:**
- * - Hard conflict prevention via reservedNights[] + unique partial index
- * - UTC-normalized date math (no timezone bugs)
- * - Tenant-scoped indexes for multi-tenant performance
- * - Atomic createWithAvailability() with race protection
- * - Guarded status transitions (confirm/checkIn/checkOut/cancel)
- * - Auto-computed pricing: totalPrice, platformFee (15%), hostPayout
- * - Query helpers: isAvailable(), overlaps()
- * 
- * **Conflict Strategy:**
- * The unique partial index on (orgId, listingId, reservedNights) where status IN [PENDING, CONFIRMED, CHECKED_IN]
+ * @module server/models/aqar/Booking
+ * @description Aqar daily rental booking system with hard conflict prevention and escrow integration.
+ *              Supports hotel-style short-term rentals with atomic reservation logic and race protection.
+ *
+ * @features
+ * - Booking lifecycle: PENDING → CONFIRMED → CHECKED_IN → CHECKED_OUT/CANCELLED/REJECTED
+ * - Hard conflict prevention via unique partial index on reservedNights array
+ * - UTC-normalized date math (eliminates timezone bugs)
+ * - Atomic createWithAvailability() with race protection (prevents double-bookings)
+ * - Guarded status transitions (confirm/checkIn/checkOut/cancel methods)
+ * - Auto-computed pricing: totalPrice, platformFee (15%), hostPayout (85%)
+ * - Escrow integration (buyer protection until checkout)
+ * - Query helpers: isAvailable(), overlaps() for availability checks
+ * - Guest and host profiles with ratings
+ * - Check-in/check-out timestamps and conditions
+ * - Cancellation policy enforcement (flexible, moderate, strict)
+ *
+ * @statuses
+ * - PENDING: Booking requested, awaiting host confirmation
+ * - CONFIRMED: Host confirmed, payment held in escrow
+ * - CHECKED_IN: Guest checked in, stay in progress
+ * - CHECKED_OUT: Guest checked out, payment released to host
+ * - CANCELLED: Cancelled by guest or host (refund per policy)
+ * - REJECTED: Host rejected booking request
+ *
+ * @conflictStrategy
+ * Unique partial index on (orgId, listingId, reservedNights[]) where status IN [PENDING, CONFIRMED, CHECKED_IN]
  * is the ONLY reliable way to prevent double-bookings at DB level without heavyweight transactions.
  * Each booking has an array of UTC date-only nights [checkIn..checkOut-1].
+ *
+ * @indexes
+ * - { orgId: 1, listingId: 1, reservedNights: 1, status: 1 } (unique partial) — Conflict prevention
+ * - { orgId: 1, guestId: 1, createdAt: -1 } — Guest booking history
+ * - { orgId: 1, hostId: 1, status: 1 } — Host reservation management
+ * - { orgId: 1, status: 1, checkInDate: 1 } — Upcoming check-ins
+ * - { orgId: 1, status: 1, checkOutDate: 1 } — Upcoming check-outs
+ *
+ * @relationships
+ * - References Listing model (listingId)
+ * - References User model (guestId, hostId)
+ * - References EscrowAccount model (escrowAccountId)
+ * - Generates Review records (guest and host reviews after checkout)
+ * - Links to Payment model (payment processing)
+ *
+ * @compliance
+ * - Escrow buyer protection (funds held until checkout)
+ * - Cancellation policy enforcement (refund calculation)
+ * - Platform fee transparency (15% commission)
+ *
+ * @audit
+ * - createdBy: Via tenantIsolationPlugin
+ * - timestamps: createdAt, updatedAt from Mongoose
+ * - Status transitions tracked in statusHistory array
+ * - Check-in/check-out timestamps for audit trail
  */
 
 import mongoose, {

@@ -1,8 +1,44 @@
 /**
- * Aqar Souq - Package Model
+ * @module server/models/aqar/Package
+ * @description Listing subscription packages for brokers and developers.
+ *              Tiered pricing model with usage tracking and expiration management.
  *
- * Listing packages for brokers/developers
- * Pricing: 50 SAR (5 ads), 150 SAR (20 ads), 250 SAR (50 ads)
+ * @features
+ * - Package tiers: STARTER (50 SAR, 5 listings), STANDARD (150 SAR, 20 listings), PREMIUM (250 SAR, 50 listings)
+ * - Validity period: 30 days from activation
+ * - Usage tracking: listingsUsed / listingsAllowed
+ * - Auto-expiration (background job checks expiry daily)
+ * - Payment integration (paymentId linkage)
+ * - Status workflow: PENDING_PAYMENT → ACTIVE → EXPIRED/EXHAUSTED
+ * - Rollover support (unused listings carry forward to renewal)
+ * - Bulk listing creation (consume multiple slots)
+ *
+ * @statuses
+ * - PENDING_PAYMENT: Package purchased but payment not confirmed
+ * - ACTIVE: Package active and usable
+ * - EXPIRED: Validity period ended
+ * - EXHAUSTED: All listings consumed before expiry
+ *
+ * @indexes
+ * - { orgId: 1, userId: 1, status: 1, expiresAt: 1 } — User's active packages
+ * - { orgId: 1, status: 1, expiresAt: 1 } — Expiration cron queries
+ * - { orgId: 1, userId: 1, paidAt: -1 } — User package history
+ *
+ * @relationships
+ * - References User model (userId)
+ * - References Payment model (paymentId)
+ * - Consumes package slots when Listing is created
+ * - Integrates with notification system (expiry reminders, exhaustion alerts)
+ *
+ * @compliance
+ * - VAT calculation per Saudi VAT law (15% included in price)
+ * - Payment reconciliation (paymentId tracking)
+ * - Audit trail for package purchases and consumption
+ *
+ * @audit
+ * - createdBy: Via tenantIsolationPlugin
+ * - timestamps: createdAt, updatedAt from Mongoose
+ * - activatedAt, paidAt, expiresAt: Lifecycle timestamps
  */
 
 import mongoose, { Schema, Document, Model } from "mongoose";

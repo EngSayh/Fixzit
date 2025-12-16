@@ -1,22 +1,45 @@
 /**
- * ChartAccount Model
+ * @module server/models/finance/ChartAccount
+ * @description Chart of Accounts (COA) structure for double-entry bookkeeping.
+ *              Tailored for Saudi Arabian FM/Aqar marketplace with VAT compliance and hierarchical account structure.
  *
- * Defines the Chart of Accounts (COA) structure for double-entry bookkeeping.
- * Tailored for Saudi Arabian FM/Aqar marketplace with VAT compliance.
+ * @features
+ * - Account types: ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
+ * - Hierarchical structure (parent/child accounts for sub-ledgers)
+ * - Active/inactive control (disable accounts without deletion)
+ * - Opening balance support (initial setup)
+ * - Multi-language support (en/ar account names)
+ * - Account code validation (e.g., 1000-1999 = ASSET, 4000-4999 = REVENUE)
+ * - Audit trail for account structure changes
  *
- * Account Types:
- * - ASSET: Cash, AR, inventory, prepaid, fixed assets
- * - LIABILITY: AP, accrued expenses, deposits, loans
- * - EQUITY: Owner capital, retained earnings
- * - REVENUE: Rent income, service fees, commissions
- * - EXPENSE: Maintenance, utilities, salaries, depreciation
+ * @accountTypes
+ * - ASSET: Cash, AR, inventory, prepaid expenses, fixed assets (1000-1999)
+ * - LIABILITY: AP, accrued expenses, tenant deposits, loans (2000-2999)
+ * - EQUITY: Owner capital, retained earnings (3000-3999)
+ * - REVENUE: Rent income, service fees, commissions (4000-4999)
+ * - EXPENSE: Maintenance, utilities, salaries, depreciation (6000-6999)
  *
- * Features:
- * - Multi-tenant isolation (orgId)
- * - Hierarchical structure (parent/child accounts)
- * - Active/inactive control
- * - Opening balance support
- * - Audit trail
+ * @indexes
+ * - { orgId: 1, accountCode: 1 } (unique) — Unique account code per tenant
+ * - { orgId: 1, accountType: 1, isActive: 1 } — Active accounts by type
+ * - { orgId: 1, parentAccountId: 1 } — Sub-ledger queries
+ *
+ * @relationships
+ * - Self-referencing (parentAccountId) for hierarchical structure
+ * - Referenced by LedgerEntry model (account postings)
+ * - Referenced by Payment model (debitAccountId, creditAccountId)
+ * - Referenced by Expense model (glAccountId)
+ * - Referenced by Journal model (journal line accounts)
+ *
+ * @compliance
+ * - ZATCA e-invoicing: Revenue/expense account classification
+ * - GAZT reporting: VAT account tracking
+ * - Saudi accounting standards: COA structure compliance
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - timestamps: createdAt, updatedAt from Mongoose
+ * - Account structure changes logged in AuditLog
  */
 
 import { Schema, model, models, Types } from "mongoose";

@@ -1,20 +1,48 @@
 /**
- * Journal Model
+ * @module server/models/finance/Journal
+ * @description General ledger journal entries for double-entry bookkeeping.
+ *              Records all financial transactions with balanced debits and credits.
  *
- * Records all financial journal entries in the general ledger.
- * Each journal entry represents a financial transaction with balanced debits and credits.
+ * @features
+ * - Journal entry structure: Header (metadata) + Lines (debit/credit entries)
+ * - Status workflow: DRAFT → POSTED → VOID
+ * - Automatic balance validation (total debits = total credits)
+ * - Source tracking: WO (Work Order), INVOICE, PAYMENT, MANUAL, ADJUSTMENT
+ * - Immutable once posted (can only void with reversing entry)
+ * - Multi-dimensional tracking (property, owner, tenant, vendor per line)
+ * - Decimal128 precision for financial calculations
+ * - Multi-currency support (SAR default)
+ * - Reversal/correction support (void + create reversing entry)
  *
- * Journal Entry Structure:
- * - Header: journalNumber, date, description, source
- * - Lines: Multiple debit/credit entries that must balance
- * - Status: DRAFT, POSTED, VOID
+ * @statuses
+ * - DRAFT: Editable, not affecting GL balances
+ * - POSTED: Finalized, affecting GL balances (immutable)
+ * - VOID: Voided (reversing entry created)
  *
- * Features:
- * - Multi-tenant isolation (orgId)
- * - Immutable once posted (can only void)
- * - Automatic balance validation (debits = credits)
- * - Source tracking (WO, Invoice, Payment, Manual)
- * - Audit trail
+ * @indexes
+ * - { orgId: 1, journalNumber: 1 } (unique) — Unique journal number per tenant
+ * - { orgId: 1, status: 1, journalDate: -1 } — Posted journals for period reports
+ * - { orgId: 1, source: 1, sourceId: 1 } — Link to source transaction (WO, Invoice, Payment)
+ * - { orgId: 1, journalDate: 1, status: 1 } — Date-range queries
+ *
+ * @relationships
+ * - Generates LedgerEntry records (one per journal line)
+ * - References ChartAccount model (journal line accounts)
+ * - Links to WorkOrder model (source: WO)
+ * - Links to Invoice model (source: INVOICE)
+ * - Links to Payment model (source: PAYMENT)
+ * - Links to Property, Owner, Tenant models (multi-dimensional tracking)
+ *
+ * @compliance
+ * - Decimal128 precision for ZATCA/GAZT compliance
+ * - Immutable posted entries (audit trail integrity)
+ * - Balanced entries enforced (debits = credits)
+ * - Source traceability for financial audits
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - postedAt, voidedAt: Manual timestamps for lifecycle tracking
+ * - All journal modifications logged in AuditLog
  */
 
 import { Schema, model, models, Types } from "mongoose";

@@ -1,6 +1,53 @@
 /**
- * Souq Seller Model - Seller/Vendor accounts for marketplace
  * @module server/models/souq/Seller
+ * @description Fixzit Souq seller/vendor account management for B2B marketplace.
+ *              Supports KYC verification, performance tracking, policy compliance, and auto-repricing.
+ *
+ * @features
+ * - Seller types: INDIVIDUAL, BUSINESS, ENTERPRISE
+ * - Status workflow: PENDING_VERIFICATION → ACTIVE → SUSPENDED/DEACTIVATED
+ * - KYC verification (document uploads, admin approval)
+ * - Performance metrics tracking (ODR, late shipment rate, cancellation rate)
+ * - Policy violation tracking (restricted products, fake reviews, counterfeits)
+ * - Auto-repricer rules (dynamic pricing to stay competitive)
+ * - Commission tier management (5-15% based on category and performance)
+ * - Payout schedule configuration (weekly, bi-weekly, monthly)
+ * - Seller rating and review aggregation
+ * - Business documents (CR, VAT cert, bank account)
+ * - Multi-warehouse support (inventory locations)
+ *
+ * @statuses
+ * - PENDING_VERIFICATION: Registration submitted, KYC under review
+ * - ACTIVE: Verified and actively selling
+ * - SUSPENDED: Temporarily suspended (policy violation)
+ * - DEACTIVATED: Permanently deactivated (serious violations)
+ *
+ * @indexes
+ * - { orgId: 1, sellerId: 1 } (unique) — Unique seller ID per tenant
+ * - { orgId: 1, userId: 1 } (unique) — One seller account per user
+ * - { orgId: 1, status: 1, createdAt: -1 } — Active sellers dashboard
+ * - { orgId: 1, performanceMetrics.odr: 1, status: 1 } — High-risk seller queries
+ *
+ * @relationships
+ * - References User model (userId)
+ * - Referenced by souq/Listing model (sellerId)
+ * - Referenced by souq/Order model (items.sellerId)
+ * - Generates Settlement records (payout processing)
+ * - Links to Payment model (payout transactions)
+ * - Links to SellerMetrics model (daily performance snapshots)
+ *
+ * @compliance
+ * - KYC verification (commercial registration, VAT certificate)
+ * - Policy enforcement (restricted products, counterfeit detection)
+ * - Performance monitoring (ODR < 1%, late shipment < 4%)
+ * - VAT registration requirement for B2B sellers
+ * - Anti-money laundering (AML) bank account verification
+ *
+ * @audit
+ * - createdBy: Via tenantIsolationPlugin
+ * - timestamps: createdAt, updatedAt from Mongoose
+ * - Policy violations tracked in policyViolations array
+ * - KYC verification logged in verificationHistory
  */
 
 import mongoose, { Schema, type Document } from "mongoose";

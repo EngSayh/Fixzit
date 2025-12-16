@@ -1,6 +1,44 @@
 /**
- * Souq Review Model - Product reviews and ratings
  * @module server/models/souq/Review
+ * @description Product review and rating system for Fixzit Souq marketplace.
+ *              Supports verified purchase reviews, seller responses, helpfulness voting, and moderation.
+ *
+ * @features
+ * - Star rating (1-5 stars)
+ * - Title + detailed content + pros/cons
+ * - Image uploads (product photos from buyers)
+ * - Verified purchase badge (linked to orderId)
+ * - Helpfulness voting (helpful/not helpful counts)
+ * - Seller response (public reply to review)
+ * - Moderation workflow (flagged reviews, admin approval)
+ * - Review incentives (points, badges for verified reviewers)
+ * - Review aggregation (average rating, count per product)
+ * - Review filter/sort (most helpful, recent, verified only)
+ *
+ * @indexes
+ * - { orgId: 1, reviewId: 1 } (unique) — Unique review ID per tenant
+ * - { orgId: 1, productId: 1, createdAt: -1 } — Product reviews timeline
+ * - { orgId: 1, customerId: 1, createdAt: -1 } — Customer review history
+ * - { orgId: 1, isVerifiedPurchase: 1, rating: -1 } — Verified reviews for credibility
+ * - { orgId: 1, productId: 1, helpful: -1 } — Most helpful reviews
+ *
+ * @relationships
+ * - References Product model (productId)
+ * - References User model (customerId)
+ * - References Order model (orderId for verified purchase validation)
+ * - Aggregated for product rating summary (avg rating, total reviews)
+ * - Links to Seller model (seller response feature)
+ *
+ * @compliance
+ * - Verified purchase badge (prevent fake reviews)
+ * - Moderation for prohibited content (profanity, personal info)
+ * - Seller response transparency (visible to all buyers)
+ * - Review authenticity tracking (IP, device fingerprint)
+ *
+ * @audit
+ * - timestamps: createdAt, updatedAt from Mongoose
+ * - Seller response timestamp (sellerResponse.respondedAt)
+ * - Moderation actions logged (flagged, approved, removed)
  */
 
 import mongoose, { Schema, type Document } from "mongoose";

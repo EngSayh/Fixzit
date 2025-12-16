@@ -1,3 +1,43 @@
+/**
+ * @module server/models/aqar/ViewingRequest
+ * @description Property viewing appointment scheduling with agent coordination and feedback tracking.
+ *              Supports in-person, virtual, and video call viewings.
+ *
+ * @features
+ * - Viewing types: IN_PERSON, VIRTUAL, VIDEO_CALL
+ * - Status workflow: REQUESTED → CONFIRMED → COMPLETED/CANCELLED/NO_SHOW
+ * - Agent assignment and coordination
+ * - Preferred date/time + alternative dates
+ * - Participant management (buyer, spouse, family, agent, investor)
+ * - Feedback collection (rating, comments, interest level, follow-up requests)
+ * - Reminder notifications (email/SMS before viewing)
+ * - No-show tracking (agent time management)
+ * - Virtual viewing link generation (Zoom, Google Meet)
+ *
+ * @statuses
+ * - REQUESTED: Viewing requested by buyer, awaiting agent confirmation
+ * - CONFIRMED: Agent confirmed viewing appointment
+ * - COMPLETED: Viewing completed, feedback collected
+ * - CANCELLED: Cancelled by buyer or agent
+ * - NO_SHOW: Buyer did not show up for viewing
+ *
+ * @indexes
+ * - { orgId: 1, propertyId: 1, status: 1, preferredDate: 1 } — Property viewing schedule
+ * - { orgId: 1, agentId: 1, status: 1, preferredDate: 1 } — Agent calendar
+ * - { orgId: 1, requesterId: 1, createdAt: -1 } — Buyer viewing history
+ * - { orgId: 1, status: 1, preferredDate: 1 } — Upcoming viewings dashboard
+ *
+ * @relationships
+ * - References Property model (propertyId)
+ * - References User model (agentId, requesterId)
+ * - Links to Lead model (converts viewing to lead if interested)
+ * - Integrates with notification system (reminders, confirmations)
+ *
+ * @audit
+ * - createdBy, updatedBy: Auto-tracked via auditPlugin
+ * - timestamps: createdAt, updatedAt from Mongoose
+ * - Feedback submittedAt timestamp
+ */
 import { Schema, model, models, Types } from "mongoose";
 import { getModel, MModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";

@@ -1,7 +1,30 @@
 /**
- * Aqar Souq - Favorite Model
+ * @module server/models/aqar/Favorite
+ * @description User bookmarks/favorites for real estate listings and projects.
+ *              Supports saved searches, wishlist management, and price drop alerts.
  *
- * User bookmarks for listings and projects
+ * @features
+ * - Favorite types: LISTING (property listings), PROJECT (development projects)
+ * - User-specific bookmarks (private, not shared)
+ * - Notes and tags for organizing favorites
+ * - Price tracking (alert on price drops)
+ * - Quick access to saved properties
+ * - Favorite count analytics (popular listings)
+ *
+ * @indexes
+ * - { orgId: 1, userId: 1, targetId: 1, targetType: 1 } (unique) — One favorite per user per target
+ * - { orgId: 1, userId: 1, createdAt: -1 } — User's favorite history
+ * - { orgId: 1, targetId: 1, targetType: 1 } — Favorite count per listing/project
+ *
+ * @relationships
+ * - References User model (userId)
+ * - References Listing model (targetId when targetType = LISTING)
+ * - References Project model (targetId when targetType = PROJECT)
+ * - Integrates with notification system (price drop alerts)
+ *
+ * @audit
+ * - createdBy: Via tenantIsolationPlugin
+ * - timestamps: createdAt, updatedAt from Mongoose
  */
 
 import mongoose, { Schema, Document, Model } from "mongoose";
