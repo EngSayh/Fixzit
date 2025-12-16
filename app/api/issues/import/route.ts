@@ -1,3 +1,36 @@
+/**
+ * Issues Bulk Import API Route Handler
+ * POST /api/issues/import - Import multiple issues from PENDING_MASTER or other sources
+ * 
+ * Supports bulk issue creation with automatic deduplication via hash keys,
+ * status mapping, and event logging. Used by superadmin issue management.
+ * 
+ * @module app/api/issues/import/route
+ * @requires Superadmin authentication
+ * 
+ * @requestBody
+ * - issues: Array of IssueImport objects
+ *   - key: Unique hash key for deduplication (required)
+ *   - title: Issue title (required)
+ *   - category: Issue category (doc, bug, feature, perf, etc.)
+ *   - priority: P0, P1, P2, P3
+ *   - status: open, in_progress, resolved, etc.
+ *   - effort: XS, S, M, L, XL, XXL
+ *   - description: Detailed description
+ *   - evidence: Code snippets or evidence
+ *   - files: Affected file paths
+ *   - externalId: Optional external issue tracker ID
+ * 
+ * @response
+ * - imported: Number of successfully imported issues
+ * - skipped: Number of duplicate issues (same hash key)
+ * - errors: Array of error objects for failed imports
+ * 
+ * @security
+ * - Rate limited: 10 requests per minute per user
+ * - Superadmin-only access
+ * - Tenant-scoped via orgId
+ */
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { createHash } from "crypto";

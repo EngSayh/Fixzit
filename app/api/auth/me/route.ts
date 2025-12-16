@@ -1,10 +1,26 @@
 /**
- * @description Returns the current authenticated user's session data.
- * Provides user profile, role, and organization info for client-side state.
- * Returns guest payload for unauthenticated requests to avoid 401 noise.
- * @route GET /api/auth/me
- * @access Public - Returns different payload based on auth state
- * @returns {Object} authenticated: boolean, user: { id, email, name, role, orgId } | null
+ * Current User Session API Route Handler
+ * GET /api/auth/me - Get current authenticated user's session data
+ * 
+ * Returns user profile, role, and organization info for client-side state management.
+ * Always returns 200 status with guest payload for unauthenticated requests to avoid
+ * 401 noise in browser console. Used by SWR hooks for session polling.
+ * 
+ * @module app/api/auth/me/route
+ * 
+ * @response
+ * - authenticated: boolean
+ * - user: User object (if authenticated) or null (if guest)
+ *   - id: User ID
+ *   - email: User email
+ *   - name: Display name
+ *   - role: User role (admin, user, etc.)
+ *   - orgId: Organization ID
+ * 
+ * @security
+ * - Rate limited: 120 requests per minute per IP (high for polling)
+ * - No authentication required (graceful guest response)
+ * - Returns partial user data only (no sensitive fields)
  */
 import { logger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";

@@ -1,13 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
-
 /**
- * Vercel Cron Job Handler
+ * Vercel Cron Job Handler API Route
+ * GET /api/cron - Execute scheduled background tasks
  * 
- * Triggered by Vercel Cron on schedule defined in vercel.json
- * Protected by CRON_SECRET authorization header
+ * Triggered by Vercel Cron on schedule defined in vercel.json.
+ * Protected by CRON_SECRET authorization header to prevent unauthorized access.
+ * Currently configured for placeholder/maintenance tasks.
+ * 
+ * @module app/api/cron/route
+ * @requires CRON_SECRET environment variable
+ * 
+ * @security
+ * - Authorization: Bearer <CRON_SECRET> header required
+ * - Only accessible via Vercel Cron system
+ * - Returns 401 if secret missing or invalid
+ * 
+ * @response
+ * - success: boolean
+ * - executedAt: ISO timestamp
  * 
  * @see https://vercel.com/docs/cron-jobs
  */
+import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   // Verify cron secret to prevent unauthorized access
   const authHeader = request.headers.get('Authorization');

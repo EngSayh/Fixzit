@@ -1,14 +1,34 @@
 /**
- * @description Verifies OTP code and issues authentication tokens.
- * Creates user session with JWT access and refresh tokens on successful verification.
- * Supports bypass code for development environments.
- * @route POST /api/auth/otp/verify
- * @access Public - Rate limited to prevent brute force
- * @param {Object} body - identifier (email/phone/employeeId), otp (6-digit code), companyCode (optional)
- * @returns {Object} success: true with access/refresh token cookies set
- * @throws {400} If OTP is invalid or expired
- * @throws {401} If max verification attempts exceeded
- * @throws {404} If user not found
+ * OTP Verification API Route Handler
+ * POST /api/auth/otp/verify - Verify OTP code and create user session
+ * 
+ * Validates 6-digit OTP codes sent via SMS/email and issues JWT authentication
+ * tokens on success. Supports development bypass code (000000) when configured.
+ * Creates new user session with access token (5m) and refresh token (7d) cookies.
+ * 
+ * @module app/api/auth/otp/verify/route
+ * @requires NEXTAUTH_SECRET environment variable
+ * 
+ * @requestBody
+ * - identifier: User email, phone, or employeeId (required)
+ * - otp: 6-digit verification code (required)
+ * - companyCode: Organization identifier (optional)
+ * 
+ * @response
+ * - success: boolean
+ * - Sets httpOnly cookies: fx_access_token (5m), fx_refresh_token (7d)
+ * 
+ * @errors
+ * - 400: Invalid OTP or expired (older than 10 minutes)
+ * - 401: Max verification attempts exceeded (5 attempts)
+ * - 404: User not found for identifier
+ * - 429: Rate limit exceeded (10 requests per minute per IP)
+ * 
+ * @security
+ * - Rate limited to prevent brute force attacks
+ * - Max 5 verification attempts per OTP session
+ * - OTP expires after 10 minutes
+ * - Development bypass code (000000) only in non-production
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";

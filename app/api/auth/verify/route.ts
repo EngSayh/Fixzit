@@ -1,13 +1,29 @@
 /**
- * @description Verifies user email address using signed token.
- * Validates the HMAC-signed token and marks user as verified.
- * @route GET /api/auth/verify
- * @access Public
- * @param {string} token - Signed verification token (query param)
- * @returns {Object} success: true, email: string
- * @throws {400} If token is missing or invalid signature
- * @throws {410} If token has expired
- * @throws {500} If NEXTAUTH_SECRET not configured
+ * Email Verification API Route Handler
+ * GET /api/auth/verify - Verify user email address using signed token
+ * 
+ * Validates HMAC-signed verification tokens sent via email and marks
+ * user accounts as verified. Updates user status to 'active' on success.
+ * 
+ * @module app/api/auth/verify/route
+ * @requires NEXTAUTH_SECRET environment variable
+ * 
+ * @queryParams
+ * - token: Signed verification token (HMAC-SHA256, max age 24h)
+ * 
+ * @response
+ * - success: boolean
+ * - email: Verified email address
+ * 
+ * @errors
+ * - 400: Token missing or invalid signature
+ * - 410: Token expired (older than 24 hours)
+ * - 500: NEXTAUTH_SECRET not configured
+ * 
+ * @security
+ * - Rate limited: 10 requests per minute per IP
+ * - Stateless token validation (no database lookup)
+ * - HMAC-SHA256 signature verification
  */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";

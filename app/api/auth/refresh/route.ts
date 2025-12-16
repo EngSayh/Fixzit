@@ -1,13 +1,32 @@
 /**
- * @description Refreshes JWT access tokens using a valid refresh token.
- * Issues a new short-lived access token and optional new refresh token.
- * Implements token rotation for enhanced security.
- * @route POST /api/auth/refresh
- * @access Private - Requires valid refresh token cookie
- * @returns {Object} success: true with new token cookies set
- * @throws {401} If refresh token is missing or invalid
- * @throws {403} If refresh token JTI has been revoked
- * @throws {500} If NEXTAUTH_SECRET is not configured
+ * JWT Token Refresh API Route Handler
+ * POST /api/auth/refresh - Refresh JWT access token using refresh token
+ * 
+ * Issues new short-lived access tokens (5m) using valid refresh tokens (7d).
+ * Implements token rotation for enhanced security - optionally rotates refresh
+ * tokens and revokes old ones. Validates refresh token JTI against revocation list.
+ * 
+ * @module app/api/auth/refresh/route
+ * @requires NEXTAUTH_SECRET environment variable
+ * 
+ * @requestCookies
+ * - fx_refresh_token: Valid refresh token (7d expiry)
+ * 
+ * @response
+ * - success: boolean
+ * - Sets new httpOnly cookies: fx_access_token (5m), optionally fx_refresh_token (7d)
+ * 
+ * @errors
+ * - 401: Refresh token missing, invalid, or expired
+ * - 403: Refresh token JTI has been revoked
+ * - 429: Rate limit exceeded (30 requests per minute per IP)
+ * - 500: NEXTAUTH_SECRET not configured
+ * 
+ * @security
+ * - Rate limited to prevent token harvesting
+ * - Token rotation: old refresh token revoked when new one issued
+ * - JTI-based revocation list (stored in refresh-token-store)
+ * - HttpOnly, Secure, SameSite cookies
  */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";

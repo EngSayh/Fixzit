@@ -1,12 +1,30 @@
 /**
- * @description Initiates password reset flow by sending reset email.
- * Generates a stateless HMAC-SHA256 signed token valid for 1 hour.
- * Always returns success to prevent email enumeration attacks.
- * @route POST /api/auth/forgot-password
- * @access Public - Rate limited to 5 requests per 15 minutes per IP
- * @param {Object} body - email, locale (en|ar)
- * @returns {Object} success: true (always returns success)
- * @throws {429} If rate limit exceeded
+ * Password Reset Initiation API Route Handler
+ * POST /api/auth/forgot-password - Initiate password reset flow
+ * 
+ * Sends password reset email with stateless HMAC-SHA256 signed token (1h expiry).
+ * Always returns success response regardless of email existence to prevent
+ * email enumeration attacks. Uses i18n for localized reset emails.
+ * 
+ * @module app/api/auth/forgot-password/route
+ * @requires NEXTAUTH_SECRET environment variable
+ * 
+ * @requestBody
+ * - email: User email address (required)
+ * - locale: Language code for email (en|ar, default: en)
+ * 
+ * @response
+ * - success: true (always returns true, even if email not found)
+ * 
+ * @errors
+ * - 429: Rate limit exceeded (5 requests per 15 minutes per IP)
+ * 
+ * @security
+ * - Rate limited: 5 requests per 15 minutes per IP
+ * - Stateless token (HMAC-SHA256 signature, no database storage)
+ * - 1-hour token expiry
+ * - Email enumeration protection (always returns success)
+ * - Sends reset link to user email only if account exists
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
