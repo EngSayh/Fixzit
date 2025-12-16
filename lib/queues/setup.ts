@@ -82,7 +82,6 @@ export function createWorker<T = unknown, R = unknown>(
 ): Worker<T, R> {
   if (workers.has(name)) {
     logger.warn(`Worker for ${name} already exists, returning existing worker`);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return workers.get(name)! as Worker<T, R>;
   }
 

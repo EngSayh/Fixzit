@@ -1,27 +1,9 @@
 {
-  "timestamp": "2025-12-14T01:00:00Z",
-  "source": "MASTER_PENDING_REPORT.md + Production Console",
+  "timestamp": "2025-12-16T12:09:33Z",
+  "source": "docs/PENDING_MASTER.md",
   "branch": "main",
-  "commit": "b132ccca1",
+  "commit": "9d9e0b9f2",
   "issues": [
-    {
-      "key": "CONFIG-003",
-      "externalId": "CONFIG-003",
-      "title": "AWS_REGION missing causes production crash",
-      "category": "bug",
-      "priority": "P0",
-      "status": "resolved",
-      "location": "lib/config/constants.ts:24-49",
-      "sourcePath": "production",
-      "sourceRef": "production:browser-console:layout-f93b22953e8481e6.js:1:157683",
-      "evidenceSnippet": "ConfigurationError: Required environment variable AWS_REGION is not set (no fallback provided)",
-      "impact": "CRITICAL - Production app crash on all pages; validateAwsConfig() throws at module init",
-      "resolution": "Changed validateAwsConfig to log warnings instead of throwing; made AWS config optional with safe fallbacks (us-east-1, fixzit-uploads)",
-      "resolvedAt": "2025-12-14T01:00:00Z",
-      "commitRef": "pending",
-      "effort": "XS",
-      "riskTags": ["SECURITY", "REGRESSION"]
-    },
     {
       "key": "SEC-002",
       "externalId": "SEC-002",
@@ -140,6 +122,86 @@
       "effort": "XS",
       "riskTags": ["PERFORMANCE"],
       "detectedAt": "2025-12-14T00:00:00Z"
+    },
+    {
+      "key": "DOC-101",
+      "externalId": "DOC-101",
+      "title": "Missing JSDoc for superadmin issues route handlers",
+      "category": "documentation",
+      "priority": "P2",
+      "status": "open",
+      "location": "app/api/superadmin/issues/route.ts:1-26",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:app/api/superadmin/issues/route.ts:1-10",
+      "evidenceSnippet": "import { NextRequest, NextResponse } from 'next/server'; // No JSDoc header",
+      "impact": "Reduced API discoverability and onboarding friction for superadmin backlog tracker",
+      "effort": "XS",
+      "riskTags": ["DOCUMENTATION"],
+      "detectedAt": "2025-12-15T09:40:00Z"
+    },
+    {
+      "key": "DOC-102",
+      "externalId": "DOC-102",
+      "title": "Missing JSDoc for 51 lib utility modules (auth, payments, storage, middleware)",
+      "category": "documentation",
+      "priority": "P1",
+      "status": "open",
+      "location": "lib/zatca.ts:1-15",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:lib/zatca.ts:1-15",
+      "evidenceSnippet": "import QRCode from \"qrcode\"; // No file/module documentation",
+      "impact": "Security/auth modules undocumented; onboarding and auditability risks",
+      "effort": "M",
+      "riskTags": ["SECURITY", "DOCUMENTATION"],
+      "detectedAt": "2025-12-15T09:40:00Z"
+    },
+    {
+      "key": "DOC-103",
+      "externalId": "DOC-103",
+      "title": "Missing JSDoc for 124 Mongoose model schemas",
+      "category": "documentation",
+      "priority": "P2",
+      "status": "open",
+      "location": "server/models/BacklogIssue.ts:1-15",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:server/models/BacklogIssue.ts:1-15",
+      "evidenceSnippet": "import { Schema, model, models } from 'mongoose'; // No schema documentation",
+      "impact": "Schema usage unclear; increases risk of misuse and data contract drift",
+      "effort": "L",
+      "riskTags": ["DATA", "DOCUMENTATION"],
+      "detectedAt": "2025-12-15T09:40:00Z"
+    },
+    {
+      "key": "DOC-104",
+      "externalId": "DOC-104",
+      "title": "Missing function-level JSDoc for superadmin issues CRUD endpoints",
+      "category": "documentation",
+      "priority": "P2",
+      "status": "open",
+      "location": "app/api/superadmin/issues/route.ts:7-66",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:app/api/superadmin/issues/route.ts:7-26",
+      "evidenceSnippet": "export async function GET(req: NextRequest) {",
+      "impact": "Handler intent untracked; increases risk of misuse and missing auth/rate-limit notes",
+      "effort": "XS",
+      "riskTags": ["DOCUMENTATION"],
+      "detectedAt": "2025-12-15T09:40:00Z"
+    },
+    {
+      "key": "DOC-107",
+      "externalId": "DOC-107",
+      "title": "Missing TypeScript interface documentation for BacklogIssue types",
+      "category": "documentation",
+      "priority": "P3",
+      "status": "open",
+      "location": "server/models/BacklogIssue.ts:3-6",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:server/models/BacklogIssue.ts:3-6",
+      "evidenceSnippet": "export type BacklogCategory = 'bug' | 'logic' | 'test' | 'efficiency' | 'next_step';",
+      "impact": "Type contracts lack descriptions; onboarding risk for backlog tracker contributors",
+      "effort": "XS",
+      "riskTags": ["DOCUMENTATION"],
+      "detectedAt": "2025-12-15T09:40:00Z"
     }
   ],
   "resolvedItems": [
@@ -205,20 +267,21 @@
     }
   ],
   "summary": {
-    "total": 8,
-    "open": 7,
+    "total": 12,
+    "open": 12,
     "resolved": 7,
     "byPriority": {
       "P0": 0,
-      "P1": 2,
-      "P2": 4,
-      "P3": 1
+      "P1": 3,
+      "P2": 7,
+      "P3": 2
     },
     "byCategory": {
       "security": 1,
-      "bug": 2,
+      "bug": 1,
       "efficiency": 2,
-      "missing_test": 3
+      "missing_test": 3,
+      "documentation": 5
     }
   }
 }

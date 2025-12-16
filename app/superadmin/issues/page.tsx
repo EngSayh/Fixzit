@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/i18n/useI18n";
 import {
   Bug,
   Clock,
@@ -155,6 +156,7 @@ const CATEGORY_ICONS: Record<string, typeof Bug> = {
 export default function SuperadminIssuesPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   // Session state
   const [session, setSession] = useState<SessionInfo | null>(null);
@@ -380,7 +382,7 @@ export default function SuperadminIssuesPage() {
   if (sessionLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <div className="text-white text-lg">Verifying access...</div>
+        <div className="text-white text-lg">{t("superadmin.verifyingAccess")}</div>
       </div>
     );
   }
@@ -396,7 +398,7 @@ export default function SuperadminIssuesPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Shield className="h-6 w-6 text-amber-500" />
-            <span className="text-white font-semibold">Superadmin</span>
+            <span className="text-white font-semibold">{t("superadmin.title")}</span>
             <Badge variant="outline" className="border-amber-500 text-amber-500">
               {session.user?.username}
             </Badge>
@@ -404,11 +406,11 @@ export default function SuperadminIssuesPage() {
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white">
               <Settings className="h-4 w-4 me-2" />
-              Settings
+              {t("superadmin.settings")}
             </Button>
             <Button variant="ghost" size="sm" onClick={handleLogout} className="text-slate-300 hover:text-white">
               <LogOut className="h-4 w-4 me-2" />
-              Logout
+              {t("superadmin.logout")}
             </Button>
           </div>
         </div>
@@ -420,33 +422,33 @@ export default function SuperadminIssuesPage() {
           <div>
             <h1 className="text-3xl font-bold text-white flex items-center gap-2">
               <Database className="h-8 w-8" />
-              System Issue Tracker
+              {t("superadmin.issues.title")}
             </h1>
             <p className="text-slate-400">
-              Full system access • Track and manage all issues
+              {t("superadmin.issues.subtitle")}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
               <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? "animate-spin" : ""}`} />
-              Refresh
+              {t("superadmin.issues.refresh")}
             </Button>
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="h-4 w-4 me-2" />
-              Export
+              {t("superadmin.issues.export")}
             </Button>
             <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Upload className="h-4 w-4 me-2" />
-                  Import
+                  {t("superadmin.issues.import")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Import Issues</DialogTitle>
+                  <DialogTitle>{t("superadmin.issues.importTitle")}</DialogTitle>
                   <DialogDescription>
-                    Paste JSON array of issues or simple text (one title per line)
+                    {t("superadmin.issues.importDesc")}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">

@@ -25,7 +25,7 @@ const ActivationJobDataSchema = z.object({
 });
 
 type ActivationJobData = z.infer<typeof ActivationJobDataSchema>;
-type ActivationWorker = Worker<ActivationJobData, unknown>;
+type ActivationWorker = Worker<ActivationJobData, any>;
 type ActivationQueue = Queue<ActivationJobData>;
 
 // Queue and worker instances (for graceful shutdown)

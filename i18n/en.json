@@ -4839,5 +4839,61 @@
         }
       }
     }
+  },
+  "superadmin": {
+    "title": "Superadmin",
+    "settings": "Settings",
+    "logout": "Logout",
+    "verifyingAccess": "Verifying access...",
+    "issues": {
+      "title": "System Issue Tracker",
+      "subtitle": "Full system access • Track and manage all issues",
+      "refresh": "Refresh",
+      "export": "Export",
+      "import": "Import",
+      "importTitle": "Import Issues",
+      "importDesc": "Paste JSON array of issues or simple text (one title per line)",
+      "add": "Add Issue",
+      "search": "Search issues...",
+      "filters": {
+        "status": "Status",
+        "priority": "Priority",
+        "category": "Category",
+        "all": "All"
+      },
+      "views": {
+        "all": "All Issues",
+        "quickWins": "Quick Wins",
+        "stale": "Stale (>30d)",
+        "resolved": "Resolved"
+      },
+      "stats": {
+        "total": "Total",
+        "open": "Open",
+        "closed": "Closed",
+        "healthScore": "Health Score",
+        "quickWins": "Quick Wins",
+        "stale": "Stale",
+        "blocked": "Blocked",
+        "recentlyClosed": "Recently Closed"
+      },
+      "table": {
+        "id": "ID",
+        "title": "Title",
+        "category": "Category",
+        "priority": "Priority",
+        "status": "Status",
+        "location": "Location",
+        "updated": "Updated",
+        "actions": "Actions"
+      },
+      "empty": "No issues found",
+      "loading": "Loading...",
+      "error": "Failed to load issues",
+      "exportSuccess": "Exported successfully",
+      "importSuccess": "Imported successfully",
+      "deleteSuccess": "Deleted successfully",
+      "updateSuccess": "Updated successfully"
+    }
   }
 }
