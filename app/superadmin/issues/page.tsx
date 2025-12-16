@@ -339,7 +339,7 @@ export default function SuperadminIssuesPage() {
 
   // Navigate to issue detail
   const handleIssueClick = (issueId: string) => {
-    router.push(`/admin/issues/${issueId}`);
+    router.push(`/superadmin/issues/${issueId}`);
   };
 
   // Export handler
