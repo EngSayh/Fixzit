@@ -2,6 +2,49 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-16 20:30 (Asia/Riyadh) — Backlog Status Review
+**Context:** main | b6cf5a2bb | SSOT protocol verification  
+**DB Sync:** PENDING (localhost:3000 offline) - docs/BACKLOG_AUDIT.json ready for import
+
+**📊 Current Backlog Status (from BACKLOG_AUDIT.json):**
+
+**P0 (CRITICAL - 1 issue):**
+- **OPS-OTP-BYPASS** — Production blocked by OTP bypass env var in lib/config/env-guards.ts
+
+**P1 (HIGH - 3 issues):**
+- **SEC-002** — 50+ DB queries missing tenant scope validation (IDOR risk)
+- **BUG-001** — 40+ direct process.env accesses in client code (hydration/security risk)
+- **PERF-001** (P2)** — N+1 BuyBoxService calls in auto-repricer
+
+**P2 (MEDIUM - 12 issues):**
+- **TEST-002** — HR module tests missing (employees CRUD, payroll)
+- **TEST-003** — Finance module tests missing (invoices, payments, billing)
+- **TEST-004** — CRM module test coverage gaps
+- **REF-001** — CRM route handler tests needed
+- **DOC-101** through **DOC-110** — Documentation gaps (7 API routes, 51 lib utilities, 124 models, OpenAPI spec, error docs)
+
+**P3 (LOW - 6 issues):**
+- **PERF-002** — Sequential updates in fulfillment/claims
+- **TEST-001** — Souq test coverage (checkout, fulfillment, repricer)
+- **BUG-011** — Add .catch() to notification chains
+
+**✅ Verification Confirmed:**
+- NEXTAUTH_SECRET: Set in Production (25 days ago)
+- NEXTAUTH_URL: Set in Production (25 days ago)
+- Vercel env vars: All auth secrets configured correctly
+
+**🔴 Blocked:**
+- MongoDB Issue Tracker API unavailable (localhost:3000)
+- Cannot import BACKLOG_AUDIT.json until server running
+
+**Next Steps (Priority Order):**
+1. **P0:** Fix OPS-OTP-BYPASS (remove bypass env vars from Production/Preview)
+2. **P1:** Audit SEC-002 tenant scope gaps (50+ DB operations)
+3. **P1:** Fix BUG-001 process.env client accesses (40+ occurrences)
+4. **When server available:** Import BACKLOG_AUDIT.json to MongoDB
+
+---
+
 ### 2025-12-16 17:00 (Asia/Riyadh) — MongoDB Atlas App Services Export
 **Context:** main | 6d2850293 | Atlas triggers/functions export  
 **Action:** Exported MongoDB Atlas App Services configuration for backup/version control

@@ -201,7 +201,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const isAuthPage =
     authRoutes.has(pathname) ||
     pathname.startsWith("/login") ||
-    pathname.startsWith("/signup");
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/superadmin");
 
   // Use a single source of truth for what's protected on the client
   const protectedPrefixes = PROTECTED_ROUTE_PREFIXES;
