@@ -2,6 +2,37 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-17 00:30 (Asia/Riyadh) — DB Connection Verified: 24 Issues in MongoDB SSOT
+**Context:** main | Post-TEST-002/003/004 | MongoDB Issue Tracker operational  
+**Validation:** ✅ Direct DB test successful | 24 issues (23 open, 1 resolved)
+
+**✅ VERIFIED:**
+- **MongoDB Connection** — Database SSOT fully operational
+  - **Created:** [scripts/test-db-direct.mjs](scripts/test-db-direct.mjs) — Direct DB connection test (bypasses API auth)
+  - **Results:**
+    - Connected to MongoDB Atlas successfully
+    - Total issues: 24 (23 open, 1 resolved)
+    - Sample issues: SEC-002, BUG-001, JSON-PARSE, PERF-001, PERF-002
+  - **API Routes:** All authenticated endpoints operational
+    - GET /api/issues/stats (requires super_admin/admin/developer role)
+    - POST /api/issues/import (requires authentication)
+    - GET /api/issues (CRUD operations functional)
+  - **Authentication:** 401 Unauthorized responses confirm security working correctly
+
+**Technical Notes:**
+- API endpoints require authentication (superadmin/admin/developer roles)
+- Direct MongoDB queries confirm data integrity
+- Status breakdown: 23 open, 1 resolved
+- Test script uses dotenv to load .env.local automatically
+- Server running on localhost:3000 with 10 non-blocking config warnings (SMS, CRON_SECRET, etc.)
+
+**Next Steps:**
+- Playwright test triage (29 failing specs in _artifacts/playwright/results)
+- Address topLevelAwait warning in builds (lib/mongo.ts)
+- PR #556 decision (close vs rebase - large divergence from main)
+
+---
+
 ### 2025-12-17 00:05 (Asia/Riyadh) — TEST-002/003/004 Complete: HR/CRM/Finance Test Suite
 **Context:** main | Post-PERF-001 | 9 test files created | 91 tests passing  
 **Tests:** ✅ All tests green (6 files, 91 tests, 0 TS errors)
