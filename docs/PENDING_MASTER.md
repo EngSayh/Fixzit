@@ -2,6 +2,54 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-16 21:15 (Asia/Riyadh) — SSOT Sync: Recent Sessions Consolidated
+**Context:** main @ a5bf57ec9 | Synced with origin/main | Working tree CLEAN  
+**MongoDB:** 34 issues (25 open, 2 in_progress, 7 resolved) [verified via scripts/test-db-direct.mjs]  
+**Git Status:** ## main...origin/main (synced, no ahead/behind)
+
+**✅ COMPLETED SINCE LAST SSOT SYNC:**
+
+**1. a9e88771e** - `fix(tests): Add tenantId to mock user + fix rate-limit mock in CRM test`
+- Fixed TypeScript errors in [tests/api/crm/accounts-share.route.test.ts](tests/api/crm/accounts-share.route.test.ts)
+- Added `tenantId: mockOrgId` to satisfy SessionUser type contract
+- Changed rate-limit mock from `new Response()` to `Response.json()` for proper semantics
+- **Validation:** All 7 CRM tests passing (pnpm vitest run tests/api/crm/accounts-share.route.test.ts)
+- **Result:** +3 insertions, -2 deletions
+
+**2. b6d057d71** - `docs(models): DOC-103 Batch 3 - Add JSDoc to 10 models`
+- CMS: CmsPage
+- Compliance: ComplianceAudit, CompliancePolicy
+- FM: FMApproval, FMFinancialTransaction, FMPMPlan
+- HR/Tenant: FamilyMember
+- Help: HelpArticle
+- Souq: AttributeSet, RFQ
+- **Result:** +336 lines comprehensive JSDoc
+
+**3. a5bf57ec9** - `docs(backlog): Update DOC-103 progress - Batch 3 complete`
+- Updated backlog documentation to reflect 36/71 models documented (50.7% complete)
+
+**📊 DOC-103 PROGRESS SUMMARY:**
+- **Batch 1 (previous):** 16 models (User, Property, WorkOrder, Invoice, Organization, Vendor, Asset, Tenant, Customer, AuditLog, FeatureFlag, NotificationLog, Role, Permission, Issue, SMS*)
+- **Batch 2 (308697666):** 10 models (hr.models.ts, CrmLead, CrmActivity, Product, Order, Category, Job, Application, Candidate, ServiceContract)
+- **Batch 3 (b6d057d71):** 10 models (CmsPage, ComplianceAudit, CompliancePolicy, FMApproval, FMFinancialTransaction, FMPMPlan, FamilyMember, HelpArticle, AttributeSet, RFQ)
+- **Total Documented:** 36/71 models (50.7% complete)
+- **Remaining:** 35 models (~5.5 hours estimated)
+
+**🔍 VALIDATION:**
+- ✅ pnpm typecheck: 0 errors
+- ✅ pnpm lint: clean
+- ✅ CRM test suite: 7/7 passing
+- ✅ Pre-commit hooks: all passed (both commits)
+- ✅ Working tree: CLEAN
+- ✅ Branch: synced with origin/main
+
+**📈 MONGODB STATE UPDATE:**
+- Previous: 34 issues (25 open, 0 in_progress, 8 resolved) [BACKLOG_AUDIT was stale]
+- Current: 34 issues (25 open, 2 in_progress, 7 resolved) [verified]
+- Delta: +2 in_progress, -1 resolved (status transitions, not new issues)
+
+---
+
 ### 2025-12-18 02:00 (Asia/Riyadh) — SSOT Verification + MongoDB Reality Check
 **Context:** main @ b32bd4630 | Synced with origin/main | Working tree CLEAN  
 **MongoDB:** 34 issues (26 open, 1 in_progress, 7 resolved) [verified via scripts/test-db-direct.mjs]  
