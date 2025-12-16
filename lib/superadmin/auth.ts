@@ -162,35 +162,30 @@ export function applySuperadminCookies(
   const secure = process.env.NODE_ENV === "production";
   const sameSite: "lax" | "strict" = "lax";
 
-  for (const path of COOKIE_PATHS) {
-    // Response may be NextResponse with cookies API
-    const respWithCookies = response as Response & { cookies?: { set: (name: string, value: string, opts: Record<string, unknown>) => void } };
-    if (respWithCookies.cookies && typeof respWithCookies.cookies.set === "function") {
-      respWithCookies.cookies.set(SUPERADMIN_COOKIE_NAME, token, {
-        httpOnly: true,
-        secure,
-        sameSite,
-        path,
-        maxAge: maxAgeSeconds,
-        priority: "high",
-      });
-    }
+  // Set cookie with /superadmin path so it's accessible on all superadmin routes
+  const respWithCookies = response as Response & { cookies?: { set: (name: string, value: string, opts: Record<string, unknown>) => void } };
+  if (respWithCookies.cookies && typeof respWithCookies.cookies.set === "function") {
+    respWithCookies.cookies.set(SUPERADMIN_COOKIE_NAME, token, {
+      httpOnly: true,
+      secure,
+      sameSite,
+      path: "/superadmin",
+      maxAge: maxAgeSeconds,
+      priority: "high",
+    });
   }
 }
 
 export function clearSuperadminCookies(response: Response): void {
-  for (const path of COOKIE_PATHS) {
-    // Response may be NextResponse with cookies API
-    const respWithCookies = response as Response & { cookies?: { set: (name: string, value: string, opts: Record<string, unknown>) => void } };
-    if (respWithCookies.cookies && typeof respWithCookies.cookies.set === "function") {
-      respWithCookies.cookies.set(SUPERADMIN_COOKIE_NAME, "", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path,
-        maxAge: 0,
-      });
-    }
+  const respWithCookies = response as Response & { cookies?: { set: (name: string, value: string, opts: Record<string, unknown>) => void } };
+  if (respWithCookies.cookies && typeof respWithCookies.cookies.set === "function") {
+    respWithCookies.cookies.set(SUPERADMIN_COOKIE_NAME, "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/superadmin",
+      maxAge: 0,
+    });
   }
 }
 
