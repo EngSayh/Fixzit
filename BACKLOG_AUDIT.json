@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-12-16T22:45:00+03:00",
-  "source": "docs/PENDING_MASTER.md + SESSION:2025-12-16T22:45 + MongoDB verification",
+  "timestamp": "2025-12-16T23:30:00+03:00",
+  "source": "docs/PENDING_MASTER.md + SESSION:2025-12-16-batch5 + MongoDB verification",
   "branch": "main",
-  "commit": "fcdcaab7b",
+  "commit": "ae1dc4901",
   "workingTree": "CLEAN",
   "mongodbIssues": 34,
   "mongodbBreakdown": {
@@ -19,7 +19,8 @@
     "TEST-005: Aqar test coverage complete (16 files, 40 tests)",
     "DOC-103 Batch 3: JSDoc to 10 models (b6d057d71)",
     "CRM-TEST-001: accounts-share test type fixes (a9e88771e)",
-    "DOC-103 Batch 4: JSDoc to 10 models (bffeae037 - Owner, OwnerStatement, MaintenanceLog, SLA, Aqar Listing/Lead, Finance Payment/Expense, Souq Product/Order)"
+    "DOC-103 Batch 4: JSDoc to 10 models (bffeae037 - Owner, OwnerStatement, MaintenanceLog, SLA, Aqar Listing/Lead, Finance Payment/Expense, Souq Product/Order)",
+    "DOC-103 Batch 5: JSDoc to 10 models (ae1dc4901 - Finance Budget/ChartAccount/Journal/LedgerEntry, Aqar Booking/Favorite/ViewingRequest/Package, Souq Seller/Review)"
   ],
   "issues": [
     {
@@ -164,20 +165,20 @@
     {
       "key": "DOC-103",
       "externalId": "DOC-103",
-      "title": "Add JSDoc to 124 Mongoose schemas (Progress: 46/71 models = 64.8%)",
+      "title": "Add JSDoc to 124 Mongoose schemas (Progress: 56/71 models = 78.9%)",
       "category": "documentation",
       "priority": "P2",
       "status": "in_progress",
       "location": "server/models/",
       "sourcePath": "audit",
-      "sourceRef": "PENDING_MASTER:2025-12-16-batch4-complete",
-      "evidenceSnippet": "Progress: 46/71 models documented (64.8%). Batch 1 (16 models): Core entities. Batch 2 (10 models): HR/ATS, CRM, Souq marketplace. Batch 3 (10 models): FamilyMember, Compliance, CMS, Help, FM workflows. Batch 4 (10 models): Owner, OwnerStatement, MaintenanceLog, SLA, Aqar Listing/Lead, Finance Payment/Expense, Souq Product/Order. Remaining: 25 models across FM/Finance/Aqar/Onboarding/QA domains.",
-      "impact": "Schema changes risky; field constraints unclear; harder to maintain data integrity. Improved with 64.8% coverage.",
+      "sourceRef": "PENDING_MASTER:2025-12-16-batch5-complete",
+      "evidenceSnippet": "Progress: 56/71 models documented (78.9%). Batch 1 (16 models): Core entities. Batch 2 (10 models): HR/ATS, CRM, Souq. Batch 3 (10 models): FamilyMember, Compliance, CMS, Help, FM. Batch 4 (10 models): Owner, OwnerStatement, MaintenanceLog, SLA, Aqar, Finance, Souq. Batch 5 (10 models): Finance Budget/ChartAccount/Journal/LedgerEntry, Aqar Booking/Favorite/ViewingRequest/Package, Souq Seller/Review. Remaining: 15 models across Onboarding/QA/Souq/Admin domains.",
+      "impact": "Schema changes risky; field constraints unclear; harder to maintain data integrity. Significantly improved with 78.9% coverage.",
       "effort": "L",
       "batchProgress": {
         "total": 71,
-        "documented": 46,
-        "remaining": 25,
+        "documented": 56,
+        "remaining": 15,
         "batches": [
           {
             "name": "Batch 1",
@@ -202,6 +203,12 @@
             "count": 10,
             "commit": "bffeae037",
             "models": "Owner, OwnerStatement, MaintenanceLog, SLA, aqar/Listing, aqar/Lead, finance/Payment, finance/Expense, souq/Product, souq/Order"
+          },
+          {
+            "name": "Batch 5",
+            "count": 10,
+            "commit": "ae1dc4901",
+            "models": "finance/Budget, finance/ChartAccount, finance/Journal, finance/LedgerEntry, aqar/Booking, aqar/Favorite, aqar/ViewingRequest, aqar/Package, souq/Seller, souq/Review"
           }
         ]
       }
