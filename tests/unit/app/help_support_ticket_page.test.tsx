@@ -26,7 +26,7 @@ vi.mock('@/components/ui/navigation-buttons', () => ({
 // IMPORTANT: Adjust this import path to the actual component path in your repo.
 // The snippet shows the component definition only; if it's under `app/help/support/page.tsx`,
 // or similar, change accordingly. For now, we import from a relative inline path assumption.
-import SupportTicketPage from '@/app/help/support-ticket/page';
+import SupportTicketPage from '@/app/(app)/help/support-ticket/page';
 
 // Helpers to mock global APIs
 const originalFetch = global.fetch;

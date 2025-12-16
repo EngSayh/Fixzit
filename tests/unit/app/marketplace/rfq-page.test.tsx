@@ -35,7 +35,7 @@ vi.mock('@/components/marketplace/RFQBoard', () => ({
 }));
 
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
-import MarketplaceRFQPage from '@/app/marketplace/rfq/page';
+import MarketplaceRFQPage from '@/app/(app)/marketplace/rfq/page';
 
 const mockServerFetch = serverFetchJsonWithTenant as unknown as ReturnType<typeof vi.fn>;
 

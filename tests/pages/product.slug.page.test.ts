@@ -24,7 +24,7 @@ let ProductPage: typeof InlineModule.default;
 
 const importPageModule = async () => {
    
-  const mod = await import('@/app/marketplace/product/[slug]/page');
+  const mod = await import('@/app/(app)/marketplace/product/[slug]/page');
   return mod;
 };
 

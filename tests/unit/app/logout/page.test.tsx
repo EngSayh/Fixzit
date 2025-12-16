@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import LogoutPage from '@/app/logout/page';
+import LogoutPage from '@/app/(app)/logout/page';
 
 // Mock Next.js navigation
 const mockPush = vi.fn();

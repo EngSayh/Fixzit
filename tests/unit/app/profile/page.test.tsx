@@ -24,7 +24,7 @@ vi.mock("react-hot-toast", () => ({
   Toaster: () => null,
 }));
 
-import ProfilePage from "@/app/profile/page";
+import ProfilePage from "@/app/(app)/profile/page";
 
 const originalEnv = { ...process.env };
 
