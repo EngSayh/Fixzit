@@ -8,8 +8,8 @@
 **Last Updated:** 2025-12-16T19:10:00Z (Asia/Riyadh)  
 **Scanner Version:** v2.5  
 **Branch:** main  
-**Commit:** 307122047  
-**MongoDB Status:** 24 issues (23 open, 1 resolved)
+**Commit:** 5adbf33b4 (pending push)  
+**MongoDB Status:** 33 issues (30 open, 3 resolved)
 
 ---
 
@@ -19,7 +19,7 @@
 |--------|-------|
 | **Health Score** | 93/100 |
 | **Files Scanned** | 881 (app/ + lib/) |
-| **Total Issues** | 24 (🔴 3 🟠 15 🟢 6) |
+| **Total Issues** | 33 (🔴 3 🟠 20 🟢 10) |
 | **Test Coverage** | 100% API (78/78 passing) |
 | **Build Status** | ✅ 0 TS errors, 0 ESLint errors |
 
@@ -30,11 +30,11 @@
 4. [ ] **[DOC-102]** Missing JSDoc for 51 lib utility modules (auth, payments, storage, middleware)
 5. [ ] **[DOC-103]** Missing JSDoc for 124 Mongoose model schemas
 
-### ✅ Recently Resolved (2025-12-16)
-1. **[UI-001]** ✅ Superadmin language selector refactored (dropdown with flags)
-2. **[I18N-001]** ✅ Superadmin layout locale normalization robustness
-3. **[OPS-001]** ✅ GitHub Actions workflow order fix (pnpm before Node setup)
-4. **[OPS-002]** ✅ PR Agent workflow dependency update (Codium-ai)
+### ✅ Recently Resolved (2025-12-16 - Session at 19:10)
+1. **[WORKFLOW-001]** ✅ build-sourcemaps.yml pnpm setup order fixed (was after node setup)
+2. **[WORKFLOW-002]** ✅ pr_agent.yml action reference updated (qodo-ai → Codium-ai)
+3. **[UI-001]** ✅ Superadmin language selector with flags + aria-label
+4. **[HEADER-OBSERV]** ✅ SuperadminHeader structured logging (session/logout errors)
 5. **[TEST-ALIGNMENT-001/002/003/004]** ✅ All API tests passing (78/78)
 
 ---
