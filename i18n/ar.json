@@ -4823,6 +4823,10 @@
       "import": "استيراد",
       "importTitle": "استيراد المشاكل",
       "importDesc": "الصق مصفوفة JSON للمشاكل أو نص بسيط (عنوان واحد لكل سطر)",
+      "importDataLabel": "بيانات المشاكل",
+      "importPlaceholder": "[{\\"title\\": \\"إصلاح خطأ...\\", \\"priority\\": \\"P1\\"}]",
+      "importDryRun": "تشغيل تجريبي",
+      "importing": "جارٍ الاستيراد...",
       "add": "إضافة مشكلة",
       "search": "بحث في المشاكل...",
       "filters": {
@@ -4845,7 +4849,30 @@
         "quickWins": "إصلاحات سريعة",
         "stale": "قديمة",
         "blocked": "محظورة",
-        "recentlyClosed": "مغلقة مؤخراً"
+        "recentlyClosed": "مغلقة مؤخراً",
+        "recentlyResolved": "هذا الأسبوع"
+      },
+      "priorities": {
+        "p0": "P0 حرجة",
+        "p1": "P1 عالية",
+        "p2": "P2 متوسطة",
+        "p3": "P3 منخفضة"
+      },
+      "categories": {
+        "bug": "خطأ",
+        "security": "أمن",
+        "efficiency": "كفاءة",
+        "missing_test": "اختبار مفقود",
+        "logic_error": "خطأ منطقي"
+      },
+      "statuses": {
+        "open": "مفتوحة",
+        "in_progress": "قيد التنفيذ",
+        "in_review": "قيد المراجعة",
+        "blocked": "محظورة",
+        "resolved": "محلولة",
+        "closed": "مغلقة",
+        "wont_fix": "لن يتم الإصلاح"
       },
       "table": {
         "id": "المعرّف",
@@ -4853,17 +4880,41 @@
         "category": "الفئة",
         "priority": "الأولوية",
         "status": "الحالة",
+        "module": "الوحدة",
+        "seen": "مرات الظهور",
         "location": "الموقع",
         "updated": "آخر تحديث",
         "actions": "الإجراءات"
       },
       "empty": "لم يتم العثور على مشاكل",
+      "emptyHint": "جرّب تعديل الفلاتر أو استيراد المشاكل",
       "loading": "جاري التحميل...",
       "error": "خطأ في تحميل المشاكل",
+      "tableDescription": "انقر على المشكلة لعرض التفاصيل وتحديث الحالة",
       "exportSuccess": "تم التصدير بنجاح",
       "importSuccess": "تم الاستيراد بنجاح",
       "deleteSuccess": "تم الحذف بنجاح",
-      "updateSuccess": "تم التحديث بنجاح"
+      "updateSuccess": "تم التحديث بنجاح",
+      "toast": {
+        "errorTitle": "خطأ",
+        "loadFailed": "فشل تحميل المشاكل",
+        "noDataTitle": "لا توجد بيانات",
+        "noDataDescription": "يرجى لصق JSON للمشاكل أو نص عادي",
+        "importComplete": "تم الاستيراد",
+        "importDryRunComplete": "اكتمل التشغيل التجريبي",
+        "importSummary": "تم الاستيراد: {created}، التحديث: {updated}، المتخطى: {skipped}",
+        "importFailedTitle": "فشل الاستيراد",
+        "importFailed": "تعذر استيراد المشاكل. تحقق من التنسيق.",
+        "exportComplete": "تم التصدير",
+        "exportSummary": "تم تصدير {count} مشكلة",
+        "exportFailedTitle": "فشل التصدير",
+        "exportFailed": "تعذر تصدير المشاكل"
+      },
+      "pagination": {
+        "previous": "السابق",
+        "next": "التالي",
+        "pageOf": "الصفحة {page} من {total}"
+      }
     }
   }
 }

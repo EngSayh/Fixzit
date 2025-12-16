@@ -4853,6 +4853,10 @@
       "import": "Import",
       "importTitle": "Import Issues",
       "importDesc": "Paste JSON array of issues or simple text (one title per line)",
+      "importDataLabel": "Issues Data",
+      "importPlaceholder": "[{\\"title\\": \\"Fix bug...\\", \\"priority\\": \\"P1\\"}]",
+      "importDryRun": "Dry Run",
+      "importing": "Importing...",
       "add": "Add Issue",
       "search": "Search issues...",
       "filters": {
@@ -4875,7 +4879,30 @@
         "quickWins": "Quick Wins",
         "stale": "Stale",
         "blocked": "Blocked",
-        "recentlyClosed": "Recently Closed"
+        "recentlyClosed": "Recently Closed",
+        "recentlyResolved": "This Week"
+      },
+      "priorities": {
+        "p0": "P0 Critical",
+        "p1": "P1 High",
+        "p2": "P2 Medium",
+        "p3": "P3 Low"
+      },
+      "categories": {
+        "bug": "Bug",
+        "security": "Security",
+        "efficiency": "Efficiency",
+        "missing_test": "Missing Test",
+        "logic_error": "Logic Error"
+      },
+      "statuses": {
+        "open": "Open",
+        "in_progress": "In Progress",
+        "in_review": "In Review",
+        "blocked": "Blocked",
+        "resolved": "Resolved",
+        "closed": "Closed",
+        "wont_fix": "Won't Fix"
       },
       "table": {
         "id": "ID",
@@ -4883,17 +4910,41 @@
         "category": "Category",
         "priority": "Priority",
         "status": "Status",
+        "module": "Module",
+        "seen": "Seen",
         "location": "Location",
         "updated": "Updated",
         "actions": "Actions"
       },
       "empty": "No issues found",
+      "emptyHint": "Try adjusting your filters or import issues",
       "loading": "Loading...",
       "error": "Failed to load issues",
+      "tableDescription": "Click on an issue to view details and update status",
       "exportSuccess": "Exported successfully",
       "importSuccess": "Imported successfully",
       "deleteSuccess": "Deleted successfully",
-      "updateSuccess": "Updated successfully"
+      "updateSuccess": "Updated successfully",
+      "toast": {
+        "errorTitle": "Error",
+        "loadFailed": "Failed to load issues",
+        "noDataTitle": "No Data",
+        "noDataDescription": "Please paste issues JSON or markdown",
+        "importComplete": "Import Complete",
+        "importDryRunComplete": "Dry Run Complete",
+        "importSummary": "Imported: {created}, Updated: {updated}, Skipped: {skipped}",
+        "importFailedTitle": "Import Failed",
+        "importFailed": "Could not import issues. Check format.",
+        "exportComplete": "Export Complete",
+        "exportSummary": "Exported {count} issues",
+        "exportFailedTitle": "Export Failed",
+        "exportFailed": "Could not export issues"
+      },
+      "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "pageOf": "Page {page} of {total}"
+      }
     }
   }
 }

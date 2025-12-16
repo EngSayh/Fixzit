@@ -25,7 +25,12 @@ const ActivationJobDataSchema = z.object({
 });
 
 type ActivationJobData = z.infer<typeof ActivationJobDataSchema>;
-type ActivationWorker = Worker<ActivationJobData, any>;
+type ActivationJobResult = {
+  success: true;
+  aqarPaymentId: string;
+  invoiceId: string;
+};
+type ActivationWorker = Worker<ActivationJobData, ActivationJobResult>;
 type ActivationQueue = Queue<ActivationJobData>;
 
 // Queue and worker instances (for graceful shutdown)
@@ -158,7 +163,7 @@ export async function startActivationWorker(): Promise<ActivationWorker> {
     return activeWorker;
   }
 
-  const worker: ActivationWorker = new Worker<ActivationJobData>(
+  const worker: ActivationWorker = new Worker<ActivationJobData, ActivationJobResult>(
     QUEUE_NAME,
     async (job: Job<ActivationJobData>) => {
       // Validate job data with Zod schema (fail-closed on invalid)

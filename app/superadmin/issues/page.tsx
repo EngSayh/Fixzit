@@ -179,6 +179,61 @@ export default function SuperadminIssuesPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [viewMode, setViewMode] = useState<"all" | "quickWins" | "stale">("all");
 
+  const getStatusLabel = useCallback(
+    (status: string) => {
+      const key = `superadmin.issues.statuses.${status}`;
+      const value = t(key);
+      return value === key ? status.replace("_", " ") : value;
+    },
+    [t],
+  );
+
+  const getCategoryLabel = useCallback(
+    (category: string) => {
+      const key = `superadmin.issues.categories.${category}`;
+      const value = t(key);
+      return value === key ? category.replace("_", " ") : value;
+    },
+    [t],
+  );
+
+  const getPriorityLabel = useCallback(
+    (priority: string) => {
+      const key = `superadmin.issues.priorities.${priority.toLowerCase()}`;
+      const value = t(key);
+      return value === key ? priority : value;
+    },
+    [t],
+  );
+
+  const statusOptions = [
+    { value: "all", label: t("superadmin.issues.filters.all") },
+    { value: "open", label: getStatusLabel("open") },
+    { value: "in_progress", label: getStatusLabel("in_progress") },
+    { value: "in_review", label: getStatusLabel("in_review") },
+    { value: "blocked", label: getStatusLabel("blocked") },
+    { value: "resolved", label: getStatusLabel("resolved") },
+    { value: "closed", label: getStatusLabel("closed") },
+    { value: "wont_fix", label: getStatusLabel("wont_fix") },
+  ];
+
+  const priorityOptions = [
+    { value: "all", label: t("superadmin.issues.filters.all") },
+    { value: "P0", label: getPriorityLabel("P0") },
+    { value: "P1", label: getPriorityLabel("P1") },
+    { value: "P2", label: getPriorityLabel("P2") },
+    { value: "P3", label: getPriorityLabel("P3") },
+  ];
+
+  const categoryOptions = [
+    { value: "all", label: t("superadmin.issues.filters.all") },
+    { value: "bug", label: getCategoryLabel("bug") },
+    { value: "security", label: getCategoryLabel("security") },
+    { value: "efficiency", label: getCategoryLabel("efficiency") },
+    { value: "missing_test", label: getCategoryLabel("missing_test") },
+    { value: "logic_error", label: getCategoryLabel("logic_error") },
+  ];
+
   // Pagination
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -232,15 +287,15 @@ export default function SuperadminIssuesPage() {
       setTotalPages(payload.pagination?.totalPages || 1);
     } catch (_error) {
       toast({
-        title: "Error",
-        description: "Failed to load issues",
+        title: t("superadmin.issues.toast.errorTitle"),
+        description: t("superadmin.issues.toast.loadFailed"),
         variant: "destructive",
       });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast]);
+  }, [page, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast, t]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -293,6 +348,7 @@ export default function SuperadminIssuesPage() {
       const response = await fetch("/api/issues?limit=5000");
       const data = await response.json();
       const payload = data.data || data;
+      const issuesCount = (payload.issues || []).length;
       
       const blob = new Blob([JSON.stringify(payload.issues, null, 2)], {
         type: "application/json",
@@ -306,13 +362,13 @@ export default function SuperadminIssuesPage() {
       URL.revokeObjectURL(url);
 
       toast({
-        title: "Export Complete",
-        description: `Exported ${(payload.issues || []).length} issues`,
+        title: t("superadmin.issues.toast.exportComplete"),
+        description: t("superadmin.issues.toast.exportSummary", { count: issuesCount }),
       });
     } catch (_error) {
       toast({
-        title: "Export Failed",
-        description: "Could not export issues",
+        title: t("superadmin.issues.toast.exportFailedTitle"),
+        description: t("superadmin.issues.toast.exportFailed"),
         variant: "destructive",
       });
     }
@@ -322,8 +378,8 @@ export default function SuperadminIssuesPage() {
   const handleImport = async (dryRun = false) => {
     if (!importData.trim()) {
       toast({
-        title: "No Data",
-        description: "Please paste issues JSON or markdown",
+        title: t("superadmin.issues.toast.noDataTitle"),
+        description: t("superadmin.issues.toast.noDataDescription"),
         variant: "destructive",
       });
       return;
@@ -356,8 +412,14 @@ export default function SuperadminIssuesPage() {
 
       if (result.success) {
         toast({
-          title: dryRun ? "Dry Run Complete" : "Import Complete",
-          description: `Imported: ${result.result.created}, Updated: ${result.result.updated}, Skipped: ${result.result.skipped}`,
+          title: dryRun
+            ? t("superadmin.issues.toast.importDryRunComplete")
+            : t("superadmin.issues.toast.importComplete"),
+          description: t("superadmin.issues.toast.importSummary", {
+            created: result.result.created,
+            updated: result.result.updated,
+            skipped: result.result.skipped,
+          }),
         });
 
         if (!dryRun) {
@@ -370,8 +432,8 @@ export default function SuperadminIssuesPage() {
       }
     } catch (_error) {
       toast({
-        title: "Import Failed",
-        description: "Could not import issues. Check format.",
+        title: t("superadmin.issues.toast.importFailedTitle"),
+        description: t("superadmin.issues.toast.importFailed"),
         variant: "destructive",
       });
     } finally {
@@ -453,9 +515,9 @@ export default function SuperadminIssuesPage() {
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label>Issues Data</Label>
+                    <Label>{t("superadmin.issues.importDataLabel")}</Label>
                     <Textarea
-                      placeholder='[{"title": "Fix bug...", "priority": "P1"}]'
+                      placeholder={t("superadmin.issues.importPlaceholder")}
                       value={importData}
                       onChange={(e) => setImportData(e.target.value)}
                       rows={10}
@@ -464,10 +526,10 @@ export default function SuperadminIssuesPage() {
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button variant="outline" onClick={() => handleImport(true)} disabled={importing}>
-                      Dry Run
+                      {t("superadmin.issues.importDryRun")}
                     </Button>
                     <Button onClick={() => handleImport(false)} disabled={importing}>
-                      {importing ? "Importing..." : "Import"}
+                      {importing ? t("superadmin.issues.importing") : t("superadmin.issues.import")}
                     </Button>
                   </div>
                 </div>
@@ -475,7 +537,7 @@ export default function SuperadminIssuesPage() {
             </Dialog>
             <Button size="sm">
               <Plus className="h-4 w-4 me-2" />
-              New Issue
+              {t("superadmin.issues.add")}
             </Button>
           </div>
         </div>
@@ -495,13 +557,13 @@ export default function SuperadminIssuesPage() {
             <>
               <Card className="bg-slate-800 border-slate-700">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-400">Total</p>
+                  <p className="text-xs text-slate-400">{t("superadmin.issues.stats.total")}</p>
                   <p className="text-2xl font-bold text-white">{stats?.total || 0}</p>
                 </CardContent>
               </Card>
               <Card className="bg-slate-800 border-slate-700">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-400">Open</p>
+                  <p className="text-xs text-slate-400">{t("superadmin.issues.stats.open")}</p>
                   <p className="text-2xl font-bold text-orange-500">
                     {stats?.totalOpen || 0}
                   </p>
@@ -509,7 +571,7 @@ export default function SuperadminIssuesPage() {
               </Card>
               <Card className="bg-slate-800 border-slate-700">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-400">Resolved</p>
+                  <p className="text-xs text-slate-400">{t("superadmin.issues.stats.closed")}</p>
                   <p className="text-2xl font-bold text-green-500">
                     {stats?.totalClosed || 0}
                   </p>
@@ -517,7 +579,7 @@ export default function SuperadminIssuesPage() {
               </Card>
               <Card className="bg-slate-800 border-slate-700">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-400">Quick Wins</p>
+                  <p className="text-xs text-slate-400">{t("superadmin.issues.stats.quickWins")}</p>
                   <p className="text-2xl font-bold text-emerald-500">
                     {stats?.quickWins || 0}
                   </p>
@@ -525,7 +587,7 @@ export default function SuperadminIssuesPage() {
               </Card>
               <Card className="bg-slate-800 border-slate-700">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-400">Stale</p>
+                  <p className="text-xs text-slate-400">{t("superadmin.issues.stats.stale")}</p>
                   <p className="text-2xl font-bold text-yellow-500">
                     {stats?.stale || 0}
                   </p>
@@ -533,7 +595,7 @@ export default function SuperadminIssuesPage() {
               </Card>
               <Card className="bg-slate-800 border-slate-700">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-400">Blocked</p>
+                  <p className="text-xs text-slate-400">{t("superadmin.issues.stats.blocked")}</p>
                   <p className="text-2xl font-bold text-red-500">
                     {stats?.blocked || 0}
                   </p>
@@ -541,7 +603,7 @@ export default function SuperadminIssuesPage() {
               </Card>
               <Card className="bg-slate-800 border-slate-700">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-400">This Week</p>
+                  <p className="text-xs text-slate-400">{t("superadmin.issues.stats.recentlyResolved")}</p>
                   <p className="text-2xl font-bold text-blue-500">
                     {stats?.recentlyResolved || 0}
                   </p>
@@ -549,7 +611,7 @@ export default function SuperadminIssuesPage() {
               </Card>
               <Card className={`bg-slate-800 ${(stats?.healthScore || 0) >= 70 ? "border-green-500" : (stats?.healthScore || 0) >= 40 ? "border-yellow-500" : "border-red-500"}`}>
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-400">Health</p>
+                  <p className="text-xs text-slate-400">{t("superadmin.issues.stats.healthScore")}</p>
                   <p className={`text-2xl font-bold ${
                     (stats?.healthScore || 0) >= 70 ? "text-green-500" :
                     (stats?.healthScore || 0) >= 40 ? "text-yellow-500" : "text-red-500"
@@ -569,7 +631,7 @@ export default function SuperadminIssuesPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2 text-white">
                   <XCircle className="h-4 w-4 text-red-600" />
-                  P0 Critical
+                  {getPriorityLabel("P0")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -580,7 +642,7 @@ export default function SuperadminIssuesPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2 text-white">
                   <AlertTriangle className="h-4 w-4 text-orange-500" />
-                  P1 High
+                  {getPriorityLabel("P1")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -591,7 +653,7 @@ export default function SuperadminIssuesPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2 text-white">
                   <Clock className="h-4 w-4 text-yellow-500" />
-                  P2 Medium
+                  {getPriorityLabel("P2")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -602,7 +664,7 @@ export default function SuperadminIssuesPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2 text-white">
                   <CheckCircle2 className="h-4 w-4 text-blue-500" />
-                  P3 Low
+                  {getPriorityLabel("P3")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -620,7 +682,7 @@ export default function SuperadminIssuesPage() {
                 <div className="relative">
                   <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
-                    placeholder="Search issues..."
+                    placeholder={t("superadmin.issues.search")}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="ps-9 bg-slate-700 border-slate-600 text-white"
@@ -630,43 +692,40 @@ export default function SuperadminIssuesPage() {
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[140px] bg-slate-700 border-slate-600 text-white">
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={t("superadmin.issues.filters.status")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="in_review">In Review</SelectItem>
-                  <SelectItem value="blocked">Blocked</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
                 <SelectTrigger className="w-[140px] bg-slate-700 border-slate-600 text-white">
-                  <SelectValue placeholder="Priority" />
+                  <SelectValue placeholder={t("superadmin.issues.filters.priority")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Priority</SelectItem>
-                  <SelectItem value="P0">P0 Critical</SelectItem>
-                  <SelectItem value="P1">P1 High</SelectItem>
-                  <SelectItem value="P2">P2 Medium</SelectItem>
-                  <SelectItem value="P3">P3 Low</SelectItem>
+                  {priorityOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-[140px] bg-slate-700 border-slate-600 text-white">
-                  <SelectValue placeholder="Category" />
+                  <SelectValue placeholder={t("superadmin.issues.filters.category")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="bug">Bug</SelectItem>
-                  <SelectItem value="security">Security</SelectItem>
-                  <SelectItem value="efficiency">Efficiency</SelectItem>
-                  <SelectItem value="missing_test">Missing Test</SelectItem>
-                  <SelectItem value="logic_error">Logic Error</SelectItem>
+                  {categoryOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -676,7 +735,7 @@ export default function SuperadminIssuesPage() {
                   size="sm"
                   onClick={() => setViewMode("all")}
                 >
-                  All
+                  {t("superadmin.issues.views.all")}
                 </Button>
                 <Button
                   variant={viewMode === "quickWins" ? "default" : "outline"}
@@ -684,7 +743,7 @@ export default function SuperadminIssuesPage() {
                   onClick={() => setViewMode("quickWins")}
                 >
                   <Zap className="h-4 w-4 me-1" />
-                  Quick Wins
+                  {t("superadmin.issues.views.quickWins")}
                 </Button>
                 <Button
                   variant={viewMode === "stale" ? "default" : "outline"}
@@ -692,7 +751,7 @@ export default function SuperadminIssuesPage() {
                   onClick={() => setViewMode("stale")}
                 >
                   <Clock className="h-4 w-4 me-1" />
-                  Stale
+                  {t("superadmin.issues.views.stale")}
                 </Button>
               </div>
             </div>
@@ -704,10 +763,11 @@ export default function SuperadminIssuesPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <TrendingUp className="h-5 w-5" />
-              Issues ({issues.length})
+              {t("superadmin.issues.title")}
+              <span className="text-sm text-slate-400">({issues.length})</span>
             </CardTitle>
             <CardDescription className="text-slate-400">
-              Click on an issue to view details and update status
+              {t("superadmin.issues.tableDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -720,21 +780,21 @@ export default function SuperadminIssuesPage() {
             ) : issues.length === 0 ? (
               <div className="p-8 text-center text-slate-400">
                 <Bug className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="font-medium">No issues found</p>
-                <p className="text-sm">Try adjusting your filters or import issues</p>
+                <p className="font-medium">{t("superadmin.issues.empty")}</p>
+                <p className="text-sm">{t("superadmin.issues.emptyHint")}</p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                    <TableHead className="text-slate-300 w-[80px]">ID</TableHead>
-                    <TableHead className="text-slate-300 w-[80px]">Priority</TableHead>
-                    <TableHead className="text-slate-300">Title</TableHead>
-                    <TableHead className="text-slate-300 w-[100px]">Status</TableHead>
-                    <TableHead className="text-slate-300 w-[100px]">Category</TableHead>
-                    <TableHead className="text-slate-300 w-[80px]">Module</TableHead>
-                    <TableHead className="text-slate-300 w-[60px]">Seen</TableHead>
-                    <TableHead className="text-slate-300 w-[100px]">Updated</TableHead>
+                    <TableHead className="text-slate-300 w-[80px]">{t("superadmin.issues.table.id")}</TableHead>
+                    <TableHead className="text-slate-300 w-[80px]">{t("superadmin.issues.table.priority")}</TableHead>
+                    <TableHead className="text-slate-300">{t("superadmin.issues.table.title")}</TableHead>
+                    <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.status")}</TableHead>
+                    <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.category")}</TableHead>
+                    <TableHead className="text-slate-300 w-[80px]">{t("superadmin.issues.table.module")}</TableHead>
+                    <TableHead className="text-slate-300 w-[60px]">{t("superadmin.issues.table.seen")}</TableHead>
+                    <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.updated")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -752,7 +812,7 @@ export default function SuperadminIssuesPage() {
                         </TableCell>
                         <TableCell>
                           <Badge className={PRIORITY_COLORS[issue.priority] || "bg-gray-500"}>
-                            {issue.priority}
+                            {getPriorityLabel(issue.priority)}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -771,11 +831,11 @@ export default function SuperadminIssuesPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary" className={STATUS_COLORS[issue.status]}>
-                            {issue.status.replace("_", " ")}
+                            {getStatusLabel(issue.status)}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-slate-300 capitalize">{issue.category?.replace("_", " ")}</span>
+                          <span className="text-sm text-slate-300 capitalize">{getCategoryLabel(issue.category)}</span>
                         </TableCell>
                         <TableCell>
                           <span className="text-sm font-mono text-slate-300">{issue.module}</span>
@@ -806,10 +866,10 @@ export default function SuperadminIssuesPage() {
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
             >
-              Previous
+              {t("superadmin.issues.pagination.previous")}
             </Button>
             <span className="flex items-center px-4 text-sm text-slate-400">
-              Page {page} of {totalPages}
+              {t("superadmin.issues.pagination.pageOf", { page, total: totalPages })}
             </span>
             <Button
               variant="outline"
@@ -817,7 +877,7 @@ export default function SuperadminIssuesPage() {
               disabled={page === totalPages}
               onClick={() => setPage(page + 1)}
             >
-              Next
+              {t("superadmin.issues.pagination.next")}
             </Button>
           </div>
         )}
