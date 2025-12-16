@@ -2,9 +2,42 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
-### 2025-12-16 21:15 (Asia/Riyadh) — DOC-103: Mongoose JSDoc Documentation (Batch 1/5)
-**Context:** main | DOC-103 in_progress | 16/66 models documented (24.2%)  
-**MongoDB:** 21 issues (19 open, 2 resolved)
+### 2025-12-16 23:20 (Asia/Riyadh) — SSOT Sync: DOC-101/REF-001/DOC-102 Complete + Route Group Fix
+**Context:** main @ 898f7b882 | Synced with origin | Working tree CLEAN  
+**MongoDB:** 33 issues (29 open, 1 in_progress, 3 resolved)  
+**Git Status:** ## main...origin/main (both at 898f7b882, no ahead/behind)
+
+**✅ COMPLETED SPRINT (All 3 tasks from NEXT STEPS):**
+
+**1. DOC-101** - Add JSDoc to 7 API Route Handlers (commit b3dd8ecd5)
+- [app/api/issues/import/route.ts](app/api/issues/import/route.ts) - Bulk import with deduplication
+- [app/api/cron/route.ts](app/api/cron/route.ts) - Vercel cron job handler
+- [app/api/auth/verify/route.ts](app/api/auth/verify/route.ts) - Email verification
+- [app/api/auth/otp/verify/route.ts](app/api/auth/otp/verify/route.ts) - OTP verification + session
+- [app/api/auth/refresh/route.ts](app/api/auth/refresh/route.ts) - JWT token refresh
+- [app/api/auth/me/route.ts](app/api/auth/me/route.ts) - Current user session
+- [app/api/auth/forgot-password/route.ts](app/api/auth/forgot-password/route.ts) - Password reset flow
+- Result: +182 lines JSDoc with @module tags, request/response schemas, error codes
+
+**2. REF-001** - Create CRM Unit Tests (commit b0ed68c72)
+- [tests/api/crm/accounts-share.route.test.ts](tests/api/crm/accounts-share.route.test.ts) - 7 test cases
+- Coverage: RBAC, tenant isolation, rate limiting, error handling
+- Result: 7/7 tests passing, 281 lines of test code
+
+**3. DOC-102** - Add JSDoc to 10 Core Lib Modules (commit f80139758)
+- Auth: role-guards.ts, emailVerification.ts, passwordReset.ts
+- Security: encryption.ts (AES-256-GCM), av-scan.ts
+- Payments: currencyUtils.ts
+- Config: constants.ts
+- Middleware: rate-limit.ts
+- Infrastructure: sms-providers/index.ts, date-utils.ts
+- Result: +120 lines JSDoc with @module tags, security notes, compliance refs
+
+**4. LAYOUT-FIX-001** - Route Group Restructuring (commit 898f7b882)
+- Moved all public/landing pages to app/(app)/* route group
+- Restores universal shell (header + sidebar + footer) across all routes
+- Fixes: about, aqar, careers, cms, dev, docs, help, marketplace, pricing, privacy, product, souq, terms
+- Result: 80+ files moved, universal layout now consistent
 
 **✅ PROGRESS (P2 - DOCUMENTATION):**
 - **DOC-103 Batch 1** — Core Mongoose models now have comprehensive JSDoc

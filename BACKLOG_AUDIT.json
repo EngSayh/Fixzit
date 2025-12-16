@@ -1,8 +1,21 @@
 {
-  "timestamp": "2025-12-16T19:50:00+03:00",
-  "source": "docs/PENDING_MASTER.md + code-review:2025-12-16",
+  "timestamp": "2025-12-16T23:20:00+03:00",
+  "source": "docs/PENDING_MASTER.md + SESSION:2025-12-16T23:20",
   "branch": "main",
-  "commit": "4931bf2a0",
+  "commit": "898f7b882",
+  "workingTree": "CLEAN",
+  "mongodbIssues": 33,
+  "mongodbBreakdown": {
+    "open": 29,
+    "in_progress": 1,
+    "resolved": 3
+  },
+  "recentlyCompleted": [
+    "DOC-101: JSDoc to 7 API routes (b3dd8ecd5)",
+    "REF-001: CRM unit tests (b0ed68c72)",
+    "DOC-102: JSDoc to 10 lib modules (f80139758)",
+    "LAYOUT-FIX-001: Route group restructuring (898f7b882)"
+  ],
   "issues": [
     {
       "key": "WORKFLOW-001",
@@ -53,19 +66,52 @@
       }
     },
     {
+      "key": "LAYOUT-FIX-001",
+      "externalId": "LAYOUT-FIX-001",
+      "title": "Route group restructuring: Restore universal shell via (app) route group",
+      "category": "layout",
+      "priority": "P0",
+      "status": "resolved",
+      "location": "app/(app)/*",
+      "sourcePath": "verification",
+      "sourceRef": "SSOT-sync:2025-12-16T23:20",
+      "evidenceSnippet": "Public/landing pages (about, aqar, careers, cms, dev, docs, help, marketplace, pricing, privacy, product, souq, terms) missing universal shell (header + sidebar + footer) due to route group misconfiguration",
+      "impact": "Layout freeze violated; branding inconsistency; missing navigation elements on public pages",
+      "rootCause": "Pages moved out of (app) route group broke universal layout inheritance",
+      "proposedFix": "Move all public pages back into app/(app)/* route group to restore universal shell",
+      "effort": "M",
+      "riskTags": ["LAYOUT_FREEZE", "BRANDING"],
+      "resolution": {
+        "status": "resolved",
+        "resolvedAt": "2025-12-16T20:16:00+03:00",
+        "commit": "898f7b882",
+        "implementedBy": "System (previous session)",
+        "summary": "Moved 80+ public pages to app/(app)/* route group. Universal shell (header + sidebar + footer) now consistent across all routes. Layout freeze restored.",
+        "filesChanged": 82,
+        "validation": "Visual inspection + build validation confirmed universal layout inheritance"
+      }
+    },
+    {
       "key": "REF-001",
       "externalId": "REF-001",
       "title": "Create CRM route handler unit tests",
       "category": "missing_test",
       "priority": "P2",
-      "status": "open",
-      "location": "tests/unit/api/crm/",
+      "status": "resolved",
+      "location": "tests/api/crm/accounts-share.route.test.ts",
       "sourcePath": "audit",
       "sourceRef": "PENDING_MASTER:2025-12-17-session",
       "evidenceSnippet": "CRM route handlers lack unit tests for business logic validation separate from integration tests",
       "impact": "Missing unit test coverage for CRM handler logic; harder to isolate business logic bugs",
       "effort": "M",
-      "riskTags": ["TEST_GAP"]
+      "riskTags": ["TEST_GAP"],
+      "resolution": {
+        "status": "resolved",
+        "resolvedAt": "2025-12-16T20:14:00+03:00",
+        "commit": "b0ed68c72",
+        "implementedBy": "Copilot Agent",
+        "summary": "Created comprehensive test suite for CRM accounts/share route with 7 test cases covering RBAC, tenant isolation, rate limiting, validation, and error handling. All tests passing."
+      }
     },
     {
       "key": "DOC-101",
@@ -73,13 +119,20 @@
       "title": "Add JSDoc to 7 undocumented API route handlers",
       "category": "documentation",
       "priority": "P2",
-      "status": "open",
-      "location": "app/api/",
+      "status": "resolved",
+      "location": "app/api/{issues/import,cron,auth/*}",
       "sourcePath": "audit",
       "sourceRef": "PENDING_MASTER:2025-12-17-session",
       "evidenceSnippet": "Seven API route handlers missing JSDoc comments for parameters, return types, and error codes",
       "impact": "Harder for developers to understand API contracts; increases onboarding time",
-      "effort": "S"
+      "effort": "S",
+      "resolution": {
+        "status": "resolved",
+        "resolvedAt": "2025-12-16T20:12:00+03:00",
+        "commit": "b3dd8ecd5",
+        "implementedBy": "Copilot Agent",
+        "summary": "Added comprehensive JSDoc with @module tags to 7 API route handlers: issues/import, cron, auth/{verify,otp/verify,refresh,me,forgot-password}. +182 lines documentation."
+      }
     },
     {
       "key": "DOC-102",
@@ -87,13 +140,21 @@
       "title": "Add JSDoc to 51 lib utility modules (P1 priority)",
       "category": "documentation",
       "priority": "P2",
-      "status": "open",
-      "location": "lib/",
+      "status": "in_progress",
+      "location": "lib/{auth,security,payments,config,middleware,sms-providers,date-utils}",
       "sourcePath": "audit",
       "sourceRef": "PENDING_MASTER:2025-12-17-session",
       "evidenceSnippet": "Fifty-one utility modules in lib/ lack comprehensive JSDoc for function signatures and usage patterns",
       "impact": "Code reusability suffers; utility functions used incorrectly; duplicated logic",
-      "effort": "M"
+      "effort": "M",
+      "partialResolution": {
+        "status": "in_progress",
+        "progressAt": "2025-12-16T20:15:00+03:00",
+        "commit": "f80139758",
+        "implementedBy": "Copilot Agent",
+        "summary": "Batch 1/5: Added JSDoc with @module tags to 10 critical lib modules (auth: 3, security: 2, payments: 1, config: 1, middleware: 1, infrastructure: 2). +120 lines documentation. 41 modules remaining.",
+        "progress": "10/51 modules (19.6%)"
+      }
     },
     {
       "key": "DOC-103",

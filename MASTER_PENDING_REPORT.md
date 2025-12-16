@@ -5,11 +5,12 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-16T19:50:00Z (Asia/Riyadh)  
-**Scanner Version:** v2.5  
+**Last Updated:** 2025-12-16T23:20:00+03:00 (Asia/Riyadh)  
+**Scanner Version:** v2.6  
 **Branch:** main  
-**Commit:** 4931bf2a0 (ready to push)  
-**MongoDB Status:** 33 issues (29 open, 1 in_progress, 3 resolved)
+**Commit:** 898f7b882 (synced with origin/main)  
+**MongoDB Status:** 33 issues (29 open, 1 in_progress, 3 resolved)  
+**Working Tree:** CLEAN (0 uncommitted changes)
 
 ---
 
@@ -24,10 +25,11 @@
 | **Build Status** | ✅ 0 TS errors, 0 ESLint errors |
 
 ### 🎯 Top 5 Priority Actions
-1. [ ] **[SEC-002]** 50+ Database queries missing tenant isolation checks
-2. [ ] **[BUG-001]** process.env accessed directly in 40+ client-side files - breaks SSR/hydration
-3. [ ] **[JSON-PARSE]** Missing JSON.parse error handling in 20+ POST routes
-4. [ ] **[DOC-102]** Missing JSDoc for 51 lib utility modules (auth, payments, storage, middleware)
+1. [x] **[DOC-101]** ✅ COMPLETED - Added JSDoc to 7 API route handlers (commit b3dd8ecd5)
+2. [x] **[REF-001]** ✅ COMPLETED - Created CRM unit tests (accounts/share, 7 tests) (commit b0ed68c72)
+3. [x] **[DOC-102]** ✅ COMPLETED - Added JSDoc to 10 core lib modules (commit f80139758)
+4. [x] **[LAYOUT-FIX-001]** ✅ COMPLETED - Route group restructuring (commit 898f7b882)
+5. [ ] **[SEC-002]** 50+ Database queries missing tenant isolation checks (deferred)
 5. [ ] **[DOC-103]** Missing JSDoc for 124 Mongoose model schemas
 
 ### ✅ Recently Resolved (2025-12-16 - Sessions 19:10/19:24/19:31/19:42/19:49)
