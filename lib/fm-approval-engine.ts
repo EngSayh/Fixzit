@@ -1014,6 +1014,7 @@ export async function notifyApprovers(
 
     const approvers = await User.find({
       _id: { $in: stage.approvers },
+      orgId: workflow.orgId,
     })
       .select("_id email personal.firstName personal.lastName")
       .lean<LeanUserDetailed[]>();

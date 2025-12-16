@@ -14,6 +14,9 @@ import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
 import { SuperadminSidebar } from "@/components/superadmin/SuperadminSidebar";
 import { SuperadminHeader } from "@/components/superadmin/SuperadminHeader";
 import { usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
+
+const Footer = dynamic(() => import("@/components/Footer"), { ssr: false });
 
 export default function SuperadminLayout({
   children,
@@ -93,6 +96,9 @@ export default function SuperadminLayout({
             <main className="flex-1 overflow-auto">
               {children}
             </main>
+            
+            {/* Universal Footer */}
+            <Footer />
           </div>
         </div>
       )}

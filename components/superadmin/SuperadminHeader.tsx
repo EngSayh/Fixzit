@@ -11,12 +11,33 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/useI18n";
 import { LogOut, Settings, User, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
+
+const CurrencySelector = dynamic(
+  () => import("@/components/i18n/CurrencySelector"),
+  { ssr: false }
+);
 
 export function SuperadminHeader() {
   const router = useRouter();
   const { t, locale, setLocale } = useI18n();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [username, setUsername] = useState<string>("Admin");
+
+  // Fetch superadmin session on mount
+  useEffect(() => {
+    fetch("/api/superadmin/session")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.user?.username) {
+          setUsername(data.user.username);
+        }
+      })
+      .catch(() => {
+        // Graceful fallback - keep default "Admin"
+      });
+  }, []);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -66,10 +87,15 @@ export function SuperadminHeader() {
           {locale === "ar" ? "EN" : "العربية"}
         </Button>
 
+        {/* Currency Selector */}
+        <div className="text-slate-300">
+          <CurrencySelector variant="compact" />
+        </div>
+
         {/* User Badge */}
         <div className="flex items-center gap-2 px-3 py-2 bg-slate-800 rounded-lg border border-slate-700">
           <User className="h-4 w-4 text-slate-400" />
-          <span className="text-white text-sm">EngSayh</span>
+          <span className="text-white text-sm">{username}</span>
         </div>
 
         {/* Settings */}
