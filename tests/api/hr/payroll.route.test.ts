@@ -43,6 +43,7 @@ vi.mock("@/lib/auth/role-guards", () => ({
 vi.mock("@/server/services/hr/payroll.service", () => ({
   PayrollService: {
     list: vi.fn(),
+    existsOverlap: vi.fn(),
     create: vi.fn(),
   },
 }));
@@ -51,6 +52,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { auth } from "@/auth";
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { parseBodyOrNull } from "@/lib/api/parse-body";
+import { hasAllowedRole } from "@/lib/auth/role-guards";
 
 const importRoute = async () => {
   try {
@@ -73,6 +75,8 @@ describe("API /api/hr/payroll/runs", () => {
     vi.mocked(auth).mockResolvedValue({
       user: mockUser,
     } as never);
+    vi.mocked(hasAllowedRole).mockReturnValue(true);
+    vi.mocked(PayrollService.existsOverlap).mockResolvedValue(false);
   });
 
   describe("GET - List Payroll Runs", () => {
@@ -257,6 +261,7 @@ describe("API /api/hr/payroll/runs", () => {
       vi.mocked(auth).mockResolvedValue({
         user: { orgId: mockOrgId, role: "EMPLOYEE" },
       } as never);
+      vi.mocked(hasAllowedRole).mockReturnValue(false);
 
       const req = new NextRequest("http://localhost:3000/api/hr/payroll/runs", {
         method: "POST",
@@ -289,6 +294,7 @@ describe("API /api/hr/payroll/runs", () => {
         periodEnd: "2025-03-31",
       } as never);
 
+      vi.mocked(PayrollService.existsOverlap).mockResolvedValue(false);
       vi.mocked(PayrollService.create).mockResolvedValue(mockRun as never);
 
       const req = new NextRequest("http://localhost:3000/api/hr/payroll/runs", {
@@ -303,7 +309,7 @@ describe("API /api/hr/payroll/runs", () => {
 
       expect(response.status).toBe(201);
       const data = await response.json();
-      expect(data.run.name).toBe("March 2025");
+      expect(data.name).toBe("March 2025");
 
       // Verify tenant scoping was enforced
       expect(PayrollService.create).toHaveBeenCalledWith(
@@ -342,9 +348,7 @@ describe("API /api/hr/payroll/runs", () => {
         periodEnd: "2025-01-31",
       } as never);
 
-      vi.mocked(PayrollService.create).mockRejectedValue(
-        new Error("Overlapping payroll period")
-      );
+      vi.mocked(PayrollService.existsOverlap).mockResolvedValue(true);
 
       const req = new NextRequest("http://localhost:3000/api/hr/payroll/runs", {
         method: "POST",
@@ -356,7 +360,7 @@ describe("API /api/hr/payroll/runs", () => {
       });
       const response = await route.POST(req);
 
-      expect(response.status).toBe(500);
+      expect(response.status).toBe(409);
     });
   });
 });

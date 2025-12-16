@@ -41,12 +41,14 @@ vi.mock("@/server/models/CrmLead", () => ({
   default: {
     countDocuments: vi.fn(),
     aggregate: vi.fn(),
+    find: vi.fn(),
   },
 }));
 
 vi.mock("@/server/models/CrmActivity", () => ({
   default: {
     countDocuments: vi.fn(),
+    find: vi.fn(),
   },
 }));
 
@@ -157,25 +159,53 @@ describe("API /api/crm/overview", () => {
         return;
       }
 
-      // Mock lead counts
-      vi.mocked(CrmLead.countDocuments).mockResolvedValue(50);
+      // Mock lead counts and won deals
+      vi.mocked(CrmLead.countDocuments)
+        .mockResolvedValueOnce(50) // total leads
+        .mockResolvedValueOnce(10); // won deals
 
-      // Mock aggregate pipeline results
-      vi.mocked(CrmLead.aggregate).mockResolvedValue([
-        { _id: "NEW", count: 20, value: 100000 },
-        { _id: "QUALIFIED", count: 15, value: 250000 },
-        { _id: "WON", count: 10, value: 500000 },
-      ]);
+      // Mock aggregate pipeline results (open pipeline + stage counts)
+      vi.mocked(CrmLead.aggregate)
+        .mockResolvedValueOnce([{ total: 100000, count: 20 }]) // open pipeline
+        .mockResolvedValueOnce([
+          { _id: "NEW", total: 20 },
+          { _id: "QUALIFIED", total: 15 },
+          { _id: "WON", total: 10 },
+        ]); // stage counts
 
-      // Mock activity counts
-      vi.mocked(CrmActivity.countDocuments).mockResolvedValue(75);
+      // Mock top accounts query
+      const topAccountsChain = {
+        sort: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockResolvedValue([
+          { _id: "acc1", company: "Acme", revenue: 500000 },
+        ]),
+      };
+      vi.mocked(CrmLead.find).mockReturnValue(topAccountsChain as never);
+
+      // Mock recent activities query
+      const activitiesChain = {
+        sort: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockResolvedValue([
+          { _id: "act1", type: "CALL", performedAt: new Date() },
+        ]),
+      };
+      vi.mocked(CrmActivity.find).mockReturnValue(activitiesChain as never);
+
+      // Mock activity counters
+      vi.mocked(CrmActivity.countDocuments)
+        .mockResolvedValueOnce(5) // calls7d
+        .mockResolvedValueOnce(3); // emails7d
 
       const req = new NextRequest("http://localhost:3000/api/crm/overview");
       const response = await route.GET(req);
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data).toHaveProperty("totalLeads");
+      expect(data.totals.leads).toBe(50);
+      expect(data.totals.pipelineValue).toBe(100000);
+      expect(data.activityCounters.calls7d).toBe(5);
 
       // Verify tenant scoping was enforced
       expect(CrmLead.countDocuments).toHaveBeenCalledWith(
@@ -190,13 +220,35 @@ describe("API /api/crm/overview", () => {
         return;
       }
 
-      vi.mocked(CrmLead.countDocuments).mockResolvedValue(30);
-      vi.mocked(CrmLead.aggregate).mockResolvedValue([
-        { _id: "NEW", count: 10, value: 50000 },
-        { _id: "QUALIFIED", count: 10, value: 150000 },
-        { _id: "WON", count: 10, value: 300000 },
-      ]);
-      vi.mocked(CrmActivity.countDocuments).mockResolvedValue(45);
+      vi.mocked(CrmLead.countDocuments)
+        .mockResolvedValueOnce(30) // total leads
+        .mockResolvedValueOnce(8); // won deals
+
+      vi.mocked(CrmLead.aggregate)
+        .mockResolvedValueOnce([{ total: 50000, count: 10 }]) // open pipeline
+        .mockResolvedValueOnce([
+          { _id: "NEW", total: 10 },
+          { _id: "QUALIFIED", total: 10 },
+          { _id: "WON", total: 10 },
+        ]);
+
+      const topAccountsChain = {
+        sort: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockResolvedValue([]),
+      };
+      vi.mocked(CrmLead.find).mockReturnValue(topAccountsChain as never);
+
+      const activitiesChain = {
+        sort: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockResolvedValue([]),
+      };
+      vi.mocked(CrmActivity.find).mockReturnValue(activitiesChain as never);
+
+      vi.mocked(CrmActivity.countDocuments)
+        .mockResolvedValueOnce(4)
+        .mockResolvedValueOnce(6);
 
       const req = new NextRequest("http://localhost:3000/api/crm/overview");
       const response = await route.GET(req);
@@ -205,8 +257,9 @@ describe("API /api/crm/overview", () => {
       const data = await response.json();
 
       // Verify dashboard metrics are present
-      expect(data).toHaveProperty("totalLeads");
-      expect(typeof data.totalLeads).toBe("number");
+      expect(data.totals.leads).toBe(30);
+      expect(data.totals.pipelineValue).toBe(50000);
+      expect(data.stages.length).toBeGreaterThan(0);
     });
 
     it("aggregates data only for user's organization", async () => {
@@ -216,9 +269,27 @@ describe("API /api/crm/overview", () => {
         return;
       }
 
-      vi.mocked(CrmLead.countDocuments).mockResolvedValue(0);
-      vi.mocked(CrmLead.aggregate).mockResolvedValue([]);
-      vi.mocked(CrmActivity.countDocuments).mockResolvedValue(0);
+      vi.mocked(CrmLead.countDocuments)
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(0);
+      vi.mocked(CrmLead.aggregate)
+        .mockResolvedValueOnce([{ total: 0, count: 0 }])
+        .mockResolvedValueOnce([]);
+      const topAccountsChain = {
+        sort: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockResolvedValue([]),
+      };
+      vi.mocked(CrmLead.find).mockReturnValue(topAccountsChain as never);
+      const activitiesChain = {
+        sort: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockResolvedValue([]),
+      };
+      vi.mocked(CrmActivity.find).mockReturnValue(activitiesChain as never);
+      vi.mocked(CrmActivity.countDocuments)
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(0);
 
       const req = new NextRequest("http://localhost:3000/api/crm/overview");
       const response = await route.GET(req);

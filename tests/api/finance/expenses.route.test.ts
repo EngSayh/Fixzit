@@ -125,7 +125,7 @@ describe("API /api/finance/expenses", () => {
       const req = new NextRequest("http://localhost:3000/api/finance/expenses");
       const response = await route.GET(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
 
     it("successfully lists expenses with tenant scoping", async () => {
@@ -173,7 +173,8 @@ describe("API /api/finance/expenses", () => {
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data.expenses).toHaveLength(1);
+      expect(data.success).toBe(true);
+      expect(data.data).toHaveLength(1);
 
       // Verify tenant scoping was enforced
       expect(Expense.find).toHaveBeenCalledWith(
@@ -284,7 +285,7 @@ describe("API /api/finance/expenses", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
 
     it("successfully creates expense with tenant scoping", async () => {
@@ -299,7 +300,7 @@ describe("API /api/finance/expenses", () => {
         expenseNumber: "EXP-2025-002",
         expenseType: "OPERATIONAL",
         category: "SUPPLIES",
-        amount: 500.0,
+        totalAmount: 500.0,
         currency: "SAR",
         status: "DRAFT",
         orgId: mockOrgId,
@@ -310,6 +311,9 @@ describe("API /api/finance/expenses", () => {
         category: "SUPPLIES",
         expenseDate: new Date("2025-01-15"),
         description: "Office supplies",
+        subtotal: 500,
+        totalAmount: 500,
+        currency: "SAR",
         lineItems: [
           {
             description: "Pens",
@@ -343,16 +347,15 @@ describe("API /api/finance/expenses", () => {
       });
       const response = await route.POST(req);
 
-      expect([201, 500]).toContain(response.status);
-      if (response.status === 201) {
-        const data = await response.json();
-        expect(data.expense.expenseType).toBe("OPERATIONAL");
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.success).toBe(true);
+      expect(data.data.expenseType).toBe("OPERATIONAL");
 
-        // Verify tenant scoping was enforced
-        expect(Expense.create).toHaveBeenCalledWith(
-          expect.objectContaining({ orgId: mockOrgId })
-        );
-      }
+      // Verify tenant scoping was enforced
+      expect(Expense.create).toHaveBeenCalledWith(
+        expect.objectContaining({ orgId: mockOrgId })
+      );
     });
 
     it("supports line items with tax calculations", async () => {
@@ -367,6 +370,9 @@ describe("API /api/finance/expenses", () => {
         category: "PROFESSIONAL_FEES",
         expenseDate: new Date("2025-01-15"),
         description: "Consulting services",
+        subtotal: 11500,
+        totalAmount: 11500,
+        currency: "SAR",
         lineItems: [
           {
             description: "Consulting",
@@ -410,16 +416,14 @@ describe("API /api/finance/expenses", () => {
       });
       const response = await route.POST(req);
 
-      expect([201, 500]).toContain(response.status);
-      if (response.status === 201) {
-        expect(Expense.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            lineItems: expect.arrayContaining([
-              expect.objectContaining({ taxRate: 15, taxAmount: 1500 }),
-            ]),
-          })
-        );
-      }
+      expect(response.status).toBe(200);
+      expect(Expense.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          lineItems: expect.arrayContaining([
+            expect.objectContaining({ taxRate: 15, taxAmount: 1500 }),
+          ]),
+        })
+      );
     });
 
     it("returns 400 when request body is invalid", async () => {
@@ -437,7 +441,7 @@ describe("API /api/finance/expenses", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 500]).toContain(response.status);
+      expect(response.status).toBe(400);
     });
   });
 });

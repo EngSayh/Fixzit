@@ -327,31 +327,36 @@ describe("API /api/hr/employees", () => {
 
       const mockEmployee = {
         _id: "emp_new",
-        name: "New Employee",
+        employeeCode: "EMP-002",
+        firstName: "New",
+        lastName: "Employee",
         email: "new@example.com",
-        department: "Engineering",
-        status: "ACTIVE",
+        jobTitle: "Engineer",
+        employmentStatus: "ACTIVE",
         orgId: mockOrgId,
       };
 
-      vi.mocked(EmployeeService.create).mockResolvedValue(mockEmployee as never);
+      vi.mocked(EmployeeService.upsert).mockResolvedValue(mockEmployee as never);
 
       const req = new NextRequest("http://localhost:3000/api/hr/employees", {
         method: "POST",
         body: JSON.stringify({
-          name: "New Employee",
+          employeeCode: "EMP-002",
+          firstName: "New",
+          lastName: "Employee",
           email: "new@example.com",
-          department: "Engineering",
+          jobTitle: "Engineer",
+          hireDate: "2024-01-01",
         }),
       });
       const response = await route.POST(req);
 
       expect(response.status).toBe(201);
       const data = await response.json();
-      expect(data.employee.name).toBe("New Employee");
+      expect(data.firstName).toBe("New");
 
       // Verify tenant scoping was enforced
-      expect(EmployeeService.create).toHaveBeenCalledWith(
+      expect(EmployeeService.upsert).toHaveBeenCalledWith(
         expect.objectContaining({ orgId: mockOrgId })
       );
     });
