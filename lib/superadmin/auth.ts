@@ -33,10 +33,10 @@ const jwtSecret = encoder.encode(SECRET_FALLBACK);
 
 function resolveOrgId(): string | null {
   const orgId =
-    process.env.SUPERADMIN_ORG_ID ||
-    process.env.PUBLIC_ORG_ID ||
-    process.env.DEFAULT_ORG_ID ||
-    process.env.TEST_ORG_ID ||
+    process.env.SUPERADMIN_ORG_ID?.trim() ||
+    process.env.PUBLIC_ORG_ID?.trim() ||
+    process.env.DEFAULT_ORG_ID?.trim() ||
+    process.env.TEST_ORG_ID?.trim() ||
     null;
 
   if (!orgId) {
