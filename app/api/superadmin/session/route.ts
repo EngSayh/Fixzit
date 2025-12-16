@@ -22,9 +22,23 @@ export async function GET(_request: NextRequest) {
   const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
   try {
     const cookieHeader = _request.cookies.get(SUPERADMIN_COOKIE_NAME)?.value;
+    const legacyCookieHeader = _request.cookies.get(`${SUPERADMIN_COOKIE_NAME}.legacy`)?.value;
+    
+    // Temporary diagnostic logging
+    logger.info("[SUPERADMIN] Session check", {
+      hasCookie: !!cookieHeader,
+      hasLegacyCookie: !!legacyCookieHeader,
+      cookieLength: cookieHeader?.length || 0,
+      allCookies: Array.from(_request.cookies.getAll().map(c => c.name)),
+    });
+    
     const payload = await decodeSuperadminToken(cookieHeader);
 
     if (!payload) {
+      logger.warn("[SUPERADMIN] Session decode failed", {
+        hasCookieValue: !!cookieHeader,
+        cookiePrefix: cookieHeader?.substring(0, 20) || "NONE",
+      });
       return NextResponse.json(
         { authenticated: false, error: "No session" },
         { status: 401, headers: ROBOTS_HEADER }
