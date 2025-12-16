@@ -7,6 +7,7 @@
  * @module components/superadmin/SuperadminHeader
  */
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/useI18n";
 import { LogOut, Settings, User } from "lucide-react";
@@ -15,6 +16,7 @@ import { useState, useEffect } from "react";
 import { logger } from "@/lib/logger";
 import dynamic from "next/dynamic";
 import { Select, SelectItem } from "@/components/ui/select";
+import { BrandLogo } from "@/components/brand";
 import {
   LANGUAGE_OPTIONS,
   type LanguageOption,
@@ -69,7 +71,8 @@ export function SuperadminHeader() {
   const router = useRouter();
   const { t } = useI18n();
   const [loggingOut, setLoggingOut] = useState(false);
-  const [username, setUsername] = useState<string>("Admin");
+  const [username, setUsername] = useState<string | null>(null);
+  const displayName = username?.trim() || t("superadmin.account");
 
   // Fetch superadmin session on mount
   useEffect(() => {
@@ -91,8 +94,9 @@ export function SuperadminHeader() {
         }
 
         const data = await response.json();
-        if (isMounted && data?.user?.username) {
-          setUsername(data.user.username);
+        if (isMounted) {
+          const incoming = String(data?.user?.username ?? "").trim();
+          setUsername(incoming || null);
         }
       } catch (error) {
         logger.error("[SUPERADMIN] Session fetch error", error, {
@@ -138,13 +142,27 @@ export function SuperadminHeader() {
   return (
     <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6">
       {/* Title */}
-      <div>
-        <h1 className="text-white font-semibold text-lg">
-          {t("superadmin.title")}
-        </h1>
-        <p className="text-slate-400 text-xs">
-          {t("superadmin.fullAccess")}
-        </p>
+      <div className="flex items-center gap-3">
+        <Link
+          href="/"
+          className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-700 hover:bg-slate-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-600"
+          aria-label={t("footer.backHome")}
+        >
+          <BrandLogo
+            size="sm"
+            fetchOrgLogo={false}
+            className="rounded-lg"
+            priority
+          />
+        </Link>
+        <div>
+          <h1 className="text-white font-semibold text-lg">
+            {t("superadmin.title")}
+          </h1>
+          <p className="text-slate-400 text-xs">
+            {t("superadmin.fullAccess")}
+          </p>
+        </div>
       </div>
 
       {/* Actions */}
@@ -160,7 +178,7 @@ export function SuperadminHeader() {
         {/* User Badge */}
         <div className="flex items-center gap-2 px-3 py-2 bg-slate-800 rounded-lg border border-slate-700">
           <User className="h-4 w-4 text-slate-400" />
-          <span className="text-white text-sm">{username}</span>
+          <span className="text-white text-sm">{displayName}</span>
         </div>
 
         {/* Settings */}
