@@ -15,6 +15,7 @@ import {
   type Locale,
 } from "./config";
 import { logger } from "@/lib/logger";
+import { normalizeLocale } from "./normalize-locale";
 
 // ⚡ PERFORMANCE: Lazy load dictionaries to reduce initial bundle size
 // Each dictionary is 27k lines (~500KB). Loading both upfront wastes 500KB + 200ms parse time.
@@ -23,16 +24,10 @@ import { logger } from "@/lib/logger";
 
 /**
  * Normalize locale codes (ar-SA, AR_SA, ar-sa) → ar
- * Handles browser locale strings like "ar-SA" from navigator.language
+ * Re-exported from server-safe module
  * @public - exported for use in other components
  */
-export function normalizeLocale(raw?: string): Locale {
-  if (!raw) return DEFAULT_LOCALE;
-  const normalized = raw.toLowerCase().split(/[-_]/)[0];
-  return SUPPORTED_LOCALES.includes(normalized as Locale)
-    ? (normalized as Locale)
-    : DEFAULT_LOCALE;
-}
+export { normalizeLocale };
 
 const DICTIONARIES: Record<
   LanguageCode,
