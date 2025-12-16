@@ -175,6 +175,48 @@ export class AutoRepricerService {
       availableQuantity: { $gt: 0 },
     });
 
+    // PERF-001 FIX: Batch fetch all buy box winners and offers upfront to avoid N+1
+    // Group listings by fsin to avoid duplicate API calls for same product
+    const fsinMap = new Map<string, typeof listings>();
+    for (const listing of listings) {
+      const existing = fsinMap.get(listing.fsin) || [];
+      existing.push(listing);
+      fsinMap.set(listing.fsin, existing);
+    }
+
+    // Batch fetch buy box data for all unique FSINs
+    const fsinList = Array.from(fsinMap.keys());
+    const buyBoxCache = new Map<string, { winner: unknown; offers: unknown[] }>();
+    
+    await Promise.all(
+      fsinList.map(async (fsin) => {
+        try {
+          const [rawWinner, rawOffers] = await Promise.all([
+            BuyBoxService.calculateBuyBoxWinner(
+              fsin,
+              seller.orgId?.toString?.() ?? orgId,
+            ),
+            BuyBoxService.getProductOffers(fsin, {
+              condition: "new", // Most common condition
+              orgId: seller.orgId?.toString?.() ?? orgId,
+            }),
+          ]);
+          buyBoxCache.set(fsin, {
+            winner: rawWinner,
+            offers: Array.isArray(rawOffers) ? rawOffers : [],
+          });
+        } catch (error) {
+          logger.error("[AutoRepricer] Failed to fetch buy box data", {
+            error: error instanceof Error ? error.message : String(error),
+            fsin,
+            orgId,
+          });
+          // Store empty data to prevent retry in loop
+          buyBoxCache.set(fsin, { winner: null, offers: [] });
+        }
+      }),
+    );
+
     const results: Array<{
       listingId: string;
       oldPrice: number;
@@ -207,21 +249,18 @@ export class AutoRepricerService {
             });
           }
 
-        // Get current Buy Box winner
-        const rawWinner = await BuyBoxService.calculateBuyBoxWinner(
-          listing.fsin,
-          seller.orgId?.toString?.() ?? orgId,
-        );
-        const winner = toOfferIdentifier(rawWinner);
+        // PERF-001 FIX: Use cached buy box data instead of making API calls in loop
+        const buyBoxData = buyBoxCache.get(listing.fsin);
+        if (!buyBoxData) {
+          logger.warn("[AutoRepricer] No buy box data in cache", {
+            listingId: listing._id.toString(),
+            fsin: listing.fsin,
+          });
+          continue;
+        }
 
-        // Get all competing offers
-        const rawOffers = await BuyBoxService.getProductOffers(listing.fsin, {
-          condition: listing.condition,
-          orgId: seller.orgId?.toString?.() ?? orgId,
-        });
-        const offers = Array.isArray(rawOffers)
-          ? this.normalizeOffers(rawOffers)
-          : [];
+        const winner = toOfferIdentifier(buyBoxData.winner);
+        const offers = this.normalizeOffers(buyBoxData.offers);
 
         // Calculate optimal price
         const newPrice = this.calculateOptimalPrice(
