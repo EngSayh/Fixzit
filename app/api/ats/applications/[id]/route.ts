@@ -12,7 +12,6 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Application } from "@/server/models/Application";
 import {
   atsRBAC,
-  canAccessResource,
   isValidStageTransition,
   ALLOWED_STAGE_TRANSITIONS,
 } from "@/lib/ats/rbac";
@@ -60,17 +59,14 @@ export async function GET(
     }
     const { orgId, isSuperAdmin } = authResult;
 
-    const application = await Application.findById((await params).id)
+    // SEC-002 FIX: Scope Application query by orgId upfront (super admins bypass)
+    const query = isSuperAdmin ? { _id: (await params).id } : { _id: (await params).id, orgId };
+    const application = await Application.findOne(query)
       .populate("jobId")
       .populate("candidateId")
       .lean();
 
     if (!application) return notFoundError("Application");
-
-    // Resource ownership check
-    if (!canAccessResource(orgId, application.orgId, isSuperAdmin)) {
-      return notFoundError("Application");
-    }
 
     return NextResponse.json({ success: true, data: application });
   } catch (error) {
@@ -110,13 +106,10 @@ export async function PATCH(
     }
     const { userId, orgId, isSuperAdmin } = authResult;
 
-    const application = await Application.findById((await params).id);
+    // SEC-002 FIX: Scope Application query by orgId upfront (super admins bypass)
+    const query = isSuperAdmin ? { _id: (await params).id } : { _id: (await params).id, orgId };
+    const application = await Application.findOne(query);
     if (!application) return notFoundError("Application");
-
-    // Resource ownership check
-    if (!canAccessResource(orgId, application.orgId, isSuperAdmin)) {
-      return notFoundError("Application");
-    }
 
     // Stage transition guard (state machine)
     if (body.stage && body.stage !== application.stage) {

@@ -26,9 +26,6 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
-  LogOut,
-  Shield,
-  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -466,12 +463,6 @@ export default function SuperadminIssuesPage() {
     fetchStats();
   };
 
-  // Logout handler
-  const handleLogout = async () => {
-    await fetch("/api/superadmin/logout", { method: "POST" });
-    router.push("/superadmin/login");
-  };
-
   // Navigate to issue detail
   const handleIssueClick = (issueId: string) => {
     router.push(`/superadmin/issues/${issueId}`);
@@ -589,537 +580,512 @@ export default function SuperadminIssuesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Top Bar */}
-      <div className="bg-card border-b border-border px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield className="h-6 w-6 text-amber-500" />
-            <span className="text-white font-semibold">{t("superadmin.title")}</span>
-            <Badge variant="outline" className="border-amber-500 text-amber-500">
-              {session.user?.username}
-            </Badge>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-white">
-              <Settings className="h-4 w-4 me-2" />
-              {t("superadmin.settings")}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-white">
-              <LogOut className="h-4 w-4 me-2" />
-              {t("superadmin.logout")}
-            </Button>
-          </div>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+            <Database className="h-8 w-8" />
+            {t("superadmin.issues.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t("superadmin.issues.subtitle")}
+          </p>
         </div>
-      </div>
-
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-              <Database className="h-8 w-8" />
-              {t("superadmin.issues.title")}
-            </h1>
-            <p className="text-muted-foreground">
-              {t("superadmin.issues.subtitle")}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-              <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? "animate-spin" : ""}`} />
-              {t("superadmin.issues.refresh")}
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 me-2" />
-              {t("superadmin.issues.export")}
-            </Button>
-            <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Upload className="h-4 w-4 me-2" />
-                  {t("superadmin.issues.import")}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>{t("superadmin.issues.importTitle")}</DialogTitle>
-                  <DialogDescription>
-                    {t("superadmin.issues.importDesc")}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label>{t("superadmin.issues.importDataLabel")}</Label>
-                    <Textarea
-                      placeholder={t("superadmin.issues.importPlaceholder")}
-                      value={importData}
-                      onChange={(e) => setImportData(e.target.value)}
-                      rows={10}
-                      className="font-mono text-sm"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => handleImport(true)} disabled={importing}>
-                      {t("superadmin.issues.importDryRun")}
-                    </Button>
-                    <Button onClick={() => handleImport(false)} disabled={importing}>
-                      {importing ? t("superadmin.issues.importing") : t("superadmin.issues.import")}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-            <Button size="sm">
-              <Plus className="h-4 w-4 me-2" />
-              {t("superadmin.issues.add")}
-            </Button>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-          {statsLoading ? (
-            Array.from({ length: 8 }).map((_, i) => (
-              <Card key={i} className="bg-card border-border">
-                <CardContent className="p-4">
-                  <Skeleton className="h-4 w-20 mb-2 bg-muted" />
-                  <Skeleton className="h-8 w-12 bg-muted" />
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.total")}</p>
-                  <p className="text-2xl font-bold text-white">{stats?.total || 0}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.open")}</p>
-                  <p className="text-2xl font-bold text-orange-500">
-                    {stats?.totalOpen || 0}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.closed")}</p>
-                  <p className="text-2xl font-bold text-green-500">
-                    {stats?.totalClosed || 0}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.quickWins")}</p>
-                  <p className="text-2xl font-bold text-emerald-500">
-                    {stats?.quickWins || 0}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.stale")}</p>
-                  <p className="text-2xl font-bold text-yellow-500">
-                    {stats?.stale || 0}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.blocked")}</p>
-                  <p className="text-2xl font-bold text-red-500">
-                    {stats?.blocked || 0}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.recentlyResolved")}</p>
-                  <p className="text-2xl font-bold text-blue-500">
-                    {stats?.recentlyResolved || 0}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className={`bg-card ${(stats?.healthScore || 0) >= 70 ? "border-green-500" : (stats?.healthScore || 0) >= 40 ? "border-yellow-500" : "border-red-500"}`}>
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.healthScore")}</p>
-                  <p className={`text-2xl font-bold ${
-                    (stats?.healthScore || 0) >= 70 ? "text-green-500" :
-                    (stats?.healthScore || 0) >= 40 ? "text-yellow-500" : "text-red-500"
-                  }`}>
-                    {stats?.healthScore || 0}%
-                  </p>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </div>
-
-        {/* Priority Breakdown */}
-        {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2 text-white">
-                  <XCircle className="h-4 w-4 text-red-600" />
-                  {getPriorityLabel("P0")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-red-600">{stats.byPriority?.P0 || 0}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2 text-white">
-                  <AlertTriangle className="h-4 w-4 text-orange-500" />
-                  {getPriorityLabel("P1")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-orange-500">{stats.byPriority?.P1 || 0}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2 text-white">
-                  <Clock className="h-4 w-4 text-yellow-500" />
-                  {getPriorityLabel("P2")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-yellow-500">{stats.byPriority?.P2 || 0}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2 text-white">
-                  <CheckCircle2 className="h-4 w-4 text-blue-500" />
-                  {getPriorityLabel("P3")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-blue-500">{stats.byPriority?.P3 || 0}</p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Filters - Sticky */}
-        <Card className="bg-slate-800 border-slate-700 sticky top-0 z-10">
-          <CardContent className="p-4">
-            {/* Quick Status Tabs */}
-            <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-slate-700">
-              <Button
-                variant={statusFilter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("all")}
-                className={statusFilter === "all" ? "" : "text-slate-300 border-slate-600"}
-              >
-                All
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? "animate-spin" : ""}`} />
+            {t("superadmin.issues.refresh")}
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="h-4 w-4 me-2" />
+            {t("superadmin.issues.export")}
+          </Button>
+          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Upload className="h-4 w-4 me-2" />
+                {t("superadmin.issues.import")}
               </Button>
-              <Button
-                variant={statusFilter === "open" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("open")}
-                className={statusFilter === "open" ? "" : "text-slate-300 border-slate-600"}
-              >
-                Open
-              </Button>
-              <Button
-                variant={statusFilter === "closed" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("closed")}
-                className={statusFilter === "closed" ? "" : "text-slate-300 border-slate-600"}
-              >
-                Closed
-              </Button>
-              <Button
-                variant={statusFilter === "blocked" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("blocked")}
-                className={statusFilter === "blocked" ? "" : "text-slate-300 border-slate-600"}
-              >
-                Blocked
-              </Button>
-              <Button
-                variant={viewMode === "stale" ? "default" : "outline"}
-                size="sm"
-                onClick={() => { setViewMode("stale"); setStatusFilter("all"); }}
-                className={viewMode === "stale" ? "" : "text-slate-300 border-slate-600"}
-              >
-                <Clock className="h-4 w-4 me-1" />
-                Stale
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="text-slate-400 hover:text-white ms-auto"
-              >
-                Clear filters
-              </Button>
-            </div>
-
-            {/* Detailed Filters */}
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <div className="relative">
-                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={t("superadmin.issues.search")}
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="ps-9 bg-muted border-input text-white"
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>{t("superadmin.issues.importTitle")}</DialogTitle>
+                <DialogDescription>
+                  {t("superadmin.issues.importDesc")}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>{t("superadmin.issues.importDataLabel")}</Label>
+                  <Textarea
+                    placeholder={t("superadmin.issues.importPlaceholder")}
+                    value={importData}
+                    onChange={(e) => setImportData(e.target.value)}
+                    rows={10}
+                    className="font-mono text-sm"
                   />
                 </div>
-              </div>
-
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px] bg-muted border-input text-white">
-                  <SelectValue placeholder={t("superadmin.issues.filters.status")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-[140px] bg-muted border-input text-white">
-                  <SelectValue placeholder={t("superadmin.issues.filters.priority")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {priorityOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[140px] bg-muted border-input text-white">
-                  <SelectValue placeholder={t("superadmin.issues.filters.category")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoryOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Button
-                variant={viewMode === "quickWins" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("quickWins")}
-              >
-                <Zap className="h-4 w-4 me-1" />
-                {t("superadmin.issues.views.quickWins")}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Export Actions */}
-        {selectedIssues.size > 0 && (
-          <Card className="bg-blue-900/20 border-blue-700">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-blue-300 font-medium">
-                  {selectedIssues.size} issues selected
-                </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyMarkdown}
-                    className="text-blue-300 border-blue-600 hover:bg-blue-800"
-                  >
-                    Copy Markdown
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => handleImport(true)} disabled={importing}>
+                    {t("superadmin.issues.importDryRun")}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyTSV}
-                    className="text-blue-300 border-blue-600 hover:bg-blue-800"
-                  >
-                    Copy TSV
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleExportCSV}
-                    className="text-blue-300 border-blue-600 hover:bg-blue-800"
-                  >
-                    <Download className="h-4 w-4 me-1" />
-                    Export CSV
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedIssues(new Set())}
-                    className="text-slate-400 hover:text-white"
-                  >
-                    Clear selection
+                  <Button onClick={() => handleImport(false)} disabled={importing}>
+                    {importing ? t("superadmin.issues.importing") : t("superadmin.issues.import")}
                   </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </DialogContent>
+          </Dialog>
+          <Button size="sm">
+            <Plus className="h-4 w-4 me-2" />
+            {t("superadmin.issues.add")}
+          </Button>
+        </div>
+      </div>
 
-        {/* Issues Table */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <TrendingUp className="h-5 w-5" />
-              {t("superadmin.issues.title")}
-              <span className="text-sm text-muted-foreground">({issues.length})</span>
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              {t("superadmin.issues.tableDescription")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="p-8 space-y-4">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full bg-muted" />
-                ))}
-              </div>
-            ) : issues.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                <Bug className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="font-medium">{t("superadmin.issues.empty")}</p>
-                <p className="text-sm">{t("superadmin.issues.emptyHint")}</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                    <TableHead className="text-slate-300 w-[50px]">
-                      <input
-                        type="checkbox"
-                        checked={selectedIssues.size === issues.length && issues.length > 0}
-                        onChange={toggleSelectAll}
-                        className="w-4 h-4 cursor-pointer"
-                      />
-                    </TableHead>
-                    <TableHead className="text-slate-300 w-[80px]">{t("superadmin.issues.table.id")}</TableHead>
-                    <TableHead className="text-slate-300 w-[80px]">{t("superadmin.issues.table.priority")}</TableHead>
-                    <TableHead className="text-slate-300">{t("superadmin.issues.table.title")}</TableHead>
-                    <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.status")}</TableHead>
-                    <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.category")}</TableHead>
-                    <TableHead className="text-slate-300 w-[80px]">{t("superadmin.issues.table.module")}</TableHead>
-                    <TableHead className="text-slate-300 w-[60px]">{t("superadmin.issues.table.seen")}</TableHead>
-                    <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.updated")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {issues.map((issue) => {
-                    const CategoryIcon = CATEGORY_ICONS[issue.category] || Bug;
-                    
-                    return (
-                      <TableRow
-                        key={issue._id}
-                        className="cursor-pointer hover:bg-slate-700/50 border-slate-700"
-                      >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={selectedIssues.has(issue._id)}
-                            onChange={() => toggleSelectIssue(issue._id)}
-                            className="w-4 h-4 cursor-pointer"
-                          />
-                        </TableCell>
-                        <TableCell 
-                          className="font-mono text-xs text-slate-300"
-                          onClick={() => handleIssueClick(issue._id)}
-                        >
-                          {issue.issueId || issue.legacyId || issue._id.slice(-6)}
-                        </TableCell>
-                        <TableCell onClick={() => handleIssueClick(issue._id)}>
-                          <Badge className={PRIORITY_COLORS[issue.priority] || "bg-gray-500"}>
-                            {getPriorityLabel(issue.priority)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell onClick={() => handleIssueClick(issue._id)}>
-                          <div className="flex items-start gap-2">
-                            <CategoryIcon className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                            <div className="min-w-0">
-                              <p className="font-medium text-white truncate max-w-[400px]">{issue.title}</p>
-                              {issue.location?.filePath && (
-                                <p className="text-xs text-muted-foreground truncate max-w-[400px]">
-                                  {issue.location.filePath}
-                                  {issue.location.lineStart && `:${issue.location.lineStart}`}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell onClick={() => handleIssueClick(issue._id)}>
-                          <Badge variant="secondary" className={STATUS_COLORS[issue.status]}>
-                            {getStatusLabel(issue.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell onClick={() => handleIssueClick(issue._id)}>
-                          <span className="text-sm text-slate-300 capitalize">{getCategoryLabel(issue.category)}</span>
-                        </TableCell>
-                        <TableCell onClick={() => handleIssueClick(issue._id)}>
-                          <span className="text-sm font-mono text-slate-300">{issue.module}</span>
-                        </TableCell>
-                        <TableCell onClick={() => handleIssueClick(issue._id)}>
-                          <span className="text-sm text-slate-300">{issue.mentionCount || 1}×</span>
-                        </TableCell>
-                        <TableCell onClick={() => handleIssueClick(issue._id)}>
-                          <span className="text-xs text-slate-400">
-                            {new Date(issue.updatedAt).toLocaleDateString()}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-            >
-              {t("superadmin.issues.pagination.previous")}
-            </Button>
-            <span className="flex items-center px-4 text-sm text-muted-foreground">
-              {t("superadmin.issues.pagination.pageOf", { page, total: totalPages })}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === totalPages}
-              onClick={() => setPage(page + 1)}
-            >
-              {t("superadmin.issues.pagination.next")}
-            </Button>
-          </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+        {statsLoading ? (
+          Array.from({ length: 8 }).map((_, i) => (
+            <Card key={i} className="bg-card border-border">
+              <CardContent className="p-4">
+                <Skeleton className="h-4 w-20 mb-2 bg-muted" />
+                <Skeleton className="h-8 w-12 bg-muted" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.total")}</p>
+                <p className="text-2xl font-bold text-white">{stats?.total || 0}</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.open")}</p>
+                <p className="text-2xl font-bold text-orange-500">
+                  {stats?.totalOpen || 0}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.closed")}</p>
+                <p className="text-2xl font-bold text-green-500">
+                  {stats?.totalClosed || 0}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.quickWins")}</p>
+                <p className="text-2xl font-bold text-emerald-500">
+                  {stats?.quickWins || 0}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.stale")}</p>
+                <p className="text-2xl font-bold text-yellow-500">
+                  {stats?.stale || 0}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.blocked")}</p>
+                <p className="text-2xl font-bold text-red-500">
+                  {stats?.blocked || 0}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.recentlyResolved")}</p>
+                <p className="text-2xl font-bold text-blue-500">
+                  {stats?.recentlyResolved || 0}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className={`bg-card ${(stats?.healthScore || 0) >= 70 ? "border-green-500" : (stats?.healthScore || 0) >= 40 ? "border-yellow-500" : "border-red-500"}`}>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.healthScore")}</p>
+                <p className={`text-2xl font-bold ${
+                  (stats?.healthScore || 0) >= 70 ? "text-green-500" :
+                  (stats?.healthScore || 0) >= 40 ? "text-yellow-500" : "text-red-500"
+                }`}>
+                  {stats?.healthScore || 0}%
+                </p>
+              </CardContent>
+            </Card>
+          </>
         )}
       </div>
+
+      {/* Priority Breakdown */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2 text-white">
+                <XCircle className="h-4 w-4 text-red-600" />
+                {getPriorityLabel("P0")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-red-600">{stats.byPriority?.P0 || 0}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2 text-white">
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                {getPriorityLabel("P1")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-orange-500">{stats.byPriority?.P1 || 0}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2 text-white">
+                <Clock className="h-4 w-4 text-yellow-500" />
+                {getPriorityLabel("P2")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-yellow-500">{stats.byPriority?.P2 || 0}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2 text-white">
+                <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                {getPriorityLabel("P3")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-blue-500">{stats.byPriority?.P3 || 0}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Filters - Sticky */}
+      <Card className="bg-slate-800 border-slate-700 sticky top-0 z-10">
+        <CardContent className="p-4">
+          {/* Quick Status Tabs */}
+          <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-slate-700">
+            <Button
+              variant={statusFilter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setStatusFilter("all")}
+              className={statusFilter === "all" ? "" : "text-slate-300 border-slate-600"}
+            >
+              All
+            </Button>
+            <Button
+              variant={statusFilter === "open" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setStatusFilter("open")}
+              className={statusFilter === "open" ? "" : "text-slate-300 border-slate-600"}
+            >
+              Open
+            </Button>
+            <Button
+              variant={statusFilter === "closed" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setStatusFilter("closed")}
+              className={statusFilter === "closed" ? "" : "text-slate-300 border-slate-600"}
+            >
+              Closed
+            </Button>
+            <Button
+              variant={statusFilter === "blocked" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setStatusFilter("blocked")}
+              className={statusFilter === "blocked" ? "" : "text-slate-300 border-slate-600"}
+            >
+              Blocked
+            </Button>
+            <Button
+              variant={viewMode === "stale" ? "default" : "outline"}
+              size="sm"
+              onClick={() => { setViewMode("stale"); setStatusFilter("all"); }}
+              className={viewMode === "stale" ? "" : "text-slate-300 border-slate-600"}
+            >
+              <Clock className="h-4 w-4 me-1" />
+              Stale
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="text-slate-400 hover:text-white ms-auto"
+            >
+              Clear filters
+            </Button>
+          </div>
+
+          {/* Detailed Filters */}
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={t("superadmin.issues.search")}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="ps-9 bg-muted border-input text-white"
+                />
+              </div>
+            </div>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[140px] bg-muted border-input text-white">
+                <SelectValue placeholder={t("superadmin.issues.filters.status")} />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-[140px] bg-muted border-input text-white">
+                <SelectValue placeholder={t("superadmin.issues.filters.priority")} />
+              </SelectTrigger>
+              <SelectContent>
+                {priorityOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[140px] bg-muted border-input text-white">
+                <SelectValue placeholder={t("superadmin.issues.filters.category")} />
+              </SelectTrigger>
+              <SelectContent>
+                {categoryOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant={viewMode === "quickWins" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("quickWins")}
+            >
+              <Zap className="h-4 w-4 me-1" />
+              {t("superadmin.issues.views.quickWins")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Export Actions */}
+      {selectedIssues.size > 0 && (
+        <Card className="bg-blue-900/20 border-blue-700">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-blue-300 font-medium">
+                {selectedIssues.size} issues selected
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyMarkdown}
+                  className="text-blue-300 border-blue-600 hover:bg-blue-800"
+                >
+                  Copy Markdown
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyTSV}
+                  className="text-blue-300 border-blue-600 hover:bg-blue-800"
+                >
+                  Copy TSV
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportCSV}
+                  className="text-blue-300 border-blue-600 hover:bg-blue-800"
+                >
+                  <Download className="h-4 w-4 me-1" />
+                  Export CSV
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedIssues(new Set())}
+                  className="text-slate-400 hover:text-white"
+                >
+                  Clear selection
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Issues Table */}
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <TrendingUp className="h-5 w-5" />
+            {t("superadmin.issues.title")}
+            <span className="text-sm text-muted-foreground">({issues.length})</span>
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
+            {t("superadmin.issues.tableDescription")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-8 space-y-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full bg-muted" />
+              ))}
+            </div>
+          ) : issues.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <Bug className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="font-medium">{t("superadmin.issues.empty")}</p>
+              <p className="text-sm">{t("superadmin.issues.emptyHint")}</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-700 hover:bg-slate-700/50">
+                  <TableHead className="text-slate-300 w-[50px]">
+                    <input
+                      type="checkbox"
+                      checked={selectedIssues.size === issues.length && issues.length > 0}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 cursor-pointer"
+                    />
+                  </TableHead>
+                  <TableHead className="text-slate-300 w-[80px]">{t("superadmin.issues.table.id")}</TableHead>
+                  <TableHead className="text-slate-300 w-[80px]">{t("superadmin.issues.table.priority")}</TableHead>
+                  <TableHead className="text-slate-300">{t("superadmin.issues.table.title")}</TableHead>
+                  <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.status")}</TableHead>
+                  <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.category")}</TableHead>
+                  <TableHead className="text-slate-300 w-[80px]">{t("superadmin.issues.table.module")}</TableHead>
+                  <TableHead className="text-slate-300 w-[60px]">{t("superadmin.issues.table.seen")}</TableHead>
+                  <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.updated")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {issues.map((issue) => {
+                  const CategoryIcon = CATEGORY_ICONS[issue.category] || Bug;
+                  
+                  return (
+                    <TableRow
+                      key={issue._id}
+                      className="cursor-pointer hover:bg-slate-700/50 border-slate-700"
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIssues.has(issue._id)}
+                          onChange={() => toggleSelectIssue(issue._id)}
+                          className="w-4 h-4 cursor-pointer"
+                        />
+                      </TableCell>
+                      <TableCell 
+                        className="font-mono text-xs text-slate-300"
+                        onClick={() => handleIssueClick(issue._id)}
+                      >
+                        {issue.issueId || issue.legacyId || issue._id.slice(-6)}
+                      </TableCell>
+                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                        <Badge className={PRIORITY_COLORS[issue.priority] || "bg-gray-500"}>
+                          {getPriorityLabel(issue.priority)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                        <div className="flex items-start gap-2">
+                          <CategoryIcon className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                          <div className="min-w-0">
+                            <p className="font-medium text-white truncate max-w-[400px]">{issue.title}</p>
+                            {issue.location?.filePath && (
+                              <p className="text-xs text-muted-foreground truncate max-w-[400px]">
+                                {issue.location.filePath}
+                                {issue.location.lineStart && `:${issue.location.lineStart}`}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                        <Badge variant="secondary" className={STATUS_COLORS[issue.status]}>
+                          {getStatusLabel(issue.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                        <span className="text-sm text-slate-300 capitalize">{getCategoryLabel(issue.category)}</span>
+                      </TableCell>
+                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                        <span className="text-sm font-mono text-slate-300">{issue.module}</span>
+                      </TableCell>
+                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                        <span className="text-sm text-slate-300">{issue.mentionCount || 1}×</span>
+                      </TableCell>
+                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                        <span className="text-xs text-slate-400">
+                          {new Date(issue.updatedAt).toLocaleDateString()}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+          >
+            {t("superadmin.issues.pagination.previous")}
+          </Button>
+          <span className="flex items-center px-4 text-sm text-muted-foreground">
+            {t("superadmin.issues.pagination.pageOf", { page, total: totalPages })}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === totalPages}
+            onClick={() => setPage(page + 1)}
+          >
+            {t("superadmin.issues.pagination.next")}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

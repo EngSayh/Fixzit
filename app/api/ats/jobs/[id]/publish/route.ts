@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";
-import { atsRBAC, canAccessResource } from "@/lib/ats/rbac";
+import { atsRBAC } from "@/lib/ats/rbac";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import {
@@ -59,13 +59,10 @@ export async function POST(
     }
     const { orgId, isSuperAdmin } = authResult;
 
-    const job = await Job.findById((await params).id);
+    // SEC-002 FIX: Scope Job query by orgId upfront (super admins bypass)
+    const query = isSuperAdmin ? { _id: (await params).id } : { _id: (await params).id, orgId };
+    const job = await Job.findOne(query);
     if (!job) return notFoundError("Job");
-
-    // Resource ownership check
-    if (!canAccessResource(orgId, job.orgId, isSuperAdmin)) {
-      return notFoundError("Job");
-    }
     if (job.status === "published")
       return validationError("Job is already published");
 

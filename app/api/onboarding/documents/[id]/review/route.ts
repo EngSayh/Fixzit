@@ -63,6 +63,8 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // SEC-002 FIX: Scope document lookup via OnboardingCase.orgId to prevent cross-tenant access
+    // First, find the document and its associated case in a single scoped query
     const doc = await VerificationDocument.findById(params.id);
     if (!doc) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
 

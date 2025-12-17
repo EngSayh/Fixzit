@@ -69,7 +69,19 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: "SUBSCRIPTION_ID_REQUIRED" }, 400, req);
   }
 
-  const subscription = await Subscription.findById(subscriptionId);
+  // SEC-002 FIX: Scope subscription query by tenant_id OR owner_user_id upfront
+  // Super admins can access any subscription
+  const isSuperAdmin = Boolean(session.isSuperAdmin);
+  const query = isSuperAdmin
+    ? { _id: subscriptionId }
+    : {
+        _id: subscriptionId,
+        $or: [
+          { tenant_id: session.orgId },
+          { owner_user_id: session.id },
+        ],
+      };
+  const subscription = await Subscription.findOne(query);
 
   if (!subscription) {
     return createSecureResponse({ error: "SUBSCRIPTION_NOT_FOUND" }, 404, req);
@@ -82,7 +94,6 @@ export async function POST(req: NextRequest) {
   const isOwnerMatch =
     subscription.owner_user_id &&
     subscription.owner_user_id.toString() === session.id;
-  const isSuperAdmin = Boolean(session.isSuperAdmin);
 
   if (!isTenantMatch && !isOwnerMatch && !isSuperAdmin) {
     return createSecureResponse({ error: "Forbidden" }, 403, req);

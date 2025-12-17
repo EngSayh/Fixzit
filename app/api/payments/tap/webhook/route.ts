@@ -749,7 +749,10 @@ async function updateRefundRecord(
   await transaction.save();
 
   if (transaction.paymentId) {
-    const payment = await Payment.findById(transaction.paymentId);
+    // SEC-002 FIX: Scope Payment lookup by orgId to prevent cross-tenant access
+    const payment = transaction.orgId
+      ? await Payment.findOne({ _id: transaction.paymentId, orgId: transaction.orgId })
+      : await Payment.findById(transaction.paymentId); // Fallback for legacy transactions without orgId
     if (payment) {
       if (status === "SUCCEEDED") {
         payment.status = "REFUNDED";
