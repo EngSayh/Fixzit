@@ -34,26 +34,40 @@
       "externalId": "SEC-002",
       "category": "security",
       "priority": "P1",
-      "status": "open",
+      "status": "in_progress",
       "title": "Tenant scope missing across DB queries",
       "location": "app/api/**/route.ts",
       "sourceRef": "docs/PENDING_MASTER.md:399-404",
       "evidenceSnippet": "50+ DB queries missing tenant scope validation | app/api/**/route.ts | Potential cross-tenant data leaks (IDOR)",
       "riskTags": ["MULTI_TENANT", "SECURITY"],
-      "effort": "L"
+      "effort": "L",
+      "resolution": {
+        "status": "in_progress",
+        "progressAt": "2025-12-17T04:30:00+03:00",
+        "progressBy": "eng.sultan",
+        "commitHash": "76636053a",
+        "notes": "Batch 1 complete - fixed 8 confirmed IDOR vulnerabilities: payments/tap/webhook (Payment.findById), checkout/complete (Subscription.findById), ats/applications GET/PATCH (Application.findById), ats/jobs/publish (Job.findById), aqar/listings GET/PATCH/DELETE (AqarListing.findById), onboarding/documents/review (VerificationDocument.findById). All now use findOne with orgId filter and super admin bypass. Pattern: Replace findById with findOne+orgId at query level. Validation: TypeCheck 0 errors, ESLint clean. Remaining: ~44 queries from audit scan (requires manual review for false positives)."
+      }
     },
     {
       "key": "BUG-001",
       "externalId": "BUG-001",
       "category": "bug",
       "priority": "P1",
-      "status": "open",
+      "status": "resolved",
       "title": "process.env accessed directly in client code",
       "location": "app/**/*.tsx",
       "sourceRef": "docs/PENDING_MASTER.md:403-404",
       "evidenceSnippet": "40+ direct process.env accesses in client code | SSR/hydration breaks, secret exposure risk",
       "riskTags": ["CONFIG", "HYDRATION"],
-      "effort": "M"
+      "effort": "M",
+      "resolution": {
+        "status": "resolved",
+        "resolvedAt": "2025-12-17T03:15:00+03:00",
+        "resolvedBy": "eng.sultan",
+        "commitHash": "af8d10937",
+        "notes": "FALSE POSITIVE. Created scripts/audit-client-env.mjs to detect unsafe process.env usage in client code. Audit found 0 unsafe accesses - all client components properly use NEXT_PUBLIC_ prefix or NODE_ENV. Issue based on incorrect premise. Validated with grep/ripgrep + manual review. No code changes required."
+      }
     },
     {
       "key": "PERF-001",
