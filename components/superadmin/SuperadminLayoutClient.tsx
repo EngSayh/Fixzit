@@ -29,9 +29,9 @@ export function SuperadminLayoutClient({
     <I18nProvider initialLocale={initialLocale} initialDict={initialDict}>
       <CurrencyProvider>
         {isLoginPage ? (
-          <div className="min-h-screen bg-slate-900">{children}</div>
+          <div className="min-h-screen bg-background">{children}</div>
         ) : (
-          <div className="min-h-screen bg-slate-950 flex">
+          <div className="min-h-screen bg-background flex">
             {/* Sidebar */}
             <SuperadminSidebar />
 
