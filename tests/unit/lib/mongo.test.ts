@@ -1,9 +1,16 @@
 /**
  * Unit tests for MongoDB Unified Connection
  * Tests the new unified MongoDB connection implementation
+ * 
+ * Note: These tests are server-only and will be skipped in client/jsdom environment
  */
 
-describe("MongoDB Unified Connection", () => {
+import { describe, test, expect } from "vitest";
+
+// Skip entire suite in client environment (MongoDB is server-only)
+const describeMode = typeof window !== 'undefined' ? describe.skip : describe;
+
+describeMode("MongoDB Unified Connection", () => {
   test("MongoDB unified module should be available", async () => {
     // Test that the MongoDB unified module can be imported without errors
     const mongoModule = await import("@/lib/mongodb-unified");

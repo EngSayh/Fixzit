@@ -10,7 +10,7 @@ https://fixzit.co/superadmin/login
 **Credentials:**
 - Email: `sultan.a.hassni@gmail.com`
 - Password: [your password]
-- OTP Code: `EngSayh@1985#Fixzit` (bypass code)
+- OTP Code: `[REDACTED]` (bypass code)
 
 **After Login:**
 - Redirects to: `/superadmin/issues`
