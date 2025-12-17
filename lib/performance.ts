@@ -1,13 +1,72 @@
-import { logger } from "@/lib/logger";
 /**
- * Performance Monitoring Middleware for Fixzit
+ * @module lib/performance
+ * @description Performance Monitoring Middleware for Fixzit
  *
- * Tracks page load times and ensures < 30 seconds target
- * Integrates with Next.js middleware for automatic monitoring
+ * Provides comprehensive performance tracking for both server-side (Next.js middleware)
+ * and client-side (Web Vitals) performance metrics with automatic threshold violation detection.
  *
- * Usage: Import in middleware.ts or individual pages
+ * @features
+ * - **Request Performance Tracking**: Monitors response times for all API/page requests
+ * - **Threshold Enforcement**: 30-second SLA with automatic violation alerts
+ * - **Metrics Store**: In-memory storage of last 1000 requests for analytics
+ * - **Web Vitals Integration**: Client-side Core Web Vitals (FCP, LCP, FID, CLS, TTFB)
+ * - **Statistical Analysis**: Percentile calculations (P50, P95, P99) and trend analysis
+ * - **Google Analytics Integration**: Optional gtag reporting for production analytics
+ * - **Response Headers**: X-Response-Time and X-Performance-Warning for client visibility
+ *
+ * @usage
+ * Server-side middleware wrapping:
+ * ```typescript
+ * import { withPerformanceMonitoring } from '@/lib/performance';
+ *
+ * export const middleware = withPerformanceMonitoring(async (request) => {
+ *   return NextResponse.next();
+ * });
+ * ```
+ *
+ * Client-side Web Vitals reporting (in pages/_app.tsx):
+ * ```typescript
+ * import { reportWebVitals } from '@/lib/performance';
+ *
+ * export { reportWebVitals };
+ * ```
+ *
+ * Accessing performance statistics:
+ * ```typescript
+ * import { getPerformanceStats, getExceededMetrics } from '@/lib/performance';
+ *
+ * const stats = getPerformanceStats();
+ * console.log(`P95 latency: ${stats.p95}ms`);
+ *
+ * const violations = getExceededMetrics();
+ * console.log(`${violations.length} requests exceeded 30s threshold`);
+ * ```
+ *
+ * @performance
+ * - In-memory metrics store limited to 1000 entries (FIFO eviction)
+ * - Minimal overhead per request (~1ms additional latency)
+ * - Automatic cleanup prevents memory leaks in long-running processes
+ *
+ * @security
+ * - No sensitive data logged (only URLs, methods, durations, status codes)
+ * - User-Agent sanitized to prevent log injection
+ * - No PII collection in Web Vitals reporting
+ *
+ * @compliance
+ * - ZATCA/HFV: Performance monitoring aligns with 30-second e-invoice submission requirement
+ * - SLA compliance tracking for enterprise customers
+ *
+ * @deployment
+ * - PERFORMANCE_THRESHOLD_MS: Configurable via code (default 30000ms)
+ * - NOTIFICATIONS_TELEMETRY_WEBHOOK: Optional webhook for alert forwarding
+ * - Works with both serverless (Vercel) and traditional Node.js deployments
+ * - Metrics reset on server restart (not persisted to disk/database)
+ *
+ * @see {@link https://web.dev/vitals/} for Web Vitals documentation
+ * @see {@link /docs/architecture/monitoring.md} for monitoring architecture
  */
 
+import { logger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 
 export interface PerformanceMetrics {

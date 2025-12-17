@@ -1,11 +1,130 @@
 /**
- * RBAC (Role-Based Access Control) Utilities
+ * @module lib/rbac
+ * @description RBAC (Role-Based Access Control) Utilities for Fixzit
  *
- * Provides permission checking functions for server and client.
+ * Provides unified permission checking functions for server-side and client-side
+ * authorization with Super Admin bypass and module-scoped permission management.
  *
- * Permission Format: "module:action" (e.g., "finance:invoice.read")
+ * @features
+ * - **Permission Format**: "module:action" convention (e.g., "finance:invoice.read")
+ * - **Super Admin Bypass**: isSuperAdmin=true grants all permissions automatically
+ * - **Flexible Checks**: Single permission, any-of, all-of, and module-wide checks
+ * - **Role-Based Queries**: Check for specific role slugs (e.g., "property_owner")
+ * - **Common Permission Constants**: Pre-defined patterns for 11 modules (Finance, HR, CRM, etc.)
+ * - **Session Integration**: `createRbacContext()` converts NextAuth session to RBAC context
+ * - **Client-Safe**: No database dependencies; works in browser and Edge runtime
  *
- * Super Admin Bypass: isSuperAdmin=true grants all permissions
+ * @usage
+ * Check single permission (server or client):
+ * ```typescript
+ * import { can, createRbacContext } from '@/lib/rbac';
+ * import { auth } from '@/auth'; // NextAuth session
+ *
+ * const session = await auth();
+ * const rbacCtx = createRbacContext(session?.user);
+ *
+ * if (can(rbacCtx, 'finance:invoice.read')) {
+ *   // User can view invoices
+ * }
+ * ```
+ *
+ * Check multiple permissions (any-of):
+ * ```typescript
+ * import { canAny } from '@/lib/rbac';
+ *
+ * if (canAny(rbacCtx, ['finance:invoice.approve', 'finance:invoice.delete'])) {
+ *   // User can either approve OR delete invoices
+ * }
+ * ```
+ *
+ * Check module access:
+ * ```typescript
+ * import { canModule, getModulePermissions } from '@/lib/rbac';
+ *
+ * if (canModule(rbacCtx, 'finance')) {
+ *   const permissions = getModulePermissions(rbacCtx, 'finance');
+ *   console.log('Finance permissions:', permissions);
+ *   // e.g., ["finance:invoice.read", "finance:payment.read"]
+ * }
+ * ```
+ *
+ * Use permission constants:
+ * ```typescript
+ * import { can, PermissionPatterns } from '@/lib/rbac';
+ *
+ * if (can(rbacCtx, PermissionPatterns.ADMIN_USERS_MANAGE)) {
+ *   // User can manage users
+ * }
+ * ```
+ *
+ * Check roles:
+ * ```typescript
+ * import { hasRole, hasAnyRole, isSuperAdmin } from '@/lib/rbac';
+ *
+ * if (isSuperAdmin(rbacCtx)) {
+ *   // Unlimited access (bypasses all permission checks)
+ * }
+ *
+ * if (hasRole(rbacCtx, 'property_owner')) {
+ *   // User is a Property Owner
+ * }
+ *
+ * if (hasAnyRole(rbacCtx, ['admin', 'super_admin'])) {
+ *   // User is either Admin or Super Admin
+ * }
+ * ```
+ *
+ * @security
+ * - **Super Admin Bypass**: `isSuperAdmin=true` grants ALL permissions - use with extreme caution
+ * - **Null-Safe**: All functions return `false` for null/undefined contexts (deny-by-default)
+ * - **No DB Queries**: Pure permission logic - actual permissions must come from session/JWT
+ * - **Permission Injection**: NEVER accept permissions from client headers/query params
+ * - **Session Source**: Always use `session.user` from NextAuth (authenticated source)
+ * - **Edge-Safe**: No Node.js dependencies; compatible with Edge Runtime middleware
+ *
+ * @compliance
+ * - **Audit Trail**: Combine with lib/audit.ts to log all permission checks
+ * - **Least Privilege**: Deny-by-default; explicit permission grant required
+ * - **ZATCA/HFV**: Finance module permissions enforce e-invoice approval workflows
+ *
+ * @deployment
+ * No environment variables required (permission data comes from session).
+ *
+ * **Permission Format Convention**:
+ * - Structure: `module:resource.action`
+ * - Examples:
+ *   - `finance:invoice.read` - View invoices
+ *   - `finance:invoice.approve` - Approve invoices
+ *   - `workorders:assign` - Assign work orders
+ *   - `admin:users.manage` - Manage users
+ *
+ * **Module List** (11 modules):
+ * 1. `finance` - Invoices, payments, budgets
+ * 2. `workorders` - Work order management
+ * 3. `properties` - Property CRUD
+ * 4. `hr` - Employee management, payroll
+ * 5. `crm` - Leads, customers
+ * 6. `admin` - Settings, users, roles
+ * 7. `reports` - Analytics and exports
+ * 8. `marketplace` - Product catalog (Fixzit Souq)
+ * 9. `support` - Tickets, helpdesk
+ * 10. `compliance` - ZATCA audits, PDPL
+ * 11. `system` - Infrastructure management
+ *
+ * **Super Admin Privileges**:
+ * - Bypasses ALL permission checks (including module-level)
+ * - Returns `true` for every `can()`, `canAny()`, `canAll()`, `canModule()` call
+ * - Only role with `admin:super.grant` and `admin:impersonate` permissions
+ *
+ * @performance
+ * - All functions are O(1) or O(n) where n = number of permissions (typically <100)
+ * - No database queries; uses in-memory permission array from JWT
+ * - Client-safe; can be used in React components without API calls
+ *
+ * @see {@link /domain/fm/fm.types.ts} for Facility Management role definitions
+ * @see {@link /server/models/Role.ts} for Role model with permission assignments
+ * @see {@link /lib/audit.ts} for permission check audit logging
+ * @see {@link /auth.ts} for session management and JWT payload structure
  */
 
 export type RbacContext = {

@@ -1,3 +1,72 @@
+/**
+ * @module lib/edge-auth-middleware
+ * @description Edge Runtime Authentication Middleware for Fixzit
+ *
+ * Provides JWT authentication for Edge Runtime middleware (middleware.ts) with
+ * jose library support (compatible with Edge Runtime constraints).
+ *
+ * @features
+ * - **Edge Runtime Compatible**: Uses jose library instead of jsonwebtoken (Edge-safe)
+ * - **JWT Verification**: HS256 algorithm with 5-second clock skew tolerance
+ * - **Multi-Cookie Support**: Tries 5 cookie names (fz_session, session, auth_token, next-auth.session-token, fixzit_session)
+ * - **Typed Payloads**: Extracts id, email, roles, permissions, organizationId, tenantId
+ * - **Error Handling**: Returns structured error objects with HTTP status codes
+ * - **Algorithm Restriction**: Only HS256 allowed (prevents 'none' algorithm attacks)
+ *
+ * @usage
+ * In middleware.ts:
+ * ```typescript
+ * import { authenticateRequest } from '@/lib/edge-auth-middleware';
+ * import { NextRequest, NextResponse } from 'next/server';
+ *
+ * export async function middleware(request: NextRequest) {
+ *   const result = await authenticateRequest(request);
+ *
+ *   if ('error' in result) {
+ *     return new NextResponse(result.error, { status: result.statusCode });
+ *   }
+ *
+ *   const user = result;
+ *   console.log('Authenticated user:', user.id, user.email);
+ *   console.log('Org ID:', user.organizationId);
+ *
+ *   return NextResponse.next();
+ * }
+ * ```
+ *
+ * @security
+ * - **Algorithm Whitelist**: Only HS256 accepted (prevents JWT algorithm substitution attacks)
+ * - **Clock Skew Tolerance**: 5 seconds to handle minor time sync issues
+ * - **Secret Validation**: JWT secret validated at startup via lib/startup-checks.ts
+ * - **Cookie Security**: Multiple cookie names for flexibility (migrate to fz_session long-term)
+ * - **No Hardcoded Secrets**: JWT secret from environment variable only
+ * - **Payload Validation**: Safely extracts known fields; unknown fields ignored
+ *
+ * @compliance
+ * - **Multi-Tenancy**: organizationId extracted from JWT for tenant scoping
+ * - **RBAC**: roles and permissions arrays extracted for authorization checks
+ *
+ * @deployment
+ * Required environment variables:
+ * - `JWT_SECRET`: Secret key for JWT verification (same as lib/auth.ts signing key)
+ *
+ * Cookie priority order (first found wins):
+ * 1. `fz_session` (preferred, Fixzit standard)
+ * 2. `session` (generic fallback)
+ * 3. `auth_token` (legacy)
+ * 4. `next-auth.session-token` (NextAuth default)
+ * 5. `fixzit_session` (backwards compatibility)
+ *
+ * @performance
+ * - Edge Runtime: Faster cold starts vs. Node.js runtime
+ * - JWT verification: <1ms (jose library optimized for Edge)
+ * - No database queries: All auth data in JWT payload
+ *
+ * @see {@link /lib/auth.ts} for JWT token generation
+ * @see {@link /lib/startup-checks.ts} for JWT secret validation
+ * @see {@link https://github.com/panva/jose} for jose library documentation
+ */
+
 import { NextRequest } from "next/server";
 import { logger } from "./logger";
 import { jwtVerify } from "jose";

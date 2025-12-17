@@ -1,6 +1,104 @@
 /**
- * FM RBAC Middleware
- * Enforces role-based access control for Facility Management endpoints
+ * @module lib/fm-auth-middleware
+ * @description FM RBAC Middleware for Fixzit
+ *
+ * Enforces role-based access control (RBAC) for Facility Management endpoints
+ * with plan-aware permission checks and submodule-level authorization.
+ *
+ * @features
+ * - **FM Role Hierarchy**: Admin > Manager > Supervisor > Technician > Employee
+ * - **SubRole Support**: Fine-grained roles like WO_APPROVER, PROPERTY_EDITOR
+ * - **Submodule Permissions**: Per-submodule access (Work Orders, Properties, Assets, Maintenance, Vendors, Reports)
+ * - **Plan-Based Access**: Premium/Enterprise features gated by organization plan
+ * - **Property Scoping**: Property-level access control for Property Owner role
+ * - **Role Normalization**: Auto-correction of role/subRole casing inconsistencies
+ * - **Database-Backed**: Fetches organization data for plan validation
+ *
+ * @usage
+ * Extract FM auth context in API routes:
+ * ```typescript
+ * import { getFMAuthContext, requireFMPermission } from '@/lib/fm-auth-middleware';
+ * import { auth } from '@/auth';
+ *
+ * export async function GET(request: NextRequest) {
+ *   const fmCtx = await getFMAuthContext(request);
+ *   if (!fmCtx) {
+ *     return new NextResponse('Unauthorized', { status: 401 });
+ *   }
+ *
+ *   console.log('User role:', fmCtx.role);
+ *   console.log('Org ID:', fmCtx.orgId);
+ *   console.log('Property IDs:', fmCtx.propertyIds); // For Property Owner
+ * }
+ * ```
+ *
+ * Require specific FM permission:
+ * ```typescript
+ * import { requireFMPermission } from '@/lib/fm-auth-middleware';
+ *
+ * export async function POST(request: NextRequest) {
+ *   const errorResponse = await requireFMPermission(
+ *     request,
+ *     'WORK_ORDERS',
+ *     'CREATE'
+ *   );
+ *   if (errorResponse) return errorResponse; // 403 if permission denied
+ *
+ *   // User has permission to create work orders
+ * }
+ * ```
+ *
+ * Check permission with plan requirement:
+ * ```typescript
+ * import { can } from '@/domain/fm/fm.types';
+ * import { getFMAuthContext } from '@/lib/fm-auth-middleware';
+ *
+ * const fmCtx = await getFMAuthContext(request);
+ * const canApprove = can(fmCtx.role, 'WORK_ORDERS', 'APPROVE', {
+ *   plan: fmCtx.orgPlan, // 'FREE' | 'PROFESSIONAL' | 'PREMIUM' | 'ENTERPRISE'
+ *   subRole: fmCtx.subRole,
+ * });
+ * ```
+ *
+ * @security
+ * - **JWT Validation**: Requires valid JWT token (via lib/auth.ts)
+ * - **Organization Scoping**: orgId REQUIRED in FM context (no cross-tenant access)
+ * - **Property Isolation**: Property Owner restricted to owned properties only
+ * - **Role Validation**: Role/SubRole normalized and validated against FM type definitions
+ * - **Plan Enforcement**: Premium features return 403 for Free/Professional plans
+ *
+ * @compliance
+ * - **Multi-Tenancy**: Organization ID (orgId) enforced for all FM operations
+ * - **RBAC**: Permission checks align with FM role hierarchy (14 fixed roles)
+ * - **Audit Trail**: All permission checks logged via lib/logger
+ *
+ * @deployment
+ * Required:
+ * - `JWT_SECRET`: For token verification (same as lib/auth.ts)
+ * - `MONGODB_URI`: For Organization model queries
+ *
+ * Supported cookie names (auto-detected):
+ * - `fixzit_auth` (preferred)
+ * - `Authorization` header (Bearer token)
+ *
+ * FM Roles (14 total):
+ * - ADMIN, MANAGER, SUPERVISOR, TECHNICIAN, EMPLOYEE, PROPERTY_OWNER, TENANT,
+ *   VENDOR, SUPPORT, QA, COMPLIANCE, FINANCE, GUEST, CUSTOM
+ *
+ * FM Submodules (6 core):
+ * - WORK_ORDERS, PROPERTIES, ASSETS, MAINTENANCE, VENDORS, REPORTS
+ *
+ * FM Actions:
+ * - VIEW, CREATE, UPDATE, DELETE, APPROVE, ASSIGN, EXPORT
+ *
+ * @performance
+ * - Database query: 10-50ms for Organization lookup (cached in session long-term)
+ * - JWT verification: <1ms
+ * - Role normalization: <1ms (in-memory string operations)
+ *
+ * @see {@link /domain/fm/fm.types.ts} for complete FM RBAC definitions
+ * @see {@link /lib/auth.ts} for JWT token verification
+ * @see {@link /server/models/Organization.ts} for Organization model
  */
 
 import { logger } from "@/lib/logger";

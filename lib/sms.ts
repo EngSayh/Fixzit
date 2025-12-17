@@ -1,10 +1,87 @@
 /**
- * SMS Service - Taqnyat Integration for Saudi Market
- *
- * Provides SMS functionality for notifications, OTP, and alerts.
- * Uses Taqnyat as the ONLY SMS provider (CITC-compliant for Saudi Arabia).
- * 
  * @module lib/sms
+ * @description SMS Service - Taqnyat Integration for Saudi Market
+ *
+ * Provides production-ready SMS delivery for notifications, OTP, and alerts
+ * with exclusive Taqnyat provider integration (CITC-compliant for Saudi Arabia).
+ *
+ * @features
+ * - **Taqnyat Integration**: Official CITC-compliant SMS provider for Saudi market
+ * - **Circuit Breaker**: Automatic failure detection with exponential backoff
+ * - **Retry Logic**: Configurable retry attempts for transient failures (3 max)
+ * - **Timeout Protection**: Per-operation timeouts (send: 10s, status: 5s, balance: 3s)
+ * - **Phone Validation**: Saudi phone number format validation (+966 prefix)
+ * - **PII Masking**: Phone numbers redacted in logs (preserves country code + last 3 digits)
+ * - **Dev Mode Fallback**: Mock SMS delivery for local development (no Taqnyat required)
+ * - **Cost Tracking**: SAR cost calculation per message segment
+ * - **Operational Checks**: `isSmsOperational()` for preemptive failure detection
+ *
+ * @usage
+ * Send SMS (production):
+ * ```typescript
+ * import { sendSMS } from '@/lib/sms';
+ *
+ * const result = await sendSMS('+966501234567', 'Your OTP code is 123456');
+ * if (result.success) {
+ *   console.log('SMS sent:', result.messageSid);
+ *   console.log('Cost:', result.cost, result.currency); // e.g., 0.05 SAR
+ * } else {
+ *   console.error('SMS failed:', result.error);
+ * }
+ * ```
+ *
+ * Check SMS operational status (for OTP flows):
+ * ```typescript
+ * import { isSmsOperational } from '@/lib/sms';
+ *
+ * if (!isSmsOperational()) {
+ *   throw new Error('SMS delivery unavailable - check Taqnyat configuration');
+ * }
+ * ```
+ *
+ * Dev mode (automatic when `SMS_DEV_MODE=true` or NODE_ENV !== 'production'):
+ * ```typescript
+ * // No Taqnyat credentials required - logs SMS to console only
+ * const result = await sendSMS('+966501234567', 'Test message');
+ * // Returns success=true with mock messageSid
+ * ```
+ *
+ * @security
+ * - **PII Protection**: Phone numbers redacted in logs (e.g., "+966*****567")
+ * - **Credential Security**: Taqnyat bearer token must be in `TAQNYAT_BEARER_TOKEN` env var
+ * - **CITC Compliance**: Taqnyat provider pre-approved by Saudi Communications authority
+ * - **Rate Limiting**: Circuit breaker prevents SMS bombing attacks
+ * - **No Phone Enumeration**: Same error response for invalid numbers vs. delivery failure
+ *
+ * @compliance
+ * - **CITC**: Taqnyat is CITC-licensed SMS provider for Saudi Arabia
+ * - **Saudi PDPL**: Phone numbers masked in logs per data minimization requirements
+ * - **Anti-Spam**: Sender name registration required via Taqnyat dashboard
+ *
+ * @deployment
+ * Required environment variables (production):
+ * - `TAQNYAT_BEARER_TOKEN`: Taqnyat API bearer token (obtain from Taqnyat dashboard)
+ * - `TAQNYAT_SENDER_NAME`: Pre-registered sender name (e.g., "FIXZIT", max 11 chars)
+ *
+ * Optional:
+ * - `SMS_DEV_MODE`: Set to "true" to enable mock SMS (default: true in non-production)
+ * - `NODE_ENV`: Automatically enables dev mode when not "production"
+ *
+ * Resilience configuration (from config/service-timeouts.ts):
+ * - Retries: 3 attempts with exponential backoff (100ms base delay)
+ * - Timeout: 10s for send, 5s for status, 3s for balance check
+ * - Circuit breaker: Opens after 5 consecutive failures
+ *
+ * @performance
+ * - Average latency: 500-2000ms (Taqnyat API response time)
+ * - Circuit breaker prevents cascading failures
+ * - Exponential backoff reduces load during outages
+ * - Dynamic import pattern (no bundle size impact)
+ *
+ * @see {@link /lib/sms-providers/taqnyat.ts} for Taqnyat provider implementation
+ * @see {@link /lib/sms-providers/phone-utils.ts} for phone number validation utilities
+ * @see {@link /lib/resilience.ts} for circuit breaker configuration
+ * @see {@link https://www.taqnyat.sa} for Taqnyat dashboard and API docs
  */
 
 import { logger } from "@/lib/logger";

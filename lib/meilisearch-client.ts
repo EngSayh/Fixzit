@@ -1,3 +1,90 @@
+/**
+ * @module lib/meilisearch-client
+ * @description Meilisearch Client for Fixzit
+ *
+ * Provides singleton Meilisearch client with resilience wrappers for product catalog search
+ * across Marketplace (Fixzit Souq), Facility Management, and Real Estate (Aqar) modules.
+ *
+ * @features
+ * - **Singleton Pattern**: Single shared Meilisearch client instance for connection pooling
+ * - **Multi-Tenant Support**: orgId-prefixed document IDs for tenant isolation
+ * - **Resilience**: Circuit breaker + retry logic via lib/meilisearch-resilience
+ * - **Index Configuration**: Pre-configured filters, sortable fields, and searchable attributes
+ * - **Graceful Degradation**: Returns null when Meilisearch not configured (search disabled)
+ * - **Product Search**: Title, description, keywords, categoryId, brandId, isActive filtering
+ * - **Real Estate**: Properties, units, listings (future implementation)
+ *
+ * @usage
+ * Initialize Meilisearch indexes (call during app startup):
+ * ```typescript
+ * import { initializeMeilisearch } from '@/lib/meilisearch-client';
+ *
+ * await initializeMeilisearch(); // In instrumentation.ts or startup script
+ * ```
+ *
+ * Get client for search operations:
+ * ```typescript
+ * import { getMeiliSearchClient, searchProducts } from '@/lib/meilisearch-client';
+ *
+ * const client = getMeiliSearchClient();
+ * if (!client) {
+ *   console.warn('Search unavailable - Meilisearch not configured');
+ *   return [];
+ * }
+ *
+ * const results = await searchProducts('hammer', { orgId: session.user.orgId });
+ * ```
+ *
+ * Index product (tenant-scoped):
+ * ```typescript
+ * import { indexProduct } from '@/lib/meilisearch-client';
+ *
+ * await indexProduct({
+ *   orgId: 'org_123',
+ *   id: 'prod_456',
+ *   title: 'Cordless Drill',
+ *   description: '18V lithium-ion battery',
+ *   categoryId: 'cat_tools',
+ *   brandId: 'brand_bosch',
+ *   isActive: true,
+ * });
+ * // Stored as document ID: org_123_prod_456
+ * ```
+ *
+ * @security
+ * - **Tenant Isolation**: Document IDs prefixed with orgId to prevent cross-tenant search leaks
+ * - **Master Key**: MEILI_MASTER_KEY must be stored securely (never in client code)
+ * - **Filtered Attributes**: orgId must be included in filterableAttributes for tenant scoping
+ * - **No PII**: Search index should not contain sensitive personal data (emails, phone numbers)
+ *
+ * @compliance
+ * - **Saudi PDPL**: Product data indexed without customer PII
+ * - **Multi-Tenancy**: Organization-scoped search results via orgId filter
+ *
+ * @deployment
+ * Required environment variables:
+ * - `MEILI_HOST`: Meilisearch server URL (e.g., http://localhost:7700 or https://search.fixzit.com)
+ * - `MEILI_MASTER_KEY`: Meilisearch master API key (obtain from Meilisearch admin)
+ *
+ * Backwards compatibility (deprecated):
+ * - `MEILISEARCH_HOST`: Falls back to MEILI_HOST if not set
+ * - `MEILISEARCH_API_KEY`: Falls back to MEILI_MASTER_KEY if not set
+ *
+ * Index configuration:
+ * - **Filterable**: categoryId, brandId, isActive, orgId
+ * - **Sortable**: createdAt, updatedAt
+ * - **Searchable**: title, description, searchKeywords
+ *
+ * @performance
+ * - Connection reuse: Singleton pattern prevents connection exhaustion
+ * - Circuit breaker: Prevents search failures from cascading to app failures
+ * - Index size: ~10-50ms per 1000 documents (Meilisearch auto-optimization)
+ * - Search latency: <100ms for most queries (Meilisearch typo-tolerance)
+ *
+ * @see {@link /lib/meilisearch-resilience.ts} for retry/circuit breaker logic
+ * @see {@link https://docs.meilisearch.com} for Meilisearch documentation
+ */
+
 import { MeiliSearch } from "meilisearch";
 import { logger } from "@/lib/logger";
 import { withMeiliResilience } from "@/lib/meilisearch-resilience";

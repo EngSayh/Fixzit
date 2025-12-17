@@ -1,28 +1,102 @@
 /**
- * @fileoverview Authentication Module for Fixzit
- *
- * This module provides core authentication functionality including:
- * - Password hashing and verification (bcrypt)
- * - JWT token generation and verification
- * - User authentication with multi-tenant isolation
- * - Token-based user retrieval
- *
  * @module lib/auth
- * @version 2.0.26
- * @since 1.0.0
+ * @description Authentication Module for Fixzit
  *
- * @example
- * // Authenticate a user
- * const { token, user } = await authenticateUser('user@example.com', 'password');
+ * Provides core authentication functionality for multi-tenant facility management,
+ * marketplace, and real estate platforms with secure password handling, JWT token
+ * management, and organization-scoped user authentication.
  *
- * @example
- * // Verify a token
+ * @features
+ * - **Password Security**: Bcrypt hashing with cost factor 10 (~100ms computation time)
+ * - **JWT Token Management**: HS256 signed tokens with 24-hour expiry
+ * - **Multi-Tenant Isolation**: Organization-scoped authentication (orgId required)
+ * - **Secret Rotation**: AWS Secrets Manager integration with 5-minute cache
+ * - **Token Revocation**: Supports refresh token invalidation via blacklist
+ * - **Role-Based Claims**: JWT payload includes role/orgId for RBAC enforcement
+ * - **Account Status**: Active/Inactive/Suspended account state management
+ * - **Name Resolution**: Fallback chain (name → firstName+lastName → email prefix)
+ *
+ * @usage
+ * Authenticate user with email/password:
+ * ```typescript
+ * import { authenticateUser } from '@/lib/auth';
+ *
+ * const result = await authenticateUser('user@example.com', 'password123');
+ * if (result) {
+ *   console.log('Token:', result.token);
+ *   console.log('User:', result.user); // { id, email, role, orgId, name }
+ * } else {
+ *   console.error('Invalid credentials or inactive account');
+ * }
+ * ```
+ *
+ * Verify JWT token:
+ * ```typescript
+ * import { verifyToken } from '@/lib/auth';
+ *
  * const payload = await verifyToken(token);
  * if (payload) {
  *   console.log('User ID:', payload.id);
+ *   console.log('Org ID:', payload.orgId); // Required for tenant scoping
  * }
+ * ```
  *
- * @see {@link docs/AUTH_FLOW.md} for authentication flow
+ * Get user from token (server-side):
+ * ```typescript
+ * import { getUserFromToken } from '@/lib/auth';
+ *
+ * const user = await getUserFromToken(token);
+ * if (user) {
+ *   console.log('Authenticated user:', user.email);
+ * }
+ * ```
+ *
+ * Hash password for user creation:
+ * ```typescript
+ * import { hashPassword } from '@/lib/auth';
+ *
+ * const hashedPassword = await hashPassword('userPass!234');
+ * await User.create({ email, password: hashedPassword, orgId });
+ * ```
+ *
+ * @security
+ * - **Password Hashing**: Bcrypt with salt rounds=10 (OWASP recommended minimum)
+ * - **JWT Algorithm**: HS256 only (prevents 'none' algorithm attacks)
+ * - **Secret Management**: AWS Secrets Manager (prod) → env var → ephemeral (dev)
+ * - **Timing Attacks**: Bcrypt compare() uses constant-time comparison
+ * - **Token Expiry**: 24 hours (configurable via JWT_EXPIRY env var)
+ * - **Multi-Tenant Isolation**: orgId REQUIRED in JWT payload and User model
+ * - **Account Status**: Inactive/Suspended accounts rejected at authentication
+ * - **No PII in Logs**: Passwords never logged; email/name sanitized in errors
+ *
+ * @compliance
+ * - **Saudi PDPL**: Password hashing + JWT expiry + account suspension comply with security requirements
+ * - **ZATCA/HFV**: Organization ID (orgId) required for e-invoice user attribution
+ * - **GDPR**: JWT includes minimal claims (id, email, role, orgId); no sensitive personal data
+ *
+ * @deployment
+ * Required environment variables:
+ * - `JWT_SECRET`: Secret key for JWT signing (fallback if AWS Secrets unavailable)
+ * - `MONGODB_URI`: MongoDB connection string (User model dependency)
+ *
+ * Optional:
+ * - `JWT_EXPIRY`: Token expiry duration (default: "24h")
+ * - `AWS_SECRET_NAME`: AWS Secrets Manager secret name for JWT key rotation
+ * - `AWS_REGION`: AWS region for Secrets Manager (default: us-east-1)
+ *
+ * @performance
+ * - Password hashing: ~100ms per bcrypt.hash() call (blocks event loop)
+ * - JWT signing/verification: <1ms (synchronous crypto operations)
+ * - AWS Secrets: 50-200ms first call, <1ms cached (5-minute TTL)
+ * - Database query: 10-50ms (indexed on email + orgId)
+ *
+ * @see {@link /docs/AUTH_FLOW.md} for authentication flow diagram
+ * @see {@link /lib/secrets.ts} for AWS Secrets Manager integration
+ * @see {@link /server/models/User.ts} for User model schema
+ * @see {@link https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html} for OWASP password guidelines
+ *
+ * @version 2.0.26
+ * @since 1.0.0
  */
 
 import jwt from "jsonwebtoken";
