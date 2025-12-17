@@ -29,7 +29,11 @@ type NavGroup = {
   links: NavLink[];
 };
 
-export default function Footer() {
+type FooterProps = {
+  hidePlatformLinks?: boolean;
+};
+
+export default function Footer({ hidePlatformLinks = false }: FooterProps) {
   const [supportOpen, setSupportOpen] = useState(false);
   const [currentYear, setCurrentYear] = useState("");
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
@@ -177,15 +181,23 @@ export default function Footer() {
     [handleSupportClick, t],
   );
 
-  useEffect(() => {
-    if (!activeGroup && navSections.length > 0) {
-      setActiveGroup(navSections[0]?.id ?? null);
+  // Filter out platform section when in superadmin context
+  const filteredSections = useMemo(() => {
+    if (hidePlatformLinks) {
+      return navSections.filter(section => section.id !== "platform");
     }
-  }, [activeGroup, navSections]);
+    return navSections;
+  }, [hidePlatformLinks, navSections]);
+
+  useEffect(() => {
+    if (!activeGroup && filteredSections.length > 0) {
+      setActiveGroup(filteredSections[0]?.id ?? null);
+    }
+  }, [activeGroup, filteredSections]);
 
   const activeNav =
-    navSections.find((section) => section.id === activeGroup) ??
-    navSections[0];
+    filteredSections.find((section) => section.id === activeGroup) ??
+    filteredSections[0];
 
   const activeLinks = activeNav?.links ?? [];
 
@@ -252,7 +264,7 @@ export default function Footer() {
                   translationIsRTL ? "flex-row-reverse" : "",
                 )}
               >
-                {navSections.map((section) => (
+                {filteredSections.map((section) => (
                   <button
                     key={section.id}
                     type="button"

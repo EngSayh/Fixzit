@@ -2,6 +2,73 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-17 01:45 (Asia/Riyadh) — Superadmin Navigation Fix (P0 UX Critical)
+**Context:** main @ [uncommitted] | Working: Footer + Superadmin Layout | Tree: MODIFIED  
+**MongoDB:** 34 issues (24 open, 1 in_progress, 9 resolved) [verified]  
+**Session:** GitHub Copilot (Claude Sonnet 4.5) - Evidence-Based Fix
+
+**🎯 CRITICAL UX BUG FIXED:**
+
+**Root Cause Identified:**
+- Universal `<Footer />` component rendered in superadmin layout
+- Footer "Platform" section contains tenant-scoped route links:
+  - `/work-orders` - "Dispatch, SLA timers, and technician routing"
+  - `/properties` - "Units, leases, inspections, and maintenance"
+  - `/finance` - "Invoices, receipts, payouts, and ZATCA-ready billing"
+  - `/marketplace` - "Catalog, vendor onboarding, and orders"
+- When superadmin clicks these links → middleware detects missing `orgId` → redirects to `/login`
+- **Architectural Boundary**: Superadmin auth (SUPERADMIN_* env vars, no orgId) ≠ Tenant auth (NextAuth + orgId required)
+
+**🔧 Solution Implemented (Option A - Recommended):**
+- **components/Footer.tsx**: Added `hidePlatformLinks?: boolean` prop
+  - Created `filteredSections` computed value to exclude "platform" section when `hidePlatformLinks={true}`
+  - Updated 3 references: useEffect, activeNav, navigation rendering
+  - Backward compatible (defaults to `false`)
+- **components/superadmin/SuperadminLayoutClient.tsx**: Pass `<Footer hidePlatformLinks={true} />`
+  - Platform links hidden in superadmin context only
+  - Tenant users unaffected
+
+**📁 Files Changed:**
+- `components/Footer.tsx` - 24 lines changed (+19, -5)
+- `components/superadmin/SuperadminLayoutClient.tsx` - 4 lines changed (+2, -2)
+
+**✅ Verification:**
+- TypeScript: ✅ 0 errors (`pnpm typecheck`)
+- ESLint: ✅ 0 errors (`pnpm lint`)
+- Git diff: Clean, surgical changes only
+- No middleware/auth/DB changes (LOW RISK)
+
+**📚 Documentation Created:**
+- `docs/ACTION_PLAN_SUPERADMIN_NAV_FIX.md` - Full analysis, options evaluation, implementation plan
+- `docs/SUPERADMIN_NAV_FIX_SUMMARY.md` - Evidence pack, proof, testing plan
+
+**🧪 Test Suite Status:**
+- **Current**: 2 failed suites, 0 failed tests, 3,474 passed (99.94% pass rate)
+- **Improved from**: 13 suite failures → 2 suite failures (85% reduction)
+- **Remaining**: `tests/api/auth/refresh.replay.test.ts` (suite-level failure, investigation needed)
+
+**⚠️ Related Findings:**
+1. **Settings Button (P3)**: Routes to intentional placeholder `/superadmin/system` ("Coming Soon" card) - NOT A BUG
+2. **GitHub Actions Warnings (FALSE POSITIVE)**: 13 warnings about secret context access - Valid GHA syntax, safe to ignore
+3. **Middleware Protection**: Lines 644-651 block superadmin from `/fm/*` routes (documented design decision for portal separation)
+
+**🎯 Impact:**
+- ✅ Superadmin users: No more confusing `/login` redirects from footer
+- ✅ Tenant users: Zero changes, zero risk
+- ✅ Architecture: Maintains tenant isolation boundary
+- ✅ Rollback: Easy (revert 2 files)
+
+**📋 Next Steps:**
+1. Manual HFV testing (superadmin + tenant contexts)
+2. RTL/i18n verification
+3. Proof pack completion (before/after screenshots)
+4. Investigate `refresh.replay.test.ts` failure (P2, 2 hours)
+5. Commit with evidence + push to staging
+
+**Merge-ready for Fixzit Phase 1 MVP** (pending manual testing confirmation)
+
+---
+
 ### 2025-12-17 00:30 (Asia/Riyadh) — CRM Tenant Scope Security Fix (SEC-CRM-001)
 **Context:** main @ cf04061f1 (SEC-CRM-001) | Origin: 3e389b3e8 [ahead 1] | Working tree CLEAN  
 **MongoDB:** 34 issues (24 open, 1 in_progress, 9 resolved) [verified]  

@@ -43,8 +43,8 @@ export function SuperadminLayoutClient({
               {/* Page Content */}
               <main className="flex-1 overflow-auto">{children}</main>
 
-              {/* Universal Footer */}
-              <Footer />
+              {/* Universal Footer - Hide platform links in superadmin context */}
+              <Footer hidePlatformLinks={true} />
             </div>
           </div>
         )}
