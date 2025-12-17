@@ -9,19 +9,20 @@ import * as path from "path";
 
 /**
  * Critical modules that MUST have error boundaries for production readiness
+ * Note: Paths reflect Next.js route groups (parentheses)
  */
 const REQUIRED_ERROR_BOUNDARIES = [
-  "app/work-orders",
-  "app/fm",
-  "app/settings",
-  "app/crm",
-  "app/hr",
-  "app/finance",
-  "app/aqar",
-  "app/souq",
-  "app/admin",
-  "app/dashboard",
-  "app/properties",
+  "app/(fm)/work-orders",
+  "app/(fm)/fm",
+  "app/(fm)/settings",
+  "app/(fm)/crm",
+  "app/(fm)/hr",
+  "app/(fm)/finance",
+  "app/(app)/aqar",
+  "app/(app)/souq",
+  "app/(fm)/admin",
+  "app/(fm)/dashboard",
+  "app/(fm)/properties",
   "app/vendors",
 ];
 
