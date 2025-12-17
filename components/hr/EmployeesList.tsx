@@ -95,6 +95,10 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
     if (state.filters?.status) params.set("status", String(state.filters.status));
     if (state.filters?.department) params.set("department", String(state.filters.department));
     if (state.filters?.employmentType) params.set("employmentType", String(state.filters.employmentType));
+    if (state.filters?.joiningDateDays) params.set("joiningDateDays", String(state.filters.joiningDateDays));
+    if (state.filters?.reviewDueDays) params.set("reviewDueDays", String(state.filters.reviewDueDays));
+    if (state.filters?.joiningFrom) params.set("joiningFrom", String(state.filters.joiningFrom));
+    if (state.filters?.joiningTo) params.set("joiningTo", String(state.filters.joiningTo));
     return params.toString();
   }, [orgId, state]);
 
@@ -148,6 +152,39 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
         label: `Type: ${state.filters.employmentType.toString().replace(/_/g, " ")}`,
         onRemove: () => {
           const { employmentType: _employmentType, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.joiningDateDays) {
+      filters.push({
+        key: "joiningDateDays",
+        label: `New hires (${state.filters.joiningDateDays}d)`,
+        onRemove: () => {
+          const { joiningDateDays: _joiningDateDays, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.reviewDueDays) {
+      filters.push({
+        key: "reviewDueDays",
+        label: `Reviews due (${state.filters.reviewDueDays}d)`,
+        onRemove: () => {
+          const { reviewDueDays: _reviewDueDays, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.joiningFrom || state.filters?.joiningTo) {
+      filters.push({
+        key: "joiningRange",
+        label: `Joining: ${state.filters?.joiningFrom || "any"} → ${state.filters?.joiningTo || "any"}`,
+        onRemove: () => {
+          const { joiningFrom: _joiningFrom, joiningTo: _joiningTo, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });
@@ -343,6 +380,7 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
         data={employees}
         loading={isLoading}
         emptyState={emptyState}
+        density={density}
         onRowClick={(row) => toast.info(`Open employee ${row.id}`)}
       />
 

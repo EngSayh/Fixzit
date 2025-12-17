@@ -89,6 +89,8 @@ export function RolesList({ orgId }: RolesListProps) {
     if (state.filters?.status) params.set("status", String(state.filters.status));
     if (state.filters?.membersMin) params.set("membersMin", String(state.filters.membersMin));
     if (state.filters?.membersMax) params.set("membersMax", String(state.filters.membersMax));
+    if (state.filters?.createdFrom) params.set("createdFrom", String(state.filters.createdFrom));
+    if (state.filters?.createdTo) params.set("createdTo", String(state.filters.createdTo));
     return params.toString();
   }, [orgId, state]);
 
@@ -142,6 +144,17 @@ export function RolesList({ orgId }: RolesListProps) {
         label: `Members: ${state.filters.membersMin || 0}-${state.filters.membersMax || "∞"}`,
         onRemove: () => {
           const { membersMin: _membersMin, membersMax: _membersMax, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.createdFrom || state.filters?.createdTo) {
+      filters.push({
+        key: "createdRange",
+        label: `Created: ${state.filters?.createdFrom || "any"} → ${state.filters?.createdTo || "any"}`,
+        onRemove: () => {
+          const { createdFrom: _createdFrom, createdTo: _createdTo, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });
@@ -305,6 +318,7 @@ export function RolesList({ orgId }: RolesListProps) {
         data={roles}
         loading={isLoading}
         emptyState={emptyState}
+        density={density}
         onRowClick={(row) => toast.info(`Open role ${row.id}`)}
       />
 

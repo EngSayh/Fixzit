@@ -165,11 +165,12 @@ export default [
       "@typescript-eslint/no-require-imports": "off",
       "prefer-const": "off",
       // Environment selection is project-based; forbid inline overrides that caused flake
-      "no-restricted-comments": [
-        "error",
+      // Note: ESLint 9 doesn't have no-restricted-comments; use no-warning-comments instead
+      "no-warning-comments": [
+        "warn",
         {
-          pattern: "@vitest-environment",
-          message: "Do not set @vitest-environment; use vitest projects instead.",
+          terms: ["@vitest-environment"],
+          location: "anywhere",
         },
       ],
     },

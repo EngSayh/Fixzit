@@ -25,6 +25,7 @@ import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTabl
 import { TableToolbar } from "@/components/tables/TableToolbar";
 import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
+import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
@@ -428,6 +429,7 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
           data={properties}
           loading={isLoading}
           emptyState={emptyState}
+          density={density}
           onRowClick={(row) => toast.info(`Open property ${row.id}`)}
         />
       )}

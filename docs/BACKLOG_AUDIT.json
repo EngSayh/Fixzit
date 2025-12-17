@@ -4,6 +4,7 @@
   "issues": [
     {
       "key": "P3-AQAR-FILTERS",
+      "externalId": "P3-AQAR-FILTERS-LOCAL",
       "title": "Refactor Aqar SearchFilters to standard filter components",
       "category": "refactor",
       "priority": "P3",
@@ -17,6 +18,7 @@
     },
     {
       "key": "P3-SOUQ-PRODUCTS",
+      "externalId": "P3-SOUQ-PRODUCTS-LOCAL",
       "title": "Migrate Souq Products list to DataTableStandard with filters",
       "category": "refactor",
       "priority": "P3",
@@ -30,6 +32,7 @@
     },
     {
       "key": "P3-LIST-INTEGRATION-TESTS",
+      "externalId": "P3-LIST-INTEGRATION-TESTS-LOCAL",
       "title": "Add integration tests for 12 list components across roles",
       "category": "missing_test",
       "priority": "P3",
@@ -43,6 +46,7 @@
     },
     {
       "key": "BUG-WO-FILTERS-MISSING",
+      "externalId": "BUG-WO-FILTERS-MISSING-LOCAL",
       "title": "WorkOrdersViewNew filters not wired to query params",
       "category": "bug",
       "priority": "P2",
@@ -56,6 +60,7 @@
     },
     {
       "key": "BUG-USERS-FILTERS-MISSING",
+      "externalId": "BUG-USERS-FILTERS-MISSING-LOCAL",
       "title": "UsersList filters not wired to query params",
       "category": "bug",
       "priority": "P2",
@@ -69,6 +74,7 @@
     },
     {
       "key": "BUG-EMPLOYEES-FILTERS-MISSING",
+      "externalId": "BUG-EMPLOYEES-FILTERS-MISSING-LOCAL",
       "title": "EmployeesList filters not wired to query params",
       "category": "bug",
       "priority": "P2",
@@ -82,6 +88,7 @@
     },
     {
       "key": "BUG-INVOICES-FILTERS-MISSING",
+      "externalId": "BUG-INVOICES-FILTERS-MISSING-LOCAL",
       "title": "InvoicesList filters not wired to query params",
       "category": "bug",
       "priority": "P2",
@@ -95,6 +102,7 @@
     },
     {
       "key": "BUG-AUDITLOGS-FILTERS-MISSING",
+      "externalId": "BUG-AUDITLOGS-FILTERS-MISSING-LOCAL",
       "title": "AuditLogsList filters not wired to query params",
       "category": "bug",
       "priority": "P2",
@@ -108,7 +116,7 @@
     },
     {
       "key": "PERF-001",
-      "externalId": "PERF-001",
+      "externalId": "PERF-001-LOCAL",
       "title": "Database query optimization - 33 db.collection() calls bypass Mongoose",
       "category": "performance",
       "priority": "P0",
@@ -122,7 +130,7 @@
     },
     {
       "key": "TEST-COVERAGE-GAP",
-      "externalId": "TEST-001",
+      "externalId": "TEST-COVERAGE-GAP-LOCAL",
       "title": "API test coverage only 24% (88/367 routes)",
       "category": "missing_test",
       "priority": "P0",
@@ -136,7 +144,7 @@
     },
     {
       "key": "PERF-002",
-      "externalId": "PERF-002",
+      "externalId": "PERF-002-LOCAL",
       "title": "API response caching missing - 95% of GET endpoints have no cache headers",
       "category": "performance",
       "priority": "P1",
@@ -150,7 +158,7 @@
     },
     {
       "key": "PERF-003",
-      "externalId": "PERF-003",
+      "externalId": "PERF-003-LOCAL",
       "title": "Timer cleanup memory leaks - 47 setTimeout/setInterval without cleanup",
       "category": "bug",
       "priority": "P1",
@@ -164,7 +172,7 @@
     },
     {
       "key": "FEATURE-001",
-      "externalId": "FEATURE-001",
+      "externalId": "FEATURE-001-LOCAL",
       "title": "Real-time notifications system (WebSocket/SSE)",
       "category": "feature",
       "priority": "P0",
@@ -178,7 +186,7 @@
     },
     {
       "key": "FEATURE-002",
-      "externalId": "FEATURE-002",
+      "externalId": "FEATURE-002-LOCAL",
       "title": "Bulk operations UI (select multiple rows, batch actions)",
       "category": "feature",
       "priority": "P1",
@@ -192,7 +200,7 @@
     },
     {
       "key": "LOGIC-001",
-      "externalId": "LOGIC-001",
+      "externalId": "LOGIC-001-LOCAL",
       "title": "Work Order SLA calculation doesn't account for business hours",
       "category": "logic",
       "priority": "P1",
@@ -206,7 +214,7 @@
     },
     {
       "key": "BUG-TS-VITEST-CONFIG",
-      "externalId": "BUG-002",
+      "externalId": "BUG-TS-VITEST-CONFIG-LOCAL",
       "title": "TypeScript errors in vitest.config.ts (poolOptions.threads type mismatch)",
       "category": "bug",
       "priority": "P3",
@@ -220,7 +228,7 @@
     },
     {
       "key": "COMP-001",
-      "externalId": "COMP-001",
+      "externalId": "COMP-001-LOCAL",
       "title": "ZATCA E-Invoicing Phase 2 implementation (Saudi compliance)",
       "category": "compliance",
       "priority": "P1",
@@ -243,7 +251,8 @@
       "sourcePath": "AI_IMPROVEMENT_ANALYSIS_REPORT.md",
       "sourceRef": "analysis:error-monitoring",
       "evidenceSnippet": "No production error tracking",
-      "description": "Sentry already in build config; needs activation + DSN configuration"
+      "description": "Sentry already in build config; needs activation + DSN configuration",
+      "externalId": "INFRA-SENTRY-LOCAL"
     },
     {
       "key": "RESOLVED-ESLINT-CLEANUP",
@@ -257,7 +266,8 @@
       "sourceRef": "commit:02475ba9f",
       "evidenceSnippet": "Removed console, prefixed unused vars",
       "description": "Fixed all ESLint violations in impersonation components + parallel agent list components",
-      "resolution": "Committed 02475ba9f - removed console statements, prefixed unused variables, fixed imports"
+      "resolution": "Committed 02475ba9f - removed console statements, prefixed unused variables, fixed imports",
+      "externalId": "RESOLVED-ESLINT-CLEANUP-LOCAL"
     },
     {
       "key": "RESOLVED-AGGREGATE-WRAPPER",
@@ -271,7 +281,8 @@
       "sourceRef": "commit:283eaeb56",
       "evidenceSnippet": "175 lines, auto-scopes orgId",
       "description": "Created aggregateWithTenantScope utility with maxTimeMS enforcement and superadmin bypass",
-      "resolution": "Committed 283eaeb56 - moved to lib/db/, added unit tests"
+      "resolution": "Committed 283eaeb56 - moved to lib/db/, added unit tests",
+      "externalId": "RESOLVED-AGGREGATE-WRAPPER-LOCAL"
     }
   ]
 }

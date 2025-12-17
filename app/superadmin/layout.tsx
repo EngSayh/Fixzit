@@ -22,7 +22,7 @@ export default async function SuperadminLayout({
 }: {
   children: ReactNode;
 }) {
-  const hdrs = headers();
+  const hdrs = await headers();
   const currentPath =
     hdrs.get("x-matched-path") ||
     hdrs.get("x-pathname") ||

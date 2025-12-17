@@ -256,7 +256,9 @@ export function getRateLimitBreakdown(): RateLimitEndpointStats[] {
  * beforeEach(() => __resetMonitoringStateForTests());
  */
 export function __resetMonitoringStateForTests(): void {
-  if (process.env.NODE_ENV === "production") {
+  // Allow vitest workers even if NODE_ENV toggled by framework
+  const isTestHarness = process.env.VITEST_WORKER_ID || process.env.NODE_ENV === "test";
+  if (!isTestHarness && process.env.NODE_ENV === "production") {
     logger.error("[Security] __resetMonitoringStateForTests called in production - ignoring");
     return;
   }

@@ -1,12 +1,9 @@
-/**
- * @vitest-environment node
- */
 import { describe, it, expect } from 'vitest';
 import { validatePublicHttpsUrl, isValidPublicHttpsUrl, URLValidationError } from '@/lib/security/validate-public-https-url';
 
-describe('validatePublicHttpsUrl - SSRF Protection', () => {
+describe('validatePublicHttpsUrl - SSRF Protection v2.0', () => {
   describe('Valid Public HTTPS URLs', () => {
-    it('should accept valid public HTTPS URLs', () => {
+    it('should accept valid public HTTPS URLs with DNS resolution', () => {
       const validUrls = [
         'https://example.com',
         'https://api.example.com/webhook',
@@ -48,7 +45,7 @@ describe('validatePublicHttpsUrl - SSRF Protection', () => {
 
       localhostUrls.forEach((url) => {
         expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
-        expect(() => validatePublicHttpsUrl(url)).toThrow('Localhost URLs are not allowed');
+        expect(() => validatePublicHttpsUrl(url)).toThrow('Localhost/loopback URLs are not allowed');
         expect(isValidPublicHttpsUrl(url)).toBe(false);
       });
     });
@@ -64,7 +61,7 @@ describe('validatePublicHttpsUrl - SSRF Protection', () => {
 
       privateIPs.forEach((url) => {
         expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
-        expect(() => validatePublicHttpsUrl(url)).toThrow('Private IP addresses are not allowed');
+        expect(() => validatePublicHttpsUrl(url)).toThrow('Private IP address URLs are not allowed');
         expect(isValidPublicHttpsUrl(url)).toBe(false);
       });
     });
@@ -78,7 +75,7 @@ describe('validatePublicHttpsUrl - SSRF Protection', () => {
 
       privateIPs.forEach((url) => {
         expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
-        expect(() => validatePublicHttpsUrl(url)).toThrow('Private IP addresses are not allowed');
+        expect(() => validatePublicHttpsUrl(url)).toThrow('Private IP address URLs are not allowed');
         expect(isValidPublicHttpsUrl(url)).toBe(false);
       });
     });
@@ -92,7 +89,7 @@ describe('validatePublicHttpsUrl - SSRF Protection', () => {
 
       privateIPs.forEach((url) => {
         expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
-        expect(() => validatePublicHttpsUrl(url)).toThrow('Private IP addresses are not allowed');
+        expect(() => validatePublicHttpsUrl(url)).toThrow('Private IP address URLs are not allowed');
         expect(isValidPublicHttpsUrl(url)).toBe(false);
       });
     });
@@ -108,7 +105,7 @@ describe('validatePublicHttpsUrl - SSRF Protection', () => {
 
       linkLocalUrls.forEach((url) => {
         expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
-        expect(() => validatePublicHttpsUrl(url)).toThrow('Link-local addresses are not allowed');
+        expect(() => validatePublicHttpsUrl(url)).toThrow('Private IP address URLs are not allowed');
         expect(isValidPublicHttpsUrl(url)).toBe(false);
       });
     });
@@ -117,13 +114,13 @@ describe('validatePublicHttpsUrl - SSRF Protection', () => {
   describe('Internal TLD Rejection', () => {
     it('should reject .local domains', () => {
       expect(() => validatePublicHttpsUrl('https://service.local')).toThrow(URLValidationError);
-      expect(() => validatePublicHttpsUrl('https://service.local')).toThrow('Internal TLDs are not allowed');
+      expect(() => validatePublicHttpsUrl('https://service.local')).toThrow('Internal TLD (.local, .internal, .test) URLs are not allowed');
       expect(isValidPublicHttpsUrl('https://service.local')).toBe(false);
     });
 
     it('should reject .internal domains', () => {
       expect(() => validatePublicHttpsUrl('https://api.internal')).toThrow(URLValidationError);
-      expect(() => validatePublicHttpsUrl('https://api.internal')).toThrow('Internal TLDs are not allowed');
+      expect(() => validatePublicHttpsUrl('https://api.internal')).toThrow('Internal TLD (.local, .internal, .test) URLs are not allowed');
       expect(isValidPublicHttpsUrl('https://api.internal')).toBe(false);
     });
   });

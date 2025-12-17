@@ -94,6 +94,11 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
     if (state.filters?.status) params.set("status", String(state.filters.status));
     if (state.filters?.amountMin) params.set("amountMin", String(state.filters.amountMin));
     if (state.filters?.amountMax) params.set("amountMax", String(state.filters.amountMax));
+    if (state.filters?.dateRange) params.set("dateRange", String(state.filters.dateRange));
+    if (state.filters?.issueFrom) params.set("issueFrom", String(state.filters.issueFrom));
+    if (state.filters?.issueTo) params.set("issueTo", String(state.filters.issueTo));
+    if (state.filters?.dueFrom) params.set("dueFrom", String(state.filters.dueFrom));
+    if (state.filters?.dueTo) params.set("dueTo", String(state.filters.dueTo));
     return params.toString();
   }, [orgId, state]);
 
@@ -137,6 +142,39 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         label: `Amount: ${state.filters.amountMin || 0}-${state.filters.amountMax || "∞"}`,
         onRemove: () => {
           const { amountMin: _amountMin, amountMax: _amountMax, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.dateRange) {
+      filters.push({
+        key: "dateRange",
+        label: `Date range: ${state.filters.dateRange}`,
+        onRemove: () => {
+          const { dateRange: _dateRange, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.issueFrom || state.filters?.issueTo) {
+      filters.push({
+        key: "issueRange",
+        label: `Issue: ${state.filters?.issueFrom || "any"} → ${state.filters?.issueTo || "any"}`,
+        onRemove: () => {
+          const { issueFrom: _issueFrom, issueTo: _issueTo, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.dueFrom || state.filters?.dueTo) {
+      filters.push({
+        key: "dueRange",
+        label: `Due: ${state.filters?.dueFrom || "any"} → ${state.filters?.dueTo || "any"}`,
+        onRemove: () => {
+          const { dueFrom: _dueFrom, dueTo: _dueTo, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });
@@ -330,6 +368,7 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         data={invoices}
         loading={isLoading}
         emptyState={emptyState}
+        density={density}
         onRowClick={(row) => toast.info(`Open invoice ${row.id}`)}
       />
 

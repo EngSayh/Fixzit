@@ -14,7 +14,7 @@ import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { PlatformSettings } from "@/server/models/PlatformSettings";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { revalidatePath } from "next/cache";
-import { validatePublicHttpsUrl } from "@/lib/security/validatePublicHttpsUrl";
+import { validatePublicHttpsUrl } from "@/lib/security/validate-public-https-url";
 import { z } from "zod";
 
 const HEX_COLOR_REGEX = /^#(?:[0-9a-fA-F]{3}){1,2}$/;
@@ -163,19 +163,22 @@ export async function PATCH(request: NextRequest) {
     }
 
     // SSRF Protection: Validate URLs after Zod parse
+    let currentField: "logoUrl" | "faviconUrl" | null = null;
     try {
       if (body.logoUrl) {
-        validatePublicHttpsUrl(body.logoUrl, 'logoUrl');
+        currentField = "logoUrl";
+        validatePublicHttpsUrl(body.logoUrl);
       }
       if (body.faviconUrl) {
-        validatePublicHttpsUrl(body.faviconUrl, 'faviconUrl');
+        currentField = "faviconUrl";
+        validatePublicHttpsUrl(body.faviconUrl);
       }
     } catch (urlValidationError) {
       logger.warn("URL validation failed", { error: urlValidationError });
       return NextResponse.json(
         { 
           error: urlValidationError instanceof Error ? urlValidationError.message : "URL validation failed",
-          field: urlValidationError instanceof Error && urlValidationError.message.includes('logoUrl') ? 'logoUrl' : 'faviconUrl'
+          field: currentField ?? "unknown"
         },
         { status: 400 }
       );

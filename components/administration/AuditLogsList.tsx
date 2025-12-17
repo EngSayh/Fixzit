@@ -92,6 +92,10 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
     if (state.filters?.status) params.set("status", String(state.filters.status));
     if (state.filters?.userId) params.set("userId", String(state.filters.userId));
     if (state.filters?.ipAddress) params.set("ipAddress", String(state.filters.ipAddress));
+    if (state.filters?.dateRange) params.set("dateRange", String(state.filters.dateRange));
+    if (state.filters?.action) params.set("action", String(state.filters.action));
+    if (state.filters?.timestampFrom) params.set("timestampFrom", String(state.filters.timestampFrom));
+    if (state.filters?.timestampTo) params.set("timestampTo", String(state.filters.timestampTo));
     return params.toString();
   }, [orgId, state]);
 
@@ -157,6 +161,39 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
         label: `IP: ${state.filters.ipAddress}`,
         onRemove: () => {
           const { ipAddress: _ipAddress, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.dateRange) {
+      filters.push({
+        key: "dateRange",
+        label: `Range: ${state.filters.dateRange}`,
+        onRemove: () => {
+          const { dateRange: _dateRange, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.action) {
+      filters.push({
+        key: "action",
+        label: `Action: ${state.filters.action}`,
+        onRemove: () => {
+          const { action: _action, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.timestampFrom || state.filters?.timestampTo) {
+      filters.push({
+        key: "timestampRange",
+        label: `Timestamp: ${state.filters?.timestampFrom || "any"} → ${state.filters?.timestampTo || "any"}`,
+        onRemove: () => {
+          const { timestampFrom: _timestampFrom, timestampTo: _timestampTo, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });
@@ -327,6 +364,7 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
         data={logs}
         loading={isLoading}
         emptyState={emptyState}
+        density={density}
         onRowClick={(row) => toast.info(`View log details ${row.id}`)}
       />
 

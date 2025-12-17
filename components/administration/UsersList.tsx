@@ -91,6 +91,9 @@ export function UsersList({ orgId }: UsersListProps) {
     if (state.filters?.role) params.set("role", String(state.filters.role));
     if (state.filters?.status) params.set("status", String(state.filters.status));
     if (state.filters?.department) params.set("department", String(state.filters.department));
+    if (state.filters?.inactiveDays) params.set("inactiveDays", String(state.filters.inactiveDays));
+    if (state.filters?.lastLoginFrom) params.set("lastLoginFrom", String(state.filters.lastLoginFrom));
+    if (state.filters?.lastLoginTo) params.set("lastLoginTo", String(state.filters.lastLoginTo));
     return params.toString();
   }, [orgId, state]);
 
@@ -144,6 +147,28 @@ export function UsersList({ orgId }: UsersListProps) {
         label: `Department: ${state.filters.department}`,
         onRemove: () => {
           const { department: _department, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.inactiveDays) {
+      filters.push({
+        key: "inactiveDays",
+        label: `Inactive > ${state.filters.inactiveDays}d`,
+        onRemove: () => {
+          const { inactiveDays: _inactiveDays, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.lastLoginFrom || state.filters?.lastLoginTo) {
+      filters.push({
+        key: "lastLoginRange",
+        label: `Last login: ${state.filters?.lastLoginFrom || "any"} → ${state.filters?.lastLoginTo || "any"}`,
+        onRemove: () => {
+          const { lastLoginFrom: _lastLoginFrom, lastLoginTo: _lastLoginTo, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });
@@ -318,6 +343,7 @@ export function UsersList({ orgId }: UsersListProps) {
         data={users}
         loading={isLoading}
         emptyState={emptyState}
+        density={density}
         onRowClick={(row) => toast.info(`Open user ${row.id}`)}
       />
 

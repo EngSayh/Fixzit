@@ -1,117 +1,98 @@
 /**
- * SSRF Protection: Validate Public HTTPS URLs
- * 
- * Prevents Server-Side Request Forgery by:
- * - Enforcing HTTPS-only
- * - Blocking localhost/loopback
- * - Blocking private IP ranges (10.*, 192.168.*, 172.16-31.*)
- * - Blocking link-local (169.254.* - AWS metadata)
- * - Blocking internal TLDs (.local, .internal)
- * 
- * @module lib/security/validate-public-https-url
+ * SSRF Protection: Validate Public HTTPS URLs (synchronous)
+ *
+ * Enforces HTTPS-only and blocks localhost, private/link-local IPs, internal TLDs,
+ * and direct IP addressing. Throws URLValidationError with user-facing messages.
  */
-
 export class URLValidationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'URLValidationError';
+    this.name = "URLValidationError";
   }
 }
 
-/**
- * Validates that a URL is a public HTTPS URL safe for server-side fetching
- * @throws {URLValidationError} if URL is unsafe
- */
+const LOCALHOST_MESSAGES = "Localhost/loopback URLs are not allowed";
+const PRIVATE_IP_MESSAGE = "Private IP address URLs are not allowed";
+const HTTPS_MESSAGE = "Only HTTPS URLs are allowed";
+const INTERNAL_TLD_MESSAGE =
+  "Internal TLD (.local, .internal, .test) URLs are not allowed";
+const DIRECT_IP_MESSAGE = "Direct IP addresses are discouraged";
+const INVALID_MESSAGE = "Invalid URL format";
+
+const PRIVATE_RANGES = [
+  /^10\.(\d{1,3}\.){2}\d{1,3}$/, // 10.0.0.0/8
+  /^192\.168\.(\d{1,3}\.)\d{1,3}$/, // 192.168.0.0/16
+  /^172\.(1[6-9]|2\d|3[01])\.(\d{1,3}\.)\d{1,3}$/, // 172.16.0.0/12
+];
+
+function isIPv4(hostname: string): boolean {
+  const ipv4 = hostname.match(
+    /^(?<a>\d{1,3})\.(?<b>\d{1,3})\.(?<c>\d{1,3})\.(?<d>\d{1,3})$/,
+  );
+  if (!ipv4?.groups) return false;
+  return (["a", "b", "c", "d"] as const).every(
+    (oct) => Number(ipv4.groups![oct]) <= 255,
+  );
+}
+
+function isLocalhost(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return (
+    normalized === "localhost" ||
+    normalized === "127.0.0.1" ||
+    normalized === "0.0.0.0" ||
+    normalized === "::1" ||
+    normalized === "::" ||
+    normalized === "[::1]" ||
+    normalized === "[::]"
+  );
+}
+
+function isPrivateIp(hostname: string): boolean {
+  return PRIVATE_RANGES.some((pattern) => pattern.test(hostname));
+}
+
+function isLinkLocal(hostname: string): boolean {
+  return hostname.startsWith("169.254.");
+}
+
 export function validatePublicHttpsUrl(urlString: string): URL {
-  let url: URL;
-  
-  // Parse URL
+  let parsed: URL;
   try {
-    url = new URL(urlString);
+    parsed = new URL(urlString);
   } catch {
-    throw new URLValidationError('Invalid URL format');
+    throw new URLValidationError(INVALID_MESSAGE);
   }
 
-  // Enforce HTTPS
-  if (url.protocol !== 'https:') {
-    throw new URLValidationError('Only HTTPS URLs are allowed');
+  if (parsed.protocol !== "https:") {
+    throw new URLValidationError(HTTPS_MESSAGE);
   }
 
-  const hostname = url.hostname.toLowerCase();
+  const host = parsed.hostname.toLowerCase();
 
-  // Block localhost variants (including IPv6 brackets)
-  const localhostPatterns = [
-    'localhost',
-    '127.0.0.1',
-    '0.0.0.0',
-    '::1',
-    '::',
-    '[::1]',
-    '[::]',
-  ];
-  
-  if (localhostPatterns.includes(hostname) || hostname.startsWith('[::')) {
-    throw new URLValidationError('Localhost URLs are not allowed');
+  if (isLocalhost(host)) {
+    throw new URLValidationError(LOCALHOST_MESSAGES);
   }
 
-  // Block private IP ranges
-  if (isPrivateIP(hostname)) {
-    throw new URLValidationError('Private IP addresses are not allowed');
+  if (isPrivateIp(host) || isLinkLocal(host)) {
+    throw new URLValidationError(PRIVATE_IP_MESSAGE);
   }
 
-  // Block link-local (AWS metadata endpoint)
-  if (hostname.startsWith('169.254.')) {
-    throw new URLValidationError('Link-local addresses are not allowed');
+  if (
+    host.endsWith(".local") ||
+    host.endsWith(".internal") ||
+    host.endsWith(".test")
+  ) {
+    throw new URLValidationError(INTERNAL_TLD_MESSAGE);
   }
 
-  // Block internal TLDs
-  if (hostname.endsWith('.local') || hostname.endsWith('.internal')) {
-    throw new URLValidationError('Internal TLDs are not allowed');
+  if (isIPv4(host)) {
+    throw new URLValidationError(DIRECT_IP_MESSAGE);
   }
 
-  // Additional check: disallow IP address hostnames (prefer domains)
-  // This is optional but recommended for production
-  if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
-    throw new URLValidationError('Direct IP addresses are discouraged. Use domain names.');
-  }
-
-  return url;
+  return parsed;
 }
 
-/**
- * Check if hostname is a private IP address
- */
-function isPrivateIP(hostname: string): boolean {
-  // IPv4 private ranges:
-  // 10.0.0.0/8
-  // 172.16.0.0/12
-  // 192.168.0.0/16
-  
-  const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-  const match = hostname.match(ipv4Regex);
-  
-  if (!match) {
-    return false; // Not an IPv4 address
-  }
-
-  const [, a, b, c, d] = match.map(Number);
-  
-  // Validate octets
-  if (a > 255 || b > 255 || c > 255 || d > 255) {
-    return false;
-  }
-
-  // Check private ranges
-  if (a === 10) return true; // 10.0.0.0/8
-  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
-  if (a === 192 && b === 168) return true; // 192.168.0.0/16
-
-  return false;
-}
-
-/**
- * Safe wrapper that returns validation result without throwing
- */
 export function isValidPublicHttpsUrl(urlString: string): boolean {
   try {
     validatePublicHttpsUrl(urlString);

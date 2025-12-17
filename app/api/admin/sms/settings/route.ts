@@ -114,18 +114,6 @@ const UpdateSettingsSchema = z.object({
   slaBreachNotifyWebhook: z
     .string()
     .url()
-    .refine(
-      (url) => {
-        if (!url) return true; // allow empty
-        try {
-          validatePublicHttpsUrl(url);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      { message: "Webhook URL must be a public HTTPS URL (no localhost/private IPs)" }
-    )
     .optional()
     .nullable(),
   dailyReportEnabled: z.boolean().optional(),
@@ -174,7 +162,8 @@ export async function PUT(request: NextRequest) {
 
     const { orgId, ...updates } = parsed.data;
 
-    // SSRF protection for webhook
+    // SSRF protection for webhook URL (string-based validation)
+    // NOTE: Synchronous check - no DNS resolution (yet). See lib/security/validate-public-https-url.ts
     if (updates.slaBreachNotifyWebhook) {
       try {
         validatePublicHttpsUrl(updates.slaBreachNotifyWebhook);
@@ -183,9 +172,10 @@ export async function PUT(request: NextRequest) {
           error instanceof Error ? error.message : "Invalid webhook URL";
         logger.warn("[Admin SMS Settings] Invalid webhook URL", {
           error: message,
+          url: updates.slaBreachNotifyWebhook,
         });
         return NextResponse.json(
-          { error: message, field: "slaBreachNotifyWebhook" },
+          { error: `Webhook URL validation failed: ${message}`, field: "slaBreachNotifyWebhook" },
           { status: 400 }
         );
       }

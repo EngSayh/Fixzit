@@ -129,6 +129,12 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
     if (state.q) params.set("q", state.q);
     if (state.filters?.status) params.set("status", String(state.filters.status));
     if (state.filters?.priority) params.set("priority", String(state.filters.priority));
+    if (state.filters?.overdue) params.set("overdue", "true");
+    if (state.filters?.assignedToMe) params.set("assignedToMe", "true");
+    if (state.filters?.unassigned) params.set("unassigned", "true");
+    if (state.filters?.slaRisk) params.set("slaRisk", "true");
+    if (state.filters?.dueDateFrom) params.set("dueDateFrom", String(state.filters.dueDateFrom));
+    if (state.filters?.dueDateTo) params.set("dueDateTo", String(state.filters.dueDateTo));
     return params.toString();
   }, [orgId, state]);
 
@@ -173,6 +179,61 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
         label: `Priority: ${state.filters.priority}`,
         onRemove: () => {
           const { priority: _priority, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.overdue) {
+      filters.push({
+        key: "overdue",
+        label: "Overdue",
+        onRemove: () => {
+          const { overdue: _overdue, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.assignedToMe) {
+      filters.push({
+        key: "assignedToMe",
+        label: "Assigned to me",
+        onRemove: () => {
+          const { assignedToMe: _assignedToMe, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.unassigned) {
+      filters.push({
+        key: "unassigned",
+        label: "Unassigned",
+        onRemove: () => {
+          const { unassigned: _unassigned, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.slaRisk) {
+      filters.push({
+        key: "slaRisk",
+        label: "SLA Risk",
+        onRemove: () => {
+          const { slaRisk: _slaRisk, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
+
+    if (state.filters?.dueDateFrom || state.filters?.dueDateTo) {
+      filters.push({
+        key: "dueRange",
+        label: `Due: ${state.filters?.dueDateFrom || "any"} → ${state.filters?.dueDateTo || "any"}`,
+        onRemove: () => {
+          const { dueDateFrom: _dueDateFrom, dueDateTo: _dueDateTo, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });
@@ -351,6 +412,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
         data={workOrders}
         loading={isLoading}
         emptyState={emptyState}
+        density={density}
         onRowClick={(row) => toast.info(`Open work order ${row.id}`)}
       />
 

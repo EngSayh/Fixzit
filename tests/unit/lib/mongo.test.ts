@@ -3,10 +3,6 @@
  * Tests the new unified MongoDB connection implementation
  */
 
-/**
- * @vitest-environment node
- */
-
 import { describe, test, expect } from "vitest";
 
 describe("MongoDB Unified Connection", () => {

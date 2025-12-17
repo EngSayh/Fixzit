@@ -51,6 +51,17 @@ Current production logs show `MongoDB connection failed: Could not connect to an
    - `curl -s https://fixzit.co/api/health | jq '.database'` → should return `"connected"`.
    - Authenticated `GET https://fixzit.co/api/issues` → 200 (no `DatabaseConnectionError`).
 
+### 🚀 Post-deploy Smoke (automated)
+
+Run a health + issues smoke after redeploy (requires a valid session token or bearer):
+```bash
+HEALTH_URL=https://fixzit.co/api/health \
+ISSUES_URL=https://fixzit.co/api/issues \
+ISSUES_COOKIE="next-auth.session-token=..." \
+pnpm smoke:prod
+```
+Or use `ISSUES_BEARER="eyJhbGciOi..."` instead of `ISSUES_COOKIE`. Set `SKIP_ISSUES=1` for health-only.
+
 ### ⚠️ P1 - Add These (Payment Security)
 
 ```

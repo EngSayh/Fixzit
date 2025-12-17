@@ -25,6 +25,7 @@ export interface DataTableStandardProps<T> {
   emptyState?: React.ReactNode;
   caption?: React.ReactNode;
   onRowClick?: (row: T) => void;
+  density?: "comfortable" | "compact";
 }
 
 /**
@@ -38,6 +39,7 @@ export function DataTableStandard<T extends Record<string, unknown>>({
   emptyState,
   caption,
   onRowClick,
+  density = "comfortable",
 }: DataTableStandardProps<T>) {
   if (loading) {
     return <TableSkeleton rows={6} />;
@@ -51,7 +53,7 @@ export function DataTableStandard<T extends Record<string, unknown>>({
     <Table>
       {caption ? <TableCaption>{caption}</TableCaption> : null}
       <TableHeader>
-        <TableRow>
+        <TableRow className={density === "compact" ? "[&>th]:py-2 [&>td]:py-2" : "[&>th]:py-3 [&>td]:py-3"}>
           {columns.map((column) => (
             <TableHead key={column.id} className={column.className}>
               {column.header}
@@ -63,7 +65,7 @@ export function DataTableStandard<T extends Record<string, unknown>>({
         {data.map((row, idx) => (
           <TableRow
             key={String(row.id ?? idx)}
-            className={onRowClick ? "cursor-pointer" : undefined}
+            className={`${onRowClick ? "cursor-pointer" : ""} ${density === "compact" ? "[&>td]:py-2 [&>th]:py-2" : "[&>td]:py-3 [&>th]:py-3"}`}
             onClick={onRowClick ? () => onRowClick(row) : undefined}
           >
             {columns.map((column) => {

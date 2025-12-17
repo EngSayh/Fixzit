@@ -10,6 +10,12 @@ import "@testing-library/jest-dom/vitest";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
+import {
+  fetch as undiciFetch,
+  Request as UndiciRequest,
+  Response as UndiciResponse,
+  Headers as UndiciHeaders,
+} from "undici";
 import { logger } from "@/lib/logger";
 
 // Polyfill TextEncoder/TextDecoder for environments where global objects are missing
@@ -40,6 +46,29 @@ if (!process.env.SKIP_ENV_VALIDATION) {
 if (!process.env.NEXTAUTH_SECRET) {
   process.env.NEXTAUTH_SECRET = "test-nextauth-secret";
 }
+
+// Vitest must run under NODE_ENV=test so request-session helpers bypass NextAuth
+Reflect.set(process.env, "NODE_ENV", "test");
+
+// Ensure fetch/Request/Response are present in worker threads (Node pools can omit them)
+const ensureFetchGlobals = () => {
+  if (typeof globalThis.fetch !== "function") {
+    const patchedFetch = undiciFetch as unknown as typeof globalThis.fetch;
+    globalThis.fetch = patchedFetch;
+  }
+  if (typeof globalThis.Request === "undefined") {
+    globalThis.Request = UndiciRequest as unknown as typeof globalThis.Request;
+  }
+  if (typeof globalThis.Response === "undefined") {
+    globalThis.Response =
+      UndiciResponse as unknown as typeof globalThis.Response;
+  }
+  if (typeof globalThis.Headers === "undefined") {
+    globalThis.Headers = UndiciHeaders as unknown as typeof globalThis.Headers;
+  }
+};
+
+ensureFetchGlobals();
 
 // Prevent jsdom "navigation to another Document" warnings in tests that click anchors
 const originalLocation =
@@ -530,10 +559,17 @@ afterEach(async () => {
   if (!shouldUseInMemoryMongo || mongoose.connection.readyState !== 1) {
     return;
   }
-  // Clear all collections after each test
   const collections = mongoose.connection.collections;
   for (const key in collections) {
-    await collections[key].deleteMany({});
+    try {
+      await collections[key].deleteMany({});
+    } catch (err) {
+      // Avoid flakiness when connection is closing between tests
+      logger.warn("[MongoMemory] Skipping collection cleanup during teardown", {
+        collection: key,
+        error: (err as Error)?.message,
+      });
+    }
   }
 });
 

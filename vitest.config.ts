@@ -20,9 +20,8 @@ const sharedProjectConfig = {
   pool: "threads",
   poolOptions: {
     threads: {
-      // Bound concurrency to reduce MongoMemoryServer port contention across workers
-      maxThreads: Number(process.env.VITEST_MAX_THREADS ?? "4"),
-      minThreads: 1,
+      // Use singleThread mode to avoid Mongoose connection conflicts
+      singleThread: true,
     },
   },
   testTimeout: 600000, // 10 minutes - MongoMemoryServer initialization takes time

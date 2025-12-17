@@ -405,6 +405,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
           data={products}
           loading={isLoading}
           emptyState={emptyState}
+          density={density}
           onRowClick={(row) => toast.info(`Open product ${row.id}`)}
         />
       )}

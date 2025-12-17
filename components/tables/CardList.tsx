@@ -112,7 +112,7 @@ export function CardList<TData extends Record<string, unknown>>({
     if (typeof secondaryAccessor === "function") {
       return secondaryAccessor(row);
     }
-    return row[secondaryAccessor];
+    return row[secondaryAccessor] as React.ReactNode;
   };
 
   const getStatusValue = (row: TData): React.ReactNode => {
@@ -120,7 +120,7 @@ export function CardList<TData extends Record<string, unknown>>({
     if (typeof statusAccessor === "function") {
       return statusAccessor(row);
     }
-    return row[statusAccessor];
+    return row[statusAccessor] as React.ReactNode;
   };
 
   const getMetadataValue = (row: TData): string | null => {

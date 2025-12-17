@@ -286,10 +286,19 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    logger.error('GET /api/issues error:', error as Error);
+    const correlationId =
+      error && typeof error === "object" && "correlationId" in error
+        ? (error as { correlationId?: string }).correlationId
+        : undefined;
+    logger.error("GET /api/issues error:", error as Error, {
+      correlationId,
+    });
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      {
+        error: "Internal server error",
+        ...(correlationId ? { correlationId } : {}),
+      },
+      { status: 500 },
     );
   }
 }
@@ -464,10 +473,19 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
     
   } catch (error) {
-    logger.error('POST /api/issues error:', error as Error);
+    const correlationId =
+      error && typeof error === "object" && "correlationId" in error
+        ? (error as { correlationId?: string }).correlationId
+        : undefined;
+    logger.error("POST /api/issues error:", error as Error, {
+      correlationId,
+    });
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      {
+        error: "Internal server error",
+        ...(correlationId ? { correlationId } : {}),
+      },
+      { status: 500 },
     );
   }
 }

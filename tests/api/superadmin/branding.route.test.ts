@@ -220,7 +220,7 @@ describe("Superadmin Branding API", () => {
 
       expect(response.status).toBe(400);
       const data = await response.json();
-      expect(data.error).toContain("must use HTTPS");
+      expect(data.error).toContain("Only HTTPS URLs are allowed");
     });
 
     it("should reject localhost URLs", async () => {
@@ -234,7 +234,7 @@ describe("Superadmin Branding API", () => {
 
       expect(response.status).toBe(400);
       const data = await response.json();
-      expect(data.error).toContain("cannot reference localhost");
+      expect(data.error).toContain("Localhost/loopback URLs are not allowed");
     });
 
     it("should reject private IP addresses (192.168.x.x)", async () => {
@@ -248,7 +248,7 @@ describe("Superadmin Branding API", () => {
 
       expect(response.status).toBe(400);
       const data = await response.json();
-      expect(data.error).toContain("private IP");
+      expect(data.error).toContain("Private IP address URLs are not allowed");
     });
 
     it("should reject AWS metadata endpoint (169.254.169.254)", async () => {
@@ -262,7 +262,7 @@ describe("Superadmin Branding API", () => {
 
       expect(response.status).toBe(400);
       const data = await response.json();
-      expect(data.error).toContain("link-local");
+      expect(data.error).toContain("Private IP address URLs are not allowed");
     });
 
     it("should reject internal domains (.local/.internal)", async () => {
@@ -276,7 +276,9 @@ describe("Superadmin Branding API", () => {
 
       expect(response.status).toBe(400);
       const data = await response.json();
-      expect(data.error).toContain("internal domains");
+      expect(data.error).toContain(
+        "Internal TLD (.local, .internal, .test) URLs are not allowed",
+      );
     });
 
     it("should accept valid public HTTPS URLs", async () => {
