@@ -73,7 +73,7 @@ const fetcher = async (url: string) => {
 };
 
 export type ProductsListProps = {
-  orgId?: string;
+  orgId: string;
 };
 
 export function ProductsList({ orgId }: ProductsListProps) {
@@ -89,11 +89,14 @@ export function ProductsList({ orgId }: ProductsListProps) {
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
+  const tenantMissing = !orgId;
+
   const query = useMemo(() => {
+    if (tenantMissing) return "";
     const params = new URLSearchParams();
     params.set("limit", String(state.pageSize || 20));
     params.set("page", String(state.page || 1));
-    if (orgId) params.set("org", orgId);
+    params.set("org", orgId);
     if (state.q) params.set("q", state.q);
     if (state.filters?.category) params.set("category", String(state.filters.category));
     if (state.filters?.status) params.set("status", String(state.filters.status));
@@ -102,10 +105,10 @@ export function ProductsList({ orgId }: ProductsListProps) {
     if (state.filters?.priceMax) params.set("priceMax", String(state.filters.priceMax));
     if (state.filters?.ratingMin) params.set("ratingMin", String(state.filters.ratingMin));
     return params.toString();
-  }, [orgId, state]);
+  }, [orgId, state, tenantMissing]);
 
   const { data, isLoading, mutate, isValidating } = useSWR(
-    `/api/marketplace/products?${query}`,
+    tenantMissing ? null : `/api/marketplace/products?${query}`,
     fetcher,
     { keepPreviousData: true }
   );
@@ -126,14 +129,6 @@ export function ProductsList({ orgId }: ProductsListProps) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Quick chips (P0)
-  const quickChips = [
-    { key: "fm-supplies", label: "FM Supplies", onClick: () => updateState({ filters: { category: "FM Supplies" }, page: 1 }) },
-    { key: "tools", label: "Tools", onClick: () => updateState({ filters: { category: "Tools & Equipment" }, page: 1 }) },
-    { key: "highly-rated", label: "Highly Rated", onClick: () => updateState({ filters: { ratingMin: 4.5 }, page: 1 }) },
-    { key: "verified", label: "Verified Sellers", onClick: () => updateState({ filters: { sellerType: "FIXZIT" }, page: 1 }) },
-  ];
-
   // Active filters
   const activeFilters = useMemo(() => {
     const filters: Array<{ key: string; label: string; onRemove: () => void }> = [];
@@ -148,7 +143,6 @@ export function ProductsList({ orgId }: ProductsListProps) {
         },
       });
     }
-    
     if (state.filters?.status) {
       filters.push({
         key: "status",
@@ -159,10 +153,9 @@ export function ProductsList({ orgId }: ProductsListProps) {
         },
       });
     }
-    
     if (state.filters?.sellerType) {
       filters.push({
-        key: "seller",
+        key: "sellerType",
         label: `Seller: ${state.filters.sellerType}`,
         onRemove: () => {
           const { sellerType: _sellerType, ...rest } = state.filters || {};
@@ -170,9 +163,29 @@ export function ProductsList({ orgId }: ProductsListProps) {
         },
       });
     }
-    
     return filters;
-  }, [state.filters, updateState]);
+  }, [state.filters]);
+
+  // Early return AFTER all hooks
+  if (tenantMissing) {
+    return (
+      <div className="p-6">
+        <EmptyState
+          icon={Package}
+          title="Organization required"
+          description="Tenant context is missing. Please select an organization to view products."
+        />
+      </div>
+    );
+  }
+
+  // Quick chips (P0)
+  const quickChips = [
+    { key: "fm-supplies", label: "FM Supplies", onClick: () => updateState({ filters: { category: "FM Supplies" }, page: 1 }) },
+    { key: "tools", label: "Tools", onClick: () => updateState({ filters: { category: "Tools & Equipment" }, page: 1 }) },
+    { key: "highly-rated", label: "Highly Rated", onClick: () => updateState({ filters: { ratingMin: 4.5 }, page: 1 }) },
+    { key: "verified", label: "Verified Sellers", onClick: () => updateState({ filters: { sellerType: "FIXZIT" }, page: 1 }) },
+  ];
 
   // Table columns
   const columns: DataTableColumn<ProductRecord>[] = [

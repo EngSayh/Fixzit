@@ -75,7 +75,7 @@ const fetcher = async (url: string) => {
 };
 
 export type PropertiesListProps = {
-  orgId?: string;
+  orgId: string;
 };
 
 export function PropertiesList({ orgId }: PropertiesListProps) {
@@ -91,23 +91,30 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
+  const tenantMissing = !orgId;
+
   const query = useMemo(() => {
+    if (tenantMissing) return "";
     const params = new URLSearchParams();
     params.set("limit", String(state.pageSize || 20));
     params.set("page", String(state.page || 1));
-    if (orgId) params.set("org", orgId);
+    params.set("org", orgId);
     if (state.q) params.set("q", state.q);
     if (state.filters?.type) params.set("type", String(state.filters.type));
     if (state.filters?.listingType) params.set("listingType", String(state.filters.listingType));
     if (state.filters?.city) params.set("city", String(state.filters.city));
     if (state.filters?.priceMin) params.set("priceMin", String(state.filters.priceMin));
     if (state.filters?.priceMax) params.set("priceMax", String(state.filters.priceMax));
-    if (state.filters?.bedrooms) params.set("bedrooms", String(state.filters.bedrooms));
+    if (state.filters?.featured) params.set("featured", "true");
+    if (state.filters?.bedroomsMin) params.set("bedroomsMin", String(state.filters.bedroomsMin));
+    if (state.filters?.bedroomsMax) params.set("bedroomsMax", String(state.filters.bedroomsMax));
+    if (state.filters?.bathroomsMin) params.set("bathroomsMin", String(state.filters.bathroomsMin));
+    if (state.filters?.bathroomsMax) params.set("bathroomsMax", String(state.filters.bathroomsMax));
     return params.toString();
-  }, [orgId, state]);
+  }, [orgId, state, tenantMissing]);
 
   const { data, error: _error, isLoading, mutate, isValidating } = useSWR(
-    `/api/aqar/properties?${query}`,
+    tenantMissing ? null : `/api/aqar/properties?${query}`,
     fetcher,
     { keepPreviousData: true }
   );
@@ -128,15 +135,6 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Quick chips (P0)
-  const quickChips = [
-    { key: "rent", label: "Rent", onClick: () => updateState({ filters: { listingType: "RENT" }, page: 1 }) },
-    { key: "sale", label: "Sale", onClick: () => updateState({ filters: { listingType: "SALE" }, page: 1 }) },
-    { key: "featured", label: "Featured", onClick: () => updateState({ filters: { featured: true }, page: 1 }) },
-    { key: "riyadh", label: "Riyadh", onClick: () => updateState({ filters: { city: "Riyadh" }, page: 1 }) },
-    { key: "2-3br", label: "2-3 BR", onClick: () => updateState({ filters: { bedroomsMin: 2, bedroomsMax: 3 }, page: 1 }) },
-  ];
-
   // Active filters
   const activeFilters = useMemo(() => {
     const filters: Array<{ key: string; label: string; onRemove: () => void }> = [];
@@ -151,10 +149,9 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
         },
       });
     }
-    
     if (state.filters?.listingType) {
       filters.push({
-        key: "listing",
+        key: "listingType",
         label: `Listing: ${state.filters.listingType}`,
         onRemove: () => {
           const { listingType: _listingType, ...rest } = state.filters || {};
@@ -162,7 +159,6 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
         },
       });
     }
-    
     if (state.filters?.city) {
       filters.push({
         key: "city",
@@ -173,9 +169,40 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
         },
       });
     }
-    
+    if (state.filters?.featured) {
+      filters.push({
+        key: "featured",
+        label: "Featured",
+        onRemove: () => {
+          const { featured: _featured, ...rest } = state.filters || {};
+          updateState({ filters: rest });
+        },
+      });
+    }
     return filters;
-  }, [state.filters, updateState]);
+  }, [state.filters]);
+
+  // Early return AFTER all hooks
+  if (tenantMissing) {
+    return (
+      <div className="p-6">
+        <EmptyState
+          icon={Home}
+          title="Organization required"
+          description="Tenant context is missing. Please select an organization to view properties."
+        />
+      </div>
+    );
+  }
+
+  // Quick chips (P0)
+  const quickChips = [
+    { key: "rent", label: "Rent", onClick: () => updateState({ filters: { listingType: "RENT" }, page: 1 }) },
+    { key: "sale", label: "Sale", onClick: () => updateState({ filters: { listingType: "SALE" }, page: 1 }) },
+    { key: "featured", label: "Featured", onClick: () => updateState({ filters: { featured: true }, page: 1 }) },
+    { key: "riyadh", label: "Riyadh", onClick: () => updateState({ filters: { city: "Riyadh" }, page: 1 }) },
+    { key: "2-3br", label: "2-3 BR", onClick: () => updateState({ filters: { bedroomsMin: 2, bedroomsMax: 3 }, page: 1 }) },
+  ];
 
   // Table columns
   const columns: DataTableColumn<PropertyRecord>[] = [
