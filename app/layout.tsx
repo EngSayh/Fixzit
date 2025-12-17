@@ -146,7 +146,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               closeButton
               duration={4000}
             />
-            <SpeedInsights />
+            {!isPlaywright && <SpeedInsights />}
           </TooltipProvider>
         </ConditionalProviders>
         {isPlaywright && (
