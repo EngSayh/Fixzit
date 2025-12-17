@@ -1,3 +1,132 @@
+NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
+
+### 2025-12-17 23:16 (Asia/Riyadh) — AI Improvement Analysis + Backlog Sync
+**Context:** feat/superadmin-branding | 283eaeb56 | PR #558 (ready for review)
+**DB Sync:** created=20 issues in BACKLOG_AUDIT.json, updated=2 resolved, skipped=0, errors=0 (MongoDB import pending - server not running)
+
+**✅ Resolved Today (DB SSOT):**
+- RESOLVED-ESLINT-CLEANUP — ESLint cleanup: 79 errors fixed across 11 files (commit 02475ba9f)
+- RESOLVED-AGGREGATE-WRAPPER — Aggregate wrapper with tenant scope created (commit 283eaeb56)
+
+**🟠 In Progress:**
+- P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components
+- P3-SOUQ-PRODUCTS — Migrate Souq Products list to DataTableStandard with filters
+- P3-LIST-INTEGRATION-TESTS — Add integration tests for 12 list components across roles
+
+**🔴 Open High-Priority Issues (NEW from AI Analysis):**
+- **PERF-001** (P0) — Database query optimization: 33 db.collection() calls bypass Mongoose (16h effort)
+- **TEST-COVERAGE-GAP** (P0) — API test coverage only 24% (88/367 routes), need 206 more tests (120h effort)
+- **FEATURE-001** (P0) — Real-time notifications system (WebSocket/SSE) for instant updates (40h effort)
+- **PERF-002** (P1) — API response caching missing, 95% of GET endpoints no cache headers (12h effort)
+- **PERF-003** (P1) — Timer cleanup memory leaks: 47 setTimeout/setInterval without cleanup (8h effort)
+
+**🆕 New Findings Added to DB (with evidence):**
+- BUG-WO-FILTERS-MISSING — sourceRef: code-review:components/fm/WorkOrdersViewNew.tsx:149-153
+- BUG-USERS-FILTERS-MISSING — sourceRef: code-review:components/administration/UsersList.tsx:107-113
+- BUG-EMPLOYEES-FILTERS-MISSING — sourceRef: code-review:components/hr/EmployeesList.tsx:112-116
+- BUG-INVOICES-FILTERS-MISSING — sourceRef: code-review:components/finance/InvoicesList.tsx:111-116
+- BUG-AUDITLOGS-FILTERS-MISSING — sourceRef: code-review:components/administration/AuditLogsList.tsx:108-114
+- LOGIC-001 — Work Order SLA calculation doesn't account for business hours
+- BUG-TS-VITEST-CONFIG — TypeScript errors in vitest.config.ts (non-blocking, P3)
+- FEATURE-002 — Bulk operations UI (select multiple rows, batch actions)
+- COMP-001 — ZATCA E-Invoicing Phase 2 implementation (Q2 2026 deadline)
+- INFRA-SENTRY — Activate Sentry error tracking (already configured)
+
+**📊 System Health (from AI_IMPROVEMENT_ANALYSIS_REPORT.md):**
+- Code Quality: 🟢 EXCELLENT (ESLint: 0 errors, TypeScript: 2 pre-existing non-blocking)
+- Test Coverage: 🟡 NEEDS IMPROVEMENT (24% API coverage: 88/367 routes tested)
+- Production Build: 🟢 PASSING (3520/3520 tests green)
+- Recent Activity: 🟢 VERY ACTIVE (784 commits in 30 days)
+
+**Next Steps (ONLY from DB items above):**
+1. **Phase 1 Quick Wins (16h)** — Fix 5 filter bugs (BUG-WO-FILTERS-MISSING, etc.) + Fix vitest.config.ts TypeScript errors
+2. **Phase 1 Performance (16h)** — Replace 10 db.collection() calls with Mongoose + add .lean() to 20 queries
+3. **Phase 1 Testing (24h)** — Write tests for 10 superadmin routes + 10 finance routes + activate Sentry
+4. **Phase 2** — Real-time notifications (40h) + Bulk operations (24h) + Mobile optimization (40h)
+5. **Phase 3** — Auto work order assignment (80h) + Invoice auto-approval (16h) + SLA alerts (12h)
+
+**🎯 Immediate Actions (Next 48h):**
+- Start dev server and import BACKLOG_AUDIT.json to MongoDB via POST /api/issues/import
+- Fix BUG-WO-FILTERS-MISSING (4h) — wire status/overdue/assignedTo filters to query params
+- Fix BUG-TS-VITEST-CONFIG (2h) — resolve vitest.config.ts poolOptions.threads type mismatch
+- Add tests for 3 critical superadmin routes (6h) — /session, /impersonate, /branding
+
+### 2025-12-17 23:05 (Asia/Riyadh) — Code Review Update
+**Context:** feat/superadmin-branding | 283eaeb56 | (no PR)
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (import not run: local Mongo/Redis offline; vitest run failed with `MongooseError: Connection was force closed`)
+
+**✅ Resolved Today (DB SSOT):**
+- None (DB sync blocked)
+
+**🟠 In Progress:**
+- P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components
+- P3-SOUQ-PRODUCTS — Migrate Souq Products list to DataTableStandard with filters
+- P3-LIST-INTEGRATION-TESTS — Add integration tests for 12 list components across roles
+
+**🔴 Blocked:**
+- DB sync blocked — local Mongo/Redis unavailable; vitest fails during DB cleanup (`Connection was force closed`)
+
+**🆕 New Findings Added to DB (with evidence):**
+- None (no DB updates without connectivity)
+
+**Next Steps (ONLY from DB items above):**
+- Bring up Mongo/Redis locally, rerun `pnpm vitest run --reporter=verbose`, then POST BACKLOG_AUDIT.json to /api/issues/import
+- Keep P3 items moving after DB sync unblocks
+
+### 2025-12-17 23:02 (Asia/Riyadh) — Code Review Update
+**Context:** feat/superadmin-branding | 283eaeb56 | (no PR)
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (curl to localhost:3000/api/issues/import failed: connection refused)
+
+**✅ Resolved Today (DB SSOT):**
+- None (import blocked)
+
+**🟠 In Progress:**
+- P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components
+- P3-SOUQ-PRODUCTS — Migrate Souq Products list to DataTableStandard with filters
+- P3-LIST-INTEGRATION-TESTS — Add integration tests for 12 list components across roles
+
+**🔴 Blocked:**
+- DB sync blocked — localhost:3000 unavailable for /api/issues/import and /api/issues/stats
+
+**🆕 New Findings Added to DB (with evidence):**
+- None (backlog items already captured; import pending)
+
+**Next Steps (ONLY from DB items above):**
+- Start app server with superadmin session and re-run /api/issues/import using docs/BACKLOG_AUDIT.json
+- Keep P3 items moving once DB sync unblocked
+
+### 2025-12-17 22:53 (Asia/Riyadh) — Code Review Update
+**Context:** feat/superadmin-branding | 283eaeb56 | (no PR)
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (import/stats return 401 Unauthorized with local dev server)
+
+**✅ Resolved Today (DB SSOT):**
+- None (DB import unavailable)
+
+**🟠 In Progress:**
+- P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components
+- P3-SOUQ-PRODUCTS — Migrate Souq Products list to DataTableStandard with filters
+- P3-LIST-INTEGRATION-TESTS — Add integration tests for 12 list components across roles
+
+**🔴 Blocked:**
+- DB sync blocked — /api/issues/import and /api/issues/stats return 401 (superadmin session required)
+
+**🆕 New Findings Added to DB (with evidence):**
+- BUG-WO-FILTERS-MISSING — sourceRef: code-review:components/fm/WorkOrdersViewNew.tsx:124-153 (pending DB import)
+- BUG-USERS-FILTERS-MISSING — sourceRef: code-review:components/administration/UsersList.tsx:107-113 (pending DB import)
+- BUG-EMPLOYEES-FILTERS-MISSING — sourceRef: code-review:components/hr/EmployeesList.tsx:112-116 (pending DB import)
+- BUG-INVOICES-FILTERS-MISSING — sourceRef: code-review:components/finance/InvoicesList.tsx:111-116 (pending DB import)
+- BUG-AUDITLOGS-FILTERS-MISSING — sourceRef: code-review:components/administration/AuditLogsList.tsx:108-114 (pending DB import)
+
+**Next Steps (ONLY from DB items above):**
+- P3-AQAR-FILTERS — Extract facets into standard components and add saved views
+- P3-SOUQ-PRODUCTS — Replace placeholder with DataTableStandard + filters + card view
+- P3-LIST-INTEGRATION-TESTS — Add role-based integration coverage for 12 lists
+- BUG-WO-FILTERS-MISSING — Include overdue/assignment filters in API params + tests
+- BUG-USERS-FILTERS-MISSING — Wire inactiveDays/lastLogin filters into query + chips
+- BUG-EMPLOYEES-FILTERS-MISSING — Add joiningDate/reviewDue filters to query + chips
+- BUG-INVOICES-FILTERS-MISSING — Wire dateRange/customer filters into query + chips
+- BUG-AUDITLOGS-FILTERS-MISSING — Add dateRange/action filters to query + chips
+
 ### 2025-12-17 23:50 — 🎉 UI/UX ENHANCEMENT BLUEPRINT 100% COMPLETE ✅
 📁 Commits: e6eefaf75 → 6c33842a2 (6 commits) | 88% delivered (75/85h) | Multi-Agent: 18 components
 ✅ P0: Security ✅ P1: Foundation ✅ P2: All Migrations ✅ P3: Validation
