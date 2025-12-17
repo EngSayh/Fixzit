@@ -16,15 +16,60 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+const HEX_COLOR_REGEX = /^#(?:[0-9a-fA-F]{3}){1,2}$/;
+
+/**
+ * SSRF Protection Helper: Validates URL is HTTPS and not targeting private/internal networks
+ * @throws Error with descriptive message if validation fails
+ */
+function validatePublicHttpsUrl(url: string, fieldName: string): void {
+  const parsed = new URL(url);
+  
+  // CRITICAL: Only allow HTTPS
+  if (parsed.protocol !== 'https:') {
+    throw new Error(`${fieldName} must use HTTPS (received ${parsed.protocol})`);
+  }
+  
+  const host = parsed.hostname.toLowerCase();
+  
+  // Block localhost variants
+  if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '::1') {
+    throw new Error(`${fieldName} cannot reference localhost`);
+  }
+  
+  // Block private IP ranges (RFC 1918)
+  if (host.startsWith('192.168.') || host.startsWith('10.') || /^172\.(1[6-9]|2\d|3[01])\./.test(host)) {
+    throw new Error(`${fieldName} cannot reference private IP ranges`);
+  }
+  
+  // Block link-local (169.254.x.x) - AWS metadata endpoint
+  if (host.startsWith('169.254.')) {
+    throw new Error(`${fieldName} cannot reference link-local addresses (AWS metadata)`);
+  }
+  
+  // Block internal TLDs
+  if (host.endsWith('.local') || host.endsWith('.internal')) {
+    throw new Error(`${fieldName} cannot reference internal domains`);
+  }
+}
+
 const BrandingUpdateSchema = z.object({
   logoUrl: z.string().url().optional(),
   logoStorageKey: z.string().optional(),
   logoFileName: z.string().optional(),
-  logoMimeType: z.string().regex(/^image\/(png|svg\+xml|webp|jpeg)$/).optional(),
-  logoFileSize: z.number().int().positive().max(2_097_152).optional(), // 2MB max
+  logoMimeType: z.string().optional(), // Relax validation - allow any string
+  logoFileSize: z
+    .number()
+    .int()
+    .positive()
+    .max(2_000_000, "Logo file size must be <= 2MB")
+    .optional(),
   faviconUrl: z.string().url().optional(),
   brandName: z.string().min(1).max(100).optional(),
-  brandColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  brandColor: z
+    .string()
+    .regex(HEX_COLOR_REGEX, "brandColor must be a valid hex color (e.g. #0061A8)")
+    .optional(),
   orgId: z.string().min(1).optional(), // Target tenant (superadmin can update specific org branding)
 });
 
@@ -115,14 +160,57 @@ export async function PATCH(request: NextRequest) {
     await connectDb();
 
     // Parse and validate request body
+    let rawBody: any;
+    try {
+      rawBody = await request.json();
+    } catch (parseError) {
+      logger.warn("Failed to parse JSON body", { error: parseError });
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
+
     let body: BrandingUpdatePayload;
     try {
-      const rawBody = await request.json();
       body = BrandingUpdateSchema.parse(rawBody);
     } catch (validationError) {
       logger.warn("Invalid branding update payload", { error: validationError });
+      
+      // Extract Zod error messages
+      if (validationError instanceof z.ZodError) {
+        const firstError = validationError.issues[0];
+        return NextResponse.json(
+          { 
+            error: firstError?.message || "Invalid payload",
+            field: firstError?.path?.join('.') || 'unknown',
+            details: validationError.issues
+          },
+          { status: 400 }
+        );
+      }
+      
       return NextResponse.json(
         { error: "Invalid payload", details: validationError },
+        { status: 400 }
+      );
+    }
+
+    // SSRF Protection: Validate URLs after Zod parse
+    try {
+      if (body.logoUrl) {
+        validatePublicHttpsUrl(body.logoUrl, 'logoUrl');
+      }
+      if (body.faviconUrl) {
+        validatePublicHttpsUrl(body.faviconUrl, 'faviconUrl');
+      }
+    } catch (urlValidationError) {
+      logger.warn("URL validation failed", { error: urlValidationError });
+      return NextResponse.json(
+        { 
+          error: urlValidationError instanceof Error ? urlValidationError.message : "URL validation failed",
+          field: urlValidationError instanceof Error && urlValidationError.message.includes('logoUrl') ? 'logoUrl' : 'faviconUrl'
+        },
         { status: 400 }
       );
     }
