@@ -6,6 +6,7 @@
 
 import { getSuperadminSessionFromCookies } from "@/lib/superadmin/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { ImpersonationForm } from "@/components/superadmin/ImpersonationForm";
 import { Metadata } from "next";
 
@@ -92,12 +93,12 @@ export default async function ImpersonatePage({ searchParams }: PageProps) {
           </div>
 
           <div className="mt-6 flex items-center justify-between text-sm">
-            <a
+            <Link
               href="/superadmin/issues"
               className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               ← Back to Issues
-            </a>
+            </Link>
             <span className="text-gray-500 dark:text-gray-400">
               Logged in as: <strong>{session.username}</strong>
             </span>

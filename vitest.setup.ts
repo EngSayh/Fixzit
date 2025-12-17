@@ -1,6 +1,7 @@
 // Global test setup for Vitest with Jest compatibility
 import React from "react";
 import { TextEncoder, TextDecoder } from "node:util";
+import { createServer } from "node:net";
 import { render } from "@testing-library/react";
 import { SessionProvider } from "next-auth/react";
 import { TranslationProvider } from "@/contexts/TranslationContext";
@@ -435,14 +436,33 @@ const shouldUseInMemoryMongo = forceMongo || (!isJsdomEnv && process.env.SKIP_GL
 let mongoServer: MongoMemoryServer | undefined;
 const mongoStartAttempts = Number(process.env.MONGO_MEMORY_ATTEMPTS || "3");
 
+async function getAvailablePort(): Promise<number> {
+  return await new Promise((resolve, reject) => {
+    const server = createServer();
+    server.unref();
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (typeof address === "object" && address?.port) {
+        const { port } = address;
+        server.close(() => resolve(port));
+      } else {
+        server.close(() => reject(new Error("Failed to acquire port")));
+      }
+    });
+  });
+}
+
 async function startMongoMemoryServer() {
   for (let attempt = 1; attempt <= mongoStartAttempts; attempt++) {
     try {
+      const port = await getAvailablePort();
       mongoServer = await MongoMemoryServer.create({
         instance: {
           dbName: "fixzit-test",
           launchTimeout: MONGO_MEMORY_LAUNCH_TIMEOUT_MS,
-          port: 0, // let the server choose a free port
+          port,
+          ip: "127.0.0.1",
         },
       });
       return mongoServer;
@@ -451,7 +471,9 @@ async function startMongoMemoryServer() {
         _error instanceof Error ? _error : new Error(String(_error));
       const message = error.message || "";
       const isPortInUse =
-        message.includes("Port") && message.includes("in use");
+        (message.includes("Port") && message.includes("in use")) ||
+        // Some MongoMemoryServer errors set code without the string message
+        (error as { code?: string }).code === "EADDRINUSE";
       if (isPortInUse && attempt < mongoStartAttempts) {
         logger.warn(
           `MongoMemoryServer port conflict (attempt ${attempt}). Retrying...`,

@@ -66,7 +66,9 @@ export interface AggregateOptions {
  * 
  * @throws {Error} If orgId is missing and skipTenantFilter is false
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function aggregateWithTenantScope<T = any>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   model: Model<any>,
   orgId: string | null | undefined,
   pipeline: PipelineStage[],
@@ -142,7 +144,9 @@ export async function aggregateWithTenantScope<T = any>(
  * Helper: Aggregate with superadmin bypass (no tenant filter)
  * WARNING: Only use for system-wide analytics with proper audit trail
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function aggregateWithoutTenantFilter<T = any>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   model: Model<any>,
   pipeline: PipelineStage[],
   opts?: Omit<AggregateOptions, "skipTenantFilter"> & {

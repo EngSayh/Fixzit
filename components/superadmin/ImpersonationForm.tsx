@@ -49,9 +49,8 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
       if (data.organizations?.length === 0) {
         setError("No organizations found matching your search");
       }
-    } catch (err) {
+    } catch (_err) {
       setError("Failed to search organizations. Please try again.");
-      console.error("Search error:", err);
     } finally {
       setIsSearching(false);
     }
@@ -91,8 +90,8 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
       // Cookie is set, redirect to next URL
       router.push(nextUrl);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to impersonate organization");
+    } catch (_err) {
+      setError(_err instanceof Error ? _err.message : "Failed to impersonate organization");
       setIsLoading(false);
     }
   };

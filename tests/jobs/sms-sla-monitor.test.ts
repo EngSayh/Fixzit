@@ -25,14 +25,28 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-const { SMSSettings } = await import("@/server/models/SMSSettings");
-const { sendEmail } = await import("@/lib/email");
-const { logger } = await import("@/lib/logger");
-const { sendBreachNotification } = await import("@/lib/jobs/sms-sla-monitor");
+type SmsSettingsModule = typeof import("@/server/models/SMSSettings");
+type EmailModule = typeof import("@/lib/email");
+type LoggerModule = typeof import("@/lib/logger");
+type SmsMonitorModule = typeof import("@/lib/jobs/sms-sla-monitor");
+
+let SMSSettings: SmsSettingsModule["SMSSettings"];
+let sendEmail: EmailModule["sendEmail"];
+let logger: LoggerModule["logger"];
+let sendBreachNotification: SmsMonitorModule["sendBreachNotification"];
+
+const reloadModules = async () => {
+  ({ SMSSettings } = await import("@/server/models/SMSSettings"));
+  ({ sendEmail } = await import("@/lib/email"));
+  ({ logger } = await import("@/lib/logger"));
+  ({ sendBreachNotification } = await import("@/lib/jobs/sms-sla-monitor"));
+};
 
 describe("SLA Breach Notification Webhook SSRF guard", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    vi.resetModules();
     vi.clearAllMocks();
+    await reloadModules();
     vi.mocked(sendEmail).mockResolvedValue(undefined as any);
     // @ts-expect-error set global fetch for tests
     global.fetch = vi.fn().mockResolvedValue({ ok: true });

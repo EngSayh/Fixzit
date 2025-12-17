@@ -18,6 +18,13 @@ const sharedProjectConfig = {
   setupFiles: ["./vitest.setup.ts"], // MongoDB Memory Server for model tests (no mongoose mocks)
   reporters: ["default"],
   pool: "threads",
+  poolOptions: {
+    threads: {
+      // Bound concurrency to reduce MongoMemoryServer port contention across workers
+      maxThreads: Number(process.env.VITEST_MAX_THREADS ?? "4"),
+      minThreads: 1,
+    },
+  },
   testTimeout: 600000, // 10 minutes - MongoMemoryServer initialization takes time
   hookTimeout: 120000, // 2 minutes - beforeAll/afterAll with MongoDB setup
   teardownTimeout: 30000, // 30 seconds - cleanup
@@ -49,6 +56,7 @@ const sharedViteConfig = {
 export default defineConfig({
   ...sharedViteConfig,
   test: {
+    // TODO: migrate to a multi-project structure when environmentMatchGlobs is removed from Vitest.
     projects: [
       defineProject({
         ...sharedViteConfig,
@@ -61,17 +69,6 @@ export default defineConfig({
             // Enable MongoMemoryServer for client/jsdom runs that exercise services
             SKIP_GLOBAL_MONGO: "false",
           },
-          environmentMatchGlobs: [
-            // Server-only logic: DB/service/job suites must run in Node to avoid Edge/browser guards
-            ["tests/services/**/*.test.{ts,tsx}", "node"],
-            ["tests/**/services/**/*.test.{ts,tsx}", "node"],
-            ["tests/jobs/**/*.test.{ts,tsx}", "node"],
-            ["tests/debug/**/*.test.{ts,tsx}", "node"],
-            ["tests/finance/**/*.test.{ts,tsx}", "node"],
-            ["tests/unit/lib/**/*.test.{ts,tsx}", "node"],
-            ["tests/unit/returns/**/*.test.{ts,tsx}", "node"],
-            ["tests/vitest.config.test.ts", "node"],
-          ],
           include: ["**/*.test.ts", "**/*.test.tsx"],
           exclude: [
             ...baseExcludes,
@@ -81,6 +78,14 @@ export default defineConfig({
             "tests/**/models/**/*.test.{ts,tsx}",
             "tests/models/**/*.test.{ts,tsx}",
             "tests/unit/middleware.test.ts",
+            "tests/services/**/*.test.{ts,tsx}",
+            "tests/**/services/**/*.test.{ts,tsx}",
+            "tests/jobs/**/*.test.{ts,tsx}",
+            "tests/debug/**/*.test.{ts,tsx}",
+            "tests/finance/**/*.test.{ts,tsx}",
+            "tests/unit/lib/**/*.test.{ts,tsx}",
+            "tests/unit/returns/**/*.test.{ts,tsx}",
+            "tests/vitest.config.test.ts",
           ],
         },
       }),
@@ -97,6 +102,14 @@ export default defineConfig({
             "tests/**/models/**/*.test.{ts,tsx}",
             "tests/models/**/*.test.{ts,tsx}",
             "tests/unit/middleware.test.ts",
+            "tests/services/**/*.test.{ts,tsx}",
+            "tests/**/services/**/*.test.{ts,tsx}",
+            "tests/jobs/**/*.test.{ts,tsx}",
+            "tests/debug/**/*.test.{ts,tsx}",
+            "tests/finance/**/*.test.{ts,tsx}",
+            "tests/unit/lib/**/*.test.{ts,tsx}",
+            "tests/unit/returns/**/*.test.{ts,tsx}",
+            "tests/vitest.config.test.ts",
           ],
           exclude: baseExcludes,
         },

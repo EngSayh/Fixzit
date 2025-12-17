@@ -40,7 +40,7 @@ describe("GET /api/search (integration, in-memory Mongo)", () => {
   const ownerPropertyId = new ObjectId();
 
   beforeAll(async () => {
-    mongo = await MongoMemoryServer.create();
+    mongo = await MongoMemoryServer.create({ instance: { port: 0 } });
     client = await MongoClient.connect(mongo.getUri());
     db = client.db("testdb");
 

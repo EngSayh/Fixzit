@@ -52,7 +52,7 @@ describe("Encryption Plugin Mongoose Hooks (TEST-003)", () => {
 
     // Start in-memory MongoDB
     mongoServer = await MongoMemoryServer.create({
-      instance: { launchTimeout: 60_000 },
+      instance: { launchTimeout: 60_000, port: 0 },
     });
     const mongoUri = mongoServer.getUri();
 

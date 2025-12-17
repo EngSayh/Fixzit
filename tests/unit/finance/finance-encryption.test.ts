@@ -119,7 +119,7 @@ describe("Finance Model PII Encryption", () => {
 
     // Start in-memory MongoDB
     mongoServer = await MongoMemoryServer.create({
-      instance: { launchTimeout: 60_000 },
+      instance: { launchTimeout: 60_000, port: 0 },
     });
     const uri = mongoServer.getUri();
     await mongoose.connect(uri);

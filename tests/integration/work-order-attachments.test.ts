@@ -39,7 +39,7 @@ describe("Work Order Attachment Flow", () => {
     process.env.MONGOMS_START_TIMEOUT =
       process.env.MONGOMS_START_TIMEOUT || "60000";
     mongoServer = await MongoMemoryServer.create({
-      instance: { launchTimeout: 60_000 },
+      instance: { launchTimeout: 60_000, port: 0 },
     });
     const uri = mongoServer.getUri();
     // Create separate connection for this test suite

@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       active: !!orgId,
       orgId,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to check impersonation status" },
       { status: 500 }

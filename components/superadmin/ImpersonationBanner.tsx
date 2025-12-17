@@ -22,8 +22,8 @@ export function ImpersonationBanner() {
           const data = await response.json();
           setImpersonatedOrgId(data.orgId || null);
         }
-      } catch (error) {
-        console.error("Failed to check impersonation status:", error);
+      } catch {
+        // Silently fail - impersonation banner simply won't show
       }
     };
 
@@ -42,7 +42,7 @@ export function ImpersonationBanner() {
       } else {
         alert("Failed to clear impersonation. Please try again.");
       }
-    } catch (error) {
+    } catch {
       alert("Failed to clear impersonation. Please try again.");
     } finally {
       setIsClearing(false);
