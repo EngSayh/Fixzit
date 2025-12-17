@@ -241,11 +241,6 @@ const config = {
         md: "var(--radius-md)",
         sm: "var(--radius-sm)",
       },
-      boxShadow: {
-        "elevation-1": "0 1px 2px rgba(0, 0, 0, 0.05)",
-        "elevation-2": "0 4px 6px rgba(0, 0, 0, 0.1)",
-        "elevation-3": "0 10px 15px rgba(0, 0, 0, 0.15)",
-      },
       transitionProperty: {
         "hover-lift": "transform, box-shadow",
       },

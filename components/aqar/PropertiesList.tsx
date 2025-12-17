@@ -14,7 +14,6 @@
 
 import React, { useState, useMemo } from "react";
 import useSWR from "swr";
-import { formatDistanceToNowStrict } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -24,12 +23,10 @@ import { Home, Plus, RefreshCcw, Search, Filter, Bed, Bath, Maximize } from "luc
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
 import { TableToolbar } from "@/components/tables/TableToolbar";
-import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
-import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -60,7 +57,7 @@ type ApiResponse = {
 
 const TYPE_OPTIONS = ["APARTMENT", "VILLA", "OFFICE", "WAREHOUSE", "LAND"];
 const LISTING_OPTIONS = ["RENT", "SALE"];
-const STATUS_OPTIONS = ["AVAILABLE", "RENTED", "SOLD", "RESERVED"];
+const _STATUS_OPTIONS = ["AVAILABLE", "RENTED", "SOLD", "RESERVED"];
 const CITY_OPTIONS = ["Riyadh", "Jeddah", "Dammam", "Mecca", "Medina"];
 
 const statusStyles: Record<string, string> = {
@@ -108,7 +105,7 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
     return params.toString();
   }, [orgId, state]);
 
-  const { data, error, isLoading, mutate, isValidating } = useSWR(
+  const { data, error: _error, isLoading, mutate, isValidating } = useSWR(
     `/api/aqar/properties?${query}`,
     fetcher,
     { keepPreviousData: true }
@@ -148,7 +145,7 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
         key: "type",
         label: `Type: ${state.filters.type}`,
         onRemove: () => {
-          const { type, ...rest } = state.filters || {};
+          const { type: _type, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });
@@ -159,7 +156,7 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
         key: "listing",
         label: `Listing: ${state.filters.listingType}`,
         onRemove: () => {
-          const { listingType, ...rest } = state.filters || {};
+          const { listingType: _listingType, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });
@@ -170,7 +167,7 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
         key: "city",
         label: `City: ${state.filters.city}`,
         onRemove: () => {
-          const { city, ...rest } = state.filters || {};
+          const { city: _city, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });

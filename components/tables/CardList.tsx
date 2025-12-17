@@ -11,9 +11,8 @@
  */
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -23,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronRight, MoreVertical } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type CardListColumn<TData> = {
@@ -74,8 +73,7 @@ export type CardListProps<TData> = {
   cardClassName?: string;
 };
 
-export function CardList<TData extends Record<string, any>>({
-  columns,
+export function CardList<TData extends Record<string, unknown>>({
   data,
   primaryAccessor,
   secondaryAccessor,

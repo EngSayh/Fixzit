@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
+import { startMongoMemoryServer } from "../../helpers/mongoMemory";
 import { generateEncryptionKey, isEncrypted } from "@/lib/security/encryption";
 import {
   setAuditContext,
@@ -106,11 +107,6 @@ describe("Finance Model PII Encryption", () => {
   beforeAll(async () => {
     // Set encryption key
     process.env.ENCRYPTION_KEY = testKey;
-    process.env.MONGOMS_TIMEOUT = process.env.MONGOMS_TIMEOUT || "60000";
-    process.env.MONGOMS_DOWNLOAD_TIMEOUT =
-      process.env.MONGOMS_DOWNLOAD_TIMEOUT || "60000";
-    process.env.MONGOMS_START_TIMEOUT =
-      process.env.MONGOMS_START_TIMEOUT || "60000";
 
     // Reset any existing connections (guards against accidental shared connection across tests)
     if (mongoose.connection.readyState !== 0) {
@@ -118,9 +114,7 @@ describe("Finance Model PII Encryption", () => {
     }
 
     // Start in-memory MongoDB
-    mongoServer = await MongoMemoryServer.create({
-      instance: { launchTimeout: 60_000, port: 0 },
-    });
+    mongoServer = await startMongoMemoryServer({ launchTimeoutMs: 60_000 });
     const uri = mongoServer.getUri();
     await mongoose.connect(uri);
     setAuditContext({ userId: new mongoose.Types.ObjectId() });

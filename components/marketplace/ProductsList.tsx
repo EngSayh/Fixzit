@@ -14,7 +14,6 @@
 
 import React, { useState, useMemo } from "react";
 import useSWR from "swr";
-import { formatDistanceToNowStrict } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -105,7 +104,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
     return params.toString();
   }, [orgId, state]);
 
-  const { data, error, isLoading, mutate, isValidating } = useSWR(
+  const { data, isLoading, mutate, isValidating } = useSWR(
     `/api/marketplace/products?${query}`,
     fetcher,
     { keepPreviousData: true }
@@ -144,7 +143,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
         key: "category",
         label: `Category: ${state.filters.category}`,
         onRemove: () => {
-          const { category, ...rest } = state.filters || {};
+          const { category: _category, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });
@@ -155,7 +154,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
         key: "status",
         label: `Status: ${state.filters.status}`,
         onRemove: () => {
-          const { status, ...rest } = state.filters || {};
+          const { status: _status, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });
@@ -166,7 +165,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
         key: "seller",
         label: `Seller: ${state.filters.sellerType}`,
         onRemove: () => {
-          const { sellerType, ...rest } = state.filters || {};
+          const { sellerType: _sellerType, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });

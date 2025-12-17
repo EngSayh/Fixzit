@@ -114,7 +114,7 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
       setSearchResults([]);
       router.push("/superadmin/issues");
       router.refresh();
-    } catch (err) {
+    } catch (_err) {
       setError("Failed to clear impersonation. Please try again.");
       setIsLoading(false);
     }

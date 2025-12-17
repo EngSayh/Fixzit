@@ -164,6 +164,14 @@ export default [
     rules: {
       "@typescript-eslint/no-require-imports": "off",
       "prefer-const": "off",
+      // Environment selection is project-based; forbid inline overrides that caused flake
+      "no-restricted-comments": [
+        "error",
+        {
+          pattern: "@vitest-environment",
+          message: "Do not set @vitest-environment; use vitest projects instead.",
+        },
+      ],
     },
   },
 

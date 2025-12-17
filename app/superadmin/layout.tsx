@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import enDict from "@/i18n/dictionaries/en";
 import arDict from "@/i18n/dictionaries/ar";
@@ -21,12 +22,29 @@ export default async function SuperadminLayout({
 }: {
   children: ReactNode;
 }) {
+  const hdrs = headers();
+  const currentPath =
+    hdrs.get("x-matched-path") ||
+    hdrs.get("x-pathname") ||
+    hdrs.get("next-url") ||
+    hdrs.get("referer") ||
+    "";
+
+  const isLoginPage =
+    typeof currentPath === "string" &&
+    currentPath.toLowerCase().includes("/superadmin/login");
+
   const { locale: serverLocale } = await getServerI18n();
   const superadminSession = await getSuperadminSessionFromCookies();
 
   // BUG-002 FIX: Server-side auth enforcement
-  // Redirect to login if not authenticated (prevents client-side polling race conditions)
-  if (!superadminSession || !superadminSession.username) {
+  // Redirect to login if not authenticated or expired (prevents client-side polling race conditions)
+  if (
+    !isLoginPage &&
+    (!superadminSession ||
+      !superadminSession.username ||
+      superadminSession.expiresAt < Date.now())
+  ) {
     redirect("/superadmin/login");
   }
 

@@ -13,16 +13,13 @@
 
 import React, { useState, useMemo } from "react";
 import useSWR from "swr";
-import { formatDistanceToNowStrict, format, differenceInDays } from "date-fns";
+import { formatDistanceToNowStrict, format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Chip } from "@/components/ui/chip";
 import { Calendar, Plus, RefreshCcw, CheckCircle, XCircle, Clock } from "lucide-react";
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
-import { TableToolbar } from "@/components/tables/TableToolbar";
-import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
@@ -100,7 +97,7 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
 
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState(state.filters || {});
-  const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
+  const [_density, _setDensity] = useState<"comfortable" | "compact">("comfortable");
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -127,7 +124,7 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
   const totalCount = data?.total ?? 0;
 
   // Quick chips
-  const quickChips = [
+  const _quickChips = [
     { 
       key: "pending", 
       label: t("hr.leave.chips.pending", "Pending"), 
@@ -167,7 +164,7 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
         key: "status",
         label: `${t("hr.leave.filters.status", "Status")}: ${state.filters.status}`,
         onRemove: () => {
-          const { status, ...rest } = state.filters || {};
+          const { status: _status, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });
@@ -178,7 +175,7 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
         key: "type",
         label: `${t("hr.leave.filters.type", "Type")}: ${state.filters.leaveType}`,
         onRemove: () => {
-          const { leaveType, ...rest } = state.filters || {};
+          const { leaveType: _leaveType, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });
@@ -191,7 +188,7 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
         key: "dateRange",
         label: `${t("hr.leave.filters.dateRange", "Period")}: ${from} – ${to}`,
         onRemove: () => {
-          const { startDateFrom, startDateTo, ...rest } = state.filters || {};
+          const { startDateFrom: _startDateFrom, startDateTo: _startDateTo, ...rest } = state.filters || {};
           updateState({ filters: rest });
         },
       });
@@ -285,11 +282,11 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
     setFilterDrawerOpen(false);
   };
 
-  const handleApprove = (request: LeaveRequestRecord) => {
+  const _handleApprove = (request: LeaveRequestRecord) => {
     toast.info(t("hr.leave.actions.approve", "Approve leave request for {{name}}", { name: request.employeeName }));
   };
 
-  const handleReject = (request: LeaveRequestRecord) => {
+  const _handleReject = (request: LeaveRequestRecord) => {
     toast.info(t("hr.leave.actions.reject", "Reject leave request for {{name}}", { name: request.employeeName }));
   };
 
@@ -438,7 +435,7 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
         <DataTableStandard
           columns={columns}
           data={requests}
-          onRowClick={(row) => {
+          onRowClick={(_row) => {
             toast.info(t("hr.leave.viewDetails", "View leave request details"));
           }}
         />

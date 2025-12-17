@@ -19,6 +19,7 @@ import mongoose, { Schema, Document, Model, Connection } from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { encryptionPlugin } from "@/server/plugins/encryptionPlugin";
 import { isEncrypted, decryptField } from "@/lib/security/encryption";
+import { startMongoMemoryServer } from "../../helpers/mongoMemory";
 
 // Test document interface
 interface ITestPerson extends Document {
@@ -44,16 +45,9 @@ describe("Encryption Plugin Mongoose Hooks (TEST-003)", () => {
       "0123456789abcdef0123456789abcdef"
     ).toString("base64");
     process.env.NODE_ENV = "test";
-    process.env.MONGOMS_TIMEOUT = process.env.MONGOMS_TIMEOUT || "60000";
-    process.env.MONGOMS_DOWNLOAD_TIMEOUT =
-      process.env.MONGOMS_DOWNLOAD_TIMEOUT || "60000";
-    process.env.MONGOMS_START_TIMEOUT =
-      process.env.MONGOMS_START_TIMEOUT || "60000";
 
     // Start in-memory MongoDB
-    mongoServer = await MongoMemoryServer.create({
-      instance: { launchTimeout: 60_000, port: 0 },
-    });
+    mongoServer = await startMongoMemoryServer({ launchTimeoutMs: 60_000 });
     const mongoUri = mongoServer.getUri();
 
     // Use createConnection to avoid conflicts with global mongoose connection

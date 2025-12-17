@@ -13,6 +13,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
+import { startMongoMemoryServer } from "../helpers/mongoMemory";
 describe("Work Order Attachment Flow", () => {
   let mongoServer: MongoMemoryServer;
   let testConnection: typeof mongoose;
@@ -33,13 +34,9 @@ describe("Work Order Attachment Flow", () => {
 
   beforeAll(async () => {
     // Increase startup timeout to avoid flakiness on slower CI hosts
-    process.env.MONGOMS_TIMEOUT = process.env.MONGOMS_TIMEOUT || "60000";
-    process.env.MONGOMS_DOWNLOAD_TIMEOUT =
-      process.env.MONGOMS_DOWNLOAD_TIMEOUT || "60000";
-    process.env.MONGOMS_START_TIMEOUT =
-      process.env.MONGOMS_START_TIMEOUT || "60000";
-    mongoServer = await MongoMemoryServer.create({
-      instance: { launchTimeout: 60_000, port: 0 },
+    mongoServer = await startMongoMemoryServer({
+      launchTimeoutMs: 60_000,
+      instance: { port: 0 },
     });
     const uri = mongoServer.getUri();
     // Create separate connection for this test suite
