@@ -39,6 +39,7 @@
     "agent:inventory": "bash scripts/inventory.sh",
     "agent:cleanup": "bash scripts/cleanup-space.sh",
     "agent:run": "bash tools/agent-runner.sh",
+    "audit:workspace": "bash scripts/audit-workspace.sh",
     "cleanup": "bash scripts/cleanup-space.sh",
     "cleanup:cache": "bash scripts/cleanup-dev-cache.sh",
     "agent:verify": "npm run typecheck && npm run lint && npm run build",

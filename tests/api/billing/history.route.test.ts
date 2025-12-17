@@ -5,9 +5,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock auth
+// Runtime state for auth mock (deterministic, no hoisting issues)
+let sessionUser: null | { id: string; orgId?: string } = null;
+
+// Mock auth with runtime state
 vi.mock("@/auth", () => ({
-  auth: vi.fn(),
+  auth: vi.fn(async () => {
+    if (!sessionUser) return null;
+    return { user: sessionUser };
+  }),
 }));
 
 // Mock database
@@ -44,19 +50,17 @@ vi.mock("@/server/models/SubscriptionInvoice", () => ({
   },
 }));
 
-import { auth } from "@/auth";
 import { GET } from "@/app/api/billing/history/route";
 
 describe("API /api/billing/history", () => {
   beforeEach(() => {
+    sessionUser = null;
     vi.clearAllMocks();
-    // Reset auth mock to return null by default
-    vi.mocked(auth).mockResolvedValue(null);
   });
 
   describe("Authentication", () => {
     it("returns 401 when user is not authenticated", async () => {
-      vi.mocked(auth).mockResolvedValue(null);
+      sessionUser = null;
 
       const req = new NextRequest("http://localhost:3000/api/billing/history");
       const res = await GET(req);
@@ -65,7 +69,7 @@ describe("API /api/billing/history", () => {
     });
 
     it("returns 401 when session has no user id", async () => {
-      vi.mocked(auth).mockResolvedValue({ user: {} } as never);
+      sessionUser = {} as { id: string };
 
       const req = new NextRequest("http://localhost:3000/api/billing/history");
       const res = await GET(req);
@@ -76,9 +80,7 @@ describe("API /api/billing/history", () => {
 
   describe("Organization Context", () => {
     it("returns 400 when organization context is missing", async () => {
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "507f1f77bcf86cd799439011" }, // Valid ObjectId but no orgId
-      } as never);
+      sessionUser = { id: "507f1f77bcf86cd799439011" }; // Valid ObjectId but no orgId
 
       const req = new NextRequest("http://localhost:3000/api/billing/history");
       const res = await GET(req);
@@ -91,12 +93,10 @@ describe("API /api/billing/history", () => {
 
   describe("Pagination", () => {
     it("uses default pagination when no params provided", async () => {
-      vi.mocked(auth).mockResolvedValue({
-        user: { 
-          id: "507f1f77bcf86cd799439011",  // Valid ObjectId
-          orgId: "507f191e810c19729de860ea"  // Valid ObjectId
-        },
-      } as never);
+      sessionUser = {
+        id: "507f1f77bcf86cd799439011", // Valid ObjectId
+        orgId: "507f191e810c19729de860ea", // Valid ObjectId
+      };
 
       const req = new NextRequest("http://localhost:3000/api/billing/history");
       const res = await GET(req);
