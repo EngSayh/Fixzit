@@ -163,7 +163,8 @@ describe("Health Endpoints", () => {
       expect(json.timestamp).toBeDefined();
     });
 
-    it("returns 503 when Redis is configured but unavailable", async () => {
+    it("returns 200 when Redis is configured but unavailable (Redis checks disabled)", async () => {
+      // NOTE: Redis is intentionally disabled in readiness checks - MongoDB is the only critical dependency
       vi.resetModules();
       vi.stubEnv("REDIS_URL", "redis://localhost:6379");
       
@@ -203,14 +204,15 @@ describe("Health Endpoints", () => {
       const response = await getReadyFresh(createMockRequest());
       const json = await response.json();
 
-      expect(response.status).toBe(503);
-      expect(json.ready).toBe(false);
+      // Redis is disabled in readiness checks - MongoDB ok = ready
+      expect(response.status).toBe(200);
+      expect(json.ready).toBe(true);
       expect(json.checks.mongodb).toBe("ok");
-      expect(json.checks.redis).toBe("error");
-      expect(json.requiresRedis).toBe(true);
+      expect(json.checks.redis).toBe("disabled");
     });
 
-    it("returns 200 when both MongoDB and Redis are healthy", async () => {
+    it("returns 200 when MongoDB is healthy (Redis checks disabled)", async () => {
+      // NOTE: Even with Redis configured, readiness only checks MongoDB
       vi.resetModules();
       vi.stubEnv("REDIS_URL", "redis://localhost:6379");
       
@@ -253,8 +255,7 @@ describe("Health Endpoints", () => {
       expect(response.status).toBe(200);
       expect(json.ready).toBe(true);
       expect(json.checks.mongodb).toBe("ok");
-      expect(json.checks.redis).toBe("ok");
-      expect(json.requiresRedis).toBe(true);
+      expect(json.checks.redis).toBe("disabled"); // Redis is intentionally disabled
     });
   });
 });
