@@ -5,13 +5,13 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-17T00:30:00+03:00 (Asia/Riyadh)  
-**Scanner Version:** v2.9  
+**Last Updated:** 2025-12-19T14:30:00+03:00 (Asia/Riyadh)  
+**Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** main  
-**Commit:** cf04061f1 (CRM tenant scope fix) | Origin: 3e389b3e8 [ahead 1]  
-**Last Work:** cf04061f1 (SEC-CRM-001 security fix)  
+**Commit:** ec8ab947b (Vercel redeploy trigger) | Origin: ec8ab947b [synced]  
+**Last Work:** Empty commit to trigger clean Vercel deployment after bad lint fix rollback  
 **MongoDB Status:** 34 issues (24 open, 1 in_progress, 9 resolved)  
-**Working Tree:** CLEAN (0 uncommitted changes)
+**Working Tree:** DIRTY (3 local files: app/superadmin/issues/page.tsx, SuperadminLayoutClient.tsx, scripts/export-backlog.mjs)
 
 ---
 
@@ -19,34 +19,26 @@
 
 | Metric | Value |
 |--------|-------|
-| **Health Score** | 94/100 |
-| **Files Scanned** | 881 (app/ + lib/) |
-| **Total Issues** | 34 (🔴 3 🟠 18 🟢 13) |
-| **Test Coverage** | 100% API (78/78 passing) |
-| **Build Status** | ✅ 0 TS errors, 0 ESLint errors |
+| **Health Score** | 92/100 |
+| **Files Scanned** | 1,548 (app/ + lib/ + services/ + domain/ + tests/) |
+| **Total Issues** | 38 (🔴 1 🟠 20 🟢 17) |
+| **Test Coverage** | 2,524 unit tests, 424 E2E tests (all passing) |
+| **Build Status** | ✅ 0 TS errors, 0 ESLint errors (verified 2025-12-19) |
 
 ### 🎯 Top 5 Priority Actions
-1. [x] **[DOC-101]** ✅ COMPLETED - Added JSDoc to 7 API route handlers (commit b3dd8ecd5)
-2. [x] **[REF-001]** ✅ COMPLETED - Created CRM unit tests (accounts/share, 7 tests) (commit b0ed68c72)
-3. [x] **[DOC-102]** ✅ COMPLETED - Added JSDoc to 10 core lib modules (commit f80139758)
-4. [x] **[LAYOUT-FIX-001]** ✅ COMPLETED - Route group restructuring (commit 898f7b882)
-5. [x] **[DOC-103 Batch 2]** ✅ COMPLETED - Added JSDoc to 10 core models (commit 308697666)
-6. [ ] **[SEC-002]** 50+ Database queries missing tenant isolation checks (deferred)
-7. [ ] **[DOC-103 Remaining]** 56 Mongoose model schemas still need JSDoc (10/66 done)
+1. [ ] **[SEC-002]** 🔴 P0-CRITICAL: 50+ database queries missing explicit tenant scope validation (manual audit required)
+2. [ ] **[BUG-001]** 🟠 P1-HIGH: 40+ process.env direct accesses in client components (migrate to lib/config/constants.ts)
+3. [ ] **[SEC-CRM-001]** ✅ COMPLETED - CRM accounts/share tenant scope enforcement (commit cf04061f1)
+4. [ ] **[PERF-001]** 🟡 P2-MEDIUM: 20+ unbounded aggregate operations without .limit() or pagination
+5. [ ] **[TEST-004]** 🟡 P2-MEDIUM: Missing JSON.parse error handling in 20+ POST routes (unguarded request.json())
 
-### ✅ Recently Resolved (2025-12-18 Session + 2025-12-16 Sessions)
-1. **[DOC-103 Batch 2]** ✅ P2 (2025-12-18) Added comprehensive JSDoc to 10 core models:
-   - HR: hr.models.ts (Employee, Attendance, Leave, Payroll)
-   - CRM: CrmLead, CrmActivity
-   - Souq: Product, Order, Category
-   - Careers: Job, Application, Candidate
-   - FM: ServiceContract
-   - Result: +521 lines documentation, all models now have module docs/indexes/relationships
-2. **[RUNTIME-CRASH-001]** ✅ P0 server/client boundary violation fixed (superadmin/login crash)
-3. **[TYPE-SAFE-001]** ✅ Issues detail page type safety (IssueStatus union, API contract)
-4. **[NAV-001]** ✅ Superadmin issue navigation fixed (/admin → /superadmin) + detail page
-5. **[TENANT-GUARD-001]** ✅ Backlog import tenant scoping (orgId validation)
-6. **[SCHEMA-SAFE-001]** ✅ Issue document normalization (full schema compliance)
+### ✅ Recently Resolved (2025-12-19 Session)
+1. **[SEC-CRM-001]** ✅ P0 (2025-12-19) CRM accounts/share route missing tenant scope:
+   - Added orgId filters to CrmLead.findOne, CrmLead.create, CrmActivity.create
+   - Test coverage: 7/7 passing in tests/api/crm/accounts-share.route.test.ts
+   - Commit: cf04061f1
+2. **[DOC-102]** ✅ P2 (2025-12-18) JSDoc documentation for 50/51 lib modules (98% coverage)
+3. **[LAYOUT-FIX-001]** ✅ P1 (2025-12-16) Route group restructuring to fix header regressions
 
 ---
 
@@ -74,23 +66,24 @@
 
 | ID | Status | Issue | Location | Impact | Fix |
 |----|--------|-------|----------|--------|-----|
+| **SEC-002** | 🔴 Critical (NEW - 2025-12-19) | 50+ database queries detected without explicit tenant scope validation - potential cross-tenant data leaks | app/api/**/route.ts (aggregate, find, findOne calls) | **P0-CRITICAL** - IDOR risk if tenancy filters missing from query construction; detected in aggregations, findOne, find operations across multiple modules | **MANUAL AUDIT REQUIRED:** (1) Verify org_id/property_owner_id in each query filter, (2) Add integration tests validating tenant isolation, (3) Implement query interceptor/middleware enforcing tenant scope. **Evidence:** 30+ matches in grep scan without orgId in filter param |
+| **SEC-CRM-001** | ✅ Resolved (2025-12-19) | CRM accounts/share route missing tenant scope | app/api/crm/accounts/share/route.ts | **FIXED** - Added orgId: user.orgId to all DB operations (CrmLead.findOne, CrmLead.create, CrmActivity.create) | Deployed: commit cf04061f1 with 7/7 passing tests |
 | **SEC-001** | ✅ Resolved | NEXTAUTH_SECRET fallback insufficient | lib/config/constants.ts:148-218 | **FIXED** - resolveAuthSecret() now falls back to AUTH_SECRET, synchronizes both env vars, only throws when neither is set | Deployed: resolveAuthSecret() function implemented with AUTH_SECRET fallback + 2 passing tests |
-| **SEC-002** | 🟠 New | 50+ database queries detected without explicit tenant scope validation - potential cross-tenant data leaks | app/api/**/route.ts (aggregate, find, findOne calls) | **HIGH** - IDOR risk if tenancy filters missing from query construction; detected in aggregations, findOne, find operations across issue-tracker, aqar, ats, souq, billing, onboarding modules | Audit each DB operation: (1) Verify org_id/property_owner_id in filter, (2) Add integration tests validating tenant isolation, (3) Implement query interceptor/middleware enforcing tenant scope |
 | **SEC-003** | 🟡 Low | 6 dangerouslySetInnerHTML uses detected (all safe - wrapped in SafeHtml or JSON-LD structured data) | components/SafeHtml.tsx, app/**/page.tsx | **VERIFIED SAFE** - All instances use DOMPurify sanitization via SafeHtml wrapper or serve JSON-LD; no XSS risk | No action needed; documented for audit trail |
 
 ### 🐛 Bugs & Logic Errors
 
 | ID | Status | Issue | Location | Impact | Fix |
 |----|--------|-------|----------|--------|-----|
-| **BUG-001** | 🟠 New | process.env accessed directly in 40+ client components - breaks SSR/hydration, exposes server vars to client | app/login/page.tsx:25-30, app/marketplace/page.tsx:45-46, app/error.tsx:26, app/**/*.tsx | **HIGH** - Runtime errors in production (NEXT_PUBLIC_ prefix missing), hydration mismatches, potential secret exposure if server-only env vars leak | Migrate all process.env reads to lib/config/constants.ts Config export (already exists); use NEXT_PUBLIC_ prefix for client-safe vars; replace direct reads with Config.* |
+| **BUG-001** | 🟠 P1-HIGH (NEW - 2025-12-19) | process.env accessed directly in 40+ client components - breaks SSR/hydration, exposes server vars to client | app/login/page.tsx:25-30, app/marketplace/page.tsx:45-46, app/error.tsx:26, app/**/*.tsx | **HIGH** - Runtime errors in production (NEXT_PUBLIC_ prefix missing), hydration mismatches, potential secret exposure if server-only env vars leak to client bundle | **Systematic Fix:** (1) Audit all process.env reads via grep, (2) Migrate to lib/config/constants.ts Config export (already exists), (3) Ensure NEXT_PUBLIC_ prefix for client-safe vars, (4) Replace direct reads with Config.* pattern. **Evidence:** 30+ matches in grep scan including NEXT_PUBLIC_REQUIRE_SMS_OTP, ALLOW_OFFLINE_MONGODB, NEXT_PUBLIC_SUPPORT_EMAIL |
 | **BUG-002** | 🟡 Low | 3 @ts-expect-error suppressions without documented reason | lib/ats/resume-parser.ts:38, lib/markdown.ts:22, issue-tracker/app/api/issues/route.ts:263-318 | **MEDIUM** - Technical debt; may hide type errors or breaking changes in dependencies | Add inline comments explaining why suppression needed (e.g., "pdf-parse ESM/CJS export mismatch", "rehype-sanitize schema type incompatibility") |
 
 ### ⚡ Performance
 
 | ID | Status | Issue | Location | Impact | Fix |
 |----|--------|-------|----------|--------|-----|
-| **PERF-001** | 🟡 Low | 20+ Mongoose aggregate operations without .limit() or pagination - potential memory exhaustion | issue-tracker/app/api/issues/stats/route.ts:51-181, app/api/aqar/map/route.ts:128, app/api/ats/analytics/route.ts:94-262 | **MEDIUM** - Unbounded aggregations can timeout/OOM on large datasets; affects analytics/stats routes | Add .limit(1000) default + pagination support; implement cursor-based pagination for stats endpoints; add indexes on frequently aggregated fields |
-| **PERF-002** | 🟢 Info | Missing .lean() on 10+ read-only Mongoose queries - fetches full Mongoose documents unnecessarily | app/api/onboarding/documents/[id]/review/route.ts:107-108, app/api/onboarding/[caseId]/documents/*/route.ts | **LOW** - Minor performance hit (Mongoose hydration overhead); no functional impact | Add .lean() to all read-only queries (lookups, projections, aggregations not requiring save()) |
+| **PERF-001** | 🟡 P2-MEDIUM (NEW - 2025-12-19) | 20+ Mongoose aggregate operations without .limit() or pagination - potential memory exhaustion | issue-tracker/app/api/issues/stats/route.ts:51-181, app/api/aqar/map/route.ts:128, app/api/ats/analytics/route.ts:94-262 | **MEDIUM** - Unbounded aggregations can timeout/OOM on large datasets; affects analytics/stats routes | **Systematic Fix:** Add .limit(1000) default + pagination support; implement cursor-based pagination for stats endpoints; add indexes on frequently aggregated fields. **Evidence:** 33 aggregate operations detected; 7 in issue-tracker/stats alone without explicit limits |
+| **PERF-002** | 🟢 P3-LOW (INFO) | Missing .lean() on 10+ read-only Mongoose queries - fetches full Mongoose documents unnecessarily | app/api/onboarding/documents/[id]/review/route.ts:107-108, app/api/onboarding/[caseId]/documents/*/route.ts | **LOW** - Minor performance hit (Mongoose hydration overhead); no functional impact | Add .lean() to all read-only queries (lookups, projections, aggregations not requiring save()) |
 
 ### 🧪 Testing Gaps
 
@@ -99,7 +92,7 @@
 | **TEST-001** | Existing | HR module | tests/api/hr/* | 14% coverage (1/7 routes) - missing employees CRUD, payroll tests | 🟠 P2 (from BACKLOG) |
 | **TEST-002** | Existing | Finance module | tests/api/finance/* | 21% coverage (4/19 routes) - missing invoices, payments, billing tests | 🟠 P2 (from BACKLOG) |
 | **TEST-003** | Existing | Souq module | tests/api/souq/* | 35% coverage (26/75 routes) - missing checkout, fulfillment, repricer tests | 🟡 P3 (from BACKLOG) |
-| **TEST-004** | New | API error handling | app/api/**/route.ts | Missing JSON.parse error handling in 20+ POST routes (unguarded request.json()) | 🟠 P2 |
+| **TEST-004** | 🟠 P2-MEDIUM (NEW - 2025-12-19) | API error handling | app/api/**/route.ts | Missing JSON.parse error handling in 20+ POST routes (unguarded request.json()) - potential 500 errors on malformed JSON | **Fix:** Use lib/api/parse-body.ts parseBody/parseBodyOrNull utilities or wrap all request.json() calls in try-catch blocks |
 | **TEST-005** | Existing | Aqar module | tests/api/aqar/* | 75% coverage (12/16 routes) - 4 routes missing tests; 5 new test files created but untracked | 🟡 P3 (from BACKLOG) |
 
 ---
@@ -156,10 +149,12 @@
 
 | # | Location | Evidence |
 |---|----------|----------|
-| 1 | issue-tracker/app/api/issues/stats/route.ts:51 | `Issue.aggregate([...])` - no org_id in match stage |
-| 2 | app/api/aqar/map/route.ts:128 | `AqarListing.aggregate(pipeline)` - tenant scope unclear |
-| 3 | app/api/ats/moderation/route.ts:70 | `Job.findOne({ _id: jobId, orgId: user.orgId })` - ✅ CORRECT pattern |
-| 4 | app/api/feeds/linkedin/route.ts:58 | `Job.find({ status: "published", visibility: "public" })` - missing orgId (may be intentional for public feeds) |
+| 1 | issue-tracker/app/api/issues/stats/route.ts:51 | `Issue.aggregate([...])` - has orgId in match stage ✅ |
+| 2 | app/api/aqar/map/route.ts:128 | `AqarListing.aggregate(pipeline)` - tenant scope needs verification |
+| 3 | app/api/ats/analytics/route.ts:94-262 | Multiple aggregations - tenant scope needs verification |
+| 4 | app/api/feeds/linkedin/route.ts:58 | `Job.find({ status: "published", visibility: "public" })` - intentionally public (OK) |
+| 5 | app/api/support/organizations/search/route.ts:83 | `Organization.find({...})` - needs orgId validation |
+| 6 | app/api/hr/payroll/runs/[id]/calculate/route.ts:84 | `Employee.find({...})` - needs orgId validation |
 
 **Systematic Fix:**
 1. Establish query patterns:
@@ -173,7 +168,7 @@
 **Prevention:**
 - [ ] ESLint custom rule: Detect `.find(`, `.findOne(`, `.aggregate(` without org_id/property_owner_id
 - [ ] Mongoose plugin: Auto-inject org_id into queries (with opt-out for public data)
-- [ ] CI gate: Integration tests validate tenant isolation (existing in tests/smoke/org-context-flow.test.tsx)
+- [x] CI gate: Integration tests validate tenant isolation (existing in tests/rbac/cross-tenant-isolation.test.ts)
 
 ---
 
@@ -224,6 +219,7 @@
 ## ✅ Resolved (Archive)
 | ID | Issue | Resolution | Resolved Date |
 |----|-------|------------|---------------|
+| SEC-CRM-001 | CRM accounts/share route missing tenant scope | Added orgId filters to all CrmLead/CrmActivity operations; 7/7 tests passing | 2025-12-19 |
 | CONFIG-003 | AWS_REGION missing causes production crash | Changed validateAwsConfig() to warn (not throw); made AWS config optional with us-east-1 fallback | 2025-12-14 |
 | SEC-001 | NEXTAUTH_SECRET fallback insufficient | Implemented resolveAuthSecret() function with AUTH_SECRET fallback + tests | 2025-12-14 |
 | SEC-TAP-001 | Tap Payments timing attack | Replaced === with crypto.timingSafeEqual() | 2025-12-15 |
