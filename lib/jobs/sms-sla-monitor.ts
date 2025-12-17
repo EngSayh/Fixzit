@@ -12,7 +12,10 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SMSMessage, type ISMSMessage } from "@/server/models/SMSMessage";
 import { SMSSettings, type ISMSSettings } from "@/server/models/SMSSettings";
 import { sendEmail } from "@/lib/email";
-import { validatePublicHttpsUrl } from "@/lib/security/validatePublicHttpsUrl";
+import {
+  validatePublicHttpsUrl,
+  isValidPublicHttpsUrl,
+} from "@/lib/security/validate-public-https-url";
 
 export interface SLABreachReport {
   totalChecked: number;
@@ -188,13 +191,13 @@ export async function sendBreachNotification(
   const webhook = settings.slaBreachNotifyWebhook;
   let safeWebhook: string | undefined;
   if (webhook) {
-    try {
-      validatePublicHttpsUrl(webhook, "slaBreachNotifyWebhook");
-      safeWebhook = webhook;
-    } catch (error) {
+    if (isValidPublicHttpsUrl(webhook)) {
+      const parsed = validatePublicHttpsUrl(webhook);
+      safeWebhook = parsed.toString();
+    } else {
       logger.warn("[SLA Monitor] Webhook validation failed", {
         webhook,
-        error: error instanceof Error ? error.message : String(error),
+        error: "Webhook must be a public HTTPS URL",
       });
     }
   }

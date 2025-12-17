@@ -886,3 +886,7 @@
 [dir='rtl'] .tooltip-content {
   text-align: right;
 }
+
+/* Import Design Tokens */
+@import "./styles/design-tokens.css";
+

@@ -1,3 +1,4 @@
+import React from "react";
 import { TableSkeleton as BaseTableSkeleton } from "@/components/skeletons";
 
 /**

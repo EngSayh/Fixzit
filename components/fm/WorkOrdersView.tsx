@@ -12,9 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import {
   Dialog,
@@ -265,6 +263,7 @@ export function WorkOrdersView({
     "All Priorities",
   );
   const refreshLabel = t("workOrders.list.filters.refresh", "Refresh");
+  const retryLabel = t("common.retry", "Retry");
   const filtersLabel = t("workOrders.list.filters.title", "Filters");
   // const loadingLabel = t("workOrders.list.loading", "Loading work orders…"); // unused
   const propertyLabel = t("workOrders.list.labels.property", "Property:");
@@ -424,6 +423,38 @@ export function WorkOrdersView({
             }
             end={
               <div className="flex flex-wrap items-center gap-3">
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    setStatusFilter(value);
+                    setPage(1);
+                  }}
+                  placeholder={statusPlaceholder}
+                  className="min-w-[160px]"
+                >
+                  <SelectItem value="">{statusAllLabel}</SelectItem>
+                  {STATUS_OPTIONS.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {getWorkOrderStatusLabel(t, status)}
+                    </SelectItem>
+                  ))}
+                </Select>
+                <Select
+                  value={priorityFilter}
+                  onValueChange={(value) => {
+                    setPriorityFilter(value);
+                    setPage(1);
+                  }}
+                  placeholder={priorityPlaceholder}
+                  className="min-w-[160px]"
+                >
+                  <SelectItem value="">{priorityAllLabel}</SelectItem>
+                  {PRIORITY_OPTIONS.map((priority) => (
+                    <SelectItem key={priority} value={priority}>
+                      {getPriorityLabelText(t, priority)}
+                    </SelectItem>
+                  ))}
+                </Select>
                 <TableDensityToggle
                   density={density}
                   onChange={(next) => setDensity(next)}
@@ -519,16 +550,13 @@ export function WorkOrdersView({
                 setStatusFilter(value);
                 setPage(1);
               }}
-              placeholder={statusPlaceholder}
             >
-              <SelectContent>
-                <SelectItem value="">{statusAllLabel}</SelectItem>
-                {STATUS_OPTIONS.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {getWorkOrderStatusLabel(t, status)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              <SelectItem value="">{statusAllLabel}</SelectItem>
+              {STATUS_OPTIONS.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {getWorkOrderStatusLabel(t, status)}
+                </SelectItem>
+              ))}
             </Select>
           </div>
           <div className="space-y-2">
@@ -541,16 +569,13 @@ export function WorkOrdersView({
                 setPriorityFilter(value);
                 setPage(1);
               }}
-              placeholder={priorityPlaceholder}
             >
-              <SelectContent>
-                <SelectItem value="">{priorityAllLabel}</SelectItem>
-                {PRIORITY_OPTIONS.map((priority) => (
-                  <SelectItem key={priority} value={priority}>
-                    {getPriorityLabelText(t, priority)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              <SelectItem value="">{priorityAllLabel}</SelectItem>
+              {PRIORITY_OPTIONS.map((priority) => (
+                <SelectItem key={priority} value={priority}>
+                  {getPriorityLabelText(t, priority)}
+                </SelectItem>
+              ))}
             </Select>
           </div>
         </div>
@@ -565,7 +590,12 @@ export function WorkOrdersView({
       )}
 
       <div className="space-y-4">
-        {isLoading && !data ? <TableSkeleton rows={6} /> : null}
+        {isLoading && !data ? (
+          <div aria-live="polite">
+            <p className="sr-only">Loading work orders</p>
+            <TableSkeleton rows={6} />
+          </div>
+        ) : null}
 
         {workOrders.map((workOrder, index) => {
           const dueAt = workOrder.sla?.resolutionDeadline || workOrder.dueAt;
@@ -769,7 +799,7 @@ export function WorkOrdersView({
           action={
             <Button onClick={() => mutate()}>
               <RefreshCcw className="me-2 h-4 w-4" />
-              {refreshLabel}
+              {retryLabel}
             </Button>
           }
         />
@@ -941,25 +971,22 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
               </label>
               <Select
                 value={form.priority}
-                onValueChange={(value) => {
-                  if (isWorkOrderPriority(value)) {
-                    setForm((prev) => ({ ...prev, priority: value }));
-                  }
-                }}
-                placeholder={t(
-                  "workOrders.create.form.priorityPlaceholder",
-                  "Select priority",
-                )}
-              >
-                <SelectTrigger></SelectTrigger>
-                <SelectContent>
-                  {PRIORITY_OPTIONS.map((priority) => (
-                    <SelectItem key={priority} value={priority}>
-                      {getPriorityLabelText(t, priority)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              onValueChange={(value) => {
+                if (isWorkOrderPriority(value)) {
+                  setForm((prev) => ({ ...prev, priority: value }));
+                }
+              }}
+              placeholder={t(
+                "workOrders.create.form.priorityPlaceholder",
+                "Select priority",
+              )}
+            >
+              {PRIORITY_OPTIONS.map((priority) => (
+                <SelectItem key={priority} value={priority}>
+                  {getPriorityLabelText(t, priority)}
+                </SelectItem>
+              ))}
+            </Select>
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">

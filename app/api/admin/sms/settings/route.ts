@@ -162,8 +162,12 @@ export async function PUT(request: NextRequest) {
     const parsed = UpdateSettingsSchema.safeParse(body);
 
     if (!parsed.success) {
+      const details = parsed.error.flatten();
+      const webhookError =
+        details.fieldErrors?.slaBreachNotifyWebhook?.[0];
+      const message = webhookError || "Invalid request";
       return NextResponse.json(
-        { error: "Invalid request", details: parsed.error.flatten() },
+        { error: message, details },
         { status: 400 }
       );
     }

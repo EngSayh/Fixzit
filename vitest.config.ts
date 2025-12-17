@@ -64,11 +64,13 @@ export default defineConfig({
           environmentMatchGlobs: [
             // Server-only logic: DB/service/job suites must run in Node to avoid Edge/browser guards
             ["tests/services/**/*.test.{ts,tsx}", "node"],
+            ["tests/**/services/**/*.test.{ts,tsx}", "node"],
             ["tests/jobs/**/*.test.{ts,tsx}", "node"],
             ["tests/debug/**/*.test.{ts,tsx}", "node"],
             ["tests/finance/**/*.test.{ts,tsx}", "node"],
             ["tests/unit/lib/**/*.test.{ts,tsx}", "node"],
             ["tests/unit/returns/**/*.test.{ts,tsx}", "node"],
+            ["tests/vitest.config.test.ts", "node"],
           ],
           include: ["**/*.test.ts", "**/*.test.tsx"],
           exclude: [
