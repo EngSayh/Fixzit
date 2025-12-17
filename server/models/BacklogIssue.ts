@@ -50,9 +50,92 @@
  */
 import { Schema, model, models } from 'mongoose';
 
+/**
+ * Backlog issue category classification
+ *
+ * @category - Issue type for prioritization and routing
+ * - bug: Defects, errors, crashes, incorrect behavior
+ * - logic: Algorithmic flaws, incorrect business rules
+ * - test: Missing or insufficient test coverage
+ * - efficiency: Performance, optimization, resource usage
+ * - next_step: Feature work, enhancements, planned improvements
+ *
+ * @usage Assign during issue creation to route to appropriate team/workflow
+ * @example
+ * // Bug classification
+ * const issue: BacklogCategory = 'bug';
+ *
+ * // Test coverage issue
+ * const testIssue: BacklogCategory = 'test';
+ */
 export type BacklogCategory = 'bug' | 'logic' | 'test' | 'efficiency' | 'next_step';
+
+/**
+ * Backlog issue priority levels (0 = highest, 3 = lowest)
+ *
+ * @priority - Urgency and business impact classification
+ * - P0: Critical - System down, data loss, security breach (fix immediately)
+ * - P1: High - Major functionality broken, affects many users (fix within 24h)
+ * - P2: Medium - Minor functionality issues, workarounds exist (fix within 1 week)
+ * - P3: Low - Nice-to-have, cosmetic, documentation (backlog)
+ *
+ * @usage Combine with impact (1-10) for prioritization scoring
+ * @example
+ * // Security issue - immediate attention
+ * const priority: BacklogPriority = 'P0';
+ *
+ * // Documentation gap - backlog
+ * const docPriority: BacklogPriority = 'P3';
+ */
 export type BacklogPriority = 'P0' | 'P1' | 'P2' | 'P3';
+
+/**
+ * Backlog issue effort estimation (time to complete)
+ *
+ * @effort - T-shirt sizing for sprint planning
+ * - XS: < 1 hour (simple fix, one-line change, typo)
+ * - S: 1-4 hours (small feature, minor refactor, straightforward bug)
+ * - M: 1-2 days (moderate complexity, multiple files, some testing)
+ * - L: 3-5 days (complex feature, significant refactor, extensive testing)
+ * - XL: > 1 week (major feature, architectural change, requires research)
+ *
+ * @usage Sprint capacity planning and velocity tracking
+ * @example
+ * // Quick win - JSDoc addition
+ * const effort: BacklogEffort = 'XS';
+ *
+ * // Major refactor - multi-day work
+ * const largeEffort: BacklogEffort = 'L';
+ */
 export type BacklogEffort = 'XS' | 'S' | 'M' | 'L' | 'XL';
+
+/**
+ * Backlog issue status workflow
+ *
+ * @status - Issue lifecycle state
+ * - pending: Issue identified, not yet started (awaiting triage/assignment)
+ * - in_progress: Actively being worked on (assigned to developer)
+ * - resolved: Fix completed and verified (code merged, tests passing)
+ * - wont_fix: Accepted as-is (technical debt, low ROI, out of scope)
+ *
+ * @transitions
+ * - pending → in_progress (developer starts work)
+ * - in_progress → resolved (fix verified)
+ * - in_progress → pending (deprioritized, blocked)
+ * - pending → wont_fix (team decision to skip)
+ * - resolved (terminal state - no further transitions)
+ *
+ * @usage Track issue progress in Kanban/Scrum workflows
+ * @example
+ * // New issue
+ * let status: BacklogStatus = 'pending';
+ *
+ * // Start work
+ * status = 'in_progress';
+ *
+ * // Complete fix
+ * status = 'resolved';
+ */
 export type BacklogStatus = 'pending' | 'in_progress' | 'resolved' | 'wont_fix';
 
 const BacklogIssueSchema = new Schema(
