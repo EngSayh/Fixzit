@@ -16,7 +16,8 @@ import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, relative } from 'path';
 
 const SEARCH_DIRS = ['app', 'components'];
-const SAFE_ENV_VARS = ['NODE_ENV', 'NEXT_PUBLIC_'];
+const SAFE_ENV_VARS = new Set(['NODE_ENV']);
+const SAFE_ENV_PREFIXES = ['NEXT_PUBLIC_'];
 
 function getAllFiles(dir, fileList = []) {
   try {
@@ -29,7 +30,7 @@ function getAllFiles(dir, fileList = []) {
         fileList.push(filePath);
       }
     });
-  } catch (e) {
+  } catch (_error) {
     // Skip if directory doesn't exist
   }
   return fileList;
@@ -70,7 +71,9 @@ function analyzeFile(filePath) {
       const varName = match[1];
       
       // Skip safe vars
-      if (varName === 'NODE_ENV' || varName.startsWith('NEXT_PUBLIC_')) {
+      const isSafeExact = SAFE_ENV_VARS.has(varName);
+      const isSafePrefix = SAFE_ENV_PREFIXES.some(prefix => varName.startsWith(prefix));
+      if (isSafeExact || isSafePrefix) {
         continue;
       }
 

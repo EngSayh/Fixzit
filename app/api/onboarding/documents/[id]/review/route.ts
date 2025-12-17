@@ -15,7 +15,7 @@
  * @throws {404} If document is not found
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { Types } from 'mongoose';
+import { Types, type PipelineStage } from 'mongoose';
 import { parseBodySafe } from '@/lib/api/parse-body';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionOrNull } from '@/lib/auth/safe-session';
@@ -63,20 +63,39 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // SEC-002 FIX: Scope document lookup via OnboardingCase.orgId to prevent cross-tenant access
-    // First, find the document and its associated case in a single scoped query
-    const doc = await VerificationDocument.findById(params.id);
-    if (!doc) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
-
-    // Defense-in-depth: Query scoped to user's org (Super Admins can access any org)
-    const orgFilter = user.isSuperAdmin ? {} : { orgId: user.orgId };
-    const onboarding = await OnboardingCase.findOne({
-      _id: doc.onboarding_case_id,
-      ...orgFilter,
-    });
-    if (!onboarding) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json({ error: 'Invalid document ID' }, { status: 400 });
     }
+
+    // SEC-002: Scope document lookup to org via onboarding case before revealing existence
+    const pipeline: PipelineStage[] = [
+      { $match: { _id: new Types.ObjectId(params.id) } },
+      {
+        $lookup: {
+          from: OnboardingCase.collection.name,
+          localField: 'onboarding_case_id',
+          foreignField: '_id',
+          as: 'case',
+        },
+      },
+      { $unwind: '$case' },
+    ];
+    if (!user.isSuperAdmin) {
+      pipeline.push({ $match: { 'case.orgId': user.orgId } });
+    }
+
+    const [docWithCase] = await VerificationDocument.aggregate(pipeline);
+    if (!docWithCase) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+    }
+
+    // Re-fetch as a document for updates now that org scope is verified
+    const doc = await VerificationDocument.findById(params.id);
+    if (!doc) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+    }
+
+    const onboarding = docWithCase.case;
 
     const isSubmitter =
       onboarding.subject_user_id?.toString() === user.id ||

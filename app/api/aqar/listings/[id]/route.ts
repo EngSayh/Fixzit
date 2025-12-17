@@ -59,11 +59,8 @@ export async function GET(
       return badRequest("Invalid listing ID", { correlationId });
     }
 
-    // SEC-002 FIX: Public listings (status=active) can be viewed by anyone
-    // Draft/archived listings require lister ownership or orgId match
-    // Note: This is a GET endpoint for public listing viewing, so we allow
-    // cross-org access for active listings but will validate ownership in PATCH/DELETE
-    const listing = await AqarListing.findById(id)
+    // SEC-002: Only expose active listings publicly; drafts/archived remain hidden
+    const listing = await AqarListing.findOne({ _id: id, status: ListingStatus.ACTIVE })
       .select(
         "_id title price areaSqm city status media amenities location intent propertyType analytics rnplEligible auction proptech immersive pricingInsights pricing ai fmLifecycle iotFeatures listerId orgId org_id",
       )
@@ -159,15 +156,14 @@ export async function PATCH(
       );
     }
 
-    const listing = await AqarListing.findById(id);
-
+    // SEC-002: Enforce tenant + ownership scope in the query itself
+    const listing = await AqarListing.findOne({
+      _id: id,
+      listerId: user.id,
+      $or: [{ orgId: user.orgId }, { org_id: user.orgId }],
+    });
     if (!listing) {
       return NextResponse.json({ error: "Listing not found" }, { status: 404 });
-    }
-
-    // SEC-002: Enforce tenant scope + ownership at query level
-    if (listing.orgId.toString() !== user.orgId || listing.listerId.toString() !== user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { data: body, error: parseError } = await parseBodySafe<{
@@ -338,15 +334,14 @@ export async function DELETE(
       );
     }
 
-    const listing = await AqarListing.findById(id);
-
+    // SEC-002: Enforce tenant + ownership scope in the query itself
+    const listing = await AqarListing.findOne({
+      _id: id,
+      listerId: user.id,
+      $or: [{ orgId: user.orgId }, { org_id: user.orgId }],
+    });
     if (!listing) {
       return NextResponse.json({ error: "Listing not found" }, { status: 404 });
-    }
-
-    // SEC-002: Enforce tenant scope + ownership at query level
-    if (listing.orgId.toString() !== user.orgId || listing.listerId.toString() !== user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await listing.deleteOne();
