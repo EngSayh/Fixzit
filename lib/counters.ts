@@ -1,3 +1,16 @@
+/**
+ * @module lib/counters
+ * @description Tenant-scoped counters fetcher for dashboard widgets and stats.
+ *
+ * @features
+ * - Requires orgId to avoid cross-tenant leaks
+ * - Uses credentials:include for session-aware fetches
+ * - Warns in dev on non-200 responses
+ *
+ * @security
+ * - orgId scoping enforced in query string
+ */
+
 import { logger } from "@/lib/logger";
 
 export type CounterPayload = Record<string, unknown>;

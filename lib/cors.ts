@@ -1,4 +1,17 @@
 /**
+ * @module lib/cors
+ * @description Runtime-only CORS helper for Next.js route handlers.
+ *
+ * @features
+ * - Dynamic origin allowlist (ALLOWED_ORIGINS + localhost defaults)
+ * - Credentials support and proper preflight handling
+ * - Minimal surface to avoid global Next.js config conflicts
+ *
+ * @usage
+ * - Call `preflight` in OPTIONS handlers, `cors` on responses in GET/POST handlers
+ */
+
+/**
  * CORS Helper for Fixzit API Routes
  *
  * Runtime-only CORS handling (no global Next.js config conflicts)

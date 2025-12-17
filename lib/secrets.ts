@@ -1,8 +1,18 @@
 import { logger } from "@/lib/logger";
 /**
- * AWS Secrets Manager Integration
- * Securely retrieves sensitive configuration from AWS Secrets Manager
- * Falls back to environment variables for development
+ * @module lib/secrets
+ * @description AWS Secrets Manager integration with local/env fallbacks and short-lived caching.
+ *
+ * @features
+ * - Build-safe initialization (skips during Next.js build phase)
+ * - Region/credential auto-discovery via AWS SDK default chain
+ * - 5-minute in-memory cache to reduce Secrets Manager calls
+ * - Env fallback for non-prod/local workflows
+ *
+ * @security
+ * - Never throws during build; returns null to avoid leaking build secrets
+ * - Optional `required` flag to fail fast when secret/env is missing
+ * - Avoids logging secret material; logs metadata only
  */
 
 import { randomBytes } from "crypto";

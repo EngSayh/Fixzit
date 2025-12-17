@@ -1,3 +1,17 @@
+/**
+ * @module lib/communication-logger
+ * @description Communication logging utilities for SMS/email/WhatsApp/OTP with tenant scoping.
+ *
+ * @features
+ * - Normalizes orgId/userId to ObjectId when valid
+ * - Logs communications with timestamps and metadata
+ * - Updates status with channel-specific timestamps
+ *
+ * @security
+ * - orgId scoping for inserts/updates (STRICT v4.1)
+ * - Sanitizes ObjectId conversion to avoid injection of invalid IDs
+ */
+
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import { COLLECTIONS } from "@/lib/db/collections";

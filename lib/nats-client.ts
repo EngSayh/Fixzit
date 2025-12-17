@@ -1,3 +1,17 @@
+/**
+ * @module lib/nats-client
+ * @description NATS connection helper with shared client, reconnects, and graceful shutdown.
+ *
+ * @features
+ * - Lazy singleton connection with infinite reconnect attempts
+ * - Status logging for observability
+ * - JSONCodec-based publish helper
+ * - Graceful drain on SIGTERM/SIGINT
+ *
+ * @security
+ * - Honors absence of NATS_URL by no-op publishing (avoids crashes)
+ */
+
 import { connect, NatsConnection, JSONCodec } from "nats";
 import { logger } from "@/lib/logger";
 

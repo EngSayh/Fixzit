@@ -1,3 +1,20 @@
+/**
+ * @module lib/mongodb-unified
+ * @description Server-only MongoDB connector with build/edge guards and shared singleton for Next.js.
+ *
+ * @features
+ * - Prevents browser/Edge runtime usage (throws fast)
+ * - Build-safe toggles: DISABLE_MONGODB_FOR_BUILD / ALLOW_MONGODB_DURING_BUILD
+ * - Offline/CI shortcut via ALLOW_OFFLINE_MONGODB
+ * - Singleton connection caching + health checks
+ *
+ * @performance
+ * - Avoids repeated connections; reuses global mongoose handle in dev
+ *
+ * @security
+ * - Explicit build disablement to avoid leaking credentials during builds
+ */
+
 import { logger } from "@/lib/logger";
 import mongoose from "mongoose";
 import { connectMongo as ensureDatabaseHandle } from "@/lib/mongo";

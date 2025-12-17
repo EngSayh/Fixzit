@@ -1,4 +1,17 @@
 /**
+ * @module lib/nats-events
+ * @description Type definitions for all NATS events published by Fixzit services.
+ *
+ * @features
+ * - Strongly typed event payloads for product/order/invoice/workorder/payment lifecycle
+ * - Shared across producers/consumers to reduce schema drift
+ * - Explicit orgId fields for tenant routing
+ *
+ * @usage
+ * - Import event types in publishers/subscribers to ensure payload parity
+ */
+
+/**
  * NATS Event Type Definitions
  *
  * This file defines the structure of all events published to NATS.

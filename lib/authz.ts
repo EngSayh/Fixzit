@@ -1,3 +1,17 @@
+/**
+ * @module lib/authz
+ * @description Minimal authorization helpers for superadmin-only API routes.
+ *
+ * @features
+ * - Extracts Bearer token from NextRequest
+ * - Verifies token with `verifyToken` and enforces SUPER_ADMIN role
+ * - Returns 404 for non-admins to avoid endpoint discovery (STRICT v4.1)
+ *
+ * @security
+ * - Tenant-aware context preserved via payload.tenantId
+ * - JSON error responses with correct status codes
+ */
+
 import { NextRequest } from "next/server";
 import { verifyToken } from "./auth";
 

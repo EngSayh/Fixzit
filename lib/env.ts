@@ -1,3 +1,18 @@
+/**
+ * @module lib/env
+ * @description Environment variable helpers with alias support for Vercel/CI and safer required lookups.
+ *
+ * @features
+ * - Alias resolution (ENV_ALIASES) for mismatched provider variable names
+ * - `requireEnv` with test fallbacks and empty-value control
+ * - `getEnv` helper for optional values
+ * - Test-aware defaults (Jest/Vitest) and build-friendly failures
+ *
+ * @security
+ * - Fails fast on missing required variables with clear alias hints
+ * - Avoids leaking undefined/empty secrets by default (`allowEmpty` opt-in)
+ */
+
 const isTestEnv =
   process.env.NODE_ENV === "test" ||
   process.env.VITEST_WORKER_ID !== undefined ||

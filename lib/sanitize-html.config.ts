@@ -1,3 +1,16 @@
+/**
+ * @module lib/sanitize-html.config
+ * @description DOMPurify configurations for strict and rich-text sanitization.
+ *
+ * @features
+ * - Reusable allowed tags/attrs for strict mode
+ * - Rich-text profile with additional attributes (class/style/target/rel)
+ * - Centralized config to keep sanitization consistent across UI surfaces
+ *
+ * @security
+ * - Whitelists only known-safe tags/attributes to mitigate XSS
+ */
+
 import type { Config } from "dompurify";
 
 export const SANITIZE_ALLOWED_TAGS = [
