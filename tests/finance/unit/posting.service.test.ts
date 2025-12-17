@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Unit tests for postingService (Finance Pack Phase 2 - Item 12)
  * Tests: createJournal, postJournal, voidJournal, balance validation, currency FX

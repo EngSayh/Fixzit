@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SMS Queue Tests
  *
@@ -16,7 +17,7 @@ vi.mock("bullmq", () => ({
     on: vi.fn(),
     close: vi.fn().mockResolvedValue(undefined),
   })),
-}));
+}), { virtual: true });
 
 vi.mock("@/lib/redis", () => ({
   getRedisClient: vi.fn(() => null),

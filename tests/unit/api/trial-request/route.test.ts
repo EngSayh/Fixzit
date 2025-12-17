@@ -64,6 +64,7 @@ vi.mock("@/lib/logger", () => ({
 
 describe("POST /api/trial-request", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.resetAllMocks();
     enforceRateLimitMock.mockReturnValue(null);
     smartRateLimitMock.mockResolvedValue({ allowed: true, remaining: 10 });
