@@ -1,5 +1,4 @@
 /**
- * @vitest-environment node
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { GET, PATCH } from "@/app/api/superadmin/branding/route";

@@ -32,7 +32,13 @@ describe("Work Order Attachment Flow", () => {
   };
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    // Increase startup timeout to avoid flakiness on slower CI hosts
+    process.env.MONGOMS_TIMEOUT = process.env.MONGOMS_TIMEOUT || "60000";
+    process.env.MONGOMS_DOWNLOAD_TIMEOUT =
+      process.env.MONGOMS_DOWNLOAD_TIMEOUT || "60000";
+    mongoServer = await MongoMemoryServer.create({
+      instance: { launchTimeout: 60_000 },
+    });
     const uri = mongoServer.getUri();
     // Create separate connection for this test suite
     testConnection = await mongoose.createConnection(uri).asPromise();
@@ -86,7 +92,9 @@ describe("Work Order Attachment Flow", () => {
     if (testConnection) {
       await testConnection.close();
     }
-    await mongoServer.stop();
+    if (mongoServer?.stop) {
+      await mongoServer.stop();
+    }
     console.log("✅ MongoDB Memory Server stopped");
   });
 

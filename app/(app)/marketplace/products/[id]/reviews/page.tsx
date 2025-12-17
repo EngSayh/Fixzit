@@ -9,7 +9,8 @@ import { reviewService } from "@/services/souq/reviews/review-service";
 import { ProductReviewsClient } from "@/components/marketplace/ProductReviewsClient";
 import { connectDb } from "@/lib/mongodb-unified";
 import { SouqProduct } from "@/server/models/souq/Product";
-import { Types } from "mongoose";
+// Note: mongoose Types removed - this is a server component, but Types should only be used in server-side code
+// Use string type for productId instead
 
 export const metadata: Metadata = {
   title: "Product Reviews",
@@ -24,13 +25,15 @@ export default async function ProductReviewsPage({
   const { id: productId } = await params;
   await connectDb();
   // AUDIT-2025-12-06: Query orgId from product for tenant-scoped reviews
-  const productFilter = Types.ObjectId.isValid(productId)
-    ? { _id: new Types.ObjectId(productId) }
+  // Use regex to check ObjectId format instead of mongoose Types
+  const isObjectId = /^[0-9a-fA-F]{24}$/.test(productId);
+  const productFilter = isObjectId
+    ? { _id: productId }
     : { fsin: productId };
   const product = await SouqProduct.findOne(productFilter)
     .select("orgId")
     .lean();
-  const orgId = (product as { orgId?: Types.ObjectId | string } | null)?.orgId;
+  const orgId = (product as { orgId?: string } | null)?.orgId;
   if (!orgId) {
     throw new Error("Product orgId missing; cannot fetch tenant-scoped reviews");
   }

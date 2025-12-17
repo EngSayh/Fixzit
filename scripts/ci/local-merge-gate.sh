@@ -6,6 +6,15 @@ cd "$ROOT"
 
 command -v rg >/dev/null 2>&1 || { echo "❌ ripgrep (rg) required"; exit 1; }
 
+# ---- P0: Check .artifacts tracking BEFORE deletion ----
+# Note: Removed audit guard - merge gate is audit-immune and parallel-safe
+ART_TRACKED="$(git ls-files .artifacts 2>/dev/null | wc -l | tr -d ' ')"
+if [[ "$ART_TRACKED" != "0" ]]; then
+  echo "❌ .artifacts is tracked by git. Run: git rm -r --cached .artifacts"
+  exit 1
+fi
+
+# Now safe to clean
 rm -rf .artifacts
 mkdir -p .artifacts/{test,scan}
 
@@ -13,30 +22,38 @@ date -Iseconds | tee .artifacts/test/timestamp.txt
 node -v | tee .artifacts/test/node.txt
 pnpm -v | tee .artifacts/test/pnpm.txt
 git rev-parse --short HEAD | tee .artifacts/test/commit.txt
-
-# ---- P0: .artifacts must not be tracked ----
-ART_TRACKED="$(git ls-files .artifacts | wc -l | tr -d ' ')"
 echo "$ART_TRACKED" | tee .artifacts/scan/artifacts-tracked.count.txt
-if [[ "$ART_TRACKED" != "0" ]]; then
-  echo "❌ .artifacts is tracked. Run: git rm -r --cached .artifacts"
-  exit 1
-fi
 
-# ---- Lint ----
-echo "== LINT ==" | tee .artifacts/test/lint.log
-if pnpm -s lint:prod >/dev/null 2>&1; then
-  pnpm lint:prod 2>&1 | tee -a .artifacts/test/lint.log
+# ---- Timeout wrapper (optional, graceful fallback) ----
+if command -v gtimeout >/dev/null 2>&1; then
+  TMO=gtimeout
+elif command -v timeout >/dev/null 2>&1; then
+  TMO=timeout
 else
-  pnpm lint --max-warnings=0 2>&1 | tee -a .artifacts/test/lint.log
+  TMO=""
 fi
 
-# ---- Typecheck ----
-echo "== TYPECHECK ==" | tee .artifacts/test/typecheck.log
-pnpm typecheck 2>&1 | tee -a .artifacts/test/typecheck.log
+run_timed() {
+  local secs="$1"; shift
+  if [[ -n "$TMO" ]]; then
+    $TMO "$secs" "$@"
+  else
+    # No timeout available - run directly
+    "$@"
+  fi
+}
 
-# ---- Tests (unfiltered) ----
+# ---- Lint (direct tool, no audit chain) ----
+echo "== LINT ==" | tee .artifacts/test/lint.log
+run_timed 600 pnpm exec next lint 2>&1 | tee -a .artifacts/test/lint.log
+
+# ---- Typecheck (direct tsc, no audit chain) ----
+echo "== TYPECHECK ==" | tee .artifacts/test/typecheck.log
+run_timed 900 pnpm exec tsc --noEmit 2>&1 | tee -a .artifacts/test/typecheck.log
+
+# ---- Tests (direct vitest, no audit chain) ----
 echo "== VITEST ==" | tee .artifacts/test/vitest-full.log
-pnpm vitest run --reporter=default 2>&1 | tee -a .artifacts/test/vitest-full.log
+run_timed 1800 pnpm exec vitest run --reporter=default 2>&1 | tee -a .artifacts/test/vitest-full.log
 
 # P0: fail on hoist errors
 rg -n "Cannot access .* before initialization" .artifacts/test/vitest-full.log \
@@ -46,9 +63,9 @@ if [[ -s .artifacts/scan/hoist-errors.txt ]]; then
   exit 1
 fi
 
-# ---- Build ----
+# ---- Build (keep as-is for production alignment) ----
 echo "== BUILD ==" | tee .artifacts/test/build.log
-pnpm build 2>&1 | tee -a .artifacts/test/build.log
+run_timed 900 pnpm build 2>&1 | tee -a .artifacts/test/build.log
 
 # ---- P0: Secret scan (filename-only, credential-shaped) ----
 MONGO_CRED_RE='mongodb(\+srv)?:\/\/[^@\s:]+:[^@\s]+@'

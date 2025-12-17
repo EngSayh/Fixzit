@@ -44,9 +44,14 @@ describe("Encryption Plugin Mongoose Hooks (TEST-003)", () => {
       "0123456789abcdef0123456789abcdef"
     ).toString("base64");
     process.env.NODE_ENV = "test";
+    process.env.MONGOMS_TIMEOUT = process.env.MONGOMS_TIMEOUT || "60000";
+    process.env.MONGOMS_DOWNLOAD_TIMEOUT =
+      process.env.MONGOMS_DOWNLOAD_TIMEOUT || "60000";
 
     // Start in-memory MongoDB
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await MongoMemoryServer.create({
+      instance: { launchTimeout: 60_000 },
+    });
     const mongoUri = mongoServer.getUri();
 
     // Use createConnection to avoid conflicts with global mongoose connection
@@ -87,7 +92,7 @@ describe("Encryption Plugin Mongoose Hooks (TEST-003)", () => {
     if (mongoConnection) {
       await mongoConnection.close();
     }
-    if (mongoServer) {
+    if (mongoServer?.stop) {
       await mongoServer.stop();
     }
   });

@@ -1,4 +1,3 @@
-// @vitest-environment node
 import Journal from '@/server/models/finance/Journal';
 
 describe('inspect Journal module', () => {

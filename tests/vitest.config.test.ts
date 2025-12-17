@@ -1,4 +1,3 @@
-// @vitest-environment node
 /**
  * Vitest configuration guardrails
  *

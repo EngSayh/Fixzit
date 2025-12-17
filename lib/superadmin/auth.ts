@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
@@ -153,6 +154,15 @@ export async function getSuperadminSession(request: NextRequest): Promise<Supera
     request.cookies.get(`${SUPERADMIN_COOKIE_NAME}.legacy`)?.value;
 
   return decodeSuperadminToken(cookieValue);
+}
+
+export async function getSuperadminSessionFromCookies(): Promise<SuperadminSession | null> {
+  const cookieStore = await cookies();
+  const token =
+    cookieStore.get(SUPERADMIN_COOKIE_NAME)?.value ||
+    cookieStore.get(`${SUPERADMIN_COOKIE_NAME}.legacy`)?.value;
+
+  return decodeSuperadminToken(token);
 }
 
 export function applySuperadminCookies(

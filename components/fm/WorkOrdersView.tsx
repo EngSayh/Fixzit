@@ -36,6 +36,8 @@ import {
 import { WorkOrderPriority } from "@/lib/sla";
 import ClientDate from "@/components/ClientDate";
 import { getWorkOrderStatusLabel } from "@/lib/work-orders/status";
+import { TableSkeleton } from "@/components/tables/TableSkeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const statusStyles: Record<string, string> = {
   SUBMITTED: "bg-warning/10 text-warning border border-warning/20",
@@ -363,14 +365,7 @@ export function WorkOrdersView({
       )}
 
       <div className="space-y-4">
-        {isLoading && !data ? (
-          <Card className="border border-dashed">
-            <CardContent className="flex items-center gap-3 py-16 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              {loadingLabel}
-            </CardContent>
-          </Card>
-        ) : null}
+        {isLoading && !data ? <TableSkeleton rows={6} /> : null}
 
         {workOrders.map((workOrder, index) => {
           const dueAt = workOrder.sla?.resolutionDeadline || workOrder.dueAt;
@@ -568,12 +563,16 @@ export function WorkOrdersView({
       </div>
 
       {!isLoading && workOrders.length === 0 && !error && (
-        <Card className="border border-border">
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <p className="font-medium text-foreground">{emptyTitle}</p>
-            <p className="text-sm">{emptySubtitle}</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title={emptyTitle}
+          description={emptySubtitle}
+          action={
+            <Button onClick={() => mutate()}>
+              <RefreshCcw className="me-2 h-4 w-4" />
+              {refreshLabel}
+            </Button>
+          }
+        />
       )}
 
       <div className="flex flex-col items-center gap-3 border-t pt-4 sm:flex-row sm:justify-between">

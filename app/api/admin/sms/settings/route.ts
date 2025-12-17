@@ -18,6 +18,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { validatePublicHttpsUrl } from "@/lib/security/validatePublicHttpsUrl";
 
 export async function GET(request: NextRequest) {
   // Rate limiting: 30 requests per minute for admin reads
@@ -152,6 +153,26 @@ export async function PUT(request: NextRequest) {
     }
 
     const { orgId, ...updates } = parsed.data;
+
+    // SSRF protection for webhook
+    if (updates.slaBreachNotifyWebhook) {
+      try {
+        validatePublicHttpsUrl(
+          updates.slaBreachNotifyWebhook,
+          "slaBreachNotifyWebhook"
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Invalid webhook URL";
+        logger.warn("[Admin SMS Settings] Invalid webhook URL", {
+          error: message,
+        });
+        return NextResponse.json(
+          { error: message, field: "slaBreachNotifyWebhook" },
+          { status: 400 }
+        );
+      }
+    }
 
     // Determine if updating global or org-specific settings
     const isGlobal = !orgId;

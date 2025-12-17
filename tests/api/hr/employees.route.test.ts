@@ -5,6 +5,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+let sessionUser: SessionUser | null = null;
+
 // Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
@@ -12,7 +14,10 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 
 // Mock authentication
 vi.mock("@/auth", () => ({
-  auth: vi.fn(),
+  auth: vi.fn(async () => {
+    if (!sessionUser) return null;
+    return { user: sessionUser };
+  }),
 }));
 
 // Mock database
@@ -44,7 +49,6 @@ vi.mock("@/server/services/hr/employee.service", () => ({
 }));
 
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { auth } from "@/auth";
 import { hasAllowedRole } from "@/lib/auth/role-guards";
 import { EmployeeService } from "@/server/services/hr/employee.service";
 import type { SessionUser } from "@/types/auth";
@@ -71,9 +75,7 @@ describe("API /api/hr/employees", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
-    vi.mocked(auth).mockResolvedValue({
-      user: mockUser,
-    } as never);
+    sessionUser = mockUser;
     vi.mocked(hasAllowedRole).mockReturnValue(true);
     vi.mocked(EmployeeService.searchWithPagination).mockResolvedValue({
       items: [],
@@ -114,7 +116,7 @@ describe("API /api/hr/employees", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue(null as never);
+      sessionUser = null;
 
       const req = new NextRequest("http://localhost:3000/api/hr/employees");
       const response = await route.GET(req);
@@ -131,9 +133,7 @@ describe("API /api/hr/employees", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue({
-        user: { role: "HR", orgId: undefined },
-      } as never);
+      sessionUser = { role: "HR", orgId: undefined } as SessionUser;
 
       const req = new NextRequest("http://localhost:3000/api/hr/employees");
       const response = await route.GET(req);
@@ -289,7 +289,7 @@ describe("API /api/hr/employees", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue(null as never);
+      sessionUser = null;
 
       const req = new NextRequest("http://localhost:3000/api/hr/employees", {
         method: "POST",

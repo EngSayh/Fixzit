@@ -102,7 +102,7 @@ else
 fi
 
 # ============================================================================
-# 4. CODE QUALITY SCANS (CRITICAL - Must be 0 skipped tests)
+# 4. CODE QUALITY SCANS (Informational - report skipped/only/todo + consoles)
 # ============================================================================
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -264,7 +264,8 @@ if [ "$LINT_PASS" != true ]; then
 fi
 
 if [ "$PENDING_TESTS" != "0" ]; then
-  echo -e "${YELLOW}⚠️  WARNING: $PENDING_TESTS pending tests found${NC}"
+  echo -e "${RED}❌ GATE FAILED: Pending tests must be 0 (found $PENDING_TESTS)${NC}"
+  GATE_PASS=false
 fi
 
 echo ""

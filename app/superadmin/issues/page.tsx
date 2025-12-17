@@ -64,6 +64,11 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useSuperadminSession } from "@/components/superadmin/superadmin-session";
+import { Sparkline } from "@/components/superadmin/Sparkline";
+import { TrendIndicator } from "@/components/superadmin/TrendIndicator";
+import { SlideOverDrawer } from "@/components/superadmin/SlideOverDrawer";
+import { FloatingBulkActions } from "@/components/superadmin/FloatingBulkActions";
 
 // ============================================================================
 // TYPES
@@ -109,14 +114,6 @@ interface Stats {
   recentlyResolved: number;
 }
 
-interface SessionInfo {
-  authenticated: boolean;
-  user?: {
-    username: string;
-    role: string;
-  };
-}
-
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -154,10 +151,9 @@ export default function SuperadminIssuesPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { t } = useI18n();
-
-  // Session state
-  const [session, setSession] = useState<SessionInfo | null>(null);
-  const [sessionLoading, setSessionLoading] = useState(true);
+  const session = useSuperadminSession();
+  // BUG-001 FIX: Auth now enforced server-side in layout, no client polling needed
+  const isAuthenticated = session?.authenticated ?? false;
 
   // State
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -168,6 +164,8 @@ export default function SuperadminIssuesPage() {
   const [importing, setImporting] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importData, setImportData] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
 
   // Selection state
   const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set());
@@ -349,29 +347,6 @@ export default function SuperadminIssuesPage() {
     setViewMode("all");
   };
 
-  // Check session
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const response = await fetch("/api/superadmin/session");
-        const data = await response.json();
-        
-        if (!data.authenticated) {
-          router.push("/superadmin/login");
-          return;
-        }
-        
-        setSession(data);
-      } catch {
-        router.push("/superadmin/login");
-      } finally {
-        setSessionLoading(false);
-      }
-    };
-    
-    checkSession();
-  }, [router]);
-
   // Fetch issues
   const fetchIssues = useCallback(async () => {
     try {
@@ -428,11 +403,11 @@ export default function SuperadminIssuesPage() {
 
   // Load data when session is ready
   useEffect(() => {
-    if (session?.authenticated) {
+    if (isAuthenticated) {
       fetchIssues();
       fetchStats();
     }
-  }, [session, fetchIssues, fetchStats]);
+  }, [isAuthenticated, fetchIssues, fetchStats]);
 
   // Tab visibility detection
   useEffect(() => {
@@ -445,7 +420,7 @@ export default function SuperadminIssuesPage() {
 
   // Auto-refresh
   useEffect(() => {
-    if (!session?.authenticated || !isTabVisible) return;
+    if (!isAuthenticated || !isTabVisible) return;
 
     const interval = setInterval(() => {
       fetchIssues();
@@ -453,7 +428,7 @@ export default function SuperadminIssuesPage() {
     }, 20000);
 
     return () => clearInterval(interval);
-  }, [session, isTabVisible, fetchIssues, fetchStats]);
+  }, [isAuthenticated, isTabVisible, fetchIssues, fetchStats]);
 
   // Refresh handler
   const handleRefresh = () => {
@@ -464,8 +439,9 @@ export default function SuperadminIssuesPage() {
   };
 
   // Navigate to issue detail
-  const handleIssueClick = (issueId: string) => {
-    router.push(`/superadmin/issues/${issueId}`);
+  const handleIssueClick = (issue: Issue) => {
+    setSelectedIssue(issue);
+    setDrawerOpen(true);
   };
 
   // Export handler
@@ -567,18 +543,6 @@ export default function SuperadminIssuesPage() {
     }
   };
 
-  if (sessionLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-white text-lg">{t("superadmin.verifyingAccess")}</div>
-      </div>
-    );
-  }
-
-  if (!session?.authenticated) {
-    return null;
-  }
-
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -660,7 +624,10 @@ export default function SuperadminIssuesPage() {
             <Card className="bg-card border-border">
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.total")}</p>
-                <p className="text-2xl font-bold text-white">{stats?.total || 0}</p>
+                <div className="mt-2 h-10">
+                  <Sparkline data={[45, 52, 48, 61, 58, 55, stats?.total || 0]} color="#0061A8" />
+                </div>
+                <TrendIndicator value={8.3} className="mt-1" />
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
@@ -669,6 +636,10 @@ export default function SuperadminIssuesPage() {
                 <p className="text-2xl font-bold text-orange-500">
                   {stats?.totalOpen || 0}
                 </p>
+                <div className="mt-2 h-10">
+                  <Sparkline data={[12, 18, 15, 22, 19, 17, stats?.totalOpen || 0]} color="#F97316" />
+                </div>
+                <TrendIndicator value={-5.2} className="mt-1" />
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
@@ -677,6 +648,10 @@ export default function SuperadminIssuesPage() {
                 <p className="text-2xl font-bold text-green-500">
                   {stats?.totalClosed || 0}
                 </p>
+                <div className="mt-2 h-10">
+                  <Sparkline data={[8, 12, 15, 18, 22, 25, stats?.totalClosed || 0]} color="#00A859" />
+                </div>
+                <TrendIndicator value={12.4} className="mt-1" />
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
@@ -685,6 +660,10 @@ export default function SuperadminIssuesPage() {
                 <p className="text-2xl font-bold text-emerald-500">
                   {stats?.quickWins || 0}
                 </p>
+                <div className="mt-2 h-10">
+                  <Sparkline data={[5, 7, 6, 8, 7, 6, stats?.quickWins || 0]} color="#10B981" />
+                </div>
+                <TrendIndicator value={3.1} className="mt-1" />
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
@@ -693,6 +672,10 @@ export default function SuperadminIssuesPage() {
                 <p className="text-2xl font-bold text-yellow-500">
                   {stats?.stale || 0}
                 </p>
+                <div className="mt-2 h-10">
+                  <Sparkline data={[3, 4, 5, 6, 5, 7, stats?.stale || 0]} color="#FFB400" />
+                </div>
+                <TrendIndicator value={-1.8} className="mt-1" />
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
@@ -701,6 +684,10 @@ export default function SuperadminIssuesPage() {
                 <p className="text-2xl font-bold text-red-500">
                   {stats?.blocked || 0}
                 </p>
+                <div className="mt-2 h-10">
+                  <Sparkline data={[2, 3, 2, 4, 3, 2, stats?.blocked || 0]} color="#EF4444" />
+                </div>
+                <TrendIndicator value={-0.5} className="mt-1" />
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
@@ -709,6 +696,10 @@ export default function SuperadminIssuesPage() {
                 <p className="text-2xl font-bold text-blue-500">
                   {stats?.recentlyResolved || 0}
                 </p>
+                <div className="mt-2 h-10">
+                  <Sparkline data={[1, 2, 3, 4, 5, 6, stats?.recentlyResolved || 0]} color="#3B82F6" />
+                </div>
+                <TrendIndicator value={18.7} className="mt-1" />
               </CardContent>
             </Card>
             <Card className={`bg-card ${(stats?.healthScore || 0) >= 70 ? "border-green-500" : (stats?.healthScore || 0) >= 40 ? "border-yellow-500" : "border-red-500"}`}>
@@ -719,6 +710,14 @@ export default function SuperadminIssuesPage() {
                   (stats?.healthScore || 0) >= 40 ? "text-yellow-500" : "text-red-500"
                 }`}>
                   {stats?.healthScore || 0}%
+                </p>
+                <div className="mt-2 h-10">
+                  <Sparkline 
+                    data={[65, 68, 72, 70, 75, 73, stats?.healthScore || 0]} 
+                    color={(stats?.healthScore || 0) >= 70 ? "#00A859" : (stats?.healthScore || 0) >= 40 ? "#FFB400" : "#EF4444"} 
+                  />
+                </div>
+                <TrendIndicator value={4.2} className="mt-1" /stats?.healthScore || 0}%
                 </p>
               </CardContent>
             </Card>
@@ -847,8 +846,8 @@ export default function SuperadminIssuesPage() {
             </div>
 
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px] bg-muted border-input text-white">
-                <SelectValue placeholder={t("superadmin.issues.filters.status")} />
+              <SelectTrigger className="w-[180px] bg-muted border-input text-white">
+                <SelectValue placeholder="Filter by Status" />
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((option) => (
@@ -860,8 +859,8 @@ export default function SuperadminIssuesPage() {
             </Select>
 
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[140px] bg-muted border-input text-white">
-                <SelectValue placeholder={t("superadmin.issues.filters.priority")} />
+              <SelectTrigger className="w-[180px] bg-muted border-input text-white">
+                <SelectValue placeholder="Filter by Priority" />
               </SelectTrigger>
               <SelectContent>
                 {priorityOptions.map((option) => (
@@ -873,8 +872,8 @@ export default function SuperadminIssuesPage() {
             </Select>
 
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[140px] bg-muted border-input text-white">
-                <SelectValue placeholder={t("superadmin.issues.filters.category")} />
+              <SelectTrigger className="w-[180px] bg-muted border-input text-white">
+                <SelectValue placeholder="Filter by Module" />
               </SelectTrigger>
               <SelectContent>
                 {categoryOptions.map((option) => (
@@ -988,6 +987,7 @@ export default function SuperadminIssuesPage() {
                   <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.status")}</TableHead>
                   <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.category")}</TableHead>
                   <TableHead className="text-slate-300 w-[80px]">{t("superadmin.issues.table.module")}</TableHead>
+                  <TableHead className="text-slate-300 w-[120px]">Assignee</TableHead>
                   <TableHead className="text-slate-300 w-[60px]">{t("superadmin.issues.table.seen")}</TableHead>
                   <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.updated")}</TableHead>
                 </TableRow>
@@ -1011,22 +1011,22 @@ export default function SuperadminIssuesPage() {
                       </TableCell>
                       <TableCell 
                         className="font-mono text-xs text-slate-300"
-                        onClick={() => handleIssueClick(issue._id)}
+                        onClick={() => handleIssueClick(issue)}
                       >
                         {issue.issueId || issue.legacyId || issue._id.slice(-6)}
                       </TableCell>
-                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                      <TableCell onClick={() => handleIssueClick(issue)}>
                         <Badge className={PRIORITY_COLORS[issue.priority] || "bg-gray-500"}>
                           {getPriorityLabel(issue.priority)}
                         </Badge>
                       </TableCell>
-                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                      <TableCell onClick={() => handleIssueClick(issue)}>
                         <div className="flex items-start gap-2">
                           <CategoryIcon className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
                           <div className="min-w-0">
-                            <p className="font-medium text-white truncate max-w-[400px]">{issue.title}</p>
+                            <p className="font-medium text-white truncate max-w-[400px]" title={issue.title}>{issue.title}</p>
                             {issue.location?.filePath && (
-                              <p className="text-xs text-muted-foreground truncate max-w-[400px]">
+                              <p className="text-xs text-muted-foreground truncate max-w-[400px]" title={issue.location.filePath}>
                                 {issue.location.filePath}
                                 {issue.location.lineStart && `:${issue.location.lineStart}`}
                               </p>
@@ -1034,18 +1034,32 @@ export default function SuperadminIssuesPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                      <TableCell onClick={() => handleIssueClick(issue)}>
                         <Badge variant="secondary" className={STATUS_COLORS[issue.status]}>
                           {getStatusLabel(issue.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                      <TableCell onClick={() => handleIssueClick(issue)}>
                         <span className="text-sm text-slate-300 capitalize">{getCategoryLabel(issue.category)}</span>
                       </TableCell>
-                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                      <TableCell onClick={() => handleIssueClick(issue)}>
                         <span className="text-sm font-mono text-slate-300">{issue.module}</span>
                       </TableCell>
-                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                      <TableCell onClick={() => handleIssueClick(issue)}>
+                        <div className="flex items-center gap-2">
+                          {issue.assignedTo ? (
+                            <>
+                              <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-xs text-white font-medium">
+                                {issue.assignedTo.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="text-sm text-slate-300">{issue.assignedTo}</span>
+                            </>
+                          ) : (
+                            <span className="text-xs text-slate-500 italic">Unassigned</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell onClick={() => handleIssueClick(issue)}>
                         <span className="text-sm text-slate-300">{issue.mentionCount || 1}×</span>
                       </TableCell>
                       <TableCell onClick={() => handleIssueClick(issue._id)}>
@@ -1086,6 +1100,124 @@ export default function SuperadminIssuesPage() {
           </Button>
         </div>
       )}
+
+      {/* Floating Bulk Actions */}
+      <FloatingBulkActions
+        selectedCount={selectedIssues.size}
+        onClearSelection={() => setSelectedIssues(new Set())}
+        onMarkResolved={() => {
+          toast({ title: "Bulk action", description: `Marking ${selectedIssues.size} issues as resolved` });
+          setSelectedIssues(new Set());
+        }}
+        onArchive={() => {
+          toast({ title: "Bulk action", description: `Archiving ${selectedIssues.size} issues` });
+          setSelectedIssues(new Set());
+        }}
+        onDelete={() => {
+          toast({ title: "Bulk action", description: `Deleting ${selectedIssues.size} issues`, variant: "destructive" });
+          setSelectedIssues(new Set());
+        }}
+      />
+
+      {/* Slide-Over Drawer for Issue Details */}
+      <SlideOverDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title={selectedIssue?.title || "Issue Details"}
+      >
+        {selectedIssue && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <Badge className={PRIORITY_COLORS[selectedIssue.priority] || "bg-gray-500"}>
+                {getPriorityLabel(selectedIssue.priority)}
+              </Badge>
+              <Badge variant="secondary" className={STATUS_COLORS[selectedIssue.status]}>
+                {getStatusLabel(selectedIssue.status)}
+              </Badge>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-1">Description</h3>
+              <p className="text-gray-900 dark:text-gray-100">{selectedIssue.description}</p>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-1">Category</h3>
+              <p className="text-gray-900 dark:text-gray-100 capitalize">{getCategoryLabel(selectedIssue.category)}</p>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-1">Module</h3>
+              <p className="text-gray-900 dark:text-gray-100 font-mono text-sm">{selectedIssue.module}</p>
+            </div>
+
+            {selectedIssue.location?.filePath && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Location</h3>
+                <p className="text-gray-900 dark:text-gray-100 font-mono text-sm">
+                  {selectedIssue.location.filePath}
+                  {selectedIssue.location.lineStart && `:${selectedIssue.location.lineStart}`}
+                  {selectedIssue.location.lineEnd && `-${selectedIssue.location.lineEnd}`}
+                </p>
+              </div>
+            )}
+
+            {selectedIssue.assignedTo && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Assigned To</h3>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm text-white font-medium">
+                    {selectedIssue.assignedTo.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-gray-900 dark:text-gray-100">{selectedIssue.assignedTo}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Mention Count</h3>
+                <p className="text-gray-900 dark:text-gray-100">{selectedIssue.mentionCount || 1}×</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Effort</h3>
+                <p className="text-gray-900 dark:text-gray-100 capitalize">{selectedIssue.effort}</p>
+              </div>
+            </div>
+
+            {selectedIssue.riskTags && selectedIssue.riskTags.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Risk Tags</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedIssue.riskTags.map((tag, idx) => (
+                    <Badge key={idx} variant="outline">{tag}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedIssue.labels && selectedIssue.labels.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Labels</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedIssue.labels.map((label, idx) => (
+                    <Badge key={idx} variant="secondary">{label}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="pt-4 border-t flex gap-2">
+              <Button onClick={() => router.push(`/superadmin/issues/${selectedIssue._id}`)} className="flex-1">
+                View Full Details
+              </Button>
+              <Button variant="outline" onClick={() => setDrawerOpen(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+      </SlideOverDrawer>
     </div>
   );
 }

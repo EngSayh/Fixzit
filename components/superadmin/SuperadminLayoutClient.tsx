@@ -1,13 +1,17 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import type { Locale } from "@/i18n/config";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { SuperadminSidebar } from "./SuperadminSidebar";
 import { SuperadminHeader } from "./SuperadminHeader";
+import {
+  SuperadminSessionProvider,
+  type SuperadminSessionState,
+} from "./superadmin-session";
 
 const Footer = dynamic(() => import("@/components/Footer"), { ssr: false });
 
@@ -15,40 +19,53 @@ type Props = {
   children: ReactNode;
   initialLocale: Locale;
   initialDict: Record<string, unknown>;
+  initialSession?: SuperadminSessionState;
 };
 
 export function SuperadminLayoutClient({
   children,
   initialLocale,
   initialDict,
+  initialSession = null,
 }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
   const isLoginPage = pathname === "/superadmin/login";
+  const isAuthenticated = initialSession?.authenticated ?? false;
+
+  useEffect(() => {
+    if (isLoginPage) return;
+    if (!isAuthenticated) {
+      router.replace("/superadmin/login");
+    }
+  }, [isAuthenticated, isLoginPage, router]);
 
   return (
-    <I18nProvider initialLocale={initialLocale} initialDict={initialDict}>
-      <CurrencyProvider>
-        {isLoginPage ? (
-          <div className="min-h-screen bg-background">{children}</div>
-        ) : (
-          <div className="min-h-screen bg-background flex">
-            {/* Sidebar */}
-            <SuperadminSidebar />
+    <SuperadminSessionProvider value={initialSession}>
+      <I18nProvider initialLocale={initialLocale} initialDict={initialDict}>
+        <CurrencyProvider>
+          {isLoginPage ? (
+            <div className="min-h-screen bg-background">{children}</div>
+          ) : (
+            <div className="min-h-screen bg-background flex">
+              {/* Sidebar */}
+              <SuperadminSidebar />
 
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col">
-              {/* Header */}
-              <SuperadminHeader />
+              {/* Main Content Area */}
+              <div className="flex-1 flex flex-col">
+                {/* Header */}
+                <SuperadminHeader />
 
-              {/* Page Content */}
-              <main className="flex-1 overflow-auto">{children}</main>
+                {/* Page Content */}
+                <main className="flex-1 overflow-auto">{children}</main>
 
-              {/* Universal Footer - Hide platform links in superadmin context */}
-              <Footer hidePlatformLinks={true} />
+                {/* Universal Footer - Hide platform links in superadmin context */}
+                <Footer hidePlatformLinks={true} />
+              </div>
             </div>
-          </div>
-        )}
-      </CurrencyProvider>
-    </I18nProvider>
+          )}
+        </CurrencyProvider>
+      </I18nProvider>
+    </SuperadminSessionProvider>
   );
 }

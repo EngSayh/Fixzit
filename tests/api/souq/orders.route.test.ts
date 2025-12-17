@@ -5,9 +5,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+type SessionUser = {
+  id?: string;
+  orgId?: string;
+  role?: string;
+};
+let sessionUser: SessionUser | null = null;
+
 // Mock authentication
 vi.mock("@/auth", () => ({
-  auth: vi.fn(),
+  auth: vi.fn(async () => {
+    if (!sessionUser) return null;
+    return { user: sessionUser };
+  }),
 }));
 
 // Mock database connection - all variants
@@ -69,19 +79,19 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { auth } from "@/auth";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { GET, POST } from "@/app/api/souq/orders/route";
 
 describe("API /api/souq/orders", () => {
   beforeEach(() => {
+    sessionUser = null;
     vi.clearAllMocks();
   });
 
   describe("GET - List Orders", () => {
     it("returns 401 when user is not authenticated", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue(null);
+      sessionUser = null;
 
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
@@ -104,9 +114,7 @@ describe("API /api/souq/orders", () => {
 
     it("returns 403 when orgId is missing", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123" },
-      } as never);
+      sessionUser = { id: "user-123" };
 
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
@@ -116,13 +124,11 @@ describe("API /api/souq/orders", () => {
 
     it("returns orders for authenticated user with orgId", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue({
-        user: {
-          id: "user-123",
-          orgId: "507f1f77bcf86cd799439011",
-          role: "ADMIN",
-        },
-      } as never);
+      sessionUser = {
+        id: "user-123",
+        orgId: "507f1f77bcf86cd799439011",
+        role: "ADMIN",
+      };
 
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
@@ -133,12 +139,10 @@ describe("API /api/souq/orders", () => {
 
     it("supports status filter", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue({
-        user: {
-          id: "user-123",
-          orgId: "507f1f77bcf86cd799439011",
-        },
-      } as never);
+      sessionUser = {
+        id: "user-123",
+        orgId: "507f1f77bcf86cd799439011",
+      };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/orders?status=PENDING"
@@ -150,12 +154,10 @@ describe("API /api/souq/orders", () => {
 
     it("supports customerId filter", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue({
-        user: {
-          id: "user-123",
-          orgId: "507f1f77bcf86cd799439011",
-        },
-      } as never);
+      sessionUser = {
+        id: "user-123",
+        orgId: "507f1f77bcf86cd799439011",
+      };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/orders?customerId=507f1f77bcf86cd799439011"
@@ -167,12 +169,10 @@ describe("API /api/souq/orders", () => {
 
     it("supports pagination parameters", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue({
-        user: {
-          id: "user-123",
-          orgId: "507f1f77bcf86cd799439011",
-        },
-      } as never);
+      sessionUser = {
+        id: "user-123",
+        orgId: "507f1f77bcf86cd799439011",
+      };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/orders?page=2&limit=10"
@@ -186,7 +186,7 @@ describe("API /api/souq/orders", () => {
   describe("POST - Create Order", () => {
     it("returns 401 when user is not authenticated", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue(null);
+      // sessionUser is null by default
 
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
@@ -219,12 +219,10 @@ describe("API /api/souq/orders", () => {
 
     it("validates required fields with Zod", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue({
-        user: {
-          id: "user-123",
-          orgId: "507f1f77bcf86cd799439011",
-        },
-      } as never);
+      sessionUser = {
+        id: "user-123",
+        orgId: "507f1f77bcf86cd799439011",
+      };
 
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
@@ -242,12 +240,10 @@ describe("API /api/souq/orders", () => {
 
     it("validates items array is not empty", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue({
-        user: {
-          id: "user-123",
-          orgId: "507f1f77bcf86cd799439011",
-        },
-      } as never);
+      sessionUser = {
+        id: "user-123",
+        orgId: "507f1f77bcf86cd799439011",
+      };
 
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
@@ -276,12 +272,10 @@ describe("API /api/souq/orders", () => {
 
     it("validates email format", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue({
-        user: {
-          id: "user-123",
-          orgId: "507f1f77bcf86cd799439011",
-        },
-      } as never);
+      sessionUser = {
+        id: "user-123",
+        orgId: "507f1f77bcf86cd799439011",
+      };
 
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",

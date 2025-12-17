@@ -4,19 +4,26 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import {
+  setMockUser,
+  clearMockUser,
+  mockSessionUser,
+} from "@/tests/helpers/mockAuth";
 
-// Mock auth
-vi.mock("@/auth", () => ({
-  auth: vi.fn(),
+// Mock token-based auth (route uses getUserFromToken, not NextAuth)
+vi.mock("@/lib/auth", () => ({
+  getUserFromToken: vi.fn(async () => mockSessionUser),
 }));
 
-// Mock rate limiter
+// Deterministic rate limit mock
+let rateLimitAllowed = true;
 vi.mock("@/server/security/rateLimit", () => ({
-  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
-  rateLimitError: vi.fn().mockReturnValue(
-    new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-      status: 429,
-    })
+  smartRateLimit: vi.fn(async () => ({ allowed: rateLimitAllowed })),
+  rateLimitError: vi.fn(
+    () =>
+      new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429,
+      }),
   ),
 }));
 
@@ -30,34 +37,45 @@ vi.mock("@/db/mongo", () => ({
   }),
 }));
 
-import { auth } from "@/auth";
 import { POST } from "@/app/api/billing/subscribe/route";
+import { getUserFromToken } from "@/lib/auth";
 
 describe("API /api/billing/subscribe", () => {
   beforeEach(() => {
+    rateLimitAllowed = true;
+    clearMockUser();
     vi.clearAllMocks();
   });
 
   describe("Authentication", () => {
     it("returns 401 when user is not authenticated", async () => {
-      vi.mocked(auth).mockResolvedValue(null);
+      setMockUser(null);
 
-      const req = new NextRequest("http://localhost:3000/api/billing/subscribe", {
-        method: "POST",
-        body: JSON.stringify({ plan: "pro" }),
-      });
+      const req = new NextRequest(
+        "http://localhost:3000/api/billing/subscribe",
+        {
+          method: "POST",
+          body: JSON.stringify({ plan: "pro" }),
+        },
+      );
       const res = await POST(req);
 
       expect(res.status).toBe(401);
     });
 
     it("returns 401 when session has no user", async () => {
-      vi.mocked(auth).mockResolvedValue({ user: null } as never);
+      setMockUser(null);
 
-      const req = new NextRequest("http://localhost:3000/api/billing/subscribe", {
-        method: "POST",
-        body: JSON.stringify({ plan: "pro" }),
-      });
+      const req = new NextRequest(
+        "http://localhost:3000/api/billing/subscribe",
+        {
+          method: "POST",
+          body: JSON.stringify({ plan: "pro" }),
+          headers: {
+            Authorization: "Bearer mock-token",
+          },
+        },
+      );
       const res = await POST(req);
 
       expect(res.status).toBe(401);
@@ -66,19 +84,52 @@ describe("API /api/billing/subscribe", () => {
 
   describe("Validation", () => {
     it("returns error for invalid plan type", async () => {
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123", email: "test@example.com" },
-        organizationId: "org-123",
-      } as never);
-
-      const req = new NextRequest("http://localhost:3000/api/billing/subscribe", {
-        method: "POST",
-        body: JSON.stringify({ plan: "invalid-plan" }),
+      setMockUser({
+        id: "user-123",
+        orgId: "org-123",
+        role: "ADMIN",
+        email: "test@example.com",
       });
+
+      const req = new NextRequest(
+        "http://localhost:3000/api/billing/subscribe",
+        {
+          method: "POST",
+          body: JSON.stringify({ plan: "invalid-plan" }),
+          headers: {
+            Authorization: "Bearer mock-token",
+          },
+        },
+      );
       const res = await POST(req);
 
-      // Should return 400/401/500 - route may validate auth differently
+      // Should return 400 for invalid plan; allow 401/500 for unexpected auth/validation branches
       expect([400, 401, 500]).toContain(res.status);
+      expect(getUserFromToken).toHaveBeenCalled();
+    });
+
+    it("returns 429 when rate limit exceeded", async () => {
+      setMockUser({
+        id: "user-123",
+        orgId: "org-123",
+        role: "ADMIN",
+        email: "test@example.com",
+      });
+      rateLimitAllowed = false;
+
+      const req = new NextRequest(
+        "http://localhost:3000/api/billing/subscribe",
+        {
+          method: "POST",
+          body: JSON.stringify({ plan: "pro" }),
+          headers: {
+            Authorization: "Bearer mock-token",
+          },
+        },
+      );
+      const res = await POST(req);
+
+      expect(res.status).toBe(429);
     });
   });
 });

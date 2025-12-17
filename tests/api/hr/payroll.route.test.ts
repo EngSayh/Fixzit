@@ -5,6 +5,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+type SessionUser = {
+  id?: string;
+  orgId?: string;
+  role?: string;
+  subRole?: string | null;
+};
+let sessionUser: SessionUser | null = null;
+
 // Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
@@ -12,7 +20,10 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 
 // Mock authentication
 vi.mock("@/auth", () => ({
-  auth: vi.fn(),
+  auth: vi.fn(async () => {
+    if (!sessionUser) return null;
+    return { user: sessionUser };
+  }),
 }));
 
 // Mock database
@@ -49,7 +60,6 @@ vi.mock("@/server/services/hr/payroll.service", () => ({
 }));
 
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { auth } from "@/auth";
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { hasAllowedRole } from "@/lib/auth/role-guards";
@@ -70,11 +80,10 @@ describe("API /api/hr/payroll/runs", () => {
   };
 
   beforeEach(() => {
+    sessionUser = null;
     vi.clearAllMocks();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
-    vi.mocked(auth).mockResolvedValue({
-      user: mockUser,
-    } as never);
+    sessionUser = mockUser;
     vi.mocked(hasAllowedRole).mockReturnValue(true);
     vi.mocked(PayrollService.existsOverlap).mockResolvedValue(false);
   });
@@ -106,7 +115,7 @@ describe("API /api/hr/payroll/runs", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue(null as never);
+      sessionUser = null;
 
       const req = new NextRequest("http://localhost:3000/api/hr/payroll/runs");
       const response = await route.GET(req);
@@ -121,9 +130,7 @@ describe("API /api/hr/payroll/runs", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue({
-        user: { role: "HR", orgId: undefined },
-      } as never);
+      sessionUser = { role: "HR", orgId: undefined };
 
       const req = new NextRequest("http://localhost:3000/api/hr/payroll/runs");
       const response = await route.GET(req);
@@ -138,9 +145,7 @@ describe("API /api/hr/payroll/runs", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue({
-        user: { orgId: mockOrgId, role: "EMPLOYEE" },
-      } as never);
+      sessionUser = { orgId: mockOrgId, role: "EMPLOYEE" };
 
       const req = new NextRequest("http://localhost:3000/api/hr/payroll/runs");
       const response = await route.GET(req);
@@ -240,7 +245,7 @@ describe("API /api/hr/payroll/runs", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue(null as never);
+      sessionUser = null;
 
       const req = new NextRequest("http://localhost:3000/api/hr/payroll/runs", {
         method: "POST",
@@ -258,9 +263,7 @@ describe("API /api/hr/payroll/runs", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue({
-        user: { orgId: mockOrgId, role: "EMPLOYEE" },
-      } as never);
+      sessionUser = { orgId: mockOrgId, role: "EMPLOYEE" };
       vi.mocked(hasAllowedRole).mockReturnValue(false);
 
       const req = new NextRequest("http://localhost:3000/api/hr/payroll/runs", {

@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { Types } from "mongoose";
 import { ObjectId as MongoObjectId } from "mongodb";

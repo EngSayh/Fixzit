@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, it, expect } from "vitest";
 import mongoose from "mongoose";
 import { returnsService } from "@/services/souq/returns-service";

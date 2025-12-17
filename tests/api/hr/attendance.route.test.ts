@@ -5,6 +5,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+type SessionUser = {
+  id?: string;
+  orgId?: string;
+  role?: string;
+};
+let sessionUser: SessionUser | null = null;
+
 // Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
@@ -12,7 +19,10 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 
 // Mock authentication
 vi.mock("@/auth", () => ({
-  auth: vi.fn(),
+  auth: vi.fn(async () => {
+    if (!sessionUser) return null;
+    return { user: sessionUser };
+  }),
 }));
 
 // Mock database
@@ -30,7 +40,6 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { auth } from "@/auth";
 
 const importRoute = async () => {
   try {
@@ -48,11 +57,10 @@ describe("API /api/hr/attendance", () => {
   };
 
   beforeEach(() => {
+    sessionUser = null;
     vi.clearAllMocks();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
-    vi.mocked(auth).mockResolvedValue({
-      user: mockUser,
-    } as never);
+    sessionUser = mockUser;
   });
 
   describe("GET - Retrieve Attendance Records", () => {
@@ -82,7 +90,7 @@ describe("API /api/hr/attendance", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue(null as never);
+      sessionUser = null;
 
       const req = new NextRequest("http://localhost:3000/api/hr/attendance");
       const response = await route.GET(req);
@@ -97,9 +105,7 @@ describe("API /api/hr/attendance", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue({
-        user: { role: "HR", orgId: undefined },
-      } as never);
+      sessionUser = { role: "HR", orgId: undefined };
 
       const req = new NextRequest("http://localhost:3000/api/hr/attendance");
       const response = await route.GET(req);
@@ -138,7 +144,7 @@ describe("API /api/hr/attendance", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue(null as never);
+      sessionUser = null;
 
       const req = new NextRequest("http://localhost:3000/api/hr/attendance", {
         method: "POST",

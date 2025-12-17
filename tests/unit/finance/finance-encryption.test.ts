@@ -106,6 +106,9 @@ describe("Finance Model PII Encryption", () => {
   beforeAll(async () => {
     // Set encryption key
     process.env.ENCRYPTION_KEY = testKey;
+    process.env.MONGOMS_TIMEOUT = process.env.MONGOMS_TIMEOUT || "60000";
+    process.env.MONGOMS_DOWNLOAD_TIMEOUT =
+      process.env.MONGOMS_DOWNLOAD_TIMEOUT || "60000";
 
     // Reset any existing connections (guards against accidental shared connection across tests)
     if (mongoose.connection.readyState !== 0) {
@@ -113,7 +116,9 @@ describe("Finance Model PII Encryption", () => {
     }
 
     // Start in-memory MongoDB
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await MongoMemoryServer.create({
+      instance: { launchTimeout: 60_000 },
+    });
     const uri = mongoServer.getUri();
     await mongoose.connect(uri);
     setAuditContext({ userId: new mongoose.Types.ObjectId() });
@@ -122,7 +127,9 @@ describe("Finance Model PII Encryption", () => {
   afterAll(async () => {
     clearAuditContext();
     await mongoose.disconnect();
-    await mongoServer.stop();
+    if (mongoServer?.stop) {
+      await mongoServer.stop();
+    }
     delete process.env.ENCRYPTION_KEY;
   });
 

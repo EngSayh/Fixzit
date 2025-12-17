@@ -222,6 +222,7 @@ const config = {
       spacing: {
         18: "4.5rem",
         88: "22rem",
+        "section-gap": "1.5rem",
         "ejar-1": "var(--spacing-1)",
         "ejar-2": "var(--spacing-2)",
         "ejar-3": "var(--spacing-3)",
@@ -230,10 +231,23 @@ const config = {
         "ejar-6": "var(--spacing-6)",
         "ejar-8": "var(--spacing-8)",
       },
+      height: {
+        "table-row-compact": "2.5rem",
+        "table-row-comfortable": "3.5rem",
+        "table-row-spacious": "4.5rem",
+      },
       borderRadius: {
         lg: "var(--radius-lg, var(--radius))",
         md: "var(--radius-md)",
         sm: "var(--radius-sm)",
+      },
+      boxShadow: {
+        "elevation-1": "0 1px 2px rgba(0, 0, 0, 0.05)",
+        "elevation-2": "0 4px 6px rgba(0, 0, 0, 0.1)",
+        "elevation-3": "0 10px 15px rgba(0, 0, 0, 0.15)",
+      },
+      transitionProperty: {
+        "hover-lift": "transform, box-shadow",
       },
     },
   },
@@ -410,6 +424,15 @@ const config = {
           },
           "&:hover::after": {
             opacity: "1",
+          },
+        },
+        ".hover-lift": {
+          transition: "transform 150ms, box-shadow 150ms",
+          transform: "translateY(0)",
+          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+          "&:hover": {
+            transform: "translateY(-2px)",
+            boxShadow: "0 10px 15px rgba(0, 0, 0, 0.12)",
           },
         },
       };

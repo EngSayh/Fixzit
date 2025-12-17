@@ -1,4 +1,3 @@
-// @vitest-environment node
 /**
  * Collection Name Validation Tests
  *

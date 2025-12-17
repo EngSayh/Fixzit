@@ -3,7 +3,7 @@
  * Tests product catalog operations including authentication, validation, and rate limiting
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 // Mock authentication
 vi.mock("@/lib/auth/getServerSession", () => ({
@@ -21,34 +21,48 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 }));
 
 // Mock models
-vi.mock("@/server/models/souq/Product", () => ({
-  SouqProduct: {
-    find: vi.fn().mockReturnValue({
-      skip: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      sort: vi.fn().mockReturnThis(),
-      lean: vi.fn().mockResolvedValue([]),
-    }),
-    countDocuments: vi.fn().mockResolvedValue(0),
-    create: vi.fn(),
-  },
-}));
+vi.mock("@/server/models/souq/Product", () => {
+  const saveMock = vi.fn().mockResolvedValue(undefined);
+  const souqProductCtor = vi.fn().mockImplementation((payload: Record<string, unknown> = {}) => ({
+    ...payload,
+    _id: "product-1",
+    fsin: (payload as { fsin?: string }).fsin ?? "FSIN-TEST-001",
+    images: (payload as { images?: string[] }).images ?? [],
+    createdAt: new Date(),
+    save: saveMock,
+  }));
+  souqProductCtor.find = vi.fn().mockReturnValue({
+    skip: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    sort: vi.fn().mockReturnThis(),
+    lean: vi.fn().mockResolvedValue([]),
+  });
+  souqProductCtor.countDocuments = vi.fn().mockResolvedValue(0);
+  souqProductCtor.findOne = vi.fn().mockResolvedValue(null);
+  return { SouqProduct: souqProductCtor };
+});
 
 vi.mock("@/server/models/souq/Category", () => ({
   SouqCategory: {
-    findById: vi.fn(),
+    findOne: vi.fn(),
   },
 }));
 
 vi.mock("@/server/models/souq/Brand", () => ({
   SouqBrand: {
-    findById: vi.fn(),
+    findOne: vi.fn(),
   },
 }));
 
 // Mock FSIN generator
 vi.mock("@/lib/souq/fsin-generator", () => ({
-  generateFSIN: vi.fn().mockResolvedValue("FSIN-TEST-001"),
+  generateFSIN: vi.fn().mockReturnValue({
+    fsin: "FSIN-TEST-001",
+    checkDigit: 0,
+    prefix: "FX",
+    sequence: "00000000000",
+    generatedAt: new Date(),
+  }),
 }));
 
 // Mock logger
@@ -62,19 +76,35 @@ vi.mock("@/lib/logger", () => ({
 
 import { getServerSession } from "@/lib/auth/getServerSession";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { SouqCategory } from "@/server/models/souq/Category";
+import { SouqBrand } from "@/server/models/souq/Brand";
+import { SouqProduct } from "@/server/models/souq/Product";
 import { GET, POST } from "@/app/api/souq/catalog/products/route";
 
 describe("API /api/souq/catalog/products", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: "user-123", orgId: "507f1f77bcf86cd799439011" },
+    } as never);
+    vi.mocked(SouqCategory.findOne).mockResolvedValue({
+      categoryId: "cat-123",
+      isRestricted: false,
+      isActive: true,
+    } as never);
+    vi.mocked(SouqBrand.findOne).mockResolvedValue({
+      brandId: "brand-123",
+      isGated: false,
+      isActive: true,
+    } as never);
+    vi.mocked(SouqProduct.findOne).mockResolvedValue(null);
   });
 
   describe("GET - List Products", () => {
     it("returns 429 when rate limit exceeded", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
+        NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 }) as never,
       );
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products");
@@ -97,7 +127,7 @@ describe("API /api/souq/catalog/products", () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
 
       const req = new NextRequest(
-        "http://localhost:3000/api/souq/catalog/products?page=2&limit=20"
+        "http://localhost:3000/api/souq/catalog/products?page=2&limit=20",
       );
       const res = await GET(req);
 
@@ -107,9 +137,7 @@ describe("API /api/souq/catalog/products", () => {
     it("supports search query parameter", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
 
-      const req = new NextRequest(
-        "http://localhost:3000/api/souq/catalog/products?q=test"
-      );
+      const req = new NextRequest("http://localhost:3000/api/souq/catalog/products?q=test");
       const res = await GET(req);
 
       expect([200, 403, 500]).toContain(res.status);
@@ -118,9 +146,7 @@ describe("API /api/souq/catalog/products", () => {
     it("supports language parameter for localization", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
 
-      const req = new NextRequest(
-        "http://localhost:3000/api/souq/catalog/products?lang=ar"
-      );
+      const req = new NextRequest("http://localhost:3000/api/souq/catalog/products?lang=ar");
       const res = await GET(req);
 
       expect([200, 403, 500]).toContain(res.status);
@@ -172,9 +198,7 @@ describe("API /api/souq/catalog/products", () => {
 
     it("returns 429 when rate limit exceeded", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
+        NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 }) as never,
       );
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products", {

@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { Types } from "mongoose";
 import { nanoid } from "nanoid";

@@ -34,12 +34,24 @@ export async function GET(req: NextRequest) {
   try {
     // Authenticate user
     const session = await auth();
-    if (!session?.user?.id) {
+    const sessionUser =
+      (session as { user?: { id?: string; sub?: string; orgId?: string; organizationId?: string } } | null | undefined)
+        ?.user;
+
+    // Accept both orgId/organizationId and common id aliases to avoid shape drift between clients/tests
+    const userId =
+      sessionUser?.id ??
+      sessionUser?.sub ??
+      (session as { userId?: string } | null | undefined)?.userId;
+
+    if (!userId) {
       return createSecureResponse({ error: "Authentication required" }, 401, req);
     }
 
-    const userId = session.user.id;
-    const orgId = (session.user as { orgId?: string }).orgId;
+    const orgId =
+      sessionUser?.orgId ??
+      sessionUser?.organizationId ??
+      (session as { organizationId?: string } | null | undefined)?.organizationId;
 
     if (!orgId) {
       return createSecureResponse({ error: "Organization context required" }, 400, req);

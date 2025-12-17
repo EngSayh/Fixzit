@@ -1,4 +1,3 @@
-// @vitest-environment node
 /**
  * SMS Queue Unit Tests
  *
