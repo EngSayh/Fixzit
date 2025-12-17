@@ -8,8 +8,12 @@
 import { useEffect, useState } from "react";
 import { X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/hooks/useI18n";
+import { logger } from "@/lib/logger";
+import { toast } from "sonner";
 
 export function ImpersonationBanner() {
+  const { t } = useI18n();
   const [impersonatedOrgId, setImpersonatedOrgId] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
 
@@ -23,7 +27,7 @@ export function ImpersonationBanner() {
           setImpersonatedOrgId(data.orgId || null);
         }
       } catch (error) {
-        console.error("Failed to check impersonation status:", error);
+        logger.error("[ImpersonationBanner] Failed to check impersonation status", { error });
       }
     };
 
@@ -40,10 +44,11 @@ export function ImpersonationBanner() {
       if (response.ok) {
         window.location.href = "/superadmin/issues";
       } else {
-        alert("Failed to clear impersonation. Please try again.");
+        toast.error(t("superadmin.impersonate.banner.error.clearFailed"));
       }
     } catch (error) {
-      alert("Failed to clear impersonation. Please try again.");
+      toast.error(t("superadmin.impersonate.banner.error.clearFailed"));
+      logger.error("[ImpersonationBanner] Failed to clear impersonation", { error });
     } finally {
       setIsClearing(false);
     }
@@ -59,7 +64,7 @@ export function ImpersonationBanner() {
         <div className="flex items-center gap-3">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <div className="text-sm font-medium">
-            <strong>Impersonation Mode:</strong> Viewing as organization{" "}
+            <strong>{t("superadmin.impersonate.banner.title")}:</strong> {t("superadmin.impersonate.banner.viewing")}{" "}
             <code className="bg-yellow-600/20 px-2 py-0.5 rounded font-mono text-xs">
               {impersonatedOrgId}
             </code>
@@ -74,11 +79,11 @@ export function ImpersonationBanner() {
           className="text-yellow-900 hover:bg-yellow-600/20"
         >
           {isClearing ? (
-            "Clearing..."
+            t("superadmin.impersonate.banner.clearing")
           ) : (
             <>
               <X className="w-4 h-4 mr-1" />
-              Exit
+              {t("superadmin.impersonate.banner.exit")}
             </>
           )}
         </Button>

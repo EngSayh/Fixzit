@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Search } from "lucide-react";
+import { useI18n } from "@/hooks/useI18n";
+import { logger } from "@/lib/logger";
 
 interface ImpersonationFormProps {
   nextUrl: string;
@@ -18,6 +20,7 @@ interface ImpersonationFormProps {
 
 export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
   const router = useRouter();
+  const { t } = useI18n();
   const [orgId, setOrgId] = useState("");
   const [orgName, setOrgName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +30,7 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
 
   const handleSearch = async () => {
     if (!orgName.trim()) {
-      setError("Please enter an organization name to search");
+      setError(t("superadmin.impersonate.error.enterName"));
       return;
     }
 
@@ -47,11 +50,11 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
       setSearchResults(data.organizations || []);
 
       if (data.organizations?.length === 0) {
-        setError("No organizations found matching your search");
+        setError(t("superadmin.impersonate.noResults"));
       }
     } catch (err) {
-      setError("Failed to search organizations. Please try again.");
-      console.error("Search error:", err);
+      setError(t("superadmin.impersonate.error.searchFailed"));
+      logger.error("[ImpersonationForm] Search error", { error: err });
     } finally {
       setIsSearching(false);
     }
@@ -68,7 +71,7 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
     e.preventDefault();
 
     if (!orgId.trim()) {
-      setError("Please select or enter an organization ID");
+      setError(t("superadmin.impersonate.error.selectOrg"));
       return;
     }
 
@@ -85,14 +88,14 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to set impersonation context");
+        throw new Error(data.error || t("superadmin.impersonate.error.setContextFailed"));
       }
 
       // Cookie is set, redirect to next URL
       router.push(nextUrl);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to impersonate organization");
+      setError(err instanceof Error ? err.message : t("superadmin.impersonate.error.impersonateFailed"));
       setIsLoading(false);
     }
   };
@@ -107,7 +110,7 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to clear impersonation context");
+        throw new Error(t("superadmin.impersonate.error.setContextFailed"));
       }
 
       setOrgId("");
@@ -116,7 +119,7 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
       router.push("/superadmin/issues");
       router.refresh();
     } catch (err) {
-      setError("Failed to clear impersonation. Please try again.");
+      setError(t("superadmin.impersonate.banner.error.clearFailed"));
       setIsLoading(false);
     }
   };
@@ -126,13 +129,13 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
       {/* Search by Organization Name */}
       <div>
         <Label htmlFor="orgName" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Search Organization
+          {t("superadmin.impersonate.searchLabel")}
         </Label>
         <div className="mt-2 flex gap-2">
           <Input
             id="orgName"
             type="text"
-            placeholder="Enter organization name..."
+            placeholder={t("superadmin.impersonate.searchPlaceholder")}
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearch())}
@@ -158,7 +161,7 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
       {searchResults.length > 0 && (
         <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 max-h-60 overflow-y-auto">
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Search Results ({searchResults.length})
+            {t("superadmin.impersonate.selectOrg")} ({searchResults.length})
           </p>
           <div className="space-y-2">
             {searchResults.map((org) => (
@@ -179,21 +182,18 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
       {/* Manual Organization ID Entry */}
       <div>
         <Label htmlFor="orgId" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Organization ID
+          {t("superadmin.impersonate.orgIdLabel")}
         </Label>
         <Input
           id="orgId"
           type="text"
-          placeholder="org_abc123... (or select from search results)"
+          placeholder={t("superadmin.impersonate.orgIdPlaceholder")}
           value={orgId}
           onChange={(e) => setOrgId(e.target.value)}
           disabled={isLoading}
           required
           className="mt-2"
         />
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Enter the organization ID directly or search above
-        </p>
       </div>
 
       {/* Error Message */}
@@ -213,10 +213,10 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Setting Context...
+              {t("superadmin.impersonate.loading")}
             </>
           ) : (
-            "Set Impersonation Context"
+            t("superadmin.impersonate.submitButton")
           )}
         </Button>
 
@@ -226,13 +226,9 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
           onClick={handleClearImpersonation}
           disabled={isLoading}
         >
-          Clear Context
+          {t("superadmin.impersonate.clearButton")}
         </Button>
       </div>
-
-      <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-        Your impersonation actions will be logged for security audit purposes
-      </p>
     </form>
   );
 }
