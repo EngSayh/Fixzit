@@ -1,0 +1,285 @@
+# OpenAPI 3.0 Specification Fragment
+# Superadmin Impersonation Endpoints
+# To be merged into main openapi.yaml
+
+paths:
+  /superadmin/impersonate:
+    post:
+      summary: Set organization impersonation context
+      description: |-
+        Allows superadmin to impersonate an organization for accessing tenant modules.
+        Sets a secure HttpOnly cookie `support_org_id` valid for 8 hours.
+        All impersonation actions are logged for audit purposes.
+      tags:
+        - Superadmin
+      security:
+        - superadminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orgId
+              properties:
+                orgId:
+                  type: string
+                  minLength: 1
+                  description: Target organization ID to impersonate
+                  example: "org_abc123xyz"
+            examples:
+              validRequest:
+                summary: Valid impersonation request
+                value:
+                  orgId: "org_abc123xyz"
+      responses:
+        '200':
+          description: Impersonation context set successfully
+          headers:
+            Set-Cookie:
+              description: HttpOnly secure cookie with 8-hour expiry
+              schema:
+                type: string
+                example: "support_org_id=org_abc123xyz; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=28800"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Impersonation context set"
+                  orgId:
+                    type: string
+                    example: "org_abc123xyz"
+        '400':
+          description: Invalid request (missing or invalid orgId)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingOrgId:
+                  summary: Missing orgId
+                  value:
+                    error: "Organization ID is required"
+                invalidJSON:
+                  summary: Invalid JSON body
+                  value:
+                    error: "Invalid JSON in request body"
+        '401':
+          description: Unauthorized - Superadmin session required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized - Superadmin access required"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Failed to set impersonation context"
+    
+    delete:
+      summary: Clear organization impersonation context
+      description: |-
+        Clears the impersonation context by removing the `support_org_id` cookie.
+        Logs the impersonation exit for audit purposes.
+      tags:
+        - Superadmin
+      security:
+        - superadminSession: []
+      responses:
+        '200':
+          description: Impersonation context cleared successfully
+          headers:
+            Set-Cookie:
+              description: Cookie deletion (Max-Age=0)
+              schema:
+                type: string
+                example: "support_org_id=; Max-Age=0; Path=/"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Impersonation context cleared"
+        '401':
+          description: Unauthorized - Superadmin session required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized - Superadmin access required"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Failed to clear impersonation context"
+
+  /superadmin/impersonate/status:
+    get:
+      summary: Get current impersonation status
+      description: |-
+        Returns the current impersonation context if active.
+        Used by UI components to display impersonation banner.
+      tags:
+        - Superadmin
+      security:
+        - superadminSession: []
+      responses:
+        '200':
+          description: Impersonation status retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active:
+                    type: boolean
+                    description: Whether impersonation is currently active
+                  orgId:
+                    type: string
+                    nullable: true
+                    description: Impersonated organization ID (null if not active)
+              examples:
+                active:
+                  summary: Impersonation active
+                  value:
+                    active: true
+                    orgId: "org_abc123xyz"
+                inactive:
+                  summary: No impersonation
+                  value:
+                    active: false
+                    orgId: null
+        '401':
+          description: Unauthorized - Superadmin session required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized - Superadmin access required"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /superadmin/organizations/search:
+    get:
+      summary: Search organizations by name
+      description: |-
+        Searches for organizations by name (case-insensitive substring match).
+        Returns up to 20 results ordered by name.
+        Used by impersonation form for organization lookup.
+      tags:
+        - Superadmin
+      security:
+        - superadminSession: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: Search query (organization name substring)
+          example: "Acme Corp"
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  organizations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Organization ID
+                        name:
+                          type: string
+                          description: Organization name
+                  count:
+                    type: integer
+                    description: Number of results returned
+              example:
+                organizations:
+                  - id: "org_abc123xyz"
+                    name: "Acme Corporation"
+                  - id: "org_def456uvw"
+                    name: "Acme Industries"
+                count: 2
+        '400':
+          description: Invalid request (missing or empty query)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Search query is required"
+        '401':
+          description: Unauthorized - Superadmin session required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized - Superadmin access required"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    superadminSession:
+      type: apiKey
+      in: cookie
+      name: superadmin_session
+      description: |-
+        Superadmin session cookie (HttpOnly, 8-hour expiry).
+        Issued by `/superadmin/login` endpoint.
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+      required:
+        - error
+
+tags:
+  - name: Superadmin
+    description: |-
+      Superadmin-only endpoints for platform administration.
+      Requires superadmin session cookie authentication.
+      All actions are logged for audit purposes.
