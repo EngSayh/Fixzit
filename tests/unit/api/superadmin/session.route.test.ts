@@ -3,6 +3,7 @@
  * @module tests/unit/api/superadmin/session.route.test
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { GET } from "@/app/api/superadmin/session/route";
 
 // Type for our mock response
 interface MockResponse {
@@ -37,18 +38,22 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 // Mock rate limit
-const mockEnforceRateLimit = vi.fn();
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: mockEnforceRateLimit,
+  enforceRateLimit: vi.fn(),
 }));
 
 // Mock superadmin auth
-const mockDecodeToken = vi.fn();
-
 vi.mock("@/lib/superadmin/auth", () => ({
-  decodeSuperadminToken: mockDecodeToken,
+  decodeSuperadminToken: vi.fn(),
   SUPERADMIN_COOKIE_NAME: "superadmin_token",
 }));
+
+// Import mocks after vi.mock setup
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { decodeSuperadminToken } from "@/lib/superadmin/auth";
+
+const mockEnforceRateLimit = enforceRateLimit as ReturnType<typeof vi.fn>;
+const mockDecodeToken = decodeSuperadminToken as ReturnType<typeof vi.fn>;
 
 describe("GET /api/superadmin/session", () => {
   beforeEach(() => {
@@ -61,13 +66,12 @@ describe("GET /api/superadmin/session", () => {
   it("should return 401 when no session cookie", async () => {
     mockDecodeToken.mockResolvedValue(null);
     
-    const { GET } = await import("@/app/api/superadmin/session/route");
-    
     const request = {
       url: "http://localhost:3000/api/superadmin/session",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
       cookies: {
         get: vi.fn().mockReturnValue(undefined),
+        getAll: vi.fn().mockReturnValue([]),
       },
     };
 
@@ -79,13 +83,12 @@ describe("GET /api/superadmin/session", () => {
   it("should return 401 when token is invalid", async () => {
     mockDecodeToken.mockResolvedValue(null);
     
-    const { GET } = await import("@/app/api/superadmin/session/route");
-    
     const request = {
       url: "http://localhost:3000/api/superadmin/session",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
       cookies: {
         get: vi.fn().mockReturnValue({ value: "invalid-token" }),
+        getAll: vi.fn().mockReturnValue([{ name: "superadmin_token", value: "invalid-token" }]),
       },
     };
 
@@ -103,13 +106,12 @@ describe("GET /api/superadmin/session", () => {
     };
     mockDecodeToken.mockResolvedValue(mockPayload);
     
-    const { GET } = await import("@/app/api/superadmin/session/route");
-    
     const request = {
       url: "http://localhost:3000/api/superadmin/session",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
       cookies: {
         get: vi.fn().mockReturnValue({ value: "valid-token" }),
+        getAll: vi.fn().mockReturnValue([{ name: "superadmin_token", value: "valid-token" }]),
       },
     };
 
@@ -131,13 +133,12 @@ describe("GET /api/superadmin/session", () => {
     };
     mockDecodeToken.mockResolvedValue(mockPayload);
     
-    const { GET } = await import("@/app/api/superadmin/session/route");
-    
     const request = {
       url: "http://localhost:3000/api/superadmin/session",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
       cookies: {
         get: vi.fn().mockReturnValue({ value: "valid-token" }),
+        getAll: vi.fn().mockReturnValue([{ name: "superadmin_token", value: "valid-token" }]),
       },
     };
 
@@ -156,13 +157,12 @@ describe("GET /api/superadmin/session", () => {
     };
     mockDecodeToken.mockResolvedValue(mockPayload);
     
-    const { GET } = await import("@/app/api/superadmin/session/route");
-    
     const request = {
       url: "http://localhost:3000/api/superadmin/session",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
       cookies: {
         get: vi.fn().mockReturnValue({ value: "valid-token" }),
+        getAll: vi.fn().mockReturnValue([{ name: "superadmin_token", value: "valid-token" }]),
       },
     };
 
