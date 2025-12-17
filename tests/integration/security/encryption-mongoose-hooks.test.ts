@@ -47,6 +47,8 @@ describe("Encryption Plugin Mongoose Hooks (TEST-003)", () => {
     process.env.MONGOMS_TIMEOUT = process.env.MONGOMS_TIMEOUT || "60000";
     process.env.MONGOMS_DOWNLOAD_TIMEOUT =
       process.env.MONGOMS_DOWNLOAD_TIMEOUT || "60000";
+    process.env.MONGOMS_START_TIMEOUT =
+      process.env.MONGOMS_START_TIMEOUT || "60000";
 
     // Start in-memory MongoDB
     mongoServer = await MongoMemoryServer.create({

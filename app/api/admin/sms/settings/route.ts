@@ -18,7 +18,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { parseBodySafe } from "@/lib/api/parse-body";
-import { validatePublicHttpsUrl } from "@/lib/security/validatePublicHttpsUrl";
+import { validatePublicHttpsUrl } from "@/lib/security/validate-public-https-url";
 
 export async function GET(request: NextRequest) {
   // Rate limiting: 30 requests per minute for admin reads
@@ -111,7 +111,23 @@ const UpdateSettingsSchema = z.object({
   globalRateLimitPerMinute: z.number().min(1).max(1000).optional(),
   globalRateLimitPerHour: z.number().min(1).max(10000).optional(),
   slaBreachNotifyEmails: z.array(z.string().email()).optional(),
-  slaBreachNotifyWebhook: z.string().url().optional().nullable(),
+  slaBreachNotifyWebhook: z
+    .string()
+    .url()
+    .refine(
+      (url) => {
+        if (!url) return true; // allow empty
+        try {
+          validatePublicHttpsUrl(url);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { message: "Webhook URL must be a public HTTPS URL (no localhost/private IPs)" }
+    )
+    .optional()
+    .nullable(),
   dailyReportEnabled: z.boolean().optional(),
   dailyReportEmails: z.array(z.string().email()).optional(),
   queueEnabled: z.boolean().optional(),
@@ -157,10 +173,7 @@ export async function PUT(request: NextRequest) {
     // SSRF protection for webhook
     if (updates.slaBreachNotifyWebhook) {
       try {
-        validatePublicHttpsUrl(
-          updates.slaBreachNotifyWebhook,
-          "slaBreachNotifyWebhook"
-        );
+        validatePublicHttpsUrl(updates.slaBreachNotifyWebhook);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Invalid webhook URL";

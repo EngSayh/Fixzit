@@ -717,8 +717,7 @@ export default function SuperadminIssuesPage() {
                     color={(stats?.healthScore || 0) >= 70 ? "#00A859" : (stats?.healthScore || 0) >= 40 ? "#FFB400" : "#EF4444"} 
                   />
                 </div>
-                <TrendIndicator value={4.2} className="mt-1" /stats?.healthScore || 0}%
-                </p>
+                <TrendIndicator value={4.2} className="mt-1" />
               </CardContent>
             </Card>
           </>
@@ -1062,7 +1061,7 @@ export default function SuperadminIssuesPage() {
                       <TableCell onClick={() => handleIssueClick(issue)}>
                         <span className="text-sm text-slate-300">{issue.mentionCount || 1}×</span>
                       </TableCell>
-                      <TableCell onClick={() => handleIssueClick(issue._id)}>
+                      <TableCell onClick={() => handleIssueClick(issue)}>
                         <span className="text-xs text-slate-400">
                           {new Date(issue.updatedAt).toLocaleDateString()}
                         </span>

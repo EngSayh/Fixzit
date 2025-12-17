@@ -109,6 +109,8 @@ describe("Finance Model PII Encryption", () => {
     process.env.MONGOMS_TIMEOUT = process.env.MONGOMS_TIMEOUT || "60000";
     process.env.MONGOMS_DOWNLOAD_TIMEOUT =
       process.env.MONGOMS_DOWNLOAD_TIMEOUT || "60000";
+    process.env.MONGOMS_START_TIMEOUT =
+      process.env.MONGOMS_START_TIMEOUT || "60000";
 
     // Reset any existing connections (guards against accidental shared connection across tests)
     if (mongoose.connection.readyState !== 0) {

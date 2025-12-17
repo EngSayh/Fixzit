@@ -86,17 +86,26 @@ describe("API /api/souq/catalog/products", () => {
     vi.clearAllMocks();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     vi.mocked(getServerSession).mockResolvedValue({
-      user: { id: "user-123", orgId: "507f1f77bcf86cd799439011" },
+      user: { 
+        id: "user-123", 
+        orgId: "507f1f77bcf86cd799439011",
+        role: "admin",
+        email: "test@example.com"
+      },
     } as never);
     vi.mocked(SouqCategory.findOne).mockResolvedValue({
+      _id: "507f1f77bcf86cd799439012",
       categoryId: "cat-123",
       isRestricted: false,
       isActive: true,
+      orgId: "507f1f77bcf86cd799439011",
     } as never);
     vi.mocked(SouqBrand.findOne).mockResolvedValue({
+      _id: "507f1f77bcf86cd799439013",
       brandId: "brand-123",
       isGated: false,
       isActive: true,
+      orgId: "507f1f77bcf86cd799439011",
     } as never);
     vi.mocked(SouqProduct.findOne).mockResolvedValue(null);
   });

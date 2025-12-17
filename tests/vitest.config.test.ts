@@ -10,16 +10,23 @@
  * patterns, aliases, and environments as we evolve the test matrix.
  */
 import { describe, it, expect } from "vitest";
-import { TextEncoder, TextDecoder } from "node:util";
+import {
+  TextEncoder as NodeTextEncoder,
+  TextDecoder as NodeTextDecoder,
+} from "node:util";
 import path from "node:path";
 import baseConfig from "../vitest.config";
 import apiConfig from "../vitest.config.api";
 import modelsConfig from "../vitest.config.models";
 
 // Ensure esbuild invariants are satisfied in jsdom pools
-globalThis.TextEncoder = TextEncoder;
-globalThis.TextDecoder =
-  TextDecoder as unknown as typeof globalThis.TextDecoder;
+if (!globalThis.TextEncoder) {
+  globalThis.TextEncoder = NodeTextEncoder;
+}
+if (!globalThis.TextDecoder) {
+  globalThis.TextDecoder =
+    NodeTextDecoder as unknown as typeof globalThis.TextDecoder;
+}
 
 type AnyConfig = Record<string, any>;
 

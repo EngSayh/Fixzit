@@ -18,7 +18,7 @@ import { logger } from "@/lib/logger";
 import dynamic from "next/dynamic";
 import { Select, SelectItem } from "@/components/ui/select";
 import { BrandLogo } from "@/components/brand";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemeCtx } from "@/contexts/ThemeContext";
 import {
   LANGUAGE_OPTIONS,
   type LanguageOption,
@@ -73,7 +73,7 @@ function SuperadminLanguageDropdown() {
 export function SuperadminHeader() {
   const router = useRouter();
   const { t } = useI18n();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme } = useThemeCtx();
   // BUG-001 FIX: Session now provided by server-side layout, no client fetch needed
   const session = useSuperadminSession();
   const [loggingOut, setLoggingOut] = useState(false);

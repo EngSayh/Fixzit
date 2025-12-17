@@ -36,6 +36,8 @@ describe("Work Order Attachment Flow", () => {
     process.env.MONGOMS_TIMEOUT = process.env.MONGOMS_TIMEOUT || "60000";
     process.env.MONGOMS_DOWNLOAD_TIMEOUT =
       process.env.MONGOMS_DOWNLOAD_TIMEOUT || "60000";
+    process.env.MONGOMS_START_TIMEOUT =
+      process.env.MONGOMS_START_TIMEOUT || "60000";
     mongoServer = await MongoMemoryServer.create({
       instance: { launchTimeout: 60_000 },
     });

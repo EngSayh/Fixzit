@@ -6,12 +6,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { setMockUser, clearMockUser } from "@/tests/helpers/mockAuth";
 
-const authMockFactory = vi.hoisted(() => {
-  const { createAuthMock } = require("../helpers/mockAuth");
-  return createAuthMock;
+vi.mock("@/auth", async () => {
+  const { createAuthMock } = await import("../../helpers/mockAuth");
+  return createAuthMock();
 });
-
-vi.mock("@/auth", authMockFactory);
 
 // Deterministic rate limiter
 let rateLimitAllowed = true;

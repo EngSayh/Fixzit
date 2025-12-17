@@ -40,6 +40,8 @@ const sharedViteConfig = {
       "@": path.resolve(__dirname),
       // Vitest (ESM) sometimes struggles to resolve the extensionless "next/server" entry.
       "next/server": "next/server.js",
+      // Stub server-only queues dependency for tests (real queue worker runs in Node only)
+      bullmq: path.resolve(__dirname, "lib/stubs/bullmq.ts"),
     },
   },
 };
@@ -59,6 +61,15 @@ export default defineConfig({
             // Enable MongoMemoryServer for client/jsdom runs that exercise services
             SKIP_GLOBAL_MONGO: "false",
           },
+          environmentMatchGlobs: [
+            // Server-only logic: DB/service/job suites must run in Node to avoid Edge/browser guards
+            ["tests/services/**/*.test.{ts,tsx}", "node"],
+            ["tests/jobs/**/*.test.{ts,tsx}", "node"],
+            ["tests/debug/**/*.test.{ts,tsx}", "node"],
+            ["tests/finance/**/*.test.{ts,tsx}", "node"],
+            ["tests/unit/lib/**/*.test.{ts,tsx}", "node"],
+            ["tests/unit/returns/**/*.test.{ts,tsx}", "node"],
+          ],
           include: ["**/*.test.ts", "**/*.test.tsx"],
           exclude: [
             ...baseExcludes,
