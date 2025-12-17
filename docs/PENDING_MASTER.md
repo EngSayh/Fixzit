@@ -1,5 +1,28 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-17 23:58 (Asia/Riyadh) — Code Review Update
+**Context:** feat/superadmin-branding | d60b3a0c2 | (no PR)
+**DB Sync:** created=1, updated=17, skipped=2, errors=0 (POST /api/issues/import with superadmin session)
+
+**✅ Resolved Today (DB SSOT):**
+- None (import-only sync; no status transitions recorded)
+
+**🟠 In Progress:**
+- P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components
+- P3-SOUQ-PRODUCTS — Migrate Souq Products list to DataTableStandard with filters
+- P3-LIST-INTEGRATION-TESTS — Add integration tests for 12 list components across roles
+
+**🔴 Blocked:**
+- None (API and Mongo reachable)
+
+**🆕 New Findings Added to DB (with evidence):**
+- BACKLOG_AUDIT.json import applied (created=1, updated=17, skipped=2)
+
+**Next Steps (ONLY from DB items above):**
+- Continue filter wiring and list integration tests (P3 items)
+- Run full `pnpm vitest run --reporter=verbose` or `pnpm test:stable` after sync
+- Add SSR auth test for superadmin layout and apply aggregate helper to analytics routes
+
 ### 2025-12-17 23:47 (Asia/Riyadh) — SSOT Sync
 **Context:** feat/superadmin-branding | abc3a3e12 | (no PR)
 **DB Sync:** created=20, updated=0, skipped=0, errors=0 (POST /api/issues/import)
