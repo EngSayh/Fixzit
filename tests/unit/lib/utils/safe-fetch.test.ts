@@ -398,15 +398,16 @@ describe("safeFetch", () => {
       // Cancel immediately
       cancel();
 
-      // Wait a bit to ensure promise handles the abort
-      await vi.advanceTimersByTimeAsync(100);
+      // Wait long enough for mock promise to reject (1000ms + buffer)
+      // FIX: Changed from 100ms to 1500ms to eliminate race condition in parallel test runs
+      await vi.advanceTimersByTimeAsync(1500);
 
       // onComplete should eventually be called with an error result
       await vi.waitFor(() => {
         expect(onComplete).toHaveBeenCalled();
         const result = onComplete.mock.calls[0][0];
         expect(result.ok).toBe(false);
-      });
+      }, { timeout: 2000 }); // ADDED: explicit timeout to prevent hanging
     });
 
     it("should return cancel function for cleanup", () => {

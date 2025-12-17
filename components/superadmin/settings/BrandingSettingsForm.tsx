@@ -1,0 +1,304 @@
+"use client";
+
+/**
+ * @fileoverview Superadmin Branding Settings Form
+ * @description UI for managing platform-wide branding (logo, colors, name)
+ * @module components/superadmin/settings/BrandingSettingsForm
+ */
+
+import { useState, useEffect } from "react";
+import { useI18n } from "@/i18n/useI18n";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BrandLogo } from "@/components/brand";
+import { Upload, Save, RotateCcw, AlertCircle, CheckCircle2 } from "lucide-react";
+import { logger } from "@/lib/logger";
+
+interface BrandingData {
+  logoUrl: string;
+  brandName: string;
+  brandColor: string;
+  faviconUrl?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export function BrandingSettingsForm() {
+  const { t: _t } = useI18n();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  
+  const [formData, setFormData] = useState<BrandingData>({
+    logoUrl: "/img/fixzit-logo.png",
+    brandName: "Fixzit Enterprise",
+    brandColor: "#0061A8",
+  });
+
+  const [originalData, setOriginalData] = useState<BrandingData>(formData);
+
+  // Fetch current branding settings
+  useEffect(() => {
+    async function fetchBranding() {
+      try {
+        const response = await fetch("/api/superadmin/branding");
+        if (!response.ok) {
+          throw new Error("Failed to fetch branding settings");
+        }
+        const result = await response.json();
+        const data: BrandingData = {
+          logoUrl: result.data.logoUrl || "/img/fixzit-logo.png",
+          brandName: result.data.brandName || "Fixzit Enterprise",
+          brandColor: result.data.brandColor || "#0061A8",
+          faviconUrl: result.data.faviconUrl,
+          updatedAt: result.data.updatedAt,
+          updatedBy: result.data.updatedBy,
+        };
+        setFormData(data);
+        setOriginalData(data);
+      } catch (err) {
+        logger.error("Failed to load branding settings", { error: err });
+        setError("Failed to load branding settings. Please refresh the page.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchBranding();
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // Validate hex color
+      if (!/^#[0-9A-Fa-f]{6}$/.test(formData.brandColor)) {
+        setError("Brand color must be a valid hex code (e.g., #0061A8)");
+        setSaving(false);
+        return;
+      }
+
+      const response = await fetch("/api/superadmin/branding", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          logoUrl: formData.logoUrl,
+          brandName: formData.brandName,
+          brandColor: formData.brandColor,
+          faviconUrl: formData.faviconUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save branding settings");
+      }
+
+      const result = await response.json();
+      const updatedData: BrandingData = {
+        logoUrl: result.data.logoUrl,
+        brandName: result.data.brandName,
+        brandColor: result.data.brandColor,
+        faviconUrl: result.data.faviconUrl,
+        updatedAt: result.data.updatedAt,
+        updatedBy: result.data.updatedBy,
+      };
+      
+      setFormData(updatedData);
+      setOriginalData(updatedData);
+      setSuccess("Branding settings saved successfully!");
+      
+      // Force reload to show updated logo (cache bust)
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      logger.error("Failed to save branding", { error: err });
+      setError(err instanceof Error ? err.message : "Failed to save branding settings");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    setFormData(originalData);
+    setError(null);
+    setSuccess(null);
+  };
+
+  const isDirty = JSON.stringify(formData) !== JSON.stringify(originalData);
+
+  if (loading) {
+    return (
+      <Card className="bg-slate-900 border-slate-800">
+        <CardContent className="pt-6">
+          <p className="text-slate-400">Loading branding settings...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Current Logo Preview */}
+      <Card className="bg-slate-900 border-slate-800">
+        <CardHeader>
+          <CardTitle className="text-white">Current Logo</CardTitle>
+          <CardDescription>Preview of the current platform logo</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center p-8 bg-slate-800 rounded-lg">
+            <BrandLogo size="2xl" logoUrl={formData.logoUrl} />
+          </div>
+          {formData.updatedAt && formData.updatedBy && (
+            <p className="text-xs text-slate-500 mt-4">
+              Last updated: {new Date(formData.updatedAt).toLocaleString()} by {formData.updatedBy}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Branding Settings Form */}
+      <Card className="bg-slate-900 border-slate-800">
+        <CardHeader>
+          <CardTitle className="text-white">Branding Settings</CardTitle>
+          <CardDescription>
+            Configure platform-wide branding including logo, name, and colors
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Alerts */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {success && (
+            <Alert className="bg-green-950 border-green-800 text-green-200">
+              <CheckCircle2 className="h-4 w-4" />
+              <AlertDescription>{success}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Logo URL */}
+          <div className="space-y-2">
+            <Label htmlFor="logoUrl" className="text-slate-200">
+              Logo URL
+            </Label>
+            <Input
+              id="logoUrl"
+              type="url"
+              value={formData.logoUrl}
+              onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
+              placeholder="https://example.com/logo.png"
+              className="bg-slate-800 border-slate-700 text-white"
+            />
+            <p className="text-xs text-slate-500">
+              Enter a publicly accessible URL to your logo image (PNG, SVG, WebP, or JPEG)
+            </p>
+          </div>
+
+          {/* Brand Name */}
+          <div className="space-y-2">
+            <Label htmlFor="brandName" className="text-slate-200">
+              Brand Name
+            </Label>
+            <Input
+              id="brandName"
+              type="text"
+              value={formData.brandName}
+              onChange={(e) => setFormData({ ...formData, brandName: e.target.value })}
+              placeholder="Fixzit Enterprise"
+              className="bg-slate-800 border-slate-700 text-white"
+              maxLength={100}
+            />
+          </div>
+
+          {/* Brand Color */}
+          <div className="space-y-2">
+            <Label htmlFor="brandColor" className="text-slate-200">
+              Primary Brand Color
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="brandColor"
+                type="text"
+                value={formData.brandColor}
+                onChange={(e) => setFormData({ ...formData, brandColor: e.target.value })}
+                placeholder="#0061A8"
+                className="bg-slate-800 border-slate-700 text-white"
+                pattern="^#[0-9A-Fa-f]{6}$"
+              />
+              <div
+                className="w-12 h-10 rounded border border-slate-700"
+                style={{ backgroundColor: formData.brandColor }}
+                title={formData.brandColor}
+              />
+            </div>
+            <p className="text-xs text-slate-500">
+              Hex color code (e.g., #0061A8)
+            </p>
+          </div>
+
+          {/* Favicon URL (optional) */}
+          <div className="space-y-2">
+            <Label htmlFor="faviconUrl" className="text-slate-200">
+              Favicon URL <span className="text-slate-500">(optional)</span>
+            </Label>
+            <Input
+              id="faviconUrl"
+              type="url"
+              value={formData.faviconUrl || ""}
+              onChange={(e) => setFormData({ ...formData, faviconUrl: e.target.value })}
+              placeholder="https://example.com/favicon.ico"
+              className="bg-slate-800 border-slate-700 text-white"
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button
+              onClick={handleSave}
+              disabled={!isDirty || saving}
+              className="bg-[#0061A8] hover:bg-[#004d8a] text-white"
+            >
+              {saving ? (
+                <>Saving...</>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 me-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={handleReset}
+              disabled={!isDirty || saving}
+              variant="outline"
+              className="border-slate-700 text-slate-200"
+            >
+              <RotateCcw className="w-4 h-4 me-2" />
+              Reset
+            </Button>
+          </div>
+
+          {/* Upload Note */}
+          <Alert className="bg-slate-800 border-slate-700">
+            <Upload className="h-4 w-4 text-slate-400" />
+            <AlertDescription className="text-slate-400">
+              <strong className="text-slate-200">Note:</strong> Logo upload via file picker
+              will be implemented in Phase 2. For now, upload your logo to cloud storage
+              (S3, Cloudinary, Vercel Blob) and paste the public URL above.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

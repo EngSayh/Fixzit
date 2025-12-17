@@ -43,6 +43,7 @@
     "cleanup:cache": "bash scripts/cleanup-dev-cache.sh",
     "agent:verify": "npm run typecheck && npm run lint && npm run build",
     "qa:verify": "node scripts/qa/halt-fix-verify.mjs",
+    "merge:gate": "bash scripts/ci/local-merge-gate.sh",
     "verify": "node qa/scripts/verify.mjs --fast",
     "verify:fast": "node qa/scripts/verify.mjs --fast",
     "verify:full": "VERIFY_FULL=true node qa/scripts/verify.mjs",
