@@ -19,7 +19,10 @@
     "**/dist": true,
     "**/.pnpm-store": true,
     "**/coverage": true,
-    "**/_artifacts": true
+    "**/_artifacts": true,
+    "**/.vitest": true,
+    "**/playwright-report": true,
+    "**/test-results": true
   },
   "search.exclude": {
     "**/node_modules": true,
@@ -29,7 +32,11 @@
     "**/.pnpm-store": true,
     "**/coverage": true,
     "**/_artifacts": true,
-    "**/ai-memory": true
+    "**/ai-memory": true,
+    "**/.vitest": true,
+    "**/playwright-report": true,
+    "**/test-results": true,
+    "**/vitest-results.json": true
   },
   "files.watcherExclude": {
     "**/node_modules/**": true,
@@ -38,7 +45,10 @@
     "**/.git/subtree-cache/**": true,
     "**/dist/**": true,
     "**/.pnpm-store/**": true,
-    "**/coverage/**": true
+    "**/coverage/**": true,
+    "**/.vitest/**": true,
+    "**/playwright-report/**": true,
+    "**/test-results/**": true
   },
   // Utilize full 36GB RAM - no artificial caps
   "typescript.tsserver.maxTsServerMemory": 8192,

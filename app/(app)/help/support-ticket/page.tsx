@@ -374,7 +374,7 @@ export default function SupportTicketPage() {
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder={auto(
-                    "+966 XX XXX XXXX",
+                    "+966 11 234 5678",
                     "form.phone.placeholder",
                   )}
                 />

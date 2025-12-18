@@ -92,7 +92,7 @@ describe("Support Organization Search API", () => {
     });
 
     it("should return 403 if no session", async () => {
-      vi.mocked(auth).mockResolvedValue(null);
+      vi.mocked(auth).mockResolvedValue({ user: null, expires: new Date().toISOString() } as any);
 
       const request = createRequest({ identifier: "test-org" });
       const response = await GET(request);
