@@ -73,11 +73,9 @@ export function SuperadminHeader() {
   const [globalSearch, setGlobalSearch] = useState("");
   const username = session?.user?.username?.trim() || null;
   const displayName = username || t("superadmin.account");
-  const homeLabel = t("header.homeLink", "Go to landing") || "Go to landing";
-  const switchTenantLabel =
-    t("superadmin.switchTenant", "Switch tenant") || "Switch tenant";
-  const currencyLabel =
-    t("currency.selectorLabel", "Currency selector") || "Currency selector";
+  const homeLabel = t("header.homeLink") || "Go to landing";
+  const switchTenantLabel = t("superadmin.switchTenant") || "Switch tenant";
+  const currencyLabel = t("currency.selectorLabel") || "Currency selector";
 
   const handleLogout = async () => {
     setLoggingOut(true);

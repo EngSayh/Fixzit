@@ -223,22 +223,23 @@ vi.mock("next/navigation", () => {
   const backMock = vi.fn();
   const forwardMock = vi.fn();
   const refreshMock = vi.fn();
+  const useRouterMock = vi.fn(() => ({
+    push: pushMock,
+    replace: replaceMock,
+    prefetch: prefetchMock,
+    back: backMock,
+    forward: forwardMock,
+    refresh: refreshMock,
+    pathname: "/fm/dashboard",
+    query: {},
+    asPath: "/fm/dashboard",
+  }));
 
   return {
-    useRouter: () => ({
-      push: pushMock,
-      replace: replaceMock,
-      prefetch: prefetchMock,
-      back: backMock,
-      forward: forwardMock,
-      refresh: refreshMock,
-      pathname: "/fm/dashboard",
-      query: {},
-      asPath: "/fm/dashboard",
-    }),
-    usePathname: () => "/fm/dashboard",
-    useSearchParams: () => new URLSearchParams(),
-    useParams: () => ({}),
+    useRouter: useRouterMock,
+    usePathname: vi.fn(() => "/fm/dashboard"),
+    useSearchParams: vi.fn(() => new URLSearchParams()),
+    useParams: vi.fn(() => ({})),
     notFound: vi.fn(() => {
       throw new Error("NEXT_NOT_FOUND");
     }),

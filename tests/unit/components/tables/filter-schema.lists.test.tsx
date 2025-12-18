@@ -84,6 +84,173 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => (
   </SWRConfig>
 );
 
+type SchemaCase<TFilters extends Record<string, unknown>> = {
+  name: string;
+  schema: Array<FilterSchema<TFilters>>;
+  filters: TFilters;
+  expectedParams: Record<string, string | number | boolean>;
+  expectedLabels: string[];
+};
+
+const schemaCases: Array<SchemaCase<Record<string, unknown>>> = [
+  {
+    name: "WorkOrders",
+    schema: WORK_ORDER_FILTER_SCHEMA as Array<FilterSchema<Record<string, unknown>>>,
+    filters: {
+      status: "IN_PROGRESS",
+      dueDateFrom: "2024-01-01",
+      dueDateTo: "2024-01-31",
+    } satisfies WorkOrderFilters,
+    expectedParams: {
+      status: "IN_PROGRESS",
+      dueDateFrom: "2024-01-01",
+      dueDateTo: "2024-01-31",
+    },
+    expectedLabels: ["Status: IN_PROGRESS", "Due: 2024-01-01 → 2024-01-31"],
+  },
+  {
+    name: "Users",
+    schema: USER_FILTER_SCHEMA as Array<FilterSchema<Record<string, unknown>>>,
+    filters: {
+      status: "ACTIVE",
+      role: "ORG_ADMIN",
+      lastLoginFrom: "2024-01-01",
+      lastLoginTo: "2024-01-10",
+    } satisfies UserFilters,
+    expectedParams: {
+      status: "ACTIVE",
+      role: "ORG_ADMIN",
+      lastLoginFrom: "2024-01-01",
+      lastLoginTo: "2024-01-10",
+    },
+    expectedLabels: [
+      "Status: ACTIVE",
+      "Role: ORG_ADMIN",
+      "Last login: 2024-01-01 \u2192 2024-01-10",
+    ],
+  },
+  {
+    name: "Roles",
+    schema: ROLE_FILTER_SCHEMA as Array<FilterSchema<Record<string, unknown>>>,
+    filters: {
+      type: "SYSTEM",
+      status: "ACTIVE",
+      membersMin: 2,
+      membersMax: 5,
+    } satisfies RoleFilters,
+    expectedParams: {
+      type: "SYSTEM",
+      status: "ACTIVE",
+      membersMin: 2,
+      membersMax: 5,
+    },
+    expectedLabels: ["Type: SYSTEM", "Status: ACTIVE", "Members: 2-5"],
+  },
+  {
+    name: "AuditLogs",
+    schema: AUDIT_FILTER_SCHEMA as Array<FilterSchema<Record<string, unknown>>>,
+    filters: {
+      eventType: "LOGIN",
+      status: "SUCCESS",
+      action: "admin",
+      timestampFrom: "2024-02-01",
+      timestampTo: "2024-02-02",
+    } satisfies AuditFilters,
+    expectedParams: {
+      eventType: "LOGIN",
+      status: "SUCCESS",
+      action: "admin",
+      timestampFrom: "2024-02-01",
+      timestampTo: "2024-02-02",
+    },
+    expectedLabels: [
+      "Event: LOGIN",
+      "Status: SUCCESS",
+      "Action: admin",
+      "Timestamp: 2024-02-01 \u2192 2024-02-02",
+    ],
+  },
+  {
+    name: "Employees",
+    schema: EMPLOYEE_FILTER_SCHEMA as Array<FilterSchema<Record<string, unknown>>>,
+    filters: {
+      status: "ON_LEAVE",
+      department: "Operations",
+      employmentType: "FULL_TIME",
+      joiningFrom: "2024-01-01",
+      joiningTo: "2024-01-31",
+    } satisfies EmployeeFilters,
+    expectedParams: {
+      status: "ON_LEAVE",
+      department: "Operations",
+      employmentType: "FULL_TIME",
+      joiningFrom: "2024-01-01",
+      joiningTo: "2024-01-31",
+    },
+    expectedLabels: [
+      "Status: ON LEAVE",
+      "Department: Operations",
+      "Type: FULL TIME",
+      "Joining: 2024-01-01 \u2192 2024-01-31",
+    ],
+  },
+  {
+    name: "Invoices",
+    schema: INVOICE_FILTER_SCHEMA as Array<FilterSchema<Record<string, unknown>>>,
+    filters: {
+      status: "PAID",
+      amountMin: 1000,
+      amountMax: 5000,
+      issueFrom: "2024-01-01",
+      issueTo: "2024-01-15",
+    } satisfies InvoiceFilters,
+    expectedParams: {
+      status: "PAID",
+      amountMin: 1000,
+      amountMax: 5000,
+      issueFrom: "2024-01-01",
+      issueTo: "2024-01-15",
+    },
+    expectedLabels: [
+      "Status: PAID",
+      "Amount: 1000-5000",
+      "Issue: 2024-01-01 \u2192 2024-01-15",
+    ],
+  },
+  {
+    name: "Properties",
+    schema: PROPERTY_FILTER_SCHEMA as Array<FilterSchema<Record<string, unknown>>>,
+    filters: {
+      listingType: "RENT",
+      city: "Riyadh",
+      priceMin: 5000,
+      priceMax: 9000,
+    } satisfies PropertyFilters,
+    expectedParams: {
+      listingType: "RENT",
+      city: "Riyadh",
+      priceMin: 5000,
+      priceMax: 9000,
+    },
+    expectedLabels: ["Listing: RENT", "City: Riyadh", "Price: 5000-9000"],
+  },
+  {
+    name: "Products",
+    schema: PRODUCT_FILTER_SCHEMA as Array<FilterSchema<Record<string, unknown>>>,
+    filters: {
+      category: "FM Supplies",
+      sellerType: "FIXZIT",
+      ratingMin: 4.5,
+    } satisfies ProductFilters,
+    expectedParams: {
+      category: "FM Supplies",
+      sellerType: "FIXZIT",
+      ratingMin: 4.5,
+    },
+    expectedLabels: ["Category: FM Supplies", "Seller: FIXZIT", "Rating ≥ 4.5"],
+  },
+];
+
 describe("Filter schema + chips wiring", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -115,6 +282,7 @@ describe("Filter schema + chips wiring", () => {
     const lastUrl = calls[calls.length - 1]?.[0] as string;
     expect(lastUrl).toContain("overdue=true");
     expect(screen.getAllByText(/Overdue/)[0]).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Overdue" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("Users quick chip sets status and shows chip", async () => {
@@ -192,5 +360,24 @@ describe("Filter schema + chips wiring", () => {
     const lastUrl = calls[calls.length - 1]?.[0] as string;
     expect(lastUrl).toContain("category=FM+Supplies");
     expect(screen.getByText(/Category: FM Supplies/)).toBeInTheDocument();
+  });
+});
+
+describe("Filter schema serialization (drawer apply)", () => {
+  schemaCases.forEach(({ name, schema, filters, expectedParams, expectedLabels }) => {
+    it(`${name} serializes filters and builds chips`, () => {
+      const params = new URLSearchParams();
+      serializeFilters(filters, schema, params);
+
+      Object.entries(expectedParams).forEach(([key, value]) => {
+        expect(params.get(key)).toBe(String(value));
+      });
+
+      const chips = buildActiveFilterChips(filters, schema, () => {});
+      const labels = chips.map((chip) => chip.label);
+      expectedLabels.forEach((label) => {
+        expect(labels).toContain(label);
+      });
+    });
   });
 });

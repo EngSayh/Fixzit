@@ -64,6 +64,7 @@ export const Chip = React.forwardRef<HTMLButtonElement, ChipProps>(
         disabled={disabled}
         aria-pressed={selected}
         aria-label={props["aria-label"] || inferredLabel}
+        type="button"
         {...props}
       >
         <span className="inline-flex items-center">{children}</span>
