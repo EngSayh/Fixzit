@@ -10,7 +10,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
-import { Star, StarOff, Trash2, Plus, ChevronDown } from "lucide-react";
+import { Star, StarOff, Trash2, Plus, ChevronDown, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -54,7 +54,7 @@ export function FilterPresetsDropdown({
   const { toast } = useToast();
   const [showPresetsDialog, setShowPresetsDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [_showEditDialog, setShowEditDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingPreset, setEditingPreset] = useState<{ id: string; name: string; isDefault: boolean } | null>(null);
   const [presetName, setPresetName] = useState("");
   const [isDefault, setIsDefault] = useState(false);
@@ -137,7 +137,7 @@ export function FilterPresetsDropdown({
     [deletePreset, toast]
   );
 
-  const _handleEditPreset = useCallback((presetId: string, currentName: string, currentIsDefault: boolean) => {
+  const handleEditPreset = useCallback((presetId: string, currentName: string, currentIsDefault: boolean) => {
     setEditingPreset({ id: presetId, name: currentName, isDefault: currentIsDefault });
     setPresetName(currentName);
     setIsDefault(currentIsDefault);
@@ -145,7 +145,7 @@ export function FilterPresetsDropdown({
     setShowEditDialog(true);
   }, []);
 
-  const _handleUpdatePreset = useCallback(async () => {
+  const handleUpdatePreset = useCallback(async () => {
     if (!editingPreset || !presetName.trim()) {
       toast({
         title: "Name required",
@@ -275,7 +275,7 @@ export function FilterPresetsDropdown({
                         className="h-8 w-8 p-0"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleEditPreset(preset._id, preset.name, preset.is_default);
+                          handleEditPreset(preset._id, preset.name, preset.is_default ?? false);
                         }}
                       >
                         <Edit2 className="w-4 h-4" />
@@ -356,6 +356,58 @@ export function FilterPresetsDropdown({
             </Button>
             <Button onClick={handleSavePreset} disabled={isSaving || !presetName.trim()}>
               {isSaving ? "Saving..." : "Save Preset"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Preset Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={(open) => {
+        setShowEditDialog(open);
+        if (!open) {
+          setEditingPreset(null);
+          setPresetName("");
+          setIsDefault(false);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Filter Preset</DialogTitle>
+            <DialogDescription>
+              Update the name or default status of this preset.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-preset-name">Preset Name</Label>
+              <Input
+                id="edit-preset-name"
+                placeholder="e.g., High Priority Overdue"
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                maxLength={100}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit-is-default"
+                checked={isDefault}
+                onCheckedChange={(checked) => setIsDefault(checked === true)}
+              />
+              <Label htmlFor="edit-is-default" className="text-sm font-normal cursor-pointer">
+                Set as default (auto-load on page open)
+              </Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdatePreset} disabled={isSaving || !presetName.trim()}>
+              {isSaving ? "Updating..." : "Update Preset"}
             </Button>
           </DialogFooter>
         </DialogContent>
