@@ -14,8 +14,6 @@ import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongo";
 import { AqarListing } from "@/server/models/aqar";
 import {
-  ListingIntent,
-  PropertyType,
   ListingStatus,
   type IListing,
 } from "@/server/models/aqar/Listing";
@@ -48,39 +46,6 @@ const AqarListingsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
   offset: z.coerce.number().int().nonnegative().default(0),
 });
-
-const sanitizeEnum = <T extends string>(
-  value: string | null,
-  allowed: readonly T[],
-): T | undefined =>
-  value && (allowed as readonly string[]).includes(value)
-    ? (value as T)
-    : undefined;
-
-const parseIntegerParam = (
-  value: string | null,
-  fallback: number,
-  bounds: { min?: number; max?: number } = {},
-) => {
-  if (!value) {
-    return fallback;
-  }
-
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-
-  let normalized = Math.floor(parsed);
-  if (typeof bounds.min === "number" && normalized < bounds.min) {
-    normalized = bounds.min;
-  }
-  if (typeof bounds.max === "number" && normalized > bounds.max) {
-    normalized = bounds.max;
-  }
-
-  return normalized;
-};
 
 /**
  * GET /api/public/aqar/listings

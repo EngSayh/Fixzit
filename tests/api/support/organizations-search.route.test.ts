@@ -65,11 +65,15 @@ describe("Support Organization Search API", () => {
     vi.mocked(auth).mockResolvedValue({
       user: { id: "superadmin", isSuperAdmin: true },
     } as any);
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
-    vi.mocked(Organization.find).mockReturnThis();
-    vi.mocked(Organization.select).mockReturnThis();
-    vi.mocked(Organization.limit).mockReturnThis();
-    vi.mocked(Organization.lean).mockResolvedValue([]);
+    vi.mocked(enforceRateLimit).mockReturnValue(null as any);
+    
+    // Mock Mongoose query chain
+    const mockQuery = {
+      select: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockResolvedValue([]),
+    };
+    vi.mocked(Organization.find).mockReturnValue(mockQuery as any);
     vi.mocked(Organization.aggregate).mockResolvedValue([]);
   });
 
