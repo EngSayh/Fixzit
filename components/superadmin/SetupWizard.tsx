@@ -53,6 +53,16 @@ interface UserData {
 
 export function SetupWizard() {
   const router = useRouter();
+  const navigate = (href: string) => {
+    if (router?.push) {
+      router.push(href);
+    } else {
+      logger.warn("[SetupWizard] Navigation skipped - no router available", {
+        component: "SetupWizard",
+        href,
+      });
+    }
+  };
   const [currentStep, setCurrentStep] = useState<WizardStep>("branding");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -455,7 +465,7 @@ export function SetupWizard() {
 
           {currentStep === "complete" && (
             <Button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => navigate("/dashboard")}
               className="w-full"
             >
               Go to Dashboard

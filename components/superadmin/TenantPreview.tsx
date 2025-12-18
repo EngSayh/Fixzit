@@ -27,6 +27,16 @@ interface TenantPreviewProps {
 
 export function TenantPreview({ orgId, orgName }: TenantPreviewProps) {
   const router = useRouter();
+  const navigate = (href: string) => {
+    if (router?.push) {
+      router.push(href);
+    } else {
+      logger.warn("[TenantPreview] Navigation skipped - no router available", {
+        component: "TenantPreview",
+        href,
+      });
+    }
+  };
   const [isPreviewActive, setIsPreviewActive] = useState(false);
 
   useEffect(() => {
@@ -61,7 +71,7 @@ export function TenantPreview({ orgId, orgName }: TenantPreviewProps) {
       toast.success(`Preview mode activated for ${orgName || orgId}`);
 
       // Redirect to tenant dashboard
-      router.push("/dashboard");
+      navigate("/dashboard");
     } catch (error) {
       logger.error("[SuperadminPreview] Preview mode failed", { error });
       toast.error("Failed to start preview mode");
@@ -84,7 +94,7 @@ export function TenantPreview({ orgId, orgName }: TenantPreviewProps) {
       toast.success("Preview mode exited");
 
       // Redirect to superadmin dashboard
-      router.push("/superadmin");
+      navigate("/superadmin");
     } catch (error) {
       logger.error("[SuperadminPreview] Exit preview failed", { error });
       toast.error("Failed to exit preview mode");
