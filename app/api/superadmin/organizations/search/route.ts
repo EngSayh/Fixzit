@@ -11,6 +11,7 @@ import { connectDb } from "@/lib/mongodb-unified";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import mongoose from "mongoose";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Organization model stub (assumes Organization collection exists)
 // Adjust schema based on actual Organization model
@@ -38,6 +39,14 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Rate limiting: 20 requests per minute per superadmin
+    const rateLimitResponse = enforceRateLimit(request, {
+      keyPrefix: `superadmin:org-search:${session.username}`,
+      requests: 20,
+      windowMs: 60_000,
+    });
+    if (rateLimitResponse) return rateLimitResponse;
 
     await connectDb();
 

@@ -20,11 +20,18 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: vi.fn(() => null), // Default: no rate limit
+}));
+
 const { getSuperadminSession } = await import("@/lib/superadmin/auth");
+const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
 
 describe("Superadmin Impersonation API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset rate limit mock to default (not triggered)
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
 
   describe("POST /api/superadmin/impersonate", () => {
@@ -140,6 +147,40 @@ describe("Superadmin Impersonation API", () => {
       // Check cookie was cleared (set-cookie with Max-Age=0 or Expires in past)
       const setCookieHeader = response.headers.get("set-cookie");
       expect(setCookieHeader).toContain("support_org_id");
+    });
+  });
+
+  describe("Rate Limiting", () => {
+    it("should return 429 when rate limit exceeded on POST", async () => {
+      vi.mocked(getSuperadminSession).mockResolvedValue({
+        username: "superadmin",
+        role: "superadmin",
+      } as any);
+
+      // Mock rate limit exceeded
+      const rateLimitResponse = new Response(
+        JSON.stringify({ error: "Too many requests" }),
+        { status: 429, headers: { "Retry-After": "60" } }
+      );
+      vi.mocked(enforceRateLimit).mockReturnValueOnce(rateLimitResponse as any);
+
+      const request = new NextRequest("http://localhost/api/superadmin/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId: "org_abc123" }),
+      });
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(429);
+      expect(enforceRateLimit).toHaveBeenCalledWith(
+        request,
+        expect.objectContaining({
+          keyPrefix: "superadmin:impersonate:superadmin",
+          requests: 10,
+          windowMs: 60_000,
+        })
+      );
     });
   });
 });

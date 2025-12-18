@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const ImpersonateSchema = z.object({
   orgId: z.string().min(1, "Organization ID is required"),
@@ -30,6 +31,14 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Rate limiting: 10 requests per minute per superadmin
+    const rateLimitResponse = enforceRateLimit(request, {
+      keyPrefix: `superadmin:impersonate:${session.username}`,
+      requests: 10,
+      windowMs: 60_000,
+    });
+    if (rateLimitResponse) return rateLimitResponse;
 
     // Parse and validate request body
     let body;
