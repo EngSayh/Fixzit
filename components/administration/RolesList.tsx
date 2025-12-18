@@ -64,7 +64,7 @@ const typeStyles: Record<string, string> = {
   CUSTOM: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/20",
 };
 
-type RoleFilters = {
+export type RoleFilters = {
   type?: string;
   status?: string;
   membersMin?: number;
@@ -73,7 +73,7 @@ type RoleFilters = {
   createdTo?: string;
 };
 
-const ROLE_FILTER_SCHEMA: FilterSchema<RoleFilters>[] = [
+export const ROLE_FILTER_SCHEMA: FilterSchema<RoleFilters>[] = [
   { key: "type", param: "type", label: (f) => `Type: ${f.type}` },
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   {
@@ -161,13 +161,34 @@ export function RolesList({ orgId }: RolesListProps) {
   const roles = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
+  const filters = state.filters as RoleFilters;
 
   // Quick chips (P0)
   const quickChips = [
-    { key: "system", label: "System Roles", onClick: () => updateState({ filters: { type: "SYSTEM" }, page: 1 }) },
-    { key: "custom", label: "Custom Roles", onClick: () => updateState({ filters: { type: "CUSTOM" }, page: 1 }) },
-    { key: "active", label: "Active", onClick: () => updateState({ filters: { status: "ACTIVE" }, page: 1 }) },
-    { key: "unused", label: "Unused", onClick: () => updateState({ filters: { membersMax: 0 }, page: 1 }) },
+    {
+      key: "system",
+      label: "System Roles",
+      onClick: () => updateState({ filters: { type: "SYSTEM" }, page: 1 }),
+      selected: filters.type === "SYSTEM",
+    },
+    {
+      key: "custom",
+      label: "Custom Roles",
+      onClick: () => updateState({ filters: { type: "CUSTOM" }, page: 1 }),
+      selected: filters.type === "CUSTOM",
+    },
+    {
+      key: "active",
+      label: "Active",
+      onClick: () => updateState({ filters: { status: "ACTIVE" }, page: 1 }),
+      selected: filters.status === "ACTIVE",
+    },
+    {
+      key: "unused",
+      label: "Unused",
+      onClick: () => updateState({ filters: { membersMax: 0 }, page: 1 }),
+      selected: filters.membersMax === 0,
+    },
   ];
 
   // Active filters
@@ -300,7 +321,7 @@ export function RolesList({ orgId }: RolesListProps) {
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick}>
+                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
                   {chip.label}
                 </Chip>
               ))}
@@ -310,7 +331,13 @@ export function RolesList({ orgId }: RolesListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilterDrawerOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={filterDrawerOpen}
+            >
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (

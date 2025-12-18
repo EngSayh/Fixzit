@@ -1,28 +1,21 @@
 "use client";
 
-/**
- * Superadmin Header
- * Top bar with user info, settings, and logout
- * 
- * @module components/superadmin/SuperadminHeader
- */
-
+import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useI18n } from "@/i18n/useI18n";
 import { LogOut, Settings, User, Search, Sun, Moon, Bell, Command } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { logger } from "@/lib/logger";
-import dynamic from "next/dynamic";
 import { Select, SelectItem } from "@/components/ui/select";
 import { BrandLogo } from "@/components/brand";
 import { useThemeCtx } from "@/contexts/ThemeContext";
+import { useI18n } from "@/i18n/useI18n";
 import {
   LANGUAGE_OPTIONS,
   type LanguageOption,
 } from "@/config/language-options";
 import type { Locale } from "@/i18n/config";
+import { logger } from "@/lib/logger";
 import { useSuperadminSession } from "./superadmin-session";
 
 const CurrencySelector = dynamic(
@@ -52,25 +45,26 @@ function SuperadminLanguageDropdown() {
   };
 
   return (
-    <Select
-      aria-label={t("i18n.selectLanguageLabel")}
-      value={active.language}
-      onValueChange={handleChange}
-      wrapperClassName="min-w-[160px]"
-      className="h-10 bg-slate-900 text-slate-100 border-slate-700 pe-9 ps-3"
-      data-testid="superadmin-language-dropdown"
-    >
-      {ENABLED_LOCALES.map((option) => (
-        <SelectItem key={option.language} value={option.language}>
-          {option.flag} {option.native}
-        </SelectItem>
-      ))}
-    </Select>
+    <div className="min-w-[160px]">
+      <Select
+        aria-label={t("i18n.selectLanguageLabel")}
+        value={active.language}
+        onValueChange={handleChange}
+        className="h-10 bg-slate-900 text-slate-100 border-slate-700 pe-9 ps-3"
+        data-testid="language-select"
+      >
+        {ENABLED_LOCALES.map((option) => (
+          <SelectItem key={option.language} value={option.language}>
+            {option.flag} {option.native}
+          </SelectItem>
+        ))}
+      </Select>
+    </div>
   );
 }
 
 export function SuperadminHeader() {
-  const router = useRouter();
+  const router = useRouter() || { push: () => {} };
   const { t } = useI18n();
   const { theme, setTheme } = useThemeCtx();
   // BUG-001 FIX: Session now provided by server-side layout, no client fetch needed
@@ -81,6 +75,7 @@ export function SuperadminHeader() {
   const displayName = username || t("superadmin.account");
   const switchTenantLabel =
     t("superadmin.switchTenant") || "Switch tenant";
+  const currencyLabel = t("currency.selectorLabel") || "Currency selector";
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -109,13 +104,12 @@ export function SuperadminHeader() {
   };
 
   return (
-    <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6">
-      {/* Title */}
+    <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 gap-4">
       <div className="flex items-center gap-3">
         <button
-          onClick={() => router.push("/superadmin/tenants")}
+          onClick={() => router.push("/")}
           className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-700 hover:bg-slate-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-600"
-          aria-label={switchTenantLabel}
+          aria-label={t("header.homeLink") || "Go to landing"}
           type="button"
         >
           <BrandLogo
@@ -135,33 +129,31 @@ export function SuperadminHeader() {
         </div>
       </div>
 
-      {/* AcGlobal Search with Cmd+K hint */}
+      <div className="flex items-center gap-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             type="text"
             placeholder="Search..."
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
-            className="pl-10 pr-16 w-64 h-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+            className="ps-10 pe-16 w-64 h-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
           />
-          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded border border-slate-600">
+          <kbd className="absolute end-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded border border-slate-600">
             <Command className="inline h-3 w-3" />K
           </kbd>
         </div>
 
-        {/* Theme Toggle */}
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
           className="text-slate-300 hover:text-white"
           title="Toggle theme"
         >
-          {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
         </Button>
 
-        {/* Notifications Bell */}
         <Button
           variant="ghost"
           size="sm"
@@ -169,26 +161,35 @@ export function SuperadminHeader() {
           className="text-slate-300 hover:text-white relative"
         >
           <Bell className="h-4 w-4" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+          <span className="absolute top-1 end-1 w-2 h-2 bg-red-500 rounded-full" />
         </Button>
 
-        {/* tions */}
-      <div className="flex items-center gap-3">
-        {/* Language Selector (dropdown with flags) */}
         <SuperadminLanguageDropdown />
 
-        {/* Currency Selector */}
-        <div className="text-slate-300">
+        <div
+          className="flex items-center gap-2 text-slate-300"
+          aria-label={currencyLabel}
+        >
+          <span className="sr-only sm:not-sr-only sm:text-xs sm:text-slate-400">
+            {currencyLabel}
+          </span>
           <CurrencySelector variant="compact" />
         </div>
 
-        {/* User Badge */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push("/superadmin/tenants")}
+          className="text-slate-300 hover:text-white"
+        >
+          {switchTenantLabel}
+        </Button>
+
         <div className="flex items-center gap-2 px-3 py-2 bg-slate-800 rounded-lg border border-slate-700">
           <User className="h-4 w-4 text-slate-400" />
           <span className="text-white text-sm">{displayName}</span>
         </div>
 
-        {/* Settings */}
         <Button
           variant="ghost"
           size="sm"
@@ -198,7 +199,6 @@ export function SuperadminHeader() {
           <Settings className="h-4 w-4" />
         </Button>
 
-        {/* Logout */}
         <Button
           variant="ghost"
           size="sm"

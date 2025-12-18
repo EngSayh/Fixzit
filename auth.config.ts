@@ -706,7 +706,7 @@ export const authConfig = {
         // SECURITY FIX: Handle cross-tenant email collision for OAuth
         // Check if multiple users share this email across orgs
         const matchingUsers = await User.find({ email: _user.email })
-          .select('_id email orgId status isSuperAdmin professional.role role permissions roles')
+          .select('_id email orgId status isSuperAdmin professional.role role permissions roles preferences.language preferences.currency')
           .limit(2) // Only need to know if there's more than 1
           .lean()
           .exec();
@@ -740,6 +740,10 @@ export const authConfig = {
             permissions?: string[];
             roles?: string[];
             status?: string;
+            preferences?: {
+              language?: string;
+              currency?: string;
+            };
           };
         
         // Block sign-in if user is not ACTIVE

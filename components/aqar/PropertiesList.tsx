@@ -73,7 +73,7 @@ const statusStyles: Record<string, string> = {
   RESERVED: "bg-warning/10 text-warning border border-warning/20",
 };
 
-type PropertyFilters = {
+export type PropertyFilters = {
   type?: string;
   listingType?: string;
   city?: string;
@@ -86,7 +86,7 @@ type PropertyFilters = {
   bathroomsMax?: number;
 };
 
-const PROPERTY_FILTER_SCHEMA: FilterSchema<PropertyFilters>[] = [
+export const PROPERTY_FILTER_SCHEMA: FilterSchema<PropertyFilters>[] = [
   { key: "type", param: "type", label: (f) => `Type: ${f.type}` },
   { key: "listingType", param: "listingType", label: (f) => `Listing: ${f.listingType}` },
   { key: "city", param: "city", label: (f) => `City: ${f.city}` },
@@ -203,6 +203,7 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
   const properties = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
+  const filters = state.filters as PropertyFilters;
 
   // Auto-switch to cards on mobile
   React.useEffect(() => {
@@ -240,11 +241,36 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
 
   // Quick chips (P0)
   const quickChips = [
-    { key: "rent", label: "Rent", onClick: () => updateState({ filters: { listingType: "RENT" }, page: 1 }) },
-    { key: "sale", label: "Sale", onClick: () => updateState({ filters: { listingType: "SALE" }, page: 1 }) },
-    { key: "featured", label: "Featured", onClick: () => updateState({ filters: { featured: true }, page: 1 }) },
-    { key: "riyadh", label: "Riyadh", onClick: () => updateState({ filters: { city: "Riyadh" }, page: 1 }) },
-    { key: "2-3br", label: "2-3 BR", onClick: () => updateState({ filters: { bedroomsMin: 2, bedroomsMax: 3 }, page: 1 }) },
+    {
+      key: "rent",
+      label: "Rent",
+      onClick: () => updateState({ filters: { listingType: "RENT" }, page: 1 }),
+      selected: filters.listingType === "RENT",
+    },
+    {
+      key: "sale",
+      label: "Sale",
+      onClick: () => updateState({ filters: { listingType: "SALE" }, page: 1 }),
+      selected: filters.listingType === "SALE",
+    },
+    {
+      key: "featured",
+      label: "Featured",
+      onClick: () => updateState({ filters: { featured: true }, page: 1 }),
+      selected: Boolean(filters.featured),
+    },
+    {
+      key: "riyadh",
+      label: "Riyadh",
+      onClick: () => updateState({ filters: { city: "Riyadh" }, page: 1 }),
+      selected: filters.city === "Riyadh",
+    },
+    {
+      key: "2-3br",
+      label: "2-3 BR",
+      onClick: () => updateState({ filters: { bedroomsMin: 2, bedroomsMax: 3 }, page: 1 }),
+      selected: filters.bedroomsMin === 2 && filters.bedroomsMax === 3,
+    },
   ];
 
   // Table columns
@@ -450,7 +476,7 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick}>
+                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
                   {chip.label}
                 </Chip>
               ))}
@@ -460,15 +486,33 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
         end={
           <>
             <div className="hidden md:flex gap-2">
-              <Button variant={viewMode === "table" ? "default" : "outline"} size="sm" onClick={() => setViewMode("table")}>
+              <Button
+                variant={viewMode === "table" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+                aria-pressed={viewMode === "table"}
+                aria-label="Show table view"
+              >
                 Table
               </Button>
-              <Button variant={viewMode === "cards" ? "default" : "outline"} size="sm" onClick={() => setViewMode("cards")}>
+              <Button
+                variant={viewMode === "cards" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("cards")}
+                aria-pressed={viewMode === "cards"}
+                aria-label="Show card view"
+              >
                 Cards
               </Button>
             </div>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilterDrawerOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={filterDrawerOpen}
+            >
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (

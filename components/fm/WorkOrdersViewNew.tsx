@@ -97,7 +97,7 @@ const priorityStyles: Record<string, string> = {
   CRITICAL: "bg-destructive/10 text-destructive border border-destructive/20",
 };
 
-type WorkOrderFilters = {
+export type WorkOrderFilters = {
   status?: string;
   priority?: WorkOrderPriority;
   overdue?: boolean;
@@ -108,7 +108,7 @@ type WorkOrderFilters = {
   dueDateTo?: string;
 };
 
-const WORK_ORDER_FILTER_SCHEMA: FilterSchema<WorkOrderFilters>[] = [
+export const WORK_ORDER_FILTER_SCHEMA: FilterSchema<WorkOrderFilters>[] = [
   {
     key: "status",
     param: "status",
@@ -220,15 +220,46 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
   const workOrders = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
+  const filters = state.filters as WorkOrderFilters;
 
   // Quick filter chips (P0 requirement)
   const quickChips = [
-    { key: "open", label: "Open", onClick: () => updateState({ filters: { status: "SUBMITTED" }, page: 1 }) },
-    { key: "overdue", label: "Overdue", onClick: () => updateState({ filters: { overdue: true }, page: 1 }) },
-    { key: "mine", label: "Mine", onClick: () => updateState({ filters: { assignedToMe: true }, page: 1 }) },
-    { key: "unassigned", label: "Unassigned", onClick: () => updateState({ filters: { unassigned: true }, page: 1 }) },
-    { key: "high", label: "High Priority", onClick: () => updateState({ filters: { priority: "HIGH" }, page: 1 }) },
-    { key: "sla-risk", label: "SLA Risk", onClick: () => updateState({ filters: { slaRisk: true }, page: 1 }) },
+    {
+      key: "open",
+      label: "Open",
+      onClick: () => updateState({ filters: { status: "SUBMITTED" }, page: 1 }),
+      selected: filters.status === "SUBMITTED",
+    },
+    {
+      key: "overdue",
+      label: "Overdue",
+      onClick: () => updateState({ filters: { overdue: true }, page: 1 }),
+      selected: Boolean(filters.overdue),
+    },
+    {
+      key: "mine",
+      label: "Mine",
+      onClick: () => updateState({ filters: { assignedToMe: true }, page: 1 }),
+      selected: Boolean(filters.assignedToMe),
+    },
+    {
+      key: "unassigned",
+      label: "Unassigned",
+      onClick: () => updateState({ filters: { unassigned: true }, page: 1 }),
+      selected: Boolean(filters.unassigned),
+    },
+    {
+      key: "high",
+      label: "High Priority",
+      onClick: () => updateState({ filters: { priority: "HIGH" }, page: 1 }),
+      selected: filters.priority === "HIGH",
+    },
+    {
+      key: "sla-risk",
+      label: "SLA Risk",
+      onClick: () => updateState({ filters: { slaRisk: true }, page: 1 }),
+      selected: Boolean(filters.slaRisk),
+    },
   ];
 
   // Active filters chips
@@ -376,7 +407,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick}>
+                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
                   {chip.label}
                 </Chip>
               ))}
@@ -386,7 +417,13 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilterDrawerOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={filterDrawerOpen}
+            >
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (

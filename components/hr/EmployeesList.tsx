@@ -70,7 +70,7 @@ const statusStyles: Record<string, string> = {
   TERMINATED: "bg-destructive/10 text-destructive border border-destructive/20",
 };
 
-type EmployeeFilters = {
+export type EmployeeFilters = {
   status?: string;
   department?: string;
   employmentType?: string;
@@ -80,7 +80,7 @@ type EmployeeFilters = {
   joiningTo?: string;
 };
 
-const EMPLOYEE_FILTER_SCHEMA: FilterSchema<EmployeeFilters>[] = [
+export const EMPLOYEE_FILTER_SCHEMA: FilterSchema<EmployeeFilters>[] = [
   { key: "status", param: "status", label: (f) => `Status: ${f.status?.toString().replace(/_/g, " ")}` },
   { key: "department", param: "department", label: (f) => `Department: ${f.department}` },
   { key: "employmentType", param: "employmentType", label: (f) => `Type: ${f.employmentType?.toString().replace(/_/g, " ")}` },
@@ -163,13 +163,34 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
   const employees = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
+  const filters = state.filters as EmployeeFilters;
 
   // Quick chips (P0)
   const quickChips = [
-    { key: "active", label: "Active", onClick: () => updateState({ filters: { status: "ACTIVE" }, page: 1 }) },
-    { key: "leave", label: "On Leave", onClick: () => updateState({ filters: { status: "ON_LEAVE" }, page: 1 }) },
-    { key: "new-hires", label: "New Hires", onClick: () => updateState({ filters: { joiningDateDays: 30 }, page: 1 }) },
-    { key: "review-due", label: "Review Due", onClick: () => updateState({ filters: { reviewDueDays: 7 }, page: 1 }) },
+    {
+      key: "active",
+      label: "Active",
+      onClick: () => updateState({ filters: { status: "ACTIVE" }, page: 1 }),
+      selected: filters.status === "ACTIVE",
+    },
+    {
+      key: "leave",
+      label: "On Leave",
+      onClick: () => updateState({ filters: { status: "ON_LEAVE" }, page: 1 }),
+      selected: filters.status === "ON_LEAVE",
+    },
+    {
+      key: "new-hires",
+      label: "New Hires",
+      onClick: () => updateState({ filters: { joiningDateDays: 30 }, page: 1 }),
+      selected: filters.joiningDateDays === 30,
+    },
+    {
+      key: "review-due",
+      label: "Review Due",
+      onClick: () => updateState({ filters: { reviewDueDays: 7 }, page: 1 }),
+      selected: filters.reviewDueDays === 7,
+    },
   ];
 
   // Active filters
@@ -334,7 +355,7 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick}>
+                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
                   {chip.label}
                 </Chip>
               ))}
@@ -344,7 +365,13 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilterDrawerOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={filterDrawerOpen}
+            >
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (

@@ -71,7 +71,7 @@ const statusStyles: Record<string, string> = {
   DISCONTINUED: "bg-destructive/10 text-destructive border border-destructive/20",
 };
 
-type ProductFilters = {
+export type ProductFilters = {
   category?: string;
   status?: string;
   sellerType?: string;
@@ -80,7 +80,7 @@ type ProductFilters = {
   ratingMin?: number;
 };
 
-const PRODUCT_FILTER_SCHEMA: FilterSchema<ProductFilters>[] = [
+export const PRODUCT_FILTER_SCHEMA: FilterSchema<ProductFilters>[] = [
   { key: "category", param: "category", label: (f) => `Category: ${f.category}` },
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   { key: "sellerType", param: "sellerType", label: (f) => `Seller: ${f.sellerType}` },
@@ -156,6 +156,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
   const products = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
+  const filters = state.filters as ProductFilters;
 
   // Auto-switch to cards on mobile
   React.useEffect(() => {
@@ -193,10 +194,30 @@ export function ProductsList({ orgId }: ProductsListProps) {
 
   // Quick chips (P0)
   const quickChips = [
-    { key: "fm-supplies", label: "FM Supplies", onClick: () => updateState({ filters: { category: "FM Supplies" }, page: 1 }) },
-    { key: "tools", label: "Tools", onClick: () => updateState({ filters: { category: "Tools & Equipment" }, page: 1 }) },
-    { key: "highly-rated", label: "Highly Rated", onClick: () => updateState({ filters: { ratingMin: 4.5 }, page: 1 }) },
-    { key: "verified", label: "Verified Sellers", onClick: () => updateState({ filters: { sellerType: "FIXZIT" }, page: 1 }) },
+    {
+      key: "fm-supplies",
+      label: "FM Supplies",
+      onClick: () => updateState({ filters: { category: "FM Supplies" }, page: 1 }),
+      selected: filters.category === "FM Supplies",
+    },
+    {
+      key: "tools",
+      label: "Tools",
+      onClick: () => updateState({ filters: { category: "Tools & Equipment" }, page: 1 }),
+      selected: filters.category === "Tools & Equipment",
+    },
+    {
+      key: "highly-rated",
+      label: "Highly Rated",
+      onClick: () => updateState({ filters: { ratingMin: 4.5 }, page: 1 }),
+      selected: filters.ratingMin === 4.5,
+    },
+    {
+      key: "verified",
+      label: "Verified Sellers",
+      onClick: () => updateState({ filters: { sellerType: "FIXZIT" }, page: 1 }),
+      selected: filters.sellerType === "FIXZIT",
+    },
   ];
 
   // Table columns
@@ -381,7 +402,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick}>
+                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
                   {chip.label}
                 </Chip>
               ))}
@@ -391,15 +412,33 @@ export function ProductsList({ orgId }: ProductsListProps) {
         end={
           <>
             <div className="hidden md:flex gap-2">
-              <Button variant={viewMode === "table" ? "default" : "outline"} size="sm" onClick={() => setViewMode("table")}>
+              <Button
+                variant={viewMode === "table" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+                aria-pressed={viewMode === "table"}
+                aria-label="Show table view"
+              >
                 Table
               </Button>
-              <Button variant={viewMode === "cards" ? "default" : "outline"} size="sm" onClick={() => setViewMode("cards")}>
+              <Button
+                variant={viewMode === "cards" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("cards")}
+                aria-pressed={viewMode === "cards"}
+                aria-label="Show card view"
+              >
                 Cards
               </Button>
             </div>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilterDrawerOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={filterDrawerOpen}
+            >
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (

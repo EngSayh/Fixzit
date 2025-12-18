@@ -71,7 +71,7 @@ const statusStyles: Record<string, string> = {
   CANCELLED: "bg-muted text-muted-foreground border border-border",
 };
 
-type InvoiceFilters = {
+export type InvoiceFilters = {
   status?: string;
   amountMin?: number;
   amountMax?: number;
@@ -82,7 +82,7 @@ type InvoiceFilters = {
   dueTo?: string;
 };
 
-const INVOICE_FILTER_SCHEMA: FilterSchema<InvoiceFilters>[] = [
+export const INVOICE_FILTER_SCHEMA: FilterSchema<InvoiceFilters>[] = [
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   {
     key: "amountMin",
@@ -197,13 +197,34 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
   const totalAmount = data?.totalAmount ?? 0;
+  const filters = state.filters as InvoiceFilters;
 
   // Quick chips (P0)
   const quickChips = [
-    { key: "unpaid", label: "Unpaid", onClick: () => updateState({ filters: { status: "SENT" }, page: 1 }) },
-    { key: "overdue", label: "Overdue", onClick: () => updateState({ filters: { status: "OVERDUE" }, page: 1 }) },
-    { key: "paid", label: "Paid", onClick: () => updateState({ filters: { status: "PAID" }, page: 1 }) },
-    { key: "this-month", label: "This Month", onClick: () => updateState({ filters: { dateRange: "month" }, page: 1 }) },
+    {
+      key: "unpaid",
+      label: "Unpaid",
+      onClick: () => updateState({ filters: { status: "SENT" }, page: 1 }),
+      selected: filters.status === "SENT",
+    },
+    {
+      key: "overdue",
+      label: "Overdue",
+      onClick: () => updateState({ filters: { status: "OVERDUE" }, page: 1 }),
+      selected: filters.status === "OVERDUE",
+    },
+    {
+      key: "paid",
+      label: "Paid",
+      onClick: () => updateState({ filters: { status: "PAID" }, page: 1 }),
+      selected: filters.status === "PAID",
+    },
+    {
+      key: "this-month",
+      label: "This Month",
+      onClick: () => updateState({ filters: { dateRange: "month" }, page: 1 }),
+      selected: filters.dateRange === "month",
+    },
   ];
 
   // Active filters
@@ -366,7 +387,7 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick}>
+                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
                   {chip.label}
                 </Chip>
               ))}
@@ -376,7 +397,13 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilterDrawerOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={filterDrawerOpen}
+            >
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (

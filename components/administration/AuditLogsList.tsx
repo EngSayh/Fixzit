@@ -60,7 +60,7 @@ type ApiResponse = {
   total: number;
 };
 
-type AuditFilters = {
+export type AuditFilters = {
   eventType?: string;
   status?: string;
   userId?: string;
@@ -71,7 +71,7 @@ type AuditFilters = {
   timestampTo?: string;
 };
 
-const AUDIT_FILTER_SCHEMA: FilterSchema<AuditFilters>[] = [
+export const AUDIT_FILTER_SCHEMA: FilterSchema<AuditFilters>[] = [
   { key: "eventType", param: "eventType", label: (f) => `Event: ${f.eventType}` },
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   { key: "userId", param: "userId", label: (f) => `User: ${f.userId}` },
@@ -156,14 +156,40 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
   const logs = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 50))) : 1;
   const totalCount = data?.total ?? 0;
+  const filters = state.filters as AuditFilters;
 
   // Quick chips (P0)
   const quickChips = [
-    { key: "today", label: "Today", onClick: () => updateState({ filters: { dateRange: "today" }, page: 1 }) },
-    { key: "7d", label: "Last 7 days", onClick: () => updateState({ filters: { dateRange: "7d" }, page: 1 }) },
-    { key: "logins", label: "Login Events", onClick: () => updateState({ filters: { eventType: "LOGIN" }, page: 1 }) },
-    { key: "admin", label: "Admin Actions", onClick: () => updateState({ filters: { action: "admin" }, page: 1 }) },
-    { key: "errors", label: "Errors", onClick: () => updateState({ filters: { status: "FAILURE" }, page: 1 }) },
+    {
+      key: "today",
+      label: "Today",
+      onClick: () => updateState({ filters: { dateRange: "today" }, page: 1 }),
+      selected: filters.dateRange === "today",
+    },
+    {
+      key: "7d",
+      label: "Last 7 days",
+      onClick: () => updateState({ filters: { dateRange: "7d" }, page: 1 }),
+      selected: filters.dateRange === "7d",
+    },
+    {
+      key: "logins",
+      label: "Login Events",
+      onClick: () => updateState({ filters: { eventType: "LOGIN" }, page: 1 }),
+      selected: filters.eventType === "LOGIN",
+    },
+    {
+      key: "admin",
+      label: "Admin Actions",
+      onClick: () => updateState({ filters: { action: "admin" }, page: 1 }),
+      selected: filters.action === "admin",
+    },
+    {
+      key: "errors",
+      label: "Errors",
+      onClick: () => updateState({ filters: { status: "FAILURE" }, page: 1 }),
+      selected: filters.status === "FAILURE",
+    },
   ];
 
   // Active filters
@@ -303,7 +329,7 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick}>
+                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
                   {chip.label}
                 </Chip>
               ))}
@@ -313,7 +339,13 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilterDrawerOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={filterDrawerOpen}
+            >
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (

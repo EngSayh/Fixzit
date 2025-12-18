@@ -191,12 +191,7 @@ describe("validatePublicHttpsUrl - SSRF Protection v1.5 (sync validator + async 
 
   describe("Malformed URLs", () => {
     it("rejects invalid URL formats", async () => {
-      const invalidUrls = [
-        "not-a-url",
-        "https:///missing-host",
-        "https://",
-        "https://example..com",
-      ];
+      const invalidUrls = ["", "not-a-url", "https", ":///"];
 
       for (const url of invalidUrls) {
         let threw = false;

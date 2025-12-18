@@ -4,14 +4,51 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, beforeEach, afterEach, vi, expect } from "vitest";
 import { SWRConfig, mutate as globalMutate } from "swr";
 
-import { WorkOrdersView } from "@/components/fm/WorkOrdersViewNew";
-import { UsersList } from "@/components/administration/UsersList";
-import { RolesList } from "@/components/administration/RolesList";
-import { AuditLogsList } from "@/components/administration/AuditLogsList";
-import { EmployeesList } from "@/components/hr/EmployeesList";
-import { InvoicesList } from "@/components/finance/InvoicesList";
-import { PropertiesList } from "@/components/aqar/PropertiesList";
-import { ProductsList } from "@/components/marketplace/ProductsList";
+import {
+  WorkOrdersView,
+  WORK_ORDER_FILTER_SCHEMA,
+  type WorkOrderFilters,
+} from "@/components/fm/WorkOrdersViewNew";
+import {
+  UsersList,
+  USER_FILTER_SCHEMA,
+  type UserFilters,
+} from "@/components/administration/UsersList";
+import {
+  RolesList,
+  ROLE_FILTER_SCHEMA,
+  type RoleFilters,
+} from "@/components/administration/RolesList";
+import {
+  AuditLogsList,
+  AUDIT_FILTER_SCHEMA,
+  type AuditFilters,
+} from "@/components/administration/AuditLogsList";
+import {
+  EmployeesList,
+  EMPLOYEE_FILTER_SCHEMA,
+  type EmployeeFilters,
+} from "@/components/hr/EmployeesList";
+import {
+  InvoicesList,
+  INVOICE_FILTER_SCHEMA,
+  type InvoiceFilters,
+} from "@/components/finance/InvoicesList";
+import {
+  PropertiesList,
+  PROPERTY_FILTER_SCHEMA,
+  type PropertyFilters,
+} from "@/components/aqar/PropertiesList";
+import {
+  ProductsList,
+  PRODUCT_FILTER_SCHEMA,
+  type ProductFilters,
+} from "@/components/marketplace/ProductsList";
+import {
+  buildActiveFilterChips,
+  serializeFilters,
+  type FilterSchema,
+} from "@/components/tables/utils/filterSchema";
 
 // Mock navigation
 vi.mock("next/navigation", () => ({
