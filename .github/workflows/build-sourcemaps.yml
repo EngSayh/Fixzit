@@ -26,6 +26,11 @@ jobs:
       HAS_MONGODB_URI: ${{ secrets.MONGODB_URI != '' }}
       # expose release to build/runtime; SDKs read SENTRY_RELEASE
       SENTRY_RELEASE: ${{ github.sha }}
+      # Sentry config with defaults to silence linter warnings
+      ENABLE_SENTRY: ${{ vars.ENABLE_SENTRY || 'true' }}
+      SENTRY_ORG_NAME: ${{ secrets.SENTRY_ORG || '' }}
+      SENTRY_PROJECT_NAME: ${{ secrets.SENTRY_PROJECT || 'fixzit-frontend' }}
+      HAS_SENTRY_AUTH: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
 
     steps:
       - name: 📦 Checkout
@@ -63,19 +68,19 @@ jobs:
       # Sentry release + sourcemaps (v3, with Debug ID injection)
       - name: 🚀 Create & upload Sentry release (non-blocking)
         id: sentry
-        if: ${{ vars.ENABLE_SENTRY != 'false' }}
+        if: ${{ env.ENABLE_SENTRY != 'false' && env.HAS_SENTRY_AUTH == 'true' }}
         uses: getsentry/action-release@v3
         continue-on-error: true
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_ORG: ${{ env.SENTRY_ORG_NAME }}
+          SENTRY_PROJECT: ${{ env.SENTRY_PROJECT_NAME }}
           SENTRY_RELEASE: ${{ github.sha }}
         with:
           environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
           # v3 uses 'release' for the release name
           release: ${{ github.sha }}
-          projects: ${{ secrets.SENTRY_PROJECT || 'fixzit-frontend' }}
+          projects: ${{ env.SENTRY_PROJECT_NAME }}
           # Upload all Next.js client/server maps; v3 injects Debug IDs by default
           sourcemaps: .next
           url_prefix: "~/_next"
@@ -95,7 +100,7 @@ jobs:
           if [ "${{ steps.sentry.outcome }}" = "success" ]; then
             SENTRY_ENV="${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}"
             echo "✅ Sentry release uploaded (release: ${{ github.sha }}, env: ${SENTRY_ENV})" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ vars.ENABLE_SENTRY }}" != "false" ]; then
+          elif [ "${{ env.ENABLE_SENTRY }}" != "false" ]; then
             echo "⚠️ Sentry upload step did not complete successfully (non-blocking). Check logs." >> $GITHUB_STEP_SUMMARY
           else
             echo "ℹ️ Sentry upload disabled or not configured" >> $GITHUB_STEP_SUMMARY
