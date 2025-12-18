@@ -16,27 +16,18 @@ import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthR
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
+import {
+  FILTER_ENTITY_TYPES,
+  LEGACY_ENTITY_ALIASES,
+  normalizeFilterEntityType,
+  type FilterEntityType,
+} from "@/lib/filters/entities";
 
-// Canonical camelCase entity keys only (legacy snake_case removed)
-const ENTITY_TYPES = [
-  "workOrders",
-  "users",
-  "employees",
-  "invoices",
-  "auditLogs",
-  "properties",
-  "products",
-] as const;
-
-function normalizeEntityType(
-  entity: (typeof ENTITY_TYPES)[number] | null,
-): (typeof ENTITY_TYPES)[number] | null {
-  if (!entity) return null;
-  return entity as (typeof ENTITY_TYPES)[number];
-}
+const LEGACY_ENTITY_KEYS = Object.keys(LEGACY_ENTITY_ALIASES) as [string, ...string[]];
+const ENTITY_TYPE_SCHEMA = z.enum(FILTER_ENTITY_TYPES).or(z.enum(LEGACY_ENTITY_KEYS));
 
 const createPresetSchema = z.object({
-  entity_type: z.enum(ENTITY_TYPES),
+  entity_type: ENTITY_TYPE_SCHEMA,
   name: z.string().min(1).max(100),
   filters: z.record(z.string(), z.unknown()), // Fixed: z.record now requires key schema
   sort: z.object({
@@ -75,11 +66,10 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
-  const entityType = normalizeEntityType(
-    searchParams.get("entity_type") as (typeof ENTITY_TYPES)[number] | null,
-  );
+  const entityTypeRaw = searchParams.get("entity_type");
+  const entityType = normalizeFilterEntityType(entityTypeRaw);
 
-  if (entityType && !ENTITY_TYPES.includes(entityType)) {
+  if (entityTypeRaw && !entityType) {
     return NextResponse.json({ error: "Invalid entity_type" }, { status: 400 });
   }
 
@@ -154,7 +144,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { entity_type, name, filters, sort, is_default } = validation.data;
-  const normalizedEntityType = normalizeEntityType(entity_type);
+  const normalizedEntityType = normalizeFilterEntityType(entity_type);
 
   try {
     await connectDb();
@@ -187,7 +177,7 @@ export async function POST(request: NextRequest) {
       presetId: preset._id,
       orgId,
       userId,
-      entityType: entity_type,
+      entityType: normalizedEntityType,
       name,
     });
 
