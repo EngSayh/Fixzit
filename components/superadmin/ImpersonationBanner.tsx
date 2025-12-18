@@ -59,10 +59,15 @@ export function ImpersonationBanner() {
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-yellow-900 px-4 py-2 shadow-lg">
+    <div 
+      className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-yellow-900 px-4 py-2 shadow-lg"
+      role="alert"
+      aria-live="polite"
+      aria-label={t("superadmin.impersonate.banner.title")}
+    >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <AlertCircle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
           <div className="text-sm font-medium">
             <strong>{t("superadmin.impersonate.banner.title")}:</strong> {t("superadmin.impersonate.banner.viewing")}{" "}
             <code className="bg-yellow-600/20 px-2 py-0.5 rounded font-mono text-xs">
@@ -77,12 +82,13 @@ export function ImpersonationBanner() {
           onClick={handleClearImpersonation}
           disabled={isClearing}
           className="text-yellow-900 hover:bg-yellow-600/20"
+          aria-label={t("superadmin.impersonate.banner.exit")}
         >
           {isClearing ? (
             t("superadmin.impersonate.banner.clearing")
           ) : (
             <>
-              <X className="w-4 h-4 mr-1" />
+              <X className="w-4 h-4 mr-1" aria-hidden="true" />
               {t("superadmin.impersonate.banner.exit")}
             </>
           )}

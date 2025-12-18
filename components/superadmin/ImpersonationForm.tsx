@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,23 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string }>>([]);
   const [error, setError] = useState<string | null>(null);
+  
+  // Refs for focus management
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const orgIdInputRef = useRef<HTMLInputElement>(null);
+  const errorContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-focus search input on mount
+  useEffect(() => {
+    searchInputRef.current?.focus();
+  }, []);
+
+  // Announce errors to screen readers
+  useEffect(() => {
+    if (error && errorContainerRef.current) {
+      errorContainerRef.current.focus();
+    }
+  }, [error]);
 
   const handleSearch = async () => {
     if (!orgName.trim()) {
@@ -65,6 +82,8 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
     setOrgName(selectedOrgName);
     setSearchResults([]);
     setError(null);
+    // Focus org ID input after selection
+    setTimeout(() => orgIdInputRef.current?.focus(), 0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -133,6 +152,7 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
         </Label>
         <div className="mt-2 flex gap-2">
           <Input
+            ref={searchInputRef}
             id="orgName"
             type="text"
             placeholder={t("superadmin.impersonate.searchPlaceholder")}
@@ -141,17 +161,20 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearch())}
             disabled={isLoading || isSearching}
             className="flex-1"
+            aria-describedby={error ? "form-error" : undefined}
           />
           <Button
             type="button"
             variant="outline"
             onClick={handleSearch}
             disabled={isLoading || isSearching || !orgName.trim()}
+            aria-label={t("superadmin.impersonate.searchButton")}
+            title={t("superadmin.impersonate.searchButton")}
           >
             {isSearching ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
             ) : (
-              <Search className="w-4 h-4" />
+              <Search className="w-4 h-4" aria-hidden="true" />
             )}
           </Button>
         </div>
@@ -159,17 +182,23 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
 
       {/* Search Results */}
       {searchResults.length > 0 && (
-        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 max-h-60 overflow-y-auto">
+        <div 
+          className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 max-h-60 overflow-y-auto"
+          role="region"
+          aria-label={t("superadmin.impersonate.selectOrg")}
+        >
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
             {t("superadmin.impersonate.selectOrg")} ({searchResults.length})
           </p>
-          <div className="space-y-2">
+          <div className="space-y-2" role="list">
             {searchResults.map((org) => (
               <button
                 key={org.id}
                 type="button"
                 onClick={() => handleSelectOrg(org.id, org.name)}
                 className="w-full text-left px-3 py-2 rounded-lg bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-gray-200 dark:border-gray-700 transition-colors"
+                role="listitem"
+                aria-label={`Select ${org.name}`}
               >
                 <div className="font-medium text-gray-900 dark:text-white">{org.name}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">ID: {org.id}</div>
@@ -185,6 +214,7 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
           {t("superadmin.impersonate.orgIdLabel")}
         </Label>
         <Input
+          ref={orgIdInputRef}
           id="orgId"
           type="text"
           placeholder={t("superadmin.impersonate.orgIdPlaceholder")}
@@ -193,12 +223,20 @@ export function ImpersonationForm({ nextUrl }: ImpersonationFormProps) {
           disabled={isLoading}
           required
           className="mt-2"
+          aria-describedby={error ? "form-error" : undefined}
         />
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+        <div 
+          ref={errorContainerRef}
+          id="form-error"
+          role="alert"
+          aria-live="polite"
+          tabIndex={-1}
+          className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3"
+        >
           <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
         </div>
       )}
