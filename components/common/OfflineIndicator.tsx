@@ -12,6 +12,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { WifiOff, Wifi } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 interface OfflineIndicatorProps {
   /** Position of the indicator */
@@ -30,6 +31,7 @@ export function OfflineIndicator({
   reconnectedMessageDuration = 3000,
   className,
 }: OfflineIndicatorProps) {
+  const { t } = useTranslation();
   const [isOnline, setIsOnline] = useState(true);
   const [showReconnected, setShowReconnected] = useState(false);
   const reconnectedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -93,20 +95,20 @@ export function OfflineIndicator({
         "fixed z-50 px-4 py-2 flex items-center justify-center gap-2 text-sm font-medium transition-all duration-300",
         positionClasses,
         isOnline && showReconnected
-          ? "bg-green-600 text-white"
+          ? "bg-[#00A859] text-white" // Fixzit Green brand token
           : "bg-destructive text-destructive-foreground",
         className
       )}
     >
       {isOnline && showReconnected ? (
         <>
-          <Wifi className="w-4 h-4" aria-hidden="true" />
-          <span>You&apos;re back online!</span>
+          <Wifi className="w-4 h-4 me-1" aria-hidden="true" />
+          <span>{t("common.offline.backOnline", "You're back online!")}</span>
         </>
       ) : (
         <>
-          <WifiOff className="w-4 h-4" aria-hidden="true" />
-          <span>You&apos;re offline. Some features may be unavailable.</span>
+          <WifiOff className="w-4 h-4 me-1" aria-hidden="true" />
+          <span>{t("common.offline.offline", "You're offline. Some features may be unavailable.")}</span>
         </>
       )}
     </div>

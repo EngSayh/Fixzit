@@ -229,55 +229,8 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
     [state.filters, updateState]
   );
 
-  // Early return AFTER all hooks
-  if (tenantMissing) {
-    return (
-      <div className="p-6">
-        <EmptyState
-          icon={Home}
-          title="Organization required"
-          description="Tenant context is missing. Please select an organization to view properties."
-        />
-      </div>
-    );
-  }
-
-  // Quick chips (P0)
-  const quickChips = [
-    {
-      key: "rent",
-      label: "Rent",
-      onClick: () => updateState({ filters: { listingType: "RENT" }, page: 1 }),
-      selected: filters.listingType === "RENT",
-    },
-    {
-      key: "sale",
-      label: "Sale",
-      onClick: () => updateState({ filters: { listingType: "SALE" }, page: 1 }),
-      selected: filters.listingType === "SALE",
-    },
-    {
-      key: "featured",
-      label: "Featured",
-      onClick: () => updateState({ filters: { featured: true }, page: 1 }),
-      selected: Boolean(filters.featured),
-    },
-    {
-      key: "riyadh",
-      label: "Riyadh",
-      onClick: () => updateState({ filters: { city: "Riyadh" }, page: 1 }),
-      selected: filters.city === "Riyadh",
-    },
-    {
-      key: "2-3br",
-      label: "2-3 BR",
-      onClick: () => updateState({ filters: { bedroomsMin: 2, bedroomsMax: 3 }, page: 1 }),
-      selected: filters.bedroomsMin === 2 && filters.bedroomsMax === 3,
-    },
-  ];
-
-  // Table columns
-  const columns: DataTableColumn<PropertyRecord>[] = [
+  // Table columns - memoized to prevent re-render churn (must be before early return)
+  const columns = useMemo<DataTableColumn<PropertyRecord>[]>(() => [
     {
       id: "property",
       header: "Property",
@@ -353,6 +306,53 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
           <Badge className={statusStyles[row.status]}>{row.status}</Badge>
         </div>
       ),
+    },
+  ], []);
+
+  // Early return AFTER all hooks
+  if (tenantMissing) {
+    return (
+      <div className="p-6">
+        <EmptyState
+          icon={Home}
+          title="Organization required"
+          description="Tenant context is missing. Please select an organization to view properties."
+        />
+      </div>
+    );
+  }
+
+  // Quick chips (P0)
+  const quickChips = [
+    {
+      key: "rent",
+      label: "Rent",
+      onClick: () => updateState({ filters: { listingType: "RENT" }, page: 1 }),
+      selected: filters.listingType === "RENT",
+    },
+    {
+      key: "sale",
+      label: "Sale",
+      onClick: () => updateState({ filters: { listingType: "SALE" }, page: 1 }),
+      selected: filters.listingType === "SALE",
+    },
+    {
+      key: "featured",
+      label: "Featured",
+      onClick: () => updateState({ filters: { featured: true }, page: 1 }),
+      selected: Boolean(filters.featured),
+    },
+    {
+      key: "riyadh",
+      label: "Riyadh",
+      onClick: () => updateState({ filters: { city: "Riyadh" }, page: 1 }),
+      selected: filters.city === "Riyadh",
+    },
+    {
+      key: "2-3br",
+      label: "2-3 BR",
+      onClick: () => updateState({ filters: { bedroomsMin: 2, bedroomsMax: 3 }, page: 1 }),
+      selected: filters.bedroomsMin === 2 && filters.bedroomsMax === 3,
     },
   ];
 

@@ -186,52 +186,8 @@ export function ProductsList({ orgId }: ProductsListProps) {
     [state.filters, updateState]
   );
 
-  // Early return AFTER all hooks
-  if (tenantMissing) {
-    return (
-      <div className="p-6">
-        <EmptyState
-          icon={Package}
-          title={t("marketplace.products.orgRequiredTitle", "Organization required")}
-          description={t(
-            "marketplace.products.orgRequiredDesc",
-            "Tenant context is missing. Please select an organization to view products.",
-          )}
-        />
-      </div>
-    );
-  }
-
-  // Quick chips (P0)
-  const quickChips = [
-    {
-      key: "fm-supplies",
-      label: "FM Supplies",
-      onClick: () => updateState({ filters: { category: "FM Supplies" }, page: 1 }),
-      selected: filters.category === "FM Supplies",
-    },
-    {
-      key: "tools",
-      label: "Tools",
-      onClick: () => updateState({ filters: { category: "Tools & Equipment" }, page: 1 }),
-      selected: filters.category === "Tools & Equipment",
-    },
-    {
-      key: "highly-rated",
-      label: "Highly Rated",
-      onClick: () => updateState({ filters: { ratingMin: 4.5 }, page: 1 }),
-      selected: filters.ratingMin === 4.5,
-    },
-    {
-      key: "verified",
-      label: "Verified Sellers",
-      onClick: () => updateState({ filters: { sellerType: "FIXZIT" }, page: 1 }),
-      selected: filters.sellerType === "FIXZIT",
-    },
-  ];
-
-  // Table columns
-  const columns: DataTableColumn<ProductRecord>[] = [
+  // Table columns - memoized to prevent re-render churn (must be before early return)
+  const columns = useMemo<DataTableColumn<ProductRecord>[]>(() => [
     {
       id: "product",
       header: "Product",
@@ -299,6 +255,50 @@ export function ProductsList({ orgId }: ProductsListProps) {
           <Badge className={statusStyles[row.status]}>{row.status.replace(/_/g, " ")}</Badge>
         </div>
       ),
+    },
+  ], []);
+
+  // Early return AFTER all hooks
+  if (tenantMissing) {
+    return (
+      <div className="p-6">
+        <EmptyState
+          icon={Package}
+          title={t("marketplace.products.orgRequiredTitle", "Organization required")}
+          description={t(
+            "marketplace.products.orgRequiredDesc",
+            "Tenant context is missing. Please select an organization to view products.",
+          )}
+        />
+      </div>
+    );
+  }
+
+  // Quick chips (P0)
+  const quickChips = [
+    {
+      key: "fm-supplies",
+      label: "FM Supplies",
+      onClick: () => updateState({ filters: { category: "FM Supplies" }, page: 1 }),
+      selected: filters.category === "FM Supplies",
+    },
+    {
+      key: "tools",
+      label: "Tools",
+      onClick: () => updateState({ filters: { category: "Tools & Equipment" }, page: 1 }),
+      selected: filters.category === "Tools & Equipment",
+    },
+    {
+      key: "highly-rated",
+      label: "Highly Rated",
+      onClick: () => updateState({ filters: { ratingMin: 4.5 }, page: 1 }),
+      selected: filters.ratingMin === 4.5,
+    },
+    {
+      key: "verified",
+      label: "Verified Sellers",
+      onClick: () => updateState({ filters: { sellerType: "FIXZIT" }, page: 1 }),
+      selected: filters.sellerType === "FIXZIT",
     },
   ];
 
