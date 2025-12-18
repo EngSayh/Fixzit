@@ -317,7 +317,7 @@ describe("API /api/finance/ledger", () => {
     it("enforces rate limiting", async () => {
       const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
       vi.mocked(enforceRateLimit).mockReturnValueOnce(
-        new Response(JSON.stringify({ error: "Too many requests" }), { status: 429 })
+        new Response(JSON.stringify({ error: "Too many requests" }), { status: 429 }) as any
       );
 
       sessionUser = {
