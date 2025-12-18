@@ -269,6 +269,7 @@ export async function POST(req: NextRequest) {
                 hint: "Set NEXTAUTH_SECRET or AUTH_SECRET env var in Vercel/production",
               });
               // Delete the just-created user to prevent orphaned unverified accounts
+              // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Rollback by _id (no org yet)
               await User.deleteOne({ _id: newUser._id });
               throw new Error("Email verification not configured. Signup aborted for production safety.");
             }
@@ -371,6 +372,7 @@ export async function POST(req: NextRequest) {
                 email: normalizedEmail,
                 userId: newUser._id,
               });
+              // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Rollback by _id (no org yet)
               await User.deleteOne({ _id: newUser._id });
               throw new Error("Email service not configured. Signup aborted for production safety.");
             }
@@ -393,6 +395,7 @@ export async function POST(req: NextRequest) {
               userId: newUser._id,
               error: emailResult.error,
             });
+            // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Rollback by _id (no org yet)
             await User.deleteOne({ _id: newUser._id });
             throw new Error("Verification email failed to send. Signup aborted for production safety.");
           }

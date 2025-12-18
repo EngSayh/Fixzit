@@ -140,6 +140,7 @@ export async function POST(req: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Update user's password and reset security flags
+    // eslint-disable-next-line local/require-tenant-scope -- SAFE: updateOne uses _id from already-scoped user (line 129)
     await User.updateOne(
       { _id: user._id },
       {
