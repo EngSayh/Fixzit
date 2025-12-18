@@ -97,15 +97,27 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Current phases (P66-P75)
-    for (let i = 66; i <= 75; i++) {
+    // Current phases (P66-P97: production readiness + final polish)
+    // P66-P75: Core production readiness
+    // P76-P83: Production audit + polish
+    // P84-P88: Audit documentation
+    // P89-P97: Final enhancement + PR creation
+    for (let i = 66; i <= 97; i++) {
       const isCompleted = completedRanges.some(r => i >= r.start && i <= r.end);
       const entry = phaseEntries.get(i);
+      
+      // Determine in-progress status based on surrounding completion
+      let status: "completed" | "in-progress" | "not-started" = "not-started";
+      if (isCompleted) {
+        status = "completed";
+      } else if (i === 97) {
+        status = "in-progress"; // Current phase
+      }
       
       phases.push({
         id: `P${i}`,
         title: entry?.title || `Phase ${i}`,
-        status: isCompleted ? "completed" : i === 71 ? "in-progress" : "not-started", // Heuristic: assume next after completed is in-progress
+        status,
         date: isCompleted && entry?.date ? entry.date : undefined,
         description: entry?.description || "",
       });
