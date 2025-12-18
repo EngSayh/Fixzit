@@ -102,7 +102,9 @@ const shouldSilence = (msg: string) =>
   msg.includes("formatMessage");
 
 // Also silence native console.error/warn for expected React error boundary output
+// eslint-disable-next-line no-console
 const originalConsoleError = console.error.bind(console);
+// eslint-disable-next-line no-console
 const originalConsoleWarn = console.warn.bind(console);
 
 const shouldSilenceConsole = (msg: string) =>
@@ -114,12 +116,14 @@ const shouldSilenceConsole = (msg: string) =>
   msg.includes("act(...) warning") ||
   msg.includes("ReactDOM.render is no longer supported");
 
+// eslint-disable-next-line no-console
 console.error = (...args: unknown[]) => {
   const msg = args.map(a => String(a)).join(" ");
   if (shouldSilenceConsole(msg)) return;
   return originalConsoleError(...args);
 };
 
+// eslint-disable-next-line no-console
 console.warn = (...args: unknown[]) => {
   const msg = args.map(a => String(a)).join(" ");
   if (shouldSilenceConsole(msg)) return;
