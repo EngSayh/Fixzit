@@ -49,10 +49,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl;
     const userId = searchParams.get("userId");
     const entityType = searchParams.get("entityType");
-    const action = searchParams.get("action");
-    const startDateStr = searchParams.get("startDate");
-    const endDateStr = searchParams.get("endDate");
+    const action = searchParams.get("action") || searchParams.get("eventType");
+    const ipAddress = searchParams.get("ipAddress");
+    const startDateStr = searchParams.get("startDate") || searchParams.get("timestampFrom");
+    const endDateStr = searchParams.get("endDate") || searchParams.get("timestampTo");
     const successParam = searchParams.get("success");
+    const status = searchParams.get("status");
+    const dateRange = searchParams.get("dateRange");
+    const q = searchParams.get("q") || searchParams.get("search");
 
     // Parse and validate pagination with safe defaults and caps
     let limit = parseInt(searchParams.get("limit") || "100", 10);
@@ -72,6 +76,18 @@ export async function GET(request: NextRequest) {
     // Validate and parse date parameters
     let startDate: Date | undefined;
     let endDate: Date | undefined;
+
+    const now = new Date();
+
+    if (dateRange === "today") {
+      startDate = new Date(now);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(now);
+    } else if (dateRange === "7d") {
+      endDate = new Date(now);
+      startDate = new Date(now);
+      startDate.setDate(startDate.getDate() - 7);
+    }
 
     if (startDateStr) {
       const parsed = new Date(startDateStr);
@@ -125,6 +141,10 @@ export async function GET(request: NextRequest) {
       query["result.success"] = true;
     } else if (successParam === "false") {
       query["result.success"] = false;
+    } else if (status === "SUCCESS") {
+      query["result.success"] = true;
+    } else if (status === "FAILURE" || status === "WARNING") {
+      query["result.success"] = false;
     }
     if (startDate || endDate) {
       query.timestamp = {};
@@ -134,6 +154,20 @@ export async function GET(request: NextRequest) {
       if (endDate) {
         query.timestamp.$lte = endDate;
       }
+    }
+    if (ipAddress) {
+      query["context.ipAddress"] = ipAddress;
+    }
+
+    if (q) {
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.$or = [
+        { action: { $regex: escaped, $options: "i" } },
+        { entityType: { $regex: escaped, $options: "i" } },
+        { entityId: { $regex: escaped, $options: "i" } },
+        { "context.ipAddress": { $regex: escaped, $options: "i" } },
+        { "result.errorMessage": { $regex: escaped, $options: "i" } },
+      ];
     }
 
     const [logs, total] = await Promise.all([
