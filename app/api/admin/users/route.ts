@@ -83,6 +83,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl;
     const search = searchParams.get("search") || "";
     const role = searchParams.get("role");
+    const status = searchParams.get("status");
+    const department = searchParams.get("department");
+    const inactiveDays = Number.parseInt(
+      searchParams.get("inactiveDays") || "",
+      10,
+    );
+    const lastLoginFrom = searchParams.get("lastLoginFrom");
+    const lastLoginTo = searchParams.get("lastLoginTo");
 
     // Parse and validate pagination
     let limit = parseInt(searchParams.get("limit") || "50", 10);
@@ -154,6 +162,37 @@ export async function GET(request: NextRequest) {
 
     if (role) {
       query["professional.role"] = role;
+    }
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (department) {
+      query["professional.department"] = department;
+    }
+
+    if (!Number.isNaN(inactiveDays) && inactiveDays > 0) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - inactiveDays);
+      query.lastLoginAt = { $lte: cutoff };
+    }
+
+    const loginRange: Record<string, Date> = {};
+    if (lastLoginFrom) {
+      const from = new Date(lastLoginFrom);
+      if (!Number.isNaN(from.getTime())) {
+        loginRange.$gte = from;
+      }
+    }
+    if (lastLoginTo) {
+      const to = new Date(lastLoginTo);
+      if (!Number.isNaN(to.getTime())) {
+        loginRange.$lte = to;
+      }
+    }
+    if (Object.keys(loginRange).length > 0) {
+      query.lastLoginAt = { ...(query.lastLoginAt as Record<string, Date> | undefined), ...loginRange };
     }
 
     const users = await UserModel.find(query)
