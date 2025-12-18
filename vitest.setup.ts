@@ -96,7 +96,7 @@ logger.warn = (...args: unknown[]) => {
   if (msg.includes("encryption:key_missing")) {
     return;
   }
-  return originalWarn(...args);
+  return originalWarn(...(args as Parameters<typeof originalWarn>));
 };
 
 // Ensure fetch/Request/Response are present in worker threads (Node pools can omit them)

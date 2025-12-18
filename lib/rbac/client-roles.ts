@@ -3,13 +3,7 @@
  * Source of truth: types/user.ts (UserRole, TEAM_MEMBER_SUB_ROLES).
  * Do NOT import server-only modules into client bundles.
  */
-
-import {
-  Plan,
-  SubmoduleKey,
-  PLAN_GATES,
-  inferSubRoleFromRole as inferSubRoleFromRoleV4,
-} from "@/domain/fm/fm.types";
+import { Plan, SubmoduleKey, PLAN_GATES, inferSubRoleFromRole as inferSubRoleFromRoleV4 } from "@/domain/fm/fm.types";
 
 export enum Role {
   SUPER_ADMIN = "SUPER_ADMIN",
@@ -101,17 +95,19 @@ const ROLE_MODULES: Record<Role | SubRole, ModuleKey[]> = {
 const ALIAS_MAP: Record<string, Role> = {
   TENANT_ADMIN: Role.ADMIN,
   CLIENT_ADMIN: Role.ADMIN,
-  MANAGEMENT: Role.MANAGER,
-  FM_MANAGER: Role.FM_MANAGER,
-  FINANCE: Role.FINANCE,
-  HR: Role.HR,
-  PROCUREMENT: Role.PROCUREMENT,
-  EMPLOYEE: Role.EMPLOYEE,
-  DISPATCHER: Role.DISPATCHER,
+  MANAGEMENT: Role.TEAM_MEMBER,
+  MANAGER: Role.TEAM_MEMBER,
+  FM_MANAGER: Role.PROPERTY_MANAGER,
+  FINANCE: Role.TEAM_MEMBER,
+  HR: Role.TEAM_MEMBER,
+  PROCUREMENT: Role.TEAM_MEMBER,
+  EMPLOYEE: Role.TEAM_MEMBER,
+  DISPATCHER: Role.TEAM_MEMBER,
+  CORPORATE_STAFF: Role.TEAM_MEMBER,
+  FIXZIT_EMPLOYEE: Role.TEAM_MEMBER,
   SUPPORT: Role.SUPPORT,
   AUDITOR: Role.AUDITOR,
   VIEWER: Role.VIEWER,
-  GUEST: Role.GUEST,
   FIELD_ENGINEER: Role.TECHNICIAN,
   INTERNAL_TECHNICIAN: Role.TECHNICIAN,
   CONTRACTOR_TECHNICIAN: Role.TECHNICIAN,
@@ -120,12 +116,25 @@ const ALIAS_MAP: Record<string, Role> = {
   SUPPLIER: Role.VENDOR,
   PROPERTY_OWNER: Role.CORPORATE_OWNER,
   OWNER: Role.CORPORATE_OWNER,
+  CUSTOMER: Role.TENANT,
+  RESIDENT: Role.TENANT,
+  GUEST: Role.GUEST,
 };
 
-export function normalizeRole(role?: string | null, _subRole?: string | null): Role | null {
+export function normalizeRole(
+  role?: string | null,
+  expectedSubRole?: string | null,
+  strict = false,
+): Role | null {
   if (!role) return null;
   const key = role.toUpperCase();
-  return ALIAS_MAP[key] ?? (Role as Record<string, Role>)[key] ?? null;
+  const normalized = ALIAS_MAP[key] ?? (Role as Record<string, Role>)[key] ?? null;
+  if (strict && normalized === Role.TEAM_MEMBER && !expectedSubRole) {
+    throw new Error(
+      `STRICT v4.1 violation: Role "${role}" maps to TEAM_MEMBER but requires a subRole to be specified`,
+    );
+  }
+  return normalized as Role | null;
 }
 
 export function normalizeSubRole(subRole?: string | null): SubRole | null {
@@ -164,11 +173,13 @@ export function computeAllowedModules(
   const normalizedRole = normalizeRole(role) ?? Role.VIEWER;
   const normalizedSubRole = normalizeSubRole(subRole);
 
+  const baseModules = ROLE_MODULES[normalizedRole] ?? [ModuleKey.DASHBOARD];
   if (normalizedSubRole && ROLE_MODULES[normalizedSubRole as SubRole]) {
-    return ROLE_MODULES[normalizedSubRole as SubRole];
+    const subModules = ROLE_MODULES[normalizedSubRole as SubRole] ?? [];
+    return [...new Set([...baseModules, ...subModules])];
   }
 
-  return ROLE_MODULES[normalizedRole] ?? [ModuleKey.DASHBOARD];
+  return baseModules as ModuleKey[];
 }
 
 export { Plan, SubmoduleKey, PLAN_GATES };

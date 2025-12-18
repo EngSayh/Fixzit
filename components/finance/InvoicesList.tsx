@@ -39,6 +39,7 @@ import {
 } from "@/components/tables/utils/filterSchema";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 type InvoiceRecord = {
   id: string;
@@ -173,6 +174,7 @@ export function buildInvoicesQuery(state: ReturnType<typeof useTableQueryState>[
 }
 
 export function InvoicesList({ orgId }: InvoicesListProps) {
+  const { t } = useTranslation();
   const { state, updateState, resetState } = useTableQueryState("invoices", {
     page: 1,
     pageSize: 20,
@@ -305,17 +307,24 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
   const emptyState = (
     <EmptyState
       icon={Receipt}
-      title="No invoices found"
-      description="Adjust filters or create a new invoice to get started."
+      title={t("finance.invoices.emptyTitle", "No invoices found")}
+      description={t(
+        "finance.invoices.emptyDesc",
+        "Adjust filters or create a new invoice to get started.",
+      )}
       action={
         activeFilters.length > 0 ? (
           <Button variant="outline" onClick={() => resetState()}>
-            Clear all filters
+            {t("finance.invoices.clearFilters", "Clear all filters")}
           </Button>
         ) : (
-          <Button onClick={() => toast.info("Create invoice flow")}>
+          <Button
+            onClick={() =>
+              toast.info(t("finance.invoices.createFlow", "Create invoice flow"))
+            }
+          >
             <Plus className="w-4 h-4 me-2" />
-            Create Invoice
+            {t("finance.invoices.createCta", "Create Invoice")}
           </Button>
         )
       }
@@ -454,7 +463,13 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
           metadataAccessor={(inv) => 
             `Due: ${formatDistanceToNowStrict(new Date(inv.dueDate), { addSuffix: true })} • Issued ${formatDistanceToNowStrict(new Date(inv.issueDate), { addSuffix: true })}`
           }
-          onRowClick={(inv) => toast.info(`Open invoice ${inv.id}`)}
+        onRowClick={(inv) =>
+          toast.info(
+            t("finance.invoices.openInvoice", "Open invoice {{id}}", {
+              id: inv.id,
+            }),
+          )
+        }
           loading={isLoading}
           emptyMessage="No invoices found"
         />
@@ -468,7 +483,13 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
           loading={isLoading}
           emptyState={emptyState}
           density={density}
-          onRowClick={(row) => toast.info(`Open invoice ${row.id}`)}
+        onRowClick={(row) =>
+          toast.info(
+            t("finance.invoices.openInvoice", "Open invoice {{id}}", {
+              id: row.id,
+            }),
+          )
+        }
         />
       </div>
 

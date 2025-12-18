@@ -79,7 +79,7 @@ describe('Filter System Integration', () => {
       status: ['open', 'in_progress', 'closed'][i % 3],
       priority: ['low', 'medium', 'high'][i % 3],
       assigned_to: i % 2 === 0 ? 'tech_1' : 'tech_2',
-    }));
+    })) as Array<ReturnType<typeof createTestWorkOrder> & { assigned_to: string }>;
 
     // Complex filter: status IN (open, in_progress) AND priority = high AND assigned_to = tech_1
     const filtered = workOrders.filter(

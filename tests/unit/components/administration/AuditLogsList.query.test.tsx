@@ -44,6 +44,18 @@ vi.mock("@/contexts/TranslationContext", () => ({
   useTranslation: () => ({ t: (_k: string, fallback?: string) => fallback || "" }),
 }));
 
+vi.mock("@/hooks/useFilterPresets", () => ({
+  useFilterPresets: () => ({
+    presets: [],
+    isLoading: false,
+    error: undefined,
+    createPreset: vi.fn(),
+    deletePreset: vi.fn(),
+    defaultPreset: undefined,
+    refresh: vi.fn(),
+  }),
+}));
+
 import { AuditLogsList } from "@/components/administration/AuditLogsList";
 
 describe("AuditLogsList query params", () => {

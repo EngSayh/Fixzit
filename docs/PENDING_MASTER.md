@@ -175,6 +175,26 @@ Duration  10.57s
 
 ---
 
+### 2025-12-18 09:40 (Asia/Riyadh) — Phase 4.3: Filter Presets QA + RBAC Client Roles
+**Context:** feat/mobile-cardlist-phase1 | Status: [PENDING] | Phase 4 integration QA  
+**Agent:** Codex (100% execution)  
+
+**Scope Delivered:**
+- Verified saved filter presets integration across Work Orders, Users, Employees, Invoices, Audit Logs, Properties, and Products (TableToolbar + SWR key coverage).
+- Hardened client RBAC shim: export `Plan`, `SubmoduleKey`, `PLAN_GATES`, `inferSubRoleFromRole`; added `GUEST` role and mapped FINANCE/HR/PROCUREMENT/EMPLOYEE aliases → TEAM_MEMBER to match STRICT v4.1.
+- Updated SubRoleSelector tests to use plan strings and ensured plan gates default safely when enums are undefined in tests.
+- Fixed vitest.setup typing for logger overrides (Vitest 3 thread pools).
+
+**Verification:**
+- `pnpm typecheck` → ✅ clean
+- `pnpm vitest run --project=client --reporter=dot` → ✅ (expected WARN logs: missing ENCRYPTION_KEY, profile fetch mock error)
+- `pnpm vitest run --project=server --reporter=dot --shard=1/2` → ✅
+- `pnpm vitest run --project=server --reporter=dot --shard=2/2` → ✅
+
+**Outstanding / Follow-ups:**
+- Legacy snake_case warning from `tests/unit/lib/db/collections.test.ts`: `app/api/filters/presets/route.ts` still uses `work_orders` (evaluate rename vs org_id invariants).
+- Existing test warnings (encryption key missing, profile fetch error boundary) are informational only.
+
 ### 2025-12-18 09:00 (Asia/Riyadh) — Phase 4.2: Saved Filter Presets (User Feature)
 **Context:** feat/mobile-cardlist-phase1 | Commit: [PENDING] | Phase 4 implementation  
 **Agent:** GitHub Copilot (100% execution mode - NO PUSHBACK)  
