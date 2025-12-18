@@ -612,21 +612,36 @@ beforeAll(async () => {
 
     // Reconnect guard: if the in-memory server drops the connection mid-suite,
     // attempt a single reconnect to keep long-running server tests stable.
+    // Protected by reconnectListenerAttached flag to prevent duplicate listeners.
     if (!reconnectListenerAttached) {
       reconnectListenerAttached = true;
       mongoose.connection.on("disconnected", async () => {
-        if (shuttingDownMongo) return;
-        if (!mongoUriRef) return;
+        if (shuttingDownMongo) {
+          logger.debug("[MongoMemory] Skipping reconnect during shutdown");
+          return;
+        }
+        if (!mongoUriRef) {
+          logger.warn("[MongoMemory] Cannot reconnect - mongoUriRef is null");
+          return;
+        }
+        // Check if already connected (prevents double reconnect)
+        if (mongoose.connection.readyState === 1) {
+          logger.debug("[MongoMemory] Already connected, skipping reconnect");
+          return;
+        }
         try {
+          logger.debug("[MongoMemory] Attempting reconnect after disconnect...");
           await mongoose.connect(mongoUriRef, {
             autoCreate: true,
             autoIndex: true,
           });
-          logger.debug("[MongoMemory] Reconnected after disconnect");
+          logger.debug("[MongoMemory] ✅ Reconnected successfully");
         } catch (err) {
-          logger.error("[MongoMemory] Reconnect failed after disconnect", err as Error);
+          logger.error("[MongoMemory] ❌ Reconnect failed", err as Error);
+          // Don't throw - let tests fail gracefully with connection error
         }
       });
+      logger.debug("[MongoMemory] Reconnect listener attached");
     }
 
     logger.debug("✅ MongoDB Memory Server started:", { mongoUri });
