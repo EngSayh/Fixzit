@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, X } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface TenantPreviewProps {
   orgId: string;
@@ -62,7 +63,7 @@ export function TenantPreview({ orgId, orgName }: TenantPreviewProps) {
       // Redirect to tenant dashboard
       router.push("/dashboard");
     } catch (error) {
-      console.error("Preview mode failed:", error);
+      logger.error("[SuperadminPreview] Preview mode failed", { error });
       toast.error("Failed to start preview mode");
     }
   };
@@ -85,7 +86,7 @@ export function TenantPreview({ orgId, orgName }: TenantPreviewProps) {
       // Redirect to superadmin dashboard
       router.push("/superadmin");
     } catch (error) {
-      console.error("Exit preview failed:", error);
+      logger.error("[SuperadminPreview] Exit preview failed", { error });
       toast.error("Failed to exit preview mode");
     }
   };

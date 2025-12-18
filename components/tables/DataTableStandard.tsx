@@ -62,18 +62,22 @@ export function DataTableStandard<T extends Record<string, unknown>>({
     return <>{emptyState}</>;
   }
 
-  const grouped = React.useMemo(() => {
-    if (!groupBy) return null;
-    const map = new Map<string | number, { key: string | number; rows: T[]; order: number }>();
-    data.forEach((row, index) => {
-      const key = groupBy(row);
-      if (!map.has(key)) {
-        map.set(key, { key, rows: [], order: index });
-      }
-      map.get(key)?.rows.push(row);
-    });
-    return Array.from(map.values()).sort((a, b) => a.order - b.order);
-  }, [data, groupBy]);
+  const grouped = groupBy
+    ? (() => {
+        const map = new Map<
+          string | number,
+          { key: string | number; rows: T[]; order: number }
+        >();
+        data.forEach((row, index) => {
+          const key = groupBy(row);
+          if (!map.has(key)) {
+            map.set(key, { key, rows: [], order: index });
+          }
+          map.get(key)?.rows.push(row);
+        });
+        return Array.from(map.values()).sort((a, b) => a.order - b.order);
+      })()
+    : null;
 
   const renderSummaryCells = (rows: T[] | undefined) => {
     if (!rows || !renderSummaryRow) return null;

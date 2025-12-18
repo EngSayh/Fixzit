@@ -13,8 +13,9 @@
  */
 
 import React, { useState } from "react";
-import Joyride, { Step, CallBackProps, STATUS, ACTIONS, EVENTS } from "react-joyride";
+import Joyride, { Step, CallBackProps, STATUS, EVENTS } from "react-joyride";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export type TourKey = "dashboard" | "work-orders" | "filter-presets" | "bulk-actions";
 
@@ -170,7 +171,7 @@ export function GuidedTour({ tourKey, run = false, onComplete, onSkip }: GuidedT
 
     // Log tour events (optional - for analytics)
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
-      console.log("[GuidedTour]", { status, action, type, tourKey });
+      logger.info("[GuidedTour]", { status, action, type, tourKey });
     }
   };
 

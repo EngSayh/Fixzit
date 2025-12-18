@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Check, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 type WizardStep = "branding" | "defaults" | "users" | "complete";
 
@@ -148,7 +149,7 @@ export function SetupWizard() {
       setCurrentStep("complete");
       toast.success("Setup completed successfully!");
     } catch (error) {
-      console.error("Setup failed:", error);
+      logger.error("[SuperadminSetup] Setup failed", { error });
       toast.error("Setup failed. Please try again.");
     } finally {
       setIsSubmitting(false);
