@@ -73,32 +73,16 @@ export function SuperadminHeader() {
   const [globalSearch, setGlobalSearch] = useState("");
   const username = session?.user?.username?.trim() || null;
   const displayName = username || t("superadmin.account");
-  const fallbackIfUntranslated = (value: string | undefined, key: string, fallback: string) =>
-    !value || value === key ? fallback : value;
-  const homeLabel = fallbackIfUntranslated(
-    t("header.homeLink", "Go to landing"),
-    "header.homeLink",
-    "Go to landing",
-  );
-  const switchTenantLabel = fallbackIfUntranslated(
-    t("superadmin.switchTenant", "Switch tenant"),
-    "superadmin.switchTenant",
-    "Switch tenant",
-  );
-  const currencyLabel = fallbackIfUntranslated(
-    t("currency.selectorLabel", "Currency selector"),
-    "currency.selectorLabel",
-    "Currency selector",
-  );
-  const routerPush =
-    (router as { push?: (path: string) => void } | undefined)?.push;
-  const fallbackPush =
+  const homeLabel = t("header.homeLink") || "Go to landing";
+  const switchTenantLabel = t("superadmin.switchTenant") || "Switch tenant";
+  const currencyLabel = t("currency.selectorLabel") || "Currency selector";
+  const push =
+    (router as { push?: (path: string) => void } | undefined)?.push ||
     (globalThis as { __fixzitRouterPush?: (path: string) => void })
       .__fixzitRouterPush;
   const navigate = (href: string) => {
-    const pushFn = routerPush || fallbackPush;
-    if (typeof pushFn === "function") {
-      pushFn(href);
+    if (typeof push === "function") {
+      push(href);
     }
   };
 

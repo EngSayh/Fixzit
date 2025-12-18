@@ -9,7 +9,7 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { Star, StarOff, Trash2, Plus, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {

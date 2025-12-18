@@ -204,6 +204,7 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
   const filters = state.filters as PropertyFilters;
+  const currentFilters = state.filters || {};
 
   // Auto-switch to cards on mobile
   React.useEffect(() => {
@@ -435,6 +436,11 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
     setFilterDrawerOpen(false);
   };
 
+  const handleLoadPreset = (presetFilters: Record<string, unknown>) => {
+    setDraftFilters(presetFilters as PropertyFilters);
+    updateState({ filters: presetFilters });
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* PageHeader */}
@@ -506,6 +512,11 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
               </Button>
             </div>
             <TableDensityToggle density={density} onChange={setDensity} />
+            <FilterPresetsDropdown
+              entityType="properties"
+              currentFilters={currentFilters}
+              onLoadPreset={handleLoadPreset}
+            />
             <Button
               variant="outline"
               size="sm"
