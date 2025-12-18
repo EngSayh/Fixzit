@@ -1,5 +1,16 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-18 17:05 (Asia/Riyadh) — Phase H: Type Hygiene + TS Noise Cleanup
+**Context:** feat/mobile-cardlist-phase1 | Agent: Codex (solo)  
+**Duration:** 10 minutes | **Files:** components/ui/dropdown-menu.tsx, components/tours/GuidedTour.tsx, types/third-party-shims.ts  
+
+**Changes:**
+- Removed legacy third-party shim file now that official typings are installed (resolves duplicate identifier errors).
+- Tightened dropdown wrapper typings (explicit className/children handling) to satisfy clsx ClassValue checks.
+- Swapped GuidedTour steps to use react-joyride `Step` typings, fixing placement union mismatch.
+
+**Verification:** `pnpm typecheck` ✅ (post-clean). SubRoleSelector tests previously green; no regressions observed.
+
 ### 2025-12-18 16:05 (Asia/Riyadh) — Phase 16: Superadmin Search Hotkey + Typecheck
 **Context:** feat/mobile-cardlist-phase1 | Agent: Codex (solo; parallel agent active elsewhere)  
 **Duration:** 10 minutes | **Files:** components/superadmin/SuperadminHeader.tsx, tests/unit/components/superadmin/SuperadminHeader.test.tsx  
@@ -14,6 +25,32 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 - `pnpm typecheck` ✅  
 
 **Notes:** Parallel agent has additional pending changes across API routes and marketplace components; no conflicts observed in this phase.  
+
+### 2025-12-18 16:25 (Asia/Riyadh) — Phase 17: Aqar Pricing Insights Tenant Guard
+**Context:** feat/mobile-cardlist-phase1 | Agent: Codex (solo)  
+**Duration:** 10 minutes | **Files:** app/api/aqar/insights/pricing/route.ts, tests/api/aqar/insights-pricing.route.test.ts  
+
+**✅ PHASE 17 COMPLETE: ENFORCE TENANT SCOPE ON PRICING INSIGHTS**
+- GET /api/aqar/insights/pricing now requires authenticated user with valid orgId (403 when missing, 401 when unauthorized); passes orgId to service for scoped aggregation.
+- Added targeted tests covering 401, 403, and successful response with orgId propagation.
+
+**Verification:**  
+- `pnpm vitest run tests/api/aqar/insights-pricing.route.test.ts` ✅  
+- `pnpm typecheck` ✅  
+
+**Notes:** No changes needed for POST (already required orgId). Service already scopes via orgId in aggregation when provided.  
+
+### 2025-12-18 16:40 (Asia/Riyadh) — Phase 18-21: Regression Sweeps + Validation
+**Context:** feat/mobile-cardlist-phase1 | Agent: Codex (solo)  
+**Duration:** 30 minutes | **Files:** (tests only)  
+
+**✅ PHASE 18-21 COMPLETE: UI + I18n + Validation**
+- Finance/Marketplace regressions: `pnpm vitest run tests/pages/product.slug.page.test.ts tests/unit/components/tables/filter-schema.lists.test.tsx` ✅
+- Observability/Bulk actions: `pnpm vitest run tests/security/monitoring.test.ts tests/integration/bulk-actions.test.ts` ✅
+- i18n & currency selector/TopBar: `pnpm vitest run tests/integration/language-selector.test.tsx tests/unit/components/__tests__/TopBar.test.tsx tests/unit/i18n/currency-selector.smoke.test.tsx` ✅
+- Lint: `pnpm lint` ✅ (ESLint clean)
+
+**Status:** Validation suite clean for touched areas; no new code changes in these phases.  
 
 ### 2025-12-18 15:45 (Asia/Riyadh) — Phase 5-9: Marketplace Deals + Finance Export + Superadmin Nav Fallbacks
 **Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (this agent, coordinated with parallel agent)  
@@ -767,10 +804,13 @@ Add `<FilterPresetsDropdown entityType="workOrders" currentFilters={filters} onL
   - Vitest: 247 failed (MongoDB connection issues - expected), 34 passed
   - Build: Not run (blocked by test failures)
 
-**Progress Update (latest session):**
-- ✅ BUG-WO-FILTERS-MISSING fixed end-to-end: WorkOrdersViewNew now passes overdue/assignment/SLA risk/due date filters to `/api/work-orders` and `/api/fm/work-orders`, with server-side handling.
-- ✅ Added reliability tests: server filter coverage (`tests/unit/api/work-orders/filters.route.test.ts`) and client error-state coverage (`tests/unit/components/fm/WorkOrdersViewNew.error.test.tsx`).
-- ✅ TypeScript clean (pnpm typecheck).
+**Progress Update (latest sessions):**
+- ✅ Work Orders filters parity + tests (server/client)
+- ✅ Admin Users filters parity + test
+- ✅ Admin Audit Logs filters parity + endpoint alignment (`/api/admin/audit-logs`) + test
+- ✅ Finance Invoices filters parity (amount/date ranges) + test
+- ✅ HR Employees filters parity (employmentType, joining date range, q alias) + test
+- ✅ TypeScript clean (pnpm typecheck)
 
 **🟠 In Progress (from BACKLOG_AUDIT.json):**
 - P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components
@@ -798,12 +838,13 @@ Add `<FilterPresetsDropdown entityType="workOrders" currentFilters={filters} onL
 - **LOGIC-001** — Work Order SLA calculation ignores business hours (12h effort)
 - **INFRA-SENTRY** — Activate Sentry error tracking (already configured) (2h effort)
 
-**P2 - MEDIUM (5 filter bugs):**
-- **BUG-WO-FILTERS-MISSING** — sourceRef: components/fm/WorkOrdersViewNew.tsx:149-153 (4h)
-- **BUG-USERS-FILTERS-MISSING** — sourceRef: components/administration/UsersList.tsx:107-113 (4h)
-- **BUG-EMPLOYEES-FILTERS-MISSING** — sourceRef: components/hr/EmployeesList.tsx:112-116 (4h)
-- **BUG-INVOICES-FILTERS-MISSING** — sourceRef: components/finance/InvoicesList.tsx:111-116 (4h)
-- **BUG-AUDITLOGS-FILTERS-MISSING** — sourceRef: components/administration/AuditLogsList.tsx:108-114 (4h)
+**P2 - MEDIUM (filter items):**
+- **BUG-WO-FILTERS-MISSING** — RESOLVED (server/client parity + tests)
+- **BUG-USERS-FILTERS-MISSING** — RESOLVED (admin users API + test)
+- **BUG-EMPLOYEES-FILTERS-MISSING** — RESOLVED (HR employees API + test)
+- **BUG-INVOICES-FILTERS-MISSING** — RESOLVED (finance invoices API + test)
+- **BUG-AUDITLOGS-FILTERS-MISSING** — RESOLVED (admin audit logs API + UI endpoint + tests)
+- **PENDING** — FM endpoint alignment decision (`/api/work-orders` vs `/api/fm/work-orders`) and remaining list integration tests
 
 **P3 - LOW (2 issues):**
 - **BUG-TS-VITEST-CONFIG** — vitest.config.ts poolOptions.threads type mismatch (non-blocking) (2h)
