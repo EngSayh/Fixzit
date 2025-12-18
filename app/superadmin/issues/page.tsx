@@ -144,6 +144,134 @@ const CATEGORY_ICONS: Record<string, typeof Bug> = {
 };
 
 // ============================================================================
+// PHASE PROGRESS COMPONENT
+// ============================================================================
+
+interface PhaseData {
+  id: string;
+  title: string;
+  status: "completed" | "in-progress" | "not-started";
+  date?: string;
+  description: string;
+}
+
+interface PhaseSummary {
+  total: number;
+  completed: number;
+  inProgress: number;
+  notStarted: number;
+  completionPercentage: number;
+}
+
+function PhaseProgressSection() {
+  const [phases, setPhases] = useState<PhaseData[]>([]);
+  const [summary, setSummary] = useState<PhaseSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchPhases = async () => {
+      try {
+        const res = await fetch("/api/superadmin/phases");
+        if (!res.ok) throw new Error("Failed to fetch phase data");
+        const data = await res.json();
+        setPhases(data.phases || []);
+        setSummary(data.summary || null);
+      } catch (error) {
+        console.error("Phase fetch error:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load phase progress data",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPhases();
+  }, [toast]);
+
+  if (loading) {
+    return (
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <Skeleton className="h-6 w-48" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-24 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!summary) return null;
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 text-blue-500" />
+          Phase Progress (P66-P75)
+        </CardTitle>
+        <CardDescription className="text-slate-400">
+          Current improvement phases: {summary.completed}/{summary.total} completed ({summary.completionPercentage}%)
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Progress Bar */}
+        <div className="w-full bg-slate-700 rounded-full h-3 overflow-hidden">
+          <div
+            className="bg-gradient-to-r from-blue-500 to-green-500 h-full transition-all duration-500"
+            style={{ width: `${summary.completionPercentage}%` }}
+          />
+        </div>
+
+        {/* Phase Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {phases.map((phase) => (
+            <div
+              key={phase.id}
+              className={`px-3 py-2 rounded-md text-sm font-medium text-center transition-all ${
+                phase.status === "completed"
+                  ? "bg-green-500/20 text-green-400 border border-green-500/50"
+                  : phase.status === "in-progress"
+                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/50 animate-pulse"
+                  : "bg-slate-700 text-slate-400 border border-slate-600"
+              }`}
+              title={`${phase.title} - ${phase.status}`}
+            >
+              {phase.id}
+              {phase.status === "completed" && (
+                <CheckCircle2 className="inline-block h-3 w-3 ms-1" />
+              )}
+              {phase.status === "in-progress" && (
+                <Clock className="inline-block h-3 w-3 ms-1 animate-spin" />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-3 gap-4 text-center pt-2 border-t border-slate-700">
+          <div>
+            <p className="text-xs text-slate-400">Completed</p>
+            <p className="text-lg font-bold text-green-400">{summary.completed}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">In Progress</p>
+            <p className="text-lg font-bold text-blue-400">{summary.inProgress}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Remaining</p>
+            <p className="text-lg font-bold text-slate-400">{summary.notStarted}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================================================
 // COMPONENT
 // ============================================================================
 
@@ -778,6 +906,9 @@ export default function SuperadminIssuesPage() {
           </Card>
         </div>
       )}
+
+      {/* Phase Progress Tracking (P66-P75) */}
+      <PhaseProgressSection />
 
       {/* Filters - Sticky */}
       <Card className="bg-slate-800 border-slate-700 sticky top-0 z-10">

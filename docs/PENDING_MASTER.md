@@ -1,5 +1,43 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-19 20:15 (Asia/Riyadh) — Phase P66: Global Offline Resilience Deployment
+**Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)
+**Duration:** 10 minutes
+
+**✅ PHASE P66 COMPLETE: OFFLINEINDICATOR DEPLOYED GLOBALLY**
+
+**P66: OfflineIndicator Global Deployment**
+- Added `<OfflineIndicator position="top" />` to root `app/layout.tsx`
+- Component renders globally across all pages (work orders, marketplace, auth, admin, etc.)
+- RTL-ready with useTranslation context
+- Brand-compliant Fixzit Green (#00A859) for reconnected state
+- Accessibility: role=status, aria-live=polite, aria-hidden icons
+- Location: After TooltipProvider, before children in ConditionalProviders
+
+**P66.1: Superadmin Phases API Fixes**
+- Fixed import: `getSuperadminSession` from `@/lib/superadmin/auth` (was `/lib/auth-helpers`)
+- Fixed import: `parsePendingMasterMarkdown` from `@/lib/backlog/parsePendingMaster` (was `parsePendingMaster`)
+- Fixed auth check: `getSuperadminSession(req)` (was missing req parameter)
+- Fixed auth validation: Removed `.isSuperAdmin` check (not in SuperadminSession interface)
+
+**QA Gate:**
+- ✅ TypeScript: 0 errors
+- ✅ OfflineIndicator: Rendered globally
+- ✅ Component: Already has 13 RTL/i18n snapshot tests (P61)
+- ✅ Coverage: Now deployed in root layout (all authenticated + public pages)
+
+**Files Changed:**
+- `app/layout.tsx` - Added OfflineIndicator global component
+- `app/api/superadmin/phases/route.ts` - Fixed imports and auth session
+
+**Next Steps:**
+- P67-P70: Marketplace currency/tenant verification + localization UX
+- P71-P73: Zod coverage expansion (120 → 200+ endpoints)
+- P74: Playwright HFV smoke tests
+- P75: CI/Runtime optimization
+
+---
+
 ### 2025-12-19 19:40 (Asia/Riyadh) — Phase P61-P65: Test Coverage + Fast Scripts
 **Context:** feat/mobile-cardlist-phase1 | c27506fc8 | Agent: GitHub Copilot (VS Code Agent)
 **Duration:** 15 minutes | **Commits:** c27506fc8

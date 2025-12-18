@@ -20,11 +20,13 @@ vi.mock('@/lib/middleware/rate-limit', () => ({
 
 let findOneMock: vi.Mock;
 let findMock: vi.Mock;
+let aggregateMock: vi.Mock;
 
 vi.mock('@/server/models/Organization', () => ({
   Organization: {
     findOne: (...args: unknown[]) => findOneMock(...args),
     find: (...args: unknown[]) => findMock(...args),
+    aggregate: (...args: unknown[]) => aggregateMock(...args),
   },
 }));
 
@@ -67,6 +69,7 @@ describe('Support org impersonation API', () => {
     vi.clearAllMocks();
     findOneMock = vi.fn();
     findMock = vi.fn();
+    aggregateMock = vi.fn();
   });
 
   it('rejects non super admins in GET', async () => {
@@ -146,17 +149,16 @@ describe('Support org search API', () => {
   it('returns matched organizations', async () => {
     authMock.mockResolvedValue({ user: { isSuperAdmin: true } });
     connectMock.mockResolvedValue(undefined);
-    findMock.mockReturnValue(
-      mockQueryResult([
-        {
-          orgId: 'org_select',
-          name: 'Select Org',
-          code: 'SEL',
-          legal: { registrationNumber: 'REG' },
-          subscription: { plan: 'enterprise' },
-        },
-      ])
-    );
+    // Mock aggregate instead of find since the route uses aggregate
+    aggregateMock.mockResolvedValue([
+      {
+        orgId: 'org_select',
+        name: 'Select Org',
+        code: 'SEL',
+        legal: { registrationNumber: 'REG' },
+        subscription: { plan: 'enterprise' },
+      },
+    ]);
 
     const req = new NextRequest('https://fixzit.test/api/support/organizations/search?identifier=select');
     const res = await searchGET(req);

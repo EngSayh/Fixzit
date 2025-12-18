@@ -14,6 +14,7 @@ import CustomCursor from '@/components/CustomCursor';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { getServerI18n } from '@/lib/i18n/server';
 import { Config } from '@/lib/config/constants';
+import { OfflineIndicator } from '@/components/common/OfflineIndicator';
 
 export const metadata: Metadata = {
   title: 'Fixzit Enterprise Platform',
@@ -135,6 +136,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
         <ConditionalProviders initialLocale={locale}>
           <TooltipProvider delayDuration={200}>
+            <OfflineIndicator position="top" />
             {children}
             {/* Custom cursor with trailing particles */}
             <CustomCursor />

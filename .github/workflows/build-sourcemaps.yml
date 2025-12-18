@@ -66,11 +66,12 @@ jobs:
           pnpm run build
 
       # Sentry release + sourcemaps (v3, with Debug ID injection)
-      - name: 🚀 Create & upload Sentry release (non-blocking)
+      # Required (blocking) on main/develop when token is set; optional (non-blocking) elsewhere
+      - name: 🚀 Create & upload Sentry release
         id: sentry
         if: ${{ env.ENABLE_SENTRY != 'false' && env.HAS_SENTRY_AUTH == 'true' }}
         uses: getsentry/action-release@v3
-        continue-on-error: true
+        continue-on-error: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ env.SENTRY_ORG_NAME }}
@@ -99,9 +100,21 @@ jobs:
           echo "💾 Total .map size: ${TOTAL_SIZE:-0}" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.sentry.outcome }}" = "success" ]; then
             SENTRY_ENV="${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}"
-            echo "✅ Sentry release uploaded (release: ${{ github.sha }}, env: ${SENTRY_ENV})" >> $GITHUB_STEP_SUMMARY
+            BLOCKING_MODE="${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}"
+            if [ "$BLOCKING_MODE" = "true" ]; then
+              echo "✅ Sentry release uploaded REQUIRED (release: ${{ github.sha }}, env: ${SENTRY_ENV})" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "✅ Sentry release uploaded (release: ${{ github.sha }}, env: ${SENTRY_ENV})" >> $GITHUB_STEP_SUMMARY
+            fi
+          elif [ "${{ steps.sentry.outcome }}" = "failure" ]; then
+            BLOCKING_MODE="${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}"
+            if [ "$BLOCKING_MODE" = "true" ]; then
+              echo "❌ Sentry upload FAILED (REQUIRED on main/develop). Build will fail." >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ Sentry upload failed (non-blocking on feature branches)" >> $GITHUB_STEP_SUMMARY
+            fi
           elif [ "${{ env.ENABLE_SENTRY }}" != "false" ]; then
-            echo "⚠️ Sentry upload step did not complete successfully (non-blocking). Check logs." >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Sentry upload step did not complete successfully (check logs)" >> $GITHUB_STEP_SUMMARY
           else
             echo "ℹ️ Sentry upload disabled or not configured" >> $GITHUB_STEP_SUMMARY
           fi

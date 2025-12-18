@@ -106,18 +106,71 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
 
-    const regex = new RegExp(sanitize(identifier), "i");
-    const records = await Organization.find({
-      $or: [
-        { orgId: identifier },
-        { code: regex },
-        { name: regex },
-        { "legal.registrationNumber": identifier },
-      ],
-    })
-      .select("orgId name code legal.registrationNumber subscription.plan")
-      .limit(limit)
-      .lean();
+    // Strategy: exact matches first, then prefix matches, then fuzzy contains
+    // Weight: orgId/registrationNumber (exact) > code/name (prefix) > name (fuzzy)
+    
+    const sanitizedId = sanitize(identifier);
+    const prefixRegex = new RegExp(`^${sanitizedId}`, "i");
+    const fuzzyRegex = new RegExp(sanitizedId, "i");
+
+    // Use aggregation for weighted search with scoring
+    const pipeline: any[] = [
+      {
+        $match: {
+          $or: [
+            { orgId: identifier }, // Exact orgId
+            { "legal.registrationNumber": identifier }, // Exact registration
+            { code: prefixRegex }, // Code starts with
+            { name: prefixRegex }, // Name starts with
+            { name: fuzzyRegex }, // Name contains (fallback)
+          ],
+        },
+      },
+      {
+        $addFields: {
+          // Relevance score: higher = better match
+          relevanceScore: {
+            $cond: [
+              { $eq: ["$orgId", identifier] },
+              100, // Exact orgId = highest
+              {
+                $cond: [
+                  { $eq: ["$legal.registrationNumber", identifier] },
+                  90, // Exact registration = very high
+                  {
+                    $cond: [
+                      { $regexMatch: { input: "$code", regex: `^${sanitizedId}`, options: "i" } },
+                      70, // Code prefix = high
+                      {
+                        $cond: [
+                          { $regexMatch: { input: "$name", regex: `^${sanitizedId}`, options: "i" } },
+                          60, // Name prefix = medium-high
+                          40, // Name contains = medium (fallback)
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      { $sort: { relevanceScore: -1 as const, name: 1 as const } }, // Best matches first, then alphabetical
+      { $limit: limit },
+      {
+        $project: {
+          orgId: 1,
+          name: 1,
+          code: 1,
+          "legal.registrationNumber": 1,
+          "subscription.plan": 1,
+          relevanceScore: 1, // Include for debugging (optional in production)
+        },
+      },
+    ];
+
+    const records = await Organization.aggregate(pipeline, { maxTimeMS: 10_000 });
 
     const response = NextResponse.json({ results: records.map(serialize) });
     // Private cache for support tools - no public caching

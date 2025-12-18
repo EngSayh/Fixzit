@@ -174,10 +174,7 @@ export async function POST(req: NextRequest) {
         .toArray()) as unknown as SearchResult[];
     }
 
-    // User-scoped search results - no caching
-    const response = createSecureResponse({ results }, 200, req);
-    response.headers.set("Cache-Control", "private, no-store");
-    return response;
+    return createSecureResponse({ results }, 200, req);
   } catch (err) {
     logger.error(
       "kb/search error",

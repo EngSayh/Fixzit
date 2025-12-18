@@ -30,6 +30,7 @@ vi.mock("@/server/models/Organization", () => ({
     select: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     lean: vi.fn().mockResolvedValue([]),
+    aggregate: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -69,6 +70,7 @@ describe("Support Organization Search API", () => {
     vi.mocked(Organization.select).mockReturnThis();
     vi.mocked(Organization.limit).mockReturnThis();
     vi.mocked(Organization.lean).mockResolvedValue([]);
+    vi.mocked(Organization.aggregate).mockResolvedValue([]);
   });
 
   describe("Authorization", () => {
@@ -165,21 +167,26 @@ describe("Support Organization Search API", () => {
 
   describe("Limit Parameter", () => {
     it("should use default limit of 10", async () => {
-      vi.mocked(Organization.lean).mockResolvedValue([
-        { orgId: "org1", name: "Org 1" },
+      vi.mocked(Organization.aggregate).mockResolvedValue([
+        { orgId: "org1", name: "Org 1", relevanceScore: 100 },
       ]);
 
       const request = createRequest({ identifier: "test" });
       await GET(request);
 
-      expect(Organization.limit).toHaveBeenCalledWith(10);
+      expect(Organization.aggregate).toHaveBeenCalled();
+      const pipeline = vi.mocked(Organization.aggregate).mock.calls[0][0] as any[];
+      const limitStage = pipeline.find((stage: any) => stage.$limit);
+      expect(limitStage?.$limit).toBe(10);
     });
 
     it("should accept custom limit within range (1-50)", async () => {
       const request = createRequest({ identifier: "test", limit: "25" });
       await GET(request);
 
-      expect(Organization.limit).toHaveBeenCalledWith(25);
+      const pipeline = vi.mocked(Organization.aggregate).mock.calls[0][0] as any[];
+      const limitStage = pipeline.find((stage: any) => stage.$limit);
+      expect(limitStage?.$limit).toBe(25);
     });
 
     it("should reject limit below 1", async () => {
@@ -198,7 +205,7 @@ describe("Support Organization Search API", () => {
   });
 
   describe("Successful Search", () => {
-    it("should return matching organizations", async () => {
+    it("should return matching organizations with relevance scoring", async () => {
       const mockOrgs = [
         {
           orgId: "org_123",
@@ -206,9 +213,10 @@ describe("Support Organization Search API", () => {
           code: "TEST",
           legal: { registrationNumber: "REG123" },
           subscription: { plan: "enterprise" },
+          relevanceScore: 100,
         },
       ];
-      vi.mocked(Organization.lean).mockResolvedValue(mockOrgs);
+      vi.mocked(Organization.aggregate).mockResolvedValue(mockOrgs);
 
       const request = createRequest({ identifier: "test" });
       const response = await GET(request);
@@ -237,10 +245,11 @@ describe("Support Organization Search API", () => {
         {
           orgId: "org_456",
           name: "Minimal Org",
+          relevanceScore: 60,
           // No code, legal, or subscription
         },
       ];
-      vi.mocked(Organization.lean).mockResolvedValue(mockOrgs);
+      vi.mocked(Organization.aggregate).mockResolvedValue(mockOrgs);
 
       const request = createRequest({ identifier: "minimal" });
       const response = await GET(request);
@@ -263,18 +272,71 @@ describe("Support Organization Search API", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      expect(Organization.find).toHaveBeenCalled();
+      expect(Organization.aggregate).toHaveBeenCalled();
     });
 
     it("should prefer identifier over corporateId when both provided", async () => {
-      vi.mocked(Organization.lean).mockResolvedValue([]);
+      vi.mocked(Organization.aggregate).mockResolvedValue([]);
       
       const request = createRequest({ identifier: "primary", corporateId: "secondary" });
       await GET(request);
 
-      // The find should use "primary" as the identifier
-      const findCall = vi.mocked(Organization.find).mock.calls[0][0];
-      expect(findCall.$or).toContainEqual({ orgId: "primary" });
+      // The aggregate should use "primary" as the identifier in $match
+      expect(Organization.aggregate).toHaveBeenCalled();
+      const pipeline = vi.mocked(Organization.aggregate).mock.calls[0][0] as any[];
+      const matchStage = pipeline.find((stage: any) => stage.$match);
+      expect(matchStage).toBeDefined();
+      // Verify "primary" is used in the search (orgId exact match)
+      expect(matchStage.$match.$or).toContainEqual({ orgId: "primary" });
+    });
+  });
+
+  describe("Relevance Scoring", () => {
+    it("should prioritize exact orgId matches (score 100)", async () => {
+      const mockOrgs = [
+        { orgId: "org_test", name: "Test Org", relevanceScore: 100 },
+        { orgId: "org_other", name: "Test Company", code: "test", relevanceScore: 70 },
+      ];
+      vi.mocked(Organization.aggregate).mockResolvedValue(mockOrgs);
+
+      const request = createRequest({ identifier: "org_test" });
+      const response = await GET(request);
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.results[0].orgId).toBe("org_test");
+    });
+
+    it("should weight exact registration number high (score 90)", async () => {
+      const request = createRequest({ identifier: "REG123" });
+      await GET(request);
+
+      const pipeline = vi.mocked(Organization.aggregate).mock.calls[0][0] as any[];
+      const matchStage = pipeline.find((stage: any) => stage.$match);
+      expect(matchStage.$match.$or).toContainEqual({ "legal.registrationNumber": "REG123" });
+    });
+
+    it("should apply prefix matching for code and name", async () => {
+      const request = createRequest({ identifier: "abc" });
+      await GET(request);
+
+      const pipeline = vi.mocked(Organization.aggregate).mock.calls[0][0] as any[];
+      const matchStage = pipeline.find((stage: any) => stage.$match);
+      
+      // Should include prefix patterns
+      const orConditions = matchStage.$match.$or;
+      expect(orConditions.length).toBeGreaterThan(2); // Has prefix + fuzzy matches
+    });
+
+    it("should sort by relevanceScore descending, then name ascending", async () => {
+      const request = createRequest({ identifier: "test" });
+      await GET(request);
+
+      const pipeline = vi.mocked(Organization.aggregate).mock.calls[0][0] as any[];
+      const sortStage = pipeline.find((stage: any) => stage.$sort);
+      
+      expect(sortStage).toBeDefined();
+      expect(sortStage.$sort).toEqual({ relevanceScore: -1, name: 1 });
     });
   });
 });

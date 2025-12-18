@@ -68,6 +68,23 @@ export function DataTableStandard<T extends Record<string, unknown>>({
   onSelectionChange,
   getRowId = (row: T) => String((row as Record<string, unknown>).id ?? ""),
 }: DataTableStandardProps<T>) {
+  // Performance markers for observability
+  React.useEffect(() => {
+    if (typeof performance !== 'undefined' && performance.mark) {
+      performance.mark('DataTableStandard:mount');
+      return () => {
+        performance.mark('DataTableStandard:unmount');
+        performance.measure('DataTableStandard:lifetime', 'DataTableStandard:mount', 'DataTableStandard:unmount');
+      };
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof performance !== 'undefined' && performance.mark && !loading) {
+      performance.mark(`DataTableStandard:render:${data.length}rows`);
+    }
+  }, [data.length, loading]);
+
   // Derive selection state helpers
   const allRowIds = React.useMemo(() => data.map(getRowId), [data, getRowId]);
   const allSelected = allRowIds.length > 0 && allRowIds.every((id) => selectedRows.has(id));
