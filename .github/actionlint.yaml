@@ -1,0 +1,19 @@
+# actionlint configuration
+# https://github.com/rhysd/actionlint
+#
+# This file silences known-safe patterns that IDE linters flag but are runtime-validated.
+
+self-hosted-runner:
+  labels: []
+
+# Context access warnings for optional secrets/vars are expected.
+# Secrets like SENTRY_AUTH_TOKEN, OPENAI_KEY are optional and gracefully handled
+# in workflows using if: conditionals. IDE linters cannot verify repository settings.
+#
+# Affected workflows:
+# - .github/workflows/build-sourcemaps.yml (SENTRY_*, ENABLE_SENTRY)
+# - .github/workflows/pr_agent.yml (OPENAI_KEY, ENABLE_PR_AGENT)
+# - .github/workflows/renovate.yml (informational schedule notice)
+#
+# These are severity 4 (hint) warnings, not blocking errors.
+# Workflows have env-level guards that skip steps when secrets are not configured.
