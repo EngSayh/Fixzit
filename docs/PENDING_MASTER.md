@@ -1,5 +1,15 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-18 10:28 (Asia/Riyadh) — Phase D: CI Test Lane (Sharded)
+**Context:** CI polish — provide explicit client/server test lanes for faster runs  
+**Agent:** Codex (solo)  
+**Duration:** 5 minutes | **Files:** package.json
+
+**Changes:**
+- Added `test:ci:sharded` script to run server and client vitest projects sequentially to support sharded CI execution without global timeout issues.
+
+**Verification:** `pnpm typecheck` ✅, `pnpm vitest run tests/unit/components/superadmin/SuperadminHeader.test.tsx` ✅, `pnpm vitest run tests/unit/components/tables/filter-schema.lists.test.tsx` ✅
+
 ### 2025-12-18 11:30 (Asia/Riyadh) — Phase 10-15: Complete UX + Superadmin + Observability Enhancement Suite
 **Context:** feat/mobile-cardlist-phase1 | Commits: cf80ff750 → 1de8bea11 (6 phases) | 100% execution  
 **Agent:** GitHub Copilot (solo - parallel agent not active)  

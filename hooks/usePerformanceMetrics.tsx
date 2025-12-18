@@ -30,6 +30,16 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { logger } from "@/lib/logger";
+
+type SentryClient = {
+  captureMessage: (
+    message: string,
+    context: { level: "warning" | "info"; extra: Record<string, unknown> }
+  ) => void;
+};
+
+type SentryWindow = typeof window & { Sentry?: SentryClient };
 
 interface PerformanceMetric {
   name: string;
@@ -73,9 +83,10 @@ function getRating(name: string, value: number): "good" | "needs-improvement" | 
  */
 function sendToSentry(metric: PerformanceMetric) {
   if (typeof window === "undefined") return;
-  if (!(window as any).Sentry) return;
+  const sentry = (window as SentryWindow).Sentry;
+  if (!sentry?.captureMessage) return;
 
-  (window as any).Sentry.captureMessage(`Performance: ${metric.name}`, {
+  sentry.captureMessage(`Performance: ${metric.name}`, {
     level: metric.rating === "poor" ? "warning" : "info",
     extra: {
       name: metric.name,
@@ -100,7 +111,7 @@ export function usePerformanceMetrics() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!(window as any).PerformanceObserver) return;
+    if (typeof PerformanceObserver === "undefined") return;
 
     const observers: PerformanceObserver[] = [];
 
@@ -130,7 +141,10 @@ export function usePerformanceMetrics() {
       navigationObserver.observe({ type: "navigation", buffered: true });
       observers.push(navigationObserver);
     } catch (error) {
-      console.warn("Navigation timing not supported", error);
+      logger.warn("Navigation timing not supported", {
+        component: "PerformanceMonitor",
+        error,
+      });
     }
 
     // FCP (First Contentful Paint)
@@ -155,7 +169,10 @@ export function usePerformanceMetrics() {
       fcpObserver.observe({ type: "paint", buffered: true });
       observers.push(fcpObserver);
     } catch (error) {
-      console.warn("FCP not supported", error);
+      logger.warn("FCP not supported", {
+        component: "PerformanceMonitor",
+        error,
+      });
     }
 
     // LCP (Largest Contentful Paint)
@@ -180,7 +197,10 @@ export function usePerformanceMetrics() {
       lcpObserver.observe({ type: "largest-contentful-paint", buffered: true });
       observers.push(lcpObserver);
     } catch (error) {
-      console.warn("LCP not supported", error);
+      logger.warn("LCP not supported", {
+        component: "PerformanceMonitor",
+        error,
+      });
     }
 
     // FID (First Input Delay) / INP (Interaction to Next Paint)
@@ -206,7 +226,10 @@ export function usePerformanceMetrics() {
       fidObserver.observe({ type: "first-input", buffered: true });
       observers.push(fidObserver);
     } catch (error) {
-      console.warn("FID not supported", error);
+      logger.warn("FID not supported", {
+        component: "PerformanceMonitor",
+        error,
+      });
     }
 
     // CLS (Cumulative Layout Shift)
@@ -238,7 +261,10 @@ export function usePerformanceMetrics() {
       clsObserver.observe({ type: "layout-shift", buffered: true });
       observers.push(clsObserver);
     } catch (error) {
-      console.warn("CLS not supported", error);
+      logger.warn("CLS not supported", {
+        component: "PerformanceMonitor",
+        error,
+      });
     }
 
     // Cleanup
@@ -311,7 +337,10 @@ export function markPerformance(name: string) {
   try {
     performance.mark(name);
   } catch (error) {
-    console.warn("Performance mark failed:", error);
+    logger.warn("Performance mark failed", {
+      component: "PerformanceMonitor",
+      error,
+    });
   }
 }
 
@@ -324,7 +353,10 @@ export function measurePerformance(startMark: string, endMark: string): number |
     const measure = performance.measure(`${startMark}-to-${endMark}`, startMark, endMark);
     return measure.duration;
   } catch (error) {
-    console.warn("Performance measure failed:", error);
+    logger.warn("Performance measure failed", {
+      component: "PerformanceMonitor",
+      error,
+    });
     return null;
   }
 }
