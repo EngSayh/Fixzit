@@ -1,5 +1,47 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-19 18:40 (Asia/Riyadh) — P71-P73: Zod Coverage Expansion
+**Context:** feat/mobile-cardlist-phase1 | bb87fc68b | Agent: GitHub Copilot (VS Code Agent)  
+**Duration:** 15 minutes | **Commits:** bb87fc68b pushed
+
+**✅ ZODS COVERAGE: 122/372 (+2 ENDPOINTS)**
+
+**P71: Aqar Listings Zod Validation**
+- Added `AqarListingsQuerySchema` to `/api/public/aqar/listings`
+- 9 validated fields: city, intent, propertyType, minPrice, maxPrice, beds, baths, limit, offset
+- intent: enum(["BUY", "RENT", "DAILY"])
+- propertyType: enum(["APARTMENT", "VILLA", "TOWNHOUSE", "LAND", "COMMERCIAL"])
+- limit: min(1).max(50).default(20)
+- offset: nonnegative().default(0)
+- Removed unused helper functions (sanitizeEnum, parseIntegerParam)
+- Removed unused enum imports (ListingIntent, PropertyType)
+
+**P72: Careers Jobs Zod Validation**
+- Added `PublicJobsQuerySchema` to `/api/careers/public/jobs`
+- 7 validated fields: orgId, q, department, location, jobType, page, limit
+- orgId: string().uuid().optional()
+- q: string().max(200).optional() (search query)
+- jobType: enum(["full-time", "part-time", "contract", "temporary"]).optional()
+- page: coerce.number().int().min(1).default(1)
+- limit: coerce.number().int().min(1).max(50).default(20)
+
+**P73: Test Mock Fixes**
+- Fixed Mongoose query chain mocks in `tests/api/support/organizations-search.route.test.ts`
+- Changed from direct method mocks to proper query object mocking
+- All 28 superadmin tests passing
+
+**Files Changed:**
+- `app/api/public/aqar/listings/route.ts` - Added Zod schema, removed legacy helpers
+- `app/api/careers/public/jobs/route.ts` - Added Zod schema
+- `tests/api/support/organizations-search.route.test.ts` - Fixed mock chain
+
+**Verification:**
+- TypeScript: 0 errors
+- ESLint: 0 errors
+- Pre-commit hooks: All passed
+
+---
+
 ### 2025-01-16 17:20 (Asia/Riyadh) — Phase P66-P75: Production Readiness Sweep
 **Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)  
 **Duration:** 120 minutes | **Commits:** Pending
