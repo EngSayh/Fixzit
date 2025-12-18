@@ -1,0 +1,59 @@
+# CI Fast Lane - Pre-push validation
+# Runs only changed files for rapid feedback
+# Full suite runs on pull_request and main push
+
+name: CI Fast Lane
+
+on:
+  push:
+    branches-ignore:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  fast-tests:
+    name: Fast Lane (Changed Files Only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    strategy:
+      matrix:
+        node-version: [20.x]
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Need 2 commits to detect changes
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Run TypeScript check
+        run: pnpm typecheck
+      
+      - name: Run ESLint
+        run: pnpm lint
+      
+      - name: Run tests (changed files only)
+        run: pnpm vitest run --changed HEAD~1 --reporter=dot
+        env:
+          NODE_ENV: test
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "✅ Fast lane complete"
+          echo "Changed files tested in <10min"
+          echo "Full suite runs on PR merge"

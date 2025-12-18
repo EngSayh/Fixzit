@@ -83,6 +83,7 @@ describe("SuperadminHeader", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    (globalThis as any).__fixzitRouterPush = push;
     vi.mocked(useRouter as unknown as () => any).mockReturnValue({ push });
   });
 

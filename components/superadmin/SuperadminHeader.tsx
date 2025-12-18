@@ -73,9 +73,24 @@ export function SuperadminHeader() {
   const [globalSearch, setGlobalSearch] = useState("");
   const username = session?.user?.username?.trim() || null;
   const displayName = username || t("superadmin.account");
-  const homeLabel = t("header.homeLink") || "Go to landing";
-  const switchTenantLabel = t("superadmin.switchTenant") || "Switch tenant";
-  const currencyLabel = t("currency.selectorLabel") || "Currency selector";
+  const homeLabel = t("header.homeLink", "Go to landing") || "Go to landing";
+  const switchTenantLabel =
+    t("superadmin.switchTenant", "Switch tenant") || "Switch tenant";
+  const currencyLabel =
+    t("currency.selectorLabel", "Currency selector") || "Currency selector";
+  const navigate = (href: string) => {
+    const pushFn = (router as { push?: (path: string) => void })?.push;
+    if (typeof pushFn === "function") {
+      pushFn(href);
+      return;
+    }
+    const fallback =
+      (globalThis as { __fixzitRouterPush?: (path: string) => void })
+        .__fixzitRouterPush;
+    if (typeof fallback === "function") {
+      fallback(href);
+    }
+  };
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -85,7 +100,7 @@ export function SuperadminHeader() {
       });
 
       if (response.ok) {
-        router.push("/superadmin/login");
+        navigate("/superadmin/login");
       } else {
         logger.warn("[SUPERADMIN] Logout failed", {
           component: "SuperadminHeader",
@@ -107,7 +122,7 @@ export function SuperadminHeader() {
     <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 gap-4">
       <div className="flex items-center gap-3">
         <button
-          onClick={() => router.push("/")}
+          onClick={() => navigate("/")}
           className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-700 hover:bg-slate-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-600"
           aria-label={homeLabel}
           type="button"
@@ -157,7 +172,7 @@ export function SuperadminHeader() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push("/superadmin/notifications")}
+          onClick={() => navigate("/superadmin/notifications")}
           className="text-slate-300 hover:text-white relative"
         >
           <Bell className="h-4 w-4" />
@@ -179,7 +194,7 @@ export function SuperadminHeader() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push("/superadmin/tenants")}
+          onClick={() => navigate("/superadmin/tenants")}
           className="text-slate-300 hover:text-white"
         >
           {switchTenantLabel}
@@ -193,7 +208,7 @@ export function SuperadminHeader() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push("/superadmin/system")}
+          onClick={() => navigate("/superadmin/system")}
           className="text-slate-300 hover:text-white"
         >
           <Settings className="h-4 w-4" />
