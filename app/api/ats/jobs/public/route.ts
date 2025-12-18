@@ -215,10 +215,13 @@ export async function GET(req: NextRequest) {
       },
     );
 
-    return NextResponse.json({
+    // Cache for 5 minutes, stale-while-revalidate for 10 minutes (public job listings)
+    const response = NextResponse.json({
       success: true,
       ...result,
     });
+    response.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+    return response;
   } catch (error: unknown) {
     logger.error("Error fetching public jobs", error as Error);
     const message = error instanceof Error ? error.message : "Unknown error";
