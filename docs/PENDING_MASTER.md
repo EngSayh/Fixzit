@@ -1,5 +1,51 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-18 14:30 (Asia/Riyadh) — Phase Execution: P1-P4 Quick Wins + Features
+**Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)
+**Duration:** 45 minutes | **Commits:** 7d91c09d6, 3dab793dd, fb34ff14f, 982d34cd4
+
+**✅ PHASE 1 COMPLETE: QUICK WINS**
+- PERF-001 — Verified 0 db.collection() calls (all use Mongoose models)
+- BUG-TS-VITEST-CONFIG — Verified no poolOptions type errors
+- INFRA-SENTRY — Added NEXT_PUBLIC_SENTRY_DSN + SENTRY_AUTH_TOKEN to .env.example
+
+**✅ PHASE 2 COMPLETE: CACHE HEADERS**
+- Added Cache-Control headers to marketplace/categories (5min cache + 10min stale-while-revalidate)
+- Added Cache-Control headers to souq/brands (5min cache + 10min stale-while-revalidate)
+
+**✅ PHASE 3 COMPLETE: SLA BUSINESS HOURS (LOGIC-001)**
+- Added BusinessHoursConfig interface with Saudi Arabia defaults (Sun-Thu, 8am-6pm)
+- Added isBusinessHours() - checks if timestamp is within working hours
+- Added getNextBusinessDayStart() - skips weekends/holidays
+- Added computeDueAtBusinessHours() - business-hours-only SLA calculation
+- Updated resolveSlaTarget() with optional useBusinessHours parameter
+- Added 16 unit tests covering all scenarios
+
+**✅ PHASE 4 COMPLETE: BULK OPERATIONS (FEATURE-002)**
+- Added row selection to DataTableStandard (selectable, selectedRows, onSelectionChange, getRowId)
+- Checkbox column in header (select-all) and rows
+- Highlight selected rows with accent background
+- Created useRowSelection hook for managing selection state
+- Added 8 unit tests for selection behavior
+- FloatingBulkActions + TableBulkActions components already exist for actions
+
+**📊 Updated Status:**
+| Key | Status | Resolution |
+|-----|--------|------------|
+| PERF-001 | ✅ resolved | 0 db.collection() calls found |
+| BUG-TS-VITEST-CONFIG | ✅ resolved | No poolOptions in config |
+| INFRA-SENTRY | ✅ resolved | Added to .env.example |
+| PERF-002 | 🟡 in_progress | 2 more routes with cache headers |
+| LOGIC-001 | ✅ resolved | lib/sla.ts business hours + 16 tests |
+| FEATURE-002 | ✅ resolved | DataTableStandard selection + hook + 8 tests |
+
+**🟢 Verification:**
+- `pnpm typecheck` ✅ 0 errors
+- `pnpm lint` ✅ 0 errors
+- All pre-commit hooks pass
+
+---
+
 ### 2025-12-18 14:15 (Asia/Riyadh) — Phase P33-P38: Superadmin UX + Full Test Suite
 **Context:** feat/mobile-cardlist-phase1 | c4d613014 | Agent: GitHub Copilot (VS Code Agent)
 **Duration:** 30 minutes | **Files:** 3 changed
