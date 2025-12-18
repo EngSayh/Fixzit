@@ -96,11 +96,14 @@ export async function GET(request: NextRequest) {
 
     const tree = buildTree(undefined);
 
-    return NextResponse.json({
+    // Cache for 5 minutes, stale-while-revalidate for 10 minutes
+    const response = NextResponse.json({
       ok: true,
       data: serialized,
       tree,
     });
+    response.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+    return response;
   } catch (error) {
     logger.error(
       "Failed to fetch marketplace categories",
