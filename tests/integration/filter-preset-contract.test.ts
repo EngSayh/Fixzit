@@ -9,6 +9,59 @@ import { NextRequest } from "next/server";
 import { connectDb } from "@/lib/mongodb-unified";
 import { FilterPreset } from "@/server/models/common/FilterPreset";
 
+// In-memory preset store to avoid real DB/server-only module issues in jsdom
+const presetStore: any[] = [];
+let presetCounter = 1;
+
+const matchesQuery = (preset: any, query: Record<string, any>) =>
+  Object.entries(query).every(([key, value]) => {
+    if (value && typeof value === "object" && "$in" in value) {
+      return (value.$in as unknown[]).includes(preset[key]);
+    }
+    return preset[key] === value;
+  });
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectDb: vi.fn(async () => null),
+}));
+
+vi.mock("@/server/models/common/FilterPreset", () => ({
+  FilterPreset: {
+    find: vi.fn((query: Record<string, unknown>) => ({
+      sort: vi.fn(() => ({
+        lean: vi.fn(() => ({
+          exec: vi.fn(async () =>
+            presetStore.filter((preset) => matchesQuery(preset, query || {})),
+          ),
+        })),
+      })),
+    })),
+    countDocuments: vi.fn(async (query: Record<string, unknown>) =>
+      presetStore.filter((preset) => matchesQuery(preset, query || {})).length,
+    ),
+    create: vi.fn(async (doc: any) => {
+      const preset = {
+        ...doc,
+        _id: String(presetCounter++),
+        updated_at: new Date(),
+        created_at: new Date(),
+      };
+      presetStore.push(preset);
+      return preset;
+    }),
+    deleteMany: vi.fn(async (query: Record<string, unknown>) => {
+      let deleted = 0;
+      for (let i = presetStore.length - 1; i >= 0; i -= 1) {
+        if (matchesQuery(presetStore[i], query || {})) {
+          presetStore.splice(i, 1);
+          deleted += 1;
+        }
+      }
+      return { deletedCount: deleted };
+    }),
+  },
+}));
+
 // Mock dependencies
 vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn(async () => null),

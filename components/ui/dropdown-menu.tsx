@@ -1,6 +1,9 @@
 // Minimal shadcn-style dropdown menu re-export to satisfy UI/tests.
+import * as React from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { cn } from "@/lib/utils";
+
+type WithClassName<T> = Omit<T, "className"> & { className?: string };
 
 export const DropdownMenu = DropdownMenuPrimitive.Root;
 export const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
@@ -13,9 +16,9 @@ export const DropdownMenuSubTrigger = ({
   className,
   inset,
   ...props
-}: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger> & {
-  inset?: boolean;
-}) => (
+}: WithClassName<
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger>
+> & { inset?: boolean }) => (
   <DropdownMenuPrimitive.SubTrigger
     className={cn(
       "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent data-[state=open]:bg-accent",
@@ -29,7 +32,9 @@ export const DropdownMenuSubTrigger = ({
 export const DropdownMenuSubContent = ({
   className,
   ...props
-}: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>) => (
+}: WithClassName<
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
+>) => (
   <DropdownMenuPrimitive.SubContent
     className={cn(
       "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=open]:fade-in",
@@ -43,7 +48,9 @@ export const DropdownMenuContent = ({
   className,
   sideOffset = 4,
   ...props
-}: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>) => (
+}: WithClassName<
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
+> & { sideOffset?: number }) => (
   <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
       sideOffset={sideOffset}
@@ -60,9 +67,9 @@ export const DropdownMenuItem = ({
   className,
   inset,
   ...props
-}: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
-  inset?: boolean;
-}) => (
+}: WithClassName<
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item>
+> & { inset?: boolean }) => (
   <DropdownMenuPrimitive.Item
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground",
@@ -78,7 +85,9 @@ export const DropdownMenuCheckboxItem = ({
   children,
   checked,
   ...props
-}: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem>) => (
+}: WithClassName<
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem>
+> & { children?: React.ReactNode }) => (
   <DropdownMenuPrimitive.CheckboxItem
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm py-1.5 ps-8 pe-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground",
@@ -98,7 +107,9 @@ export const DropdownMenuRadioItem = ({
   className,
   children,
   ...props
-}: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioItem>) => (
+}: WithClassName<
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioItem>
+> & { children?: React.ReactNode }) => (
   <DropdownMenuPrimitive.RadioItem
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm py-1.5 ps-8 pe-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground",
@@ -117,9 +128,9 @@ export const DropdownMenuLabel = ({
   className,
   inset,
   ...props
-}: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label> & {
-  inset?: boolean;
-}) => (
+}: WithClassName<
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label>
+> & { inset?: boolean }) => (
   <DropdownMenuPrimitive.Label
     className={cn("px-2 py-1.5 text-sm font-semibold", inset && "ps-8", className)}
     {...props}
@@ -129,7 +140,9 @@ export const DropdownMenuLabel = ({
 export const DropdownMenuSeparator = ({
   className,
   ...props
-}: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Separator>) => (
+}: WithClassName<
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Separator>
+>) => (
   <DropdownMenuPrimitive.Separator
     className={cn("-mx-1 my-1 h-px bg-muted", className)}
     {...props}

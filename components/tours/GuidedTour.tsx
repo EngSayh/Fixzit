@@ -13,8 +13,7 @@
  */
 
 import React, { useState } from "react";
-import type { ComponentProps } from "react";
-import Joyride, { CallBackProps, STATUS, EVENTS } from "react-joyride";
+import Joyride, { CallBackProps, STATUS, EVENTS, Step } from "react-joyride";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 
@@ -27,7 +26,7 @@ interface GuidedTourProps {
   onSkip?: () => void;
 }
 
-type JoyrideStep = NonNullable<ComponentProps<typeof Joyride>["steps"]>[number];
+type JoyrideStep = Step;
 
 // Tour definitions
 const tours = {

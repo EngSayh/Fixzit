@@ -100,4 +100,21 @@ describe("Filter presets API tenancy + validation", () => {
       }),
     );
   });
+
+  it("rejects requests without org context", async () => {
+    const getSessionUser = await import("@/server/middleware/withAuthRbac");
+    vi.spyOn(getSessionUser, "getSessionUser").mockResolvedValueOnce({ id: "u1", orgId: undefined as never });
+
+    const request = new NextRequest("http://localhost/api/filters/presets", {
+      method: "POST",
+      body: JSON.stringify({
+        entity_type: "workOrders",
+        name: "Default WO filters",
+        filters: { status: "OPEN" },
+      }),
+    });
+
+    const response = await route.POST(request);
+    expect(response.status).toBe(403);
+  });
 });
