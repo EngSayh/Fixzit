@@ -1,7 +1,7 @@
 /**
  * Filter Presets API
  * 
- * @route GET /api/filters/presets?entity_type=work_orders - List user's presets
+ * @route GET /api/filters/presets?entity_type=workOrders - List user's presets
  * @route POST /api/filters/presets - Save new preset
  * @route DELETE /api/filters/presets/:id - Delete preset
  * @access Private - Authenticated users
@@ -17,7 +17,23 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
-const ENTITY_TYPES = ["work_orders", "users", "employees", "invoices", "audit_logs", "properties", "products"] as const;
+// Canonical camelCase entity keys only (legacy snake_case removed)
+const ENTITY_TYPES = [
+  "workOrders",
+  "users",
+  "employees",
+  "invoices",
+  "auditLogs",
+  "properties",
+  "products",
+] as const;
+
+function normalizeEntityType(
+  entity: (typeof ENTITY_TYPES)[number] | null,
+): (typeof ENTITY_TYPES)[number] | null {
+  if (!entity) return null;
+  return entity as (typeof ENTITY_TYPES)[number];
+}
 
 const createPresetSchema = z.object({
   entity_type: z.enum(ENTITY_TYPES),
@@ -59,9 +75,11 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
-  const entityType = searchParams.get("entity_type");
+  const entityType = normalizeEntityType(
+    searchParams.get("entity_type") as (typeof ENTITY_TYPES)[number] | null,
+  );
 
-  if (entityType && !ENTITY_TYPES.includes(entityType as typeof ENTITY_TYPES[number])) {
+  if (entityType && !ENTITY_TYPES.includes(entityType)) {
     return NextResponse.json({ error: "Invalid entity_type" }, { status: 400 });
   }
 
@@ -136,6 +154,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { entity_type, name, filters, sort, is_default } = validation.data;
+  const normalizedEntityType = normalizeEntityType(entity_type);
 
   try {
     await connectDb();
@@ -144,7 +163,7 @@ export async function POST(request: NextRequest) {
     const existingCount = await FilterPreset.countDocuments({
       org_id: orgId,
       user_id: userId,
-      entity_type,
+      entity_type: normalizedEntityType,
     });
 
     if (existingCount >= 20) {
@@ -157,7 +176,7 @@ export async function POST(request: NextRequest) {
     const preset = await FilterPreset.create({
       org_id: orgId,
       user_id: userId,
-      entity_type,
+      entity_type: normalizedEntityType,
       name,
       filters,
       sort,

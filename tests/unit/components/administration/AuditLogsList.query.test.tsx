@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import React from "react";
 import { render } from "@testing-library/react";
 
-let capturedKey = "";
+let capturedKeys: string[] = [];
 
 vi.mock("swr", () => ({
-  default: (key: string) => {
-    capturedKey = key;
+  default: (key: string | null) => {
+    if (typeof key === "string") {
+      capturedKeys.push(key);
+    }
     return {
       data: { items: [], page: 1, limit: 50, total: 0 },
       isLoading: false,
@@ -46,11 +48,12 @@ import { AuditLogsList } from "@/components/administration/AuditLogsList";
 
 describe("AuditLogsList query params", () => {
   it("includes filters in the SWR key", () => {
-    capturedKey = "";
+    capturedKeys = [];
     render(<AuditLogsList orgId="org-1" />);
 
-    expect(capturedKey.startsWith("/api/audit-logs?")).toBe(true);
-    const url = new URL(capturedKey, "http://localhost");
+    const apiKey = capturedKeys.find((key) => key.startsWith("/api/audit-logs?"));
+    expect(apiKey).toBeTruthy();
+    const url = new URL(apiKey || "", "http://localhost");
     const params = url.searchParams;
 
     expect(params.get("org")).toBe("org-1");

@@ -3,7 +3,7 @@
  * Tests HR attendance tracking and reporting
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 type SessionUser = {
   id?: string;
@@ -71,16 +71,17 @@ describe("API /api/hr/attendance", () => {
         return;
       }
 
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
+      const rateLimited = NextResponse.json(
+        { error: "Rate limit exceeded" },
+        { status: 429 },
       );
+      vi.mocked(enforceRateLimit).mockReturnValue(rateLimited as never);
 
       const req = new NextRequest("http://localhost:3000/api/hr/attendance");
       const response = await route.GET(req);
 
-      expect([401, 429, 500]).toContain(response.status);
+      expect(enforceRateLimit).toHaveBeenCalled();
+      expect(response.status).toBe(429);
     });
 
     it("returns 401 when user is not authenticated", async () => {
@@ -122,11 +123,11 @@ describe("API /api/hr/attendance", () => {
         return;
       }
 
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
+      const rateLimited = NextResponse.json(
+        { error: "Rate limit exceeded" },
+        { status: 429 },
       );
+      vi.mocked(enforceRateLimit).mockReturnValue(rateLimited as never);
 
       const req = new NextRequest("http://localhost:3000/api/hr/attendance", {
         method: "POST",
@@ -134,7 +135,8 @@ describe("API /api/hr/attendance", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 429, 500]).toContain(response.status);
+      expect(enforceRateLimit).toHaveBeenCalled();
+      expect(response.status).toBe(429);
     });
 
     it("returns 401 when user is not authenticated", async () => {

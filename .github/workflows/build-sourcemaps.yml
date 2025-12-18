@@ -24,12 +24,6 @@ jobs:
       NEXT_TELEMETRY_DISABLED: "1"
       # Job-level guards (secrets can be checked at job level)
       HAS_MONGODB_URI: ${{ secrets.MONGODB_URI != '' }}
-      HAS_SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
-      HAS_SENTRY_ORG: ${{ secrets.SENTRY_ORG != '' }}
-      HAS_SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT != '' }}
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
       # expose release to build/runtime; SDKs read SENTRY_RELEASE
       SENTRY_RELEASE: ${{ github.sha }}
 
@@ -69,7 +63,7 @@ jobs:
       # Sentry release + sourcemaps (v3, with Debug ID injection)
       - name: 🚀 Create & upload Sentry release (non-blocking)
         id: sentry
-        if: env.HAS_SENTRY_AUTH_TOKEN == 'true' && env.HAS_SENTRY_ORG == 'true' && env.HAS_SENTRY_PROJECT == 'true'
+        if: ${{ vars.ENABLE_SENTRY != 'false' }}
         uses: getsentry/action-release@v3
         continue-on-error: true
         env:
@@ -91,9 +85,6 @@ jobs:
 
       - name: 🧾 Build summary
         if: always()
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_RELEASE: ${{ github.sha }}
         run: |
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "✅ Production build completed" >> $GITHUB_STEP_SUMMARY
@@ -101,15 +92,13 @@ jobs:
           echo "🗺️ Source maps: $MAP_COUNT files" >> $GITHUB_STEP_SUMMARY
           TOTAL_SIZE=$(find .next -name "*.map" -type f -exec du -ch {} + 2>/dev/null | awk '/total/{print $1}')
           echo "💾 Total .map size: ${TOTAL_SIZE:-0}" >> $GITHUB_STEP_SUMMARY
-          if [ -n "${SENTRY_AUTH_TOKEN}" ]; then
-            if [ "${{ steps.sentry.outcome }}" = "success" ]; then
-              SENTRY_ENV="${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}"
-              echo "✅ Sentry release uploaded (release: ${SENTRY_RELEASE}, env: ${SENTRY_ENV})" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "⚠️ Sentry upload step did not complete successfully (non-blocking). Check logs." >> $GITHUB_STEP_SUMMARY
-            fi
+          if [ "${{ steps.sentry.outcome }}" = "success" ]; then
+            SENTRY_ENV="${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}"
+            echo "✅ Sentry release uploaded (release: ${{ github.sha }}, env: ${SENTRY_ENV})" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ vars.ENABLE_SENTRY }}" != "false" ]; then
+            echo "⚠️ Sentry upload step did not complete successfully (non-blocking). Check logs." >> $GITHUB_STEP_SUMMARY
           else
-            echo "ℹ️ SENTRY_AUTH_TOKEN not configured — skipping Sentry upload" >> $GITHUB_STEP_SUMMARY
+            echo "ℹ️ Sentry upload disabled or not configured" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: 📚 Archive source maps

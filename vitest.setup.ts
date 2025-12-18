@@ -83,6 +83,22 @@ if (!process.env.NEXTAUTH_SECRET) {
 // Vitest should run under NODE_ENV=test so request-session helpers bypass NextAuth
 Reflect.set(process.env, "NODE_ENV", "test");
 
+// Reduce noisy test output: suppress known encryption key missing warnings in non-prod
+const originalWarn = logger.warn.bind(logger) as (...args: unknown[]) => unknown;
+logger.warn = (...args: unknown[]) => {
+  const [first] = args;
+  const msg =
+    typeof first === "string"
+      ? first
+      : typeof first === "object" && first !== null && "warning" in (first as Record<string, unknown>)
+        ? String((first as Record<string, unknown>).warning)
+        : "";
+  if (msg.includes("encryption:key_missing")) {
+    return;
+  }
+  return originalWarn(...args);
+};
+
 // Ensure fetch/Request/Response are present in worker threads (Node pools can omit them)
 const ensureFetchGlobals = () => {
   if (typeof globalThis.fetch !== "function") {

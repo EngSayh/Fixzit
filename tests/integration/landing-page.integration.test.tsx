@@ -6,17 +6,14 @@ import { TranslationProvider } from "@/contexts/TranslationContext";
 import arDict from "@/i18n/dictionaries/ar";
 import enDict from "@/i18n/dictionaries/en";
 import LandingPage from "@/app/page";
-
-const ORIGINAL_FETCH = global.fetch;
+import { mockFetch, restoreFetch } from "@/tests/helpers/domMocks";
 
 beforeAll(() => {
-  global.fetch = vi
-    .fn()
-    .mockResolvedValue({ ok: true, json: async () => ({}) }) as typeof fetch;
+  mockFetch().mockResolvedValue({ ok: true, json: async () => ({}) });
 });
 
 afterAll(() => {
-  global.fetch = ORIGINAL_FETCH;
+  restoreFetch();
 });
 
 describe("LandingPage translations", () => {

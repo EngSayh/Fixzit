@@ -83,9 +83,12 @@ const MODULE_NAME_KEYS: Record<ModuleKey, { key: string; fallback: string }> = {
  * Map ModuleKey → SubmoduleKey for plan-aware filtering.
  * If a module has no corresponding submodule in PLAN_GATES, check PREMIUM_MODULES.
  */
+const submoduleKey = SubmoduleKey || ({} as Record<string, SubmoduleKey>);
 const MODULE_TO_SUBMODULE: Partial<Record<ModuleKey, SubmoduleKey>> = {
-  [ModuleKey.WORK_ORDERS]: SubmoduleKey.WO_CREATE,
-  [ModuleKey.PROPERTIES]: SubmoduleKey.PROP_LIST,
+  [ModuleKey.WORK_ORDERS]:
+    submoduleKey.WO_CREATE ?? ("WO_CREATE" as SubmoduleKey),
+  [ModuleKey.PROPERTIES]:
+    submoduleKey.PROP_LIST ?? ("PROP_LIST" as SubmoduleKey),
 };
 
 /**

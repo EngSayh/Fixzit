@@ -73,17 +73,34 @@ export function SuperadminHeader() {
   const [globalSearch, setGlobalSearch] = useState("");
   const username = session?.user?.username?.trim() || null;
   const displayName = username || t("superadmin.account");
-  const homeLabel = t("header.homeLink") || "Go to landing";
-  const switchTenantLabel = t("superadmin.switchTenant") || "Switch tenant";
-  const currencyLabel = t("currency.selectorLabel") || "Currency selector";
-  const push =
-    (router as { push?: (path: string) => void } | undefined)?.push ||
-    (globalThis as { __fixzitRouterPush?: (path: string) => void })
-      .__fixzitRouterPush;
+  const labelWithFallback = (key: string, fallback: string) => {
+    const value = t(key);
+    return !value || value === key ? fallback : value;
+  };
+  const homeLabel = labelWithFallback("header.homeLink", "Go to landing");
+  const switchTenantLabel = labelWithFallback(
+    "superadmin.switchTenant",
+    "Switch tenant",
+  );
+  const currencyLabel = labelWithFallback(
+    "currency.selectorLabel",
+    "Currency selector",
+  );
   const navigate = (href: string) => {
-    if (typeof push === "function") {
-      push(href);
+    const pushFn =
+      (router as { push?: (path: string) => void } | undefined)?.push ||
+      (globalThis as { __fixzitRouterPush?: (path: string) => void })
+        .__fixzitRouterPush;
+
+    if (typeof pushFn === "function") {
+      pushFn(href);
+      return;
     }
+
+    logger.warn("[SUPERADMIN] Navigation skipped - no router available", {
+      component: "SuperadminHeader",
+      href,
+    });
   };
 
   const handleLogout = async () => {

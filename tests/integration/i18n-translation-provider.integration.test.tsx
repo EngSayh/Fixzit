@@ -7,17 +7,14 @@ import {
   TranslationProvider,
   useTranslation,
 } from "@/contexts/TranslationContext";
-
-const ORIGINAL_FETCH = global.fetch;
+import { mockFetch, restoreFetch } from "@/tests/helpers/domMocks";
 
 beforeAll(() => {
-  global.fetch = vi
-    .fn()
-    .mockResolvedValue({ ok: true, json: async () => ({}) }) as typeof fetch;
+  mockFetch().mockResolvedValue({ ok: true, json: async () => ({}) });
 });
 
 afterAll(() => {
-  global.fetch = ORIGINAL_FETCH;
+  restoreFetch();
 });
 
 function IntegrationHarness() {

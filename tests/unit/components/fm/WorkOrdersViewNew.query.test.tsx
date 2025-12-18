@@ -2,21 +2,22 @@ import { describe, expect, it, vi } from "vitest";
 import React from "react";
 import { render } from "@testing-library/react";
 
-// Mocks
-const useSWRMock = vi.fn();
-let capturedKey = "";
+let capturedKeys: string[] = [];
 
-vi.mock("swr", () => ({
-  default: (key: string) => {
-    capturedKey = key;
+vi.mock("swr", () => {
+  const swrMock = (key: string | null) => {
+    if (typeof key === "string") {
+      capturedKeys.push(key);
+    }
     return {
       data: { items: [], page: 1, limit: 20, total: 0 },
       isLoading: false,
       isValidating: false,
       mutate: vi.fn(),
     };
-  },
-}));
+  };
+  return { __esModule: true, default: swrMock, useSWR: swrMock };
+});
 
 vi.mock("@/hooks/useTableQueryState", () => ({
   useTableQueryState: () => ({
@@ -49,11 +50,12 @@ import { WorkOrdersView } from "@/components/fm/WorkOrdersViewNew";
 
 describe("WorkOrdersViewNew query params", () => {
   it("includes all filter parameters in the SWR key", () => {
-    capturedKey = "";
+    capturedKeys = [];
     render(<WorkOrdersView orgId="org-1" heading="h" description="d" />);
 
-    expect(capturedKey.startsWith("/api/work-orders?")).toBe(true);
-    const url = new URL(capturedKey, "http://localhost");
+    const apiKey = capturedKeys.find((key) => key.startsWith("/api/work-orders?"));
+    expect(apiKey).toBeTruthy();
+    const url = new URL(apiKey || "", "http://localhost");
     const params = url.searchParams;
 
     expect(params.get("org")).toBe("org-1");

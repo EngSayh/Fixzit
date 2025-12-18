@@ -2,19 +2,22 @@ import { describe, expect, it, vi } from "vitest";
 import React from "react";
 import { render } from "@testing-library/react";
 
-let capturedKey = "";
+let capturedKeys: string[] = [];
 
-vi.mock("swr", () => ({
-  default: (key: string) => {
-    capturedKey = key;
+vi.mock("swr", () => {
+  const swrMock = (key: string | null) => {
+    if (typeof key === "string") {
+      capturedKeys.push(key);
+    }
     return {
       data: { items: [], page: 1, limit: 20, total: 0 },
       isLoading: false,
       isValidating: false,
       mutate: vi.fn(),
     };
-  },
-}));
+  };
+  return { __esModule: true, default: swrMock, useSWR: swrMock };
+});
 
 vi.mock("@/hooks/useTableQueryState", () => ({
   useTableQueryState: () => ({
@@ -44,11 +47,12 @@ import { UsersList } from "@/components/administration/UsersList";
 
 describe("UsersList query params", () => {
   it("includes filters in the SWR key", () => {
-    capturedKey = "";
+    capturedKeys = [];
     render(<UsersList orgId="org-1" />);
 
-    expect(capturedKey.startsWith("/api/users?")).toBe(true);
-    const url = new URL(capturedKey, "http://localhost");
+    const apiKey = capturedKeys.find((key) => key.startsWith("/api/users?"));
+    expect(apiKey).toBeTruthy();
+    const url = new URL(apiKey || "", "http://localhost");
     const params = url.searchParams;
 
     expect(params.get("org")).toBe("org-1");
