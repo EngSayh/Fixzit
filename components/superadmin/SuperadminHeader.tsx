@@ -73,9 +73,11 @@ export function SuperadminHeader() {
   const [globalSearch, setGlobalSearch] = useState("");
   const username = session?.user?.username?.trim() || null;
   const displayName = username || t("superadmin.account");
+  const homeLabel = t("header.homeLink", "Go to landing") || "Go to landing";
   const switchTenantLabel =
-    t("superadmin.switchTenant") || "Switch tenant";
-  const currencyLabel = t("currency.selectorLabel") || "Currency selector";
+    t("superadmin.switchTenant", "Switch tenant") || "Switch tenant";
+  const currencyLabel =
+    t("currency.selectorLabel", "Currency selector") || "Currency selector";
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -109,7 +111,7 @@ export function SuperadminHeader() {
         <button
           onClick={() => router.push("/")}
           className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-700 hover:bg-slate-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-600"
-          aria-label={t("header.homeLink") || "Go to landing"}
+          aria-label={homeLabel}
           type="button"
         >
           <BrandLogo

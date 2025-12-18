@@ -22,7 +22,7 @@ const ENTITY_TYPES = ["work_orders", "users", "employees", "invoices", "audit_lo
 const createPresetSchema = z.object({
   entity_type: z.enum(ENTITY_TYPES),
   name: z.string().min(1).max(100),
-  filters: z.record(z.unknown()),
+  filters: z.record(z.string(), z.unknown()), // Fixed: z.record now requires key schema
   sort: z.object({
     field: z.string(),
     direction: z.enum(["asc", "desc"]),

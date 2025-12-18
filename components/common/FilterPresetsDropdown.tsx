@@ -70,7 +70,7 @@ export function FilterPresetsDropdown({
 
       toast({
         title: "Preset saved",
-        description: `"${presetName}" has been saved`,
+        description: `${presetName} has been saved`,
       });
 
       setShowSaveDialog(false);
@@ -94,7 +94,7 @@ export function FilterPresetsDropdown({
         await deletePreset(id);
         toast({
           title: "Preset deleted",
-          description: `"${name}" has been removed`,
+          description: `${name} has been removed`,
         });
       } catch (error) {
         logger.error("[FilterPresetsDropdown] Delete failed", { error, presetId: id });
