@@ -5,13 +5,13 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T14:30:00+03:00 (Asia/Riyadh)  
+**Last Updated:** 2025-12-18T13:49:00+03:00 (Asia/Riyadh)  
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
-**Branch:** main  
-**Commit:** ec8ab947b (Vercel redeploy trigger) | Origin: ec8ab947b [synced]  
-**Last Work:** Empty commit to trigger clean Vercel deployment after bad lint fix rollback  
-**MongoDB Status:** 34 issues (24 open, 1 in_progress, 9 resolved)  
-**Working Tree:** DIRTY (3 local files: app/superadmin/issues/page.tsx, SuperadminLayoutClient.tsx, scripts/export-backlog.mjs)
+**Branch:** feat/mobile-cardlist-phase1  
+**Commit:** c8c1ee61a | Origin: c8c1ee61a [synced]  
+**Last Work:** SSOT Backlog Sync - 6 filter/timer bugs marked resolved  
+**MongoDB Status:** 34 issues (18 open, 1 in_progress, 15 resolved)  
+**Working Tree:** DIRTY (2 local files: BACKLOG_AUDIT.json, docs/PENDING_MASTER.md)
 
 ---
 
@@ -21,24 +21,25 @@
 |--------|-------|
 | **Health Score** | 92/100 |
 | **Files Scanned** | 1,548 (app/ + lib/ + services/ + domain/ + tests/) |
-| **Total Issues** | 38 (🔴 1 🟠 20 🟢 17) |
-| **Test Coverage** | 2,524 unit tests, 424 E2E tests (all passing) |
-| **Build Status** | ✅ 0 TS errors, 0 ESLint errors (verified 2025-12-19) |
+| **Total Issues** | 34 (🔴 1 🟠 17 🟢 15) |
+| **Test Coverage** | 3,747 unit tests, 430 test files (all passing) |
+| **Build Status** | ✅ 0 TS errors, 0 ESLint errors (verified 2025-12-18) |
 
 ### 🎯 Top 5 Priority Actions
 1. [ ] **[SEC-002]** 🔴 P0-CRITICAL: 50+ database queries missing explicit tenant scope validation (manual audit required)
 2. [ ] **[BUG-001]** 🟠 P1-HIGH: 40+ process.env direct accesses in client components (migrate to lib/config/constants.ts)
-3. [ ] **[SEC-CRM-001]** ✅ COMPLETED - CRM accounts/share tenant scope enforcement (commit cf04061f1)
+3. [x] **[BUG-WO-FILTERS-MISSING]** ✅ COMPLETED - All list component filters now wired via serializeFilters()
 4. [ ] **[PERF-001]** 🟡 P2-MEDIUM: 20+ unbounded aggregate operations without .limit() or pagination
 5. [ ] **[TEST-004]** 🟡 P2-MEDIUM: Missing JSON.parse error handling in 20+ POST routes (unguarded request.json())
 
-### ✅ Recently Resolved (2025-12-19 Session)
-1. **[SEC-CRM-001]** ✅ P0 (2025-12-19) CRM accounts/share route missing tenant scope:
-   - Added orgId filters to CrmLead.findOne, CrmLead.create, CrmActivity.create
-   - Test coverage: 7/7 passing in tests/api/crm/accounts-share.route.test.ts
-   - Commit: cf04061f1
-2. **[DOC-102]** ✅ P2 (2025-12-18) JSDoc documentation for 50/51 lib modules (98% coverage)
-3. **[LAYOUT-FIX-001]** ✅ P1 (2025-12-16) Route group restructuring to fix header regressions
+### ✅ Recently Resolved (2025-12-18 Session)
+1. **[BUG-WO-FILTERS-MISSING]** ✅ P2 (2025-12-18) WorkOrders filters wired via serializeFilters() line 194
+2. **[BUG-USERS-FILTERS-MISSING]** ✅ P2 (2025-12-18) UsersList filters wired via serializeFilters() line 129
+3. **[BUG-EMPLOYEES-FILTERS-MISSING]** ✅ P2 (2025-12-18) EmployeesList filters wired via serializeFilters() line 139
+4. **[BUG-INVOICES-FILTERS-MISSING]** ✅ P2 (2025-12-18) InvoicesList filters wired via serializeFilters() line 174
+5. **[BUG-AUDITLOGS-FILTERS-MISSING]** ✅ P2 (2025-12-18) AuditLogsList filters wired via serializeFilters() line 133
+6. **[PERF-003]** ✅ P1 (2025-12-18) Timer cleanup parity achieved (24 timers : 25 cleanup calls)
+7. **[SEC-CRM-001]** ✅ P0 (2025-12-19) CRM accounts/share tenant scope (commit cf04061f1)
 
 ---
 

@@ -1,6 +1,50 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
-### 2025-12-19 13:40 (Asia/Riyadh) — Phase P25-P30: SLA i18n + Test Hygiene + FilterPresets
+### 2025-12-18 13:50 (Asia/Riyadh) — SSOT Backlog Sync + Post-Code-Review Update
+**Context:** feat/mobile-cardlist-phase1 | c8c1ee61a | Agent: GitHub Copilot (VS Code Agent)
+**DB Sync:** BACKLOG_AUDIT.json synced (server offline - will import on next startup)
+
+**✅ Resolved Today (DB SSOT - 8 items):**
+- BUG-WO-FILTERS-MISSING — WorkOrders filters wired via serializeFilters() at line 194
+- BUG-USERS-FILTERS-MISSING — UsersList filters wired via serializeFilters() at line 129
+- BUG-EMPLOYEES-FILTERS-MISSING — EmployeesList filters wired via serializeFilters() at line 139
+- BUG-INVOICES-FILTERS-MISSING — InvoicesList filters wired via serializeFilters() at line 174
+- BUG-AUDITLOGS-FILTERS-MISSING — AuditLogsList filters wired via serializeFilters() at line 133
+- BUG-ROLES-FILTERS-MISSING — RolesList filters wired + FilterPresetsDropdown added
+- PERF-003 — Timer cleanup parity achieved (24 timers : 25 cleanup calls)
+- SLA-I18N — SLA badge i18n with useSLATimeLabel hook + brand tokens
+
+**🟠 In Progress (3 items):**
+- P3-AQAR-FILTERS — Refactor Aqar SearchFilters (effort: M)
+- P3-SOUQ-PRODUCTS — Migrate Souq Products to DataTableStandard (effort: M)
+- P3-LIST-INTEGRATION-TESTS — Add integration tests for 12 list components (effort: L)
+
+**🔴 Blocked (1 item):**
+- INFRA-SENTRY — Sentry sourcemap upload requires SENTRY_AUTH_TOKEN secret
+
+**📊 Open Items (Priority Order):**
+| Key | Priority | Category | Location | Status |
+|-----|----------|----------|----------|--------|
+| SEC-002 | P0 | security | 50+ API routes | open |
+| PERF-001 | P0 | perf | db.collection() bypasses | open |
+| TEST-COVERAGE-GAP | P0 | tests | 24% API coverage | open |
+| FEATURE-001 | P0 | feature | Real-time notifications | open |
+| BUG-001 | P1 | bug | process.env direct access | open |
+| PERF-002 | P1 | perf | Cache headers missing | open |
+| LOGIC-001 | P1 | logic | SLA business hours | open |
+| COMP-001 | P1 | compliance | ZATCA Phase 2 | open |
+| BUG-TS-VITEST-CONFIG | P2 | config | tsconfig.vitest.json | open |
+| FEATURE-002 | P2 | feature | Export Center UI | open |
+
+**🟢 Verification:**
+- `pnpm typecheck` ✅ 0 errors
+- `pnpm lint` ✅ 0 errors
+- `pnpm vitest --project=client` ✅ 1323 tests passing
+- All 8 list components now use serializeFilters() + FilterPresetsDropdown
+
+---
+
+### 2025-12-18 13:40 (Asia/Riyadh) — Phase P25-P30: SLA i18n + Test Hygiene + FilterPresets
 **Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)  
 **Duration:** 25 minutes | **Commit:** 45474ea02 | **Files:** 24 changed
 
