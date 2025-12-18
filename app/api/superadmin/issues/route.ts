@@ -19,29 +19,30 @@ import BacklogEvent from '@/server/models/BacklogEvent';
  * GET /api/superadmin/issues - List backlog issues with optional filtering
  *
  * @param {NextRequest} req - Next.js request object
- * @param {string} [req.searchParams.status] - Filter by status (open, in_progress, resolved, etc.)
+ * @param {string} [req.searchParams.status] - Filter by status (pending, in_progress, resolved, wont_fix)
  * @param {string} [req.searchParams.priority] - Filter by priority (P0, P1, P2, P3)
- * @param {string} [req.searchParams.category] - Filter by category (bug, security, test, etc.)
+ * @param {string} [req.searchParams.category] - Filter by category (bug, logic, test, efficiency, next_step)
+ * @param {string} [req.searchParams.search] - Search in title/description
+ * @param {string} [req.searchParams.page] - Page number (default: 1)
+ * @param {string} [req.searchParams.limit] - Items per page (default: 25, max: 100)
  *
- * @returns {Promise<NextResponse>} JSON response with issues array
- * @returns {200} Success - { issues: BacklogIssue[] } (max 100 results, sorted by priority/impact/updatedAt)
+ * @returns {Promise<NextResponse>} JSON response with issues array and pagination
+ * @returns {200} Success - { issues: BacklogIssue[], pagination: { page, limit, total, totalPages } }
  * @returns {401} Unauthorized - Superadmin session required
  *
  * @example
- * // Get all open P1 issues
- * GET /api/superadmin/issues?status=open&priority=P1
- *
- * @example
- * // Get all security issues
- * GET /api/superadmin/issues?category=security
+ * // Get all P1 pending issues with pagination
+ * GET /api/superadmin/issues?status=pending&priority=P1&page=1&limit=25
  *
  * @security
  * - Requires valid superadmin session (no tenant isolation - global view)
- * - No rate limiting (internal admin tool)
+ * - Cache-Control: no-store for live data
  */
 export async function GET(req: NextRequest) {
   const session = await getSuperadminSession(req);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   await connectMongo();
 
@@ -49,15 +50,70 @@ export async function GET(req: NextRequest) {
   const status = url.searchParams.get('status');
   const priority = url.searchParams.get('priority');
   const category = url.searchParams.get('category');
+  const search = url.searchParams.get('search');
+  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '25', 10)));
 
   const filter: Record<string, unknown> = {};
-  if (status) filter.status = status;
-  if (priority) filter.priority = priority;
-  if (category) filter.category = category;
+  if (status && status !== 'all') filter.status = status;
+  if (priority && priority !== 'all') filter.priority = priority;
+  if (category && category !== 'all') filter.category = category;
+  if (search) {
+    filter.$or = [
+      { title: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } },
+      { key: { $regex: search, $options: 'i' } },
+    ];
+  }
 
-  const issues = await BacklogIssue.find(filter).sort({ priority: 1, impact: -1, updatedAt: -1 }).limit(100).lean();
+  const [issues, total] = await Promise.all([
+    BacklogIssue.find(filter)
+      .sort({ priority: 1, impact: -1, updatedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    BacklogIssue.countDocuments(filter),
+  ]);
 
-  return NextResponse.json({ issues });
+  // Map BacklogIssue fields to expected UI format
+  const mappedIssues = issues.map((issue) => ({
+    _id: issue._id,
+    issueId: issue.key,
+    legacyId: issue.externalId,
+    title: issue.title,
+    description: issue.description,
+    category: issue.category,
+    priority: issue.priority,
+    status: issue.status === 'pending' ? 'open' : issue.status,
+    effort: issue.effort,
+    module: issue.location?.section || 'general',
+    location: {
+      filePath: issue.location?.file || '',
+      lineStart: issue.location?.lines ? parseInt(issue.location.lines.split('-')[0], 10) : undefined,
+      lineEnd: issue.location?.lines ? parseInt(issue.location.lines.split('-')[1] || issue.location.lines.split('-')[0], 10) : undefined,
+    },
+    riskTags: issue.riskTags || [],
+    labels: issue.riskTags || [],
+    mentionCount: issue.mentionCount || 1,
+    firstSeenAt: issue.firstSeen,
+    lastSeenAt: issue.lastSeen,
+    createdAt: issue.createdAt,
+    updatedAt: issue.updatedAt,
+  }));
+
+  return NextResponse.json({
+    issues: mappedIssues,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  }, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+    },
+  });
 }
 
 /**

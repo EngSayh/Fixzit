@@ -1,5 +1,52 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-19 18:20 (Asia/Riyadh) — P53-P57: Fix Issue Tracker Live Data from MongoDB
+**Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)
+**Duration:** 15 minutes | **Issue:** Superadmin Issue Tracker not showing live data from MongoDB
+
+**ROOT CAUSE IDENTIFIED (P53):**
+- UI (`/superadmin/issues/page.tsx`) was calling `/api/issues` which queries `Issue` model → `issues` collection
+- Import script (`importPendingMaster.ts`) writes to `BacklogIssue` model → `backlog_issues` collection
+- **Two different collections!** Data never connected.
+
+**FIXES APPLIED (P54-P56):**
+
+1. **Updated `/app/api/superadmin/issues/route.ts`:**
+   - Added pagination support (page, limit params)
+   - Added search param (regex on title/description/key)
+   - Added field mapping from BacklogIssue schema to UI-expected format
+   - Added Cache-Control: no-store for live data
+   - Returns `{ issues: [...], pagination: { page, limit, total, totalPages } }`
+
+2. **Created `/app/api/superadmin/issues/stats/route.ts`:**
+   - New endpoint for BacklogIssue aggregated statistics
+   - Returns: total, totalOpen, totalClosed, healthScore, byStatus, byPriority, byCategory, quickWins, stale, recentlyResolved
+   - Maps 'pending' status to 'open' for UI compatibility
+   - Added Cache-Control: no-store
+
+3. **Updated `/app/superadmin/issues/page.tsx`:**
+   - Changed `fetchIssues` to call `/api/superadmin/issues` (was `/api/issues`)
+   - Changed `fetchStats` to call `/api/superadmin/issues/stats` (was `/api/issues/stats`)
+   - Changed `handleExport` to call `/api/superadmin/issues?limit=100`
+   - Changed `handleImport` to call `/api/superadmin/issues/import`
+
+**VERIFICATION (P57):**
+- TypeScript: 0 errors
+- Tests: 3781/3781 passing (434 files)
+- Superadmin API tests: 28/28 passing
+
+**Data Flow Now:**
+```
+PENDING_MASTER.md → importPendingMaster.ts → BacklogIssue → /api/superadmin/issues → Superadmin UI
+```
+
+**Files Changed:**
+- `app/api/superadmin/issues/route.ts` - Enhanced with pagination, search, field mapping
+- `app/api/superadmin/issues/stats/route.ts` - NEW: Aggregated stats endpoint
+- `app/superadmin/issues/page.tsx` - Fixed API endpoint URLs
+
+---
+
 ### 2025-12-19 04:30 (Asia/Riyadh) — Phase 8-14: Production Readiness Sweep
 **Context:** feat/mobile-cardlist-phase1 | 2ab829e75 | Agent: GitHub Copilot (VS Code Agent)
 **Duration:** 45 minutes | **Commits:** 1d06cd73c, 2ab829e75

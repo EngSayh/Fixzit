@@ -361,7 +361,9 @@ export default function SuperadminIssuesPage() {
       if (viewMode === "quickWins") params.set("quickWins", "true");
       if (viewMode === "stale") params.set("stale", "true");
 
-      const response = await fetch(`/api/issues?${params.toString()}`);
+      // BUG-FIX: Use /api/superadmin/issues which queries BacklogIssue (PENDING_MASTER.md imports)
+      // Previously was using /api/issues which queries Issue model (different collection)
+      const response = await fetch(`/api/superadmin/issues?${params.toString()}`);
       
       if (!response.ok) {
         throw new Error("Failed to fetch issues");
@@ -386,7 +388,8 @@ export default function SuperadminIssuesPage() {
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch("/api/issues/stats");
+      // BUG-FIX: Use /api/superadmin/issues/stats which queries BacklogIssue
+      const response = await fetch("/api/superadmin/issues/stats");
       
       if (!response.ok) {
         throw new Error("Failed to fetch stats");
@@ -447,7 +450,8 @@ export default function SuperadminIssuesPage() {
   // Export handler
   const handleExport = async () => {
     try {
-      const response = await fetch("/api/issues?limit=5000");
+      // BUG-FIX: Use /api/superadmin/issues which queries BacklogIssue
+      const response = await fetch("/api/superadmin/issues?limit=100");
       const data = await response.json();
       const payload = data.data || data;
       const issuesCount = (payload.issues || []).length;
@@ -501,7 +505,8 @@ export default function SuperadminIssuesPage() {
         }));
       }
 
-      const response = await fetch("/api/issues/import", {
+      // BUG-FIX: Use /api/superadmin/issues/import which writes to BacklogIssue
+      const response = await fetch("/api/superadmin/issues/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
