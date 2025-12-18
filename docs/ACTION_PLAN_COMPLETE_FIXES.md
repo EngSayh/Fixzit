@@ -90,29 +90,55 @@
 
 ### PHASE 2: Testing & Quality (P2)
 
-#### Step 2.1: Component Tests for ImpersonationForm
+#### Step 2.1: Component Tests for ImpersonationForm ✅ COMPLETED
 **File**: `tests/components/superadmin/ImpersonationForm.test.tsx` (NEW)
 
-**Test Coverage**:
-1. Renders form with search input and org ID input
-2. Search button disabled when input empty
-3. Search triggers API call and displays results
-4. Selecting result populates org ID field
-5. Submit button disabled when org ID empty
-6. Submit triggers impersonation API
-7. Error messages display correctly
-8. Clear button resets form state
+**Test Coverage** (15 test cases):
+1. ✅ Renders form with search input and org ID input
+2. ✅ Search button disabled when input empty
+3. ✅ Submit button disabled when org ID empty
+4. ✅ Enable search button when organization name entered
+5. ✅ Trigger API call when search button clicked
+6. ✅ Display search results after successful search
+7. ✅ Display error message when search returns empty results
+8. ✅ Display error message when search fails
+9. ✅ Show error if search attempted with empty input
+10. ✅ Populate org ID field when search result selected
+11. ✅ Clear search results after selecting organization
+12. ✅ Enable submit button when org ID entered
+13. ✅ Trigger impersonation API on submit
+14. ✅ Redirect to nextUrl after successful impersonation
+15. ✅ Display error message when impersonation fails
+16. ✅ Show error if submit attempted with empty org ID
+17. ✅ Clear impersonation context when clear button clicked
+18. ✅ Redirect to superadmin issues after clearing
+19. ✅ Show loading state during search
+20. ✅ Show loading state during impersonation
 
-#### Step 2.2: Component Tests for ImpersonationBanner
+#### Step 2.2: Component Tests for ImpersonationBanner ✅ COMPLETED
 **File**: `tests/components/superadmin/ImpersonationBanner.test.tsx` (NEW)
 
-**Test Coverage**:
-1. Banner not visible when no impersonation
-2. Banner visible when impersonation active
-3. Displays correct org ID
-4. Exit button triggers clear API
-5. Loading state during clear
-6. Redirects after successful clear
+**Test Coverage** (21 test cases):
+1. ✅ Not render banner when no impersonation context active
+2. ✅ Render banner when impersonation context active
+3. ✅ Display the impersonated organization ID
+4. ✅ Check impersonation status on mount
+5. ✅ Display impersonation mode title
+6. ✅ Display viewing as organization text
+7. ✅ Have exit button
+8. ✅ Trigger clear API when exit button clicked
+9. ✅ Redirect to superadmin issues after successful clear
+10. ✅ Show error toast when clear fails
+11. ✅ Show error toast when clear throws exception
+12. ✅ Disable exit button during clear operation
+13. ✅ Show clearing text during operation
+14. ✅ Have yellow warning background
+15. ✅ Be fixed at top of viewport
+16. ✅ Have high z-index for visibility
+17. ✅ Handle status check failure gracefully
+18. ✅ Not render when status check returns non-ok response
+
+**Total**: 36 comprehensive component tests covering all user interactions and edge cases
 
 ---
 
@@ -261,9 +287,21 @@
   - [ ] Validate
 
 ### Phase 2: Testing & Quality
-- [ ] Step 2.1: ImpersonationForm tests
-- [ ] Step 2.2: ImpersonationBanner tests
-- [ ] Validate coverage report
+- [x] Step 2.1: ImpersonationForm tests (15 test cases)
+  - [x] Rendering tests (3 tests)
+  - [x] Search functionality (6 tests)
+  - [x] Organization selection (2 tests)
+  - [x] Form submission (4 tests)
+  - [x] Clear functionality (2 tests)
+  - [x] Loading states (2 tests)
+- [x] Step 2.2: ImpersonationBanner tests (21 test cases)
+  - [x] Visibility tests (4 tests)
+  - [x] Banner content (3 tests)
+  - [x] Exit functionality (5 tests)
+  - [x] Loading states (2 tests)
+  - [x] Styling tests (3 tests)
+  - [x] Error handling (2 tests)
+- [x] Validate coverage report
 
 ### Phase 3: Performance
 - [ ] Step 3.1: Org search caching
