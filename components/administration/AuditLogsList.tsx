@@ -70,6 +70,23 @@ export type AuditLogsListProps = {
   orgId: string;
 };
 
+export function buildAuditLogsQuery(state: ReturnType<typeof useTableQueryState>["state"], orgId: string) {
+  const params = new URLSearchParams();
+  params.set("limit", String(state.pageSize || 50));
+  params.set("page", String(state.page || 1));
+  params.set("org", orgId);
+  if (state.q) params.set("q", state.q);
+  if (state.filters?.eventType) params.set("eventType", String(state.filters.eventType));
+  if (state.filters?.status) params.set("status", String(state.filters.status));
+  if (state.filters?.userId) params.set("userId", String(state.filters.userId));
+  if (state.filters?.ipAddress) params.set("ipAddress", String(state.filters.ipAddress));
+  if (state.filters?.dateRange) params.set("dateRange", String(state.filters.dateRange));
+  if (state.filters?.action) params.set("action", String(state.filters.action));
+  if (state.filters?.timestampFrom) params.set("timestampFrom", String(state.filters.timestampFrom));
+  if (state.filters?.timestampTo) params.set("timestampTo", String(state.filters.timestampTo));
+  return params.toString();
+}
+
 export function AuditLogsList({ orgId }: AuditLogsListProps) {
   const { state, updateState, resetState } = useTableQueryState("audit-logs", {
     page: 1,
@@ -83,20 +100,7 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
   const [density, setDensity] = useState<"comfortable" | "compact">("compact");
 
   const query = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("limit", String(state.pageSize || 50));
-    params.set("page", String(state.page || 1));
-    params.set("org", orgId);
-    if (state.q) params.set("q", state.q);
-    if (state.filters?.eventType) params.set("eventType", String(state.filters.eventType));
-    if (state.filters?.status) params.set("status", String(state.filters.status));
-    if (state.filters?.userId) params.set("userId", String(state.filters.userId));
-    if (state.filters?.ipAddress) params.set("ipAddress", String(state.filters.ipAddress));
-    if (state.filters?.dateRange) params.set("dateRange", String(state.filters.dateRange));
-    if (state.filters?.action) params.set("action", String(state.filters.action));
-    if (state.filters?.timestampFrom) params.set("timestampFrom", String(state.filters.timestampFrom));
-    if (state.filters?.timestampTo) params.set("timestampTo", String(state.filters.timestampTo));
-    return params.toString();
+    return buildAuditLogsQuery(state, orgId);
   }, [orgId, state]);
 
   const { data, error: _error, isLoading, mutate, isValidating } = useSWR(

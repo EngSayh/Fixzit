@@ -356,15 +356,26 @@ export async function POST(request: NextRequest) {
       });
 
       if (!dryRun) {
-        await newIssue.save();
-        await IssueEvent.create({
-          issueId: newIssue._id,
-          key,
-          type: "SYNCED",
-          sourceRef: raw.sourceRef,
-          sourceHash,
-          orgId,
-        });
+        try {
+          await newIssue.save();
+          await IssueEvent.create({
+            issueId: newIssue._id,
+            key,
+            type: "SYNCED",
+            sourceRef: raw.sourceRef,
+            sourceHash,
+            orgId,
+          });
+        } catch (err: unknown) {
+          const message =
+            err instanceof Error ? err.message : String(err ?? "Unknown error");
+          // Gracefully skip duplicate issueIds/keys to keep import idempotent
+          if (message.includes("E11000 duplicate key error")) {
+            summary.skipped += 1;
+            continue;
+          }
+          throw err;
+        }
       }
 
       summary.created += 1;

@@ -104,6 +104,23 @@ export type WorkOrdersViewProps = {
   description?: string;
 };
 
+export function buildWorkOrdersQuery(state: ReturnType<typeof useTableQueryState>["state"], orgId: string) {
+  const params = new URLSearchParams();
+  params.set("limit", String(state.pageSize || 20));
+  params.set("page", String(state.page || 1));
+  params.set("org", orgId);
+  if (state.q) params.set("q", state.q);
+  if (state.filters?.status) params.set("status", String(state.filters.status));
+  if (state.filters?.priority) params.set("priority", String(state.filters.priority));
+  if (state.filters?.overdue) params.set("overdue", "true");
+  if (state.filters?.assignedToMe) params.set("assignedToMe", "true");
+  if (state.filters?.unassigned) params.set("unassigned", "true");
+  if (state.filters?.slaRisk) params.set("slaRisk", "true");
+  if (state.filters?.dueDateFrom) params.set("dueDateFrom", String(state.filters.dueDateFrom));
+  if (state.filters?.dueDateTo) params.set("dueDateTo", String(state.filters.dueDateTo));
+  return params.toString();
+}
+
 export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewProps) {
   const { t } = useTranslation();
   
@@ -122,20 +139,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
 
   // Build API query
   const query = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("limit", String(state.pageSize || 20));
-    params.set("page", String(state.page || 1));
-    params.set("org", orgId);
-    if (state.q) params.set("q", state.q);
-    if (state.filters?.status) params.set("status", String(state.filters.status));
-    if (state.filters?.priority) params.set("priority", String(state.filters.priority));
-    if (state.filters?.overdue) params.set("overdue", "true");
-    if (state.filters?.assignedToMe) params.set("assignedToMe", "true");
-    if (state.filters?.unassigned) params.set("unassigned", "true");
-    if (state.filters?.slaRisk) params.set("slaRisk", "true");
-    if (state.filters?.dueDateFrom) params.set("dueDateFrom", String(state.filters.dueDateFrom));
-    if (state.filters?.dueDateTo) params.set("dueDateTo", String(state.filters.dueDateTo));
-    return params.toString();
+    return buildWorkOrdersQuery(state, orgId);
   }, [orgId, state]);
 
   const { data, error: _error, isLoading, mutate, isValidating } = useSWR(

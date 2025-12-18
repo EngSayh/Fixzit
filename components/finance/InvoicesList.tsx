@@ -73,6 +73,23 @@ export type InvoicesListProps = {
   orgId: string;
 };
 
+export function buildInvoicesQuery(state: ReturnType<typeof useTableQueryState>["state"], orgId: string) {
+  const params = new URLSearchParams();
+  params.set("limit", String(state.pageSize || 20));
+  params.set("page", String(state.page || 1));
+  params.set("org", orgId);
+  if (state.q) params.set("q", state.q);
+  if (state.filters?.status) params.set("status", String(state.filters.status));
+  if (state.filters?.amountMin) params.set("amountMin", String(state.filters.amountMin));
+  if (state.filters?.amountMax) params.set("amountMax", String(state.filters.amountMax));
+  if (state.filters?.dateRange) params.set("dateRange", String(state.filters.dateRange));
+  if (state.filters?.issueFrom) params.set("issueFrom", String(state.filters.issueFrom));
+  if (state.filters?.issueTo) params.set("issueTo", String(state.filters.issueTo));
+  if (state.filters?.dueFrom) params.set("dueFrom", String(state.filters.dueFrom));
+  if (state.filters?.dueTo) params.set("dueTo", String(state.filters.dueTo));
+  return params.toString();
+}
+
 export function InvoicesList({ orgId }: InvoicesListProps) {
   const { state, updateState, resetState } = useTableQueryState("invoices", {
     page: 1,
@@ -86,20 +103,7 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
 
   const query = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("limit", String(state.pageSize || 20));
-    params.set("page", String(state.page || 1));
-    params.set("org", orgId);
-    if (state.q) params.set("q", state.q);
-    if (state.filters?.status) params.set("status", String(state.filters.status));
-    if (state.filters?.amountMin) params.set("amountMin", String(state.filters.amountMin));
-    if (state.filters?.amountMax) params.set("amountMax", String(state.filters.amountMax));
-    if (state.filters?.dateRange) params.set("dateRange", String(state.filters.dateRange));
-    if (state.filters?.issueFrom) params.set("issueFrom", String(state.filters.issueFrom));
-    if (state.filters?.issueTo) params.set("issueTo", String(state.filters.issueTo));
-    if (state.filters?.dueFrom) params.set("dueFrom", String(state.filters.dueFrom));
-    if (state.filters?.dueTo) params.set("dueTo", String(state.filters.dueTo));
-    return params.toString();
+    return buildInvoicesQuery(state, orgId);
   }, [orgId, state]);
 
   const { data, error: _error, isLoading, mutate, isValidating } = useSWR(

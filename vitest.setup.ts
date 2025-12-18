@@ -2,7 +2,7 @@
 import React from "react";
 import { TextEncoder, TextDecoder } from "node:util";
 import { createServer } from "node:net";
-import { render } from "@testing-library/react";
+import { render, cleanup } from "@testing-library/react";
 import { SessionProvider } from "next-auth/react";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { vi, beforeAll, afterAll, afterEach } from "vitest";
@@ -69,6 +69,29 @@ const ensureFetchGlobals = () => {
 };
 
 ensureFetchGlobals();
+
+// Prevent third-party tests from force-closing the shared mongoose connection mid-run
+const realDisconnect = mongoose.disconnect.bind(mongoose);
+const realClose = mongoose.connection.close.bind(mongoose.connection);
+const allowDisconnect = () =>
+  process.env.VITEST_ALLOW_DISCONNECT === "true" ||
+  process.env.NODE_ENV === "vitest-allow-close";
+
+mongoose.disconnect = async (...args: unknown[]) => {
+  if (allowDisconnect()) {
+    return realDisconnect(...(args as []));
+  }
+  logger.warn("[MongoMemory] Suppressing mongoose.disconnect in tests");
+  return mongoose.connection as unknown as typeof mongoose;
+};
+
+mongoose.connection.close = async (...args: unknown[]) => {
+  if (allowDisconnect()) {
+    return realClose(...(args as []));
+  }
+  logger.warn("[MongoMemory] Suppressing mongoose.connection.close in tests");
+  return mongoose.connection;
+};
 
 // Prevent jsdom "navigation to another Document" warnings in tests that click anchors
 const originalLocation =
@@ -571,6 +594,12 @@ afterEach(async () => {
       });
     }
   }
+  // Clean React DOM between jsdom tests to prevent duplicate testid collisions
+  try {
+    cleanup();
+  } catch {
+    // Ignore if cleanup not available in node environments
+  }
 });
 
 /**
@@ -581,6 +610,8 @@ afterAll(async () => {
     return;
   }
   try {
+    // Allow final disconnect/close
+    Reflect.set(process.env, "VITEST_ALLOW_DISCONNECT", "true");
     // Clear all models before closing connection using proper Mongoose API
     if (mongoose.connection && mongoose.connection.models) {
       const modelNames = Object.keys(mongoose.connection.models);

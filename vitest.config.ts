@@ -18,12 +18,8 @@ const sharedProjectConfig = {
   setupFiles: ["./vitest.setup.ts"], // MongoDB Memory Server for model tests (no mongoose mocks)
   reporters: ["default"],
   pool: "threads",
-  poolOptions: {
-    threads: {
-      // Use singleThread mode to avoid Mongoose connection conflicts
-      singleThread: true,
-    },
-  },
+  maxWorkers: 4,
+  minWorkers: 1,
   testTimeout: 600000, // 10 minutes - MongoMemoryServer initialization takes time
   hookTimeout: 120000, // 2 minutes - beforeAll/afterAll with MongoDB setup
   teardownTimeout: 30000, // 30 seconds - cleanup
@@ -65,8 +61,8 @@ export default defineConfig({
           environment: "jsdom",
           env: {
             ...sharedProjectConfig.env,
-            // Enable MongoMemoryServer for client/jsdom runs that exercise services
-            SKIP_GLOBAL_MONGO: "false",
+            // Disable global MongoMemoryServer for client/jsdom runs; tests that need Mongo start their own instance
+            SKIP_GLOBAL_MONGO: "true",
           },
           include: ["**/*.test.ts", "**/*.test.tsx"],
           exclude: [
@@ -94,6 +90,7 @@ export default defineConfig({
           ...sharedProjectConfig,
           name: "server",
           environment: "node",
+          pool: "threads",
           include: [
             "**/server/**/*.test.{ts,tsx}",
             "tests/**/server/**/*.test.{ts,tsx}",

@@ -70,6 +70,21 @@ export type UsersListProps = {
   orgId: string;
 };
 
+export function buildUsersQuery(state: ReturnType<typeof useTableQueryState>["state"], orgId: string) {
+  const params = new URLSearchParams();
+  params.set("limit", String(state.pageSize || 20));
+  params.set("page", String(state.page || 1));
+  params.set("org", orgId);
+  if (state.q) params.set("q", state.q);
+  if (state.filters?.role) params.set("role", String(state.filters.role));
+  if (state.filters?.status) params.set("status", String(state.filters.status));
+  if (state.filters?.department) params.set("department", String(state.filters.department));
+  if (state.filters?.inactiveDays) params.set("inactiveDays", String(state.filters.inactiveDays));
+  if (state.filters?.lastLoginFrom) params.set("lastLoginFrom", String(state.filters.lastLoginFrom));
+  if (state.filters?.lastLoginTo) params.set("lastLoginTo", String(state.filters.lastLoginTo));
+  return params.toString();
+}
+
 export function UsersList({ orgId }: UsersListProps) {
   const { state, updateState, resetState } = useTableQueryState("users", {
     page: 1,
@@ -83,18 +98,7 @@ export function UsersList({ orgId }: UsersListProps) {
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
 
   const query = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("limit", String(state.pageSize || 20));
-    params.set("page", String(state.page || 1));
-    params.set("org", orgId);
-    if (state.q) params.set("q", state.q);
-    if (state.filters?.role) params.set("role", String(state.filters.role));
-    if (state.filters?.status) params.set("status", String(state.filters.status));
-    if (state.filters?.department) params.set("department", String(state.filters.department));
-    if (state.filters?.inactiveDays) params.set("inactiveDays", String(state.filters.inactiveDays));
-    if (state.filters?.lastLoginFrom) params.set("lastLoginFrom", String(state.filters.lastLoginFrom));
-    if (state.filters?.lastLoginTo) params.set("lastLoginTo", String(state.filters.lastLoginTo));
-    return params.toString();
+    return buildUsersQuery(state, orgId);
   }, [orgId, state]);
 
   const { data, error: _error, isLoading, mutate, isValidating } = useSWR(

@@ -21,8 +21,9 @@ export async function aggregateWithTenantScope<TDocument = unknown>(
   pipeline: PipelineStage[],
   options: AggregateOptions = {},
 ): Promise<TDocument[]> {
-  if (!orgId) {
-    throw new Error("orgId is required for tenant-scoped aggregates");
+  // FIX-006: Strengthen tenant guard to reject empty/whitespace orgId (security)
+  if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
+    throw new Error("orgId is required for tenant-scoped aggregates (non-empty string)");
   }
 
   const tenantMatch: PipelineStage = { $match: { orgId } };

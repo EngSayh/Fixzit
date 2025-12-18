@@ -74,6 +74,22 @@ export type EmployeesListProps = {
   orgId: string;
 };
 
+export function buildEmployeesQuery(state: ReturnType<typeof useTableQueryState>["state"], orgId: string) {
+  const params = new URLSearchParams();
+  params.set("limit", String(state.pageSize || 20));
+  params.set("page", String(state.page || 1));
+  params.set("org", orgId);
+  if (state.q) params.set("q", state.q);
+  if (state.filters?.status) params.set("status", String(state.filters.status));
+  if (state.filters?.department) params.set("department", String(state.filters.department));
+  if (state.filters?.employmentType) params.set("employmentType", String(state.filters.employmentType));
+  if (state.filters?.joiningDateDays) params.set("joiningDateDays", String(state.filters.joiningDateDays));
+  if (state.filters?.reviewDueDays) params.set("reviewDueDays", String(state.filters.reviewDueDays));
+  if (state.filters?.joiningFrom) params.set("joiningFrom", String(state.filters.joiningFrom));
+  if (state.filters?.joiningTo) params.set("joiningTo", String(state.filters.joiningTo));
+  return params.toString();
+}
+
 export function EmployeesList({ orgId }: EmployeesListProps) {
   const { state, updateState, resetState } = useTableQueryState("employees", {
     page: 1,
@@ -87,19 +103,7 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
 
   const query = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("limit", String(state.pageSize || 20));
-    params.set("page", String(state.page || 1));
-    params.set("org", orgId);
-    if (state.q) params.set("q", state.q);
-    if (state.filters?.status) params.set("status", String(state.filters.status));
-    if (state.filters?.department) params.set("department", String(state.filters.department));
-    if (state.filters?.employmentType) params.set("employmentType", String(state.filters.employmentType));
-    if (state.filters?.joiningDateDays) params.set("joiningDateDays", String(state.filters.joiningDateDays));
-    if (state.filters?.reviewDueDays) params.set("reviewDueDays", String(state.filters.reviewDueDays));
-    if (state.filters?.joiningFrom) params.set("joiningFrom", String(state.filters.joiningFrom));
-    if (state.filters?.joiningTo) params.set("joiningTo", String(state.filters.joiningTo));
-    return params.toString();
+    return buildEmployeesQuery(state, orgId);
   }, [orgId, state]);
 
   const { data, error: _error, isLoading, mutate, isValidating } = useSWR(
