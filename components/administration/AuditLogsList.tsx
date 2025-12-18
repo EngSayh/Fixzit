@@ -346,7 +346,7 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
         end={
           <>
             <FilterPresetsDropdown
-              entityType="auditLogs"
+              entityType="audit_logs"
               currentFilters={currentFilters}
               onLoadPreset={handleLoadPreset}
             />
