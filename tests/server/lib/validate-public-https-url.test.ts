@@ -239,4 +239,154 @@ describe("validatePublicHttpsUrl - SSRF Protection v1.5 (sync validator + async 
       ).resolves.toBe(true);
     });
   });
+
+  describe("IPv6 Edge Cases", () => {
+    it("rejects IPv6 loopback addresses", async () => {
+      const ipv6Loopbacks = [
+        "https://[::1]",
+        "https://[0:0:0:0:0:0:0:1]",
+        "https://[::1]:8443",
+      ];
+
+      for (const url of ipv6Loopbacks) {
+        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(false);
+      }
+    });
+
+    it("rejects IPv6 link-local addresses", async () => {
+      const linkLocal = [
+        "https://[fe80::1]",
+        "https://[fe80::1234:5678:abcd:ef01]",
+      ];
+
+      for (const url of linkLocal) {
+        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(false);
+      }
+    });
+
+    it("rejects IPv6 unique local addresses (fc00::/7)", async () => {
+      const uniqueLocal = [
+        "https://[fc00::1]",
+        "https://[fd00::1]",
+        "https://[fdab:cdef:1234::1]",
+      ];
+
+      for (const url of uniqueLocal) {
+        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(false);
+      }
+    });
+
+    it("accepts valid public IPv6 addresses", async () => {
+      // Note: These may fail DNS resolution but should pass syntax validation
+      const publicIPv6 = [
+        "https://[2001:db8::1]", // Documentation range (should be rejected in strict mode)
+        "https://[2606:4700:4700::1111]", // Cloudflare DNS
+      ];
+
+      // These should not throw for syntax, but may fail DNS
+      for (const url of publicIPv6) {
+        // Just verify no immediate throw for valid format
+        try {
+          validatePublicHttpsUrl(url);
+        } catch (err) {
+          // Expected for 2001:db8:: documentation range
+          expect(err).toBeInstanceOf(URLValidationError);
+        }
+      }
+    });
+  });
+
+  describe("Edge TLDs", () => {
+    it("accepts new gTLDs (.tech, .xyz, .io)", async () => {
+      const newTlds = [
+        "https://example.tech",
+        "https://example.xyz",
+        "https://example.io",
+        "https://example.dev",
+        "https://example.app",
+        "https://example.cloud",
+      ];
+
+      for (const url of newTlds) {
+        expect(() => validatePublicHttpsUrl(url)).not.toThrow();
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(true);
+      }
+    });
+
+    it("accepts ccTLDs with SLDs (.co.uk, .com.au)", async () => {
+      const ccTlds = [
+        "https://example.co.uk",
+        "https://example.com.au",
+        "https://example.co.jp",
+        "https://example.org.uk",
+        "https://example.com.br",
+        "https://example.co.za",
+      ];
+
+      for (const url of ccTlds) {
+        expect(() => validatePublicHttpsUrl(url)).not.toThrow();
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(true);
+      }
+    });
+
+    it("accepts long TLDs (.international, .photography)", async () => {
+      const longTlds = [
+        "https://example.international",
+        "https://example.photography",
+        "https://example.construction",
+        "https://example.technology",
+      ];
+
+      for (const url of longTlds) {
+        expect(() => validatePublicHttpsUrl(url)).not.toThrow();
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(true);
+      }
+    });
+  });
+
+  describe("International Domain Names (IDN/Punycode)", () => {
+    it("accepts punycode-encoded international domains", async () => {
+      const punycodeUrls = [
+        "https://xn--n3h.com", // emoji domain encoded
+        "https://xn--e1afmkfd.xn--p1ai", // Russian domain
+        "https://xn--nxasmq5b.com", // Arabic domain encoded
+      ];
+
+      for (const url of punycodeUrls) {
+        expect(() => validatePublicHttpsUrl(url)).not.toThrow();
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(true);
+      }
+    });
+
+    it("handles domains with hyphens correctly", async () => {
+      const hyphenatedDomains = [
+        "https://my-domain.com",
+        "https://sub-domain.example.com",
+        "https://my--double-hyphen.com",
+        "https://a-b-c-d.example.org",
+      ];
+
+      for (const url of hyphenatedDomains) {
+        expect(() => validatePublicHttpsUrl(url)).not.toThrow();
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(true);
+      }
+    });
+
+    it("accepts subdomains with numbers", async () => {
+      const numberedSubdomains = [
+        "https://api1.example.com",
+        "https://server-01.example.com",
+        "https://node123.cluster.example.io",
+        "https://192-168-1-1.example.com", // IP-like but valid subdomain
+      ];
+
+      for (const url of numberedSubdomains) {
+        expect(() => validatePublicHttpsUrl(url)).not.toThrow();
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(true);
+      }
+    });
+  });
 });

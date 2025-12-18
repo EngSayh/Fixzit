@@ -13,7 +13,8 @@
  */
 
 import React, { useState } from "react";
-import Joyride, { Step, CallBackProps, STATUS, EVENTS } from "react-joyride";
+import type { ComponentProps } from "react";
+import Joyride, { CallBackProps, STATUS, EVENTS } from "react-joyride";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 
@@ -26,8 +27,10 @@ interface GuidedTourProps {
   onSkip?: () => void;
 }
 
+type JoyrideStep = NonNullable<ComponentProps<typeof Joyride>["steps"]>[number];
+
 // Tour definitions
-const tours: Record<TourKey, Step[]> = {
+const tours = {
   dashboard: [
     {
       target: "body",
@@ -148,7 +151,7 @@ const tours: Record<TourKey, Step[]> = {
       placement: "top",
     },
   ],
-};
+} satisfies Record<TourKey, ReadonlyArray<JoyrideStep>>;
 
 export function GuidedTour({ tourKey, run = false, onComplete, onSkip }: GuidedTourProps) {
   const [tourRunning, setTourRunning] = useState(run);

@@ -1,5 +1,20 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-18 16:05 (Asia/Riyadh) — Phase 16: Superadmin Search Hotkey + Typecheck
+**Context:** feat/mobile-cardlist-phase1 | Agent: Codex (solo; parallel agent active elsewhere)  
+**Duration:** 10 minutes | **Files:** components/superadmin/SuperadminHeader.tsx, tests/unit/components/superadmin/SuperadminHeader.test.tsx  
+
+**✅ PHASE 16 COMPLETE: SUPERADMIN SEARCH ACCESSIBILITY**
+- Added Cmd/Ctrl+K global handler (with typing guard) to focus header search input; Enter routing to `/superadmin/search?q=...` retained.
+- Switched to id-based focus to avoid ref warnings; guarded contentEditable lookup to prevent jsdom crashes.
+- Expanded unit tests to cover hotkey focus behavior.
+
+**Verification:**  
+- `pnpm vitest run tests/unit/components/superadmin/SuperadminHeader.test.tsx` ✅  
+- `pnpm typecheck` ✅  
+
+**Notes:** Parallel agent has additional pending changes across API routes and marketplace components; no conflicts observed in this phase.  
+
 ### 2025-12-18 15:45 (Asia/Riyadh) — Phase 5-9: Marketplace Deals + Finance Export + Superadmin Nav Fallbacks
 **Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (this agent, coordinated with parallel agent)  
 **Duration:** 45 minutes | **Commits:** 5ef13fc69, 86d5382d6 | **Files:** 5 changed
