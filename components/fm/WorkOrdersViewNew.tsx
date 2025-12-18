@@ -41,6 +41,7 @@ import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
 import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
+import { ExportCenterDrawer } from "@/components/export/ExportCenterDrawer";
 import {
   buildActiveFilterChips,
   serializeFilters,
@@ -443,8 +444,27 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
             <TableDensityToggle density={density} onChange={setDensity} />
             <FilterPresetsDropdown
               entityType="workOrders"
-              currentFilters={currentFilters}
+              currentFilters={pickSchemaFilters<WorkOrderFilters>(
+                currentFilters,
+                WORK_ORDER_FILTER_SCHEMA
+              )}
+              currentSearch={state.q}
+              normalizeFilters={(filters) =>
+                pickSchemaFilters<WorkOrderFilters>(
+                  filters,
+                  WORK_ORDER_FILTER_SCHEMA
+                )
+              }
               onLoadPreset={handleLoadPreset}
+            />
+            <ExportCenterDrawer
+              entityType="workOrders"
+              currentFilters={pickSchemaFilters<WorkOrderFilters>(
+                currentFilters,
+                WORK_ORDER_FILTER_SCHEMA
+              )}
+              currentSearch={state.q}
+              selectedIds={[]}
             />
             <Button
               variant="outline"

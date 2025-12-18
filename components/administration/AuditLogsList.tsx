@@ -30,6 +30,7 @@ import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
 import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
+import { ExportCenterDrawer } from "@/components/export/ExportCenterDrawer";
 import {
   buildActiveFilterChips,
   serializeFilters,
@@ -360,15 +361,21 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
             <TableDensityToggle density={density} onChange={setDensity} />
             <FilterPresetsDropdown
               entityType="auditLogs"
-              currentFilters={pickSchemaFilters<AuditFilters>(
-                currentFilters,
-                AUDIT_FILTER_SCHEMA
-              )}
+              currentFilters={pickSchemaFilters<AuditFilters>(currentFilters, AUDIT_FILTER_SCHEMA)}
               currentSearch={state.q}
               normalizeFilters={(filters) =>
                 pickSchemaFilters<AuditFilters>(filters, AUDIT_FILTER_SCHEMA)
               }
               onLoadPreset={handleLoadPreset}
+            />
+            <ExportCenterDrawer
+              entityType="auditLogs"
+              currentFilters={pickSchemaFilters<AuditFilters>(
+                currentFilters,
+                AUDIT_FILTER_SCHEMA
+              )}
+              currentSearch={state.q}
+              selectedIds={[]}
             />
             <Button
               variant="outline"

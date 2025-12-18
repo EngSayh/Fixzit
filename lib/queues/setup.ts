@@ -20,6 +20,7 @@ export const QUEUE_NAMES = {
   SEARCH_INDEX: 'souq:search-index',
   ACCOUNT_HEALTH: 'souq:account-health',
   NOTIFICATIONS: 'souq:notifications',
+  EXPORTS: 'fm:exports',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];

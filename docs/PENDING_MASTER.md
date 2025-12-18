@@ -1,5 +1,17 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-18 10:08 (Asia/Riyadh) — Phase 4.4: Filter Entity Normalization + Full Test Sweep
+**Context:** feat/mobile-cardlist-phase1 | Agent: Codex (100% execution)  
+**Scope Delivered:**  
+- Verified filter preset entity normalization: no quoted `work_orders` literals remain in app/api search or metrics; legacy alias handled via computed keys/shared helpers.  
+- Validation run: `pnpm typecheck` ✅; `pnpm vitest run --project=server --reporter=dot --shard=1/2` ✅ (143 files); `--shard=2/2` ✅ (142 files); full `pnpm vitest run --reporter=dot` ✅ (402 files, 3608 tests). Only expected WARN/ERROR logs (encryption key missing in tests, profile fetch mock fail, Joyride error boundary).  
+- Tenant scope unchanged; aggregateWithTenantScope + collection guard tests covered in full run.  
+- Parallel agent staged work preserved (Superadmin SetupWizard/TenantPreview, GuidedTour TS tweak, EXPORTS queue + grouping tests) and untracked export job files left untouched.  
+**Follow-ups/Pending:**  
+- Coordinate with parallel agent before committing staged Superadmin/Export changes and untracked `lib/export/*`, `server/models/ExportJob.ts`.  
+- Optional hardening: audit remaining legacy snake_case in docs/scripts; enforce COLLECTIONS constant usage once migration complete.  
+- CI remains green locally; keep server Vitest sharded locally until CI timeout tuning is in place.
+
 ### 2025-12-18 09:57 (Asia/Riyadh) — Phase A: Filter Preset Canonicalization
 **Context:** Saved filters platform alignment (camelCase entity types)  
 **Agent:** Codex (solo)  
