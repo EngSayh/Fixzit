@@ -67,7 +67,10 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, job });
+    const response = NextResponse.json({ success: true, job });
+    // Public job details - cache for 5 minutes
+    response.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+    return response;
   } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

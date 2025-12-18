@@ -93,6 +93,8 @@
     "test:server": "vitest -c vitest.config.ts --project server run",
     "test:changed": "pnpm test:changed:vitest",
     "test:changed:vitest": "vitest run --changed",
+    "test:ui:fast": "vitest run tests/components tests/unit/components tests/unit/i18n --reporter=dot",
+    "test:lists": "vitest run tests/unit/components/marketplace tests/unit/components/hr tests/unit/components/aqar tests/components/common --reporter=verbose",
     "test:watch": "vitest",
     "test:ci": "vitest run --bail 1",
     "test:ci:sharded": "pnpm test:server && pnpm test:client",

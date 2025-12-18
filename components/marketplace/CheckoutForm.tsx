@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { OfflineIndicator } from "@/components/common/OfflineIndicator";
 
 interface CheckoutFormProps {
   cartId: string;
@@ -61,22 +62,24 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 rounded-3xl bg-card p-6 shadow"
-    >
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">
-          {auto("Delivery details", "header.title")}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {auto(
-            "Ship to your facilities hub with SLA tracking.",
-            "header.subtitle",
-          )}
-        </p>
-      </div>
-      <div className="space-y-3 text-sm">
+    <>
+      <OfflineIndicator position="top" />
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 rounded-3xl bg-card p-6 shadow"
+      >
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">
+            {auto("Delivery details", "header.title")}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {auto(
+              "Ship to your facilities hub with SLA tracking.",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+        <div className="space-y-3 text-sm">
         <label className="block">
           <span className="text-muted-foreground">
             {auto("Address", "fields.address.label")}
@@ -145,6 +148,7 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
           ? auto("Submitting…", "actions.submitting")
           : auto("Submit for approval", "actions.submit")}
       </button>
-    </form>
+      </form>
+    </>
   );
 }

@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
       Product.countDocuments({ orgId: context.orgId }),
     ]);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       ok: true,
       data: {
         items: items.map((item: unknown) =>
@@ -147,6 +147,9 @@ export async function GET(request: NextRequest) {
         },
       },
     });
+    // Tenant-scoped data - short cache, private
+    response.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
+    return response;
   } catch (error) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);

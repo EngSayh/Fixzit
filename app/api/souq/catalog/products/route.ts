@@ -388,7 +388,7 @@ export async function GET(request: NextRequest) {
       SouqProduct.countDocuments(query),
     ]);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: products,
       pagination: {
@@ -398,6 +398,9 @@ export async function GET(request: NextRequest) {
         pages: Math.ceil(total / limit),
       },
     });
+    // Tenant-scoped data - short cache, private
+    response.headers.set("Cache-Control", "private, max-age=30, stale-while-revalidate=60");
+    return response;
   } catch (error) {
     logger.error("[Catalog API] List products error", error as Error);
     return NextResponse.json(
