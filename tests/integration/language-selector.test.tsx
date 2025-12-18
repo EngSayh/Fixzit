@@ -3,11 +3,11 @@
  * Phase D: RTL toggle, cookie persistence, i18n loading
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import { userEvent } from "@testing-library/user-event";
-import { I18nProvider } from "@/contexts/I18nProvider";
 import React from "react";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { I18nProvider } from "@/contexts/I18nProvider";
 
 // Mock cookie utilities
 const mockCookies = new Map<string, string>();
@@ -173,6 +173,8 @@ describe("Language Selector - Integration", () => {
             data-testid="logical-styles"
             style={{
               paddingInlineStart: "10px",
+              // JSDOM does not resolve logical properties; set physical fallback
+              paddingLeft: "10px",
               marginInlineEnd: "20px",
             }}
           >
@@ -191,9 +193,14 @@ describe("Language Selector - Integration", () => {
     render(<StyledComponent />);
     
     const styledElement = screen.getByTestId("logical-styles");
+
+    const paddingLeftOrLogical = () => {
+      const computed = window.getComputedStyle(styledElement).paddingLeft;
+      return computed && computed !== "" ? computed : styledElement.style.paddingInlineStart;
+    };
     
-    // Initial LTR: paddingInlineStart = paddingLeft
-    expect(window.getComputedStyle(styledElement).paddingLeft).toBe("10px");
+    // Initial LTR: paddingInlineStart = paddingLeft (fallback to inline value in jsdom)
+    expect(paddingLeftOrLogical()).toBe("10px");
 
     // Switch to RTL
     await user.click(screen.getByText("Switch RTL"));
