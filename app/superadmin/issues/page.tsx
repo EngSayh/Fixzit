@@ -177,8 +177,8 @@ function PhaseProgressSection() {
         const data = await res.json();
         setPhases(data.phases || []);
         setSummary(data.summary || null);
-      } catch (error) {
-        console.error("Phase fetch error:", error);
+      } catch (_error) {
+        // Phase fetch failed - show user-friendly toast
         toast({
           title: "Error",
           description: "Failed to load phase progress data",

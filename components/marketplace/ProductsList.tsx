@@ -38,6 +38,7 @@ import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { SavedCartBanner } from "./SavedCartBanner";
 import { RecentlyViewed } from "./RecentlyViewed";
 
@@ -128,6 +129,7 @@ export type ProductsListProps = {
 
 export function ProductsList({ orgId }: ProductsListProps) {
   const { t } = useTranslation();
+  const { currency } = useCurrency();
   const { state, updateState, resetState } = useTableQueryState("souq-products", {
     page: 1,
     pageSize: 20,
@@ -626,7 +628,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
             label="Price"
             value={{ min: draftFilters.priceMin as number, max: draftFilters.priceMax as number }}
             onChange={(range) => setDraftFilters({ ...draftFilters, priceMin: range.min, priceMax: range.max })}
-            prefix="SAR"
+            prefix={currency}
           />
           
           <NumericRangeFilter

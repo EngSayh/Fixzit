@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
-import { parsePendingMasterMarkdown } from "@/lib/backlog/parsePendingMaster";
+import { logger } from "@/lib/logger";
 import fs from "fs";
 import path from "path";
 
@@ -57,7 +57,6 @@ export async function GET(req: NextRequest) {
     const content = fs.readFileSync(pendingMasterPath, "utf-8");
     
     // Extract phase entries (P66-P75 from latest execution)
-    const phasePattern = /\*\*P(\d+):\s*([^*]+)\*\*/g;
     const completionPattern = /✅\s*PHASES?\s+P(\d+)(?:-P(\d+))?\s+COMPLETE/gi;
     const datePattern = /###\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s*\(([^)]+)\)\s*—\s*(?:Phase\s+)?P(\d+)(?:-P(\d+))?/g;
     
@@ -148,7 +147,7 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (error) {
-    console.error("[SuperAdmin Phases API] Error:", error);
+    logger.error("[SuperAdmin Phases API] Error:", error);
     return NextResponse.json(
       { error: "Failed to parse phase data" },
       { status: 500 }
