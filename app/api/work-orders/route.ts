@@ -99,35 +99,53 @@ const createWorkOrderSchema = z.object({
  */
 // 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB filter
 // 🔒 STRICT v4: Add role-based filtering for user assignments using canonical schema paths
-function buildWorkOrderFilter(
+export function buildWorkOrderFilter(
   searchParams: URLSearchParams,
   orgId: string,
-  user?: { id: string; orgId: string; role: string; vendorId?: string; units?: string[] }
+  user?: { id: string; orgId: string; role: string; vendorId?: string; units?: string[] },
 ) {
   const filter: Record<string, unknown> = { orgId, isDeleted: { $ne: true } };
+  const andFilters: Record<string, unknown>[] = [];
 
-  // 🔒 RBAC: Scope by role per STRICT v4 multi-tenant isolation
-  // BLOCKER FIX: Use canonical schema paths from server/models/WorkOrder.ts
+  const parseBool = (value: string | null) =>
+    value === "true" || value === "1";
+
   const userRole = user?.role;
   const userId = user?.id;
   const vendorId = user?.vendorId;
   const units = user?.units;
-  
-  if (userRole === 'TECHNICIAN' && userId) {
-    // Technicians only see work orders assigned to them (canonical: assignment.assignedTo.userId)
-    filter["assignment.assignedTo.userId"] = userId;
-  } else if (userRole === 'VENDOR' && vendorId) {
-    // Vendors only see work orders for their vendor organization (canonical: assignment.assignedTo.vendorId)
-    filter["assignment.assignedTo.vendorId"] = vendorId;
-  } else if (userRole === 'TENANT') {
+
+  // 🔒 RBAC: Scope by role per STRICT v4 multi-tenant isolation
+  // BLOCKER FIX: Use canonical schema paths from server/models/WorkOrder.ts
+  if (userRole === "TECHNICIAN" && userId) {
+    andFilters.push({
+      $or: [
+        { "assignment.assignedTo.userId": userId },
+        { assigneeId: userId },
+        { assignedTo: userId },
+        { technicianId: userId },
+      ],
+    });
+  } else if (userRole === "VENDOR" && vendorId) {
+    andFilters.push({
+      $or: [
+        { "assignment.assignedTo.vendorId": vendorId },
+        { vendorId },
+      ],
+    });
+  } else if (userRole === "TENANT") {
     // MAJOR FIX: Tenants with empty units get 403, not org-wide access
     if (!units || units.length === 0) {
-      // Return a filter that matches nothing - caller should check for this
       filter._id = { $exists: false }; // Impossible condition = no results
       filter.__tenantNoUnits = true; // Signal to caller
     } else {
-      // Tenants only see work orders for their units (canonical: location.propertyId or unitNumber)
-      filter["location.unitNumber"] = { $in: units };
+      andFilters.push({
+        $or: [
+          { "location.unitNumber": { $in: units } },
+          { unit_id: { $in: units } },
+          { unitId: { $in: units } },
+        ],
+      });
     }
   }
   // SUPER_ADMIN, CORPORATE_ADMIN, ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER see all in org
@@ -146,15 +164,91 @@ function buildWorkOrderFilter(
     filter["location.propertyId"] = propertyId;
   }
 
+  // Extended filter support for UI chips/presets
+  const overdue = parseBool(searchParams.get("overdue"));
+  const assignedToMe = parseBool(searchParams.get("assignedToMe"));
+  const unassigned = parseBool(searchParams.get("unassigned"));
+  const slaRisk = parseBool(searchParams.get("slaRisk"));
+  const dueDateFrom = searchParams.get("dueDateFrom");
+  const dueDateTo = searchParams.get("dueDateTo");
+
+  if (assignedToMe && userId) {
+    andFilters.push({
+      $or: [
+        { "assignment.assignedTo.userId": userId },
+        { assigneeId: userId },
+        { assignedTo: userId },
+        { technicianId: userId },
+      ],
+    });
+  }
+
+  if (unassigned) {
+    andFilters.push({
+      $or: [
+        { "assignment.assignedTo": { $exists: false } },
+        { "assignment.assignedTo.userId": { $exists: false } },
+        { "assignment.assignedTo.userId": null },
+        { assigneeId: { $in: [null, ""] } },
+        { assignedTo: { $in: [null, ""] } },
+        { technicianId: { $in: [null, ""] } },
+      ],
+    });
+  }
+
+  if (overdue) {
+    const now = new Date();
+    andFilters.push({
+      $or: [
+        { "sla.resolutionDeadline": { $lt: now } },
+        { dueDate: { $lt: now.toISOString() } },
+        { dueAt: { $lt: now } },
+      ],
+    });
+  }
+
+  const dueRange: Record<string, Date> = {};
+  if (dueDateFrom) {
+    const fromDate = new Date(dueDateFrom);
+    if (!Number.isNaN(fromDate.getTime())) {
+      dueRange.$gte = fromDate;
+    }
+  }
+  if (dueDateTo) {
+    const toDate = new Date(dueDateTo);
+    if (!Number.isNaN(toDate.getTime())) {
+      dueRange.$lte = toDate;
+    }
+  }
+  if (Object.keys(dueRange).length > 0) {
+    andFilters.push({
+      $or: [
+        { "sla.resolutionDeadline": dueRange },
+        { dueDate: dueRange },
+        { dueAt: dueRange },
+      ],
+    });
+  }
+
+  if (slaRisk) {
+    andFilters.push({ "sla.status": { $in: ["BREACHED", "OVERDUE", "AT_RISK"] } });
+  }
+
   const search = searchParams.get("search") || searchParams.get("q");
   if (search) {
     const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    filter.$or = [
-      { workOrderNumber: { $regex: escapedSearch, $options: "i" } },
-      { title: { $regex: escapedSearch, $options: "i" } },
-      { description: { $regex: escapedSearch, $options: "i" } },
-      { category: { $regex: escapedSearch, $options: "i" } },
-    ];
+    andFilters.push({
+      $or: [
+        { workOrderNumber: { $regex: escapedSearch, $options: "i" } },
+        { title: { $regex: escapedSearch, $options: "i" } },
+        { description: { $regex: escapedSearch, $options: "i" } },
+        { category: { $regex: escapedSearch, $options: "i" } },
+      ],
+    });
+  }
+
+  if (andFilters.length > 0) {
+    filter.$and = andFilters;
   }
 
   return filter;
