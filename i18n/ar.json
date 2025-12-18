@@ -3390,7 +3390,17 @@
         "title": "الصيانة الوقائية"
       },
       "sla": {
-        "title": "مراقبة اتفاقية مستوى الخدمة"
+        "title": "مراقبة اتفاقية مستوى الخدمة",
+        "onTime": "في الوقت المحدد",
+        "atRisk": "في خطر",
+        "breached": "تم الانتهاك",
+        "paused": "متوقف",
+        "notSet": "غير محدد",
+        "overdue": "متأخر",
+        "timeRemaining": "{hours}س {minutes}د",
+        "timeRemainingMinutes": "{minutes}د",
+        "overdueTime": "متأخر {hours}س {minutes}د",
+        "overdueMinutes": "متأخر {minutes}د"
       }
     },
     "assets": {

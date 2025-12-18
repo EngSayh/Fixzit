@@ -5,7 +5,7 @@
  * @module tests/integration/marketplace-guest.test
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { startMongoMemory, stopMongoMemory, clearCollections } from '../helpers/mongoMemory';
 import { createTestSession } from '../helpers/fixtures';
 import { NextRequest } from 'next/server';
@@ -20,6 +20,7 @@ describe('Marketplace - Guest User Flow', () => {
   });
 
   beforeEach(async () => {
+    vi.clearAllMocks();
     await clearCollections();
   });
 

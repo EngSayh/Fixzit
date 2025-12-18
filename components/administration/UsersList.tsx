@@ -195,8 +195,8 @@ export function UsersList({ orgId }: UsersListProps) {
     [state.filters, updateState]
   );
 
-  // Table columns
-  const columns: DataTableColumn<UserRecord>[] = [
+  // Table columns - memoized to prevent unnecessary re-renders
+  const columns = useMemo<DataTableColumn<UserRecord>[]>(() => [
     {
       id: "name",
       header: "Name",
@@ -253,7 +253,7 @@ export function UsersList({ orgId }: UsersListProps) {
       header: "Created",
       cell: (row) => formatDistanceToNowStrict(new Date(row.createdAt), { addSuffix: true }),
     },
-  ];
+  ], []);
 
   const emptyState = (
     <EmptyState

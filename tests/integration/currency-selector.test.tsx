@@ -3,7 +3,7 @@
  * Phase D: localStorage persistence, format validation
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import React from "react";
@@ -65,6 +65,7 @@ function TestCurrencySelector() {
 
 describe("Currency Selector - Integration", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mockLocalStorage.clear();
   });
 

@@ -3,7 +3,7 @@
  * Phase B: Schema pruning and entity validation
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import { POST, GET } from "@/app/api/filters/presets/route";
 import { NextRequest } from "next/server";
 import { connectDb } from "@/lib/mongodb-unified";
@@ -84,6 +84,12 @@ describe("Filter Preset API - Contract Tests", () => {
 
   afterAll(async () => {
     await FilterPreset.deleteMany({ org_id: "org_456" });
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    presetStore.length = 0;
+    presetCounter = 1;
   });
 
   it("should reject invalid entity_type", async () => {

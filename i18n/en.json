@@ -3390,7 +3390,17 @@
         "title": "Preventive Maintenance"
       },
       "sla": {
-        "title": "SLA Monitoring"
+        "title": "SLA Monitoring",
+        "onTime": "On Time",
+        "atRisk": "At Risk",
+        "breached": "Breached",
+        "paused": "Paused",
+        "notSet": "Not Set",
+        "overdue": "Overdue",
+        "timeRemaining": "{hours}h {minutes}m",
+        "timeRemainingMinutes": "{minutes}m",
+        "overdueTime": "Overdue {hours}h {minutes}m",
+        "overdueMinutes": "Overdue {minutes}m"
       }
     },
     "assets": {

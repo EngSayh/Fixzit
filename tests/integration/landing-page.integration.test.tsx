@@ -1,5 +1,5 @@
 import React from "react";
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { TranslationProvider } from "@/contexts/TranslationContext";
@@ -14,6 +14,10 @@ beforeAll(() => {
 
 afterAll(() => {
   restoreFetch();
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
 });
 
 describe("LandingPage translations", () => {

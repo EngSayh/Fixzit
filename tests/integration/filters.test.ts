@@ -5,7 +5,7 @@
  * @module tests/integration/filters.test
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { startMongoMemory, stopMongoMemory, clearCollections } from '../helpers/mongoMemory';
 import { createTestSession, createTestWorkOrder, createBulk } from '../helpers/fixtures';
 
@@ -19,6 +19,7 @@ describe('Filter System Integration', () => {
   });
 
   beforeEach(async () => {
+    vi.clearAllMocks();
     await clearCollections();
   });
 

@@ -205,8 +205,8 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
     [state.filters, updateState]
   );
 
-  // Table columns
-  const columns: DataTableColumn<AuditLogRecord>[] = [
+  // Table columns - memoized to prevent unnecessary re-renders
+  const columns = useMemo<DataTableColumn<AuditLogRecord>[]>(() => [
     {
       id: "timestamp",
       header: "Timestamp",
@@ -268,7 +268,7 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
         <span className="font-mono text-sm">{row.ipAddress || <span className="text-muted-foreground">—</span>}</span>
       ),
     },
-  ];
+  ], []);
 
   const emptyState = (
     <EmptyState

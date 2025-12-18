@@ -9,7 +9,7 @@
  *   6. app/api/billing/charge-recurring/route.ts - x-cron-secret
  */
 
-import { describe, it, expect, beforeAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
 
 // Mock environment variables for testing
 const TEST_CRON_SECRET = "test-cron-secret-12345";
@@ -56,6 +56,10 @@ describe("Secret Header Routes - Integration Tests", () => {
     vi.stubEnv("CRON_SECRET", TEST_CRON_SECRET);
     vi.stubEnv("COPILOT_WEBHOOK_SECRET", TEST_WEBHOOK_SECRET);
     vi.stubEnv("INTERNAL_API_SECRET", TEST_INTERNAL_SECRET);
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   describe("x-cron-secret protected routes", () => {

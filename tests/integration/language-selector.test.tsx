@@ -1,13 +1,14 @@
 /**
  * Language Selector Integration Tests
  * Phase D: RTL toggle, cookie persistence, i18n loading
+ * Phase P23: Real component rendering with flags and dropdown behavior
  */
 
 import React from "react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { I18nProvider } from "@/contexts/I18nProvider";
+import { I18nProvider } from "@/i18n/I18nProvider";
 
 // Mock cookie utilities
 const mockCookies = new Map<string, string>();
@@ -43,8 +44,33 @@ function TestLanguageSelector() {
   );
 }
 
+// Real LanguageSelector component wrapper for testing
+function RealLanguageSelectorTest() {
+  // Dynamic import to avoid SSR issues in tests
+  const [LanguageSelector, setLanguageSelector] = React.useState<React.ComponentType<{ variant?: string }> | null>(null);
+  
+  React.useEffect(() => {
+    import("@/components/i18n/LanguageSelector").then((mod) => {
+      setLanguageSelector(() => mod.default);
+    });
+  }, []);
+
+  if (!LanguageSelector) {
+    return <div data-testid="loading">Loading...</div>;
+  }
+
+  return (
+    <I18nProvider>
+      <div data-testid="real-selector-container">
+        <LanguageSelector variant="default" />
+      </div>
+    </I18nProvider>
+  );
+}
+
 describe("Language Selector - Integration", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mockCookies.clear();
     document.documentElement.dir = "ltr";
     document.documentElement.lang = "en";
@@ -210,5 +236,84 @@ describe("Language Selector - Integration", () => {
       expect(document.documentElement.dir).toBe("rtl");
     });
     // Note: Actual computed style behavior depends on browser support
+  });
+});
+
+describe("Real LanguageSelector Component", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCookies.clear();
+    document.documentElement.dir = "ltr";
+    document.documentElement.lang = "en";
+  });
+
+  it("should render as a single dropdown with globe icon", async () => {
+    render(<RealLanguageSelectorTest />);
+
+    // Wait for dynamic import
+    await waitFor(() => {
+      expect(screen.queryByTestId("loading")).not.toBeInTheDocument();
+    }, { timeout: 3000 });
+
+    const container = screen.getByTestId("real-selector-container");
+    
+    // Should have exactly one button (dropdown trigger)
+    const buttons = within(container).getAllByRole("button");
+    expect(buttons.length).toBe(1);
+    
+    // Button should be accessible
+    const trigger = buttons[0];
+    expect(trigger).toHaveAttribute("aria-haspopup");
+  });
+
+  it("should open dropdown on click and show language options", async () => {
+    const user = userEvent.setup();
+    render(<RealLanguageSelectorTest />);
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByTestId("loading")).not.toBeInTheDocument();
+    }, { timeout: 3000 });
+
+    const container = screen.getByTestId("real-selector-container");
+    const trigger = within(container).getByRole("button");
+    
+    // Open dropdown
+    await user.click(trigger);
+
+    // Should show listbox with options
+    await waitFor(() => {
+      const listbox = screen.queryByRole("listbox");
+      expect(listbox).toBeInTheDocument();
+    });
+  });
+
+  it("should display flag emojis for language options", async () => {
+    const user = userEvent.setup();
+    render(<RealLanguageSelectorTest />);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("loading")).not.toBeInTheDocument();
+    }, { timeout: 3000 });
+
+    const container = screen.getByTestId("real-selector-container");
+    const trigger = within(container).getByRole("button");
+    
+    // Open dropdown
+    await user.click(trigger);
+
+    await waitFor(() => {
+      // Check for common flags (US, SA, GB, etc.)
+      const options = screen.getAllByRole("option");
+      expect(options.length).toBeGreaterThan(0);
+      
+      // Each option should have flag emoji (visible in text content)
+      const hasFlags = options.some((opt) => {
+        const text = opt.textContent || "";
+        // Flag emojis are in the range U+1F1E0 to U+1F1FF
+        return /[\u{1F1E0}-\u{1F1FF}]/u.test(text);
+      });
+      expect(hasFlags).toBe(true);
+    });
   });
 });

@@ -1,5 +1,5 @@
 import React from "react";
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nProvider } from "@/i18n/I18nProvider";
@@ -15,6 +15,10 @@ beforeAll(() => {
 
 afterAll(() => {
   restoreFetch();
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
 });
 
 function IntegrationHarness() {

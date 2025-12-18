@@ -45,22 +45,25 @@ const statusConfig: Record<SLAStatus, {
     labelKey: "fm.sla.onTime",
     fallbackLabel: "On Time",
     variant: "default",
-    bgClass: "bg-green-100 dark:bg-green-900/30",
-    textClass: "text-green-700 dark:text-green-300",
+    // Brand token: --color-secondary (#00A859)
+    bgClass: "bg-[var(--color-secondary-light,#e6f7f0)] dark:bg-[var(--color-secondary,#00A859)]/20",
+    textClass: "text-[var(--color-secondary,#00A859)] dark:text-[var(--color-secondary,#00A859)]",
     icon: Clock,
   },
   at_risk: {
     labelKey: "fm.sla.atRisk",
     fallbackLabel: "At Risk",
     variant: "secondary",
-    bgClass: "bg-yellow-100 dark:bg-yellow-900/30",
-    textClass: "text-yellow-700 dark:text-yellow-300",
+    // Brand token: --color-accent (#FFB400)
+    bgClass: "bg-[var(--color-accent-light,#fff8e6)] dark:bg-[var(--color-accent,#FFB400)]/20",
+    textClass: "text-[var(--color-accent-hover,#cc9000)] dark:text-[var(--color-accent,#FFB400)]",
     icon: AlertTriangle,
   },
   breached: {
     labelKey: "fm.sla.breached",
     fallbackLabel: "Breached",
     variant: "destructive",
+    // Error state - keep semantic red for accessibility
     bgClass: "bg-red-100 dark:bg-red-900/30",
     textClass: "text-red-700 dark:text-red-300",
     icon: XCircle,
@@ -151,7 +154,8 @@ export function getSLAStatus(
 }
 
 /**
- * Format time remaining for display
+ * Format time remaining for display (English fallback for non-component contexts)
+ * For i18n-aware formatting, use useSLATimeLabel hook instead.
  * 
  * @param dueDate - The SLA due date
  * @returns Formatted time string (e.g., "2h 30m" or "Overdue 1h")
@@ -172,4 +176,44 @@ export function formatSLATimeRemaining(dueDate: Date | null | undefined): string
   }
 
   return isOverdue ? `Overdue ${hours}h ${minutes}m` : `${hours}h ${minutes}m`;
+}
+
+/**
+ * Hook for i18n-aware SLA time formatting
+ * 
+ * @param dueDate - The SLA due date
+ * @returns Formatted time string with proper translations
+ */
+export function useSLATimeLabel(dueDate: Date | null | undefined): string {
+  const { t } = useTranslation();
+
+  if (!dueDate) return "";
+
+  const now = new Date();
+  const diffMs = dueDate.getTime() - now.getTime();
+  const isOverdue = diffMs < 0;
+  const absDiffMs = Math.abs(diffMs);
+
+  const hours = Math.floor(absDiffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((absDiffMs % (1000 * 60 * 60)) / (1000 * 60));
+  const values = { hours: String(hours), minutes: String(minutes) };
+
+  if (hours === 0) {
+    const fallback = isOverdue ? `Overdue ${minutes}m` : `${minutes}m`;
+    return t(
+      isOverdue ? "fm.sla.overdueMinutes" : "fm.sla.timeRemainingMinutes",
+      fallback,
+      { minutes: values.minutes }
+    );
+  }
+
+  const fallback = isOverdue
+    ? `Overdue ${hours}h ${minutes}m`
+    : `${hours}h ${minutes}m`;
+
+  return t(
+    isOverdue ? "fm.sla.overdueTime" : "fm.sla.timeRemaining",
+    fallback,
+    values
+  );
 }

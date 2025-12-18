@@ -10,7 +10,16 @@
  * 6. Verify removal persisted
  */
 
-import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterAll,
+  afterEach,
+  vi,
+} from "vitest";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import { startMongoMemoryServer } from "../helpers/mongoMemory";
@@ -95,6 +104,10 @@ describe("Work Order Attachment Flow", () => {
       await mongoServer.stop();
     }
     console.log("✅ MongoDB Memory Server stopped");
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   afterEach(async () => {

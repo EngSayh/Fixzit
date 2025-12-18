@@ -290,8 +290,8 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
     [state.filters, updateState]
   );
 
-  // Table columns
-  const columns: DataTableColumn<InvoiceRecord>[] = [
+  // Table columns - memoized to prevent unnecessary re-renders
+  const columns = useMemo<DataTableColumn<InvoiceRecord>[]>(() => [
     {
       id: "invoice",
       header: "Invoice",
@@ -352,7 +352,7 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         return format(new Date(row.paidDate), "MMM d, yyyy");
       },
     },
-  ];
+  ], []);
 
   const emptyState = (
     <EmptyState

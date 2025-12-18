@@ -1,5 +1,5 @@
 import React from "react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render } from "@testing-library/react";
 
 // Mock session to avoid loading state hangs
@@ -31,6 +31,11 @@ import { I18nProvider } from "@/i18n/I18nProvider";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 
 describe("HR dashboard RTL integration", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    document.documentElement.dir = "ltr";
+  });
+
   it("renders header and enforces RTL direction", () => {
     render(
       <I18nProvider initialLocale="ar">

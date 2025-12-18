@@ -5,7 +5,7 @@
  * This test regenerates client roles and compares against committed file
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { exec } from "child_process";
 import { promisify } from "util";
 import fs from "fs/promises";
@@ -14,6 +14,10 @@ import path from "path";
 const execAsync = promisify(exec);
 
 describe("RBAC Parity Test", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("should match generated client roles with committed file", async () => {
     const generatorScript = path.join(process.cwd(), "scripts/rbac/generate-client-roles.ts");
     const outputFile = path.join(process.cwd(), "lib/rbac/client-roles.ts");

@@ -30,11 +30,13 @@ import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
+import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
 import {
   buildActiveFilterChips,
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
+import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -162,6 +164,24 @@ export function RolesList({ orgId }: RolesListProps) {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
   const filters = state.filters as RoleFilters;
+  const currentFilters = state.filters || {};
+
+  // handleLoadPreset for filter presets
+  const handleLoadPreset = (
+    presetFilters: Record<string, unknown>,
+    _sort?: { field: string; direction: "asc" | "desc" },
+    search?: string
+  ) => {
+    const normalizedFilters = pickSchemaFilters<RoleFilters>(
+      presetFilters,
+      ROLE_FILTER_SCHEMA
+    );
+    setDraftFilters(normalizedFilters);
+    updateState({
+      filters: normalizedFilters,
+      q: typeof search === "string" ? search : "",
+    });
+  };
 
   // Quick chips (P0)
   const quickChips = [
@@ -200,8 +220,8 @@ export function RolesList({ orgId }: RolesListProps) {
     [state.filters, updateState]
   );
 
-  // Table columns
-  const columns: DataTableColumn<RoleRecord>[] = [
+  // Table columns - memoized to prevent unnecessary re-renders
+  const columns = useMemo<DataTableColumn<RoleRecord>[]>(() => [
     {
       id: "name",
       header: "Role Name",
@@ -247,7 +267,7 @@ export function RolesList({ orgId }: RolesListProps) {
       header: "Created",
       cell: (row) => formatDistanceToNowStrict(new Date(row.createdAt), { addSuffix: true }),
     },
-  ];
+  ], []);
 
   const emptyState = (
     <EmptyState
@@ -331,6 +351,18 @@ export function RolesList({ orgId }: RolesListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
+            <FilterPresetsDropdown
+              entityType="roles"
+              currentFilters={pickSchemaFilters<RoleFilters>(
+                currentFilters,
+                ROLE_FILTER_SCHEMA
+              )}
+              currentSearch={state.q}
+              normalizeFilters={(filters) =>
+                pickSchemaFilters<RoleFilters>(filters, ROLE_FILTER_SCHEMA)
+              }
+              onLoadPreset={handleLoadPreset}
+            />
             <Button
               variant="outline"
               size="sm"

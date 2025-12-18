@@ -205,8 +205,8 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
     [state.filters, updateState]
   );
 
-  // Table columns
-  const columns: DataTableColumn<EmployeeRecord>[] = [
+  // Table columns - memoized to prevent unnecessary re-renders
+  const columns = useMemo<DataTableColumn<EmployeeRecord>[]>(() => [
     {
       id: "name",
       header: "Name",
@@ -284,7 +284,7 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
         );
       },
     },
-  ];
+  ], []);
 
   const emptyState = (
     <EmptyState

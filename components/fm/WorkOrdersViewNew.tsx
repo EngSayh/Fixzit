@@ -277,8 +277,8 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
     [state.filters, updateState]
   );
 
-  // Table columns
-  const columns: DataTableColumn<WorkOrderRecord>[] = [
+  // Table columns - memoized to prevent unnecessary re-renders
+  const columns = useMemo<DataTableColumn<WorkOrderRecord>[]>(() => [
     {
       id: "code",
       header: "Code",
@@ -346,7 +346,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
         );
       },
     },
-  ];
+  ], []);
 
   // Empty state
   const emptyState = (
