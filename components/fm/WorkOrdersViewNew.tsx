@@ -214,8 +214,8 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
     return buildWorkOrdersQuery(state, orgId);
   }, [orgId, state]);
 
-  const { data, error: _error, isLoading, mutate, isValidating } = useSWR(
-    `/api/work-orders?${query}`,
+  const { data, error, isLoading, mutate, isValidating } = useSWR(
+    `/api/fm/work-orders?${query}`,
     fetcher,
     { keepPreviousData: true }
   );
@@ -383,6 +383,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
     updateState({
       filters: normalizedFilters,
       q: typeof search === "string" ? search : "",
+      page: 1,
     });
   };
 
@@ -415,6 +416,32 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
           </Button>
         </div>
       </div>
+
+      {error && (
+        <div
+          className="flex items-start justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive"
+          role="alert"
+        >
+          <div>
+            <p className="font-semibold">
+              {t("workOrders.list.errorTitle", "Unable to load work orders")}
+            </p>
+            <p className="text-sm text-destructive/80">
+              {error instanceof Error
+                ? error.message
+                : t("workOrders.list.errorUnknown", "Unexpected error")}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => mutate()}
+            disabled={isValidating}
+          >
+            {t("common.retry", "Retry")}
+          </Button>
+        </div>
+      )}
 
       {/* Toolbar (P0) */}
       <TableToolbar
