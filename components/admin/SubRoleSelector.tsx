@@ -84,6 +84,17 @@ const MODULE_NAME_KEYS: Record<ModuleKey, { key: string; fallback: string }> = {
  * If a module has no corresponding submodule in PLAN_GATES, check PREMIUM_MODULES.
  */
 const submoduleKey = SubmoduleKey || ({} as Record<string, SubmoduleKey>);
+const planEnum =
+  Plan ||
+  ({
+    STARTER: "STARTER",
+    STANDARD: "STANDARD",
+    PRO: "PRO",
+    ENTERPRISE: "ENTERPRISE",
+  } as typeof Plan);
+const planGatesByPlan =
+  PLAN_GATES ||
+  ({} as Record<Plan, Partial<Record<SubmoduleKey, boolean>>>);
 const MODULE_TO_SUBMODULE: Partial<Record<ModuleKey, SubmoduleKey>> = {
   [ModuleKey.WORK_ORDERS]:
     submoduleKey.WO_CREATE ?? ("WO_CREATE" as SubmoduleKey),
@@ -107,7 +118,7 @@ const PREMIUM_MODULES: Set<ModuleKey> = new Set([
  * STARTER plan does not include Finance, HR, Compliance, or System Management.
  */
 const planAllowsPremiumModules = (plan: Plan): boolean => {
-  return plan !== Plan.STARTER;
+  return plan !== planEnum.STARTER;
 };
 
 export default function SubRoleSelector({
@@ -124,7 +135,7 @@ export default function SubRoleSelector({
   const { org } = useCurrentOrg();
   
   // Use provided plan or fall back to org context, default to STARTER (fail-safe)
-  const effectivePlan = orgPlan ?? org?.plan ?? Plan.STARTER;
+  const effectivePlan = orgPlan ?? org?.plan ?? planEnum.STARTER;
   
   // Normalize role to handle case-sensitivity and legacy aliases (EMPLOYEE, MANAGEMENT, etc.)
   const normalizedRole = normalizeRole(role as string);
@@ -145,7 +156,7 @@ export default function SubRoleSelector({
     : computeAllowedModules(Role.TEAM_MEMBER);
   
   // Filter modules by plan gates to avoid overpromising
-  const planGates = PLAN_GATES[effectivePlan];
+  const planGates = planGatesByPlan[effectivePlan] ?? {};
   const allowedModules = baseModules.filter((module) => {
     // Check if this is a premium module (Finance, HR, Compliance, System)
     if (PREMIUM_MODULES.has(module)) {

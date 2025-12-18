@@ -24,7 +24,8 @@ const targetPath = path.resolve(__dirname, "../../lib/rbac/client-roles.ts");
 
 const roles = Array.from(new Set(Object.values(UserRole))).filter(Boolean);
 const subRoles = Array.from(new Set(TEAM_MEMBER_SUB_ROLES)).filter(Boolean);
-const primaryRoles = roles.filter((r) => !subRoles.includes(r));
+const extraRoles = ["GUEST"];
+const primaryRoles = [...roles.filter((r) => !subRoles.includes(r)), ...extraRoles];
 
 const header = `/**
  * Client-safe RBAC definitions (generated).
@@ -32,6 +33,9 @@ const header = `/**
  * Do NOT import server-only modules into client bundles.
  */
 `;
+
+const fmImports =
+  'import { Plan, SubmoduleKey, PLAN_GATES, inferSubRoleFromRole as inferSubRoleFromRoleV4 } from "@/domain/fm/fm.types";\n';
 
 const enumFromArray = (name: string, values: string[]) =>
   `export enum ${name} {\n${values
@@ -135,9 +139,10 @@ const roleModuleLines = accessPrincipals
 
 const aliasLines = Object.entries(aliasMap)
   .map(([alias, target]) => `  ${alias}: Role.${target},`)
+  .concat("  GUEST: Role.GUEST,")
   .join("\n");
 
-const content = `${header}
+const content = `${header}${fmImports}
 ${enumFromArray("Role", primaryRoles)}
 ${enumFromArray("SubRole", subRoles)}
 
@@ -157,16 +162,49 @@ const ALIAS_MAP: Record<string, Role> = {
 ${aliasLines}
 };
 
-export function normalizeRole(role?: string | null): Role | null {
+export function normalizeRole(
+  role?: string | null,
+  expectedSubRole?: string | null,
+  strict = false,
+): Role | null {
   if (!role) return null;
   const key = role.toUpperCase();
-  return ALIAS_MAP[key] ?? (Role as Record<string, Role>)[key] ?? null;
+  const normalized = ALIAS_MAP[key] ?? (Role as Record<string, Role>)[key] ?? null;
+  if (strict && normalized === Role.TEAM_MEMBER && !expectedSubRole) {
+    throw new Error(
+      \`STRICT v4.1 violation: Role "\${role}" maps to TEAM_MEMBER but requires a subRole to be specified\`,
+    );
+  }
+  return normalized as Role | null;
 }
 
 export function normalizeSubRole(subRole?: string | null): SubRole | null {
   if (!subRole) return null;
   const key = subRole.toUpperCase();
   return (SubRole as Record<string, SubRole>)[key] ?? null;
+}
+
+export function inferSubRoleFromRole(role?: string | Role | null): SubRole | undefined {
+  if (!role) return undefined;
+  const key = typeof role === "string" ? role.toUpperCase() : String(role);
+  switch (key) {
+    case "FINANCE":
+    case "FINANCE_OFFICER":
+    case "FINANCE_MANAGER":
+      return SubRole.FINANCE_OFFICER;
+    case "HR":
+    case "HR_OFFICER":
+    case "HR_MANAGER":
+      return SubRole.HR_OFFICER;
+    case "SUPPORT":
+    case "SUPPORT_AGENT":
+      return SubRole.SUPPORT_AGENT;
+    case "OPERATIONS_MANAGER":
+    case "DISPATCHER":
+      return SubRole.OPERATIONS_MANAGER;
+    default:
+      return inferSubRoleFromRoleV4(role as string | null) ?? undefined;
+  }
 }
 
 export function computeAllowedModules(
@@ -176,12 +214,16 @@ export function computeAllowedModules(
   const normalizedRole = normalizeRole(role) ?? Role.VIEWER;
   const normalizedSubRole = normalizeSubRole(subRole);
 
+  const baseModules = ROLE_MODULES[normalizedRole] ?? [ModuleKey.DASHBOARD];
   if (normalizedSubRole && ROLE_MODULES[normalizedSubRole as SubRole]) {
-    return ROLE_MODULES[normalizedSubRole as SubRole];
+    const subModules = ROLE_MODULES[normalizedSubRole as SubRole] ?? [];
+    return [...new Set([...baseModules, ...subModules])];
   }
 
-  return ROLE_MODULES[normalizedRole] ?? [ModuleKey.DASHBOARD];
+  return baseModules as ModuleKey[];
 }
+
+export { Plan, SubmoduleKey, PLAN_GATES };
 `;
 
 const formatted = content.replace(/\r\n/g, "\n");

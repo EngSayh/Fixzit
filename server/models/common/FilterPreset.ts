@@ -8,11 +8,16 @@
  */
 
 import mongoose, { Schema, Document } from "mongoose";
+import {
+  FILTER_ENTITY_TYPES,
+  LEGACY_ENTITY_ALIASES,
+  type FilterEntityType,
+} from "@/lib/filters/entities";
 
 export interface IFilterPreset extends Document {
   user_id: string; // User who owns this preset
   org_id: string; // Organization context (tenant isolation)
-  entity_type: "work_orders" | "users" | "employees" | "invoices" | "audit_logs" | "properties" | "products";
+  entity_type: FilterEntityType;
   name: string; // User-defined preset name ("Overdue High Priority", "Last 30 Days", etc.)
   filters: Record<string, unknown>; // JSON serialized filters (status, priority, date ranges, etc.)
   sort?: {
@@ -39,7 +44,7 @@ const FilterPresetSchema = new Schema<IFilterPreset>(
     entity_type: {
       type: String,
       required: true,
-      enum: ["work_orders", "users", "employees", "invoices", "audit_logs", "properties", "products"],
+      enum: [...FILTER_ENTITY_TYPES, ...Object.keys(LEGACY_ENTITY_ALIASES)],
       index: true,
     },
     name: {

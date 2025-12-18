@@ -36,6 +36,9 @@ import {
 } from "@/components/tables/utils/filterSchema";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { SavedCartBanner } from "./SavedCartBanner";
+import { RecentlyViewed } from "./RecentlyViewed";
 
 type ProductRecord = {
   id: string;
@@ -123,6 +126,7 @@ export type ProductsListProps = {
 };
 
 export function ProductsList({ orgId }: ProductsListProps) {
+  const { t } = useTranslation();
   const { state, updateState, resetState } = useTableQueryState("souq-products", {
     page: 1,
     pageSize: 20,
@@ -187,8 +191,11 @@ export function ProductsList({ orgId }: ProductsListProps) {
       <div className="p-6">
         <EmptyState
           icon={Package}
-          title="Organization required"
-          description="Tenant context is missing. Please select an organization to view products."
+          title={t("marketplace.products.orgRequiredTitle", "Organization required")}
+          description={t(
+            "marketplace.products.orgRequiredDesc",
+            "Tenant context is missing. Please select an organization to view products.",
+          )}
         />
       </div>
     );
@@ -298,7 +305,17 @@ export function ProductsList({ orgId }: ProductsListProps) {
   const CardView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {products.map((product) => (
-        <div key={product.id} className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer" onClick={() => toast.info(`Open product ${product.id}`)}>
+        <div
+          key={product.id}
+          className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer"
+          onClick={() =>
+            toast.info(
+              t("marketplace.products.openProduct", "Open product {{id}}", {
+                id: product.id,
+              }),
+            )
+          }
+        >
           {product.imageUrl && (
             <img src={product.imageUrl} alt={product.name} className="w-full h-48 object-cover" />
           )}
@@ -343,7 +360,11 @@ export function ProductsList({ orgId }: ProductsListProps) {
             Clear all filters
           </Button>
         ) : (
-          <Button onClick={() => toast.info("Add product flow")}>
+          <Button
+            onClick={() =>
+              toast.info(t("marketplace.products.addProduct", "Add product flow"))
+            }
+          >
             <Plus className="w-4 h-4 me-2" />
             Add Product
           </Button>
@@ -370,6 +391,10 @@ export function ProductsList({ orgId }: ProductsListProps) {
 
   return (
     <div className="space-y-6 p-6">
+      <div className="grid gap-3 md:grid-cols-2">
+        <SavedCartBanner />
+        <RecentlyViewed />
+      </div>
       {/* PageHeader */}
       <div className="flex items-center justify-between">
         <div>
@@ -482,7 +507,13 @@ export function ProductsList({ orgId }: ProductsListProps) {
           loading={isLoading}
           emptyState={emptyState}
           density={density}
-          onRowClick={(row) => toast.info(`Open product ${row.id}`)}
+          onRowClick={(row) =>
+            toast.info(
+              t("marketplace.products.openProduct", "Open product {{id}}", {
+                id: row.id,
+              }),
+            )
+          }
         />
       )}
 
