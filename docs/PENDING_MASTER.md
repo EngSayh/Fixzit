@@ -1,5 +1,42 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-18 19:00 (Asia/Riyadh) — Phase 6: CI/CD & Cache Optimization
+**Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)
+**Duration:** 20 minutes | **Commits:** 57f1677b6, ab5b57f5d
+
+**✅ PHASE 6 COMPLETE: CI/CD & CACHE OPTIMIZATION**
+
+**P6.1: GitHub Workflow Improvements**
+- build-sourcemaps.yml: Added env-level ENABLE_SENTRY, HAS_SENTRY_AUTH guards
+- pr_agent.yml: Added env-level ENABLE_PR_AGENT, HAS_OPENAI_KEY guards  
+- Steps now skip gracefully when optional secrets are not configured
+- IDE warnings are informational (secrets validated at runtime)
+- Commit: 57f1677b6
+
+**P6.2: Cache Headers Coverage**
+- Added Cache-Control to /api/ats/jobs/public (public, max-age=300, stale-while-revalidate=600)
+- Public job listings now cache in CDN/browser for 5 minutes
+- Commit: ab5b57f5d
+
+**P6.3: Aggregate Safety Audit**
+- Verified ATS analytics has maxTimeMS(30_000) via runAggregate helper
+- Other aggregates (souq/crm/issues) are tenant-scoped with reasonable complexity
+- No additional changes needed - existing patterns are safe
+
+**P6.4: SuperAdmin Dashboard Integration**
+- Verified existing infrastructure:
+  - /api/superadmin/issues/import - Imports PENDING_MASTER.md → MongoDB
+  - /api/superadmin/issues - Lists/updates BacklogIssue records
+  - /api/superadmin/issues/report - Generates JSON/Markdown reports
+- No new endpoints needed - sync mechanism already in place
+
+**Verification:**
+- TypeScript: ✅ 0 errors
+- Build: ✅ Clean
+- Files: 3 changed
+
+---
+
 ### 2025-12-18 18:00 (Asia/Riyadh) — Phase 5: Client Hygiene & Production Safety
 **Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)
 **Duration:** 15 minutes | **Commit:** 309658b86
