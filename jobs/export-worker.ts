@@ -132,11 +132,18 @@ async function processExportJob(payload: ExportJobPayload) {
     const config = assertS3Configured(); // Throws when missing
 
     const safeFilters = sanitizeFilters(exportJob.filters as Record<string, unknown>);
-    const rows = await fetchRows(exportJob.entity_type, exportJob.org_id, safeFilters, exportJob.ids);
-    const plainRows = (rows ?? []).map((row) =>
-      JSON.parse(JSON.stringify(row)) as Record<string, unknown>
+    const rows =
+      (await fetchRows(
+        exportJob.entity_type,
+        exportJob.org_id,
+        safeFilters,
+        exportJob.ids,
+      )) ?? [];
+    // Normalize rows to JSON-safe objects for CSV serialization
+    const exportRows: CsvRow[] = rows.map(
+      (row) => JSON.parse(JSON.stringify(row)) as CsvRow,
     );
-    const csv = arrayToCSV(plainRows as any);
+    const csv = arrayToCSV(exportRows);
     const buffer = Buffer.from(csv, "utf-8");
     const key = buildExportKey(exportJob.org_id, exportJob._id.toString(), exportJob.format);
 
@@ -147,7 +154,7 @@ async function processExportJob(payload: ExportJobPayload) {
     await markJob(exportJob, {
       status: "completed",
       file_url: url,
-      row_count: plainRows.length ?? 0,
+      row_count: exportRows.length,
       error_message: undefined,
     });
 
@@ -155,7 +162,7 @@ async function processExportJob(payload: ExportJobPayload) {
       jobId: exportJob._id.toString(),
       entity: exportJob.entity_type,
       bucket: config.bucket,
-      rows: rows?.length ?? 0,
+      rows: exportRows.length,
     });
   } catch (error) {
     logger.error("[ExportWorker] Export failed", {
