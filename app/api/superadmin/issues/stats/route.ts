@@ -53,20 +53,20 @@ export async function GET(req: NextRequest) {
     // Total count
     BacklogIssue.countDocuments({}),
 
-    // By status
+    // By status (AUDIT-2025-12-19: Added maxTimeMS)
     BacklogIssue.aggregate([
       { $group: { _id: '$status', count: { $sum: 1 } } },
-    ]),
+    ], { maxTimeMS: 10_000 }),
 
     // By priority
     BacklogIssue.aggregate([
       { $group: { _id: '$priority', count: { $sum: 1 } } },
-    ]),
+    ], { maxTimeMS: 10_000 }),
 
     // By category
     BacklogIssue.aggregate([
       { $group: { _id: '$category', count: { $sum: 1 } } },
-    ]),
+    ], { maxTimeMS: 10_000 }),
 
     // Quick wins: XS/S effort, not resolved
     BacklogIssue.countDocuments({

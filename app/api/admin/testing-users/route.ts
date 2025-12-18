@@ -87,10 +87,10 @@ export async function GET(request: NextRequest) {
       TestingUser.countDocuments(query),
     ]);
 
-    // Get counts by status
+    // Get counts by status (AUDIT-2025-12-19: Added maxTimeMS)
     const statusCounts = await TestingUser.aggregate([
       { $group: { _id: "$status", count: { $sum: 1 } } },
-    ]);
+    ], { maxTimeMS: 10_000 });
 
     const counts: Record<string, number> = {};
     for (const s of TestingUserStatus) {

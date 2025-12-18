@@ -274,7 +274,7 @@ export async function GET(request: NextRequest) {
       .aggregate(pipeline)
       .toArray();
 
-    // 5. Get statistics
+    // 5. Get statistics (AUDIT-2025-12-19: Added maxTimeMS)
     const statsResult = await db
       .collection(COLLECTIONS.COMMUNICATION_LOGS)
       .aggregate([
@@ -306,7 +306,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-      ])
+      ], { maxTimeMS: 10_000 })
       .toArray();
 
     const stats = statsResult[0] || {

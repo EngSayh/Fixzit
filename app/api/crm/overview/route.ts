@@ -124,17 +124,18 @@ export async function GET(req: NextRequest) {
     ] = await Promise.all([
       // CRM-001 FIX: Add orgId to all countDocuments and aggregations
       CrmLead.countDocuments({ ...orgFilter, kind: "LEAD" }),
+      // AUDIT-2025-12-19: Added maxTimeMS to aggregates
       CrmLead.aggregate([
         { $match: { ...orgFilter, kind: "LEAD", status: "OPEN" } },
         {
           $group: { _id: null, total: { $sum: "$value" }, count: { $sum: 1 } },
         },
-      ]),
+      ], { maxTimeMS: 10_000 }),
       CrmLead.countDocuments({ ...orgFilter, status: "WON" }),
       CrmLead.aggregate([
         { $match: orgFilter }, // CRM-001 FIX: Scope stage aggregation to org
         { $group: { _id: "$stage", total: { $sum: 1 } } },
-      ]),
+      ], { maxTimeMS: 10_000 }),
       CrmLead.find({ ...orgFilter, kind: "ACCOUNT" }).sort({ revenue: -1 }).limit(5).lean(),
       CrmActivity.find(orgFilter).sort({ performedAt: -1 }).limit(6).lean(),
       CrmActivity.countDocuments({
