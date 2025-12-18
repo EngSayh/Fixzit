@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Chip } from "@/components/ui/chip";
-import { Receipt, Plus, RefreshCcw, Search, Filter, AlertCircle } from "lucide-react";
+import { Receipt, Plus, RefreshCcw, Search, Filter, AlertCircle, Download, Printer } from "lucide-react";
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
 import { CardList } from "@/components/tables/CardList";
@@ -186,6 +186,7 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState(state.filters || {});
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
+  const [isExporting, setIsExporting] = useState(false);
 
   const query = useMemo(() => {
     return buildInvoicesQuery(state, orgId);
@@ -196,6 +197,53 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
     fetcher,
     { keepPreviousData: true }
   );
+
+  // Export handler
+  const handleExport = async (format: "csv" | "xlsx") => {
+    setIsExporting(true);
+    try {
+      const response = await fetch(`/api/export-jobs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          org_id: orgId,
+          entity_type: "invoices",
+          format,
+          filters: state.filters,
+          search: state.q,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Export failed (${response.status})`);
+      }
+
+      const job = await response.json();
+      toast.success(
+        t(
+          "finance.invoices.exportStarted",
+          `Export started (${format.toUpperCase()})! Job ID: ${job.id}`
+        )
+      );
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error(
+        t(
+          "finance.invoices.exportFailed",
+          error instanceof Error ? error.message : "Failed to start export"
+        )
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Print handler
+  const handlePrint = () => {
+    window.print();
+  };
 
   const invoices = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
@@ -425,6 +473,28 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isExporting}
+              onClick={() => handleExport("csv")}
+            >
+              {isExporting ? (
+                <>
+                  <RefreshCcw className="w-4 h-4 me-2 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 me-2" />
+                  Export CSV
+                </>
+              )}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handlePrint}>
+              <Printer className="w-4 h-4 me-2" />
+              Print
+            </Button>
             <FilterPresetsDropdown
               entityType="invoices"
               currentFilters={pickSchemaFilters<InvoiceFilters>(
