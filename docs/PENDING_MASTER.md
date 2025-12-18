@@ -1,5 +1,36 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-18 12:15 (Asia/Riyadh) — Phase P0-P3: FM Work Orders Verification + Endpoint Alignment
+**Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot + Codex (parallel, coordinated)  
+**Duration:** 15 minutes | **Files:** components/fm/WorkOrdersViewNew.tsx, tests/unit/components/fm/WorkOrdersViewNew.filters.test.tsx
+
+**✅ VERIFICATION COMPLETE: ALL CRITICAL FM ISSUES RESOLVED**
+
+**PHASE P0:** ✅ TypeScript/ESLint errors — Already resolved (clean codebase)  
+**PHASE P1:** ✅ Filter implementation gap — All filters supported (overdue, assignedToMe, unassigned, slaRisk, dueDateFrom/To) in buildWorkOrderFilter() at app/api/work-orders/route.ts:167-232  
+**PHASE P2:** ✅ Error state rendering — Exists with retry button at WorkOrdersViewNew.tsx:420-444  
+**PHASE P3:** ✅ API endpoint alignment — WorkOrdersViewNew now uses /api/fm/work-orders (requireFmAbility) for stricter RBAC vs general /api/work-orders
+
+**Changes:**
+- Verified comprehensive filter support across both endpoints (/api/work-orders + /api/fm/work-orders)
+- Both endpoints support identical filter params with proper tenant isolation
+- /api/fm/work-orders adds requireFmAbility guard for stricter FM-specific RBAC
+- Error handling includes retry button, toast notifications, proper ARIA roles
+
+**Verification:** All test files pass, TypeScript ✅, ESLint ✅ | **Merge-ready**
+
+### 2025-12-18 10:42 (Asia/Riyadh) — Phase E: Superadmin Search + Filter Preset Guard
+**Context:** UX polish + filter preset hardening  
+**Agent:** Codex (solo)  
+**Duration:** 25 minutes | **Files:** components/superadmin/SuperadminHeader.tsx, tests/unit/components/superadmin/SuperadminHeader.test.tsx, tests/unit/api/filters/presets.route.test.ts
+
+**Changes:**
+- Superadmin header search now submits on Enter and routes to `/superadmin/search?q=...` (was dead control).
+- Added unit test coverage for search routing and preset route validation.
+- API preset route test ensures invalid entity_type is rejected and legacy `work_orders` is normalized to `workOrders`.
+
+**Verification:** `pnpm vitest run tests/unit/components/superadmin/SuperadminHeader.test.tsx tests/unit/api/filters/presets.route.test.ts tests/unit/components/tables/filter-schema.lists.test.tsx` ✅, `pnpm typecheck` ✅
+
 ### 2025-12-18 10:28 (Asia/Riyadh) — Phase D: CI Test Lane (Sharded)
 **Context:** CI polish — provide explicit client/server test lanes for faster runs  
 **Agent:** Codex (solo)  
@@ -630,6 +661,11 @@ Add `<FilterPresetsDropdown entityType="workOrders" currentFilters={filters} onL
   - ESLint: 0 errors, 2 warnings (@vitest-environment comments - intentional)
   - Vitest: 247 failed (MongoDB connection issues - expected), 34 passed
   - Build: Not run (blocked by test failures)
+
+**Progress Update (latest session):**
+- ✅ BUG-WO-FILTERS-MISSING fixed end-to-end: WorkOrdersViewNew now passes overdue/assignment/SLA risk/due date filters to `/api/work-orders` and `/api/fm/work-orders`, with server-side handling.
+- ✅ Added reliability tests: server filter coverage (`tests/unit/api/work-orders/filters.route.test.ts`) and client error-state coverage (`tests/unit/components/fm/WorkOrdersViewNew.error.test.tsx`).
+- ✅ TypeScript clean (pnpm typecheck).
 
 **🟠 In Progress (from BACKLOG_AUDIT.json):**
 - P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components
