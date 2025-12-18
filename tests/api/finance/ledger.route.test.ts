@@ -279,6 +279,41 @@ describe("API /api/finance/ledger", () => {
       expect(data.entries[0]).toHaveProperty("balance");
     });
 
+    it("P91: validates response shape contract (prevents schema drift)", async () => {
+      sessionUser = {
+        id: "user-123",
+        orgId: "org-123",
+        email: "finance@test.com",
+        role: "FINANCE_MANAGER",
+      };
+
+      const req = new NextRequest("http://localhost:3000/api/finance/ledger");
+      const res = await GET(req);
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+
+      // Top-level response shape
+      expect(data).toMatchObject({
+        entries: expect.any(Array),
+        page: expect.any(Number),
+        limit: expect.any(Number),
+        total: expect.any(Number),
+      });
+
+      // Ledger entry shape (if entries exist)
+      if (data.entries.length > 0) {
+        expect(data.entries[0]).toMatchObject({
+          accountId: expect.any(String),
+          journalId: expect.any(String),
+          date: expect.any(String),
+          debit: expect.any(Number),
+          credit: expect.any(Number),
+          balance: expect.any(Number),
+        });
+      }
+    });
+
     it("enforces rate limiting", async () => {
       const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
       vi.mocked(enforceRateLimit).mockReturnValueOnce(

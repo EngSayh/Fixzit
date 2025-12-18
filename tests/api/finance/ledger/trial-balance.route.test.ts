@@ -214,6 +214,42 @@ describe("API /api/finance/ledger/trial-balance", () => {
       expect(data.accounts[0]).toHaveProperty("balance");
     });
 
+    it("P91: validates response shape contract (prevents schema drift)", async () => {
+      sessionUser = {
+        id: "user-123",
+        orgId: "org-123",
+        email: "finance@test.com",
+        role: "FINANCE_MANAGER",
+      };
+
+      const req = new NextRequest("http://localhost:3000/api/finance/ledger/trial-balance");
+      const res = await GET(req);
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+
+      // Top-level response shape
+      expect(data).toMatchObject({
+        accounts: expect.any(Array),
+        totals: expect.objectContaining({
+          totalDebit: expect.any(Number),
+          totalCredit: expect.any(Number),
+        }),
+        metadata: expect.any(Object),
+      });
+
+      // Account entry shape (if accounts exist)
+      if (data.accounts.length > 0) {
+        expect(data.accounts[0]).toMatchObject({
+          accountCode: expect.any(String),
+          accountName: expect.any(String),
+          debit: expect.any(Number),
+          credit: expect.any(Number),
+          balance: expect.any(Number),
+        });
+      }
+    });
+
     it("enforces rate limiting", async () => {
       const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
       vi.mocked(enforceRateLimit).mockReturnValueOnce(
