@@ -245,7 +245,7 @@ export function WorkOrdersView({
   }, [orgId, page, priorityFilter, statusFilter, search]);
 
   const { data, error, isLoading, mutate, isValidating } = useSWR(
-    clientReady ? `/api/work-orders?${query}` : null,
+    clientReady ? `/api/fm/work-orders?${query}` : null,
     fetcher,
     { keepPreviousData: true },
   );

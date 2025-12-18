@@ -844,7 +844,7 @@ Add `<FilterPresetsDropdown entityType="workOrders" currentFilters={filters} onL
 - **BUG-EMPLOYEES-FILTERS-MISSING** — RESOLVED (HR employees API + test)
 - **BUG-INVOICES-FILTERS-MISSING** — RESOLVED (finance invoices API + test)
 - **BUG-AUDITLOGS-FILTERS-MISSING** — RESOLVED (admin audit logs API + UI endpoint + tests)
-- **PENDING** — FM endpoint alignment decision (`/api/work-orders` vs `/api/fm/work-orders`) and remaining list integration tests
+- **PENDING** — FM endpoint alignment decision (`/api/work-orders` vs `/api/fm/work-orders`) and remaining list integration tests (WorkOrdersViewNew + WorkOrdersView now on `/api/fm/work-orders`)
 
 **P3 - LOW (2 issues):**
 - **BUG-TS-VITEST-CONFIG** — vitest.config.ts poolOptions.threads type mismatch (non-blocking) (2h)
