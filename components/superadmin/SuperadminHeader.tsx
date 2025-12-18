@@ -73,11 +73,23 @@ export function SuperadminHeader() {
   const [globalSearch, setGlobalSearch] = useState("");
   const username = session?.user?.username?.trim() || null;
   const displayName = username || t("superadmin.account");
-  const homeLabel = t("header.homeLink", "Go to landing") || "Go to landing";
-  const switchTenantLabel =
-    t("superadmin.switchTenant", "Switch tenant") || "Switch tenant";
-  const currencyLabel =
-    t("currency.selectorLabel", "Currency selector") || "Currency selector";
+  const fallbackIfUntranslated = (value: string | undefined, key: string, fallback: string) =>
+    !value || value === key ? fallback : value;
+  const homeLabel = fallbackIfUntranslated(
+    t("header.homeLink", "Go to landing"),
+    "header.homeLink",
+    "Go to landing",
+  );
+  const switchTenantLabel = fallbackIfUntranslated(
+    t("superadmin.switchTenant", "Switch tenant"),
+    "superadmin.switchTenant",
+    "Switch tenant",
+  );
+  const currencyLabel = fallbackIfUntranslated(
+    t("currency.selectorLabel", "Currency selector"),
+    "currency.selectorLabel",
+    "Currency selector",
+  );
   const navigate = (href: string) => {
     const pushFn = (router as { push?: (path: string) => void })?.push;
     if (typeof pushFn === "function") {

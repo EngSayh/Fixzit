@@ -40,6 +40,7 @@ import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
+import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
 import {
   buildActiveFilterChips,
   serializeFilters,
@@ -221,6 +222,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
   const filters = state.filters as WorkOrderFilters;
+  const currentFilters = state.filters || {};
 
   // Quick filter chips (P0 requirement)
   const quickChips = [
@@ -366,6 +368,11 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
     setFilterDrawerOpen(false);
   };
 
+  const handleLoadPreset = (presetFilters: Record<string, unknown>) => {
+    setDraftFilters(presetFilters as WorkOrderFilters);
+    updateState({ filters: presetFilters });
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* PageHeader (P0) */}
@@ -417,6 +424,11 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
+            <FilterPresetsDropdown
+              entityType="work_orders"
+              currentFilters={currentFilters}
+              onLoadPreset={handleLoadPreset}
+            />
             <Button
               variant="outline"
               size="sm"
