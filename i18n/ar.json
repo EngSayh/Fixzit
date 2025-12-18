@@ -2736,7 +2736,7 @@
     "forgotPassword": "نسيت كلمة المرور؟",
     "signUp": "إنشاء حساب",
     "online": "متصل",
-    "offline": "غير متصل",
+    "offlineStatus": "غير متصل",
     "logout": "تسجيل الخروج",
     "popularPages": "الصفحات الشائعة",
     "totals": "الإجماليات",

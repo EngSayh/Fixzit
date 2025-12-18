@@ -5239,7 +5239,7 @@
   "common.no": "No",
   "common.noNotifications": "No new notifications",
   "common.notAvailable": "Not available",
-  "common.offline": "Offline",
+  "common.offlineStatus": "Offline",
   "common.online": "Online",
   "common.optional": "Optional",
   "common.or": "OR",

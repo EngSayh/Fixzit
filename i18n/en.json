@@ -2736,7 +2736,7 @@
     "forgotPassword": "Forgot Password?",
     "signUp": "Sign Up",
     "online": "Online",
-    "offline": "Offline",
+    "offlineStatus": "Offline",
     "logout": "Logout",
     "popularPages": "Popular Pages",
     "totals": "Totals",

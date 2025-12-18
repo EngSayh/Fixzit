@@ -38,11 +38,12 @@ function sanitize(text: string) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+const MIN_IDENTIFIER_LEN = 3; // Prevent broad scans for 1-2 char inputs
 const MAX_IDENTIFIER_LEN = 256;
 
 const searchParamsSchema = z.object({
-  identifier: z.string().min(1).max(MAX_IDENTIFIER_LEN).optional(),
-  corporateId: z.string().min(1).max(MAX_IDENTIFIER_LEN).optional(),
+  identifier: z.string().min(MIN_IDENTIFIER_LEN).max(MAX_IDENTIFIER_LEN).optional(),
+  corporateId: z.string().min(MIN_IDENTIFIER_LEN).max(MAX_IDENTIFIER_LEN).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(10),
 }).refine(data => data.identifier || data.corporateId, {
   message: "Either identifier or corporateId is required",

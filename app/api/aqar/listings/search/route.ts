@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Calculate facets - $near cannot be used in $match within $facet
-    // Reuse the same query without geo filter
+    // Reuse the same query without geo filter (AUDIT-2025-12-18: Added maxTimeMS for safety)
     const facets = await AqarListing.aggregate([
       { $match: countQuery },
       {
@@ -217,9 +217,9 @@ export async function GET(request: NextRequest) {
           ],
         },
       },
-    ]);
+    ], { maxTimeMS: 5_000 });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       listings,
       pagination: {
         page,
@@ -229,6 +229,12 @@ export async function GET(request: NextRequest) {
       },
       facets: facets[0] || {},
     });
+    // AUDIT-2025-12-18: Added Cache-Control for public search results
+    response.headers.set(
+      "Cache-Control",
+      "public, max-age=60, stale-while-revalidate=120"
+    );
+    return response;
   } catch (error) {
     logger.error("Error searching listings:", error);
     return NextResponse.json(

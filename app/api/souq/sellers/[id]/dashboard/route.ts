@@ -132,11 +132,12 @@ export async function GET(
         orgId: seller.orgId,
         createdAt: { $gte: thirtyDaysAgo },
       }),
+      // AUDIT-2025-12-18: Added maxTimeMS to aggregates
       SouqOrder.aggregate([
         { $unwind: "$items" },
         { $match: { "items.sellerId": seller._id, orgId: seller.orgId } },
         { $group: { _id: null, total: { $sum: "$items.subtotal" } } },
-      ]),
+      ], { maxTimeMS: 10_000 }),
       SouqOrder.aggregate([
         { $unwind: "$items" },
         {
@@ -147,7 +148,7 @@ export async function GET(
           },
         },
         { $group: { _id: null, total: { $sum: "$items.subtotal" } } },
-      ]),
+      ], { maxTimeMS: 10_000 }),
       SouqReview.aggregate([
         {
           $lookup: {
@@ -169,7 +170,7 @@ export async function GET(
         { $unwind: "$listings" },
         { $match: { "listings.sellerId": seller._id } },
         { $group: { _id: null, avgRating: { $avg: "$rating" } } },
-      ]),
+      ], { maxTimeMS: 10_000 }),
     ]);
 
     // Extract distinct productIds before the next two queries to avoid redundant calls
