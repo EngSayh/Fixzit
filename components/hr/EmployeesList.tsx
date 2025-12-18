@@ -35,6 +35,7 @@ import {
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
+import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -316,9 +317,20 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
     setFilterDrawerOpen(false);
   };
 
-  const handleLoadPreset = (presetFilters: Record<string, unknown>) => {
-    setDraftFilters(presetFilters as EmployeeFilters);
-    updateState({ filters: presetFilters });
+  const handleLoadPreset = (
+    presetFilters: Record<string, unknown>,
+    _sort?: { field: string; direction: "asc" | "desc" },
+    search?: string
+  ) => {
+    const normalizedFilters = pickSchemaFilters<EmployeeFilters>(
+      presetFilters,
+      EMPLOYEE_FILTER_SCHEMA
+    );
+    setDraftFilters(normalizedFilters);
+    updateState({
+      filters: normalizedFilters,
+      q: typeof search === "string" ? search : "",
+    });
   };
 
   return (
@@ -374,7 +386,17 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
             <TableDensityToggle density={density} onChange={setDensity} />
             <FilterPresetsDropdown
               entityType="employees"
-              currentFilters={currentFilters}
+              currentFilters={pickSchemaFilters<EmployeeFilters>(
+                currentFilters,
+                EMPLOYEE_FILTER_SCHEMA
+              )}
+              currentSearch={state.q}
+              normalizeFilters={(filters) =>
+                pickSchemaFilters<EmployeeFilters>(
+                  filters,
+                  EMPLOYEE_FILTER_SCHEMA
+                )
+              }
               onLoadPreset={handleLoadPreset}
             />
             <Button

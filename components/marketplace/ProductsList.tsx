@@ -34,6 +34,7 @@ import {
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
+import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 import { useTranslation } from "@/contexts/TranslationContext";
@@ -384,9 +385,20 @@ export function ProductsList({ orgId }: ProductsListProps) {
     setFilterDrawerOpen(false);
   };
 
-  const handleLoadPreset = (presetFilters: Record<string, unknown>) => {
-    setDraftFilters(presetFilters as ProductFilters);
-    updateState({ filters: presetFilters });
+  const handleLoadPreset = (
+    presetFilters: Record<string, unknown>,
+    _sort?: { field: string; direction: "asc" | "desc" },
+    search?: string
+  ) => {
+    const normalizedFilters = pickSchemaFilters<ProductFilters>(
+      presetFilters,
+      PRODUCT_FILTER_SCHEMA
+    );
+    setDraftFilters(normalizedFilters);
+    updateState({
+      filters: normalizedFilters,
+      q: typeof search === "string" ? search : "",
+    });
   };
 
   return (
@@ -466,7 +478,17 @@ export function ProductsList({ orgId }: ProductsListProps) {
             <TableDensityToggle density={density} onChange={setDensity} />
             <FilterPresetsDropdown
               entityType="products"
-              currentFilters={currentFilters}
+              currentFilters={pickSchemaFilters<ProductFilters>(
+                currentFilters,
+                PRODUCT_FILTER_SCHEMA
+              )}
+              currentSearch={state.q}
+              normalizeFilters={(filters) =>
+                pickSchemaFilters<ProductFilters>(
+                  filters,
+                  PRODUCT_FILTER_SCHEMA
+                )
+              }
               onLoadPreset={handleLoadPreset}
             />
             <Button

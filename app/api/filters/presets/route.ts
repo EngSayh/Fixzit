@@ -17,7 +17,6 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 import {
-  FILTER_ENTITY_TYPES,
   normalizeFilterEntityType,
   entityTypeQueryValues,
 } from "@/lib/filters/entities";

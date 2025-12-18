@@ -37,6 +37,7 @@ import {
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
+import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 import { useTranslation } from "@/contexts/TranslationContext";
@@ -342,9 +343,20 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
     setFilterDrawerOpen(false);
   };
 
-  const handleLoadPreset = (presetFilters: Record<string, unknown>) => {
-    setDraftFilters(presetFilters as InvoiceFilters);
-    updateState({ filters: presetFilters });
+  const handleLoadPreset = (
+    presetFilters: Record<string, unknown>,
+    _sort?: { field: string; direction: "asc" | "desc" },
+    search?: string
+  ) => {
+    const normalizedFilters = pickSchemaFilters<InvoiceFilters>(
+      presetFilters,
+      INVOICE_FILTER_SCHEMA
+    );
+    setDraftFilters(normalizedFilters);
+    updateState({
+      filters: normalizedFilters,
+      q: typeof search === "string" ? search : "",
+    });
   };
 
   return (
@@ -415,7 +427,17 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
             <TableDensityToggle density={density} onChange={setDensity} />
             <FilterPresetsDropdown
               entityType="invoices"
-              currentFilters={currentFilters}
+              currentFilters={pickSchemaFilters<InvoiceFilters>(
+                currentFilters,
+                INVOICE_FILTER_SCHEMA
+              )}
+              currentSearch={state.q}
+              normalizeFilters={(filters) =>
+                pickSchemaFilters<InvoiceFilters>(
+                  filters,
+                  INVOICE_FILTER_SCHEMA
+                )
+              }
               onLoadPreset={handleLoadPreset}
             />
             <Button
