@@ -7,7 +7,6 @@
  * @module components/superadmin/SuperadminHeader
  */
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/useI18n";
 import { LogOut, Settings, User, Search, Sun, Moon, Bell, Command } from "lucide-react";

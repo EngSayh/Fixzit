@@ -46,7 +46,7 @@ type BrandingUpdatePayload = z.infer<typeof BrandingUpdateSchema>;
  * Retrieve current platform branding settings
  */
 export async function GET(request: NextRequest) {
-  const rateLimitResponse = enforceRateLimit(request, {
+  const rateLimitResponse = await enforceRateLimit(request, {
     requests: 60,
     windowMs: 60_000,
     keyPrefix: "superadmin:branding:get",
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
  * Update platform branding settings (superadmin only)
  */
 export async function PATCH(request: NextRequest) {
-  const rateLimitResponse = enforceRateLimit(request, {
+  const rateLimitResponse = await enforceRateLimit(request, {
     requests: 10,
     windowMs: 60_000,
     keyPrefix: "superadmin:branding:patch",
