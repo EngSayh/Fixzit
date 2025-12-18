@@ -1,5 +1,33 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-19 01:30 (Asia/Riyadh) — Phase P60: i18n Hygiene + API Hardening
+**Context:** feat/mobile-cardlist-phase1 | 1d06cd73c | Agent: GitHub Copilot (VS Code Agent)
+**Duration:** 10 minutes | **Commits:** Parallel agent committed with perf changes
+
+**✅ PHASE P60 COMPLETE: I18N HYGIENE + API HARDENING**
+
+**P60.1: i18n Key Consolidation (Duplicate Removal)**
+- Renamed duplicate `common.offline` string key to `common.offlineStatus`
+- Kept `common.offline.backOnline` and `common.offline.offline` object keys intact
+- Updated SupportPopup.tsx to reference `common.offlineStatus`
+- Verified: i18n/en.json L2739, i18n/ar.json L2739
+
+**P60.2: Support Org Search Min Length**
+- Added MIN_IDENTIFIER_LEN = 3 constant
+- Applied to Zod schema: `.min(MIN_IDENTIFIER_LEN)` for identifier + corporateId
+- Prevents broad 1-2 character scans that could cause index inefficiency
+- Location: app/api/support/organizations/search/route.ts L41-46
+
+**P60.3: Verification**
+- TypeScript: 0 errors
+- ESLint: 0 errors
+- Pre-commit/pre-push hooks: All passing
+- Git push successful to origin/feat/mobile-cardlist-phase1
+
+**Note:** Parallel agent committed 1d06cd73c with aggregate maxTimeMS + cache headers.
+
+---
+
 ### 2025-12-18 21:30 (Asia/Riyadh) — Phase 7: Production Readiness Verification
 **Context:** feat/mobile-cardlist-phase1 | 7f5ae4a77 | Agent: GitHub Copilot (VS Code Agent)
 **Duration:** 30 minutes | **Commits:** 57f1677b6, ab5b57f5d, 33b509070, 7f5ae4a77
