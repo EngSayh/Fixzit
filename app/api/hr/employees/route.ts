@@ -31,6 +31,7 @@ import { logger } from "@/lib/logger";
 import { EmployeeService } from "@/server/services/hr/employee.service";
 import { hasAllowedRole } from "@/lib/auth/role-guards";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import type { EmployeeDoc } from "@/server/models/hr.models";
 
 // Define session user type with subRole support
 interface SessionUser {
@@ -103,6 +104,24 @@ export async function GET(req: NextRequest) {
       includePiiRequested &&
       hasAllowedRole(user.role, user.subRole, piiAllowedRoles);
     
+    const allowedEmploymentTypes = new Set<EmployeeDoc["employmentType"]>([
+      "FULL_TIME",
+      "PART_TIME",
+      "CONTRACTOR",
+      "TEMPORARY",
+    ]);
+
+    const toEmploymentType = (
+      value: string | null,
+    ): EmployeeDoc["employmentType"] | undefined => {
+      if (!value) return undefined;
+      return allowedEmploymentTypes.has(
+        value as EmployeeDoc["employmentType"],
+      )
+        ? (value as EmployeeDoc["employmentType"])
+        : undefined;
+    };
+
     const {
       items,
       total,
@@ -122,7 +141,7 @@ export async function GET(req: NextRequest) {
             ? (status as "ACTIVE" | "INACTIVE" | "ON_LEAVE" | "TERMINATED")
             : undefined;
         })(),
-        employmentType: employmentType || undefined,
+        employmentType: toEmploymentType(employmentType),
         departmentId: department || undefined,
         text: search || undefined,
         hireDateFrom: (() => {
