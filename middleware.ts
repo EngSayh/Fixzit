@@ -5,6 +5,7 @@ import { isOriginAllowed } from '@/lib/security/cors-allowlist';
 import { logSecurityEvent } from '@/lib/monitoring/security-events';
 import { getClientIP } from '@/server/security/headers';
 import { getSuperadminSession, isIpAllowed as isSuperadminIpAllowed } from '@/lib/superadmin/auth';
+import { getOrGenerateRequestId } from '@/lib/observability/correlation-id';
 import {
   AUTH_ROUTES,
   MARKETING_ROUTES,
@@ -263,9 +264,15 @@ export function sanitizeIncomingHeaders(request: NextRequest): Headers {
 }
 
 export async function middleware(request: NextRequest) {
+  // OBSERVABILITY: Generate or extract correlation ID for request tracing
+  const requestId = getOrGenerateRequestId(request);
+  
   // SECURITY: Strip any incoming x-user/x-org headers to prevent spoofing
   // These headers are set by middleware ONLY after validating the session
   const sanitizedHeaders = sanitizeIncomingHeaders(request);
+  
+  // Add correlation ID to headers for downstream services
+  sanitizedHeaders.set('x-request-id', requestId);
 
   // Use a request clone with sanitized headers for all downstream logic
   const sanitizedRequest = new NextRequest(request, { headers: sanitizedHeaders });

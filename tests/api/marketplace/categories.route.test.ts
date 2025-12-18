@@ -36,14 +36,17 @@ vi.mock("@/lib/marketplace/serializers", () => ({
   serializeCategory: vi.fn((cat) => cat),
 }));
 
-import { resolveMarketplaceContext } from "@/lib/marketplace/context";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import Category from "@/server/models/marketplace/Category";
-import { GET } from "@/app/api/marketplace/categories/route";
+
+const loadHandler = async () => {
+  const { GET } = await import("@/app/api/marketplace/categories/route");
+  return GET;
+};
 
 describe("API /api/marketplace/categories", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
     // Reset environment
     process.env.MARKETPLACE_ENABLED = "true";
   });
@@ -51,6 +54,7 @@ describe("API /api/marketplace/categories", () => {
   describe("GET - List Categories", () => {
     it("returns error when marketplace is disabled", async () => {
       process.env.MARKETPLACE_ENABLED = "false";
+      const GET = await loadHandler();
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/categories");
       const res = await GET(req);
@@ -64,6 +68,7 @@ describe("API /api/marketplace/categories", () => {
         status: 429,
         json: async () => ({ error: "Rate limit exceeded" }),
       } as never);
+      const GET = await loadHandler();
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/categories");
       const res = await GET(req);
@@ -73,6 +78,7 @@ describe("API /api/marketplace/categories", () => {
 
     it("returns categories when marketplace is enabled", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
+      const GET = await loadHandler();
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/categories");
       const res = await GET(req);
@@ -83,6 +89,7 @@ describe("API /api/marketplace/categories", () => {
 
     it("returns list of categories successfully", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
+      const GET = await loadHandler();
       
       const req = new NextRequest("http://localhost:3000/api/marketplace/categories");
       const res = await GET(req);
@@ -93,6 +100,7 @@ describe("API /api/marketplace/categories", () => {
 
     it("uses rate limiting middleware", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
+      const GET = await loadHandler();
       
       const req = new NextRequest("http://localhost:3000/api/marketplace/categories");
       await GET(req);

@@ -32,6 +32,8 @@ type ExtendedUser = {
   isSuperAdmin?: boolean;
   permissions?: string[];
   roles?: string[];
+  language?: string;
+  currency?: string;
 };
 type SessionPlan = SubscriptionPlan | 'STARTER' | 'PROFESSIONAL';
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -764,6 +766,8 @@ export const authConfig = {
           isSuperAdmin?: boolean; 
           permissions?: string[];
           roles?: string[];
+          language?: string;
+          currency?: string;
         };
         const dbUserMeta = dbUser ?? {};
         userWithMeta.role = (dbUserMeta.professional?.role ||
@@ -775,6 +779,9 @@ export const authConfig = {
         userWithMeta.isSuperAdmin = Boolean(dbUserMeta.isSuperAdmin);
         userWithMeta.permissions = dbUserMeta.permissions || [];
         userWithMeta.roles = dbUserMeta.roles || [];
+        // Preferences: language + currency
+        userWithMeta.language = dbUserMeta.preferences?.language || 'ar';
+        userWithMeta.currency = dbUserMeta.preferences?.currency || 'SAR';
         
         logger.info('[NextAuth] OAuth sign-in allowed', { 
           email: _user.email.substring(0, 3) + '***',
@@ -819,6 +826,13 @@ export const authConfig = {
       if (token?.roles) {
         (session.user as ExtendedUser).roles = token.roles as string[];
       }
+      // Preferences: language + currency
+      if (token?.language) {
+        (session.user as ExtendedUser).language = token.language as string;
+      }
+      if (token?.currency) {
+        (session.user as ExtendedUser).currency = token.currency as string;
+      }
       return session;
     },
     async jwt({ token, user, account }) {
@@ -830,6 +844,9 @@ export const authConfig = {
         // 🔒 STRICT v4.1: Store subRole in token
         token.subRole = (user as ExtendedUser).subRole || null;
         token.orgId = (user as ExtendedUser).orgId || null;
+        // Preferences: language + currency
+        token.language = (user as ExtendedUser).language || 'ar';
+        token.currency = (user as ExtendedUser).currency || 'SAR';
 
         // Handle rememberMe for credentials provider
         if (account?.provider === 'credentials' && (user as ExtendedUser).rememberMe) {

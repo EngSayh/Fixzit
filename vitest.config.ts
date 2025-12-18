@@ -44,6 +44,10 @@ const sharedViteConfig = {
       "next/server": "next/server.js",
       // Stub server-only queues dependency for tests (real queue worker runs in Node only)
       bullmq: path.resolve(__dirname, "lib/stubs/bullmq.ts"),
+      "@/lib/security/validate-public-https-url": path.resolve(
+        __dirname,
+        "lib/security/validate-public-https-url.ts",
+      ),
     },
   },
 };

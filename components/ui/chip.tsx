@@ -31,6 +31,8 @@ export const Chip = React.forwardRef<HTMLButtonElement, ChipProps>(
     },
     ref,
   ) => {
+    const inferredLabel =
+      typeof children === "string" ? children : undefined;
     const base =
       "inline-flex items-center gap-2 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
@@ -60,6 +62,8 @@ export const Chip = React.forwardRef<HTMLButtonElement, ChipProps>(
           className,
         )}
         disabled={disabled}
+        aria-pressed={selected}
+        aria-label={props["aria-label"] || inferredLabel}
         {...props}
       >
         <span className="inline-flex items-center">{children}</span>

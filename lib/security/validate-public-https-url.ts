@@ -1,12 +1,8 @@
-import { promises as dns } from "node:dns";
-import { isIP } from "node:net";
-
 /**
- * SSRF Protection: Validate Public HTTPS URLs (async, DNS-aware)
+ * SSRF Protection: Validate Public HTTPS URLs (synchronous)
  *
- * Enforces HTTPS-only and blocks localhost, private/link-local IPs (v4+v6),
- * internal TLDs, and direct IP addressing. Performs DNS resolution to ensure
- * resolved targets are public.
+ * Enforces HTTPS-only and blocks localhost, private/link-local IPs,
+ * internal TLDs, and direct IP addressing.
  */
 export class URLValidationError extends Error {
   constructor(message: string) {
@@ -20,15 +16,24 @@ const PRIVATE_IP_MESSAGE = "Private IP address URLs are not allowed";
 const HTTPS_MESSAGE = "Only HTTPS URLs are allowed";
 const INTERNAL_TLD_MESSAGE =
   "Internal TLD (.local, .internal, .test) URLs are not allowed";
-const DIRECT_IP_MESSAGE = "Private IP address URLs are not allowed";
+const DIRECT_IP_MESSAGE = "Direct IP addresses are discouraged";
 const INVALID_MESSAGE = "Invalid URL format";
-const DNS_FAILURE_MESSAGE = "DNS resolution failed";
 
-const PRIVATE_IPV4_RANGES = [
+const PRIVATE_RANGES = [
   /^10\.(\d{1,3}\.){2}\d{1,3}$/, // 10.0.0.0/8
   /^192\.168\.(\d{1,3}\.)\d{1,3}$/, // 192.168.0.0/16
   /^172\.(1[6-9]|2\d|3[01])\.(\d{1,3}\.)\d{1,3}$/, // 172.16.0.0/12
 ];
+
+function isIPv4(hostname: string): boolean {
+  const ipv4 = hostname.match(
+    /^(?<a>\d{1,3})\.(?<b>\d{1,3})\.(?<c>\d{1,3})\.(?<d>\d{1,3})$/,
+  );
+  if (!ipv4?.groups) return false;
+  return (["a", "b", "c", "d"] as const).every(
+    (oct) => Number(ipv4.groups![oct]) <= 255,
+  );
+}
 
 function isLocalhost(hostname: string): boolean {
   const normalized = hostname.toLowerCase();
@@ -43,77 +48,15 @@ function isLocalhost(hostname: string): boolean {
   );
 }
 
-function isPrivateIPv4(hostname: string): boolean {
-  return PRIVATE_IPV4_RANGES.some((pattern) => pattern.test(hostname));
+function isPrivateIp(hostname: string): boolean {
+  return PRIVATE_RANGES.some((pattern) => pattern.test(hostname));
 }
 
 function isLinkLocal(hostname: string): boolean {
   return hostname.startsWith("169.254.");
 }
 
-function isInternalTld(host: string): boolean {
-  return (
-    host.endsWith(".local") ||
-    host.endsWith(".internal") ||
-    host.endsWith(".test")
-  );
-}
-
-function isDirectIp(host: string): boolean {
-  return isIP(host) !== 0;
-}
-
-function isPrivateIPv6(address: string): boolean {
-  // RFC4193 (fc00::/7) unique local + fe80::/10 link-local
-  const normalized = address.toLowerCase();
-  return (
-    normalized.startsWith("fc") ||
-    normalized.startsWith("fd") ||
-    normalized.startsWith("fe80") ||
-    normalized.startsWith("::1")
-  );
-}
-
-async function resolveHostAddresses(host: string): Promise<string[]> {
-  const records: string[] = [];
-  try {
-    const [aRecords, aaaaRecords] = await Promise.allSettled([
-      dns.lookup(host, { all: true, family: 4 }),
-      dns.lookup(host, { all: true, family: 6 }),
-    ]);
-    if (aRecords.status === "fulfilled") {
-      records.push(...aRecords.value.map((r) => r.address));
-    }
-    if (aaaaRecords.status === "fulfilled") {
-      records.push(...aaaaRecords.value.map((r) => r.address));
-    }
-  } catch (err) {
-    throw new URLValidationError(
-      `${DNS_FAILURE_MESSAGE}: ${(err as Error)?.message ?? "unknown"}`,
-    );
-  }
-  if (records.length === 0) {
-    throw new URLValidationError(DNS_FAILURE_MESSAGE);
-  }
-  return records;
-}
-
-function assertPublicAddresses(addresses: string[]) {
-  for (const addr of addresses) {
-    const ipType = isIP(addr);
-    if (ipType === 4) {
-      if (isLocalhost(addr) || isPrivateIPv4(addr) || isLinkLocal(addr)) {
-        throw new URLValidationError(PRIVATE_IP_MESSAGE);
-      }
-    } else if (ipType === 6) {
-      if (isPrivateIPv6(addr)) {
-        throw new URLValidationError(PRIVATE_IP_MESSAGE);
-      }
-    }
-  }
-}
-
-export async function validatePublicHttpsUrl(urlString: string): Promise<URL> {
+export function validatePublicHttpsUrl(urlString: string): URL {
   let parsed: URL;
   try {
     parsed = new URL(urlString);
@@ -131,31 +74,20 @@ export async function validatePublicHttpsUrl(urlString: string): Promise<URL> {
     throw new URLValidationError(LOCALHOST_MESSAGES);
   }
 
-  if (isInternalTld(host)) {
-    throw new URLValidationError(INTERNAL_TLD_MESSAGE);
-  }
-
-  const directIp = isDirectIp(host);
-  if (directIp) {
-    // Forbid all direct IP usage (private and public) to prevent SSRF bypasses.
+  if (isPrivateIp(host) || isLinkLocal(host)) {
     throw new URLValidationError(PRIVATE_IP_MESSAGE);
   }
 
-  let addresses: string[] = [];
-  try {
-    addresses = await resolveHostAddresses(host);
-  } catch (err) {
-    // In non-production (including Vitest), tolerate DNS failures as long as the URL passed format checks.
-    const isTestEnv =
-      process.env.NODE_ENV !== "production" || Boolean(process.env.VITEST_WORKER_ID);
-    if (isTestEnv) {
-      return parsed;
-    }
-    throw err;
+  if (
+    host.endsWith(".local") ||
+    host.endsWith(".internal") ||
+    host.endsWith(".test")
+  ) {
+    throw new URLValidationError(INTERNAL_TLD_MESSAGE);
   }
 
-  if (addresses.length > 0) {
-    assertPublicAddresses(addresses);
+  if (isIPv4(host)) {
+    throw new URLValidationError(DIRECT_IP_MESSAGE);
   }
 
   return parsed;
@@ -163,7 +95,7 @@ export async function validatePublicHttpsUrl(urlString: string): Promise<URL> {
 
 export async function isValidPublicHttpsUrl(urlString: string): Promise<boolean> {
   try {
-    await validatePublicHttpsUrl(urlString);
+    validatePublicHttpsUrl(urlString);
     return true;
   } catch {
     return false;

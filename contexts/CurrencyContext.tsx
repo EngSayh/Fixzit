@@ -158,6 +158,15 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
           detail: { currency },
         }),
       );
+      
+      // Persist to user preferences in database
+      fetch("/api/user/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currency }),
+      }).catch((error) => {
+        logger.warn("Could not persist currency to database", { error });
+      });
     } catch (error) {
       logger.warn("Could not persist currency preference", { error });
     }

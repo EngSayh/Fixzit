@@ -1,5 +1,46 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-18 08:42 (Asia/Riyadh) — Phase 1: Security & Infrastructure Consolidation
+**Context:** feat/mobile-cardlist-phase1 | Commit: f5160e50a | Systematic 100% execution  
+**Agent:** GitHub Copilot (10-phase action plan)  
+**Duration:** 15 minutes | **Files:** 3 changed (action plan + aggregate test + ssrf)
+
+**✅ PHASE 1 COMPLETE:**
+
+**1.1 SSRF Validator v2.0** — ALREADY DONE ✅
+- Async DNS resolution with node:dns implemented
+- IPv4 + IPv6 private range detection working
+- Localhost, link-local (169.254.x.x), internal TLD (.local/.internal/.test) blocking
+- Test suite: 15/15 passing (tests/server/lib/validate-public-https-url.test.ts)
+- Used in: SMS webhook validation, admin settings routes
+- **Status:** Production-ready, no action needed
+
+**1.2 Aggregate Helper Consolidation** — COMPLETE ✅
+- **Problem:** Two paths importing aggregate helper (lib/db vs server/db)
+- **Solution:** Updated last import (tests/unit/server) to use lib/db canonical path
+- **server/db/aggregateWithTenantScope.ts:** Now just re-exports from lib/db (marked DEPRECATED)
+- **All consumers:** Using lib/db/aggregateWithTenantScope
+- **Tests:** 6/6 passing (aggregate helper unit tests)
+
+**1.3 Environment Validation** — ALREADY EXISTS ✅
+- **scripts/ci/check-critical-env.ts:** Validates Redis, Tap Payments keys, webhook secrets
+- **instrumentation-node.ts:** Production startup guards (MongoDB URI, OTP bypass flags)
+- **Behavior:** Blocks startup in production, warns in preview
+- **Coverage:** All critical env vars validated
+
+**📋 ACTION PLAN CREATED:**
+- **File:** docs/ACTION_PLAN_2025-12-18.md
+- **Strategy:** 10 phases (P0 → P4), 69h estimated, PR per phase
+- **Phases:** Security → Observability → Testing → Data Tables → Performance → UX → API Coverage → Marketplace → I18N → Optional
+
+**✅ VERIFICATION:**
+- `pnpm typecheck` → 0 errors
+- `pnpm vitest run tests/server/lib/validate-public-https-url.test.ts` → 15/15 passing
+- `pnpm vitest run tests/unit/lib/db/aggregateWithTenantScope.test.ts` → 6/6 passing
+- Import consolidation complete (0 old imports remaining)
+
+**🟢 NEXT: Phase 2 — Observability** (Sentry initialization, correlation IDs, metrics)
+
 ### 2025-12-18 08:31 (Asia/Riyadh) — FIX-001 Re-application + Parallel Agent Type Cleanup
 **Context:** feat/superadmin-branding | Commits: 85d47292a, 26efcaaa0 | 100% execution mode  
 **Agent:** GitHub Copilot (coordinating with parallel agent)  

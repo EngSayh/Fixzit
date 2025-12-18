@@ -17,7 +17,10 @@ const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-const COMPONENTS_PATTERN = 'components/**/*List*.tsx';
+const COMPONENT_PATTERNS = [
+  'components/**/*List*.tsx',
+  'components/**/WorkOrdersView*.tsx',
+];
 const ERRORS = [];
 
 /**
@@ -127,10 +130,12 @@ function validateComponent(filePath) {
 function main() {
   console.log('🔍 Validating Filter Schemas...\n');
 
-  const files = glob.sync(COMPONENTS_PATTERN, {
-    cwd: process.cwd(),
-    absolute: true
-  });
+  const files = COMPONENT_PATTERNS.flatMap((pattern) =>
+    glob.sync(pattern, {
+      cwd: process.cwd(),
+      absolute: true,
+    }),
+  );
 
   console.log(`Found ${files.length} list components\n`);
 

@@ -519,6 +519,7 @@ const shouldUseInMemoryMongo = forceMongo || !isJsdomEnv || !skipGlobalMongo;
 let mongoServer: MongoMemoryServer | undefined;
 let mongoUriRef: string | undefined;
 let shuttingDownMongo = false;
+let reconnectListenerAttached = false;
 const mongoStartAttempts = Number(process.env.MONGO_MEMORY_ATTEMPTS || "3");
 
 async function getAvailablePort(): Promise<number> {
@@ -595,28 +596,37 @@ beforeAll(async () => {
     process.env.MONGODB_DB = "fixzit-test";
     // Ensure previous connections are closed before connecting
     if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
+      await realDisconnect();
     }
     await mongoose.connect(mongoUri, {
       autoCreate: true,
       autoIndex: true,
     });
+    // Avoid MaxListeners warnings when multiple suites touch the shared connection.
+    try {
+      mongoose.connection.setMaxListeners(0);
+    } catch {
+      // non-fatal
+    }
 
     // Reconnect guard: if the in-memory server drops the connection mid-suite,
     // attempt a single reconnect to keep long-running server tests stable.
-    mongoose.connection.on("disconnected", async () => {
-      if (shuttingDownMongo) return;
-      if (!mongoUriRef) return;
-      try {
-        await mongoose.connect(mongoUriRef, {
-          autoCreate: true,
-          autoIndex: true,
-        });
-        logger.debug("[MongoMemory] Reconnected after disconnect");
-      } catch (err) {
-        logger.error("[MongoMemory] Reconnect failed after disconnect", err as Error);
-      }
-    });
+    if (!reconnectListenerAttached) {
+      reconnectListenerAttached = true;
+      mongoose.connection.on("disconnected", async () => {
+        if (shuttingDownMongo) return;
+        if (!mongoUriRef) return;
+        try {
+          await mongoose.connect(mongoUriRef, {
+            autoCreate: true,
+            autoIndex: true,
+          });
+          logger.debug("[MongoMemory] Reconnected after disconnect");
+        } catch (err) {
+          logger.error("[MongoMemory] Reconnect failed after disconnect", err as Error);
+        }
+      });
+    }
 
     logger.debug("✅ MongoDB Memory Server started:", { mongoUri });
   } catch (error) {
@@ -674,7 +684,7 @@ afterAll(async () => {
 
     // Close mongoose connection
     if (mongoose.connection && mongoose.connection.readyState !== 0) {
-      await mongoose.connection.close(true); // Force close
+      await realClose(true); // Force close
     }
 
     // Stop MongoDB Memory Server
