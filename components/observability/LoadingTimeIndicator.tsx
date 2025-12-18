@@ -69,8 +69,9 @@ export function LoadingTimeIndicator({
             );
 
             // Log to Sentry
-            if (typeof window !== "undefined" && (window as any).Sentry) {
-              (window as any).Sentry.captureMessage("Slow query detected", {
+            if (typeof window !== "undefined" && (window as typeof window & { Sentry?: unknown }).Sentry) {
+              const sentry = (window as typeof window & { Sentry?: { captureMessage: (msg: string, opts: unknown) => void } }).Sentry;
+              sentry?.captureMessage("Slow query detected", {
                 level: "warning",
                 extra: {
                   duration: elapsed,
@@ -94,8 +95,9 @@ export function LoadingTimeIndicator({
       if (startTimeRef.current) {
         const finalDuration = Date.now() - startTimeRef.current;
 
-        // Log to console in development
+        // Log to console in development (intentional for debugging)
         if (process.env.NODE_ENV === "development") {
+          // eslint-disable-next-line no-console
           console.log(`[LoadingTime] ${label}: ${finalDuration}ms`);
         }
 

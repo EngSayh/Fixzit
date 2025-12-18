@@ -60,8 +60,9 @@ export function useRateLimitMonitor() {
       );
 
       // Log to Sentry
-      if (typeof window !== "undefined" && (window as any).Sentry) {
-        (window as any).Sentry.captureMessage("Rate limit warning", {
+      if (typeof window !== "undefined" && (window as typeof window & { Sentry?: unknown }).Sentry) {
+        const sentry = (window as typeof window & { Sentry?: { captureMessage: (msg: string, opts: unknown) => void } }).Sentry;
+        sentry?.captureMessage("Rate limit warning", {
           level: "warning",
           extra: {
             limit,
@@ -89,8 +90,9 @@ export function useRateLimitMonitor() {
       );
 
       // Log to Sentry
-      if (typeof window !== "undefined" && (window as any).Sentry) {
-        (window as any).Sentry.captureMessage("Rate limit critical", {
+      if (typeof window !== "undefined" && (window as typeof window & { Sentry?: unknown }).Sentry) {
+        const sentry = (window as typeof window & { Sentry?: { captureMessage: (msg: string, opts: unknown) => void } }).Sentry;
+        sentry?.captureMessage("Rate limit critical", {
           level: "error",
           extra: {
             limit,
