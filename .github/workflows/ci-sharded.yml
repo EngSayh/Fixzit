@@ -1,0 +1,195 @@
+---
+# Fixzit CI - Sharded Test Execution (Default Baseline)
+# Tests are split into shards to reduce total runtime and improve reliability
+# Each shard runs with limited concurrency to avoid MongoMemory port conflicts
+
+name: CI - Sharded Tests
+
+on:
+  push:
+    branches: [main, develop, "feat/**"]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Shard 1: Service Layer Tests
+  test-services:
+    runs-on: ubuntu-latest
+    env:
+      CI: "true"
+      NODE_ENV: "test"
+      MONGODB_MEMORY_SERVER_OPTS: "binary:/tmp/mongodb-memory-bin,downloadDir:/tmp/mongodb-download"
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 💾 Cache MongoDB Memory Server Binary
+        uses: actions/cache@v4
+        with:
+          path: /tmp/mongodb-memory-bin
+          key: mongodb-memory-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            mongodb-memory-${{ runner.os }}-
+
+      - name: 🧪 Run Service Tests
+        run: pnpm vitest run tests/services --reporter=dot --maxWorkers=1
+        timeout-minutes: 10
+
+  # Shard 2: API Route Tests
+  test-api:
+    runs-on: ubuntu-latest
+    env:
+      CI: "true"
+      NODE_ENV: "test"
+      MONGODB_MEMORY_SERVER_OPTS: "binary:/tmp/mongodb-memory-bin,downloadDir:/tmp/mongodb-download"
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 💾 Cache MongoDB Memory Server Binary
+        uses: actions/cache@v4
+        with:
+          path: /tmp/mongodb-memory-bin
+          key: mongodb-memory-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            mongodb-memory-${{ runner.os }}-
+
+      - name: 🧪 Run API Tests
+        run: pnpm vitest run tests/api --reporter=dot --maxWorkers=1
+        timeout-minutes: 15
+
+  # Shard 3: Unit Tests
+  test-unit:
+    runs-on: ubuntu-latest
+    env:
+      CI: "true"
+      NODE_ENV: "test"
+      MONGODB_MEMORY_SERVER_OPTS: "binary:/tmp/mongodb-memory-bin,downloadDir:/tmp/mongodb-download"
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 💾 Cache MongoDB Memory Server Binary
+        uses: actions/cache@v4
+        with:
+          path: /tmp/mongodb-memory-bin
+          key: mongodb-memory-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            mongodb-memory-${{ runner.os }}-
+
+      - name: 🧪 Run Unit Tests
+        run: pnpm vitest run tests/unit --reporter=dot --maxWorkers=1
+        timeout-minutes: 10
+
+  # TypeScript Check
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 TypeScript Check
+        run: pnpm typecheck
+
+  # ESLint Check
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 ESLint Check
+        run: pnpm lint
+
+  # Summary Job
+  ci-summary:
+    runs-on: ubuntu-latest
+    needs: [test-services, test-api, test-unit, typecheck, lint]
+    if: always()
+    steps:
+      - name: ✅ CI Summary
+        run: |
+          echo "## CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Service Tests: ${{ needs.test-services.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ API Tests: ${{ needs.test-api.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Unit Tests: ${{ needs.test-unit.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ TypeScript: ${{ needs.typecheck.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ ESLint: ${{ needs.lint.result }}" >> $GITHUB_STEP_SUMMARY
