@@ -4,7 +4,7 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 **Context:** feat/mobile-cardlist-phase1 | c8c1ee61a | Agent: GitHub Copilot (VS Code Agent)
 **DB Sync:** BACKLOG_AUDIT.json synced (server offline - will import on next startup)
 
-**✅ Resolved Today (DB SSOT - 8 items):**
+**✅ Resolved Today (DB SSOT - 9 items):**
 - BUG-WO-FILTERS-MISSING — WorkOrders filters wired via serializeFilters() at line 194
 - BUG-USERS-FILTERS-MISSING — UsersList filters wired via serializeFilters() at line 129
 - BUG-EMPLOYEES-FILTERS-MISSING — EmployeesList filters wired via serializeFilters() at line 139
@@ -13,6 +13,7 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 - BUG-ROLES-FILTERS-MISSING — RolesList filters wired + FilterPresetsDropdown added
 - PERF-003 — Timer cleanup parity achieved (24 timers : 25 cleanup calls)
 - SLA-I18N — SLA badge i18n with useSLATimeLabel hook + brand tokens
+- PERF-COLUMN-MEMO — Column memoization added to 6 list components (useMemo with empty deps)
 
 **🟠 In Progress (3 items):**
 - P3-AQAR-FILTERS — Refactor Aqar SearchFilters (effort: M)

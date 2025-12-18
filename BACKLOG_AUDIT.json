@@ -1,8 +1,38 @@
 {
-  "generatedAt": "2025-12-18T13:49:00+03:00",
+  "generatedAt": "2025-12-18T13:50:00+03:00",
   "source": "AI_IMPROVEMENT_ANALYSIS_REPORT.md + PENDING_MASTER.md + latest code review (2025-12-18)",
-  "lastSync": "2025-12-18T13:49:00+03:00",
+  "lastSync": "2025-12-18T13:50:00+03:00",
   "issues": [
+    {
+      "key": "SLA-I18N",
+      "title": "SLA Badge i18n with useSLATimeLabel hook + brand tokens",
+      "category": "feature",
+      "priority": "P2",
+      "status": "resolved",
+      "resolvedAt": "2025-12-18T13:40:00+03:00",
+      "resolution": "Added useSLATimeLabel hook for i18n-aware time formatting; applied brand tokens (--color-secondary, --color-accent); added ar.json/en.json translations",
+      "effort": "S",
+      "location": "components/fm/SLABadge.tsx",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:components/fm/SLABadge.tsx:177-219",
+      "evidenceSnippet": "useSLATimeLabel hook for i18n formatting",
+      "description": "SLA badge now displays localized time remaining with proper Arabic/English translations"
+    },
+    {
+      "key": "BUG-ROLES-FILTERS-MISSING",
+      "title": "RolesList filters not wired + missing FilterPresetsDropdown",
+      "category": "bug",
+      "priority": "P2",
+      "status": "resolved",
+      "resolvedAt": "2025-12-18T13:40:00+03:00",
+      "resolution": "Added FilterPresetsDropdown + pickSchemaFilters integration at line 354",
+      "effort": "S",
+      "location": "components/administration/RolesList.tsx",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:components/administration/RolesList.tsx:354-365",
+      "evidenceSnippet": "FilterPresetsDropdown with entityType=roles",
+      "description": "RolesList now has filter presets like other list components"
+    },
     {
       "key": "P3-AQAR-FILTERS",
       "title": "Refactor Aqar SearchFilters to standard filter components",
