@@ -64,7 +64,7 @@ function SuperadminLanguageDropdown() {
 }
 
 export function SuperadminHeader() {
-  const router = useRouter() || { push: () => {} };
+  const router = useRouter();
   const { t } = useI18n();
   const { theme, setTheme } = useThemeCtx();
   // BUG-001 FIX: Session now provided by server-side layout, no client fetch needed
@@ -90,17 +90,15 @@ export function SuperadminHeader() {
     "currency.selectorLabel",
     "Currency selector",
   );
+  const routerPush =
+    (router as { push?: (path: string) => void } | undefined)?.push;
+  const fallbackPush =
+    (globalThis as { __fixzitRouterPush?: (path: string) => void })
+      .__fixzitRouterPush;
   const navigate = (href: string) => {
-    const pushFn = (router as { push?: (path: string) => void })?.push;
+    const pushFn = routerPush || fallbackPush;
     if (typeof pushFn === "function") {
       pushFn(href);
-      return;
-    }
-    const fallback =
-      (globalThis as { __fixzitRouterPush?: (path: string) => void })
-        .__fixzitRouterPush;
-    if (typeof fallback === "function") {
-      fallback(href);
     }
   };
 

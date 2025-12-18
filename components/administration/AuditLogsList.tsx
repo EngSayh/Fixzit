@@ -29,6 +29,7 @@ import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
+import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
 import {
   buildActiveFilterChips,
   serializeFilters,
@@ -157,6 +158,7 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 50))) : 1;
   const totalCount = data?.total ?? 0;
   const filters = state.filters as AuditFilters;
+  const currentFilters = state.filters || {};
 
   // Quick chips (P0)
   const quickChips = [
@@ -290,6 +292,11 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
     setDraftFilters({});
     updateState({ filters: {}, page: 1 });
     setFilterDrawerOpen(false);
+  };
+
+  const handleLoadPreset = (presetFilters: Record<string, unknown>) => {
+    setDraftFilters(presetFilters as AuditFilters);
+    updateState({ filters: presetFilters });
   };
 
   return (

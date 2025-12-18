@@ -31,6 +31,7 @@ import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
+import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
 import {
   buildActiveFilterChips,
   serializeFilters,
@@ -198,6 +199,7 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
   const totalCount = data?.total ?? 0;
   const totalAmount = data?.totalAmount ?? 0;
   const filters = state.filters as InvoiceFilters;
+  const currentFilters = state.filters || {};
 
   // Quick chips (P0)
   const quickChips = [
@@ -331,6 +333,11 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
     setFilterDrawerOpen(false);
   };
 
+  const handleLoadPreset = (presetFilters: Record<string, unknown>) => {
+    setDraftFilters(presetFilters as InvoiceFilters);
+    updateState({ filters: presetFilters });
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* PageHeader */}
@@ -397,6 +404,11 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
+            <FilterPresetsDropdown
+              entityType="invoices"
+              currentFilters={currentFilters}
+              onLoadPreset={handleLoadPreset}
+            />
             <Button
               variant="outline"
               size="sm"
