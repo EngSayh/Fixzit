@@ -11,6 +11,7 @@ export const FILTER_ENTITY_TYPES = [
   "auditLogs",
   "properties",
   "products",
+  "roles",
 ] as const;
 
 // Legacy alias strings are constructed without embedding snake_case literals.

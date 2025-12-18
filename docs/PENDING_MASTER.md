@@ -1,5 +1,41 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-19 13:40 (Asia/Riyadh) — Phase P25-P30: SLA i18n + Test Hygiene + FilterPresets
+**Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)  
+**Duration:** 25 minutes | **Commit:** 45474ea02 | **Files:** 24 changed
+
+**✅ PHASES P25-P30 COMPLETE: SLA I18N + TEST HYGIENE + FILTERPRESETS**
+
+**SLA Badge Enhancements (components/fm/SLABadge.tsx):**
+- Added `useSLATimeLabel` hook for i18n-aware time formatting
+- Applied brand tokens (--color-secondary, --color-accent) to badge colors
+- Enhanced JSDoc documentation
+
+**i18n Updates (en.json, ar.json):**
+- Added SLA status translations: onTime, atRisk, breached, paused, notSet, overdue
+- Added time formatting: timeRemaining, timeRemainingMinutes, overdueTime, overdueMinutes
+
+**WorkOrdersViewNew Optimization:**
+- Memoized columns array with useMemo to prevent unnecessary re-renders
+
+**FilterPresets Integration:**
+- `components/administration/RolesList.tsx`: Added FilterPresetsDropdown
+- `components/administration/UsersList.tsx`: Added FilterPresetsDropdown
+- `components/administration/AuditLogsList.tsx`: Added FilterPresetsDropdown
+- `components/finance/InvoicesList.tsx`: Added FilterPresetsDropdown
+- `components/hr/EmployeesList.tsx`: Added FilterPresetsDropdown
+
+**Test Hygiene (14 test files):**
+- Added `vi.clearAllMocks()` in beforeEach per vitest best practices
+- Ensures test isolation and prevents mock leakage
+- Files: bulk-actions, filters, marketplace-guest, currency-selector, language-selector, dashboard-hr, filter-preset-contract, i18n-translation-provider, landing-page, rbac-parity, search.integration, encryption-mongoose-hooks, secret-header-routes, topbar-marketing, work-order-attachments
+
+**Verification:**
+- 13 tests passing (bulk-actions, filters, marketplace-guest)
+- 16 tests passing (currency-selector, language-selector)
+- `pnpm typecheck` ✅ 0 errors
+- Push to origin successful
+
 ### 2025-12-19 13:00 (Asia/Riyadh) — Phase P20: VSCode Cleanup + Parallel Agent Consolidation
 **Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)  
 **Duration:** 15 minutes | **Commit:** c6e1e9e44 | **Files:** 17 changed
