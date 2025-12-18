@@ -9,7 +9,7 @@
 
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Star, StarOff, Trash2, Plus, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,10 +54,25 @@ export function FilterPresetsDropdown({
   const { toast } = useToast();
   const [showPresetsDialog, setShowPresetsDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [_showEditDialog, setShowEditDialog] = useState(false);
+  const [editingPreset, setEditingPreset] = useState<{ id: string; name: string; isDefault: boolean } | null>(null);
   const [presetName, setPresetName] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [defaultApplied, setDefaultApplied] = useState(false);
+
+  // Keyboard shortcut: Cmd/Ctrl+K to open presets dialog
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+        event.preventDefault();
+        setShowPresetsDialog((prev) => !prev);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const safeFilters = normalizeFilters ? normalizeFilters(currentFilters) : currentFilters;
 
@@ -121,6 +136,58 @@ export function FilterPresetsDropdown({
     },
     [deletePreset, toast]
   );
+
+  const _handleEditPreset = useCallback((presetId: string, currentName: string, currentIsDefault: boolean) => {
+    setEditingPreset({ id: presetId, name: currentName, isDefault: currentIsDefault });
+    setPresetName(currentName);
+    setIsDefault(currentIsDefault);
+    setShowPresetsDialog(false);
+    setShowEditDialog(true);
+  }, []);
+
+  const _handleUpdatePreset = useCallback(async () => {
+    if (!editingPreset || !presetName.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter a name for the preset",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Delete old and create new with updated values
+      await deletePreset(editingPreset.id);
+      await createPreset({
+        entity_type: entityType,
+        name: presetName.trim(),
+        filters: safeFilters,
+        sort: currentSort,
+        search: currentSearch,
+        is_default: isDefault,
+      });
+
+      toast({
+        title: "Preset updated",
+        description: `${presetName} has been updated`,
+      });
+
+      setShowEditDialog(false);
+      setEditingPreset(null);
+      setPresetName("");
+      setIsDefault(false);
+    } catch (error) {
+      logger.error("[FilterPresetsDropdown] Update failed", { error });
+      toast({
+        title: "Update failed",
+        description: error instanceof Error ? error.message : "Failed to update preset",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [editingPreset, presetName, isDefault, deletePreset, createPreset, entityType, safeFilters, currentSort, currentSearch, toast]);
 
   const handleLoadPreset = useCallback(
     (filters: Record<string, unknown>, sort?: { field: string; direction: "asc" | "desc" }, search?: string) => {
@@ -201,17 +268,30 @@ export function FilterPresetsDropdown({
                       )}
                       <span className="truncate">{preset.name}</span>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeletePreset(preset._id, preset.name);
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditPreset(preset._id, preset.name, preset.is_default);
+                        }}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePreset(preset._id, preset.name);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

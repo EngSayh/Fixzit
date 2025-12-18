@@ -9,5 +9,40 @@
 
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
-  }
+  },
+
+  // ===== MEMORY OPTIMIZATION (prevents 46GB memory usage) =====
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/.git": true,
+    "**/dist": true,
+    "**/.pnpm-store": true,
+    "**/coverage": true,
+    "**/_artifacts": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/dist": true,
+    "**/pnpm-lock.yaml": true,
+    "**/.pnpm-store": true,
+    "**/coverage": true,
+    "**/_artifacts": true,
+    "**/ai-memory": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/dist/**": true,
+    "**/.pnpm-store/**": true,
+    "**/coverage/**": true
+  },
+  // Cap TS server memory and run a single server to stop runaway Electron helpers
+  "typescript.tsserver.maxTsServerMemory": 2048,
+  "typescript.tsserver.useSeparateSyntaxServer": false,
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "typescript.preferences.includePackageJsonAutoImports": "off"
 }
