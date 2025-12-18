@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
       facetCategories = [];
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       ok: true,
       data: {
         items,
@@ -127,6 +127,9 @@ export async function GET(request: NextRequest) {
         },
       },
     });
+    // Cache search results for 1 minute (dynamic but cacheable)
+    response.headers.set("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
+    return response;
   } catch (error) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
