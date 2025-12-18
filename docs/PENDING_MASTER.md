@@ -1,5 +1,64 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-18 08:31 (Asia/Riyadh) — FIX-001 Re-application + Parallel Agent Type Cleanup
+**Context:** feat/superadmin-branding | Commits: 85d47292a, 26efcaaa0 | 100% execution mode  
+**Agent:** GitHub Copilot (coordinating with parallel agent)  
+**Duration:** 20 minutes | **Files:** 15 changed (vitest config + 6 list components + CardList type)
+
+**✅ CRITICAL FIXES RE-APPLIED:**
+
+**FIX-001 (REGRESSION FIX):** Vitest Worker Isolation (Vitest 3 Syntax)
+- **Problem:** Parallel agent reverted bounded threads to `singleThread: true` (line 94)
+- **Impact:** 310+ test files failing with "Connection was force closed"
+- **Root Cause:** Parallel agent overwrote Dec 17 23:43 fix during filter refactoring
+- **Fix:** Added Vitest 3 proper syntax: `maxWorkers: 4, minWorkers: 1` (top-level, not poolOptions)
+- **Verification:** 694 tests passing (billing 13, lib 6, security 681) in 30.51s
+- **File:** `vitest.config.ts:20-21`
+- **Commit:** 85d47292a
+
+**TYPE ALIGNMENT FIX:** CardList + Record Property Compatibility
+- **Problem:** DataTableColumn[] incompatible with CardListColumn[] (10 TypeScript errors)
+- **Root Cause:** Parallel agent passed DataTableColumn to CardList expecting CardListColumn
+- **Solution:**
+  - Made CardListColumn.header accept `string | React.ReactNode`
+  - Made CardListColumn.accessor optional (matches DataTableColumn)
+  - Made columns prop optional (unused in card rendering)
+  - Added missing properties: actorEmail, actorId, createdAt, userCount, totalAmount, hireDate
+  - Expanded Invoice statusStyles to include PENDING and SENT
+- **Files:** 
+  - `components/tables/CardList.tsx` (type definition)
+  - `components/administration/AuditLogsList.tsx` (AuditLogRecord type)
+  - `components/administration/RolesList.tsx` (RoleRecord type)
+  - `components/finance/InvoicesList.tsx` (InvoiceRecord + statusStyles)
+- **Verification:** TypeScript 0 errors (from 10), 19 tests passing
+- **Commit:** 26efcaaa0
+
+**✅ VERIFICATION COMPLETE:**
+- `pnpm typecheck` → 0 errors (from 10 TS type errors)
+- `pnpm vitest run tests/unit/lib/db/aggregateWithTenantScope.test.ts` → 6/6 passing
+- `pnpm vitest run tests/api/billing` → 13/13 passing
+- `pnpm vitest run tests/unit/lib tests/unit/security` → 681/681 passing (30.51s)
+- Pre-push hook: PASSED (TypeScript clean)
+- Git push: SUCCESS (commit 26efcaaa0)
+
+**🔍 KEY FINDINGS:**
+1. **Vitest 3 Syntax:** `maxWorkers`/`minWorkers` are top-level options, NOT `poolOptions.threads.*`
+2. **CardList Design:** columns prop unused (card rendering uses primaryAccessor/secondaryAccessor)
+3. **Parallel Agent Coordination:** Filter refactoring was good, but overwrote vitest config
+4. **Type Safety:** Made types more flexible (superset) without breaking existing behavior
+
+**🟢 SYSTEM STATUS:**
+- TypeScript: ✅ 0 errors
+- Tests: ✅ 694+ passing (no connection leaks)
+- Vitest Config: ✅ Bounded threads (1-4 workers)
+- Aggregate Helper: ✅ Stable (FIX-002, FIX-003, FIX-006)
+- List Components: ✅ Type-safe (6 components aligned)
+
+**🟠 REMAINING (External/Deferred):**
+- MongoDB Atlas IP whitelist (ops action required)
+- 5 filter integration bugs (20h work - separate PR)
+- API test coverage 24% → 80% (120h work - phased approach)
+
 ### 2025-12-18 00:02 (Asia/Riyadh) — Test Harness Stabilization + Syntax Cleanup
 **Context:** agent/process-efficiency-2025-12-11 | Commit pending | PR #534 (XSS hardening)  
 **Agent:** GitHub Copilot (100% execution mode)  
