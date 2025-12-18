@@ -95,8 +95,8 @@ describe("API /api/finance/ledger/account-activity/[accountId]", () => {
     vi.clearAllMocks();
     
     // Dynamic import to avoid module caching issues
-    const module = await import("@/app/api/finance/ledger/account-activity/[accountId]/route");
-    GET = module.GET;
+    const routeModule = await import("@/app/api/finance/ledger/account-activity/[accountId]/route");
+    GET = routeModule.GET;
   });
 
   describe("GET - Account Activity Report", () => {
@@ -141,8 +141,8 @@ describe("API /api/finance/ledger/account-activity/[accountId]", () => {
     });
 
     it("returns 404 when account does not exist", async () => {
-      const Account = (await import("@/server/models/finance/Account")).default;
-      vi.mocked(Account.findById).mockResolvedValueOnce(null);
+      const ChartAccount = (await import("@/server/models/finance/ChartAccount")).default;
+      vi.mocked(ChartAccount.findById).mockResolvedValueOnce(null);
 
       sessionUser = {
         id: "user-123",
@@ -227,7 +227,7 @@ describe("API /api/finance/ledger/account-activity/[accountId]", () => {
     it("enforces rate limiting", async () => {
       const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
       vi.mocked(enforceRateLimit).mockReturnValueOnce(
-        new Response(JSON.stringify({ error: "Too many requests" }), { status: 429 })
+        new Response(JSON.stringify({ error: "Too many requests" }), { status: 429 }) as any
       );
 
       sessionUser = {

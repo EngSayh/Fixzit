@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { Types } from "mongoose";
 
 type SessionUser = {
   id?: string;
@@ -45,38 +46,34 @@ vi.mock("@/lib/mongodb-unified", () => ({
 }));
 
 // Mock trial balance service
-const mockTrialBalanceData = {
-  accounts: [
-    {
-      accountId: "acc-1",
-      accountCode: "1000",
-      accountName: "Cash",
-      debit: 50000_00,
-      credit: 0,
-      balance: 50000_00,
-    },
-    {
-      accountId: "acc-2",
-      accountCode: "2000",
-      accountName: "Accounts Payable",
-      debit: 0,
-      credit: 30000_00,
-      balance: -30000_00,
-    },
-  ],
-  totals: {
-    totalDebit: 50000_00,
-    totalCredit: 30000_00,
-  },
-  metadata: {
-    asOfDate: "2025-12-31",
-    currency: "SAR",
-    orgId: "org-123",
-  },
-};
-
 vi.mock("@/server/finance/reporting.service", () => ({
-  trialBalance: vi.fn().mockResolvedValue(mockTrialBalanceData),
+  trialBalance: vi.fn().mockResolvedValue({
+    rows: [
+      {
+        accountId: new Types.ObjectId("507f1f77bcf86cd799439011"),
+        code: "1000",
+        accountCode: "1000",
+        name: "Cash",
+        accountName: "Cash",
+        type: "ASSET",
+        debit: Types.Decimal128.fromString("50000.00"),
+        credit: Types.Decimal128.fromString("0"),
+      },
+      {
+        accountId: new Types.ObjectId("507f1f77bcf86cd799439012"),
+        code: "2000",
+        accountCode: "2000",
+        name: "Accounts Payable",
+        accountName: "Accounts Payable",
+        type: "LIABILITY",
+        debit: Types.Decimal128.fromString("0"),
+        credit: Types.Decimal128.fromString("30000.00"),
+      },
+    ],
+    totDr: 5000000n,
+    totCr: 3000000n,
+    balanced: false,
+  }),
 }));
 
 import { GET } from "@/app/api/finance/ledger/trial-balance/route";
@@ -165,9 +162,10 @@ describe("API /api/finance/ledger/trial-balance", () => {
     it("returns empty accounts array when no transactions exist", async () => {
       const { trialBalance } = await import("@/server/finance/reporting.service");
       vi.mocked(trialBalance).mockResolvedValueOnce({
-        accounts: [],
-        totals: { totalDebit: 0, totalCredit: 0 },
-        metadata: { asOfDate: "2025-12-31", currency: "SAR", orgId: "org-123" },
+        rows: [],
+        totDr: 0n,
+        totCr: 0n,
+        balanced: true,
       });
 
       sessionUser = {
@@ -210,7 +208,7 @@ describe("API /api/finance/ledger/trial-balance", () => {
     it("enforces rate limiting", async () => {
       const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
       vi.mocked(enforceRateLimit).mockReturnValueOnce(
-        new Response(JSON.stringify({ error: "Too many requests" }), { status: 429 })
+        new Response(JSON.stringify({ error: "Too many requests" }), { status: 429 }) as any
       );
 
       sessionUser = {

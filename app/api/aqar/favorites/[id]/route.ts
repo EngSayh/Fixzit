@@ -95,7 +95,6 @@ export async function DELETE(
     // Decrement analytics after successful deletion (with error handling)
     if (favorite.targetType === "LISTING") {
       try {
-        // eslint-disable-next-line local/require-tenant-scope -- SAFE: Analytics decrement (user deleted their own favorite)
         await AqarListing.findByIdAndUpdate(favorite.targetId, [
           {
             $set: {
