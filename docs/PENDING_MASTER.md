@@ -252,7 +252,7 @@ User explicitly requested: "add saved filter sets to list modules (Work Orders, 
   * ProductsList (Marketplace)
 
 **📋 INTEGRATION STEP (Next):**
-Add `<FilterPresetsDropdown entityType="work_orders" currentFilters={filters} onLoadPreset={setFilters} />` to each list's TableToolbar.
+Add `<FilterPresetsDropdown entityType="workOrders" currentFilters={filters} onLoadPreset={setFilters} />` to each list's TableToolbar.
 
 **🔍 VERIFICATION FINDINGS (User-Claimed Bugs):**
 **ALL USER CLAIMS WERE FALSE:**

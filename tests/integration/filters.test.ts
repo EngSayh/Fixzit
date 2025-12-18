@@ -36,7 +36,7 @@ describe('Filter System Integration', () => {
 
     // Create filter preset
     const preset = {
-      entity_type: 'work_orders',
+      entity_type: 'workOrders',
       name: 'High Priority Open',
       filters: { status: 'open', priority: 'high' },
       user_id: session.userId,
@@ -99,13 +99,13 @@ describe('Filter System Integration', () => {
     
     const defaultPreset = {
       user_id: session.userId,
-      entity_type: 'work_orders',
+      entity_type: 'workOrders',
       name: 'My Default View',
       filters: { status: 'open' },
       is_default: true,
     };
 
     expect(defaultPreset.is_default).toBe(true);
-    expect(defaultPreset.entity_type).toBe('work_orders');
+    expect(defaultPreset.entity_type).toBe('workOrders');
   });
 });

@@ -345,12 +345,12 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
         }
         end={
           <>
+            <TableDensityToggle density={density} onChange={setDensity} />
             <FilterPresetsDropdown
-              entityType="audit_logs"
+              entityType="auditLogs"
               currentFilters={currentFilters}
               onLoadPreset={handleLoadPreset}
             />
-            <TableDensityToggle density={density} onChange={setDensity} />
             <Button
               variant="outline"
               size="sm"

@@ -46,6 +46,7 @@ export function createTestWorkOrder(overrides?: {
   priority?: string;
   org_id?: Types.ObjectId | string;
   property_owner_id?: Types.ObjectId | string;
+  assigned_to?: string | null;
 }) {
   return {
     _id: overrides?._id || testObjectId(1),
@@ -55,6 +56,7 @@ export function createTestWorkOrder(overrides?: {
     priority: overrides?.priority || 'medium',
     org_id: overrides?.org_id || testObjectId(100),
     property_owner_id: overrides?.property_owner_id || testObjectId(200),
+    assigned_to: overrides?.assigned_to ?? null,
     created_at: new Date('2025-01-01'),
     updated_at: new Date('2025-01-01'),
   };

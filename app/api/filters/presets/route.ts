@@ -20,7 +20,6 @@ import {
   FILTER_ENTITY_TYPES,
   LEGACY_ENTITY_ALIASES,
   normalizeFilterEntityType,
-  type FilterEntityType,
 } from "@/lib/filters/entities";
 
 const LEGACY_ENTITY_KEYS = Object.keys(LEGACY_ENTITY_ALIASES) as [string, ...string[]];
@@ -82,7 +81,12 @@ export async function GET(request: NextRequest) {
     };
 
     if (entityType) {
-      query.entity_type = entityType;
+      const legacyKeys = Object.entries(LEGACY_ENTITY_ALIASES)
+        .filter(([, canonical]) => canonical === entityType)
+        .map(([legacy]) => legacy);
+      query.entity_type = { $in: [entityType, ...legacyKeys] };
+    } else {
+      query.entity_type = { $in: FILTER_ENTITY_TYPES };
     }
 
     const presets = await FilterPreset.find(query)

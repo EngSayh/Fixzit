@@ -425,7 +425,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
             <FilterPresetsDropdown
-              entityType="work_orders"
+              entityType="workOrders"
               currentFilters={currentFilters}
               onLoadPreset={handleLoadPreset}
             />

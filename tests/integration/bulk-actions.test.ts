@@ -104,7 +104,7 @@ describe('Bulk Actions Integration', () => {
     // Select items for export
     const selectedIds = workOrders.slice(0, 10).map(wo => wo._id);
     const exportRequest = {
-      entity_type: 'work_orders',
+      entity_type: 'workOrders',
       ids: selectedIds,
       format: 'csv',
     };

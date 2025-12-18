@@ -10,8 +10,9 @@
 import useSWR, { mutate } from "swr";
 import { useCallback } from "react";
 import { logger } from "@/lib/logger";
+import { type FilterEntityType } from "@/lib/filters/entities";
 
-export type EntityType = "work_orders" | "users" | "employees" | "invoices" | "audit_logs" | "properties" | "products";
+export type EntityType = FilterEntityType;
 
 export interface FilterPreset {
   _id: string;
