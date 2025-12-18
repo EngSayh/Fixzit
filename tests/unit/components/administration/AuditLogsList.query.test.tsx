@@ -72,7 +72,7 @@ describe("AuditLogsList query params", () => {
     capturedKeys = [];
     render(<AuditLogsList orgId="org-1" />);
 
-    const apiKey = capturedKeys.find((key) => key.startsWith("/api/audit-logs?"));
+    const apiKey = capturedKeys.find((key) => key.startsWith("/api/admin/audit-logs?"));
     expect(apiKey).toBeTruthy();
     const url = new URL(apiKey || "", "http://localhost");
     const params = url.searchParams;

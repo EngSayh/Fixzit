@@ -151,7 +151,7 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
   }, [orgId, state]);
 
   const { data, error: _error, isLoading, mutate, isValidating } = useSWR(
-    `/api/audit-logs?${query}`,
+    `/api/admin/audit-logs?${query}`,
     fetcher,
     { keepPreviousData: true, refreshInterval: 30000 }
   );
