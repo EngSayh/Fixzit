@@ -171,6 +171,17 @@ export type PropertiesListProps = {
 };
 
 export function PropertiesList({ orgId }: PropertiesListProps) {
+  // P92: Performance observability markers
+  React.useEffect(() => {
+    if (typeof performance !== 'undefined' && performance.mark) {
+      performance.mark('PropertiesList:mount');
+      return () => {
+        performance.mark('PropertiesList:unmount');
+        performance.measure('PropertiesList:lifetime', 'PropertiesList:mount', 'PropertiesList:unmount');
+      };
+    }
+  }, []);
+
   const { state, updateState, resetState } = useTableQueryState("aqar-properties", {
     page: 1,
     pageSize: 20,

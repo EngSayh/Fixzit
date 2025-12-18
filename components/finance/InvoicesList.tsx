@@ -176,6 +176,17 @@ export function buildInvoicesQuery(state: ReturnType<typeof useTableQueryState>[
 }
 
 export function InvoicesList({ orgId }: InvoicesListProps) {
+  // P92: Performance observability markers
+  React.useEffect(() => {
+    if (typeof performance !== 'undefined' && performance.mark) {
+      performance.mark('InvoicesList:mount');
+      return () => {
+        performance.mark('InvoicesList:unmount');
+        performance.measure('InvoicesList:lifetime', 'InvoicesList:mount', 'InvoicesList:unmount');
+      };
+    }
+  }, []);
+
   const { t } = useTranslation();
   const { state, updateState, resetState } = useTableQueryState("invoices", {
     page: 1,

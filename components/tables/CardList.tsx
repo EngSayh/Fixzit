@@ -94,6 +94,23 @@ export function CardList<TData extends Record<string, unknown>>({
   className,
   cardClassName,
 }: CardListProps<TData>) {
+  // P92: Performance observability markers
+  React.useEffect(() => {
+    if (typeof performance !== 'undefined' && performance.mark) {
+      performance.mark('CardList:mount');
+      return () => {
+        performance.mark('CardList:unmount');
+        performance.measure('CardList:lifetime', 'CardList:mount', 'CardList:unmount');
+      };
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof performance !== 'undefined' && performance.mark && !loading) {
+      performance.mark(`CardList:render:${data.length}items`);
+    }
+  }, [data.length, loading]);
+
   const getRowId = (row: TData): string => {
     if (typeof rowIdAccessor === "function") {
       return rowIdAccessor(row);
