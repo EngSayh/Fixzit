@@ -91,7 +91,40 @@ const originalError = logger.error.bind(logger) as (...args: unknown[]) => unkno
 const shouldSilence = (msg: string) =>
   msg.includes("encryption:key_missing") ||
   msg.includes("Failed to format ICU message") ||
-  msg.includes("Unknown JTI - potential replay attack");
+  msg.includes("Unknown JTI - potential replay attack") ||
+  // Silence intentional error-boundary test noise
+  msg.includes("Error fetching profile") ||
+  msg.includes("Boom") ||
+  msg.includes("Something went wrong") ||
+  // Silence i18n fallback warnings in tests
+  msg.includes("Missing translation") ||
+  msg.includes("ICU message") ||
+  msg.includes("formatMessage");
+
+// Also silence native console.error/warn for expected React error boundary output
+const originalConsoleError = console.error.bind(console);
+const originalConsoleWarn = console.warn.bind(console);
+
+const shouldSilenceConsole = (msg: string) =>
+  msg.includes("Error: Boom") ||
+  msg.includes("Error fetching profile") ||
+  msg.includes("Something went wrong") ||
+  msg.includes("The above error occurred") ||
+  msg.includes("Error boundaries") ||
+  msg.includes("act(...) warning") ||
+  msg.includes("ReactDOM.render is no longer supported");
+
+console.error = (...args: unknown[]) => {
+  const msg = args.map(a => String(a)).join(" ");
+  if (shouldSilenceConsole(msg)) return;
+  return originalConsoleError(...args);
+};
+
+console.warn = (...args: unknown[]) => {
+  const msg = args.map(a => String(a)).join(" ");
+  if (shouldSilenceConsole(msg)) return;
+  return originalConsoleWarn(...args);
+};
 
 logger.warn = (...args: unknown[]) => {
   const [first] = args;
