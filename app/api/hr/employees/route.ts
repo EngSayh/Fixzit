@@ -77,7 +77,14 @@ export async function GET(req: NextRequest) {
     );
     const status = searchParams.get("status");
     const department = searchParams.get("department");
+    const employmentType = searchParams.get("employmentType");
     const search = searchParams.get("search");
+    const joiningDateDays = Number.parseInt(
+      searchParams.get("joiningDateDays") || "",
+      10,
+    );
+    const joiningFrom = searchParams.get("joiningFrom");
+    const joiningTo = searchParams.get("joiningTo");
     const includePiiRequested = searchParams.get("includePii") === "true";
 
     if (department && !Types.ObjectId.isValid(department)) {
@@ -115,8 +122,32 @@ export async function GET(req: NextRequest) {
             ? (status as "ACTIVE" | "INACTIVE" | "ON_LEAVE" | "TERMINATED")
             : undefined;
         })(),
+        employmentType: employmentType || undefined,
         departmentId: department || undefined,
         text: search || undefined,
+        hireDateFrom: (() => {
+          const now = new Date();
+          if (!Number.isNaN(joiningDateDays) && joiningDateDays > 0) {
+            const from = new Date(now);
+            from.setDate(from.getDate() - joiningDateDays);
+            return from;
+          }
+          if (joiningFrom) {
+            const parsed = new Date(joiningFrom);
+            if (!Number.isNaN(parsed.getTime())) return parsed;
+          }
+          return undefined;
+        })(),
+        hireDateTo: (() => {
+          if (!Number.isNaN(joiningDateDays) && joiningDateDays > 0) {
+            return new Date(); // up to now
+          }
+          if (joiningTo) {
+            const parsed = new Date(joiningTo);
+            if (!Number.isNaN(parsed.getTime())) return parsed;
+          }
+          return undefined;
+        })(),
       },
       { page, limit, includePii },
     );
