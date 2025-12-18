@@ -71,13 +71,23 @@ export function SuperadminHeader() {
   const session = useSuperadminSession();
   const [loggingOut, setLoggingOut] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
+  const searchInputId = "superadmin-search-input";
   const username = session?.user?.username?.trim() || null;
   const displayName = username || t("superadmin.account");
+  const submitSearch = () => {
+    const q = globalSearch.trim();
+    if (!q) return;
+    navigate(`/superadmin/search?q=${encodeURIComponent(q)}`);
+  };
   const labelWithFallback = (key: string, fallback: string) => {
     const value = t(key);
     return !value || value === key ? fallback : value;
   };
   const homeLabel = labelWithFallback("header.homeLink", "Go to landing");
+  const tenantShortcutLabel = labelWithFallback(
+    "superadmin.switchTenantShortcut",
+    "Switch tenant (Alt+Click logo)"
+  );
   const switchTenantLabel = labelWithFallback(
     "superadmin.switchTenant",
     "Switch tenant",
@@ -129,13 +139,41 @@ export function SuperadminHeader() {
     }
   };
 
+  React.useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const isMetaK = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k";
+      const target = event.target as HTMLElement | null;
+      const targetIsTyping =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.getAttribute?.("contenteditable") === "true");
+
+      if (isMetaK && !targetIsTyping) {
+        event.preventDefault();
+        const input = document.getElementById(searchInputId) as HTMLInputElement | null;
+        input?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   return (
     <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 gap-4">
       <div className="flex items-center gap-3">
         <button
-          onClick={() => navigate("/")}
+          onClick={(e) => {
+            if (e.altKey || e.metaKey || e.ctrlKey) {
+              navigate("/superadmin/tenants");
+              return;
+            }
+            navigate("/");
+          }}
           className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-700 hover:bg-slate-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-600"
           aria-label={homeLabel}
+          title={tenantShortcutLabel}
           type="button"
         >
           <BrandLogo
@@ -163,7 +201,15 @@ export function SuperadminHeader() {
             placeholder="Search..."
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submitSearch();
+              }
+            }}
+            id={searchInputId}
             className="ps-10 pe-16 w-64 h-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+            aria-label={t("superadmin.search", "Search superadmin")}
           />
           <kbd className="absolute end-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded border border-slate-600">
             <Command className="inline h-3 w-3" />K
@@ -205,7 +251,25 @@ export function SuperadminHeader() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate("/superadmin/tenants")}
+          onClick={async () => {
+            try {
+              const auditUrl =
+                typeof window !== "undefined"
+                  ? new URL(
+                      "/api/superadmin/tenant-switch/audit",
+                      window.location.origin,
+                    ).toString()
+                  : "/api/superadmin/tenant-switch/audit";
+              void fetch(auditUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ via: "header-button" }),
+              });
+            } catch {
+              // non-blocking
+            }
+            navigate("/superadmin/tenants");
+          }}
           className="text-slate-300 hover:text-white"
         >
           {switchTenantLabel}

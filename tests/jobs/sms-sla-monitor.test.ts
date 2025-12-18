@@ -1,7 +1,8 @@
 /**
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { mockFetch, restoreFetch } from "@/tests/helpers/domMocks";
 
 vi.mock("@/server/models/SMSSettings", () => ({
   SMSSettings: {
@@ -34,6 +35,7 @@ let SMSSettings: SmsSettingsModule["SMSSettings"];
 let sendEmail: EmailModule["sendEmail"];
 let logger: LoggerModule["logger"];
 let sendBreachNotification: SmsMonitorModule["sendBreachNotification"];
+let fetchSpy: ReturnType<typeof mockFetch>;
 
 const reloadModules = async () => {
   ({ SMSSettings } = await import("@/server/models/SMSSettings"));
@@ -46,10 +48,14 @@ describe("SLA Breach Notification Webhook SSRF guard", () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
+    fetchSpy = mockFetch();
     await reloadModules();
     vi.mocked(sendEmail).mockResolvedValue(undefined as any);
-    // @ts-expect-error set global fetch for tests
-    global.fetch = vi.fn().mockResolvedValue({ ok: true });
+    fetchSpy.mockResolvedValue({ ok: true } as Response);
+  });
+
+  afterEach(() => {
+    restoreFetch();
   });
 
   const mockMessages = [
@@ -70,7 +76,7 @@ describe("SLA Breach Notification Webhook SSRF guard", () => {
 
     await sendBreachNotification("org_123", mockMessages as any);
 
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalled();
   });
 
@@ -82,8 +88,8 @@ describe("SLA Breach Notification Webhook SSRF guard", () => {
 
     await sendBreachNotification("org_123", mockMessages as any);
 
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).toHaveBeenCalledWith(
       "https://hooks.example.com/notify",
       expect.objectContaining({ method: "POST" })
     );

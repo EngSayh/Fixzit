@@ -23,7 +23,7 @@ export const runtime = "nodejs";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } | Promise<{ id: string }> },
 ) {
   // Rate limiting: 20 requests per minute per IP for deletes
   const rateLimitResponse = enforceRateLimit(request, {
@@ -51,6 +51,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    if (!user || !user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // SEC-FIX: Require orgId - never fall back to userId to prevent cross-tenant data access
     if (!user.orgId) {
       return NextResponse.json(
@@ -66,7 +70,11 @@ export async function DELETE(
       );
     }
 
-    const favorite = await AqarFavorite.findById(id);
+    const favorite = await AqarFavorite.findOne({
+      _id: id,
+      orgId: user.orgId,
+      userId: user.id,
+    });
 
     if (!favorite) {
       return NextResponse.json(

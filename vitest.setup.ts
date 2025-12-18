@@ -85,6 +85,13 @@ Reflect.set(process.env, "NODE_ENV", "test");
 
 // Reduce noisy test output: suppress known encryption key missing warnings in non-prod
 const originalWarn = logger.warn.bind(logger) as (...args: unknown[]) => unknown;
+const originalError = logger.error.bind(logger) as (...args: unknown[]) => unknown;
+
+const shouldSilence = (msg: string) =>
+  msg.includes("encryption:key_missing") ||
+  msg.includes("Failed to format ICU message") ||
+  msg.includes("Unknown JTI - potential replay attack");
+
 logger.warn = (...args: unknown[]) => {
   const [first] = args;
   const msg =
@@ -93,10 +100,15 @@ logger.warn = (...args: unknown[]) => {
       : typeof first === "object" && first !== null && "warning" in (first as Record<string, unknown>)
         ? String((first as Record<string, unknown>).warning)
         : "";
-  if (msg.includes("encryption:key_missing")) {
-    return;
-  }
+  if (shouldSilence(msg)) return;
   return originalWarn(...(args as Parameters<typeof originalWarn>));
+};
+
+logger.error = (...args: unknown[]) => {
+  const [first] = args;
+  const msg = typeof first === "string" ? first : "";
+  if (shouldSilence(msg)) return;
+  return originalError(...(args as Parameters<typeof originalError>));
 };
 
 // Ensure fetch/Request/Response are present in worker threads (Node pools can omit them)

@@ -17,6 +17,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Loader2, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
 interface LoadingTimeIndicatorProps {
@@ -68,9 +69,11 @@ export function LoadingTimeIndicator({
               }
             );
 
-            // Log to Sentry
-            if (typeof window !== "undefined" && (window as typeof window & { Sentry?: unknown }).Sentry) {
-              const sentry = (window as typeof window & { Sentry?: { captureMessage: (msg: string, opts: unknown) => void } }).Sentry;
+            if (typeof window !== "undefined") {
+              const sentry = (window as typeof window & {
+                Sentry?: { captureMessage: (msg: string, opts: { level: string; extra: Record<string, unknown> }) => void };
+              }).Sentry;
+
               sentry?.captureMessage("Slow query detected", {
                 level: "warning",
                 extra: {
@@ -95,10 +98,13 @@ export function LoadingTimeIndicator({
       if (startTimeRef.current) {
         const finalDuration = Date.now() - startTimeRef.current;
 
-        // Log to console in development (intentional for debugging)
         if (process.env.NODE_ENV === "development") {
-          // eslint-disable-next-line no-console
-          console.log(`[LoadingTime] ${label}: ${finalDuration}ms`);
+          logger.info("[LoadingTime] query duration", {
+            component: "LoadingTimeIndicator",
+            feature: label,
+            durationMs: finalDuration,
+            thresholdMs: threshold,
+          });
         }
 
         startTimeRef.current = null;
@@ -193,9 +199,11 @@ export function QueryPerformanceTable() {
 
   useEffect(() => {
     // Intercept fetch to track performance
-    const originalFetch = window.fetch;
+    const originalFetch: typeof fetch = window.fetch;
 
-    window.fetch = async (...args) => {
+    window.fetch = async (
+      ...args: Parameters<typeof fetch>
+    ): Promise<Response> => {
       const startTime = Date.now();
       let endpoint = "unknown";
       
@@ -224,7 +232,7 @@ export function QueryPerformanceTable() {
         ]);
 
         return response;
-      } catch (error) {
+      } catch (error: unknown) {
         const duration = Date.now() - startTime;
 
         setQueries((prev) => [

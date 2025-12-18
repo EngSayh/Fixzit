@@ -26,12 +26,12 @@ interface RateLimitInfo {
 export function useRateLimitMonitor() {
   const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(null);
 
-  const checkRateLimit = (headers: Headers) => {
+  const checkRateLimit = (headers: Headers): RateLimitInfo | null => {
     const limit = parseInt(headers.get("X-RateLimit-Limit") || "0", 10);
     const remaining = parseInt(headers.get("X-RateLimit-Remaining") || "0", 10);
     const reset = parseInt(headers.get("X-RateLimit-Reset") || "0", 10);
 
-    if (!limit) return;
+    if (!limit) return null;
 
     const percentage = ((limit - remaining) / limit) * 100;
 
@@ -59,9 +59,11 @@ export function useRateLimitMonitor() {
         }
       );
 
-      // Log to Sentry
-      if (typeof window !== "undefined" && (window as typeof window & { Sentry?: unknown }).Sentry) {
-        const sentry = (window as typeof window & { Sentry?: { captureMessage: (msg: string, opts: unknown) => void } }).Sentry;
+      if (typeof window !== "undefined") {
+        const sentry = (window as typeof window & {
+          Sentry?: { captureMessage: (msg: string, opts: { level: string; extra: Record<string, unknown> }) => void };
+        }).Sentry;
+
         sentry?.captureMessage("Rate limit warning", {
           level: "warning",
           extra: {
@@ -89,9 +91,11 @@ export function useRateLimitMonitor() {
         }
       );
 
-      // Log to Sentry
-      if (typeof window !== "undefined" && (window as typeof window & { Sentry?: unknown }).Sentry) {
-        const sentry = (window as typeof window & { Sentry?: { captureMessage: (msg: string, opts: unknown) => void } }).Sentry;
+      if (typeof window !== "undefined") {
+        const sentry = (window as typeof window & {
+          Sentry?: { captureMessage: (msg: string, opts: { level: string; extra: Record<string, unknown> }) => void };
+        }).Sentry;
+
         sentry?.captureMessage("Rate limit critical", {
           level: "error",
           extra: {
@@ -168,9 +172,11 @@ export function useRateLimitInterceptor() {
   const [devPanelVisible, setDevPanelVisible] = useState(false);
 
   useEffect(() => {
-    const originalFetch = window.fetch;
+    const originalFetch: typeof fetch = window.fetch;
 
-    window.fetch = async (...args) => {
+    window.fetch = async (
+      ...args: Parameters<typeof fetch>
+    ): Promise<Response> => {
       const response = await originalFetch(...args);
 
       // Clone response to read headers without consuming body

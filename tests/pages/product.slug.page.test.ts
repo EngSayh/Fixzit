@@ -11,6 +11,7 @@
 
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
+import { mockFetch, restoreFetch } from '@/tests/helpers/domMocks';
 
 // Mock next/link to a passthrough anchor for test querying
 vi.mock('next/link', () => ({
@@ -106,7 +107,7 @@ async function renderServerComponent(
 
 describe('ProductPage (server component) and fetchPdp', () => {
   const originalEnv = process.env;
-  let fetchSpy: vi.SpiedFunction<typeof fetch>;
+  let fetchMock: ReturnType<typeof mockFetch>;
 
   const mockJsonResponse = <T>(payload: T): Response =>
     ({
@@ -116,24 +117,24 @@ describe('ProductPage (server component) and fetchPdp', () => {
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
-    fetchSpy = vi.spyOn(global as { fetch: typeof fetch }, 'fetch');
+    fetchMock = mockFetch();
   });
 
   afterEach(() => {
-    fetchSpy.mockRestore();
+    restoreFetch();
     process.env = originalEnv;
   });
 
   test('renders "Not found" when product is missing', async () => {
     process.env.NEXT_PUBLIC_FRONTEND_URL = 'http://example.test';
-    fetchSpy.mockResolvedValueOnce({
+    fetchMock.mockResolvedValueOnce({
       json: async () => ({ product: null }),
     } as unknown as Response);
 
     await renderServerComponent(InlineModule.default, { params: { slug: 'missing' } });
 
     expect(screen.getByText('Not found')).toBeInTheDocument();
-    expect(fetchSpy).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenCalledWith(
       'http://example.test/api/marketplace/products/missing',
       { cache: 'no-store' }
     );
@@ -145,7 +146,7 @@ describe('ProductPage (server component) and fetchPdp', () => {
     const attributes = Array.from({ length: 8 }).map((_, i) => ({ key: `k${i + 1}`, value: `v${i + 1}` }));
     const buyBox = { price: 12345.67, currency: 'USD', inStock: true, leadDays: 3 };
 
-    fetchSpy.mockResolvedValueOnce(
+    fetchMock.mockResolvedValueOnce(
       mockJsonResponse({
         product: { title: 'Widget Pro', attributes },
         buyBox,
@@ -173,14 +174,14 @@ describe('ProductPage (server component) and fetchPdp', () => {
     expect(screen.getByRole('link', { name: 'Add to Cart' })).toHaveAttribute('href', '/cart');
     expect(screen.getByRole('link', { name: 'Buy Now (PO)' })).toHaveAttribute('href', '/orders/new?mode=buy-now');
 
-    expect(fetchSpy).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenCalledWith(
       'http://example.test/api/marketplace/products/widget-pro',
       { cache: 'no-store' }
     );
   });
 
   test('renders Backorder state and lead days from buyBox', async () => {
-    fetchSpy.mockResolvedValueOnce(
+    fetchMock.mockResolvedValueOnce(
       mockJsonResponse({
         product: { title: 'Gadget' },
         buyBox: { price: 99.5, currency: 'EUR', inStock: false, leadDays: 14 },
@@ -195,14 +196,14 @@ describe('ProductPage (server component) and fetchPdp', () => {
     expect(screen.getByText('Backorder · Lead 14 days')).toBeInTheDocument();
     expect(screen.getByText(/EUR$/)).toBeInTheDocument();
 
-    expect(fetchSpy).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/api/marketplace/products/gadget',
       { cache: 'no-store' }
     );
   });
 
   test('handles missing buyBox gracefully (renders empty price/currency and default text state)', async () => {
-    fetchSpy.mockResolvedValueOnce(
+    fetchMock.mockResolvedValueOnce(
       mockJsonResponse({
         product: { title: 'NoBuyBox' },
         buyBox: undefined,
@@ -221,11 +222,11 @@ describe('ProductPage (server component) and fetchPdp', () => {
     process.env.NEXT_PUBLIC_FRONTEND_URL = 'https://frontend.example';
     const payload = { ok: true, product: { title: 'Check' } };
 
-    fetchSpy.mockResolvedValueOnce(mockJsonResponse(payload));
+    fetchMock.mockResolvedValueOnce(mockJsonResponse(payload));
 
     const data = await InlineModule.fetchPdp('check-slug');
 
-    expect(fetchSpy).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenCalledWith(
       'https://frontend.example/api/marketplace/products/check-slug',
       { cache: 'no-store' }
     );
@@ -236,12 +237,12 @@ describe('ProductPage (server component) and fetchPdp', () => {
     process.env.NEXT_PUBLIC_FRONTEND_URL = 'http://x.test';
     const payload = { ok: true };
 
-    fetchSpy.mockResolvedValueOnce(mockJsonResponse(payload));
+    fetchMock.mockResolvedValueOnce(mockJsonResponse(payload));
 
     // @ts-expect-error - testing unexpected input path
     const data = await InlineModule.fetchPdp(12345);
 
-    expect(fetchSpy).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenCalledWith(
       'http://x.test/api/marketplace/products/12345',
       { cache: 'no-store' }
     );

@@ -5,6 +5,7 @@
  */
 
 import { vi, describe, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import { mockFetch, restoreFetch } from '@/tests/helpers/domMocks';
 import '@testing-library/jest-dom/vitest';
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
@@ -29,10 +30,10 @@ vi.mock('@/components/ui/navigation-buttons', () => ({
 import SupportTicketPage from '@/app/(app)/help/support-ticket/page';
 
 // Helpers to mock global APIs
-const originalFetch = global.fetch;
 const originalAlert = global.alert as unknown as ReturnType<typeof vi.fn> | undefined;
 const originalConsoleError = console.error;
 let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+let fetchMock: ReturnType<typeof mockFetch>;
 
 beforeAll(() => {
   // Silence noisy act() warnings while still surfacing real errors
@@ -52,13 +53,12 @@ beforeEach(() => {
   // @ts-ignore
   global.alert = vi.fn();
   // Default fetch mock resolves with ok=true
-  // @ts-ignore
-  global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 't_123' }) });
+  fetchMock = mockFetch();
+  fetchMock.mockResolvedValue({ ok: true, json: async () => ({ id: 't_123' }) } as Response);
 });
 
 afterEach(() => {
-  // @ts-ignore
-  global.fetch = originalFetch;
+  restoreFetch();
   if (originalAlert) {
     // @ts-ignore
     global.alert = originalAlert;
@@ -166,11 +166,11 @@ describe('SupportTicketPage', () => {
     await user.click(submit);
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
     // Verify request details
-    const lastCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const lastCall = fetchMock.mock.calls[0];
     expect(lastCall[0]).toBe('/api/support/tickets');
     const options = lastCall[1];
     expect(options.method).toBe('POST');
@@ -225,18 +225,17 @@ describe('SupportTicketPage', () => {
     await user.click(submit);
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
-    const [, options] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [, options] = fetchMock.mock.calls[0];
     const body = JSON.parse(options.body);
     expect(body.requester).toBeDefined();
     expect(body.requester.phone).toBeUndefined();
   });
 
   test('shows error alert and re-enables button when fetch fails (non-2xx)', async () => {
-    // @ts-ignore
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, json: async () => ({}) });
+    fetchMock.mockResolvedValueOnce({ ok: false, json: async () => ({}) } as Response);
 
     await renderPage();
     const user = userEvent.setup();
@@ -246,7 +245,7 @@ describe('SupportTicketPage', () => {
     await user.click(submit);
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalled();
     });
 
     await waitFor(() => {
@@ -262,8 +261,7 @@ describe('SupportTicketPage', () => {
   });
 
   test('shows error alert if fetch throws', async () => {
-    // @ts-ignore
-    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('network down'));
+    fetchMock.mockRejectedValueOnce(new Error('network down'));
 
     await renderPage();
     const user = await fillRequiredFields();
@@ -288,7 +286,7 @@ describe('SupportTicketPage', () => {
 
     // Native form required should prevent submission; fetch should not be called
     await waitFor(() => {
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
     });
   });
 
@@ -296,8 +294,7 @@ describe('SupportTicketPage', () => {
     // Create a deferred promise to control resolution timing
     let resolveFn: (v?: unknown) => void;
     const pending = new Promise(res => { resolveFn = res; });
-    // @ts-ignore
-    (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(() => pending);
+    fetchMock.mockImplementationOnce(() => pending as unknown as Response);
 
     await renderPage();
     const user = await fillRequiredFields();

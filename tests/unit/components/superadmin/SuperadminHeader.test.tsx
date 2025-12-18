@@ -1,6 +1,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { mockFetch, restoreFetch } from "@/tests/helpers/domMocks";
 import { useRouter } from "next/navigation";
 
 vi.mock("next/navigation", () => ({
@@ -80,11 +81,18 @@ import { SuperadminHeader } from "@/components/superadmin/SuperadminHeader";
 
 describe("SuperadminHeader", () => {
   const push = vi.fn();
+  let fetchMock: ReturnType<typeof mockFetch>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     (globalThis as any).__fixzitRouterPush = push;
     vi.mocked(useRouter as unknown as () => any).mockReturnValue({ push });
+    fetchMock = mockFetch();
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({}) } as Response);
+  });
+
+  afterEach(() => {
+    restoreFetch();
   });
 
   it("routes logo to landing page", () => {
@@ -99,6 +107,23 @@ describe("SuperadminHeader", () => {
     const switchButton = screen.getByText(/Switch tenant/i);
     fireEvent.click(switchButton);
     expect(push).toHaveBeenCalledWith("/superadmin/tenants");
+  });
+
+  it("submits search on Enter and routes to superadmin search", () => {
+    render(<SuperadminHeader />);
+    const searchInput = screen.getByLabelText(/search superadmin/i);
+    fireEvent.change(searchInput, { target: { value: "billing" } });
+    fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
+    expect(push).toHaveBeenCalledWith("/superadmin/search?q=billing");
+  });
+
+  it("focuses search input on Cmd/Ctrl+K", () => {
+    render(<SuperadminHeader />);
+    const searchInput = screen.getByLabelText(/search superadmin/i);
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    expect(searchInput).toHaveFocus();
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    expect(searchInput).toHaveFocus();
   });
 
   it("renders a single language dropdown with flags", () => {

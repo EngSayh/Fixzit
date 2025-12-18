@@ -6,6 +6,7 @@
 import React, { useContext } from "react";
 import { render, screen, waitFor, cleanup, act } from "@testing-library/react";
 import { vi, beforeEach, afterEach, describe, test, expect } from "vitest";
+import { mockFetch, restoreFetch } from "@/tests/helpers/domMocks";
 
 /**
  * Mock config and dictionaries BEFORE importing the module under test
@@ -51,17 +52,21 @@ function resetCookies() {
   document.cookie = "fxz.lang=;expires=" + past + ";path=/";
 }
 
+let fetchMock: ReturnType<typeof mockFetch>;
+
 beforeEach(() => {
   cleanup();
   localStorage.clear();
   resetCookies();
   vi.clearAllMocks();
   // Provide a default fetch mock
-  global.fetch = vi.fn().mockResolvedValue({ ok: true } as Response);
+  fetchMock = mockFetch();
+  fetchMock.mockResolvedValue({ ok: true } as Response);
 });
 
 afterEach(() => {
   cleanup();
+  restoreFetch();
 });
 
 interface I18nContextValue {
@@ -172,8 +177,8 @@ describe("I18nProvider", () => {
     expect(document.cookie).toContain("fxz.lang=ar");
 
     // Fetch called
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(global.fetch).toHaveBeenCalledWith("/api/i18n", {
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("/api/i18n", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ locale: "ar" }),
@@ -218,7 +223,8 @@ describe("I18nProvider", () => {
     // Ensure clean baseline for cookies and storage
     localStorage.clear();
     resetCookies();
-    global.fetch = vi.fn().mockResolvedValue({ ok: true } as Response);
+    fetchMock.mockClear();
+    fetchMock.mockResolvedValue({ ok: true } as Response);
 
     await act(async () => {
       ctxRef?.setLocale("ar", { persist: false });
@@ -239,7 +245,7 @@ describe("I18nProvider", () => {
     expect(document.cookie).not.toContain("fxz.lang=");
 
     // No fetch call
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
 
     // DOM reflects RTL
     expect(document.documentElement.dir).toBe("rtl");
@@ -275,7 +281,7 @@ describe("I18nProvider", () => {
 
     // Cookies not set, fetch not called because error occurs before those lines
     expect(document.cookie).not.toContain("locale=");
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
 
     spy.mockRestore();
   });

@@ -98,6 +98,29 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 **Verification:** `pnpm vitest run tests/unit/components/superadmin/SuperadminHeader.test.tsx tests/unit/api/filters/presets.route.test.ts tests/unit/components/tables/filter-schema.lists.test.tsx` ✅, `pnpm typecheck` ✅
 
+### 2025-12-18 11:05 (Asia/Riyadh) — Phase F: Superadmin Search Page + Preset Sanitization
+**Context:** Finish superadmin search flow and harden preset payloads  
+**Agent:** Codex (solo)  
+**Duration:** 35 minutes | **Files:** app/superadmin/search/page.tsx, app/api/filters/presets/route.ts, tests/unit/api/filters/presets.route.test.ts, components/tours/GuidedTour.tsx, package.json
+
+**Changes:**
+- Added superadmin search page with client-side querying of `/api/search` and URL sync (fixes dead header search).
+- Preset API now sanitizes filter keys (drops `$`/dot keys) before persist; contract test added for invalid entity_type and legacy normalization.
+- Added deps for dropdown menu/react-joyride; fixed GuidedTour typings to pass TS.
+
+**Verification:** `pnpm vitest run tests/unit/api/filters/presets.route.test.ts` ✅, `pnpm typecheck` ✅
+
+### 2025-12-18 11:24 (Asia/Riyadh) — Phase G: RBAC Parity + Test Noise Guard
+**Context:** Guardrail tests and noise suppression  
+**Agent:** Codex (solo)  
+**Duration:** 15 minutes | **Files:** tests/unit/rbac/client-roles.parity.test.ts, vitest.setup.ts
+
+**Changes:**
+- Added parity test to ensure client roles/sub-roles cover canonical roles from types/user.ts (prevents drift).
+- Extended vitest logger silencing for benign warnings (encryption key missing, ICU fallback, replay warnings) to keep CI clean.
+
+**Verification:** `pnpm vitest run tests/unit/rbac/client-roles.parity.test.ts` ✅, `pnpm typecheck` ✅
+
 ### 2025-12-18 10:28 (Asia/Riyadh) — Phase D: CI Test Lane (Sharded)
 **Context:** CI polish — provide explicit client/server test lanes for faster runs  
 **Agent:** Codex (solo)  

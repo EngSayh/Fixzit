@@ -34,11 +34,13 @@ const sanitizeEnum = <T extends string>(
 
 export async function GET(request: NextRequest) {
   // Rate limiting: 60 requests per minute per IP
-  const rateLimitResponse = enforceRateLimit(request, {
-    keyPrefix: "aqar:insights:pricing",
-    requests: 60,
-    windowMs: 60_000,
-  });
+  const rateLimitResponse = await Promise.resolve(
+    enforceRateLimit(request, {
+      keyPrefix: "aqar:insights:pricing",
+      requests: 60,
+      windowMs: 60_000,
+    }),
+  );
   if (rateLimitResponse) return rateLimitResponse;
 
   const correlationId = crypto.randomUUID();
@@ -94,11 +96,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const correlationId = crypto.randomUUID();
   // Rate limiting: 10 requests per minute per IP (recalculation is expensive)
-  const rateLimitResponse = enforceRateLimit(request, {
-    keyPrefix: "aqar:insights:pricing:recalc",
-    requests: 10,
-    windowMs: 60_000,
-  });
+  const rateLimitResponse = await Promise.resolve(
+    enforceRateLimit(request, {
+      keyPrefix: "aqar:insights:pricing:recalc",
+      requests: 10,
+      windowMs: 60_000,
+    }),
+  );
   if (rateLimitResponse) return rateLimitResponse;
 
   try {

@@ -3,12 +3,12 @@
  * Centralized schemas for server-side filter validation
  */
 
-import type { FilterSchema } from "@/components/tables/utils/filterSchema";
+import type { FilterSchema as _FilterSchema } from "@/components/tables/utils/filterSchema";
 
 // Import schemas from components (server can't import React components directly, so we re-export types)
 // In production, these would be extracted to a shared lib/filters/schemas.ts
 
-type WorkOrderFilters = {
+type _WorkOrderFilters = {
   status?: string;
   priority?: string;
   assignedToMe?: boolean;
@@ -19,7 +19,7 @@ type WorkOrderFilters = {
   dueDateTo?: string;
 };
 
-type InvoiceFilters = {
+type _InvoiceFilters = {
   status?: string;
   dateRange?: string;
   amountMin?: number;
@@ -30,7 +30,7 @@ type InvoiceFilters = {
   dueTo?: string;
 };
 
-type EmployeeFilters = {
+type _EmployeeFilters = {
   role?: string;
   department?: string;
   status?: string;
@@ -38,7 +38,7 @@ type EmployeeFilters = {
   hireTo?: string;
 };
 
-type ProductFilters = {
+type _ProductFilters = {
   category?: string;
   vendor?: string;
   inStock?: boolean;
@@ -47,7 +47,7 @@ type ProductFilters = {
   priceMax?: number;
 };
 
-type PropertyFilters = {
+type _PropertyFilters = {
   type?: string;
   status?: string;
   city?: string;
@@ -56,7 +56,7 @@ type PropertyFilters = {
   bedrooms?: number;
 };
 
-type AuditLogFilters = {
+type _AuditLogFilters = {
   action?: string;
   module?: string;
   userId?: string;
@@ -64,7 +64,7 @@ type AuditLogFilters = {
   toDate?: string;
 };
 
-type UserFilters = {
+type _UserFilters = {
   role?: string;
   status?: string;
   createdFrom?: string;

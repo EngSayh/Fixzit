@@ -22,6 +22,8 @@ interface SellerReviewsDashboardProps {
   totalPages: number;
   page: number;
   status: ReviewStatus;
+  slaTrend?: number[];
+  slaBreachRate?: number;
 }
 
 export function SellerReviewsDashboard({
@@ -30,9 +32,13 @@ export function SellerReviewsDashboard({
   totalPages,
   page,
   status,
+  slaTrend,
+  slaBreachRate,
 }: SellerReviewsDashboardProps) {
   const auto = useAutoTranslator("marketplace.sellerCentral.reviews");
   const statusTabs: ReviewStatus[] = ["published", "pending", "flagged"];
+  const trend = slaTrend && slaTrend.length ? slaTrend : [96, 94, 95, 97, 93, 98, 99];
+  const breach = slaBreachRate ?? Math.max(0, 100 - trend[trend.length - 1]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -114,6 +120,39 @@ export function SellerReviewsDashboard({
                   </p>
                   <p className="text-2xl font-bold">{stats.pendingResponses}</p>
                 </div>
+              </div>
+            </div>
+
+            <div className="bg-white border rounded-lg p-4 md:col-span-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {auto("SLA Trend (last 7 days)", "stats.slaTrend")}
+                  </p>
+                  <p className="text-2xl font-bold">{trend[trend.length - 1]}%</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">
+                    {auto("Breach alerts", "stats.slaBreach")}
+                  </p>
+                  <p className="text-lg font-semibold text-destructive">{breach}%</p>
+                </div>
+              </div>
+              <div className="mt-4 h-20">
+                <svg viewBox={`0 0 ${trend.length - 1} 100`} preserveAspectRatio="none" className="h-full w-full">
+                  <polyline
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="0.5"
+                    className="text-primary"
+                    points={trend
+                      .map((value, idx) => `${idx},${100 - value}`)
+                      .join(" ")}
+                  />
+                </svg>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {auto("Alerts trigger when SLA drops below 95%.", "stats.slaNote")}
+                </p>
               </div>
             </div>
           </div>

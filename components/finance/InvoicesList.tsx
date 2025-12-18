@@ -40,6 +40,7 @@ import {
 import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 type InvoiceRecord = {
@@ -228,7 +229,7 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         )
       );
     } catch (error) {
-      console.error("Export error:", error);
+      logger.error("Export error", { error });
       toast.error(
         t(
           "finance.invoices.exportFailed",

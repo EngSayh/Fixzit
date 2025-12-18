@@ -59,7 +59,10 @@ export default function PDPBuyBox({
       if (effectiveQuantity !== quantity) {
         setQuantity(effectiveQuantity);
       }
-      await addProductToCart(product.id, effectiveQuantity);
+      await addProductToCart(product.id, effectiveQuantity, {
+        price: product.buy.price,
+        currency: product.buy.currency || currency,
+      });
       onAddToCart?.(effectiveQuantity);
     } catch (error) {
       import("../../lib/logger")

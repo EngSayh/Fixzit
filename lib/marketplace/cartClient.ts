@@ -36,7 +36,38 @@ function parseCartError(payload: unknown, fallback: string) {
   return fallback;
 }
 
-export async function addProductToCart(productId: string, quantity: number) {
+export const GUEST_CART_KEY = "marketplace_saved_cart";
+
+function persistGuestCart(line: {
+  productId: string;
+  quantity: number;
+  title?: string;
+  price?: number;
+  currency?: string;
+}) {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem(GUEST_CART_KEY);
+    const existing = raw ? (JSON.parse(raw) as Array<Record<string, unknown>>) : [];
+    const next = Array.isArray(existing) ? existing : [];
+    next.push({
+      productId: line.productId,
+      qty: line.quantity,
+      price: line.price,
+      currency: line.currency,
+      title: line.title,
+    });
+    window.localStorage.setItem(GUEST_CART_KEY, JSON.stringify(next));
+  } catch {
+    // ignore storage failures
+  }
+}
+
+export async function addProductToCart(
+  productId: string,
+  quantity: number,
+  meta?: { title?: string; price?: number; currency?: string }
+) {
   const response = await fetch("/api/marketplace/cart", {
     method: "POST",
     credentials: "include",
@@ -50,6 +81,17 @@ export async function addProductToCart(productId: string, quantity: number) {
     payload = await response.json();
   } catch {
     payload = undefined;
+  }
+
+  if (response.status === 401 || response.status === 403) {
+    persistGuestCart({
+      productId,
+      quantity,
+      title: meta?.title,
+      price: meta?.price,
+      currency: meta?.currency,
+    });
+    throw new Error("Please sign in to restore your saved cart and checkout.");
   }
 
   if (!response.ok) {
