@@ -1,39 +1,42 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
+// Mock contexts
 vi.mock("@/contexts/CurrencyContext", () => ({
   useCurrency: () => ({
-    currency: "SAR",
+    currency: "USD",
     setCurrency: vi.fn(),
     options: [
-      { code: "SAR", name: "Saudi Riyal", symbol: "﷼", flag: "🇸🇦" },
-      { code: "USD", name: "US Dollar", symbol: "$", flag: "🇺🇸" },
+      { code: "USD", name: "US Dollar", flag: "🇺🇸" },
+      { code: "SAR", name: "Saudi Riyal", flag: "🇸🇦" },
     ],
   }),
 }));
 
 vi.mock("@/contexts/TranslationContext", () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
-    isRTL: true,
+    t: (_k: string, fallback?: string) => fallback || "",
+    isRTL: false,
   }),
 }));
 
 import CurrencySelector from "@/components/i18n/CurrencySelector";
 
 describe("CurrencySelector smoke", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("renders options and allows selection", () => {
+  it("renders trigger and opens list with currency options", async () => {
+    const user = userEvent.setup();
     render(<CurrencySelector variant="compact" />);
 
-    const trigger = screen.getByRole("button");
-    fireEvent.click(trigger);
-    const usdOptions = screen.getAllByText("USD");
-    expect(usdOptions.length).toBeGreaterThan(0);
-    fireEvent.click(usdOptions[usdOptions.length - 1]);
+    const trigger = screen.getByRole("button", { name: /select currency/i });
+    expect(trigger).toBeInTheDocument();
+
+    await user.click(trigger);
+
+    const listbox = screen.getByRole("listbox");
+    expect(listbox).toBeInTheDocument();
+    expect(within(listbox).getByRole("option", { name: /usd/i })).toBeInTheDocument();
+    expect(within(listbox).getByRole("option", { name: /sar/i })).toBeInTheDocument();
   });
 });
