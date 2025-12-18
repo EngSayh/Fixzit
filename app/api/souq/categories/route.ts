@@ -43,11 +43,14 @@ export async function GET(request: NextRequest) {
       .sort({ level: 1, name: 1 })
       .lean();
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: categories,
       total: categories.length,
     });
+    // Cache for 5 minutes, allow stale for 10 minutes (static catalog data)
+    response.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+    return response;
   } catch (error) {
     logger.error("GET /api/souq/categories error:", error as Error);
     return NextResponse.json(

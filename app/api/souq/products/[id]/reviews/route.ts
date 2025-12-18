@@ -87,11 +87,14 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const stats = await reviewService.getReviewStats(productId, orgId);
     const distribution = await ratingAggregationService.getRatingDistribution(productId, orgId);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       ...reviews,
       stats,
       distribution,
     });
+    // Cache product reviews for 2 minutes (public data, changes less frequently)
+    response.headers.set("Cache-Control", "public, max-age=120, stale-while-revalidate=300");
+    return response;
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

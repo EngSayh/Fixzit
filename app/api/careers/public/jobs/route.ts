@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
       Job.countDocuments(filter),
     ]);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       jobs,
       pagination: {
@@ -111,6 +111,9 @@ export async function GET(req: NextRequest) {
         pages: Math.ceil(total / limit) || 1,
       },
     });
+    // Cache public job listings for 5 minutes
+    response.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+    return response;
   } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
