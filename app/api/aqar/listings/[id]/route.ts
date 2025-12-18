@@ -60,6 +60,7 @@ export async function GET(
     }
 
     // SEC-002: Only expose active listings publicly; drafts/archived remain hidden
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Public marketplace listing
     const listing = await AqarListing.findOne({ _id: id, status: ListingStatus.ACTIVE })
       .select(
         "_id title price areaSqm city status media amenities location intent propertyType analytics rnplEligible auction proptech immersive pricingInsights pricing ai fmLifecycle iotFeatures listerId orgId org_id",
@@ -157,6 +158,7 @@ export async function PATCH(
     }
 
     // SEC-002: Enforce tenant + ownership scope in the query itself
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Has tenant scope via $or clause
     const listing = await AqarListing.findOne({
       _id: id,
       listerId: user.id,
@@ -335,6 +337,7 @@ export async function DELETE(
     }
 
     // SEC-002: Enforce tenant + ownership scope in the query itself
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Has tenant scope via $or clause
     const listing = await AqarListing.findOne({
       _id: id,
       listerId: user.id,
@@ -344,6 +347,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Listing not found" }, { status: 404 });
     }
 
+    // eslint-disable-next-line local/require-tenant-scope -- SAFE: deleteOne on already-scoped listing (line 338)
     await listing.deleteOne();
 
     return NextResponse.json({ success: true });

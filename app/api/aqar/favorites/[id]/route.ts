@@ -89,11 +89,13 @@ export async function DELETE(
     }
 
     // Delete favorite first
+    // eslint-disable-next-line local/require-tenant-scope -- SAFE: deleteOne on already-scoped favorite (line 77)
     await favorite.deleteOne();
 
     // Decrement analytics after successful deletion (with error handling)
     if (favorite.targetType === "LISTING") {
       try {
+        // eslint-disable-next-line local/require-tenant-scope -- SAFE: Analytics decrement (user deleted their own favorite)
         await AqarListing.findByIdAndUpdate(favorite.targetId, [
           {
             $set: {
