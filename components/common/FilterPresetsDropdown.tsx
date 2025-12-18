@@ -30,23 +30,36 @@ import { useToast } from "@/hooks/use-toast";
 export interface FilterPresetsDropdownProps {
   entityType: EntityType;
   currentFilters: Record<string, unknown>;
+  currentSearch?: string;
   currentSort?: { field: string; direction: "asc" | "desc" };
-  onLoadPreset: (filters: Record<string, unknown>, sort?: { field: string; direction: "asc" | "desc" }) => void;
+  normalizeFilters?: (filters: Record<string, unknown>) => Record<string, unknown>;
+  autoloadDefault?: boolean;
+  onLoadPreset: (
+    filters: Record<string, unknown>,
+    sort?: { field: string; direction: "asc" | "desc" },
+    search?: string
+  ) => void;
 }
 
 export function FilterPresetsDropdown({
   entityType,
   currentFilters,
+  currentSearch,
   currentSort,
+  normalizeFilters,
+  autoloadDefault = true,
   onLoadPreset,
 }: FilterPresetsDropdownProps) {
-  const { presets, createPreset, deletePreset, isLoading } = useFilterPresets({ entityType });
+  const { presets, createPreset, deletePreset, defaultPreset, isLoading } = useFilterPresets({ entityType });
   const { toast } = useToast();
   const [showPresetsDialog, setShowPresetsDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [presetName, setPresetName] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [defaultApplied, setDefaultApplied] = useState(false);
+
+  const safeFilters = normalizeFilters ? normalizeFilters(currentFilters) : currentFilters;
 
   const handleSavePreset = useCallback(async () => {
     if (!presetName.trim()) {
@@ -63,8 +76,9 @@ export function FilterPresetsDropdown({
       await createPreset({
         entity_type: entityType,
         name: presetName.trim(),
-        filters: currentFilters,
+        filters: safeFilters,
         sort: currentSort,
+        search: currentSearch,
         is_default: isDefault,
       });
 
@@ -109,18 +123,37 @@ export function FilterPresetsDropdown({
   );
 
   const handleLoadPreset = useCallback(
-    (filters: Record<string, unknown>, sort?: { field: string; direction: "asc" | "desc" }) => {
-      onLoadPreset(filters, sort);
+    (filters: Record<string, unknown>, sort?: { field: string; direction: "asc" | "desc" }, search?: string) => {
+      const normalizedFilters = normalizeFilters ? normalizeFilters(filters) : filters;
+      onLoadPreset(normalizedFilters, sort, search);
       setShowPresetsDialog(false);
       toast({
         title: "Preset loaded",
         description: "Filters have been applied",
       });
     },
-    [onLoadPreset, toast]
+    [normalizeFilters, onLoadPreset, toast]
   );
 
-  const hasActiveFilters = Object.keys(currentFilters).length > 0;
+  const hasActiveFilters = Object.keys(safeFilters || {}).length > 0;
+  const hasActiveSearch = Boolean(currentSearch && currentSearch.trim().length > 0);
+
+  // Auto-apply default preset when available and no active search/filters
+  React.useEffect(() => {
+    if (!autoloadDefault || defaultApplied) return;
+    if (!defaultPreset) return;
+    if (hasActiveFilters || hasActiveSearch) return;
+
+    handleLoadPreset(defaultPreset.filters, defaultPreset.sort, defaultPreset.search);
+    setDefaultApplied(true);
+  }, [
+    autoloadDefault,
+    defaultApplied,
+    defaultPreset,
+    handleLoadPreset,
+    hasActiveFilters,
+    hasActiveSearch,
+  ]);
 
   return (
     <>

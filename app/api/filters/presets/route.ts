@@ -18,15 +18,17 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 import {
   FILTER_ENTITY_TYPES,
-  LEGACY_ENTITY_ALIASES,
   normalizeFilterEntityType,
+  entityTypeQueryValues,
 } from "@/lib/filters/entities";
 
-const LEGACY_ENTITY_KEYS = Object.keys(LEGACY_ENTITY_ALIASES) as [string, ...string[]];
-const ENTITY_TYPE_SCHEMA = z.enum(FILTER_ENTITY_TYPES).or(z.enum(LEGACY_ENTITY_KEYS));
-
 const createPresetSchema = z.object({
-  entity_type: ENTITY_TYPE_SCHEMA,
+  entity_type: z
+    .string()
+    .trim()
+    .refine((value) => Boolean(normalizeFilterEntityType(value)), {
+      message: "Invalid entity_type",
+    }),
   name: z.string().min(1).max(100),
   filters: z.record(z.string(), z.unknown()), // Fixed: z.record now requires key schema
   sort: z.object({
@@ -65,10 +67,9 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
-  const entityTypeRaw = searchParams.get("entity_type");
-  const entityType = normalizeFilterEntityType(entityTypeRaw);
+  const entityType = normalizeFilterEntityType(searchParams.get("entity_type"));
 
-  if (entityTypeRaw && !entityType) {
+  if (searchParams.get("entity_type") && !entityType) {
     return NextResponse.json({ error: "Invalid entity_type" }, { status: 400 });
   }
 
@@ -80,23 +81,21 @@ export async function GET(request: NextRequest) {
       user_id: userId,
     };
 
-    if (entityType) {
-      const legacyKeys = Object.entries(LEGACY_ENTITY_ALIASES)
-        .filter(([, canonical]) => canonical === entityType)
-        .map(([legacy]) => legacy);
-      query.entity_type = { $in: [entityType, ...legacyKeys] };
-    } else {
-      query.entity_type = { $in: FILTER_ENTITY_TYPES };
-    }
+    query.entity_type = { $in: entityTypeQueryValues(entityType) };
 
     const presets = await FilterPreset.find(query)
       .sort({ is_default: -1, updated_at: -1 })
       .lean()
       .exec();
 
+    const normalizedPresets = presets.map((preset) => {
+      const canonical = normalizeFilterEntityType(preset.entity_type as string);
+      return canonical ? { ...preset, entity_type: canonical } : preset;
+    });
+
     return NextResponse.json({
-      presets,
-      count: presets.length,
+      presets: normalizedPresets,
+      count: normalizedPresets.length,
     });
   } catch (error) {
     logger.error("[FilterPresets] GET failed", { error, orgId, userId, entityType });
@@ -157,7 +156,7 @@ export async function POST(request: NextRequest) {
     const existingCount = await FilterPreset.countDocuments({
       org_id: orgId,
       user_id: userId,
-      entity_type: normalizedEntityType,
+      entity_type: { $in: entityTypeQueryValues(normalizedEntityType) },
     });
 
     if (existingCount >= 20) {

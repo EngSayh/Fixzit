@@ -10,7 +10,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 import {
   FILTER_ENTITY_TYPES,
-  LEGACY_ENTITY_ALIASES,
+  normalizeFilterEntityType,
   type FilterEntityType,
 } from "@/lib/filters/entities";
 
@@ -44,7 +44,12 @@ const FilterPresetSchema = new Schema<IFilterPreset>(
     entity_type: {
       type: String,
       required: true,
-      enum: [...FILTER_ENTITY_TYPES, ...Object.keys(LEGACY_ENTITY_ALIASES)],
+      enum: FILTER_ENTITY_TYPES,
+      set: (value: string) => normalizeFilterEntityType(value) ?? value,
+      validate: {
+        validator: (value: string) => Boolean(normalizeFilterEntityType(value)),
+        message: ({ value }) => `Invalid entity_type "${value}"`,
+      },
       index: true,
     },
     name: {
@@ -120,6 +125,16 @@ FilterPresetSchema.pre("save", async function (next) {
     );
   }
   next();
+});
+
+// Normalize legacy values on hydrated documents (lean results normalized in routes)
+FilterPresetSchema.pre("init", function (doc) {
+  if (doc?.entity_type) {
+    const normalized = normalizeFilterEntityType(doc.entity_type);
+    if (normalized) {
+      doc.entity_type = normalized;
+    }
+  }
 });
 
 export const FilterPreset =

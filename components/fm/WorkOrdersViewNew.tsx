@@ -13,7 +13,7 @@
  */
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useTranslation } from "@/contexts/TranslationContext";
@@ -46,6 +46,7 @@ import {
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
+import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 
 import ClientDate from "@/components/ClientDate";
@@ -368,10 +369,26 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
     setFilterDrawerOpen(false);
   };
 
-  const handleLoadPreset = (presetFilters: Record<string, unknown>) => {
-    setDraftFilters(presetFilters as WorkOrderFilters);
-    updateState({ filters: presetFilters });
+  const handleLoadPreset = (
+    presetFilters: Record<string, unknown>,
+    _sort?: { field: string; direction: "asc" | "desc" },
+    search?: string
+  ) => {
+    const normalizedFilters = pickSchemaFilters<WorkOrderFilters>(
+      presetFilters,
+      WORK_ORDER_FILTER_SCHEMA
+    );
+    setDraftFilters(normalizedFilters);
+    updateState({
+      filters: normalizedFilters,
+      q: typeof search === "string" ? search : "",
+    });
   };
+
+  // Auto-apply default preset when none is set in state (handled by FilterPresetsDropdown)
+  useEffect(() => {
+    // no-op: handled by dropdown through onLoadPreset + autoloadDefault
+  }, []);
 
   return (
     <div className="space-y-6 p-6">

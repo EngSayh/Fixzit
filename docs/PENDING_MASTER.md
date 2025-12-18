@@ -1,5 +1,17 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-18 09:57 (Asia/Riyadh) — Phase A: Filter Preset Canonicalization
+**Context:** Saved filters platform alignment (camelCase entity types)  
+**Agent:** Codex (solo)  
+**Duration:** 25 minutes | **Files:** app/api/filters/presets/route.ts, server/models/common/FilterPreset.ts, lib/filters/entities.ts
+
+**Changes:**
+- Canonicalized preset entity_type to camelCase with legacy alias normalization (no new snake_case usage).
+- API GET/POST now query both canonical + legacy values and return normalized payloads; default preset limits respect aliases.
+- Model validates and normalizes entity_type on set/init to prevent regressions; removed legacy literals from schema.
+
+**Verification:** `pnpm typecheck` ✅, `pnpm vitest run tests/integration/filters.test.ts tests/unit/components/tables/filter-schema.lists.test.tsx` ✅
+
 ### 2025-12-18 09:45 (Asia/Riyadh) — Phase 3: Test Infrastructure + CI Coordination
 **Context:** feat/mobile-cardlist-phase1 | Commits: f4edac47c + e5c10ccd6 (parallel agent) | Phases 1-7/8 complete  
 **Agent:** GitHub Copilot + Parallel Agent (multi-agent coordination)  

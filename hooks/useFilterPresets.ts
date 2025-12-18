@@ -10,7 +10,10 @@
 import useSWR, { mutate } from "swr";
 import { useCallback } from "react";
 import { logger } from "@/lib/logger";
-import { type FilterEntityType } from "@/lib/filters/entities";
+import {
+  normalizeFilterEntityType,
+  type FilterEntityType,
+} from "@/lib/filters/entities";
 
 export type EntityType = FilterEntityType;
 
@@ -25,6 +28,7 @@ export interface FilterPreset {
     field: string;
     direction: "asc" | "desc";
   };
+  search?: string;
   is_default?: boolean;
   created_at: string;
   updated_at: string;
@@ -58,6 +62,7 @@ export interface UseFilterPresetsReturn {
     name: string;
     filters: Record<string, unknown>;
     sort?: { field: string; direction: "asc" | "desc" };
+    search?: string;
     is_default?: boolean;
   }) => Promise<FilterPreset>;
   deletePreset: (id: string) => Promise<void>;
@@ -69,8 +74,9 @@ export function useFilterPresets({
   entityType,
   enabled = true,
 }: UseFilterPresetsOptions = {}): UseFilterPresetsReturn {
-  const url = entityType
-    ? `/api/filters/presets?entity_type=${entityType}`
+  const normalizedEntity = entityType ? normalizeFilterEntityType(entityType) : undefined;
+  const url = normalizedEntity
+    ? `/api/filters/presets?entity_type=${normalizedEntity}`
     : "/api/filters/presets";
 
   const { data, error, isLoading } = useSWR<FetchPresetsResponse>(
@@ -88,6 +94,7 @@ export function useFilterPresets({
       name: string;
       filters: Record<string, unknown>;
       sort?: { field: string; direction: "asc" | "desc" };
+      search?: string;
       is_default?: boolean;
     }): Promise<FilterPreset> => {
       const res = await fetch("/api/filters/presets", {
