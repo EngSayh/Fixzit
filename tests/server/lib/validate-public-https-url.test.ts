@@ -179,4 +179,47 @@ describe('validatePublicHttpsUrl - SSRF Protection', () => {
       expect(() => validatePublicHttpsUrl('https://example.com/webhook?token=abc123')).not.toThrow();
     });
   });
+
+  describe('IPv6 Private Range Rejection', () => {
+    it('should reject ULA (Unique Local Addresses) fc00::/7', () => {
+      const ulaUrls = [
+        'https://[fc00::1]',
+        'https://[fc00:1234:5678::1]',
+        'https://[fd00::1]',
+        'https://[fd12:3456:789a::1]',
+      ];
+
+      ulaUrls.forEach((url) => {
+        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
+        expect(() => validatePublicHttpsUrl(url)).toThrow('Private IPv6 addresses are not allowed');
+        expect(isValidPublicHttpsUrl(url)).toBe(false);
+      });
+    });
+
+    it('should reject link-local fe80::/10', () => {
+      const linkLocalUrls = [
+        'https://[fe80::1]',
+        'https://[fe80:1234:5678::1]',
+      ];
+
+      linkLocalUrls.forEach((url) => {
+        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
+        expect(() => validatePublicHttpsUrl(url)).toThrow('Private IPv6 addresses are not allowed');
+        expect(isValidPublicHttpsUrl(url)).toBe(false);
+      });
+    });
+
+    it('should accept valid public IPv6 addresses', () => {
+      const publicIPv6Urls = [
+        'https://[2001:4860:4860::8888]', // Google DNS
+        'https://[2606:4700:4700::1111]', // Cloudflare DNS
+      ];
+
+      publicIPv6Urls.forEach((url) => {
+        // Note: These will still fail due to "Direct IP addresses are discouraged" check
+        // But they pass the private IPv6 check
+        expect(() => validatePublicHttpsUrl(url)).toThrow('Direct IP addresses are discouraged');
+      });
+    });
+  });
 });

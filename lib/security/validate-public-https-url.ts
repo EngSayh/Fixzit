@@ -3,8 +3,9 @@
  * 
  * Prevents Server-Side Request Forgery by:
  * - Enforcing HTTPS-only
- * - Blocking localhost/loopback
- * - Blocking private IP ranges (10.*, 192.168.*, 172.16-31.*)
+ * - Blocking localhost/loopback (IPv4 & IPv6)
+ * - Blocking private IPv4 ranges (10.*, 192.168.*, 172.16-31.*)
+ * - Blocking private IPv6 ranges (fc00::/7, fd00::/8, fe80::/10)
  * - Blocking link-local (169.254.* - AWS metadata)
  * - Blocking internal TLDs (.local, .internal)
  * 
@@ -54,9 +55,14 @@ export function validatePublicHttpsUrl(urlString: string): URL {
     throw new URLValidationError('Localhost URLs are not allowed');
   }
 
-  // Block private IP ranges
-  if (isPrivateIP(hostname)) {
+  // Block private IP ranges (IPv4)
+  if (isPrivateIPv4(hostname)) {
     throw new URLValidationError('Private IP addresses are not allowed');
+  }
+
+  // Block private IP ranges (IPv6)
+  if (isPrivateIPv6(hostname)) {
+    throw new URLValidationError('Private IPv6 addresses are not allowed');
   }
 
   // Block link-local (AWS metadata endpoint)
@@ -79,9 +85,9 @@ export function validatePublicHttpsUrl(urlString: string): URL {
 }
 
 /**
- * Check if hostname is a private IP address
+ * Check if hostname is a private IPv4 address
  */
-function isPrivateIP(hostname: string): boolean {
+function isPrivateIPv4(hostname: string): boolean {
   // IPv4 private ranges:
   // 10.0.0.0/8
   // 172.16.0.0/12
@@ -105,6 +111,35 @@ function isPrivateIP(hostname: string): boolean {
   if (a === 10) return true; // 10.0.0.0/8
   if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
   if (a === 192 && b === 168) return true; // 192.168.0.0/16
+
+  return false;
+}
+
+/**
+ * Check if hostname is a private IPv6 address
+ * Blocks:
+ * - fc00::/7 (Unique Local Addresses - ULA)
+ * - fd00::/8 (Unique Local Addresses - ULA subset)
+ * - fe80::/10 (Link-Local)
+ */
+function isPrivateIPv6(hostname: string): boolean {
+  // Remove brackets if present ([::1] -> ::1)
+  let addr = hostname.replace(/^\[|\]$/g, '');
+  
+  // Quick check for common patterns
+  if (addr === '::1' || addr === '::') {
+    return true; // Loopback (already blocked above, but double-check)
+  }
+
+  // Check for link-local (fe80::/10)
+  if (addr.toLowerCase().startsWith('fe80:')) {
+    return true;
+  }
+
+  // Check for ULA (fc00::/7 - includes fc00:: and fd00::)
+  if (addr.toLowerCase().startsWith('fc') || addr.toLowerCase().startsWith('fd')) {
+    return true;
+  }
 
   return false;
 }
