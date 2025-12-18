@@ -113,11 +113,69 @@ export async function GET(req: NextRequest) {
     const prefixRegex = new RegExp(`^${sanitizedId}`, "i");
     const fuzzyRegex = new RegExp(sanitizedId, "i");
 
-    // Use aggregation for weighted search with scoring
+    // Weighted search: exact orgId/registrationNumber (score=100) > prefix code/name (score=50) > fuzzy name (score=10)
     const pipeline: any[] = [
       {
+        $addFields: {
+          searchScore: {
+            $sum: [
+              // Exact match on orgId (highest priority)
+              { $cond: [{ $eq: ["$orgId", identifier] }, 100, 0] },
+              // Exact match on registrationNumber
+              { $cond: [{ $eq: ["$legal.registrationNumber", identifier] }, 100, 0] },
+              // Prefix match on code
+              { $cond: [{ $regexMatch: { input: "$code", regex: prefixRegex } }, 50, 0] },
+              // Prefix match on name
+              { $cond: [{ $regexMatch: { input: "$name", regex: prefixRegex } }, 50, 0] },
+              // Fuzzy match on name (fallback)
+              { $cond: [{ $regexMatch: { input: "$name", regex: fuzzyRegex } }, 10, 0] },
+            ],
+          },
+        },
+      },
+      {
         $match: {
-          $or: [
+          searchScore: { $gt: 0 },
+        },
+      },
+      {
+        $sort: { searchScore: -1, name: 1 },
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $project: {
+          orgId: 1,
+          name: 1,
+          code: 1,
+          "legal.registrationNumber": 1,
+          "subscription.plan": 1,
+          searchScore: 1,
+        },
+      },
+    ];
+
+    const results = await Organization.aggregate(pipeline);
+
+    return NextResponse.json(
+      results.map(org => ({
+        orgId: org.orgId,
+        name: org.name,
+        code: org.code ?? null,
+        registrationNumber: org.legal?.registrationNumber ?? null,
+        subscriptionPlan: org.subscription?.plan ?? null,
+        _score: org.searchScore, // Include score for debugging
+      })),
+    );
+  } catch (error) {
+    logger.error("Support org search error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
             { orgId: identifier }, // Exact orgId
             { "legal.registrationNumber": identifier }, // Exact registration
             { code: prefixRegex }, // Code starts with

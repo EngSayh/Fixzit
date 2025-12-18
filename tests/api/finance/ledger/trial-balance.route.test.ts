@@ -14,10 +14,19 @@ type SessionUser = {
 };
 let sessionUser: SessionUser | null = null;
 
-// Mock auth
-vi.mock("@/server/middleware/withAuthRbac", () => ({
-  getSessionUser: vi.fn(async () => sessionUser),
-}));
+// Mock auth - UnauthorizedError must be defined inline due to hoisting
+vi.mock("@/server/middleware/withAuthRbac", () => {
+  class UnauthorizedError extends Error {
+    constructor(message = "Unauthorized") {
+      super(message);
+      this.name = "UnauthorizedError";
+    }
+  }
+  return {
+    getSessionUser: vi.fn(async () => sessionUser),
+    UnauthorizedError,
+  };
+});
 
 // Mock authContext
 vi.mock("@/server/lib/authContext", () => ({
