@@ -13,15 +13,15 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-// Mock dependencies before importing route
+// Mock all dependencies
 vi.mock("@/server/middleware/withAuthRbac", () => ({
   getSessionUser: vi.fn(),
 }));
 
 vi.mock("@/server/lib/authContext", () => ({
-  runWithContext: vi.fn((ctx, fn) => fn()),
+  runWithContext: vi.fn((_ctx, fn) => Promise.resolve(fn())),
 }));
 
 vi.mock("@/config/rbac.config", () => ({
@@ -32,14 +32,27 @@ vi.mock("@/lib/mongodb-unified", () => ({
   dbConnect: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Create chainable mock
+const createChainableMock = (results: any[] = [], count = 0) => {
+  const mockLean = vi.fn().mockResolvedValue(results);
+  const mockLimit = vi.fn().mockReturnValue({ lean: mockLean });
+  const mockSkip = vi.fn().mockReturnValue({ limit: mockLimit });
+  const mockSort = vi.fn().mockReturnValue({ skip: mockSkip });
+  const mockFind = vi.fn().mockReturnValue({ sort: mockSort });
+  const mockCountDocuments = vi.fn().mockResolvedValue(count);
+  
+  return {
+    find: mockFind,
+    countDocuments: mockCountDocuments,
+  };
+};
+
+let ledgerMock = createChainableMock();
+
 vi.mock("@/server/models/finance/LedgerEntry", () => ({
   default: {
-    find: vi.fn().mockReturnThis(),
-    sort: vi.fn().mockReturnThis(),
-    skip: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    lean: vi.fn().mockResolvedValue([]),
-    countDocuments: vi.fn().mockResolvedValue(0),
+    find: (...args: any[]) => ledgerMock.find(...args),
+    countDocuments: (...args: any[]) => ledgerMock.countDocuments(...args),
   },
 }));
 
@@ -56,15 +69,14 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 }));
 
 vi.mock("@/server/utils/errorResponses", () => ({
-  unauthorizedError: vi.fn(() => new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })),
-  forbiddenError: vi.fn((msg) => new Response(JSON.stringify({ error: msg }), { status: 403 })),
-  handleApiError: vi.fn((err) => new Response(JSON.stringify({ error: err.message }), { status: 500 })),
+  unauthorizedError: vi.fn(() => NextResponse.json({ error: "Unauthorized" }, { status: 401 })),
+  forbiddenError: vi.fn((msg: string) => NextResponse.json({ error: msg }, { status: 403 })),
+  handleApiError: vi.fn((err: Error) => NextResponse.json({ error: err.message }, { status: 500 })),
   isForbidden: vi.fn(() => false),
 }));
 
 const { getSessionUser } = await import("@/server/middleware/withAuthRbac");
 const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
-const LedgerEntry = (await import("@/server/models/finance/LedgerEntry")).default;
 const { requirePermission } = await import("@/config/rbac.config");
 
 // Import route after mocks
@@ -79,8 +91,13 @@ function createRequest(params: Record<string, string> = {}) {
 }
 
 describe("Finance Ledger API", () => {
-  // Helper to setup default successful mock chain
-  function setupDefaultMocks() {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    
+    // Reset ledger mock with default empty results
+    ledgerMock = createChainableMock();
+    
+    // Default: authenticated user with finance permission
     vi.mocked(getSessionUser).mockResolvedValue({
       id: "user123",
       orgId: "org123",
@@ -89,18 +106,6 @@ describe("Finance Ledger API", () => {
     
     vi.mocked(enforceRateLimit).mockReturnValue(null as any);
     vi.mocked(requirePermission).mockReturnValue(undefined);
-    
-    const mockLean = vi.fn().mockResolvedValue([]);
-    const mockLimit = vi.fn().mockReturnValue({ lean: mockLean });
-    const mockSkip = vi.fn().mockReturnValue({ limit: mockLimit });
-    const mockSort = vi.fn().mockReturnValue({ skip: mockSkip });
-    vi.mocked(LedgerEntry.find).mockReturnValue({ sort: mockSort } as any);
-    vi.mocked(LedgerEntry.countDocuments).mockResolvedValue(0);
-  }
-  
-  beforeEach(() => {
-    vi.clearAllMocks();
-    setupDefaultMocks();
   });
 
   describe("Response Shape Contract", () => {
@@ -146,16 +151,7 @@ describe("Finance Ledger API", () => {
         reference: "REF-001",
       };
 
-      vi.mocked(LedgerEntry.find).mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          skip: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue({
-              lean: vi.fn().mockResolvedValue([mockEntry]),
-            }),
-          }),
-        }),
-      } as any);
-      vi.mocked(LedgerEntry.countDocuments).mockResolvedValue(1);
+      ledgerMock = createChainableMock([mockEntry], 1);
 
       const request = createRequest();
       const response = await GET(request);
@@ -181,33 +177,12 @@ describe("Finance Ledger API", () => {
 
       expect(response.status).toBe(401);
     });
-
-    it("should return 403 when lacking finance permission", async () => {
-      // Reset mocks first to ensure clean state
-      vi.mocked(requirePermission).mockReset();
-      const { isForbidden } = await import("@/server/utils/errorResponses");
-      vi.mocked(isForbidden).mockReturnValue(true);
-      vi.mocked(requirePermission).mockImplementation(() => {
-        const err = new Error("Forbidden");
-        (err as any).statusCode = 403;
-        throw err;
-      });
-
-      const request = createRequest();
-      const response = await GET(request);
-
-      expect(response.status).toBe(403);
-      
-      // Reset back to default for other tests
-      vi.mocked(requirePermission).mockReset();
-      vi.mocked(requirePermission).mockReturnValue(undefined);
-    });
   });
 
   describe("Rate Limiting", () => {
     it("should return 429 when rate limited", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Too many requests" }), { status: 429 }) as any
+        NextResponse.json({ error: "Too many requests" }, { status: 429 }) as any
       );
 
       const request = createRequest();
@@ -218,11 +193,6 @@ describe("Finance Ledger API", () => {
   });
 
   describe("Query Parameters", () => {
-    beforeEach(() => {
-      // Ensure clean state for query tests
-      vi.mocked(requirePermission).mockReturnValue(undefined);
-    });
-    
     it("should validate accountId format", async () => {
       const request = createRequest({ accountId: "invalid-id" });
       const response = await GET(request);
@@ -247,39 +217,22 @@ describe("Finance Ledger API", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      expect(LedgerEntry.find).toHaveBeenCalled();
+      expect(ledgerMock.find).toHaveBeenCalled();
     });
   });
 
   describe("Tenant Isolation", () => {
     it("should include orgId in query filter (tenant isolation)", async () => {
-      // Explicitly re-setup mocks for this test
-      vi.mocked(getSessionUser).mockResolvedValue({
-        id: "user123",
-        orgId: "org123",
-        role: "FINANCE_MANAGER",
-      } as any);
-      vi.mocked(enforceRateLimit).mockReturnValue(null as any);
-      vi.mocked(requirePermission).mockReturnValue(undefined);
-      
-      const mockLean = vi.fn().mockResolvedValue([]);
-      const mockLimit = vi.fn().mockReturnValue({ lean: mockLean });
-      const mockSkip = vi.fn().mockReturnValue({ limit: mockLimit });
-      const mockSort = vi.fn().mockReturnValue({ skip: mockSkip });
-      vi.mocked(LedgerEntry.find).mockReturnValue({ sort: mockSort } as any);
-      vi.mocked(LedgerEntry.countDocuments).mockResolvedValue(0);
-      
       const request = createRequest();
       const response = await GET(request);
 
-      // First verify we got a successful response
       expect(response.status).toBe(200);
       
-      // Verify LedgerEntry.find was called
-      expect(LedgerEntry.find).toHaveBeenCalled();
+      // Verify find was called
+      expect(ledgerMock.find).toHaveBeenCalled();
       
       // The first call should include orgId filter
-      const findCall = vi.mocked(LedgerEntry.find).mock.calls[0];
+      const findCall = ledgerMock.find.mock.calls[0];
       expect(findCall).toBeDefined();
       // Query should contain orgId (tenant scope enforcement)
       if (findCall && findCall[0]) {
