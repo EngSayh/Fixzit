@@ -1,5 +1,50 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-18 18:00 (Asia/Riyadh) — Phase 5: Client Hygiene & Production Safety
+**Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)
+**Duration:** 15 minutes | **Commit:** 309658b86
+
+**✅ PHASE 5 COMPLETE: CLIENT HYGIENE & PRODUCTION SAFETY**
+
+**P5.1: Timer Leak Fix (OfflineIndicator)**
+- Added useRef for reconnectedTimeoutRef
+- Added clearTimeout before scheduling new timeout
+- Added cleanup on unmount and when going offline
+- File: components/common/OfflineIndicator.tsx
+
+**P5.2: Process.env → Config Migration**
+- Added Config.client exports for NEXT_PUBLIC_* env vars:
+  - wsUrl, googleEnabled, appleEnabled, requireSmsOtp, isPlaywrightTest
+- Migrated 11 client components from direct process.env to Config.client:
+  - app/error.tsx
+  - app/layout.tsx
+  - app/_shell/ClientSidebar.tsx
+  - app/(app)/login/page.tsx
+  - app/(app)/souq/page.tsx
+  - app/(app)/marketplace/page.tsx
+  - app/(app)/marketplace/product/[slug]/page.tsx
+  - app/(fm)/fm/hr/page.tsx
+  - app/(fm)/fm/finance/page.tsx
+  - app/(fm)/fm/system/page.tsx
+  - app/(fm)/system/page.tsx
+  - app/(fm)/dashboard/system/page.tsx
+
+**P5.3: ATS Analytics Timeout Safety**
+- Added maxTimeMS(30_000) to runAggregate helper
+- Prevents long-running queries from timing out or consuming resources
+- File: app/api/ats/analytics/route.ts
+
+**P5.4: TypeScript Test Fix**
+- Added index signature to TestRow interface for Record<string, unknown> compatibility
+- File: tests/unit/components/tables/DataTableStandard.selection.test.tsx
+
+**Verification:**
+- TypeScript: ✅ 0 errors
+- Tests: ✅ 8/8 passing (selection tests)
+- Files: 16 changed
+
+---
+
 ### 2025-12-18 15:30 (Asia/Riyadh) — Phase P39-P46: Production Hardening
 **Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)
 **Duration:** 30 minutes | **Commits:** fe6ecd138, 81c30c304
