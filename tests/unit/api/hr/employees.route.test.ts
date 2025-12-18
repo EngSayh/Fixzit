@@ -42,7 +42,7 @@ describe("GET /api/hr/employees filters", () => {
   it("passes UI filters to EmployeeService.searchWithPagination", async () => {
     searchMock.mockResolvedValue({ items: [], total: 0, page: 1, limit: 20 });
     const url =
-      "http://localhost/api/hr/employees?status=ACTIVE&employmentType=FULL_TIME&department=507f1f77bcf86cd799439011&joiningDateDays=30&joiningFrom=2024-01-01&joiningTo=2024-02-01&search=alice";
+      "http://localhost/api/hr/employees?status=ACTIVE&employmentType=FULL_TIME&department=507f1f77bcf86cd799439011&joiningDateDays=30&joiningFrom=2024-01-01&joiningTo=2024-02-01&q=alice";
     const req = new NextRequest(url);
     await GET(req);
 

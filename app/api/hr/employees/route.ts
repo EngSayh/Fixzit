@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const department = searchParams.get("department");
     const employmentType = searchParams.get("employmentType");
-    const search = searchParams.get("search");
+    const search = searchParams.get("search") || searchParams.get("q");
     const joiningDateDays = Number.parseInt(
       searchParams.get("joiningDateDays") || "",
       10,
