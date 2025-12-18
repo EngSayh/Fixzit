@@ -135,6 +135,17 @@ export function ProductsList({ orgId }: ProductsListProps) {
     filters: {},
   });
 
+  // Performance markers for observability
+  React.useEffect(() => {
+    if (typeof performance !== 'undefined' && performance.mark) {
+      performance.mark('ProductsList:mount');
+      return () => {
+        performance.mark('ProductsList:unmount');
+        performance.measure('ProductsList:lifetime', 'ProductsList:mount', 'ProductsList:unmount');
+      };
+    }
+  }, []);
+
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState(state.filters || {});
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
@@ -164,6 +175,13 @@ export function ProductsList({ orgId }: ProductsListProps) {
   const totalCount = data?.total ?? 0;
   const filters = state.filters as ProductFilters;
   const currentFilters = state.filters || {};
+
+  // Track data load timing
+  React.useEffect(() => {
+    if (typeof performance !== 'undefined' && performance.mark && data && !isLoading) {
+      performance.mark(`ProductsList:dataLoaded:${products.length}items`);
+    }
+  }, [data, isLoading, products.length]);
 
   // Auto-switch to cards on mobile
   React.useEffect(() => {

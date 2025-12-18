@@ -147,8 +147,11 @@ export async function GET(request: NextRequest) {
         },
       },
     });
-    // Tenant-scoped data - short cache, private
-    response.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
+    // Private cache for tenant-scoped product listings
+    response.headers.set(
+      "Cache-Control",
+      "private, max-age=60, stale-while-revalidate=120"
+    );
     return response;
   } catch (error) {
     if (error instanceof z.ZodError) {
