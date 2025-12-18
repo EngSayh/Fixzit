@@ -1,5 +1,47 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-19 13:00 (Asia/Riyadh) — Phase P20: VSCode Cleanup + Parallel Agent Consolidation
+**Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)  
+**Duration:** 15 minutes | **Commit:** c6e1e9e44 | **Files:** 17 changed
+
+**✅ PHASE P20 COMPLETE: VSCODE CLEANUP + SECURITY/RBAC IMPROVEMENTS**
+
+**VSCode Tasks Cleanup (User Request #20):**
+- `.vscode/tasks.json`: Reduced from 421 → 47 lines
+- Removed all risky tasks: PR creation, git push, commit commands
+- Kept only essential tasks: typecheck, lint, test (vitest dot reporter), dev server
+
+**Security Fixes (Parallel Agent Integration):**
+- `app/api/aqar/insights/pricing/route.ts`: Added proper auth + org context validation
+  - Returns 401 for unauthorized users
+  - Returns 403 when org context missing
+  - Removed optional chaining on user.orgId (now guaranteed)
+
+**RBAC Module Access Improvements:**
+- `lib/rbac/client-roles.ts`:
+  - Property Manager: Added SUPPORT module access
+  - Vendor: Added WORK_ORDERS + REPORTS module access
+  - Re-exported ROLE_ALIAS_MAP, ROLE_MODULE_ACCESS, ROLE_ACTIONS, SUB_ROLE_ACTIONS
+
+**Mongoose Index Optimization:**
+- `server/models/BacklogIssue.ts`: Removed redundant `index: true` (unique implies index)
+- `server/models/Permission.ts`: Removed redundant `{ key: 1 }` index
+- `server/models/souq/Claim.ts`: Removed redundant `claimId` index
+- `server/models/souq/RMA.ts`: Removed redundant `rmaId` index
+
+**Test & Script Updates:**
+- `scripts/test-sharded.sh`: Stability improvements
+- `scripts/rbac/generate-client-roles.ts`: Role generator script
+- `scripts/check-client-env.ts`: Client environment checker
+- `vitest.setup.ts`: Test stability improvements
+- `tests/integration/currency-selector.test.ts`: Updated selectors
+
+**Verification:**
+- `pnpm typecheck` ✅ 0 errors
+- `pnpm lint` ✅ 0 errors
+- Git: Working tree clean
+- Branch: feat/mobile-cardlist-phase1 (2 commits ahead of origin)
+
 ### 2025-12-18 21:30 (Asia/Riyadh) — Phase: Duplicate Index + Rate Limit Enhancement
 **Context:** feat/mobile-cardlist-phase1 | Agent: VS Code Agent + parallel Codex  
 **Duration:** 20 minutes | **Commit:** c916ba248 | **Files:** 5 changed
