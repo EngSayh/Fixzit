@@ -37,6 +37,17 @@ const phases = [
   { id: 'P93', title: 'Developer Experience', status: 'completed', date: '2025-12-18', evidence: 'README, CONTRIBUTING, 50+ VSCode tasks' },
   { id: 'P94', title: 'Tech Debt & Future-Proofing', status: 'completed', date: '2025-12-18', evidence: 'Phase 2 roadmap (57h), upgrade paths' },
   { id: 'P95', title: 'Superadmin Dashboard', status: 'completed', date: '2025-12-18', evidence: 'This page - Point 21 requirement' },
+  
+  // --- Implementation Phase (P90-P97) - 2025-12-18 Evening ---
+  { id: 'P90-Impl', title: 'Support Search Weighted Scoring', status: 'completed', date: '2025-12-18T19:10', evidence: 'Exact (100), prefix (50), fuzzy (10) relevance' },
+  { id: 'P91-Impl', title: 'Finance Ledger Contract Guards', status: 'completed', date: '2025-12-18T19:15', evidence: 'Response-shape assertions in 3 test suites' },
+  { id: 'P92-Impl', title: 'Performance Observability', status: 'completed', date: '2025-12-18T19:20', evidence: 'Perf markers in CardList, InvoicesList, PropertiesList' },
+  { id: 'P93-Impl', title: 'Visual Regression Baseline', status: 'completed', date: '2025-12-18T19:20', evidence: 'OfflineIndicator visual tests (LTR/RTL baselines)' },
+  { id: 'P94-Impl', title: 'Sentry Sourcemap Optimization', status: 'completed', date: '2025-12-18T19:20', evidence: 'Blocking on main/develop, non-blocking on features' },
+  { id: 'P95-Impl', title: 'Memory Optimization', status: 'completed', date: '2025-12-18T19:00', evidence: 'Cache cleared, store pruned (1981 pkg), TS server 1.5GB' },
+  { id: 'P96-Impl', title: 'Dashboard Phase Updates', status: 'completed', date: '2025-12-18T19:25', evidence: 'P90-P97 implementation phases added to dashboard' },
+  { id: 'P97-Impl', title: 'Comprehensive PR Creation', status: 'in-progress', date: 'TBD', evidence: 'Full evidence pack + QA checklist' },
+  
   { id: 'P96', title: 'Final Production Gate', status: 'in-progress', date: 'TBD', evidence: 'Final validation pending' },
 ];
 
