@@ -53,7 +53,7 @@ describe("API /api/souq/categories", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     rateLimitResponse = null;
-    vi.mocked(enforceRateLimit).mockImplementation(() => rateLimitResponse);
+    vi.mocked(enforceRateLimit).mockImplementation(() => rateLimitResponse as any);
   });
 
   describe("GET - List Categories", () => {

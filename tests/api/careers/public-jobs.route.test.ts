@@ -70,7 +70,7 @@ describe("API /api/careers/public/jobs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     rateLimitResponse = null;
-    vi.mocked(enforceRateLimit).mockImplementation(() => rateLimitResponse);
+    vi.mocked(enforceRateLimit).mockImplementation(() => rateLimitResponse as any);
   });
 
   describe("GET - List Public Jobs", () => {
