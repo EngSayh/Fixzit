@@ -4,7 +4,7 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 **Context:** feat/mobile-cardlist-phase1 | c8c1ee61a | Agent: GitHub Copilot (VS Code Agent)
 **DB Sync:** BACKLOG_AUDIT.json synced (server offline - will import on next startup)
 
-**✅ Resolved Today (DB SSOT - 9 items):**
+**✅ Resolved Today (DB SSOT - 10 items):**
 - BUG-WO-FILTERS-MISSING — WorkOrders filters wired via serializeFilters() at line 194
 - BUG-USERS-FILTERS-MISSING — UsersList filters wired via serializeFilters() at line 129
 - BUG-EMPLOYEES-FILTERS-MISSING — EmployeesList filters wired via serializeFilters() at line 139
@@ -14,6 +14,7 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 - PERF-003 — Timer cleanup parity achieved (24 timers : 25 cleanup calls)
 - SLA-I18N — SLA badge i18n with useSLATimeLabel hook + brand tokens
 - PERF-COLUMN-MEMO — Column memoization added to 6 list components (useMemo with empty deps)
+- BUG-TS-VITEST-CONFIG — Vitest config fixed (maxWorkers/minWorkers at top level)
 
 **🟠 In Progress (3 items):**
 - P3-AQAR-FILTERS — Refactor Aqar SearchFilters (effort: M)
@@ -34,7 +35,6 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | PERF-002 | P1 | perf | Cache headers missing | open |
 | LOGIC-001 | P1 | logic | SLA business hours | open |
 | COMP-001 | P1 | compliance | ZATCA Phase 2 | open |
-| BUG-TS-VITEST-CONFIG | P2 | config | tsconfig.vitest.json | open |
 | FEATURE-002 | P2 | feature | Export Center UI | open |
 
 **🟢 Verification:**

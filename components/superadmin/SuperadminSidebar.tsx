@@ -33,6 +33,8 @@ interface NavItem {
   icon: typeof Bug;
   labelKey: string;
   badge?: string;
+  /** Mark as coming soon - shows badge and tooltip */
+  comingSoon?: boolean;
 }
 
 const SUPERADMIN_NAV_ITEMS: NavItem[] = [
@@ -45,36 +47,43 @@ const SUPERADMIN_NAV_ITEMS: NavItem[] = [
     href: "/superadmin/tenants",
     icon: Building2,
     labelKey: "superadmin.nav.tenants",
+    comingSoon: true,
   },
   {
     href: "/superadmin/users",
     icon: Users,
     labelKey: "superadmin.nav.users",
+    comingSoon: true,
   },
   {
     href: "/superadmin/roles",
     icon: Shield,
     labelKey: "superadmin.nav.roles",
+    comingSoon: true,
   },
   {
     href: "/superadmin/audit",
     icon: FileText,
     labelKey: "superadmin.nav.audit",
+    comingSoon: true,
   },
   {
     href: "/superadmin/features",
     icon: Zap,
     labelKey: "superadmin.nav.features",
+    comingSoon: true,
   },
   {
     href: "/superadmin/integrations",
     icon: Globe,
     labelKey: "superadmin.nav.integrations",
+    comingSoon: true,
   },
   {
     href: "/superadmin/jobs",
     icon: Activity,
     labelKey: "superadmin.nav.jobs",
+    comingSoon: true,
   },
   {
     href: "/superadmin/system",
@@ -85,31 +94,37 @@ const SUPERADMIN_NAV_ITEMS: NavItem[] = [
     href: "/superadmin/billing",
     icon: CreditCard,
     labelKey: "superadmin.nav.billing",
+    comingSoon: true,
   },
   {
     href: "/superadmin/translations",
     icon: Languages,
     labelKey: "superadmin.nav.translations",
+    comingSoon: true,
   },
   {
     href: "/superadmin/database",
     icon: Database,
     labelKey: "superadmin.nav.database",
+    comingSoon: true,
   },
   {
     href: "/superadmin/security",
     icon: Lock,
     labelKey: "superadmin.nav.security",
+    comingSoon: true,
   },
   {
     href: "/superadmin/analytics",
     icon: BarChart3,
     labelKey: "superadmin.nav.analytics",
+    comingSoon: true,
   },
   {
     href: "/superadmin/notifications",
     icon: Bell,
     labelKey: "superadmin.nav.notifications",
+    comingSoon: true,
   },
 ];
 
@@ -146,16 +161,24 @@ export function SuperadminSidebar() {
             <button
               key={item.href}
               onClick={() => router.push(item.href)}
+              title={item.comingSoon ? t("common.comingSoon", "Coming Soon") : undefined}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
                 isActive
                   ? "bg-blue-600 text-white"
-                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                  : item.comingSoon
+                    ? "text-slate-500 hover:bg-slate-800/50 hover:text-slate-400"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
               )}
             >
               <Icon className="h-5 w-5 flex-shrink-0" />
               <span className="truncate">{label}</span>
-              {item.badge && (
+              {item.comingSoon && (
+                <span className="ms-auto bg-slate-700 text-slate-400 text-xs px-1.5 py-0.5 rounded">
+                  {t("common.soon", "Soon")}
+                </span>
+              )}
+              {item.badge && !item.comingSoon && (
                 <span className="ms-auto bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
                   {item.badge}
                 </span>
