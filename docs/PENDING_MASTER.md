@@ -1,5 +1,45 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-19 19:40 (Asia/Riyadh) — Phase P61-P65: Test Coverage + Fast Scripts
+**Context:** feat/mobile-cardlist-phase1 | c27506fc8 | Agent: GitHub Copilot (VS Code Agent)
+**Duration:** 15 minutes | **Commits:** c27506fc8
+
+**✅ PHASES P61-P65 COMPLETE: TEST COVERAGE & DX IMPROVEMENTS**
+
+**P61: OfflineIndicator RTL/i18n Snapshot Tests (13 tests)**
+- LTR mode: Renders English text, uses correct i18n keys, has me-1 RTL-safe spacing
+- RTL mode: Renders Arabic text, maintains me-1 spacing for layout compatibility
+- Brand compliance: Uses Fixzit Green (#00A859) for reconnected state
+- Accessibility: role=status, aria-live=polite, aria-hidden icons
+- Position variants: top/bottom positioning
+- Location: `tests/components/common/OfflineIndicator.rtl.test.tsx`
+
+**P62: Support Organization Search API Tests (17 tests)**
+- Authorization: 403 for non-Super Admin, no session
+- Rate limiting: 429 response when rate limited
+- Input validation: MIN_IDENTIFIER_LEN=3 enforcement, max length, required params
+- Limit parameter: Default 10, range 1-50, rejection of out-of-range
+- Successful search: Serialization, Cache-Control: private, no-store
+- Location: `tests/api/support/organizations-search.route.test.ts`
+
+**P63: Fast Test Scripts**
+- `pnpm test:ui:fast`: Fast UI component tests (components + unit/components + i18n)
+- `pnpm test:lists`: Verbose tests for list components (marketplace, hr, aqar, common)
+- Targeted ~18s for 42 tests vs ~120s for full suite
+
+**P64: TableSkeleton Column Memoization**
+- Moved columns array to module-level constant `TABLE_SKELETON_COLUMNS`
+- Zero-cost memoization (no useMemo overhead)
+- Location: `components/skeletons/index.tsx`
+
+**QA Gate:**
+- ✅ TypeScript: 0 errors
+- ✅ ESLint: 0 errors (fixed useMemo unused import)
+- ✅ Tests: 30 new tests added (13 RTL + 17 API)
+- ✅ Pre-commit hooks: All passing
+
+---
+
 ### 2025-12-19 18:20 (Asia/Riyadh) — P53-P57: Fix Issue Tracker Live Data from MongoDB
 **Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)
 **Duration:** 15 minutes | **Issue:** Superadmin Issue Tracker not showing live data from MongoDB
