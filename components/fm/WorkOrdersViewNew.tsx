@@ -33,12 +33,18 @@ import {
 
 // Foundation Components
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
+import { CardList } from "@/components/tables/CardList";
 import { TableToolbar } from "@/components/tables/TableToolbar";
 import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
+import {
+  buildActiveFilterChips,
+  serializeFilters,
+  type FilterSchema,
+} from "@/components/tables/utils/filterSchema";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 
 import ClientDate from "@/components/ClientDate";
@@ -74,22 +80,92 @@ const STATUS_OPTIONS = ["SUBMITTED", "DISPATCHED", "IN_PROGRESS", "ON_HOLD", "CO
 const PRIORITY_OPTIONS: WorkOrderPriority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 const statusStyles: Record<string, string> = {
-  SUBMITTED: "bg-warning/10 text-warning border border-warning/20",
-  DISPATCHED: "bg-primary/10 text-primary border border-primary/20",
-  IN_PROGRESS: "bg-primary/10 text-primary border border-primary/20",
+  SUBMITTED: "bg-[#FFB400]/10 text-[#FFB400] border border-[#FFB400]/30",
+  DISPATCHED: "bg-[#0061A8]/10 text-[#0061A8] border border-[#0061A8]/30",
+  IN_PROGRESS: "bg-[#0061A8]/10 text-[#0061A8] border border-[#0061A8]/30",
   ON_HOLD: "bg-muted text-foreground border border-border",
-  COMPLETED: "bg-success/10 text-success border border-success/20",
-  VERIFIED: "bg-success/10 text-success border border-success/20",
-  CLOSED: "bg-success/10 text-success border border-success/20",
+  COMPLETED: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/30",
+  VERIFIED: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/30",
+  CLOSED: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/30",
   CANCELLED: "bg-destructive/10 text-destructive border border-destructive/20",
 };
 
 const priorityStyles: Record<string, string> = {
   LOW: "bg-muted text-foreground border border-border",
-  MEDIUM: "bg-secondary/10 text-secondary border border-secondary/20",
-  HIGH: "bg-warning/10 text-warning border border-warning/20",
+  MEDIUM: "bg-[#0061A8]/10 text-[#0061A8] border border-[#0061A8]/30",
+  HIGH: "bg-[#FFB400]/10 text-[#FFB400] border border-[#FFB400]/30",
   CRITICAL: "bg-destructive/10 text-destructive border border-destructive/20",
 };
+
+type WorkOrderFilters = {
+  status?: string;
+  priority?: WorkOrderPriority;
+  overdue?: boolean;
+  assignedToMe?: boolean;
+  unassigned?: boolean;
+  slaRisk?: boolean;
+  dueDateFrom?: string;
+  dueDateTo?: string;
+};
+
+const WORK_ORDER_FILTER_SCHEMA: FilterSchema<WorkOrderFilters>[] = [
+  {
+    key: "status",
+    param: "status",
+    label: (f) => `Status: ${f.status}`,
+  },
+  {
+    key: "priority",
+    param: "priority",
+    label: (f) => `Priority: ${f.priority}`,
+  },
+  {
+    key: "overdue",
+    param: "overdue",
+    toParam: () => true,
+    label: () => "Overdue",
+  },
+  {
+    key: "assignedToMe",
+    param: "assignedToMe",
+    toParam: () => true,
+    label: () => "Assigned to me",
+  },
+  {
+    key: "unassigned",
+    param: "unassigned",
+    toParam: () => true,
+    label: () => "Unassigned",
+  },
+  {
+    key: "slaRisk",
+    param: "slaRisk",
+    toParam: () => true,
+    label: () => "SLA Risk",
+  },
+  {
+    key: "dueDateFrom",
+    param: "dueDateFrom",
+    isActive: (f) => Boolean(f.dueDateFrom || f.dueDateTo),
+    toParam: (f) => f.dueDateFrom,
+    label: (f) => `Due: ${f.dueDateFrom || "any"} → ${f.dueDateTo || "any"}`,
+    clear: (f) => {
+      const { dueDateFrom: _from, dueDateTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "dueDateTo",
+    param: "dueDateTo",
+    isActive: (f) => Boolean(f.dueDateFrom || f.dueDateTo),
+    toParam: (f) => f.dueDateTo,
+    label: (f) => `Due: ${f.dueDateFrom || "any"} → ${f.dueDateTo || "any"}`,
+    clear: (f) => {
+      const { dueDateFrom: _from, dueDateTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+];
 
 // Fetcher
 const fetcher = async (url: string) => {
@@ -110,14 +186,7 @@ export function buildWorkOrdersQuery(state: ReturnType<typeof useTableQueryState
   params.set("page", String(state.page || 1));
   params.set("org", orgId);
   if (state.q) params.set("q", state.q);
-  if (state.filters?.status) params.set("status", String(state.filters.status));
-  if (state.filters?.priority) params.set("priority", String(state.filters.priority));
-  if (state.filters?.overdue) params.set("overdue", "true");
-  if (state.filters?.assignedToMe) params.set("assignedToMe", "true");
-  if (state.filters?.unassigned) params.set("unassigned", "true");
-  if (state.filters?.slaRisk) params.set("slaRisk", "true");
-  if (state.filters?.dueDateFrom) params.set("dueDateFrom", String(state.filters.dueDateFrom));
-  if (state.filters?.dueDateTo) params.set("dueDateTo", String(state.filters.dueDateTo));
+  serializeFilters(state.filters as WorkOrderFilters, WORK_ORDER_FILTER_SCHEMA, params);
   return params.toString();
 }
 
@@ -163,88 +232,13 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
   ];
 
   // Active filters chips
-  const activeFilters = useMemo(() => {
-    const filters: Array<{ key: string; label: string; onRemove: () => void }> = [];
-    
-    if (state.filters?.status) {
-      filters.push({
-        key: "status",
-        label: `Status: ${state.filters.status}`,
-        onRemove: () => {
-          const { status: _status, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    if (state.filters?.priority) {
-      filters.push({
-        key: "priority",
-        label: `Priority: ${state.filters.priority}`,
-        onRemove: () => {
-          const { priority: _priority, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.overdue) {
-      filters.push({
-        key: "overdue",
-        label: "Overdue",
-        onRemove: () => {
-          const { overdue: _overdue, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.assignedToMe) {
-      filters.push({
-        key: "assignedToMe",
-        label: "Assigned to me",
-        onRemove: () => {
-          const { assignedToMe: _assignedToMe, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.unassigned) {
-      filters.push({
-        key: "unassigned",
-        label: "Unassigned",
-        onRemove: () => {
-          const { unassigned: _unassigned, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.slaRisk) {
-      filters.push({
-        key: "slaRisk",
-        label: "SLA Risk",
-        onRemove: () => {
-          const { slaRisk: _slaRisk, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.dueDateFrom || state.filters?.dueDateTo) {
-      filters.push({
-        key: "dueRange",
-        label: `Due: ${state.filters?.dueDateFrom || "any"} → ${state.filters?.dueDateTo || "any"}`,
-        onRemove: () => {
-          const { dueDateFrom: _dueDateFrom, dueDateTo: _dueDateTo, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    return filters;
-  }, [state.filters, updateState]);
+  const activeFilters = useMemo(
+    () =>
+      buildActiveFilterChips(state.filters as WorkOrderFilters, WORK_ORDER_FILTER_SCHEMA, (next) =>
+        updateState({ filters: next })
+      ),
+    [state.filters, updateState]
+  );
 
   // Table columns
   const columns: DataTableColumn<WorkOrderRecord>[] = [
@@ -410,15 +404,37 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
         <ActiveFiltersChips filters={activeFilters} onClearAll={() => resetState()} />
       )}
 
-      {/* Table (P0) */}
-      <DataTableStandard
-        columns={columns}
-        data={workOrders}
-        loading={isLoading}
-        emptyState={emptyState}
-        density={density}
-        onRowClick={(row) => toast.info(`Open work order ${row.id}`)}
-      />
+      {/* Mobile CardList (P0) */}
+      <div className="lg:hidden">
+        <CardList
+          data={workOrders}
+          primaryAccessor={(wo) => wo.title || wo.code || wo.workOrderNumber || `WO-${wo.id.slice(-6)}`}
+          secondaryAccessor={(wo) => (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Badge className={statusStyles[wo.status]}>{wo.status}</Badge>
+              <Badge className={priorityStyles[wo.priority]}>{wo.priority}</Badge>
+            </div>
+          )}
+          metadataAccessor={(wo) => 
+            `Created ${wo.createdAt ? formatDistanceToNowStrict(new Date(wo.createdAt), { addSuffix: true }) : "—"}`
+          }
+          onRowClick={(wo) => toast.info(`Open work order ${wo.id}`)}
+          loading={isLoading}
+          emptyMessage="No work orders found"
+        />
+      </div>
+
+      {/* Desktop Table (P0) */}
+      <div className="hidden lg:block">
+        <DataTableStandard
+          columns={columns}
+          data={workOrders}
+          loading={isLoading}
+          emptyState={emptyState}
+          density={density}
+          onRowClick={(row) => toast.info(`Open work order ${row.id}`)}
+        />
+      </div>
 
       {/* Pagination (P0) */}
       {totalPages > 1 && (

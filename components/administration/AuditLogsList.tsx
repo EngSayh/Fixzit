@@ -22,20 +22,29 @@ import { Chip } from "@/components/ui/chip";
 import { FileText, RefreshCcw, Search, Filter, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
+import { CardList } from "@/components/tables/CardList";
 import { TableToolbar } from "@/components/tables/TableToolbar";
 import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
+import {
+  buildActiveFilterChips,
+  serializeFilters,
+  type FilterSchema,
+} from "@/components/tables/utils/filterSchema";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
 type AuditLogRecord = {
   id: string;
   timestamp: string;
+  createdAt?: string;
   userId: string;
   userName?: string;
+  actorEmail?: string;
+  actorId?: string;
   action: string;
   resource: string;
   resourceId?: string;
@@ -50,6 +59,48 @@ type ApiResponse = {
   limit: number;
   total: number;
 };
+
+type AuditFilters = {
+  eventType?: string;
+  status?: string;
+  userId?: string;
+  ipAddress?: string;
+  dateRange?: string;
+  action?: string;
+  timestampFrom?: string;
+  timestampTo?: string;
+};
+
+const AUDIT_FILTER_SCHEMA: FilterSchema<AuditFilters>[] = [
+  { key: "eventType", param: "eventType", label: (f) => `Event: ${f.eventType}` },
+  { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
+  { key: "userId", param: "userId", label: (f) => `User: ${f.userId}` },
+  { key: "ipAddress", param: "ipAddress", label: (f) => `IP: ${f.ipAddress}` },
+  { key: "action", param: "action", label: (f) => `Action: ${f.action}` },
+  { key: "dateRange", param: "dateRange", label: (f) => `Range: ${f.dateRange}` },
+  {
+    key: "timestampFrom",
+    param: "timestampFrom",
+    isActive: (f) => Boolean(f.timestampFrom || f.timestampTo),
+    toParam: (f) => f.timestampFrom,
+    label: (f) => `Timestamp: ${f.timestampFrom || "any"} → ${f.timestampTo || "any"}`,
+    clear: (f) => {
+      const { timestampFrom: _from, timestampTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "timestampTo",
+    param: "timestampTo",
+    isActive: (f) => Boolean(f.timestampFrom || f.timestampTo),
+    toParam: (f) => f.timestampTo,
+    label: (f) => `Timestamp: ${f.timestampFrom || "any"} → ${f.timestampTo || "any"}`,
+    clear: (f) => {
+      const { timestampFrom: _from, timestampTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+];
 
 const EVENT_TYPE_OPTIONS = ["LOGIN", "LOGOUT", "CREATE", "UPDATE", "DELETE", "EXPORT", "IMPORT"];
 const STATUS_OPTIONS = ["SUCCESS", "FAILURE", "WARNING"];
@@ -76,14 +127,7 @@ export function buildAuditLogsQuery(state: ReturnType<typeof useTableQueryState>
   params.set("page", String(state.page || 1));
   params.set("org", orgId);
   if (state.q) params.set("q", state.q);
-  if (state.filters?.eventType) params.set("eventType", String(state.filters.eventType));
-  if (state.filters?.status) params.set("status", String(state.filters.status));
-  if (state.filters?.userId) params.set("userId", String(state.filters.userId));
-  if (state.filters?.ipAddress) params.set("ipAddress", String(state.filters.ipAddress));
-  if (state.filters?.dateRange) params.set("dateRange", String(state.filters.dateRange));
-  if (state.filters?.action) params.set("action", String(state.filters.action));
-  if (state.filters?.timestampFrom) params.set("timestampFrom", String(state.filters.timestampFrom));
-  if (state.filters?.timestampTo) params.set("timestampTo", String(state.filters.timestampTo));
+  serializeFilters(state.filters as AuditFilters, AUDIT_FILTER_SCHEMA, params);
   return params.toString();
 }
 
@@ -123,88 +167,13 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
   ];
 
   // Active filters
-  const activeFilters = useMemo(() => {
-    const filters: Array<{ key: string; label: string; onRemove: () => void }> = [];
-    
-    if (state.filters?.eventType) {
-      filters.push({
-        key: "eventType",
-        label: `Event: ${state.filters.eventType}`,
-        onRemove: () => {
-          const { eventType: _eventType, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    if (state.filters?.status) {
-      filters.push({
-        key: "status",
-        label: `Status: ${state.filters.status}`,
-        onRemove: () => {
-          const { status: _status, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    if (state.filters?.userId) {
-      filters.push({
-        key: "user",
-        label: `User: ${state.filters.userId}`,
-        onRemove: () => {
-          const { userId: _userId, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    if (state.filters?.ipAddress) {
-      filters.push({
-        key: "ip",
-        label: `IP: ${state.filters.ipAddress}`,
-        onRemove: () => {
-          const { ipAddress: _ipAddress, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.dateRange) {
-      filters.push({
-        key: "dateRange",
-        label: `Range: ${state.filters.dateRange}`,
-        onRemove: () => {
-          const { dateRange: _dateRange, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.action) {
-      filters.push({
-        key: "action",
-        label: `Action: ${state.filters.action}`,
-        onRemove: () => {
-          const { action: _action, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.timestampFrom || state.filters?.timestampTo) {
-      filters.push({
-        key: "timestampRange",
-        label: `Timestamp: ${state.filters?.timestampFrom || "any"} → ${state.filters?.timestampTo || "any"}`,
-        onRemove: () => {
-          const { timestampFrom: _timestampFrom, timestampTo: _timestampTo, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    return filters;
-  }, [state.filters, updateState]);
+  const activeFilters = useMemo(
+    () =>
+      buildActiveFilterChips(state.filters as AuditFilters, AUDIT_FILTER_SCHEMA, (next) =>
+        updateState({ filters: next })
+      ),
+    [state.filters, updateState]
+  );
 
   // Table columns
   const columns: DataTableColumn<AuditLogRecord>[] = [
@@ -362,15 +331,42 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
         <ActiveFiltersChips filters={activeFilters} onClearAll={() => resetState()} />
       )}
 
-      {/* Table */}
-      <DataTableStandard
-        columns={columns}
-        data={logs}
-        loading={isLoading}
-        emptyState={emptyState}
-        density={density}
-        onRowClick={(row) => toast.info(`View log details ${row.id}`)}
-      />
+      {/* Mobile CardList */}
+      <div className="lg:hidden">
+        <CardList
+          data={logs}
+          primaryAccessor={(log) => log.action}
+          secondaryAccessor={(log) => log.actorEmail || log.actorId}
+          statusAccessor={(log) => {
+            const actionStyles = {
+              CREATE: "bg-success-subtle text-success",
+              UPDATE: "bg-info-subtle text-info",
+              DELETE: "bg-destructive-subtle text-destructive",
+              LOGIN: "bg-muted",
+              LOGOUT: "bg-muted",
+            };
+            return <Badge className={actionStyles[log.action as keyof typeof actionStyles] || "bg-muted"}>{log.action}</Badge>;
+          }}
+          metadataAccessor={(log) => 
+            `${log.resource} • ${log.createdAt ? formatDistanceToNowStrict(new Date(log.createdAt), { addSuffix: true }) : "Recently"}`
+          }
+          onRowClick={(log) => toast.info(`View log details ${log.id}`)}
+          loading={isLoading}
+          emptyMessage="No audit logs found"
+        />
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden lg:block">
+        <DataTableStandard
+          columns={columns}
+          data={logs}
+          loading={isLoading}
+          emptyState={emptyState}
+          density={density}
+          onRowClick={(row) => toast.info(`View log details ${row.id}`)}
+        />
+      </div>
 
       {/* Pagination */}
       {totalPages > 1 && (

@@ -105,6 +105,8 @@ describe("Finance Model PII Encryption", () => {
   const testKey = generateEncryptionKey();
 
   beforeAll(async () => {
+    // Allow reconnect to dedicated MongoMemoryServer for this suite
+    Reflect.set(process.env, "VITEST_ALLOW_DISCONNECT", "true");
     // Set encryption key
     process.env.ENCRYPTION_KEY = testKey;
 
@@ -121,6 +123,7 @@ describe("Finance Model PII Encryption", () => {
   });
 
   afterAll(async () => {
+    Reflect.set(process.env, "VITEST_ALLOW_DISCONNECT", "true");
     clearAuditContext();
     await mongoose.disconnect();
     if (mongoServer?.stop) {

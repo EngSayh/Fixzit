@@ -34,6 +34,8 @@ import { getEnv } from "@/lib/env";
 import { isTruthy } from "@/lib/utils/env";
 
 // Next.js hint: keep this file server-only without breaking tsx/ts-node scripts
+// Note: Next build may emit a top-level-await warning for this module; it is safe on Node >=18
+// and expected in local dev. Do not import from client/edge.
 void import("server-only").catch(() => {
   /* no-op when not transformed by Next.js */
 });

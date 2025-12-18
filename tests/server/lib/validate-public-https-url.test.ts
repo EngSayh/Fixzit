@@ -3,7 +3,7 @@ import { validatePublicHttpsUrl, isValidPublicHttpsUrl, URLValidationError } fro
 
 describe('validatePublicHttpsUrl - SSRF Protection v2.0', () => {
   describe('Valid Public HTTPS URLs', () => {
-    it('should accept valid public HTTPS URLs with DNS resolution', () => {
+    it('should accept valid public HTTPS URLs with DNS resolution', async () => {
       const validUrls = [
         'https://example.com',
         'https://api.example.com/webhook',
@@ -11,29 +11,29 @@ describe('validatePublicHttpsUrl - SSRF Protection v2.0', () => {
         'https://example.com:8443/secure',
       ];
 
-      validUrls.forEach((url) => {
-        expect(() => validatePublicHttpsUrl(url)).not.toThrow();
-        expect(isValidPublicHttpsUrl(url)).toBe(true);
-      });
+      for (const url of validUrls) {
+        await expect(validatePublicHttpsUrl(url)).resolves.toBeInstanceOf(URL);
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(true);
+      }
     });
   });
 
   describe('HTTP (non-HTTPS) Rejection', () => {
-    it('should reject HTTP URLs', () => {
-      expect(() => validatePublicHttpsUrl('http://example.com')).toThrow(URLValidationError);
-      expect(() => validatePublicHttpsUrl('http://example.com')).toThrow('Only HTTPS URLs are allowed');
-      expect(isValidPublicHttpsUrl('http://example.com')).toBe(false);
+    it('should reject HTTP URLs', async () => {
+      await expect(validatePublicHttpsUrl('http://example.com')).rejects.toThrow(URLValidationError);
+      await expect(validatePublicHttpsUrl('http://example.com')).rejects.toThrow('Only HTTPS URLs are allowed');
+      await expect(isValidPublicHttpsUrl('http://example.com')).resolves.toBe(false);
     });
 
-    it('should reject FTP and other protocols', () => {
-      expect(() => validatePublicHttpsUrl('ftp://example.com')).toThrow(URLValidationError);
-      expect(() => validatePublicHttpsUrl('file:///etc/passwd')).toThrow(URLValidationError);
-      expect(isValidPublicHttpsUrl('ftp://example.com')).toBe(false);
+    it('should reject FTP and other protocols', async () => {
+      await expect(validatePublicHttpsUrl('ftp://example.com')).rejects.toThrow(URLValidationError);
+      await expect(validatePublicHttpsUrl('file:///etc/passwd')).rejects.toThrow(URLValidationError);
+      await expect(isValidPublicHttpsUrl('ftp://example.com')).resolves.toBe(false);
     });
   });
 
   describe('Localhost Rejection', () => {
-    it('should reject localhost variants', () => {
+    it('should reject localhost variants', async () => {
       const localhostUrls = [
         'https://localhost',
         'https://localhost:3000',
@@ -43,106 +43,106 @@ describe('validatePublicHttpsUrl - SSRF Protection v2.0', () => {
         'https://[::]',
       ];
 
-      localhostUrls.forEach((url) => {
-        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
-        expect(() => validatePublicHttpsUrl(url)).toThrow('Localhost/loopback URLs are not allowed');
-        expect(isValidPublicHttpsUrl(url)).toBe(false);
-      });
+      for (const url of localhostUrls) {
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow(URLValidationError);
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow('Localhost/loopback URLs are not allowed');
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(false);
+      }
     });
   });
 
   describe('Private IP Rejection', () => {
-    it('should reject 10.0.0.0/8 range', () => {
+    it('should reject 10.0.0.0/8 range', async () => {
       const privateIPs = [
         'https://10.0.0.1',
         'https://10.255.255.255',
         'https://10.123.45.67',
       ];
 
-      privateIPs.forEach((url) => {
-        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
-        expect(() => validatePublicHttpsUrl(url)).toThrow('Private IP address URLs are not allowed');
-        expect(isValidPublicHttpsUrl(url)).toBe(false);
-      });
+      for (const url of privateIPs) {
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow(URLValidationError);
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow('Private IP address URLs are not allowed');
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(false);
+      }
     });
 
-    it('should reject 192.168.0.0/16 range', () => {
+    it('should reject 192.168.0.0/16 range', async () => {
       const privateIPs = [
         'https://192.168.0.1',
         'https://192.168.1.1',
         'https://192.168.255.255',
       ];
 
-      privateIPs.forEach((url) => {
-        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
-        expect(() => validatePublicHttpsUrl(url)).toThrow('Private IP address URLs are not allowed');
-        expect(isValidPublicHttpsUrl(url)).toBe(false);
-      });
+      for (const url of privateIPs) {
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow(URLValidationError);
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow('Private IP address URLs are not allowed');
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(false);
+      }
     });
 
-    it('should reject 172.16.0.0/12 range', () => {
+    it('should reject 172.16.0.0/12 range', async () => {
       const privateIPs = [
         'https://172.16.0.1',
         'https://172.31.255.255',
         'https://172.20.5.10',
       ];
 
-      privateIPs.forEach((url) => {
-        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
-        expect(() => validatePublicHttpsUrl(url)).toThrow('Private IP address URLs are not allowed');
-        expect(isValidPublicHttpsUrl(url)).toBe(false);
-      });
+      for (const url of privateIPs) {
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow(URLValidationError);
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow('Private IP address URLs are not allowed');
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(false);
+      }
     });
   });
 
   describe('Link-Local Rejection (AWS Metadata)', () => {
-    it('should reject 169.254.x.x addresses', () => {
+    it('should reject 169.254.x.x addresses', async () => {
       const linkLocalUrls = [
         'https://169.254.169.254/latest/meta-data/', // AWS metadata endpoint
         'https://169.254.0.1',
         'https://169.254.255.255',
       ];
 
-      linkLocalUrls.forEach((url) => {
-        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
-        expect(() => validatePublicHttpsUrl(url)).toThrow('Private IP address URLs are not allowed');
-        expect(isValidPublicHttpsUrl(url)).toBe(false);
-      });
+      for (const url of linkLocalUrls) {
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow(URLValidationError);
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow('Private IP address URLs are not allowed');
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(false);
+      }
     });
   });
 
   describe('Internal TLD Rejection', () => {
-    it('should reject .local domains', () => {
-      expect(() => validatePublicHttpsUrl('https://service.local')).toThrow(URLValidationError);
-      expect(() => validatePublicHttpsUrl('https://service.local')).toThrow('Internal TLD (.local, .internal, .test) URLs are not allowed');
-      expect(isValidPublicHttpsUrl('https://service.local')).toBe(false);
+    it('should reject .local domains', async () => {
+      await expect(validatePublicHttpsUrl('https://service.local')).rejects.toThrow(URLValidationError);
+      await expect(validatePublicHttpsUrl('https://service.local')).rejects.toThrow('Internal TLD (.local, .internal, .test) URLs are not allowed');
+      await expect(isValidPublicHttpsUrl('https://service.local')).resolves.toBe(false);
     });
 
-    it('should reject .internal domains', () => {
-      expect(() => validatePublicHttpsUrl('https://api.internal')).toThrow(URLValidationError);
-      expect(() => validatePublicHttpsUrl('https://api.internal')).toThrow('Internal TLD (.local, .internal, .test) URLs are not allowed');
-      expect(isValidPublicHttpsUrl('https://api.internal')).toBe(false);
+    it('should reject .internal domains', async () => {
+      await expect(validatePublicHttpsUrl('https://api.internal')).rejects.toThrow(URLValidationError);
+      await expect(validatePublicHttpsUrl('https://api.internal')).rejects.toThrow('Internal TLD (.local, .internal, .test) URLs are not allowed');
+      await expect(isValidPublicHttpsUrl('https://api.internal')).resolves.toBe(false);
     });
   });
 
   describe('Direct IP Address Rejection', () => {
-    it('should reject direct public IP addresses', () => {
+    it('should reject direct public IP addresses', async () => {
       const publicIPs = [
         'https://8.8.8.8', // Google DNS
         'https://1.1.1.1', // Cloudflare DNS
         'https://93.184.216.34', // example.com IP
       ];
 
-      publicIPs.forEach((url) => {
-        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
-        expect(() => validatePublicHttpsUrl(url)).toThrow('Direct IP addresses are discouraged');
-        expect(isValidPublicHttpsUrl(url)).toBe(false);
-      });
+      for (const url of publicIPs) {
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow(URLValidationError);
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow('Direct IP addresses are discouraged');
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(false);
+      }
     });
   });
 
   describe('Malformed URLs', () => {
-    it('should reject invalid URL formats', () => {
+    it('should reject invalid URL formats', async () => {
       const malformedUrls = [
         'not-a-url',
         'https://',
@@ -151,29 +151,27 @@ describe('validatePublicHttpsUrl - SSRF Protection v2.0', () => {
         'https://[invalid',
       ];
 
-      malformedUrls.forEach((url) => {
-        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
-        expect(() => validatePublicHttpsUrl(url)).toThrow('Invalid URL format');
-        expect(isValidPublicHttpsUrl(url)).toBe(false);
-      });
+      for (const url of malformedUrls) {
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow(URLValidationError);
+        await expect(validatePublicHttpsUrl(url)).rejects.toThrow('Invalid URL format');
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(false);
+      }
     });
   });
 
   describe('Edge Cases', () => {
-    it('should reject URLs with private IP in subdomain', () => {
-      // This is a domain name that looks like an IP, not blocked
-      // But actual IP-based URLs are blocked
-      expect(() => validatePublicHttpsUrl('https://192.168.1.1')).toThrow();
+    it('should reject URLs with private IP in subdomain', async () => {
+      await expect(validatePublicHttpsUrl('https://192.168.1.1')).rejects.toThrow();
     });
 
-    it('should handle ports correctly', () => {
-      expect(() => validatePublicHttpsUrl('https://example.com:443')).not.toThrow();
-      expect(() => validatePublicHttpsUrl('https://example.com:8443')).not.toThrow();
+    it('should handle ports correctly', async () => {
+      await expect(validatePublicHttpsUrl('https://example.com:443')).resolves.toBeInstanceOf(URL);
+      await expect(validatePublicHttpsUrl('https://example.com:8443')).resolves.toBeInstanceOf(URL);
     });
 
-    it('should handle paths and query strings', () => {
-      expect(() => validatePublicHttpsUrl('https://example.com/path?param=value')).not.toThrow();
-      expect(() => validatePublicHttpsUrl('https://example.com/webhook?token=abc123')).not.toThrow();
+    it('should handle paths and query strings', async () => {
+      await expect(validatePublicHttpsUrl('https://example.com/path?param=value')).resolves.toBeInstanceOf(URL);
+      await expect(validatePublicHttpsUrl('https://example.com/webhook?token=abc123')).resolves.toBeInstanceOf(URL);
     });
   });
 });

@@ -38,6 +38,7 @@ export function BrandingSettingsForm() {
     brandName: "Fixzit Enterprise",
     brandColor: "#0061A8",
   });
+  const [lastAudit, setLastAudit] = useState<{ updatedAt?: string; updatedBy?: string } | null>(null);
 
   const [originalData, setOriginalData] = useState<BrandingData>(formData);
 
@@ -60,6 +61,7 @@ export function BrandingSettingsForm() {
         };
         setFormData(data);
         setOriginalData(data);
+        setLastAudit({ updatedAt: data.updatedAt, updatedBy: data.updatedBy });
       } catch (err) {
         logger.error("Failed to load branding settings", { error: err });
         setError("Failed to load branding settings. Please refresh the page.");
@@ -111,6 +113,7 @@ export function BrandingSettingsForm() {
       
       setFormData(updatedData);
       setOriginalData(updatedData);
+      setLastAudit({ updatedAt: updatedData.updatedAt, updatedBy: updatedData.updatedBy });
       setSuccess("Branding settings saved successfully!");
       
       // Force reload to show updated logo (cache bust)
@@ -159,6 +162,59 @@ export function BrandingSettingsForm() {
             <p className="text-xs text-slate-500 mt-4">
               Last updated: {new Date(formData.updatedAt).toLocaleString()} by {formData.updatedBy}
             </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Live Preview of Pending Changes */}
+      <Card className="bg-slate-900 border-slate-800">
+        <CardHeader>
+          <CardTitle className="text-white">Live Preview</CardTitle>
+          <CardDescription>Unsaved changes are reflected immediately</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div
+            className="rounded-xl p-6 flex items-center gap-4 shadow-inner"
+            style={{ background: `${formData.brandColor}1A`, border: `1px solid ${formData.brandColor}` }}
+          >
+            <BrandLogo size="lg" fetchOrgLogo={false} logoUrl={formData.logoUrl} className="rounded-lg bg-white/80 p-2" />
+            <div>
+              <p className="text-xl font-semibold text-white">{formData.brandName}</p>
+              <p className="text-xs text-slate-400">
+                Primary color: <span className="font-mono">{formData.brandColor}</span>
+              </p>
+            </div>
+          </div>
+          {JSON.stringify(formData) !== JSON.stringify(originalData) && (
+            <p className="mt-3 text-xs text-amber-300">
+              You have unsaved changes. Click Save to publish and record an audit entry.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Audit Trail */}
+      <Card className="bg-slate-900 border-slate-800">
+        <CardHeader>
+          <CardTitle className="text-white">Audit Trail</CardTitle>
+          <CardDescription>Latest branding publish events</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {lastAudit?.updatedAt ? (
+            <ul className="text-sm text-slate-200 space-y-2">
+              <li className="flex items-center justify-between">
+                <span>Last published by</span>
+                <span className="font-semibold">{lastAudit.updatedBy || "system"}</span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span>Published at</span>
+                <span className="font-mono text-slate-300">
+                  {new Date(lastAudit.updatedAt).toLocaleString()}
+                </span>
+              </li>
+            </ul>
+          ) : (
+            <p className="text-slate-400 text-sm">No audit entries yet.</p>
           )}
         </CardContent>
       </Card>

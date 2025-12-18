@@ -23,6 +23,7 @@ import { Chip } from "@/components/ui/chip";
 import { Receipt, Plus, RefreshCcw, Search, Filter, AlertCircle } from "lucide-react";
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
+import { CardList } from "@/components/tables/CardList";
 import { TableToolbar } from "@/components/tables/TableToolbar";
 import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
@@ -30,6 +31,11 @@ import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
+import {
+  buildActiveFilterChips,
+  serializeFilters,
+  type FilterSchema,
+} from "@/components/tables/utils/filterSchema";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -38,6 +44,7 @@ type InvoiceRecord = {
   invoiceNumber: string;
   customerName: string;
   amount: number;
+  totalAmount?: number;
   currency: string;
   status: "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "CANCELLED";
   issueDate: string;
@@ -57,11 +64,92 @@ const STATUS_OPTIONS = ["DRAFT", "SENT", "PAID", "OVERDUE", "CANCELLED"];
 
 const statusStyles: Record<string, string> = {
   DRAFT: "bg-muted text-foreground border border-border",
+  PENDING: "bg-info/10 text-info border border-info/20",
   SENT: "bg-info/10 text-info border border-info/20",
   PAID: "bg-success/10 text-success border border-success/20",
   OVERDUE: "bg-destructive/10 text-destructive border border-destructive/20",
   CANCELLED: "bg-muted text-muted-foreground border border-border",
 };
+
+type InvoiceFilters = {
+  status?: string;
+  amountMin?: number;
+  amountMax?: number;
+  dateRange?: string;
+  issueFrom?: string;
+  issueTo?: string;
+  dueFrom?: string;
+  dueTo?: string;
+};
+
+const INVOICE_FILTER_SCHEMA: FilterSchema<InvoiceFilters>[] = [
+  { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
+  {
+    key: "amountMin",
+    param: "amountMin",
+    isActive: (f) => Boolean(f.amountMin || f.amountMax !== undefined),
+    label: (f) => `Amount: ${f.amountMin || 0}-${f.amountMax || "∞"}`,
+    clear: (f) => {
+      const { amountMin: _min, amountMax: _max, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "amountMax",
+    param: "amountMax",
+    isActive: (f) => Boolean(f.amountMin || f.amountMax !== undefined),
+    label: (f) => `Amount: ${f.amountMin || 0}-${f.amountMax || "∞"}`,
+    clear: (f) => {
+      const { amountMin: _min, amountMax: _max, ...rest } = f;
+      return rest;
+    },
+  },
+  { key: "dateRange", param: "dateRange", label: (f) => `Date range: ${f.dateRange}` },
+  {
+    key: "issueFrom",
+    param: "issueFrom",
+    isActive: (f) => Boolean(f.issueFrom || f.issueTo),
+    toParam: (f) => f.issueFrom,
+    label: (f) => `Issue: ${f.issueFrom || "any"} → ${f.issueTo || "any"}`,
+    clear: (f) => {
+      const { issueFrom: _from, issueTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "issueTo",
+    param: "issueTo",
+    isActive: (f) => Boolean(f.issueFrom || f.issueTo),
+    toParam: (f) => f.issueTo,
+    label: (f) => `Issue: ${f.issueFrom || "any"} → ${f.issueTo || "any"}`,
+    clear: (f) => {
+      const { issueFrom: _from, issueTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "dueFrom",
+    param: "dueFrom",
+    isActive: (f) => Boolean(f.dueFrom || f.dueTo),
+    toParam: (f) => f.dueFrom,
+    label: (f) => `Due: ${f.dueFrom || "any"} → ${f.dueTo || "any"}`,
+    clear: (f) => {
+      const { dueFrom: _from, dueTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "dueTo",
+    param: "dueTo",
+    isActive: (f) => Boolean(f.dueFrom || f.dueTo),
+    toParam: (f) => f.dueTo,
+    label: (f) => `Due: ${f.dueFrom || "any"} → ${f.dueTo || "any"}`,
+    clear: (f) => {
+      const { dueFrom: _from, dueTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+];
 
 const fetcher = async (url: string) => {
   const response = await fetch(url, { credentials: "include" });
@@ -79,14 +167,7 @@ export function buildInvoicesQuery(state: ReturnType<typeof useTableQueryState>[
   params.set("page", String(state.page || 1));
   params.set("org", orgId);
   if (state.q) params.set("q", state.q);
-  if (state.filters?.status) params.set("status", String(state.filters.status));
-  if (state.filters?.amountMin) params.set("amountMin", String(state.filters.amountMin));
-  if (state.filters?.amountMax) params.set("amountMax", String(state.filters.amountMax));
-  if (state.filters?.dateRange) params.set("dateRange", String(state.filters.dateRange));
-  if (state.filters?.issueFrom) params.set("issueFrom", String(state.filters.issueFrom));
-  if (state.filters?.issueTo) params.set("issueTo", String(state.filters.issueTo));
-  if (state.filters?.dueFrom) params.set("dueFrom", String(state.filters.dueFrom));
-  if (state.filters?.dueTo) params.set("dueTo", String(state.filters.dueTo));
+  serializeFilters(state.filters as InvoiceFilters, INVOICE_FILTER_SCHEMA, params);
   return params.toString();
 }
 
@@ -126,66 +207,13 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
   ];
 
   // Active filters
-  const activeFilters = useMemo(() => {
-    const filters: Array<{ key: string; label: string; onRemove: () => void }> = [];
-    
-    if (state.filters?.status) {
-      filters.push({
-        key: "status",
-        label: `Status: ${state.filters.status}`,
-        onRemove: () => {
-          const { status: _status, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    if (state.filters?.amountMin || state.filters?.amountMax) {
-      filters.push({
-        key: "amount",
-        label: `Amount: ${state.filters.amountMin || 0}-${state.filters.amountMax || "∞"}`,
-        onRemove: () => {
-          const { amountMin: _amountMin, amountMax: _amountMax, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.dateRange) {
-      filters.push({
-        key: "dateRange",
-        label: `Date range: ${state.filters.dateRange}`,
-        onRemove: () => {
-          const { dateRange: _dateRange, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.issueFrom || state.filters?.issueTo) {
-      filters.push({
-        key: "issueRange",
-        label: `Issue: ${state.filters?.issueFrom || "any"} → ${state.filters?.issueTo || "any"}`,
-        onRemove: () => {
-          const { issueFrom: _issueFrom, issueTo: _issueTo, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.dueFrom || state.filters?.dueTo) {
-      filters.push({
-        key: "dueRange",
-        label: `Due: ${state.filters?.dueFrom || "any"} → ${state.filters?.dueTo || "any"}`,
-        onRemove: () => {
-          const { dueFrom: _dueFrom, dueTo: _dueTo, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    return filters;
-  }, [state.filters, updateState]);
+  const activeFilters = useMemo(
+    () =>
+      buildActiveFilterChips(state.filters as InvoiceFilters, INVOICE_FILTER_SCHEMA, (next) =>
+        updateState({ filters: next })
+      ),
+    [state.filters, updateState]
+  );
 
   // Table columns
   const columns: DataTableColumn<InvoiceRecord>[] = [
@@ -366,15 +394,44 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         <ActiveFiltersChips filters={activeFilters} onClearAll={() => resetState()} />
       )}
 
-      {/* Table */}
-      <DataTableStandard
-        columns={columns}
-        data={invoices}
-        loading={isLoading}
-        emptyState={emptyState}
-        density={density}
-        onRowClick={(row) => toast.info(`Open invoice ${row.id}`)}
-      />
+      {/* Mobile CardList */}
+      <div className="lg:hidden">
+        <CardList
+          data={invoices}
+          primaryAccessor={(inv) => inv.invoiceNumber}
+          secondaryAccessor={(inv) => `${inv.customerName} • ${inv.amount} ${inv.currency}`}
+          statusAccessor={(inv) => {
+            const statusStyles = {
+              DRAFT: "bg-muted text-muted-foreground",
+              SENT: "bg-info-subtle text-info border-info",
+              PENDING: "bg-warning-subtle text-warning border-warning",
+              PAID: "bg-success-subtle text-success border-success",
+              OVERDUE: "bg-destructive-subtle text-destructive border-destructive",
+              CANCELLED: "bg-muted text-muted-foreground",
+            };
+            const style = statusStyles[inv.status] || "bg-muted";
+            return <Badge className={style}>{inv.status}</Badge>;
+          }}
+          metadataAccessor={(inv) => 
+            `Due: ${formatDistanceToNowStrict(new Date(inv.dueDate), { addSuffix: true })} • Issued ${formatDistanceToNowStrict(new Date(inv.issueDate), { addSuffix: true })}`
+          }
+          onRowClick={(inv) => toast.info(`Open invoice ${inv.id}`)}
+          loading={isLoading}
+          emptyMessage="No invoices found"
+        />
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden lg:block">
+        <DataTableStandard
+          columns={columns}
+          data={invoices}
+          loading={isLoading}
+          emptyState={emptyState}
+          density={density}
+          onRowClick={(row) => toast.info(`Open invoice ${row.id}`)}
+        />
+      </div>
 
       {/* Pagination */}
       {totalPages > 1 && (

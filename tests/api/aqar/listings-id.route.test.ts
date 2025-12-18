@@ -72,9 +72,11 @@ describe("GET /api/aqar/listings/[id]", () => {
       return;
     }
 
+    const retryAfter = "60";
     vi.mocked(enforceRateLimit).mockReturnValue(
       new NextResponse(JSON.stringify({ error: "Rate limit exceeded" }), {
         status: 429,
+        headers: { "Retry-After": retryAfter },
       }) as never
     );
 
@@ -85,6 +87,7 @@ describe("GET /api/aqar/listings/[id]", () => {
     });
 
     expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBeDefined();
   });
 
   it("returns 400 for invalid ObjectId", async () => {

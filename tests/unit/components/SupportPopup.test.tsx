@@ -6,6 +6,7 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, describe, test, expect, beforeEach, afterEach } from "vitest";
+import { mockClipboard, restoreClipboard, mockFetch, restoreFetch } from "@/tests/helpers/domMocks";
 // Note: @ts-expect-error annotations in this file are used only to mock clipboard APIs in jsdom.
 
 // Using path mapping for cleaner imports
@@ -13,7 +14,6 @@ import SupportPopup from "@/components/SupportPopup";
 
 // Utilities for jsdom environment
 const origAlert = window.alert;
-const origClipboard = navigator.clipboard;
 const origFetch = global.fetch;
 const origGetItem = window.localStorage.getItem;
 const origSetItem = window.localStorage.setItem;
@@ -32,16 +32,14 @@ beforeEach(() => {
     store.delete(key);
   });
   window.alert = vi.fn();
-  // @ts-expect-error: partial clipboard mock
-  navigator.clipboard = { writeText: vi.fn().mockResolvedValue(undefined) };
-  global.fetch = vi.fn();
+  mockClipboard();
+  mockFetch();
 });
 
 afterEach(() => {
   window.alert = origAlert;
-  // @ts-expect-error: restore
-  navigator.clipboard = origClipboard;
-  global.fetch = origFetch as any;
+  restoreClipboard();
+  restoreFetch();
   window.localStorage.getItem = origGetItem;
   window.localStorage.setItem = origSetItem;
   window.localStorage.removeItem = origRemoveItem;

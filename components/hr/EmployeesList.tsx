@@ -22,12 +22,18 @@ import { Chip } from "@/components/ui/chip";
 import { Users, Plus, RefreshCcw, Search, Filter, UserCheck, UserX } from "lucide-react";
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
+import { CardList } from "@/components/tables/CardList";
 import { TableToolbar } from "@/components/tables/TableToolbar";
 import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
+import {
+  buildActiveFilterChips,
+  serializeFilters,
+  type FilterSchema,
+} from "@/components/tables/utils/filterSchema";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -58,11 +64,59 @@ const EMPLOYMENT_TYPE_OPTIONS = ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"]
 const DEPARTMENT_OPTIONS = ["Engineering", "Operations", "Finance", "HR", "Sales", "Marketing", "Support"];
 
 const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-success/10 text-success border border-success/20",
-  ON_LEAVE: "bg-warning/10 text-warning border border-warning/20",
+  ACTIVE: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/20",
+  ON_LEAVE: "bg-[#FFB400]/10 text-[#FFB400] border border-[#FFB400]/30",
   INACTIVE: "bg-muted text-foreground border border-border",
   TERMINATED: "bg-destructive/10 text-destructive border border-destructive/20",
 };
+
+type EmployeeFilters = {
+  status?: string;
+  department?: string;
+  employmentType?: string;
+  joiningDateDays?: number;
+  reviewDueDays?: number;
+  joiningFrom?: string;
+  joiningTo?: string;
+};
+
+const EMPLOYEE_FILTER_SCHEMA: FilterSchema<EmployeeFilters>[] = [
+  { key: "status", param: "status", label: (f) => `Status: ${f.status?.toString().replace(/_/g, " ")}` },
+  { key: "department", param: "department", label: (f) => `Department: ${f.department}` },
+  { key: "employmentType", param: "employmentType", label: (f) => `Type: ${f.employmentType?.toString().replace(/_/g, " ")}` },
+  {
+    key: "joiningDateDays",
+    param: "joiningDateDays",
+    label: (f) => `New hires (${f.joiningDateDays}d)`,
+  },
+  {
+    key: "reviewDueDays",
+    param: "reviewDueDays",
+    label: (f) => `Reviews due (${f.reviewDueDays}d)`,
+  },
+  {
+    key: "joiningFrom",
+    param: "joiningFrom",
+    isActive: (f) => Boolean(f.joiningFrom || f.joiningTo),
+    toParam: (f) => f.joiningFrom,
+    label: (f) => `Joining: ${f.joiningFrom || "any"} → ${f.joiningTo || "any"}`,
+    clear: (f) => {
+      const { joiningFrom: _from, joiningTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "joiningTo",
+    param: "joiningTo",
+    isActive: (f) => Boolean(f.joiningFrom || f.joiningTo),
+    toParam: (f) => f.joiningTo,
+    label: (f) => `Joining: ${f.joiningFrom || "any"} → ${f.joiningTo || "any"}`,
+    clear: (f) => {
+      const { joiningFrom: _from, joiningTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+];
 
 const fetcher = async (url: string) => {
   const response = await fetch(url, { credentials: "include" });
@@ -80,13 +134,7 @@ export function buildEmployeesQuery(state: ReturnType<typeof useTableQueryState>
   params.set("page", String(state.page || 1));
   params.set("org", orgId);
   if (state.q) params.set("q", state.q);
-  if (state.filters?.status) params.set("status", String(state.filters.status));
-  if (state.filters?.department) params.set("department", String(state.filters.department));
-  if (state.filters?.employmentType) params.set("employmentType", String(state.filters.employmentType));
-  if (state.filters?.joiningDateDays) params.set("joiningDateDays", String(state.filters.joiningDateDays));
-  if (state.filters?.reviewDueDays) params.set("reviewDueDays", String(state.filters.reviewDueDays));
-  if (state.filters?.joiningFrom) params.set("joiningFrom", String(state.filters.joiningFrom));
-  if (state.filters?.joiningTo) params.set("joiningTo", String(state.filters.joiningTo));
+  serializeFilters(state.filters as EmployeeFilters, EMPLOYEE_FILTER_SCHEMA, params);
   return params.toString();
 }
 
@@ -125,77 +173,13 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
   ];
 
   // Active filters
-  const activeFilters = useMemo(() => {
-    const filters: Array<{ key: string; label: string; onRemove: () => void }> = [];
-    
-    if (state.filters?.status) {
-      filters.push({
-        key: "status",
-        label: `Status: ${state.filters.status.toString().replace(/_/g, " ")}`,
-        onRemove: () => {
-          const { status: _status, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    if (state.filters?.department) {
-      filters.push({
-        key: "department",
-        label: `Department: ${state.filters.department}`,
-        onRemove: () => {
-          const { department: _department, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    if (state.filters?.employmentType) {
-      filters.push({
-        key: "employmentType",
-        label: `Type: ${state.filters.employmentType.toString().replace(/_/g, " ")}`,
-        onRemove: () => {
-          const { employmentType: _employmentType, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.joiningDateDays) {
-      filters.push({
-        key: "joiningDateDays",
-        label: `New hires (${state.filters.joiningDateDays}d)`,
-        onRemove: () => {
-          const { joiningDateDays: _joiningDateDays, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.reviewDueDays) {
-      filters.push({
-        key: "reviewDueDays",
-        label: `Reviews due (${state.filters.reviewDueDays}d)`,
-        onRemove: () => {
-          const { reviewDueDays: _reviewDueDays, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.joiningFrom || state.filters?.joiningTo) {
-      filters.push({
-        key: "joiningRange",
-        label: `Joining: ${state.filters?.joiningFrom || "any"} → ${state.filters?.joiningTo || "any"}`,
-        onRemove: () => {
-          const { joiningFrom: _joiningFrom, joiningTo: _joiningTo, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    return filters;
-  }, [state.filters, updateState]);
+  const activeFilters = useMemo(
+    () =>
+      buildActiveFilterChips(state.filters as EmployeeFilters, EMPLOYEE_FILTER_SCHEMA, (next) =>
+        updateState({ filters: next })
+      ),
+    [state.filters, updateState]
+  );
 
   // Table columns
   const columns: DataTableColumn<EmployeeRecord>[] = [
@@ -378,15 +362,41 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
         <ActiveFiltersChips filters={activeFilters} onClearAll={() => resetState()} />
       )}
 
-      {/* Table */}
-      <DataTableStandard
-        columns={columns}
-        data={employees}
-        loading={isLoading}
-        emptyState={emptyState}
-        density={density}
-        onRowClick={(row) => toast.info(`Open employee ${row.id}`)}
-      />
+      {/* Mobile CardList */}
+      <div className="lg:hidden">
+        <CardList
+          data={employees}
+          primaryAccessor={(emp) => `${emp.firstName} ${emp.lastName}`}
+          secondaryAccessor={(emp) => emp.email}
+          statusAccessor={(emp) => {
+            const statusStyles = {
+              ACTIVE: "bg-success-subtle text-success border-success",
+              INACTIVE: "bg-muted text-muted-foreground",
+              ON_LEAVE: "bg-warning-subtle text-warning border-warning",
+              TERMINATED: "bg-destructive-subtle text-destructive",
+            };
+            return <Badge className={statusStyles[emp.status]}>{emp.status}</Badge>;
+          }}
+          metadataAccessor={(emp) => 
+            `${emp.department} • ${emp.position} • Joined ${formatDistanceToNowStrict(new Date(emp.joiningDate), { addSuffix: true })}`
+          }
+          onRowClick={(emp) => toast.info(`Open employee ${emp.id}`)}
+          loading={isLoading}
+          emptyMessage="No employees found"
+        />
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden lg:block">
+        <DataTableStandard
+          columns={columns}
+          data={employees}
+          loading={isLoading}
+          emptyState={emptyState}
+          density={density}
+          onRowClick={(row) => toast.info(`Open employee ${row.id}`)}
+        />
+      </div>
 
       {/* Pagination */}
       {totalPages > 1 && (

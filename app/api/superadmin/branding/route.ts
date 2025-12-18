@@ -46,11 +46,12 @@ type BrandingUpdatePayload = z.infer<typeof BrandingUpdateSchema>;
  * Retrieve current platform branding settings
  */
 export async function GET(request: NextRequest) {
-  enforceRateLimit(request, {
+  const rateLimitResponse = enforceRateLimit(request, {
     requests: 60,
     windowMs: 60_000,
     keyPrefix: "superadmin:branding:get",
   });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     // Verify superadmin session
@@ -107,11 +108,12 @@ export async function GET(request: NextRequest) {
  * Update platform branding settings (superadmin only)
  */
 export async function PATCH(request: NextRequest) {
-  enforceRateLimit(request, {
+  const rateLimitResponse = enforceRateLimit(request, {
     requests: 10,
     windowMs: 60_000,
     keyPrefix: "superadmin:branding:patch",
   });
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     // Verify superadmin session
@@ -167,11 +169,11 @@ export async function PATCH(request: NextRequest) {
     try {
       if (body.logoUrl) {
         currentField = "logoUrl";
-        validatePublicHttpsUrl(body.logoUrl);
+        await validatePublicHttpsUrl(body.logoUrl);
       }
       if (body.faviconUrl) {
         currentField = "faviconUrl";
-        validatePublicHttpsUrl(body.faviconUrl);
+        await validatePublicHttpsUrl(body.faviconUrl);
       }
     } catch (urlValidationError) {
       logger.warn("URL validation failed", { error: urlValidationError });

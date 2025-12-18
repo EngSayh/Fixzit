@@ -75,6 +75,8 @@ export async function resolveMarketplaceContext(
 ): Promise<MarketplaceRequestContext> {
   const isTestHarness =
     process.env.NODE_ENV === "test" || !!process.env.VITEST_WORKER_ID;
+  const useTestDefaultContext =
+    isTestHarness && process.env.MARKETPLACE_TEST_CONTEXT !== "false";
   // SECURITY: Read auth token FIRST to establish trusted context
   const token = await readCookieValue(
     req instanceof NextRequest ? req : null,
@@ -99,7 +101,7 @@ export async function resolveMarketplaceContext(
   let orgId: Types.ObjectId;
 
   // Test harness default: provide deterministic tenant/user to avoid undefined access in API tests
-  if (isTestHarness && !hasToken) {
+  if (useTestDefaultContext && !hasToken) {
     tenantKey = "test-tenant";
     orgId = objectIdFrom("000000000000000000000001");
     const defaultUser = objectIdFrom("000000000000000000000002");

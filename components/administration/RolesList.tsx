@@ -22,6 +22,7 @@ import { Chip } from "@/components/ui/chip";
 import { Shield, Plus, RefreshCcw, Search, Filter, Users as UsersIcon } from "lucide-react";
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
+import { CardList } from "@/components/tables/CardList";
 import { TableToolbar } from "@/components/tables/TableToolbar";
 import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
@@ -29,6 +30,11 @@ import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
+import {
+  buildActiveFilterChips,
+  serializeFilters,
+  type FilterSchema,
+} from "@/components/tables/utils/filterSchema";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -38,6 +44,7 @@ type RoleRecord = {
   description?: string;
   type: "SYSTEM" | "CUSTOM";
   membersCount: number;
+  userCount?: number;
   status: "ACTIVE" | "INACTIVE";
   createdAt: string;
 };
@@ -53,9 +60,65 @@ const TYPE_OPTIONS = ["SYSTEM", "CUSTOM"];
 const STATUS_OPTIONS = ["ACTIVE", "INACTIVE"];
 
 const typeStyles: Record<string, string> = {
-  SYSTEM: "bg-primary/10 text-primary border border-primary/20",
-  CUSTOM: "bg-secondary/10 text-secondary border border-secondary/20",
+  SYSTEM: "bg-[#0061A8]/10 text-[#0061A8] border border-[#0061A8]/20",
+  CUSTOM: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/20",
 };
+
+type RoleFilters = {
+  type?: string;
+  status?: string;
+  membersMin?: number;
+  membersMax?: number;
+  createdFrom?: string;
+  createdTo?: string;
+};
+
+const ROLE_FILTER_SCHEMA: FilterSchema<RoleFilters>[] = [
+  { key: "type", param: "type", label: (f) => `Type: ${f.type}` },
+  { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
+  {
+    key: "membersMin",
+    param: "membersMin",
+    isActive: (f) => Boolean(f.membersMin || f.membersMax !== undefined),
+    label: (f) => `Members: ${f.membersMin || 0}-${f.membersMax || "∞"}`,
+    clear: (f) => {
+      const { membersMin: _min, membersMax: _max, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "membersMax",
+    param: "membersMax",
+    isActive: (f) => Boolean(f.membersMin || f.membersMax !== undefined),
+    label: (f) => `Members: ${f.membersMin || 0}-${f.membersMax || "∞"}`,
+    clear: (f) => {
+      const { membersMin: _min, membersMax: _max, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "createdFrom",
+    param: "createdFrom",
+    isActive: (f) => Boolean(f.createdFrom || f.createdTo),
+    toParam: (f) => f.createdFrom,
+    label: (f) => `Created: ${f.createdFrom || "any"} → ${f.createdTo || "any"}`,
+    clear: (f) => {
+      const { createdFrom: _from, createdTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "createdTo",
+    param: "createdTo",
+    isActive: (f) => Boolean(f.createdFrom || f.createdTo),
+    toParam: (f) => f.createdTo,
+    label: (f) => `Created: ${f.createdFrom || "any"} → ${f.createdTo || "any"}`,
+    clear: (f) => {
+      const { createdFrom: _from, createdTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+];
 
 const fetcher = async (url: string) => {
   const response = await fetch(url, { credentials: "include" });
@@ -85,12 +148,7 @@ export function RolesList({ orgId }: RolesListProps) {
     params.set("page", String(state.page || 1));
     params.set("org", orgId);
     if (state.q) params.set("q", state.q);
-    if (state.filters?.type) params.set("type", String(state.filters.type));
-    if (state.filters?.status) params.set("status", String(state.filters.status));
-    if (state.filters?.membersMin) params.set("membersMin", String(state.filters.membersMin));
-    if (state.filters?.membersMax) params.set("membersMax", String(state.filters.membersMax));
-    if (state.filters?.createdFrom) params.set("createdFrom", String(state.filters.createdFrom));
-    if (state.filters?.createdTo) params.set("createdTo", String(state.filters.createdTo));
+    serializeFilters(state.filters as RoleFilters, ROLE_FILTER_SCHEMA, params);
     return params.toString();
   }, [orgId, state]);
 
@@ -113,55 +171,13 @@ export function RolesList({ orgId }: RolesListProps) {
   ];
 
   // Active filters
-  const activeFilters = useMemo(() => {
-    const filters: Array<{ key: string; label: string; onRemove: () => void }> = [];
-    
-    if (state.filters?.type) {
-      filters.push({
-        key: "type",
-        label: `Type: ${state.filters.type}`,
-        onRemove: () => {
-          const { type: _type, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    if (state.filters?.status) {
-      filters.push({
-        key: "status",
-        label: `Status: ${state.filters.status}`,
-        onRemove: () => {
-          const { status: _status, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    if (state.filters?.membersMin || state.filters?.membersMax) {
-      filters.push({
-        key: "members",
-        label: `Members: ${state.filters.membersMin || 0}-${state.filters.membersMax || "∞"}`,
-        onRemove: () => {
-          const { membersMin: _membersMin, membersMax: _membersMax, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.createdFrom || state.filters?.createdTo) {
-      filters.push({
-        key: "createdRange",
-        label: `Created: ${state.filters?.createdFrom || "any"} → ${state.filters?.createdTo || "any"}`,
-        onRemove: () => {
-          const { createdFrom: _createdFrom, createdTo: _createdTo, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    return filters;
-  }, [state.filters, updateState]);
+  const activeFilters = useMemo(
+    () =>
+      buildActiveFilterChips(state.filters as RoleFilters, ROLE_FILTER_SCHEMA, (next) =>
+        updateState({ filters: next })
+      ),
+    [state.filters, updateState]
+  );
 
   // Table columns
   const columns: DataTableColumn<RoleRecord>[] = [
@@ -312,15 +328,32 @@ export function RolesList({ orgId }: RolesListProps) {
         <ActiveFiltersChips filters={activeFilters} onClearAll={() => resetState()} />
       )}
 
-      {/* Table */}
-      <DataTableStandard
-        columns={columns}
-        data={roles}
-        loading={isLoading}
-        emptyState={emptyState}
-        density={density}
-        onRowClick={(row) => toast.info(`Open role ${row.id}`)}
-      />
+      {/* Mobile CardList */}
+      <div className="lg:hidden">
+        <CardList
+          data={roles}
+          primaryAccessor={(role) => role.name}
+          secondaryAccessor={(role) => role.description || "No description"}
+          metadataAccessor={(role) => 
+            `${role.type} • ${role.membersCount || role.userCount || 0} users`
+          }
+          onRowClick={(role) => toast.info(`Open role ${role.id}`)}
+          loading={isLoading}
+          emptyMessage="No roles found"
+        />
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden lg:block">
+        <DataTableStandard
+          columns={columns}
+          data={roles}
+          loading={isLoading}
+          emptyState={emptyState}
+          density={density}
+          onRowClick={(row) => toast.info(`Open role ${row.id}`)}
+        />
+      </div>
 
       {/* Pagination */}
       {totalPages > 1 && (

@@ -80,6 +80,8 @@ export function SuperadminHeader() {
   const [globalSearch, setGlobalSearch] = useState("");
   const username = session?.user?.username?.trim() || null;
   const displayName = username || t("superadmin.account");
+  const switchTenantLabel =
+    t("superadmin.switchTenant") || "Switch tenant";
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -111,10 +113,11 @@ export function SuperadminHeader() {
     <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6">
       {/* Title */}
       <div className="flex items-center gap-3">
-        <Link
-          href="/"
+        <button
+          onClick={() => router.push("/superadmin/tenants")}
           className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-700 hover:bg-slate-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-600"
-          aria-label={t("footer.backHome")}
+          aria-label={switchTenantLabel}
+          type="button"
         >
           <BrandLogo
             size="sm"
@@ -122,7 +125,7 @@ export function SuperadminHeader() {
             className="rounded-lg"
             priority
           />
-        </Link>
+        </button>
         <div>
           <h1 className="text-white font-semibold text-lg">
             {t("superadmin.title")}

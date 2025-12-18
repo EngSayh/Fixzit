@@ -50,6 +50,7 @@ vi.mock("@/lib/auth/safe-session", () => ({
 vi.mock("@/lib/superadmin/auth", () => ({
   getSuperadminSession: vi.fn().mockResolvedValue(null),
 }));
+import { mockSuperadmin } from "@/tests/helpers/superadminAuth";
 
 // Mock parse body
 vi.mock("@/lib/api/parse-body", () => ({}));
@@ -166,7 +167,9 @@ describe("Issues Import API Route", () => {
 
     it("imports issues successfully", async () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
+      const { getSuperadminSession } = await import("@/lib/superadmin/auth");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
+      mockSuperadmin();
 
       const req = makeRequest();
       const res = await POST(req);
@@ -176,6 +179,7 @@ describe("Issues Import API Route", () => {
     it("returns 400 when body parsing fails", async () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
+      mockSuperadmin();
 
       const req = { json: vi.fn().mockResolvedValue(null) } as any;
       const res = await POST(req);
@@ -185,6 +189,7 @@ describe("Issues Import API Route", () => {
     it("validates required fields", async () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
+      mockSuperadmin();
 
       const req = makeRequest({
         issues: [
@@ -198,6 +203,7 @@ describe("Issues Import API Route", () => {
     it("skips duplicates when option is enabled", async () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
+      mockSuperadmin();
 
       // Mock finding existing issue
       findOneMock.mockResolvedValueOnce({ _id: "existing-1", title: "Test Issue 1", status: "OPEN" });
@@ -210,10 +216,29 @@ describe("Issues Import API Route", () => {
     it("handles dry run mode", async () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
+      mockSuperadmin();
 
       const req = makeRequest({ ...defaultPayload, dryRun: true });
       const res = await POST(req);
       expect([200, 500]).toContain(res.status);
+    });
+
+    it("propagates Retry-After when rate limited", async () => {
+      const routeModule = await import("@/lib/middleware/rate-limit");
+      const { getSessionOrNull } = await import("@/lib/auth/safe-session");
+      vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
+      mockSuperadmin();
+
+      const retryResp = new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429,
+        headers: { "Retry-After": "60" },
+      }) as any;
+      vi.mocked(routeModule.enforceRateLimit).mockReturnValue(retryResp);
+
+      const req = makeRequest();
+      const res = await POST(req);
+      expect(res.status).toBe(429);
+      expect((res as any).headers?.get?.("Retry-After") || (res as any).headers?.["Retry-After"]).toBeDefined();
     });
   });
 });

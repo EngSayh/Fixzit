@@ -18,8 +18,8 @@ describe("aggregateWithTenantScope", () => {
 
     expect(aggregateMock).toHaveBeenCalledTimes(1);
     const [finalPipeline, opts] = aggregateMock.mock.calls[0];
-    expect(finalPipeline[0]).toEqual({ $match: { orgId: "org-123" } });
-    expect(finalPipeline.slice(1)).toEqual(pipeline);
+    expect(finalPipeline[0]).toEqual({ $match: { status: "OPEN", orgId: "org-123" } });
+    expect(finalPipeline.slice(1)).toEqual(pipeline.slice(1));
     expect(opts).toMatchObject({ maxTimeMS: 30_000 });
   });
 

@@ -88,6 +88,19 @@ describe("API /api/souq/orders", () => {
     vi.clearAllMocks();
   });
 
+  it("returns 429 with Retry-After when rate limited (GET)", async () => {
+    vi.mocked(enforceRateLimit).mockReturnValueOnce(
+      new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429,
+        headers: { "Retry-After": "60" },
+      }) as never,
+    );
+    const req = new NextRequest("http://localhost:3000/api/souq/orders");
+    const res = await GET(req);
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBeDefined();
+  });
+
   describe("GET - List Orders", () => {
     it("returns 401 when user is not authenticated", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);

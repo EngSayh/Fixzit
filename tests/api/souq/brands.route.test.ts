@@ -12,8 +12,9 @@ vi.mock("@/auth", () => ({
 }));
 
 // Mock rate limiting
+let rateLimitResponse: Response | null = null;
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: vi.fn(() => rateLimitResponse),
 }));
 
 // Mock Brand model
@@ -59,8 +60,9 @@ describe("API /api/souq/brands", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionUser = null;
+    rateLimitResponse = null;
     // Reset rate limit mock to allow requests through
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    vi.mocked(enforceRateLimit).mockImplementation(() => rateLimitResponse);
   });
 
   describe("GET - List Brands", () => {
@@ -71,10 +73,9 @@ describe("API /api/souq/brands", () => {
         return;
       }
 
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
+      rateLimitResponse = new Response(
+        JSON.stringify({ error: "Rate limit exceeded" }),
+        { status: 429 },
       );
 
       const req = new NextRequest("http://localhost:3000/api/souq/brands");

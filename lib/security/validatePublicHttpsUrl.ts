@@ -4,9 +4,12 @@ import { validatePublicHttpsUrl as baseValidate, URLValidationError } from "./va
  * Throwing wrapper around the canonical SSRF-safe validator to keep all callers
  * on a single ruleset (HTTPS-only, no localhost/private/internal TLDs).
  */
-export function validatePublicHttpsUrl(url: string, fieldName: string): void {
+export async function validatePublicHttpsUrl(
+  url: string,
+  fieldName: string,
+): Promise<void> {
   try {
-    baseValidate(url);
+    await baseValidate(url);
   } catch (err) {
     if (err instanceof URLValidationError) {
       throw new Error(`${fieldName}: ${err.message}`);

@@ -28,6 +28,11 @@ import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
+import {
+  buildActiveFilterChips,
+  serializeFilters,
+  type FilterSchema,
+} from "@/components/tables/utils/filterSchema";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -66,6 +71,46 @@ const statusStyles: Record<string, string> = {
   DISCONTINUED: "bg-destructive/10 text-destructive border border-destructive/20",
 };
 
+type ProductFilters = {
+  category?: string;
+  status?: string;
+  sellerType?: string;
+  priceMin?: number;
+  priceMax?: number;
+  ratingMin?: number;
+};
+
+const PRODUCT_FILTER_SCHEMA: FilterSchema<ProductFilters>[] = [
+  { key: "category", param: "category", label: (f) => `Category: ${f.category}` },
+  { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
+  { key: "sellerType", param: "sellerType", label: (f) => `Seller: ${f.sellerType}` },
+  {
+    key: "priceMin",
+    param: "priceMin",
+    isActive: (f) => Boolean(f.priceMin || f.priceMax !== undefined),
+    label: (f) => `Price: ${f.priceMin || 0}-${f.priceMax || "∞"}`,
+    clear: (f) => {
+      const { priceMin: _min, priceMax: _max, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "priceMax",
+    param: "priceMax",
+    isActive: (f) => Boolean(f.priceMin || f.priceMax !== undefined),
+    label: (f) => `Price: ${f.priceMin || 0}-${f.priceMax || "∞"}`,
+    clear: (f) => {
+      const { priceMin: _min, priceMax: _max, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "ratingMin",
+    param: "ratingMin",
+    label: (f) => `Rating ≥ ${f.ratingMin}`,
+  },
+];
+
 const fetcher = async (url: string) => {
   const response = await fetch(url, { credentials: "include" });
   if (!response.ok) throw new Error(`Failed to load products (${response.status})`);
@@ -98,12 +143,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
     params.set("page", String(state.page || 1));
     params.set("org", orgId);
     if (state.q) params.set("q", state.q);
-    if (state.filters?.category) params.set("category", String(state.filters.category));
-    if (state.filters?.status) params.set("status", String(state.filters.status));
-    if (state.filters?.sellerType) params.set("sellerType", String(state.filters.sellerType));
-    if (state.filters?.priceMin) params.set("priceMin", String(state.filters.priceMin));
-    if (state.filters?.priceMax) params.set("priceMax", String(state.filters.priceMax));
-    if (state.filters?.ratingMin) params.set("ratingMin", String(state.filters.ratingMin));
+    serializeFilters(state.filters as ProductFilters, PRODUCT_FILTER_SCHEMA, params);
     return params.toString();
   }, [orgId, state, tenantMissing]);
 
@@ -130,41 +170,13 @@ export function ProductsList({ orgId }: ProductsListProps) {
   }, []);
 
   // Active filters
-  const activeFilters = useMemo(() => {
-    const filters: Array<{ key: string; label: string; onRemove: () => void }> = [];
-    
-    if (state.filters?.category) {
-      filters.push({
-        key: "category",
-        label: `Category: ${state.filters.category}`,
-        onRemove: () => {
-          const { category: _category, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    if (state.filters?.status) {
-      filters.push({
-        key: "status",
-        label: `Status: ${state.filters.status}`,
-        onRemove: () => {
-          const { status: _status, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    if (state.filters?.sellerType) {
-      filters.push({
-        key: "sellerType",
-        label: `Seller: ${state.filters.sellerType}`,
-        onRemove: () => {
-          const { sellerType: _sellerType, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    return filters;
-  }, [state.filters]);
+  const activeFilters = useMemo(
+    () =>
+      buildActiveFilterChips(state.filters as ProductFilters, PRODUCT_FILTER_SCHEMA, (next) =>
+        updateState({ filters: next })
+      ),
+    [state.filters, updateState]
+  );
 
   // Early return AFTER all hooks
   if (tenantMissing) {

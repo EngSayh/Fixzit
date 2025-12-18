@@ -162,11 +162,10 @@ export async function PUT(request: NextRequest) {
 
     const { orgId, ...updates } = parsed.data;
 
-    // SSRF protection for webhook URL (string-based validation)
-    // NOTE: Synchronous check - no DNS resolution (yet). See lib/security/validate-public-https-url.ts
+    // SSRF protection for webhook URL (async/DNS-aware)
     if (updates.slaBreachNotifyWebhook) {
       try {
-        validatePublicHttpsUrl(updates.slaBreachNotifyWebhook);
+        await validatePublicHttpsUrl(updates.slaBreachNotifyWebhook);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Invalid webhook URL";

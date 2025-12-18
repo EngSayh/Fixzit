@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import React, { type ReactNode } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import enDict from "@/i18n/dictionaries/en";

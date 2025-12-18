@@ -13,6 +13,8 @@ import {
   vi,
 } from "vitest";
 import mongoose from "mongoose";
+import { startMongoMemoryServer } from "../../helpers/mongoMemory";
+import { MongoMemoryServer } from "mongodb-memory-server";
 import { quotePrice, PricingError } from "@/lib/finance/pricing";
 import PriceBook from "@/server/models/PriceBook";
 import DiscountRule from "@/server/models/DiscountRule";
@@ -23,6 +25,9 @@ const CREATOR_ID = new mongoose.Types.ObjectId();
 describe("Pricing Service Unit Tests", () => {
   let priceBookId: mongoose.Types.ObjectId;
   let discountRuleId: mongoose.Types.ObjectId;
+  let mongoServer: MongoMemoryServer | undefined;
+  let ownsConnection = false;
+  const originalAllowDisconnect = process.env.VITEST_ALLOW_DISCONNECT;
   const seedPriceBooks = async () => {
     const priceBook = await PriceBook.create({
       name: "USD Price Book",
@@ -95,20 +100,27 @@ describe("Pricing Service Unit Tests", () => {
   };
 
   beforeAll(async () => {
-    // Connect to test database (reuse existing connection if available)
-    if (mongoose.connection.readyState === 0) {
-      const MONGODB_URI =
-        process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit-test";
-      await mongoose.connect(MONGODB_URI);
-    }
-  });
+    process.env.VITEST_ALLOW_DISCONNECT = "true";
+    // Always isolate this suite to avoid cross-URI conflicts with other tests
+    await mongoose.disconnect();
+    mongoServer = await startMongoMemoryServer({
+      launchTimeoutMs: 60_000,
+    });
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri, { autoCreate: true, autoIndex: true });
+    ownsConnection = true;
+  }, 120000);
 
   afterAll(async () => {
-    // Cleanup test data
     await PriceBook.deleteMany({ orgId: TEST_ORG_ID });
     await DiscountRule.deleteMany({ orgId: TEST_ORG_ID });
-    // Don't disconnect - let vitest.setup handle it
-    // await mongoose.disconnect();
+    process.env.VITEST_ALLOW_DISCONNECT = originalAllowDisconnect;
+    if (ownsConnection && mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+    if (ownsConnection && mongoServer) {
+      await mongoServer.stop();
+    }
   });
 
   beforeEach(async () => {

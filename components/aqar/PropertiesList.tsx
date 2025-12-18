@@ -28,6 +28,11 @@ import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
+import {
+  buildActiveFilterChips,
+  serializeFilters,
+  type FilterSchema,
+} from "@/components/tables/utils/filterSchema";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -68,6 +73,91 @@ const statusStyles: Record<string, string> = {
   RESERVED: "bg-warning/10 text-warning border border-warning/20",
 };
 
+type PropertyFilters = {
+  type?: string;
+  listingType?: string;
+  city?: string;
+  priceMin?: number;
+  priceMax?: number;
+  featured?: boolean;
+  bedroomsMin?: number;
+  bedroomsMax?: number;
+  bathroomsMin?: number;
+  bathroomsMax?: number;
+};
+
+const PROPERTY_FILTER_SCHEMA: FilterSchema<PropertyFilters>[] = [
+  { key: "type", param: "type", label: (f) => `Type: ${f.type}` },
+  { key: "listingType", param: "listingType", label: (f) => `Listing: ${f.listingType}` },
+  { key: "city", param: "city", label: (f) => `City: ${f.city}` },
+  {
+    key: "featured",
+    param: "featured",
+    toParam: () => true,
+    label: () => "Featured",
+  },
+  {
+    key: "priceMin",
+    param: "priceMin",
+    isActive: (f) => Boolean(f.priceMin || f.priceMax !== undefined),
+    label: (f) => `Price: ${f.priceMin || 0}-${f.priceMax || "∞"}`,
+    clear: (f) => {
+      const { priceMin: _min, priceMax: _max, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "priceMax",
+    param: "priceMax",
+    isActive: (f) => Boolean(f.priceMin || f.priceMax !== undefined),
+    label: (f) => `Price: ${f.priceMin || 0}-${f.priceMax || "∞"}`,
+    clear: (f) => {
+      const { priceMin: _min, priceMax: _max, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "bedroomsMin",
+    param: "bedroomsMin",
+    isActive: (f) => Boolean(f.bedroomsMin || f.bedroomsMax !== undefined),
+    label: (f) => `Bedrooms: ${f.bedroomsMin || 0}-${f.bedroomsMax || "∞"}`,
+    clear: (f) => {
+      const { bedroomsMin: _min, bedroomsMax: _max, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "bedroomsMax",
+    param: "bedroomsMax",
+    isActive: (f) => Boolean(f.bedroomsMin || f.bedroomsMax !== undefined),
+    label: (f) => `Bedrooms: ${f.bedroomsMin || 0}-${f.bedroomsMax || "∞"}`,
+    clear: (f) => {
+      const { bedroomsMin: _min, bedroomsMax: _max, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "bathroomsMin",
+    param: "bathroomsMin",
+    isActive: (f) => Boolean(f.bathroomsMin || f.bathroomsMax !== undefined),
+    label: (f) => `Bathrooms: ${f.bathroomsMin || 0}-${f.bathroomsMax || "∞"}`,
+    clear: (f) => {
+      const { bathroomsMin: _min, bathroomsMax: _max, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "bathroomsMax",
+    param: "bathroomsMax",
+    isActive: (f) => Boolean(f.bathroomsMin || f.bathroomsMax !== undefined),
+    label: (f) => `Bathrooms: ${f.bathroomsMin || 0}-${f.bathroomsMax || "∞"}`,
+    clear: (f) => {
+      const { bathroomsMin: _min, bathroomsMax: _max, ...rest } = f;
+      return rest;
+    },
+  },
+];
+
 const fetcher = async (url: string) => {
   const response = await fetch(url, { credentials: "include" });
   if (!response.ok) throw new Error(`Failed to load properties (${response.status})`);
@@ -100,16 +190,7 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
     params.set("page", String(state.page || 1));
     params.set("org", orgId);
     if (state.q) params.set("q", state.q);
-    if (state.filters?.type) params.set("type", String(state.filters.type));
-    if (state.filters?.listingType) params.set("listingType", String(state.filters.listingType));
-    if (state.filters?.city) params.set("city", String(state.filters.city));
-    if (state.filters?.priceMin) params.set("priceMin", String(state.filters.priceMin));
-    if (state.filters?.priceMax) params.set("priceMax", String(state.filters.priceMax));
-    if (state.filters?.featured) params.set("featured", "true");
-    if (state.filters?.bedroomsMin) params.set("bedroomsMin", String(state.filters.bedroomsMin));
-    if (state.filters?.bedroomsMax) params.set("bedroomsMax", String(state.filters.bedroomsMax));
-    if (state.filters?.bathroomsMin) params.set("bathroomsMin", String(state.filters.bathroomsMin));
-    if (state.filters?.bathroomsMax) params.set("bathroomsMax", String(state.filters.bathroomsMax));
+    serializeFilters(state.filters as PropertyFilters, PROPERTY_FILTER_SCHEMA, params);
     return params.toString();
   }, [orgId, state, tenantMissing]);
 
@@ -136,51 +217,13 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
   }, []);
 
   // Active filters
-  const activeFilters = useMemo(() => {
-    const filters: Array<{ key: string; label: string; onRemove: () => void }> = [];
-    
-    if (state.filters?.type) {
-      filters.push({
-        key: "type",
-        label: `Type: ${state.filters.type}`,
-        onRemove: () => {
-          const { type: _type, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    if (state.filters?.listingType) {
-      filters.push({
-        key: "listingType",
-        label: `Listing: ${state.filters.listingType}`,
-        onRemove: () => {
-          const { listingType: _listingType, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    if (state.filters?.city) {
-      filters.push({
-        key: "city",
-        label: `City: ${state.filters.city}`,
-        onRemove: () => {
-          const { city: _city, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    if (state.filters?.featured) {
-      filters.push({
-        key: "featured",
-        label: "Featured",
-        onRemove: () => {
-          const { featured: _featured, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    return filters;
-  }, [state.filters]);
+  const activeFilters = useMemo(
+    () =>
+      buildActiveFilterChips(state.filters as PropertyFilters, PROPERTY_FILTER_SCHEMA, (next) =>
+        updateState({ filters: next })
+      ),
+    [state.filters, updateState]
+  );
 
   // Early return AFTER all hooks
   if (tenantMissing) {

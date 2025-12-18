@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
 import { getServerI18n } from "@/lib/i18n/server";
+import { SavedCartBanner } from "@/components/marketplace/SavedCartBanner";
 
 export const dynamic = 'force-dynamic';
 
@@ -36,10 +37,26 @@ interface CartData {
 }
 
 export default async function CartPage() {
-  const cartResponse = await serverFetchJsonWithTenant<{ data: CartData }>(
-    "/api/marketplace/cart",
-  );
-  const cart = cartResponse.data;
+  let cart: CartData | null = null;
+  let unauthorized = false;
+  try {
+    const cartResponse = await serverFetchJsonWithTenant<{ data: CartData }>(
+      "/api/marketplace/cart",
+    );
+    cart = cartResponse.data;
+  } catch (error) {
+    const status =
+      (error as Error & { status?: number })?.status ??
+      (() => {
+        try {
+          const parsed = JSON.parse((error as Error).message || "{}");
+          return parsed.status;
+        } catch {
+          return undefined;
+        }
+      })();
+    unauthorized = status === 401 || status === 403;
+  }
   const { t } = await getServerI18n();
 
   return (
@@ -48,9 +65,41 @@ export default async function CartPage() {
         <h1 className="text-3xl font-semibold text-foreground">
           {t("marketplace.cart.title", "Shopping Cart")}
         </h1>
+        {unauthorized && (
+          <div className="mt-4 space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-semibold">
+              {t(
+                "marketplace.cart.auth.required.title",
+                "Sign in to restore your cart",
+              )}
+            </p>
+            <p className="text-amber-800">
+              {t(
+                "marketplace.cart.auth.required.body",
+                "Your cart is saved. Sign in to restore items and proceed to checkout.",
+              )}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/login"
+                className="inline-flex rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+              >
+                {t("marketplace.cart.auth.required.login", "Sign in")}
+              </Link>
+              <Link
+                href="/marketplace"
+                className="inline-flex rounded-full border border-primary/20 px-4 py-2 text-xs font-semibold text-primary hover:bg-primary/10"
+              >
+                {t("marketplace.cart.auth.required.browse", "Browse catalogue")}
+              </Link>
+            </div>
+            <SavedCartBanner />
+          </div>
+        )}
+
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
           <section className="space-y-4">
-            {cart.lines.length ? (
+            {cart && cart.lines.length ? (
               cart.lines.map((line) => (
                 <article
                   key={line.productId}
@@ -140,35 +189,54 @@ export default async function CartPage() {
               <h2 className="text-lg font-semibold text-foreground">
                 {t("marketplace.cart.summary.title", "Order summary")}
               </h2>
-              <dl className="mt-4 space-y-2 text-sm text-foreground">
-                <div className="flex justify-between">
-                  <dt>{t("marketplace.cart.summary.subtotal", "Subtotal")}</dt>
-                  <dd>
-                    {cart.totals.subtotal.toFixed(2)} {cart.currency}
-                  </dd>
+              {cart ? (
+                <>
+                  <dl className="mt-4 space-y-2 text-sm text-foreground">
+                    <div className="flex justify-between">
+                      <dt>{t("marketplace.cart.summary.subtotal", "Subtotal")}</dt>
+                      <dd>
+                        {cart.totals.subtotal.toFixed(2)} {cart.currency}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt>{t("marketplace.cart.summary.vat", "VAT (15%)")}</dt>
+                      <dd>
+                        {cart.totals.vat.toFixed(2)} {cart.currency}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between text-base font-semibold text-primary">
+                      <dt>{t("marketplace.cart.summary.total", "Total")}</dt>
+                      <dd>
+                        {cart.totals.grand.toFixed(2)} {cart.currency}
+                      </dd>
+                    </div>
+                  </dl>
+                  <Link
+                    href="/marketplace/checkout"
+                    className="mt-6 block rounded-full bg-warning px-6 py-3 text-center text-sm font-semibold text-warning-foreground hover:bg-warning/90"
+                  >
+                    {t(
+                      "marketplace.cart.summary.checkoutCta",
+                      "Proceed to checkout",
+                    )}
+                  </Link>
+                </>
+              ) : (
+                <div className="mt-4 text-sm text-muted-foreground space-y-2">
+                  <p>
+                    {t(
+                      "marketplace.cart.summary.authRequired",
+                      "Sign in to view your saved totals and submit for approval.",
+                    )}
+                  </p>
+                  <Link
+                    href="/login"
+                    className="inline-flex rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                  >
+                    {t("marketplace.cart.auth.required.login", "Sign in")}
+                  </Link>
                 </div>
-                <div className="flex justify-between">
-                  <dt>{t("marketplace.cart.summary.vat", "VAT (15%)")}</dt>
-                  <dd>
-                    {cart.totals.vat.toFixed(2)} {cart.currency}
-                  </dd>
-                </div>
-                <div className="flex justify-between text-base font-semibold text-primary">
-                  <dt>{t("marketplace.cart.summary.total", "Total")}</dt>
-                  <dd>
-                    {cart.totals.grand.toFixed(2)} {cart.currency}
-                  </dd>
-                </div>
-              </dl>
-              <Link
-                href="/marketplace/checkout"
-                className="mt-6 block rounded-full bg-warning px-6 py-3 text-center text-sm font-semibold text-warning-foreground hover:bg-warning/90"
-              >
-                {t(
-                  "marketplace.cart.summary.checkoutCta",
-                  "Proceed to checkout",
-                )}
-              </Link>
+              )}
             </div>
             <div className="rounded-3xl border border-primary/20 bg-card p-6 text-sm text-foreground shadow">
               <h3 className="text-sm font-semibold text-primary">

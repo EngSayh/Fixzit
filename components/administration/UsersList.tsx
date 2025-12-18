@@ -22,12 +22,18 @@ import { Chip } from "@/components/ui/chip";
 import { Users, Plus, RefreshCcw, Search, Filter, Lock, CheckCircle, XCircle } from "lucide-react";
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
+import { CardList } from "@/components/tables/CardList";
 import { TableToolbar } from "@/components/tables/TableToolbar";
 import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
+import {
+  buildActiveFilterChips,
+  serializeFilters,
+  type FilterSchema,
+} from "@/components/tables/utils/filterSchema";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -55,10 +61,52 @@ const STATUS_OPTIONS = ["ACTIVE", "INACTIVE", "LOCKED"];
 const DEPARTMENT_OPTIONS = ["Engineering", "Operations", "Finance", "HR", "Sales", "Marketing"];
 
 const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-success/10 text-success border border-success/20",
+  ACTIVE: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/20",
   INACTIVE: "bg-muted text-foreground border border-border",
-  LOCKED: "bg-destructive/10 text-destructive border border-destructive/20",
+  LOCKED: "bg-[#FFB400]/10 text-[#FFB400] border border-[#FFB400]/30",
 };
+
+type UserFilters = {
+  role?: string;
+  status?: string;
+  department?: string;
+  inactiveDays?: number;
+  lastLoginFrom?: string;
+  lastLoginTo?: string;
+};
+
+const USER_FILTER_SCHEMA: FilterSchema<UserFilters>[] = [
+  { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
+  { key: "role", param: "role", label: (f) => `Role: ${f.role}` },
+  { key: "department", param: "department", label: (f) => `Department: ${f.department}` },
+  {
+    key: "inactiveDays",
+    param: "inactiveDays",
+    label: (f) => `Inactive > ${f.inactiveDays}d`,
+  },
+  {
+    key: "lastLoginFrom",
+    param: "lastLoginFrom",
+    isActive: (f) => Boolean(f.lastLoginFrom || f.lastLoginTo),
+    toParam: (f) => f.lastLoginFrom,
+    label: (f) => `Last login: ${f.lastLoginFrom || "any"} → ${f.lastLoginTo || "any"}`,
+    clear: (f) => {
+      const { lastLoginFrom: _from, lastLoginTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+  {
+    key: "lastLoginTo",
+    param: "lastLoginTo",
+    isActive: (f) => Boolean(f.lastLoginFrom || f.lastLoginTo),
+    toParam: (f) => f.lastLoginTo,
+    label: (f) => `Last login: ${f.lastLoginFrom || "any"} → ${f.lastLoginTo || "any"}`,
+    clear: (f) => {
+      const { lastLoginFrom: _from, lastLoginTo: _to, ...rest } = f;
+      return rest;
+    },
+  },
+];
 
 const fetcher = async (url: string) => {
   const response = await fetch(url, { credentials: "include" });
@@ -76,12 +124,7 @@ export function buildUsersQuery(state: ReturnType<typeof useTableQueryState>["st
   params.set("page", String(state.page || 1));
   params.set("org", orgId);
   if (state.q) params.set("q", state.q);
-  if (state.filters?.role) params.set("role", String(state.filters.role));
-  if (state.filters?.status) params.set("status", String(state.filters.status));
-  if (state.filters?.department) params.set("department", String(state.filters.department));
-  if (state.filters?.inactiveDays) params.set("inactiveDays", String(state.filters.inactiveDays));
-  if (state.filters?.lastLoginFrom) params.set("lastLoginFrom", String(state.filters.lastLoginFrom));
-  if (state.filters?.lastLoginTo) params.set("lastLoginTo", String(state.filters.lastLoginTo));
+  serializeFilters(state.filters as UserFilters, USER_FILTER_SCHEMA, params);
   return params.toString();
 }
 
@@ -120,66 +163,13 @@ export function UsersList({ orgId }: UsersListProps) {
   ];
 
   // Active filters
-  const activeFilters = useMemo(() => {
-    const filters: Array<{ key: string; label: string; onRemove: () => void }> = [];
-    
-    if (state.filters?.status) {
-      filters.push({
-        key: "status",
-        label: `Status: ${state.filters.status}`,
-        onRemove: () => {
-          const { status: _status, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    if (state.filters?.role) {
-      filters.push({
-        key: "role",
-        label: `Role: ${state.filters.role}`,
-        onRemove: () => {
-          const { role: _role, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    if (state.filters?.department) {
-      filters.push({
-        key: "department",
-        label: `Department: ${state.filters.department}`,
-        onRemove: () => {
-          const { department: _department, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.inactiveDays) {
-      filters.push({
-        key: "inactiveDays",
-        label: `Inactive > ${state.filters.inactiveDays}d`,
-        onRemove: () => {
-          const { inactiveDays: _inactiveDays, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-
-    if (state.filters?.lastLoginFrom || state.filters?.lastLoginTo) {
-      filters.push({
-        key: "lastLoginRange",
-        label: `Last login: ${state.filters?.lastLoginFrom || "any"} → ${state.filters?.lastLoginTo || "any"}`,
-        onRemove: () => {
-          const { lastLoginFrom: _lastLoginFrom, lastLoginTo: _lastLoginTo, ...rest } = state.filters || {};
-          updateState({ filters: rest });
-        },
-      });
-    }
-    
-    return filters;
-  }, [state.filters, updateState]);
+  const activeFilters = useMemo(
+    () =>
+      buildActiveFilterChips(state.filters as UserFilters, USER_FILTER_SCHEMA, (next) =>
+        updateState({ filters: next })
+      ),
+    [state.filters, updateState]
+  );
 
   // Table columns
   const columns: DataTableColumn<UserRecord>[] = [
@@ -341,15 +331,40 @@ export function UsersList({ orgId }: UsersListProps) {
         <ActiveFiltersChips filters={activeFilters} onClearAll={() => resetState()} />
       )}
 
-      {/* Table */}
-      <DataTableStandard
-        columns={columns}
-        data={users}
-        loading={isLoading}
-        emptyState={emptyState}
-        density={density}
-        onRowClick={(row) => toast.info(`Open user ${row.id}`)}
-      />
+      {/* Mobile CardList */}
+      <div className="lg:hidden">
+        <CardList
+          data={users}
+          primaryAccessor={(user) => `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email}
+          secondaryAccessor={(user) => user.email}
+          statusAccessor={(user) => {
+            const statusStyles = {
+              ACTIVE: "bg-success-subtle text-success border-success",
+              INACTIVE: "bg-muted text-muted-foreground",
+              LOCKED: "bg-destructive-subtle text-destructive border-destructive",
+            };
+            return <Badge className={statusStyles[user.status]}>{user.status}</Badge>;
+          }}
+          metadataAccessor={(user) => 
+            `${user.role} • Last login: ${user.lastLoginAt ? formatDistanceToNowStrict(new Date(user.lastLoginAt), { addSuffix: true }) : "Never"}`
+          }
+          onRowClick={(user) => toast.info(`Open user ${user.id}`)}
+          loading={isLoading}
+          emptyMessage="No users found"
+        />
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden lg:block">
+        <DataTableStandard
+          columns={columns}
+          data={users}
+          loading={isLoading}
+          emptyState={emptyState}
+          density={density}
+          onRowClick={(row) => toast.info(`Open user ${row.id}`)}
+        />
+      </div>
 
       {/* Pagination */}
       {totalPages > 1 && (

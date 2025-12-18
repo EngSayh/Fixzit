@@ -1,5 +1,5 @@
+import React, { type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ReactNode } from "react";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
@@ -16,11 +16,19 @@ vi.mock("@/lib/i18n/server", () => ({
 }));
 
 // Avoid pulling client components/hooks into the test environment
-vi.mock("@/components/superadmin/SuperadminLayoutClient", () => ({
-  SuperadminLayoutClient: ({ children }: { children: ReactNode }) => (
-    <div data-testid="superadmin-layout-client">{children}</div>
-  ),
-}));
+vi.mock("@/components/superadmin/SuperadminLayoutClient", () => {
+  // Explicitly import React here to avoid undefined createElement in threaded runs
+  // when the module factory executes in isolation.
+  const React = require("react") as typeof import("react");
+  return {
+    SuperadminLayoutClient: ({ children }: { children: ReactNode }) =>
+      React.createElement(
+        "div",
+        { "data-testid": "superadmin-layout-client" },
+        children,
+      ),
+  };
+});
 
 vi.mock("@/lib/superadmin/auth", () => ({
   getSuperadminSessionFromCookies: vi.fn(),

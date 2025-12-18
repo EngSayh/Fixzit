@@ -156,6 +156,7 @@ describe("createSubscriptionCheckout", () => {
 
   it("throws when APP_URL is missing", async () => {
     delete process.env.APP_URL;
+    delete process.env.NEXT_PUBLIC_APP_URL;
     mockPriceBookModel.findOne.mockResolvedValue({ _id: "pb1", currency: "SAR" });
     mockQuotePrice.mockResolvedValue({
       requiresQuote: false,

@@ -27,14 +27,15 @@ import { cn } from "@/lib/utils";
 
 export type CardListColumn<TData> = {
   id: string;
-  header: string;
-  accessor: keyof TData | ((row: TData) => unknown);
+  header: string | React.ReactNode;
+  accessor?: keyof TData | ((row: TData) => unknown);
   cell?: (row: TData) => React.ReactNode;
   sortable?: boolean;
+  className?: string;
 };
 
 export type CardListProps<TData> = {
-  columns: CardListColumn<TData>[];
+  columns?: CardListColumn<TData>[]; // OPTIONAL - unused in card rendering (uses primaryAccessor/secondaryAccessor instead)
   data: TData[];
   
   // Primary card content (title/ID)

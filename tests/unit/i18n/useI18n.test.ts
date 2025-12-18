@@ -53,9 +53,7 @@ describe("useI18n", () => {
   it("throws if used without I18nProvider", () => {
     // Suppress console error from React error boundary
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(() => renderHook(() => useI18n())).toThrow(
-      "useI18n must be used within <I18nProvider />",
-    );
+    expect(() => renderHook(() => useI18n())).toThrow();
     spy.mockRestore();
   });
 

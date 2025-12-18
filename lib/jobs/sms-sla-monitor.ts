@@ -191,13 +191,20 @@ export async function sendBreachNotification(
   const webhook = settings.slaBreachNotifyWebhook;
   let safeWebhook: string | undefined;
   if (webhook) {
-    if (isValidPublicHttpsUrl(webhook)) {
-      const parsed = validatePublicHttpsUrl(webhook);
-      safeWebhook = parsed.toString();
-    } else {
+    try {
+      if (await isValidPublicHttpsUrl(webhook)) {
+        const parsed = await validatePublicHttpsUrl(webhook);
+        safeWebhook = parsed.toString();
+      } else {
+        logger.warn("[SLA Monitor] Webhook validation failed", {
+          webhook,
+          error: "Webhook must be a public HTTPS URL",
+        });
+      }
+    } catch (error) {
       logger.warn("[SLA Monitor] Webhook validation failed", {
         webhook,
-        error: "Webhook must be a public HTTPS URL",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }

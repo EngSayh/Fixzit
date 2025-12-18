@@ -1,5 +1,4 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { MongoClient, ObjectId, type Db } from "mongodb";
 import { NextRequest } from "next/server";
 import { UserRole } from "@/types/user";
@@ -8,10 +7,11 @@ import {
   WORK_ORDERS_ENTITY_LEGACY,
   WORK_ORDERS_ENTITY,
 } from "@/config/topbar-modules";
+import { startMongoMemoryServer } from "../../../../helpers/mongoMemory";
 
 let db: Db;
 let client: MongoClient;
-let mongo: MongoMemoryServer;
+let mongo: Awaited<ReturnType<typeof startMongoMemoryServer>>;
 let mockSession: SessionUser | null;
 
 vi.mock("@/lib/mongodb-unified", () => ({
@@ -40,7 +40,10 @@ describe("GET /api/search (integration, in-memory Mongo)", () => {
   const ownerPropertyId = new ObjectId();
 
   beforeAll(async () => {
-    mongo = await MongoMemoryServer.create({ instance: { port: 0 } });
+    mongo = await startMongoMemoryServer({
+      instance: { port: 0 },
+      launchTimeoutMs: 60_000,
+    });
     client = await MongoClient.connect(mongo.getUri());
     db = client.db("testdb");
 

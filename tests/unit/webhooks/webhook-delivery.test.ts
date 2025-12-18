@@ -8,14 +8,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { mockFetch, restoreFetch } from "@/tests/helpers/domMocks";
 
 // ============================================================================
 // Mock Setup
 // ============================================================================
 
-// Mock fetch for webhook testing
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+let mockFetchSpy: ReturnType<typeof vi.fn>;
 
 // Mock logger
 vi.mock("@/lib/logger", () => ({
@@ -147,16 +146,18 @@ describe("Webhook Delivery", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockFetchSpy = mockFetch();
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    restoreFetch();
     vi.restoreAllMocks();
   });
 
   describe("Successful Delivery", () => {
     it("should successfully deliver webhook on first attempt", async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetchSpy.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => "OK",
@@ -171,11 +172,11 @@ describe("Webhook Delivery", () => {
       expect(result.statusCode).toBe(200);
       expect(result.attempts).toBe(1);
       expect(result.responseBody).toBe("OK");
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetchSpy).toHaveBeenCalledTimes(1);
     });
 
     it("should include custom headers in request", async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetchSpy.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => "OK",
@@ -190,7 +191,7 @@ describe("Webhook Delivery", () => {
         },
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockFetchSpy).toHaveBeenCalledWith(
         "https://example.com/webhook",
         expect.objectContaining({
           headers: expect.objectContaining({
@@ -203,7 +204,7 @@ describe("Webhook Delivery", () => {
     });
 
     it("should serialize payload as JSON", async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetchSpy.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => "OK",
@@ -223,7 +224,7 @@ describe("Webhook Delivery", () => {
         payload,
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockFetchSpy).toHaveBeenCalledWith(
         "https://example.com/webhook",
         expect.objectContaining({
           body: JSON.stringify(payload),
@@ -235,7 +236,7 @@ describe("Webhook Delivery", () => {
   describe("Retry Logic", () => {
     it("should retry on 5xx server errors", async () => {
       // First two attempts fail with 503, third succeeds
-      mockFetch
+      mockFetchSpy
         .mockResolvedValueOnce({
           ok: false,
           status: 503,
@@ -260,11 +261,11 @@ describe("Webhook Delivery", () => {
 
       expect(result.success).toBe(true);
       expect(result.attempts).toBe(3);
-      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(mockFetchSpy).toHaveBeenCalledTimes(3);
     });
 
     it("should retry on 429 rate limit", async () => {
-      mockFetch
+      mockFetchSpy
         .mockResolvedValueOnce({
           ok: false,
           status: 429,
@@ -287,7 +288,7 @@ describe("Webhook Delivery", () => {
     });
 
     it("should NOT retry on 4xx client errors (except 429)", async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetchSpy.mockResolvedValueOnce({
         ok: false,
         status: 400,
         text: async () => "Bad Request",
@@ -302,11 +303,11 @@ describe("Webhook Delivery", () => {
       expect(result.statusCode).toBe(400);
       expect(result.attempts).toBe(1);
       expect(result.error).toContain("Client error: 400");
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetchSpy).toHaveBeenCalledTimes(1);
     });
 
     it("should return error after max retries exceeded", async () => {
-      mockFetch.mockResolvedValue({
+      mockFetchSpy.mockResolvedValue({
         ok: false,
         status: 500,
         text: async () => "Internal Server Error",
@@ -322,12 +323,12 @@ describe("Webhook Delivery", () => {
       expect(result.success).toBe(false);
       expect(result.attempts).toBe(3);
       expect(result.error).toContain("Server error: 500");
-      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(mockFetchSpy).toHaveBeenCalledTimes(3);
     });
 
     it("should use exponential backoff between retries", async () => {
       // All attempts fail
-      mockFetch.mockResolvedValue({
+      mockFetchSpy.mockResolvedValue({
         ok: false,
         status: 500,
         text: async () => "Error",
@@ -367,7 +368,7 @@ describe("Webhook Delivery", () => {
       expect(options.timeoutMs).toBeGreaterThan(0);
 
       // Mock a successful response (actual timeout behavior depends on real network)
-      mockFetch.mockResolvedValueOnce({
+      mockFetchSpy.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => "OK",
@@ -381,7 +382,7 @@ describe("Webhook Delivery", () => {
       // Mock an AbortError which occurs on timeout
       const abortError = new Error("The operation was aborted");
       abortError.name = "AbortError";
-      mockFetch.mockRejectedValueOnce(abortError);
+      mockFetchSpy.mockRejectedValueOnce(abortError);
 
       const result = await deliverWebhook({
         url: "https://example.com/webhook",
@@ -399,7 +400,7 @@ describe("Webhook Delivery", () => {
 
   describe("Network Error Handling", () => {
     it("should retry on network failures", async () => {
-      mockFetch
+      mockFetchSpy
         .mockRejectedValueOnce(new Error("Network error"))
         .mockRejectedValueOnce(new Error("Connection refused"))
         .mockResolvedValueOnce({
@@ -419,7 +420,7 @@ describe("Webhook Delivery", () => {
     });
 
     it("should capture network error message", async () => {
-      mockFetch.mockRejectedValue(new Error("DNS lookup failed"));
+      mockFetchSpy.mockRejectedValue(new Error("DNS lookup failed"));
 
       const result = await deliverWebhook({
         url: "https://invalid.example.com/webhook",
@@ -434,7 +435,7 @@ describe("Webhook Delivery", () => {
 
   describe("Security Alert Webhook", () => {
     it("should format security alert payload correctly", async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetchSpy.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => "OK",
@@ -453,7 +454,7 @@ describe("Webhook Delivery", () => {
         payload: securityPayload,
       });
 
-      const callArgs = mockFetch.mock.calls[0];
+      const callArgs = mockFetchSpy.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
 
       expect(body.event).toBe("RateLimit");
@@ -465,7 +466,7 @@ describe("Webhook Delivery", () => {
 
   describe("Route Metrics Webhook", () => {
     it("should format route metrics payload correctly", async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetchSpy.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => "OK",
@@ -483,7 +484,7 @@ describe("Webhook Delivery", () => {
         payload: metricsPayload,
       });
 
-      const callArgs = mockFetch.mock.calls[0];
+      const callArgs = mockFetchSpy.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
 
       expect(body.text).toContain("duplication");
@@ -493,7 +494,7 @@ describe("Webhook Delivery", () => {
 
   describe("Idempotency", () => {
     it("should support idempotency key header", async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetchSpy.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => "OK",
@@ -509,7 +510,7 @@ describe("Webhook Delivery", () => {
         },
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockFetchSpy).toHaveBeenCalledWith(
         "https://example.com/webhook",
         expect.objectContaining({
           headers: expect.objectContaining({

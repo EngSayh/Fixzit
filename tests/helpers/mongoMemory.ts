@@ -23,12 +23,27 @@ export async function startMongoMemoryServer(
 ): Promise<MongoMemoryServer> {
   ensureMongoMemoryEnv();
   const launchTimeout = options.launchTimeoutMs ?? 60_000;
-  return MongoMemoryServer.create({
-    ...options,
-    instance: {
-      launchTimeout,
-      ...(options.instance ?? {}),
-    },
-    binary: options.binary,
-  });
+  const retries = 3;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await MongoMemoryServer.create({
+        ...options,
+        instance: {
+          port: options.instance?.port ?? 0,
+          launchTimeout,
+          ...(options.instance ?? {}),
+        },
+        binary: options.binary,
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        continue;
+      }
+    }
+  }
+  throw lastError ?? new Error("MongoMemoryServer failed to start");
 }
