@@ -151,16 +151,11 @@ describe("Finance Ledger Integration Tests", () => {
 
   describe("LedgerEntry Model Shape", () => {
     it("should create ledger entry with correct schema", async () => {
-      const entry = await LedgerEntry.create({
-        orgId: ORG_A_ID,
-        accountId: TEST_ACCOUNT_ID,
-        date: new Date("2024-01-15"),
+      const entry = await LedgerEntry.create(createEntry({
+        description: "Test entry",
         debit: 1000,
         credit: 0,
-        description: "Test entry",
-        reference: "REF-001",
-        createdBy: TEST_USER_ID,
-      });
+      }));
 
       expect(entry._id).toBeDefined();
       expect(entry.orgId.toString()).toBe(ORG_A_ID.toString());
@@ -171,52 +166,36 @@ describe("Finance Ledger Integration Tests", () => {
     });
 
     it("should require orgId field (tenant isolation)", async () => {
-      await expect(
-        LedgerEntry.create({
-          accountId: TEST_ACCOUNT_ID,
-          date: new Date(),
-          debit: 100,
-          credit: 0,
-          description: "Missing orgId",
-          createdBy: TEST_USER_ID,
-        })
-      ).rejects.toThrow();
+      const invalidEntry = createEntry();
+      // Remove orgId to test required field validation
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (invalidEntry as any).orgId;
+
+      await expect(LedgerEntry.create(invalidEntry)).rejects.toThrow();
     });
   });
 
   describe("Tenant Isolation", () => {
     it("should filter entries by orgId", async () => {
       // Create entries for Org A
-      await LedgerEntry.create({
+      await LedgerEntry.create(createEntry({
         orgId: ORG_A_ID,
-        accountId: TEST_ACCOUNT_ID,
-        date: new Date(),
-        debit: 1000,
-        credit: 0,
         description: "Org A entry 1",
-        createdBy: TEST_USER_ID,
-      });
+        debit: 1000,
+      }));
 
-      await LedgerEntry.create({
+      await LedgerEntry.create(createEntry({
         orgId: ORG_A_ID,
-        accountId: TEST_ACCOUNT_ID,
-        date: new Date(),
-        debit: 500,
-        credit: 0,
         description: "Org A entry 2",
-        createdBy: TEST_USER_ID,
-      });
+        debit: 500,
+      }));
 
       // Create entry for Org B
-      await LedgerEntry.create({
+      await LedgerEntry.create(createEntry({
         orgId: ORG_B_ID,
-        accountId: TEST_ACCOUNT_ID,
-        date: new Date(),
-        debit: 2000,
-        credit: 0,
         description: "Org B entry",
-        createdBy: TEST_USER_ID,
-      });
+        debit: 2000,
+      }));
 
       // Query for Org A only - should not see Org B data
       const orgAEntries = await LedgerEntry.find({ orgId: ORG_A_ID }).lean();
@@ -230,15 +209,10 @@ describe("Finance Ledger Integration Tests", () => {
     });
 
     it("should not return cross-tenant data without explicit orgId filter", async () => {
-      await LedgerEntry.create({
+      await LedgerEntry.create(createEntry({
         orgId: ORG_A_ID,
-        accountId: TEST_ACCOUNT_ID,
-        date: new Date(),
-        debit: 100,
-        credit: 0,
         description: "Org A secret",
-        createdBy: TEST_USER_ID,
-      });
+      }));
 
       // Query with wrong orgId should return nothing
       const wrongOrgEntries = await LedgerEntry.find({ orgId: ORG_B_ID }).lean();
@@ -251,25 +225,19 @@ describe("Finance Ledger Integration Tests", () => {
       const accountA = new Types.ObjectId();
       const accountB = new Types.ObjectId();
 
-      await LedgerEntry.create({
-        orgId: ORG_A_ID,
+      await LedgerEntry.create(createEntry({
         accountId: accountA,
-        date: new Date(),
-        debit: 100,
-        credit: 0,
+        accountCode: "1001",
+        accountName: "Account A",
         description: "Account A entry",
-        createdBy: TEST_USER_ID,
-      });
+      }));
 
-      await LedgerEntry.create({
-        orgId: ORG_A_ID,
+      await LedgerEntry.create(createEntry({
         accountId: accountB,
-        date: new Date(),
-        debit: 200,
-        credit: 0,
+        accountCode: "1002",
+        accountName: "Account B",
         description: "Account B entry",
-        createdBy: TEST_USER_ID,
-      });
+      }));
 
       const accountAEntries = await LedgerEntry.find({
         orgId: ORG_A_ID,
@@ -281,35 +249,29 @@ describe("Finance Ledger Integration Tests", () => {
     });
 
     it("should filter by date range", async () => {
-      await LedgerEntry.create({
-        orgId: ORG_A_ID,
-        accountId: TEST_ACCOUNT_ID,
+      await LedgerEntry.create(createEntry({
         date: new Date("2024-01-15"),
-        debit: 100,
-        credit: 0,
+        journalDate: new Date("2024-01-15"),
+        postingDate: new Date("2024-01-15"),
         description: "January entry",
-        createdBy: TEST_USER_ID,
-      });
+        fiscalPeriod: 1,
+      }));
 
-      await LedgerEntry.create({
-        orgId: ORG_A_ID,
-        accountId: TEST_ACCOUNT_ID,
+      await LedgerEntry.create(createEntry({
         date: new Date("2024-06-15"),
-        debit: 200,
-        credit: 0,
+        journalDate: new Date("2024-06-15"),
+        postingDate: new Date("2024-06-15"),
         description: "June entry",
-        createdBy: TEST_USER_ID,
-      });
+        fiscalPeriod: 6,
+      }));
 
-      await LedgerEntry.create({
-        orgId: ORG_A_ID,
-        accountId: TEST_ACCOUNT_ID,
+      await LedgerEntry.create(createEntry({
         date: new Date("2024-12-15"),
-        debit: 300,
-        credit: 0,
+        journalDate: new Date("2024-12-15"),
+        postingDate: new Date("2024-12-15"),
         description: "December entry",
-        createdBy: TEST_USER_ID,
-      });
+        fiscalPeriod: 12,
+      }));
 
       // Query Q1 only
       const q1Entries = await LedgerEntry.find({
@@ -327,15 +289,14 @@ describe("Finance Ledger Integration Tests", () => {
     it("should support pagination with skip and limit", async () => {
       // Create 10 entries
       for (let i = 1; i <= 10; i++) {
-        await LedgerEntry.create({
-          orgId: ORG_A_ID,
-          accountId: TEST_ACCOUNT_ID,
+        await LedgerEntry.create(createEntry({
           date: new Date(`2024-01-${i.toString().padStart(2, "0")}`),
+          journalDate: new Date(`2024-01-${i.toString().padStart(2, "0")}`),
+          postingDate: new Date(`2024-01-${i.toString().padStart(2, "0")}`),
+          journalNumber: `JE-2024-${i.toString().padStart(4, "0")}`,
           debit: i * 100,
-          credit: 0,
           description: `Entry ${i}`,
-          createdBy: TEST_USER_ID,
-        });
+        }));
       }
 
       // Page 1 (items 1-5)
@@ -365,34 +326,36 @@ describe("Finance Ledger Integration Tests", () => {
 
   describe("Response Shape Contract", () => {
     it("should return entries with expected fields", async () => {
-      await LedgerEntry.create({
-        orgId: ORG_A_ID,
-        accountId: TEST_ACCOUNT_ID,
-        date: new Date("2024-01-15"),
-        debit: 1500,
-        credit: 0,
+      await LedgerEntry.create(createEntry({
         description: "Contract test entry",
-        reference: "REF-CONTRACT-001",
-        createdBy: TEST_USER_ID,
-      });
+        debit: 1500,
+      }));
 
       const entries = await LedgerEntry.find({ orgId: ORG_A_ID }).lean();
 
       expect(entries).toHaveLength(1);
       const entry = entries[0];
 
-      // Contract shape assertions
+      // Contract shape assertions (fields present in ILedgerEntry interface)
       expect(entry).toHaveProperty("_id");
       expect(entry).toHaveProperty("orgId");
       expect(entry).toHaveProperty("accountId");
+      expect(entry).toHaveProperty("accountCode");
+      expect(entry).toHaveProperty("accountName");
+      expect(entry).toHaveProperty("accountType");
       expect(entry).toHaveProperty("date");
+      expect(entry).toHaveProperty("postingDate");
       expect(entry).toHaveProperty("debit");
       expect(entry).toHaveProperty("credit");
+      expect(entry).toHaveProperty("balance");
       expect(entry).toHaveProperty("description");
+      expect(entry).toHaveProperty("fiscalYear");
+      expect(entry).toHaveProperty("fiscalPeriod");
 
       // Type checks
       expect(typeof entry.debit).toBe("number");
       expect(typeof entry.credit).toBe("number");
+      expect(typeof entry.balance).toBe("number");
       expect(entry.date instanceof Date).toBe(true);
     });
   });
