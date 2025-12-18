@@ -8,6 +8,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import importPlugin from "eslint-plugin-import";
 import nextPlugin from "@next/eslint-plugin-next";
 import path from "node:path";
+import localRules from "./eslint-local-rules/index.js";
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
@@ -93,6 +94,7 @@ export default [
       import: importPlugin,
       "@next/next": nextPlugin,
       "@typescript-eslint": tseslint.plugin,
+      "local": localRules,
     },
     rules: {
       ...eslint.configs.recommended.rules,
@@ -261,6 +263,19 @@ export default [
     files: ["app/api/**/*"],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+
+  // Tenant Scope Enforcement (Custom Rule) - API routes and data access layers
+  {
+    files: [
+      "app/api/**/*.{ts,tsx}",
+      "lib/**/*.{ts,tsx}",
+      "server/**/*.{ts,tsx}",
+      "domain/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "local/require-tenant-scope": "warn", // Start with warn to avoid blocking builds
     },
   },
 
