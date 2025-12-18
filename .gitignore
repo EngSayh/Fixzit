@@ -18,6 +18,10 @@ tests/state/*.json
 tsconfig.tsbuildinfo
 *.tsbuildinfo
 
+# Vitest cache (regenerated on each test run)
+.vitest/
+**/.vitest/
+
 # Local env & secrets
 .env
 .env.*
