@@ -1,5 +1,44 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-18 19:30 (Asia/Riyadh) — Phase P47-P52: API Hardening & Zod Validation
+**Context:** feat/mobile-cardlist-phase1 | 437ec03cc | Agent: GitHub Copilot (VS Code Agent)
+**Duration:** 15 minutes | **Commits:** 437ec03cc
+
+**✅ PHASES P47-P52 COMPLETE: API HARDENING**
+
+**P47: Support Org Search Hardening**
+- Added Zod schema with validation for identifier/corporateId/limit
+- Configurable limit (1-50, default 10) via query params
+- Added Cache-Control: private, no-store for support tools
+- Route already had: SUPER_ADMIN check, rate limiting, ReDoS protection
+
+**P48: Cache Headers Extended**
+- marketplace/search: Cache-Control: public, max-age=60, stale-while-revalidate=120
+- souq/search: Cache-Control: public, max-age=60, stale-while-revalidate=120
+- Both endpoints already had Zod validation + rate limiting
+
+**P49: Zod Coverage Check**
+- Verified: marketplace/search, souq/search, support/organizations/search all have Zod
+- careers/public/jobs already has validation
+- Coverage improving steadily
+
+**P50: CI Workflow Verified**
+- build-sourcemaps.yml already has: pinned actions (v2-v4), minimal permissions, 30-day artifact retention
+- No changes needed
+
+**Pending Local Changes (from parallel agent):**
+- components/aqar/PropertiesList.tsx
+- components/common/OfflineIndicator.tsx
+- components/hr/LeaveRequestsList.tsx
+- components/marketplace/ProductsList.tsx
+- tests/api/ats/jobs-public.route.test.ts
+
+**Verification:**
+- TypeScript: ✅ 0 errors
+- Push: ✅ 33b509070..437ec03cc
+
+---
+
 ### 2025-12-18 19:00 (Asia/Riyadh) — Phase 6: CI/CD & Cache Optimization
 **Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)
 **Duration:** 20 minutes | **Commits:** 57f1677b6, ab5b57f5d
