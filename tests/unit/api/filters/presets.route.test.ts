@@ -102,8 +102,8 @@ describe("Filter presets API tenancy + validation", () => {
   });
 
   it("rejects requests without org context", async () => {
-    const getSessionUser = await import("@/server/middleware/withAuthRbac");
-    vi.spyOn(getSessionUser, "getSessionUser").mockResolvedValueOnce({ id: "u1", orgId: undefined as never });
+    const auth = await import("@/server/middleware/withAuthRbac");
+    vi.spyOn(auth, "getSessionUser").mockResolvedValueOnce({ id: "u1", orgId: undefined as never });
 
     const request = new NextRequest("http://localhost/api/filters/presets", {
       method: "POST",
