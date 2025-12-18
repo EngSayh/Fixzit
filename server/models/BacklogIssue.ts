@@ -140,8 +140,8 @@ export type BacklogStatus = 'pending' | 'in_progress' | 'resolved' | 'wont_fix';
 
 const BacklogIssueSchema = new Schema(
   {
-    key: { type: String, required: true, unique: true, index: true },
-    externalId: { type: String, unique: true, sparse: true, index: true },
+    key: { type: String, required: true, unique: true }, // unique implies index
+    externalId: { type: String, unique: true, sparse: true }, // unique implies index
     category: { type: String, required: true, enum: ['bug', 'logic', 'test', 'efficiency', 'next_step'], index: true },
     title: { type: String, required: true, maxlength: 200 },
     description: { type: String, required: true, maxlength: 2000 },

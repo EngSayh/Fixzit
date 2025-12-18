@@ -21,6 +21,7 @@ interface RateLimitInfo {
   remaining: number;
   reset: number; // Unix timestamp
   percentage: number;
+  retryAfter?: number; // Seconds until retry is safe (from Retry-After header)
 }
 
 export function useRateLimitMonitor() {
@@ -31,6 +32,22 @@ export function useRateLimitMonitor() {
     const remaining = parseInt(headers.get("X-RateLimit-Remaining") || "0", 10);
     const reset = parseInt(headers.get("X-RateLimit-Reset") || "0", 10);
 
+    // Parse Retry-After header (RFC 7231 - can be seconds or HTTP-date)
+    const retryAfterRaw = headers.get("Retry-After");
+    let retryAfter: number | undefined;
+    if (retryAfterRaw) {
+      const parsed = parseInt(retryAfterRaw, 10);
+      if (!isNaN(parsed)) {
+        retryAfter = parsed;
+      } else {
+        // Try parsing as HTTP-date
+        const date = Date.parse(retryAfterRaw);
+        if (!isNaN(date)) {
+          retryAfter = Math.max(0, Math.floor((date - Date.now()) / 1000));
+        }
+      }
+    }
+
     if (!limit) return null;
 
     const percentage = ((limit - remaining) / limit) * 100;
@@ -40,6 +57,7 @@ export function useRateLimitMonitor() {
       remaining,
       reset,
       percentage,
+      retryAfter,
     };
 
     setRateLimitInfo(info);
@@ -156,6 +174,14 @@ export function RateLimitDevPanel({ info }: { info: RateLimitInfo | null }) {
             {Math.floor(secondsUntilReset / 60)}m {secondsUntilReset % 60}s
           </span>
         </div>
+        {info.retryAfter !== undefined && (
+          <div className="flex justify-between mt-1 pt-1 border-t border-slate-200 dark:border-slate-700">
+            <span className="text-slate-600 dark:text-slate-400">Retry-After:</span>
+            <span className="font-mono text-orange-600 dark:text-orange-400">
+              {info.retryAfter}s
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

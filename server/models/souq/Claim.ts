@@ -220,7 +220,7 @@ const ClaimFundsHoldSchema = new Schema<IClaimFundsHold>(
 
 const ClaimSchema = new Schema<IClaim>(
   {
-    claimId: { type: String, required: true, unique: true, index: true },
+    claimId: { type: String, required: true, unique: true }, // unique implies index
     orgId: { type: String, required: true, index: true },
     orderId: { type: String, required: true, index: true },
     orderNumber: { type: String, required: true },
