@@ -347,5 +347,96 @@ describe("Support Organization Search API", () => {
       expect(sortStage).toBeDefined();
       expect(sortStage.$sort).toEqual({ searchScore: -1, name: 1 });
     });
+
+    it("should include _score field in response for debugging", async () => {
+      const mockOrgs = [
+        {
+          orgId: "org_123",
+          name: "Test Org",
+          code: "TEST",
+          searchScore: 100,
+        },
+      ];
+      vi.mocked(Organization.aggregate).mockResolvedValue(mockOrgs);
+
+      const request = createRequest({ identifier: "org_123" });
+      const response = await GET(request);
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data[0]).toHaveProperty("_score");
+    });
+
+    it("should filter out results with zero searchScore", async () => {
+      vi.mocked(Organization.aggregate).mockResolvedValue([]);
+      const request = createRequest({ identifier: "nomatch" });
+      await GET(request);
+
+      const pipeline = vi.mocked(Organization.aggregate).mock.calls[0][0] as any[];
+      const matchStage = pipeline.find((stage: any) => stage.$match);
+      
+      expect(matchStage).toBeDefined();
+      expect(matchStage.$match.searchScore).toEqual({ $gt: 0 });
+    });
+  });
+
+  describe("Response Shape Contract", () => {
+    it("should return array of organizations (not wrapped in results)", async () => {
+      vi.mocked(Organization.aggregate).mockResolvedValue([]);
+      const request = createRequest({ identifier: "test" });
+      const response = await GET(request);
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      
+      // Contract: returns array directly, not { results: [...] }
+      expect(Array.isArray(data)).toBe(true);
+    });
+
+    it("should include all expected fields in organization response", async () => {
+      const mockOrg = {
+        orgId: "org_full",
+        name: "Full Organization",
+        code: "FULL",
+        legal: { registrationNumber: "REG-001" },
+        subscription: { plan: "premium" },
+        searchScore: 100,
+      };
+      vi.mocked(Organization.aggregate).mockResolvedValue([mockOrg]);
+
+      const request = createRequest({ identifier: "org_full" });
+      const response = await GET(request);
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      
+      // Contract shape assertions
+      expect(data[0]).toHaveProperty("orgId", "org_full");
+      expect(data[0]).toHaveProperty("name", "Full Organization");
+      expect(data[0]).toHaveProperty("code", "FULL");
+      expect(data[0]).toHaveProperty("registrationNumber", "REG-001");
+      expect(data[0]).toHaveProperty("subscriptionPlan", "premium");
+      expect(data[0]).toHaveProperty("_score", 100);
+    });
+
+    it("should return null for missing optional fields", async () => {
+      const mockOrg = {
+        orgId: "org_min",
+        name: "Minimal Org",
+        searchScore: 10,
+        // Missing: code, legal, subscription
+      };
+      vi.mocked(Organization.aggregate).mockResolvedValue([mockOrg]);
+
+      const request = createRequest({ identifier: "org_min" });
+      const response = await GET(request);
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      
+      expect(data[0].code).toBeNull();
+      expect(data[0].registrationNumber).toBeNull();
+      expect(data[0].subscriptionPlan).toBeNull();
+    });
   });
 });
