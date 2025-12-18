@@ -13,6 +13,7 @@ import {
 import CustomCursor from '@/components/CustomCursor';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { getServerI18n } from '@/lib/i18n/server';
+import { Config } from '@/lib/config/constants';
 
 export const metadata: Metadata = {
   title: 'Fixzit Enterprise Platform',
@@ -70,8 +71,8 @@ const tajawal = Tajawal({
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale, isRTL, t } = await getServerI18n();
   const dir = isRTL ? 'rtl' : 'ltr';
-  // BUG-001 FIX: Standardized flag naming (was PLAYWRIGHT_TESTS, now NEXT_PUBLIC_PLAYWRIGHT_TESTS)
-  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === 'true';
+  // BUG-001 FIX: Standardized via Config.client.isPlaywrightTest
+  const isPlaywright = Config.client.isPlaywrightTest;
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning data-locale={locale}>

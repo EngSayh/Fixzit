@@ -5,6 +5,7 @@ import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
 import { MARKETPLACE_OFFLINE_DATA } from "@/data/marketplace-offline";
 import { getServerI18n } from "@/lib/i18n/server";
 import { isTruthy } from "@/lib/utils/env";
+import { Config } from "@/lib/config/constants";
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +46,7 @@ interface MarketplaceProductCard {
 }
 
 const offlineMarketplaceEnabled = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
-const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
+const isPlaywright = Config.client.isPlaywrightTest;
 
 async function loadHomepageData() {
   if (offlineMarketplaceEnabled) {

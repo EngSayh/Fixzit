@@ -3,13 +3,14 @@
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { Config } from "@/lib/config/constants";
 
 export default function SystemPage() {
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
     moduleId: "system",
   });
   const auto = useAutoTranslator("fm.system");
-  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
+  const isPlaywright = Config.client.isPlaywrightTest;
   if (!hasOrgContext) {
     return guard;
   }

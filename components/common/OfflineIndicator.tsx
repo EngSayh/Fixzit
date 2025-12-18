@@ -9,7 +9,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { WifiOff, Wifi } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +32,7 @@ export function OfflineIndicator({
 }: OfflineIndicatorProps) {
   const [isOnline, setIsOnline] = useState(true);
   const [showReconnected, setShowReconnected] = useState(false);
+  const reconnectedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Initialize with current status
@@ -40,14 +41,26 @@ export function OfflineIndicator({
     const handleOnline = () => {
       setIsOnline(true);
       if (showReconnectedMessage) {
+        // Clear any existing timeout before scheduling a new one
+        if (reconnectedTimeoutRef.current) {
+          clearTimeout(reconnectedTimeoutRef.current);
+        }
         setShowReconnected(true);
-        setTimeout(() => setShowReconnected(false), reconnectedMessageDuration);
+        reconnectedTimeoutRef.current = setTimeout(() => {
+          setShowReconnected(false);
+          reconnectedTimeoutRef.current = null;
+        }, reconnectedMessageDuration);
       }
     };
 
     const handleOffline = () => {
       setIsOnline(false);
       setShowReconnected(false);
+      // Clear timeout when going offline
+      if (reconnectedTimeoutRef.current) {
+        clearTimeout(reconnectedTimeoutRef.current);
+        reconnectedTimeoutRef.current = null;
+      }
     };
 
     window.addEventListener("online", handleOnline);
@@ -56,6 +69,10 @@ export function OfflineIndicator({
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      // Clean up timeout on unmount
+      if (reconnectedTimeoutRef.current) {
+        clearTimeout(reconnectedTimeoutRef.current);
+      }
     };
   }, [showReconnectedMessage, reconnectedMessageDuration]);
 

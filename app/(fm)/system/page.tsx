@@ -1,9 +1,10 @@
 "use client";
 
 import SystemVerifier from "@/components/SystemVerifier";
+import { Config } from "@/lib/config/constants";
 
 export default function SystemPage() {
-  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
+  const isPlaywright = Config.client.isPlaywrightTest;
   return (
     <div className="space-y-4">
       {isPlaywright && (

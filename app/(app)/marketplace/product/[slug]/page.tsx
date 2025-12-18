@@ -6,6 +6,7 @@ import ProductCard from "@/components/marketplace/ProductCard";
 import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { Metadata } from "next";
+import { Config } from "@/lib/config/constants";
 
 export const dynamic = 'force-dynamic';
 
@@ -53,7 +54,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
+  const isPlaywright = Config.client.isPlaywrightTest;
   if (isPlaywright) {
     return {
       title: "Playwright Demo Product | Fixzit Marketplace",
@@ -99,7 +100,7 @@ export async function generateMetadata({
 }
 
 export default async function ProductDetail(props: ProductPageProps) {
-  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
+  const isPlaywright = Config.client.isPlaywrightTest;
   if (isPlaywright) {
     const params = await props.params;
     return (

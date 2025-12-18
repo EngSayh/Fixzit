@@ -36,10 +36,15 @@ export async function GET(req: NextRequest) {
 
     const runAggregate = async <T>(aggResult: unknown): Promise<T[]> => {
       const maybe = aggResult as {
-        allowDiskUse?: (flag: boolean) => Promise<T[]>;
+        allowDiskUse?: (flag: boolean) => { maxTimeMS?: (ms: number) => Promise<T[]> } & Promise<T[]>;
       };
       if (maybe && typeof maybe.allowDiskUse === "function") {
-        return (await maybe.allowDiskUse(true)) ?? [];
+        const withDisk = maybe.allowDiskUse(true);
+        // Add timeout safety (30s max) to prevent long-running queries
+        if (typeof withDisk.maxTimeMS === "function") {
+          return (await withDisk.maxTimeMS(30_000)) ?? [];
+        }
+        return (await withDisk) ?? [];
       }
       return (await (aggResult as Promise<T[]>)) ?? [];
     };

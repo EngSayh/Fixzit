@@ -8,6 +8,7 @@ import { Users, Shield, Building } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { fetchOrgCounters } from "@/lib/counters";
+import { Config } from "@/lib/config/constants";
 
 interface SystemCounters {
   system: { users: number; roles: number; tenants: number };
@@ -20,7 +21,7 @@ export default function SystemDashboard() {
   const [activeTab, setActiveTab] = useState("users");
   const [counters, setCounters] = useState<SystemCounters | null>(null);
   const [loading, setLoading] = useState(true);
-  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
+  const isPlaywright = Config.client.isPlaywrightTest;
 
   useEffect(() => {
     if (status === "loading") return;

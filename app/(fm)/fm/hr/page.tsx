@@ -5,11 +5,12 @@ import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { Config } from "@/lib/config/constants";
 
 export default function HRPage() {
   const auto = useAutoTranslator("fm.hr");
   const { t } = useTranslation();
-  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
+  const isPlaywright = Config.client.isPlaywrightTest;
   const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
     moduleId: "hr",
   });
