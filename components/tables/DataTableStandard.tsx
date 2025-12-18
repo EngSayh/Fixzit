@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TableSkeleton } from "./TableSkeleton";
 
 export interface DataTableColumn<T> {
@@ -35,11 +36,20 @@ export interface DataTableStandardProps<T> {
   renderGroupHeader?: (groupKey: string, rows: T[]) => React.ReactNode;
   renderGroupSummaryRow?: (groupKey: string, rows: T[]) => SummaryCell[];
   renderSummaryRow?: (rows: T[]) => SummaryCell[];
+  /** Enable row selection checkboxes */
+  selectable?: boolean;
+  /** Currently selected row IDs */
+  selectedRows?: Set<string>;
+  /** Callback when selection changes */
+  onSelectionChange?: (selected: Set<string>) => void;
+  /** Function to get unique ID from row (defaults to row.id) */
+  getRowId?: (row: T) => string;
 }
 
 /**
  * Lightweight, framework-agnostic data table for list pages.
  * Supports simple accessors or custom cell renderers and exposes onRowClick.
+ * Row selection is controlled via selectable, selectedRows, and onSelectionChange props.
  */
 export function DataTableStandard<T extends Record<string, unknown>>({
   columns,
@@ -53,7 +63,39 @@ export function DataTableStandard<T extends Record<string, unknown>>({
   renderGroupHeader,
   renderGroupSummaryRow,
   renderSummaryRow,
+  selectable = false,
+  selectedRows = new Set(),
+  onSelectionChange,
+  getRowId = (row: T) => String((row as Record<string, unknown>).id ?? ""),
 }: DataTableStandardProps<T>) {
+  // Derive selection state helpers
+  const allRowIds = React.useMemo(() => data.map(getRowId), [data, getRowId]);
+  const allSelected = allRowIds.length > 0 && allRowIds.every((id) => selectedRows.has(id));
+  const someSelected = allRowIds.some((id) => selectedRows.has(id)) && !allSelected;
+
+  const toggleAll = React.useCallback(() => {
+    if (!onSelectionChange) return;
+    if (allSelected) {
+      onSelectionChange(new Set());
+    } else {
+      onSelectionChange(new Set(allRowIds));
+    }
+  }, [allSelected, allRowIds, onSelectionChange]);
+
+  const toggleRow = React.useCallback(
+    (rowId: string) => {
+      if (!onSelectionChange) return;
+      const next = new Set(selectedRows);
+      if (next.has(rowId)) {
+        next.delete(rowId);
+      } else {
+        next.add(rowId);
+      }
+      onSelectionChange(next);
+    },
+    [selectedRows, onSelectionChange]
+  );
+
   if (loading) {
     return <TableSkeleton rows={6} />;
   }
@@ -86,6 +128,7 @@ export function DataTableStandard<T extends Record<string, unknown>>({
     const summaryMap = new Map(summaryCells.map((cell) => [cell.columnId, cell.value]));
     return (
       <TableRow className="bg-muted/50 font-medium">
+        {selectable && <TableCell className="w-10 pe-0" />}
         {columns.map((column) => (
           <TableCell key={`summary-${column.id}`} className={column.className}>
             {summaryMap.get(column.id) ?? ""}
@@ -102,6 +145,7 @@ export function DataTableStandard<T extends Record<string, unknown>>({
     const summaryMap = new Map(summaryCells.map((cell) => [cell.columnId, cell.value]));
     return (
       <TableRow className="bg-muted/40 font-medium">
+        {selectable && <TableCell className="w-10 pe-0" />}
         {columns.map((column) => (
           <TableCell key={`group-summary-${String(groupKey)}-${column.id}`} className={column.className}>
             {summaryMap.get(column.id) ?? ""}
@@ -111,31 +155,58 @@ export function DataTableStandard<T extends Record<string, unknown>>({
     );
   };
 
-  const renderDataRow = (row: T, idx: number | string) => (
-    <TableRow
-      key={String((row as Record<string, unknown>).id ?? idx)}
-      className={`${onRowClick ? "cursor-pointer" : ""} ${density === "compact" ? "[&>td]:py-2 [&>th]:py-2" : "[&>td]:py-3 [&>th]:py-3"}`}
-      onClick={onRowClick ? () => onRowClick(row) : undefined}
-    >
-      {columns.map((column) => {
-        const rowAsRecord = row as Record<string, unknown>;
-        const value =
-          column.cell?.(row) ??
-          (column.accessor ? (rowAsRecord[column.accessor as string] as React.ReactNode) : null);
-        return (
-          <TableCell key={`${String(rowAsRecord.id ?? idx)}-${column.id}`} className={column.className}>
-            {value}
+  const renderDataRow = (row: T, idx: number | string) => {
+    const rowId = getRowId(row);
+    const isSelected = selectedRows.has(rowId);
+    return (
+      <TableRow
+        key={String((row as Record<string, unknown>).id ?? idx)}
+        className={`${onRowClick ? "cursor-pointer" : ""} ${density === "compact" ? "[&>td]:py-2 [&>th]:py-2" : "[&>td]:py-3 [&>th]:py-3"} ${isSelected ? "bg-accent/50" : ""}`}
+        onClick={onRowClick ? () => onRowClick(row) : undefined}
+        data-selected={isSelected}
+      >
+        {selectable && (
+          <TableCell className="w-10 pe-0">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => toggleRow(rowId)}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Select row ${rowId}`}
+            />
           </TableCell>
-        );
-      })}
-    </TableRow>
-  );
+        )}
+        {columns.map((column) => {
+          const rowAsRecord = row as Record<string, unknown>;
+          const value =
+            column.cell?.(row) ??
+            (column.accessor ? (rowAsRecord[column.accessor as string] as React.ReactNode) : null);
+          return (
+            <TableCell key={`${String(rowAsRecord.id ?? idx)}-${column.id}`} className={column.className}>
+              {value}
+            </TableCell>
+          );
+        })}
+      </TableRow>
+    );
+  };
+
+  // Compute column count for colSpan (includes checkbox column if selectable)
+  const totalColumns = selectable ? columns.length + 1 : columns.length;
 
   return (
     <Table>
       {caption ? <TableCaption>{caption}</TableCaption> : null}
       <TableHeader>
         <TableRow className={density === "compact" ? "[&>th]:py-2 [&>td]:py-2" : "[&>th]:py-3 [&>td]:py-3"}>
+          {selectable && (
+            <TableHead className="w-10 pe-0">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={toggleAll}
+                aria-label={someSelected ? "Some rows selected" : allSelected ? "Deselect all rows" : "Select all rows"}
+              />
+            </TableHead>
+          )}
           {columns.map((column) => (
             <TableHead key={column.id} className={column.className}>
               {column.header}
@@ -148,7 +219,7 @@ export function DataTableStandard<T extends Record<string, unknown>>({
           ? grouped.map((group) => (
               <React.Fragment key={String(group.key)}>
                 <TableRow className={density === "compact" ? "[&>td]:py-2 [&>th]:py-2 bg-muted/60" : "[&>td]:py-3 [&>th]:py-3 bg-muted/60"}>
-                  <TableCell colSpan={columns.length} className="font-medium">
+                  <TableCell colSpan={totalColumns} className="font-medium">
                     {renderGroupHeader ? renderGroupHeader(String(group.key), group.rows) : String(group.key)}
                   </TableCell>
                 </TableRow>
