@@ -520,4 +520,11 @@ describe('API /api/ats/jobs/public - Cache Key Normalization', () => {
     // Verify the cache key contains the clamped 64-char version
     expect(searchSegment).toBe('a'.repeat(64));
   });
+
+  it('sets Cache-Control header for public jobs endpoint', async () => {
+    const response = await callGET('?page=1&limit=10');
+    
+    // Verify cache header is set correctly
+    expect(response.headers.get('Cache-Control')).toBe('public, max-age=300, stale-while-revalidate=600');
+  });
 });

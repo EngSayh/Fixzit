@@ -138,4 +138,27 @@ describe("Souq search route", () => {
       ]),
     );
   });
+
+  it("sets Cache-Control header for public search endpoint", async () => {
+    const orgId = new Types.ObjectId();
+    process.env.MARKETPLACE_PUBLIC_ORGS = orgId.toString();
+    resolveMarketplaceContextMock.mockResolvedValue({
+      tenantKey: orgId.toString(),
+      orgId,
+      correlationId: "corr-cache",
+    });
+    searchMock.mockResolvedValue({
+      hits: [{ _id: "prod-1", title: "Test Product" }],
+      estimatedTotalHits: 1,
+      facetDistribution: {},
+      processingTimeMs: 1,
+    });
+
+    const req = new NextRequest("http://localhost/api/souq/search?q=test");
+    const response = await GET(req);
+    
+    // Verify response is successful and has cache header
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("public, max-age=60, stale-while-revalidate=120");
+  });
 });

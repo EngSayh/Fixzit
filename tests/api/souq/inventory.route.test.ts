@@ -66,11 +66,17 @@ describe("API /api/souq/inventory", () => {
     vi.clearAllMocks();
     // Reset rate limit mock to allow requests through
     vi.mocked(enforceRateLimit).mockReturnValue(null);
+    // Reset default sessionUser for auth tests
+    sessionUser = {
+      id: "test-user-id",
+      orgId: "test-org-id",
+      role: "VENDOR",
+    };
   });
 
   describe("GET - List Inventory", () => {
     it("returns 429 when rate limit exceeded", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(
+      vi.mocked(enforceRateLimit).mockReturnValueOnce(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,
         }) as never
