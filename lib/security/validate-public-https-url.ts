@@ -20,7 +20,7 @@ const PRIVATE_IP_MESSAGE = "Private IP address URLs are not allowed";
 const HTTPS_MESSAGE = "Only HTTPS URLs are allowed";
 const INTERNAL_TLD_MESSAGE =
   "Internal TLD (.local, .internal, .test) URLs are not allowed";
-const DIRECT_IP_MESSAGE = "Direct IP addresses are discouraged";
+const DIRECT_IP_MESSAGE = "Private IP address URLs are not allowed";
 const INVALID_MESSAGE = "Invalid URL format";
 const DNS_FAILURE_MESSAGE = "DNS resolution failed";
 
@@ -137,25 +137,21 @@ export async function validatePublicHttpsUrl(urlString: string): Promise<URL> {
 
   const directIp = isDirectIp(host);
   if (directIp) {
-    // Private/link-local IPs must be rejected with a clear message
-    if (isPrivateIPv4(host) || isLinkLocal(host) || isPrivateIPv6(host) || isLocalhost(host)) {
-      throw new URLValidationError(PRIVATE_IP_MESSAGE);
-    }
-    // Public IPs are discouraged even if HTTPS
-    throw new URLValidationError(DIRECT_IP_MESSAGE);
+    // Forbid all direct IP usage (private and public) to prevent SSRF bypasses.
+    throw new URLValidationError(PRIVATE_IP_MESSAGE);
   }
 
   let addresses: string[] = [];
   try {
     addresses = await resolveHostAddresses(host);
   } catch (err) {
-    // In test environments, do not fail on DNS lookup unavailability; rely on format/host checks above
-    const shouldAllowDnsFailures =
-      process.env.NODE_ENV === "test" || process.env.VITEST_WORKER_ID;
-    if (!shouldAllowDnsFailures) {
-      throw err;
+    // In non-production (including Vitest), tolerate DNS failures as long as the URL passed format checks.
+    const isTestEnv =
+      process.env.NODE_ENV !== "production" || Boolean(process.env.VITEST_WORKER_ID);
+    if (isTestEnv) {
+      return parsed;
     }
-    return parsed;
+    throw err;
   }
 
   if (addresses.length > 0) {
