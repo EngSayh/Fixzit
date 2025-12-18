@@ -161,7 +161,14 @@ describe("Currency Selector", () => {
       };
 
       const formatted = formatCurrencyAr(1234.56);
-      expect(formatted).toContain("1,234.56"); // Arabic locale may vary
+      const normalizeDigits = (value: string) =>
+        value
+          .replace(/\u200e|\u200f/g, "") // strip bidi markers
+          .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+          .replace(/٬/g, ",") // Arabic thousands separator
+          .replace(/٫/g, "."); // Arabic decimal separator
+      // Allow either Arabic numerals or Latin digits by normalizing, including separators
+      expect(normalizeDigits(formatted)).toContain("1,234.56");
     });
 
     it("should handle large numbers", () => {

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import React from "react";
 
@@ -125,23 +125,21 @@ describe("Currency Selector - Integration", () => {
     
     function PriceFormatter() {
       const [currency, setCurrency] = React.useState("SAR");
-      
-      const formats: Record<string, number> = {
-        SAR: 2,
-        USD: 2,
-        EUR: 2,
-        JPY: 0, // Japanese Yen has no decimals
-      };
+      const [decimals, setDecimals] = React.useState(2);
 
-      const formatAmount = (amount: number) => {
-        const decimals = formats[currency] || 2;
-        return amount.toFixed(decimals);
-      };
+      const formatAmount = (amount: number) => amount.toFixed(decimals);
 
       return (
         <div>
           <div data-testid="decimal-format">{formatAmount(1234.5678)}</div>
-          <button onClick={() => setCurrency("JPY")}>Switch to JPY</button>
+          <button
+            onClick={() => {
+              setCurrency("JPY");
+              setDecimals(0); // JPY has no decimals
+            }}
+          >
+            Switch to JPY
+          </button>
         </div>
       );
     }
@@ -159,17 +157,22 @@ describe("Currency Selector - Integration", () => {
     });
   });
 
-  it("should persist currency across page reloads", () => {
-    // First render: set currency
+  it("should persist currency across page reloads", async () => {
+    const user = userEvent.setup();
     const { unmount } = render(<TestCurrencySelector />);
-    
+
     const select = screen.getByTestId("currency-select") as HTMLSelectElement;
-    select.value = "EUR";
-    select.dispatchEvent(new Event("change", { bubbles: true }));
+    await user.selectOptions(select, "EUR");
+
+    await waitFor(() => {
+      expect(mockLocalStorage.get("preferred_currency")).toBe("EUR");
+    });
 
     // Simulate page reload by unmounting and re-mounting
-    unmount();
-    
+    await act(async () => {
+      unmount();
+    });
+
     render(<TestCurrencySelector />);
 
     // Should restore EUR from localStorage

@@ -253,13 +253,11 @@ export function SuperadminHeader() {
           size="sm"
           onClick={async () => {
             try {
-              const auditUrl =
-                typeof window !== "undefined"
-                  ? new URL(
-                      "/api/superadmin/tenant-switch/audit",
-                      window.location.origin,
-                    ).toString()
-                  : "/api/superadmin/tenant-switch/audit";
+              const origin =
+                typeof window !== "undefined" && window.location
+                  ? window.location.origin
+                  : "http://localhost:3000";
+              const auditUrl = `${origin}/api/superadmin/tenant-switch/audit`;
               void fetch(auditUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

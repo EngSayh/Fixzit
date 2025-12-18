@@ -51,7 +51,8 @@ Object.defineProperty(globalThis, 'jest', {
 });
 
 if (!process.env.MONGO_MEMORY_LAUNCH_TIMEOUT) {
-  process.env.MONGO_MEMORY_LAUNCH_TIMEOUT = "20000";
+  // Allow MongoMemoryServer up to 60s to start to reduce flakiness on slower runners
+  process.env.MONGO_MEMORY_LAUNCH_TIMEOUT = "60000";
 }
 
 const MONGO_MEMORY_LAUNCH_TIMEOUT_MS = Number(

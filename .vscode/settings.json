@@ -40,9 +40,8 @@
     "**/.pnpm-store/**": true,
     "**/coverage/**": true
   },
-  // Cap TS server memory and run a single server to stop runaway Electron helpers
-  "typescript.tsserver.maxTsServerMemory": 2048,
-  "typescript.tsserver.useSeparateSyntaxServer": false,
+  // Utilize full 36GB RAM - no artificial caps
+  "typescript.tsserver.maxTsServerMemory": 8192,
   "typescript.disableAutomaticTypeAcquisition": true,
-  "typescript.preferences.includePackageJsonAutoImports": "off"
+  "typescript.preferences.includePackageJsonAutoImports": "auto"
 }

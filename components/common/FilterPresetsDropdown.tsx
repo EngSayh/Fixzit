@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import * as TooltipExports from "@/components/ui/tooltip";
 import { useFilterPresets, type EntityType } from "@/hooks/useFilterPresets";
 import { logger } from "@/lib/logger";
 import { useToast } from "@/hooks/use-toast";
@@ -52,6 +53,16 @@ export function FilterPresetsDropdown({
 }: FilterPresetsDropdownProps) {
   const { presets, createPreset, deletePreset, defaultPreset, isLoading } = useFilterPresets({ entityType });
   const { toast } = useToast();
+  const TooltipProvider =
+    TooltipExports.TooltipProvider ??
+    (({ children }: { children: React.ReactNode }) => <>{children}</>);
+  const Tooltip = TooltipExports.Tooltip ?? (({ children }: { children: React.ReactNode }) => <>{children}</>);
+  const TooltipTrigger =
+    TooltipExports.TooltipTrigger ??
+    (({ children }: { children: React.ReactNode; asChild?: boolean }) => <>{children}</>);
+  const TooltipContent =
+    TooltipExports.TooltipContent ??
+    (({ children }: { children: React.ReactNode }) => <>{children}</>);
   const [showPresetsDialog, setShowPresetsDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -224,16 +235,25 @@ export function FilterPresetsDropdown({
 
   return (
     <>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        disabled={isLoading}
-        onClick={() => setShowPresetsDialog(true)}
-      >
-        <Star className="w-4 h-4 me-2" />
-        Presets
-        <ChevronDown className="w-4 h-4 ms-2" />
-      </Button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isLoading}
+              onClick={() => setShowPresetsDialog(true)}
+            >
+              <Star className="w-4 h-4 me-2" />
+              Presets
+              <ChevronDown className="w-4 h-4 ms-2" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Saved filter presets (⌘K)</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {/* Presets List Dialog */}
       <Dialog open={showPresetsDialog} onOpenChange={setShowPresetsDialog}>

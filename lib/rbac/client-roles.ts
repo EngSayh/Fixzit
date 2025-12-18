@@ -3,7 +3,7 @@
  * Source of truth: types/user.ts (UserRole, TEAM_MEMBER_SUB_ROLES).
  * Do NOT import server-only modules into client bundles.
  */
-import { Plan, SubmoduleKey, PLAN_GATES, inferSubRoleFromRole as inferSubRoleFromRoleV4 } from "@/domain/fm/fm.types";
+import { Plan, SubmoduleKey, PLAN_GATES, ROLE_ALIAS_MAP, ROLE_MODULE_ACCESS, ROLE_ACTIONS, SUB_ROLE_ACTIONS, inferSubRoleFromRole as inferSubRoleFromRoleV4 } from "@/domain/fm/fm.types";
 
 export enum Role {
   SUPER_ADMIN = "SUPER_ADMIN",
@@ -65,7 +65,7 @@ const ROLE_MODULES: Record<Role | SubRole, ModuleKey[]> = {
   [Role.ADMIN]: FULL_ACCESS,
   [Role.MANAGER]: FULL_ACCESS,
   [Role.FM_MANAGER]: [ModuleKey.DASHBOARD, ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES, ModuleKey.REPORTS],
-  [Role.PROPERTY_MANAGER]: [ModuleKey.DASHBOARD, ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES, ModuleKey.REPORTS],
+  [Role.PROPERTY_MANAGER]: [ModuleKey.DASHBOARD, ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES, ModuleKey.SUPPORT, ModuleKey.REPORTS],
   [Role.TECHNICIAN]: [ModuleKey.DASHBOARD, ModuleKey.WORK_ORDERS, ModuleKey.SUPPORT, ModuleKey.REPORTS],
   [Role.FINANCE]: [ModuleKey.DASHBOARD, ModuleKey.FINANCE, ModuleKey.REPORTS],
   [Role.HR]: [ModuleKey.DASHBOARD, ModuleKey.HR, ModuleKey.REPORTS],
@@ -75,7 +75,7 @@ const ROLE_MODULES: Record<Role | SubRole, ModuleKey[]> = {
   [Role.MARKETPLACE_MODERATOR]: [ModuleKey.DASHBOARD],
   [Role.OWNER]: [ModuleKey.DASHBOARD, ModuleKey.PROPERTIES, ModuleKey.FINANCE, ModuleKey.REPORTS],
   [Role.TENANT]: [ModuleKey.DASHBOARD, ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES, ModuleKey.MARKETPLACE, ModuleKey.SUPPORT, ModuleKey.REPORTS],
-  [Role.VENDOR]: [ModuleKey.DASHBOARD, ModuleKey.MARKETPLACE, ModuleKey.SUPPORT],
+  [Role.VENDOR]: [ModuleKey.DASHBOARD, ModuleKey.WORK_ORDERS, ModuleKey.MARKETPLACE, ModuleKey.SUPPORT, ModuleKey.REPORTS],
   [Role.AUDITOR]: [ModuleKey.DASHBOARD, ModuleKey.REPORTS],
   [Role.CORPORATE_OWNER]: FULL_ACCESS,
   [Role.EMPLOYEE]: [ModuleKey.DASHBOARD, ModuleKey.WORK_ORDERS, ModuleKey.SUPPORT],
@@ -196,4 +196,4 @@ export function computeAllowedModules(
   return baseModules as ModuleKey[];
 }
 
-export { Plan, SubmoduleKey, PLAN_GATES };
+export { Plan, SubmoduleKey, PLAN_GATES, ROLE_ALIAS_MAP, ROLE_MODULE_ACCESS, ROLE_ACTIONS, SUB_ROLE_ACTIONS };

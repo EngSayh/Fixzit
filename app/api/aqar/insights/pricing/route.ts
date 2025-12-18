@@ -49,14 +49,25 @@ export async function GET(request: NextRequest) {
     try {
       user = await getSessionUser(request);
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown auth error";
       if (!(error instanceof UnauthorizedError)) {
-        const message =
-          error instanceof Error ? error.message : "Unknown auth error";
         logger.warn("AQAR_PRICING_SESSION_WARN", {
           error: message,
           correlationId,
         });
       }
+      return NextResponse.json(
+        { error: "Unauthorized", correlationId },
+        { status: 401 },
+      );
+    }
+
+    if (!user?.orgId || !isValidObjectIdSafe(user.orgId)) {
+      return NextResponse.json(
+        { error: "Organization context is required", correlationId },
+        { status: 403 },
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -76,7 +87,7 @@ export async function GET(request: NextRequest) {
       neighborhood,
       propertyType,
       intent,
-      orgId: user?.orgId,
+      orgId: user.orgId,
       correlationId,
     });
 

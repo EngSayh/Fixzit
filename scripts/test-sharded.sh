@@ -10,7 +10,16 @@ echo "================================="
 echo ""
 
 # Configuration
-VITEST_OPTIONS="--reporter=dot --silent"
+# Constrain concurrency and extend MongoMemoryServer timeouts to avoid flakiness in CI
+export SERVER_MAX_WORKERS="${SERVER_MAX_WORKERS:-1}"
+export CLIENT_MAX_WORKERS="${CLIENT_MAX_WORKERS:-2}"
+export MONGOMS_TIMEOUT="${MONGOMS_TIMEOUT:-60000}"
+export MONGOMS_DOWNLOAD_TIMEOUT="${MONGOMS_DOWNLOAD_TIMEOUT:-60000}"
+export MONGOMS_START_TIMEOUT="${MONGOMS_START_TIMEOUT:-60000}"
+export MONGO_MEMORY_LAUNCH_TIMEOUT="${MONGO_MEMORY_LAUNCH_TIMEOUT:-60000}"
+export MONGOMS_STARTUP_TIMEOUT="${MONGOMS_STARTUP_TIMEOUT:-60000}"
+SERVER_OPTIONS="--reporter=dot --silent --maxWorkers=${SERVER_MAX_WORKERS} --fileParallelism=false"
+CLIENT_OPTIONS="--reporter=dot --silent --maxWorkers=${CLIENT_MAX_WORKERS}"
 SERVER_PROJECT="server"
 CLIENT_PROJECT="client"
 
@@ -26,11 +35,12 @@ START_TIME=$(date +%s)
 # Function to run tests for a project
 run_tests() {
     local project=$1
+    local options=$2
     local start=$(date +%s)
     
     echo -e "${YELLOW}▶ Running $project tests...${NC}"
     
-    if pnpm vitest run --project=$project $VITEST_OPTIONS; then
+    if pnpm vitest run --project=$project $options; then
         local end=$(date +%s)
         local duration=$((end - start))
         echo -e "${GREEN}✓ $project tests passed in ${duration}s${NC}"
@@ -60,13 +70,13 @@ main() {
     
     # Run server tests first (usually heavier)
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    run_tests "$SERVER_PROJECT"
+    run_tests "$SERVER_PROJECT" "$SERVER_OPTIONS"
     SERVER_EXIT=$?
     echo ""
     
     # Run client tests
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    run_tests "$CLIENT_PROJECT"
+    run_tests "$CLIENT_PROJECT" "$CLIENT_OPTIONS"
     CLIENT_EXIT=$?
     echo ""
     
