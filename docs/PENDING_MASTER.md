@@ -1,5 +1,37 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-18 21:30 (Asia/Riyadh) — Phase: Duplicate Index + Rate Limit Enhancement
+**Context:** feat/mobile-cardlist-phase1 | Agent: VS Code Agent + parallel Codex  
+**Duration:** 20 minutes | **Commit:** c916ba248 | **Files:** 5 changed
+
+**✅ PHASE COMPLETE: DB INDEXES + OBSERVABILITY**
+
+**Duplicate Index Fixes (Mongoose Startup Optimization):**
+- `server/models/Permission.ts`: Removed redundant `{ key: 1 }` index (unique already creates index)
+- `server/models/BacklogIssue.ts`: Removed redundant key/externalId indexes (unique implies index)
+- `server/models/souq/Claim.ts`: Removed redundant claimId index
+- `server/models/souq/RMA.ts`: Removed redundant rmaId index
+- **Benefit:** Eliminates "duplicate schema index" Mongoose warnings at startup
+
+**Rate Limit Monitor Enhancement:**
+- `components/observability/RateLimitMonitor.tsx`: Added Retry-After header parsing (RFC 7231)
+- Supports both seconds and HTTP-date formats
+- Added retryAfter field to RateLimitInfo interface
+- Added Retry-After display in DevPanel for debugging
+
+**Already Complete (Verified):**
+- Phase 1 (CI/Test Stability): MongoMemoryServer timeouts set to 60s in vitest.setup.ts + test-sharded.sh
+- Phase 3 (Filter Preset Validation): FilterPreset.ts has normalizer + validator on entity_type
+- Phase 4 (RBAC SubRole): lib/schemas/admin.ts userFormSchema enforces TEAM_MEMBER subRole requirement
+- Phase 5 (Superadmin Search Tests): Tests exist in SuperadminHeader.test.tsx
+- Phase 6 (Observability): Logger already sets orgId/tenantId/userId tags in Sentry
+- Phase 7 (RTL/i18n): Marketplace ProductCard uses t() for all strings
+
+**Verification:**
+- `pnpm typecheck` ✅
+- `pnpm lint` ✅
+- Push to remote successful
+
 ### 2025-12-18 17:05 (Asia/Riyadh) — Phase H: Type Hygiene + TS Noise Cleanup
 **Context:** feat/mobile-cardlist-phase1 | Agent: Codex (solo)  
 **Duration:** 10 minutes | **Files:** components/ui/dropdown-menu.tsx, components/tours/GuidedTour.tsx, types/third-party-shims.ts  
