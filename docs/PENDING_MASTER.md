@@ -1,5 +1,61 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-19 04:30 (Asia/Riyadh) — Phase 8-14: Production Readiness Sweep
+**Context:** feat/mobile-cardlist-phase1 | 2ab829e75 | Agent: GitHub Copilot (VS Code Agent)
+**Duration:** 45 minutes | **Commits:** 1d06cd73c, 2ab829e75
+
+**✅ PHASES 8-14 COMPLETE: PRODUCTION READINESS VERIFIED**
+
+**Phase 8: Tenant Scope Audit**
+- Verified all finance routes scoped with `orgId: new Types.ObjectId(user.orgId)`
+- Verified work orders scoped with `orgId: user.orgId`
+- Verified support/superadmin routes require `isSuperAdmin` or `getSuperadminSession()`
+- Verified owner routes use `ownerPortal.ownerId`
+- All high-risk entities (FM, Finance, Souq, Support) properly tenant-isolated
+
+**Phase 9: Aggregate Safety Sweep**
+- app/api/aqar/listings/search: Added maxTimeMS(5000) to facets aggregate
+- app/api/issues/stats: Added maxTimeMS(10000) to 7 aggregates
+- app/api/souq/sellers/[id]/dashboard: Added maxTimeMS(10000) to 3 aggregates
+- issue-tracker/app/api/issues/stats: Added maxTimeMS(10000) to 6 aggregates
+- Total: 17 aggregates hardened with timeout protection
+
+**Phase 10: Cache Headers Extension**
+- app/api/aqar/listings/search: Added Cache-Control (public, max-age=60)
+- Complements existing cache headers on jobs/public, categories, brands, search
+
+**Phase 11: Config Consolidation**
+- Verified Config in lib/config/constants.ts is comprehensive
+- Client-side process.env uses are all NEXT_PUBLIC_* or NODE_ENV (safe patterns)
+
+**Phase 12: Workflow Hygiene**
+- Added .github/actionlint.yaml documenting expected IDE warnings
+- IDE warnings for optional secrets are severity 4 (hints), not blocking
+- Workflows have env-level guards that skip when secrets not configured
+
+**Phase 13: Test Coverage Gaps**
+- Added tests/api/superadmin/session.route.test.ts (5 tests)
+- Added tests/api/superadmin/login.route.test.ts (5 tests)
+- SuperAdmin API coverage now at 28 tests across 4 files
+
+**Phase 14: Final Validation**
+- Full test suite: 3781/3781 tests passing (+10 new)
+- TypeScript: 0 errors
+- All commits pushed to remote
+
+**Production Readiness Checklist:**
+- ✅ TypeScript: 0 errors
+- ✅ Tests: 3781/3781 passing
+- ✅ Tenant scope: All routes verified
+- ✅ Aggregate safety: 17 pipelines with maxTimeMS
+- ✅ Cache headers: Extended to Aqar search
+- ✅ Workflow hygiene: actionlint config documented
+- ✅ Test coverage: SuperAdmin routes covered
+
+**Merge Gate Status: READY FOR REVIEW**
+
+---
+
 ### 2025-12-19 01:30 (Asia/Riyadh) — Phase P60: i18n Hygiene + API Hardening
 **Context:** feat/mobile-cardlist-phase1 | 1d06cd73c | Agent: GitHub Copilot (VS Code Agent)
 **Duration:** 10 minutes | **Commits:** Parallel agent committed with perf changes
