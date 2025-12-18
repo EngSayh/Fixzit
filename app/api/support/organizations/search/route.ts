@@ -49,7 +49,8 @@ const searchParamsSchema = z.object({
   message: "Either identifier or corporateId is required",
 });
 
-const serialize = (org: {
+// Type definition for org serialization - kept for documentation
+const _serialize = (org: {
   orgId: string;
   name: string;
   code?: string;

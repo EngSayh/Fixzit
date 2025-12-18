@@ -124,7 +124,8 @@ function getStatusBadge(status: string) {
   }
 }
 
-function getScoreColor(score: number) {
+// Score color utility - available for future progress indicators
+function _getScoreColor(score: number) {
   if (score >= 90) return 'bg-green-600';
   if (score >= 75) return 'bg-blue-600';
   if (score >= 60) return 'bg-yellow-600';
