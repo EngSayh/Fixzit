@@ -53,6 +53,8 @@ import { useTableQueryState } from "@/hooks/useTableQueryState";
 import ClientDate from "@/components/ClientDate";
 import { WorkOrderPriority } from "@/lib/sla";
 import { toast } from "sonner";
+import { SLABadge, getSLAStatus, formatSLATimeRemaining } from "@/components/fm/SLABadge";
+import { OfflineIndicator } from "@/components/common/OfflineIndicator";
 
 // Types
 type WorkOrderRecord = {
@@ -315,6 +317,16 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
       ),
     },
     {
+      id: "sla",
+      header: "SLA",
+      cell: (row) => {
+        const dueDate = row.dueAt ? new Date(row.dueAt) : undefined;
+        const slaStatus = getSLAStatus(dueDate, 120);
+        const timeLabel = formatSLATimeRemaining(dueDate);
+        return <SLABadge status={slaStatus} timeLabel={timeLabel} size="sm" showIcon />;
+      },
+    },
+    {
       id: "created",
       header: "Created",
       cell: (row) => row.createdAt ? <ClientDate date={row.createdAt} format="relative" /> : "—",
@@ -394,6 +406,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
 
   return (
     <div className="space-y-6 p-6">
+      <OfflineIndicator position="top" />
       {/* PageHeader (P0) */}
       <div className="flex items-center justify-between">
         <div>
