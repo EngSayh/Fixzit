@@ -2752,6 +2752,10 @@
       "finance": "Finance",
       "hr": "Hr",
       "login": "Login"
+    },
+    "offline": {
+      "backOnline": "You're back online!",
+      "offline": "You're offline. Some features may be unavailable."
     }
   },
   "accessibility": {
