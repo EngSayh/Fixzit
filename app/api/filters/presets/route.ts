@@ -16,10 +16,8 @@ import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthR
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
-import {
-  normalizeFilterEntityType,
-  entityTypeQueryValues,
-} from "@/lib/filters/entities";
+import { normalizeFilterEntityType, entityTypeQueryValues } from "@/lib/filters/entities";
+import { pruneFiltersToSchema } from "@/lib/filters/schema-registry";
 
 const createPresetSchema = z.object({
   entity_type: z
@@ -29,7 +27,7 @@ const createPresetSchema = z.object({
       message: "Invalid entity_type",
     }),
   name: z.string().min(1).max(100),
-  filters: z.record(z.string(), z.unknown()), // Fixed: z.record now requires key schema
+  filters: z.record(z.string(), z.unknown()),
   sort: z.object({
     field: z.string(),
     direction: z.enum(["asc", "desc"]),
@@ -37,6 +35,23 @@ const createPresetSchema = z.object({
   search: z.string().max(500).optional(),
   is_default: z.boolean().optional(),
 });
+
+const disallowedKey = (key: string) => key.includes("$") || key.includes(".");
+const sanitizeFilters = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.entries(value as Record<string, unknown>).reduce<Record<string, unknown>>(
+    (acc, [key, val]) => {
+      if (disallowedKey(key)) return acc;
+      if (val && typeof val === "object" && !Array.isArray(val)) {
+        acc[key] = sanitizeFilters(val);
+        return acc;
+      }
+      acc[key] = val;
+      return acc;
+    },
+    {},
+  );
+};
 
 /**
  * GET - List filter presets for current user
@@ -148,6 +163,10 @@ export async function POST(request: NextRequest) {
 
   const { entity_type, name, filters, sort, search, is_default } = validation.data;
   const normalizedEntityType = normalizeFilterEntityType(entity_type);
+  
+  // Phase B: Sanitize dangerous keys then prune to schema
+  const sanitizedFilters = sanitizeFilters(filters);
+  const prunedFilters = pruneFiltersToSchema(sanitizedFilters, normalizedEntityType);
 
   try {
     await connectDb();
@@ -171,7 +190,7 @@ export async function POST(request: NextRequest) {
       user_id: userId,
       entity_type: normalizedEntityType,
       name,
-      filters,
+      filters: prunedFilters,
       sort,
       search,
       is_default: is_default || false,
