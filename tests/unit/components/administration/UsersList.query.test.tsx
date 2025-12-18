@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import React from "react";
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 
 let capturedKeys: string[] = [];
 
@@ -34,7 +34,7 @@ vi.mock("@/hooks/useTableQueryState", () => ({
         lastLoginTo: "2024-01-31",
       },
     },
-    updateState: vi.fn(),
+    updateState,
     resetState: vi.fn(),
   }),
 }));
@@ -42,6 +42,8 @@ vi.mock("@/hooks/useTableQueryState", () => ({
 vi.mock("@/contexts/TranslationContext", () => ({
   useTranslation: () => ({ t: (_k: string, fallback?: string) => fallback || "" }),
 }));
+
+const updateState = vi.fn();
 
 vi.mock("@/hooks/useFilterPresets", () => ({
   useFilterPresets: () => ({
@@ -53,6 +55,15 @@ vi.mock("@/hooks/useFilterPresets", () => ({
     defaultPreset: undefined,
     refresh: vi.fn(),
   }),
+}));
+
+let capturedPresetProps: Record<string, unknown> | undefined;
+
+vi.mock("@/components/common/FilterPresetsDropdown", () => ({
+  FilterPresetsDropdown: (props: Record<string, unknown>) => {
+    capturedPresetProps = props;
+    return <div data-testid="filter-presets-dropdown" />;
+  },
 }));
 
 import { UsersList } from "@/components/administration/UsersList";
@@ -77,5 +88,57 @@ describe("UsersList query params", () => {
     expect(params.get("inactiveDays")).toBe("30");
     expect(params.get("lastLoginFrom")).toBe("2024-01-01");
     expect(params.get("lastLoginTo")).toBe("2024-01-31");
+  });
+
+  it("normalizes loaded presets and applies search", () => {
+    capturedKeys = [];
+    capturedPresetProps = undefined;
+    updateState.mockClear();
+
+    render(<UsersList orgId="org-1" />);
+
+    expect(capturedPresetProps).toBeTruthy();
+
+    const props = capturedPresetProps as {
+      onLoadPreset: (
+        filters: Record<string, unknown>,
+        sort?: { field: string; direction: "asc" | "desc" },
+        search?: string
+      ) => void;
+      currentFilters: Record<string, unknown>;
+    };
+
+    // Ensure currentFilters is schema-picked (no stray keys)
+    expect(props.currentFilters).toMatchObject({
+      role: "ORG_ADMIN",
+      status: "LOCKED",
+      department: "Engineering",
+      inactiveDays: 30,
+      lastLoginFrom: "2024-01-01",
+      lastLoginTo: "2024-01-31",
+    });
+    expect(props.currentFilters).not.toHaveProperty("unknown");
+
+    act(() => {
+      props.onLoadPreset(
+        {
+          status: "INACTIVE",
+          role: "VIEWER",
+          department: "Operations",
+          unknown: "noop",
+        },
+        undefined,
+        "new search"
+      );
+    });
+
+    expect(updateState).toHaveBeenCalledWith({
+      filters: {
+        status: "INACTIVE",
+        role: "VIEWER",
+        department: "Operations",
+      },
+      q: "new search",
+    });
   });
 });

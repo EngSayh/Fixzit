@@ -3,6 +3,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 type ViewedItem = {
   id: string;
@@ -12,6 +13,7 @@ type ViewedItem = {
 const STORAGE_KEY = "marketplace_recently_viewed";
 
 export function RecentlyViewed() {
+  const { t } = useTranslation();
   const [items, setItems] = React.useState<ViewedItem[]>([]);
 
   React.useEffect(() => {
@@ -33,16 +35,21 @@ export function RecentlyViewed() {
     <div className="rounded-2xl border border-border bg-card p-3 text-sm text-foreground">
       <div className="flex items-center justify-between">
         <div>
-          <p className="font-semibold">Recently viewed</p>
+          <p className="font-semibold">
+            {t("marketplace.recentlyViewed.title", "Recently viewed")}
+          </p>
           <p className="text-muted-foreground text-xs">
-            Pick up where you left off. Sign in to sync across devices.
+            {t(
+              "marketplace.recentlyViewed.subtitle",
+              "Pick up where you left off. Sign in to sync across devices."
+            )}
           </p>
         </div>
         <Link
           href="/login"
           className="text-primary text-xs font-semibold hover:underline"
         >
-          Sign in
+          {t("marketplace.recentlyViewed.signInCta", "Sign in")}
         </Link>
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
@@ -52,7 +59,10 @@ export function RecentlyViewed() {
             href={`/marketplace/product/${item.id}`}
             className="rounded-full bg-muted px-3 py-1 text-xs text-foreground hover:bg-muted/80"
           >
-            {item.name || item.id}
+            {item.name ||
+              t("marketplace.recentlyViewed.itemFallback", "Product {{id}}", {
+                id: item.id,
+              })}
           </Link>
         ))}
       </div>
