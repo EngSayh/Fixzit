@@ -100,7 +100,7 @@ export function FilterPresetsDropdown({
     } finally {
       setIsSaving(false);
     }
-  }, [presetName, entityType, currentFilters, currentSort, isDefault, createPreset, toast]);
+  }, [presetName, entityType, safeFilters, currentSort, currentSearch, isDefault, createPreset, toast]);
 
   const handleDeletePreset = useCallback(
     async (id: string, name: string) => {
@@ -191,7 +191,7 @@ export function FilterPresetsDropdown({
                   <div
                     key={preset._id}
                     className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent cursor-pointer"
-                    onClick={() => handleLoadPreset(preset.filters, preset.sort)}
+                    onClick={() => handleLoadPreset(preset.filters, preset.sort, preset.search)}
                   >
                     <div className="flex items-center gap-3 flex-1">
                       {preset.is_default ? (

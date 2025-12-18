@@ -9,7 +9,7 @@
  * - http_requests_total: Request count by route and status
  * - http_request_duration_seconds: Request latency histogram
  * - mongodb_connections_active: Active DB connections
- * - work_orders_total: Work order count by status
+ * - workOrders_total: Work order count by status (legacy dashboards may alias)
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getMetricsRegistry } from "@/lib/monitoring/metrics-registry";

@@ -39,6 +39,7 @@ describe('Filter System Integration', () => {
       entity_type: 'workOrders',
       name: 'High Priority Open',
       filters: { status: 'open', priority: 'high' },
+      search: 'AC unit',
       user_id: session.userId,
     };
 
@@ -50,6 +51,7 @@ describe('Filter System Integration', () => {
     expect(preset.filters).toHaveProperty('status', 'open');
     expect(filtered.length).toBeGreaterThan(0);
     expect(filtered.every(wo => wo.status === 'open' && wo.priority === 'high')).toBe(true);
+    expect(preset.search).toBe('AC unit');
   });
 
   it('should save user-specific filter presets', () => {

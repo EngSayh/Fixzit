@@ -35,6 +35,7 @@ const createPresetSchema = z.object({
     field: z.string(),
     direction: z.enum(["asc", "desc"]),
   }).optional(),
+  search: z.string().max(500).optional(),
   is_default: z.boolean().optional(),
 });
 
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 
-  const { entity_type, name, filters, sort, is_default } = validation.data;
+  const { entity_type, name, filters, sort, search, is_default } = validation.data;
   const normalizedEntityType = normalizeFilterEntityType(entity_type);
 
   try {
@@ -173,6 +174,7 @@ export async function POST(request: NextRequest) {
       name,
       filters,
       sort,
+      search,
       is_default: is_default || false,
     });
 

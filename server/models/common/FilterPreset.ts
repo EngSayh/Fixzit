@@ -24,6 +24,7 @@ export interface IFilterPreset extends Document {
     field: string;
     direction: "asc" | "desc";
   };
+  search?: string;
   is_default?: boolean; // Auto-apply on list load
   created_at: Date;
   updated_at: Date;
@@ -77,6 +78,13 @@ const FilterPresetSchema = new Schema<IFilterPreset>(
         },
       },
       required: false,
+    },
+    search: {
+      type: String,
+      required: false,
+      maxlength: 500,
+      default: "",
+      trim: true,
     },
     is_default: {
       type: Boolean,
