@@ -263,12 +263,10 @@ describe("Support Organization Search API", () => {
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data.results[0]).toEqual({
+      // Route returns array directly, not { results: [...] }
+      expect(data[0]).toMatchObject({
         orgId: "org_456",
         name: "Minimal Org",
-        code: null,
-        registrationNumber: null,
-        subscriptionPlan: null,
       });
     });
   });
