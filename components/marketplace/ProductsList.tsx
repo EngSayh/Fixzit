@@ -29,6 +29,7 @@ import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
 import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
+import { TableSkeleton } from "@/components/skeletons";
 import {
   buildActiveFilterChips,
   serializeFilters,
@@ -537,7 +538,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
 
       {/* Content */}
       {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading products...</div>
+        <TableSkeleton rows={10} />
       ) : products.length === 0 ? (
         emptyState
       ) : viewMode === "cards" ? (

@@ -1,5 +1,46 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-19 20:30 (Asia/Riyadh) — Phase P67-P70: Marketplace Currency & UX Improvements
+**Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)
+**Duration:** 10 minutes
+
+**✅ PHASES P67-P70 COMPLETE: MARKETPLACE CURRENCY CONTEXT & LOADING UX**
+
+**P67: Fix Hardcoded Currency in ProductsList**
+- Replaced hardcoded 'SAR' prefix in NumericRangeFilter (line 638)
+- Added `useCurrency` hook import from `@/contexts/CurrencyContext`
+- Used dynamic `{currency}` variable instead of static "SAR"
+- User currency preference now respected in price range filters
+
+**P68-P69: Verify Tenant-Aware Pricing & API Scope**
+- ✅ Verified API endpoint `/api/marketplace/products` scopes queries by `orgId: context.orgId`
+- ✅ Verified ProductsList component receives `orgId` prop for tenant context
+- ✅ Confirmed API response includes `pagination` metadata (page, limit, total, pages)
+- ✅ EmptyState already exists with "No products found" and contextual CTAs
+- ✅ Result count already displayed in PageHeader: `({totalCount})`
+
+**P70: Add Loading Skeleton to ProductsList**
+- Replaced simple "Loading products..." text with `<TableSkeleton rows={10} />`
+- Imported TableSkeleton from `@/components/skeletons`
+- Shows 10 skeleton rows during `isLoading` state for better perceived performance
+- TableSkeleton uses module-level column constants for zero-cost memoization
+
+**QA Gate:**
+- ✅ TypeScript: 0 errors
+- ✅ API: Tenant-scoped with orgId, Cache-Control: private, max-age=60
+- ✅ Currency: Dynamic via CurrencyContext
+- ✅ UX: Loading skeleton + empty state + result counts
+
+**Files Changed:**
+- `components/marketplace/ProductsList.tsx` - Added useCurrency, TableSkeleton
+
+**Next Steps:**
+- P71-P73: Zod coverage expansion (120 → 200+ endpoints)
+- P74: Playwright HFV smoke tests
+- P75: CI/Runtime optimization
+
+---
+
 ### 2025-12-19 20:15 (Asia/Riyadh) — Phase P66: Global Offline Resilience Deployment
 **Context:** feat/mobile-cardlist-phase1 | Agent: GitHub Copilot (VS Code Agent)
 **Duration:** 10 minutes
