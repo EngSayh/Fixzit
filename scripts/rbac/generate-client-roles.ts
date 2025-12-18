@@ -17,6 +17,8 @@ import { fileURLToPath } from "node:url";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { UserRole, TEAM_MEMBER_SUB_ROLES } from "../../types/user";
+// Import canonical alias map from FM domain (client-safe)
+import { ROLE_ALIAS_MAP } from "../../domain/fm/fm.types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -99,28 +101,7 @@ const roleModulePresets: Record<string, string[]> = {
   DISPATCHER: ["DASHBOARD", "WORK_ORDERS", "SUPPORT"],
 };
 
-const aliasMap: Record<string, string> = {
-  TENANT_ADMIN: "ADMIN",
-  CLIENT_ADMIN: "ADMIN",
-  MANAGEMENT: "MANAGER",
-  FM_MANAGER: "FM_MANAGER",
-  FINANCE: "FINANCE",
-  HR: "HR",
-  PROCUREMENT: "PROCUREMENT",
-  EMPLOYEE: "EMPLOYEE",
-  DISPATCHER: "DISPATCHER",
-  SUPPORT: "SUPPORT",
-  AUDITOR: "AUDITOR",
-  VIEWER: "VIEWER",
-  FIELD_ENGINEER: "TECHNICIAN",
-  INTERNAL_TECHNICIAN: "TECHNICIAN",
-  CONTRACTOR_TECHNICIAN: "TECHNICIAN",
-  MARKETPLACE_PARTNER: "VENDOR",
-  SERVICE_PROVIDER: "VENDOR",
-  SUPPLIER: "VENDOR",
-  PROPERTY_OWNER: "CORPORATE_OWNER",
-  OWNER: "CORPORATE_OWNER",
-};
+const aliasMap: Record<string, string> = ROLE_ALIAS_MAP;
 
 const accessPrincipals = [...primaryRoles, ...subRoles];
 
@@ -140,7 +121,6 @@ const roleModuleLines = accessPrincipals
 
 const aliasLines = Object.entries(aliasMap)
   .map(([alias, target]) => `  ${alias}: Role.${target},`)
-  .concat("  GUEST: Role.GUEST,")
   .join("\n");
 
 const content = `${header}${fmImports}

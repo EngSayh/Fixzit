@@ -35,6 +35,7 @@ import {
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
+import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -294,9 +295,20 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
     setFilterDrawerOpen(false);
   };
 
-  const handleLoadPreset = (presetFilters: Record<string, unknown>) => {
-    setDraftFilters(presetFilters as AuditFilters);
-    updateState({ filters: presetFilters });
+  const handleLoadPreset = (
+    presetFilters: Record<string, unknown>,
+    _sort?: { field: string; direction: "asc" | "desc" },
+    search?: string
+  ) => {
+    const normalizedFilters = pickSchemaFilters<AuditFilters>(
+      presetFilters,
+      AUDIT_FILTER_SCHEMA
+    );
+    setDraftFilters(normalizedFilters);
+    updateState({
+      filters: normalizedFilters,
+      q: typeof search === "string" ? search : "",
+    });
   };
 
   return (
@@ -348,7 +360,14 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
             <TableDensityToggle density={density} onChange={setDensity} />
             <FilterPresetsDropdown
               entityType="auditLogs"
-              currentFilters={currentFilters}
+              currentFilters={pickSchemaFilters<AuditFilters>(
+                currentFilters,
+                AUDIT_FILTER_SCHEMA
+              )}
+              currentSearch={state.q}
+              normalizeFilters={(filters) =>
+                pickSchemaFilters<AuditFilters>(filters, AUDIT_FILTER_SCHEMA)
+              }
               onLoadPreset={handleLoadPreset}
             />
             <Button
