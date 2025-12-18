@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import React from "react";
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 
 let capturedKeys: string[] = [];
+const updateState = vi.fn();
+let capturedPresetProps: Record<string, unknown> | undefined;
 
 vi.mock("swr", () => {
   const swrMock = (key: string | null) => {
@@ -36,7 +38,7 @@ vi.mock("@/hooks/useTableQueryState", () => ({
         dueDateTo: "2024-01-31",
       },
     },
-    updateState: vi.fn(),
+    updateState,
     resetState: vi.fn(),
   }),
 }));
@@ -57,6 +59,13 @@ vi.mock("@/hooks/useFilterPresets", () => ({
   }),
 }));
 
+vi.mock("@/components/common/FilterPresetsDropdown", () => ({
+  FilterPresetsDropdown: (props: Record<string, unknown>) => {
+    capturedPresetProps = props;
+    return <div data-testid="filter-presets-dropdown" />;
+  },
+}));
+
 // Component under test
 import { WorkOrdersView } from "@/components/fm/WorkOrdersViewNew";
 
@@ -65,7 +74,7 @@ describe("WorkOrdersViewNew query params", () => {
     capturedKeys = [];
     render(<WorkOrdersView orgId="org-1" heading="h" description="d" />);
 
-    const apiKey = capturedKeys.find((key) => key.startsWith("/api/work-orders?"));
+    const apiKey = capturedKeys.find((key) => key.startsWith("/api/fm/work-orders?"));
     expect(apiKey).toBeTruthy();
     const url = new URL(apiKey || "", "http://localhost");
     const params = url.searchParams;
@@ -80,5 +89,58 @@ describe("WorkOrdersViewNew query params", () => {
     expect(params.get("slaRisk")).toBe("true");
     expect(params.get("dueDateFrom")).toBe("2024-01-01");
     expect(params.get("dueDateTo")).toBe("2024-01-31");
+  });
+
+  it("normalizes presets and applies search", () => {
+    capturedKeys = [];
+    capturedPresetProps = undefined;
+    updateState.mockClear();
+
+    render(<WorkOrdersView orgId="org-1" heading="h" description="d" />);
+
+    expect(capturedPresetProps).toBeTruthy();
+    const props = capturedPresetProps as {
+      onLoadPreset: (
+        filters: Record<string, unknown>,
+        sort?: { field: string; direction: "asc" | "desc" },
+        search?: string
+      ) => void;
+      currentFilters: Record<string, unknown>;
+    };
+
+    expect(props.currentFilters).toMatchObject({
+      status: "SUBMITTED",
+      priority: "HIGH",
+      overdue: true,
+      assignedToMe: true,
+      unassigned: true,
+      slaRisk: true,
+      dueDateFrom: "2024-01-01",
+      dueDateTo: "2024-01-31",
+    });
+    expect(props.currentFilters).not.toHaveProperty("unknown");
+
+    act(() => {
+      props.onLoadPreset(
+        {
+          status: "IN_PROGRESS",
+          priority: "LOW",
+          overdue: false,
+          unknown: "noop",
+        },
+        undefined,
+        "search work orders"
+      );
+    });
+
+    expect(updateState).toHaveBeenCalledWith({
+      filters: {
+        status: "IN_PROGRESS",
+        priority: "LOW",
+        overdue: false,
+      },
+      q: "search work orders",
+      page: 1,
+    });
   });
 });

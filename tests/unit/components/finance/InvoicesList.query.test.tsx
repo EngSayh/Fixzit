@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import React from "react";
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 
 let capturedKeys: string[] = [];
+const updateState = vi.fn();
+let capturedPresetProps: Record<string, unknown> | undefined;
 
 vi.mock("swr", () => ({
   default: (key: string | null) => {
@@ -35,7 +37,7 @@ vi.mock("@/hooks/useTableQueryState", () => ({
         dueTo: "2024-02-29",
       },
     },
-    updateState: vi.fn(),
+    updateState,
     resetState: vi.fn(),
   }),
 }));
@@ -54,6 +56,13 @@ vi.mock("@/hooks/useFilterPresets", () => ({
     defaultPreset: undefined,
     refresh: vi.fn(),
   }),
+}));
+
+vi.mock("@/components/common/FilterPresetsDropdown", () => ({
+  FilterPresetsDropdown: (props: Record<string, unknown>) => {
+    capturedPresetProps = props;
+    return <div data-testid="filter-presets-dropdown" />;
+  },
 }));
 
 import { InvoicesList } from "@/components/finance/InvoicesList";
@@ -80,5 +89,57 @@ describe("InvoicesList query params", () => {
     expect(params.get("issueTo")).toBe("2024-01-31");
     expect(params.get("dueFrom")).toBe("2024-02-01");
     expect(params.get("dueTo")).toBe("2024-02-29");
+  });
+
+  it("normalizes presets and applies search", () => {
+    capturedKeys = [];
+    capturedPresetProps = undefined;
+    updateState.mockClear();
+
+    render(<InvoicesList orgId="org-1" />);
+
+    expect(capturedPresetProps).toBeTruthy();
+    const props = capturedPresetProps as {
+      onLoadPreset: (
+        filters: Record<string, unknown>,
+        sort?: { field: string; direction: "asc" | "desc" },
+        search?: string
+      ) => void;
+      currentFilters: Record<string, unknown>;
+    };
+
+    expect(props.currentFilters).toMatchObject({
+      status: "OVERDUE",
+      amountMin: 100,
+      amountMax: 5000,
+      dateRange: "month",
+      issueFrom: "2024-01-01",
+      issueTo: "2024-01-31",
+      dueFrom: "2024-02-01",
+      dueTo: "2024-02-29",
+    });
+    expect(props.currentFilters).not.toHaveProperty("unknown");
+
+    act(() => {
+      props.onLoadPreset(
+        {
+          status: "PAID",
+          amountMin: 50,
+          amountMax: 200,
+          unknown: "noop",
+        },
+        undefined,
+        "search invoices"
+      );
+    });
+
+    expect(updateState).toHaveBeenCalledWith({
+      filters: {
+        status: "PAID",
+        amountMin: 50,
+        amountMax: 200,
+      },
+      q: "search invoices",
+    });
   });
 });

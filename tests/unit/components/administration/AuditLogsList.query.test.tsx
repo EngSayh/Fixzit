@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import React from "react";
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 
 let capturedKeys: string[] = [];
+const updateState = vi.fn();
+let capturedPresetProps: Record<string, unknown> | undefined;
 
 vi.mock("swr", () => ({
   default: (key: string | null) => {
@@ -35,7 +37,7 @@ vi.mock("@/hooks/useTableQueryState", () => ({
         timestampTo: "2024-03-07",
       },
     },
-    updateState: vi.fn(),
+    updateState,
     resetState: vi.fn(),
   }),
 }));
@@ -54,6 +56,13 @@ vi.mock("@/hooks/useFilterPresets", () => ({
     defaultPreset: undefined,
     refresh: vi.fn(),
   }),
+}));
+
+vi.mock("@/components/common/FilterPresetsDropdown", () => ({
+  FilterPresetsDropdown: (props: Record<string, unknown>) => {
+    capturedPresetProps = props;
+    return <div data-testid="filter-presets-dropdown" />;
+  },
 }));
 
 import { AuditLogsList } from "@/components/administration/AuditLogsList";
@@ -80,5 +89,57 @@ describe("AuditLogsList query params", () => {
     expect(params.get("action")).toBe("admin");
     expect(params.get("timestampFrom")).toBe("2024-03-01");
     expect(params.get("timestampTo")).toBe("2024-03-07");
+  });
+
+  it("normalizes presets and applies search", () => {
+    capturedKeys = [];
+    capturedPresetProps = undefined;
+    updateState.mockClear();
+
+    render(<AuditLogsList orgId="org-1" />);
+
+    expect(capturedPresetProps).toBeTruthy();
+    const props = capturedPresetProps as {
+      onLoadPreset: (
+        filters: Record<string, unknown>,
+        sort?: { field: string; direction: "asc" | "desc" },
+        search?: string
+      ) => void;
+      currentFilters: Record<string, unknown>;
+    };
+
+    expect(props.currentFilters).toMatchObject({
+      eventType: "LOGIN",
+      status: "FAILURE",
+      userId: "user-123",
+      ipAddress: "10.0.0.1",
+      dateRange: "7d",
+      action: "admin",
+      timestampFrom: "2024-03-01",
+      timestampTo: "2024-03-07",
+    });
+    expect(props.currentFilters).not.toHaveProperty("unknown");
+
+    act(() => {
+      props.onLoadPreset(
+        {
+          eventType: "LOGOUT",
+          status: "SUCCESS",
+          action: "user",
+          unknown: "noop",
+        },
+        undefined,
+        "search audits"
+      );
+    });
+
+    expect(updateState).toHaveBeenCalledWith({
+      filters: {
+        eventType: "LOGOUT",
+        status: "SUCCESS",
+        action: "user",
+      },
+      q: "search audits",
+    });
   });
 });
