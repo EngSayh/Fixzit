@@ -39,6 +39,15 @@ jobs:
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # P120: Cache MongoMemoryServer binaries to speed up CI
+      - name: Cache MongoMemoryServer binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: ${{ runner.os }}-mongodb-binaries-7.0.4
+          restore-keys: |
+            ${{ runner.os }}-mongodb-binaries-
       
       - name: Run TypeScript check
         run: pnpm typecheck

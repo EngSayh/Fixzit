@@ -254,7 +254,6 @@ export async function POST(request: NextRequest) {
       void (async () => {
         try {
           // Use direct findOneAndUpdate with org filter instead of shared tenant context
-          // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Has tenant scope via $or clause
           await AqarListing.findOneAndUpdate(
             {
               _id: new mongoose.Types.ObjectId(listingId),
@@ -280,7 +279,6 @@ export async function POST(request: NextRequest) {
       void (async () => {
         try {
           const { AqarProject } = await import("@/server/models/aqar");
-          // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Has tenant scope via $or clause
           await AqarProject.findOneAndUpdate(
             {
               _id: new mongoose.Types.ObjectId(projectId),

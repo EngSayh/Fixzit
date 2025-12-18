@@ -103,6 +103,9 @@ export async function GET(request: NextRequest) {
       tree,
     });
     response.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+    // X-Cache-Status for observability dashboards (Grafana marketplace panel)
+    response.headers.set("X-Cache-Status", "MISS");
+    response.headers.set("X-Cache-Date", new Date().toISOString());
     return response;
   } catch (error) {
     logger.error(

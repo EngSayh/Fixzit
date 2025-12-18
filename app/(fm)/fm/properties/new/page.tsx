@@ -11,6 +11,7 @@ import { CardGridSkeleton } from "@/components/skeletons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { CreatePropertyForm } from "../page";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
+import { FormOfflineBanner } from "@/components/common/FormOfflineBanner";
 
 export default function NewPropertyPage() {
   const router = useRouter();
@@ -32,6 +33,9 @@ export default function NewPropertyPage() {
     <div className="space-y-6">
       <ModuleViewTabs moduleId="properties" />
       {supportBanner}
+
+      {/* P118: Offline banner for property creation form */}
+      <FormOfflineBanner formType="property" />
 
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>

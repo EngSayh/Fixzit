@@ -1,12 +1,17 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState, useId } from "react";
+import React, { useEffect, useMemo, useRef, useState, useId, useCallback } from "react";
 import { CircleDollarSign, Search } from "lucide-react";
 import { useCurrency, type CurrencyOption } from "@/contexts/CurrencyContext";
 import { useTranslation } from "@/contexts/TranslationContext";
+import CurrencyChangeConfirmDialog, {
+  useCurrencyChangeConfirmation,
+} from "./CurrencyChangeConfirmDialog";
 
 interface CurrencySelectorProps {
   variant?: "default" | "compact";
+  /** Skip confirmation dialog for quick changes (e.g., on auth pages) */
+  skipConfirmation?: boolean;
 }
 
 /**
@@ -16,14 +21,17 @@ interface CurrencySelectorProps {
  * Typing in the dropdown's search input filters options by currency code or name (case-insensitive).
  * Selecting an option updates the active currency via CurrencyContext, closes the dropdown, and clears the search.
  * The dropdown also closes when clicking outside the component.
+ * P117: Added confirmation dialog and preference source indicator.
  *
  * @param {'default' | 'compact'} [variant='default'] - Visual variant of the control. `'default'` uses larger padding and width; `'compact'` reduces padding and width.
+ * @param {boolean} [skipConfirmation=false] - Skip confirmation dialog for quick changes.
  * @returns {JSX.Element} A React element for the currency selector.
  */
 export default function CurrencySelector({
   variant = "default",
+  skipConfirmation = false,
 }: CurrencySelectorProps) {
-  const { currency, setCurrency, options } = useCurrency();
+  const { currency, setCurrency, options, preferenceSource } = useCurrency();
   const { t, isRTL } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -33,6 +41,9 @@ export default function CurrencySelector({
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
   const hintId = useId();
+
+  // P117: Currency change confirmation
+  const confirmation = useCurrencyChangeConfirmation();
 
   const current = useMemo<CurrencyOption>(() => {
     return options.find((option) => option.code === currency) ?? options[0];
@@ -96,12 +107,28 @@ export default function CurrencySelector({
 
   const toggle = () => setOpen((prev) => !prev);
 
-  const handleSelect = (option: CurrencyOption) => {
-    setCurrency(option.code);
-    setOpen(false);
-    setQuery("");
+  const handleSelect = useCallback((option: CurrencyOption) => {
+    if (skipConfirmation || option.code === current.code) {
+      // Direct change without confirmation
+      setCurrency(option.code);
+      setOpen(false);
+      setQuery("");
+      queueMicrotask(() => buttonRef.current?.focus());
+    } else {
+      // P117: Show confirmation dialog for currency changes
+      confirmation.requestChange(current, option, preferenceSource ?? "localStorage");
+      setOpen(false);
+      setQuery("");
+    }
+  }, [skipConfirmation, current, setCurrency, confirmation, preferenceSource]);
+
+  const handleConfirmChange = useCallback(() => {
+    const change = confirmation.confirm();
+    if (change) {
+      setCurrency(change.to.code);
+    }
     queueMicrotask(() => buttonRef.current?.focus());
-  };
+  }, [confirmation, setCurrency]);
 
   return (
     <div
@@ -188,9 +215,7 @@ export default function CurrencySelector({
                   e.preventDefault();
                   const target = filtered[activeIndex];
                   if (target) {
-                    setCurrency(target.code);
-                    setOpen(false);
-                    setQuery("");
+                    handleSelect(target);
                     queueMicrotask(() => buttonRef.current?.focus());
                   }
                 }
@@ -261,6 +286,18 @@ export default function CurrencySelector({
             ))}
           </ul>
         </div>
+      )}
+
+      {/* P117: Currency change confirmation dialog */}
+      {confirmation.pendingChange && (
+        <CurrencyChangeConfirmDialog
+          isOpen={confirmation.isOpen}
+          fromCurrency={confirmation.pendingChange.from}
+          toCurrency={confirmation.pendingChange.to}
+          preferenceSource={confirmation.pendingChange.source}
+          onConfirm={handleConfirmChange}
+          onCancel={confirmation.cancel}
+        />
       )}
     </div>
   );

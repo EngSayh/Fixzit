@@ -66,6 +66,29 @@ Fixes #
 - [ ] Input validation added for user inputs
 - [ ] RBAC permissions checked for new endpoints
 
+## Multi-Tenancy & API (P121 Checklist)
+
+> **REQUIRED for any PR touching `app/api/`, `server/`, `lib/middleware/`**
+
+### Tenant Scope Verification
+- [ ] All DB queries include `org_id` filter (corporate scope)
+- [ ] Owner-scoped queries include `property_owner_id` where applicable
+- [ ] Super Admin bypass is explicit and audited (not implicit)
+- [ ] No cross-tenant data leaks possible
+
+### Rate Limiting Verification
+- [ ] `enforceRateLimit()` applied to new/modified endpoints
+- [ ] Rate limits are appropriate for endpoint type:
+  - Read endpoints: 60 req/min
+  - Write endpoints: 20 req/min
+  - Auth endpoints: 5 req/min
+- [ ] 429 responses tested in unit tests
+
+### API Response Headers
+- [ ] `Cache-Control` headers set appropriately
+- [ ] `X-Cache-Status` added for cacheable public routes
+- [ ] Security headers applied via `createSecureResponse()`
+
 ## Accessibility
 
 - [ ] New UI elements have proper ARIA labels

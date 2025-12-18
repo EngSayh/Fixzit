@@ -13,6 +13,47 @@ export type SecurityEventType =
   | "auth_failure"
   | "csrf_violation";
 
+/**
+ * P123: Rate limit breach tracking for alerting
+ * Tracks consecutive rate limit hits to trigger alerts
+ */
+const rateLimitBreachTracker = new Map<string, { count: number; firstSeen: number }>();
+const BREACH_ALERT_THRESHOLD = 10; // Alert after 10 rate limit hits
+const BREACH_WINDOW_MS = 60_000; // Within 1 minute
+
+function checkAndAlertRateLimitBreach(ip: string, path: string): void {
+  const key = `${ip}:${path}`;
+  const now = Date.now();
+  const existing = rateLimitBreachTracker.get(key);
+
+  if (existing && now - existing.firstSeen < BREACH_WINDOW_MS) {
+    existing.count++;
+    if (existing.count === BREACH_ALERT_THRESHOLD) {
+      // P123: Log alert for potential attack
+      logger.error("[SecurityAlert] Rate limit breach threshold reached", {
+        ip: redactIdentifier(ip),
+        path,
+        breachCount: existing.count,
+        windowMs: BREACH_WINDOW_MS,
+        severity: "HIGH",
+        recommendation: "Consider IP block or CAPTCHA challenge",
+      });
+    }
+  } else {
+    rateLimitBreachTracker.set(key, { count: 1, firstSeen: now });
+  }
+
+  // Cleanup old entries (prevent memory leak)
+  if (rateLimitBreachTracker.size > 10000) {
+    const cutoff = now - BREACH_WINDOW_MS * 2;
+    for (const [k, v] of rateLimitBreachTracker) {
+      if (v.firstSeen < cutoff) {
+        rateLimitBreachTracker.delete(k);
+      }
+    }
+  }
+}
+
 export async function logSecurityEvent(event: {
   type: SecurityEventType;
   ip: string;
@@ -43,6 +84,8 @@ export async function logSecurityEvent(event: {
       case "rate_limit": {
         const endpoint = String(event.metadata?.keyPrefix ?? event.path);
         trackRateLimitHit(event.ip, endpoint, orgId);
+        // P123: Check for breach alert threshold
+        checkAndAlertRateLimitBreach(event.ip, endpoint);
         break;
       }
       case "ip_reputation_block": {

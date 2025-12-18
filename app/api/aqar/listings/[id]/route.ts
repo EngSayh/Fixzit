@@ -337,7 +337,6 @@ export async function DELETE(
     }
 
     // SEC-002: Enforce tenant + ownership scope in the query itself
-    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Has tenant scope via $or clause
     const listing = await AqarListing.findOne({
       _id: id,
       listerId: user.id,
@@ -347,7 +346,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Listing not found" }, { status: 404 });
     }
 
-    // eslint-disable-next-line local/require-tenant-scope -- SAFE: deleteOne on already-scoped listing (line 338)
+    // SAFE: deleteOne on already-scoped listing (line 338)
     await listing.deleteOne();
 
     return NextResponse.json({ success: true });

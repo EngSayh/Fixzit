@@ -8,6 +8,7 @@ import { WorkOrderAttachments } from "@/components/fm/WorkOrderAttachments";
 import { useState } from "react";
 import type { WorkOrderAttachment } from "@/components/fm/WorkOrderAttachments";
 import { WORK_ORDERS_MODULE_ID } from "@/config/navigation/constants";
+import { FormOfflineBanner } from "@/components/common/FormOfflineBanner";
 
 export default function NewWorkOrderPage() {
   const { t } = useTranslation();
@@ -53,6 +54,13 @@ export default function NewWorkOrderPage() {
             )}
           </p>
         </div>
+
+      {/* P118: Offline banner for long-lived form */}
+      <FormOfflineBanner
+        formType="work-order"
+        hasUnsavedChanges={Boolean(title || description || propertyId)}
+        draftSavingEnabled={false}
+      />
         <div className="flex gap-2">
           <button
             className="btn-primary"

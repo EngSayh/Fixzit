@@ -57,6 +57,10 @@ interface AuditLogFilters {
   action?: string;
   startDate?: Date;
   endDate?: Date;
+  /** P119: Filter by user role */
+  userRole?: string;
+  /** P119: Filter by tenant/organization */
+  orgId?: string;
 }
 
 export default function AuditLogViewer() {
@@ -92,6 +96,9 @@ export default function AuditLogViewer() {
       if (filters.userId) params.append("userId", filters.userId);
       if (filters.entityType) params.append("entityType", filters.entityType);
       if (filters.action) params.append("action", filters.action);
+      // P119: Add RBAC role and tenant filters
+      if (filters.userRole) params.append("userRole", filters.userRole);
+      if (filters.orgId) params.append("orgId", filters.orgId);
       if (filters.startDate) {
         // Convert to ISO string at start of day in UTC
         const startDate = new Date(filters.startDate);
@@ -483,6 +490,94 @@ export default function AuditLogViewer() {
                 {auto("Other", "filters.entityTypes.other")}
               </option>
             </select>
+          </div>
+
+          {/* P119: RBAC Role Filter */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {auto("User Role", "filters.userRoleLabel")}
+            </label>
+            <select
+              className="w-full rounded-2xl border-border bg-background text-foreground"
+              value={filters.userRole || ""}
+              onChange={(e) => {
+                setFilters({
+                  ...filters,
+                  userRole: e.target.value || undefined,
+                });
+                setPage(1);
+              }}
+            >
+              <option value="">
+                {auto("All Roles", "filters.roles.all")}
+              </option>
+              <option value="SUPER_ADMIN">
+                {auto("Super Admin", "filters.roles.superAdmin")}
+              </option>
+              <option value="CORPORATE_ADMIN">
+                {auto("Corporate Admin", "filters.roles.corporateAdmin")}
+              </option>
+              <option value="ADMIN">
+                {auto("Admin", "filters.roles.admin")}
+              </option>
+              <option value="FINANCE">
+                {auto("Finance", "filters.roles.finance")}
+              </option>
+              <option value="PROPERTY_MANAGER">
+                {auto("Property Manager", "filters.roles.propertyManager")}
+              </option>
+              <option value="FACILITY_MANAGER">
+                {auto("Facility Manager", "filters.roles.facilityManager")}
+              </option>
+              <option value="MAINTENANCE">
+                {auto("Maintenance", "filters.roles.maintenance")}
+              </option>
+              <option value="VENDOR">
+                {auto("Vendor", "filters.roles.vendor")}
+              </option>
+              <option value="TENANT_USER">
+                {auto("Tenant User", "filters.roles.tenantUser")}
+              </option>
+              <option value="OWNER_USER">
+                {auto("Owner User", "filters.roles.ownerUser")}
+              </option>
+              <option value="AUDITOR">
+                {auto("Auditor", "filters.roles.auditor")}
+              </option>
+              <option value="PROCUREMENT">
+                {auto("Procurement", "filters.roles.procurement")}
+              </option>
+              <option value="HR">
+                {auto("HR", "filters.roles.hr")}
+              </option>
+              <option value="EMPLOYEE">
+                {auto("Employee", "filters.roles.employee")}
+              </option>
+            </select>
+          </div>
+
+          {/* P119: Tenant/Organization Scope Filter */}
+          <div>
+            <label
+              htmlFor="org-filter"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
+              {auto("Organization", "filters.orgLabel")}
+            </label>
+            <input
+              id="org-filter"
+              type="text"
+              placeholder={auto("Enter org ID or name...", "filters.orgPlaceholder")}
+              className="w-full rounded-2xl border-border bg-background text-foreground px-3 py-2"
+              value={filters.orgId || ""}
+              onChange={(e) => {
+                setFilters({
+                  ...filters,
+                  orgId: e.target.value || undefined,
+                });
+                setPage(1);
+              }}
+            />
           </div>
 
           <div>

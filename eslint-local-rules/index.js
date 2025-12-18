@@ -72,6 +72,62 @@ export const requireTenantScope = {
       "aggregate",
     ]);
 
+    const TENANT_KEYS = new Set([
+      "org_id",
+      "property_owner_id",
+      "orgId",
+      "propertyOwnerId",
+    ]);
+
+    const isTenantKey = (keyNode) => {
+      if (keyNode.type === "Identifier") {
+        return TENANT_KEYS.has(keyNode.name);
+      }
+      if (keyNode.type === "Literal" && typeof keyNode.value === "string") {
+        return TENANT_KEYS.has(keyNode.value);
+      }
+      return false;
+    };
+
+    const objectHasTenantScope = (objectExpression) => {
+      // Direct tenant key on the same level
+      for (const prop of objectExpression.properties) {
+        if (prop.type === "Property" && isTenantKey(prop.key)) {
+          return true;
+        }
+      }
+
+      // Support $or/$and with scoped branches (avoid false positives on OR queries)
+      for (const prop of objectExpression.properties) {
+        if (prop.type !== "Property") continue;
+
+        const keyName =
+          prop.key.type === "Identifier"
+            ? prop.key.name
+            : typeof prop.key.value === "string"
+              ? prop.key.value
+              : undefined;
+
+        if (!keyName || (keyName !== "$or" && keyName !== "$and")) continue;
+        if (prop.value.type !== "ArrayExpression") continue;
+
+        const branchObjects = prop.value.elements.filter(
+          (element) => element && element.type === "ObjectExpression",
+        );
+
+        if (!branchObjects.length) continue;
+
+        if (
+          (keyName === "$or" && branchObjects.every(objectHasTenantScope)) ||
+          (keyName === "$and" && branchObjects.some(objectHasTenantScope))
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    };
+
     const ALL_METHODS = new Set([...WRITE_METHODS, ...READ_METHODS]);
 
     return {
@@ -111,13 +167,8 @@ export const requireTenantScope = {
           return;
         }
 
-        // Check if any property in the filter is org_id or property_owner_id
-        const hasTenantScope = filterArg.properties.some((prop) => {
-          if (prop.type !== "Property") return false;
-          if (prop.key.type !== "Identifier") return false;
-          const keyName = prop.key.name;
-          return keyName === "org_id" || keyName === "property_owner_id" || keyName === "orgId" || keyName === "propertyOwnerId";
-        });
+        // Check if filter includes tenant scope (direct or in scoped logical operators)
+        const hasTenantScope = objectHasTenantScope(filterArg);
 
         if (!hasTenantScope) {
           // Check if there's a comment indicating this is intentional
