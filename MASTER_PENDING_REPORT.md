@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T13:52:00+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T14:00:00+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** feat/mobile-cardlist-phase1  
-**Commit:** local (pending commit) | Origin: pending push
-**Last Work:** P189 - NotificationLog test open handle fix + aggregate pipeline audit
+**Commit:** 3e7ea9690 | Origin: pushed
+**Last Work:** P192 - Tap webhook tenant scope + test fix
 **MongoDB Status:** 34 issues (10 open, 0 in_progress, 24 resolved)  
-**Working Tree:** DIRTY (local changes in progress)  
-**Test Count:** ✅ Targeted tests passing (1268/1268 in API tests + 178/178 models+services); full suite stable
+**Working Tree:** CLEAN
+**Test Count:** ✅ All targeted tests passing (1268+178 API/models, 5 tap-webhook, 7 audit-logs)
 
 ---
 
@@ -72,6 +72,7 @@
 36. **[P189]** ✅ Audit Logs/HR Leaves Test Stabilization - smartRateLimit mock shape fixed; HR leaves tests reset modules per test.
 37. **[P190]** ✅ Dashboard Phase Range Sync - Phase progress label now uses dynamic range; pending report updated with P187-P190.
 38. **[P191]** ✅ NotificationLog Test Open Handle Fix - Fixed SIGKILL issue by replacing beforeEach+vi.resetModules() with beforeAll+afterAll pattern; audited 54 aggregate pipelines and verified 3 flagged routes (admin/communications, aqar/search, superadmin/issues/stats) are intentionally superadmin/public-scoped. Tests: 1268/1268 API + 178/178 models+services passing.
+39. **[P192]** ✅ Tap Webhook Tenant Scope + Test Fix - Added orgId scoping to TapTransaction.findOne queries in persistence.ts; fixed tap-webhook.route.test.ts to include organizationId in refund metadata. Tests: 5/5 tap-webhook + 7/7 audit-logs passing.
 
 ### ⏳ Pending – New Session Items
 - Continue .lean() audit on remaining read-only queries to hit 100% coverage across services (Aqar + Finance + FM + Support + CRM + Admin complete).
