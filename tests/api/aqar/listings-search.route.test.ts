@@ -34,6 +34,7 @@ vi.mock("@/lib/analytics/incrementWithRetry", () => ({
 }));
 
 import { smartRateLimit } from "@/server/security/rateLimit";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
 const originalPublicOrgId = process.env.PUBLIC_ORG_ID;
 const originalTestOrgId = process.env.TEST_ORG_ID;
@@ -49,7 +50,9 @@ const importRoute = async () => {
 
 describe("GET /api/aqar/listings/search", () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
+    resetTestMocks();
     vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
     process.env.PUBLIC_ORG_ID = "000000000000000000000001";
   });
@@ -73,12 +76,12 @@ describe("GET /api/aqar/listings/search", () => {
   });
 
   it("returns 429 when rate limit exceeded", async () => {
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false });
+
     const route = await importRoute();
     if (!route?.GET) {
       throw new Error("Route handler missing: GET");
     }
-
-    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false });
 
     const req = new NextRequest("http://localhost:3000/api/aqar/listings/search?city=Riyadh", {
       method: "GET",
