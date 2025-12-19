@@ -5,13 +5,13 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T14:00:00+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T14:14:21+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** feat/mobile-cardlist-phase1  
-**Commit:** 3e7ea9690 | Origin: pushed
-**Last Work:** P192 - Tap webhook tenant scope + test fix
+**Commit:** b91ada81e | Origin: local
+**Last Work:** P194 - Memory cleanup + preflight scan
 **MongoDB Status:** 34 issues (10 open, 0 in_progress, 24 resolved)  
-**Working Tree:** CLEAN
+**Working Tree:** DIRTY (18 modified)
 **Test Count:** ✅ All targeted tests passing (1268+178 API/models, 5 tap-webhook, 7 audit-logs)
 
 ---
@@ -33,7 +33,7 @@
 4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[PERF-002]** ✅ RESOLVED - Added .lean() to 8+ read-only Mongoose queries (P146)
 
-### ✅ Current Session (P153-P190)
+### ✅ Current Session (P153-P194)
 1. **[P153]** ✅ HR Leaves Hardening - Added rate limiting to PUT /api/hr/leaves, Zod validation for updateStatus payload, and tests covering auth/role/validation paths.
 2. **[P154]** ✅ Superadmin UI Polish - Added getRowId for correct bulk selection; command palette updated with RTL logical spacing; skeleton table widths made deterministic to avoid hydration mismatches.
 3. **[P155]** ✅ I18n Regen - Ran `pnpm i18n:build`; regenerated flat dictionaries and bundles (31,421 keys per locale).
@@ -73,6 +73,7 @@
 37. **[P190]** ✅ Dashboard Phase Range Sync - Phase progress label now uses dynamic range; pending report updated with P187-P190.
 38. **[P191]** ✅ NotificationLog Test Open Handle Fix - Fixed SIGKILL issue by replacing beforeEach+vi.resetModules() with beforeAll+afterAll pattern; audited 54 aggregate pipelines and verified 3 flagged routes (admin/communications, aqar/search, superadmin/issues/stats) are intentionally superadmin/public-scoped. Tests: 1268/1268 API + 178/178 models+services passing.
 39. **[P192]** ✅ Tap Webhook Tenant Scope + Test Fix - Added orgId scoping to TapTransaction.findOne queries in persistence.ts; fixed tap-webhook.route.test.ts to include organizationId in refund metadata. Tests: 5/5 tap-webhook + 7/7 audit-logs passing.
+40. **[P194]** ✅ Memory Cleanup + Preflight Scan - Ran `.vscode/cleanup-sessions.sh` and re-scanned aggregate/tenant scope gaps before new fixes.
 
 ### ⏳ Pending – New Session Items
 - Continue .lean() audit on remaining read-only queries to hit 100% coverage across services (Aqar + Finance + FM + Support + CRM + Admin complete).
