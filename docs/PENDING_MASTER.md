@@ -4,9 +4,9 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 # Fixzit Phase Completion Status (P0-P221)
 
-**Last Updated:** 2025-12-19 18:45  
-**Branch:** phase-0-memory-optimization  
-**Latest Commit:** a43cc12a0
+**Last Updated:** 2025-12-19 18:54  
+**Branch:** phase-1-onboarding-kpi-scope  
+**Latest Commit:** 260c1f9f5
 
 | Range | Focus | Status |
 |-------|-------|--------|
@@ -34,7 +34,7 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | P216-P220 | ESLint Optimization + SSOT Updates | ✅ Complete |
 | P221 | ESLint 0 Warnings - Tenant Scope & Lean Annotations | ✅ Complete |
 
-**Status:** MVP feature-complete — TypeScript 0 errors, ESLint 0 warnings; Phase 0 memory baseline logged.
+**Status:** MVP feature-complete — TypeScript 0 errors, ESLint 0 warnings; Phase 1 KPI scope fix logged.
 
 ---
 
@@ -51,6 +51,19 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 - `bash scripts/optimize-memory.sh`
 - `bash scripts/vscode-memory-guard.sh --limit-tsserver`
 - `git status` (clean)
+
+### 2025-12-19 18:54 (Asia/Riyadh) — Phase 1: Onboarding KPI Tenant Scope Fix
+**Context:** phase-1-onboarding-kpi-scope | 260c1f9f5 | Agent: Codex (CLI)  
+**Duration:** 15 minutes | **Status:** ✅ COMPLETE
+
+**Changes:**
+- Switched onboarding KPI queries to `orgId` (audit change from org_id)
+- Scoped expired document count via VerificationDocument → OnboardingCase lookup
+- Added `maxTimeMS: 10_000` to KPI aggregates
+- Updated unit tests for tenant-scoped pipeline and collection name
+
+**Validation:**
+- `pnpm vitest run tests/unit/server/services/onboardingKpi.service.test.ts`
 
 ### 2025-12-13 02:30 (Asia/Riyadh) — P221: ESLint 0 Warnings Achieved
 **Context:** phase-0-memory-optimization | d3ce88b53 | Agent: GitHub Copilot (VS Code Agent)  

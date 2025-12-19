@@ -5,15 +5,15 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T19:15:00+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T18:55:54+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
-**Branch:** phase-0-memory-optimization
-**Commit:** 9da942b75 (P222 - Removed unused eslint-disable directives) | Origin: pending push
-**Last Work:** P221-P222 ESLint cleanup + lint:prod compliance
+**Branch:** phase-1-onboarding-kpi-scope
+**Commit:** 260c1f9f5 (Phase 1 onboarding KPI tenant scope fix) | Origin: local
+**Last Work:** Phase 1 onboarding KPI tenant scope + expired-docs scoping
 **MongoDB Status:** ⚠️ Not synced this session (run scripts/import-backlog.ts)
-**Working Tree:** CLEAN
-**Test Count:** 5276/5295 tests passing (19 pre-existing integration test failures from MongoDB connection race conditions)
-**PR:** ⏳ Phase 0 memory baseline PR to be created
+**Working Tree:** MODIFIED
+**Test Count:** ✅ 1 test file, 5 tests passing (onboardingKpi.service)
+**PR:** ⏳ Phase 1 PR to be created
 
 ---
 
@@ -33,6 +33,13 @@
 3. [x] **[TEST-004]** ✅ VERIFIED - All 8 POST routes have try-catch around request.json()
 4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[PERF-002]** ✅ RESOLVED - Added .lean() to 8+ read-only Mongoose queries (P146)
+
+### ✅ Current Session (Phase 1 Onboarding KPI Tenant Scope)
+1. **[Phase 1]** ✅ Tenant-scoped onboarding KPIs:
+   - Switched OnboardingCase filters to `orgId`
+   - Scoped expired docs via VerificationDocument → OnboardingCase lookup
+   - Added `maxTimeMS: 10_000` to KPI aggregates
+   - Tests: `pnpm vitest run tests/unit/server/services/onboardingKpi.service.test.ts`
 
 ### ✅ Current Session (Phase 0 Memory Optimization)
 1. **[Phase 0]** ✅ Memory + VSCode baseline:
