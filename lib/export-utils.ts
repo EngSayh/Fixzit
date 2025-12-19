@@ -80,9 +80,16 @@ function formatValue(value: ExportValue): string {
 
 /**
  * Download CSV file (client-side)
+ * BUG-002 FIX: Add BOM (Byte Order Mark) for proper Excel UTF-8 detection
+ * Without BOM, Arabic text displays as garbled characters in Excel (e.g., "Ø§ÙØ¬Ø§Ø±")
  */
 export function downloadCSV(csvContent: string, filename: string): void {
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  // Add UTF-8 BOM (\uFEFF) so Excel properly detects UTF-8 encoding
+  // This fixes Arabic text rendering in Excel without affecting other text editors
+  const BOM = "\uFEFF";
+  const csvWithBOM = BOM + csvContent;
+  
+  const blob = new Blob([csvWithBOM], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
 
@@ -95,7 +102,7 @@ export function downloadCSV(csvContent: string, filename: string): void {
   document.body.removeChild(link);
 
   URL.revokeObjectURL(url);
-  logger.info("[Export] CSV downloaded", { filename });
+  logger.info("[Export] CSV downloaded with UTF-8 BOM", { filename });
 }
 
 /**
