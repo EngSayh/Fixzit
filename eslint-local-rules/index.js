@@ -222,11 +222,35 @@ export const requireLean = {
     const sourceCode = context.getSourceCode();
 
     const hasNoLeanComment = (node) => {
+      // Check immediate node comments
       const comments = [
         ...sourceCode.getCommentsBefore(node),
         ...sourceCode.getCommentsAfter(node),
       ];
-      return comments.some((comment) => comment.value.includes("NO_LEAN"));
+      if (comments.some((comment) => comment.value.includes("NO_LEAN"))) {
+        return true;
+      }
+      
+      // Also check parent nodes (AwaitExpression, VariableDeclaration, ExpressionStatement, ReturnStatement)
+      // because comments like "// NO_LEAN" are typically placed before the statement, not the inner call
+      let current = node.parent;
+      while (current) {
+        const parentComments = [
+          ...sourceCode.getCommentsBefore(current),
+        ];
+        if (parentComments.some((comment) => comment.value.includes("NO_LEAN"))) {
+          return true;
+        }
+        // Stop at statement level
+        if (current.type === "ExpressionStatement" || 
+            current.type === "VariableDeclaration" ||
+            current.type === "ReturnStatement" ||
+            current.type === "BlockStatement") {
+          break;
+        }
+        current = current.parent;
+      }
+      return false;
     };
 
     const hasLeanInChain = (callExpression) => {
@@ -280,6 +304,10 @@ export const requireLean = {
 
         const objectName = node.callee.object?.name;
         if (!objectName) return;
+        
+        // Skip non-Mongoose patterns (lowercase object names like collection.findOne are MongoDB native driver)
+        // Mongoose models are always PascalCase (e.g., User, WorkOrder, Invoice)
+        if (objectName[0] !== objectName[0].toUpperCase()) return;
 
         const parent = node.parent;
         const isAwaited =

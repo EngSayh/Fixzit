@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T14:22:40+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T15:55:00+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
-**Branch:** phase/p194-memory-preflight
-**Commit:** local (uncommitted)
-**Last Work:** P196 - Aggregate scope + audit hardening
+**Branch:** phase/p198-memory-tooling
+**Commit:** b639bcd23 (P219 docs) | Origin: local
+**Last Work:** P197 .lean() audit in progress - 15+ files identified for optimization
 **MongoDB Status:** 34 issues (10 open, 0 in_progress, 24 resolved)  
-**Working Tree:** DIRTY (78 modified)
-**Test Count:** ✅ Targeted tests passing (Aqar listings search: 3/3)
+**Working Tree:** CLEAN (stashed: other agent collab changes)
+**Test Count:** ✅ Key tests passing (Aqar listings/admin comms/audit logs: 12/12)
 
 ---
 
@@ -76,14 +76,23 @@
 40. **[P194]** ✅ Memory Cleanup + Preflight Scan - Ran `.vscode/cleanup-sessions.sh` and re-scanned aggregate/tenant scope gaps before new fixes.
 41. **[P195]** ✅ Aggregate Guardrails (Models/Services) - Added `maxTimeMS` to aggregates in MaintenanceLog/AuditLog/RevenueLog/Issue/SMSMessage and onboarding/owner/finance reporting services; repo-wide scan for missing `maxTimeMS`/`$limit` now clean.
 42. **[P196]** ✅ Aggregate Scope + Audit Hardening - Aqar public search now requires PUBLIC_ORG_ID and scopes queries by orgId; admin communications + superadmin issues stats now emit audited superadmin reads with explicit bypass note; aggregates capped with maxTimeMS. Tests: `tests/api/aqar/listings-search.route.test.ts` (3/3).
+43. **[P197]** 🔄 Complete .lean() Audit - IN PROGRESS: Identified 15+ LEAN_OK files (checkout/complete, assets/[id], pm/plans/[id], finance ledger/journals/accounts, referrals, souq reviews, FM reports, properties/[id]). NO_LEAN files documented. Agent collaboration detected on phase/p196-aggregate-audit (has TypeScript errors; skipped merge).
 
-### ⏳ Pending – New Session Items
-- Continue .lean() audit on remaining read-only queries to hit 100% coverage across services (Aqar + Finance + FM + Support + CRM + Admin complete).
-- P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components (post-MVP).
-- P3-PR-PHASES — Create PRs for P187-P190 (pending branch/auth setup).
-- SoT-SDD — SDD document not found; add or link to authoritative source (Owner Override logged).
-- CI_COVERAGE — Run coverage gate via `CI_COVERAGE=true` on workflow test-runner.yml.
-- P197 — Full `pnpm vitest run` + `CI_COVERAGE=true pnpm vitest run` after P196.
+### ⏳ Pending – Current Session (P198-P204)
+- **P198:** Full test suite validation (`pnpm vitest run` targeting 4098+ tests)
+- **P199:** CI coverage gate execution (`CI_COVERAGE=true pnpm vitest run` with 80% thresholds)
+- **P200:** GitHub Actions workflow fixes (8 'context access' errors in SENTRY_*/OPENAI_KEY vars)
+- **P201:** SDD document resolution (locate or create authoritative System Design Document)
+- **P202:** Create PR for P197-P201 with QA checklist
+- **P203:** Dashboard sync (update MongoDB Issue Tracker + superadmin dashboard)
+- **P204:** Update MASTER_PENDING_REPORT with final session results
+
+### ⏳ Pending – Post-MVP Items
+### ⏳ Pending – Post-MVP Items
+- Continue .lean() audit to 100% coverage (Admin + Aqar + Finance + FM + Support + CRM complete; ~15 API routes remain)
+- P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components
+- P3-PR-PHASES — Create PRs for consolidated phase ranges
+- Refactor Aqar SearchFilters to standard filter components (post-MVP).
 
 ### ✅ Newly Verified (DB sync required)
 - P3-SOUQ-PRODUCTS — Souq Products list already uses DataTableStandard + filter drawer (`components/marketplace/ProductsList.tsx`).
