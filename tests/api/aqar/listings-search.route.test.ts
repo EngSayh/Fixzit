@@ -2,7 +2,7 @@
  * @fileoverview Tests for /api/aqar/listings/search route
  * Tests property search with filters and pagination
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // Mock rate limiting
@@ -35,6 +35,10 @@ vi.mock("@/lib/analytics/incrementWithRetry", () => ({
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 
+const originalPublicOrgId = process.env.PUBLIC_ORG_ID;
+const originalTestOrgId = process.env.TEST_ORG_ID;
+const originalDefaultOrgId = process.env.DEFAULT_ORG_ID;
+
 const importRoute = async () => {
   try {
     return await import("@/app/api/aqar/listings/search/route");
@@ -47,6 +51,25 @@ describe("GET /api/aqar/listings/search", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
+    process.env.PUBLIC_ORG_ID = "000000000000000000000001";
+  });
+
+  afterEach(() => {
+    if (originalPublicOrgId === undefined) {
+      delete process.env.PUBLIC_ORG_ID;
+    } else {
+      process.env.PUBLIC_ORG_ID = originalPublicOrgId;
+    }
+    if (originalTestOrgId === undefined) {
+      delete process.env.TEST_ORG_ID;
+    } else {
+      process.env.TEST_ORG_ID = originalTestOrgId;
+    }
+    if (originalDefaultOrgId === undefined) {
+      delete process.env.DEFAULT_ORG_ID;
+    } else {
+      process.env.DEFAULT_ORG_ID = originalDefaultOrgId;
+    }
   });
 
   it("returns 429 when rate limit exceeded", async () => {
@@ -77,5 +100,23 @@ describe("GET /api/aqar/listings/search", () => {
     const response = await route.GET(req);
 
     expect([200, 400, 500]).toContain(response.status);
+  });
+
+  it("returns 503 when public org is missing", async () => {
+    const route = await importRoute();
+    if (!route?.GET) {
+      throw new Error("Route handler missing: GET");
+    }
+
+    delete process.env.PUBLIC_ORG_ID;
+    delete process.env.TEST_ORG_ID;
+    delete process.env.DEFAULT_ORG_ID;
+
+    const req = new NextRequest("http://localhost:3000/api/aqar/listings/search?city=Riyadh", {
+      method: "GET",
+    });
+    const response = await route.GET(req);
+
+    expect(response.status).toBe(503);
   });
 });
