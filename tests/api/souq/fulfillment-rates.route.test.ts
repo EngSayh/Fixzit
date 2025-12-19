@@ -87,8 +87,7 @@ describe("API /api/souq/fulfillment/rates", () => {
       sessionUser = null;
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest(
@@ -105,8 +104,7 @@ describe("API /api/souq/fulfillment/rates", () => {
     it("should return 400 for missing required fields", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest(
@@ -124,8 +122,7 @@ describe("API /api/souq/fulfillment/rates", () => {
     it("should return shipping rates with valid data", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const validData = {
@@ -144,7 +141,7 @@ describe("API /api/souq/fulfillment/rates", () => {
         }
       );
       const response = await routeModule.POST(request);
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
       if (response.status === 200) {
         const data = await response.json();
         expect(data.rates).toBeDefined();
@@ -154,8 +151,7 @@ describe("API /api/souq/fulfillment/rates", () => {
     it("should support dimensions parameter", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const validData = {
@@ -175,7 +171,7 @@ describe("API /api/souq/fulfillment/rates", () => {
         }
       );
       const response = await routeModule.POST(request);
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
 
     it("should enforce rate limiting", async () => {
@@ -186,8 +182,7 @@ describe("API /api/souq/fulfillment/rates", () => {
       );
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest(

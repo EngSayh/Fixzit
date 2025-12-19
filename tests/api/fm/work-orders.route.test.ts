@@ -75,8 +75,7 @@ describe("API /api/fm/work-orders", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -98,8 +97,7 @@ describe("API /api/fm/work-orders", () => {
     it("returns work orders for authenticated user", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       const req = new NextRequest("http://localhost:3000/api/fm/work-orders");
@@ -113,8 +111,7 @@ describe("API /api/fm/work-orders", () => {
     it("returns 429 when rate limit exceeded on POST", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -142,8 +139,7 @@ describe("API /api/fm/work-orders", () => {
     it("should scope queries to user's orgId (prevents cross-tenant access)", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       // User from org-123 should only see org-123 data
@@ -163,8 +159,7 @@ describe("API /api/fm/work-orders", () => {
     it("should reject access when user lacks FM ability", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       // Override mock to simulate unauthorized user

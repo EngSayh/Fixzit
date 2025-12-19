@@ -19,7 +19,9 @@ Use these as authoritative:
 - Fixzit Blueprint/SDD: Multi-tenancy (org_id/property_owner_id), RBAC, Golden workflows
 - Verification log patterns: missing language selector/flags, missing currency, missing universal sidebar/footer, logo regressions, social login buttons missing
 
-If any SoT is missing/unreadable → STOP and report CRITICAL.
+Owner Override (Session): If SDD is missing/unreadable, proceed using available SoT files
+(`docs/FIXZIT_ONBOARDING_VERIFICATION_BLUEPRINT_V7.md`, `docs/UI_UX_ENHANCEMENT_BLUEPRINT_V1.md`,
+`docs/guides/GOVERNANCE.md`) and log the gap in the report. Do not halt solely for missing SDD.
 
 ---
 

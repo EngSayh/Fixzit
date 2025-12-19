@@ -93,8 +93,7 @@ describe("API /api/hr/employees", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -112,8 +111,7 @@ describe("API /api/hr/employees", () => {
     it("returns 401 when user is not authenticated", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = null;
@@ -129,8 +127,7 @@ describe("API /api/hr/employees", () => {
     it("returns 401 when user has no orgId (tenant scope missing)", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = { role: "HR", orgId: undefined } as SessionUser;
@@ -144,8 +141,7 @@ describe("API /api/hr/employees", () => {
     it("returns 403 when user lacks HR role", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(hasAllowedRole).mockReturnValue(false);
@@ -161,8 +157,7 @@ describe("API /api/hr/employees", () => {
     it("successfully lists employees with tenant scoping", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       const mockEmployees = [
@@ -209,8 +204,7 @@ describe("API /api/hr/employees", () => {
     it("supports pagination parameters", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(EmployeeService.searchWithPagination).mockResolvedValue({
@@ -235,8 +229,7 @@ describe("API /api/hr/employees", () => {
     it("supports status filtering", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(EmployeeService.searchWithPagination).mockResolvedValue({
@@ -263,8 +256,7 @@ describe("API /api/hr/employees", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -285,8 +277,7 @@ describe("API /api/hr/employees", () => {
     it("returns 401 when user is not authenticated", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       sessionUser = null;
@@ -303,8 +294,7 @@ describe("API /api/hr/employees", () => {
     it("returns 403 when user lacks HR role", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(hasAllowedRole).mockReturnValue(false);
@@ -321,8 +311,7 @@ describe("API /api/hr/employees", () => {
     it("successfully creates employee with tenant scoping", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       const mockEmployee = {
@@ -364,8 +353,7 @@ describe("API /api/hr/employees", () => {
     it("returns 400 when request body is invalid", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       const req = new NextRequest("http://localhost:3000/api/hr/employees", {

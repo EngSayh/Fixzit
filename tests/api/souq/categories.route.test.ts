@@ -60,8 +60,7 @@ describe("API /api/souq/categories", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       rateLimitResponse = new Response(
@@ -78,8 +77,7 @@ describe("API /api/souq/categories", () => {
     it("returns list of categories on success", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       const req = new NextRequest("http://localhost:3000/api/souq/categories");
@@ -95,8 +93,7 @@ describe("API /api/souq/categories", () => {
     it("sets Cache-Control header for public category listing", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       const req = new NextRequest("http://localhost:3000/api/souq/categories");

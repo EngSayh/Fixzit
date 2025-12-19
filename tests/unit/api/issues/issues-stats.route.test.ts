@@ -124,7 +124,7 @@ describe("Issues Stats API Route", () => {
       const res = await GET(req);
       // Route may return 200 or 500 depending on full mongoose mock setup
       // Auth/RBAC core verified - aggregation depends on complex DB setup
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("propagates Retry-After when rate limited", async () => {
@@ -151,7 +151,7 @@ describe("Issues Stats API Route", () => {
       const req = {} as any;
       const res = await GET(req);
       // Route may return 200 or 500 depending on full mongoose mock setup
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("includes timeline data", async () => {
@@ -161,7 +161,7 @@ describe("Issues Stats API Route", () => {
       const req = {} as any;
       const res = await GET(req);
       // Route may return 200 or 500 depending on full mongoose mock setup
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("runs aggregations in parallel", async () => {

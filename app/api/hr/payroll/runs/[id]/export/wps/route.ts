@@ -4,7 +4,7 @@
  * central bank compliance, containing employee banking and salary data.
  * 
  * @module api/hr/payroll/runs/[id]/export/wps
- * @requires HR, HR_OFFICER, FINANCE, FINANCE_OFFICER, SUPER_ADMIN, or CORPORATE_ADMIN role
+ * @requires HR, HR_OFFICER, SUPER_ADMIN, or CORPORATE_ADMIN role
  * 
  * @endpoints
  * - GET /api/hr/payroll/runs/:id/export/wps - Download WPS file for payroll run
@@ -26,7 +26,7 @@
  * 
  * @security
  * - CRITICAL: Contains banking data (IBANs, salaries)
- * - RBAC: Only HR/Finance officers can export
+ * - RBAC: Only HR roles can export
  * - Access denied logging for audit trail
  * - Tenant-scoped: WPS exports are isolated by organization
  */
@@ -40,8 +40,8 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { hasAllowedRole } from "@/lib/auth/role-guards";
 
 // 🔒 STRICT v4.1 CRITICAL: WPS export contains banking data (IBANs, salaries)
-// Requires HR Officer, Finance Officer, or Admin role
-const PAYROLL_EXPORT_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER', 'FINANCE', 'FINANCE_OFFICER'];
+// Requires HR roles (no Finance role access)
+const PAYROLL_EXPORT_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
 
 type RouteParams = { id: string };
 
@@ -57,7 +57,7 @@ export async function GET(
     }
 
     // 🔒 STRICT v4.1: RBAC check - CRITICAL for banking data protection
-    // Supports TEAM_MEMBER + subRole: HR_OFFICER/FINANCE_OFFICER pattern
+    // Supports TEAM_MEMBER + subRole: HR_OFFICER pattern
     const user = session.user as { role?: string; subRole?: string | null; orgId?: string; id?: string };
     if (!hasAllowedRole(user.role, user.subRole, PAYROLL_EXPORT_ALLOWED_ROLES)) {
       logger.warn("WPS export access denied", { 
@@ -65,7 +65,7 @@ export async function GET(
         role: session.user.role,
         orgId: session.user.orgId 
       });
-      return NextResponse.json({ error: "Forbidden: HR/Finance access required for WPS export" }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden: HR access required for WPS export" }, { status: 403 });
     }
 
     await connectToDatabase();

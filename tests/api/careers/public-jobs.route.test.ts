@@ -77,8 +77,7 @@ describe("API /api/careers/public/jobs", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       rateLimitResponse = new Response(
@@ -95,8 +94,7 @@ describe("API /api/careers/public/jobs", () => {
     it("returns list of public jobs on success", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       const req = new NextRequest("http://localhost:3000/api/careers/public/jobs?orgId=test-org");
@@ -112,8 +110,7 @@ describe("API /api/careers/public/jobs", () => {
     it("sets Cache-Control header for public job listings", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       const req = new NextRequest("http://localhost:3000/api/careers/public/jobs?orgId=test-org");

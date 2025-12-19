@@ -67,8 +67,7 @@ describe("API /api/hr/attendance", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       const rateLimited = NextResponse.json(
@@ -87,8 +86,7 @@ describe("API /api/hr/attendance", () => {
     it("returns 401 when user is not authenticated", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = null;
@@ -102,8 +100,7 @@ describe("API /api/hr/attendance", () => {
     it("returns 401 when user has no orgId (tenant scope missing)", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = { role: "HR", orgId: undefined };
@@ -119,8 +116,7 @@ describe("API /api/hr/attendance", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       const rateLimited = NextResponse.json(
@@ -142,8 +138,7 @@ describe("API /api/hr/attendance", () => {
     it("returns 401 when user is not authenticated", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       sessionUser = null;

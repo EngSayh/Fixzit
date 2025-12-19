@@ -4,7 +4,7 @@
  * and status transitions for payroll processing.
  * 
  * @module api/hr/payroll/runs
- * @requires HR, HR_OFFICER, FINANCE, FINANCE_OFFICER, SUPER_ADMIN, or CORPORATE_ADMIN role
+ * @requires HR, HR_OFFICER, SUPER_ADMIN, or CORPORATE_ADMIN role
  * 
  * @endpoints
  * - GET /api/hr/payroll/runs - List payroll runs with optional status filter
@@ -25,7 +25,7 @@
  * 4. Export WPS file
  * 
  * @security
- * - RBAC: HR and Finance roles have access
+ * - RBAC: HR roles have access
  * - Period overlap prevention: Cannot create overlapping runs
  * - Tenant-scoped: Payroll runs are isolated by organization
  */
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
 
     // 🔒 RBAC check
     if (!session.user.role || !PAYROLL_ALLOWED_ROLES.includes(session.user.role)) {
-      return NextResponse.json({ error: "Forbidden: HR/Finance access required" }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 
     await connectToDatabase();
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
     // 🔒 STRICT v4.2: Payroll requires HR roles - supports subRole pattern
     const user = session.user as { role?: string; subRole?: string | null; orgId?: string };
     if (!hasAllowedRole(user.role, user.subRole, PAYROLL_ALLOWED_ROLES)) {
-      return NextResponse.json({ error: "Forbidden: HR/Finance access required" }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 
     await connectToDatabase();

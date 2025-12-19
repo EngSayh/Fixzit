@@ -150,10 +150,10 @@ export async function POST(request: NextRequest) {
         orgId: user.orgId,
         isDeleted: { $ne: true },
         ...(skipIfAssigned && {
-          $or: [
-            { "assignment.assignedTo": { $exists: false } },
+          $and: [
             { "assignment.assignedTo.userId": { $exists: false } },
             { "assignment.assignedTo.vendorId": { $exists: false } },
+            { "assignment.assignedTo.teamId": { $exists: false } },
           ],
         }),
       }).lean();
@@ -261,7 +261,8 @@ export async function POST(request: NextRequest) {
       // Check if already assigned
       const isAssigned =
         workOrder.assignment?.assignedTo?.userId ||
-        workOrder.assignment?.assignedTo?.vendorId;
+        workOrder.assignment?.assignedTo?.vendorId ||
+        workOrder.assignment?.assignedTo?.teamId;
       if (isAssigned) {
         return createSecureResponse(
           { error: "Work order is already assigned", currentAssignment: workOrder.assignment },

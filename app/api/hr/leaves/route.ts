@@ -32,9 +32,10 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { parseBodyOrNull } from "@/lib/api/parse-body";
 import { LeaveService } from "@/server/services/hr/leave.service";
-import type {
-  LeaveRequestDoc,
-  LeaveRequestStatus,
+import {
+  LEAVE_REQUEST_STATUSES,
+  type LeaveRequestDoc,
+  type LeaveRequestStatus,
 } from "@/server/models/hr.models";
 import { Types } from "mongoose";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
@@ -52,6 +53,16 @@ const LeaveCreateSchema = z.object({
 });
 
 type LeaveCreateBody = z.infer<typeof LeaveCreateSchema>;
+
+const LeaveUpdateSchema = z.object({
+  leaveRequestId: z.string().refine((val) => Types.ObjectId.isValid(val), {
+    message: "Invalid leave request ID",
+  }),
+  status: z.enum(LEAVE_REQUEST_STATUSES),
+  comment: z.string().optional(),
+});
+
+type LeaveUpdateBody = z.infer<typeof LeaveUpdateSchema>;
 
 // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
 const HR_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
@@ -166,6 +177,14 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP for updates
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "hr-leaves:update",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.orgId || !session.user.id) {
@@ -178,46 +197,32 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 
-    const body = (await parseBodyOrNull(req)) as
-      | {
-          leaveRequestId?: string;
-          status?: LeaveRequestStatus;
-          comment?: string;
-        }
-      | null;
+    const body = (await parseBodyOrNull(req)) as Partial<LeaveUpdateBody> | null;
     if (!body) {
       return NextResponse.json(
         { error: "Invalid JSON body" },
         { status: 400 },
       );
     }
-    if (!body?.leaveRequestId || !body.status) {
+
+    const parseResult = LeaveUpdateSchema.safeParse(body);
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: "Missing fields: leaveRequestId, status" },
-        { status: 400 },
-      );
-    }
-    if (typeof body.leaveRequestId !== "string") {
-      return NextResponse.json(
-        { error: "leaveRequestId must be a string" },
-        { status: 400 },
-      );
-    }
-    if (!Types.ObjectId.isValid(body.leaveRequestId)) {
-      return NextResponse.json(
-        { error: "Invalid leaveRequestId" },
+        { error: "Invalid request body", details: parseResult.error.format() },
         { status: 400 },
       );
     }
 
     await connectToDatabase();
 
+    const { leaveRequestId, status, comment } = parseResult.data;
+
     const updated = await LeaveService.updateStatus(
       session.user.orgId,
-      body.leaveRequestId,
-      body.status,
+      leaveRequestId,
+      status,
       session.user.id,
-      body.comment,
+      comment,
     );
     if (!updated) {
       return NextResponse.json(

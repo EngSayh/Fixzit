@@ -279,6 +279,7 @@ export default [
     ],
     rules: {
       "local/require-tenant-scope": "warn", // Start with warn to avoid blocking builds
+      "local/require-lean": "warn",
     },
   },
 
@@ -317,6 +318,7 @@ export default [
       "no-console": "off",
       "no-undef": "off", // Disable for test files since we define globals
       "@typescript-eslint/no-require-imports": "off",
+      "local/require-lean": "off",
     },
   },
 

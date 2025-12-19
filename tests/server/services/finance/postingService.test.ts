@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Types } from "mongoose";
+import { postingService } from "@/server/services/finance/postingService";
 
 // Mock logger
 vi.mock("@/lib/logger", () => ({
@@ -25,6 +26,7 @@ vi.mock("@/server/models/finance/LedgerEntry", () => ({
     insertMany: vi.fn(),
     find: vi.fn(),
     deleteMany: vi.fn(),
+    create: vi.fn(),
   },
 }));
 
@@ -54,6 +56,30 @@ describe("postingService", () => {
     it("should create a draft journal with balanced entries", async () => {
       const JournalModel = (await import("@/server/models/finance/Journal"))
         .default;
+      const ChartAccountModel = (
+        await import("@/server/models/finance/ChartAccount")
+      ).default;
+
+      const accounts = [
+        {
+          _id: accountId1,
+          orgId,
+          isActive: true,
+          accountCode: "1000",
+          accountName: "Cash",
+          accountType: "ASSET",
+        },
+        {
+          _id: accountId2,
+          orgId,
+          isActive: true,
+          accountCode: "2000",
+          accountName: "Payable",
+          accountType: "LIABILITY",
+        },
+      ];
+
+      vi.mocked(ChartAccountModel.find).mockResolvedValue(accounts as never);
 
       vi.mocked(JournalModel.create).mockResolvedValue({
         _id: new Types.ObjectId(),
@@ -63,20 +89,51 @@ describe("postingService", () => {
           { accountId: accountId1, debit: 500, credit: 0 },
           { accountId: accountId2, debit: 0, credit: 500 },
         ],
+      } as never);
+
+      const result = await postingService.createJournal({
+        orgId,
+        journalDate: new Date(),
+        description: "Test journal",
+        sourceType: "MANUAL",
+        lines: [
+          { accountId: accountId1, debit: 500, credit: 0 },
+          { accountId: accountId2, debit: 0, credit: 500 },
+        ],
+        userId,
       });
 
-      // Journal created successfully
-      expect(true).toBe(true);
+      expect(JournalModel.create).toHaveBeenCalled();
+      expect(result.status).toBe("DRAFT");
     });
 
     it("should reject unbalanced journal entries", async () => {
-      // Test: debit ≠ credit should throw validation error
-      expect(true).toBe(true);
+      await expect(
+        postingService.createJournal({
+          orgId,
+          journalDate: new Date(),
+          description: "Unbalanced",
+          sourceType: "MANUAL",
+          lines: [
+            { accountId: accountId1, debit: 500, credit: 0 },
+            { accountId: accountId2, debit: 0, credit: 400 },
+          ],
+          userId,
+        })
+      ).rejects.toThrow("Journal entries must balance");
     });
 
     it("should require at least 2 journal lines", async () => {
-      // Test: single line journal should fail
-      expect(true).toBe(true);
+      await expect(
+        postingService.createJournal({
+          orgId,
+          journalDate: new Date(),
+          description: "Single line",
+          sourceType: "MANUAL",
+          lines: [{ accountId: accountId1, debit: 100, credit: 0 }],
+          userId,
+        })
+      ).rejects.toThrow("At least 2 journal lines required");
     });
   });
 
@@ -87,74 +144,116 @@ describe("postingService", () => {
       const LedgerEntryModel = (
         await import("@/server/models/finance/LedgerEntry")
       ).default;
-
-      vi.mocked(JournalModel.findById).mockReturnValue({
-        lean: vi.fn().mockResolvedValue({
-          _id: new Types.ObjectId(),
-          status: "DRAFT",
-          lines: [
-            { accountId: accountId1, debit: 500, credit: 0 },
-            { accountId: accountId2, debit: 0, credit: 500 },
-          ],
-        }),
-      } as never);
-
-      vi.mocked(LedgerEntryModel.insertMany).mockResolvedValue([]);
-      vi.mocked(JournalModel.findByIdAndUpdate).mockResolvedValue({
-        status: "POSTED",
-      });
-
-      // Journal posted successfully
-      expect(true).toBe(true);
-    });
-
-    it("should reject posting already-posted journal", async () => {
-      // Test: POSTED status should throw error
-      expect(true).toBe(true);
-    });
-
-    it("should update account balances after posting", async () => {
       const ChartAccountModel = (
         await import("@/server/models/finance/ChartAccount")
       ).default;
 
-      vi.mocked(ChartAccountModel.findByIdAndUpdate).mockResolvedValue({
-        balance: 500,
-      });
+      const journalDoc = {
+        _id: new Types.ObjectId(),
+        status: "DRAFT",
+        isBalanced: true,
+        orgId,
+        journalNumber: "JE-0001",
+        journalDate: new Date(),
+        fiscalYear: 2025,
+        fiscalPeriod: 1,
+        createdBy: userId,
+        updatedBy: userId,
+        lines: [
+          {
+            accountId: accountId1,
+            accountCode: "1000",
+            accountName: "Cash",
+            debit: 500,
+            credit: 0,
+          },
+          {
+            accountId: accountId2,
+            accountCode: "2000",
+            accountName: "Payable",
+            debit: 0,
+            credit: 500,
+          },
+        ],
+        save: vi.fn().mockResolvedValue(undefined),
+      };
 
-      // Account balances updated
-      expect(true).toBe(true);
+      vi.mocked(JournalModel.findById).mockResolvedValue(journalDoc as never);
+      vi.mocked(ChartAccountModel.find).mockResolvedValue([
+        {
+          _id: accountId1,
+          orgId,
+          accountType: "ASSET",
+          accountCode: "1000",
+          accountName: "Cash",
+          balance: 0,
+          save: vi.fn().mockResolvedValue(undefined),
+        },
+        {
+          _id: accountId2,
+          orgId,
+          accountType: "LIABILITY",
+          accountCode: "2000",
+          accountName: "Payable",
+          balance: 0,
+          save: vi.fn().mockResolvedValue(undefined),
+        },
+      ] as never);
+
+      vi.mocked(LedgerEntryModel.create).mockResolvedValue({} as never);
+
+      const result = await postingService.postJournal(journalDoc._id);
+      expect(result.journal.status).toBe("POSTED");
+      expect(result.ledgerEntries.length).toBeGreaterThan(0);
+    });
+
+    it("should reject posting already-posted journal", async () => {
+      const JournalModel = (await import("@/server/models/finance/Journal"))
+        .default;
+      vi.mocked(JournalModel.findById).mockResolvedValue({
+        _id: new Types.ObjectId(),
+        status: "POSTED",
+        isBalanced: true,
+      } as never);
+
+      await expect(postingService.postJournal(new Types.ObjectId())).rejects.toThrow(
+        "Only DRAFT journals can be posted"
+      );
+    });
+
+    it("should reject when journal is missing", async () => {
+      const JournalModel = (await import("@/server/models/finance/Journal"))
+        .default;
+      vi.mocked(JournalModel.findById).mockResolvedValue(null as never);
+
+      await expect(postingService.postJournal(new Types.ObjectId())).rejects.toThrow(
+        "Journal entry not found"
+      );
     });
   });
 
-  describe("reverseLedger", () => {
-    it("should create reversal entries for a posted journal", async () => {
+  describe("voidJournal", () => {
+    it("should reject voiding when journal not found", async () => {
       const JournalModel = (await import("@/server/models/finance/Journal"))
         .default;
+      vi.mocked(JournalModel.findById).mockResolvedValue(null as never);
 
-      vi.mocked(JournalModel.findById).mockReturnValue({
-        lean: vi.fn().mockResolvedValue({
-          _id: new Types.ObjectId(),
-          status: "POSTED",
-          lines: [
-            { accountId: accountId1, debit: 500, credit: 0 },
-            { accountId: accountId2, debit: 0, credit: 500 },
-          ],
-        }),
+      await expect(
+        postingService.voidJournal(new Types.ObjectId(), userId, "Mistake")
+      ).rejects.toThrow("Journal entry not found");
+    });
+
+    it("should reject voiding when journal is not posted", async () => {
+      const JournalModel = (await import("@/server/models/finance/Journal"))
+        .default;
+      vi.mocked(JournalModel.findById).mockResolvedValue({
+        _id: new Types.ObjectId(),
+        status: "DRAFT",
       } as never);
 
-      // Reversal entries swap debit/credit
-      expect(true).toBe(true);
-    });
-
-    it("should reject reversal of draft journal", async () => {
-      // Test: DRAFT status cannot be reversed
-      expect(true).toBe(true);
-    });
-
-    it("should link reversal journal to original", async () => {
-      // Test: reversalOf field set correctly
-      expect(true).toBe(true);
+      await expect(
+        postingService.voidJournal(new Types.ObjectId(), userId, "Mistake")
+      ).rejects.toThrow("Only posted journals can be voided");
     });
   });
 });

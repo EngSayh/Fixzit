@@ -60,6 +60,47 @@ const categories = await Category.find({});
 const jobs = await Job.find({ status: "published" });
 ```
 
+---
+
+### `local/require-lean`
+
+**Purpose**: Suggest `.lean()` for read-only Mongoose queries to reduce hydration overhead.
+
+**Severity**: `warn` (non-blocking, for gradual adoption)
+
+**Applies to**:
+- `app/api/**/*.{ts,tsx}`
+- `lib/**/*.{ts,tsx}`
+- `server/**/*.{ts,tsx}`
+- `domain/**/*.{ts,tsx}`
+
+**Detects**:
+- `await Model.find(...)` without `.lean()`
+- `return Model.findOne(...)` without `.lean()`
+- `await Model.findById(...)` without `.lean()`
+
+**Exceptions** (automatically skipped):
+- Queries already chained with `.lean()`
+- Queries not directly awaited/returned (e.g., query builders)
+- Queries with exemption comments: `// NO_LEAN`
+
+**Examples**:
+
+❌ **Bad** (will trigger warning):
+```typescript
+const users = await User.find({ orgId });
+return User.findOne({ orgId, email });
+```
+
+✅ **Good** (no warning):
+```typescript
+const users = await User.find({ orgId }).lean();
+return User.findOne({ orgId, email }).lean();
+
+// NO_LEAN: requires document methods/virtuals
+const doc = await User.findOne({ orgId, email });
+```
+
 ## Usage
 
 The rule is enabled by default in `eslint.config.mjs` for all API routes and data access layers.

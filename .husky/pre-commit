@@ -38,6 +38,22 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# Guard against unsafe client process.env usage
+echo "🔐 Checking client env usage..."
+node scripts/audit-client-env.mjs
+if [ $? -ne 0 ]; then
+  echo "❌ Unsafe process.env usage detected in client code."
+  exit 1
+fi
+
+# Guard against undocumented @ts-expect-error annotations
+echo "🧾 Checking @ts-expect-error annotations..."
+node scripts/check-ts-expect-error.mjs
+if [ $? -ne 0 ]; then
+  echo "❌ Undocumented @ts-expect-error detected."
+  exit 1
+fi
+
 # PROC-005: Local Security Audit (non-blocking - warns only)
 echo "🔒 Running security audit..."
 if pnpm audit --audit-level=high 2>/dev/null; then

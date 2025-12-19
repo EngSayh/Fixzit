@@ -511,6 +511,7 @@ export function EnhancedIssueTable({
   const table = useReactTable({
     data: issues,
     columns,
+    getRowId: (row) => row.id,
     state: {
       sorting,
       columnFilters,

@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import {
   PendingMasterNotFoundError,
-  PhaseData,
   PhaseEntry,
   PhaseStatus,
   PhaseSummary,
@@ -322,8 +321,8 @@ export default async function SuperadminProgressPage() {
       {/* Phase Tracking */}
       <Card>
         <CardHeader>
-          <CardTitle>Phase Tracking (P66-P110)</CardTitle>
-          <CardDescription>Parsed live from PENDING_MASTER.md</CardDescription>
+          <CardTitle>Phase Tracking</CardTitle>
+          <CardDescription>Parsed live from SSOT phase ledger</CardDescription>
         </CardHeader>
         <CardContent>
           {phases.length === 0 ? (
@@ -393,7 +392,7 @@ export default async function SuperadminProgressPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-blue-600">
-              {lastUpdated ? lastUpdated : "Pending"}
+              {parsedAt || lastUpdated || "Pending"}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Based on latest completed phase</p>
           </CardContent>

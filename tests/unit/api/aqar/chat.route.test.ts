@@ -2,26 +2,27 @@
  * @fileoverview Unit tests for Aqar chat API
  * @description Verifies auth/RBAC enforcement, rate limiting, and error handling
  */
-import { describe, it, expect } from 'vitest';
+import fs from "fs";
+import path from "path";
+import { describe, it, expect } from "vitest";
+
+const routePath = path.join(process.cwd(), "app/api/aqar/chat/route.ts");
+const routeSource = fs.readFileSync(routePath, "utf8");
 
 describe('Aqar Chat API', () => {
   describe('POST /api/aqar/chat', () => {
-    it('should require authentication', () => {
-      // Auth enforcement verified in route implementation
-      // Uses getSessionUser() which throws if not authenticated
-      expect(true).toBe(true);
+    it("should reference the support chatbot handler", () => {
+      expect(routeSource).toContain("support/chatbot/route");
+      expect(routeSource).toContain("chatbotPost");
     });
 
-    it('should validate JSON body structure', () => {
-      // JSON validation verified in route implementation
-      // Uses parseBodySafe() which handles invalid JSON
-      expect(true).toBe(true);
+    it("should wrap the handler for error boundaries", () => {
+      expect(routeSource).toContain("wrapRoute");
+      expect(routeSource).toContain("api.aqar.chat.post.catch");
     });
 
-    it('should enforce rate limiting', () => {
-      // Rate limiting verified in route implementation
-      // Uses enforceRateLimit with appropriate key prefix
-      expect(true).toBe(true);
+    it("should export a POST handler", () => {
+      expect(routeSource).toContain("export const POST");
     });
   });
 });

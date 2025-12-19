@@ -31,7 +31,8 @@ import { logger } from "@/lib/logger";
 import { EmployeeService } from "@/server/services/hr/employee.service";
 import { hasAllowedRole } from "@/lib/auth/role-guards";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import type { EmployeeDoc } from "@/server/models/hr.models";
+import { parseBodySafe } from "@/lib/api/parse-body";
+import type { EmployeeDoc, EmployeeCompensation, TechnicianProfile } from "@/server/models/hr.models";
 
 // Define session user type with subRole support
 interface SessionUser {
@@ -228,7 +229,27 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    const body = await req.json();
+    const { data: body, error: parseError } = await parseBodySafe<{
+      employeeCode?: string;
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phone?: string;
+      jobTitle?: string;
+      departmentId?: string;
+      managerId?: string;
+      employmentType?: string;
+      employmentStatus?: string;
+      hireDate?: string;
+      technicianProfile?: TechnicianProfile;
+      compensation?: EmployeeCompensation;
+      bankDetails?: Record<string, unknown>;
+    }>(req, {
+      logPrefix: "[HR Employees]",
+    });
+    if (parseError || !body) {
+      return NextResponse.json({ error: parseError || "Invalid body" }, { status: 400 });
+    }
 
     // Validate required fields
     if (
@@ -275,21 +296,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // body is guaranteed non-null after validation checks above
     const employee = await EmployeeService.upsert({
       orgId: session.user.orgId,
-      employeeCode: body.employeeCode,
-      firstName: body.firstName,
-      lastName: body.lastName,
-      email: body.email,
+      employeeCode: body.employeeCode as string,
+      firstName: body.firstName as string,
+      lastName: body.lastName as string,
+      email: body.email as string,
       phone: body.phone,
-      jobTitle: body.jobTitle,
+      jobTitle: body.jobTitle as string,
       departmentId: body.departmentId,
       managerId: body.managerId,
-      employmentType: body.employmentType || "FULL_TIME",
-      employmentStatus: body.employmentStatus || "ACTIVE",
-      hireDate: new Date(body.hireDate),
-      technicianProfile: body.technicianProfile,
-      compensation: body.compensation,
+      employmentType: (body.employmentType || "FULL_TIME") as "FULL_TIME" | "PART_TIME" | "CONTRACTOR" | "TEMPORARY",
+      employmentStatus: (body.employmentStatus || "ACTIVE") as "ACTIVE" | "ON_LEAVE" | "INACTIVE" | "TERMINATED",
+      hireDate: new Date(body.hireDate as string),
+      technicianProfile: body.technicianProfile as Parameters<typeof EmployeeService.upsert>[0]["technicianProfile"],
+      compensation: body.compensation as Parameters<typeof EmployeeService.upsert>[0]["compensation"],
       bankDetails: body.bankDetails,
     });
 

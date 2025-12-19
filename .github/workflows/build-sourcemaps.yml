@@ -22,6 +22,10 @@ jobs:
       CI: "true"
       NODE_OPTIONS: --max-old-space-size=8192
       NEXT_TELEMETRY_DISABLED: "1"
+      ENABLE_SENTRY: "${{ vars.ENABLE_SENTRY || 'true' }}"
+      SENTRY_ORG_NAME: "${{ secrets.SENTRY_ORG || '' }}"
+      SENTRY_PROJECT_NAME: "${{ secrets.SENTRY_PROJECT || 'fixzit-frontend' }}"
+      HAS_SENTRY_AUTH: "${{ secrets.SENTRY_AUTH_TOKEN != '' && 'true' || 'false' }}"
       # Job-level guards (secrets can be checked at job level)
       HAS_MONGODB_URI: ${{ secrets.MONGODB_URI != '' }}
       # expose release to build/runtime; SDKs read SENTRY_RELEASE
@@ -32,13 +36,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Required for Sentry commit association
-
-      - name: Prepare Sentry env defaults
-        run: |
-          echo "ENABLE_SENTRY=${{ vars.ENABLE_SENTRY || 'true' }}" >> "$GITHUB_ENV"
-          echo "SENTRY_ORG_NAME=${{ secrets.SENTRY_ORG || '' }}" >> "$GITHUB_ENV"
-          echo "SENTRY_PROJECT_NAME=${{ secrets.SENTRY_PROJECT || 'fixzit-frontend' }}" >> "$GITHUB_ENV"
-          echo "HAS_SENTRY_AUTH=${{ secrets.SENTRY_AUTH_TOKEN != '' && 'true' || 'false' }}" >> "$GITHUB_ENV"
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2

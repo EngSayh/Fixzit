@@ -50,8 +50,7 @@ describe("API /api/aqar/offline", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -73,8 +72,7 @@ describe("API /api/aqar/offline", () => {
     it("returns 401 when user is not authenticated", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue(null as never);

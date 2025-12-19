@@ -62,7 +62,7 @@ const importRoute = async () => {
 };
 
 describe("API /api/hr/leaves", () => {
-  const mockOrgId = "org_123456789";
+  const mockOrgId = "507f1f77bcf86cd799439013";
   const mockUser: SessionUser = {
     id: "user_123",
     orgId: mockOrgId,
@@ -106,8 +106,7 @@ describe("API /api/hr/leaves", () => {
       sessionUser = null;
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/leaves");
@@ -119,8 +118,7 @@ describe("API /api/hr/leaves", () => {
       vi.mocked(hasAllowedRole).mockReturnValue(false);
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/leaves");
@@ -139,8 +137,7 @@ describe("API /api/hr/leaves", () => {
       ]);
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/leaves");
@@ -153,8 +150,7 @@ describe("API /api/hr/leaves", () => {
     it("should filter by status when provided", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest(
@@ -170,8 +166,7 @@ describe("API /api/hr/leaves", () => {
       sessionUser = null;
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/leaves", {
@@ -186,8 +181,7 @@ describe("API /api/hr/leaves", () => {
       vi.mocked(hasAllowedRole).mockReturnValue(false);
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/leaves", {
@@ -201,8 +195,7 @@ describe("API /api/hr/leaves", () => {
     it("should return 400 for invalid request body", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/leaves", {
@@ -216,8 +209,7 @@ describe("API /api/hr/leaves", () => {
     it("should create leave request with valid data", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const validLeaveData = {
@@ -235,12 +227,8 @@ describe("API /api/hr/leaves", () => {
         headers: { "Content-Type": "application/json" },
       });
       const response = await routeModule.POST(request);
-      // Route may return 201 or 500 depending on service mock setup
-      // We verify the service was called with correct tenant scope
-      expect([201, 500]).toContain(response.status);
-      if (response.status === 201) {
-        expect(LeaveService.request).toHaveBeenCalled();
-      }
+      expect(response.status).toBe(201);
+      expect(LeaveService.request).toHaveBeenCalled();
     });
 
     it("should enforce rate limiting on POST", async () => {
@@ -251,8 +239,7 @@ describe("API /api/hr/leaves", () => {
       );
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/leaves", {
@@ -278,7 +265,7 @@ describe("API /api/hr/leaves", () => {
       expect(response.status).toBe(400);
 
       const data = await response.json();
-      expect(data.error).toBe("Invalid leaveRequestId");
+      expect(data.error).toBe("Invalid request body");
     });
 
     it("should return 404 when leave request is not found", async () => {
@@ -299,6 +286,26 @@ describe("API /api/hr/leaves", () => {
 
       const data = await response.json();
       expect(data.error).toBe("Leave request not found");
+    });
+
+    it("should enforce rate limiting on PUT", async () => {
+      vi.mocked(enforceRateLimit).mockReturnValue(
+        new Response(JSON.stringify({ error: "Too many requests" }), {
+          status: 429,
+        }) as unknown as null
+      );
+      const routeModule = await importRoute();
+
+      const request = new NextRequest("http://localhost/api/hr/leaves", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leaveRequestId: "507f1f77bcf86cd799439011",
+          status: "APPROVED",
+        }),
+      });
+      const response = await routeModule.PUT(request);
+      expect(response.status).toBe(429);
     });
   });
 });

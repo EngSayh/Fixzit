@@ -245,6 +245,26 @@ describe("POST /api/work-orders/auto-assign", () => {
       expect(data.error).toContain("already assigned");
     });
 
+    it("should return 409 if work order is already assigned to a team", async () => {
+      mockWorkOrder.findOne.mockReturnValueOnce({
+        lean: vi.fn().mockResolvedValue({
+          _id: new Types.ObjectId(mockWorkOrderId),
+          assignment: {
+            assignedTo: { teamId: "existing-team" },
+            assignedAt: new Date(),
+          },
+        }),
+      } as unknown as ReturnType<typeof WorkOrder.findOne>);
+
+      const req = createRequest({ workOrderId: mockWorkOrderId });
+
+      const res = await POST(req);
+      expect(res.status).toBe(409);
+
+      const data = await res.json();
+      expect(data.error).toContain("already assigned");
+    });
+
     it("should return 422 if no suitable assignee found", async () => {
       mockAutoAssign.mockResolvedValueOnce({
         success: false,
@@ -294,6 +314,18 @@ describe("POST /api/work-orders/auto-assign", () => {
       expect(data.success).toBe(true);
       expect(data.results).toBeDefined();
       expect(data.results.assigned).toBeGreaterThanOrEqual(0);
+
+      expect(mockWorkOrder.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orgId: mockOrgId,
+          isDeleted: { $ne: true },
+          $and: expect.arrayContaining([
+            { "assignment.assignedTo.userId": { $exists: false } },
+            { "assignment.assignedTo.vendorId": { $exists: false } },
+            { "assignment.assignedTo.teamId": { $exists: false } },
+          ]),
+        })
+      );
     });
 
     it("should return 400 for too many work orders", async () => {

@@ -92,8 +92,7 @@ describe("API /api/hr/leave-types", () => {
       sessionUser = null;
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/leave-types");
@@ -105,8 +104,7 @@ describe("API /api/hr/leave-types", () => {
       vi.mocked(hasAllowedRole).mockReturnValue(false);
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/leave-types");
@@ -133,8 +131,7 @@ describe("API /api/hr/leave-types", () => {
       ]);
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/leave-types");
@@ -147,8 +144,7 @@ describe("API /api/hr/leave-types", () => {
     it("should support search filter", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest(
@@ -165,8 +161,7 @@ describe("API /api/hr/leave-types", () => {
     it("should support limit parameter", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest(
@@ -186,8 +181,7 @@ describe("API /api/hr/leave-types", () => {
       sessionUser = null;
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/leave-types", {
@@ -202,8 +196,7 @@ describe("API /api/hr/leave-types", () => {
       vi.mocked(hasAllowedRole).mockReturnValue(false);
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/leave-types", {
@@ -222,8 +215,7 @@ describe("API /api/hr/leave-types", () => {
       );
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/leave-types", {

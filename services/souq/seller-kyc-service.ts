@@ -1,6 +1,6 @@
 export interface IKYCDocumentFile {
   fileUrl: string;
-  fileType: "pdf" | "jpg" | "png";
+  fileType: "pdf" | "jpg" | "png" | "heic" | "heif";
   uploadedAt: Date;
   verified: boolean;
   verifiedAt?: Date;
@@ -68,7 +68,7 @@ export interface IKYCCompanyInfo {
 export interface IKYCDocuments {
   commercialRegistration: {
     fileUrl: string;
-    fileType: "pdf" | "jpg" | "png";
+    fileType: "pdf" | "jpg" | "png" | "heic" | "heif";
     uploadedAt: Date;
     verified: boolean;
     verifiedAt?: Date;
@@ -78,7 +78,7 @@ export interface IKYCDocuments {
   };
   vatCertificate?: {
     fileUrl: string;
-    fileType: "pdf" | "jpg" | "png";
+    fileType: "pdf" | "jpg" | "png" | "heic" | "heif";
     uploadedAt: Date;
     verified: boolean;
     verifiedAt?: Date;
@@ -88,7 +88,7 @@ export interface IKYCDocuments {
   };
   nationalId: {
     fileUrl: string;
-    fileType: "pdf" | "jpg" | "png";
+    fileType: "pdf" | "jpg" | "png" | "heic" | "heif";
     uploadedAt: Date;
     verified: boolean;
     verifiedAt?: Date;
@@ -98,7 +98,7 @@ export interface IKYCDocuments {
   };
   bankLetter?: {
     fileUrl: string;
-    fileType: "pdf" | "jpg" | "png";
+    fileType: "pdf" | "jpg" | "png" | "heic" | "heif";
     uploadedAt: Date;
     verified: boolean;
     verifiedAt?: Date;

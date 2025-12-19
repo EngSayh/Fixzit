@@ -93,8 +93,7 @@ describe("API /api/crm/leads/log-call", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -122,8 +121,7 @@ describe("API /api/crm/leads/log-call", () => {
     it("returns 401 when user is not authenticated", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue(null as never);
@@ -147,8 +145,7 @@ describe("API /api/crm/leads/log-call", () => {
     it("returns 401 when user lacks CRM role", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue({
@@ -176,8 +173,7 @@ describe("API /api/crm/leads/log-call", () => {
     it("successfully logs call for existing lead with tenant scoping", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       const mockLead = {
@@ -226,8 +222,7 @@ describe("API /api/crm/leads/log-call", () => {
     it("creates new lead when company not found", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       // Lead not found
@@ -277,8 +272,7 @@ describe("API /api/crm/leads/log-call", () => {
     it("returns 400 when request body is invalid", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       const req = new NextRequest(
@@ -296,8 +290,7 @@ describe("API /api/crm/leads/log-call", () => {
     it("requires all mandatory fields (contact, company, notes)", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       // Missing notes

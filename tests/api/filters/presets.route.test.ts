@@ -52,8 +52,7 @@ describe("API /api/filters/presets/:id", () => {
     it("returns 401 when unauthenticated", async () => {
       const route = await importDeleteRoute();
       if (!route?.DELETE) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: DELETE");
       }
 
       vi.mocked(getSessionUser).mockRejectedValue(new UnauthorizedError("unauth"));
@@ -69,8 +68,7 @@ describe("API /api/filters/presets/:id", () => {
     it("returns 403 when orgId is missing", async () => {
       const route = await importDeleteRoute();
       if (!route?.DELETE) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: DELETE");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue({
@@ -89,8 +87,7 @@ describe("API /api/filters/presets/:id", () => {
     it("returns 404 when preset not found", async () => {
       const route = await importDeleteRoute();
       if (!route?.DELETE) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: DELETE");
       }
 
       vi.mocked(FilterPreset.findOneAndDelete).mockResolvedValue(null as never);
@@ -111,8 +108,7 @@ describe("API /api/filters/presets/:id", () => {
     it("deletes preset with tenant + user scope", async () => {
       const route = await importDeleteRoute();
       if (!route?.DELETE) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: DELETE");
       }
 
       vi.mocked(FilterPreset.findOneAndDelete).mockResolvedValue({

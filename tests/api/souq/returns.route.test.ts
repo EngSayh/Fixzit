@@ -75,8 +75,7 @@ describe("API /api/souq/returns", () => {
       sessionUser = null;
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/souq/returns");
@@ -88,8 +87,7 @@ describe("API /api/souq/returns", () => {
       sessionUser = { ...mockUser, orgId: undefined };
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/souq/returns");
@@ -106,20 +104,18 @@ describe("API /api/souq/returns", () => {
       });
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/souq/returns");
       const response = await routeModule.GET(request);
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
 
     it("should support status filter", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest(
@@ -132,15 +128,14 @@ describe("API /api/souq/returns", () => {
     it("should support pagination", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest(
         "http://localhost/api/souq/returns?page=2&limit=10"
       );
       const response = await routeModule.GET(request);
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
 
     it("should enforce rate limiting", async () => {
@@ -151,8 +146,7 @@ describe("API /api/souq/returns", () => {
       );
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/souq/returns");

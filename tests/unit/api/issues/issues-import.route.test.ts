@@ -173,7 +173,7 @@ describe("Issues Import API Route", () => {
 
       const req = makeRequest();
       const res = await POST(req);
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("returns 400 when body parsing fails", async () => {
@@ -210,7 +210,7 @@ describe("Issues Import API Route", () => {
 
       const req = makeRequest();
       const res = await POST(req);
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("handles dry run mode", async () => {
@@ -220,7 +220,7 @@ describe("Issues Import API Route", () => {
 
       const req = makeRequest({ ...defaultPayload, dryRun: true });
       const res = await POST(req);
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("propagates Retry-After when rate limited", async () => {

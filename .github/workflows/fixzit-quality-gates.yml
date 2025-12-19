@@ -157,6 +157,10 @@ jobs:
             *) npm run typecheck || npm run tsc --noEmit ;;
           esac
 
+      - name: Client env guard
+        shell: bash
+        run: node scripts/audit-client-env.mjs
+
       - name: Ensure Mongo Indexes (idempotent)
         shell: bash
         env:

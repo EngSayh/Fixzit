@@ -78,7 +78,7 @@ vi.mock("next/server", () => {
 
 describe("POST /api/upload/presigned-url", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     smartRateLimitMock.mockResolvedValue({ allowed: true });
     buildOrgAwareRateLimitKeyMock.mockReturnValue("key");
     getSessionUserMock.mockResolvedValue({

@@ -11,7 +11,7 @@
  * 
  * @requestBody
  * - fileName: (required) Original file name
- * - contentType: (required) MIME type (application/pdf, image/png, image/jpeg)
+ * - contentType: (required) MIME type (application/pdf, image/png, image/jpeg, image/heic, image/heif)
  * - category: Upload category (kyc, resume, invoice, document)
  * 
  * @response
@@ -19,7 +19,7 @@
  * - key: S3 object key for reference
  * 
  * @validation
- * - Allowed types: PDF (25MB max), PNG/JPEG (10MB max)
+ * - Allowed types: PDF (25MB max), PNG/JPEG/HEIC/HEIF (10MB max)
  * - File extension must match content type
  * - Requires AV scanning if configured
  * 

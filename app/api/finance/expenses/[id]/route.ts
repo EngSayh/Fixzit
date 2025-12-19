@@ -21,6 +21,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError, notFoundError } from "@/server/utils/errorResponses";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);
@@ -160,8 +161,13 @@ export async function PUT(
       return validationError("Invalid expense ID");
     }
 
-    const body = await req.json();
-    const data = UpdateExpenseSchema.parse(body);
+    const { data: rawBody, error: parseError } = await parseBodySafe(req, {
+      logPrefix: "[PATCH /api/finance/expenses/:id]",
+    });
+    if (parseError) {
+      return NextResponse.json({ error: parseError }, { status: 400 });
+    }
+    const data = UpdateExpenseSchema.parse(rawBody);
 
     // Execute with proper context
     return await runWithContext(

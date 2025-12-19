@@ -4,6 +4,10 @@
  */
 
 import { auth } from "@/auth";
+import {
+  setSuperAdminTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
 
 export interface ServerSession {
   user: {
@@ -36,6 +40,14 @@ export async function getServerSession(): Promise<ServerSession | null> {
 
   if (!session?.user?.id) {
     return null;
+  }
+
+  if (session.user.orgId) {
+    if (session.user.isSuperAdmin) {
+      setSuperAdminTenantContext(String(session.user.orgId), session.user.id);
+    } else {
+      setTenantContext({ orgId: session.user.orgId, userId: session.user.id });
+    }
   }
 
   // Return session with all custom fields

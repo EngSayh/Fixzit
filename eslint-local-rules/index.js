@@ -192,8 +192,116 @@ export const requireTenantScope = {
   },
 };
 
+/**
+ * Rule: require-lean
+ * Warns when read-only Mongoose queries omit .lean()
+ */
+export const requireLean = {
+  meta: {
+    type: "suggestion",
+    docs: {
+      description: "Suggest .lean() on read-only Mongoose queries",
+      category: "Performance",
+      recommended: false,
+    },
+    messages: {
+      missingLean:
+        "Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN).",
+    },
+    schema: [],
+  },
+
+  create(context) {
+    const READ_METHODS = new Set([
+      "find",
+      "findOne",
+      "findById",
+      "findMany",
+    ]);
+
+    const sourceCode = context.getSourceCode();
+
+    const hasNoLeanComment = (node) => {
+      const comments = [
+        ...sourceCode.getCommentsBefore(node),
+        ...sourceCode.getCommentsAfter(node),
+      ];
+      return comments.some((comment) => comment.value.includes("NO_LEAN"));
+    };
+
+    const hasLeanInChain = (callExpression) => {
+      let current = callExpression;
+      let parent = current.parent;
+
+      while (parent) {
+        if (
+          parent.type === "MemberExpression" &&
+          parent.property.type === "Identifier" &&
+          parent.property.name === "lean"
+        ) {
+          const leanCall = parent.parent;
+          if (
+            leanCall &&
+            leanCall.type === "CallExpression" &&
+            leanCall.callee === parent
+          ) {
+            return true;
+          }
+        }
+
+        if (
+          parent.type === "CallExpression" &&
+          parent.callee &&
+          parent.callee.type === "MemberExpression"
+        ) {
+          current = parent;
+          parent = parent.parent;
+          continue;
+        }
+
+        if (parent.type === "MemberExpression") {
+          parent = parent.parent;
+          continue;
+        }
+
+        break;
+      }
+
+      return false;
+    };
+
+    return {
+      CallExpression(node) {
+        if (!node.callee || node.callee.type !== "MemberExpression") return;
+        if (node.callee.property.type !== "Identifier") return;
+
+        const methodName = node.callee.property.name;
+        if (!READ_METHODS.has(methodName)) return;
+
+        const objectName = node.callee.object?.name;
+        if (!objectName) return;
+
+        const parent = node.parent;
+        const isAwaited =
+          parent && parent.type === "AwaitExpression" && parent.argument === node;
+        const isReturned = parent && parent.type === "ReturnStatement";
+
+        if (!isAwaited && !isReturned) return;
+
+        if (hasNoLeanComment(node) || hasLeanInChain(node)) return;
+
+        context.report({
+          node,
+          messageId: "missingLean",
+        });
+      },
+    };
+  },
+};
+
 export default {
   rules: {
     "require-tenant-scope": requireTenantScope,
+    "require-lean": requireLean,
   },
 };

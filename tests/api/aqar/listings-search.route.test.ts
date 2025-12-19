@@ -52,8 +52,7 @@ describe("GET /api/aqar/listings/search", () => {
   it("returns 429 when rate limit exceeded", async () => {
     const route = await importRoute();
     if (!route?.GET) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: GET");
     }
 
     vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false });
@@ -69,8 +68,7 @@ describe("GET /api/aqar/listings/search", () => {
   it("handles search with filters", async () => {
     const route = await importRoute();
     if (!route?.GET) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: GET");
     }
 
     const req = new NextRequest("http://localhost:3000/api/aqar/listings/search?city=Riyadh&minPrice=100000&maxPrice=500000", {

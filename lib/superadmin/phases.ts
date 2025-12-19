@@ -34,20 +34,28 @@ export interface PhaseData {
 }
 
 export class PendingMasterNotFoundError extends Error {
-  constructor(message = "PENDING_MASTER.md not found") {
+  constructor(message = "Pending report not found") {
     super(message);
     this.name = "PendingMasterNotFoundError";
   }
 }
 
 export async function loadSuperadminPhaseData(): Promise<PhaseData> {
+  const masterReportPath = path.join(process.cwd(), "MASTER_PENDING_REPORT.md");
   const pendingMasterPath = path.join(process.cwd(), "docs", "PENDING_MASTER.md");
 
-  if (!fs.existsSync(pendingMasterPath)) {
+  const pendingMasterContent = fs.existsSync(pendingMasterPath)
+    ? fs.readFileSync(pendingMasterPath, "utf-8")
+    : null;
+  const masterReportContent = fs.existsSync(masterReportPath)
+    ? fs.readFileSync(masterReportPath, "utf-8")
+    : null;
+
+  if (!pendingMasterContent && !masterReportContent) {
     throw new PendingMasterNotFoundError();
   }
 
-  const content = fs.readFileSync(pendingMasterPath, "utf-8");
+  const phaseSourceContent = pendingMasterContent ?? masterReportContent ?? "";
 
   const completionPattern = /✅\s*PHASES?\s+P(\d+)(?:-P(\d+))?\s+COMPLETE/gi;
   const datePattern =
@@ -57,21 +65,27 @@ export async function loadSuperadminPhaseData(): Promise<PhaseData> {
 
   const completedRanges: Array<{ start: number; end: number }> = [];
   let match: RegExpExecArray | null;
-  while ((match = completionPattern.exec(content)) !== null) {
+  while ((match = completionPattern.exec(phaseSourceContent)) !== null) {
     const start = parseInt(match[1], 10);
     const end = match[2] ? parseInt(match[2], 10) : start;
     completedRanges.push({ start, end });
   }
 
-  const phaseEntries = new Map<number, { date: string; title: string; description: string }>();
-  while ((match = datePattern.exec(content)) !== null) {
+  const phaseEntries = new Map<
+    number,
+    { date?: string; title: string; description: string; status?: PhaseStatus }
+  >();
+  while ((match = datePattern.exec(phaseSourceContent)) !== null) {
     const date = `${match[1]}T${match[2]}:00`;
     const startPhase = parseInt(match[4], 10);
     const endPhase = match[5] ? parseInt(match[5], 10) : startPhase;
 
     const contextStart = match.index;
-    const contextEnd = content.indexOf("\n\n", contextStart);
-    const context = content.slice(contextStart, contextEnd === -1 ? undefined : contextEnd);
+    const contextEnd = phaseSourceContent.indexOf("\n\n", contextStart);
+    const context = phaseSourceContent.slice(
+      contextStart,
+      contextEnd === -1 ? undefined : contextEnd,
+    );
     const titleMatch = /\*\*([^*]+)\*\*/.exec(context);
     const title = titleMatch ? titleMatch[1] : `Phase ${startPhase}-${endPhase}`;
 
@@ -80,28 +94,55 @@ export async function loadSuperadminPhaseData(): Promise<PhaseData> {
         date,
         title,
         description: context.slice(0, 200),
+        status: "completed",
       });
     }
   }
 
-  for (let phaseNumber = 66; phaseNumber <= 110; phaseNumber++) {
+  if (masterReportContent) {
+    const resolvedSectionPattern =
+      /###\s*✅\s*(?:Current Session|Recently Resolved)[\s\S]*?(?=###|## |\n---|$)/gi;
+    const phaseLinePattern = /(\d+)\.\s*\*\*\[P(\d+)\]\*\*\s*(✅|🔄|⏳)\s*([^-\n]+)/g;
+    let sectionMatch: RegExpExecArray | null;
+    while ((sectionMatch = resolvedSectionPattern.exec(masterReportContent)) !== null) {
+      const sectionText = sectionMatch[0];
+      let lineMatch: RegExpExecArray | null;
+      const localPattern = new RegExp(phaseLinePattern.source, "g");
+      while ((lineMatch = localPattern.exec(sectionText)) !== null) {
+        const phaseNumber = parseInt(lineMatch[2], 10);
+        const statusEmoji = lineMatch[3];
+        const title = lineMatch[4].trim();
+        const status: PhaseStatus = statusEmoji === "✅" ? "completed" : "in-progress";
+        phaseEntries.set(phaseNumber, {
+          date: phaseEntries.get(phaseNumber)?.date,
+          title,
+          description: `Phase ${phaseNumber}: ${title}`,
+          status,
+        });
+      }
+    }
+  }
+
+  const foundPhases = Array.from(phaseEntries.keys());
+  const minPhase = foundPhases.length > 0 ? Math.min(...foundPhases, 66) : 66;
+  const maxPhase = foundPhases.length > 0 ? Math.max(...foundPhases, 110) : 110;
+
+  for (let phaseNumber = minPhase; phaseNumber <= maxPhase; phaseNumber++) {
     const isCompleted = completedRanges.some(
       (range) => phaseNumber >= range.start && phaseNumber <= range.end,
     );
     const entry = phaseEntries.get(phaseNumber);
 
-    let status: PhaseStatus = "not-started";
+    let status: PhaseStatus = entry?.status ?? "not-started";
     if (isCompleted) {
       status = "completed";
-    } else if (phaseNumber === 107) {
-      status = "in-progress";
     }
 
     phases.push({
       id: `P${phaseNumber}`,
       title: entry?.title || `Phase ${phaseNumber}`,
       status,
-      date: isCompleted && entry?.date ? entry.date : undefined,
+      date: status === "completed" ? entry?.date : undefined,
       description: entry?.description || "",
     });
   }
@@ -121,17 +162,43 @@ export async function loadSuperadminPhaseData(): Promise<PhaseData> {
     }))
     .slice(-10);
 
-  // Extract pending items from MASTER_PENDING_REPORT.md
+  // Extract pending items (SSOT preferred)
   const pendingItems: string[] = [];
+  const pendingSource = masterReportContent ?? pendingMasterContent ?? "";
   const pendingPattern = /\[ \]\s+\*\*\[([^\]]+)\]\*\*/g;
   let pendingMatch: RegExpExecArray | null;
-  while ((pendingMatch = pendingPattern.exec(content)) !== null) {
-    pendingItems.push(pendingMatch[1]);
+  while ((pendingMatch = pendingPattern.exec(pendingSource)) !== null) {
+    pendingItems.push(pendingMatch[1].trim());
   }
 
-  // Extract last updated timestamp
-  const lastUpdatedMatch = /\*\*Last Updated:\*\*\s*([^\n]+)/i.exec(content);
-  const lastUpdatedAt = lastUpdatedMatch ? lastUpdatedMatch[1].trim() : null;
+  if (masterReportContent) {
+    const pendingSectionMatch =
+      /###\s*⏳\s*Pending[\s\S]*?(?=\n###|\n## |\n---|$)/i.exec(masterReportContent);
+    const pendingSection = pendingSectionMatch ? pendingSectionMatch[0] : "";
+    const pendingLinePattern = /^\s*\d+\.\s+\*\*\[([^\]]+)\]\*\*\s+([^\n]+)/gm;
+    let pendingLineMatch: RegExpExecArray | null;
+    while ((pendingLineMatch = pendingLinePattern.exec(pendingSection)) !== null) {
+      const id = pendingLineMatch[1].trim();
+      const title = pendingLineMatch[2].trim().replace(/^⏳\s*/, "");
+      pendingItems.push(`${id}: ${title}`);
+    }
+  }
+
+  // Extract last updated timestamp (SSOT -> PENDING_MASTER fallback)
+  const lastUpdatedMatch = masterReportContent
+    ? /\*\*Last Updated:\*\*\s*([^\n]+)/i.exec(masterReportContent)
+    : null;
+  const pendingMasterUpdatedMatch = pendingMasterContent
+    ? /\*\*Last Updated:\*\*\s*([^\n]+)/i.exec(pendingMasterContent)
+    : null;
+  const lastUpdatedRaw = lastUpdatedMatch
+    ? lastUpdatedMatch[1].trim()
+    : pendingMasterUpdatedMatch
+      ? pendingMasterUpdatedMatch[1].trim()
+      : null;
+  const lastUpdatedAt = lastUpdatedRaw ? lastUpdatedRaw.split(" (")[0].trim() : null;
+
+  const uniquePendingItems = Array.from(new Set(pendingItems));
 
   return {
     phases,
@@ -143,7 +210,7 @@ export async function loadSuperadminPhaseData(): Promise<PhaseData> {
       completionPercentage,
     },
     timeline,
-    pendingItems,
+    pendingItems: uniquePendingItems,
     lastUpdatedAt,
   };
 }

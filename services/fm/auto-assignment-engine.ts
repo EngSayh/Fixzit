@@ -47,6 +47,27 @@ export interface AutoAssignConfig {
   businessHoursEnd: number;   // 0-23
 }
 
+interface ScheduledTimeSlot {
+  start?: string;
+  end?: string;
+}
+
+interface WorkOrderSchedule {
+  scheduledDate: Date;
+  scheduledTimeSlot: ScheduledTimeSlot;
+}
+
+interface WorkOrderCandidateInput {
+  category?: string;
+  type?: string;
+  scheduledDate?: Date;
+  scheduledTimeSlot?: ScheduledTimeSlot;
+  assignment?: {
+    scheduledDate?: Date;
+    scheduledTimeSlot?: ScheduledTimeSlot;
+  };
+}
+
 const DEFAULT_CONFIG: AutoAssignConfig = {
   enabled: true,
   preferVendors: false,
@@ -99,9 +120,14 @@ export class AutoAssignmentEngine {
       }
 
       // Get candidates
-      const candidates = await this.getCandidates(workOrder);
+      const candidates = await this.getCandidates(workOrder as WorkOrderCandidateInput);
 
-      if (candidates.length === 0) {
+      const schedule = this.resolveSchedule(workOrder as WorkOrderCandidateInput);
+      const availableCandidates = schedule
+        ? await this.filterByScheduleAvailability(candidates, schedule)
+        : candidates;
+
+      if (availableCandidates.length === 0) {
         logger.info("[AutoAssign] No candidates available", {
           workOrderId,
           category: workOrder.category,
@@ -110,7 +136,7 @@ export class AutoAssignmentEngine {
       }
 
       // Score and rank candidates
-      const scoredCandidates = this.scoreCandidates(candidates, workOrder);
+      const scoredCandidates = this.scoreCandidates(availableCandidates, workOrder);
       const sortedCandidates = scoredCandidates.sort((a, b) => b.score - a.score);
 
       // Return top candidate
@@ -201,7 +227,7 @@ export class AutoAssignmentEngine {
   /**
    * Get all potential candidates for assignment
    */
-  private async getCandidates(workOrder: { category?: string; type?: string }): Promise<AssignmentCandidate[]> {
+  private async getCandidates(workOrder: WorkOrderCandidateInput): Promise<AssignmentCandidate[]> {
     const candidates: AssignmentCandidate[] = [];
 
     // Get internal technicians
@@ -287,6 +313,82 @@ export class AutoAssignmentEngine {
 
     // Filter by availability
     return candidates.filter((c) => c.availability === "available");
+  }
+
+  private resolveSchedule(workOrder: WorkOrderCandidateInput): WorkOrderSchedule | null {
+    const scheduledDate = workOrder.scheduledDate ?? workOrder.assignment?.scheduledDate;
+    const scheduledTimeSlot =
+      workOrder.scheduledTimeSlot ?? workOrder.assignment?.scheduledTimeSlot;
+
+    if (!scheduledDate || !scheduledTimeSlot?.start || !scheduledTimeSlot?.end) {
+      return null;
+    }
+
+    return { scheduledDate: new Date(scheduledDate), scheduledTimeSlot };
+  }
+
+  private parseTimeToMinutes(value: string): number | null {
+    const [hoursRaw, minutesRaw] = value.split(":");
+    const hours = Number(hoursRaw);
+    const minutes = Number(minutesRaw);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+    return hours * 60 + minutes;
+  }
+
+  private slotsOverlap(a: ScheduledTimeSlot, b: ScheduledTimeSlot): boolean {
+    if (!a.start || !a.end || !b.start || !b.end) return false;
+    const aStart = this.parseTimeToMinutes(a.start);
+    const aEnd = this.parseTimeToMinutes(a.end);
+    const bStart = this.parseTimeToMinutes(b.start);
+    const bEnd = this.parseTimeToMinutes(b.end);
+    if (aStart === null || aEnd === null || bStart === null || bEnd === null) return false;
+    return aStart < bEnd && bStart < aEnd;
+  }
+
+  private async filterByScheduleAvailability(
+    candidates: AssignmentCandidate[],
+    schedule: WorkOrderSchedule
+  ): Promise<AssignmentCandidate[]> {
+    const dayStart = new Date(schedule.scheduledDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(schedule.scheduledDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const checks = await Promise.all(
+      candidates.map(async (candidate) => {
+        const field =
+          candidate.type === "user"
+            ? "assignment.assignedTo.userId"
+            : "assignment.assignedTo.vendorId";
+
+        const dateRangeClause = {
+          $gte: dayStart,
+          $lte: dayEnd,
+        };
+
+        const conflicts = await WorkOrder.find({
+          orgId: this.orgId,
+          [field]: new Types.ObjectId(candidate.id),
+          $or: [
+            { "assignment.scheduledDate": dateRangeClause },
+            { scheduledDate: dateRangeClause },
+          ],
+          status: { $in: ["ASSIGNED", "IN_PROGRESS", "ON_HOLD"] },
+          isDeleted: { $ne: true },
+        }).lean();
+
+        const hasOverlap = conflicts.some((existing) => {
+          const existingSlot =
+            (existing as { assignment?: { scheduledTimeSlot?: ScheduledTimeSlot } })
+              .assignment?.scheduledTimeSlot ?? (existing as { scheduledTimeSlot?: ScheduledTimeSlot }).scheduledTimeSlot;
+          return this.slotsOverlap(existingSlot || {}, schedule.scheduledTimeSlot);
+        });
+
+        return { candidate, hasOverlap };
+      })
+    );
+
+    return checks.filter((result) => !result.hasOverlap).map((result) => result.candidate);
   }
 
   /**

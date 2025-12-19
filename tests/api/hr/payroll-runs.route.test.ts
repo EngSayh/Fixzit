@@ -94,8 +94,7 @@ describe("API /api/hr/payroll/runs", () => {
       sessionUser = null;
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/payroll/runs");
@@ -108,8 +107,7 @@ describe("API /api/hr/payroll/runs", () => {
       vi.mocked(hasAllowedRole).mockReturnValue(false);
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/payroll/runs");
@@ -129,8 +127,7 @@ describe("API /api/hr/payroll/runs", () => {
       ]);
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/payroll/runs");
@@ -143,8 +140,7 @@ describe("API /api/hr/payroll/runs", () => {
     it("should filter by status when provided", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest(
@@ -163,8 +159,7 @@ describe("API /api/hr/payroll/runs", () => {
       sessionUser = { ...mockUser, role: "SUPER_ADMIN" };
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/payroll/runs");
@@ -178,8 +173,7 @@ describe("API /api/hr/payroll/runs", () => {
       sessionUser = null;
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/payroll/runs", {
@@ -193,8 +187,7 @@ describe("API /api/hr/payroll/runs", () => {
     it("should return 400 for missing required fields", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/payroll/runs", {
@@ -209,8 +202,7 @@ describe("API /api/hr/payroll/runs", () => {
     it("should create payroll run with valid data", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const validData = {
@@ -236,8 +228,7 @@ describe("API /api/hr/payroll/runs", () => {
       );
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/hr/payroll/runs", {

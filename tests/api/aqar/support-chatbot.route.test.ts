@@ -45,11 +45,27 @@ describe("POST /api/aqar/support/chatbot", () => {
     vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true, remaining: 10 });
   });
 
+  it("returns 429 when smartRateLimit denies the request", async () => {
+    const route = await importRoute();
+    if (!route?.POST) {
+      throw new Error("Route handler missing: POST");
+    }
+
+    vi.mocked(smartRateLimit).mockResolvedValueOnce({ allowed: false, remaining: 0 });
+
+    const req = new NextRequest("http://localhost:3000/api/aqar/support/chatbot", {
+      method: "POST",
+      body: JSON.stringify({ message: "rate limit test" }),
+    });
+    const response = await route.POST(req);
+
+    expect(response.status).toBe(429);
+  });
+
   it("returns 429 when rate limit exceeded", async () => {
     const route = await importRoute();
     if (!route?.POST) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: POST");
     }
 
     vi.mocked(smartRateLimit).mockReturnValue(
@@ -70,8 +86,7 @@ describe("POST /api/aqar/support/chatbot", () => {
   it("handles chatbot message", async () => {
     const route = await importRoute();
     if (!route?.POST) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: POST");
     }
 
     const req = new NextRequest("http://localhost:3000/api/aqar/support/chatbot", {

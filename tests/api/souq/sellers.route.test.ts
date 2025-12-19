@@ -68,8 +68,7 @@ describe("API /api/souq/sellers", () => {
     it("returns 429 when rate limit exceeded on POST", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true); // Skip if route doesn't exist
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -91,8 +90,7 @@ describe("API /api/souq/sellers", () => {
     it("returns 401 when user is not authenticated", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       // sessionUser is null by default (no need to set)
@@ -106,8 +104,7 @@ describe("API /api/souq/sellers", () => {
     it("allows authenticated users to access seller list", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = { id: "user-123", orgId: "org-123", role: "ADMIN" };
@@ -115,7 +112,7 @@ describe("API /api/souq/sellers", () => {
       const req = new NextRequest("http://localhost:3000/api/souq/sellers");
       const response = await route.GET(req);
 
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
   });
 
@@ -123,8 +120,7 @@ describe("API /api/souq/sellers", () => {
     it("supports pagination", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = { id: "user-123", orgId: "org-123", role: "ADMIN" };
@@ -134,14 +130,13 @@ describe("API /api/souq/sellers", () => {
       );
       const response = await route.GET(req);
 
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
 
     it("supports status filter", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = { id: "user-123", orgId: "org-123", role: "ADMIN" };
@@ -151,7 +146,7 @@ describe("API /api/souq/sellers", () => {
       );
       const response = await route.GET(req);
 
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
   });
 });

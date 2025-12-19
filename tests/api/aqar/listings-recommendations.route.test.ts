@@ -48,8 +48,7 @@ describe("GET /api/aqar/listings/recommendations", () => {
   it("returns 429 when rate limit exceeded", async () => {
     const route = await importRoute();
     if (!route?.GET) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: GET");
     }
 
     vi.mocked(enforceRateLimit).mockReturnValue(
@@ -67,8 +66,7 @@ describe("GET /api/aqar/listings/recommendations", () => {
   it("handles recommendations request", async () => {
     const route = await importRoute();
     if (!route?.GET) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: GET");
     }
 
     const req = new NextRequest("http://localhost:3000/api/aqar/listings/recommendations");

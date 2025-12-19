@@ -116,7 +116,7 @@ describe("API /api/souq/inventory", () => {
       const req = new NextRequest("http://localhost:3000/api/souq/inventory");
       const response = await GET(req);
 
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
 
     it("supports pagination parameters", async () => {
@@ -127,7 +127,7 @@ describe("API /api/souq/inventory", () => {
       );
       const response = await GET(req);
 
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
 
     it("supports status filter", async () => {
@@ -138,7 +138,7 @@ describe("API /api/souq/inventory", () => {
       );
       const response = await GET(req);
 
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
 
     it("supports lowStockOnly filter", async () => {
@@ -149,7 +149,7 @@ describe("API /api/souq/inventory", () => {
       );
       const response = await GET(req);
 
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
   });
 });

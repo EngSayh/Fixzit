@@ -63,8 +63,7 @@ describe("API /api/fm/marketplace/orders", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 }) as never);
@@ -78,8 +77,7 @@ describe("API /api/fm/marketplace/orders", () => {
     it("returns orders for authenticated user", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       const req = new NextRequest("http://localhost:3000/api/fm/marketplace/orders");
@@ -93,8 +91,7 @@ describe("API /api/fm/marketplace/orders", () => {
     it("creates order for authenticated user", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       const req = new NextRequest("http://localhost:3000/api/fm/marketplace/orders", {

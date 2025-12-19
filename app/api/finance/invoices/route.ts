@@ -22,6 +22,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import {
   zodValidationError,
   rateLimitError,
@@ -252,7 +253,13 @@ export async function POST(req: NextRequest) {
     if (!rl.allowed)
       return createSecureResponse({ error: "Rate limit exceeded" }, 429, req);
 
-    const body = invoiceCreateSchema.parse(await req.json());
+    const { data: rawBody, error: parseError } = await parseBodySafe(req, {
+      logPrefix: "[POST /api/finance/invoices]",
+    });
+    if (parseError) {
+      return createSecureResponse({ error: parseError }, 400, req);
+    }
+    const body = invoiceCreateSchema.parse(rawBody);
 
     const data = await svc.create(
       { ...body, orgId: user.orgId },

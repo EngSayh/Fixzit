@@ -84,7 +84,7 @@ describe("API /api/marketplace/categories", () => {
       const res = await GET(req);
 
       // Should return 200 or 500 (if DB not connected)
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("returns list of categories successfully", async () => {
@@ -95,7 +95,7 @@ describe("API /api/marketplace/categories", () => {
       const res = await GET(req);
 
       // Should return 200 or 500 (if DB not connected), not rate limited
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("uses rate limiting middleware", async () => {

@@ -70,8 +70,7 @@ describe("API /api/souq/brands", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       rateLimitResponse = new Response(
@@ -88,8 +87,7 @@ describe("API /api/souq/brands", () => {
     it("returns brands list for authenticated users", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = { id: "user-123", orgId: "org-123" };
@@ -103,8 +101,7 @@ describe("API /api/souq/brands", () => {
     it("supports search query", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = { id: "user-123", orgId: "org-123" };
@@ -122,8 +119,7 @@ describe("API /api/souq/brands", () => {
     it("returns 401 for unauthenticated requests", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       // sessionUser is null by default
@@ -140,8 +136,7 @@ describe("API /api/souq/brands", () => {
     it("validates required fields", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       sessionUser = { id: "user-123", orgId: "org-123", role: "ADMIN" };
@@ -160,8 +155,7 @@ describe("API /api/souq/brands", () => {
     it("sets Cache-Control header on GET requests", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       // Mock Brand to ensure it returns data

@@ -70,8 +70,7 @@ describe("API /api/aqar/insights/pricing", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -89,8 +88,7 @@ describe("API /api/aqar/insights/pricing", () => {
     it("returns 401 when unauthenticated", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(getSessionUser).mockRejectedValue(new UnauthorizedError("unauthorized"));
@@ -102,8 +100,7 @@ describe("API /api/aqar/insights/pricing", () => {
     it("returns 403 when orgId is missing", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue({ id: "u1", orgId: undefined });
@@ -115,8 +112,7 @@ describe("API /api/aqar/insights/pricing", () => {
     it("returns pricing insights successfully", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue({ id: "u1", orgId: "507f1f77bcf86cd799439011" });

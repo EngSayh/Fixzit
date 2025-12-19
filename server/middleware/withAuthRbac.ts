@@ -7,6 +7,10 @@ import { verifyToken } from "@/lib/auth";
 import { isTruthy } from "@/lib/utils/env";
 import { ALL_ROLES_WITH_LEGACY, type UserRoleType } from "@/types/user";
 import {
+  setSuperAdminTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import {
   Role as CanonicalRole,
   SubRole,
   normalizeRole as normalizeFmRole,
@@ -481,6 +485,14 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
   const roles = isSuperAdmin
     ? Array.from(new Set([...(rbacData.roles || []), "super_admin"]))
     : rbacData.roles;
+
+  if (orgId) {
+    if (isSuperAdmin) {
+      setSuperAdminTenantContext(orgId, userId);
+    } else {
+      setTenantContext({ orgId, userId });
+    }
+  }
 
   return {
     id: userId,

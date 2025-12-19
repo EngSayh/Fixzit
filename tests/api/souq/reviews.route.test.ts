@@ -109,55 +109,51 @@ describe("API /api/souq/reviews", () => {
       });
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/souq/reviews");
       const response = await routeModule.GET(request);
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
 
     it("should support rating filter", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest(
         "http://localhost/api/souq/reviews?rating=5"
       );
       const response = await routeModule.GET(request);
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
 
     it("should support status filter", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest(
         "http://localhost/api/souq/reviews?status=published"
       );
       const response = await routeModule.GET(request);
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
 
     it("should support verifiedOnly filter", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest(
         "http://localhost/api/souq/reviews?verifiedOnly=true"
       );
       const response = await routeModule.GET(request);
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
   });
 
@@ -166,8 +162,7 @@ describe("API /api/souq/reviews", () => {
       sessionUser = null;
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/souq/reviews", {
@@ -182,8 +177,7 @@ describe("API /api/souq/reviews", () => {
       sessionUser = { ...mockUser, orgId: undefined };
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/souq/reviews", {
@@ -203,8 +197,7 @@ describe("API /api/souq/reviews", () => {
     it("should return 400 for invalid request body", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/souq/reviews", {
@@ -219,8 +212,7 @@ describe("API /api/souq/reviews", () => {
     it("should create review with valid data", async () => {
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const validReviewData = {
@@ -236,7 +228,7 @@ describe("API /api/souq/reviews", () => {
         headers: { "Content-Type": "application/json" },
       });
       const response = await routeModule.POST(request);
-      expect([201, 500]).toContain(response.status);
+      expect(response.status).toBe(201);
     });
 
     it("should enforce rate limiting on POST", async () => {
@@ -247,8 +239,7 @@ describe("API /api/souq/reviews", () => {
       );
       const routeModule = await importRoute();
       if (!routeModule) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route module missing");
       }
 
       const request = new NextRequest("http://localhost/api/souq/reviews", {

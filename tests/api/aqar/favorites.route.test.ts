@@ -80,8 +80,7 @@ describe("API /api/aqar/favorites", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -99,8 +98,7 @@ describe("API /api/aqar/favorites", () => {
     it("returns 401 when user is not authenticated", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(getSessionUser).mockRejectedValue(new Error("Unauthorized"));
@@ -114,8 +112,7 @@ describe("API /api/aqar/favorites", () => {
     it("returns empty array for user with no favorites", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue({
@@ -134,8 +131,7 @@ describe("API /api/aqar/favorites", () => {
     it("returns 429 when rate limit exceeded on POST", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(

@@ -83,8 +83,7 @@ describe("API /api/crm/overview", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -102,8 +101,7 @@ describe("API /api/crm/overview", () => {
     it("returns 401 when user is not authenticated", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue(null as never);
@@ -117,8 +115,7 @@ describe("API /api/crm/overview", () => {
     it("returns 401 when user has no orgId (tenant scope missing)", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue({
@@ -136,8 +133,7 @@ describe("API /api/crm/overview", () => {
     it("returns 401 when user lacks CRM role", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue({
@@ -155,8 +151,7 @@ describe("API /api/crm/overview", () => {
     it("successfully retrieves overview with tenant scoping", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       // Mock lead counts and won deals
@@ -216,8 +211,7 @@ describe("API /api/crm/overview", () => {
     it("includes pipeline metrics in response", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(CrmLead.countDocuments)
@@ -265,8 +259,7 @@ describe("API /api/crm/overview", () => {
     it("aggregates data only for user's organization", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(CrmLead.countDocuments)

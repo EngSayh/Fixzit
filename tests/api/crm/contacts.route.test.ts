@@ -86,8 +86,7 @@ describe("API /api/crm/contacts", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -105,8 +104,7 @@ describe("API /api/crm/contacts", () => {
     it("returns 401 when user is not authenticated", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue(null as never);
@@ -120,8 +118,7 @@ describe("API /api/crm/contacts", () => {
     it("returns 401 when user has no orgId (tenant scope missing)", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue({
@@ -139,8 +136,7 @@ describe("API /api/crm/contacts", () => {
     it("returns 401 when user lacks CRM role", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue({
@@ -158,8 +154,7 @@ describe("API /api/crm/contacts", () => {
     it("successfully lists contacts with tenant scoping", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       const mockContacts = [
@@ -222,8 +217,7 @@ describe("API /api/crm/contacts", () => {
     it("supports type filtering (LEAD vs ACCOUNT)", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(CrmLead.find).mockReturnValue({
@@ -249,8 +243,7 @@ describe("API /api/crm/contacts", () => {
     it("supports pagination parameters", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       const mockChain = {
@@ -277,8 +270,7 @@ describe("API /api/crm/contacts", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -299,8 +291,7 @@ describe("API /api/crm/contacts", () => {
     it("returns 401 when user is not authenticated", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue(null as never);
@@ -317,8 +308,7 @@ describe("API /api/crm/contacts", () => {
     it("returns 401 when user lacks CRM role", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue({
@@ -339,8 +329,7 @@ describe("API /api/crm/contacts", () => {
     it("successfully creates lead with tenant scoping", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       const mockLead = {
@@ -385,8 +374,7 @@ describe("API /api/crm/contacts", () => {
     it("returns 400 when request body is invalid", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       const req = new NextRequest("http://localhost:3000/api/crm/contacts", {
@@ -401,8 +389,7 @@ describe("API /api/crm/contacts", () => {
     it("creates ACCOUNT type when specified", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       const mockAccount = {

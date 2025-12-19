@@ -68,8 +68,7 @@ describe("GET /api/aqar/listings/[id]", () => {
   it("returns 429 when rate limit exceeded", async () => {
     const route = await importRoute();
     if (!route?.GET) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: GET");
     }
 
     const retryAfter = "60";
@@ -93,8 +92,7 @@ describe("GET /api/aqar/listings/[id]", () => {
   it("returns 400 for invalid ObjectId", async () => {
     const route = await importRoute();
     if (!route?.GET) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: GET");
     }
 
     const req = new NextRequest("http://localhost:3000/api/aqar/listings/invalid-id");
@@ -115,8 +113,7 @@ describe("PATCH /api/aqar/listings/[id]", () => {
   it("returns 401 when not authenticated", async () => {
     const route = await importRoute();
     if (!route?.PATCH) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: PATCH");
     }
 
     vi.mocked(getSessionUser).mockRejectedValue(new Error("Not authenticated"));
@@ -136,8 +133,7 @@ describe("PATCH /api/aqar/listings/[id]", () => {
   it("returns 400 for invalid ObjectId", async () => {
     const route = await importRoute();
     if (!route?.PATCH) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: PATCH");
     }
 
     vi.mocked(getSessionUser).mockResolvedValue({
@@ -167,8 +163,7 @@ describe("DELETE /api/aqar/listings/[id]", () => {
   it("returns 401 when not authenticated", async () => {
     const route = await importRoute();
     if (!route?.DELETE) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: DELETE");
     }
 
     vi.mocked(getSessionUser).mockRejectedValue(new Error("Not authenticated"));
@@ -185,8 +180,7 @@ describe("DELETE /api/aqar/listings/[id]", () => {
   it("returns 400 for invalid ObjectId", async () => {
     const route = await importRoute();
     if (!route?.DELETE) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: DELETE");
     }
 
     vi.mocked(getSessionUser).mockResolvedValue({

@@ -108,7 +108,7 @@ const findMock = vi.fn().mockReturnValue({
 });
 
 const countDocumentsMock = vi.fn().mockResolvedValue(1);
-const createMock = vi.fn().mockResolvedValue({
+const saveMock = vi.fn().mockResolvedValue({
   _id: "new-issue-1",
   title: "Test Issue",
   status: "OPEN",
@@ -121,15 +121,23 @@ const getStatsMock = vi.fn().mockResolvedValue({
   completed: 2,
 });
 const findDuplicatesMock = vi.fn().mockResolvedValue([]);
+const findByIdAndUpdateMock = vi.fn().mockResolvedValue(null);
+const generateIssueIdMock = vi.fn().mockResolvedValue("ISSUE-123");
+
+const IssueMock = vi.fn().mockImplementation((data) => ({
+  ...data,
+  save: saveMock,
+}));
 
 vi.mock("@/server/models/Issue", () => ({
-  Issue: {
+  Issue: Object.assign(IssueMock, {
     find: findMock,
     countDocuments: countDocumentsMock,
-    create: createMock,
     getStats: getStatsMock,
     findDuplicates: findDuplicatesMock,
-  },
+    findByIdAndUpdate: findByIdAndUpdateMock,
+    generateIssueId: generateIssueIdMock,
+  }),
   IssueCategory: {
     BUG: "bug",
     LOGIC_ERROR: "logic_error",
@@ -299,9 +307,9 @@ describe("Issues API Route", () => {
 
       const req = {} as any;
       const res = await POST(req);
-      // The route may return 201 or 500 depending on mongoose setup
-      // Core auth/RBAC tests pass - creation depends on full mongoose mock
-      expect([201, 500]).toContain(res.status);
+      expect(res.status).toBe(201);
+      expect(IssueMock).toHaveBeenCalled();
+      expect(saveMock).toHaveBeenCalled();
     });
 
     it("returns 400 when body parsing fails", async () => {

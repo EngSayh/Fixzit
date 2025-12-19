@@ -147,7 +147,7 @@ describe("API /api/souq/orders", () => {
       const res = await GET(req);
 
       // Should return 200 or handle gracefully
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("supports status filter", async () => {
@@ -162,7 +162,7 @@ describe("API /api/souq/orders", () => {
       );
       const res = await GET(req);
 
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("supports customerId filter", async () => {
@@ -177,7 +177,7 @@ describe("API /api/souq/orders", () => {
       );
       const res = await GET(req);
 
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("supports pagination parameters", async () => {
@@ -192,7 +192,7 @@ describe("API /api/souq/orders", () => {
       );
       const res = await GET(req);
 
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
   });
 
