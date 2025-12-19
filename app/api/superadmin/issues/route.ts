@@ -164,29 +164,29 @@ export async function POST(req: NextRequest) {
 
   if (!key) return NextResponse.json({ error: 'Missing key' }, { status: 400 });
 
-  const issue = await BacklogIssue.findOne({ key });
+  const issue = await (/* SUPER_ADMIN */ BacklogIssue.findOne({ key }));
   if (!issue) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const actor = (session as {username?: string; email?: string}).username || (session as {username?: string; email?: string}).email || 'superadmin';
 
   if (status) {
     issue.status = status;
-    await BacklogEvent.create({
+    await (/* SUPER_ADMIN */ BacklogEvent.create({
       issueKey: key,
       type: 'status_change',
       message: `Status changed to ${status}`,
       actor,
       meta: { newStatus: status },
-    });
+    }));
   }
 
   if (comment) {
-    await BacklogEvent.create({
+    await (/* SUPER_ADMIN */ BacklogEvent.create({
       issueKey: key,
       type: 'comment',
       message: comment,
       actor,
-    });
+    }));
   }
 
   await issue.save();

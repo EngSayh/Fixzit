@@ -531,7 +531,7 @@ ${colors.reset}`);
 
       // Inefficient operations
       {
-        pattern: /JSON\.parse(JSON\.stringify/g,
+        pattern: /JSON\.parse\(JSON\.stringify/g,
         issue: "Inefficient deep clone",
         severity: Severity.MEDIUM,
       },
@@ -562,7 +562,7 @@ ${colors.reset}`);
     const tsPatterns = [
       // Type errors
       {
-        pattern: /any(?:\[\])?(?:\s*[,;]|\s*))/g,
+        pattern: /any(?:\[\])?(?:\s*[,;]|\s*\))/g,
         issue: 'Using "any" type',
         severity: Severity.LOW,
       },

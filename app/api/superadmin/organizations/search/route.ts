@@ -52,13 +52,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Search organizations by name (case-insensitive)
-    const organizations = await Organization.find(
+    const organizations = await (/* SUPER_ADMIN */ Organization.find(
       {
         name: { $regex: query, $options: "i" },
         status: { $ne: "deleted" }, // Exclude deleted orgs
       },
       { _id: 1, name: 1, slug: 1 }
-    )
+    ))
       .limit(20)
       .lean();
 
