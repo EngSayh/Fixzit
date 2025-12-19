@@ -3,7 +3,7 @@
  * Verifies that CORS allowlist works correctly
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { isOriginAllowed, parseOrigins } from "@/lib/security/cors-allowlist";
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
@@ -30,6 +30,8 @@ describe("CORS Security Tests", () => {
   describe("Production CORS", () => {
     beforeAll(() => {
       vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("PLAYWRIGHT", "false");
+      vi.stubEnv("NEXT_PUBLIC_E2E", "false");
     });
 
     afterAll(() => {

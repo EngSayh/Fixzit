@@ -6,7 +6,7 @@
  * sensitive finance data.
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { startMongoMemoryServer } from "../../helpers/mongoMemory";
@@ -127,6 +127,10 @@ describe("Finance Model PII Encryption", () => {
     const uri = mongoServer.getUri();
     await mongoose.connect(uri);
     setAuditContext({ userId: new mongoose.Types.ObjectId() });
+  });
+
+  beforeEach(() => {
+    process.env.ENCRYPTION_KEY = testKey;
   });
 
   afterAll(async () => {

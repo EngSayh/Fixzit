@@ -4,7 +4,7 @@
  * Tests AES-256-GCM encryption/decryption functions with comprehensive coverage.
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import crypto from 'crypto';
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
@@ -29,6 +29,12 @@ describe('PII Encryption Utility', () => {
 
   beforeAll(() => {
     process.env.ENCRYPTION_KEY = testKey;
+  });
+
+  beforeEach(() => {
+    if (process.env.NODE_ENV !== 'development') {
+      process.env.ENCRYPTION_KEY = testKey;
+    }
   });
 
   afterAll(() => {

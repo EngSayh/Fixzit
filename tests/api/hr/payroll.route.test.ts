@@ -66,6 +66,7 @@ import { hasAllowedRole } from "@/lib/auth/role-guards";
 
 const importRoute = async () => {
   try {
+    vi.resetModules();
     return await import("@/app/api/hr/payroll/runs/route");
   } catch {
     return null;

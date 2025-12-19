@@ -1,6 +1,3 @@
-import { resetAuthMock } from "@/tests/helpers/mockAuth";
-import { resetRateLimitMock } from "@/tests/helpers/mockRateLimit";
-
 const BASE_ENV = { ...process.env };
 
 const resetTestEnv = () => {
@@ -17,6 +14,4 @@ const resetTestEnv = () => {
 
 export const resetTestMocks = () => {
   resetTestEnv();
-  resetRateLimitMock();
-  resetAuthMock();
 };

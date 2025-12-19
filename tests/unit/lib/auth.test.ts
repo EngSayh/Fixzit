@@ -96,6 +96,7 @@ vi.mock("@/server/models/User", () => ({
   UserRole: {},
 }));
 
+
 // Capture console.warn for JWT_SECRET fallback tests
 const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -351,7 +352,10 @@ describe("auth lib - authenticateUser", () => {
       "ACME-001", // companyCode required for corporate login
     );
 
-    expect(mockFindOne).toHaveBeenCalledWith({ username: "superadmin", code: "ACME-001" });
+    expect(mockFindOne).toHaveBeenCalledWith({
+      username: "superadmin",
+      code: "ACME-001",
+    });
     expect(res.user.email).toBe(`superadmin@${EMAIL_DOMAIN}`);
   });
 

@@ -14,6 +14,12 @@ beforeEach(() => {
   NotificationPayload,
   NotificationRecipient,
 } from "@/lib/fm-notifications";
+import { resetTestMocks } from "../../helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 function buildNotification(): NotificationPayload {
   return {
