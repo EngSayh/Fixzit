@@ -4,9 +4,9 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 # Fixzit Phase Completion Status (P0-P222)
 
-**Last Updated:** 2025-12-19 19:20  
+**Last Updated:** 2025-12-19 19:44  
 **Branch:** phase-1-onboarding-kpi-scope  
-**Latest Commit:** 198f3ad88
+**Latest Commit:** d4fa367d1
 
 | Range | Focus | Status |
 |-------|-------|--------|
@@ -34,9 +34,32 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | P216-P221 | ESLint Optimization + Tenant/Lean Annotations | ✅ Complete |
 | P222 | Aggregate maxTimeMS + Performance Hardening | ✅ Complete |
 
-**Status:** MVP feature-complete — TypeScript 0 errors, ESLint 0 warnings, 4099/4099 tests passing.
+**Status:** MVP feature-complete — Validation pending for this session (Phase 5).
 
 ---
+
+### 2025-12-19 19:44 (Asia/Riyadh) — Phase 2-3: Aggregate Guardrails + Aqar Filters
+**Context:** phase-1-onboarding-kpi-scope | b313a220e + d4fa367d1 | Agent: Codex (CLI)  
+**Duration:** 20 minutes | **Status:** ✅ COMPLETE
+
+**Phase 2 Changes (Aggregate Guardrails):**
+- Added maxTimeMS to aggregate calls in:
+  - app/api/fm/work-orders/stats (3 aggregates)
+  - app/api/hr/payroll/runs/[id]/calculate (overtime aggregate)
+  - lib/fm-notifications (DLQ backlog aggregate)
+  - lib/marketplace/search (category facets)
+  - server/models: Issue, SMSMessage, finance/LedgerEntry
+  - server/finance/reporting.service (trialBalance, ownerStatement)
+  - services/souq/reviews/review-service (3 aggregates)
+- Aggregate scan now flags only ATS analytics (runAggregate enforces maxTimeMS)
+
+**Phase 3 Changes (Aqar Filters):**
+- SearchFilters refactored to shared FacetMultiSelect/NumericRangeFilter
+- Component currently unused (no runtime UI regression)
+
+**Evidence:**
+- Commits: b313a220e, d4fa367d1
+- Aggregate scan: python3 aggregate maxTimeMS audit (local)
 
 ### 2025-12-19 19:20 (Asia/Riyadh) — P222: Verification & Consolidation Session
 **Context:** phase-1-onboarding-kpi-scope | 198f3ad88 | Agent: GitHub Copilot (VS Code Agent)  
