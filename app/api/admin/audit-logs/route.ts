@@ -171,7 +171,11 @@ export async function GET(request: NextRequest) {
     }
 
     const [logs, total] = await Promise.all([
-      AuditLogModel.find(query).sort({ timestamp: -1 }).limit(limit).skip(skip),
+      AuditLogModel.find(query)
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .skip(skip)
+        .lean(),
       AuditLogModel.countDocuments(query),
     ]);
 

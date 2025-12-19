@@ -141,7 +141,7 @@ export async function PUT(
 
     const data = parsed.data;
 
-    const user = await TestingUser.findById(id);
+    const user = await TestingUser.findById(id).lean();
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -224,7 +224,7 @@ export async function DELETE(
 
     await connectToDatabase();
 
-    const user = await TestingUser.findById(id);
+    const user = await TestingUser.findById(id).lean();
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -307,7 +307,7 @@ export async function PATCH(
 
     const { action, password } = parsed.data;
 
-    const user = await TestingUser.findById(id);
+    const user = await TestingUser.findById(id).lean();
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }

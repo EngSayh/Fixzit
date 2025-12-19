@@ -18,6 +18,7 @@ const sharedProjectConfig = {
   setupFiles: ["./vitest.setup.ts"], // MongoDB Memory Server for model tests (no mongoose mocks)
   reporters: ["default"],
   pool: "threads",
+  isolate: true,
   maxWorkers: 4,
   minWorkers: 1,
   testTimeout: 600000, // 10 minutes - MongoMemoryServer initialization takes time

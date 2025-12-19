@@ -7,6 +7,7 @@ import { renderMarkdownSanitized } from "@/lib/markdown";
 import { EMAIL_DOMAINS as EMAILS } from "@/lib/config/domains";
 import { SafeHtml } from "@/components/SafeHtml";
 import { Config } from "@/lib/config/constants";
+import { logger } from "@/lib/logger";
 // Use centralized client-safe config instead of direct env access
 
 /**
@@ -72,8 +73,10 @@ export default function PrivacyPage() {
         setContent(DEFAULT_PRIVACY_CONTENT);
       }
     } catch (err) {
-      // eslint-disable-next-line no-console -- client-side error logging
-      console.error("[Privacy] Error fetching privacy policy:", err);
+      logger.error("[Privacy] Error fetching privacy policy", err, {
+        component: "PrivacyPage",
+        action: "fetchPolicy",
+      });
       setTitle(t("privacy.title", "Privacy Policy"));
       setContent(DEFAULT_PRIVACY_CONTENT);
     } finally {
@@ -93,8 +96,10 @@ export default function PrivacyPage() {
           setRenderedContent(html);
         })
         .catch((err) => {
-          // eslint-disable-next-line no-console -- client-side error logging
-          console.error("[Privacy] Error rendering markdown:", err);
+          logger.error("[Privacy] Error rendering markdown", err, {
+            component: "PrivacyPage",
+            action: "renderMarkdown",
+          });
           // Fallback to plain text wrapped in paragraphs
           setRenderedContent(
             `<div class="prose max-w-none"><p>${content.replace(/\n/g, "</p><p>")}</p></div>`,

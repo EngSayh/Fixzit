@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
         { email: data.email.toLowerCase() },
         { username: data.username.toLowerCase() },
       ],
-    });
+    }).lean();
 
     if (existing) {
       return NextResponse.json(

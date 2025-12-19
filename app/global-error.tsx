@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { AlertOctagon, RefreshCw, Home } from "lucide-react";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import { Config } from "@/lib/config/constants";
+import { logger } from "@/lib/logger";
 
 /**
  * Global Error Boundary Component
@@ -26,12 +27,9 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log to console since our logger may have failed
-    // eslint-disable-next-line no-console
-    console.error("[GlobalError] Critical application error:", {
-      message: error.message,
+    logger.error("[GlobalError] Critical application error", error, {
+      component: "GlobalError",
       digest: error.digest,
-      stack: error.stack,
     });
   }, [error]);
 

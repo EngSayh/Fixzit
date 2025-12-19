@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T12:30:18+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T12:31:23+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** feat/mobile-cardlist-phase1  
-**Commit:** 6e02b0a96 | Origin: pending push  
-**Last Work:** P171 - CRM lean sweep + targeted CRM tests
+**Commit:** local (uncommitted) | Origin: pending push
+**Last Work:** P178 - Offline shell + cache + coverage baseline
 **MongoDB Status:** 34 issues (10 open, 0 in_progress, 24 resolved)  
 **Working Tree:** DIRTY (local changes in progress)  
-**Test Count:** ✅ Targeted CRM vitest 14/14 passing — 2025-12-19 12:30
+**Test Count:** ⚠️ Not re-run after P178 (last recorded: targeted CRM vitest 14/14 — 2025-12-19 12:30)
 
 ---
 
@@ -23,8 +23,8 @@
 | **Health Score** | 95/100 |
 | **Files Scanned** | 1,548 (app/ + lib/ + services/ + domain/ + tests/) |
 | **Total Issues** | 34 (10 open / 24 resolved) |
-| **Test Coverage** | Targeted CRM vitest (2 files) passing; full suite not re-run |
-| **Build Status** | ✅ Targeted tests green; TS build not re-run this session |
+| **Test Coverage** | ⚠️ Not re-run after P178 (last recorded: targeted CRM vitest 14/14 at 12:30) |
+| **Build Status** | ⚠️ Build not re-run in this session |
 
 ### 🎯 Top 5 Priority Actions
 1. [x] **[SEC-002]** ✅ VERIFIED - All 17 flagged routes are SAFE (intentionally public/admin/user-scoped)
@@ -33,7 +33,7 @@
 4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[PERF-002]** ✅ RESOLVED - Added .lean() to 8+ read-only Mongoose queries (P146)
 
-### ✅ Current Session (P153-P171)
+### ✅ Current Session (P153-P178)
 1. **[P153]** ✅ HR Leaves Hardening - Added rate limiting to PUT /api/hr/leaves, Zod validation for updateStatus payload, and tests covering auth/role/validation paths.
 2. **[P154]** ✅ Superadmin UI Polish - Added getRowId for correct bulk selection; command palette updated with RTL logical spacing; skeleton table widths made deterministic to avoid hydration mismatches.
 3. **[P155]** ✅ I18n Regen - Ran `pnpm i18n:build`; regenerated flat dictionaries and bundles (31,421 keys per locale).
@@ -45,23 +45,29 @@
 9. **[P161]** ✅ KYC HEIC/HEIF Alignment - Expanded KYC file type unions + upload allowlists/text to match existing HEIC/HEIF presign support.
 10. **[P162]** ✅ Aqar Lean Reads - Added .lean() to Aqar listing/project lookups in leads/favorites routes (verified 2025-12-19).
 11. **[P164]** ✅ Rate Limit Regression Tests - Added explicit 429 coverage for Tap webhook rate-limit denial and Aqar chatbot smartRateLimit denial.
-12. **[P165]** ✅ Memory Optimization Verified - VSCode/file watcher exclusions and JS heap flags already configured; no changes required.
-13. **[P167]** ✅ Button Type Pass - Added type="button" to all button tags missing explicit type.
-14. **[P168]** ✅ Finance Lean Sweep - Added .lean() to read-only finance validation/lookups (payments, expenses, accounts, ledger activity) and verified with targeted tests.
-15. **[P169]** ✅ FM Lean Sweep - Added .lean() to Organization lookup in FM permissions context.
-16. **[P170]** ✅ Support Lean Sweep - Added .lean() to support ticket list/detail/reply lookups.
-17. **[P171]** ✅ CRM Lean Sweep - Added .lean() to CRM account share lookup; updated tests for lean chain and verified.
+12. **[P165]** ✅ Memory Optimization - VSCode excludes tightened; TS server diagnostics disabled to avoid runaway memory.
+13. **[P166]** ✅ Tenant Context Auto-Set - Auth helpers now set tenant context on session load (getServerSession/getServerAuthSession/withAuthRbac).
+14. **[P167]** 🔄 Button Type Pass - In progress; remaining raw buttons still lack explicit type attributes.
+15. **[P168]** ✅ Finance Lean Sweep - Added .lean() to read-only finance validation/lookups (payments, expenses, accounts, ledger activity) and verified with targeted tests.
+16. **[P169]** ✅ FM Lean Sweep - Added .lean() to Organization lookup in FM permissions context.
+17. **[P170]** ✅ Support Lean Sweep - Added .lean() to support ticket list/detail/reply lookups.
+18. **[P171]** ✅ CRM Lean Sweep - Added .lean() to CRM account share lookup; updated tests for lean chain and verified.
+19. **[P172]** ✅ Superadmin Setup Logo Upload - Presigned S3 upload wired into SetupWizard branding step.
+20. **[P173]** ✅ Issues Dashboard Category Filter - Added category filter dropdown (bug/security/efficiency/missing_test).
+21. **[P174]** ✅ Invoice Bulk Reminder Dispatch - send_reminder now triggers invoice reminder service and surfaces send counts.
+22. **[P175]** ✅ Cron Maintenance Tasks - JobQueue retry/cleanup wired with structured logging.
+23. **[P176]** ✅ Marketplace/Souq Catalog Caching - Redis cache + invalidation with cache headers.
+24. **[P177]** ✅ Coverage Reporting Baseline - Istanbul coverage provider configured with 80% thresholds.
+25. **[P178]** ✅ FM Offline Shell + Console/TODO Cleanup - /fm/offline page + service worker fallback cache; removed production TODOs and console.log usage in cron/env guards.
 
 ### ⏳ Pending – New Session Items
 - Continue .lean() audit on remaining read-only queries to hit 100% coverage across services (Aqar + Finance + FM + Support + CRM complete).
-- Stand up coverage reporting (c8/istanbul) with 80% threshold in CI.
-- Add Redis-backed caching for marketplace/catalog data; follow with WebSocket live updates for dashboards.
-- Add offline/PWA shell for field technicians; ensure language/currency persistence.
-- Convert remaining console.log/TODO/FIXME to tracked issues and structured logging.
-- Validate and reclassify P166-P170 items with evidence before marking complete.
+- Add type="button" to remaining raw buttons (P167 in progress).
+- Implement WebSocket live updates for dashboards (after caching baseline).
 - P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components (post-MVP).
 - P3-SOUQ-PRODUCTS — Migrate Souq Products list to DataTableStandard with filters (post-MVP).
 - P3-LIST-INTEGRATION-TESTS — Add integration tests for 12 list components across roles (post-MVP).
+
 ### ✅ Recently Resolved (2025-12-19 Session P143-P152)
 1. **[P143]** ✅ Untracked Features - Bulk operations committed by other agent as 3c93f3b5b
 2. **[P144]** ✅ Rate Limiting Verification - VERIFIED: Routes use createCrudHandlers or are aliases (no gaps)
