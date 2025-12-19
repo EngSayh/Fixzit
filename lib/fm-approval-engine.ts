@@ -722,6 +722,7 @@ export async function updateApprovalDecision(
   delegateTo?: unknown,
 ): Promise<void> {
   try {
+    // NO_LEAN: Document modified via .save() for status/decision updates
     const approval = await FMApproval.findOne({ workflowId, orgId: orgId });
     if (!approval) throw new Error(`Approval workflow ${workflowId} not found`);
 
@@ -805,6 +806,7 @@ export async function getPendingApprovalsForUser(
  */
 export async function checkApprovalTimeouts(orgId: string): Promise<void> {
   try {
+    // NO_LEAN: Approval documents modified via .save() for escalation status
     const overdueApprovals = await FMApproval.find({
       orgId: orgId,
       status: "PENDING",

@@ -59,6 +59,7 @@ import CrmActivity from "@/server/models/CrmActivity";
 
 const importRoute = async () => {
   try {
+    vi.resetModules();
     return await import("@/app/api/crm/overview/route");
   } catch {
     return null;

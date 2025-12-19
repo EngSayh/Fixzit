@@ -61,6 +61,7 @@ export async function GET(req: NextRequest) {
   const format = url.searchParams.get('format') || 'json';
 
   // SUPER_ADMIN: backlog issues are platform-wide
+  // NO_TENANT_SCOPE: Superadmin issues tracker is system-wide, not tenant-scoped
   const issues = await BacklogIssue.find().sort({ priority: 1, impact: -1 }).lean();
   type Issue = (typeof issues)[number];
 

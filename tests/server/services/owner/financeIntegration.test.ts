@@ -116,10 +116,12 @@ describe("financeIntegration service", () => {
         }),
       } as never);
 
-      vi.mocked(MoveInOutInspectionModel.findOne).mockResolvedValue({
-        type: "MOVE_OUT",
-        rooms: [],
-        issues: [],
+      vi.mocked(MoveInOutInspectionModel.findOne).mockReturnValue({
+        lean: vi.fn().mockResolvedValue({
+          type: "MOVE_OUT",
+          rooms: [],
+          issues: [],
+        }),
       } as never);
 
       const result = await postFinanceOnClose({

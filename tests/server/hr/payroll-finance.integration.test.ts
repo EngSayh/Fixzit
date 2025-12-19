@@ -67,8 +67,9 @@ describe("PayrollFinanceIntegration", () => {
     };
 
     findOneMock.mockImplementation(
-      async ({ accountCode }: { accountCode: keyof typeof accounts }) =>
-        accounts[accountCode],
+      ({ accountCode }: { accountCode: keyof typeof accounts }) => ({
+        lean: vi.fn().mockResolvedValue(accounts[accountCode]),
+      }),
     );
 
     const journalId = new Types.ObjectId();

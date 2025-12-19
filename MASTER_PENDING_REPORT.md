@@ -34,7 +34,13 @@
 4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[PERF-002]** ✅ RESOLVED - Added .lean() to 8+ read-only Mongoose queries (P146)
 
-### ✅ Current Session (P216)
+### ✅ Current Session (P217)
+1. **[P217]** ✅ ESLint Phase 2 - Reduced warnings from 39→37:
+   - Added NO_LEAN to fm-approval-engine (2 queries using .save())
+   - Added TENANT_SCOPED annotations to billing/history route
+   - Added NO_TENANT_SCOPE to superadmin/issues/report (platform-wide)
+
+### ✅ Previous Session (P216)
 1. **[P216]** ✅ ESLint Lean/NO_LEAN Annotations - Reduced ESLint warnings from 72→39 (46% reduction):
    - Fixed malformed import syntax in `notifications.bulk.test.ts` (parse error)
    - Added `.lean()` to read-only queries: package-activation, fm-auth-middleware, payroll-finance, owner-finance, subscriptionBilling, wo.service

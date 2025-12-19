@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
     const orgObjectId = new Types.ObjectId(orgId);
     const userObjectId = new Types.ObjectId(userId);
 
-    // Find all subscriptions belonging to this tenant or owner
+    // TENANT_SCOPED: Find subscriptions scoped by tenant_id OR owner_user_id
     const subscriptions = await Subscription.find({
       $or: [
         { tenant_id: orgObjectId },
