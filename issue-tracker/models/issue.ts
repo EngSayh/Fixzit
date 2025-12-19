@@ -532,7 +532,7 @@ IssueSchema.statics.getStats = async function(orgId: mongoose.Types.ObjectId) {
         p3: { $sum: { $cond: [{ $eq: ['$priority', 'P3'] }, 1, 0] } },
       },
     },
-  ]);
+  ], { maxTimeMS: 10_000 });
   
   return stats[0] || {
     total: 0, open: 0, inProgress: 0, resolved: 0, blocked: 0,
@@ -558,7 +558,7 @@ IssueSchema.statics.getFileHeatMap = async function(
     },
     { $sort: { total: -1 } },
     { $limit: limit },
-  ]);
+  ], { maxTimeMS: 10_000 });
 };
 
 IssueSchema.statics.getQuickWins = async function(orgId: mongoose.Types.ObjectId) {

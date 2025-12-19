@@ -223,6 +223,7 @@ RevenueLogSchema.statics.getUnitRevenueSummary = async function (
     if (endDate) (match.date as Record<string, Date>).$lte = endDate;
   }
 
+  // PERF-001 (2025-12-19): Added maxTimeMS to prevent timeout on large datasets
   return this.aggregate([
     { $match: match },
     {
@@ -234,7 +235,7 @@ RevenueLogSchema.statics.getUnitRevenueSummary = async function (
       },
     },
     { $sort: { totalAmount: -1 } },
-  ]);
+  ], { maxTimeMS: 10_000 });
 };
 
 // Static method to calculate net profit per unit
@@ -247,6 +248,7 @@ RevenueLogSchema.statics.calculateNetProfit = async function (
   const MaintenanceLogModel = mongoose.model("MaintenanceLog");
 
   // Get total revenue
+  // PERF-001 (2025-12-19): Added maxTimeMS
   const revenueResult = await this.aggregate([
     {
       $match: {
@@ -262,9 +264,10 @@ RevenueLogSchema.statics.calculateNetProfit = async function (
         totalRevenue: { $sum: "$receivedAmount" },
       },
     },
-  ]);
+  ], { maxTimeMS: 10_000 });
 
   // Get total maintenance costs
+  // PERF-001 (2025-12-19): Added maxTimeMS
   const expenseResult = await MaintenanceLogModel.aggregate([
     {
       $match: {
@@ -280,7 +283,7 @@ RevenueLogSchema.statics.calculateNetProfit = async function (
         totalExpenses: { $sum: "$totalCost" },
       },
     },
-  ]);
+  ], { maxTimeMS: 10_000 });
 
   const totalRevenue = revenueResult[0]?.totalRevenue || 0;
   const totalExpenses = expenseResult[0]?.totalExpenses || 0;

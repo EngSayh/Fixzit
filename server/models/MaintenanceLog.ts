@@ -241,6 +241,7 @@ MaintenanceLogSchema.statics.getUnitSummary = async function (
     if (endDate) (match.date as Record<string, Date>).$lte = endDate;
   }
 
+  // PERF-001 (2025-12-19): Added maxTimeMS to prevent timeout on large datasets
   return this.aggregate([
     { $match: match },
     {
@@ -252,7 +253,7 @@ MaintenanceLogSchema.statics.getUnitSummary = async function (
       },
     },
     { $sort: { totalCost: -1 } },
-  ]);
+  ], { maxTimeMS: 10_000 });
 };
 
 // Model type with statics

@@ -66,7 +66,8 @@ export class PricingInsightsService {
 
     const match = this.buildMatch(request);
     const pipeline = this.buildPipeline(match);
-    const [result] = await listingModel.aggregate(pipeline);
+    // PERF-001 (2025-12-19): Added maxTimeMS to prevent timeout on large datasets
+    const [result] = await listingModel.aggregate(pipeline, { maxTimeMS: 10_000 });
 
     const stats = Array.isArray(result?.stats) ? result.stats[0] || {} : {};
     const sampleSize = Number(stats?.sampleSize || 0);

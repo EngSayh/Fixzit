@@ -328,7 +328,8 @@ AuditLogSchema.statics.getSummary = async function (
     },
   ];
 
-  return this.aggregate(pipeline);
+  // PERF-001 (2025-12-19): Added maxTimeMS to prevent timeout on large datasets
+  return this.aggregate(pipeline, { maxTimeMS: 10_000 });
 };
 
 // Export type and model with proper typing
