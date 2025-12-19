@@ -5,15 +5,15 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T20:50:00+03:00 (Asia/Riyadh)
-**Scanner Version:** v3.2 (Feature Consolidation + Full Verification)  
-**Branch:** phase-1-onboarding-kpi-scope
-**Commit:** 164f780cf (feat(P227): Consolidate parallel agent feature additions) | Origin: pending push
-**Last Work:** P227 - Consolidated parallel agent features (ZATCA, SSE, Bulk Actions)
+**Last Updated:** 2025-12-19T21:07:01+03:00 (Asia/Riyadh)
+**Scanner Version:** v3.3 (Test Stabilization + SSOT Refresh + Coverage Scan)  
+**Branch:** phase-3-ssot-update
+**Commit:** a45d03b3c (fix(tests): stabilize aqar listings search rate-limit test) | Origin: pending push
+**Last Work:** P228 - Test stabilization + SSOT refresh (Aqar listings search rate-limit)
 **MongoDB Status:** ⚠️ Not synced this session (run scripts/import-backlog.ts)
 **Working Tree:** CLEAN
-**Test Count:** ✅ 465/465 test files, 4103/4103 tests passing, Build successful
-**PR:** #569 ready for review
+**Test Count:** ✅ 465/465 test files, 4103/4103 tests passing; Build not run this session
+**PR:** pending (phase-2-test-stability, phase-3-ssot-update)
 
 ---
 
@@ -24,15 +24,28 @@
 | **Health Score** | 95/100 |
 | **Files Scanned** | 1,548 (app/ + lib/ + services/ + domain/ + tests/) |
 | **Total Issues** | 20 (5 open / 15 resolved) |
-| **Test Coverage** | ⚠️ Full vitest run attempted (timeout ~360s); last known full pass 4068/4068 at 2025-12-19 13:00 |
+| **Test Coverage** | Route import coverage: 159/363 (~43.8%) excluding dev/superadmin; 167/379 overall; full vitest run 4103/4103 |
 | **Build Status** | ⚠️ Build not re-run in this session |
 
 ### 🎯 Top 5 Priority Actions
-1. [x] **[P227]** ✅ FEATURE CONSOLIDATION - ZATCA clearance, SSE notifications, bulk actions integrated
-2. [x] **[P226]** ✅ AI IMPROVEMENT ANALYSIS - All 34 console statements, 3 rate-limit routes, 20 skipped tests verified clean
-3. [x] **[SEC-002]** ✅ VERIFIED - All 17 flagged routes are SAFE (intentionally public/admin/user-scoped)
-4. [x] **[PERF-001]** ✅ RESOLVED - maxTimeMS guardrails refreshed (commit b313a220e)
-5. [x] **[TEST-004]** ✅ VERIFIED - All 8 POST routes have try-catch around request.json()
+1. [x] **[P228]** ✅ TEST STABILIZATION - Aqar listings search rate-limit test stabilized
+2. [x] **[P227]** ✅ FEATURE CONSOLIDATION - ZATCA clearance, SSE notifications, bulk actions integrated
+3. [x] **[P226]** ✅ AI IMPROVEMENT ANALYSIS - All 34 console statements, 3 rate-limit routes, 20 skipped tests verified clean
+4. [x] **[SEC-002]** ✅ VERIFIED - All 17 flagged routes are SAFE (intentionally public/admin/user-scoped)
+5. [ ] **[TEST-COVERAGE-GAP]** Expand API test coverage (159/363 routes ~43.8%)
+
+### ✅ Current Session (P228 - Test Stabilization + SSOT Refresh)
+1. **[P228]** ✅ Aqar listings search rate-limit test stabilized:
+   - Added `vi.resetModules()` + `resetTestMocks()` before handler import
+   - Ensures `smartRateLimit` mock applies deterministically in full suite
+   - Full vitest run: 465/465 files, 4103/4103 tests passing
+   - TypeScript: `pnpm tsc --noEmit` clean
+   - Memory optimization: `scripts/optimize-memory.sh`, `scripts/vscode-memory-guard.sh --limit-tsserver`
+   - Scans:
+     - Tenant scope audit: 172 flagged lines saved to `docs/SEC-002-tenant-audit.json` (requires manual verification)
+     - Aggregate scan: ATS analytics uses `runAggregate` (maxTimeMS enforced); remaining hits in migration/test scripts
+     - Route import coverage: 159/363 (~43.8%) excluding dev/superadmin; 167/379 overall
+   - Commit: a45d03b3c
 
 ### ✅ Current Session (P227 - Feature Consolidation)
 1. **[P227]** ✅ Parallel Agent Feature Consolidation Complete:
@@ -45,10 +58,10 @@
      - Tenant-scoped (orgId filter), rate-limited
      - Heartbeat + auto-cleanup on disconnect
    - **Invoice Bulk Actions:** `components/finance/InvoicesList.tsx`
-     - Bulk approve, bulk send reminder, bulk void
+     - Bulk mark sent/paid, send reminder, archive/delete
      - Uses existing `/api/invoices/bulk` route
    - **Work Orders Bulk Actions:** `components/fm/WorkOrdersViewNew.tsx`
-     - Bulk status update, bulk assign
+     - Bulk mark in progress/completed, archive/delete
      - Uses existing `/api/work-orders/bulk` route
    - **Notifications Page SSE Client:** `app/(app)/notifications/page.tsx`
      - EventSource subscription for real-time updates
@@ -265,12 +278,18 @@
 - **P213:** ✅ Tenant scope annotations phase 2 - ESLint warnings 47→13 (90% total reduction from 129)
 
 ### ⏳ Pending – Post-MVP Items
-- TEST-COVERAGE-GAP — Expand API test coverage for ~367 routes (P0)
-- FEATURE-001 — Real-time notifications system (WebSocket/SSE) (P0)
-- FEATURE-002 — Bulk operations UI for WorkOrders/Invoices (P1)
-- COMP-001 — ZATCA E-Invoicing Phase 2 (P1)
-- BUG-TS-VITEST-CONFIG — Vitest config type mismatch (verify with full tsc)
-- P3-PR-PHASES — Create PRs for consolidated phase ranges
+- TEST-COVERAGE-GAP — Expand API test coverage for 363 routes (159/363 covered; ~43.8%)
+- P3-PR-PHASES — Create PRs for consolidated phase ranges (phase-2-test-stability, phase-3-ssot-update)
+- DB-SYNC — Import docs/BACKLOG_AUDIT.json into MongoDB Issue Tracker (server required)
+
+### 🔍 Open Verification Items (Needs Evidence)
+- SEC-002 tenant scope audit: 172 flagged lines in `docs/SEC-002-tenant-audit.json` require manual confirmation (likely false positives due to context scanning).
+- Aggregate scan: 10 hits without explicit maxTimeMS/allowDiskUse/runAggregate; ATS analytics uses `runAggregate` (false positive), remaining hits in migration/test scripts.
+
+### ✅ Features Completed (P227 - 2025-12-19)
+- ✅ FEATURE-001 — Real-time notifications system (SSE) — `app/api/notifications/stream/route.ts`
+- ✅ FEATURE-002 — Bulk operations UI for WorkOrders/Invoices — `components/finance/InvoicesList.tsx`, `components/fm/WorkOrdersViewNew.tsx`
+- ✅ COMP-001 — ZATCA E-Invoicing Phase 2 — `services/finance/zatca/clearance.ts` with submit + retry
 
 ### ✅ Newly Verified (DB sync required)
 - P3-AQAR-FILTERS — SearchFilters standardized with shared FacetMultiSelect/NumericRangeFilter (commit d4fa367d1).
