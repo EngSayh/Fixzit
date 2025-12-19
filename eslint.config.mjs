@@ -33,6 +33,9 @@ export default [
       "**/test-results/**",
       "tests/playwright-report/**",
 
+      // Staging/incoming files (not production code)
+      "Incoming/**",
+
       // Assets and static files
       "public/**",
 

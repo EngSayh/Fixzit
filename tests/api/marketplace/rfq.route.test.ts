@@ -48,10 +48,10 @@ describe("API /api/marketplace/rfq", () => {
       orgId: { toString: () => "org-123" },
       role: "BUYER",
     });
-    mockRFQFind.mockReturnValue({
-      sort: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue([]),
-    });
+    const lean = vi.fn().mockResolvedValue([]);
+    const limit = vi.fn().mockReturnValue({ lean });
+    const sort = vi.fn().mockReturnValue({ limit, lean });
+    mockRFQFind.mockReturnValue({ sort, limit, lean });
   });
 
   describe("GET - List RFQs", () => {
