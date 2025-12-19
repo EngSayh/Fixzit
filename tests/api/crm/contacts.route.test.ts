@@ -59,9 +59,11 @@ vi.mock("@/server/security/headers", () => ({
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import CrmLead from "@/server/models/CrmLead";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
 const importRoute = async () => {
   try {
+    vi.resetModules();
     return await import("@/app/api/crm/contacts/route");
   } catch {
     return null;
@@ -78,6 +80,7 @@ describe("API /api/crm/contacts", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetTestMocks();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     vi.mocked(getSessionUser).mockResolvedValue(mockUser as never);
   });

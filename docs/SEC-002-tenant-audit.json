@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-12-19T16:26:18.267Z",
+  "timestamp": "2025-12-19T16:59:44.177Z",
   "summary": {
     "total": 172,
     "p0": 0,
@@ -518,6 +518,26 @@
       "reason": "Missing tenant scope (org_id/property_owner_id) in countDocuments"
     },
     {
+      "file": "app/api/finance/expenses/route.ts",
+      "line": 345,
+      "column": 18,
+      "operation": "Expense.find",
+      "model": "Expense",
+      "code": "Expense.find(query)",
+      "severity": "P1",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in find"
+    },
+    {
+      "file": "app/api/finance/expenses/route.ts",
+      "line": 350,
+      "column": 18,
+      "operation": "Expense.countDocuments",
+      "model": "Expense",
+      "code": "Expense.countDocuments(query),",
+      "severity": "P1",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in countDocuments"
+    },
+    {
       "file": "app/api/finance/accounts/route.ts",
       "line": 130,
       "column": 46,
@@ -546,26 +566,6 @@
       "code": "const presets = await FilterPreset.find(query)",
       "severity": "P1",
       "reason": "Missing tenant scope (org_id/property_owner_id) in find"
-    },
-    {
-      "file": "app/api/finance/expenses/route.ts",
-      "line": 345,
-      "column": 18,
-      "operation": "Expense.find",
-      "model": "Expense",
-      "code": "Expense.find(query)",
-      "severity": "P1",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in find"
-    },
-    {
-      "file": "app/api/finance/expenses/route.ts",
-      "line": 350,
-      "column": 18,
-      "operation": "Expense.countDocuments",
-      "model": "Expense",
-      "code": "Expense.countDocuments(query),",
-      "severity": "P1",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in countDocuments"
     },
     {
       "file": "app/api/feeds/linkedin/route.ts",
@@ -778,16 +778,6 @@
       "reason": "Missing tenant scope (org_id/property_owner_id) in findById"
     },
     {
-      "file": "app/api/billing/subscribe/route.ts",
-      "line": 132,
-      "column": 36,
-      "operation": "Customer.findOneAndUpdate",
-      "model": "Customer",
-      "code": "const customer = await Customer.findOneAndUpdate(",
-      "severity": "P1",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in findOneAndUpdate"
-    },
-    {
       "file": "app/api/billing/upgrade/route.ts",
       "line": 292,
       "column": 40,
@@ -796,6 +786,16 @@
       "code": "const priceBook = await PriceBook.findOne({",
       "severity": "P1",
       "reason": "Missing tenant scope (org_id/property_owner_id) in findOne"
+    },
+    {
+      "file": "app/api/billing/subscribe/route.ts",
+      "line": 132,
+      "column": 36,
+      "operation": "Customer.findOneAndUpdate",
+      "model": "Customer",
+      "code": "const customer = await Customer.findOneAndUpdate(",
+      "severity": "P1",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in findOneAndUpdate"
     },
     {
       "file": "app/api/ats/jobs/route.ts",
@@ -958,6 +958,76 @@
       "reason": "Missing tenant scope (org_id/property_owner_id) in find"
     },
     {
+      "file": "app/api/aqar/packages/route.ts",
+      "line": 58,
+      "column": 39,
+      "operation": "AqarPackage.find",
+      "model": "AqarPackage",
+      "code": "const packages = await AqarPackage.find(query)",
+      "severity": "P1",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in find"
+    },
+    {
+      "file": "app/api/aqar/map/route.ts",
+      "line": 128,
+      "column": 35,
+      "operation": "AqarListing.aggregate",
+      "model": "AqarListing",
+      "code": "const rows = await AqarListing.aggregate(pipeline, { maxTimeMS: 5_000 });",
+      "severity": "P2",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in aggregate"
+    },
+    {
+      "file": "app/api/aqar/leads/route.ts",
+      "line": 184,
+      "column": 40,
+      "operation": "AqarProject.findById",
+      "model": "AqarProject",
+      "code": "const project = await AqarProject.findById(projectId).lean();",
+      "severity": "P1",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in findById"
+    },
+    {
+      "file": "app/api/aqar/leads/route.ts",
+      "line": 435,
+      "column": 15,
+      "operation": "AqarLead.find",
+      "model": "AqarLead",
+      "code": "AqarLead.find(query)",
+      "severity": "P1",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in find"
+    },
+    {
+      "file": "app/api/aqar/listings/route.ts",
+      "line": 96,
+      "column": 46,
+      "operation": "AqarPackage.findOne",
+      "model": "AqarPackage",
+      "code": "const activePackage = await AqarPackage.findOne({",
+      "severity": "P1",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in findOne"
+    },
+    {
+      "file": "app/api/aqar/favorites/route.ts",
+      "line": 102,
+      "column": 44,
+      "operation": "AqarFavorite.find",
+      "model": "AqarFavorite",
+      "code": "const favoritesRaw = await AqarFavorite.find(query)",
+      "severity": "P1",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in find"
+    },
+    {
+      "file": "app/api/aqar/favorites/route.ts",
+      "line": 112,
+      "column": 37,
+      "operation": "AqarFavorite.countDocuments",
+      "model": "AqarFavorite",
+      "code": "const total = await AqarFavorite.countDocuments(query);",
+      "severity": "P1",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in countDocuments"
+    },
+    {
       "file": "app/api/admin/users/route.ts",
       "line": 199,
       "column": 34,
@@ -1108,76 +1178,6 @@
       "reason": "Missing tenant scope (org_id/property_owner_id) in countDocuments"
     },
     {
-      "file": "app/api/aqar/packages/route.ts",
-      "line": 58,
-      "column": 39,
-      "operation": "AqarPackage.find",
-      "model": "AqarPackage",
-      "code": "const packages = await AqarPackage.find(query)",
-      "severity": "P1",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in find"
-    },
-    {
-      "file": "app/api/aqar/map/route.ts",
-      "line": 128,
-      "column": 35,
-      "operation": "AqarListing.aggregate",
-      "model": "AqarListing",
-      "code": "const rows = await AqarListing.aggregate(pipeline, { maxTimeMS: 5_000 });",
-      "severity": "P2",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in aggregate"
-    },
-    {
-      "file": "app/api/aqar/leads/route.ts",
-      "line": 184,
-      "column": 40,
-      "operation": "AqarProject.findById",
-      "model": "AqarProject",
-      "code": "const project = await AqarProject.findById(projectId).lean();",
-      "severity": "P1",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in findById"
-    },
-    {
-      "file": "app/api/aqar/leads/route.ts",
-      "line": 435,
-      "column": 15,
-      "operation": "AqarLead.find",
-      "model": "AqarLead",
-      "code": "AqarLead.find(query)",
-      "severity": "P1",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in find"
-    },
-    {
-      "file": "app/api/aqar/listings/route.ts",
-      "line": 96,
-      "column": 46,
-      "operation": "AqarPackage.findOne",
-      "model": "AqarPackage",
-      "code": "const activePackage = await AqarPackage.findOne({",
-      "severity": "P1",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in findOne"
-    },
-    {
-      "file": "app/api/aqar/favorites/route.ts",
-      "line": 102,
-      "column": 44,
-      "operation": "AqarFavorite.find",
-      "model": "AqarFavorite",
-      "code": "const favoritesRaw = await AqarFavorite.find(query)",
-      "severity": "P1",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in find"
-    },
-    {
-      "file": "app/api/aqar/favorites/route.ts",
-      "line": 112,
-      "column": 37,
-      "operation": "AqarFavorite.countDocuments",
-      "model": "AqarFavorite",
-      "code": "const total = await AqarFavorite.countDocuments(query);",
-      "severity": "P1",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in countDocuments"
-    },
-    {
       "file": "app/api/work-orders/[id]/materials/route.ts",
       "line": 84,
       "column": 32,
@@ -1258,16 +1258,6 @@
       "reason": "Missing tenant scope (org_id/property_owner_id) in findOne"
     },
     {
-      "file": "app/api/integrations/linkedin/apply/route.ts",
-      "line": 70,
-      "column": 26,
-      "operation": "Job.findOne",
-      "model": "Job",
-      "code": "const job = await Job.findOne({",
-      "severity": "P2",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in findOne"
-    },
-    {
       "file": "app/api/marketplace/vendor/products/route.ts",
       "line": 140,
       "column": 35,
@@ -1284,6 +1274,16 @@
       "operation": "MarketplaceProduct.findOne",
       "model": "MarketplaceProduct",
       "code": "const productQuery = MarketplaceProduct.findOne({",
+      "severity": "P2",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in findOne"
+    },
+    {
+      "file": "app/api/integrations/linkedin/apply/route.ts",
+      "line": 70,
+      "column": 26,
+      "operation": "Job.findOne",
+      "model": "Job",
+      "code": "const job = await Job.findOne({",
       "severity": "P2",
       "reason": "Missing tenant scope (org_id/property_owner_id) in findOne"
     },
@@ -1348,6 +1348,36 @@
       "reason": "Missing tenant scope (org_id/property_owner_id) in countDocuments"
     },
     {
+      "file": "app/api/aqar/listings/search/route.ts",
+      "line": 214,
+      "column": 18,
+      "operation": "AqarListing.find",
+      "model": "AqarListing",
+      "code": "AqarListing.find(query)",
+      "severity": "P2",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in find"
+    },
+    {
+      "file": "app/api/aqar/listings/search/route.ts",
+      "line": 220,
+      "column": 18,
+      "operation": "AqarListing.countDocuments",
+      "model": "AqarListing",
+      "code": "AqarListing.countDocuments(countQuery),",
+      "severity": "P2",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in countDocuments"
+    },
+    {
+      "file": "app/api/aqar/listings/search/route.ts",
+      "line": 225,
+      "column": 37,
+      "operation": "AqarListing.aggregate",
+      "model": "AqarListing",
+      "code": "const facets = await AqarListing.aggregate([",
+      "severity": "P2",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in aggregate"
+    },
+    {
       "file": "app/api/admin/testing-users/[id]/route.ts",
       "line": 62,
       "column": 35,
@@ -1398,16 +1428,6 @@
       "reason": "Missing tenant scope (org_id/property_owner_id) in findOneAndUpdate"
     },
     {
-      "file": "app/api/admin/billing/annual-discount/route.ts",
-      "line": 59,
-      "column": 35,
-      "operation": "DiscountRule.findOneAndUpdate",
-      "model": "DiscountRule",
-      "code": "const doc = await DiscountRule.findOneAndUpdate(",
-      "severity": "P1",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in findOneAndUpdate"
-    },
-    {
       "file": "app/api/admin/audit/export/route.ts",
       "line": 158,
       "column": 45,
@@ -1418,34 +1438,14 @@
       "reason": "Missing tenant scope (org_id/property_owner_id) in find"
     },
     {
-      "file": "app/api/aqar/listings/search/route.ts",
-      "line": 214,
-      "column": 18,
-      "operation": "AqarListing.find",
-      "model": "AqarListing",
-      "code": "AqarListing.find(query)",
-      "severity": "P2",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in find"
-    },
-    {
-      "file": "app/api/aqar/listings/search/route.ts",
-      "line": 220,
-      "column": 18,
-      "operation": "AqarListing.countDocuments",
-      "model": "AqarListing",
-      "code": "AqarListing.countDocuments(countQuery),",
-      "severity": "P2",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in countDocuments"
-    },
-    {
-      "file": "app/api/aqar/listings/search/route.ts",
-      "line": 225,
-      "column": 37,
-      "operation": "AqarListing.aggregate",
-      "model": "AqarListing",
-      "code": "const facets = await AqarListing.aggregate([",
-      "severity": "P2",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in aggregate"
+      "file": "app/api/admin/billing/annual-discount/route.ts",
+      "line": 59,
+      "column": 35,
+      "operation": "DiscountRule.findOneAndUpdate",
+      "model": "DiscountRule",
+      "code": "const doc = await DiscountRule.findOneAndUpdate(",
+      "severity": "P1",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in findOneAndUpdate"
     },
     {
       "file": "app/api/work-orders/[id]/checklists/toggle/route.ts",
@@ -1668,6 +1668,16 @@
       "reason": "Missing tenant scope (org_id/property_owner_id) in findOne"
     },
     {
+      "file": "app/api/fm/work-orders/[id]/comments/route.ts",
+      "line": 107,
+      "column": 28,
+      "operation": "WorkOrderCommentModel.countDocuments",
+      "model": "WorkOrderCommentModel",
+      "code": "WorkOrderCommentModel.countDocuments(filter),",
+      "severity": "P1",
+      "reason": "Missing tenant scope (org_id/property_owner_id) in countDocuments"
+    },
+    {
       "file": "app/api/finance/ledger/account-activity/[accountId]/route.ts",
       "line": 177,
       "column": 52,
@@ -1706,16 +1716,6 @@
       "code": "const allTransactions = await LedgerEntry.find(queryFilter)",
       "severity": "P1",
       "reason": "Missing tenant scope (org_id/property_owner_id) in find"
-    },
-    {
-      "file": "app/api/fm/work-orders/[id]/comments/route.ts",
-      "line": 107,
-      "column": 28,
-      "operation": "WorkOrderCommentModel.countDocuments",
-      "model": "WorkOrderCommentModel",
-      "code": "WorkOrderCommentModel.countDocuments(filter),",
-      "severity": "P1",
-      "reason": "Missing tenant scope (org_id/property_owner_id) in countDocuments"
     },
     {
       "file": "app/api/ats/jobs/[id]/apply/route.ts",
