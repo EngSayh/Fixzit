@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const enforceRateLimitMock = vi.fn();
+const smartRateLimitMock = vi.fn();
 const insertOneMock = vi.fn();
 const connectToDatabaseMock = vi.fn();
 const getDatabaseMock = vi.fn();
@@ -8,6 +9,11 @@ const loggerErrorMock = vi.fn();
 
 vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: enforceRateLimitMock,
+}));
+
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: smartRateLimitMock,
+  buildOrgAwareRateLimitKey: vi.fn(() => "test-key"),
 }));
 
 vi.mock("@/lib/mongodb-unified", () => ({
@@ -58,8 +64,10 @@ vi.mock("@/lib/logger", () => ({
 
 describe("POST /api/trial-request", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.resetAllMocks();
     enforceRateLimitMock.mockReturnValue(null);
+    smartRateLimitMock.mockResolvedValue({ allowed: true, remaining: 10 });
     insertOneMock.mockResolvedValue({});
     connectToDatabaseMock.mockResolvedValue(undefined);
     getDatabaseMock.mockResolvedValue({

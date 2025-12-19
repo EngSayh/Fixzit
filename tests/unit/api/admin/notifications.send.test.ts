@@ -2,9 +2,23 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { ObjectId } from "mongodb";
 
+type SessionUser = {
+  id?: string;
+  email?: string;
+  orgId?: string;
+  role?: string;
+};
+let sessionUser: SessionUser | null = {
+  id: "u1",
+  email: "a@test.com",
+  orgId: "507f1f77bcf86cd799439011",
+  role: "SUPER_ADMIN",
+};
+
 vi.mock("@/auth", () => ({
-  auth: vi.fn().mockResolvedValue({
-    user: { id: "u1", email: "a@test.com", orgId: "507f1f77bcf86cd799439011", role: "SUPER_ADMIN" },
+  auth: vi.fn(async () => {
+    if (!sessionUser) return null;
+    return { user: sessionUser };
   }),
 }));
 vi.mock("@/lib/logger", () => ({
@@ -24,7 +38,6 @@ vi.mock("@/lib/communication-logger", () => ({
 }));
 
 import { POST } from "@/app/api/admin/notifications/send/route";
-import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import * as mongo from "@/lib/mongodb-unified";
 
@@ -39,10 +52,13 @@ function makeRequest(body: unknown) {
 describe("admin/notifications/send route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  vi.mocked(auth).mockResolvedValue({
-    user: { id: "u1", email: "a@test.com", orgId: ORG_ID, role: "SUPER_ADMIN" },
+    sessionUser = {
+      id: "u1",
+      email: "a@test.com",
+      orgId: ORG_ID,
+      role: "SUPER_ADMIN",
+    };
   });
-});
 
   it("returns 404 when no recipients found", async () => {
     const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });

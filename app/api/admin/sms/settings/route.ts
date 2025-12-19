@@ -18,6 +18,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { validatePublicHttpsUrl } from "@/lib/security/validate-public-https-url";
 
 export async function GET(request: NextRequest) {
   // Rate limiting: 30 requests per minute for admin reads
@@ -110,7 +111,11 @@ const UpdateSettingsSchema = z.object({
   globalRateLimitPerMinute: z.number().min(1).max(1000).optional(),
   globalRateLimitPerHour: z.number().min(1).max(10000).optional(),
   slaBreachNotifyEmails: z.array(z.string().email()).optional(),
-  slaBreachNotifyWebhook: z.string().url().optional().nullable(),
+  slaBreachNotifyWebhook: z
+    .string()
+    .url()
+    .optional()
+    .nullable(),
   dailyReportEnabled: z.boolean().optional(),
   dailyReportEmails: z.array(z.string().email()).optional(),
   queueEnabled: z.boolean().optional(),
@@ -145,13 +150,35 @@ export async function PUT(request: NextRequest) {
     const parsed = UpdateSettingsSchema.safeParse(body);
 
     if (!parsed.success) {
+      const details = parsed.error.flatten();
+      const webhookError =
+        details.fieldErrors?.slaBreachNotifyWebhook?.[0];
+      const message = webhookError || "Invalid request";
       return NextResponse.json(
-        { error: "Invalid request", details: parsed.error.flatten() },
+        { error: message, details },
         { status: 400 }
       );
     }
 
     const { orgId, ...updates } = parsed.data;
+
+    // SSRF protection for webhook URL (async/DNS-aware)
+    if (updates.slaBreachNotifyWebhook) {
+      try {
+        await validatePublicHttpsUrl(updates.slaBreachNotifyWebhook);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Invalid webhook URL";
+        logger.warn("[Admin SMS Settings] Invalid webhook URL", {
+          error: message,
+          url: updates.slaBreachNotifyWebhook,
+        });
+        return NextResponse.json(
+          { error: `Webhook URL validation failed: ${message}`, field: "slaBreachNotifyWebhook" },
+          { status: 400 }
+        );
+      }
+    }
 
     // Determine if updating global or org-specific settings
     const isGlobal = !orgId;

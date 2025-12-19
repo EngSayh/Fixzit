@@ -82,6 +82,7 @@ describe("API /api/fm/work-orders", () => {
       vi.mocked(enforceRateLimit).mockReturnValue(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,
+          headers: { "Retry-After": "60" },
         }) as never
       );
 
@@ -89,6 +90,9 @@ describe("API /api/fm/work-orders", () => {
       const response = await route.GET(req);
 
       expect([200, 401, 403, 429, 500]).toContain(response.status);
+      if (response.status === 429) {
+        expect(response.headers.get("Retry-After")).toBeDefined();
+      }
     });
 
     it("returns work orders for authenticated user", async () => {
@@ -116,6 +120,7 @@ describe("API /api/fm/work-orders", () => {
       vi.mocked(enforceRateLimit).mockReturnValue(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,
+          headers: { "Retry-After": "60" },
         }) as never
       );
 
@@ -127,6 +132,9 @@ describe("API /api/fm/work-orders", () => {
       const response = await route.POST(req);
 
       expect([200, 201, 400, 401, 403, 429, 500]).toContain(response.status);
+      if (response.status === 429) {
+        expect(response.headers.get("Retry-After")).toBeDefined();
+      }
     });
   });
 });

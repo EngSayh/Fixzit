@@ -5,9 +5,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+type SessionUser = {
+  id?: string;
+  orgId?: string;
+  role?: string;
+};
+let sessionUser: SessionUser | null = null;
+
 // Mock authentication
 vi.mock("@/auth", () => ({
-  auth: vi.fn(),
+  auth: vi.fn(async () => {
+    if (!sessionUser) return null;
+    return { user: sessionUser, expires: new Date().toISOString() };
+  }),
 }));
 
 // Mock rate limiting
@@ -47,12 +57,12 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { auth } from "@/auth";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { GET } from "@/app/api/souq/inventory/route";
 
 describe("API /api/souq/inventory", () => {
   beforeEach(() => {
+    sessionUser = null;
     vi.clearAllMocks();
     // Reset rate limit mock to allow requests through
     vi.mocked(enforceRateLimit).mockReturnValue(null);
@@ -73,7 +83,7 @@ describe("API /api/souq/inventory", () => {
     });
 
     it("returns 401 when user is not authenticated", async () => {
-      vi.mocked(auth).mockResolvedValue(null);
+      sessionUser = null;
 
       const req = new NextRequest("http://localhost:3000/api/souq/inventory");
       const response = await GET(req);
@@ -84,10 +94,7 @@ describe("API /api/souq/inventory", () => {
     });
 
     it("returns 403 when organization context is missing", async () => {
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123" },
-        expires: new Date().toISOString(),
-      });
+      sessionUser = { id: "user-123" };
 
       const req = new NextRequest("http://localhost:3000/api/souq/inventory");
       const response = await GET(req);
@@ -98,10 +105,7 @@ describe("API /api/souq/inventory", () => {
     });
 
     it("returns inventory list for authenticated seller", async () => {
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123", orgId: "org-123" },
-        expires: new Date().toISOString(),
-      });
+      sessionUser = { id: "user-123", orgId: "org-123" };
 
       const req = new NextRequest("http://localhost:3000/api/souq/inventory");
       const response = await GET(req);
@@ -110,10 +114,7 @@ describe("API /api/souq/inventory", () => {
     });
 
     it("supports pagination parameters", async () => {
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123", orgId: "org-123" },
-        expires: new Date().toISOString(),
-      });
+      sessionUser = { id: "user-123", orgId: "org-123" };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/inventory?page=2&limit=20"
@@ -124,10 +125,7 @@ describe("API /api/souq/inventory", () => {
     });
 
     it("supports status filter", async () => {
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123", orgId: "org-123" },
-        expires: new Date().toISOString(),
-      });
+      sessionUser = { id: "user-123", orgId: "org-123" };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/inventory?status=IN_STOCK"
@@ -138,10 +136,7 @@ describe("API /api/souq/inventory", () => {
     });
 
     it("supports lowStockOnly filter", async () => {
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123", orgId: "org-123" },
-        expires: new Date().toISOString(),
-      });
+      sessionUser = { id: "user-123", orgId: "org-123" };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/inventory?lowStockOnly=true"

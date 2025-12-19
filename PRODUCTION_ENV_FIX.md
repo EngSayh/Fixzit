@@ -39,6 +39,29 @@ MONGODB_URI=mongodb+srv://your-atlas-connection-string
 NEXTAUTH_URL=https://fixzit.co
 ```
 
+### 🚨 Atlas Network Access (MongoDB 500s on `/api/issues`)
+
+Current production logs show `MongoDB connection failed: Could not connect to any servers... IP isn't whitelisted`. Update Atlas network rules **before** redeploying:
+1) Go to **MongoDB Atlas → Security → Network Access → IP Access List**.
+2) Add the hosting egress:
+   - If you have **Vercel Managed IPs/Private Networking**, add those static IPs.
+   - Otherwise, temporarily add `0.0.0.0/0` with a short TTL, then replace with the correct Vercel egress IPs.
+3) Click **Save** and wait for Atlas to deploy the rule.
+4) Re-run production deploy and verify:
+   - `curl -s https://fixzit.co/api/health | jq '.database'` → should return `"connected"`.
+   - Authenticated `GET https://fixzit.co/api/issues` → 200 (no `DatabaseConnectionError`).
+
+### 🚀 Post-deploy Smoke (automated)
+
+Run a health + issues smoke after redeploy (requires a valid session token or bearer):
+```bash
+HEALTH_URL=https://fixzit.co/api/health \
+ISSUES_URL=https://fixzit.co/api/issues \
+ISSUES_COOKIE="next-auth.session-token=..." \
+pnpm smoke:prod
+```
+Or use `ISSUES_BEARER="eyJhbGciOi..."` instead of `ISSUES_COOKIE`. Set `SKIP_ISSUES=1` for health-only.
+
 ### ⚠️ P1 - Add These (Payment Security)
 
 ```

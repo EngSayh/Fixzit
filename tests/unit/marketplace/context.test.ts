@@ -29,6 +29,7 @@ describe("resolveMarketplaceContext", () => {
     process.env.MARKETPLACE_PUBLIC_ORGS = "";
     process.env.MARKETPLACE_DEFAULT_TENANT = "";
     process.env.JWT_SECRET = "test-secret";
+    process.env.MARKETPLACE_TEST_CONTEXT = "false";
   });
 
   it("denies unauthenticated headers when allowlist is empty", async () => {

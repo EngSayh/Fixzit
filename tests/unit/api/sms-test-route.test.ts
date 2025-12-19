@@ -1,12 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { POST } from "@/app/api/sms/test/route";
-import { auth } from "@/auth";
 import { sendSMS, testSMSConfiguration } from "@/lib/sms";
 import { smartRateLimit } from "@/server/security/rateLimit";
 
+type SessionUser = {
+  id?: string;
+  role?: string;
+};
+let sessionUser: SessionUser | null = { id: "admin-1", role: "SUPER_ADMIN" };
+
 vi.mock("@/auth", () => ({
-  auth: vi.fn(async () => ({ user: { id: "admin-1", role: "SUPER_ADMIN" } })),
+  auth: vi.fn(async () => {
+    if (!sessionUser) return null;
+    return { user: sessionUser };
+  }),
 }));
 
 vi.mock("@/lib/sms", () => ({
@@ -28,6 +36,7 @@ describe("POST /api/sms/test", () => {
   const mockSmartRateLimit = vi.mocked(smartRateLimit);
 
   beforeEach(() => {
+    sessionUser = { id: "admin-1", role: "SUPER_ADMIN" };
     vi.clearAllMocks();
     mockSmartRateLimit.mockResolvedValue({ allowed: true });
   });
@@ -121,7 +130,7 @@ describe("POST /api/sms/test", () => {
   });
 
   it("returns 401 when unauthenticated", async () => {
-    vi.mocked(auth).mockResolvedValueOnce(null as any);
+    sessionUser = null;
     const req = new Request("http://localhost/api/sms/test", {
       method: "POST",
       body: JSON.stringify({ phone: "+966500000000", message: "hi" }),

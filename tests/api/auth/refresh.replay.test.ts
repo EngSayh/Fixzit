@@ -7,17 +7,19 @@ process.env.NEXTAUTH_SECRET = "test-secret-refresh-32chars";
 type JsonBody = Record<string, unknown>;
 type JsonResponse = { status: number; body: JsonBody };
 
-const mockNextResponseJson = (body: JsonBody, init?: ResponseInit): JsonResponse => ({
-  status: init?.status ?? 200,
-  body,
-});
+vi.mock("next/server", () => {
+  const mockNextResponseJson = (body: JsonBody, init?: ResponseInit): JsonResponse => ({
+    status: init?.status ?? 200,
+    body,
+  });
 
-vi.mock("next/server", () => ({
-  NextRequest: class {},
-  NextResponse: {
-    json: mockNextResponseJson,
-  },
-}));
+  return {
+    NextRequest: class {},
+    NextResponse: {
+      json: mockNextResponseJson,
+    },
+  };
+});
 
 const mockAuth = vi.fn();
 vi.mock("@/auth", () => ({

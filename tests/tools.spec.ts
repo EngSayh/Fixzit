@@ -1,4 +1,3 @@
-// @vitest-environment node
 
 import { vi } from "vitest";
 import { makeFindOneSelectLean, makeFindSortLimitSelectLean } from "./helpers/mongooseMocks";

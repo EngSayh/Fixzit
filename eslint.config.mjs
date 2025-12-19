@@ -164,6 +164,15 @@ export default [
     rules: {
       "@typescript-eslint/no-require-imports": "off",
       "prefer-const": "off",
+      // Environment selection is project-based; forbid inline overrides that caused flake
+      // Note: ESLint 9 doesn't have no-restricted-comments; use no-warning-comments instead
+      "no-warning-comments": [
+        "warn",
+        {
+          terms: ["@vitest-environment"],
+          location: "anywhere",
+        },
+      ],
     },
   },
 

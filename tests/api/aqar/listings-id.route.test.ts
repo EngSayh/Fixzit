@@ -3,7 +3,7 @@
  * Tests single listing CRUD operations
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 // Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
@@ -72,9 +72,11 @@ describe("GET /api/aqar/listings/[id]", () => {
       return;
     }
 
+    const retryAfter = "60";
     vi.mocked(enforceRateLimit).mockReturnValue(
-      new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+      new NextResponse(JSON.stringify({ error: "Rate limit exceeded" }), {
         status: 429,
+        headers: { "Retry-After": retryAfter },
       }) as never
     );
 
@@ -85,6 +87,7 @@ describe("GET /api/aqar/listings/[id]", () => {
     });
 
     expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBeDefined();
   });
 
   it("returns 400 for invalid ObjectId", async () => {
@@ -200,4 +203,3 @@ describe("DELETE /api/aqar/listings/[id]", () => {
     expect(response.status).toBe(400);
   });
 });
-

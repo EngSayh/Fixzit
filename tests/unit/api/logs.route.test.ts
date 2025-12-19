@@ -1,8 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+type SessionUser = {
+  id?: string;
+  email?: string;
+  tenantId?: string;
+};
+let sessionUser: SessionUser | null = null;
+
 vi.mock("@/auth", () => ({
-  auth: vi.fn().mockResolvedValue({
-    user: { id: "user-1", email: "a@test.com", tenantId: "org-1" },
+  auth: vi.fn(async () => {
+    if (!sessionUser) return null;
+    return { user: sessionUser };
   }),
 }));
 vi.mock("@/server/security/rateLimit", () => ({
@@ -14,7 +22,6 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { POST } from "@/app/api/logs/route";
-import { auth } from "@/auth";
 import { smartRateLimit } from "@/server/security/rateLimit";
 
 type NextRequestLike = {
@@ -33,22 +40,20 @@ function createRequest(body: any): NextRequestLike {
 
 describe("api/logs route", () => {
   beforeEach(() => {
+    sessionUser = { id: "user-1", email: "a@test.com", tenantId: "org-1" };
     vi.clearAllMocks();
     vi.resetAllMocks();
-    vi.mocked(auth).mockResolvedValue({
-      user: { id: "user-1", email: "a@test.com", tenantId: "org-1" },
-    });
     vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
   });
 
   it("rejects when unauthorized", async () => {
-    vi.mocked(auth).mockResolvedValue(null as any);
+    sessionUser = null;
     const res = await POST(createRequest({ level: "info", message: "m" }) as any);
     expect(res.status).toBe(401);
   });
 
   it("rejects when org context is missing", async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: "user-1", email: "a@test.com" } } as any);
+    sessionUser = { id: "user-1", email: "a@test.com" };
     const res = await POST(createRequest({ level: "info", message: "m" }) as any);
     expect(res.status).toBe(400);
     const body = await res.json();

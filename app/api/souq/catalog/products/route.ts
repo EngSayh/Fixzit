@@ -118,10 +118,17 @@ export async function POST(request: NextRequest) {
     const body = parseResult.data!;
     const validated = CreateProductSchema.parse(body);
 
-    // Check category exists and is not restricted (or seller has approval)
+    // Tenant-scoped category lookup with legacy org_id fallback (global allowed when no org fields exist)
+    const orgScope = [{ orgId: orgObjectId }, { org_id: orgObjectId }];
     const category = await SouqCategory.findOne({
       categoryId: validated.categoryId,
       isActive: true,
+      $or: [
+        ...orgScope,
+        // allow global categories that are not tied to an org
+        { orgId: { $exists: false } },
+        { org_id: { $exists: false } },
+      ],
     });
     if (!category) {
       return NextResponse.json(
@@ -153,9 +160,15 @@ export async function POST(request: NextRequest) {
 
     // Check brand exists and seller is authorized if gated
     if (validated.brandId) {
+      // Tenant-scoped brand lookup with legacy org_id fallback (global allowed when no org fields exist)
       const brand = await SouqBrand.findOne({
         brandId: validated.brandId,
         isActive: true,
+        $or: [
+          ...orgScope,
+          { orgId: { $exists: false } },
+          { org_id: { $exists: false } },
+        ],
       });
       if (!brand) {
         return NextResponse.json({ error: "Brand not found" }, { status: 404 });

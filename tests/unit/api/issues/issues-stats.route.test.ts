@@ -127,6 +127,23 @@ describe("Issues Stats API Route", () => {
       expect([200, 500]).toContain(res.status);
     });
 
+    it("propagates Retry-After when rate limited", async () => {
+      const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
+      const { getSessionOrNull } = await import("@/lib/auth/safe-session");
+      vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
+
+      const retryResp = {
+        status: 429,
+        headers: new Headers({ "Retry-After": "60" }),
+      } as any;
+      vi.mocked(enforceRateLimit).mockReturnValueOnce(retryResp);
+
+      const req = {} as any;
+      const res = await GET(req);
+      expect(res.status).toBe(429);
+      expect((res as any).headers?.get?.("Retry-After") || (res as any).headers?.["Retry-After"]).toBeDefined();
+    });
+
     it("includes quick wins count", async () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);

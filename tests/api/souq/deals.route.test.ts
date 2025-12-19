@@ -5,9 +5,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+type SessionUser = {
+  id?: string;
+  orgId?: string;
+  role?: string;
+  email?: string;
+  isSuperAdmin?: boolean;
+  subRole?: string;
+  [key: string]: unknown;
+};
+let sessionUser: SessionUser | null = null;
+
 // Mock authentication
 vi.mock("@/auth", () => ({
-  auth: vi.fn(),
+  auth: vi.fn(async () => {
+    if (!sessionUser) return null;
+    return { user: sessionUser, expires: new Date().toISOString() };
+  }),
 }));
 
 // Mock rate limiting
@@ -53,7 +67,6 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { auth } from "@/auth";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
 
@@ -67,6 +80,7 @@ const importRoute = async () => {
 
 describe("API /api/souq/deals", () => {
   beforeEach(() => {
+    sessionUser = null;
     vi.clearAllMocks();
     // Reset rate limit mock to allow requests through
     vi.mocked(enforceRateLimit).mockReturnValue(null);
@@ -105,10 +119,7 @@ describe("API /api/souq/deals", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123", orgId: "org-123" },
-        expires: new Date().toISOString(),
-      });
+      sessionUser = { id: "user-123", orgId: "org-123" };
 
       const req = new NextRequest("http://localhost:3000/api/souq/deals");
       const response = await route.GET(req);
@@ -123,10 +134,7 @@ describe("API /api/souq/deals", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123", orgId: "org-123" },
-        expires: new Date().toISOString(),
-      });
+      sessionUser = { id: "user-123", orgId: "org-123" };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/deals?active=true"
@@ -143,10 +151,7 @@ describe("API /api/souq/deals", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123", orgId: "org-123" },
-        expires: new Date().toISOString(),
-      });
+      sessionUser = { id: "user-123", orgId: "org-123" };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/deals?categoryId=cat-123"
@@ -185,10 +190,7 @@ describe("API /api/souq/deals", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123", orgId: "org-123", role: "SELLER" },
-        expires: new Date().toISOString(),
-      });
+      sessionUser = { id: "user-123", orgId: "org-123", role: "SELLER" };
 
       const req = new NextRequest("http://localhost:3000/api/souq/deals", {
         method: "POST",

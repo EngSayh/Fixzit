@@ -61,6 +61,15 @@ const {
       return payment;
     }),
     findById: vi.fn(async (id: string) => savedPayments.find((p) => p._id === id) ?? null),
+    findOne: vi.fn(async (filter: Record<string, unknown>) => {
+      // sec-002: support orgId-scoped lookup
+      const payment = savedPayments.find((p) => {
+        if (filter._id && p._id !== filter._id && p._id?.toString?.() !== filter._id?.toString?.()) return false;
+        if (filter.orgId && p.orgId?.toString?.() !== filter.orgId?.toString?.()) return false;
+        return true;
+      });
+      return payment ?? null;
+    }),
   };
 
   const InvoiceMock = {
@@ -258,6 +267,7 @@ describe("tap webhook route", () => {
     savedTransactions.push(existingTx);
     savedPayments.push({
       _id: "pay_existing",
+      orgId: new Types.ObjectId(orgId),
       status: "POSTED",
       refundReason: undefined,
       save: vi.fn(async function save() {

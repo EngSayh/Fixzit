@@ -10,18 +10,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/useI18n";
-import { LogOut, Settings, User } from "lucide-react";
+import { LogOut, Settings, User, Search, Sun, Moon, Bell, Command } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 import { logger } from "@/lib/logger";
 import dynamic from "next/dynamic";
 import { Select, SelectItem } from "@/components/ui/select";
 import { BrandLogo } from "@/components/brand";
+import { useThemeCtx } from "@/contexts/ThemeContext";
 import {
   LANGUAGE_OPTIONS,
   type LanguageOption,
 } from "@/config/language-options";
 import type { Locale } from "@/i18n/config";
+import { useSuperadminSession } from "./superadmin-session";
 
 const CurrencySelector = dynamic(
   () => import("@/components/i18n/CurrencySelector"),
@@ -70,48 +73,15 @@ function SuperadminLanguageDropdown() {
 export function SuperadminHeader() {
   const router = useRouter();
   const { t } = useI18n();
+  const { theme, setTheme } = useThemeCtx();
+  // BUG-001 FIX: Session now provided by server-side layout, no client fetch needed
+  const session = useSuperadminSession();
   const [loggingOut, setLoggingOut] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
-  const displayName = username?.trim() || t("superadmin.account");
-
-  // Fetch superadmin session on mount
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadSession = async () => {
-      try {
-        const response = await fetch("/api/superadmin/session", {
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          logger.warn("[SUPERADMIN] Session fetch failed", {
-            component: "SuperadminHeader",
-            action: "fetch-session",
-            status: response.status,
-          });
-          return;
-        }
-
-        const data = await response.json();
-        if (isMounted) {
-          const incoming = String(data?.user?.username ?? "").trim();
-          setUsername(incoming || null);
-        }
-      } catch (error) {
-        logger.error("[SUPERADMIN] Session fetch error", error, {
-          component: "SuperadminHeader",
-          action: "fetch-session",
-        });
-      }
-    };
-
-    void loadSession();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const [globalSearch, setGlobalSearch] = useState("");
+  const username = session?.user?.username?.trim() || null;
+  const displayName = username || t("superadmin.account");
+  const switchTenantLabel =
+    t("superadmin.switchTenant") || "Switch tenant";
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -143,10 +113,11 @@ export function SuperadminHeader() {
     <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6">
       {/* Title */}
       <div className="flex items-center gap-3">
-        <Link
-          href="/"
+        <button
+          onClick={() => router.push("/superadmin/tenants")}
           className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-700 hover:bg-slate-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-600"
-          aria-label={t("footer.backHome")}
+          aria-label={switchTenantLabel}
+          type="button"
         >
           <BrandLogo
             size="sm"
@@ -154,7 +125,7 @@ export function SuperadminHeader() {
             className="rounded-lg"
             priority
           />
-        </Link>
+        </button>
         <div>
           <h1 className="text-white font-semibold text-lg">
             {t("superadmin.title")}
@@ -165,7 +136,44 @@ export function SuperadminHeader() {
         </div>
       </div>
 
-      {/* Actions */}
+      {/* AcGlobal Search with Cmd+K hint */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            type="text"
+            placeholder="Search..."
+            value={globalSearch}
+            onChange={(e) => setGlobalSearch(e.target.value)}
+            className="pl-10 pr-16 w-64 h-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+          />
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded border border-slate-600">
+            <Command className="inline h-3 w-3" />K
+          </kbd>
+        </div>
+
+        {/* Theme Toggle */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          className="text-slate-300 hover:text-white"
+          title="Toggle theme"
+        >
+          {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+        </Button>
+
+        {/* Notifications Bell */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push("/superadmin/notifications")}
+          className="text-slate-300 hover:text-white relative"
+        >
+          <Bell className="h-4 w-4" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+        </Button>
+
+        {/* tions */}
       <div className="flex items-center gap-3">
         {/* Language Selector (dropdown with flags) */}
         <SuperadminLanguageDropdown />

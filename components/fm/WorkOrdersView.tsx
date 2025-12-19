@@ -12,9 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import {
   Dialog,
@@ -32,10 +30,18 @@ import {
   CheckCircle2,
   AlertCircle,
   ShieldAlert,
+  Filter,
 } from "lucide-react";
 import { WorkOrderPriority } from "@/lib/sla";
 import ClientDate from "@/components/ClientDate";
 import { getWorkOrderStatusLabel } from "@/lib/work-orders/status";
+import { TableSkeleton } from "@/components/tables/TableSkeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Chip } from "@/components/ui/chip";
+import { TableToolbar } from "@/components/tables/TableToolbar";
+import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
+import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
+import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 
 const statusStyles: Record<string, string> = {
   SUBMITTED: "bg-warning/10 text-warning border border-warning/20",
@@ -205,6 +211,10 @@ export function WorkOrdersView({
   const [priorityFilter, setPriorityFilter] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [density, setDensity] = useState<"comfortable" | "compact">(
+    "comfortable",
+  );
 
   useEffect(() => {
     if (!clientReady) {
@@ -253,7 +263,9 @@ export function WorkOrdersView({
     "All Priorities",
   );
   const refreshLabel = t("workOrders.list.filters.refresh", "Refresh");
-  const loadingLabel = t("workOrders.list.loading", "Loading work orders…");
+  const retryLabel = t("common.retry", "Retry");
+  const filtersLabel = t("workOrders.list.filters.title", "Filters");
+  // const loadingLabel = t("workOrders.list.loading", "Loading work orders…"); // unused
   const propertyLabel = t("workOrders.list.labels.property", "Property:");
   const assignedLabel = t("workOrders.list.labels.assigned", "Assigned to:");
   const categoryLabel = t("workOrders.list.labels.category", "Category:");
@@ -278,6 +290,81 @@ export function WorkOrdersView({
     "workOrders.list.searchPlaceholder",
     "Search by title or description",
   );
+  const quickFilters = useMemo(
+    () => [
+      {
+        key: "submitted",
+        label: t("workOrders.list.quick.submitted", "Submitted"),
+        status: "SUBMITTED",
+      },
+      {
+        key: "in-progress",
+        label: t("workOrders.list.quick.inProgress", "In Progress"),
+        status: "IN_PROGRESS",
+      },
+      {
+        key: "completed",
+        label: t("workOrders.list.quick.completed", "Completed"),
+        status: "COMPLETED",
+      },
+      {
+        key: "high-priority",
+        label: t("workOrders.list.quick.highPriority", "High Priority"),
+        status: "",
+        priority: "HIGH",
+      },
+    ],
+    [t],
+  );
+
+  const activeFilters = useMemo(() => {
+    const filters: { key: string; label: string; onRemove: () => void }[] = [];
+    if (statusFilter) {
+      filters.push({
+        key: "status",
+        label: `${statusPlaceholder}: ${getWorkOrderStatusLabel(
+          t,
+          statusFilter,
+        )}`,
+        onRemove: () => {
+          setStatusFilter("");
+          setPage(1);
+        },
+      });
+    }
+    if (priorityFilter) {
+      filters.push({
+        key: "priority",
+        label: `${priorityPlaceholder}: ${getPriorityLabelText(
+          t,
+          priorityFilter as WorkOrderPriority,
+        )}`,
+        onRemove: () => {
+          setPriorityFilter("");
+          setPage(1);
+        },
+      });
+    }
+    if (search) {
+      filters.push({
+        key: "search",
+        label: `${t("common.search", "Search")}: ${search}`,
+        onRemove: () => {
+          setSearchInput("");
+          setSearch("");
+          setPage(1);
+        },
+      });
+    }
+    return filters;
+  }, [priorityFilter, priorityPlaceholder, search, statusFilter, statusPlaceholder, t]);
+
+  const cardHeaderClass =
+    density === "compact"
+      ? "flex flex-col gap-1 pb-3 sm:flex-row sm:items-start sm:justify-between"
+      : "flex flex-col gap-2 pb-4 sm:flex-row sm:items-start sm:justify-between";
+  const cardContentClass =
+    density === "compact" ? "space-y-2" : "space-y-3";
 
   return (
     <div className="space-y-6">
@@ -292,67 +379,207 @@ export function WorkOrdersView({
       </div>
 
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder={searchPlaceholder}
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                className="ps-9"
-              />
-            </div>
+        <CardContent className="space-y-4 pt-6">
+          <TableToolbar
+            start={
+              <>
+                <div className="relative w-full max-w-xl">
+                  <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder={searchPlaceholder}
+                    value={searchInput}
+                    onChange={(event) => setSearchInput(event.target.value)}
+                    className="ps-9"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {quickFilters.map((filter) => {
+                    const selectedStatus = statusFilter === filter.status;
+                    const selectedPriority =
+                      (filter.priority && priorityFilter === filter.priority) ||
+                      (!filter.priority && !priorityFilter);
+                    const selected = selectedStatus && selectedPriority;
+                    return (
+                      <Chip
+                        key={filter.key}
+                        size="sm"
+                        selected={selected}
+                        onClick={() => {
+                          setStatusFilter(filter.status);
+                          if (filter.priority) {
+                            setPriorityFilter(filter.priority);
+                          } else {
+                            setPriorityFilter("");
+                          }
+                          setPage(1);
+                        }}
+                      >
+                        {filter.label}
+                      </Chip>
+                    );
+                  })}
+                </div>
+              </>
+            }
+            end={
+              <div className="flex flex-wrap items-center gap-3">
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    setStatusFilter(value);
+                    setPage(1);
+                  }}
+                  placeholder={statusPlaceholder}
+                  className="min-w-[160px]"
+                >
+                  <SelectItem value="">{statusAllLabel}</SelectItem>
+                  {STATUS_OPTIONS.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {getWorkOrderStatusLabel(t, status)}
+                    </SelectItem>
+                  ))}
+                </Select>
+                <Select
+                  value={priorityFilter}
+                  onValueChange={(value) => {
+                    setPriorityFilter(value);
+                    setPage(1);
+                  }}
+                  placeholder={priorityPlaceholder}
+                  className="min-w-[160px]"
+                >
+                  <SelectItem value="">{priorityAllLabel}</SelectItem>
+                  {PRIORITY_OPTIONS.map((priority) => (
+                    <SelectItem key={priority} value={priority}>
+                      {getPriorityLabelText(t, priority)}
+                    </SelectItem>
+                  ))}
+                </Select>
+                <TableDensityToggle
+                  density={density}
+                  onChange={(next) => setDensity(next)}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => setFilterDrawerOpen(true)}
+                >
+                  <Filter className="me-2 h-4 w-4" />
+                  {filtersLabel}
+                  {activeFilters.length > 0
+                    ? ` (${activeFilters.length})`
+                    : ""}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => mutate()}
+                  disabled={isValidating}
+                >
+                  <RefreshCcw
+                    className={`me-2 h-4 w-4 ${isValidating ? "animate-spin" : ""}`}
+                  />
+                  {refreshLabel}
+                </Button>
+              </div>
+            }
+          />
+          <ActiveFiltersChips
+            filters={activeFilters}
+            onClearAll={() => {
+              setStatusFilter("");
+              setPriorityFilter("");
+              setSearch("");
+              setSearchInput("");
+              setPage(1);
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <TableFilterDrawer
+        open={filterDrawerOpen}
+        onOpenChange={setFilterDrawerOpen}
+        title={filtersLabel}
+        description={t(
+          "workOrders.list.filters.description",
+          "Refine results by status, priority, or search",
+        )}
+        footer={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStatusFilter("");
+                setPriorityFilter("");
+                setSearch("");
+                setSearchInput("");
+                setPage(1);
+                setFilterDrawerOpen(false);
+              }}
+            >
+              {t("common.reset", "Reset")}
+            </Button>
+            <Button
+              onClick={() => {
+                setPage(1);
+                setFilterDrawerOpen(false);
+              }}
+            >
+              {t("common.apply", "Apply")}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              {t("common.search", "Search")}
+            </label>
+            <Input
+              placeholder={searchPlaceholder}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              {statusPlaceholder}
+            </label>
             <Select
               value={statusFilter}
               onValueChange={(value) => {
                 setStatusFilter(value);
                 setPage(1);
               }}
-              placeholder={statusPlaceholder}
-              className="lg:w-48"
             >
-              <SelectContent>
-                <SelectItem value="">{statusAllLabel}</SelectItem>
-                {STATUS_OPTIONS.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {getWorkOrderStatusLabel(t, status)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              <SelectItem value="">{statusAllLabel}</SelectItem>
+              {STATUS_OPTIONS.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {getWorkOrderStatusLabel(t, status)}
+                </SelectItem>
+              ))}
             </Select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              {priorityPlaceholder}
+            </label>
             <Select
               value={priorityFilter}
               onValueChange={(value) => {
                 setPriorityFilter(value);
                 setPage(1);
               }}
-              placeholder={priorityPlaceholder}
-              className="lg:w-40"
             >
-              <SelectContent>
-                <SelectItem value="">{priorityAllLabel}</SelectItem>
-                {PRIORITY_OPTIONS.map((priority) => (
-                  <SelectItem key={priority} value={priority}>
-                    {getPriorityLabelText(t, priority)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              <SelectItem value="">{priorityAllLabel}</SelectItem>
+              {PRIORITY_OPTIONS.map((priority) => (
+                <SelectItem key={priority} value={priority}>
+                  {getPriorityLabelText(t, priority)}
+                </SelectItem>
+              ))}
             </Select>
-            <Button
-              variant="outline"
-              className="lg:ms-auto"
-              onClick={() => mutate()}
-              disabled={isValidating}
-            >
-              <RefreshCcw
-                className={`me-2 h-4 w-4 ${isValidating ? "animate-spin" : ""}`}
-              />
-              {refreshLabel}
-            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </TableFilterDrawer>
 
       {error && (
         <Card className="border-destructive/20 bg-destructive/10">
@@ -364,12 +591,10 @@ export function WorkOrdersView({
 
       <div className="space-y-4">
         {isLoading && !data ? (
-          <Card className="border border-dashed">
-            <CardContent className="flex items-center gap-3 py-16 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              {loadingLabel}
-            </CardContent>
-          </Card>
+          <div aria-live="polite">
+            <p className="sr-only">Loading work orders</p>
+            <TableSkeleton rows={6} />
+          </div>
         ) : null}
 
         {workOrders.map((workOrder, index) => {
@@ -396,7 +621,7 @@ export function WorkOrdersView({
           const attachmentCount = workOrder.attachments?.length || 0;
           return (
             <Card key={workOrderKey} className="border border-border shadow-sm">
-              <CardHeader className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-start sm:justify-between">
+              <CardHeader className={cardHeaderClass}>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <CardTitle className="text-lg font-semibold text-foreground">
@@ -451,7 +676,7 @@ export function WorkOrdersView({
                   </p>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className={cardContentClass}>
                 {workOrder.description && (
                   <p className="text-sm text-foreground">
                     {workOrder.description}
@@ -568,12 +793,16 @@ export function WorkOrdersView({
       </div>
 
       {!isLoading && workOrders.length === 0 && !error && (
-        <Card className="border border-border">
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <p className="font-medium text-foreground">{emptyTitle}</p>
-            <p className="text-sm">{emptySubtitle}</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title={emptyTitle}
+          description={emptySubtitle}
+          action={
+            <Button onClick={() => mutate()}>
+              <RefreshCcw className="me-2 h-4 w-4" />
+              {retryLabel}
+            </Button>
+          }
+        />
       )}
 
       <div className="flex flex-col items-center gap-3 border-t pt-4 sm:flex-row sm:justify-between">
@@ -742,25 +971,22 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
               </label>
               <Select
                 value={form.priority}
-                onValueChange={(value) => {
-                  if (isWorkOrderPriority(value)) {
-                    setForm((prev) => ({ ...prev, priority: value }));
-                  }
-                }}
-                placeholder={t(
-                  "workOrders.create.form.priorityPlaceholder",
-                  "Select priority",
-                )}
-              >
-                <SelectTrigger></SelectTrigger>
-                <SelectContent>
-                  {PRIORITY_OPTIONS.map((priority) => (
-                    <SelectItem key={priority} value={priority}>
-                      {getPriorityLabelText(t, priority)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              onValueChange={(value) => {
+                if (isWorkOrderPriority(value)) {
+                  setForm((prev) => ({ ...prev, priority: value }));
+                }
+              }}
+              placeholder={t(
+                "workOrders.create.form.priorityPlaceholder",
+                "Select priority",
+              )}
+            >
+              {PRIORITY_OPTIONS.map((priority) => (
+                <SelectItem key={priority} value={priority}>
+                  {getPriorityLabelText(t, priority)}
+                </SelectItem>
+              ))}
+            </Select>
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">

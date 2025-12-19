@@ -3,6 +3,8 @@
  * Tests the new unified MongoDB connection implementation
  */
 
+import { describe, test, expect } from "vitest";
+
 describe("MongoDB Unified Connection", () => {
   test("MongoDB unified module should be available", async () => {
     // Test that the MongoDB unified module can be imported without errors

@@ -87,10 +87,13 @@ export async function serverFetchWithTenant(path: string, init?: RequestInit) {
         "Unable to reach marketplace services. Please try again shortly.",
       devMessage: `Request failed: ${response.status} ${response.statusText} for ${url}`,
       correlationId,
+      status: response.status,
     };
 
     logger.error("[MarketplaceFetch] request failed", errorPayload);
-    throw new Error(JSON.stringify(errorPayload));
+    const err = new Error(JSON.stringify(errorPayload));
+    (err as Error & { status?: number }).status = response.status;
+    throw err;
   }
 
   return response;

@@ -55,7 +55,7 @@ vi.mock('@/components/marketplace/ProductCard', () => ({
 
 // We will import the page under test via its route path if available.
 // If your repository locates the page at app/marketplace/page.tsx, adjust the import path accordingly.
-import MarketplacePage from '../../app/marketplace/page'; // Adjust this path to match your project structure.
+import MarketplacePage from '../../app/(app)/marketplace/page'; // Adjusted to match Next.js route groups
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 type Product = {

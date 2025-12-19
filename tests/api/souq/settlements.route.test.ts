@@ -5,9 +5,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+type SessionUser = {
+  id?: string;
+  orgId?: string;
+  role?: string;
+  subRole?: string;
+  isSuperAdmin?: boolean;
+};
+let sessionUser: SessionUser | null = null;
+
 // Mock authentication
 vi.mock("@/auth", () => ({
-  auth: vi.fn(),
+  auth: vi.fn(async () => {
+    if (!sessionUser) return null;
+    return { user: sessionUser };
+  }),
 }));
 
 // Mock database connection
@@ -50,19 +62,19 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { auth } from "@/auth";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { GET } from "@/app/api/souq/settlements/route";
 
 describe("API /api/souq/settlements", () => {
   beforeEach(() => {
+    sessionUser = null;
     vi.clearAllMocks();
   });
 
   describe("GET - List Settlements", () => {
     it("returns 401 when user is not authenticated", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue(null);
+      sessionUser = null;
 
       const req = new NextRequest("http://localhost:3000/api/souq/settlements");
       const res = await GET(req);
@@ -85,9 +97,7 @@ describe("API /api/souq/settlements", () => {
 
     it("returns 403 when orgId is missing", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123", role: "SELLER" },
-      } as never);
+      sessionUser = { id: "user-123", role: "SELLER" };
 
       const req = new NextRequest("http://localhost:3000/api/souq/settlements");
       const res = await GET(req);
@@ -97,14 +107,12 @@ describe("API /api/souq/settlements", () => {
 
     it("returns settlements for authenticated seller", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue({
-        user: {
-          id: "user-123",
-          orgId: "507f1f77bcf86cd799439011",
-          role: "SELLER",
-          subRole: "SELLER",
-        },
-      } as never);
+      sessionUser = {
+        id: "user-123",
+        orgId: "507f1f77bcf86cd799439011",
+        role: "SELLER",
+        subRole: "SELLER",
+      };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/settlements?sellerId=seller-123"
@@ -117,13 +125,11 @@ describe("API /api/souq/settlements", () => {
 
     it("requires targetOrgId for super admin without session org", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue({
-        user: {
-          id: "admin-123",
-          role: "SUPER_ADMIN",
-          isSuperAdmin: true,
-        },
-      } as never);
+      sessionUser = {
+        id: "admin-123",
+        role: "SUPER_ADMIN",
+        isSuperAdmin: true,
+      };
 
       const req = new NextRequest("http://localhost:3000/api/souq/settlements");
       const res = await GET(req);
@@ -135,13 +141,11 @@ describe("API /api/souq/settlements", () => {
 
     it("supports pagination parameters", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue({
-        user: {
-          id: "user-123",
-          orgId: "507f1f77bcf86cd799439011",
-          role: "SELLER",
-        },
-      } as never);
+      sessionUser = {
+        id: "user-123",
+        orgId: "507f1f77bcf86cd799439011",
+        role: "SELLER",
+      };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/settlements?sellerId=s1&page=2&limit=20"
@@ -153,13 +157,11 @@ describe("API /api/souq/settlements", () => {
 
     it("supports status filter", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
-      vi.mocked(auth).mockResolvedValue({
-        user: {
-          id: "user-123",
-          orgId: "507f1f77bcf86cd799439011",
-          role: "ADMIN",
-        },
-      } as never);
+      sessionUser = {
+        id: "user-123",
+        orgId: "507f1f77bcf86cd799439011",
+        role: "ADMIN",
+      };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/settlements?status=COMPLETED&sellerId=s1"

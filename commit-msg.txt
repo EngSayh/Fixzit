@@ -1,0 +1,48 @@
+fix(tests): Vitest harness stabilization + tenant guard + syntax cleanup (FIX-001/006/007)
+
+CRITICAL TEST FIXES (100% Execution Mode - Session 2025-12-18T00:00)
+══════════════════════════════════════════════════════════════════
+
+FIX-001 (REAPPLIED): Vitest Worker Isolation
+────────────────────────────────────────────
+Problem: vitest.config.ts STILL had singleThread:true (285+ test failures)
+Root Cause: Previous session claimed fix but code was never changed OR reverted
+Fix: Restored bounded threads (minThreads:1, maxThreads:4) at sharedProjectConfig
+Impact: Unblocks full test suite (target <50 failures from 285)
+Evidence: aggregateWithTenantScope tests 6/6 passing
+Files: vitest.config.ts:21-26
+
+FIX-006: Tenant Guard Validation Strengthening (SECURITY)
+──────────────────────────────────────────────────────────
+Problem: aggregateWithTenantScope accepted empty string orgId → tenant leak
+Previous: if (!orgId) check (empty string passes)
+Fix: Added typeof and trim() checks to reject empty/whitespace
+Impact: Zero-tolerance tenant isolation enforcement
+Files: lib/db/aggregateWithTenantScope.ts:25-27
+
+FIX-007: Syntax Error Cleanup (ProductsList + PropertiesList)
+──────────────────────────────────────────────────────────────
+Problem: Orphaned filter code causing TS1128/TS1005 errors (14 errors)
+Root Cause: Incomplete deletion during parallel agent filter refactoring
+Fix: Removed duplicate filters.push() blocks between quickChips and columns
+Impact: TypeScript 0 errors
+Files: 
+  - components/marketplace/ProductsList.tsx (removed 45 lines)
+  - components/aqar/PropertiesList.tsx (removed 70 lines)
+
+VERIFICATION:
+- pnpm typecheck → 0 errors (was 14+ syntax errors)
+- aggregateWithTenantScope.test.ts → 6/6 passing
+- marketplace/cart.route.test.ts → 8/8 passing
+
+INVESTIGATION FINDINGS (Code Already Correct):
+- Marketplace context: ALREADY has VITEST guard (lines 98-110)
+- Security monitoring: ALREADY checks VITEST_WORKER_ID (line 260)
+- vitest.setup.ts: ALREADY has connection guards (lines 555-575)
+- Filter components: 6 components refactored by parallel agent (GOOD)
+
+PARALLEL AGENT WORK (Included):
+- Extracted query builders from 6 list components (testability improvement)
+- Added 3 test files for component testing
+
+Evidence: docs/PENDING_MASTER.md updated to 2025-12-18T00:02

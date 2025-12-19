@@ -1,7 +1,8 @@
 // Global test setup for Vitest with Jest compatibility
 import React from "react";
 import { TextEncoder, TextDecoder } from "node:util";
-import { render } from "@testing-library/react";
+import { createServer } from "node:net";
+import { render, cleanup } from "@testing-library/react";
 import { SessionProvider } from "next-auth/react";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { vi, beforeAll, afterAll, afterEach } from "vitest";
@@ -9,7 +10,28 @@ import "@testing-library/jest-dom/vitest";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
+import {
+  fetch as undiciFetch,
+  Request as UndiciRequest,
+  Response as UndiciResponse,
+  Headers as UndiciHeaders,
+} from "undici";
 import { logger } from "@/lib/logger";
+
+// Ensure all MongoMemoryServer instances get a generous startup timeout (default 60s)
+const DEFAULT_MONGO_MEMORY_TIMEOUT = Number(
+  process.env.MONGOMS_INSTANCE_TIMEOUT ?? "60000",
+);
+const originalMongoMemoryCreate = MongoMemoryServer.create.bind(
+  MongoMemoryServer,
+);
+MongoMemoryServer.create = async (opts: Parameters<typeof MongoMemoryServer.create>[0] = {}) => {
+  const instance = {
+    launchTimeout: DEFAULT_MONGO_MEMORY_TIMEOUT,
+    ...(opts?.instance ?? {}),
+  };
+  return originalMongoMemoryCreate({ ...opts, instance });
+};
 
 // Polyfill TextEncoder/TextDecoder for environments where global objects are missing
 if (typeof globalThis.TextEncoder === "undefined") {
@@ -28,9 +50,27 @@ Object.defineProperty(globalThis, 'jest', {
   configurable: true,
 });
 
+if (!process.env.MONGO_MEMORY_LAUNCH_TIMEOUT) {
+  process.env.MONGO_MEMORY_LAUNCH_TIMEOUT = "20000";
+}
+
 const MONGO_MEMORY_LAUNCH_TIMEOUT_MS = Number(
   process.env.MONGO_MEMORY_LAUNCH_TIMEOUT ?? "60000",
 );
+
+function ensureMongoMemoryEnv() {
+  if (!process.env.MONGOMS_TIMEOUT) {
+    process.env.MONGOMS_TIMEOUT = `${MONGO_MEMORY_LAUNCH_TIMEOUT_MS}`;
+  }
+  if (!process.env.MONGOMS_DOWNLOAD_TIMEOUT) {
+    process.env.MONGOMS_DOWNLOAD_TIMEOUT = `${MONGO_MEMORY_LAUNCH_TIMEOUT_MS}`;
+  }
+  if (!process.env.MONGOMS_START_TIMEOUT) {
+    process.env.MONGOMS_START_TIMEOUT = `${MONGO_MEMORY_LAUNCH_TIMEOUT_MS}`;
+  }
+}
+
+ensureMongoMemoryEnv();
 
 if (!process.env.SKIP_ENV_VALIDATION) {
   process.env.SKIP_ENV_VALIDATION = "true";
@@ -39,6 +79,49 @@ if (!process.env.SKIP_ENV_VALIDATION) {
 if (!process.env.NEXTAUTH_SECRET) {
   process.env.NEXTAUTH_SECRET = "test-nextauth-secret";
 }
+
+// Vitest should run under NODE_ENV=test so request-session helpers bypass NextAuth
+Reflect.set(process.env, "NODE_ENV", "test");
+
+// Ensure fetch/Request/Response are present in worker threads (Node pools can omit them)
+const ensureFetchGlobals = () => {
+  if (typeof globalThis.fetch !== "function") {
+    globalThis.fetch = undiciFetch as unknown as typeof globalThis.fetch;
+  }
+  if (typeof globalThis.Request === "undefined") {
+    globalThis.Request = UndiciRequest as unknown as typeof globalThis.Request;
+  }
+  if (typeof globalThis.Response === "undefined") {
+    globalThis.Response =
+      UndiciResponse as unknown as typeof globalThis.Response;
+  }
+  if (typeof globalThis.Headers === "undefined") {
+    globalThis.Headers = UndiciHeaders as unknown as typeof globalThis.Headers;
+  }
+};
+
+ensureFetchGlobals();
+
+// Prevent third-party tests from force-closing the shared mongoose connection mid-run
+const realDisconnect = mongoose.disconnect.bind(mongoose);
+const realClose = mongoose.connection.close.bind(mongoose.connection);
+const allowDisconnect = () => process.env.VITEST_ALLOW_DISCONNECT === "true";
+
+mongoose.disconnect = async (...args: unknown[]) => {
+  if (allowDisconnect()) {
+    return realDisconnect(...(args as []));
+  }
+  logger.warn("[MongoMemory] Suppressing mongoose.disconnect in tests");
+  return;
+};
+
+mongoose.connection.close = async (...args: unknown[]) => {
+  if (allowDisconnect()) {
+    return realClose(...(args as []));
+  }
+  logger.warn("[MongoMemory] Suppressing mongoose.connection.close in tests");
+  return;
+};
 
 // Prevent jsdom "navigation to another Document" warnings in tests that click anchors
 const originalLocation =
@@ -430,19 +513,41 @@ globalThis.fetch = mockFetch;
 const isJsdomEnv = typeof window !== "undefined" && typeof document !== "undefined";
 const forceMongo =
   process.env.SKIP_GLOBAL_MONGO === "false" || process.env.FORCE_GLOBAL_MONGO === "true";
-// Default: skip MongoMemoryServer in jsdom unless explicitly forced via env above.
-const shouldUseInMemoryMongo = forceMongo || (!isJsdomEnv && process.env.SKIP_GLOBAL_MONGO !== "true");
+const skipGlobalMongo = isJsdomEnv && process.env.SKIP_GLOBAL_MONGO === "true";
+// Default: always enable MongoMemoryServer for node/server tests; allow opt-out only for jsdom via env.
+const shouldUseInMemoryMongo = forceMongo || !isJsdomEnv || !skipGlobalMongo;
 let mongoServer: MongoMemoryServer | undefined;
+let mongoUriRef: string | undefined;
+let shuttingDownMongo = false;
 const mongoStartAttempts = Number(process.env.MONGO_MEMORY_ATTEMPTS || "3");
+
+async function getAvailablePort(): Promise<number> {
+  return await new Promise((resolve, reject) => {
+    const server = createServer();
+    server.unref();
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (typeof address === "object" && address?.port) {
+        const { port } = address;
+        server.close(() => resolve(port));
+      } else {
+        server.close(() => reject(new Error("Failed to acquire port")));
+      }
+    });
+  });
+}
 
 async function startMongoMemoryServer() {
   for (let attempt = 1; attempt <= mongoStartAttempts; attempt++) {
     try {
+      const port = await getAvailablePort();
       mongoServer = await MongoMemoryServer.create({
         instance: {
           dbName: "fixzit-test",
           launchTimeout: MONGO_MEMORY_LAUNCH_TIMEOUT_MS,
-          port: 0, // let the server choose a free port
+          port,
+          ip: "127.0.0.1",
         },
       });
       return mongoServer;
@@ -451,7 +556,9 @@ async function startMongoMemoryServer() {
         _error instanceof Error ? _error : new Error(String(_error));
       const message = error.message || "";
       const isPortInUse =
-        message.includes("Port") && message.includes("in use");
+        (message.includes("Port") && message.includes("in use")) ||
+        // Some MongoMemoryServer errors set code without the string message
+        (error as { code?: string }).code === "EADDRINUSE";
       if (isPortInUse && attempt < mongoStartAttempts) {
         logger.warn(
           `MongoMemoryServer port conflict (attempt ${attempt}). Retrying...`,
@@ -483,6 +590,7 @@ beforeAll(async () => {
     }
 
     const mongoUri = mongoServer.getUri();
+    mongoUriRef = mongoUri;
     process.env.MONGODB_URI = mongoUri;
     process.env.MONGODB_DB = "fixzit-test";
     // Ensure previous connections are closed before connecting
@@ -492,6 +600,22 @@ beforeAll(async () => {
     await mongoose.connect(mongoUri, {
       autoCreate: true,
       autoIndex: true,
+    });
+
+    // Reconnect guard: if the in-memory server drops the connection mid-suite,
+    // attempt a single reconnect to keep long-running server tests stable.
+    mongoose.connection.on("disconnected", async () => {
+      if (shuttingDownMongo) return;
+      if (!mongoUriRef) return;
+      try {
+        await mongoose.connect(mongoUriRef, {
+          autoCreate: true,
+          autoIndex: true,
+        });
+        logger.debug("[MongoMemory] Reconnected after disconnect");
+      } catch (err) {
+        logger.error("[MongoMemory] Reconnect failed after disconnect", err as Error);
+      }
     });
 
     logger.debug("✅ MongoDB Memory Server started:", { mongoUri });
@@ -505,13 +629,29 @@ beforeAll(async () => {
  * Clean up after each test to prevent data leakage between tests
  */
 afterEach(async () => {
-  if (!shouldUseInMemoryMongo || mongoose.connection.readyState !== 1) {
-    return;
+  const canCleanDb =
+    shouldUseInMemoryMongo && mongoose.connection.readyState === 1;
+
+  if (canCleanDb) {
+    // Clear all collections after each test; tolerate connection teardown between tests
+    const collections = mongoose.connection.collections;
+    for (const key in collections) {
+      try {
+        await collections[key].deleteMany({});
+      } catch (err) {
+        logger.warn("[MongoMemory] Skipping collection cleanup during teardown", {
+          collection: key,
+          error: (err as Error)?.message,
+        });
+      }
+    }
   }
-  // Clear all collections after each test
-  const collections = mongoose.connection.collections;
-  for (const key in collections) {
-    await collections[key].deleteMany({});
+
+  // Always clean the DOM between jsdom suites to avoid duplicate testid collisions
+  try {
+    cleanup();
+  } catch {
+    // Ignore if cleanup not available in node environments
   }
 });
 
@@ -523,6 +663,7 @@ afterAll(async () => {
     return;
   }
   try {
+    shuttingDownMongo = true;
     // Clear all models before closing connection using proper Mongoose API
     if (mongoose.connection && mongoose.connection.models) {
       const modelNames = Object.keys(mongoose.connection.models);

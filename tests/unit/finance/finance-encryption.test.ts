@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
+import { startMongoMemoryServer } from "../../helpers/mongoMemory";
 import { generateEncryptionKey, isEncrypted } from "@/lib/security/encryption";
 import {
   setAuditContext,
@@ -104,6 +105,8 @@ describe("Finance Model PII Encryption", () => {
   const testKey = generateEncryptionKey();
 
   beforeAll(async () => {
+    // Allow reconnect to dedicated MongoMemoryServer for this suite
+    Reflect.set(process.env, "VITEST_ALLOW_DISCONNECT", "true");
     // Set encryption key
     process.env.ENCRYPTION_KEY = testKey;
 
@@ -113,16 +116,19 @@ describe("Finance Model PII Encryption", () => {
     }
 
     // Start in-memory MongoDB
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await startMongoMemoryServer({ launchTimeoutMs: 60_000 });
     const uri = mongoServer.getUri();
     await mongoose.connect(uri);
     setAuditContext({ userId: new mongoose.Types.ObjectId() });
   });
 
   afterAll(async () => {
+    Reflect.set(process.env, "VITEST_ALLOW_DISCONNECT", "true");
     clearAuditContext();
     await mongoose.disconnect();
-    await mongoServer.stop();
+    if (mongoServer?.stop) {
+      await mongoServer.stop();
+    }
     delete process.env.ENCRYPTION_KEY;
   });
 

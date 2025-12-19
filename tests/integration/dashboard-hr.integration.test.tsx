@@ -19,14 +19,14 @@ vi.mock("@/lib/counters", () => ({
 }));
 
 // Mock HR dashboard page to enforce RTL and render Arabic header deterministically
-vi.mock("@/app/dashboard/hr/page", () => ({
+vi.mock("@/app/(fm)/dashboard/hr/page", () => ({
   default: () => {
     document.documentElement.dir = "rtl";
     return <h1>الموارد البشرية</h1>;
   },
 }));
 
-import HRDashboard from "@/app/dashboard/hr/page";
+import HRDashboard from "@/app/(fm)/dashboard/hr/page";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 

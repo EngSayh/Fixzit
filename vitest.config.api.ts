@@ -31,6 +31,23 @@ const mongoRequiredTests = [
 const nodeOnlyTests = [
   "tests/unit/middleware.test.ts",
   "tests/unit/marketplace/context.test.ts",
+  "tests/unit/server/**/*.test.{ts,tsx}",
+  "tests/server/**/*.test.{ts,tsx}",
+  "tests/unit/lib/mongo.test.ts",
+  "tests/unit/server/services/**/*.test.{ts,tsx}",
+  "tests/unit/server/config/**/*.test.{ts,tsx}",
+  "tests/debug/**/*.test.{ts,tsx}",
+  "tests/finance/unit/**/*.test.{ts,tsx}",
+  "tests/services/**/*.test.{ts,tsx}",
+  "tests/unit/services/**/*.test.{ts,tsx}",
+  "tests/unit/lib/db/**/*.test.{ts,tsx}",
+  // Queue tests rely on Node-only stubs and Mongo; keep them out of jsdom runs
+  "tests/unit/lib/queues/*.test.{ts,tsx}",
+  "tests/unit/lib/queues/**/*.test.{ts,tsx}",
+  "tests/unit/lib/sms-queue.test.ts",
+  "tests/services/souq/settlements/payout-processor.test.ts",
+  "tests/unit/returns/**/*.test.{ts,tsx}",
+  "tests/vitest.config.test.ts",
 ];
 
 const sharedProjectConfig = {
@@ -58,6 +75,8 @@ const sharedViteConfig = {
     alias: {
       "@": path.resolve(__dirname),
       "next/server": "next/server.js",
+      // Stub bullmq in non-node pools
+      bullmq: path.resolve(__dirname, "lib/stubs/bullmq.ts"),
     },
   },
 };
@@ -74,7 +93,14 @@ export default defineConfig({
           environment: "jsdom",
           setupFiles: ["./tests/setup.ts"],
           include: ["**/*.test.ts", "**/*.test.tsx"],
-          exclude: [...baseExcludes, ...mongoRequiredTests, ...nodeOnlyTests, "tests/**/api/**/*.test.{ts,tsx}"],
+          exclude: [
+            ...baseExcludes,
+            ...mongoRequiredTests,
+            ...nodeOnlyTests,
+            "tests/**/api/**/*.test.{ts,tsx}",
+            "tests/**/server/**/*.test.{ts,tsx}",
+            "tests/server/**/*.test.{ts,tsx}",
+          ],
         },
       }),
       defineProject({
@@ -84,7 +110,15 @@ export default defineConfig({
           name: "server",
           environment: "node",
           setupFiles: ["./vitest.setup.ts"],
-          include: nodeOnlyTests,
+          include: [
+            ...nodeOnlyTests,
+            "tests/**/api/**/*.test.{ts,tsx}",
+            "tests/**/server/**/*.test.{ts,tsx}",
+            "tests/**/models/**/*.test.{ts,tsx}",
+            "tests/models/**/*.test.{ts,tsx}",
+            "tests/unit/middleware.test.ts",
+            "tests/unit/middleware-edge-cases.test.ts",
+          ],
           exclude: baseExcludes,
         },
       }),

@@ -3,6 +3,7 @@ import CheckoutForm from "@/components/marketplace/CheckoutForm";
 import Link from "next/link";
 import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
 import { getServerI18n } from "@/lib/i18n/server";
+import { SavedCartBanner } from "@/components/marketplace/SavedCartBanner";
 
 export const dynamic = 'force-dynamic';
 
@@ -113,22 +114,60 @@ export default async function CheckoutPage() {
       </div>
     );
   } catch (error) {
+    const status =
+      (error as Error & { status?: number })?.status ??
+      (() => {
+        try {
+          const parsed = JSON.parse((error as Error).message || "{}");
+          return parsed.status;
+        } catch {
+          return undefined;
+        }
+      })();
+    const unauthorized = status === 401 || status === 403;
     logger.error("Failed to load checkout page data", { error });
     return (
-      <div className="min-h-screen bg-muted flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-destructive">
-            {t(
-              "marketplace.checkout.error.message",
-              "Failed to load cart data. Please try again later.",
-            )}
+      <div className="min-h-screen bg-muted flex items-center justify-center px-4">
+        <div className="w-full max-w-xl space-y-4 rounded-2xl bg-card p-6 text-center shadow">
+          <p className="text-lg font-semibold text-foreground">
+            {unauthorized
+              ? t(
+                  "marketplace.checkout.auth.required.title",
+                  "Sign in to checkout",
+                )
+              : t(
+                  "marketplace.checkout.error.message",
+                  "Failed to load cart data. Please try again later.",
+                )}
           </p>
-          <Link
-            href="/marketplace/cart"
-            className="mt-4 inline-block text-primary hover:underline"
-          >
-            {t("marketplace.checkout.error.cta", "Return to Cart")}
-          </Link>
+          <p className="text-sm text-muted-foreground">
+            {unauthorized
+              ? t(
+                  "marketplace.checkout.auth.required.body",
+                  "We saved your cart. Sign in to restore and submit for approval.",
+                )
+              : t(
+                  "marketplace.checkout.error.body",
+                  "If the issue persists, please contact support or retry.",
+                )}
+          </p>
+          <div className="flex justify-center gap-2">
+            <Link
+              href={unauthorized ? "/login" : "/marketplace/cart"}
+              className="inline-flex rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+            >
+              {unauthorized
+                ? t("marketplace.checkout.auth.required.login", "Sign in")
+                : t("marketplace.checkout.error.cta", "Return to Cart")}
+            </Link>
+            <Link
+              href="/marketplace"
+              className="inline-flex rounded-full border border-primary/20 px-5 py-2 text-sm font-semibold text-primary hover:bg-primary/10"
+            >
+              {t("marketplace.checkout.error.browse", "Browse catalogue")}
+            </Link>
+          </div>
+          {unauthorized && <SavedCartBanner />}
         </div>
       </div>
     );

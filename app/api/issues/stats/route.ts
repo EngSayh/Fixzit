@@ -278,9 +278,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(stats, { headers: ROBOTS_HEADER });
     
   } catch (error) {
-    logger.error('[Issues Stats] Error fetching stats', { error });
+    const correlationId =
+      error && typeof error === "object" && "correlationId" in error
+        ? (error as { correlationId?: string }).correlationId
+        : undefined;
+    logger.error("[Issues Stats] Error fetching stats", {
+      error,
+      correlationId,
+    });
     return NextResponse.json(
-      { error: 'Failed to fetch issue stats' },
+      {
+        error: "Failed to fetch issue stats",
+        ...(correlationId ? { correlationId } : {}),
+      },
       { status: 500, headers: ROBOTS_HEADER }
     );
   }

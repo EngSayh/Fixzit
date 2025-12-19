@@ -640,15 +640,26 @@ export async function middleware(request: NextRequest) {
 
   // Optional org requirement for FM
   if (matchesAnyRoute(pathname, fmRoutes)) {
-    // 🔒 PORTAL SEPARATION ESCAPE HATCH: Superadmin should never access /fm/* routes
-    // Redirect to superadmin area instead of creating a login loop
+    // 🔒 IMPERSONATION GUARD: Superadmin accessing tenant modules requires impersonation context (F5)
+    // Check for support_org_id cookie before allowing access to /fm/*, /finance/*, /hr/*, /properties/*, /work-orders/*
     if (user.isSuperAdmin) {
-      logger.warn('[Middleware] Superadmin attempted /fm/* access - redirecting to /superadmin/issues', {
+      const supportOrgId = sanitizedRequest.cookies.get('support_org_id')?.value;
+      
+      if (!supportOrgId) {
+        logger.warn('[Middleware] Superadmin attempted tenant module access without impersonation - redirecting to impersonate page', {
+          pathname,
+          userId: user.id,
+          clientIp,
+        });
+        return NextResponse.redirect(new URL(`/superadmin/impersonate?next=${encodeURIComponent(pathname)}`, sanitizedRequest.url));
+      }
+      
+      // Impersonation context active - allow access with x-user headers
+      logger.info('[Middleware] Superadmin accessing tenant module with impersonation', {
         pathname,
         userId: user.id,
-        clientIp,
+        impersonatedOrgId: supportOrgId,
       });
-      return NextResponse.redirect(new URL('/superadmin/issues', sanitizedRequest.url));
     }
     
     // Normal users require orgId for FM routes

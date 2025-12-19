@@ -8,6 +8,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { decryptProviderToken, buildProviderCandidates, checkOrgRateLimit } from "@/lib/queues/sms-queue";
 import { getRedisClient } from "@/lib/redis";
 
+// Mock bullmq to avoid resolution errors
+vi.mock("bullmq", () => ({
+  Queue: vi.fn(),
+  Worker: vi.fn(),
+}), { virtual: true });
+
 // Mock encryption to make decryptProviderToken deterministic
 vi.mock("@/lib/security/encryption", () => ({
   decryptField: vi.fn((value: string) => {

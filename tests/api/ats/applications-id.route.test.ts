@@ -60,6 +60,7 @@ vi.mock('@/server/utils/errorResponses', () => ({
 
 const ApplicationMock = {
   findById: vi.fn(),
+  findOne: vi.fn(),
   find: vi.fn(),
   countDocuments: vi.fn()
 };
@@ -91,7 +92,8 @@ describe('API /api/ats/applications/[id] PATCH', () => {
         seatUsage: 0,
       },
     });
-    ApplicationMock.findById.mockResolvedValue({
+    // Mock findOne (sec-002: route uses findOne with orgId filter)
+    ApplicationMock.findOne.mockResolvedValue({
       _id: 'app-1',
       stage: 'applied',
       orgId: 'org-1',

@@ -70,10 +70,16 @@ function isUnauthenticatedError(error: unknown): boolean {
 async function resolveUser(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
-    if (!user || !user.orgId || !ALLOWED_ROLES.has(user.role)) {
+    const normalizedRole = typeof user?.role === "string"
+      ? (user.role.toUpperCase() as UserRoleType)
+      : (user?.roles?.[0]?.toUpperCase() as UserRoleType | undefined);
+
+    if (!user || !user.orgId || !normalizedRole || !ALLOWED_ROLES.has(normalizedRole)) {
       return null;
     }
-    return user;
+
+    // Return user with normalized role to avoid case/alias drift
+    return { ...user, role: normalizedRole };
   } catch (error) {
     if (isUnauthenticatedError(error)) {
       return null;

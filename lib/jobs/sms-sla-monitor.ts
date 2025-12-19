@@ -12,6 +12,10 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SMSMessage, type ISMSMessage } from "@/server/models/SMSMessage";
 import { SMSSettings, type ISMSSettings } from "@/server/models/SMSSettings";
 import { sendEmail } from "@/lib/email";
+import {
+  validatePublicHttpsUrl,
+  isValidPublicHttpsUrl,
+} from "@/lib/security/validate-public-https-url";
 
 export interface SLABreachReport {
   totalChecked: number;
@@ -112,14 +116,19 @@ export async function processSLABreaches(): Promise<SLABreachReport> {
 /**
  * Send breach notification to org admins
  */
-async function sendBreachNotification(
+export async function sendBreachNotification(
   orgId: string,
   messages: ISMSMessage[]
 ): Promise<void> {
   // Get org-specific settings (or global)
-  const settings: ISMSSettings = orgId === "global"
+  const settings: ISMSSettings | undefined = orgId === "global"
     ? await SMSSettings.getEffectiveSettings()
     : await SMSSettings.getEffectiveSettings(orgId);
+
+  if (!settings) {
+    logger.warn("[SLA Monitor] No SMS settings found; skipping notifications", { orgId });
+    return;
+  }
 
   const notifyEmails = settings.slaBreachNotifyEmails || [];
 
@@ -179,9 +188,30 @@ async function sendBreachNotification(
   }
 
   // Send webhook notification if configured
-  if (settings.slaBreachNotifyWebhook) {
+  const webhook = settings.slaBreachNotifyWebhook;
+  let safeWebhook: string | undefined;
+  if (webhook) {
     try {
-      await fetch(settings.slaBreachNotifyWebhook, {
+      if (await isValidPublicHttpsUrl(webhook)) {
+        const parsed = await validatePublicHttpsUrl(webhook);
+        safeWebhook = parsed.toString();
+      } else {
+        logger.warn("[SLA Monitor] Webhook validation failed", {
+          webhook,
+          error: "Webhook must be a public HTTPS URL",
+        });
+      }
+    } catch (error) {
+      logger.warn("[SLA Monitor] Webhook validation failed", {
+        webhook,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  if (safeWebhook) {
+    try {
+      await fetch(safeWebhook, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -194,7 +224,7 @@ async function sendBreachNotification(
       });
     } catch (error) {
       logger.error("[SLA Monitor] Failed to send webhook", {
-        webhook: settings.slaBreachNotifyWebhook,
+        webhook: safeWebhook,
         error: error instanceof Error ? error.message : String(error),
       });
     }

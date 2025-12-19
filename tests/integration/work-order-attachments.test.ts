@@ -13,6 +13,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
+import { startMongoMemoryServer } from "../helpers/mongoMemory";
 describe("Work Order Attachment Flow", () => {
   let mongoServer: MongoMemoryServer;
   let testConnection: typeof mongoose;
@@ -32,7 +33,11 @@ describe("Work Order Attachment Flow", () => {
   };
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    // Increase startup timeout to avoid flakiness on slower CI hosts
+    mongoServer = await startMongoMemoryServer({
+      launchTimeoutMs: 60_000,
+      instance: { port: 0 },
+    });
     const uri = mongoServer.getUri();
     // Create separate connection for this test suite
     testConnection = await mongoose.createConnection(uri).asPromise();
@@ -86,7 +91,9 @@ describe("Work Order Attachment Flow", () => {
     if (testConnection) {
       await testConnection.close();
     }
-    await mongoServer.stop();
+    if (mongoServer?.stop) {
+      await mongoServer.stop();
+    }
     console.log("✅ MongoDB Memory Server stopped");
   });
 

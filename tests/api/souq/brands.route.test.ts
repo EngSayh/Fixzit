@@ -5,14 +5,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock authentication
+// Mock authentication with runtime state
+let sessionUser: any = null;
 vi.mock("@/auth", () => ({
-  auth: vi.fn(),
+  auth: vi.fn(async () => (sessionUser ? { user: sessionUser, expires: new Date().toISOString() } : null)),
 }));
 
 // Mock rate limiting
+let rateLimitResponse: Response | null = null;
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: vi.fn(() => rateLimitResponse),
 }));
 
 // Mock Brand model
@@ -44,7 +46,6 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { auth } from "@/auth";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const importRoute = async () => {
@@ -58,8 +59,10 @@ const importRoute = async () => {
 describe("API /api/souq/brands", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionUser = null;
+    rateLimitResponse = null;
     // Reset rate limit mock to allow requests through
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    vi.mocked(enforceRateLimit).mockImplementation(() => rateLimitResponse);
   });
 
   describe("GET - List Brands", () => {
@@ -70,10 +73,9 @@ describe("API /api/souq/brands", () => {
         return;
       }
 
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
+      rateLimitResponse = new Response(
+        JSON.stringify({ error: "Rate limit exceeded" }),
+        { status: 429 },
       );
 
       const req = new NextRequest("http://localhost:3000/api/souq/brands");
@@ -89,10 +91,7 @@ describe("API /api/souq/brands", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123", orgId: "org-123" },
-        expires: new Date().toISOString(),
-      });
+      sessionUser = { id: "user-123", orgId: "org-123" };
 
       const req = new NextRequest("http://localhost:3000/api/souq/brands");
       const response = await route.GET(req);
@@ -107,10 +106,7 @@ describe("API /api/souq/brands", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123", orgId: "org-123" },
-        expires: new Date().toISOString(),
-      });
+      sessionUser = { id: "user-123", orgId: "org-123" };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/brands?q=samsung"
@@ -129,7 +125,7 @@ describe("API /api/souq/brands", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue(null);
+      // sessionUser is null by default
 
       const req = new NextRequest("http://localhost:3000/api/souq/brands", {
         method: "POST",
@@ -147,10 +143,7 @@ describe("API /api/souq/brands", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: "user-123", orgId: "org-123", role: "ADMIN" },
-        expires: new Date().toISOString(),
-      });
+      sessionUser = { id: "user-123", orgId: "org-123", role: "ADMIN" };
 
       const req = new NextRequest("http://localhost:3000/api/souq/brands", {
         method: "POST",
