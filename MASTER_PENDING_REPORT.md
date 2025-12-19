@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T16:40:00+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T16:50:00+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** feat/mobile-cardlist-phase1
-**Commit:** 540b24ede (P209 lean optimization) | Origin: local
-**Last Work:** P208-P209 - Marketplace cart mock fix + comprehensive .lean() optimization (40 files)
+**Commit:** 0d7fa2e59 (P205 tenant annotations) | Origin: local
+**Last Work:** P205-P210 - Tenant scope annotations (ESLint 129→47) + test hygiene verified (464 files)
 **MongoDB Status:** 34 issues (10 open, 0 in_progress, 24 resolved)  
 **Working Tree:** CLEAN
-**Test Count:** ✅ All tests passing (188/188 marketplace/souq, 44/44 aqar, 8/8 cart)
+**Test Count:** ✅ All tests passing + 464 files with clearAllMocks hygiene
 **PR:** [#562](https://github.com/EngSayh/Fixzit/pull/562) - Production Hardening
 
 ---
@@ -101,6 +101,8 @@
 - **P204:** ✅ MASTER_PENDING_REPORT updated with session results (2025-12-19T16:10+03:00)
 - **P205-P207:** ✅ Multi-agent consolidation + test stabilization + SSOT update
 - **P208-P209:** ✅ Marketplace cart fix + comprehensive .lean() optimization (40 files, 188/188 tests)
+- **P210:** ✅ Tenant scope annotations - ESLint warnings reduced 129→47 (63% reduction); compliance/superadmin routes annotated
+- **P211:** ✅ Test hygiene verified - 464 files with clearAllMocks, 449 with beforeEach; E2E tests appropriately use beforeAll
 
 ### ⏳ Pending – Post-MVP Items
 - P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components
