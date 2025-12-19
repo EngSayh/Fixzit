@@ -44,6 +44,7 @@ vi.mock("@/server/services/hr/leave.service", () => ({
   LeaveService: {
     list: vi.fn(),
     request: vi.fn(),
+    updateStatus: vi.fn(),
   },
 }));
 
@@ -86,6 +87,17 @@ describe("API /api/hr/leaves", () => {
       endDate: new Date(),
       numberOfDays: 3,
       status: "PENDING",
+    });
+    vi.mocked(LeaveService.updateStatus).mockResolvedValue({
+      _id: "leave_123",
+      orgId: mockOrgId,
+      employeeId: "emp_123",
+      leaveTypeId: "type_123",
+      startDate: new Date(),
+      endDate: new Date(),
+      numberOfDays: 3,
+      status: "APPROVED",
+      approvalHistory: [],
     });
   });
 
@@ -249,6 +261,44 @@ describe("API /api/hr/leaves", () => {
       });
       const response = await routeModule.POST(request);
       expect(response.status).toBe(429);
+    });
+  });
+
+  describe("PUT /api/hr/leaves", () => {
+    it("should return 400 for invalid leaveRequestId", async () => {
+      const routeModule = await importRoute();
+
+      const request = new NextRequest("http://localhost/api/hr/leaves", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leaveRequestId: "invalid-id", status: "APPROVED" }),
+      });
+
+      const response = await routeModule.PUT(request);
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("Invalid leaveRequestId");
+    });
+
+    it("should return 404 when leave request is not found", async () => {
+      vi.mocked(LeaveService.updateStatus).mockResolvedValueOnce(null);
+      const routeModule = await importRoute();
+
+      const request = new NextRequest("http://localhost/api/hr/leaves", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leaveRequestId: "507f1f77bcf86cd799439011",
+          status: "APPROVED",
+        }),
+      });
+
+      const response = await routeModule.PUT(request);
+      expect(response.status).toBe(404);
+
+      const data = await response.json();
+      expect(data.error).toBe("Leave request not found");
     });
   });
 });

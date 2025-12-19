@@ -106,13 +106,21 @@ export function createCacheKey(
   route: string,
   params: Record<string, string | undefined>
 ): string {
-  const sortedParams = Object.entries(params)
-    .filter(([, v]) => v !== undefined)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([k, v]) => `${k}=${v}`)
-    .join('&');
+  // Perf: avoid localeCompare + map chain in hot path (perf tests enforce <50ms for 1k calls)
+  const keys = Object.keys(params);
+  if (keys.length > 1) {
+    keys.sort();
+  }
 
-  return `${route}?${sortedParams}`;
+  let suffix = "";
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    const value = params[key];
+    if (value === undefined) continue;
+    suffix += suffix ? `&${key}=${value}` : `${key}=${value}`;
+  }
+
+  return suffix ? `${route}?${suffix}` : `${route}?`;
 }
 
 /**

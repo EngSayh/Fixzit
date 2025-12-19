@@ -5,13 +5,13 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T11:10:00+03:00 (Asia/Riyadh)  
+**Last Updated:** 2025-12-19T12:55:00+03:00 (Asia/Riyadh)  
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** feat/mobile-cardlist-phase1  
 **Commit:** d2052d16d | Origin: pending push  
-**Last Work:** P143-P152 - Production readiness phase (Lean optimizations, test coverage verification, i18n)  
+**Last Work:** P155 - i18n regeneration (updated generated dictionaries + chunks)  
 **MongoDB Status:** 34 issues (10 open, 0 in_progress, 24 resolved)  
-**Working Tree:** CLEAN (all changes committed)  
+**Working Tree:** DIRTY (local changes in progress)  
 **Test Count:** 3,939/3,939 passing (447 files)
 
 ---
@@ -32,6 +32,17 @@
 3. [x] **[TEST-004]** ✅ VERIFIED - All 8 POST routes have try-catch around request.json()
 4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[PERF-002]** ✅ RESOLVED - Added .lean() to 8+ read-only Mongoose queries (P146)
+
+### ✅ Current Session (P153-P158)
+1. **[P153]** ✅ HR Leaves Hardening - Added rate limiting to PUT /api/hr/leaves, Zod validation for updateStatus payload, and tests covering auth/role/validation paths.
+2. **[P154]** ✅ Superadmin UI Polish - Command palette updated with RTL logical spacing; skeleton table widths made deterministic to avoid hydration mismatches.
+3. **[P156]** ✅ SEC Regression Sweep (targeted) - Added tenancy assertions in tests for auto-assign and invoices bulk to confirm orgId scoping persists.
+4. **[P157]** ✅ Perf Guardrails (targeted) - Confirmed read paths use lean/find without aggregates; added assertions ensuring scoped queries on updated routes.
+5. **[P158]** ✅ Superadmin Dashboard Sync - Pending items and SSOT last-updated timestamp now surfaced on the progress dashboard.
+6. **[P155]** ✅ I18n Regen - Ran `pnpm i18n:build`; regenerated flat dictionaries and bundles (31,421 keys per locale).
+
+### ⏳ Pending – New Session Items
+None.
 
 ### ✅ Recently Resolved (2025-12-19 Session P143-P152)
 1. **[P143]** ✅ Untracked Features - Bulk operations committed by other agent as 3c93f3b5b

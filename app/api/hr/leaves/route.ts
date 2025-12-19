@@ -203,6 +203,12 @@ export async function PUT(req: NextRequest) {
         { status: 400 },
       );
     }
+    if (!Types.ObjectId.isValid(body.leaveRequestId)) {
+      return NextResponse.json(
+        { error: "Invalid leaveRequestId" },
+        { status: 400 },
+      );
+    }
 
     await connectToDatabase();
 
@@ -213,6 +219,12 @@ export async function PUT(req: NextRequest) {
       session.user.id,
       body.comment,
     );
+    if (!updated) {
+      return NextResponse.json(
+        { error: "Leave request not found" },
+        { status: 404 },
+      );
+    }
 
     return NextResponse.json(updated);
   } catch (error) {

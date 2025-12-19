@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
     const fuzzyRegex = new RegExp(sanitizedId, "i");
 
     // Weighted search: exact orgId/registrationNumber (score=100) > prefix code/name (score=50) > fuzzy name (score=10)
-    const pipeline: any[] = [
+    const pipeline: import("mongoose").PipelineStage[] = [
       {
         $addFields: {
           searchScore: {

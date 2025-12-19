@@ -14,23 +14,50 @@ export function SkeletonTable({
   columns = 7,
   className 
 }: SkeletonTableProps) {
+  // Deterministic widths to avoid hydration mismatch
+  const headerWidths = React.useMemo(
+    () =>
+      Array.from({ length: columns }).map((_, i) => {
+        if (i === 0) return 'w-8';
+        if (i === 1) return 'w-16';
+        if (i === 2) return 'w-12';
+        if (i === 3) return 'w-48 flex-1';
+        if (i === 4) return 'w-20';
+        return 'w-24';
+      }),
+    [columns]
+  );
+
+  const rowTitleWidths = React.useMemo(
+    () =>
+      Array.from({ length: rows }).map((_, rowIndex) => {
+        const base = 60;
+        const increment = (rowIndex % 4) * 10;
+        return `${base + increment}%`;
+      }),
+    [rows]
+  );
+
+  const rowSubtitleWidths = React.useMemo(
+    () =>
+      Array.from({ length: rows }).map((_, rowIndex) => {
+        const base = 30;
+        const increment = (rowIndex % 3) * 10;
+        return `${base + increment}%`;
+      }),
+    [rows]
+  );
+
   return (
     <div className={cn('w-full rounded-lg border border-border overflow-hidden', className)}>
       {/* Header */}
       <div className="bg-muted/50 px-4 py-3 flex items-center gap-4">
-        {Array.from({ length: columns }).map((_, i) => (
+        {headerWidths.map((widthClass, i) => (
           <div
             key={`header-${i}`}
             className={cn(
               'h-4 bg-muted rounded animate-shimmer',
-              i === 0 && 'w-8',
-              i === 1 && 'w-16',
-              i === 2 && 'w-12',
-              i === 3 && 'w-48 flex-1',
-              i === 4 && 'w-20',
-              i === 5 && 'w-24',
-              i === 6 && 'w-24',
-              i > 6 && 'w-24'
+              widthClass
             )}
             style={{
               backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)',
@@ -70,14 +97,14 @@ export function SkeletonTable({
               <div 
                 className="h-4 bg-muted rounded animate-shimmer"
                 style={{ 
-                  width: `${60 + Math.random() * 30}%`,
+                  width: rowTitleWidths[rowIndex],
                   animationDelay: `${rowIndex * 50 + 150}ms` 
                 }}
               />
               <div 
                 className="h-3 bg-muted/50 rounded animate-shimmer"
                 style={{ 
-                  width: `${30 + Math.random() * 20}%`,
+                  width: rowSubtitleWidths[rowIndex],
                   animationDelay: `${rowIndex * 50 + 200}ms` 
                 }}
               />

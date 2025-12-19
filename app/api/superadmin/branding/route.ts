@@ -133,7 +133,7 @@ export async function PATCH(request: NextRequest) {
     const sessionOrgId = session.orgId;
 
     // Parse and validate request body
-    let rawBody: any;
+    let rawBody: Record<string, unknown>;
     try {
       rawBody = await request.json();
     } catch (parseError) {

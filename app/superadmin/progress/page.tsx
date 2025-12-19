@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import {
   PendingMasterNotFoundError,
+  PhaseData,
   PhaseEntry,
   PhaseStatus,
   PhaseSummary,
@@ -113,9 +114,10 @@ export default async function SuperadminProgressPage() {
     phaseData = await loadSuperadminPhaseData();
   } catch (error) {
     if (error instanceof PendingMasterNotFoundError) {
-      phaseError = "docs/PENDING_MASTER.md missing. Update SSOT before viewing progress.";
+      phaseError =
+        "MASTER_PENDING_REPORT.md or docs/PENDING_MASTER.md missing. Update SSOT before viewing progress.";
     } else {
-      phaseError = "Failed to read phase data. Check docs/PENDING_MASTER.md formatting.";
+      phaseError = "Failed to read phase data. Check SSOT formatting.";
     }
   }
 
@@ -129,6 +131,8 @@ export default async function SuperadminProgressPage() {
       completionPercentage: 0,
     };
   const timeline = phaseData?.timeline ?? [];
+  const pendingItems = phaseData?.pendingItems ?? [];
+  const parsedAt = phaseData?.lastUpdatedAt ? formatDate(phaseData.lastUpdatedAt) : null;
   const vitestStats = await loadVitestStats();
   const lastUpdated = timeline.length > 0 ? formatDate(timeline[timeline.length - 1].date) : null;
 
@@ -137,7 +141,7 @@ export default async function SuperadminProgressPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Phase Progress Tracker</h1>
         <p className="text-muted-foreground">
-          Live progress parsed from docs/PENDING_MASTER.md (Point 21)
+          Live progress parsed from MASTER_PENDING_REPORT.md (SSOT) with PENDING_MASTER fallback
         </p>
       </div>
 
@@ -179,11 +183,47 @@ export default async function SuperadminProgressPage() {
         </CardContent>
       </Card>
 
+      {/* SSOT Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle>SSOT Status</CardTitle>
+          <CardDescription>Pending items and last parsed timestamp</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <div className="font-medium">Last Parsed</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {parsedAt || lastUpdated || "Pending"}
+              </div>
+            </div>
+            <div>
+              <div className="font-medium">Pending Items</div>
+              <div className="text-2xl font-bold text-yellow-600">
+                {pendingItems.length}
+              </div>
+            </div>
+          </div>
+          {pendingItems.length > 0 ? (
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {pendingItems.map((item: string) => (
+                <li key={item} className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 text-yellow-500" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">No pending items detected.</p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Production Readiness */}
       <Card>
         <CardHeader>
           <CardTitle>Production Readiness</CardTitle>
-          <CardDescription>Derived from docs/PENDING_MASTER.md (P66-P110)</CardDescription>
+          <CardDescription>Derived from SSOT phase tracking</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

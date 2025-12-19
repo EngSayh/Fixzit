@@ -29,6 +29,8 @@ export interface PhaseData {
   phases: PhaseEntry[];
   summary: PhaseSummary;
   timeline: PhaseTimelineItem[];
+  pendingItems: string[];
+  lastUpdatedAt: string | null;
 }
 
 export class PendingMasterNotFoundError extends Error {
@@ -119,6 +121,18 @@ export async function loadSuperadminPhaseData(): Promise<PhaseData> {
     }))
     .slice(-10);
 
+  // Extract pending items from MASTER_PENDING_REPORT.md
+  const pendingItems: string[] = [];
+  const pendingPattern = /\[ \]\s+\*\*\[([^\]]+)\]\*\*/g;
+  let pendingMatch: RegExpExecArray | null;
+  while ((pendingMatch = pendingPattern.exec(content)) !== null) {
+    pendingItems.push(pendingMatch[1]);
+  }
+
+  // Extract last updated timestamp
+  const lastUpdatedMatch = /\*\*Last Updated:\*\*\s*([^\n]+)/i.exec(content);
+  const lastUpdatedAt = lastUpdatedMatch ? lastUpdatedMatch[1].trim() : null;
+
   return {
     phases,
     summary: {
@@ -129,5 +143,7 @@ export async function loadSuperadminPhaseData(): Promise<PhaseData> {
       completionPercentage,
     },
     timeline,
+    pendingItems,
+    lastUpdatedAt,
   };
 }
