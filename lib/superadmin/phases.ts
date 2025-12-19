@@ -182,6 +182,12 @@ export async function loadSuperadminPhaseData(): Promise<PhaseData> {
       const title = pendingLineMatch[2].trim().replace(/^⏳\s*/, "");
       pendingItems.push(`${id}: ${title}`);
     }
+
+    const pendingBulletPattern = /^\s*-\s+([^\n]+)/gm;
+    let pendingBulletMatch: RegExpExecArray | null;
+    while ((pendingBulletMatch = pendingBulletPattern.exec(pendingSection)) !== null) {
+      pendingItems.push(pendingBulletMatch[1].trim());
+    }
   }
 
   // Extract last updated timestamp (SSOT -> PENDING_MASTER fallback)

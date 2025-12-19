@@ -74,6 +74,7 @@ describe("API /api/hr/leaves", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     sessionUser = mockUser;
     vi.mocked(hasAllowedRole).mockReturnValue(true);

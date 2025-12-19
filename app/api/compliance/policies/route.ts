@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
 
   setTenantContext({ orgId: user.orgId });
   try {
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = { orgId: user.orgId };
     if (
       statusFilter &&
       Statuses.includes(statusFilter as CompliancePolicyStatus)
@@ -180,10 +180,11 @@ export async function GET(req: NextRequest) {
           .sort({ updatedAt: -1 })
           .limit(limit)
           .lean(),
-        CompliancePolicy.countDocuments({ status: "ACTIVE" }),
-        CompliancePolicy.countDocuments({ status: "DRAFT" }),
-        CompliancePolicy.countDocuments({ status: "UNDER_REVIEW" }),
+        CompliancePolicy.countDocuments({ orgId: user.orgId, status: "ACTIVE" }),
+        CompliancePolicy.countDocuments({ orgId: user.orgId, status: "DRAFT" }),
+        CompliancePolicy.countDocuments({ orgId: user.orgId, status: "UNDER_REVIEW" }),
         CompliancePolicy.countDocuments({
+          orgId: user.orgId,
           status: { $in: ["ACTIVE", "UNDER_REVIEW"] },
           reviewDate: { $lte: now },
         }),
@@ -247,6 +248,7 @@ export async function POST(req: NextRequest) {
   try {
     const policy = await CompliancePolicy.create({
       ...payload,
+      orgId: user.orgId,
       tags: payload.tags ?? [],
       relatedDocuments: payload.relatedDocuments ?? [],
     });

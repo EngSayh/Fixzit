@@ -33,11 +33,12 @@ vi.mock("@/server/models/AuditLog", () => ({
 
 // Mock rate limit
 vi.mock("@/server/security/rateLimit", () => ({
-  smartRateLimit: vi.fn().mockResolvedValue(null),
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
   buildOrgAwareRateLimitKey: vi.fn().mockReturnValue("test-key"),
 }));
 
 import { auth } from "@/auth";
+import { smartRateLimit } from "@/server/security/rateLimit";
 
 function makeRequest(params: Record<string, string> = {}): NextRequest {
   const url = new URL("http://localhost:3000/api/admin/audit-logs");
@@ -50,6 +51,7 @@ function makeRequest(params: Record<string, string> = {}): NextRequest {
 describe("Admin Audit Logs API Route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
   });
 
   describe("GET /api/admin/audit-logs", () => {

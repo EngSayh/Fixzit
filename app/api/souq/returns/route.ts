@@ -125,7 +125,8 @@ export async function GET(request: NextRequest) {
       })
         .sort(sort)
         .skip(skip)
-        .limit(safeLimit);
+        .limit(safeLimit)
+        .lean();
 
       return NextResponse.json({
         success: true,
