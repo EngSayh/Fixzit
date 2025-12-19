@@ -11,12 +11,13 @@ vi.mock('@/server/models/onboarding/OnboardingCase', () => ({
   OnboardingCase: {
     aggregate: vi.fn(),
     countDocuments: vi.fn(),
+    collection: { name: 'onboarding_cases' },
   },
 }));
 
 vi.mock('@/server/models/onboarding/VerificationDocument', () => ({
   VerificationDocument: {
-    countDocuments: vi.fn(),
+    aggregate: vi.fn(),
   },
 }));
 
@@ -38,7 +39,7 @@ describe('onboardingKpi.service', () => {
       vi.mocked(OnboardingCase.countDocuments)
         .mockResolvedValueOnce(5) // drafts
         .mockResolvedValueOnce(20); // total
-      vi.mocked(VerificationDocument.countDocuments).mockResolvedValue(2);
+      vi.mocked(VerificationDocument.aggregate).mockResolvedValue([{ count: 2 }]);
 
       const result = await getOnboardingKPIs('507f1f77bcf86cd799439011');
 
@@ -56,7 +57,7 @@ describe('onboardingKpi.service', () => {
       vi.mocked(OnboardingCase.countDocuments)
         .mockResolvedValueOnce(0)
         .mockResolvedValueOnce(0);
-      vi.mocked(VerificationDocument.countDocuments).mockResolvedValue(0);
+      vi.mocked(VerificationDocument.aggregate).mockResolvedValue([]);
 
       const result = await getOnboardingKPIs('507f1f77bcf86cd799439011');
 
@@ -74,7 +75,7 @@ describe('onboardingKpi.service', () => {
       vi.mocked(OnboardingCase.countDocuments)
         .mockResolvedValueOnce(30) // 30 drafts
         .mockResolvedValueOnce(100); // 100 total
-      vi.mocked(VerificationDocument.countDocuments).mockResolvedValue(5);
+      vi.mocked(VerificationDocument.aggregate).mockResolvedValue([{ count: 5 }]);
 
       const result = await getOnboardingKPIs('507f1f77bcf86cd799439011');
 
@@ -88,7 +89,7 @@ describe('onboardingKpi.service', () => {
 
       vi.mocked(OnboardingCase.aggregate).mockResolvedValue([]);
       vi.mocked(OnboardingCase.countDocuments).mockResolvedValue(0);
-      vi.mocked(VerificationDocument.countDocuments).mockResolvedValue(0);
+      vi.mocked(VerificationDocument.aggregate).mockResolvedValue([]);
 
       await getOnboardingKPIs('507f1f77bcf86cd799439011');
 
@@ -96,10 +97,26 @@ describe('onboardingKpi.service', () => {
         expect.arrayContaining([
           expect.objectContaining({
             $match: expect.objectContaining({
-              org_id: expect.any(Types.ObjectId),
+              orgId: expect.any(Types.ObjectId),
             }),
           }),
         ]),
+        expect.objectContaining({ maxTimeMS: 10_000 }),
+      );
+      expect(VerificationDocument.aggregate).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            $match: expect.objectContaining({
+              status: 'EXPIRED',
+            }),
+          }),
+          expect.objectContaining({
+            $match: expect.objectContaining({
+              'case.orgId': expect.any(Types.ObjectId),
+            }),
+          }),
+        ]),
+        expect.objectContaining({ maxTimeMS: 10_000 }),
       );
     });
 
@@ -115,7 +132,7 @@ describe('onboardingKpi.service', () => {
         { _id: 'AGENT', avgTimeMs: 43200000 },   // 12 hours
       ]);
       vi.mocked(OnboardingCase.countDocuments).mockResolvedValue(0);
-      vi.mocked(VerificationDocument.countDocuments).mockResolvedValue(0);
+      vi.mocked(VerificationDocument.aggregate).mockResolvedValue([]);
 
       const result = await getOnboardingKPIs('507f1f77bcf86cd799439011');
 

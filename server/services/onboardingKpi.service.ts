@@ -5,19 +5,38 @@ import { VerificationDocument } from '@/server/models/onboarding/VerificationDoc
 export async function getOnboardingKPIs(orgId: string) {
   const orgObjectId = new Types.ObjectId(orgId);
 
-  const avgTimes = await OnboardingCase.aggregate([
-    { $match: { org_id: orgObjectId, status: 'APPROVED' } },
-    { $group: { _id: '$role', avgTimeMs: { $avg: { $subtract: ['$updatedAt', '$createdAt'] } } } },
+  const avgTimes = await OnboardingCase.aggregate(
+    [
+      { $match: { orgId: orgObjectId, status: 'APPROVED' } },
+      { $group: { _id: '$role', avgTimeMs: { $avg: { $subtract: ['$updatedAt', '$createdAt'] } } } },
+    ],
+    { maxTimeMS: 10_000 },
+  );
+
+  // TENANT_SCOPED: All queries scoped by orgId (orgObjectId)
+  const [drafts, total, expiredDocsAgg] = await Promise.all([
+    OnboardingCase.countDocuments({ orgId: orgObjectId, status: 'DRAFT' }),
+    OnboardingCase.countDocuments({ orgId: orgObjectId }),
+    VerificationDocument.aggregate(
+      [
+        { $match: { status: 'EXPIRED' } },
+        {
+          $lookup: {
+            from: OnboardingCase.collection.name,
+            localField: 'onboarding_case_id',
+            foreignField: '_id',
+            as: 'case',
+          },
+        },
+        { $unwind: '$case' },
+        { $match: { 'case.orgId': orgObjectId } },
+        { $count: 'count' },
+      ],
+      { maxTimeMS: 10_000 },
+    ),
   ]);
 
-  // TENANT_SCOPED: All queries scoped by org_id (orgObjectId)
-  const [drafts, total] = await Promise.all([
-    OnboardingCase.countDocuments({ org_id: orgObjectId, status: 'DRAFT' }),
-    OnboardingCase.countDocuments({ org_id: orgObjectId }),
-  ]);
-
-  // NO_TENANT_SCOPE: Expired docs count is platform-wide metric for superadmin
-  const expiredDocs = await VerificationDocument.countDocuments({ status: 'EXPIRED' });
+  const expiredDocs = expiredDocsAgg[0]?.count ?? 0;
 
   return {
     avgTimes,
