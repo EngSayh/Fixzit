@@ -41,7 +41,11 @@ export async function POST(request: NextRequest) {
     // AUDIT-2025-12-08: Added rate limiting - 30 requests per minute per IP
     const ip = getClientIP(request);
     const rl = await smartRateLimit(`aqar:chatbot:${ip}`, 30, 60_000);
-    if (!rl.allowed) {
+    // Handle rate limit response - can be NextResponse or RateLimitResult object
+    if (rl && typeof rl === "object" && "status" in rl && typeof (rl as { status: unknown }).status === "number") {
+      return rl as unknown as NextResponse;
+    }
+    if (rl && typeof rl === "object" && "allowed" in rl && (rl as { allowed: boolean }).allowed === false) {
       return NextResponse.json(
         { error: "Rate limit exceeded", correlationId },
         { status: 429 },
