@@ -23,11 +23,17 @@
         "node_modules",
         "**/.pnpm",
         "**/.next",
+        "**/.turbo",
         "**/dist",
         "**/build",
         "**/out",
         "**/tmp",
         "**/_artifacts",
+        "**/.artifacts",
+        "**/artifacts",
+        "**/reports",
+        "**/playwright-report",
+        "**/test-results",
         "**/coverage"
       ],
       "excludeFiles": [
@@ -40,8 +46,15 @@
       "**/node_modules": true,
       "**/.pnpm/**": true,
       "**/.next/**": true,
+      "**/.turbo/**": true,
       "**/dist/**": true,
-      "**/build/**": true
+      "**/build/**": true,
+      "**/artifacts/**": true,
+      "**/_artifacts/**": true,
+      "**/.artifacts/**": true,
+      "**/reports/**": true,
+      "**/playwright-report/**": true,
+      "**/test-results/**": true
     },
     "search.exclude": {
       "**/node_modules": true,
@@ -49,12 +62,26 @@
       "**/.pnpm": true,
       "**/.next": true,
       "**/dist": true,
-      "**/build": true
+      "**/build": true,
+      "**/.turbo": true,
+      "**/artifacts": true,
+      "**/_artifacts": true,
+      "**/.artifacts": true,
+      "**/reports": true,
+      "**/playwright-report": true,
+      "**/test-results": true
     },
     "files.exclude": {
       "**/node_modules": true,
       "**/.git": true,
-      "**/.DS_Store": true
+      "**/.DS_Store": true,
+      "**/.turbo": true,
+      "**/artifacts": true,
+      "**/_artifacts": true,
+      "**/.artifacts": true,
+      "**/reports": true,
+      "**/playwright-report": true,
+      "**/test-results": true
     },
     "problems.showCurrentInStatus": true,
     "problems.decorations.enabled": true,

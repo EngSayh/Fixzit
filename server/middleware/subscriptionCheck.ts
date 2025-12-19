@@ -51,7 +51,7 @@ export async function checkSubscriptionStatus(
   orgId: Types.ObjectId,
   options: SubscriptionCheckOptions = {},
 ): Promise<SubscriptionStatus> {
-  const owner = await OwnerModel.findOne({ _id: ownerId, orgId });
+  const owner = await OwnerModel.findOne({ _id: ownerId, orgId }).lean();
 
   if (!owner) {
     throw new Error("Owner not found");

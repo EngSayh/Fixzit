@@ -41,11 +41,16 @@ vi.mock("@/server/security/rateLimit", () => ({
 import { resolveMarketplaceContext } from "@/lib/marketplace/context";
 import { getOrCreateCart } from "@/lib/marketplace/cart";
 import Product from "@/server/models/marketplace/Product";
-import { GET, POST } from "@/app/api/marketplace/cart/route";
+let GET: typeof import("@/app/api/marketplace/cart/route").GET;
+let POST: typeof import("@/app/api/marketplace/cart/route").POST;
 
 describe("API /api/marketplace/cart", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    vi.resetModules();
+    const route = await import("@/app/api/marketplace/cart/route");
+    GET = route.GET;
+    POST = route.POST;
   });
 
   describe("GET - Retrieve Cart", () => {

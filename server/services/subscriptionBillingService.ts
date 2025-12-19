@@ -141,7 +141,7 @@ export async function createSubscriptionFromCheckout(
 ): Promise<SubscriptionNonNull> {
   await connectToDatabase();
 
-  const priceBook = await PriceBook.findById(input.priceBookId);
+  const priceBook = await PriceBook.findById(input.priceBookId).lean();
   if (!priceBook) throw new Error("Invalid price_book_id");
 
   const created = (await Subscription.create({
@@ -169,6 +169,7 @@ export async function markSubscriptionPaid(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // NO_LEAN: Subscription document modified via .save() for billing history
   const sub = await Subscription.findById(subscriptionId);
   if (!sub) return null;
 
@@ -291,6 +292,7 @@ export async function cancelSubscription(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // NO_LEAN: Subscription document modified for cancellation status
   const sub = await Subscription.findById(subscriptionId);
   if (!sub) return null;
 

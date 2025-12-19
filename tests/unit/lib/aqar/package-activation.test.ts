@@ -83,6 +83,18 @@ import { logger } from "@/lib/logger";
 import { buildOrgScopedFilter } from "@/lib/utils/org-scope";
 import { withTenantContext } from "@/server/plugins/tenantIsolation";
 
+const mockPaymentFindOne = (value: unknown) => {
+  vi.mocked(AqarPayment.findOne).mockReturnValueOnce({
+    lean: vi.fn().mockResolvedValue(value),
+  } as never);
+};
+
+const mockPaymentFindOneReject = (error: Error) => {
+  vi.mocked(AqarPayment.findOne).mockReturnValueOnce({
+    lean: vi.fn().mockRejectedValue(error),
+  } as never);
+};
+
 describe("activatePackageAfterPayment", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -112,7 +124,7 @@ describe("activatePackageAfterPayment", () => {
 
   describe("Payment Lookup", () => {
     it("should return false if payment is not found", async () => {
-      vi.mocked(AqarPayment.findOne).mockResolvedValueOnce(null);
+      mockPaymentFindOne(null);
       
       const result = await activatePackageAfterPayment("payment-123", "org-789");
       
@@ -124,7 +136,7 @@ describe("activatePackageAfterPayment", () => {
     });
 
     it("should return false if payment type is not PACKAGE", async () => {
-      vi.mocked(AqarPayment.findOne).mockResolvedValueOnce({
+      mockPaymentFindOne({
         ...mockPayment,
         type: "BOOKING",
       });
@@ -139,7 +151,7 @@ describe("activatePackageAfterPayment", () => {
     });
 
     it("should return false if relatedModel is not AqarPackage", async () => {
-      vi.mocked(AqarPayment.findOne).mockResolvedValueOnce({
+      mockPaymentFindOne({
         ...mockPayment,
         relatedModel: "AqarBooking",
       });
@@ -150,7 +162,7 @@ describe("activatePackageAfterPayment", () => {
     });
 
     it("should return false if payment status is not COMPLETED", async () => {
-      vi.mocked(AqarPayment.findOne).mockResolvedValueOnce({
+      mockPaymentFindOne({
         ...mockPayment,
         status: "PENDING",
       });
@@ -165,7 +177,7 @@ describe("activatePackageAfterPayment", () => {
     });
 
     it("should return false if payment has no relatedId", async () => {
-      vi.mocked(AqarPayment.findOne).mockResolvedValueOnce({
+      mockPaymentFindOne({
         ...mockPayment,
         relatedId: null,
       });
@@ -182,7 +194,7 @@ describe("activatePackageAfterPayment", () => {
 
   describe("Package Activation", () => {
     it("should return false if package is not found", async () => {
-      vi.mocked(AqarPayment.findOne).mockResolvedValueOnce(mockPayment);
+      mockPaymentFindOne(mockPayment);
       vi.mocked(AqarPackage.findOne).mockResolvedValueOnce(null);
       
       const result = await activatePackageAfterPayment("payment-123", "org-789");
@@ -196,7 +208,7 @@ describe("activatePackageAfterPayment", () => {
 
     it("should set paidAt if not already set", async () => {
       const testPackage = { ...mockPackage, paidAt: null };
-      vi.mocked(AqarPayment.findOne).mockResolvedValueOnce(mockPayment);
+      mockPaymentFindOne(mockPayment);
       vi.mocked(AqarPackage.findOne).mockResolvedValueOnce(testPackage);
       
       const result = await activatePackageAfterPayment("payment-123", "org-789");
@@ -209,7 +221,7 @@ describe("activatePackageAfterPayment", () => {
     it("should not overwrite paidAt if already set", async () => {
       const existingDate = new Date("2024-01-01");
       const testPackage = { ...mockPackage, paidAt: existingDate };
-      vi.mocked(AqarPayment.findOne).mockResolvedValueOnce(mockPayment);
+      mockPaymentFindOne(mockPayment);
       vi.mocked(AqarPackage.findOne).mockResolvedValueOnce(testPackage);
       
       await activatePackageAfterPayment("payment-123", "org-789");
@@ -219,7 +231,7 @@ describe("activatePackageAfterPayment", () => {
 
     it("should activate package if not already active", async () => {
       const testPackage = { ...mockPackage, active: false };
-      vi.mocked(AqarPayment.findOne).mockResolvedValueOnce(mockPayment);
+      mockPaymentFindOne(mockPayment);
       vi.mocked(AqarPackage.findOne).mockResolvedValueOnce(testPackage);
       
       const result = await activatePackageAfterPayment("payment-123", "org-789");
@@ -234,7 +246,7 @@ describe("activatePackageAfterPayment", () => {
 
     it("should not re-activate package if already active", async () => {
       const testPackage = { ...mockPackage, active: true };
-      vi.mocked(AqarPayment.findOne).mockResolvedValueOnce(mockPayment);
+      mockPaymentFindOne(mockPayment);
       vi.mocked(AqarPackage.findOne).mockResolvedValueOnce(testPackage);
       
       const result = await activatePackageAfterPayment("payment-123", "org-789");
@@ -248,7 +260,7 @@ describe("activatePackageAfterPayment", () => {
 
   describe("Error Handling", () => {
     it("should return false and log error on exception", async () => {
-      vi.mocked(AqarPayment.findOne).mockRejectedValueOnce(new Error("DB connection failed"));
+      mockPaymentFindOneReject(new Error("DB connection failed"));
       
       const result = await activatePackageAfterPayment("payment-123", "org-789");
       
@@ -262,7 +274,7 @@ describe("activatePackageAfterPayment", () => {
 
   describe("Tenant isolation", () => {
     it("wraps lookups in tenant context with scoped filters", async () => {
-      vi.mocked(AqarPayment.findOne).mockResolvedValueOnce(mockPayment);
+      mockPaymentFindOne(mockPayment);
       vi.mocked(AqarPackage.findOne).mockResolvedValueOnce({ ...mockPackage });
 
       const result = await activatePackageAfterPayment(mockPayment._id, mockPayment.orgId);

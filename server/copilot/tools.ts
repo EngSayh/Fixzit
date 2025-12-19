@@ -303,6 +303,7 @@ async function dispatchWorkOrder(
     throw new Error("workOrderId is required");
   }
 
+  // NO_LEAN: Document used for status transition validation and potential updates
   const current = await WorkOrder.findOne({
     _id: workOrderId,
     orgId: session.tenantId,
@@ -460,6 +461,7 @@ async function scheduleVisit(
     );
   }
 
+  // NO_LEAN: Document used for SLA/scheduling validation and comparison
   const current = await WorkOrder.findOne({
     _id: workOrderId,
     orgId: session.tenantId,
@@ -989,7 +991,7 @@ async function ownerStatements(
     ownerId,
     ...(period !== "YTD" ? { period } : {}),
     ...(year ? { year } : {}),
-  })) as unknown as StatementDoc[];
+  }).lean()) as unknown as StatementDoc[];
 
   if (!statements || statements.length === 0) {
     return {

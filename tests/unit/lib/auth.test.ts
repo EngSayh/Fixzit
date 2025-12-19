@@ -87,6 +87,7 @@ vi.mock("@/lib/secrets", () => ({
 // Mock User model
 const mockFindOne = vi.fn();
 const mockFindById = vi.fn();
+const mockOrganizationFindOne = vi.fn();
 vi.mock("@/server/models/User", () => ({
   __esModule: true,
   User: {
@@ -94,6 +95,13 @@ vi.mock("@/server/models/User", () => ({
     findById: mockFindById,
   },
   UserRole: {},
+}));
+
+vi.mock("@/server/models/Organization", () => ({
+  __esModule: true,
+  Organization: {
+    findOne: mockOrganizationFindOne,
+  },
 }));
 
 
@@ -342,6 +350,7 @@ describe("auth lib - authenticateUser", () => {
   it("authenticates with corporate login (username) path", async () => {
     const user = makeUser();
     mockFindOne.mockResolvedValue(user);
+    mockOrganizationFindOne.mockResolvedValue({ orgId: "org1" });
 
     const auth = await loadAuthModule();
     const res = await auth.authenticateUser(
@@ -352,9 +361,13 @@ describe("auth lib - authenticateUser", () => {
       "ACME-001", // companyCode required for corporate login
     );
 
+    expect(mockOrganizationFindOne).toHaveBeenCalledWith({
+      code: "ACME-001",
+    });
     expect(mockFindOne).toHaveBeenCalledWith({
       username: "superadmin",
       code: "ACME-001",
+      orgId: "org1",
     });
     expect(res.user.email).toBe(`superadmin@${EMAIL_DOMAIN}`);
   });

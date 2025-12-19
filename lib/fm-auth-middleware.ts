@@ -242,7 +242,7 @@ export async function requireFMAuth(
   try {
     await connectDb();
     // Always use ctx.orgId - don't allow callers to query other orgs
-    const org = await Organization.findOne({ orgId: ctx.orgId });
+    const org = await Organization.findOne({ orgId: ctx.orgId }).lean();
 
     if (org) {
       // Map organization plan to FM Plan enum (with fallback chain)

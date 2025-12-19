@@ -196,7 +196,7 @@ MarketingRequestSchema.methods.linkListing = async function (
 ) {
   // Validate listing exists
   const Listing = mongoose.model("AqarListing");
-  const listing = await Listing.findById(listingId);
+  const listing = await Listing.findById(listingId).lean();
   if (!listing) {
     throw new Error("Listing not found");
   }

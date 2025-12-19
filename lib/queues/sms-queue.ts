@@ -432,6 +432,7 @@ export async function enqueueExistingSMS(
 async function processSMSJob(messageId: string): Promise<void> {
   await connectToDatabase();
 
+  // NO_LEAN: Message properties accessed, but document not modified directly (uses findByIdAndUpdate)
   const message = await SMSMessage.findById(messageId);
   if (!message) {
     logger.error("[SMS Queue] Message not found", { messageId });

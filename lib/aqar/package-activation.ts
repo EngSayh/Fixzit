@@ -38,7 +38,7 @@ export async function activatePackageAfterPayment(
   return withTenantContext(orgId, async () => {
     try {
       // Find the payment with org-scoped query (SECURITY: prevents cross-tenant reads)
-      const payment = await AqarPayment.findOne(buildOrgScopedFilter(paymentId, orgId));
+      const payment = await AqarPayment.findOne(buildOrgScopedFilter(paymentId, orgId)).lean();
 
       if (!payment) {
         logger.error("activatePackageAfterPayment: Payment not found (or wrong org)", {
@@ -80,6 +80,7 @@ export async function activatePackageAfterPayment(
       }
 
       // Find and activate the package with org-scoped query (SECURITY: prevents cross-tenant reads)
+      // NO_LEAN: Package document is modified via .save() at line 97
       const pkg = await AqarPackage.findOne(buildOrgScopedFilter(payment.relatedId, orgId));
 
       if (!pkg) {

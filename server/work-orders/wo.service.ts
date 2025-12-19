@@ -155,13 +155,14 @@ export async function update(
     throw new Error("Work order ID required");
   }
   if (!patch || Object.keys(patch).length === 0) {
-    return await WorkOrder.findById(id);
+    return await WorkOrder.findById(id).lean();
   }
 
   // ⚡ FIXED: Validate input with Zod schema
   const validated = WoUpdate.parse(patch);
 
   // ⚡ FIXED: Fetch existing work order to check state transitions
+  // NO_LEAN: Document used for state validation and comparison before update
   const existing = await WorkOrder.findById(id);
   if (!existing) {
     throw new Error(`Work order not found: ${id}`);

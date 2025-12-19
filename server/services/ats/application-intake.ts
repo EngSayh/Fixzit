@@ -202,7 +202,7 @@ export async function submitApplicationFromForm(
     orgId,
     jobId: job._id,
     candidateId: candidate._id,
-  });
+  }).lean();
 
   if (existingApplication) {
     throw new ApplicationSubmissionError(

@@ -43,6 +43,12 @@ vi.mock("@/server/lib/numbering", () => ({
   nextNumber: vi.fn().mockResolvedValue("JE-0001"),
 }));
 
+const buildAccountQuery = (accounts: unknown[] = []) => ({
+  lean: vi.fn().mockResolvedValue(accounts),
+  session: vi.fn().mockReturnThis(),
+  exec: vi.fn().mockResolvedValue(accounts),
+});
+
 describe("postingService", () => {
   const orgId = new Types.ObjectId();
   const userId = new Types.ObjectId();
@@ -60,10 +66,9 @@ describe("postingService", () => {
     const ChartAccountModel = (
       await import("@/server/models/finance/ChartAccount")
     ).default;
-    vi.mocked(ChartAccountModel.find).mockReturnValue({
-      session: vi.fn().mockReturnThis(),
-      exec: vi.fn().mockResolvedValue([]),
-    } as never);
+    vi.mocked(ChartAccountModel.find).mockReturnValue(
+      buildAccountQuery([]) as never,
+    );
   });
 
   describe("createJournal", () => {
@@ -93,7 +98,9 @@ describe("postingService", () => {
         },
       ];
 
-      vi.mocked(ChartAccountModel.find).mockResolvedValue(accounts as never);
+      vi.mocked(ChartAccountModel.find).mockReturnValue(
+        buildAccountQuery(accounts) as never,
+      );
 
       vi.mocked(JournalModel.create).mockResolvedValue({
         _id: new Types.ObjectId(),
@@ -193,9 +200,8 @@ describe("postingService", () => {
       };
 
       vi.mocked(JournalModel.findById).mockResolvedValue(journalDoc as never);
-      vi.mocked(ChartAccountModel.find).mockReturnValue({
-        session: vi.fn().mockReturnThis(),
-        exec: vi.fn().mockResolvedValue([
+      vi.mocked(ChartAccountModel.find).mockReturnValue(
+        buildAccountQuery([
           {
             _id: accountId1,
             orgId,
@@ -214,8 +220,8 @@ describe("postingService", () => {
             balance: 0,
             save: vi.fn().mockResolvedValue(undefined),
           },
-        ]),
-      } as never);
+        ]) as never,
+      );
 
       vi.mocked(LedgerEntryModel.create).mockResolvedValue({} as never);
 

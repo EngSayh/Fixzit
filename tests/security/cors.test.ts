@@ -3,8 +3,9 @@
  * Verifies that CORS allowlist works correctly
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { isOriginAllowed, parseOrigins } from "@/lib/security/cors-allowlist";
+import { resetTestMocks } from "../helpers/mockDefaults";
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
 beforeEach(() => {
@@ -27,15 +28,18 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 describe("CORS Security Tests", () => {
-  describe("Production CORS", () => {
-    beforeAll(() => {
-      vi.stubEnv("NODE_ENV", "production");
-      vi.stubEnv("PLAYWRIGHT", "false");
-      vi.stubEnv("NEXT_PUBLIC_E2E", "false");
-    });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetTestMocks();
+  });
 
-    afterAll(() => {
-      vi.unstubAllEnvs();
+  describe("Production CORS", () => {
+    beforeEach(() => {
+      process.env.NODE_ENV = "production";
+      process.env.PLAYWRIGHT = "false";
+      process.env.NEXT_PUBLIC_E2E = "false";
+      delete process.env.CORS_ORIGINS;
+      delete process.env.FRONTEND_URL;
     });
 
     it("should allow production origins", () => {
@@ -61,12 +65,12 @@ describe("CORS Security Tests", () => {
   });
 
   describe("Development CORS", () => {
-    beforeAll(() => {
-      vi.stubEnv("NODE_ENV", "development");
-    });
-
-    afterAll(() => {
-      vi.unstubAllEnvs();
+    beforeEach(() => {
+      process.env.NODE_ENV = "development";
+      process.env.PLAYWRIGHT = "false";
+      process.env.NEXT_PUBLIC_E2E = "false";
+      delete process.env.CORS_ORIGINS;
+      delete process.env.FRONTEND_URL;
     });
 
     it("should allow localhost in development", () => {
@@ -85,21 +89,19 @@ describe("CORS Security Tests", () => {
 
   describe("CORS parseOrigins validation", () => {
     it("should reject invalid URLs", () => {
-      vi.stubEnv("NODE_ENV", "development");
+      process.env.NODE_ENV = "development";
       const origins = parseOrigins(
         "not-a-url, http://valid.com , missing-scheme",
       );
       expect(origins).toEqual(["http://valid.com"]);
-      vi.unstubAllEnvs();
     });
 
     it("should reject non-http(s) protocols", () => {
-      vi.stubEnv("NODE_ENV", "development");
+      process.env.NODE_ENV = "development";
       const origins = parseOrigins(
         "ftp://example.com,https://good.com,file:///tmp/test",
       );
       expect(origins).toEqual(["https://good.com"]);
-      vi.unstubAllEnvs();
     });
   });
 });

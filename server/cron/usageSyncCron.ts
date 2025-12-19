@@ -14,7 +14,7 @@ async function syncUsageForAllSubscriptions() {
   // PLATFORM-WIDE: subscription sync runs across all tenants
   const activeSubs = await Subscription.find({
     status: { $in: ["ACTIVE", "PAST_DUE"] },
-  });
+  }).lean();
 
   for (const sub of activeSubs) {
     try {

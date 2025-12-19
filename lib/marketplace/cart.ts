@@ -5,6 +5,7 @@ export async function getOrCreateCart(
   orgId: Types.ObjectId,
   buyerUserId: Types.ObjectId,
 ) {
+  // NO_LEAN: Cart document may be modified by caller after return
   let cart = await Order.findOne({ orgId, buyerUserId, status: "CART" });
   if (!cart) {
     cart = await Order.create({

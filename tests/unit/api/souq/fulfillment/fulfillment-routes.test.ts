@@ -25,10 +25,17 @@ vi.mock("@/services/souq/fulfillment-service", () => ({
 let generateLabelRoute: typeof import("@/app/api/souq/fulfillment/generate-label/route");
 let slaRoute: typeof import("@/app/api/souq/fulfillment/sla/[orderId]/route");
 
+const mockOrderFindOne = (value: unknown) => {
+  mockSouqOrder.findOne.mockReturnValue({
+    lean: vi.fn().mockResolvedValue(value),
+  });
+};
+
 describe("Souq fulfillment routes - org scoping", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mockGetServerSession.mockResolvedValue(null);
+    mockOrderFindOne(null);
     generateLabelRoute = await import(
       "@/app/api/souq/fulfillment/generate-label/route"
     );
@@ -55,7 +62,7 @@ describe("Souq fulfillment routes - org scoping", () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: "seller-1", orgId: "org-1", role: "ADMIN" },
       });
-      mockSouqOrder.findOne.mockResolvedValue(null);
+      mockOrderFindOne(null);
       const req = new NextRequest("http://test.local", {
         method: "POST",
         body: JSON.stringify({ orderId: "ORD-1", carrier: "spl" }),
@@ -85,7 +92,7 @@ describe("Souq fulfillment routes - org scoping", () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: "seller-1", orgId: "org-1", role: "ADMIN" },
       });
-      mockSouqOrder.findOne.mockResolvedValue({ orderId: "ORD-1", items: [] });
+      mockOrderFindOne({ orderId: "ORD-1", items: [] });
       mockFulfillmentService.calculateSLA.mockResolvedValue({
         currentStatus: "pending",
       });

@@ -1,6 +1,6 @@
 {
   "generatedAt": "2025-12-18T13:50:00+03:00",
-  "source": "AI_IMPROVEMENT_ANALYSIS_REPORT.md + PENDING_MASTER.md + latest code review (2025-12-18)",
+  "source": "AI_IMPROVEMENT_ANALYSIS_REPORT.md + PENDING_MASTER.md + latest code review (2025-12-18) | phase-0-memory-optimization",
   "lastSync": "2025-12-18T13:50:00+03:00",
   "issues": [
     {
@@ -326,6 +326,35 @@
       "evidenceSnippet": "175 lines, auto-scopes orgId",
       "description": "Created aggregateWithTenantScope utility with maxTimeMS enforcement and superadmin bypass",
       "resolution": "Committed 283eaeb56 - moved to lib/db/, added unit tests"
+    },
+    {
+      "key": "OPS-MEM-001",
+      "externalId": "OPS-MEM-001",
+      "title": "VSCode memory optimization: expand watcher/search excludes",
+      "category": "performance",
+      "priority": "P2",
+      "status": "resolved",
+      "effort": "XS",
+      "location": "fixzit.code-workspace",
+      "sourcePath": "audit",
+      "sourceRef": "phase-0-memory-optimization",
+      "evidenceSnippet": "Expanded VSCode excludes for artifacts/reports/.turbo/playwright-report/test-results",
+      "description": "Reduce VSCode memory pressure by excluding build/test artifacts from watchers and search.",
+      "resolution": {
+        "status": "resolved",
+        "resolvedAt": "2025-12-19T17:44:44+03:00",
+        "resolvedBy": "codex",
+        "commitHash": "pending",
+        "notes": "Added excludes to fixzit.code-workspace for artifacts, reports, test-results, and turborepo cache."
+      }
     }
+  ],
+  "timestamp": "2025-12-19T17:44:44+03:00",
+  "branch": "phase-0-memory-optimization",
+  "commit": "pending",
+  "lastSubstantiveWork": "pending",
+  "workingTree": "CLEAN",
+  "recentlyCompleted": [
+    "P215: VSCode memory optimization (watcher/search excludes for artifacts/reports/.turbo/playwright-report/test-results)"
   ]
 }

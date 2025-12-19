@@ -470,6 +470,7 @@ export async function getUserFromToken(token: string) {
   }
 
   // Database connection handled by model layer
+  // NO_LEAN: Document returned to caller for session hydration
   const user = await User.findById(payload.id);
 
   if (!user) {

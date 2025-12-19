@@ -24,7 +24,7 @@ function toObjectId(value?: string | Types.ObjectId | null) {
 }
 
 async function getAccount(orgId: Types.ObjectId, code: string, label: string) {
-  const account = await ChartAccountModel.findOne({ orgId, accountCode: code });
+  const account = await ChartAccountModel.findOne({ orgId, accountCode: code }).lean();
   if (!account) {
     throw new Error(
       `Chart account ${code} (${label}) not found. Configure it in Chart of Accounts before posting payroll.`,

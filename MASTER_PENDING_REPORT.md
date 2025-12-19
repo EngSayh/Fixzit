@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T17:00:00+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T20:30:00+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
-**Branch:** feat/mobile-cardlist-phase1
-**Commit:** 4fff04276 (P213 tenant annotations) | Origin: local
-**Last Work:** P210-P213 - Tenant scope annotations (ESLint 129→13 = 90% reduction), test hygiene verified
+**Branch:** phase-0-memory-optimization
+**Commit:** P216 ESLint lean/NO_LEAN annotations | Origin: local
+**Last Work:** P216 - ESLint warnings reduced 72→39 (46% reduction) with .lean() and NO_LEAN annotations
 **MongoDB Status:** 34 issues (10 open, 0 in_progress, 24 resolved)  
-**Working Tree:** CLEAN
-**Test Count:** ✅ TypeScript 0 errors, 464 files with clearAllMocks hygiene
+**Working Tree:** 30 files staged
+**Test Count:** ✅ TypeScript 0 errors, ESLint 0 errors (39 warnings)
 **PR:** [#562](https://github.com/EngSayh/Fixzit/pull/562) - Production Hardening
 
 ---
@@ -33,6 +33,15 @@
 3. [x] **[TEST-004]** ✅ VERIFIED - All 8 POST routes have try-catch around request.json()
 4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[PERF-002]** ✅ RESOLVED - Added .lean() to 8+ read-only Mongoose queries (P146)
+
+### ✅ Current Session (P216)
+1. **[P216]** ✅ ESLint Lean/NO_LEAN Annotations - Reduced ESLint warnings from 72→39 (46% reduction):
+   - Fixed malformed import syntax in `notifications.bulk.test.ts` (parse error)
+   - Added `.lean()` to read-only queries: package-activation, fm-auth-middleware, payroll-finance, owner-finance, subscriptionBilling, wo.service
+   - Added `NO_LEAN` comments where document methods required: cart, sms-queue, provision, tap-webhook/persistence, copilot/tools, subscriptionSeat, subscriptionBilling
+
+### ✅ Previous Session (P215)
+1. **[P215]** ✅ VSCode Memory Optimization - Expanded watcher/search excludes for reports/artifacts/.turbo/playwright-report/test-results to reduce VSCode memory pressure.
 
 ### ✅ Current Session (P153-P209)
 1. **[P153]** ✅ HR Leaves Hardening - Added rate limiting to PUT /api/hr/leaves, Zod validation for updateStatus payload, and tests covering auth/role/validation paths.

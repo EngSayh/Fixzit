@@ -60,7 +60,7 @@ async function validateAfterPhotos(
   const inspection = await MoveInOutInspectionModel.findOne({
     "references.workOrderId": workOrderId,
     type: { $in: ["MOVE_OUT", "POST_HANDOVER"] },
-  });
+  }).lean();
 
   if (!inspection) {
     // Not related to inspection, no AFTER photos required

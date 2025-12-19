@@ -69,6 +69,7 @@ export async function getSubscriptionForTenant(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // NO_LEAN: Subscription document returned to caller who may need document methods
   return Subscription.findOne({
     tenant_id: tenantId,
     status: { $in: ["ACTIVE", "PAST_DUE"] },
@@ -83,6 +84,7 @@ export async function getSubscriptionForOwner(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // NO_LEAN: Subscription document returned to caller who may need document methods
   return Subscription.findOne({
     owner_user_id: ownerUserId,
     status: { $in: ["ACTIVE", "PAST_DUE"] },

@@ -131,7 +131,7 @@ class PostingService {
     const accounts = await ChartAccountModel.find({
       _id: { $in: accountIds },
       isActive: true,
-    });
+    }).lean();
 
     if (
       accounts.length !== accountIds.length ||
@@ -141,11 +141,9 @@ class PostingService {
     }
 
     // Map accountIds to account documents for quick lookup
+    // Note: .lean() returns plain objects, not Mongoose Documents
     const accountMap = new Map(
-      accounts.map((acc: IChartAccount & Document) => [
-        acc._id.toString(),
-        acc,
-      ]),
+      accounts.map((acc) => [acc._id.toString(), acc]),
     );
 
     // Build journal lines with denormalized account data
@@ -204,6 +202,7 @@ class PostingService {
    * - Runs in database transaction (no partial failures)
    */
   async postJournal(journalId: Types.ObjectId): Promise<PostJournalResult> {
+    // NO_LEAN: Document requires .save() for posting status updates
     const journal = await JournalModel.findById(journalId);
 
     if (!journal) {
@@ -380,6 +379,7 @@ class PostingService {
       // NOTE: In production with real MongoDB, use $inc for atomic updates.
       // For test compatibility, we use findByIdAndUpdate which the test mocks support.
       for (const [accountIdStr, delta] of balanceDeltas.entries()) {
+        // NO_LEAN: Document requires .save() for balance updates
         const account = await ChartAccountModel.findById(
           new Types.ObjectId(accountIdStr),
         );
@@ -440,6 +440,7 @@ class PostingService {
     userId: Types.ObjectId,
     reason: string,
   ): Promise<{ originalJournal: IJournal; reversingJournal: IJournal }> {
+    // NO_LEAN: Document requires .save() for void status updates
     const originalJournal = await JournalModel.findById(journalId);
 
     if (!originalJournal) {

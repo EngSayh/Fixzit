@@ -55,6 +55,7 @@ import type { SessionUser } from "@/types/auth";
 
 const importRoute = async () => {
   try {
+    vi.resetModules();
     return await import("@/app/api/hr/employees/route");
   } catch {
     return null;

@@ -345,14 +345,21 @@ describe('PII Encryption Utility', () => {
 
   describe('mock encryption (no key)', () => {
     const originalNodeEnv = process.env.NODE_ENV;
+    const originalPiiKey = process.env.PII_ENCRYPTION_KEY;
     
-    beforeAll(() => {
+    beforeEach(() => {
       delete process.env.ENCRYPTION_KEY;
+      delete process.env.PII_ENCRYPTION_KEY;
       process.env.NODE_ENV = 'development';
     });
 
     afterAll(() => {
       process.env.ENCRYPTION_KEY = testKey;
+      if (originalPiiKey === undefined) {
+        delete process.env.PII_ENCRYPTION_KEY;
+      } else {
+        process.env.PII_ENCRYPTION_KEY = originalPiiKey;
+      }
       process.env.NODE_ENV = originalNodeEnv; // Restore NODE_ENV to prevent test pollution
     });
 

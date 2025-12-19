@@ -1,6 +1,7 @@
 import Subscription from "@/server/models/Subscription";
 
 export async function provisionSubscriber(cartIdOrSubscriptionId: string) {
+  // NO_LEAN: Subscription document returned to caller who may need document methods
   const subscription = await Subscription.findOne({
     _id: cartIdOrSubscriptionId,
   });

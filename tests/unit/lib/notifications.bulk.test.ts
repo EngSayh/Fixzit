@@ -4,13 +4,6 @@ import {
   type BulkNotificationResult,
 } from "@/lib/integrations/notifications";
 import type {
-import { resetTestMocks } from "@/tests/helpers/mockDefaults";
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
   NotificationPayload,
   NotificationRecipient,
 } from "@/lib/fm-notifications";
