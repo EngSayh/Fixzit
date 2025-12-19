@@ -6,16 +6,30 @@ export async function getOnboardingKPIs(orgId: string) {
   const orgObjectId = new Types.ObjectId(orgId);
 
   const avgTimes = await OnboardingCase.aggregate([
-    { $match: { org_id: orgObjectId, status: 'APPROVED' } },
+    { $match: { orgId: orgObjectId, status: 'APPROVED' } },
     { $group: { _id: '$role', avgTimeMs: { $avg: { $subtract: ['$updatedAt', '$createdAt'] } } } },
   ]);
 
   const [drafts, total] = await Promise.all([
-    OnboardingCase.countDocuments({ org_id: orgObjectId, status: 'DRAFT' }),
-    OnboardingCase.countDocuments({ org_id: orgObjectId }),
+    OnboardingCase.countDocuments({ orgId: orgObjectId, status: 'DRAFT' }),
+    OnboardingCase.countDocuments({ orgId: orgObjectId }),
   ]);
 
-  const expiredDocs = await VerificationDocument.countDocuments({ status: 'EXPIRED' });
+  const expiredDocsResult = await VerificationDocument.aggregate([
+    { $match: { status: 'EXPIRED' } },
+    {
+      $lookup: {
+        from: OnboardingCase.collection.name,
+        localField: 'onboarding_case_id',
+        foreignField: '_id',
+        as: 'case',
+      },
+    },
+    { $unwind: '$case' },
+    { $match: { 'case.orgId': orgObjectId } },
+    { $count: 'count' },
+  ]);
+  const expiredDocs = expiredDocsResult[0]?.count ?? 0;
 
   return {
     avgTimes,

@@ -32,6 +32,21 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-19 17:35 (Asia/Riyadh) — Phase 1: Onboarding KPI Tenant Scope Fix
+**Context:** copilot/phase1-onboarding-kpi-20251219 @ fefaffba0 | Working tree DIRTY  
+**MongoDB:** not checked (SSOT import pending)  
+**Git Status:** server/services/onboardingKpi.service.ts modified
+
+**✅ COMPLETED THIS PHASE:**
+- **Tenant Scope Fix:** Updated onboarding KPI queries to use `orgId` instead of legacy `org_id`.
+- **Expired Docs Scope:** Replaced global expired-document count with org-scoped aggregate using `OnboardingCase` lookup.
+
+**📌 SSOT / Dashboard Sync:**
+- Attempted `pnpm exec tsx scripts/issue-log.ts import docs/BACKLOG_AUDIT.json` → **FAILED** (`fetch failed`; API not reachable).
+- Pending: update BACKLOG_AUDIT.json + re-run import when API is reachable.
+
+---
+
 ### 2025-12-17 01:45 (Asia/Riyadh) — Superadmin Navigation Fix (P0 UX Critical)
 **Context:** main @ [uncommitted] | Working: Footer + Superadmin Layout | Tree: MODIFIED  
 **MongoDB:** 34 issues (24 open, 1 in_progress, 9 resolved) [verified]  
