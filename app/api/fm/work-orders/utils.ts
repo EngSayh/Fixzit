@@ -224,6 +224,6 @@ async function trimTimelineEntries(
 
   const ids = oldest.map((doc) => doc._id).filter(Boolean);
   if (ids.length) {
-    await WorkOrderTimeline.deleteMany({ _id: { $in: ids } });
+    await WorkOrderTimeline.deleteMany({ orgId, _id: { $in: ids } });
   }
 }

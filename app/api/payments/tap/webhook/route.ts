@@ -437,6 +437,7 @@ async function upsertTransactionFromCharge(
     return null;
   }
 
+  // NO_LEAN: transaction document is mutated and saved
   let transaction = await TapTransaction.findOne({ chargeId: charge.id, orgId });
 
   if (!transaction) {
@@ -583,6 +584,7 @@ async function allocateInvoicePayment(
     _id: transaction.invoiceId,
     $or: [{ orgId }, { org_id: orgId }],
   };
+  // NO_LEAN: invoice document is mutated and saved
   const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
   if (!invoice) {
     logger.warn("[Webhook] Invoice not found for Tap payment allocation (org-scoped)", {
@@ -661,6 +663,7 @@ async function markInvoicePaymentStatus(
     _id: transaction.invoiceId,
     $or: [{ orgId }, { org_id: orgId }],
   };
+  // NO_LEAN: invoice document is mutated and saved
   const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
   if (!invoice) {
     return;
@@ -704,6 +707,7 @@ async function updateRefundRecord(
     return;
   }
 
+  // NO_LEAN: transaction document is mutated and saved
   const transaction = await TapTransaction.findOne({
     chargeId: refund.charge,
     orgId,
@@ -769,6 +773,7 @@ async function updateRefundRecord(
         chargeId: refund.charge,
       });
     } else {
+      // NO_LEAN: payment document is mutated and saved
       const payment = await Payment.findOne({
         _id: transaction.paymentId,
         orgId: transaction.orgId,
@@ -795,6 +800,7 @@ async function updateRefundRecord(
         _id: transaction.invoiceId,
         $or: [{ orgId }, { org_id: orgId }],
       };
+      // NO_LEAN: invoice document is mutated and saved
       const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
       if (invoice) {
         const paymentsTyped = invoice.payments as unknown as

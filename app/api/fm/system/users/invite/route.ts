@@ -191,7 +191,7 @@ export async function POST(req: NextRequest) {
 
       // Update invite status to 'sent' immediately (will be processed in background)
       await collection.updateOne(
-        { _id: doc._id },
+        { _id: doc._id, orgId: tenantId },
         { $set: { status: "sent", jobId, updatedAt: new Date() } },
       );
       doc.status = "sent";

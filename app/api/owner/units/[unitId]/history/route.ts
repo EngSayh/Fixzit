@@ -125,6 +125,7 @@ export async function GET(
       "@/server/models/owner/UtilityBill"
     );
 
+    // NO_TENANT_SCOPE: owner-scoped via ownerPortal.ownerId
     // Find property and unit using Mongoose
     const property = await Property.findOne({
       "ownerPortal.ownerId": ownerId,

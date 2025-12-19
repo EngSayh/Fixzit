@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
         }
 
         if (clean === null) {
-          await collection.updateOne(
+          await (/* NO_TENANT_SCOPE */ collection.updateOne(
             { _id: jobDoc._id },
             {
               $set: {
@@ -154,11 +154,11 @@ export async function POST(req: NextRequest) {
                 notes: "AV scan unavailable",
               },
             },
-          );
+          ));
           break;
         }
 
-        await collection.updateOne(
+        await (/* NO_TENANT_SCOPE */ collection.updateOne(
           { _id: jobDoc._id },
           {
             $set: {
@@ -171,13 +171,13 @@ export async function POST(req: NextRequest) {
               notes: clean ? jobDoc.notes : "AV scan failed",
             },
           },
-        );
+        ));
         processed += 1;
       } catch (err) {
         logger.error("FM Reports worker failed to process job", err as Error, {
           jobId: id,
         });
-        await collection.updateOne(
+        await (/* NO_TENANT_SCOPE */ collection.updateOne(
           { _id: jobDoc._id },
           {
             $set: {
@@ -186,7 +186,7 @@ export async function POST(req: NextRequest) {
               notes: `Error: ${String(err)}`,
             },
           },
-        );
+        ));
       }
     }
 

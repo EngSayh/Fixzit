@@ -112,6 +112,7 @@ export async function GET(req: NextRequest) {
     // Without orgId filter, aggregations expose cross-org CRM data
     const orgFilter = { orgId: user.orgId };
 
+    // NO_TENANT_SCOPE: orgFilter injects orgId into all queries below
     const [
       totalLeads,
       openPipeline,
@@ -123,31 +124,46 @@ export async function GET(req: NextRequest) {
       recentEmails,
     ] = await Promise.all([
       // CRM-001 FIX: Add orgId to all countDocuments and aggregations
-      CrmLead.countDocuments({ ...orgFilter, kind: "LEAD" }),
+      (/* NO_TENANT_SCOPE */ CrmLead.countDocuments({
+        ...orgFilter,
+        kind: "LEAD",
+      })),
       // AUDIT-2025-12-19: Added maxTimeMS to aggregates
-      CrmLead.aggregate([
+      (/* NO_TENANT_SCOPE */ CrmLead.aggregate([
         { $match: { ...orgFilter, kind: "LEAD", status: "OPEN" } },
         {
           $group: { _id: null, total: { $sum: "$value" }, count: { $sum: 1 } },
         },
-      ], { maxTimeMS: 10_000 }),
-      CrmLead.countDocuments({ ...orgFilter, status: "WON" }),
-      CrmLead.aggregate([
+      ], { maxTimeMS: 10_000 })),
+      (/* NO_TENANT_SCOPE */ CrmLead.countDocuments({
+        ...orgFilter,
+        status: "WON",
+      })),
+      (/* NO_TENANT_SCOPE */ CrmLead.aggregate([
         { $match: orgFilter }, // CRM-001 FIX: Scope stage aggregation to org
         { $group: { _id: "$stage", total: { $sum: 1 } } },
-      ], { maxTimeMS: 10_000 }),
-      CrmLead.find({ ...orgFilter, kind: "ACCOUNT" }).sort({ revenue: -1 }).limit(5).lean(),
-      CrmActivity.find(orgFilter).sort({ performedAt: -1 }).limit(6).lean(),
-      CrmActivity.countDocuments({
+      ], { maxTimeMS: 10_000 })),
+      (/* NO_TENANT_SCOPE */ CrmLead.find({
+        ...orgFilter,
+        kind: "ACCOUNT",
+      })
+        .sort({ revenue: -1 })
+        .limit(5)
+        .lean()),
+      (/* NO_TENANT_SCOPE */ CrmActivity.find(orgFilter)
+        .sort({ performedAt: -1 })
+        .limit(6)
+        .lean()),
+      (/* NO_TENANT_SCOPE */ CrmActivity.countDocuments({
         ...orgFilter,
         type: "CALL",
         performedAt: { $gte: sevenDaysAgo },
-      }),
-      CrmActivity.countDocuments({
+      })),
+      (/* NO_TENANT_SCOPE */ CrmActivity.countDocuments({
         ...orgFilter,
         type: "EMAIL",
         performedAt: { $gte: sevenDaysAgo },
-      }),
+      })),
     ]);
 
     const pipelineTotal = openPipeline[0]?.total ?? 0;

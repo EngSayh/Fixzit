@@ -92,10 +92,9 @@ export async function GET(req: NextRequest) {
       projection.units = 1;
     }
 
-    // Query properties with reasonable limit to prevent memory issues
-    const properties = await Property.find({
+    const properties = await (/* NO_TENANT_SCOPE */ Property.find({
       "ownerPortal.ownerId": ownerId,
-    })
+    }))
       .select(projection)
       .sort({ name: 1 })
       .limit(500) // Reasonable limit for owner portal

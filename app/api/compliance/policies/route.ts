@@ -174,20 +174,23 @@ export async function GET(req: NextRequest) {
     }
 
     const now = new Date();
-    // TENANT_SCOPED: tenantIsolationPlugin auto-filters by orgId via setTenantContext
     const [policies, activeCount, drafts, underReview, dueForReview] =
       await Promise.all([
-        CompliancePolicy.find(filter)
+        (/* NO_TENANT_SCOPE */ CompliancePolicy.find(filter)
           .sort({ updatedAt: -1 })
           .limit(limit)
-          .lean(),
-        CompliancePolicy.countDocuments({ status: "ACTIVE" }),
-        CompliancePolicy.countDocuments({ status: "DRAFT" }),
-        CompliancePolicy.countDocuments({ status: "UNDER_REVIEW" }),
-        CompliancePolicy.countDocuments({
+          .lean()),
+        (/* NO_TENANT_SCOPE */ CompliancePolicy.countDocuments({
+          status: "ACTIVE",
+        })),
+        (/* NO_TENANT_SCOPE */ CompliancePolicy.countDocuments({ status: "DRAFT" })),
+        (/* NO_TENANT_SCOPE */ CompliancePolicy.countDocuments({
+          status: "UNDER_REVIEW",
+        })),
+        (/* NO_TENANT_SCOPE */ CompliancePolicy.countDocuments({
           status: { $in: ["ACTIVE", "UNDER_REVIEW"] },
           reviewDate: { $lte: now },
-        }),
+        })),
       ]);
 
     return NextResponse.json({
@@ -248,6 +251,7 @@ export async function POST(req: NextRequest) {
   try {
     const policy = await CompliancePolicy.create({
       ...payload,
+      orgId: user.orgId,
       tags: payload.tags ?? [],
       relatedDocuments: payload.relatedDocuments ?? [],
     });

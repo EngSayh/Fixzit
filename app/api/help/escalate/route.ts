@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
     const code = `HELP-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
     const ticket = await SupportTicket.create({
+      orgId: user.orgId,
       code,
       subject: `Access request: ${attempted_action || 'Unknown action'}`,
       module: moduleNormalized,

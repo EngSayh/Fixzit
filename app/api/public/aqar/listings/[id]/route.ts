@@ -55,7 +55,7 @@ export async function GET(
 
     await connectDb();
 
-    // Only return ACTIVE listings
+    // PLATFORM-WIDE: public listing lookup by id (ACTIVE only)
     const listing = await listingModel
       .findOne({
         _id: id,

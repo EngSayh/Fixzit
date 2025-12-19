@@ -154,17 +154,19 @@ export async function GET(req: NextRequest) {
 
     const [audits, total, inProgress, upcoming, completed, highRisk] =
       await Promise.all([
-        // TENANT_SCOPED: tenantIsolationPlugin auto-filters by orgId via setTenantContext
-        ComplianceAudit.find(filter)
+        (/* NO_TENANT_SCOPE */ ComplianceAudit.find(filter)
           .sort({ startDate: -1 })
           .limit(limit)
-          .lean(),
-        // TENANT_SCOPED: plugin auto-filters
-        ComplianceAudit.countDocuments(),
-        ComplianceAudit.countDocuments({ status: "IN_PROGRESS" }),
-        ComplianceAudit.countDocuments({ status: "PLANNED" }),
-        ComplianceAudit.countDocuments({ status: "COMPLETED" }),
-        ComplianceAudit.countDocuments({ riskLevel: "HIGH" }),
+          .lean()),
+        (/* NO_TENANT_SCOPE */ ComplianceAudit.countDocuments()),
+        (/* NO_TENANT_SCOPE */ ComplianceAudit.countDocuments({
+          status: "IN_PROGRESS",
+        })),
+        (/* NO_TENANT_SCOPE */ ComplianceAudit.countDocuments({ status: "PLANNED" })),
+        (/* NO_TENANT_SCOPE */ ComplianceAudit.countDocuments({
+          status: "COMPLETED",
+        })),
+        (/* NO_TENANT_SCOPE */ ComplianceAudit.countDocuments({ riskLevel: "HIGH" })),
       ]);
 
     return NextResponse.json({

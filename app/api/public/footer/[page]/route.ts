@@ -5,6 +5,13 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 
+type FooterContentSnapshot = {
+  page: string;
+  contentEn: string;
+  contentAr: string;
+  updatedAt: Date;
+};
+
 /**
  * GET /api/public/footer/:page
  * Public endpoint to fetch footer content by page (about, privacy, terms)
@@ -36,15 +43,9 @@ export async function GET(
 
     // Find footer content for this page
     const { FooterContent } = await import("@/server/models/FooterContent");
-    // PLATFORM-WIDE: footer content is global
-    const footerContent = (await FooterContent.findOne({ page })
-      .lean()
-      .exec()) as {
-      page: string;
-      contentEn: string;
-      contentAr: string;
-      updatedAt: Date;
-    } | null;
+    const footerContent = await (/* PLATFORM-WIDE */ FooterContent.findOne({ page })
+      .lean<FooterContentSnapshot>()
+      .exec());
 
     if (!footerContent) {
       // Return default empty content if not found

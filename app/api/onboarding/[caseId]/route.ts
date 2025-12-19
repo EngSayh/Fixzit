@@ -42,7 +42,7 @@ export async function GET(
   }
 
   try {
-    // Defense-in-depth: Query scoped to user's org from the start
+    // NO_TENANT_SCOPE: user-scoped access (subject/creator) with optional orgId guard
     const onboarding = await OnboardingCase.findOne({
       _id: params.caseId,
       $or: [
