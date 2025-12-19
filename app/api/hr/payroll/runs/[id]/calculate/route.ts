@@ -111,7 +111,7 @@ export async function POST(
           totalMinutes: { $sum: "$overtimeMinutes" },
         },
       },
-    ]);
+    ], { maxTimeMS: 10_000 });
 
     const overtimeMinutesMap = new Map<string, number>(
       overtimeAggregate.map((entry) => [

@@ -176,7 +176,7 @@ export async function searchProducts(filters: MarketplaceSearchFilters) {
   }>([
     { $match: query },
     { $group: { _id: "$categoryId", count: { $sum: 1 } } },
-  ]);
+  ], { maxTimeMS: 10_000 });
 
   const categoryIds = categoriesAggregation.map((item) => item._id);
 

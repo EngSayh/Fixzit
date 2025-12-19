@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
         }>([
           { $match: match },
           { $group: { _id: "$status", count: { $sum: 1 } } },
-        ])
+        ], { maxTimeMS: 10_000 })
         .toArray(),
       collection
         .aggregate<{
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
         }>([
           { $match: match },
           { $group: { _id: "$priority", count: { $sum: 1 } } },
-        ])
+        ], { maxTimeMS: 10_000 })
         .toArray(),
       collection
         .aggregate<{
@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
               },
             },
           },
-        ])
+        ], { maxTimeMS: 10_000 })
         .toArray(),
     ]);
 

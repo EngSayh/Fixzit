@@ -63,7 +63,7 @@ export async function trialBalance(ctx: RequestContext, from: Date, to: Date) {
       },
     },
     { $sort: { code: 1 } },
-  ]);
+  ], { maxTimeMS: 10_000 });
 
   const totDr = rows.reduce((sum, row) => sum + toMinor(row.debit), 0n);
   const totCr = rows.reduce((sum, row) => sum + toMinor(row.credit), 0n);
@@ -189,7 +189,7 @@ export async function ownerStatement(
         credit: "$credit",
       },
     },
-  ]);
+  ], { maxTimeMS: 10_000 });
 
   const openingAgg = await LedgerEntry.aggregate([
     {

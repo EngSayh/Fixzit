@@ -215,7 +215,7 @@ SMSMessageSchema.statics.getStatusCounts = async function (
   if (orgId) match.orgId = orgId;
 
   const pipeline = [{ $match: match }, { $group: { _id: "$status", count: { $sum: 1 } } }];
-  const result = await this.aggregate(pipeline);
+  const result = await this.aggregate(pipeline, { maxTimeMS: 10_000 });
 
   const counts: Record<string, number> = {};
   for (const status of SMSStatus) {

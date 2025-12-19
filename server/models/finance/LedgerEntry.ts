@@ -286,7 +286,7 @@ LedgerEntrySchema.statics.getAccountBalance = async function (
         totalCredit: { $sum: "$credit" },
       },
     },
-  ]);
+  ], { maxTimeMS: 10_000 });
 
   if (result.length === 0) return 0;
   return result[0].totalDebit - result[0].totalCredit;
@@ -331,7 +331,7 @@ LedgerEntrySchema.statics.getTrialBalance = async function (
       },
     },
     { $sort: { accountCode: 1 } },
-  ]);
+  ], { maxTimeMS: 10_000 });
 };
 
 // Static: Get account activity for period

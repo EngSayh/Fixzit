@@ -826,7 +826,7 @@ class ReviewService {
           star5: { $sum: { $cond: [{ $eq: ["$rating", 5] }, 1, 0] } },
         },
       },
-    ]);
+    ], { maxTimeMS: 10_000 });
 
     const distribution: Record<1 | 2 | 3 | 4 | 5, number> = {
       1: stats?.star1 ?? 0,
@@ -906,7 +906,7 @@ class ReviewService {
           },
         },
       },
-    ]);
+    ], { maxTimeMS: 10_000 });
 
     const totalReviews = stats?.totalReviews ?? 0;
     const averageRating = stats?.avgRating ?? 0;
@@ -1020,7 +1020,7 @@ class ReviewService {
           star5: { $sum: { $cond: [{ $eq: ["$rating", 5] }, 1, 0] } },
         },
       },
-    ]);
+    ], { maxTimeMS: 10_000 });
 
     const distribution: Record<1 | 2 | 3 | 4 | 5, number> = {
       1: stats?.star1 ?? 0,

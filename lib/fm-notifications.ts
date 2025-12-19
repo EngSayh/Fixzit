@@ -245,7 +245,7 @@ async function persistNotificationDeadLetters(
     }>([
       { $match: { status: "pending" } },
       { $group: { _id: "$channel", count: { $sum: 1 } } },
-    ]);
+    ], { maxTimeMS: 10_000 });
 
     const backlogMap = backlog.reduce<
       Partial<Record<NotificationChannel, number>>
