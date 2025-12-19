@@ -46,9 +46,14 @@ vi.mock("@/services/souq/reviews/review-service", () => ({
 // Mock SouqReview model
 vi.mock("@/server/models/souq/Review", () => ({
   SouqReview: {
-    find: vi.fn(),
+    find: vi.fn().mockReturnValue({
+      sort: vi.fn().mockReturnThis(),
+      skip: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockResolvedValue([]),
+    }),
     findOne: vi.fn(),
-    countDocuments: vi.fn(),
+    countDocuments: vi.fn().mockResolvedValue(0),
     aggregate: vi.fn(),
   },
 }));

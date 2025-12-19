@@ -48,7 +48,12 @@ const PublicJobsQuerySchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  enforceRateLimit(req, { requests: 120, windowMs: 60_000, keyPrefix: "careers:public:jobs" });
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 120,
+    windowMs: 60_000,
+    keyPrefix: "careers:public:jobs",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
   try {
     await connectToDatabase();
 

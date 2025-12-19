@@ -38,7 +38,7 @@ const mockSession = {
   session: {
     id: "user-1",
     role: "super_admin",
-    orgId: "org-123",
+    orgId: "507f1f77bcf86cd799439011",
   },
   ok: true,
 };
@@ -56,7 +56,9 @@ import { mockSuperadmin } from "@/tests/helpers/superadminAuth";
 vi.mock("@/lib/api/parse-body", () => ({}));
 
 // Mock Issue model
-const findOneMock = vi.fn().mockResolvedValue(null);
+const findOneMock = vi.fn().mockReturnValue({
+  lean: vi.fn().mockResolvedValue(null),
+});
 const updateOneMock = vi.fn().mockResolvedValue({});
 const saveMock = vi.fn().mockResolvedValue({
   _id: "new-issue-1",
@@ -157,7 +159,7 @@ describe("Issues Import API Route", () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce({
         ok: true,
-        session: { id: "user-1", role: "viewer", orgId: "org-123" },
+        session: { id: "user-1", role: "viewer", orgId: "507f1f77bcf86cd799439011" },
       } as any);
 
       const req = makeRequest();

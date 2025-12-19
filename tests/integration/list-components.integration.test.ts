@@ -1,131 +1,93 @@
 /**
- * Integration Test: All List Components
- * P3 Validation
- * 
- * Tests all 12 list components for:
- * - URL sync (shareable links)
- * - localStorage persistence
- * - Filter functionality
- * - Pagination
- * - Mobile responsiveness
- * - No console errors
+ * Integration Test: All List Components (Static Source Checks)
+ * Validates key consistency markers across list components without rendering.
  */
+import fs from "fs";
+import path from "path";
+import { describe, it, expect } from "vitest";
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import React from "react";
+const listFiles = {
+  workOrders: "components/fm/WorkOrdersViewNew.tsx",
+  users: "components/administration/UsersList.tsx",
+  roles: "components/administration/RolesList.tsx",
+  auditLogs: "components/administration/AuditLogsList.tsx",
+  employees: "components/hr/EmployeesList.tsx",
+  invoices: "components/finance/InvoicesList.tsx",
+  leaveRequests: "components/hr/LeaveRequestsList.tsx",
+} as const;
 
-// Mock Next.js navigation
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    prefetch: vi.fn(),
-  }),
-  useSearchParams: () => new URLSearchParams(),
-  usePathname: () => "/test",
-}));
-
-// Mock translation context
-vi.mock("@/contexts/TranslationContext", () => ({
-  useTranslation: () => ({
-    t: (key: string, fallback?: string) => fallback || key,
-  }),
-}));
-
-// Mock SWR
-vi.mock("swr", () => ({
-  default: () => ({
-    data: null,
-    error: null,
-    isLoading: false,
-    mutate: vi.fn(),
-    isValidating: false,
-  }),
-}));
+const readSource = (relativePath: string) =>
+  fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
 
 describe("List Components Integration", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    localStorage.clear();
-  });
-
   describe("Work Orders List", () => {
-    it("should render with DataTableStandard", () => {
-      // Component test placeholder
-      expect(true).toBe(true);
+    it("should use DataTableStandard", () => {
+      const source = readSource(listFiles.workOrders);
+      expect(source).toContain("DataTableStandard");
     });
 
     it("should sync filters to URL", () => {
-      // URL sync test placeholder
-      expect(true).toBe(true);
+      const source = readSource(listFiles.workOrders);
+      expect(source).toContain("useTableQueryState");
     });
 
-    it("should persist view mode to localStorage", () => {
-      // localStorage test placeholder
-      expect(true).toBe(true);
+    it("should provide CardList for mobile", () => {
+      const source = readSource(listFiles.workOrders);
+      expect(source).toContain("CardList");
     });
   });
 
   describe("Administration Lists", () => {
-    it("should render UsersList with filters", () => {
-      expect(true).toBe(true);
+    it("should render UsersList with DataTableStandard", () => {
+      const source = readSource(listFiles.users);
+      expect(source).toContain("DataTableStandard");
     });
 
-    it("should render RolesList with filters", () => {
-      expect(true).toBe(true);
+    it("should render RolesList with DataTableStandard", () => {
+      const source = readSource(listFiles.roles);
+      expect(source).toContain("DataTableStandard");
     });
 
-    it("should render AuditLogsList with auto-refresh", () => {
-      expect(true).toBe(true);
+    it("should render AuditLogsList with DataTableStandard", () => {
+      const source = readSource(listFiles.auditLogs);
+      expect(source).toContain("DataTableStandard");
     });
   });
 
   describe("HR/Finance Lists", () => {
-    it("should render EmployeesList with hire date filter", () => {
-      expect(true).toBe(true);
+    it("should render EmployeesList with DataTableStandard", () => {
+      const source = readSource(listFiles.employees);
+      expect(source).toContain("DataTableStandard");
     });
 
-    it("should render InvoicesList with amount range filter", () => {
-      expect(true).toBe(true);
+    it("should render InvoicesList with DataTableStandard", () => {
+      const source = readSource(listFiles.invoices);
+      expect(source).toContain("DataTableStandard");
     });
 
-    it("should render LeaveRequestsList with status filter", () => {
-      expect(true).toBe(true);
-    });
-  });
-
-  describe("Mobile Strategy", () => {
-    it("should switch to CardList on mobile viewport", () => {
-      // Viewport test placeholder
-      expect(true).toBe(true);
-    });
-
-    it("should persist view mode preference", () => {
-      // View mode persistence test placeholder
-      expect(true).toBe(true);
-    });
-
-    it("should render touch-friendly targets (44px min)", () => {
-      // Touch target test placeholder
-      expect(true).toBe(true);
+    it("should render LeaveRequestsList with DataTableStandard", () => {
+      const source = readSource(listFiles.leaveRequests);
+      expect(source).toContain("DataTableStandard");
     });
   });
 
   describe("Consistency Checks", () => {
-    it("all lists use DataTableStandard", () => {
-      // Import all list components and verify they use DataTableStandard
-      expect(true).toBe(true);
+    it("all lists reference DataTableStandard", () => {
+      const sources = Object.values(listFiles).map((file) => readSource(file));
+      const dataTableCount = sources.filter((src) =>
+        src.includes("DataTableStandard")
+      ).length;
+      expect(dataTableCount).toBe(Object.keys(listFiles).length);
     });
 
-    it("all lists use useTableQueryState", () => {
-      // Verify hook usage
-      expect(true).toBe(true);
-    });
-
-    it("all lists use same filter components", () => {
-      // Verify FacetMultiSelect, DateRangePicker, NumericRangeFilter usage
-      expect(true).toBe(true);
+    it("filter components are reused across lists", () => {
+      const sources = Object.values(listFiles).map((file) => readSource(file));
+      const hasFilters = sources.some((src) =>
+        ["TableFilterDrawer", "ActiveFiltersChips", "FacetMultiSelect"].some((token) =>
+          src.includes(token)
+        )
+      );
+      expect(hasFilters).toBe(true);
     });
   });
 });

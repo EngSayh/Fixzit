@@ -7,8 +7,7 @@
  */
 import { execFileSync } from "node:child_process";
 
-const git = (args) =>
-  execFileSync("git", args, { encoding: "utf8" }).trim();
+const git = (args) => execFileSync("git", args, { encoding: "utf8" });
 
 const stagedFiles = git([
   "diff",
@@ -16,6 +15,7 @@ const stagedFiles = git([
   "--name-only",
   "--diff-filter=ACMR",
 ])
+  .trim()
   .split("\n")
   .map((file) => file.trim())
   .filter(Boolean)
@@ -33,7 +33,9 @@ const marker = "@ts-expect-error";
 for (const file of stagedFiles) {
   let contents = "";
   try {
-    contents = git(["show", `:${file}`]);
+    contents = execFileSync("git", ["show", `:${file}`], {
+      encoding: "utf8",
+    });
   } catch {
     continue;
   }

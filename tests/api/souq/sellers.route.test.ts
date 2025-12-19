@@ -42,7 +42,7 @@ vi.mock("@/lib/logger", () => ({
 
 // Mock database connection
 vi.mock("@/lib/mongodb-unified", () => ({
-  connectToDatabase: vi.fn().mockResolvedValue(undefined),
+  connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";

@@ -28,7 +28,7 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 // Mock inventory service
 vi.mock("@/services/souq/inventory-service", () => ({
   inventoryService: {
-    getInventory: vi.fn(),
+    getSellerInventory: vi.fn().mockResolvedValue([]),
     adjustStock: vi.fn(),
     reserveStock: vi.fn(),
     releaseReservation: vi.fn(),

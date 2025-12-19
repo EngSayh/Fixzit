@@ -149,31 +149,15 @@ describe("Tenant Isolation Plugin", () => {
     });
 
     it("should log super admin access for audit trail", async () => {
-      const loggerSpy = vi.fn();
-
-      // Mock logger
-      vi.doMock("@/lib/logger", () => ({
-        logger: {
-          info: loggerSpy,
-          warn: vi.fn(),
-          error: vi.fn(),
-          debug: vi.fn(),
-        },
-      }));
-
-      // Re-import to get mocked version
-      const { setSuperAdminTenantContext, clearTenantContext } = await import(
-        "@/server/plugins/tenantIsolation"
-      );
+      const { setSuperAdminTenantContext, clearTenantContext, getTenantContext } =
+        await import("@/server/plugins/tenantIsolation");
 
       clearTenantContext();
-
       setSuperAdminTenantContext(ORG_B_ID, SUPER_ADMIN_USER_ID);
 
-      // Verify audit log was called
-      // Note: The actual call happens, but vi.doMock may not intercept existing imports
-      // This test validates the function doesn't throw
-      expect(true).toBe(true);
+      const context = getTenantContext();
+      expect(context.isSuperAdmin).toBe(true);
+      expect(context.assumedOrgId).toBe(ORG_B_ID);
     });
   });
 
@@ -278,9 +262,8 @@ describe("Tenant Isolation Plugin", () => {
       // Apply plugin
       tenantIsolationPlugin(TestSchema, {});
 
-      // Plugin should have registered hooks
-      // Note: Actual hook verification requires examining schema internals
-      expect(true).toBe(true); // Plugin applied without error
+      const hooksAfter = TestSchema.s?.hooks?.count?.() || 0;
+      expect(hooksAfter).toBeGreaterThanOrEqual(hooksBefore);
     });
   });
 

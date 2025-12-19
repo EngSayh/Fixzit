@@ -54,7 +54,7 @@ const mockSession = {
   session: {
     id: "user-1",
     role: "super_admin",
-    orgId: "org-123",
+    orgId: "507f1f77bcf86cd799439011",
   },
   ok: true,
 };
@@ -70,21 +70,35 @@ vi.mock("@/lib/superadmin/auth", () => ({
 
 // Mock parse body
 vi.mock("@/lib/api/parse-body", () => ({
-  parseBodySafe: vi.fn().mockResolvedValue({
-    data: {
-      title: "Test Issue",
-      description: "Test description",
-      category: "bug",
-      priority: "P1",
-      effort: "M",
-      location: { filePath: "/test/file.ts" },
-      module: "auth",
-      action: "Fix the bug",
-      definitionOfDone: "Bug is fixed",
-    },
-    error: null,
+  parseBodySafe: vi.fn(async (request: { json?: () => Promise<unknown> }) => {
+    if (!request || typeof request.json !== "function") {
+      return { data: null, error: "Invalid JSON" };
+    }
+    try {
+      const data = await request.json();
+      return { data, error: null };
+    } catch {
+      return { data: null, error: "Invalid JSON" };
+    }
   }),
 }));
+
+const defaultIssueBody = {
+  title: "Test Issue",
+  description: "Test description",
+  category: "bug",
+  priority: "P1",
+  effort: "M",
+  location: { filePath: "/test/file.ts" },
+  module: "auth",
+  action: "Fix the bug",
+  definitionOfDone: "Bug is fixed",
+};
+
+const makeIssueRequest = (body = defaultIssueBody) =>
+  ({
+    json: vi.fn().mockResolvedValue(body),
+  }) as any;
 
 // Mock Issue model
 const mockIssues = [
@@ -93,7 +107,7 @@ const mockIssues = [
     title: "Test Issue 1",
     status: "OPEN",
     priority: "P1_HIGH",
-    orgId: "org-123",
+    orgId: "507f1f77bcf86cd799439011",
   },
 ];
 
@@ -112,7 +126,7 @@ const saveMock = vi.fn().mockResolvedValue({
   _id: "new-issue-1",
   title: "Test Issue",
   status: "OPEN",
-  orgId: "org-123",
+  orgId: "507f1f77bcf86cd799439011",
 });
 const getStatsMock = vi.fn().mockResolvedValue({
   total: 10,
@@ -214,7 +228,7 @@ describe("Issues API Route", () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce({
         ok: true,
-        session: { id: "user-1", role: "guest", orgId: "org-123" },
+        session: { id: "user-1", role: "guest", orgId: "507f1f77bcf86cd799439011" },
       } as any);
 
       const req = {
@@ -293,7 +307,7 @@ describe("Issues API Route", () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce({
         ok: true,
-        session: { id: "user-1", role: "viewer", orgId: "org-123" },
+        session: { id: "user-1", role: "viewer", orgId: "507f1f77bcf86cd799439011" },
       } as any);
 
       const req = {} as any;

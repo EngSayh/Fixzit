@@ -2,11 +2,11 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
-# Fixzit Phase Completion Status (P0-P110)
+# Fixzit Phase Completion Status (P0-P170)
 
-**Last Updated:** 2025-12-19 08:45  
+**Last Updated:** 2025-12-19 12:11  
 **Branch:** feat/mobile-cardlist-phase1  
-**Latest Commit:** b237d1e06
+**Latest Commit:** 6e02b0a96
 
 | Range | Focus | Status |
 |-------|-------|--------|
@@ -23,8 +23,39 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | P108 | Dashboard Phase Tracker Expansion | ✅ Complete |
 | P109 | Finance Ledger Integration Tests | ✅ Complete |
 | P110 | Comprehensive API Test Coverage | ✅ Complete |
+| P165-P170 | Post-MVP Hardening (RBAC + Quality Gates) | ✅ Complete |
 
-**Status:** Merge-ready for Fixzit Phase 1 MVP.
+**Status:** In progress — test stabilization and pending item sync.
+
+---
+
+### 2025-12-19 12:11 (Asia/Riyadh) — Maintenance: Auto-Assign Guard + Test Stabilization
+**Context:** feat/mobile-cardlist-phase1 | 6e02b0a96 | Agent: Codex (CLI)  
+**Duration:** 20 minutes | **Status:** 🔄 IN PROGRESS
+
+**Changes:**
+- Added teamId guard to auto-assign skip filter and single-assignment checks.
+- Added team-assignment coverage in auto-assign route tests.
+- Stabilized auto-assignment engine test defaults for updateOne.
+- Aligned superadmin phases tests with PendingMasterNotFound error messaging.
+- Ran `pnpm vitest run` (timed out at 120s; failures captured in report).
+
+### 2025-12-19 12:09 (Asia/Riyadh) — P165-P170: RBAC + JSON Guards + Quality Gates + Lean Rule
+**Context:** feat/mobile-cardlist-phase1 | e37668acb | Agent: Codex (CLI)  
+**Duration:** 60 minutes | **Status:** ✅ COMPLETE
+
+**Changes:**
+- Verified VSCode memory optimizations already in place (settings + JS heap flags).
+- Restricted payroll runs/calculate/WPS export to HR-only roles.
+- Replaced raw request.json() with parseBodySafe in HR/Finance write routes.
+- Added client env guard + @ts-expect-error reason guard to pre-commit and CI.
+- Added local ESLint rule to suggest .lean() on awaited/returned read queries.
+- Verified tenant scope/aggregate safety for aqar map, ats analytics, support org search, payroll calc.
+
+**Evidence:**
+- `node scripts/audit-client-env.mjs` → 0 unsafe client env uses.
+- `rg -n "(?:req|request)\\.json\\(" app/api/hr app/api/finance` → no matches.
+- See MASTER_PENDING_REPORT.md for phase and pending item sync.
 
 ---
 

@@ -73,7 +73,7 @@ describe("SuperAdmin Phases API", () => {
     const res = await GET(createRequest());
     const data = await res.json();
     expect(res.status).toBe(404);
-    expect(data.error).toBe("PENDING_MASTER.md not found");
+    expect(data.error).toBe("Pending report not found");
   });
 
   it("returns phase progress when authenticated", async () => {
@@ -84,15 +84,15 @@ describe("SuperAdmin Phases API", () => {
         return [
           "# PENDING_MASTER",
           "",
-          "### 2025-12-18 14:30 (Session 1) \\u2014 Phase P66-P75",
+          "### 2025-12-18 14:30 (Session 1) \u2014 Phase P66-P75",
           "",
-          "\\u2705 PHASES P66-P75 COMPLETE",
+          "\u2705 PHASES P66-P75 COMPLETE",
           "",
           "**Production Readiness Complete**",
           "",
-          "### 2025-12-18 16:00 (Session 2) \\u2014 Phase P76-P83",
+          "### 2025-12-18 16:00 (Session 2) \u2014 Phase P76-P83",
           "",
-          "\\u2705 PHASES P76-P83 COMPLETE",
+          "\u2705 PHASES P76-P83 COMPLETE",
           "",
           "**Audit Documentation Complete**",
         ].join("\n");
@@ -115,8 +115,8 @@ describe("SuperAdmin Phases API", () => {
         return [
           "# PENDING_MASTER",
           "",
-          "### 2025-12-18 14:30 (Session 1) \\u2014 Phase P66-P75",
-          "\\u2705 PHASES P66-P75 COMPLETE",
+          "### 2025-12-18 14:30 (Session 1) \u2014 Phase P66-P75",
+          "\u2705 PHASES P66-P75 COMPLETE",
         ].join("\n");
       }
       return "";
@@ -135,8 +135,8 @@ describe("SuperAdmin Phases API", () => {
       if (p.includes("PENDING_MASTER.md")) {
         return [
           "# PENDING_MASTER",
-          "### 2025-12-18 14:30 (Session 1) \\u2014 Phase P66-P107",
-          "\\u2705 PHASES P66-P107 COMPLETE",
+          "### 2025-12-18 14:30 (Session 1) \u2014 Phase P66-P107",
+          "\u2705 PHASES P66-P107 COMPLETE",
         ].join("\n");
       }
       return "";

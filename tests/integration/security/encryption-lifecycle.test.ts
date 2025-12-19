@@ -14,6 +14,8 @@
  * @module tests/integration/security/encryption-lifecycle.test.ts
  */
 
+import fs from "fs";
+import path from "path";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 // Mock encryption key for tests
@@ -652,9 +654,14 @@ describe("Compliance Verification", () => {
 
   describe("Saudi Labor Law Article 52", () => {
     it("should have salary fields in encrypted field list", () => {
-      // Verify salary-related fields are encrypted
-      // This is verified by the schema-level tests above
-      expect(true).toBe(true); // Placeholder - actual verification in schema tests
+      const hrModelSource = fs.readFileSync(
+        path.join(process.cwd(), "server/models/hr.models.ts"),
+        "utf8",
+      );
+
+      expect(hrModelSource).toContain("payroll.baseSalary");
+      expect(hrModelSource).toContain("payroll.housingAllowance");
+      expect(hrModelSource).toContain("payroll.transportAllowance");
     });
   });
 });

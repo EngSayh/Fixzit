@@ -12,10 +12,10 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { ListingIntent } from "@/server/models/aqar/Listing";
 import { AqarOfflineCacheService } from "@/services/aqar/offline-cache-service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 export const runtime = "nodejs";
 
@@ -73,6 +73,35 @@ export async function GET(request: NextRequest) {
     });
     return NextResponse.json(
       { error: "Failed to build offline bundle", correlationId },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * POST /api/aqar/offline
+ * Sync offline data bundle (stub for mobile sync)
+ */
+export async function POST(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:offline:post",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
+  try {
+    const session = await getSessionUser(request);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Accept payload but currently just acknowledge sync
+    return NextResponse.json({ success: true, message: "Offline sync acknowledged" });
+  } catch (error) {
+    logger.error("AQAR_OFFLINE_POST_FAILED", { error });
+    return NextResponse.json(
+      { error: "Failed to sync offline data" },
       { status: 500 },
     );
   }

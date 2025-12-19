@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { Types } from "mongoose";
 
 // Mock marketplace context
 vi.mock("@/lib/marketplace/context", () => ({
@@ -37,6 +38,7 @@ vi.mock("@/lib/marketplace/serializers", () => ({
 }));
 
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
 
 const loadHandler = async () => {
   const { GET } = await import("@/app/api/marketplace/categories/route");
@@ -49,6 +51,13 @@ describe("API /api/marketplace/categories", () => {
     vi.resetModules();
     // Reset environment
     process.env.MARKETPLACE_ENABLED = "true";
+    vi.mocked(resolveMarketplaceContext).mockResolvedValue({
+      tenantKey: "test-tenant",
+      orgId: new Types.ObjectId(),
+      userId: new Types.ObjectId(),
+      role: "BUYER",
+      correlationId: "test-correlation",
+    });
   });
 
   describe("GET - List Categories", () => {

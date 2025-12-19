@@ -25,8 +25,6 @@ import { z } from "zod";
 import { connectDb } from "@/lib/mongodb-unified";
 import { getServerSession } from "@/lib/auth/getServerSession";
 import { reviewService } from "@/services/souq/reviews/review-service";
-import { SouqReview } from "@/server/models/souq/Review";
-import { ObjectId } from "mongodb";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const reviewCreateSchema = z.object({
@@ -145,18 +143,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    await connectDb();
-    const orgId = session.user.orgId;
-    if (!orgId) {
-      return NextResponse.json(
-        { error: "Organization context required" },
-        { status: 403 },
-      );
-    }
-    const orgCandidates = ObjectId.isValid(orgId)
-      ? [orgId, new ObjectId(orgId)]
-      : [orgId];
-
     const { searchParams } = new URL(request.url);
     const parsed = reviewListQuerySchema.parse({
       status: searchParams.get("status") ?? undefined,
@@ -165,35 +151,28 @@ export async function GET(request: NextRequest) {
       page: searchParams.get("page") ?? undefined,
       limit: searchParams.get("limit") ?? undefined,
     });
+    await connectDb();
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
 
-    const query: Record<string, unknown> = {
+    const { reviews, pagination } = await reviewService.listReviews(orgId, {
       customerId: session.user.id,
-      $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }],
-    };
-
-    if (parsed.status) query.status = parsed.status;
-    if (parsed.rating) query.rating = parsed.rating;
-    if (parsed.verifiedOnly) query.isVerifiedPurchase = true;
-
-    const skip = (parsed.page - 1) * parsed.limit;
-    const [reviews, total] = await Promise.all([
-      SouqReview.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parsed.limit)
-        .lean(),
-      SouqReview.countDocuments(query),
-    ]);
+      status: parsed.status,
+      rating: parsed.rating,
+      verifiedOnly: parsed.verifiedOnly,
+      page: parsed.page,
+      limit: parsed.limit,
+    });
 
     return NextResponse.json({
       success: true,
       data: reviews,
-      pagination: {
-        page: parsed.page,
-        limit: parsed.limit,
-        total,
-        pages: Math.ceil(total / parsed.limit),
-      },
+      pagination,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

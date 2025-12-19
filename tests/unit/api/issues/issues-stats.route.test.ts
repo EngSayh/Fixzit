@@ -37,7 +37,7 @@ const mockSession = {
   session: {
     id: "user-1",
     role: "super_admin",
-    orgId: "org-123",
+    orgId: "507f1f77bcf86cd799439011",
   },
   ok: true,
 };
@@ -108,7 +108,7 @@ describe("Issues Stats API Route", () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce({
         ok: true,
-        session: { id: "user-1", role: "viewer", orgId: "org-123" },
+        session: { id: "user-1", role: "viewer", orgId: "507f1f77bcf86cd799439011" },
       } as any);
 
       const req = {} as any;
@@ -171,8 +171,8 @@ describe("Issues Stats API Route", () => {
       const req = {} as any;
       await GET(req);
       
-      // Aggregation mocking is complex - verify route doesn't crash
-      expect(true).toBe(true);
+      expect(aggregateMock).toHaveBeenCalled();
+      expect(countDocumentsMock).toHaveBeenCalled();
     });
   });
 });

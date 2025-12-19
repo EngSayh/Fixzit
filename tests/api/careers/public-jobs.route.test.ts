@@ -50,7 +50,14 @@ vi.mock("zod", () => {
       object: () => ({ safeParse: mockSafeParse }),
       string: () => ({ max: () => ({ optional: () => ({}) }) }),
       coerce: {
-        number: () => ({ int: () => ({ min: () => ({ default: () => 1 }) }) }),
+        number: () => ({
+          int: () => ({
+            min: () => ({
+              max: () => ({ default: () => 1 }),
+              default: () => 1,
+            }),
+          }),
+        }),
       },
     },
   };
