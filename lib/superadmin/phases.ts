@@ -41,16 +41,11 @@ export class PendingMasterNotFoundError extends Error {
 export async function loadSuperadminPhaseData(): Promise<PhaseData> {
   const pendingMasterPath = path.join(process.cwd(), "docs", "PENDING_MASTER.md");
 
-  const exists = await fs.promises
-    .stat(pendingMasterPath)
-    .then(() => true)
-    .catch(() => false);
-
-  if (!exists) {
+  if (!fs.existsSync(pendingMasterPath)) {
     throw new PendingMasterNotFoundError();
   }
 
-  const content = await fs.promises.readFile(pendingMasterPath, "utf-8");
+  const content = fs.readFileSync(pendingMasterPath, "utf-8");
 
   const completionPattern = /✅\s*PHASES?\s+P(\d+)(?:-P(\d+))?\s+COMPLETE/gi;
   const datePattern =

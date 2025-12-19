@@ -157,7 +157,8 @@ export async function GET(req: NextRequest) {
       },
     ];
 
-    const results = await Organization.aggregate(pipeline);
+    // PERF-001 (2025-12-19): Added maxTimeMS to prevent timeout on large datasets
+    const results = await Organization.aggregate(pipeline, { maxTimeMS: 10_000 });
 
     return NextResponse.json(
       results.map(org => ({

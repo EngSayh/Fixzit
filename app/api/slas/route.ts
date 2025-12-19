@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
 
     const { SLA } = await import("@/server/models/SLA");
     const sla = await SLA.create({
-      tenantId: user.orgId,
+      orgId: user.orgId,
       code: `SLA-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
@@ -249,7 +249,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
-    const match: Record<string, unknown> = { tenantId: user.orgId };
+    const match: Record<string, unknown> = { orgId: user.orgId };
 
     if (type) match.type = type;
     if (priority) match.priority = priority;
@@ -263,7 +263,8 @@ export async function GET(req: NextRequest) {
       SLA.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
-        .limit(limit),
+        .limit(limit)
+        .lean(), // PERF-002: Read-only query optimization
       SLA.countDocuments(match),
     ]);
 

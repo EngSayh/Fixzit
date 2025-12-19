@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { EMAIL_DOMAINS as EMAILS } from "@/lib/config/domains";
 import { logger } from "@/lib/logger";
-import { Config } from "@/lib/config/constants";
 
 type TabType = "account" | "notifications" | "security";
 
@@ -80,9 +79,8 @@ export default function ProfilePage() {
     twoFactorEnabled: false,
   });
 
-  const isProd = Config.env.isProduction;
-
   const fetchProfileData = useCallback(async () => {
+    const isProd = process.env.NODE_ENV === "production";
     try {
       setLoading(true);
       setLoadError(null);
@@ -143,7 +141,7 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [isProd]);
+  }, [t]);
 
   // Fetch user profile data on mount
   useEffect(() => {

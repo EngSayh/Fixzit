@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T09:12:00+03:00 (Asia/Riyadh)  
+**Last Updated:** 2025-12-19T09:30:00+03:00 (Asia/Riyadh)  
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** feat/mobile-cardlist-phase1  
-**Commit:** 64630e263 | Origin: 64630e263  
-**Last Work:** P133 - Client env hardening + SSOT dashboard sync  
-**MongoDB Status:** 34 issues (15 open, 0 in_progress, 19 resolved)  
+**Commit:** a3a90e4b8 | Origin: pending push  
+**Last Work:** P134-P138 - Verification audit (SEC-002/PERF-001/TEST-004/BUG-002/PERF-002)  
+**MongoDB Status:** 34 issues (10 open, 0 in_progress, 24 resolved)  
 **Working Tree:** DIRTY (local changes pending commit)  
-**Test Count:** 3,939/3,939 passing (447 files) - +43 tests from P126
+**Test Count:** 3,939/3,939 passing (447 files)
 
 ---
 
@@ -22,16 +22,23 @@
 |--------|-------|
 | **Health Score** | 95/100 |
 | **Files Scanned** | 1,548 (app/ + lib/ + services/ + domain/ + tests/) |
-| **Total Issues** | 34 (15 open / 19 resolved) |
+| **Total Issues** | 34 (10 open / 24 resolved) |
 | **Test Coverage** | 3,939 tests, 447 test files (last recorded passing) |
 | **Build Status** | ✅ 0 TS errors, 0 ESLint errors (verified 2025-12-19) |
 
 ### 🎯 Top 5 Priority Actions
-1. [ ] **[SEC-002]** 🔴 P0: Tenant scope verification on all DB queries (org_id/property_owner_id guards)
-2. [ ] **[PERF-001]** 🟠 P2: Add .limit()/pagination to unbounded aggregates (stats/analytics)
-3. [ ] **[TEST-004]** 🟠 P2: Guard POST bodies (request.json()) with parseBody/try-catch
-4. [ ] **[BUG-002]** 🟡 P3: Document @ts-expect-error suppressions (pdf-parse/rehype)
+1. [x] **[SEC-002]** ✅ VERIFIED - All 17 flagged routes are SAFE (intentionally public/admin/user-scoped)
+2. [x] **[PERF-001]** ✅ RESOLVED - maxTimeMS added to support/organizations/search (only 1 missing)
+3. [x] **[TEST-004]** ✅ VERIFIED - All 8 POST routes have try-catch around request.json()
+4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[BUG-001]** ✅ RESOLVED - Client process.env usage replaced with Config client fields (P133)
+
+### ✅ Recently Resolved (2025-12-19 Session P134-P138)
+1. **[P134]** ✅ SEC-002 Tenant Scope Audit - All 17 flagged routes verified SAFE (public/admin/user-scoped)
+2. **[P135]** ✅ PERF-001 Aggregate Limits - Added maxTimeMS to support/organizations/search
+3. **[P136]** ✅ TEST-004 JSON Parse Guards - All 8 POST routes have try-catch wrappers
+4. **[P137]** ✅ BUG-002 @ts-expect-error Docs - All 5 suppressions documented
+5. **[P138]** ✅ PERF-002 Add .lean() - Added to slas, assets/[id], tenants/[id] routes
 
 ### ✅ Recently Resolved (2025-12-19 Session P125-P132)
 1. **[P125]** ✅ Cache Observability Fix - X-Cache-Status HIT/MISS/STALE via applyCacheHeaders

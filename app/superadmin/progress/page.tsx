@@ -1,213 +1,153 @@
-import { Metadata } from 'next';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, AlertCircle, Clock, TrendingUp } from 'lucide-react';
+import fs from "fs";
+import path from "path";
+import { Metadata } from "next";
+import { AlertCircle, CheckCircle2, Circle, Clock, TrendingUp } from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import {
+  PendingMasterNotFoundError,
+  PhaseEntry,
+  PhaseStatus,
+  PhaseSummary,
+  loadSuperadminPhaseData,
+} from "@/lib/superadmin/phases";
 
 export const metadata: Metadata = {
-  title: 'Phase Progress Tracker | Fixzit Superadmin',
-  description: 'Real-time production readiness and phase completion tracking',
+  title: "Phase Progress Tracker | Fixzit Superadmin",
+  description: "Real-time production readiness and phase completion tracking",
 };
 
-/**
- * Phase Progress Tracker - Point 21 Requirement
- * 
- * Displays pending report (PENDING_MASTER.md) data in superadmin dashboard
- * Shows phase tracking (P75-P96), test coverage, and production readiness
- */
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-// Phase data from PENDING_MASTER.md
-const phases = [
-  { id: 'P75', title: 'CI Optimization', status: 'completed', date: '2025-12-17', evidence: 'Cache keys optimized, 6min → 3min build time' },
-  { id: 'P76', title: 'Aggregate Inventory Audit', status: 'completed', date: '2025-12-17', evidence: '19 aggregate queries audited, all optimized' },
-  { id: 'P77', title: 'Superadmin Analysis', status: 'completed', date: '2025-12-17', evidence: '18 routes verified, navigation functional' },
-  { id: 'P78', title: 'Cache Headers Verification', status: 'completed', date: '2025-12-17', evidence: 'Cache-Control headers set, CDN-ready' },
-  { id: 'P79', title: 'Offline Resilience', status: 'completed', date: '2025-12-17', evidence: 'External API errors gracefully handled' },
-  { id: 'P80', title: 'Superadmin Audit', status: 'completed', date: '2025-12-17', evidence: 'All features verified functional' },
-  { id: 'P83', title: 'Memory Optimization', status: 'completed', date: '2025-12-18', evidence: 'Node 8GB, TS Server 8GB, file watchers optimized' },
-  { id: 'P84', title: 'Tenant Scope Violations', status: 'completed', date: '2025-12-18', evidence: '209 violations triaged: 0 critical bugs' },
-  { id: 'P85', title: 'Finance Route Tests', status: 'completed', date: '2025-12-18', evidence: '11 test files, 150+ tests, 4→15 coverage' },
-  { id: 'P86', title: 'HR Route Tests', status: 'completed', date: '2025-12-18', evidence: '4 test files, 70+ tests, 3→7 coverage' },
-  { id: 'P87', title: 'Souq Route Tests', status: 'deferred', date: '2025-12-18', evidence: '61 untested routes (20+ hours) - Phase 2' },
-  { id: 'P88', title: 'Aqar Route Tests', status: 'completed', date: '2025-12-18', evidence: '16/16 routes tested (100% coverage)' },
-  { id: 'P89', title: 'Documentation Audit', status: 'completed', date: '2025-12-18', evidence: '844 files, well-organized, master index' },
-  { id: 'P90', title: 'Performance Optimization', status: 'completed', date: '2025-12-18', evidence: '21MB bundle, baselines documented' },
-  { id: 'P91', title: 'Code Quality Scan', status: 'completed', date: '2025-12-18', evidence: '4 TODOs (0.003%), 0 vulnerabilities' },
-  { id: 'P92', title: 'UI/UX Polish', status: 'completed', date: '2025-12-18', evidence: 'No "Coming Soon" pages, error boundaries' },
-  { id: 'P93', title: 'Developer Experience', status: 'completed', date: '2025-12-18', evidence: 'README, CONTRIBUTING, 50+ VSCode tasks' },
-  { id: 'P94', title: 'Tech Debt & Future-Proofing', status: 'completed', date: '2025-12-18', evidence: 'Phase 2 roadmap (57h), upgrade paths' },
-  { id: 'P95', title: 'Superadmin Dashboard', status: 'completed', date: '2025-12-18', evidence: 'This page - Point 21 requirement' },
-  
-  // --- Implementation Phase (P90-P97) - 2025-12-18 Evening ---
-  { id: 'P90-Impl', title: 'Support Search Weighted Scoring', status: 'completed', date: '2025-12-18T19:10', evidence: 'Exact (100), prefix (50), fuzzy (10) relevance' },
-  { id: 'P91-Impl', title: 'Finance Ledger Contract Guards', status: 'completed', date: '2025-12-18T19:15', evidence: 'Response-shape assertions in 3 test suites' },
-  { id: 'P92-Impl', title: 'Performance Observability', status: 'completed', date: '2025-12-18T19:20', evidence: 'Perf markers in CardList, InvoicesList, PropertiesList' },
-  { id: 'P93-Impl', title: 'Visual Regression Baseline', status: 'completed', date: '2025-12-18T19:20', evidence: 'OfflineIndicator visual tests (LTR/RTL baselines)' },
-  { id: 'P94-Impl', title: 'Sentry Sourcemap Optimization', status: 'completed', date: '2025-12-18T19:20', evidence: 'Blocking on main/develop, non-blocking on features' },
-  { id: 'P95-Impl', title: 'Memory Optimization', status: 'completed', date: '2025-12-18T19:00', evidence: 'Cache cleared, store pruned (1981 pkg), TS server 1.5GB' },
-  { id: 'P96-Impl', title: 'Dashboard Phase Updates', status: 'completed', date: '2025-12-18T19:25', evidence: 'P90-P97 implementation phases added to dashboard' },
-  { id: 'P97-Impl', title: 'Comprehensive PR Creation', status: 'completed', date: '2025-12-18T19:30', evidence: 'Full evidence pack + QA checklist' },
-  
-  // --- Final Verification Phase (P102-P107) - 2025-12-18 Session 2 ---
-  { id: 'P102', title: 'SLA Business Hours Calculation', status: 'completed', date: '2025-12-18T21:00', evidence: 'Business-hours-aware SLA across work-orders and GraphQL' },
-  { id: 'P103', title: 'Support Search Hardening', status: 'completed', date: '2025-12-18T21:30', evidence: 'Zod, rate limit, RBAC, weighted scoring all verified' },
-  { id: 'P104', title: 'Cache Headers Audit', status: 'completed', date: '2025-12-18T21:35', evidence: 'All public routes have Cache-Control headers' },
-  { id: 'P105', title: 'Offline Resilience Audit', status: 'completed', date: '2025-12-18T21:40', evidence: 'Global OfflineIndicator in root layout' },
-  { id: 'P106', title: 'Localization UX Audit', status: 'completed', date: '2025-12-18T21:45', evidence: 'LanguageSelector + CurrencySelector on TopBar, login, signup' },
-  { id: 'P107', title: 'CI Optimization Audit', status: 'completed', date: '2025-12-18T21:50', evidence: 'Vitest sharded, MongoDB cache, 4 CI shards' },
-  
-  // --- Final Re-Verification (P109-P114) - 2025-12-18 Session 3 ---
-  { id: 'P109', title: 'Support Search Re-Verification', status: 'completed', date: '2025-12-18T22:00', evidence: 'Rate limit 30/min, SUPER_ADMIN only, Zod + regex sanitize' },
-  { id: 'P110', title: 'Public GET Cache Headers', status: 'completed', date: '2025-12-18T22:05', evidence: '4/4 public routes + 3 marketplace routes with Cache-Control' },
-  { id: 'P111', title: 'Offline Resilience Enhancement', status: 'completed', date: '2025-12-18T22:10', evidence: 'Global OfflineIndicator + SWR hooks for retry' },
-  { id: 'P112', title: 'Marketplace Currency/Tenant', status: 'completed', date: '2025-12-18T22:15', evidence: 'ProductsList/ProductCard/PDPBuyBox all use useCurrency()' },
-  { id: 'P113', title: 'Zod Coverage Expansion', status: 'completed', date: '2025-12-18T22:20', evidence: '128/373 routes (34%), all public routes validated' },
-  { id: 'P114', title: 'Playwright HFV Smokes', status: 'completed', date: '2025-12-18T22:25', evidence: '9 roles × 13 pages = 117 scenarios, zero error tolerance' },
-  
-  // --- Improvement Phase (P125-P132) - 2025-12-19 ---
-  { id: 'P125', title: 'Cache Observability Fix', status: 'completed', date: '2025-12-19T10:00', evidence: 'X-Cache-Status HIT/MISS/STALE via applyCacheHeaders utility' },
-  { id: 'P126', title: 'Test Implementation', status: 'completed', date: '2025-12-19T10:30', evidence: '43 new tests: perf, currency persistence, ICU completeness' },
-  { id: 'P127', title: 'Component Integration', status: 'completed', date: '2025-12-19T11:00', evidence: 'DataRefreshTimestamp on dashboards, HoverTooltip on audit filters' },
-  { id: 'P128', title: 'Offline Banner Extension', status: 'completed', date: '2025-12-19T11:15', evidence: 'FormOfflineBanner on RFQBoard and FM RFQs forms' },
-  { id: 'P129', title: 'Audit Log Presets', status: 'completed', date: '2025-12-19T11:30', evidence: '4 presets: Tenant Escalations, RBAC Changes, Deletions, Logins' },
-  { id: 'P130', title: 'Currency UX Hints', status: 'completed', date: '2025-12-19T11:45', evidence: 'preferenceSource tooltip on CheckoutForm and PDPBuyBox' },
-  { id: 'P131', title: 'Grafana Panels', status: 'completed', date: '2025-12-19T12:00', evidence: 'Rate Limit Breaches, Cache Status Distribution panels' },
-  { id: 'P132', title: 'Dashboard Update', status: 'completed', date: '2025-12-19T12:15', evidence: 'This update - P125-P132 phases added' },
-  { id: 'P133', title: 'Client Env Hardening', status: 'completed', date: '2025-12-19T09:12', evidence: 'Removed client process.env usage; centralized Config client fields' },
-  
-  { id: 'P96', title: 'Final Production Gate', status: 'completed', date: '2025-12-18', evidence: 'All verification phases passed' },
-];
+interface VitestStats {
+  totalTests: number;
+  passedTests: number;
+  failedTests: number;
+  totalSuites: number;
+  passedSuites: number;
+  failedSuites: number;
+}
 
-const testCoverage = {
-  total: 3939,
-  passing: 3939,
-  failed: 0,
-  percentage: 100,
-  routes: {
-    total: 357,
-    tested: 85,
-    percentage: 23.8,
-  },
-  modules: {
-    finance: { routes: 15, tested: 15, percentage: 100 },
-    hr: { routes: 7, tested: 7, percentage: 100 },
-    souq: { routes: 75, tested: 17, percentage: 22.7 },
-    aqar: { routes: 16, tested: 16, percentage: 100 },
-    workOrders: { routes: 20, tested: 20, percentage: 100 },
-  },
-};
+async function loadVitestStats(): Promise<VitestStats | null> {
+  const resultsPath = path.join(process.cwd(), "vitest-results.json");
+  const exists = await fs.promises
+    .stat(resultsPath)
+    .then(() => true)
+    .catch(() => false);
 
-const pendingItems = [
-  {
-    id: 'SEC-002',
-    title: 'Tenant scope enforcement',
-    severity: 'critical',
-    status: 'open',
-    summary: '50+ DB queries need explicit org_id/property_owner_id guards and tests.',
-  },
-  {
-    id: 'PERF-001',
-    title: 'Aggregate limits',
-    severity: 'high',
-    status: 'open',
-    summary: 'Add .limit()/pagination to analytics aggregates to prevent OOM/timeouts.',
-  },
-  {
-    id: 'TEST-004',
-    title: 'POST body parsing guards',
-    severity: 'high',
-    status: 'open',
-    summary: 'Wrap request.json() in try/catch or parseBody helper across POST routes.',
-  },
-  {
-    id: 'BUG-002',
-    title: '@ts-expect-error documentation',
-    severity: 'medium',
-    status: 'open',
-    summary: 'Add inline justification to suppressions to avoid hidden type regressions.',
-  },
-  {
-    id: 'PERF-002',
-    title: 'Lean read models',
-    severity: 'low',
-    status: 'open',
-    summary: 'Apply .lean() to read-only queries to trim memory/CPU usage.',
-  },
-];
+  if (!exists) return null;
 
-const productionReadiness = {
-  overall: 95,
-  categories: [
-    { name: 'Tests', score: 100, status: 'excellent' },
-    { name: 'TypeScript', score: 100, status: 'excellent' },
-    { name: 'Security', score: 100, status: 'excellent' },
-    { name: 'Documentation', score: 100, status: 'excellent' },
-    { name: 'Performance', score: 95, status: 'excellent' },
-    { name: 'Route Coverage', score: 85, status: 'good' },
-  ],
-};
+  const raw = await fs.promises.readFile(resultsPath, "utf-8");
+  const data = JSON.parse(raw);
 
-function getStatusIcon(status: string) {
+  return {
+    totalTests: data.numTotalTests ?? 0,
+    passedTests: data.numPassedTests ?? 0,
+    failedTests: data.numFailedTests ?? 0,
+    totalSuites: data.numTotalTestSuites ?? 0,
+    passedSuites: data.numPassedTestSuites ?? 0,
+    failedSuites: data.numFailedTestSuites ?? 0,
+  };
+}
+
+type PhaseStatusOrDeferred = PhaseStatus | "deferred";
+
+function getStatusIcon(status: PhaseStatusOrDeferred) {
   switch (status) {
-    case 'completed':
+    case "completed":
       return <CheckCircle2 className="h-5 w-5 text-green-600" />;
-    case 'in-progress':
+    case "in-progress":
       return <Clock className="h-5 w-5 text-blue-600" />;
-    case 'deferred':
+    case "deferred":
       return <AlertCircle className="h-5 w-5 text-yellow-600" />;
     default:
       return <Circle className="h-5 w-5 text-gray-400" />;
   }
 }
 
-function getStatusBadge(status: string) {
+function getStatusBadge(status: PhaseStatusOrDeferred) {
   switch (status) {
-    case 'completed':
-      return <Badge variant="default" className="bg-green-600">Completed</Badge>;
-    case 'in-progress':
-      return <Badge variant="default" className="bg-blue-600">In Progress</Badge>;
-    case 'deferred':
+    case "completed":
+      return (
+        <Badge variant="default" className="bg-green-600">
+          Completed
+        </Badge>
+      );
+    case "in-progress":
+      return (
+        <Badge variant="default" className="bg-blue-600">
+          In Progress
+        </Badge>
+      );
+    case "deferred":
       return <Badge variant="secondary">Deferred</Badge>;
     default:
       return <Badge variant="outline">Not Started</Badge>;
   }
 }
 
-function getSeverityBadge(severity: string) {
-  switch (severity) {
-    case 'critical':
-      return <Badge variant="destructive">Critical</Badge>;
-    case 'high':
-      return <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">High</Badge>;
-    case 'medium':
-      return <Badge variant="secondary">Medium</Badge>;
-    default:
-      return <Badge variant="outline">Low</Badge>;
+function formatDate(date?: string) {
+  if (!date) return null;
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) {
+    return date;
   }
+  return parsed.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-// Score color utility - available for future progress indicators
-function _getScoreColor(score: number) {
-  if (score >= 90) return 'bg-green-600';
-  if (score >= 75) return 'bg-blue-600';
-  if (score >= 60) return 'bg-yellow-600';
-  return 'bg-red-600';
-}
+export default async function SuperadminProgressPage() {
+  let phaseData: Awaited<ReturnType<typeof loadSuperadminPhaseData>> | null = null;
+  let phaseError: string | null = null;
 
-export default function SuperadminProgressPage() {
-  const completedPhases = phases.filter(p => p.status === 'completed').length;
-  const totalPhases = phases.length;
-  const completionPercentage = Math.round((completedPhases / totalPhases) * 100);
+  try {
+    phaseData = await loadSuperadminPhaseData();
+  } catch (error) {
+    if (error instanceof PendingMasterNotFoundError) {
+      phaseError = "docs/PENDING_MASTER.md missing. Update SSOT before viewing progress.";
+    } else {
+      phaseError = "Failed to read phase data. Check docs/PENDING_MASTER.md formatting.";
+    }
+  }
+
+  const phases: PhaseEntry[] = phaseData?.phases ?? [];
+  const summary: PhaseSummary =
+    phaseData?.summary ?? {
+      total: 0,
+      completed: 0,
+      inProgress: 0,
+      notStarted: 0,
+      completionPercentage: 0,
+    };
+  const timeline = phaseData?.timeline ?? [];
+  const vitestStats = await loadVitestStats();
+  const lastUpdated = timeline.length > 0 ? formatDate(timeline[timeline.length - 1].date) : null;
 
   return (
     <div className="container mx-auto py-8 space-y-8">
-      {/* Header */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Phase Progress Tracker</h1>
         <p className="text-muted-foreground">
-          Real-time production readiness and phase completion tracking (Point 21)
+          Live progress parsed from docs/PENDING_MASTER.md (Point 21)
         </p>
       </div>
+
+      {phaseError ? (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Phase data unavailable</AlertTitle>
+          <AlertDescription>{phaseError}</AlertDescription>
+        </Alert>
+      ) : null}
 
       {/* Overall Progress */}
       <Card>
@@ -217,54 +157,71 @@ export default function SuperadminProgressPage() {
             Overall Progress
           </CardTitle>
           <CardDescription>
-            {completedPhases} of {totalPhases} phases completed ({completionPercentage}%)
+            {summary.completed} of {summary.total} phases completed ({summary.completionPercentage}%)
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Progress value={completionPercentage} className="h-4" />
+          <Progress value={summary.completionPercentage} className="h-4" />
           <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <div className="font-medium">Completed</div>
-              <div className="text-2xl font-bold text-green-600">{completedPhases}</div>
+              <div className="text-2xl font-bold text-green-600">{summary.completed}</div>
             </div>
             <div>
               <div className="font-medium">In Progress</div>
-              <div className="text-2xl font-bold text-blue-600">
-                {phases.filter(p => p.status === 'in-progress').length}
-              </div>
+              <div className="text-2xl font-bold text-blue-600">{summary.inProgress}</div>
             </div>
             <div>
-              <div className="font-medium">Deferred</div>
-              <div className="text-2xl font-bold text-yellow-600">
-                {phases.filter(p => p.status === 'deferred').length}
-              </div>
+              <div className="font-medium">Not Started</div>
+              <div className="text-2xl font-bold text-yellow-600">{summary.notStarted}</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Production Readiness Gauge */}
+      {/* Production Readiness */}
       <Card>
         <CardHeader>
           <CardTitle>Production Readiness</CardTitle>
-          <CardDescription>Overall system readiness for production deployment</CardDescription>
+          <CardDescription>Derived from docs/PENDING_MASTER.md (P66-P110)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="text-center">
-              <div className="text-6xl font-bold text-green-600">{productionReadiness.overall}%</div>
-              <div className="text-sm text-muted-foreground mt-2">Production Ready</div>
+              <div className="text-6xl font-bold text-green-600">{summary.completionPercentage}%</div>
+              <div className="text-sm text-muted-foreground mt-2">Completion across tracked phases</div>
             </div>
             <div className="space-y-3">
-              {productionReadiness.categories.map((category) => (
-                <div key={category.name} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">{category.name}</span>
-                    <span className="text-muted-foreground">{category.score}%</span>
-                  </div>
-                  <Progress value={category.score} className="h-2" />
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="font-medium">Completed</span>
+                  <span className="text-muted-foreground">{summary.completed}</span>
                 </div>
-              ))}
+                <Progress
+                  value={summary.total ? (summary.completed / summary.total) * 100 : 0}
+                  className="h-2"
+                />
+              </div>
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="font-medium">In Progress</span>
+                  <span className="text-muted-foreground">{summary.inProgress}</span>
+                </div>
+                <Progress
+                  value={summary.total ? (summary.inProgress / summary.total) * 100 : 0}
+                  className="h-2"
+                />
+              </div>
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="font-medium">Not Started</span>
+                  <span className="text-muted-foreground">{summary.notStarted}</span>
+                </div>
+                <Progress
+                  value={summary.total ? (summary.notStarted / summary.total) * 100 : 0}
+                  className="h-2"
+                />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -274,107 +231,90 @@ export default function SuperadminProgressPage() {
       <Card>
         <CardHeader>
           <CardTitle>Test Coverage</CardTitle>
-          <CardDescription>
-            {testCoverage.passing}/{testCoverage.total} tests passing ({testCoverage.percentage}%)
-          </CardDescription>
+          <CardDescription>Latest vitest snapshot (vitest-results.json)</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="font-medium">Unit Tests</span>
-                <span className="text-muted-foreground">
-                  {testCoverage.passing}/{testCoverage.total}
-                </span>
-              </div>
-              <Progress value={testCoverage.percentage} className="h-2 bg-green-600" />
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="font-medium">API Route Coverage</span>
-                <span className="text-muted-foreground">
-                  {testCoverage.routes.tested}/{testCoverage.routes.total} ({testCoverage.routes.percentage}%)
-                </span>
-              </div>
-              <Progress value={testCoverage.routes.percentage} className="h-2" />
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-              {Object.entries(testCoverage.modules).map(([name, data]) => (
-                <div key={name} className="space-y-1">
-                  <div className="text-sm font-medium capitalize">{name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {data.tested}/{data.routes} ({data.percentage.toFixed(1)}%)
-                  </div>
-                  <Progress value={data.percentage} className="h-1" />
+          {vitestStats ? (
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="font-medium">Tests</span>
+                  <span className="text-muted-foreground">
+                    {vitestStats.passedTests}/{vitestStats.totalTests} passing
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Pending Actions (SSOT sync) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Pending Actions</CardTitle>
-          <CardDescription>Live SSOT mirror of open items (SEC/BUG/PERF/TEST)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {pendingItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-start gap-3 p-3 rounded-lg border bg-muted/40"
-              >
-                <div className="flex flex-col items-start gap-2 min-w-[90px]">
-                  <span className="font-mono text-xs">{item.id}</span>
-                  {getSeverityBadge(item.severity)}
-                </div>
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium">{item.title}</span>
-                    <Badge variant="outline" className="capitalize">
-                      {item.status}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {item.summary}
-                  </p>
-                </div>
+                <Progress
+                  value={
+                    vitestStats.totalTests
+                      ? (vitestStats.passedTests / vitestStats.totalTests) * 100
+                      : 0
+                  }
+                  className="h-2"
+                />
               </div>
-            ))}
-          </div>
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="font-medium">Suites</span>
+                  <span className="text-muted-foreground">
+                    {vitestStats.passedSuites}/{vitestStats.totalSuites} passing
+                  </span>
+                </div>
+                <Progress
+                  value={
+                    vitestStats.totalSuites
+                      ? (vitestStats.passedSuites / vitestStats.totalSuites) * 100
+                      : 0
+                  }
+                  className="h-2"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              No vitest-results.json detected. Run
+              {" `pnpm vitest run --reporter=json --outputFile=vitest-results.json` "}
+              to refresh this widget after CI/test execution.
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Phase Tracking */}
       <Card>
         <CardHeader>
-          <CardTitle>Phase Tracking (P75-P96)</CardTitle>
-          <CardDescription>Detailed breakdown of all production hardening phases</CardDescription>
+          <CardTitle>Phase Tracking (P66-P110)</CardTitle>
+          <CardDescription>Parsed live from PENDING_MASTER.md</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {phases.map((phase) => (
-              <div
-                key={phase.id}
-                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors"
-              >
-                <div className="mt-0.5">{getStatusIcon(phase.status)}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-sm font-medium">{phase.id}</span>
-                    <span className="font-medium">{phase.title}</span>
-                    {getStatusBadge(phase.status)}
+          {phases.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No phases detected. Ensure docs/PENDING_MASTER.md lists completed ranges (e.g., "✅ PHASE P80-P85 COMPLETE").
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {phases.map((phase) => (
+                <div
+                  key={phase.id}
+                  className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                >
+                  <div className="mt-0.5">{getStatusIcon(phase.status)}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono text-sm font-medium">{phase.id}</span>
+                      <span className="font-medium">{phase.title}</span>
+                      {getStatusBadge(phase.status)}
+                    </div>
+                    {phase.description ? (
+                      <p className="text-sm text-muted-foreground line-clamp-2">{phase.description}</p>
+                    ) : null}
+                    {formatDate(phase.date) ? (
+                      <p className="text-xs text-muted-foreground mt-1">{formatDate(phase.date)}</p>
+                    ) : null}
                   </div>
-                  <p className="text-sm text-muted-foreground line-clamp-1">{phase.evidence}</p>
-                  {phase.date && (
-                    <p className="text-xs text-muted-foreground mt-1">{phase.date}</p>
-                  )}
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -382,38 +322,40 @@ export default function SuperadminProgressPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">TypeScript Errors</CardTitle>
+            <CardTitle className="text-sm font-medium">Completed Phases</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">0</div>
-            <p className="text-xs text-muted-foreground mt-1">Build clean</p>
+            <div className="text-3xl font-bold text-green-600">{summary.completed}</div>
+            <p className="text-xs text-muted-foreground mt-1">Updated from SSOT</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Security Vulnerabilities</CardTitle>
+            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">0</div>
-            <p className="text-xs text-muted-foreground mt-1">High severity</p>
+            <div className="text-3xl font-bold text-blue-600">{summary.inProgress}</div>
+            <p className="text-xs text-muted-foreground mt-1">Active phases</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Bundle Size</CardTitle>
+            <CardTitle className="text-sm font-medium">Not Started</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-600">21MB</div>
-            <p className="text-xs text-muted-foreground mt-1">Acceptable for enterprise SaaS</p>
+            <div className="text-3xl font-bold text-yellow-600">{summary.notStarted}</div>
+            <p className="text-xs text-muted-foreground mt-1">Queued phases</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Documentation</CardTitle>
+            <CardTitle className="text-sm font-medium">Last Updated</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">844</div>
-            <p className="text-xs text-muted-foreground mt-1">Markdown files</p>
+            <div className="text-3xl font-bold text-blue-600">
+              {lastUpdated ? lastUpdated : "Pending"}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Based on latest completed phase</p>
           </CardContent>
         </Card>
       </div>
