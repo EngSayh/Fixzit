@@ -28,6 +28,7 @@ import { TableToolbar } from "@/components/tables/TableToolbar";
 import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
+import { TableBulkActions } from "@/components/tables/TableBulkActions";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
@@ -199,6 +200,7 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
   const [draftFilters, setDraftFilters] = useState(state.filters || {});
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
 
   const query = useMemo(() => {
     return buildInvoicesQuery(state, orgId);
@@ -264,6 +266,17 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
   const filters = state.filters as InvoiceFilters;
   const currentFilters = state.filters || {};
 
+  React.useEffect(() => {
+    if (!selectedInvoices.size) return;
+    const visible = new Set(invoices.map((inv) => String(inv.id)));
+    const next = new Set(
+      Array.from(selectedInvoices).filter((id) => visible.has(id)),
+    );
+    if (next.size !== selectedInvoices.size) {
+      setSelectedInvoices(next);
+    }
+  }, [invoices, selectedInvoices]);
+
   // Quick chips (P0)
   const quickChips = [
     {
@@ -299,6 +312,86 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         updateState({ filters: next })
       ),
     [state.filters, updateState]
+  );
+
+  const runBulkAction = async (action: string, payload: Record<string, unknown> = {}) => {
+    if (!selectedInvoices.size) return;
+    try {
+      const response = await fetch("/api/invoices/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          action,
+          invoiceIds: Array.from(selectedInvoices),
+          ...payload,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}));
+        toast.error(
+          t("finance.invoices.bulk.failed", "Bulk action failed"),
+          {
+            description: errorPayload?.error || `HTTP ${response.status}`,
+          },
+        );
+        return;
+      }
+
+      const result = await response.json().catch(() => null);
+      const processed = result?.results?.processed ?? selectedInvoices.size;
+      toast.success(
+        t("finance.invoices.bulk.success", "Bulk action completed"),
+        {
+          description: t("finance.invoices.bulk.processed", "{{count}} invoices updated", {
+            count: String(processed),
+          }),
+        },
+      );
+      setSelectedInvoices(new Set());
+      await mutate();
+    } catch (error) {
+      logger.error("Invoices bulk action failed", error);
+      toast.error(
+        t("finance.invoices.bulk.failed", "Bulk action failed"),
+        {
+          description: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
+    }
+  };
+
+  const bulkActions = useMemo(
+    () => [
+      {
+        key: "bulk-mark-sent",
+        label: t("finance.invoices.bulk.markSent", "Mark Sent"),
+        onClick: () => runBulkAction("mark_sent"),
+      },
+      {
+        key: "bulk-mark-paid",
+        label: t("finance.invoices.bulk.markPaid", "Mark Paid"),
+        onClick: () => runBulkAction("mark_paid", { paymentMethod: "ONLINE" }),
+      },
+      {
+        key: "bulk-reminder",
+        label: t("finance.invoices.bulk.sendReminder", "Send Reminder"),
+        onClick: () => runBulkAction("send_reminder"),
+      },
+      {
+        key: "bulk-archive",
+        label: t("finance.invoices.bulk.archive", "Archive"),
+        onClick: () => runBulkAction("archive"),
+      },
+      {
+        key: "bulk-delete",
+        label: t("finance.invoices.bulk.delete", "Delete"),
+        variant: "destructive" as const,
+        onClick: () => runBulkAction("delete"),
+      },
+    ],
+    [runBulkAction, t],
   );
 
   // Table columns - memoized to prevent unnecessary re-renders
@@ -546,6 +639,17 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         <ActiveFiltersChips filters={activeFilters} onClearAll={() => resetState()} />
       )}
 
+      {selectedInvoices.size > 0 && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm text-muted-foreground">
+            {t("finance.invoices.bulk.selectedCount", "{{count}} selected", {
+              count: String(selectedInvoices.size),
+            })}
+          </div>
+          <TableBulkActions actions={bulkActions} disabled={isLoading} />
+        </div>
+      )}
+
       {/* Mobile CardList */}
       <div className="lg:hidden">
         <CardList
@@ -587,6 +691,9 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
           loading={isLoading}
           emptyState={emptyState}
           density={density}
+          selectable
+          selectedRows={selectedInvoices}
+          onSelectionChange={setSelectedInvoices}
         onRowClick={(row) =>
           toast.info(
             t("finance.invoices.openInvoice", "Open invoice {{id}}", {

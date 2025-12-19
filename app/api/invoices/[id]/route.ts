@@ -14,6 +14,8 @@ import { Invoice } from "@/server/models/Invoice";
 import { z, ZodError } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { generateZATCATLV, generateZATCAQR } from "@/lib/zatca";
+import { submitInvoiceForClearance } from "@/services/finance/zatca/clearance";
+import { isTruthy } from "@/lib/utils/env";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import {
@@ -185,9 +187,25 @@ export async function PATCH(
           invoice.zatca.qrCode = qrCode;
           invoice.zatca.generatedAt = new Date();
           invoice.zatca.status = "GENERATED";
+          invoice.zatca.phase = 1;
+
+          if (isTruthy(process.env.ENABLE_ZATCA_INTEGRATION)) {
+            const clearance = await submitInvoiceForClearance(invoice);
+            invoice.zatca.status = "CLEARED";
+            invoice.zatca.phase = 2;
+            invoice.zatca.clearedAt = new Date();
+            invoice.zatca.qrCode = clearance.qrCode || invoice.zatca.qrCode;
+            invoice.zatca.hash = clearance.invoiceHash || invoice.zatca.hash;
+            invoice.zatca.clearance = {
+              requestId: clearance.clearanceId,
+              responseId: clearance.clearanceId,
+              status: clearance.clearanceStatus,
+              errorMessages: [],
+            };
+          }
         } catch (error) {
           logger.error(
-            "ZATCA generation failed:",
+            "ZATCA processing failed:",
             error instanceof Error ? error.message : "Unknown error",
           );
           if (!invoice.zatca) {

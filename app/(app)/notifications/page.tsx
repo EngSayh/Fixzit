@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { Check, CheckCheck, Filter, Search, MoreVertical } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
@@ -74,10 +74,66 @@ export default function NotificationsPage() {
     fetcher,
   );
   const notificationItems = data?.items;
+  const streamSinceRef = useRef<string | null>(null);
+  const [streamReady, setStreamReady] = useState(false);
 
   const notifications = useMemo(() => {
     return Array.isArray(notificationItems) ? notificationItems : [];
   }, [notificationItems]);
+
+  useEffect(() => {
+    streamSinceRef.current = null;
+    setStreamReady(false);
+  }, [orgId]);
+
+  useEffect(() => {
+    if (!orgId || streamReady) return;
+    const latest = notifications[0]?.timestamp;
+    streamSinceRef.current = latest || new Date().toISOString();
+    setStreamReady(true);
+  }, [orgId, notifications, streamReady]);
+
+  useEffect(() => {
+    if (!orgId || !streamReady || !streamSinceRef.current) return;
+
+    const streamUrl = `/api/notifications/stream?since=${encodeURIComponent(
+      streamSinceRef.current,
+    )}`;
+    const source = new EventSource(streamUrl);
+
+    const handleReady = (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data) as { since?: string };
+        if (payload?.since) {
+          streamSinceRef.current = payload.since;
+        }
+      } catch {
+        // Ignore malformed SSE payloads; stream will recover on next event.
+      }
+    };
+
+    const handleNotification = (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data) as { timestamp?: string };
+        if (payload?.timestamp) {
+          streamSinceRef.current = payload.timestamp;
+        }
+      } catch {
+        // Ignore malformed SSE payloads; stream will recover on next event.
+      }
+      void mutate();
+    };
+
+    source.addEventListener("ready", handleReady as EventListener);
+    source.addEventListener("notification", handleNotification as EventListener);
+    source.addEventListener("error", () => {
+      logger.warn("Notifications stream disconnected");
+    });
+
+    return () => {
+      source.close();
+    };
+  }, [orgId, mutate, streamReady]);
 
   /**
    * Returns the localized label for a notification priority code.

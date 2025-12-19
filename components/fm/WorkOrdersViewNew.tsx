@@ -38,6 +38,7 @@ import { TableToolbar } from "@/components/tables/TableToolbar";
 import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
+import { TableBulkActions } from "@/components/tables/TableBulkActions";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
 import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
@@ -210,6 +211,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState(state.filters || {});
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
+  const [selectedWorkOrders, setSelectedWorkOrders] = useState<Set<string>>(new Set());
 
   // Build API query
   const query = useMemo(() => {
@@ -227,6 +229,17 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
   const totalCount = data?.total ?? 0;
   const filters = state.filters as WorkOrderFilters;
   const currentFilters = state.filters || {};
+
+  useEffect(() => {
+    if (!selectedWorkOrders.size) return;
+    const visible = new Set(workOrders.map((order) => String(order.id)));
+    const next = new Set(
+      Array.from(selectedWorkOrders).filter((id) => visible.has(id)),
+    );
+    if (next.size !== selectedWorkOrders.size) {
+      setSelectedWorkOrders(next);
+    }
+  }, [selectedWorkOrders, workOrders]);
 
   // Quick filter chips (P0 requirement)
   const quickChips = [
@@ -275,6 +288,80 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
         updateState({ filters: next })
       ),
     [state.filters, updateState]
+  );
+
+  const runBulkAction = async (action: string, payload: Record<string, unknown> = {}) => {
+    if (!selectedWorkOrders.size) return;
+    try {
+      const response = await fetch("/api/work-orders/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          action,
+          workOrderIds: Array.from(selectedWorkOrders),
+          ...payload,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}));
+        toast.error(
+          t("workOrders.bulk.failed", "Bulk action failed"),
+          {
+            description: errorPayload?.error || `HTTP ${response.status}`,
+          },
+        );
+        return;
+      }
+
+      const result = await response.json().catch(() => null);
+      const processed = result?.results?.processed ?? selectedWorkOrders.size;
+      toast.success(
+        t("workOrders.bulk.success", "Bulk action completed"),
+        {
+          description: t("workOrders.bulk.processed", "{{count}} work orders updated", {
+            count: String(processed),
+          }),
+        },
+      );
+      setSelectedWorkOrders(new Set());
+      await mutate();
+    } catch (error) {
+      toast.error(
+        t("workOrders.bulk.failed", "Bulk action failed"),
+        {
+          description: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
+    }
+  };
+
+  const bulkActions = useMemo(
+    () => [
+      {
+        key: "bulk-in-progress",
+        label: t("workOrders.bulk.markInProgress", "Mark In Progress"),
+        onClick: () => runBulkAction("update_status", { status: "IN_PROGRESS" }),
+      },
+      {
+        key: "bulk-completed",
+        label: t("workOrders.bulk.markCompleted", "Mark Completed"),
+        onClick: () => runBulkAction("update_status", { status: "COMPLETED" }),
+      },
+      {
+        key: "bulk-archive",
+        label: t("workOrders.bulk.archive", "Archive"),
+        onClick: () => runBulkAction("archive"),
+      },
+      {
+        key: "bulk-delete",
+        label: t("workOrders.bulk.delete", "Delete"),
+        variant: "destructive" as const,
+        onClick: () => runBulkAction("delete"),
+      },
+    ],
+    [runBulkAction, t],
   );
 
   // Table columns - memoized to prevent unnecessary re-renders
@@ -504,7 +591,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
                 WORK_ORDER_FILTER_SCHEMA
               )}
               currentSearch={state.q}
-              selectedIds={[]}
+              selectedIds={Array.from(selectedWorkOrders)}
             />
             <Button
               variant="outline"
@@ -528,6 +615,17 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
       {/* Active Filters Chips (P0) */}
       {activeFilters.length > 0 && (
         <ActiveFiltersChips filters={activeFilters} onClearAll={() => resetState()} />
+      )}
+
+      {selectedWorkOrders.size > 0 && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm text-muted-foreground">
+            {t("workOrders.bulk.selectedCount", "{{count}} selected", {
+              count: String(selectedWorkOrders.size),
+            })}
+          </div>
+          <TableBulkActions actions={bulkActions} disabled={isLoading} />
+        </div>
       )}
 
       {/* Mobile CardList (P0) */}
@@ -558,6 +656,9 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
           loading={isLoading}
           emptyState={emptyState}
           density={density}
+          selectable
+          selectedRows={selectedWorkOrders}
+          onSelectionChange={setSelectedWorkOrders}
           onRowClick={(row) => toast.info(`Open work order ${row.id}`)}
         />
       </div>

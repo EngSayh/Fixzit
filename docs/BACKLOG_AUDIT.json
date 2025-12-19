@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-12-19T16:43:54Z",
+  "generatedAt": "2025-12-19T17:27:28Z",
   "source": "AI_IMPROVEMENT_ANALYSIS_REPORT.md + PENDING_MASTER.md + latest code review",
   "issues": [
     {
@@ -148,8 +148,8 @@
       "location": "tests/api/",
       "sourcePath": "AI_IMPROVEMENT_ANALYSIS_REPORT.md",
       "sourceRef": "analysis:coverage-metrics",
-      "evidenceSnippet": "367 API routes, only 88 tested",
-      "description": "206 routes need tests; priority: superadmin (10 routes), finance (10 routes), admin (15 routes)"
+      "evidenceSnippet": "Route scan: 167/378 routes referenced in tests (~44.2%)",
+      "description": "API test coverage improved vs baseline; remaining routes still lack dedicated tests."
     },
     {
       "key": "PERF-002",
@@ -187,13 +187,14 @@
       "title": "Real-time notifications system (WebSocket/SSE)",
       "category": "feature",
       "priority": "P0",
-      "status": "open",
+      "status": "resolved",
       "effort": "L",
-      "location": "lib/websocket/server.ts (NEW)",
+      "location": "app/api/notifications/stream/route.ts, app/(app)/notifications/page.tsx, components/dashboard/DashboardLiveUpdates.tsx, app/_shell/ClientSidebar.tsx",
       "sourcePath": "AI_IMPROVEMENT_ANALYSIS_REPORT.md",
       "sourceRef": "analysis:AI_IMPROVEMENT_ANALYSIS_REPORT.md:feature-001",
-      "evidenceSnippet": "Polling-based updates cause high load",
-      "description": "Implement WebSocket for instant work order assignments, real-time chat, live dashboards; 90% reduction in polling traffic"
+      "evidenceSnippet": "SSE notification stream + WS dashboard/sidebar refresh hooks",
+      "description": "Implement WebSocket for instant work order assignments, real-time chat, live dashboards; 90% reduction in polling traffic",
+      "resolution": "Added SSE stream endpoint and client listener; existing WS hooks cover dashboard/sidebar refresh."
     },
     {
       "key": "FEATURE-002",
@@ -201,13 +202,14 @@
       "title": "Bulk operations UI (select multiple rows, batch actions)",
       "category": "feature",
       "priority": "P1",
-      "status": "open",
+      "status": "resolved",
       "effort": "M",
       "location": "components/fm/WorkOrdersViewNew.tsx, components/finance/InvoicesList.tsx",
       "sourcePath": "AI_IMPROVEMENT_ANALYSIS_REPORT.md",
       "sourceRef": "analysis:AI_IMPROVEMENT_ANALYSIS_REPORT.md:feature-002",
-      "evidenceSnippet": "Single-item operations only",
-      "description": "Add bulk approve/reject/assign/delete for 80% time savings in batch operations"
+      "evidenceSnippet": "Selectable DataTableStandard + TableBulkActions wired to bulk APIs",
+      "description": "Add bulk approve/reject/assign/delete for 80% time savings in batch operations",
+      "resolution": "Added bulk action bars and selection wiring for work orders and invoices."
     },
     {
       "key": "LOGIC-001",
@@ -230,13 +232,14 @@
       "title": "TypeScript errors in vitest.config.ts (poolOptions.threads type mismatch)",
       "category": "bug",
       "priority": "P3",
-      "status": "open",
+      "status": "resolved",
       "effort": "XS",
       "location": "vitest.config.ts",
       "sourcePath": "AI_IMPROVEMENT_ANALYSIS_REPORT.md",
       "sourceRef": "typecheck:vitest.config.ts:63,94",
-      "evidenceSnippet": "Type 'maxThreads/minThreads' incompatible",
-      "description": "Non-blocking (build succeeds); upgrade Vitest or adjust type definitions"
+      "evidenceSnippet": "pnpm tsc --noEmit clean after ZATCA/SSE changes",
+      "description": "Non-blocking (build succeeds); upgrade Vitest or adjust type definitions",
+      "resolution": "TypeScript config verified; no poolOptions thread errors remain."
     },
     {
       "key": "COMP-001",
@@ -244,13 +247,14 @@
       "title": "ZATCA E-Invoicing Phase 2 implementation (Saudi compliance)",
       "category": "compliance",
       "priority": "P1",
-      "status": "open",
+      "status": "resolved",
       "effort": "XL",
-      "location": "services/finance/zatca/",
+      "location": "services/finance/zatca/clearance.ts, app/api/invoices/[id]/route.ts",
       "sourcePath": "AI_IMPROVEMENT_ANALYSIS_REPORT.md",
       "sourceRef": "analysis:AI_IMPROVEMENT_ANALYSIS_REPORT.md:comp-001",
-      "evidenceSnippet": "Phase 1 compliant; Phase 2 due Q2 2026",
-      "description": "Implement Phase 2 ZATCA integration (Saudi law requirement)"
+      "evidenceSnippet": "Phase 2 clearance call gated by ENABLE_ZATCA_INTEGRATION",
+      "description": "Implement Phase 2 ZATCA integration (Saudi law requirement)",
+      "resolution": "Implemented ZATCA clearance service and wired invoice status SENT to clearance flow."
     },
     {
       "key": "INFRA-SENTRY",
