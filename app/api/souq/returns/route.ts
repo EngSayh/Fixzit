@@ -119,13 +119,14 @@ export async function GET(request: NextRequest) {
     } else if (type === "seller") {
       // Get seller's returns
       const { SouqRMA } = await import("@/server/models/souq/RMA");
-      const returns = await (/* NO_TENANT_SCOPE */ SouqRMA.find({
+      // NO_TENANT_SCOPE: buildOrgFilter enforces org scope (platform admin allowed)
+      const returns = await SouqRMA.find({
         sellerId: session.user.id,
         ...buildOrgFilter(tenantOrgId),
       })
         .sort(sort)
         .skip(skip)
-        .limit(safeLimit));
+        .limit(safeLimit);
 
       return NextResponse.json({
         success: true,

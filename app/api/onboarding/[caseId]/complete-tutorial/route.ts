@@ -34,6 +34,7 @@ export async function PUT(
   try {
     await connectMongo();
     // Defense-in-depth: Query scoped to user's org from the start
+    // NO_LEAN: Document required for tutorial_completed update and save()
     const onboarding = await OnboardingCase.findOne({
       _id: params.caseId,
       $or: [

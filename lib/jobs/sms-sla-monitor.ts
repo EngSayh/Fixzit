@@ -41,11 +41,12 @@ export async function processSLABreaches(): Promise<SLABreachReport> {
     // Find messages that haven't been checked for SLA breach yet
     // and are past their target delivery time
     const now = new Date();
-    const pendingMessages = await (/* PLATFORM-WIDE */ SMSMessage.find({
+    // PLATFORM-WIDE: SLA monitor scans all outbound messages
+    const pendingMessages = await SMSMessage.find({
       status: { $in: ["PENDING", "QUEUED", "SENT"] },
       slaBreached: false,
       slaTargetMs: { $exists: true, $gt: 0 },
-    }).lean());
+    }).lean();
 
     report.totalChecked = pendingMessages.length;
 

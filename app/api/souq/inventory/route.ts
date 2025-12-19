@@ -206,10 +206,11 @@ export async function POST(request: NextRequest) {
         normalizedSubRole,
       );
 
-    const listing = await (/* NO_TENANT_SCOPE */ SouqListing.findOne({
+    // NO_TENANT_SCOPE: buildOrgFilter enforces org scope (platform admin allowed)
+    const listing = await SouqListing.findOne({
       listingId,
       ...buildOrgFilter(orgIdStr),
-    }).select({ sellerId: 1, orgId: 1 }));
+    }).select({ sellerId: 1, orgId: 1 });
 
     if (!listing) {
       return NextResponse.json(

@@ -44,11 +44,11 @@ export async function GET(
     const db = (await connectDb()).connection.db!;
     const statementsCollection = db.collection(COLLECTIONS.SOUQ_SETTLEMENTS);
 
-    // Fetch statement
-    const statement = await (/* NO_TENANT_SCOPE */ statementsCollection.findOne({
+    // NO_TENANT_SCOPE: buildSouqOrgFilter enforces org scope
+    const statement = await statementsCollection.findOne({
       statementId,
       ...buildSouqOrgFilter(orgId),
-    }));
+    });
 
     if (!statement) {
       return NextResponse.json(

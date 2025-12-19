@@ -158,6 +158,7 @@ export async function PATCH(
     }
 
     // SEC-002: Enforce tenant + ownership scope in the query itself
+    // NO_LEAN: Document required for listing updates and save()
     const listing = await AqarListing.findOne({
       _id: id,
       listerId: user.id,
@@ -336,6 +337,7 @@ export async function DELETE(
     }
 
     // SEC-002: Enforce tenant + ownership scope in the query itself
+    // NO_LEAN: Document required for deleteOne() method
     const listing = await AqarListing.findOne({
       _id: id,
       listerId: user.id,

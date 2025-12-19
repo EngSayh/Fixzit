@@ -68,6 +68,7 @@ function normalizeStatus(value: unknown): ScanStatus {
 async function getStatusForKey(key: string) {
   const db = await getDatabase();
   const collection = db.collection<ScanDocument>(COLLECTION);
+  // PLATFORM-WIDE: scan status keyed by storage key (global)
   const doc = await collection
     .find({ key })
     .sort({ scannedAt: -1, receivedAt: -1, _id: -1 })

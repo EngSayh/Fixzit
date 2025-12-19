@@ -63,6 +63,7 @@ export async function POST(
   try {
     await connectMongo();
     // Defense-in-depth: Query scoped to user's org from the start
+    // NO_LEAN: Document required for document updates and save()
     const onboarding = await OnboardingCase.findOne({
       _id: params.caseId,
       $or: [
@@ -76,6 +77,7 @@ export async function POST(
     }
 
     const profileCountry = onboarding.country || 'SA';
+    // PLATFORM-WIDE: DocumentProfile is global configuration
     const profile = await DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean();
     if (!profile || !profile.required_doc_codes.includes(document_type_code)) {
       return NextResponse.json({ error: 'Document type not required for this role' }, { status: 400 });

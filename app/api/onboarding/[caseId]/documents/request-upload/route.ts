@@ -79,7 +79,7 @@ export async function POST(
         { created_by_id: user.id },
         ...(user.orgId ? [{ orgId: user.orgId }] : []),
       ],
-    });
+    }).lean();
     if (!onboarding) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }

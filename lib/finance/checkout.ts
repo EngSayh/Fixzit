@@ -74,9 +74,10 @@ export async function createSubscriptionCheckout(
     throw new Error("APP_URL environment variable is not configured");
   }
 
+  // PLATFORM-WIDE: PriceBook is global configuration
   const priceBook = input.priceBookId
-    ? await (/* PLATFORM-WIDE */ PriceBook.findById(input.priceBookId).lean())
-    : await (/* PLATFORM-WIDE */ PriceBook.findOne({ currency, active: true }).lean());
+    ? await PriceBook.findById(input.priceBookId).lean()
+    : await PriceBook.findOne({ currency, active: true }).lean();
 
   if (!priceBook) {
     throw new Error("PriceBook not found");
@@ -191,7 +192,8 @@ export async function createSubscriptionCheckout(
     };
   } catch (error) {
     // Clean up subscription on failure
-    await (/* NO_TENANT_SCOPE */ subscription.deleteOne());
+    // NO_TENANT_SCOPE: delete scoped subscription document on failure
+    await subscription.deleteOne();
     logger.error("[Checkout] Failed to create TAP charge", {
       error: error instanceof Error ? error.message : String(error),
     });

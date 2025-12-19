@@ -780,3 +780,4 @@ export const Organization =
         OrganizationSchema,
       ) as OrganizationModel);
 export type { OrganizationDoc, Features, Usage };
+export default Organization;

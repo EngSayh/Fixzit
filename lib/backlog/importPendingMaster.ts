@@ -62,7 +62,8 @@ export async function importPendingMaster(md: string, actor = 'system:importer')
     const now = new Date();
 
     type ExistingIssue = { firstSeen?: Date; mentionCount?: number; sourceEntries?: string[]; status?: string };
-    const existing = await (/* PLATFORM-WIDE */ BacklogIssue.findOne({ key }).lean()) as ExistingIssue | null;
+    // PLATFORM-WIDE: backlog issues are global
+    const existing = await BacklogIssue.findOne({ key }).lean() as ExistingIssue | null;
 
     const firstSeen = existing?.firstSeen ? new Date(existing.firstSeen) : now;
     const mentionCount = (existing?.mentionCount || 0) + 1;
@@ -71,7 +72,8 @@ export async function importPendingMaster(md: string, actor = 'system:importer')
     const nextStatus =
       existing?.status === 'resolved' ? 'pending' : (existing?.status || 'pending');
 
-    await (/* PLATFORM-WIDE */ BacklogIssue.updateOne(
+    // PLATFORM-WIDE: backlog issues are global
+    await BacklogIssue.updateOne(
       { key },
       {
         $set: {
@@ -96,15 +98,16 @@ export async function importPendingMaster(md: string, actor = 'system:importer')
         },
       },
       { upsert: true }
-    ));
+    );
 
-    await (/* PLATFORM-WIDE */ BacklogEvent.create({
+    // PLATFORM-WIDE: backlog events are global
+    await BacklogEvent.create({
       issueKey: key,
       type: 'import',
       message: existing ? 'Updated from PENDING_MASTER.md import' : 'Created from PENDING_MASTER.md import',
       actor,
       meta: { externalId: item.externalId, priority, effort, impact },
-    }));
+    });
 
     upserted += 1;
   }

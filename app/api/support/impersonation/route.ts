@@ -141,13 +141,14 @@ export async function POST(req: NextRequest) {
 
   await connectToDatabase();
 
-  const org = await (/* SUPER_ADMIN */ Organization.findOne({
+  // SUPER_ADMIN: organization lookup is platform-wide
+  const org = await Organization.findOne({
     $or: [
       { orgId: identifier },
       { code: identifier },
       { "legal.registrationNumber": identifier },
     ],
-  }))
+  })
     .select("orgId name code legal.registrationNumber subscription.plan")
     .lean();
 

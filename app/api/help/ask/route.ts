@@ -263,7 +263,8 @@ export async function POST(req: NextRequest) {
 
     if (!docs || docs.length === 0) {
       try {
-        docs = await (/* NO_TENANT_SCOPE */ coll
+        // NO_TENANT_SCOPE: tenant scope enforced via baseFilter + orgId clauses
+        docs = await coll
           .find(
             { ...baseFilter, $or: orClauses, $text: { $search: question } },
             {
@@ -278,7 +279,7 @@ export async function POST(req: NextRequest) {
           )
           .sort({ score: { $meta: "textScore" } })
           .limit(Math.min(8, Math.max(1, limit)))
-          .toArray());
+          .toArray();
       } catch {
         // Fallback when text index is missing: restrict by recent updatedAt to reduce collection scan
         const safe = new RegExp(
@@ -295,13 +296,14 @@ export async function POST(req: NextRequest) {
             { $or: [{ title: safe }, { content: safe }, { tags: safe }] },
           ],
         };
-        docs = await (/* NO_TENANT_SCOPE */ coll
+        // NO_TENANT_SCOPE: tenant scope enforced via baseFilter + orgId clauses
+        docs = await coll
           .find(regexFilter, {
             projection: { slug: 1, title: 1, content: 1, updatedAt: 1 },
           })
           .sort({ updatedAt: -1 })
           .limit(Math.min(8, Math.max(1, limit)))
-          .toArray());
+          .toArray();
       }
     }
 

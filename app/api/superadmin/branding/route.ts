@@ -67,10 +67,12 @@ export async function GET(request: NextRequest) {
     await connectDb();
 
     // Get default platform settings (no orgId = global)
-    let settings = await (/* SUPER_ADMIN */ PlatformSettings.findOne({ orgId: { $exists: false } }));
+    // SUPER_ADMIN: platform settings are global
+    let settings = await PlatformSettings.findOne({ orgId: { $exists: false } });
 
     // If no settings exist, create default
     if (!settings) {
+      // SUPER_ADMIN: platform settings are global
       settings = await PlatformSettings.create({
         logoUrl: "/img/fixzit-logo.png",
         brandName: "Fixzit Enterprise",

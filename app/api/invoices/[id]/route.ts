@@ -141,6 +141,7 @@ export async function PATCH(
 
     const data = updateInvoiceSchema.parse(await req.json());
 
+    // NO_LEAN: Document required for status update and history.push()
     const invoice = await Invoice.findOne({
       _id: params.id,
       orgId: user.orgId,
@@ -301,6 +302,7 @@ export async function DELETE(
     }
     await connectToDatabase();
 
+    // NO_LEAN: Document required for status update and history.push()
     const invoice = await Invoice.findOne({
       _id: params.id,
       orgId: user.orgId,

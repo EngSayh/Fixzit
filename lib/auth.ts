@@ -362,7 +362,8 @@ export async function authenticateUser(
     }
     const normalizedCompanyCode = companyCode.trim().toUpperCase();
     // NO_LEAN: Document access pattern
-    const org = await (/* PLATFORM-WIDE */ Organization.findOne({ code: normalizedCompanyCode }));
+    // PLATFORM-WIDE: organization directory lookup by code
+    const org = await Organization.findOne({ code: normalizedCompanyCode });
     if (!org) {
       throw new Error("Invalid company code");
     }

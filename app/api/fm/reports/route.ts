@@ -123,7 +123,7 @@ export async function GET(req: NextRequest) {
 
     const db = await getDatabase();
     const collection = db.collection<ReportJobDocument>(COLLECTION);
-    // AUDIT-2025-11-29: Use buildTenantFilter for cross-tenant support
+    // NO_TENANT_SCOPE: buildTenantFilter enforces tenant scope (super admin audited)
     const jobs = await collection.find({ ...buildTenantFilter(tenantId) }).sort({ createdAt: -1 }).limit(50).toArray();
 
     return NextResponse.json({ success: true, data: jobs.map(mapJob) });

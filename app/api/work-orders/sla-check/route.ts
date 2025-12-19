@@ -56,18 +56,18 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
-    // NOTE: System-wide query across all tenants is intentional for SLA monitoring
-    // This is an admin-only endpoint for platform-wide SLA compliance tracking
-    const workOrders = await (/* SUPER_ADMIN */ WorkOrder.find({
+    // SUPER_ADMIN: SLA monitoring is platform-wide
+    const workOrders = await WorkOrder.find({
       status: { $nin: ["CLOSED", "CANCELLED", "ARCHIVED"] },
       "sla.resolutionDeadline": { $exists: true, $lte: twoHoursFromNow },
-    }).lean());
+    }).lean();
 
     const results = {
-      checked: await (/* SUPER_ADMIN */ WorkOrder.countDocuments({
+      // SUPER_ADMIN: SLA monitoring is platform-wide
+      checked: await WorkOrder.countDocuments({
         status: { $nin: ["CLOSED", "CANCELLED", "ARCHIVED"] },
         "sla.resolutionDeadline": { $exists: true },
-      })),
+      }),
       atRisk: 0,
       breached: 0,
       notifications: [] as Array<{
@@ -157,11 +157,11 @@ export async function GET(req: NextRequest) {
   try {
     const now = new Date();
 
-    // NOTE: System-wide query across all tenants is intentional for SLA monitoring
-    const allWorkOrders = await (/* SUPER_ADMIN */ WorkOrder.find({
+    // SUPER_ADMIN: SLA monitoring is platform-wide
+    const allWorkOrders = await WorkOrder.find({
       status: { $nin: ["CLOSED", "CANCELLED", "ARCHIVED"] },
       "sla.resolutionDeadline": { $exists: true },
-    }).lean());
+    }).lean();
 
     const preview = {
       total: allWorkOrders.length,

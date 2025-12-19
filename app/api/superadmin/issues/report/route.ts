@@ -60,7 +60,8 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const format = url.searchParams.get('format') || 'json';
 
-  const issues = await (/* SUPER_ADMIN */ BacklogIssue.find().sort({ priority: 1, impact: -1 }).lean());
+  // SUPER_ADMIN: backlog issues are platform-wide
+  const issues = await BacklogIssue.find().sort({ priority: 1, impact: -1 }).lean();
   type Issue = (typeof issues)[number];
 
   const total = issues.length;

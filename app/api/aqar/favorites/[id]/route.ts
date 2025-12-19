@@ -74,7 +74,7 @@ export async function DELETE(
       _id: id,
       orgId: user.orgId,
       userId: user.id,
-    });
+    }).lean();
 
     if (!favorite) {
       return NextResponse.json(
@@ -89,8 +89,11 @@ export async function DELETE(
     }
 
     // Delete favorite first
-    // eslint-disable-next-line local/require-tenant-scope -- SAFE: deleteOne on already-scoped favorite (line 77)
-    await favorite.deleteOne();
+    await AqarFavorite.deleteOne({
+      _id: id,
+      orgId: user.orgId,
+      userId: user.id,
+    });
 
     // Decrement analytics after successful deletion (with error handling)
     if (favorite.targetType === "LISTING") {

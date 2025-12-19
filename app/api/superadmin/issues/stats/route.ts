@@ -52,10 +52,10 @@ export async function GET(req: NextRequest) {
     staleCount,
     recentlyResolvedCount,
   ] = await Promise.all([
-    // Total count
+    // SUPER_ADMIN: internal issue tracker is platform-wide
     BacklogIssue.countDocuments({}),
 
-    // By status (AUDIT-2025-12-19: Added maxTimeMS)
+    // SUPER_ADMIN: status aggregation for platform-wide issue tracker
     BacklogIssue.aggregate([
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ], { maxTimeMS: 10_000 }),

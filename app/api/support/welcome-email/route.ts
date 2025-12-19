@@ -320,11 +320,12 @@ export async function GET(req: NextRequest) {
     const db = await getDatabase();
     const emailsCollection = db.collection(COLLECTIONS.EMAIL_LOGS);
 
-    const emailRecords = await (/* PLATFORM-WIDE */ emailsCollection
+    // PLATFORM-WIDE: internal email logs are global
+    const emailRecords = await emailsCollection
       .find({ recipient: email, type: "welcome_email" })
       .sort({ sentAt: -1, failedAt: -1 })
       .limit(10)
-      .toArray());
+      .toArray();
 
     if (emailRecords.length === 0) {
       return createSecureResponse(

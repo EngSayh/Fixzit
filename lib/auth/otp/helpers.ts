@@ -54,12 +54,13 @@ export async function resolveOrgIdFromCompanyCode(
 ): Promise<{ orgId: string | null; error?: string }> {
   const { Organization } = await import("@/server/models/Organization");
   try {
-    const org = await (/* PLATFORM-WIDE */ Organization.findOne({ code: companyCode })
+    // PLATFORM-WIDE: organization directory lookup by code
+    const org = await Organization.findOne({ code: companyCode })
       .select({ _id: 1, orgId: 1 })
       .lean<{
         _id?: ObjectId;
         orgId?: string;
-      }>());
+      }>();
 
     if (!org) return { orgId: null };
     const orgId = org.orgId || org._id?.toString();

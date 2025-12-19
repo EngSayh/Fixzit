@@ -54,6 +54,7 @@ export async function GET(req: NextRequest) {
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '25', 10)));
 
+  // SUPER_ADMIN: internal issue tracker is platform-wide
   const filter: Record<string, unknown> = {};
   if (status && status !== 'all') filter.status = status;
   if (priority && priority !== 'all') filter.priority = priority;
@@ -164,29 +165,32 @@ export async function POST(req: NextRequest) {
 
   if (!key) return NextResponse.json({ error: 'Missing key' }, { status: 400 });
 
-  const issue = await (/* SUPER_ADMIN */ BacklogIssue.findOne({ key }));
+  // SUPER_ADMIN: backlog issues are platform-wide
+  const issue = await BacklogIssue.findOne({ key });
   if (!issue) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const actor = (session as {username?: string; email?: string}).username || (session as {username?: string; email?: string}).email || 'superadmin';
 
   if (status) {
     issue.status = status;
-    await (/* SUPER_ADMIN */ BacklogEvent.create({
+    // SUPER_ADMIN: backlog events are platform-wide
+    await BacklogEvent.create({
       issueKey: key,
       type: 'status_change',
       message: `Status changed to ${status}`,
       actor,
       meta: { newStatus: status },
-    }));
+    });
   }
 
   if (comment) {
-    await (/* SUPER_ADMIN */ BacklogEvent.create({
+    // SUPER_ADMIN: backlog events are platform-wide
+    await BacklogEvent.create({
       issueKey: key,
       type: 'comment',
       message: comment,
       actor,
-    }));
+    });
   }
 
   await issue.save();

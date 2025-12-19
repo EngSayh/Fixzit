@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
     const product = await Product.findOne({
       _id: productId,
       orgId: context.orgId,
-    });
+    }).lean();
     if (!product) {
       return notFoundError("Product");
     }
