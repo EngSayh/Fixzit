@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const existingSlug = await Category.findOne({ slug });
+    const existingSlug = await Category.findOne({ slug }).lean();
     if (existingSlug) {
       return NextResponse.json(
         { error: "Category slug already exists" },

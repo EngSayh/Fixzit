@@ -97,7 +97,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const existingSlug = await Brand.findOne({ slug });
+    const existingSlug = await Brand.findOne({ slug }).lean();
     if (existingSlug) {
       return NextResponse.json(
         { error: "Brand slug already exists" },

@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user has active package (for agents/developers)
     if (body.source === "AGENT" || body.source === "DEVELOPER") {
+      // NO_TENANT_SCOPE: Scoped by userId (user-owned package).
       // NO_LEAN: Document required for listingsUsed update and save()
       const activePackage = await AqarPackage.findOne({
         userId: user.id,

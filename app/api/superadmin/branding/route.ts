@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
 
     // Get default platform settings (no orgId = global)
     // SUPER_ADMIN: platform settings are global
+    // NO_LEAN: Document used for potential create/update if not exists
     let settings = await PlatformSettings.findOne({ orgId: { $exists: false } });
 
     // If no settings exist, create default

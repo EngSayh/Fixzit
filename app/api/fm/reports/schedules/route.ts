@@ -118,8 +118,10 @@ export async function GET(req: NextRequest) {
 
     const db = await getDatabase();
     const collection = db.collection<ScheduleDocument>(COLLECTION);
-    // NO_TENANT_SCOPE: buildTenantFilter enforces tenant scope (super admin audited)
-    const schedules = await collection.find({ ...buildTenantFilter(tenantId) }).sort({ createdAt: -1 }).limit(50).toArray();
+    const schedules = await (/* NO_TENANT_SCOPE */ collection.find({ ...buildTenantFilter(tenantId) }))
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .toArray();
 
     return NextResponse.json({ success: true, data: schedules.map(mapSchedule) });
   } catch (error) {

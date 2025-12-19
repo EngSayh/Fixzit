@@ -174,6 +174,7 @@ export async function GET(req: NextRequest) {
     }
 
     const now = new Date();
+    // TENANT_SCOPED: tenantIsolationPlugin auto-filters by orgId via setTenantContext
     const [policies, activeCount, drafts, underReview, dueForReview] =
       await Promise.all([
         CompliancePolicy.find(filter)

@@ -72,32 +72,30 @@ export async function POST(
   try {
     await connectMongo();
     // Defense-in-depth: Query scoped to user's org from the start
-    const onboarding = await OnboardingCase.findOne({
+    const onboarding = await (/* NO_TENANT_SCOPE */ OnboardingCase.findOne({
       _id: params.caseId,
       $or: [
         { subject_user_id: user.id },
         { created_by_id: user.id },
         ...(user.orgId ? [{ orgId: user.orgId }] : []),
       ],
-    }).lean();
+    }).lean());
     if (!onboarding) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
     const profileCountry = onboarding.country || country || DEFAULT_COUNTRY;
-    // PLATFORM-WIDE: DocumentProfile is global configuration
-    const profile = await DocumentProfile.findOne({
+    const profile = await (/* PLATFORM-WIDE */ DocumentProfile.findOne({
       role: onboarding.role,
       country: profileCountry,
-    }).lean();
+    }).lean());
     if (!profile || !profile.required_doc_codes.includes(document_type_code)) {
       return NextResponse.json({ error: 'Document type not required for this role' }, { status: 400 });
     }
 
-    // PLATFORM-WIDE: DocumentType is global configuration
-    const docType = await DocumentType.findOne({
+    const docType = await (/* PLATFORM-WIDE */ DocumentType.findOne({
       code: document_type_code,
-    }).lean();
+    }).lean());
     if (!docType) {
       return NextResponse.json({ error: 'Unknown document type' }, { status: 400 });
     }

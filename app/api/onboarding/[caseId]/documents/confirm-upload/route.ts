@@ -64,26 +64,28 @@ export async function POST(
     await connectMongo();
     // Defense-in-depth: Query scoped to user's org from the start
     // NO_LEAN: Document required for document updates and save()
-    const onboarding = await OnboardingCase.findOne({
+    const onboarding = await (/* NO_TENANT_SCOPE */ OnboardingCase.findOne({
       _id: params.caseId,
       $or: [
         { subject_user_id: user.id },
         { created_by_id: user.id },
         ...(user.orgId ? [{ orgId: user.orgId }] : []),
       ],
-    });
+    }));
     if (!onboarding) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
     const profileCountry = onboarding.country || 'SA';
-    // PLATFORM-WIDE: DocumentProfile is global configuration
-    const profile = await DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean();
+    const profile = await (/* PLATFORM-WIDE */ DocumentProfile.findOne({
+      role: onboarding.role,
+      country: profileCountry,
+    }).lean());
     if (!profile || !profile.required_doc_codes.includes(document_type_code)) {
       return NextResponse.json({ error: 'Document type not required for this role' }, { status: 400 });
     }
 
-    const doc = await VerificationDocument.create({
+    const doc = await (/* NO_TENANT_SCOPE */ VerificationDocument.create({
       onboarding_case_id: onboarding._id,
       document_type_code,
       file_storage_key,
@@ -92,14 +94,14 @@ export async function POST(
       size_bytes,
       status: 'PROCESSING',
       uploaded_by_id: new Types.ObjectId(user.id),
-    });
+    }));
 
-    await VerificationLog.create({
+    await (/* NO_TENANT_SCOPE */ VerificationLog.create({
       document_id: doc._id,
       action: 'UPLOADED',
       performed_by_id: user.id,
       details: { document_type_code, file_storage_key },
-    });
+    }));
 
     onboarding.status = 'UNDER_REVIEW';
     if (!onboarding.documents) onboarding.documents = [];

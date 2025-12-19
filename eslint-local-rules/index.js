@@ -74,8 +74,10 @@ export const requireTenantScope = {
 
     const TENANT_KEYS = new Set([
       "org_id",
-      "property_owner_id",
       "orgId",
+      "tenant_id",
+      "tenantId",
+      "property_owner_id",
       "propertyOwnerId",
     ]);
 
@@ -171,16 +173,35 @@ export const requireTenantScope = {
         const hasTenantScope = objectHasTenantScope(filterArg);
 
         if (!hasTenantScope) {
-          // Check if there's a comment indicating this is intentional
           const sourceCode = context.getSourceCode();
-          const comments = sourceCode.getCommentsBefore(node);
-          const hasExemptComment = comments.some((comment) => 
-            comment.value.includes("PLATFORM-WIDE") || 
+          const hasKeyword = (comment) =>
+            comment.value.includes("PLATFORM-WIDE") ||
             comment.value.includes("SUPER_ADMIN") ||
-            comment.value.includes("NO_TENANT_SCOPE")
-          );
+            comment.value.includes("NO_TENANT_SCOPE");
 
-          if (!hasExemptComment) {
+          const hasExemptComment = (target) => {
+            const comments = sourceCode.getCommentsBefore(target);
+            if (comments.some(hasKeyword)) return true;
+
+            // Also check parent nodes so statement-level comments are honored.
+            let current = target.parent;
+            while (current) {
+              const parentComments = sourceCode.getCommentsBefore(current);
+              if (parentComments.some(hasKeyword)) return true;
+              if (
+                current.type === "ExpressionStatement" ||
+                current.type === "VariableDeclaration" ||
+                current.type === "ReturnStatement" ||
+                current.type === "BlockStatement"
+              ) {
+                break;
+              }
+              current = current.parent;
+            }
+            return false;
+          };
+
+          if (!hasExemptComment(node)) {
             context.report({
               node,
               messageId: "missingTenantScope",

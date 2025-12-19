@@ -211,6 +211,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // NO_LEAN: Document required for status update and save()
     const settlement = await SouqSettlement.findOne({ settlementId, orgId: resolvedOrgId });
 
     if (!settlement) {

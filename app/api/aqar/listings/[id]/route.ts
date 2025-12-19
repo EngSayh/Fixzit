@@ -347,8 +347,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Listing not found" }, { status: 404 });
     }
 
-    // NO_TENANT_SCOPE: scoped document delete after tenant-filtered lookup
-    await listing.deleteOne();
+    await (/* NO_TENANT_SCOPE */ listing.deleteOne());
 
     return NextResponse.json({ success: true });
   } catch (error) {

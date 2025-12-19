@@ -172,6 +172,7 @@ export async function POST(request: NextRequest) {
         ...(orgUserFilter ? [orgUserFilter] : []),
       ],
     };
+    // NO_LEAN: Document required for bulk updates and save().
     const claims = await SouqClaim.find(claimQuery);
 
     if (claims.length === 0) {
@@ -188,14 +189,13 @@ export async function POST(request: NextRequest) {
       .filter((id) => Types.ObjectId.isValid(id))
       .map((id) => new Types.ObjectId(id));
     
-    // NO_TENANT_SCOPE: buildOrgScopeFilter enforces org scope (platform admin allowed)
-    const orders = await SouqOrder.find({
+    const orders = await (/* NO_TENANT_SCOPE */ SouqOrder.find({
       ...baseOrgScope,
       $or: [
         { orderId: { $in: orderIdStrings } }, // Primary: match by orderId string field
         ...(validObjectIds.length > 0 ? [{ _id: { $in: validObjectIds } }] : []), // Fallback: match by _id
       ],
-    }).lean();
+    }).lean());
     
     // 🔐 FIX: Map by BOTH orderId and _id to handle both lookup patterns
     const orderMap = new Map<string, IOrder>();

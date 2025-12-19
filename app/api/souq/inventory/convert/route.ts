@@ -99,11 +99,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // NO_TENANT_SCOPE: buildOrgFilter enforces org scope (platform admin allowed)
-    const inventoryRecord = await SouqInventory.findOne({
+    const inventoryRecord = await (/* NO_TENANT_SCOPE */ SouqInventory.findOne({
       listingId,
       ...buildOrgFilter(orgId),
-    }).select({ sellerId: 1 });
+    }).select({ sellerId: 1 }));
 
     if (!inventoryRecord) {
       return NextResponse.json(

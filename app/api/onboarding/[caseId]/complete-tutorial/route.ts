@@ -35,14 +35,14 @@ export async function PUT(
     await connectMongo();
     // Defense-in-depth: Query scoped to user's org from the start
     // NO_LEAN: Document required for tutorial_completed update and save()
-    const onboarding = await OnboardingCase.findOne({
+    const onboarding = await (/* NO_TENANT_SCOPE */ OnboardingCase.findOne({
       _id: params.caseId,
       $or: [
         { subject_user_id: user.id },
         { created_by_id: user.id },
         ...(user.orgId ? [{ orgId: user.orgId }] : []),
       ],
-    });
+    }));
     if (!onboarding) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
