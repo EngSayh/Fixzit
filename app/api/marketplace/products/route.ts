@@ -22,6 +22,14 @@ import {
 } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import {
+  applyCacheHeaders,
+  getCached,
+  setCache,
+  createCacheKey,
+  CACHE_DURATIONS,
+  type CacheStatus,
+} from "@/lib/api/cache-headers";
 
 const ADMIN_ROLES = new Set([
   "SUPER_ADMIN",
@@ -147,15 +155,13 @@ export async function GET(request: NextRequest) {
         },
       },
     });
-    // Private cache for tenant-scoped product listings
-    response.headers.set(
-      "Cache-Control",
-      "private, max-age=60, stale-while-revalidate=120"
-    );
-    // X-Cache-Status for observability dashboards (Grafana marketplace panel)
-    response.headers.set("X-Cache-Status", "MISS");
-    response.headers.set("X-Cache-Date", new Date().toISOString());
-    return response;
+    // Apply cache headers with proper observability (P125)
+    return applyCacheHeaders(response, {
+      cacheStatus: 'MISS', // Fresh DB query = MISS
+      maxAge: 60,
+      staleWhileRevalidate: 120,
+      isPrivate: true, // Tenant-scoped data
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);

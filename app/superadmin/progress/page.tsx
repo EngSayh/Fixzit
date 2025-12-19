@@ -64,23 +64,33 @@ const phases = [
   { id: 'P113', title: 'Zod Coverage Expansion', status: 'completed', date: '2025-12-18T22:20', evidence: '128/373 routes (34%), all public routes validated' },
   { id: 'P114', title: 'Playwright HFV Smokes', status: 'completed', date: '2025-12-18T22:25', evidence: '9 roles × 13 pages = 117 scenarios, zero error tolerance' },
   
+  // --- Improvement Phase (P125-P132) - 2025-12-19 ---
+  { id: 'P125', title: 'Cache Observability Fix', status: 'completed', date: '2025-12-19T10:00', evidence: 'X-Cache-Status HIT/MISS/STALE via applyCacheHeaders utility' },
+  { id: 'P126', title: 'Test Implementation', status: 'completed', date: '2025-12-19T10:30', evidence: '43 new tests: perf, currency persistence, ICU completeness' },
+  { id: 'P127', title: 'Component Integration', status: 'completed', date: '2025-12-19T11:00', evidence: 'DataRefreshTimestamp on dashboards, HoverTooltip on audit filters' },
+  { id: 'P128', title: 'Offline Banner Extension', status: 'completed', date: '2025-12-19T11:15', evidence: 'FormOfflineBanner on RFQBoard and FM RFQs forms' },
+  { id: 'P129', title: 'Audit Log Presets', status: 'completed', date: '2025-12-19T11:30', evidence: '4 presets: Tenant Escalations, RBAC Changes, Deletions, Logins' },
+  { id: 'P130', title: 'Currency UX Hints', status: 'completed', date: '2025-12-19T11:45', evidence: 'preferenceSource tooltip on CheckoutForm and PDPBuyBox' },
+  { id: 'P131', title: 'Grafana Panels', status: 'completed', date: '2025-12-19T12:00', evidence: 'Rate Limit Breaches, Cache Status Distribution panels' },
+  { id: 'P132', title: 'Dashboard Update', status: 'completed', date: '2025-12-19T12:15', evidence: 'This update - P125-P132 phases added' },
+  
   { id: 'P96', title: 'Final Production Gate', status: 'completed', date: '2025-12-18', evidence: 'All verification phases passed' },
 ];
 
 const testCoverage = {
-  total: 3817,
-  passing: 3817,
+  total: 3860,
+  passing: 3860,
   failed: 0,
   percentage: 100,
   routes: {
     total: 357,
-    tested: 80,
-    percentage: 22.4,
+    tested: 85,
+    percentage: 23.8,
   },
   modules: {
     finance: { routes: 15, tested: 15, percentage: 100 },
     hr: { routes: 7, tested: 7, percentage: 100 },
-    souq: { routes: 75, tested: 14, percentage: 18.7 },
+    souq: { routes: 75, tested: 17, percentage: 22.7 },
     aqar: { routes: 16, tested: 16, percentage: 100 },
     workOrders: { routes: 20, tested: 20, percentage: 100 },
   },

@@ -35,11 +35,12 @@ jobs:
         )
       }}
     runs-on: ubuntu-latest
-    env:
-      # Define at job level to silence linter warnings
-      ENABLE_PR_AGENT: ${{ vars.ENABLE_PR_AGENT || 'true' }}
-      HAS_OPENAI_KEY: ${{ secrets.OPENAI_KEY != '' }}
     steps:
+      - name: Prepare PR Agent env defaults
+        run: |
+          echo "ENABLE_PR_AGENT=${{ vars.ENABLE_PR_AGENT || 'true' }}" >> "$GITHUB_ENV"
+          echo "HAS_OPENAI_KEY=${{ secrets.OPENAI_KEY != '' && 'true' || 'false' }}" >> "$GITHUB_ENV"
+
       - name: PR Agent action step
         if: ${{ env.ENABLE_PR_AGENT != 'false' && env.HAS_OPENAI_KEY == 'true' }}
         uses: Codium-ai/pr-agent@main

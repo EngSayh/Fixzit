@@ -29,6 +29,13 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { zodValidationError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import {
+  applyCacheHeaders,
+  getCached,
+  setCache,
+  createCacheKey,
+  CACHE_DURATIONS,
+} from "@/lib/api/cache-headers";
 
 const QuerySchema = z.object({
   q: z.string().optional(),
@@ -67,6 +74,54 @@ export async function GET(request: NextRequest) {
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
     const query = QuerySchema.parse(params);
     const context = await resolveMarketplaceContext(request);
+
+    // P125: Check cache first for search results
+    const cacheKey = createCacheKey('marketplace:search', {
+      orgId: context.orgId?.toString(),
+      q: query.q,
+      cat: query.cat,
+      brand: query.brand,
+      std: query.std,
+      min: query.min?.toString(),
+      max: query.max?.toString(),
+      page: query.page.toString(),
+      limit: query.limit.toString(),
+    });
+    const cached = getCached<{
+      items: unknown[];
+      pagination: { total: number };
+      facetCategories: unknown[];
+      brands: string[];
+      standards: string[];
+    }>(cacheKey);
+
+    if (cached) {
+      // Cache HIT - return cached search results
+      const response = NextResponse.json({
+        ok: true,
+        data: {
+          items: cached.data.items,
+          pagination: {
+            page: query.page,
+            limit: query.limit,
+            total: cached.data.pagination.total,
+            pages: Math.ceil(cached.data.pagination.total / query.limit),
+          },
+          facets: {
+            brands: cached.data.brands,
+            standards: cached.data.standards,
+            categories: cached.data.facetCategories,
+          },
+        },
+      });
+      return applyCacheHeaders(response, {
+        cacheStatus: 'HIT',
+        maxAge: CACHE_DURATIONS.SEARCH,
+        staleWhileRevalidate: 120,
+      });
+    }
+
+    // Cache MISS - perform search
     await connectToDatabase();
 
     const categoryDoc = query.cat
@@ -101,6 +156,26 @@ export async function GET(request: NextRequest) {
       facetCategories = [];
     }
 
+    const formattedCategories = facetCategories.map((category) => {
+      const cat = category as {
+        slug?: string;
+        name?: { en?: string; ar?: string };
+      };
+      return {
+        slug: cat.slug || "",
+        name: cat.name?.en ?? cat.name?.ar ?? cat.slug ?? "",
+      };
+    });
+
+    // Store in cache for next request
+    setCache(cacheKey, {
+      items,
+      pagination,
+      facetCategories: formattedCategories,
+      brands: facets.brands,
+      standards: facets.standards,
+    }, CACHE_DURATIONS.SEARCH);
+
     const response = NextResponse.json({
       ok: true,
       data: {
@@ -114,25 +189,16 @@ export async function GET(request: NextRequest) {
         facets: {
           brands: facets.brands,
           standards: facets.standards,
-          categories: facetCategories.map((category) => {
-            const cat = category as {
-              slug?: string;
-              name?: { en?: string; ar?: string };
-            };
-            return {
-              slug: cat.slug || "",
-              name: cat.name?.en ?? cat.name?.ar ?? cat.slug ?? "",
-            };
-          }),
+          categories: formattedCategories,
         },
       },
     });
-    // Cache search results for 1 minute (dynamic but cacheable)
-    response.headers.set("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
-    // X-Cache-Status for observability dashboards (Grafana marketplace panel)
-    response.headers.set("X-Cache-Status", "MISS");
-    response.headers.set("X-Cache-Date", new Date().toISOString());
-    return response;
+    // Return with MISS status (fresh search from DB)
+    return applyCacheHeaders(response, {
+      cacheStatus: 'MISS',
+      maxAge: CACHE_DURATIONS.SEARCH,
+      staleWhileRevalidate: 120,
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);

@@ -10,6 +10,8 @@ import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShieldAlert, Loader2 } from "lucide-react";
+import { DataRefreshTimestamp } from "@/components/common/DataRefreshTimestamp";
+import { HoverTooltip } from "@/components/common/HoverTooltip";
 
 // Roles allowed to access audit logs
 const ADMIN_ROLES = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"];
@@ -76,6 +78,7 @@ export default function AuditLogViewer() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalLogs, setTotalLogs] = useState(0);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   // RBAC Check: Only allow admin roles
   const userRole = session?.user?.role as string | undefined;
@@ -174,6 +177,7 @@ export default function AuditLogViewer() {
       setLogs(logs);
       setTotalLogs(total);
       setTotalPages(pages);
+      setLastRefresh(new Date()); // P127: Track last refresh timestamp
 
       if (page > pages) {
         setPage(pages);
@@ -274,13 +278,23 @@ export default function AuditLogViewer() {
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">
-          {auto("Audit Log", "header.title")}
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          {auto("View all system activity and user actions", "header.subtitle")}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">
+            {auto("Audit Log", "header.title")}
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            {auto("View all system activity and user actions", "header.subtitle")}
+          </p>
+        </div>
+        {/* P127: Data refresh timestamp with manual refresh */}
+        <DataRefreshTimestamp
+          lastRefresh={lastRefresh}
+          onRefresh={fetchLogs}
+          isRefreshing={loading}
+          autoRefreshSeconds={60}
+          showRelativeTime
+        />
       </div>
 
       {/* Error Alert - Show at top level for better visibility */}
@@ -426,6 +440,17 @@ export default function AuditLogViewer() {
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
               {auto("Entity Type", "filters.entityTypeLabel")}
+              {/* P127: Add tooltip explaining entity type filter */}
+              <HoverTooltip
+                content={auto(
+                  "Filter by the type of resource that was affected. Examples: User accounts, Properties, Work Orders, Payments.",
+                  "filters.entityTypeTooltip"
+                )}
+                variant="info"
+                size="xs"
+                inline
+                className="ms-1"
+              />
             </label>
             <select
               className="w-full rounded-2xl border-border bg-background text-foreground"
@@ -496,6 +521,17 @@ export default function AuditLogViewer() {
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
               {auto("User Role", "filters.userRoleLabel")}
+              {/* P127: Add tooltip explaining role filter */}
+              <HoverTooltip
+                content={auto(
+                  "Filter audit logs by the role of the user who performed the action. Super Admin sees all tenant activities.",
+                  "filters.roleTooltip"
+                )}
+                variant="help"
+                size="xs"
+                inline
+                className="ms-1"
+              />
             </label>
             <select
               className="w-full rounded-2xl border-border bg-background text-foreground"
@@ -643,7 +679,69 @@ export default function AuditLogViewer() {
           </div>
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+          {/* P129: Quick filter presets */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setFilters({
+                  userRole: "super_admin",
+                  action: undefined,
+                  entityType: "TENANT",
+                  startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                  endDate: new Date(),
+                });
+                setPage(1);
+              }}
+              className="px-3 py-1.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/50 transition-colors"
+            >
+              🏢 {auto("Tenant Escalations", "presets.tenantEscalations")}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFilters({
+                  action: "UPDATE",
+                  entityType: "USER",
+                  startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+                  endDate: new Date(),
+                });
+                setPage(1);
+              }}
+              className="px-3 py-1.5 text-xs font-medium rounded-full bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 transition-colors"
+            >
+              🛡️ {auto("RBAC Changes", "presets.rbacChanges")}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFilters({
+                  action: "DELETE",
+                  startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                  endDate: new Date(),
+                });
+                setPage(1);
+              }}
+              className="px-3 py-1.5 text-xs font-medium rounded-full bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 transition-colors"
+            >
+              🗑️ {auto("Recent Deletions", "presets.recentDeletions")}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFilters({
+                  action: "LOGIN",
+                  startDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
+                  endDate: new Date(),
+                });
+                setPage(1);
+              }}
+              className="px-3 py-1.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
+            >
+              🔑 {auto("Today's Logins", "presets.todaysLogins")}
+            </button>
+          </div>
           <button
             onClick={() => {
               setFilters({});

@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
+import { FormOfflineBanner } from "@/components/common/FormOfflineBanner";
 
 interface RFQItem {
   id: string;
@@ -645,6 +646,7 @@ function CreateRFQForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <FormOfflineBanner formType="rfq" className="mb-2" />
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">

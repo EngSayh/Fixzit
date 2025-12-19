@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Calendar, DollarSign, Package } from "lucide-react";
 import ClientDate from "@/components/ClientDate";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { FormOfflineBanner } from "@/components/common/FormOfflineBanner";
 
 interface RFQCategory {
   slug: string;
@@ -116,6 +117,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
 
       {showForm && (
         <div className="rounded-3xl bg-card p-6 shadow">
+          <FormOfflineBanner formType="rfq" className="mb-4" />
           <h2 className="text-lg font-semibold text-foreground">
             {auto("New RFQ", "form.title")}
           </h2>

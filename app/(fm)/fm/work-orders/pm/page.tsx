@@ -9,6 +9,7 @@ import ClientDate from "@/components/ClientDate";
 import { logger } from "@/lib/logger";
 import { getWorkOrderStatusLabel } from "@/lib/work-orders/status";
 import { WORK_ORDERS_MODULE_ID } from "@/config/navigation/constants";
+import { DataRefreshTimestamp } from "@/components/common/DataRefreshTimestamp";
 
 const fetcher = (url: string) =>
   fetch(url)
@@ -63,7 +64,7 @@ export default function PreventiveMaintenancePage() {
   ];
 
   // Fetch PM plans from API
-  const { data: response } = useSWR("/api/pm/plans?status=ACTIVE", fetcher, {
+  const { data: response, isValidating, mutate } = useSWR("/api/pm/plans?status=ACTIVE", fetcher, {
     refreshInterval: 30000, // Refresh every 30 seconds
   });
 
@@ -122,6 +123,13 @@ export default function PreventiveMaintenancePage() {
               "Schedule and track preventive maintenance activities",
             )}
           </p>
+          <DataRefreshTimestamp
+            lastRefresh={response?.timestamp || new Date().toISOString()}
+            onRefresh={() => mutate()}
+            isRefreshing={isValidating}
+            autoRefreshSeconds={30}
+            className="mt-1"
+          />
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary">

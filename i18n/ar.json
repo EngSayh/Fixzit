@@ -4838,7 +4838,7 @@
       "importTitle": "استيراد المشاكل",
       "importDesc": "الصق مصفوفة JSON للمشاكل أو نص بسيط (عنوان واحد لكل سطر)",
       "importDataLabel": "بيانات المشاكل",
-      "importPlaceholder": "[{\\"title\\": \\"إصلاح خطأ...\\", \\"priority\\": \\"P1\\"}]",
+      "importPlaceholder": "[{\"title\": \"إصلاح خطأ...\", \"priority\": \"P1\"}]",
       "importDryRun": "تشغيل تجريبي",
       "importing": "جارٍ الاستيراد...",
       "add": "إضافة مشكلة",

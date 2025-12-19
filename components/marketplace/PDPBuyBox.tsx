@@ -7,6 +7,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { addProductToCart } from "@/lib/marketplace/cartClient";
 import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { HoverTooltip } from "@/components/common/HoverTooltip";
 
 interface PDPBuyBoxProps {
   product: {
@@ -42,7 +43,7 @@ export default function PDPBuyBox({
   onAddToCart,
   onRequestRFQ,
 }: PDPBuyBoxProps) {
-  const { currency } = useCurrency();
+  const { currency, preferenceSource } = useCurrency();
   const [quantity, setQuantity] = useState(product.buy.minQty ?? 1);
   const [submitting, setSubmitting] = useState(false);
   const available =
@@ -104,7 +105,22 @@ export default function PDPBuyBox({
           <p className="text-xs font-semibold uppercase tracking-wide text-primary">
             {auto("SKU {{sku}}", "header.sku").replace("{{sku}}", product.sku)}
           </p>
-          <p className="text-2xl font-semibold text-foreground">{priceLabel}</p>
+          <p className="inline-flex items-center gap-1 text-2xl font-semibold text-foreground">
+            {priceLabel}
+            <HoverTooltip
+              content={
+                preferenceSource === "profile"
+                  ? auto("Currency from your profile settings", "currency.profile")
+                  : preferenceSource === "cookie"
+                    ? auto("Currency from previous session", "currency.cookie")
+                    : preferenceSource === "localStorage"
+                      ? auto("Currency saved in browser", "currency.localStorage")
+                      : auto("Default currency (SAR)", "currency.default")
+              }
+              variant="info"
+              size="xs"
+            />
+          </p>
           <p className="text-xs text-muted-foreground">
             {auto("per {{uom}} · Min order {{min}}", "header.uom")
               .replace("{{uom}}", product.buy.uom)

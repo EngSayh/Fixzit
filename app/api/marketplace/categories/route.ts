@@ -16,6 +16,13 @@ import { serializeCategory } from "@/lib/marketplace/serializers";
 
 import { createSecureResponse } from "@/server/security/headers";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import {
+  applyCacheHeaders,
+  getCached,
+  setCache,
+  createCacheKey,
+  CACHE_DURATIONS,
+} from "@/lib/api/cache-headers";
 
 export const dynamic = "force-dynamic";
 /**
@@ -57,6 +64,26 @@ export async function GET(request: NextRequest) {
     }
 
     const context = await resolveMarketplaceContext(request);
+
+    // P125: Check cache first for HIT/MISS observability
+    const cacheKey = createCacheKey('marketplace:categories', { orgId: context.orgId?.toString() });
+    const cached = getCached<{ serialized: unknown[]; tree: unknown[] }>(cacheKey);
+
+    if (cached) {
+      // Cache HIT - return cached data with proper status
+      const response = NextResponse.json({
+        ok: true,
+        data: cached.data.serialized,
+        tree: cached.data.tree,
+      });
+      return applyCacheHeaders(response, {
+        cacheStatus: 'HIT',
+        maxAge: CACHE_DURATIONS.CATEGORIES,
+        staleWhileRevalidate: 600,
+      });
+    }
+
+    // Cache MISS - fetch from database
     await connectToDatabase();
     const categories = await Category.find({ orgId: context.orgId })
       .sort({ createdAt: 1 })
@@ -96,17 +123,20 @@ export async function GET(request: NextRequest) {
 
     const tree = buildTree(undefined);
 
-    // Cache for 5 minutes, stale-while-revalidate for 10 minutes
+    // Store in cache for next request
+    setCache(cacheKey, { serialized, tree }, CACHE_DURATIONS.CATEGORIES);
+
+    // Return with MISS status (fresh data from DB)
     const response = NextResponse.json({
       ok: true,
       data: serialized,
       tree,
     });
-    response.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
-    // X-Cache-Status for observability dashboards (Grafana marketplace panel)
-    response.headers.set("X-Cache-Status", "MISS");
-    response.headers.set("X-Cache-Date", new Date().toISOString());
-    return response;
+    return applyCacheHeaders(response, {
+      cacheStatus: 'MISS',
+      maxAge: CACHE_DURATIONS.CATEGORIES,
+      staleWhileRevalidate: 600,
+    });
   } catch (error) {
     logger.error(
       "Failed to fetch marketplace categories",

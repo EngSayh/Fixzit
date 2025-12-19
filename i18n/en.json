@@ -4868,7 +4868,7 @@
       "importTitle": "Import Issues",
       "importDesc": "Paste JSON array of issues or simple text (one title per line)",
       "importDataLabel": "Issues Data",
-      "importPlaceholder": "[{\\"title\\": \\"Fix bug...\\", \\"priority\\": \\"P1\\"}]",
+      "importPlaceholder": "[{\"title\": \"Fix bug...\", \"priority\": \"P1\"}]",
       "importDryRun": "Dry Run",
       "importing": "Importing...",
       "add": "Add Issue",
