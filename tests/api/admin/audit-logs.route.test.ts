@@ -6,7 +6,6 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
-import { GET } from "@/app/api/admin/audit-logs/route";
 
 // Mock auth
 vi.mock("@/auth", () => ({
@@ -33,11 +32,14 @@ vi.mock("@/server/models/AuditLog", () => ({
 
 // Mock rate limit
 vi.mock("@/server/security/rateLimit", () => ({
-  smartRateLimit: vi.fn().mockResolvedValue(null),
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
   buildOrgAwareRateLimitKey: vi.fn().mockReturnValue("test-key"),
 }));
 
-import { auth } from "@/auth";
+let GET: typeof import("@/app/api/admin/audit-logs/route").GET;
+let auth: typeof import("@/auth").auth;
+let smartRateLimit: typeof import("@/server/security/rateLimit").smartRateLimit;
+let buildOrgAwareRateLimitKey: typeof import("@/server/security/rateLimit").buildOrgAwareRateLimitKey;
 
 function makeRequest(params: Record<string, string> = {}): NextRequest {
   const url = new URL("http://localhost:3000/api/admin/audit-logs");
@@ -48,8 +50,15 @@ function makeRequest(params: Record<string, string> = {}): NextRequest {
 }
 
 describe("Admin Audit Logs API Route", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    vi.resetModules();
+    ({ auth } = await import("@/auth"));
+    ({ smartRateLimit, buildOrgAwareRateLimitKey } = await import("@/server/security/rateLimit"));
+    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
+    vi.mocked(buildOrgAwareRateLimitKey).mockReturnValue("test-key");
+    ({ GET } = await import("@/app/api/admin/audit-logs/route"));
   });
 
   describe("GET /api/admin/audit-logs", () => {

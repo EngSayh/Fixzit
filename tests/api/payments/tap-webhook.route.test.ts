@@ -305,6 +305,7 @@ describe("tap webhook route", () => {
           currency: "SAR",
           reason: "customer_request",
           response: { code: "200", message: "ok" },
+          metadata: { organizationId: orgId },
         },
       },
     });

@@ -69,18 +69,21 @@ export async function upsertTransactionFromCharge(
   correlationId: string,
   payload: Record<string, unknown>,
 ): Promise<TapTransactionDoc | null> {
-  let transaction = await TapTransaction.findOne({ chargeId: charge.id });
+  const orgId = extractOrgId(charge.metadata);
+  if (!orgId) {
+    logger.error("[Webhook] Missing organizationId metadata on Tap charge", {
+      correlationId,
+      chargeId: charge.id,
+    });
+    return null;
+  }
+
+  let transaction = await TapTransaction.findOne({
+    chargeId: charge.id,
+    orgId,
+  });
 
   if (!transaction) {
-    const orgId = extractOrgId(charge.metadata);
-    if (!orgId) {
-      logger.error("[Webhook] Missing organizationId metadata on Tap charge", {
-        correlationId,
-        chargeId: charge.id,
-      });
-      return null;
-    }
-
     transaction = new TapTransaction({
       orgId,
       userId:
@@ -348,7 +351,20 @@ export async function updateRefundRecord(
   status: "PENDING" | "SUCCEEDED" | "FAILED",
   correlationId: string,
 ): Promise<void> {
-  const transaction = await TapTransaction.findOne({ chargeId: refund.charge });
+  const orgId = extractOrgId(refund.metadata);
+  if (!orgId) {
+    logger.warn("[Webhook] Missing organizationId metadata on Tap refund", {
+      correlationId,
+      refundId: refund.id,
+      chargeId: refund.charge,
+    });
+    return;
+  }
+
+  const transaction = await TapTransaction.findOne({
+    chargeId: refund.charge,
+    orgId,
+  });
   if (!transaction) {
     logger.warn("[Webhook] Refund received for unknown Tap transaction", {
       correlationId,
@@ -378,7 +394,7 @@ export async function updateRefundRecord(
       processedAt: new Date(),
     });
   }
-  
+
   transaction.events = transaction.events || [];
   const eventsTyped = transaction.events as unknown as TransactionEvent[];
   eventsTyped.push({
@@ -404,17 +420,28 @@ export async function updateRefundRecord(
   await transaction.save();
 
   if (transaction.paymentId) {
-    const payment = await Payment.findById(transaction.paymentId);
-    if (payment) {
-      if (status === "SUCCEEDED") {
-        payment.status = "REFUNDED";
-        payment.isRefund = true;
+    if (!transaction.orgId) {
+      logger.warn("[Webhook] Missing orgId on TapTransaction, skipping payment refund update", {
+        correlationId,
+        paymentId: transaction.paymentId.toString(),
+        chargeId: refund.charge,
+      });
+    } else {
+      const payment = await Payment.findOne({
+        _id: transaction.paymentId,
+        orgId: transaction.orgId,
+      });
+      if (payment) {
+        if (status === "SUCCEEDED") {
+          payment.status = "REFUNDED";
+          payment.isRefund = true;
+        }
+        if (status === "FAILED" && payment.status === "REFUNDED") {
+          payment.status = "POSTED";
+        }
+        payment.refundReason = refund.reason;
+        await payment.save();
       }
-      if (status === "FAILED" && payment.status === "REFUNDED") {
-        payment.status = "POSTED";
-      }
-      payment.refundReason = refund.reason;
-      await payment.save();
     }
   }
 
