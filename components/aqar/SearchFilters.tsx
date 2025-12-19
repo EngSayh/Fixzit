@@ -6,13 +6,10 @@ import {
   SlidersHorizontal,
   X,
   MapPin,
-  Home,
-  Bed,
-  Bath,
-  DollarSign,
-  Grid3x3,
 } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
+import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
 
 export interface SearchFiltersProps {
   onFilterChange?: (filters: PropertyFilters) => void;
@@ -147,44 +144,32 @@ export default function SearchFilters({
     t("aqar.cities.jazan", "Jazan"),
   ];
 
+  const propertyTypeOptions = propertyTypes.map((type) => ({
+    value: type.value,
+    label: type.label,
+  }));
+
+  const bedroomOptions = [1, 2, 3, 4, 5].map((count) => ({
+    value: String(count),
+    label: count === 5 ? "5+" : String(count),
+  }));
+
+  const bathroomOptions = [1, 2, 3, 4].map((count) => ({
+    value: String(count),
+    label: count === 4 ? "4+" : String(count),
+  }));
+
+  const amenityOptions = amenitiesList.map((amenity) => ({
+    value: amenity,
+    label: amenity,
+  }));
+
   const updateFilters = (updates: Partial<PropertyFilters>) => {
     const newFilters = { ...filters, ...updates };
     setFilters(newFilters);
     if (onFilterChange) {
       onFilterChange(newFilters);
     }
-  };
-
-  const togglePropertyType = (type: string) => {
-    const current = filters.propertyTypes || [];
-    const updated = current.includes(type)
-      ? current.filter((t) => t !== type)
-      : [...current, type];
-    updateFilters({ propertyTypes: updated });
-  };
-
-  const toggleAmenity = (amenity: string) => {
-    const current = filters.amenities || [];
-    const updated = current.includes(amenity)
-      ? current.filter((a) => a !== amenity)
-      : [...current, amenity];
-    updateFilters({ amenities: updated });
-  };
-
-  const toggleBedrooms = (count: number) => {
-    const current = filters.bedrooms || [];
-    const updated = current.includes(count)
-      ? current.filter((b) => b !== count)
-      : [...current, count];
-    updateFilters({ bedrooms: updated });
-  };
-
-  const toggleBathrooms = (count: number) => {
-    const current = filters.bathrooms || [];
-    const updated = current.includes(count)
-      ? current.filter((b) => b !== count)
-      : [...current, count];
-    updateFilters({ bathrooms: updated });
   };
 
   const clearFilters = () => {
@@ -312,236 +297,54 @@ export default function SearchFilters({
           className="border-t border-border pt-4 space-y-6"
         >
           {/* Property Type */}
-          <div>
-            <h3
-              id="property-type-label"
-              className="font-semibold text-foreground mb-3 flex items-center gap-2"
-            >
-              <Home className="w-4 h-4" aria-hidden="true" />
-              {t("aqar.filters.propertyType", "Property Type")}
-            </h3>
-            <div
-              role="group"
-              aria-labelledby="property-type-label"
-              className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2"
-            >
-              {propertyTypes.map((type) => (
-                <button type="button"
-                  key={type.value}
-                  onClick={() => togglePropertyType(type.value)}
-                  role="checkbox"
-                  aria-checked={filters.propertyTypes?.includes(type.value)}
-                  aria-label={`${type.label} ${t("aqar.filters.propertyTypeOption", "property type")}`}
-                  className={`p-3 rounded-lg border-2 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 ${
-                    filters.propertyTypes?.includes(type.value)
-                      ? "border-warning bg-warning/10"
-                      : "border-border hover:border-border"
-                  }`}
-                >
-                  <div className="text-2xl mb-1" aria-hidden="true">
-                    {type.icon}
-                  </div>
-                  <div className="text-xs font-medium">{type.label}</div>
-                </button>
-              ))}
-            </div>
-          </div>
+          <FacetMultiSelect
+            label={t("aqar.filters.propertyType", "Property Type")}
+            options={propertyTypeOptions}
+            selected={filters.propertyTypes || []}
+            onChange={(values) => updateFilters({ propertyTypes: values })}
+          />
 
           {/* Price Range */}
-          <div>
-            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              {t("aqar.filters.priceRange", "Price Range (SAR)")}
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">
-                  {t("aqar.filters.minimum", "Minimum")}
-                </label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  step="1000"
-                  placeholder={t("aqar.filters.min", "Min")}
-                  aria-label={t("aqar.filters.minPriceInput", "Minimum price")}
-                  value={filters.priceMin || ""}
-                  onChange={(e) => {
-                    const value = e.target.value.trim();
-                    if (value === "") {
-                      updateFilters({ priceMin: undefined });
-                    } else {
-                      const parsed = Number(value);
-                      if (Number.isFinite(parsed) && parsed >= 0) {
-                        updateFilters({ priceMin: parsed });
-                      }
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">
-                  {t("aqar.filters.maximum", "Maximum")}
-                </label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  step="1000"
-                  placeholder={t("aqar.filters.max", "Max")}
-                  aria-label={t("aqar.filters.maxPriceInput", "Maximum price")}
-                  value={filters.priceMax || ""}
-                  onChange={(e) => {
-                    const value = e.target.value.trim();
-                    if (value === "") {
-                      updateFilters({ priceMax: undefined });
-                    } else {
-                      const parsed = Number(value);
-                      if (Number.isFinite(parsed) && parsed >= 0) {
-                        updateFilters({ priceMax: parsed });
-                      }
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
-                />
-              </div>
-            </div>
-          </div>
+          <NumericRangeFilter
+            label={t("aqar.filters.priceRange", "Price Range (SAR)")}
+            value={{ min: filters.priceMin, max: filters.priceMax }}
+            onChange={(range) =>
+              updateFilters({ priceMin: range.min, priceMax: range.max })
+            }
+            min={0}
+            step={1000}
+          />
 
           {/* Bedrooms */}
-          <div>
-            <h3
-              id="bedrooms-label"
-              className="font-semibold text-foreground mb-3 flex items-center gap-2"
-            >
-              <Bed className="w-4 h-4" aria-hidden="true" />
-              {t("aqar.filters.bedrooms", "Bedrooms")}
-            </h3>
-            <div
-              role="group"
-              aria-labelledby="bedrooms-label"
-              className="flex gap-2"
-            >
-              {[1, 2, 3, 4, 5].map((count) => (
-                <button type="button"
-                  key={count}
-                  onClick={() => toggleBedrooms(count)}
-                  role="checkbox"
-                  aria-checked={filters.bedrooms?.includes(count)}
-                  aria-label={`${count === 5 ? "5 or more" : count} ${t("aqar.filters.bedroomsLabel", "bedrooms")}`}
-                  className={`px-4 py-2 rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 ${
-                    filters.bedrooms?.includes(count)
-                      ? "border-warning bg-warning/10 text-foreground"
-                      : "border-border hover:border-border text-foreground"
-                  }`}
-                >
-                  {count === 5 ? "5+" : count}
-                </button>
-              ))}
-            </div>
-          </div>
+          <FacetMultiSelect
+            label={t("aqar.filters.bedrooms", "Bedrooms")}
+            options={bedroomOptions}
+            selected={(filters.bedrooms || []).map(String)}
+            onChange={(values) =>
+              updateFilters({ bedrooms: values.map((value) => Number(value)) })
+            }
+          />
 
           {/* Bathrooms */}
-          <div>
-            <h3
-              id="bathrooms-label"
-              className="font-semibold text-foreground mb-3 flex items-center gap-2"
-            >
-              <Bath className="w-4 h-4" aria-hidden="true" />
-              {t("aqar.filters.bathrooms", "Bathrooms")}
-            </h3>
-            <div
-              role="group"
-              aria-labelledby="bathrooms-label"
-              className="flex gap-2"
-            >
-              {[1, 2, 3, 4].map((count) => (
-                <button type="button"
-                  key={count}
-                  onClick={() => toggleBathrooms(count)}
-                  role="checkbox"
-                  aria-checked={filters.bathrooms?.includes(count)}
-                  aria-label={`${count === 4 ? "4 or more" : count} ${t("aqar.filters.bathroomsLabel", "bathrooms")}`}
-                  className={`px-4 py-2 rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 ${
-                    filters.bathrooms?.includes(count)
-                      ? "border-warning bg-warning/10 text-foreground"
-                      : "border-border hover:border-border text-foreground"
-                  }`}
-                >
-                  {count === 4 ? "4+" : count}
-                </button>
-              ))}
-            </div>
-          </div>
+          <FacetMultiSelect
+            label={t("aqar.filters.bathrooms", "Bathrooms")}
+            options={bathroomOptions}
+            selected={(filters.bathrooms || []).map(String)}
+            onChange={(values) =>
+              updateFilters({ bathrooms: values.map((value) => Number(value)) })
+            }
+          />
 
           {/* Area Range */}
-          <div>
-            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Grid3x3 className="w-4 h-4" />
-              {t("aqar.filters.area", "Area (sqm)")}
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">
-                  {t("aqar.filters.minimum", "Minimum")}
-                </label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  step="10"
-                  placeholder={t("aqar.filters.min", "Min")}
-                  aria-label={t(
-                    "aqar.filters.minAreaInput",
-                    "Minimum area in square meters",
-                  )}
-                  value={filters.areaMin || ""}
-                  onChange={(e) => {
-                    const value = e.target.value.trim();
-                    if (value === "") {
-                      updateFilters({ areaMin: undefined });
-                    } else {
-                      const parsed = Number(value);
-                      if (Number.isFinite(parsed) && parsed >= 0) {
-                        updateFilters({ areaMin: parsed });
-                      }
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">
-                  {t("aqar.filters.maximum", "Maximum")}
-                </label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  step="10"
-                  placeholder={t("aqar.filters.max", "Max")}
-                  aria-label={t(
-                    "aqar.filters.maxAreaInput",
-                    "Maximum area in square meters",
-                  )}
-                  value={filters.areaMax || ""}
-                  onChange={(e) => {
-                    const value = e.target.value.trim();
-                    if (value === "") {
-                      updateFilters({ areaMax: undefined });
-                    } else {
-                      const parsed = Number(value);
-                      if (Number.isFinite(parsed) && parsed >= 0) {
-                        updateFilters({ areaMax: parsed });
-                      }
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
-                />
-              </div>
-            </div>
-          </div>
+          <NumericRangeFilter
+            label={t("aqar.filters.area", "Area (sqm)")}
+            value={{ min: filters.areaMin, max: filters.areaMax }}
+            onChange={(range) =>
+              updateFilters({ areaMin: range.min, areaMax: range.max })
+            }
+            min={0}
+            step={10}
+          />
 
           {/* Location */}
           <div>
@@ -592,27 +395,12 @@ export default function SearchFilters({
           </div>
 
           {/* Amenities */}
-          <div>
-            <h3 className="font-semibold text-foreground mb-3">
-              {t("aqar.filters.amenities", "Amenities")}
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {amenitiesList.map((amenity) => (
-                <label
-                  key={amenity}
-                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={filters.amenities?.includes(amenity)}
-                    onChange={() => toggleAmenity(amenity)}
-                    className="w-4 h-4 text-warning border-border rounded focus:ring-warning"
-                  />
-                  <span className="text-sm text-foreground">{amenity}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          <FacetMultiSelect
+            label={t("aqar.filters.amenities", "Amenities")}
+            options={amenityOptions}
+            selected={filters.amenities || []}
+            onChange={(values) => updateFilters({ amenities: values })}
+          />
 
           {/* Additional Options */}
           <div>
