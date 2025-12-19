@@ -74,15 +74,20 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       className,
       disabled,
       children,
+      'aria-label': ariaLabel,
       ...props
     },
     ref
   ) => {
+    // Accessibility: fallback to tooltip if aria-label not provided
+    const accessibleLabel = ariaLabel || tooltip;
+    
     const button = (
       <button
         ref={ref}
         type="button"
         disabled={disabled || loading}
+        aria-label={accessibleLabel}
         className={cn(
           'relative inline-flex items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
           sizeClasses[size],

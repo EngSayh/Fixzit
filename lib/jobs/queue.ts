@@ -136,7 +136,7 @@ export class JobQueue {
       // PLATFORM-WIDE: job queue is system-wide (no tenant scope).
       const jobFilter = { _id: new ObjectId(jobId) };
 
-      // eslint-disable-next-line local/require-lean -- NO_LEAN: native MongoDB driver returns plain objects.
+      // NO_LEAN: native MongoDB driver returns plain objects, not Mongoose documents.
       const job = await collection.findOne(jobFilter);
 
       if (!job) {
