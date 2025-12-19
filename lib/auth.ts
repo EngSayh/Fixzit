@@ -102,7 +102,7 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { User } from "@/server/models/User";
-import Organization from "@/server/models/Organization";
+import { Organization }on } from "@/server/models/Organization";
 import { db } from "@/lib/mongo";
 import { getJWTSecret as getJWTSecretService } from "@/lib/secrets";
 

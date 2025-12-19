@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // Mock setup - use vi.hoisted to ensure mocks are available at module load time
 const { mockPriceBookModel, mockSubscriptionModel, mockQuotePrice, mockTapPayments } = vi.hoisted(() => ({
   mockPriceBookModel: {
-    findById: vi.fn(),
-    findOne: vi.fn(),
+    findById: vi.fn().mockReturnValue({ lean: vi.fn() }),
+    findOne: vi.fn().mockReturnValue({ lean: vi.fn() }),
   },
   mockSubscriptionModel: {
     create: vi.fn(),
@@ -83,8 +83,8 @@ describe("createSubscriptionCheckout", () => {
 
   it("creates a TAP checkout session and returns redirect URL", async () => {
     const mockPriceBook = { _id: "pb1", currency: "SAR", active: true };
-    mockPriceBookModel.findById.mockResolvedValue(null);
-    mockPriceBookModel.findOne.mockResolvedValue(mockPriceBook);
+    mockPriceBookModel.findById.mockReturnValue({ lean: vi.fn().mockResolvedValue(null) });
+    mockPriceBookModel.findOne.mockReturnValue({ lean: vi.fn().mockResolvedValue(mockPriceBook) });
 
     mockQuotePrice.mockResolvedValue({
       requiresQuote: false,
@@ -136,8 +136,8 @@ describe("createSubscriptionCheckout", () => {
 
   it("returns quote-required response when pricing requires manual quote", async () => {
     const mockPriceBook = { _id: "pb1", currency: "SAR", active: true };
-    mockPriceBookModel.findById.mockResolvedValue(null);
-    mockPriceBookModel.findOne.mockResolvedValue(mockPriceBook);
+    mockPriceBookModel.findById.mockReturnValue({ lean: vi.fn().mockResolvedValue(null) });
+    mockPriceBookModel.findOne.mockReturnValue({ lean: vi.fn().mockResolvedValue(mockPriceBook) });
 
     mockQuotePrice.mockResolvedValue({
       requiresQuote: true,
@@ -164,7 +164,7 @@ describe("createSubscriptionCheckout", () => {
   it("throws when APP_URL is missing", async () => {
     delete process.env.APP_URL;
     delete process.env.NEXT_PUBLIC_APP_URL;
-    mockPriceBookModel.findOne.mockResolvedValue({ _id: "pb1", currency: "SAR" });
+    mockPriceBookModel.findOne.mockReturnValue({ lean: vi.fn().mockResolvedValue({ _id: "pb1", currency: "SAR" }) });
     mockQuotePrice.mockResolvedValue({
       requiresQuote: false,
       total: 100,
