@@ -66,7 +66,7 @@
     "**/playwright-report/**": true,
     "**/test-results/**": true
   },
-  // Utilize full 36GB RAM - no artificial caps
+  // Cap TS server memory to avoid runaway usage in large workspaces
   "typescript.tsserver.maxTsServerMemory": 8192,
   "typescript.tsserver.experimental.enableProjectDiagnostics": false,
   "typescript.disableAutomaticTypeAcquisition": true,

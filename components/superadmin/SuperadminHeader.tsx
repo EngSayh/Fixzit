@@ -164,6 +164,7 @@ export function SuperadminHeader() {
     <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 gap-4">
       <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={(e) => {
             if (e.altKey || e.metaKey || e.ctrlKey) {
               navigate("/superadmin/tenants");
@@ -174,7 +175,6 @@ export function SuperadminHeader() {
           className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-700 hover:bg-slate-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-600"
           aria-label={homeLabel}
           title={tenantShortcutLabel}
-          type="button"
         >
           <BrandLogo
             size="sm"

@@ -374,7 +374,7 @@ export default function WorkOrderPartsPage() {
                           )}
                         </p>
                       </div>
-                      <button
+                      <button type="button"
                         onClick={() => addPart(part)}
                         className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 flex items-center gap-2"
                       >
@@ -407,7 +407,7 @@ export default function WorkOrderPartsPage() {
                       <div key={part.id} className="border rounded-2xl p-3">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-medium text-sm">{part.title}</h4>
-                          <button
+                          <button type="button"
                             onClick={() => removePart(part.id)}
                             className="text-destructive/80 hover:text-destructive/90"
                           >
@@ -416,7 +416,7 @@ export default function WorkOrderPartsPage() {
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <button
+                            <button type="button"
                               onClick={() =>
                                 updateQuantity(part.id, part.quantity - 1)
                               }
@@ -427,7 +427,7 @@ export default function WorkOrderPartsPage() {
                             <span className="w-8 text-center">
                               {part.quantity}
                             </span>
-                            <button
+                            <button type="button"
                               onClick={() =>
                                 updateQuantity(part.id, part.quantity + 1)
                               }
@@ -464,7 +464,7 @@ export default function WorkOrderPartsPage() {
                         )}
                       </span>
                     </div>
-                    <button
+                    <button type="button"
                       onClick={createPurchaseOrder}
                       className="w-full py-3 bg-success text-white rounded-2xl hover:bg-success/90"
                     >

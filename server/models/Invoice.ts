@@ -55,7 +55,7 @@
  * - Calculations maintain 2 decimal places
  */
 
-import { Schema, Model, InferSchemaType } from "mongoose";
+import { Schema, Model, InferSchemaType, Types } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
@@ -336,7 +336,9 @@ InvoiceSchema.index(
 InvoiceSchema.index({ orgId: 1, issueDate: -1 }, { name: "invoices_orgId_issueDate_desc" });
 InvoiceSchema.index({ orgId: 1, "zatca.status": 1 }, { name: "invoices_orgId_zatca_status" });
 
-export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema>;
+export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema> & {
+  orgId: Types.ObjectId;
+};
 
 export const Invoice: Model<InvoiceDoc> = getModel<InvoiceDoc>(
   "Invoice",

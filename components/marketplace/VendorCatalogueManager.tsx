@@ -151,7 +151,7 @@ export default function VendorCatalogueManager({
           </label>
         </div>
         {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
-        <button
+        <button type="button"
           onClick={addProduct}
           disabled={loading}
           className="mt-4 rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"

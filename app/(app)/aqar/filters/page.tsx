@@ -534,7 +534,7 @@ export default function FiltersPage() {
             {t("aqar.filters.quickFilters", "Quick Filters")}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <button
+            <button type="button"
               data-testid="preset-family-apartment"
               onClick={() => {
                 const next: FilterState = {
@@ -554,7 +554,7 @@ export default function FiltersPage() {
                 "2BR Apartment in Riyadh",
               )}
             </button>
-            <button
+            <button type="button"
               data-testid="preset-luxury-villa"
               onClick={() => {
                 const next: FilterState = {
@@ -571,7 +571,7 @@ export default function FiltersPage() {
             >
               {t("aqar.filters.preset.luxuryVilla", "Luxury Villa in Jeddah")}
             </button>
-            <button
+            <button type="button"
               data-testid="preset-affordable-studio"
               onClick={() => {
                 const next: FilterState = {
@@ -587,7 +587,7 @@ export default function FiltersPage() {
             >
               {t("aqar.filters.preset.affordableStudio", "Affordable Studio")}
             </button>
-            <button
+            <button type="button"
               data-testid="preset-commercial-office"
               onClick={() => {
                 const next: FilterState = {

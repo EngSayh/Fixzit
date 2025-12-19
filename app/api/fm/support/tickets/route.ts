@@ -19,7 +19,11 @@ import { logger } from "@/lib/logger";
 import { ModuleKey } from "@/domain/fm/fm.behavior";
 import { FMAction } from "@/types/fm/enums";
 import { requireFmPermission } from "@/app/api/fm/permissions";
-import { resolveTenantId, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
+import {
+  resolveTenantId,
+  isCrossTenantMode,
+  buildTenantFilter,
+} from "@/app/api/fm/utils/tenant";
 import { FMErrors } from "@/app/api/fm/errors";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
@@ -87,6 +91,92 @@ const validatePayload = (payload: TicketPayload): string | null => {
     return "Summary must be at least 20 characters";
   return null;
 };
+
+export async function GET(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "fm-support-tickets:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.SUPPORT,
+      action: FMAction.VIEW,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      },
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status")?.trim();
+    const priority = searchParams.get("priority")?.trim();
+    const module = searchParams.get("module")?.trim();
+    const q = searchParams.get("q")?.trim();
+    const pageParam = Number(searchParams.get("page") ?? "1");
+    const limitParam = Number(searchParams.get("limit") ?? "50");
+    const page =
+      Number.isFinite(pageParam) && pageParam > 0 ? Math.floor(pageParam) : 1;
+    const limitCandidate =
+      Number.isFinite(limitParam) && limitParam > 0
+        ? Math.floor(limitParam)
+        : 50;
+    const limit = Math.min(Math.max(limitCandidate, 1), 100);
+    const skip = (page - 1) * limit;
+
+    const query: Record<string, unknown> = { ...buildTenantFilter(tenantId) };
+    if (status) query.status = status;
+    if (priority) query.priority = priority;
+    if (module) query.module = module;
+    if (q) {
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = { $regex: escaped, $options: "i" };
+      query.$or = [
+        { requesterName: regex },
+        { requesterEmail: regex },
+        { subject: regex },
+        { summary: regex },
+      ];
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<TicketDocument>(COLLECTION);
+    const [items, total] = await Promise.all([
+      collection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: items,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("FM Support Tickets API - GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
 
 export async function POST(req: NextRequest) {
   const rateLimitResponse = enforceRateLimit(req, {

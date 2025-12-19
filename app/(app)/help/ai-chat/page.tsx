@@ -145,7 +145,7 @@ export default function AIChatPage() {
                 </p>
               </div>
             </div>
-            <button
+            <button type="button"
               onClick={() => window.close()}
               aria-label={auto("Close chat", "header.closeAria")}
               className="text-muted-foreground hover:text-muted-foreground p-2 rounded-2xl hover:bg-muted"
@@ -247,7 +247,7 @@ export default function AIChatPage() {
                 className="flex-1 px-4 py-3 border border-border rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 disabled={isLoading}
               />
-              <button
+              <button type="button"
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
                 aria-label={auto("Send message", "input.sendAria")}

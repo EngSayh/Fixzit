@@ -276,7 +276,7 @@ export default function MyTicketsPage() {
                       )}
                       className="w-full px-3 py-2 border border-border rounded-2xl h-24"
                     />
-                    <button
+                    <button type="button"
                       onClick={sendReply}
                       className="mt-2 px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90"
                     >

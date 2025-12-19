@@ -106,11 +106,55 @@ export function SetupWizard() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // TODO: Upload to storage and get URL
-    // For now, create a local preview URL
-    const localUrl = URL.createObjectURL(file);
-    setBranding({ ...branding, logoUrl: localUrl });
-    toast.success("Logo uploaded successfully");
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only PNG and JPG logos are supported");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Logo must be smaller than 10MB");
+      return;
+    }
+
+    try {
+      const presignRes = await fetch("/api/upload/presigned-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          category: "document",
+        }),
+      });
+
+      if (!presignRes.ok) {
+        throw new Error("Failed to request upload URL");
+      }
+
+      const presign = await presignRes.json();
+      const putHeaders: Record<string, string> = {
+        ...(presign.uploadHeaders ?? {}),
+        "Content-Type": file.type || "application/octet-stream",
+      };
+
+      const putRes = await fetch(presign.uploadUrl, {
+        method: "PUT",
+        headers: putHeaders,
+        body: file,
+      });
+
+      if (!putRes.ok) {
+        throw new Error("Failed to upload logo");
+      }
+
+      const publicUrl = presign.uploadUrl.split("?")[0];
+      setBranding((prev) => ({ ...prev, logoUrl: publicUrl }));
+      toast.success("Logo uploaded successfully");
+    } catch (error) {
+      logger.error("[SetupWizard] Logo upload failed", { error });
+      toast.error("Logo upload failed. Please try again.");
+    }
   };
 
   const handleComplete = async () => {

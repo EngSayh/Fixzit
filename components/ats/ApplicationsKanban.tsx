@@ -296,7 +296,7 @@ export default function ApplicationsKanban() {
                                 </div>
 
                                 <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                                  <button
+                                  <button type="button"
                                     onClick={() =>
                                       (window.location.href = `/dashboard/hr/recruitment?tab=applications&id=${application._id}`)
                                     }

@@ -110,7 +110,9 @@ describe("API /api/crm/accounts/share", () => {
         kind: "ACCOUNT",
       };
 
-      vi.mocked(CrmLead.findOne).mockResolvedValueOnce(null);
+      vi.mocked(CrmLead.findOne).mockReturnValueOnce({
+        lean: vi.fn().mockResolvedValue(null),
+      } as unknown as ReturnType<typeof CrmLead.findOne>);
       vi.mocked(CrmLead.create).mockResolvedValueOnce(mockCreatedAccount as any);
       vi.mocked(CrmActivity.create).mockResolvedValueOnce({} as any);
 
@@ -163,7 +165,9 @@ describe("API /api/crm/accounts/share", () => {
         kind: "ACCOUNT",
       };
 
-      vi.mocked(CrmLead.findOne).mockResolvedValueOnce(mockExistingAccount as any);
+      vi.mocked(CrmLead.findOne).mockReturnValueOnce({
+        lean: vi.fn().mockResolvedValue(mockExistingAccount as any),
+      } as unknown as ReturnType<typeof CrmLead.findOne>);
       vi.mocked(CrmActivity.create).mockResolvedValueOnce({} as any);
 
       const req = new NextRequest("http://localhost:3000/api/crm/accounts/share", {

@@ -19,6 +19,8 @@ import { connectDb } from "@/lib/mongodb-unified";
 import { getServerSession } from "@/lib/auth/getServerSession";
 import { Types } from "mongoose";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import { CacheTTL, getCache, invalidateCache, setCache } from "@/lib/redis";
+import { applyCacheHeaders } from "@/lib/api/cache-headers";
 
 interface LocalizedField {
   en?: string;
@@ -222,6 +224,8 @@ export async function POST(request: NextRequest) {
 
     await product.save();
 
+    await invalidateCache(`souq:catalog:products:${orgId}:*`);
+
     // Index in search engine using shared Meilisearch client
     try {
       const { indexProduct } = await import("@/lib/meilisearch-client");
@@ -365,6 +369,28 @@ export async function GET(request: NextRequest) {
     const sellerId = searchParams.get("sellerId");
     const status = searchParams.get("status"); // 'active' | 'inactive' | 'all'
 
+    const cacheKey = `souq:catalog:products:${session.user.orgId}:${page}:${limit}:${categoryId ?? "all"}:${brandId ?? "all"}:${sellerId ?? "all"}:${status ?? "active"}`;
+    const cached = await getCache<{
+      success: boolean;
+      data: unknown[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        pages: number;
+      };
+    }>(cacheKey);
+
+    if (cached) {
+      const cachedResponse = NextResponse.json(cached);
+      return applyCacheHeaders(cachedResponse, {
+        cacheStatus: "HIT",
+        maxAge: 60,
+        staleWhileRevalidate: 120,
+        isPrivate: true,
+      });
+    }
+
     const query: Record<string, unknown> = {};
 
     query.$or = [{ orgId: orgObjectId }, { org_id: orgObjectId }];
@@ -388,7 +414,7 @@ export async function GET(request: NextRequest) {
       SouqProduct.countDocuments(query),
     ]);
 
-    return NextResponse.json({
+    const payload = {
       success: true,
       data: products,
       pagination: {
@@ -397,6 +423,16 @@ export async function GET(request: NextRequest) {
         total,
         pages: Math.ceil(total / limit),
       },
+    };
+
+    await setCache(cacheKey, payload, CacheTTL.FIVE_MINUTES);
+
+    const response = NextResponse.json(payload);
+    return applyCacheHeaders(response, {
+      cacheStatus: "MISS",
+      maxAge: 60,
+      staleWhileRevalidate: 120,
+      isPrivate: true,
     });
   } catch (error) {
     logger.error("[Catalog API] List products error", error as Error);

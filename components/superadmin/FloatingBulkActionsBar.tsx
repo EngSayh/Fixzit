@@ -150,7 +150,7 @@ export function FloatingBulkActionsBar({
               <span className="text-sm font-medium text-foreground">
                 {selectedCount} selected
               </span>
-              <button
+              <button type="button"
                 onClick={allSelected ? onClearSelection : onSelectAll}
                 className="text-xs text-primary hover:underline"
               >

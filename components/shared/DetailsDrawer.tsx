@@ -115,7 +115,7 @@ export function DetailsDrawer<T extends { id: string }>({
           {/* Tabs */}
           <div className="flex gap-1 px-4 pb-2 overflow-x-auto">
             {visibleTabs.map((tab) => (
-              <button
+              <button type="button"
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition whitespace-nowrap ${

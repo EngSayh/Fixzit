@@ -127,7 +127,7 @@ export function DealsPage() {
           { key: "security", label: t("marketplace.deals.categories.security", "Security"), icon: Gift },
           { key: "electrical", label: t("marketplace.deals.categories.electrical", "Electrical"), icon: Gift },
         ].map(({ key, label, icon: Icon }) => (
-          <button
+          <button type="button"
             key={key}
             className="flex flex-shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >

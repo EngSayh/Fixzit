@@ -62,7 +62,7 @@ export default function NewWorkOrderPage() {
         draftSavingEnabled={false}
       />
         <div className="flex gap-2">
-          <button
+          <button type="button"
             className="btn-primary"
             onClick={async () => {
               setCreating(true);
@@ -347,13 +347,13 @@ export default function NewWorkOrderPage() {
               {t("workOrders.quickActions", "Quick Actions")}
             </h3>
             <div className="space-y-2">
-              <button className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start">
                 📋 {t("workOrders.createFromTemplate", "Create from Template")}
               </button>
-              <button className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start">
                 📞 {t("workOrders.emergencyContact", "Emergency Contact")}
               </button>
-              <button className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start">
                 📊 {t("workOrders.costCalculator", "Cost Calculator")}
               </button>
             </div>

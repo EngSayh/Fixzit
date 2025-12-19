@@ -205,7 +205,8 @@ export async function GET(req: NextRequest) {
       SupportTicket.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       SupportTicket.countDocuments(match),
     ]);
     return NextResponse.json({ items, page, limit, total });

@@ -322,7 +322,7 @@ export default function AuditLogViewer() {
                 {error}
               </p>
               <div className="mt-3 flex gap-2">
-                <button
+                <button type="button"
                   onClick={() => {
                     setError(null);
                     fetchLogs();
@@ -344,7 +344,7 @@ export default function AuditLogViewer() {
                   </svg>
                   {auto("Try Again", "common.tryAgain")}
                 </button>
-                <button
+                <button type="button"
                   onClick={() => setError(null)}
                   className="text-sm font-medium text-destructive dark:text-destructive hover:text-destructive dark:hover:text-destructive focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2 dark:focus:ring-offset-destructive rounded px-2 py-1"
                 >
@@ -742,7 +742,7 @@ export default function AuditLogViewer() {
               🔑 {auto("Today's Logins", "presets.todaysLogins")}
             </button>
           </div>
-          <button
+          <button type="button"
             onClick={() => {
               setFilters({});
               setPage(1);
@@ -844,7 +844,7 @@ export default function AuditLogViewer() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-end text-sm">
-                      <button
+                      <button type="button"
                         onClick={() => setSelectedLog(log)}
                         className="text-primary hover:text-primary-foreground dark:text-primary dark:hover:text-primary/80"
                       >
@@ -875,7 +875,7 @@ export default function AuditLogViewer() {
               )}
             </div>
             <div className="flex gap-2">
-              <button
+              <button type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
@@ -897,7 +897,7 @@ export default function AuditLogViewer() {
                   }
 
                   return (
-                    <button
+                    <button type="button"
                       key={pageNum}
                       onClick={() => setPage(pageNum)}
                       className={`px-4 py-2 text-sm font-medium rounded-2xl ${
@@ -911,7 +911,7 @@ export default function AuditLogViewer() {
                   );
                 })}
               </div>
-              <button
+              <button type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
@@ -943,7 +943,7 @@ export default function AuditLogViewer() {
                 >
                   {auto("Audit Log Details", "modal.title")}
                 </h2>
-                <button
+                <button type="button"
                   onClick={() => setSelectedLog(null)}
                   className="text-muted-foreground hover:text-foreground"
                   aria-label={auto("Close modal", "modal.closeAria")}

@@ -483,11 +483,11 @@ class ReviewService {
    */
   async listReviews(
     orgId: string,
-    filters: ReviewFilters & { customerId?: string } = {},
-  ): Promise<PaginatedReviews> {
+    filters: ReviewFilters = {},
+  ): Promise<ReviewListResult> {
     // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
     if (!orgId) {
-      throw new Error('orgId is required for listReviews (STRICT v4.1 tenant isolation)');
+      throw new Error("orgId is required for listReviews (STRICT v4.1 tenant isolation)");
     }
     const orgFilter = getOrgFilter(orgId);
 
@@ -501,11 +501,11 @@ class ReviewService {
     } = filters;
 
     // Build query - 🔐 STRICT v4.1: Include org filter for tenant isolation
-    const query: Record<string, unknown> = {
+    const query: FilterQuery<IReview> = {
       ...orgFilter,
     };
 
-    if (customerId) query.customerId = this.ensureObjectId(customerId, 'customerId');
+    if (customerId) query.customerId = this.ensureObjectId(customerId, "customerId");
     if (rating) query.rating = rating;
     if (verifiedOnly) query.isVerifiedPurchase = true;
     if (status) query.status = status;
@@ -525,9 +525,9 @@ class ReviewService {
         total,
         page: currentPage,
         limit: safeLimit,
-        totalPages: Math.ceil(total / safeLimit),
+        pages: Math.ceil(total / safeLimit),
       },
-    } as unknown as PaginatedReviews;
+    };
   }
 
   /**

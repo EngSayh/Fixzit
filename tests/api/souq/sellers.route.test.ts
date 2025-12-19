@@ -20,6 +20,7 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 vi.mock("@/server/models/souq/Seller", () => ({
   SouqSeller: {
     find: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
       skip: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       sort: vi.fn().mockReturnThis(),
@@ -142,7 +143,7 @@ describe("API /api/souq/sellers", () => {
       sessionUser = { id: "user-123", orgId: "org-123", role: "ADMIN" };
 
       const req = new NextRequest(
-        "http://localhost:3000/api/souq/sellers?status=ACTIVE"
+        "http://localhost:3000/api/souq/sellers?kycStatus=ACTIVE"
       );
       const response = await route.GET(req);
 

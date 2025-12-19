@@ -55,7 +55,18 @@ const sharedViteConfig = {
 export default defineConfig({
   ...sharedViteConfig,
   test: {
-    // TODO: migrate to a multi-project structure when environmentMatchGlobs is removed from Vitest.
+    coverage: {
+      provider: "istanbul",
+      reportsDirectory: "coverage",
+      reporter: ["text", "json-summary", "lcov"],
+      thresholds: {
+        lines: 80,
+        statements: 80,
+        functions: 80,
+        branches: 80,
+      },
+      exclude: baseExcludes,
+    },
     projects: [
       defineProject({
         ...sharedViteConfig,

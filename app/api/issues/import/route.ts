@@ -387,13 +387,16 @@ export async function POST(request: NextRequest) {
       ...summary,
     });
 
+    const onlyErrors = summary.created === 0 && summary.updated === 0 && summary.errors.length > 0;
+    const status = onlyErrors ? 400 : 200;
+
     return NextResponse.json(
       {
-        success: true,
+        success: !onlyErrors,
         dryRun,
         result: summary,
       },
-      { headers: ROBOTS_HEADER }
+      { status, headers: ROBOTS_HEADER }
     );
   } catch (error) {
     logger.error("[Issues Import] Error importing issues", { error });

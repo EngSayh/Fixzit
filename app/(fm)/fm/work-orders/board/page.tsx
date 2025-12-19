@@ -87,10 +87,10 @@ export default function WorkOrdersBoardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">
+          <button type="button" className="btn-secondary">
             {t("workOrders.filter", "Filter")}
           </button>
-          <button className="btn-primary">
+          <button type="button" className="btn-primary">
             + {t("workOrders.board.newWO", "New Work Order")}
           </button>
         </div>
@@ -250,37 +250,37 @@ export default function WorkOrdersBoardPage() {
           {t("workOrders.quickActions", "Quick Actions")}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">📝</div>
             <div className="text-sm font-medium">
               {t("workOrders.board.createWO", "Create WO")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">👥</div>
             <div className="text-sm font-medium">
               {t("workOrders.board.assignTech", "Assign Tech")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">📅</div>
             <div className="text-sm font-medium">
               {t("workOrders.board.schedule", "Schedule")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-medium">
               {t("workOrders.reports", "Reports")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">🔍</div>
             <div className="text-sm font-medium">
               {t("common.search", "Search")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">⚙️</div>
             <div className="text-sm font-medium">
               {t("workOrders.settings", "Settings")}

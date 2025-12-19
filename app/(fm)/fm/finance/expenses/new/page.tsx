@@ -577,14 +577,14 @@ export default function NewExpensePage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button
+          <button type="button"
             onClick={handleSaveDraft}
             disabled={isSubmitting}
             className="btn-secondary"
           >
             💾 {t("common.save", "Save Draft")}
           </button>
-          <button
+          <button type="button"
             onClick={handleSubmitForApproval}
             disabled={isSubmitting}
             className="btn-primary"
@@ -785,7 +785,7 @@ export default function NewExpensePage() {
               <h3 className="text-lg font-semibold">
                 {t("finance.expense.lineItems", "Line Items")}
               </h3>
-              <button onClick={addLineItem} className="btn-sm btn-primary">
+              <button type="button" onClick={addLineItem} className="btn-sm btn-primary">
                 + {t("finance.expense.addLineItem", "Add Item")}
               </button>
             </div>
@@ -954,7 +954,7 @@ export default function NewExpensePage() {
                       </td>
                       <td className="px-2 py-2">
                         {lineItems.length > 1 && (
-                          <button
+                          <button type="button"
                             onClick={() => removeLineItem(item.id)}
                             className="text-destructive hover:text-destructive"
                             title={t("common.remove", "Remove")}
@@ -1029,7 +1029,7 @@ export default function NewExpensePage() {
                     <p className="text-xs text-muted-foreground mt-2 truncate">
                       {receipt.file.name}
                     </p>
-                    <button
+                    <button type="button"
                       onClick={() => removeReceipt(receipt.id)}
                       className="absolute top-1 end-1 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-destructive/90"
                     >
@@ -1254,13 +1254,13 @@ export default function NewExpensePage() {
               {t("workOrders.quickActions", "Quick Actions")}
             </h3>
             <div className="space-y-2">
-              <button className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start">
                 📊 {t("finance.expense.viewBudget", "View Budget")}
               </button>
-              <button className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start">
                 📋 {t("finance.expense.bulkEntry", "Bulk Expense Entry")}
               </button>
-              <button className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start">
                 📄 {t("finance.expense.templates", "Expense Templates")}
               </button>
             </div>

@@ -60,11 +60,13 @@ describe("financeIntegration service", () => {
       const { WorkOrder } = await import("@/server/models/WorkOrder");
       const workOrderId = new (await import("mongoose")).Types.ObjectId();
 
-      vi.mocked(WorkOrder.findById).mockResolvedValue({
-        _id: workOrderId,
-        financePosted: true,
-        journalEntryId: "journal-1",
-        journalNumber: "JE-001",
+      vi.mocked(WorkOrder.findById).mockReturnValue({
+        session: vi.fn().mockResolvedValue({
+          _id: workOrderId,
+          financePosted: true,
+          journalEntryId: new (await import("mongoose")).Types.ObjectId().toString(),
+          journalNumber: "JE-001",
+        }),
       } as never);
 
       const result = await postFinanceOnClose({
@@ -83,19 +85,21 @@ describe("financeIntegration service", () => {
     it("should reject when work order not found", async () => {
       const { WorkOrder } = await import("@/server/models/WorkOrder");
       const workOrderId = new (await import("mongoose")).Types.ObjectId();
-      vi.mocked(WorkOrder.findById).mockResolvedValue(null as never);
+      vi.mocked(WorkOrder.findById).mockReturnValue({
+        session: vi.fn().mockResolvedValue(null),
+      } as never);
 
-      await expect(
-        postFinanceOnClose({
-          workOrderId,
-          workOrderNumber: "WO-404",
-          totalCost: 500,
-          propertyId: workOrderId,
-          ownerId: workOrderId,
-          userId: workOrderId,
-          orgId: workOrderId,
-        })
-      ).rejects.toThrow("Work order WO-404 not found");
+      const result = await postFinanceOnClose({
+        workOrderId,
+        workOrderNumber: "WO-404",
+        totalCost: 500,
+        propertyId: workOrderId,
+        ownerId: workOrderId,
+        userId: workOrderId,
+        orgId: workOrderId,
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Work order WO-404 not found");
     });
 
     it("should enforce AFTER photos for move-out inspections", async () => {
@@ -105,9 +109,11 @@ describe("financeIntegration service", () => {
       );
       const workOrderId = new (await import("mongoose")).Types.ObjectId();
 
-      vi.mocked(WorkOrder.findById).mockResolvedValue({
-        _id: workOrderId,
-        financePosted: false,
+      vi.mocked(WorkOrder.findById).mockReturnValue({
+        session: vi.fn().mockResolvedValue({
+          _id: workOrderId,
+          financePosted: false,
+        }),
       } as never);
 
       vi.mocked(MoveInOutInspectionModel.findOne).mockResolvedValue({
@@ -116,17 +122,17 @@ describe("financeIntegration service", () => {
         issues: [],
       } as never);
 
-      await expect(
-        postFinanceOnClose({
-          workOrderId,
-          workOrderNumber: "WO-002",
-          totalCost: 500,
-          propertyId: workOrderId,
-          ownerId: workOrderId,
-          userId: workOrderId,
-          orgId: workOrderId,
-        })
-      ).rejects.toThrow("requires AFTER photos");
+      const result = await postFinanceOnClose({
+        workOrderId,
+        workOrderNumber: "WO-002",
+        totalCost: 500,
+        propertyId: workOrderId,
+        ownerId: workOrderId,
+        userId: workOrderId,
+        orgId: workOrderId,
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("requires AFTER photos");
     });
   });
 });

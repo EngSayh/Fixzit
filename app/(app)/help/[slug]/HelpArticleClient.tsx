@@ -129,13 +129,13 @@ export default function HelpArticleClient({
                 {strings.feedbackPrompt}
               </h3>
               <div className="flex gap-2">
-                <button
+                <button type="button"
                   aria-label={strings.helpfulAria}
                   className="flex-1 px-3 py-2 border border-border rounded-2xl hover:bg-muted"
                 >
                   {strings.helpfulYes}
                 </button>
-                <button
+                <button type="button"
                   aria-label={strings.notHelpfulAria}
                   className="flex-1 px-3 py-2 border border-border rounded-2xl hover:bg-muted"
                 >

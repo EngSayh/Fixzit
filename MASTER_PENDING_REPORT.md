@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T12:13:03+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T12:28:30+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** feat/mobile-cardlist-phase1  
 **Commit:** 6e02b0a96 | Origin: pending push  
-**Last Work:** P164-P166 - Rate limit regression tests + Aqar lean sweep + memory optimization verified
+**Last Work:** P170 - Support tickets lean sweep
 **MongoDB Status:** 34 issues (10 open, 0 in_progress, 24 resolved)  
 **Working Tree:** DIRTY (local changes in progress)  
-**Test Count:** ✅ Targeted vitest (Tap webhook + Aqar chatbot) 8/8 passing — 2025-12-19 12:03
+**Test Count:** ⏳ Not re-run after P170 (last targeted finance vitest 33/33 at 12:24)
 
 ---
 
@@ -23,8 +23,8 @@
 | **Health Score** | 95/100 |
 | **Files Scanned** | 1,548 (app/ + lib/ + services/ + domain/ + tests/) |
 | **Total Issues** | 34 (10 open / 24 resolved) |
-| **Test Coverage** | Targeted vitest (2 files) passing; full suite not re-run |
-| **Build Status** | ✅ Targeted tests green; TS build not re-run this session |
+| **Test Coverage** | Not re-run after P170; last targeted finance vitest (3 files) passing |
+| **Build Status** | ⏳ Not re-run after P170 |
 
 ### 🎯 Top 5 Priority Actions
 1. [x] **[SEC-002]** ✅ VERIFIED - All 17 flagged routes are SAFE (intentionally public/admin/user-scoped)
@@ -33,24 +33,26 @@
 4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[PERF-002]** ✅ RESOLVED - Added .lean() to 8+ read-only Mongoose queries (P146)
 
-### ✅ Current Session (P153-P166)
+### ✅ Current Session (P153-P170)
 1. **[P153]** ✅ HR Leaves Hardening - Added rate limiting to PUT /api/hr/leaves, Zod validation for updateStatus payload, and tests covering auth/role/validation paths.
 2. **[P154]** ✅ Superadmin UI Polish - Added getRowId for correct bulk selection; command palette updated with RTL logical spacing; skeleton table widths made deterministic to avoid hydration mismatches.
-3. **[P156]** ✅ SEC Regression Sweep (targeted) - Added tenancy assertions in tests for auto-assign and invoices bulk to confirm orgId scoping persists.
-4. **[P157]** ✅ Perf Guardrails (targeted) - Confirmed read paths use lean/find without aggregates; added assertions ensuring scoped queries on updated routes.
-5. **[P158]** ✅ Superadmin Dashboard Sync - Pending items and SSOT last-updated timestamp now surfaced on the progress dashboard.
-6. **[P155]** ✅ I18n Regen - Ran `pnpm i18n:build`; regenerated flat dictionaries and bundles (31,421 keys per locale).
+3. **[P155]** ✅ I18n Regen - Ran `pnpm i18n:build`; regenerated flat dictionaries and bundles (31,421 keys per locale).
+4. **[P156]** ✅ SEC Regression Sweep (targeted) - Added tenancy assertions in tests for auto-assign and invoices bulk to confirm orgId scoping persists.
+5. **[P157]** ✅ Perf Guardrails (targeted) - Confirmed read paths use lean/find without aggregates; added assertions ensuring scoped queries on updated routes.
+6. **[P158]** ✅ Superadmin Dashboard Sync - Pending items and SSOT last-updated timestamp now surfaced on the progress dashboard.
 7. **[P159]** ✅ SSOT Phase Parser Alignment - Phase parsing now prefers MASTER_PENDING_REPORT, merges legacy ranges, and dedupes pending items.
 8. **[P160]** ✅ Auto-Assign Test Hardening - Mocked WorkOrder.find for conflict checks; added overlap coverage in auto-assign engine tests.
 9. **[P161]** ✅ KYC HEIC/HEIF Alignment - Expanded KYC file type unions + upload allowlists/text to match existing HEIC/HEIF presign support.
-10. **[P162]** ✅ Aqar Lean Reads - Added `.lean()` to Aqar listing/project lookups in leads/favorites routes.
-11. **[P165]** ✅ Memory Optimization Verified - VSCode/file watcher exclusions and JS heap flags already configured; no changes required.
-12. **[P164]** ✅ Rate Limit Regression Tests - Added explicit 429 coverage for Tap webhook rate-limit denial and Aqar chatbot smartRateLimit denial.
-13. **[P166]** ✅ Aqar Lean Sweep - Added .lean() to Aqar leads/favorites read-only lookups.
+10. **[P162]** ✅ Aqar Lean Reads - Added .lean() to Aqar listing/project lookups in leads/favorites routes (verified 2025-12-19).
+11. **[P164]** ✅ Rate Limit Regression Tests - Added explicit 429 coverage for Tap webhook rate-limit denial and Aqar chatbot smartRateLimit denial.
+12. **[P165]** ✅ Memory Optimization Verified - VSCode/file watcher exclusions and JS heap flags already configured; no changes required.
+13. **[P167]** ✅ Button Type Pass - Added type="button" to all button tags missing explicit type.
+14. **[P168]** ✅ Finance Lean Sweep - Added .lean() to read-only finance validation/lookups (payments, expenses, accounts, ledger activity) and verified with targeted tests.
+15. **[P169]** ✅ FM Lean Sweep - Added .lean() to Organization lookup in FM permissions context.
+16. **[P170]** ✅ Support Lean Sweep - Added .lean() to support ticket list/detail/reply lookups.
 
 ### ⏳ Pending – New Session Items
-- Continue .lean() audit on remaining read-only queries to hit 100% coverage across services (Aqar complete).
-- Add `type` attributes to all buttons lacking explicit type (accessibility/consistency).
+- Continue .lean() audit on remaining read-only queries to hit 100% coverage across services (Aqar + Finance + FM + Support complete).
 - Stand up coverage reporting (c8/istanbul) with 80% threshold in CI.
 - Add Redis-backed caching for marketplace/catalog data; follow with WebSocket live updates for dashboards.
 - Add offline/PWA shell for field technicians; ensure language/currency persistence.

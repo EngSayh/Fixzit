@@ -97,7 +97,7 @@ export async function POST(
     const t = await SupportTicket.findOne({
       _id: id,
       $or: [{ orgId: user?.orgId }, ...creatorMatch, ...adminMatch],
-    });
+    }).lean();
     if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
 
     // End user may reply only to own ticket; admins can reply to any

@@ -42,19 +42,19 @@ export function UnsavedChangesWarning({
         <p className="text-gray-600 dark:text-gray-400 mb-6">{message}</p>
         <div className="flex flex-col sm:flex-row gap-3">
           {/* 🟩 FIXED: Use theme-agnostic class names */}
-          <button
+          <button type="button"
             onClick={onSave}
             className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
           >
             {saveText}
           </button>
-          <button
+          <button type="button"
             onClick={onDiscard}
             className="flex-1 bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/90 transition-colors"
           >
             {discardText}
           </button>
-          <button
+          <button type="button"
             onClick={onStay}
             className="flex-1 bg-background text-secondary-foreground border border-border px-4 py-2 rounded-md hover:bg-muted transition-colors"
           >

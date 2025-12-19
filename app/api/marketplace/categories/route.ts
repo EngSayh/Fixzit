@@ -47,6 +47,14 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
+    if (process.env.MARKETPLACE_ENABLED !== "true") {
+      return createSecureResponse(
+        { error: "Marketplace is disabled" },
+        501,
+        request,
+      );
+    }
+
     if (process.env.PLAYWRIGHT_TESTS === "true") {
       const seeded = [
         { _id: "cat-tools", name: "Tools", parentId: undefined },

@@ -10,12 +10,25 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
 
-// Mock FM auth
-vi.mock("@/app/api/fm/utils/fm-auth", () => ({
-  requireFmAbility: vi.fn().mockResolvedValue({
-    user: { id: "user-123", orgId: "org-123" },
-    allowed: true,
+// Mock FM auth/permissions
+vi.mock("@/app/api/fm/permissions", () => ({
+  requireFmPermission: vi.fn().mockResolvedValue({
+    userId: "user-123",
+    orgId: "org-123",
+    tenantId: "org-123",
+    isSuperAdmin: false,
   }),
+}));
+
+vi.mock("@/app/api/fm/utils/tenant", () => ({
+  resolveTenantId: vi.fn((_req: unknown, tenantId: string) => ({ tenantId })),
+  isCrossTenantMode: vi.fn().mockReturnValue(false),
+}));
+
+vi.mock("@/app/api/fm/errors", () => ({
+  FMErrors: {
+    internalError: () => new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 }),
+  },
 }));
 
 // Mock database

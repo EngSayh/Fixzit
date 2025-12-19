@@ -141,7 +141,9 @@ export async function POST(req: NextRequest) {
           const validInvoices = await Invoice.find({
             _id: { $in: invoiceIds.map((id) => new Types.ObjectId(id)) },
             orgId: new Types.ObjectId(user.orgId),
-          }).select("_id");
+          })
+            .select("_id")
+            .lean();
 
           const validIds = new Set(
             validInvoices.map((inv) => inv._id.toString()),

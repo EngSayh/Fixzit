@@ -76,7 +76,7 @@ export function GlobalNotFound() {
             {t("common.actions.goToHomepage", "Go to Homepage")}
           </Link>
 
-          <button
+          <button type="button"
             onClick={() => window.history.back()}
             className="block w-full px-6 py-3 border border-border text-foreground rounded-2xl hover:bg-muted transition-colors"
           >

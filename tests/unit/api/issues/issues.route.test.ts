@@ -89,7 +89,7 @@ const defaultIssueBody = {
   category: "bug",
   priority: "P1",
   effort: "M",
-  location: { filePath: "/test/file.ts" },
+  location: { filePath: "/test/file.ts", lineStart: 1 },
   module: "auth",
   action: "Fix the bug",
   definitionOfDone: "Bug is fixed",
@@ -106,7 +106,7 @@ const mockIssues = [
     _id: "issue-1",
     title: "Test Issue 1",
     status: "OPEN",
-    priority: "P1_HIGH",
+    priority: "P1",
     orgId: "507f1f77bcf86cd799439011",
   },
 ];
@@ -203,6 +203,15 @@ describe("Issues API Route", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    findDuplicatesMock.mockResolvedValue([]);
+    findByIdAndUpdateMock.mockResolvedValue(null);
+    generateIssueIdMock.mockResolvedValue("ISSUE-123");
+    saveMock.mockResolvedValue({
+      _id: "new-issue-1",
+      title: "Test Issue",
+      status: "OPEN",
+      orgId: "507f1f77bcf86cd799439011",
+    });
     const routeModule = await import("@/app/api/issues/route");
     GET = routeModule.GET;
     POST = routeModule.POST;
@@ -270,7 +279,7 @@ describe("Issues API Route", () => {
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
 
       const req = {
-        url: "http://localhost:3000/api/issues?priority=P1_HIGH",
+        url: "http://localhost:3000/api/issues?priority=P1",
       } as any;
 
       const res = await GET(req);
@@ -298,7 +307,7 @@ describe("Issues API Route", () => {
         session: null,
       } as any);
 
-      const req = {} as any;
+      const req = makeIssueRequest();
       const res = await POST(req);
       expect(res.status).toBe(401);
     });
@@ -310,7 +319,7 @@ describe("Issues API Route", () => {
         session: { id: "user-1", role: "viewer", orgId: "507f1f77bcf86cd799439011" },
       } as any);
 
-      const req = {} as any;
+      const req = makeIssueRequest();
       const res = await POST(req);
       expect(res.status).toBe(403);
     });
@@ -319,7 +328,7 @@ describe("Issues API Route", () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
 
-      const req = {} as any;
+      const req = makeIssueRequest();
       const res = await POST(req);
       expect(res.status).toBe(201);
       expect(IssueMock).toHaveBeenCalled();

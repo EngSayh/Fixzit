@@ -325,25 +325,25 @@ export default function AdministrationPage() {
           {t("dashboard.quickActions", "Quick Actions")}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button
+          <button type="button"
             onClick={() => router.push("/admin")}
             className="bg-primary text-primary-foreground px-4 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium"
           >
             {t("admin.users.createUser", "Create User")}
           </button>
-          <button
+          <button type="button"
             onClick={() => router.push("/admin")}
             className="bg-secondary text-secondary-foreground px-4 py-3 rounded-lg hover:bg-secondary/90 transition-colors font-medium"
           >
             {t("admin.roles.createRole", "Create Role")}
           </button>
-          <button
+          <button type="button"
             onClick={() => router.push("/admin/audit-logs")}
             className="bg-secondary text-secondary-foreground px-4 py-3 rounded-lg hover:bg-secondary/90 transition-colors font-medium"
           >
             {t("admin.audit.viewLogs", "View Audit Logs")}
           </button>
-          <button
+          <button type="button"
             onClick={() => router.push("/fm/system")}
             className="bg-secondary text-secondary-foreground px-4 py-3 rounded-lg hover:bg-secondary/90 transition-colors font-medium"
           >

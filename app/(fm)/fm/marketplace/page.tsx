@@ -83,7 +83,7 @@ export default function MarketplacePage() {
           <p className="text-muted-foreground mb-4">
             {activeSection.description}
           </p>
-          <button className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors">
+          <button type="button" className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors">
             {auto("Browse {{section}}", "actions.browseSection").replace(
               "{{section}}",
               activeSection.label,

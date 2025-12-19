@@ -163,8 +163,8 @@ export default function PropertiesUnitsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">Import Units</button>
-          <button className="btn-primary">+ Add Unit</button>
+          <button type="button" className="btn-secondary">Import Units</button>
+          <button type="button" className="btn-primary">+ Add Unit</button>
         </div>
       </div>
 
@@ -248,7 +248,7 @@ export default function PropertiesUnitsPage() {
               ))}
             </select>
           </div>
-          <button className="btn-primary">
+          <button type="button" className="btn-primary">
             {t("common.filter", "Filter")}
           </button>
         </div>
@@ -259,8 +259,8 @@ export default function PropertiesUnitsPage() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Units Overview</h3>
           <div className="flex gap-2">
-            <button className="btn-ghost">📄 Export</button>
-            <button className="btn-ghost">📊 Analytics</button>
+            <button type="button" className="btn-ghost">📄 Export</button>
+            <button type="button" className="btn-ghost">📊 Analytics</button>
           </div>
         </div>
 
@@ -334,10 +334,10 @@ export default function PropertiesUnitsPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-primary hover:text-primary">
+                      <button type="button" className="text-primary hover:text-primary">
                         {t("common.edit", "Edit")}
                       </button>
-                      <button className="text-success hover:text-success-foreground">
+                      <button type="button" className="text-success hover:text-success-foreground">
                         View Tenant
                       </button>
                     </div>
@@ -353,27 +353,27 @@ export default function PropertiesUnitsPage() {
       <div className="card">
         <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">➕</div>
             <div className="text-sm font-medium">Add Unit</div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">👥</div>
             <div className="text-sm font-medium">Add Tenant</div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">📋</div>
             <div className="text-sm font-medium">Lease Management</div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">💰</div>
             <div className="text-sm font-medium">Rent Collection</div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-medium">Reports</div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">⚙️</div>
             <div className="text-sm font-medium">Settings</div>
           </button>

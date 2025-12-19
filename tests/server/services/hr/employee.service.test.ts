@@ -202,10 +202,12 @@ describe("EmployeeService", () => {
 
   describe("upsert", () => {
     it("should upsert employee with compensation totals", async () => {
-      vi.mocked(Employee.findOneAndUpdate).mockResolvedValue({
-        _id: employeeId,
-        employeeCode: "EMP002",
-      } as never);
+      vi.mocked(Employee.findOneAndUpdate).mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          _id: employeeId,
+          employeeCode: "EMP002",
+        }),
+      } as unknown as ReturnType<typeof Employee.findOneAndUpdate>);
 
       await EmployeeService.upsert({
         orgId,
@@ -244,10 +246,12 @@ describe("EmployeeService", () => {
 
   describe("updateTechnicianProfile", () => {
     it("should scope update to org and employee id", async () => {
-      vi.mocked(Employee.findOneAndUpdate).mockResolvedValue({
-        _id: employeeId,
-        orgId,
-      } as never);
+      vi.mocked(Employee.findOneAndUpdate).mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          _id: employeeId,
+          orgId,
+        }),
+      } as unknown as ReturnType<typeof Employee.findOneAndUpdate>);
 
       await EmployeeService.updateTechnicianProfile(orgId, employeeId, {
         skills: ["HVAC"],
@@ -272,9 +276,11 @@ describe("EmployeeService", () => {
         status: "PRESENT" as const,
       };
 
-      vi.mocked(AttendanceRecord.findOneAndUpdate).mockResolvedValue({
-        _id: "att_123",
-      } as never);
+      vi.mocked(AttendanceRecord.findOneAndUpdate).mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          _id: "att_123",
+        }),
+      } as unknown as ReturnType<typeof AttendanceRecord.findOneAndUpdate>);
 
       await EmployeeService.recordAttendance(entry);
 

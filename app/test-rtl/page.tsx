@@ -55,13 +55,13 @@ export default function RTLTestPage() {
         <div className="bg-card rounded-2xl shadow-lg p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">{currentLanguageLabel}</h2>
           <div className="flex gap-4 mb-4">
-            <button
+            <button type="button"
               onClick={() => setLanguage("ar")}
               className={`px-4 py-2 rounded ${language === "ar" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
             >
               {auto("Arabic (العربية)", "language.ar")}
             </button>
-            <button
+            <button type="button"
               onClick={() => setLanguage("en")}
               className={`px-4 py-2 rounded ${language === "en" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
             >

@@ -117,7 +117,7 @@ export async function GET(
         const account = await ChartAccount.findOne({
           _id: new Types.ObjectId((await params).accountId),
           orgId: new Types.ObjectId(user.orgId),
-        });
+        }).lean();
 
         if (!account) {
           return notFoundError("Account");

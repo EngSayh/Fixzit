@@ -224,7 +224,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
 
           <div className="flex gap-2">
             {datePresets.map((preset) => (
-              <button
+              <button type="button"
                 key={preset.value}
                 onClick={() => setDatePreset(preset.value as DatePreset)}
                 className={`px-4 py-2 text-sm rounded-lg transition-colors ${
@@ -256,7 +256,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
             </div>
           )}
 
-          <button
+          <button type="button"
             onClick={exportToCSV}
             className="ms-auto inline-flex items-center gap-2 px-4 py-2 bg-success text-white rounded-lg hover:bg-success-dark transition-colors"
           >
@@ -377,7 +377,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {/* Tab Headers */}
         <div className="flex border-b border-gray-200">
-          <button
+          <button type="button"
             onClick={() => {
               setActiveView("keywords");
               setCurrentPage(1);
@@ -390,7 +390,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
           >
             {auto("Keyword Performance", "tables.keywordsTab")}
           </button>
-          <button
+          <button type="button"
             onClick={() => {
               setActiveView("products");
               setCurrentPage(1);
@@ -616,7 +616,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                 .replace("{{total}}", String(getSortedData().length))}
             </p>
             <div className="flex gap-2">
-              <button
+              <button type="button"
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
                 className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -627,7 +627,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   const page = i + 1;
                   return (
-                    <button
+                    <button type="button"
                       key={page}
                       onClick={() => setCurrentPage(page)}
                       className={`px-4 py-2 text-sm rounded-lg transition-colors ${
@@ -641,7 +641,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                   );
                 })}
               </div>
-              <button
+              <button type="button"
                 onClick={() =>
                   setCurrentPage(Math.min(totalPages, currentPage + 1))
                 }

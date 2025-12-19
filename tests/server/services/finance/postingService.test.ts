@@ -27,6 +27,7 @@ vi.mock("@/server/models/finance/LedgerEntry", () => ({
     find: vi.fn(),
     deleteMany: vi.fn(),
     create: vi.fn(),
+    getAccountBalance: vi.fn().mockResolvedValue(0),
   },
 }));
 
@@ -50,6 +51,7 @@ describe("postingService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   describe("createJournal", () => {
@@ -179,26 +181,29 @@ describe("postingService", () => {
       };
 
       vi.mocked(JournalModel.findById).mockResolvedValue(journalDoc as never);
-      vi.mocked(ChartAccountModel.find).mockResolvedValue([
-        {
-          _id: accountId1,
-          orgId,
-          accountType: "ASSET",
-          accountCode: "1000",
-          accountName: "Cash",
-          balance: 0,
-          save: vi.fn().mockResolvedValue(undefined),
-        },
-        {
-          _id: accountId2,
-          orgId,
-          accountType: "LIABILITY",
-          accountCode: "2000",
-          accountName: "Payable",
-          balance: 0,
-          save: vi.fn().mockResolvedValue(undefined),
-        },
-      ] as never);
+      vi.mocked(ChartAccountModel.find).mockReturnValue({
+        session: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue([
+          {
+            _id: accountId1,
+            orgId,
+            accountType: "ASSET",
+            accountCode: "1000",
+            accountName: "Cash",
+            balance: 0,
+            save: vi.fn().mockResolvedValue(undefined),
+          },
+          {
+            _id: accountId2,
+            orgId,
+            accountType: "LIABILITY",
+            accountCode: "2000",
+            accountName: "Payable",
+            balance: 0,
+            save: vi.fn().mockResolvedValue(undefined),
+          },
+        ]),
+      } as never);
 
       vi.mocked(LedgerEntryModel.create).mockResolvedValue({} as never);
 

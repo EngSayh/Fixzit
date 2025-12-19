@@ -176,7 +176,9 @@ export async function POST(req: NextRequest) {
           const validAccounts = await ChartAccount.find({
             _id: { $in: accountIds.map((id) => new Types.ObjectId(id)) },
             orgId: new Types.ObjectId(user.orgId),
-          }).select("_id");
+          })
+            .select("_id")
+            .lean();
 
           const validIds = new Set(validAccounts.map((a) => a._id.toString()));
           const invalidIds = accountIds.filter((id) => !validIds.has(id));

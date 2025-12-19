@@ -218,7 +218,7 @@ export default function PropertyCard({
         </div>
 
         {/* Favorite Button */}
-        <button
+        <button type="button"
           onClick={toggleFavorite}
           className="absolute top-3 end-3 p-2 bg-white/90 hover:bg-card rounded-full transition-colors"
           aria-label="Add to favorites"

@@ -289,7 +289,7 @@ export async function POST(req: NextRequest) {
         const existingAccount = await ChartAccount.findOne({
           orgId: new Types.ObjectId(user.orgId),
           accountCode: validated.accountCode,
-        });
+        }).lean();
 
         if (existingAccount) {
           return NextResponse.json(
@@ -305,7 +305,7 @@ export async function POST(req: NextRequest) {
           const parent = await ChartAccount.findOne({
             _id: new Types.ObjectId(validated.parentId),
             orgId: new Types.ObjectId(user.orgId),
-          });
+          }).lean();
 
           if (!parent) {
             return NextResponse.json(

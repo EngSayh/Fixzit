@@ -16,7 +16,7 @@ export default function VendorsPage() {
             {auto("Manage approved suppliers and vendors", "header.subtitle")}
           </p>
         </div>
-        <button className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success/90 transition-colors">
+        <button type="button" className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success/90 transition-colors">
           {auto("Add Vendor", "actions.add")}
         </button>
       </div>
@@ -74,7 +74,7 @@ export default function VendorsPage() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button className="text-primary hover:text-primary">
+                  <button type="button" className="text-primary hover:text-primary">
                     {auto("View", "actions.view")}
                   </button>
                 </td>
@@ -107,7 +107,7 @@ export default function VendorsPage() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button className="text-primary hover:text-primary">
+                  <button type="button" className="text-primary hover:text-primary">
                     {auto("View", "actions.view")}
                   </button>
                 </td>

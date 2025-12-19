@@ -202,7 +202,7 @@ export default function SearchPage() {
 
                   {/* View Toggle */}
                   <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-                    <button
+                    <button type="button"
                       onClick={() => setViewMode("grid")}
                       className={`p-2 ${
                         viewMode === "grid"
@@ -212,7 +212,7 @@ export default function SearchPage() {
                     >
                       <Grid className="h-5 w-5" />
                     </button>
-                    <button
+                    <button type="button"
                       onClick={() => setViewMode("list")}
                       className={`p-2 ${
                         viewMode === "list"
@@ -316,7 +316,7 @@ export default function SearchPage() {
                 {/* Pagination */}
                 {results.totalPages > 1 && (
                   <div className="mt-8 flex items-center justify-center gap-2">
-                    <button
+                    <button type="button"
                       onClick={() => handlePageChange(page - 1)}
                       disabled={page <= 1}
                       className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -329,7 +329,7 @@ export default function SearchPage() {
                         (_, i) => {
                           const pageNum = i + 1;
                           return (
-                            <button
+                            <button type="button"
                               key={pageNum}
                               onClick={() => handlePageChange(pageNum)}
                               className={`px-4 py-2 rounded-lg ${
@@ -345,7 +345,7 @@ export default function SearchPage() {
                       )}
                     </div>
 
-                    <button
+                    <button type="button"
                       onClick={() => handlePageChange(page + 1)}
                       disabled={page >= results.totalPages}
                       className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"

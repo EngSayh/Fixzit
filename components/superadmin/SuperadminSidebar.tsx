@@ -158,7 +158,7 @@ export function SuperadminSidebar() {
           const label = t(item.labelKey);
 
           return (
-            <button
+            <button type="button"
               key={item.href}
               onClick={() => router.push(item.href)}
               title={item.comingSoon ? t("common.comingSoon", "Coming Soon") : undefined}

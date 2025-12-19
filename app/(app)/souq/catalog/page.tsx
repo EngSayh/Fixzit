@@ -307,7 +307,7 @@ export default function CatalogPage() {
                   )}
                 </div>
 
-                <button className="absolute top-2 end-2 p-2 bg-card rounded-full shadow-md hover:bg-muted">
+                <button type="button" className="absolute top-2 end-2 p-2 bg-card rounded-full shadow-md hover:bg-muted">
                   <Heart className="w-4 h-4 text-muted-foreground hover:text-destructive" />
                 </button>
               </div>
@@ -357,13 +357,13 @@ export default function CatalogPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <button
+                  <button type="button"
                     onClick={() => handleViewDetails(product.id)}
                     className="flex-1 px-3 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted transition-colors text-sm"
                   >
                     {t("souq.catalog.actions.viewDetails", "View Details")}
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => handleAddToCart(product.id)}
                     disabled={!product.inStock}
                     className={`flex-1 px-3 py-2 rounded-2xl transition-colors text-sm ${

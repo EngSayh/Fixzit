@@ -138,7 +138,7 @@ export default function GlobalError({
 
           {/* Recovery Actions */}
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <button
+            <button type="button"
               onClick={reset}
               style={{
                 display: "flex",
@@ -160,7 +160,7 @@ export default function GlobalError({
               Try Again
             </button>
 
-            <button
+            <button type="button"
               onClick={() => (window.location.href = "/")}
               style={{
                 display: "flex",

@@ -110,7 +110,7 @@ export async function GET(
         const account = await ChartAccount.findOne({
           _id: new Types.ObjectId(_params.id),
           orgId: new Types.ObjectId(user.orgId),
-        });
+        }).lean();
 
         if (!account) {
           return NextResponse.json(
@@ -149,7 +149,7 @@ export async function GET(
         return NextResponse.json({
           success: true,
           data: {
-            ...account.toObject(),
+            ...account,
             parent,
             children,
             currentBalance,

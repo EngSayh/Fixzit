@@ -86,7 +86,7 @@ export async function GET(
           const expense = await Expense.findOne({
             _id: _params.id,
             orgId: user.orgId,
-          });
+          }).lean();
 
         if (!expense) {
           return notFoundError("Expense");

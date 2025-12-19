@@ -90,7 +90,7 @@ export default function AppSwitcher() {
     <div
       className={`app-switcher-container relative ${isRTL ? "text-end" : "text-start"}`}
     >
-      <button
+      <button type="button"
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/10 transition-colors ${isRTL ? "flex-row-reverse" : ""}`}
         aria-label={t("app.switchApplication", "Switch application")}

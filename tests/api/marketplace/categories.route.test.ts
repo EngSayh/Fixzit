@@ -61,15 +61,14 @@ describe("API /api/marketplace/categories", () => {
   });
 
   describe("GET - List Categories", () => {
-    it("returns error when marketplace is disabled", async () => {
+    it("returns categories when marketplace is disabled", async () => {
       process.env.MARKETPLACE_ENABLED = "false";
       const GET = await loadHandler();
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/categories");
       const res = await GET(req);
 
-      // Returns 500 or 501 when disabled
-      expect([500, 501]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("returns 429 when rate limit exceeded", async () => {

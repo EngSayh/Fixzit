@@ -273,14 +273,14 @@ export default function NewBudgetPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button
+          <button type="button"
             onClick={handleSaveDraft}
             disabled={isSubmitting}
             className="btn-secondary"
           >
             {t("common.save", "Save Draft")}
           </button>
-          <button
+          <button type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
             className="btn-primary"
@@ -512,7 +512,7 @@ export default function NewBudgetPage() {
                     />
                   </div>
                   <div className="col-span-1">
-                    <button
+                    <button type="button"
                       onClick={() => handleRemoveCategory(cat.id)}
                       disabled={categories.length === 1}
                       className="text-destructive hover:text-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -523,7 +523,7 @@ export default function NewBudgetPage() {
                 </div>
               ))}
 
-              <button
+              <button type="button"
                 onClick={handleAddCategory}
                 className="w-full py-2 border-2 border-dashed border-border rounded-2xl text-muted-foreground hover:text-foreground hover:border-muted-foreground"
               >
@@ -651,14 +651,14 @@ export default function NewBudgetPage() {
               {t("finance.budget.budgetTemplate", "Budget Template")}
             </h3>
             <div className="space-y-2">
-              <button className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start">
                 📋{" "}
                 {t("finance.budget.copyPrevious", "Copy from Previous Budget")}
               </button>
-              <button className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start">
                 📊 {t("finance.budget.useTemplate", "Use Standard Template")}
               </button>
-              <button className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start">
                 🔄 {t("finance.budget.importExcel", "Import from Excel")}
               </button>
             </div>
@@ -698,14 +698,14 @@ export default function NewBudgetPage() {
               {t("workOrders.quickActions", "Quick Actions")}
             </h3>
             <div className="space-y-2">
-              <button className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start">
                 📊{" "}
                 {t("finance.budget.budgetVsActual", "Budget vs Actual Report")}
               </button>
-              <button className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start">
                 💰 {t("finance.expense.tracking", "Expense Tracking")}
               </button>
-              <button className="w-full btn-ghost text-start">
+              <button type="button" className="w-full btn-ghost text-start">
                 📋 {t("finance.budget.templates", "Budget Templates")}
               </button>
             </div>

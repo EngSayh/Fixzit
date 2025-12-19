@@ -218,7 +218,7 @@ export default function AdminNotificationsTab({
             )}
           </p>
         </div>
-        <button
+        <button type="button"
           onClick={() => setShowHistory(!showHistory)}
           className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
         >
@@ -244,7 +244,7 @@ export default function AdminNotificationsTab({
             <AlertCircle size={20} />
           )}
           <span>{notification.message}</span>
-          <button onClick={() => setNotification(null)} className="ms-auto">
+          <button type="button" onClick={() => setNotification(null)} className="ms-auto">
             ×
           </button>
         </div>
@@ -288,7 +288,7 @@ export default function AdminNotificationsTab({
                     icon: Globe,
                   },
                 ].map(({ value, label, icon: Icon }) => (
-                  <button
+                  <button type="button"
                     key={value}
                     onClick={() =>
                       setRecipientType(value as typeof recipientType)
@@ -332,7 +332,7 @@ export default function AdminNotificationsTab({
                     available: false,
                   },
                 ].map(({ value, label, icon: Icon, available }) => (
-                  <button
+                  <button type="button"
                     key={value}
                     onClick={() =>
                       available &&
@@ -471,7 +471,7 @@ export default function AdminNotificationsTab({
             </div>
 
             {/* Send Button */}
-            <button
+            <button type="button"
               onClick={handleSend}
               disabled={
                 isSending ||

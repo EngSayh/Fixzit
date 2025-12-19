@@ -138,6 +138,14 @@ describe("Issues Import API Route", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    findOneMock.mockReturnValue({
+      lean: vi.fn().mockResolvedValue(null),
+    });
+    updateOneMock.mockResolvedValue({});
+    saveMock.mockResolvedValue({
+      _id: "new-issue-1",
+      title: "Test Issue",
+    });
     const routeModule = await import("@/app/api/issues/import/route");
     POST = routeModule.POST;
   });
@@ -207,8 +215,14 @@ describe("Issues Import API Route", () => {
       vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
       mockSuperadmin();
 
-      // Mock finding existing issue
-      findOneMock.mockResolvedValueOnce({ _id: "existing-1", title: "Test Issue 1", status: "OPEN" });
+      // Mock finding existing issue (Issue.findOne().lean())
+      findOneMock.mockReturnValueOnce({
+        lean: vi.fn().mockResolvedValue({
+          _id: "existing-1",
+          title: "Test Issue 1",
+          status: "OPEN",
+        }),
+      });
 
       const req = makeRequest();
       const res = await POST(req);

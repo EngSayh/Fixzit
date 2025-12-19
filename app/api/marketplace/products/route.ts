@@ -25,6 +25,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   applyCacheHeaders,
 } from "@/lib/api/cache-headers";
+import { CacheTTL, getCache, invalidateCache, setCache } from "@/lib/redis";
 
 const ADMIN_ROLES = new Set([
   "SUPER_ADMIN",
@@ -127,6 +128,30 @@ export async function GET(request: NextRequest) {
     const query = QuerySchema.parse(params);
 
     const skip = (query.page - 1) * query.limit;
+    const cacheKey = `marketplace:products:${context.orgId}:${query.page}:${query.limit}`;
+    const cached = await getCache<{
+      ok: boolean;
+      data: {
+        items: Record<string, unknown>[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          pages: number;
+        };
+      };
+    }>(cacheKey);
+
+    if (cached) {
+      const cachedResponse = NextResponse.json(cached);
+      return applyCacheHeaders(cachedResponse, {
+        cacheStatus: "HIT",
+        maxAge: 60,
+        staleWhileRevalidate: 120,
+        isPrivate: true,
+      });
+    }
+
     const [items, total] = await Promise.all([
       Product.find({ orgId: context.orgId })
         .sort({ createdAt: -1 })
@@ -136,7 +161,7 @@ export async function GET(request: NextRequest) {
       Product.countDocuments({ orgId: context.orgId }),
     ]);
 
-    const response = NextResponse.json({
+    const payload = {
       ok: true,
       data: {
         items: items.map((item: unknown) =>
@@ -149,7 +174,11 @@ export async function GET(request: NextRequest) {
           pages: Math.ceil(total / query.limit),
         },
       },
-    });
+    };
+
+    await setCache(cacheKey, payload, CacheTTL.FIVE_MINUTES);
+
+    const response = NextResponse.json(payload);
     // Apply cache headers with proper observability (P125)
     return applyCacheHeaders(response, {
       cacheStatus: 'MISS', // Fresh DB query = MISS
@@ -227,6 +256,8 @@ export async function POST(request: NextRequest) {
         : undefined,
       status: payload.status ?? "ACTIVE",
     });
+
+    await invalidateCache(`marketplace:products:${context.orgId}:*`);
 
     return NextResponse.json(
       { ok: true, data: serializeProduct(product) },

@@ -227,7 +227,7 @@ export default function SearchBar({
         />
 
         {query && (
-          <button
+          <button type="button"
             onClick={handleClear}
             className="absolute inset-y-0 end-0 pe-3 flex items-center text-gray-400 hover:text-gray-600"
           >
@@ -250,7 +250,7 @@ export default function SearchBar({
             <ul className="py-2">
               {suggestions.map((suggestion, index) => (
                 <li key={index}>
-                  <button
+                  <button type="button"
                     onClick={() => handleSelectSuggestion(suggestion)}
                     onMouseEnter={() => setSelectedIndex(index)}
                     className={`w-full px-4 py-2 text-start hover:bg-gray-50 flex items-center gap-3 ${

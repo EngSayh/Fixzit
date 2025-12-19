@@ -34,6 +34,7 @@ vi.mock("@/services/souq/returns-service", () => ({
   returnsService: {
     list: vi.fn(),
     getById: vi.fn(),
+    getBuyerReturnHistory: vi.fn(),
   },
 }));
 
@@ -62,12 +63,10 @@ describe("API /api/souq/returns", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     sessionUser = mockUser;
-    vi.mocked(returnsService.list).mockResolvedValue({
-      returns: [],
-      pagination: { page: 1, limit: 20, total: 0, pages: 0 },
-    });
+    vi.mocked(returnsService.getBuyerReturnHistory).mockResolvedValue([]);
   });
 
   describe("GET /api/souq/returns", () => {
@@ -96,18 +95,15 @@ describe("API /api/souq/returns", () => {
     });
 
     it("should return returns list for authenticated user", async () => {
-      vi.mocked(returnsService.list).mockResolvedValue({
-        returns: [
-          { _id: "return_1", status: "PENDING", reason: "Defective" },
-        ],
-        pagination: { page: 1, limit: 20, total: 1, pages: 1 },
-      });
+      vi.mocked(returnsService.getBuyerReturnHistory).mockResolvedValue([
+        { _id: "return_1", status: "PENDING", reason: "Defective" },
+      ]);
       const routeModule = await importRoute();
       if (!routeModule) {
         throw new Error("Route module missing");
       }
 
-      const request = new NextRequest("http://localhost/api/souq/returns");
+      const request = new NextRequest("http://localhost/api/souq/returns?type=buyer");
       const response = await routeModule.GET(request);
       expect(response.status).toBe(200);
     });
@@ -119,7 +115,7 @@ describe("API /api/souq/returns", () => {
       }
 
       const request = new NextRequest(
-        "http://localhost/api/souq/returns?status=APPROVED"
+        "http://localhost/api/souq/returns?type=buyer&status=APPROVED"
       );
       const response = await routeModule.GET(request);
       expect([200, 400, 500]).toContain(response.status);
@@ -132,7 +128,7 @@ describe("API /api/souq/returns", () => {
       }
 
       const request = new NextRequest(
-        "http://localhost/api/souq/returns?page=2&limit=10"
+        "http://localhost/api/souq/returns?type=buyer&page=2&limit=10"
       );
       const response = await routeModule.GET(request);
       expect(response.status).toBe(200);

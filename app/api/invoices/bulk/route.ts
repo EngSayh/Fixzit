@@ -17,6 +17,7 @@ import { parseBodySafe } from "@/lib/api/parse-body";
 import { createSecureResponse } from "@/server/security/headers";
 import { isValidObjectId } from "@/lib/utils/objectid";
 import { z } from "zod";
+import { scanForReminders } from "@/services/finance/invoice-reminder-service";
 
 /**
  * Allowed roles for bulk invoice operations
@@ -327,7 +328,34 @@ export async function POST(request: NextRequest) {
         );
 
         results.processed = updateResult.modifiedCount;
-        // TODO: Queue actual reminder emails via notification service
+        const reminderCandidates = invoices.filter(
+          (invoice) =>
+            ["sent", "viewed", "overdue"].includes(
+              String((invoice as { status?: string }).status),
+            ),
+        );
+
+        if (reminderCandidates.length > 0) {
+          try {
+            // Map invoices to InvoiceForReminder format with orgId
+            const invoicesForReminder = reminderCandidates.map((inv) => ({
+              ...inv,
+              orgId: user.orgId,
+            })) as unknown as Parameters<typeof scanForReminders>[0];
+            const reminderResult = await scanForReminders(
+              invoicesForReminder,
+              { sendEmails: true, reminderCooldownDays: 0 },
+            );
+            (results as { remindersSent?: number }).remindersSent =
+              reminderResult.remindersSent;
+          } catch (error) {
+            logger.error("[Invoices Bulk] Reminder dispatch failed", { error });
+            results.failed.push({
+              id: "reminders",
+              error: "Failed to send reminder notifications",
+            });
+          }
+        }
         break;
       }
 

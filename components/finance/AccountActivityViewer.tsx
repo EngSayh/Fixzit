@@ -302,14 +302,14 @@ export default function AccountActivityViewer({
             )}
           </div>
           <div className="flex gap-2">
-            <button
+            <button type="button"
               onClick={exportToCSV}
               className="px-4 py-2 text-sm bg-success text-white rounded hover:bg-success"
               disabled={!data || loading}
             >
               📊 {t("Export CSV")}
             </button>
-            <button
+            <button type="button"
               onClick={() => loadAccountActivity()}
               className="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-primary"
               disabled={loading}
@@ -371,43 +371,43 @@ export default function AccountActivityViewer({
 
         {/* Date Presets */}
         <div className="flex flex-wrap gap-2 border-t pt-4">
-          <button
+          <button type="button"
             onClick={() => setDatePreset("today")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
           >
             {t("Today")}
           </button>
-          <button
+          <button type="button"
             onClick={() => setDatePreset("this-week")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
           >
             {t("This Week")}
           </button>
-          <button
+          <button type="button"
             onClick={() => setDatePreset("this-month")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
           >
             {t("This Month")}
           </button>
-          <button
+          <button type="button"
             onClick={() => setDatePreset("this-quarter")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
           >
             {t("This Quarter")}
           </button>
-          <button
+          <button type="button"
             onClick={() => setDatePreset("this-year")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
           >
             {t("This Year")}
           </button>
-          <button
+          <button type="button"
             onClick={() => setDatePreset("last-month")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
           >
             {t("Last Month")}
           </button>
-          <button
+          <button type="button"
             onClick={() => setDatePreset("last-year")}
             className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
           >
@@ -594,14 +594,14 @@ export default function AccountActivityViewer({
                 {t("of")} {data.transactions.length} {t("transactions")}
               </div>
               <div className="flex gap-2">
-                <button
+                <button type="button"
                   onClick={() => goToPage(1)}
                   disabled={currentPage === 1}
                   className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t("First")}
                 </button>
-                <button
+                <button type="button"
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
                   className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
@@ -611,14 +611,14 @@ export default function AccountActivityViewer({
                 <span className="px-3 py-1 text-sm">
                   {t("Page")} {currentPage} {t("of")} {totalPages}
                 </span>
-                <button
+                <button type="button"
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
                   className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t("Next")}
                 </button>
-                <button
+                <button type="button"
                   onClick={() => goToPage(totalPages)}
                   disabled={currentPage === totalPages}
                   className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
