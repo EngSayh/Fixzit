@@ -19,7 +19,7 @@
     "dev:clean": "bash scripts/cleanup-dev-cache.sh && cross-env NODE_OPTIONS=--max-old-space-size=8192 next dev --turbo",
     "build": "bash scripts/prebuild-cache-clean.sh && cross-env NODE_OPTIONS=--max-old-space-size=8192 next build",
     "start": "next start",
-    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 50 --ignore-pattern '.next/**' --ignore-pattern 'public/**' --ignore-pattern '_artifacts/**' --ignore-pattern 'deployment/**' --ignore-pattern 'playwright-report/**' --ignore-pattern 'e2e-test-results/**' --ignore-pattern 'qa/**' --ignore-pattern 'scripts/**' --ignore-pattern 'tools/**' --ignore-pattern 'tests/playwright-report/**' --ignore-pattern 'issue-tracker/**'",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 50 --ignore-pattern '.next/**' --ignore-pattern 'public/**' --ignore-pattern '_artifacts/**' --ignore-pattern 'deployment/**' --ignore-pattern 'playwright-report/**' --ignore-pattern 'e2e-test-results/**' --ignore-pattern 'qa/**' --ignore-pattern 'scripts/**' --ignore-pattern 'tools/**' --ignore-pattern 'tests/playwright-report/**' --ignore-pattern 'issue-tracker/**' --ignore-pattern 'Incoming/**'",
     "lint:prod": "eslint app components lib services --ext .ts,.tsx,.js,.jsx --max-warnings 0 --report-unused-disable-directives",
     "lint:prod:fix": "eslint app components lib services --ext .ts,.tsx,.js,.jsx --fix",
     "lint:e2e-env": "node scripts/check-e2e-env.js",
