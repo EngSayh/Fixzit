@@ -91,6 +91,7 @@ export async function PATCH(
 
     // Re-fetch as a document for updates now that org scope is verified
     // NO_LEAN: Document required for status update and save()
+    // eslint-disable-next-line local/require-lean
     const doc = await VerificationDocument.findById(params.id);
     if (!doc) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });

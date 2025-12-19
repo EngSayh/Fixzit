@@ -167,6 +167,7 @@ export async function POST(req: NextRequest) {
 
   // SUPER_ADMIN: backlog issues are platform-wide
   // NO_LEAN: Document required for status update and save()
+  // eslint-disable-next-line local/require-lean
   const issue = await BacklogIssue.findOne({ key });
   if (!issue) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
