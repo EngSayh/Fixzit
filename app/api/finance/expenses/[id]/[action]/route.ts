@@ -99,6 +99,7 @@ export async function POST(
         timestamp: new Date(),
       },
       async () => {
+        // NO_LEAN: Document required for expense status update and save()
         const expense = await Expense.findOne({
           _id: _params.id,
           orgId: user.orgId,

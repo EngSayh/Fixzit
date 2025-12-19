@@ -17,7 +17,7 @@ if (!MONGODB_URI) {
 
 const obsoleteRoles = ["employee", "guest", "management", "vendor", "reports"];
 
-function askConfirmation(question: string): Promise<boolean> {
+function askConfirmation(question) {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,

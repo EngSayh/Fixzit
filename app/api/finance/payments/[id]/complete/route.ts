@@ -59,6 +59,7 @@ export async function POST(
         timestamp: new Date(),
       },
       async () => {
+        // NO_LEAN: Document required for payment status update and save()
         const payment = await Payment.findOne({
           _id: id,
           orgId: user.orgId,

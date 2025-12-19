@@ -206,10 +206,10 @@ export async function POST(request: NextRequest) {
         normalizedSubRole,
       );
 
-    const listing = await SouqListing.findOne({
+    const listing = await (/* NO_TENANT_SCOPE */ SouqListing.findOne({
       listingId,
       ...buildOrgFilter(orgIdStr),
-    }).select({ sellerId: 1, orgId: 1 });
+    }).select({ sellerId: 1, orgId: 1 }));
 
     if (!listing) {
       return NextResponse.json(

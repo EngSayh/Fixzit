@@ -159,7 +159,7 @@ function scanFile(filePath, relativePath) {
   });
 
   // Check for console.log statements
-  const consoleLogRegex = /console\.(log|error|warn)(/g;
+  const consoleLogRegex = /console\.(log|error|warn)\(/g;
   while ((match = consoleLogRegex.exec(content)) !== null) {
     const lineNum = content.substring(0, match.index).split("\n").length;
     fileIssues.push({
@@ -172,7 +172,7 @@ function scanFile(filePath, relativePath) {
   }
 
   // Check for logger usage (fixed issues)
-  const loggerRegex = /logger\.(info|error|warn|debug)(/g;
+  const loggerRegex = /logger\.(info|error|warn|debug)\(/g;
   let loggerCount = 0;
   while ((match = loggerRegex.exec(content)) !== null) {
     loggerCount++;
@@ -221,8 +221,8 @@ function scanFile(filePath, relativePath) {
   }
 
   // Check for asyncHandler usage
-  if (/asyncHandler(async/.test(content)) {
-    const asyncHandlerCount = (content.match(/asyncHandler(async/g) || [])
+  if (/asyncHandler\(async/.test(content)) {
+    const asyncHandlerCount = (content.match(/asyncHandler\(async/g) || [])
       .length;
     issuesFixed += asyncHandlerCount;
     fileIssues.push({
@@ -305,7 +305,7 @@ function checkModels() {
     const content = fs.readFileSync(path.join(modelsDir, file), "utf8");
 
     // Check for indexes
-    if (/\.index(/.test(content)) {
+    if (/\.index\(/.test(content)) {
       issuesFixed++;
       auditResults.categories.improvements.push({
         file: `models/${file}`,

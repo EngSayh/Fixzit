@@ -314,7 +314,7 @@ ${colors.reset}`);
     const routePatterns = [
       // Missing authentication
       {
-        pattern: /router\.(get|post|put|delete|patch)\s*([^,]*,\s*(?!.*auth)/g,
+        pattern: /router\.(get|post|put|delete|patch)\s*\((?![^)]*auth)/g,
         issue: "Route without authentication",
         severity: Severity.CRITICAL,
       },

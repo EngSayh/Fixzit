@@ -223,6 +223,7 @@ export async function PUT(
       },
       async () => {
         // Get account
+        // NO_LEAN: Document required for field updates and save()
         const account = await ChartAccount.findOne({
           _id: new Types.ObjectId(_params.id),
           orgId: new Types.ObjectId(user.orgId),
@@ -349,6 +350,7 @@ export async function DELETE(
       },
       async () => {
         // Get account
+        // NO_LEAN: Document required for account._id in delete checks
         const account = await ChartAccount.findOne({
           _id: new Types.ObjectId(_params.id),
           orgId: new Types.ObjectId(user.orgId),

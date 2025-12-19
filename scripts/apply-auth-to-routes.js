@@ -76,7 +76,7 @@ function applyAuthToRoutes(directory) {
 
       // Wrap async route handlers with asyncHandler
       const routeHandlerRegex =
-        /router\.(get|post|put|delete|patch)((.*?),\s*async\s*((req,\s*res)(\,\s*next)?)\s*=>\s*{/g;
+        /router\.(get|post|put|delete|patch)\((.*?),\s*async\s*\((req,\s*res)(,\s*next)?\)\s*=>\s*{/g;
       let match;
       while ((match = routeHandlerRegex.exec(content)) !== null) {
         const method = match[1];
@@ -93,23 +93,23 @@ function applyAuthToRoutes(directory) {
       // Add role-based authorization to sensitive endpoints
       const sensitiveEndpoints = [
         {
-          pattern: /router\.delete(/g,
+          pattern: /router\.delete\(/g,
           roles: "authorize(['admin', 'manager'])",
         },
         {
-          pattern: /router\.post([^,]*admin[^,]*/g,
+          pattern: /router\.post\([^,]*admin[^,]*/g,
           roles: "authorize(['admin'])",
         },
         {
-          pattern: /router\.put([^,]*admin[^,]*/g,
+          pattern: /router\.put\([^,]*admin[^,]*/g,
           roles: "authorize(['admin'])",
         },
         {
-          pattern: /router\.(get|post|put)([^,]*\/users[^,]*/g,
+          pattern: /router\.(get|post|put)\([^,]*\/users[^,]*/g,
           roles: "authorize(['admin', 'hr'])",
         },
         {
-          pattern: /router\.(post|put|delete)([^,]*\/properties[^,]*/g,
+          pattern: /router\.(post|put|delete)\([^,]*\/properties[^,]*/g,
           roles: "authorize(['admin', 'property_owner', 'property_manager'])",
         },
       ];

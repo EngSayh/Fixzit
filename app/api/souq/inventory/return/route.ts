@@ -105,10 +105,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const inventoryRecord = await SouqInventory.findOne({
+    const inventoryRecord = await (/* NO_TENANT_SCOPE */ SouqInventory.findOne({
       listingId,
       ...buildOrgFilter(orgId),
-    }).select({ sellerId: 1 });
+    }).select({ sellerId: 1 }));
 
     if (!inventoryRecord) {
       return NextResponse.json(
