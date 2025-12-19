@@ -5,15 +5,15 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-20T07:15:00+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T18:45:29+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
-**Branch:** feat/mobile-cardlist-phase1
-**Commit:** Pending (P214 .lean() sweep complete) | Origin: local
-**Last Work:** P214 - Full .lean() sweep complete, ESLint local rules 0 warnings, 4099/4099 tests passing
+**Branch:** phase-0-memory-optimization
+**Commit:** a43cc12a0 (Phase 0 memory baseline) | Origin: local
+**Last Work:** Phase 0 memory + VSCode optimization baseline logged
 **MongoDB Status:** ⚠️ Not synced this session (run scripts/import-backlog.ts)
-**Working Tree:** MODIFIED
-**Test Count:** ✅ 464/464 test files, 4099/4099 tests passing (261.67s), ESLint local rules 0 warnings
-**PR:** ⏳ P214 PR to be created
+**Working Tree:** CLEAN
+**Test Count:** ⚠️ Not re-run this phase (last full pass 4099/4099 at 2025-12-19 13:00)
+**PR:** ⏳ Phase 0 memory baseline PR to be created
 
 ---
 
@@ -33,6 +33,12 @@
 3. [x] **[TEST-004]** ✅ VERIFIED - All 8 POST routes have try-catch around request.json()
 4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[PERF-002]** ✅ RESOLVED - Added .lean() to 8+ read-only Mongoose queries (P146)
+
+### ✅ Current Session (Phase 0 Memory Optimization)
+1. **[Phase 0]** ✅ Memory + VSCode baseline:
+   - Ran `scripts/optimize-memory.sh` (snapshot + cache cleanup)
+   - Ran `scripts/vscode-memory-guard.sh --limit-tsserver` (tsserver within limits)
+   - Baseline: git clean; aggregate audit queued for next phase
 
 ### ✅ Current Session (P214)
 1. **[P214]** ✅ Full .lean() Sweep Complete:
