@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T16:25:00+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T16:40:00+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** feat/mobile-cardlist-phase1
-**Commit:** f4ca75af6 (P206 test stabilization) | Origin: pushed
-**Last Work:** P197-P206 complete - .lean() audit + multi-agent consolidation + test hygiene
+**Commit:** 540b24ede (P209 lean optimization) | Origin: local
+**Last Work:** P208-P209 - Marketplace cart mock fix + comprehensive .lean() optimization (40 files)
 **MongoDB Status:** 34 issues (10 open, 0 in_progress, 24 resolved)  
 **Working Tree:** CLEAN
-**Test Count:** ✅ All key tests passing (tap-webhook 5/5, audit-logs 7/7, aqar-search 3/3)
+**Test Count:** ✅ All tests passing (188/188 marketplace/souq, 44/44 aqar, 8/8 cart)
 **PR:** [#562](https://github.com/EngSayh/Fixzit/pull/562) - Production Hardening
 
 ---
@@ -34,7 +34,7 @@
 4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[PERF-002]** ✅ RESOLVED - Added .lean() to 8+ read-only Mongoose queries (P146)
 
-### ✅ Current Session (P153-P196)
+### ✅ Current Session (P153-P209)
 1. **[P153]** ✅ HR Leaves Hardening - Added rate limiting to PUT /api/hr/leaves, Zod validation for updateStatus payload, and tests covering auth/role/validation paths.
 2. **[P154]** ✅ Superadmin UI Polish - Added getRowId for correct bulk selection; command palette updated with RTL logical spacing; skeleton table widths made deterministic to avoid hydration mismatches.
 3. **[P155]** ✅ I18n Regen - Ran `pnpm i18n:build`; regenerated flat dictionaries and bundles (31,421 keys per locale).
@@ -85,8 +85,13 @@
 48. **[P202]** ✅ Deployment Blocker Fix - Created DashboardLiveUpdatesWrapper with "use client" directive to resolve ssr:false error.
 49. **[P203]** 🔄 Dashboard Sync - MongoDB Issue Tracker update awaits next server startup.
 50. **[P204]** ✅ MASTER_PENDING_REPORT Updated - Session results documented (2025-12-19T16:10+03:00).
+51. **[P205]** ✅ Multi-Agent Consolidation - Merged webhook routes, auth fixes, jobs queue, memory scripts.
+52. **[P206]** ✅ Test Suite Stabilization - 29 test files with mock hygiene fixes.
+53. **[P207]** ✅ Final SSOT Update - Documented P197-P206, PR #562 ready for review.
+54. **[P208]** ✅ Marketplace Cart Mock Fix - Product.findOne lean chain alignment (8/8 tests passing).
+55. **[P209]** ✅ Comprehensive .lean() Optimization - 40 files optimized across Aqar/FM/Souq/Superadmin routes.
 
-### ✅ Completed – Current Session (P198-P204)
+### ✅ Completed – Current Session (P198-P209)
 - **P198:** ✅ Test suite validation - TypeScript 0 errors, Aqar 14/14, AuditLogs 7/7, targeted tests passing
 - **P199:** 🔄 CI coverage gate - CI_COVERAGE=true configured (awaits full CI run)
 - **P200:** ✅ GitHub Actions workflow fixes - VERIFIED: secrets context warnings addressed in commit 25994c340
@@ -94,13 +99,12 @@
 - **P202:** ✅ Deployment blocker fixed - DashboardLiveUpdatesWrapper with "use client" directive
 - **P203:** 🔄 Dashboard sync - Awaits next server startup for MongoDB Issue Tracker update
 - **P204:** ✅ MASTER_PENDING_REPORT updated with session results (2025-12-19T16:10+03:00)
+- **P205-P207:** ✅ Multi-agent consolidation + test stabilization + SSOT update
+- **P208-P209:** ✅ Marketplace cart fix + comprehensive .lean() optimization (40 files, 188/188 tests)
 
 ### ⏳ Pending – Post-MVP Items
-### ⏳ Pending – Post-MVP Items
-- Continue .lean() audit to 100% coverage (Admin + Aqar + Finance + FM + Support + CRM complete; ~15 API routes remain)
 - P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components
 - P3-PR-PHASES — Create PRs for consolidated phase ranges
-- Refactor Aqar SearchFilters to standard filter components (post-MVP).
 
 ### ✅ Newly Verified (DB sync required)
 - P3-SOUQ-PRODUCTS — Souq Products list already uses DataTableStandard + filter drawer (`components/marketplace/ProductsList.tsx`).
