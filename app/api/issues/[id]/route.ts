@@ -195,6 +195,7 @@ export async function PATCH(
     let nextStatus: IssueStatusType | null = null;
     
     // Find issue
+    // NO_LEAN: Document required for issue status/assignment updates and save()
     const issue = await Issue.findOne({
       orgId,
       $or: [

@@ -12,6 +12,7 @@ import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
 
 export async function GET(
   request: NextRequest,
@@ -32,13 +33,22 @@ export async function GET(
     }
 
     const { id: statementId } = params;
+    const orgId =
+      (session.user as { orgId?: string }).orgId ||
+      (session.user as { tenantId?: string }).tenantId;
+    if (!orgId) {
+      return NextResponse.json({ error: "Missing tenant context" }, { status: 401 });
+    }
 
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const statementsCollection = db.collection(COLLECTIONS.SOUQ_SETTLEMENTS);
 
     // Fetch statement
-    const statement = await statementsCollection.findOne({ statementId });
+    const statement = await (/* NO_TENANT_SCOPE */ statementsCollection.findOne({
+      statementId,
+      ...buildSouqOrgFilter(orgId),
+    }));
 
     if (!statement) {
       return NextResponse.json(

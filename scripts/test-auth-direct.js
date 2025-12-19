@@ -24,8 +24,9 @@ async function testAuth() {
     // 2. Load User model (CommonJS can't use TS directly, use dynamic import workaround)
     // For now, just query directly with mongoose
     // Use safe create-or-reuse pattern to avoid OverwriteModelError
-    const mongoose = require('mongoose');
-    const UserSchema = mongoose.models.User || mongoose.model('User', new mongoose.Schema({}, { strict: false }));
+    const UserSchema =
+      mongoose.models.User ||
+      mongoose.model('User', new mongoose.Schema({}, { strict: false }));
 
     // 3. Find test user
     const testEmail = process.env.TEST_USER_EMAIL || `test-admin@${EMAIL_DOMAIN}`;

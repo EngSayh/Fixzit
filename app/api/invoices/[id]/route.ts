@@ -91,6 +91,7 @@ export async function GET(
     }
     await connectToDatabase();
 
+    // NO_LEAN: Document required for status/history updates and save()
     const invoice = await Invoice.findOne({
       _id: params.id,
       orgId: user.orgId,

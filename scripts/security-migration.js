@@ -366,8 +366,8 @@ app.use(securityHeaders);`,
 
       // Replace console.log with logger
       content = content.replace(/console\.log\(/g, "logger.info(");
-      content = content.replace(/console\.error(/g, "logger.error(");
-      content = content.replace(/console\.warn(/g, "logger.warn(");
+      content = content.replace(/console\.error\(/g, "logger.error(");
+      content = content.replace(/console\.warn\(/g, "logger.warn(");
 
       await fs.writeFile("server.js", content);
       log.success("Updated server.js with security middleware");

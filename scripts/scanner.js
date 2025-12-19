@@ -376,7 +376,7 @@ ${colors.reset}`);
     const dbPatterns = [
       // N+1 Queries
       {
-        pattern: /\.map\s*([^)]*await\s+[^)]*\.(find|query|select)/g,
+        pattern: /\.map\s*\([^)]*await\s+[^)]*\.(find|query|select)/g,
         issue: "N+1 query pattern detected",
         severity: Severity.HIGH,
       },
@@ -397,7 +397,8 @@ ${colors.reset}`);
 
       // Connection leaks
       {
-        pattern: /createConnection|connect((?![\s\S]*\.close()|\.end())/g,
+        pattern:
+          /\b(createConnection|connect)\s*\((?![\s\S]*\.(?:close|end)\s*\()/g,
         issue: "Database connection not closed",
         severity: Severity.HIGH,
       },
@@ -435,12 +436,12 @@ ${colors.reset}`);
     const apiPatterns = [
       // Missing error handling
       {
-        pattern: /fetch([^)]+)(?!\.then(|\.catch(|await)/g,
+        pattern: /\bfetch\s*\((?![^;]*(?:\.then\(|\.catch\(|await\s))/g,
         issue: "Fetch without error handling",
         severity: Severity.HIGH,
       },
       {
-        pattern: /axios\.[a-z]+([^)]+)(?!\.then(|\.catch(|await)/g,
+        pattern: /\baxios\.[a-z]+\s*\((?![^;]*(?:\.then\(|\.catch\(|await\s))/g,
         issue: "Axios without error handling",
         severity: Severity.HIGH,
       },
