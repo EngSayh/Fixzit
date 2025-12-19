@@ -32,6 +32,24 @@
 This file (docs/PENDING_MASTER.md) remains as a detailed session changelog only.  
 **PROTOCOL:** Never create tasks here without also creating/updating MongoDB issues.
 
+### 2025-12-19 17:20 (Asia/Riyadh) — Phase 0: Memory Optimization + Script Hardening
+**Context:** vercel/vercel-speed-insights-to-nextj-7zdb28 @ fd90fa056 | Working tree DIRTY  
+**MongoDB:** not checked (SSOT import pending)  
+**Git Status:** scripts/optimize-memory.sh modified
+
+**✅ COMPLETED THIS PHASE:**
+
+- **Memory Optimization:** Executed `bash scripts/optimize-memory.sh` (Mac) to clean caches and report high-memory processes.
+- **Script Hardening:** Fixed `scripts/optimize-memory.sh` to safely count processes under `set -euo pipefail`.
+  - Added `count_processes` helper to avoid `pgrep` pipefail crashes.
+  - Added macOS-safe post-cleanup memory report via `vm_stat`.
+
+**📌 SSOT / Dashboard Sync:**
+- Attempted `pnpm exec tsx scripts/issue-log.ts import docs/BACKLOG_AUDIT.json` → **FAILED** (`fetch failed`; API not reachable).
+- Pending: update BACKLOG_AUDIT.json + re-run import when API is reachable.
+
+---
+
 ### 2025-12-17 01:45 (Asia/Riyadh) — Superadmin Navigation Fix (P0 UX Critical)
 **Context:** main @ [uncommitted] | Working: Footer + Superadmin Layout | Tree: MODIFIED  
 **MongoDB:** 34 issues (24 open, 1 in_progress, 9 resolved) [verified]  

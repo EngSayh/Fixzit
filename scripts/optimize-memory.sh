@@ -66,8 +66,20 @@ echo ""
 # ============================================================================
 echo -e "${GREEN}🔍 Checking for duplicate processes...${NC}"
 
+# Safe process counter (handles no matches with pipefail enabled)
+count_processes() {
+  local pattern="$1"
+  local pids
+  pids=$(pgrep -f "$pattern" 2>/dev/null || true)
+  if [ -z "$pids" ]; then
+    echo 0
+    return
+  fi
+  echo "$pids" | wc -l | tr -d ' '
+}
+
 # Count TypeScript servers
-TS_SERVERS=$(pgrep -f "tsserver.js" | wc -l)
+TS_SERVERS=$(count_processes "tsserver.js")
 if [ "$TS_SERVERS" -gt 2 ]; then
   echo -e "${YELLOW}⚠️  Found $TS_SERVERS TypeScript servers (expected: 1-2)${NC}"
   if [ "$AGGRESSIVE" = true ]; then
@@ -83,7 +95,7 @@ else
 fi
 
 # Count Next.js dev servers
-NEXT_SERVERS=$(pgrep -f "next-server" | wc -l)
+NEXT_SERVERS=$(count_processes "next-server")
 if [ "$NEXT_SERVERS" -gt 1 ]; then
   echo -e "${YELLOW}⚠️  Found $NEXT_SERVERS Next.js dev servers (expected: 1)${NC}"
   if [ "$AGGRESSIVE" = true ]; then
@@ -101,7 +113,7 @@ else
 fi
 
 # Count VS Code extension hosts
-EXT_HOSTS=$(pgrep -f "extensionHost" | wc -l)
+EXT_HOSTS=$(count_processes "extensionHost")
 if [ "$EXT_HOSTS" -gt 2 ]; then
   echo -e "${YELLOW}⚠️  Found $EXT_HOSTS VS Code extension hosts (expected: 1-2)${NC}"
   echo -e "${YELLOW}   This usually indicates crashed/orphaned processes${NC}"
@@ -191,7 +203,11 @@ echo ""
 # 5. FINAL MEMORY REPORT
 # ============================================================================
 echo -e "${GREEN}📊 Memory Usage After Cleanup:${NC}"
-free -h || echo "free command not available"
+if [ "$OS" = "Darwin" ]; then
+  vm_stat | perl -ne '/page size of (\d+)/ and $size=$1; /Pages\s+([^:]+)[^\d]+(\d+)/ and printf("%-20s % 16.2f MB\n", "$1:", $2 * $size / 1048576);'
+else
+  free -h || echo "free command not available"
+fi
 echo ""
 
 # Calculate available memory percentage
