@@ -73,13 +73,14 @@ const phases = [
   { id: 'P130', title: 'Currency UX Hints', status: 'completed', date: '2025-12-19T11:45', evidence: 'preferenceSource tooltip on CheckoutForm and PDPBuyBox' },
   { id: 'P131', title: 'Grafana Panels', status: 'completed', date: '2025-12-19T12:00', evidence: 'Rate Limit Breaches, Cache Status Distribution panels' },
   { id: 'P132', title: 'Dashboard Update', status: 'completed', date: '2025-12-19T12:15', evidence: 'This update - P125-P132 phases added' },
+  { id: 'P133', title: 'Client Env Hardening', status: 'completed', date: '2025-12-19T09:12', evidence: 'Removed client process.env usage; centralized Config client fields' },
   
   { id: 'P96', title: 'Final Production Gate', status: 'completed', date: '2025-12-18', evidence: 'All verification phases passed' },
 ];
 
 const testCoverage = {
-  total: 3860,
-  passing: 3860,
+  total: 3939,
+  passing: 3939,
   failed: 0,
   percentage: 100,
   routes: {
@@ -96,8 +97,46 @@ const testCoverage = {
   },
 };
 
+const pendingItems = [
+  {
+    id: 'SEC-002',
+    title: 'Tenant scope enforcement',
+    severity: 'critical',
+    status: 'open',
+    summary: '50+ DB queries need explicit org_id/property_owner_id guards and tests.',
+  },
+  {
+    id: 'PERF-001',
+    title: 'Aggregate limits',
+    severity: 'high',
+    status: 'open',
+    summary: 'Add .limit()/pagination to analytics aggregates to prevent OOM/timeouts.',
+  },
+  {
+    id: 'TEST-004',
+    title: 'POST body parsing guards',
+    severity: 'high',
+    status: 'open',
+    summary: 'Wrap request.json() in try/catch or parseBody helper across POST routes.',
+  },
+  {
+    id: 'BUG-002',
+    title: '@ts-expect-error documentation',
+    severity: 'medium',
+    status: 'open',
+    summary: 'Add inline justification to suppressions to avoid hidden type regressions.',
+  },
+  {
+    id: 'PERF-002',
+    title: 'Lean read models',
+    severity: 'low',
+    status: 'open',
+    summary: 'Apply .lean() to read-only queries to trim memory/CPU usage.',
+  },
+];
+
 const productionReadiness = {
-  overall: 100,
+  overall: 95,
   categories: [
     { name: 'Tests', score: 100, status: 'excellent' },
     { name: 'TypeScript', score: 100, status: 'excellent' },
@@ -131,6 +170,19 @@ function getStatusBadge(status: string) {
       return <Badge variant="secondary">Deferred</Badge>;
     default:
       return <Badge variant="outline">Not Started</Badge>;
+  }
+}
+
+function getSeverityBadge(severity: string) {
+  switch (severity) {
+    case 'critical':
+      return <Badge variant="destructive">Critical</Badge>;
+    case 'high':
+      return <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">High</Badge>;
+    case 'medium':
+      return <Badge variant="secondary">Medium</Badge>;
+    default:
+      return <Badge variant="outline">Low</Badge>;
   }
 }
 
@@ -257,6 +309,40 @@ export default function SuperadminProgressPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pending Actions (SSOT sync) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Pending Actions</CardTitle>
+          <CardDescription>Live SSOT mirror of open items (SEC/BUG/PERF/TEST)</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {pendingItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-start gap-3 p-3 rounded-lg border bg-muted/40"
+              >
+                <div className="flex flex-col items-start gap-2 min-w-[90px]">
+                  <span className="font-mono text-xs">{item.id}</span>
+                  {getSeverityBadge(item.severity)}
+                </div>
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium">{item.title}</span>
+                    <Badge variant="outline" className="capitalize">
+                      {item.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {item.summary}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

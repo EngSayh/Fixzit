@@ -97,7 +97,7 @@ export default function ErrorPage({
           </p>
 
           {/* Error Details (Development Only) */}
-          {process.env.NODE_ENV === "development" && (
+          {Config.env.isDevelopment && (
             <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4 text-start mb-4">
               <p className="text-sm font-mono text-destructive break-all">
                 {error.message}

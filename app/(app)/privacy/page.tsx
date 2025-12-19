@@ -6,9 +6,8 @@ import { Shield, Lock, Eye, FileText, Mail, Phone } from "lucide-react";
 import { renderMarkdownSanitized } from "@/lib/markdown";
 import { EMAIL_DOMAINS as EMAILS } from "@/lib/config/domains";
 import { SafeHtml } from "@/components/SafeHtml";
-// NOTE: Do NOT import Config from '@/lib/config/constants' in client components
-// It contains server-only validation that throws on client-side
-// Use NEXT_PUBLIC_ environment variables directly instead
+import { Config } from "@/lib/config/constants";
+// Use centralized client-safe config instead of direct env access
 
 /**
  * Default privacy policy content shown when CMS content is not available or not published.
@@ -37,7 +36,7 @@ Industry-standard security: encryption, access controls, regular audits, 24/7 mo
 Access, correct, delete, export your data, and opt-out of marketing communications.
 
 ## Contact
-For privacy inquiries: ${EMAILS.privacy} | Phone: ${process.env.NEXT_PUBLIC_SUPPORT_PHONE || "+966 11 234 5678"}`;
+For privacy inquiries: ${EMAILS.privacy} | Phone: ${Config.company.supportPhone || "+966 11 234 5678"}`;
 
 /**
  * Privacy Policy Page (Public View)

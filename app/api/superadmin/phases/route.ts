@@ -8,8 +8,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
-import fs from "fs";
-import path from "path";
+import {
+  PendingMasterNotFoundError,
+  loadSuperadminPhaseData,
+} from "@/lib/superadmin/phases";
 
 /**
  * GET /api/superadmin/phases
@@ -47,123 +49,16 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Parse PENDING_MASTER.md for phase entries
-    const pendingMasterPath = path.join(process.cwd(), "docs", "PENDING_MASTER.md");
-    
-    if (!fs.existsSync(pendingMasterPath)) {
-      return NextResponse.json({ error: "PENDING_MASTER.md not found" }, { status: 404 });
-    }
-
-    const content = fs.readFileSync(pendingMasterPath, "utf-8");
-    
-    // Extract phase entries (P66-P75 from latest execution)
-    const completionPattern = /✅\s*PHASES?\s+P(\d+)(?:-P(\d+))?\s+COMPLETE/gi;
-    const datePattern = /###\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s*\(([^)]+)\)\s*—\s*(?:Phase\s+)?P(\d+)(?:-P(\d+))?/g;
-    
-    const phases: Array<{
-      id: string;
-      title: string;
-      status: "completed" | "in-progress" | "not-started";
-      date?: string;
-      duration?: number;
-      description: string;
-    }> = [];
-
-    // Extract completed phase ranges
-    const completedRanges: Array<{ start: number; end: number }> = [];
-    let match;
-    while ((match = completionPattern.exec(content)) !== null) {
-      const start = parseInt(match[1], 10);
-      const end = match[2] ? parseInt(match[2], 10) : start;
-      completedRanges.push({ start, end });
-    }
-
-    // Extract phase entries with dates
-    const phaseEntries = new Map<number, { date: string; title: string; description: string }>();
-    while ((match = datePattern.exec(content)) !== null) {
-      const date = `${match[1]}T${match[2]}:00`;
-      const startPhase = parseInt(match[4], 10);
-      const endPhase = match[5] ? parseInt(match[5], 10) : startPhase;
-      
-      // Read next few lines for title/description
-      const contextStart = match.index;
-      const contextEnd = content.indexOf("\n\n", contextStart);
-      const context = content.slice(contextStart, contextEnd);
-      const titleMatch = /\*\*([^*]+)\*\*/.exec(context);
-      const title = titleMatch ? titleMatch[1] : `Phase ${startPhase}-${endPhase}`;
-      
-      for (let p = startPhase; p <= endPhase; p++) {
-        phaseEntries.set(p, { date, title, description: context.slice(0, 200) });
-      }
-    }
-
-    // Current phases (P66-P110: production readiness + final polish + continuous improvement + test coverage)
-    // P66-P75: Core production readiness
-    // P76-P83: Production audit + polish
-    // P84-P88: Audit documentation
-    // P89-P97: Final enhancement + PR creation
-    // P98-P101: Contract testing & validation
-    // P102-P107: Continuous improvement audit
-    // P108: Dashboard Phase Tracker Expansion
-    // P109: Finance Ledger Integration Tests
-    // P110: Comprehensive API Test Coverage
-    for (let i = 66; i <= 110; i++) {
-      const isCompleted = completedRanges.some(r => i >= r.start && i <= r.end);
-      const entry = phaseEntries.get(i);
-      
-      // Determine in-progress status based on surrounding completion
-      let status: "completed" | "in-progress" | "not-started" = "not-started";
-      if (isCompleted) {
-        status = "completed";
-      } else if (i === 107) {
-        status = "in-progress"; // Current phase
-      }
-      
-      phases.push({
-        id: `P${i}`,
-        title: entry?.title || `Phase ${i}`,
-        status,
-        date: isCompleted && entry?.date ? entry.date : undefined,
-        description: entry?.description || "",
-      });
-    }
-
-    // Compute summary
-    const completed = phases.filter(p => p.status === "completed").length;
-    const inProgress = phases.filter(p => p.status === "in-progress").length;
-    const notStarted = phases.filter(p => p.status === "not-started").length;
-    const total = phases.length;
-    const completionPercentage = Math.round((completed / total) * 100);
-
-    // Timeline (last 10 completed phases)
-    const timeline = phases
-      .filter(p => p.status === "completed" && p.date)
-      .map(p => ({
-        phase: p.id,
-        date: p.date!,
-        status: p.status,
-      }))
-      .slice(-10);
-
-    return NextResponse.json(
-      {
-        phases,
-        summary: {
-          total,
-          completed,
-          inProgress,
-          notStarted,
-          completionPercentage,
-        },
-        timeline,
+    const data = await loadSuperadminPhaseData();
+    return NextResponse.json(data, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
       },
-      {
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate",
-        },
-      }
-    );
+    });
   } catch (error) {
+    if (error instanceof PendingMasterNotFoundError) {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
     logger.error("[SuperAdmin Phases API] Error:", error);
     return NextResponse.json(
       { error: "Failed to parse phase data" },

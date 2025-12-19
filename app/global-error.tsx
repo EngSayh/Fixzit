@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AlertOctagon, RefreshCw, Home } from "lucide-react";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
+import { Config } from "@/lib/config/constants";
 
 /**
  * Global Error Boundary Component
@@ -99,7 +100,7 @@ export default function GlobalError({
           </p>
 
           {/* Development Error Details */}
-          {process.env.NODE_ENV === "development" && (
+          {Config.env.isDevelopment && (
             <div
               style={{
                 backgroundColor: "rgba(220, 38, 38, 0.05)",

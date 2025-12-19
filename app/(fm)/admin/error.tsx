@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
+import { Config } from "@/lib/config/constants";
 
 /**
  * Admin Error Boundary
@@ -55,7 +56,7 @@ export default function AdminError({
           )}
         </p>
 
-        {process.env.NODE_ENV === "development" && (
+        {Config.env.isDevelopment && (
           <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 text-start mb-6">
             <p className="text-sm font-mono text-destructive break-all">
               {error.message}

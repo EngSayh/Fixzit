@@ -502,6 +502,22 @@ export const Config = {
     // Playwright/E2E test mode flag
     isPlaywrightTest: getBoolean("NEXT_PUBLIC_PLAYWRIGHT_TESTS", false) ||
       getBoolean("PLAYWRIGHT_TESTS", false),
+
+    // API Docs (Swagger UI) toggle - defaults to enabled
+    swaggerUiEnabled: getBoolean(
+      "NEXT_PUBLIC_SWAGGER_UI_ENABLED",
+      getBoolean("SWAGGER_UI_ENABLED", true),
+    ),
+
+    // Vendor assignments workspace feature flags
+    vendorAssignmentsApiEnabled: getBoolean(
+      "NEXT_PUBLIC_VENDOR_ASSIGNMENTS_API_ENABLED",
+      false,
+    ),
+    vendorAssignmentsMocksEnabled: getBoolean(
+      "NEXT_PUBLIC_VENDOR_ASSIGNMENTS_API_MOCKS",
+      false,
+    ),
   },
 } as const;
 

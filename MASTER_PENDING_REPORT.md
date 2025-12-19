@@ -5,13 +5,13 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T08:50:00+03:00 (Asia/Riyadh)  
+**Last Updated:** 2025-12-19T09:12:00+03:00 (Asia/Riyadh)  
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** feat/mobile-cardlist-phase1  
-**Commit:** 7bd70357c | Origin: 7bd70357c [synced]  
-**Last Work:** P125-P132 Complete - Cache Observability + 43 Real Tests + Component Integration + Grafana Panels  
-**MongoDB Status:** 34 issues (16 open, 0 in_progress, 18 resolved)  
-**Working Tree:** CLEAN  
+**Commit:** 64630e263 | Origin: 64630e263  
+**Last Work:** P133 - Client env hardening + SSOT dashboard sync  
+**MongoDB Status:** 34 issues (15 open, 0 in_progress, 19 resolved)  
+**Working Tree:** DIRTY (local changes pending commit)  
 **Test Count:** 3,939/3,939 passing (447 files) - +43 tests from P126
 
 ---
@@ -22,16 +22,16 @@
 |--------|-------|
 | **Health Score** | 95/100 |
 | **Files Scanned** | 1,548 (app/ + lib/ + services/ + domain/ + tests/) |
-| **Total Issues** | 34 (🔴 0 🟠 16 🟢 18) |
-| **Test Coverage** | 3,896 unit tests, 444 test files (all passing) |
+| **Total Issues** | 34 (15 open / 19 resolved) |
+| **Test Coverage** | 3,939 tests, 447 test files (last recorded passing) |
 | **Build Status** | ✅ 0 TS errors, 0 ESLint errors (verified 2025-12-19) |
 
 ### 🎯 Top 5 Priority Actions
-1. [x] **[SEC-002]** ✅ VERIFIED - All aggregate/find queries have tenant scope enforcement (ESLint custom rule active)
-2. [ ] **[BUG-001]** 🟠 P1-HIGH: 40+ process.env direct accesses in client components (migrate to lib/config/constants.ts)
-3. [x] **[BUG-WO-FILTERS-MISSING]** ✅ COMPLETED - All list component filters now wired via serializeFilters()
-4. [x] **[PERF-001]** ✅ VERIFIED - All 36 aggregate operations have maxTimeMS protection
-5. [x] **[TEST-004]** ✅ VERIFIED - SuperAdmin API (48 tests) + Finance API (22 tests) coverage added
+1. [ ] **[SEC-002]** 🔴 P0: Tenant scope verification on all DB queries (org_id/property_owner_id guards)
+2. [ ] **[PERF-001]** 🟠 P2: Add .limit()/pagination to unbounded aggregates (stats/analytics)
+3. [ ] **[TEST-004]** 🟠 P2: Guard POST bodies (request.json()) with parseBody/try-catch
+4. [ ] **[BUG-002]** 🟡 P3: Document @ts-expect-error suppressions (pdf-parse/rehype)
+5. [x] **[BUG-001]** ✅ RESOLVED - Client process.env usage replaced with Config client fields (P133)
 
 ### ✅ Recently Resolved (2025-12-19 Session P125-P132)
 1. **[P125]** ✅ Cache Observability Fix - X-Cache-Status HIT/MISS/STALE via applyCacheHeaders
@@ -42,6 +42,9 @@
 6. **[P130]** ✅ Currency UX Hints - preferenceSource tooltip on CheckoutForm and PDPBuyBox
 7. **[P131]** ✅ Grafana Panels - 3 new panels (Rate Limit Breaches, Cache Status, Rate Limiting)
 8. **[P132]** ✅ Superadmin Dashboard - P125-P132 phases added to progress tracker
+
+### ✅ Recently Resolved (2025-12-19 Session P133)
+1. **[P133]** ✅ Client Env Hardening - Removed process.env usage from client components; added Config.client toggles (swagger UI, vendor assignments, Google Maps) and dev-only error guards
 
 ### ✅ Recently Resolved (2025-12-19 Session)
 1. **[Phase 39]** ✅ Scan Pending Items - All routes verified
@@ -99,7 +102,7 @@
 
 | ID | Status | Issue | Location | Impact | Fix |
 |----|--------|-------|----------|--------|-----|
-| **BUG-001** | 🟠 P1-HIGH (NEW - 2025-12-19) | process.env accessed directly in 40+ client components - breaks SSR/hydration, exposes server vars to client | app/login/page.tsx:25-30, app/marketplace/page.tsx:45-46, app/error.tsx:26, app/**/*.tsx | **HIGH** - Runtime errors in production (NEXT_PUBLIC_ prefix missing), hydration mismatches, potential secret exposure if server-only env vars leak to client bundle | **Systematic Fix:** (1) Audit all process.env reads via grep, (2) Migrate to lib/config/constants.ts Config export (already exists), (3) Ensure NEXT_PUBLIC_ prefix for client-safe vars, (4) Replace direct reads with Config.* pattern. **Evidence:** 30+ matches in grep scan including NEXT_PUBLIC_REQUIRE_SMS_OTP, ALLOW_OFFLINE_MONGODB, NEXT_PUBLIC_SUPPORT_EMAIL |
+| **BUG-001** | ✅ Resolved (2025-12-19) | Client components read process.env directly (SSR/hydration mismatch risk) | app/error.tsx, app/global-error.tsx, app/(app) privacy/login/docs, app/(fm) dashboards/errors | **FIXED** - Added Config.client toggles (swaggerUiEnabled, vendorAssignments, googleMapsApiKey) and replaced all client process.env usages with Config.env/Config.client. **Evidence:** `rg -l "process\\.env" app --glob "*.tsx" | xargs rg -l "use client"` → 0 matches |
 | **BUG-002** | 🟡 Low | 3 @ts-expect-error suppressions without documented reason | lib/ats/resume-parser.ts:38, lib/markdown.ts:22, issue-tracker/app/api/issues/route.ts:263-318 | **MEDIUM** - Technical debt; may hide type errors or breaking changes in dependencies | Add inline comments explaining why suppression needed (e.g., "pdf-parse ESM/CJS export mismatch", "rehype-sanitize schema type incompatibility") |
 
 ### ⚡ Performance
@@ -141,26 +144,18 @@
 
 ## 🔍 Pattern Clusters
 
-### PATTERN: Direct process.env Access in Client Components
-**Root Cause:** Environment variables accessed directly in app/ components instead of centralized Config object  
-**Severity:** 🟠 High  
-**Occurrences:** 40+
+### PATTERN (RESOLVED): Direct process.env Access in Client Components
+**Root Cause:** Environment variables accessed directly in client components instead of centralized Config object  
+**Status:** ✅ Resolved (P133 - 2025-12-19)  
+**Occurrences:** 0 (client components) — verified via `rg -l "process\\.env" app --glob "*.tsx" | xargs rg -l "use client"`
 
-| # | Location | Evidence |
-|---|----------|----------|
-| 1 | app/login/page.tsx:25-30 | `process.env.NEXT_PUBLIC_REQUIRE_SMS_OTP`, `process.env.NEXTAUTH_SKIP_CSRF_CHECK` |
-| 2 | app/marketplace/page.tsx:45-46 | `process.env.ALLOW_OFFLINE_MONGODB`, `process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS` |
-| 3 | app/error.tsx:26 | `process.env.NEXT_PUBLIC_SUPPORT_EMAIL` |
-| 4 | app/api/upload/scan-status/route.ts:105-139 | Multiple process.env reads without Config fallback |
-
-**Systematic Fix:**
-1. Audit all process.env reads: `grep -r "process\.env\." app/ --include="*.tsx" --include="*.ts"`
-2. Migrate to lib/config/constants.ts Config export (already exists)
-3. Ensure NEXT_PUBLIC_ prefix for client-accessible vars
-4. Add ESLint rule: `no-process-env` with exceptions for lib/config/constants.ts only
+**Fix Applied:**
+1. Added Config.client toggles (swaggerUiEnabled, vendorAssignmentsApiEnabled/vendorAssignmentsMocksEnabled) and reused Config.external.googleMapsApiKey.
+2. Replaced all client-side process.env references with Config.env/Config.client (error boundaries, login/profile, privacy/docs pages, FM inspections).
+3. Updated superadmin dashboard to surface open SSOT items to prevent regressions.
 
 **Prevention:**
-- [x] ESLint rule: `no-restricted-syntax` for process.env (add to eslint.config.mjs)
+- [x] ESLint rule: `no-restricted-syntax` for process.env (eslint.config.mjs)
 - [ ] Pre-commit hook: Check for new process.env uses outside lib/config/
 - [ ] CI gate: Fail build if process.env detected in app/ (excluding config files)
 
