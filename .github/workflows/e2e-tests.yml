@@ -34,6 +34,7 @@ concurrency:
 permissions:
   contents: read
   pull-requests: write
+  actions: write
 
 jobs:
   # AUDIT-2025-11-30: Dedicated job for forked PRs to provide clear feedback
