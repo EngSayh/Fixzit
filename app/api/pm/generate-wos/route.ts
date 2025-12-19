@@ -65,10 +65,10 @@ export async function POST(req: NextRequest) {
     // NOTE: System-wide query is intentional - cron job processes ALL tenants
     // Each PM plan has its own orgId which is inherited by generated WOs
     // This is secured by CRON_SECRET authentication above
-    const plans = await FMPMPlan.find({
+    const plans = await (/* PLATFORM-WIDE */ FMPMPlan.find({
       status: "ACTIVE",
       nextScheduledDate: { $exists: true },
-    }).lean();
+    }).lean());
 
     const results = {
       checked: plans.length,
@@ -186,10 +186,10 @@ export async function GET(req: NextRequest) {
   try {
     // NOTE: System-wide query is intentional - cron preview for ALL tenants
     // Secured by CRON_SECRET authentication above
-    const plans = await FMPMPlan.find({
+    const plans = await (/* PLATFORM-WIDE */ FMPMPlan.find({
       status: "ACTIVE",
       nextScheduledDate: { $exists: true },
-    }).lean();
+    }).lean());
 
     const plansTyped = plans as unknown as PMPlanDocument[];
     const preview = plansTyped

@@ -164,12 +164,14 @@ echo ""
 # ============================================================================
 echo -e "${GREEN}🔧 Verifying memory configuration...${NC}"
 
-# Check NODE_OPTIONS in package.json scripts
-if grep -q "NODE_OPTIONS.*max-old-space-size" package.json; then
+# Check build memory configuration in package.json scripts
+if grep -q "next-build.mjs" package.json; then
+  echo -e "${GREEN}✅ Build uses adaptive memory script (scripts/next-build.mjs)${NC}"
+elif grep -q "NODE_OPTIONS.*max-old-space-size" package.json; then
   echo -e "${GREEN}✅ NODE_OPTIONS memory limit set in package.json${NC}"
 else
-  echo -e "${YELLOW}⚠️  NODE_OPTIONS memory limit NOT set in package.json${NC}"
-  echo -e "${YELLOW}   Add NODE_OPTIONS=--max-old-space-size=8192 to dev/build scripts${NC}"
+  echo -e "${YELLOW}⚠️  Build memory limit NOT detected in package.json${NC}"
+  echo -e "${YELLOW}   Add scripts/next-build.mjs or NODE_OPTIONS=--max-old-space-size=8192${NC}"
 fi
 
 # Check VS Code settings

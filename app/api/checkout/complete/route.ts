@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
           { owner_user_id: session.id },
         ],
       };
-  const subscription = await Subscription.findOne(query);
+  const subscription = await Subscription.findOne(query).lean();
 
   if (!subscription) {
     return createSecureResponse({ error: "SUBSCRIPTION_NOT_FOUND" }, 404, req);

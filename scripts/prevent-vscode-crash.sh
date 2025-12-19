@@ -67,10 +67,12 @@ echo ""
 echo "🔧 Step 4: Verify Memory Limits"
 
 # Check package.json scripts
-if grep -q "NODE_OPTIONS.*8192" package.json; then
+if grep -q "next-build.mjs" package.json; then
+  echo "  ✅ package.json: Adaptive build memory script configured"
+elif grep -q "NODE_OPTIONS.*8192" package.json; then
   echo "  ✅ package.json: 8GB limit configured"
 else
-  echo "  ⚠️  package.json: Missing 8GB limit!"
+  echo "  ⚠️  package.json: Build memory limit not detected!"
 fi
 
 # Check .vscode/settings.json

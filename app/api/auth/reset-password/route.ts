@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
     // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
-    const user = await User.findOne({ orgId: resolvedOrgId, email });
+    const user = await User.findOne({ orgId: resolvedOrgId, email }).lean();
 
     if (!user) {
       // Don't reveal if user exists

@@ -154,10 +154,11 @@ export async function POST(req: NextRequest) {
     }
     const isGlobal = isSuperAdmin && isGlobalRequested;
 
-    // body: { moduleCode, seatsMin, seatsMax, pricePerSeatMonthly, flatMonthly, currency, region }
+    // PLATFORM-WIDE: module catalog is global
     const mod = await Module.findOne({ code: body.moduleCode }).lean();
     if (!mod) return createErrorResponse("MODULE_NOT_FOUND", 400, req);
 
+    // SUPER_ADMIN: global tiers are platform-wide; tenant tiers include orgId
     const doc = await PriceTier.findOneAndUpdate(
       {
         moduleId: mod._id,

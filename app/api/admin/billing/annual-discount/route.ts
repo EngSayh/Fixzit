@@ -55,6 +55,7 @@ export async function PATCH(req: NextRequest) {
     
     const { percentage } = parsed.data;
 
+    // SUPER_ADMIN: annual discount rule is platform-wide
     const doc = await DiscountRule.findOneAndUpdate(
       { key: "ANNUAL_PREPAY" },
       { percentage },

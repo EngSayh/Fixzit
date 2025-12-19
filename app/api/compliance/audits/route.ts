@@ -231,6 +231,7 @@ export async function POST(req: NextRequest) {
   try {
     const audit = await ComplianceAudit.create({
       ...payload,
+      orgId: user.orgId,
       checklist: payload.checklist ?? [],
       tags: payload.tags ?? [],
       supportingTeams: payload.supportingTeams ?? [],

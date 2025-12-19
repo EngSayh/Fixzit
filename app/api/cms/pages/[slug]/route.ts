@@ -33,6 +33,7 @@ export async function GET(
   try {
     await connectToDatabase();
     const { slug } = await props.params;
+    // PLATFORM-WIDE: CMS pages are global content
     const page = await CmsPage.findOne({ slug }).lean();
     if (!page) return createSecureResponse({ error: "Not found" }, 404, _req);
     const response = createSecureResponse(page, 200, _req);
@@ -68,6 +69,7 @@ export async function PATCH(
 
     const body = await req.json();
     const validated = patchSchema.parse(body);
+    // PLATFORM-WIDE: CMS pages are global content
     const page = await CmsPage.findOneAndUpdate(
       { slug },
       { $set: validated },

@@ -228,9 +228,8 @@ export async function POST(req: NextRequest) {
       { orgId: null },
     ];
     if (user?.orgId) orClauses.unshift({ orgId: user.orgId });
-    const tenantScope = { $or: orClauses };
-    const filter: Filter<Document> = { status: "PUBLISHED", ...tenantScope };
-    if (category) filter.category = category;
+    const baseFilter: Filter<Document> = { status: "PUBLISHED" };
+    if (category) baseFilter.category = category;
 
     // Prefer vector search if available
     let docs: Doc[] = [];
@@ -264,9 +263,9 @@ export async function POST(req: NextRequest) {
 
     if (!docs || docs.length === 0) {
       try {
-        docs = await coll
+        docs = await (/* NO_TENANT_SCOPE */ coll
           .find(
-            { ...filter, $text: { $search: question } },
+            { ...baseFilter, $or: orClauses, $text: { $search: question } },
             {
               projection: {
                 score: { $meta: "textScore" },
@@ -279,7 +278,7 @@ export async function POST(req: NextRequest) {
           )
           .sort({ score: { $meta: "textScore" } })
           .limit(Math.min(8, Math.max(1, limit)))
-          .toArray();
+          .toArray());
       } catch {
         // Fallback when text index is missing: restrict by recent updatedAt to reduce collection scan
         const safe = new RegExp(
@@ -289,17 +288,20 @@ export async function POST(req: NextRequest) {
         const cutoffDate = new Date();
         cutoffDate.setMonth(cutoffDate.getMonth() - 6);
         const regexFilter: Filter<Document> = {
-          ...filter,
+          ...baseFilter,
           updatedAt: { $gte: cutoffDate },
-          $or: [{ title: safe }, { content: safe }, { tags: safe }],
+          $and: [
+            { $or: orClauses },
+            { $or: [{ title: safe }, { content: safe }, { tags: safe }] },
+          ],
         };
-        docs = await coll
+        docs = await (/* NO_TENANT_SCOPE */ coll
           .find(regexFilter, {
             projection: { slug: 1, title: 1, content: 1, updatedAt: 1 },
           })
           .sort({ updatedAt: -1 })
           .limit(Math.min(8, Math.max(1, limit)))
-          .toArray();
+          .toArray());
       }
     }
 

@@ -36,9 +36,9 @@ export async function GET(
 
     // Find footer content for this page
     const { FooterContent } = await import("@/server/models/FooterContent");
-    const footerContent = (await FooterContent.findOne({ page })
+    const footerContent = (await (/* PLATFORM-WIDE */ FooterContent.findOne({ page })
       .lean()
-      .exec()) as {
+      .exec())) as {
       page: string;
       contentEn: string;
       contentAr: string;

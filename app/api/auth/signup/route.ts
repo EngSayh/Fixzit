@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
     const existingUser = await User.findOne({
       orgId: resolvedOrgId,
       email: normalizedEmail,
-    });
+    }).lean();
     if (existingUser) {
       return duplicateKeyError("An account with this email already exists.");
     }

@@ -85,12 +85,19 @@ export async function POST(
     }
 
     const profileCountry = onboarding.country || country || DEFAULT_COUNTRY;
-    const profile = await DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean();
+    // PLATFORM-WIDE: DocumentProfile is global configuration
+    const profile = await DocumentProfile.findOne({
+      role: onboarding.role,
+      country: profileCountry,
+    }).lean();
     if (!profile || !profile.required_doc_codes.includes(document_type_code)) {
       return NextResponse.json({ error: 'Document type not required for this role' }, { status: 400 });
     }
 
-    const docType = await DocumentType.findOne({ code: document_type_code }).lean();
+    // PLATFORM-WIDE: DocumentType is global configuration
+    const docType = await DocumentType.findOne({
+      code: document_type_code,
+    }).lean();
     if (!docType) {
       return NextResponse.json({ error: 'Unknown document type' }, { status: 400 });
     }

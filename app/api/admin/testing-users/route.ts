@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
 
     const data = parsed.data;
 
-    // Check if email or username already exists
+    // SUPER_ADMIN: testing users are platform-wide
     const existing = await TestingUser.findOne({
       $or: [
         { email: data.email.toLowerCase() },

@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upsert footer content (create if not exists, update if exists)
+    // SUPER_ADMIN: footer content is platform-wide
     const footerContent = await FooterContent.findOneAndUpdate(
       { page },
       {
@@ -157,6 +157,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      // SUPER_ADMIN: footer content is platform-wide
       const footerContent = await FooterContent.findOne({ page }).lean();
 
       if (!footerContent) {
@@ -173,7 +174,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(footerContent);
     }
 
-    // Get all footer pages
+    // SUPER_ADMIN: footer content is platform-wide
     const allContent = (await FooterContent.find(
       {},
     ).lean()) as unknown as FooterDocument[];
