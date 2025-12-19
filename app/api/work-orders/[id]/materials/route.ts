@@ -79,6 +79,7 @@ export async function POST(
       };
       save: () => Promise<void>;
     }
+    // NO_LEAN: document required for materials update and save()
     const wo = (await WorkOrder.findOne({
       _id: params.id,
       tenantId: user.tenantId,

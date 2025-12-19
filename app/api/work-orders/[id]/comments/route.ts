@@ -50,7 +50,7 @@ export async function GET(
     const user = await getSessionUser(req);
     const { id } = await props.params;
     await connectToDatabase();
-    const wo = await WorkOrder.findOne({ _id: id, orgId: user.orgId });
+    const wo = await WorkOrder.findOne({ _id: id, orgId: user.orgId }).lean();
     const communication = (
       wo as { communication?: { comments?: unknown[] } } | null
     )?.communication;
@@ -70,6 +70,7 @@ export async function POST(
     const { id } = await props.params;
     await connectToDatabase();
     const { text } = schema.parse(await req.json());
+    // NO_LEAN: document required for comment append and save()
     const wo = await WorkOrder.findOne({ _id: id, orgId: user.orgId });
     if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
     type Comment = {

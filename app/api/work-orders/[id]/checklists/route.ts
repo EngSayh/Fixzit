@@ -70,6 +70,7 @@ export async function POST(
     if (!/^[a-fA-F0-9]{24}$/.test(id)) {
       return createSecureResponse({ error: "Invalid id" }, 400, req);
     }
+    // NO_LEAN: document required for checklist updates and save()
     const wo = (await WorkOrder.findOne({
       _id: id,
       tenantId: user.tenantId,

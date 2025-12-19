@@ -77,6 +77,7 @@ export async function POST(
   const body = schema.parse(await req.json());
   const orgCandidates =
     Types.ObjectId.isValid(user.orgId) ? [user.orgId, new Types.ObjectId(user.orgId)] : [user.orgId];
+  // NO_LEAN: document required for status transition and save()
   const wo = await WorkOrder.findOne({ _id: id, orgId: { $in: orgCandidates } });
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 

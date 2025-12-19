@@ -79,7 +79,7 @@ export async function POST(
 
     const orgCandidates =
       Types.ObjectId.isValid(user.orgId) ? [user.orgId, new Types.ObjectId(user.orgId)] : [user.orgId];
-    const wo = await WorkOrder.findOne({ _id: id, orgId: { $in: orgCandidates } });
+    const wo = await WorkOrder.findOne({ _id: id, orgId: { $in: orgCandidates } }).lean();
     if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
     const now = new Date();

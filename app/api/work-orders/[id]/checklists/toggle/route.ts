@@ -60,6 +60,7 @@ export async function POST(
       }>;
       save: () => Promise<void>;
     }
+    // NO_LEAN: document required for checklist updates and save()
     const wo = (await WorkOrder.findOne({
       _id: id,
       tenantId: user.tenantId,

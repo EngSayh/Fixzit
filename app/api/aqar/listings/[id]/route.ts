@@ -347,7 +347,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Listing not found" }, { status: 404 });
     }
 
-    await (/* NO_TENANT_SCOPE */ listing.deleteOne());
+    await AqarListing.deleteOne({
+      _id: id,
+      listerId: user.id,
+      $or: [{ orgId: user.orgId }, { org_id: user.orgId }],
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
