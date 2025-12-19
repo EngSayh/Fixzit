@@ -245,7 +245,7 @@ curl -s https://fixzit.co/api/health/ready | jq '.checks'
 
 **Severity**: 🟠 High  
 **Category**: CI/CD, Infrastructure  
-**Status**: ⏳ PENDING INVESTIGATION
+**Status**: ⏳ PENDING - OWNER ACTION REQUIRED
 
 **Description**: All GitHub Actions workflows fail immediately (2-6s elapsed, 0 steps).
 
@@ -253,16 +253,21 @@ curl -s https://fixzit.co/api/health/ready | jq '.checks'
 - Workflows show X (failed) status
 - Run duration: 2-6 seconds
 - No steps executed
+- API error: "Resource not accessible by personal access token"
 
-**Possible Causes**:
-- Missing GitHub Secrets (see `docs/GITHUB_SECRETS_SETUP.md`)
-- Self-hosted runner offline
-- Workflow syntax errors
+**Investigation (2025-12-19):**
+- Workflow files are correctly structured (ci-full-suite.yml, eslint-quality.yml verified)
+- Permissions blocks present (`contents: read`, `actions: write`)
+- pnpm/node setup steps correctly configured
+- Issue appears to be GitHub-level (token permissions, billing, or runner access)
 
-**Investigation Steps**:
-1. Check GitHub Settings → Actions → Runners
-2. Verify all secrets from `docs/GITHUB_SECRETS_SETUP.md` are configured
-3. Review workflow files for syntax errors
+**Required Owner Actions**:
+1. Check GitHub Settings → Actions → General → Workflow permissions
+   - Ensure "Read and write permissions" is selected
+2. Check GitHub Settings → Billing → Actions minutes
+   - Ensure quota is not exhausted
+3. Verify repository is not restricted from running Actions
+4. Consider generating new GITHUB_TOKEN or PAT with correct scopes
 
 ---
 
