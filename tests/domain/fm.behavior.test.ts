@@ -1,13 +1,8 @@
 import { describe, it, expect } from "vitest";
 
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   canTransition,
   can,
   Role,
@@ -16,6 +11,11 @@ beforeEach(() => {
   SubmoduleKey,
   type ResourceCtx,
 } from "@/domain/fm/fm.behavior";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 describe("FM Work Order FSM transition validation", () => {
   const baseCtx: ResourceCtx = {

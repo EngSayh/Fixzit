@@ -3,14 +3,9 @@
  * Tests for LOGIC-001: Work Order SLA calculation with business hours
  */
 import { describe, it, expect } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   isBusinessHours,
   getNextBusinessDayStart,
   computeDueAtBusinessHours,
@@ -18,6 +13,11 @@ beforeEach(() => {
   DEFAULT_BUSINESS_HOURS,
   type BusinessHoursConfig,
 } from "@/lib/sla";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 describe("SLA Business Hours", () => {
   // Saudi Arabia work week: Sunday-Thursday, 8am-6pm

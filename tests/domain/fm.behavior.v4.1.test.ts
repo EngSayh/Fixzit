@@ -10,14 +10,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   Role,
   SubRole,
   Plan,
@@ -31,6 +26,11 @@ beforeEach(() => {
   type ResourceCtx,
   type DataScopeFilter,
 } from "@/domain/fm/fm.behavior";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 describe("STRICT v4.1 - Backward Compatibility", () => {
   describe("Legacy Role Aliases", () => {

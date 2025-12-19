@@ -5,17 +5,17 @@ import {
 } from "@/app/api/search/route";
 import { COLLECTIONS } from "@/lib/db/collections";
 import type { SearchEntity } from "@/config/topbar-modules";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+import {
+  WORK_ORDERS_ENTITY,
+  WORK_ORDERS_ENTITY_LEGACY,
+} from "@/config/topbar-modules";
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetTestMocks();
 });
-
-  WORK_ORDERS_ENTITY,
-  WORK_ORDERS_ENTITY_LEGACY,
-} from "@/config/topbar-modules";
 
 const EXPECTED_ENTITIES: SearchEntity[] = [
   WORK_ORDERS_ENTITY,

@@ -3,14 +3,9 @@
  * @module tests/unit/lib/utils/currency-formatter.test
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   formatCurrency,
   formatCurrencyAr,
   formatCurrencyEn,
@@ -21,6 +16,11 @@ beforeEach(() => {
   isSupportedCurrency,
   CURRENCIES,
 } from "@/lib/utils/currency-formatter";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 // Mock the tenant config
 vi.mock("@/lib/config/tenant", () => ({

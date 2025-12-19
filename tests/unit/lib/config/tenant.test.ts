@@ -3,14 +3,9 @@
  * @module tests/unit/lib/config/tenant.test
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   getTenantConfig,
   getCurrency,
   getSupportContact,
@@ -19,6 +14,11 @@ beforeEach(() => {
   clearTenantCache,
   updateTenantConfig,
 } from "@/lib/config/tenant";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 // Mock the constants module
 vi.mock("@/lib/config/constants", () => ({

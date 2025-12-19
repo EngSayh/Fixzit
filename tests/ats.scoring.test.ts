@@ -1,16 +1,16 @@
 // Import actual implementation from lib/ats/scoring (TypeScript/ESM)
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+import {
+  extractSkillsFromText,
+  calculateExperienceFromText,
+  scoreApplication,
+} from "@/lib/ats/scoring";
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetTestMocks();
 });
-
-  extractSkillsFromText,
-  calculateExperienceFromText,
-  scoreApplication,
-} from "@/lib/ats/scoring";
 
 describe("extractSkillsFromText", () => {
   it("returns empty array for empty or falsy input", () => {

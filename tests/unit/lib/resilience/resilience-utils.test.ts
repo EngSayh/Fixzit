@@ -1,18 +1,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   CircuitBreaker,
   CircuitBreakerOpenError,
   executeWithRetry,
   withTimeout,
 } from "@/lib/resilience";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 describe("executeWithRetry", () => {
   afterEach(() => {

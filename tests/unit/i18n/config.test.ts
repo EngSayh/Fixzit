@@ -1,17 +1,17 @@
 // Testing framework: Vitest
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   DEFAULT_LOCALE,
   SUPPORTED_LOCALES,
   LOCALE_META,
   Locale,
 } from "@/i18n/config";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 describe("i18n config", () => {
   describe("DEFAULT_LOCALE", () => {

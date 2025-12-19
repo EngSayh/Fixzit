@@ -3,18 +3,18 @@
  * @see lib/utils/parse.ts
  */
 import { describe, it, expect } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+import {
+  parseIntSafe,
+  parseIntFromQuery,
+  parseFloatSafe,
+} from "@/lib/utils/parse";
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetTestMocks();
 });
-
-  parseIntSafe,
-  parseIntFromQuery,
-  parseFloatSafe,
-} from "@/lib/utils/parse";
 
 describe("parseIntSafe", () => {
   it("should parse valid integers with radix 10", () => {

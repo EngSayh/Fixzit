@@ -11,17 +11,17 @@ import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { startMongoMemoryServer } from "../../helpers/mongoMemory";
 import { generateEncryptionKey, isEncrypted } from "@/lib/security/encryption";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+import {
+  setAuditContext,
+  clearAuditContext,
+} from "@/server/plugins/auditPlugin";
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetTestMocks();
 });
-
-  setAuditContext,
-  clearAuditContext,
-} from "@/server/plugins/auditPlugin";
 
 // Mock getModel to avoid model re-registration issues in tests
 vi.mock("@/types/mongoose-compat", () => ({

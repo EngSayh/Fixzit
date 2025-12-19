@@ -5,14 +5,9 @@
  * Tests response time thresholds and cache behavior for critical marketplace endpoints.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   getCached,
   setCache,
   clearCache,
@@ -20,6 +15,11 @@ beforeEach(() => {
   CACHE_DURATIONS,
   type CacheStatus,
 } from "@/lib/api/cache-headers";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 // P126: Performance thresholds in milliseconds
 const PERFORMANCE_THRESHOLDS = {

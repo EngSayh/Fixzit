@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+import {
+  sanitizeError,
+  sanitizeLogParams,
+  sanitizeValue,
+} from "@/lib/security/log-sanitizer";
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetTestMocks();
 });
-
-  sanitizeError,
-  sanitizeLogParams,
-  sanitizeValue,
-} from "@/lib/security/log-sanitizer";
 
 describe("log-sanitizer", () => {
   it("redacts known sensitive keys (including nested and camel/snake variants)", () => {

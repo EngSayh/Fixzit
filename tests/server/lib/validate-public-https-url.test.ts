@@ -1,16 +1,16 @@
 import { describe, it, expect } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+import {
+  validatePublicHttpsUrl,
+  isValidPublicHttpsUrl,
+  URLValidationError,
+} from "@/lib/security/validate-public-https-url";
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetTestMocks();
 });
-
-  validatePublicHttpsUrl,
-  isValidPublicHttpsUrl,
-  URLValidationError,
-} from "@/lib/security/validate-public-https-url";
 
 describe("validatePublicHttpsUrl - SSRF Protection v1.5 (sync validator + async boolean helper)", () => {
   describe("Valid Public HTTPS URLs", () => {

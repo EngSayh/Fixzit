@@ -16,17 +16,17 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import mongoose from "mongoose";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetTestMocks();
 });
-
-  setTenantContext,
-  clearTenantContext,
-} from "@/server/plugins/tenantIsolation";
 
 let Property: mongoose.Model<any>;
 

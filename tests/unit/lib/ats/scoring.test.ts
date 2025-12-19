@@ -3,18 +3,18 @@
 // Using ambient globals if vitest not present.
 // @ts-ignore
 import { describe, it, expect } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+import {
+  extractSkillsFromText,
+  calculateExperienceFromText,
+  scoreApplication,
+} from "@/lib/ats/scoring";
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetTestMocks();
 });
-
-  extractSkillsFromText,
-  calculateExperienceFromText,
-  scoreApplication,
-} from "@/lib/ats/scoring";
 
 describe("extractSkillsFromText", () => {
   it("returns empty array for empty or falsy input", () => {

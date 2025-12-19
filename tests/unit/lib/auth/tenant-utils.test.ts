@@ -4,14 +4,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   TenantError,
   requireOrgId,
   requireOrgIdFromUser,
@@ -20,6 +15,11 @@ beforeEach(() => {
   isValidOrgIdObjectId,
   isOrgIdAllowed,
 } from "@/lib/auth/tenant-utils";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 describe("lib/auth/tenant-utils", () => {
   describe("requireOrgId", () => {

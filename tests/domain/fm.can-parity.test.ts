@@ -33,14 +33,9 @@ import {
   computeAllowedModules as computeAllowedModulesClient,
 } from '@/domain/fm/fm.types';
 
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   computeAllowedModules as computeAllowedModulesLite,
   PLAN_GATES as LITE_PLAN_GATES,
   ROLE_ACTIONS as LITE_ROLE_ACTIONS,
@@ -49,6 +44,11 @@ beforeEach(() => {
   canClient as canLite,
   type ClientResourceCtx as LiteClientResourceCtx,
 } from '@/domain/fm/fm-lite';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 /**
  * Helper to create a minimal valid context

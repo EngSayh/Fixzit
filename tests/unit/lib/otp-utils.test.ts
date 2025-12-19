@@ -4,14 +4,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   EMPLOYEE_ID_REGEX,
   normalizeCompanyCode,
   buildOtpKey,
@@ -20,6 +15,11 @@ beforeEach(() => {
   redactMetadata,
   hashIdentifier,
 } from "@/lib/otp-utils";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
 

@@ -5,20 +5,20 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   createSMSProvider,
   getSMSProvider,
   resetSMSProvider,
   getConfiguredProviderType,
   getProvidersInfo,
 } from "@/lib/sms-providers";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 // Mock logger to prevent actual logging during tests
 vi.mock("@/lib/logger", () => ({

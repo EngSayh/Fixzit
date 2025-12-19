@@ -1,17 +1,17 @@
 import React from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+import {
+  SupportOrgProvider,
+  useSupportOrg,
+} from "@/contexts/SupportOrgContext";
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetTestMocks();
 });
-
-  SupportOrgProvider,
-  useSupportOrg,
-} from "@/contexts/SupportOrgContext";
 
 const mockSession = {
   user: {

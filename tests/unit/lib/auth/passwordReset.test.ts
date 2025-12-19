@@ -1,16 +1,16 @@
 import { describe, it, expect } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+import {
+  signPasswordResetToken,
+  verifyPasswordResetToken,
+  passwordResetLink,
+} from "@/lib/auth/passwordReset";
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetTestMocks();
 });
-
-  signPasswordResetToken,
-  verifyPasswordResetToken,
-  passwordResetLink,
-} from "@/lib/auth/passwordReset";
 
 describe("Password Reset Token", () => {
   const TEST_SECRET = "test-secret-key-12345";

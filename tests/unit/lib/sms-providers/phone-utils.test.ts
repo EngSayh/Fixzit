@@ -5,19 +5,19 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   formatSaudiPhoneNumber,
   isValidSaudiPhone,
   validateAndFormatPhone,
   redactPhoneNumber,
 } from "@/lib/sms-providers/phone-utils";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 describe("formatSaudiPhoneNumber", () => {
   it("should return E.164 format unchanged", () => {

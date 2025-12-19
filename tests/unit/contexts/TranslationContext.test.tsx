@@ -37,17 +37,17 @@ vi.mock("@/i18n/config", () => ({
   DEFAULT_LOCALE: "ar",
 }));
 
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+import {
+  TranslationProvider,
+  useTranslation,
+} from "@/contexts/TranslationContext";
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetTestMocks();
 });
-
-  TranslationProvider,
-  useTranslation,
-} from "@/contexts/TranslationContext";
 
 type TranslationModule = typeof import("@/contexts/TranslationContext");
 type TranslationContextValue = ReturnType<TranslationModule["useTranslation"]>;

@@ -11,18 +11,18 @@ vi.mock("@/lib/mongodb-unified", () => ({
   })),
 }));
 
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+import {
+  getInvoiceCounters,
+  getRevenueStats,
+  getWorkOrderStats,
+} from "@/lib/queries";
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetTestMocks();
 });
-
-  getInvoiceCounters,
-  getRevenueStats,
-  getWorkOrderStats,
-} from "@/lib/queries";
 
 describe("lib/queries KPI correctness", () => {
   beforeEach(() => {

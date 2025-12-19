@@ -1,16 +1,16 @@
 import { describe, it, expect } from "vitest";
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+import {
+  getAllCircuitBreakerMetrics,
+  getPrometheusMetrics,
+  getCircuitBreakerSummary,
+} from "@/lib/resilience/circuit-breaker-metrics";
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetTestMocks();
 });
-
-  getAllCircuitBreakerMetrics,
-  getPrometheusMetrics,
-  getCircuitBreakerSummary,
-} from "@/lib/resilience/circuit-breaker-metrics";
 
 describe("Circuit Breaker Metrics", () => {
   describe("getAllCircuitBreakerMetrics", () => {

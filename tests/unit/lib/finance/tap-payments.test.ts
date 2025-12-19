@@ -36,14 +36,9 @@ vi.mock("@/lib/tapConfig", () => ({
   assertTapConfig: vi.fn(),
 }));
 
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   buildTapCustomer,
   buildRedirectUrls,
   buildWebhookConfig,
@@ -53,6 +48,11 @@ beforeEach(() => {
   getChargeStatusMessage,
   type TapChargeResponse,
 } from "@/lib/finance/tap-payments";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 describe("TAP Payments", () => {
   const originalEnv = { ...process.env };

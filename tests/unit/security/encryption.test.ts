@@ -6,14 +6,9 @@
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import crypto from 'crypto';
-import {
 import { resetTestMocks } from "@/tests/helpers/mockDefaults";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  resetTestMocks();
-});
-
+import {
   encryptField,
   decryptField,
   encryptFields,
@@ -22,6 +17,11 @@ beforeEach(() => {
   generateEncryptionKey,
   __test__,
 } from '@/lib/security/encryption';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
 
 describe('PII Encryption Utility', () => {
   const originalEnv = process.env.ENCRYPTION_KEY;
