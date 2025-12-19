@@ -84,7 +84,7 @@ export async function PATCH(
       return createSecureResponse({ error: "Invalid id" }, 400, req);
     }
     // NO_LEAN: document required for updates and save()
-    // eslint-disable-next-line local/require-lean
+     
     const t = await SupportTicket.findOne({
       _id: id,
       $or: [

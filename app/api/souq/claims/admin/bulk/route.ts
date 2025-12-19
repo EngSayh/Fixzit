@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
       ],
     };
     // NO_LEAN: Document required for bulk updates and save().
-    // eslint-disable-next-line local/require-lean
+     
     const claims = await SouqClaim.find(claimQuery);
 
     if (claims.length === 0) {

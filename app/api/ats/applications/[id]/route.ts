@@ -109,7 +109,7 @@ export async function PATCH(
     // SEC-002 FIX: Scope Application query by orgId upfront (super admins bypass)
     const query = isSuperAdmin ? { _id: (await params).id } : { _id: (await params).id, orgId };
     // NO_LEAN: Document required for stage transition save() method
-    // eslint-disable-next-line local/require-lean
+     
     const application = await Application.findOne(query);
     if (!application) return notFoundError("Application");
 

@@ -71,7 +71,7 @@ export async function POST(
       return createSecureResponse({ error: "Invalid id" }, 400, req);
     }
     // NO_LEAN: document required for checklist updates and save()
-    // eslint-disable-next-line local/require-lean
+     
     const wo = (await WorkOrder.findOne({
       _id: id,
       tenantId: user.tenantId,

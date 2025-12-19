@@ -438,7 +438,7 @@ async function upsertTransactionFromCharge(
   }
 
   // NO_LEAN: transaction document is mutated and saved
-  // eslint-disable-next-line local/require-lean
+   
   let transaction = await TapTransaction.findOne({ chargeId: charge.id, orgId });
 
   if (!transaction) {
@@ -586,7 +586,7 @@ async function allocateInvoicePayment(
     $or: [{ orgId }, { org_id: orgId }],
   };
   // NO_LEAN: invoice document is mutated and saved
-  // eslint-disable-next-line local/require-lean
+   
   const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
   if (!invoice) {
     logger.warn("[Webhook] Invoice not found for Tap payment allocation (org-scoped)", {
@@ -666,7 +666,7 @@ async function markInvoicePaymentStatus(
     $or: [{ orgId }, { org_id: orgId }],
   };
   // NO_LEAN: invoice document is mutated and saved
-  // eslint-disable-next-line local/require-lean
+   
   const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
   if (!invoice) {
     return;
@@ -711,7 +711,7 @@ async function updateRefundRecord(
   }
 
   // NO_LEAN: transaction document is mutated and saved
-  // eslint-disable-next-line local/require-lean
+   
   const transaction = await TapTransaction.findOne({
     chargeId: refund.charge,
     orgId,
@@ -778,7 +778,7 @@ async function updateRefundRecord(
       });
     } else {
       // NO_LEAN: payment document is mutated and saved
-      // eslint-disable-next-line local/require-lean
+       
       const payment = await Payment.findOne({
         _id: transaction.paymentId,
         orgId: transaction.orgId,
@@ -806,7 +806,7 @@ async function updateRefundRecord(
         $or: [{ orgId }, { org_id: orgId }],
       };
       // NO_LEAN: invoice document is mutated and saved
-      // eslint-disable-next-line local/require-lean
+       
       const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
       if (invoice) {
         const paymentsTyped = invoice.payments as unknown as

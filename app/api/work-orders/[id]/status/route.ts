@@ -78,7 +78,7 @@ export async function POST(
   const orgCandidates =
     Types.ObjectId.isValid(user.orgId) ? [user.orgId, new Types.ObjectId(user.orgId)] : [user.orgId];
   // NO_LEAN: document required for status transition and save()
-  // eslint-disable-next-line local/require-lean
+   
   const wo = await WorkOrder.findOne({ _id: id, orgId: { $in: orgCandidates } });
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 

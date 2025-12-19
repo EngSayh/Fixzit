@@ -71,7 +71,7 @@ export async function POST(
     await connectToDatabase();
     const { text } = schema.parse(await req.json());
     // NO_LEAN: document required for comment append and save()
-    // eslint-disable-next-line local/require-lean
+     
     const wo = await WorkOrder.findOne({ _id: id, orgId: user.orgId });
     if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
     type Comment = {

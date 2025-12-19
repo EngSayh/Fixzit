@@ -16,12 +16,12 @@
 
 **Severity**: 🟨 Medium  
 **Category**: Security, Validation  
-**Status**: 🔄 IN PROGRESS (Fix applied, pending verification)
+**Status**: ✅ COMPLETED (2025-12-13 - Verified 26/26 tests pass)
 
 **Description**: `validatePublicHttpsUrl` accepted IPv6 link-local (fe80::/10) and unique-local (fc00::/7) addresses. A fix has been applied to reject these ranges, and tests now assert rejection.
 
-**Evidence**: `lib/security/validate-public-https-url.ts` (IPv6 range checks), `tests/server/lib/validate-public-https-url.test.ts` (new rejection assertions).  
-**Next Steps**: Run `pnpm vitest run tests/server/lib/validate-public-https-url.test.ts` to verify.
+**Evidence**: `lib/security/validate-public-https-url.ts` (IPv6 range checks), `tests/server/lib/validate-public-https-url.test.ts` (26/26 tests pass).  
+**Verification**: `pnpm vitest run tests/server/lib/validate-public-https-url.test.ts` → 26 passed
 
 ---
 

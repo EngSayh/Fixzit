@@ -212,7 +212,7 @@ export async function POST(request: Request) {
     }
 
     // NO_LEAN: Document required for status update and save()
-    // eslint-disable-next-line local/require-lean
+     
     const settlement = await SouqSettlement.findOne({ settlementId, orgId: resolvedOrgId });
 
     if (!settlement) {
