@@ -21,7 +21,9 @@ vi.mock("@/server/models/marketplace/Product", () => ({
     find: vi.fn().mockReturnValue({
       lean: vi.fn().mockResolvedValue([]),
     }),
-    findOne: vi.fn().mockResolvedValue(null),
+    findOne: vi.fn().mockReturnValue({
+      lean: vi.fn().mockResolvedValue(null),
+    }),
   },
 }));
 
@@ -147,7 +149,9 @@ describe("API /api/marketplace/cart", () => {
         role: "BUYER",
       });
 
-      vi.mocked(Product.findOne).mockResolvedValue(null);
+      vi.mocked(Product.findOne).mockReturnValue({
+        lean: vi.fn().mockResolvedValue(null),
+      } as never);
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/cart", {
         method: "POST",
@@ -186,7 +190,9 @@ describe("API /api/marketplace/cart", () => {
         role: "BUYER",
       });
 
-      vi.mocked(Product.findOne).mockResolvedValue(mockProduct);
+      vi.mocked(Product.findOne).mockReturnValue({
+        lean: vi.fn().mockResolvedValue(mockProduct),
+      } as never);
       vi.mocked(getOrCreateCart).mockResolvedValue({
         _id: "cart-123",
         lines: [],
@@ -217,7 +223,9 @@ describe("API /api/marketplace/cart", () => {
         role: "BUYER",
       });
 
-      vi.mocked(Product.findOne).mockResolvedValue(mockProduct);
+      vi.mocked(Product.findOne).mockReturnValue({
+        lean: vi.fn().mockResolvedValue(mockProduct),
+      } as never);
       vi.mocked(getOrCreateCart).mockResolvedValue({
         _id: "cart-123",
         lines: [{ productId: { toString: () => "prod-123" }, qty: 1, price: 100, total: 100 }],
