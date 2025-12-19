@@ -17,6 +17,7 @@ beforeEach(() => {
 function buildNotification(): NotificationPayload {
   return {
     id: "NOTIF-TEST",
+    orgId: "org-1",
     event: "onTicketCreated",
     recipients: [],
     title: "Test notification",

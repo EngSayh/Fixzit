@@ -152,21 +152,22 @@ export async function GET(req: NextRequest) {
       ];
     }
 
+    // NO_TENANT_SCOPE: ComplianceAudit is a system-wide audit log, not tenant-scoped
     const [audits, total, inProgress, upcoming, completed, highRisk] =
       await Promise.all([
-        (/* NO_TENANT_SCOPE */ ComplianceAudit.find(filter)
+        ComplianceAudit.find(filter)
           .sort({ startDate: -1 })
           .limit(limit)
-          .lean()),
-        (/* NO_TENANT_SCOPE */ ComplianceAudit.countDocuments()),
-        (/* NO_TENANT_SCOPE */ ComplianceAudit.countDocuments({
+          .lean(),
+        ComplianceAudit.countDocuments(),
+        ComplianceAudit.countDocuments({
           status: "IN_PROGRESS",
-        })),
-        (/* NO_TENANT_SCOPE */ ComplianceAudit.countDocuments({ status: "PLANNED" })),
-        (/* NO_TENANT_SCOPE */ ComplianceAudit.countDocuments({
+        }),
+        ComplianceAudit.countDocuments({ status: "PLANNED" }),
+        ComplianceAudit.countDocuments({
           status: "COMPLETED",
-        })),
-        (/* NO_TENANT_SCOPE */ ComplianceAudit.countDocuments({ riskLevel: "HIGH" })),
+        }),
+        ComplianceAudit.countDocuments({ riskLevel: "HIGH" }),
       ]);
 
     return NextResponse.json({

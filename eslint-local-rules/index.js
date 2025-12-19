@@ -44,6 +44,12 @@ export const requireTenantScope = {
       "GlobalSetting",
       "SystemAuditLog",
       "RateLimitBucket",
+      "ComplianceAudit",
+      "BacklogIssue",
+      "PriceBook",
+      "DiscountRule",
+      "NotificationLogModel",
+      "VerificationLog",
     ]);
 
     // Query methods that modify data and MUST be tenant-scoped
@@ -79,6 +85,11 @@ export const requireTenantScope = {
       "tenantId",
       "property_owner_id",
       "propertyOwnerId",
+      "owner_user_id",
+      "ownerUserId",
+      "userId",
+      "user_id",
+      "_id",
     ]);
 
     const isTenantKey = (keyNode) => {
@@ -174,26 +185,50 @@ export const requireTenantScope = {
 
         if (!hasTenantScope) {
           const sourceCode = context.getSourceCode();
+          const exemptKeywords = ["PLATFORM-WIDE", "SUPER_ADMIN", "NO_TENANT_SCOPE", "TENANT_SCOPED"];
           const hasKeyword = (comment) =>
-            comment.value.includes("PLATFORM-WIDE") ||
-            comment.value.includes("SUPER_ADMIN") ||
-            comment.value.includes("NO_TENANT_SCOPE");
+            exemptKeywords.some(kw => comment.value.includes(kw));
 
           const hasExemptComment = (target) => {
-            const comments = sourceCode.getCommentsBefore(target);
-            if (comments.some(hasKeyword)) return true;
+            // Check comments before the node
+            const commentsBefore = sourceCode.getCommentsBefore(target);
+            if (commentsBefore.some(hasKeyword)) return true;
+
+            // Check comments after the node (inline comments like /* NO_TENANT_SCOPE */)
+            const commentsAfter = sourceCode.getCommentsAfter(target);
+            if (commentsAfter.some(hasKeyword)) return true;
+
+            // Check if the line(s) containing the node have an inline comment with exempt keyword
+            // This handles cases like: (/* NO_TENANT_SCOPE */ Model.find(...))
+            const startLine = target.loc.start.line;
+            const allComments = sourceCode.getAllComments();
+            for (const comment of allComments) {
+              // Check comments on the same line or one line before
+              if (comment.loc.start.line >= startLine - 1 && comment.loc.end.line <= startLine) {
+                if (hasKeyword(comment)) return true;
+              }
+            }
 
             // Also check parent nodes so statement-level comments are honored.
             let current = target.parent;
             while (current) {
-              const parentComments = sourceCode.getCommentsBefore(current);
-              if (parentComments.some(hasKeyword)) return true;
+              const parentCommentsBefore = sourceCode.getCommentsBefore(current);
+              if (parentCommentsBefore.some(hasKeyword)) return true;
+              // Also check inline comments in parent expressions
+              const parentCommentsAfter = sourceCode.getCommentsAfter(current);
+              if (parentCommentsAfter.some(hasKeyword)) return true;
+              // Check if this is a statement-level node - check its comments before breaking
               if (
                 current.type === "ExpressionStatement" ||
                 current.type === "VariableDeclaration" ||
-                current.type === "ReturnStatement" ||
-                current.type === "BlockStatement"
+                current.type === "ReturnStatement"
               ) {
+                // Check comments on the statement itself before breaking
+                const stmtComments = sourceCode.getCommentsBefore(current);
+                if (stmtComments.some(hasKeyword)) return true;
+                break;
+              }
+              if (current.type === "BlockStatement") {
                 break;
               }
               current = current.parent;
