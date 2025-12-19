@@ -203,6 +203,7 @@ describe("Issues API Route", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.resetModules();
     findDuplicatesMock.mockResolvedValue([]);
     findByIdAndUpdateMock.mockResolvedValue(null);
     generateIssueIdMock.mockResolvedValue("ISSUE-123");

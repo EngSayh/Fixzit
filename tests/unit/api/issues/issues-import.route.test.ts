@@ -138,6 +138,7 @@ describe("Issues Import API Route", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.resetModules();
     findOneMock.mockReturnValue({
       lean: vi.fn().mockResolvedValue(null),
     });

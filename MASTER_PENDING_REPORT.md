@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T12:28:30+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T12:30:18+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** feat/mobile-cardlist-phase1  
 **Commit:** 6e02b0a96 | Origin: pending push  
-**Last Work:** P170 - Support tickets lean sweep
+**Last Work:** P171 - CRM lean sweep + targeted CRM tests
 **MongoDB Status:** 34 issues (10 open, 0 in_progress, 24 resolved)  
 **Working Tree:** DIRTY (local changes in progress)  
-**Test Count:** ⏳ Not re-run after P170 (last targeted finance vitest 33/33 at 12:24)
+**Test Count:** ✅ Targeted CRM vitest 14/14 passing — 2025-12-19 12:30
 
 ---
 
@@ -23,8 +23,8 @@
 | **Health Score** | 95/100 |
 | **Files Scanned** | 1,548 (app/ + lib/ + services/ + domain/ + tests/) |
 | **Total Issues** | 34 (10 open / 24 resolved) |
-| **Test Coverage** | Not re-run after P170; last targeted finance vitest (3 files) passing |
-| **Build Status** | ⏳ Not re-run after P170 |
+| **Test Coverage** | Targeted CRM vitest (2 files) passing; full suite not re-run |
+| **Build Status** | ✅ Targeted tests green; TS build not re-run this session |
 
 ### 🎯 Top 5 Priority Actions
 1. [x] **[SEC-002]** ✅ VERIFIED - All 17 flagged routes are SAFE (intentionally public/admin/user-scoped)
@@ -33,7 +33,7 @@
 4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[PERF-002]** ✅ RESOLVED - Added .lean() to 8+ read-only Mongoose queries (P146)
 
-### ✅ Current Session (P153-P170)
+### ✅ Current Session (P153-P171)
 1. **[P153]** ✅ HR Leaves Hardening - Added rate limiting to PUT /api/hr/leaves, Zod validation for updateStatus payload, and tests covering auth/role/validation paths.
 2. **[P154]** ✅ Superadmin UI Polish - Added getRowId for correct bulk selection; command palette updated with RTL logical spacing; skeleton table widths made deterministic to avoid hydration mismatches.
 3. **[P155]** ✅ I18n Regen - Ran `pnpm i18n:build`; regenerated flat dictionaries and bundles (31,421 keys per locale).
@@ -50,9 +50,10 @@
 14. **[P168]** ✅ Finance Lean Sweep - Added .lean() to read-only finance validation/lookups (payments, expenses, accounts, ledger activity) and verified with targeted tests.
 15. **[P169]** ✅ FM Lean Sweep - Added .lean() to Organization lookup in FM permissions context.
 16. **[P170]** ✅ Support Lean Sweep - Added .lean() to support ticket list/detail/reply lookups.
+17. **[P171]** ✅ CRM Lean Sweep - Added .lean() to CRM account share lookup; updated tests for lean chain and verified.
 
 ### ⏳ Pending – New Session Items
-- Continue .lean() audit on remaining read-only queries to hit 100% coverage across services (Aqar + Finance + FM + Support complete).
+- Continue .lean() audit on remaining read-only queries to hit 100% coverage across services (Aqar + Finance + FM + Support + CRM complete).
 - Stand up coverage reporting (c8/istanbul) with 80% threshold in CI.
 - Add Redis-backed caching for marketplace/catalog data; follow with WebSocket live updates for dashboards.
 - Add offline/PWA shell for field technicians; ensure language/currency persistence.

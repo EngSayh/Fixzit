@@ -31,11 +31,10 @@ import { createSecureResponse } from "@/server/security/headers";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   applyCacheHeaders,
-  getCached,
-  setCache,
   createCacheKey,
   CACHE_DURATIONS,
 } from "@/lib/api/cache-headers";
+import { getCache, setCache } from "@/lib/redis";
 
 const QuerySchema = z.object({
   q: z.string().optional(),
@@ -87,7 +86,7 @@ export async function GET(request: NextRequest) {
       page: query.page.toString(),
       limit: query.limit.toString(),
     });
-    const cached = getCached<{
+    const cached = await getCache<{
       items: unknown[];
       pagination: { total: number };
       facetCategories: unknown[];
@@ -100,17 +99,17 @@ export async function GET(request: NextRequest) {
       const response = NextResponse.json({
         ok: true,
         data: {
-          items: cached.data.items,
+          items: cached.items,
           pagination: {
             page: query.page,
             limit: query.limit,
-            total: cached.data.pagination.total,
-            pages: Math.ceil(cached.data.pagination.total / query.limit),
+            total: cached.pagination.total,
+            pages: Math.ceil(cached.pagination.total / query.limit),
           },
           facets: {
-            brands: cached.data.brands,
-            standards: cached.data.standards,
-            categories: cached.data.facetCategories,
+            brands: cached.brands,
+            standards: cached.standards,
+            categories: cached.facetCategories,
           },
         },
       });
@@ -168,7 +167,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Store in cache for next request
-    setCache(cacheKey, {
+    await setCache(cacheKey, {
       items,
       pagination,
       facetCategories: formattedCategories,

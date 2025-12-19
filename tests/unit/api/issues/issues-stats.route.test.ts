@@ -87,6 +87,7 @@ describe("Issues Stats API Route", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.resetModules();
     const routeModule = await import("@/app/api/issues/stats/route");
     GET = routeModule.GET;
   });

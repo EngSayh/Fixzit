@@ -18,11 +18,10 @@ import { createSecureResponse } from "@/server/security/headers";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   applyCacheHeaders,
-  getCached,
-  setCache,
   createCacheKey,
   CACHE_DURATIONS,
 } from "@/lib/api/cache-headers";
+import { getCache, setCache } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 /**
@@ -75,14 +74,17 @@ export async function GET(request: NextRequest) {
 
     // P125: Check cache first for HIT/MISS observability
     const cacheKey = createCacheKey('marketplace:categories', { orgId: context.orgId?.toString() });
-    const cached = getCached<{ serialized: unknown[]; tree: unknown[] }>(cacheKey);
+    const cached = await getCache<{
+      serialized: unknown[];
+      tree: unknown[];
+    }>(cacheKey);
 
     if (cached) {
       // Cache HIT - return cached data with proper status
       const response = NextResponse.json({
         ok: true,
-        data: cached.data.serialized,
-        tree: cached.data.tree,
+        data: cached.serialized,
+        tree: cached.tree,
       });
       return applyCacheHeaders(response, {
         cacheStatus: 'HIT',
@@ -132,7 +134,7 @@ export async function GET(request: NextRequest) {
     const tree = buildTree(undefined);
 
     // Store in cache for next request
-    setCache(cacheKey, { serialized, tree }, CACHE_DURATIONS.CATEGORIES);
+    await setCache(cacheKey, { serialized, tree }, CACHE_DURATIONS.CATEGORIES);
 
     // Return with MISS status (fresh data from DB)
     const response = NextResponse.json({
