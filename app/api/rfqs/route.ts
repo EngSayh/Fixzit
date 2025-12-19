@@ -243,7 +243,8 @@ export async function GET(req: NextRequest) {
       RFQ.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       RFQ.countDocuments(match),
     ]);
 

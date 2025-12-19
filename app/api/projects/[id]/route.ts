@@ -101,7 +101,7 @@ export async function GET(
     const project = await Project.findOne({
       _id: id,
       tenantId: user.tenantId,
-    });
+    }).lean();
 
     if (!project) {
       return createSecureResponse({ error: "Project not found" }, 404, req);

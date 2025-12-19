@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       filter.status = query.status;
     }
 
-    const orders = await Order.find(filter).sort({ createdAt: -1 }).limit(50);
+    const orders = await Order.find(filter).sort({ createdAt: -1 }).limit(50).lean();
 
     return createSecureResponse({
       ok: true,
