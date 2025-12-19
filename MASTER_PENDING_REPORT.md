@@ -5,15 +5,15 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T18:55:54+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T22:45:00+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** phase-1-onboarding-kpi-scope
-**Commit:** 260c1f9f5 (Phase 1 onboarding KPI tenant scope fix) | Origin: local
-**Last Work:** Phase 1 onboarding KPI tenant scope + expired-docs scoping
+**Commit:** 198f3ad88 (perf(PERF-001): add maxTimeMS to 15+ aggregate ops) | Origin: remote
+**Last Work:** PERF-001 - Added maxTimeMS to 15+ aggregate operations across lib/services
 **MongoDB Status:** ⚠️ Not synced this session (run scripts/import-backlog.ts)
-**Working Tree:** MODIFIED
-**Test Count:** ✅ 1 test file, 5 tests passing (onboardingKpi.service)
-**PR:** ⏳ Phase 1 PR to be created
+**Working Tree:** CLEAN
+**Test Count:** ✅ TypeScript 0 errors, ESLint 0 warnings
+**PR:** #569 (phase-1-onboarding-kpi-scope) ready for review
 
 ---
 
@@ -29,10 +29,28 @@
 
 ### 🎯 Top 5 Priority Actions
 1. [x] **[SEC-002]** ✅ VERIFIED - All 17 flagged routes are SAFE (intentionally public/admin/user-scoped)
-2. [x] **[PERF-001]** ✅ RESOLVED - maxTimeMS added to support/organizations/search (only 1 missing)
+2. [x] **[PERF-001]** ✅ RESOLVED - maxTimeMS added to 15+ aggregate operations (commit 198f3ad88)
 3. [x] **[TEST-004]** ✅ VERIFIED - All 8 POST routes have try-catch around request.json()
 4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[PERF-002]** ✅ RESOLVED - Added .lean() to 8+ read-only Mongoose queries (P146)
+
+### ✅ Current Session (P223-P224 - Dec 19 Evening)
+1. **[P223]** ✅ ESLint Rule Enhancement - Enhanced require-tenant-scope rule to check exempt comments for document methods (subscription.deleteOne, workOrderModel.findOne):
+   - Fixed hasExemptComment not being checked for instance method calls without filter
+   - Comment detection now works for multi-line call chains
+   
+2. **[P224]** ✅ PERF-001 Complete - Added maxTimeMS to 15+ aggregate operations:
+   - lib/queries.ts (getSLAWatchlist, getRevenueStats, getAttendanceSummary)
+   - lib/graphql/index.ts (Expense dashboard stats)
+   - lib/jobs/sms-sla-monitor.ts (byPriority, byType aggregates)
+   - lib/communication-logger.ts (getCommunicationStats)
+   - services/souq/claims/refund-processor.ts, claim-service.ts
+   - services/souq/buybox-service.ts, settlements/balance-service.ts
+   - services/souq/ads/campaign-service.ts
+   - services/fm/auto-assignment-engine.ts
+   - server/services/owner/analytics.ts (5 aggregates)
+   - server/finance/reporting.service.ts
+   - **Result:** All critical aggregates now have maxTimeMS:5_000-10_000 guards
 
 ### ✅ Current Session (Phase 1 Onboarding KPI Tenant Scope)
 1. **[Phase 1]** ✅ Tenant-scoped onboarding KPIs:
