@@ -70,5 +70,8 @@
   "typescript.tsserver.maxTsServerMemory": 8192,
   "typescript.tsserver.experimental.enableProjectDiagnostics": false,
   "typescript.disableAutomaticTypeAcquisition": true,
-  "typescript.preferences.includePackageJsonAutoImports": "auto"
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "terminal.integrated.env.osx": {
+    "NODE_OPTIONS": "--max-old-space-size=8192"
+  }
 }
