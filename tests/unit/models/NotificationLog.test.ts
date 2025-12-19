@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import mongoose from 'mongoose';
 
-let NotificationLogModel: mongoose.Model<any>;
-let NotificationDeadLetterModel: mongoose.Model<any>;
+let NotificationLogModel: mongoose.Model<unknown>;
+let NotificationDeadLetterModel: mongoose.Model<unknown>;
 
 const LOG_TTL_DAYS = '7';
 const DLQ_TTL_DAYS = '3';
 
-beforeEach(async () => {
+beforeAll(async () => {
   // Ensure deterministic TTLs for index assertions
   process.env.NOTIFICATION_LOG_TTL_DAYS = LOG_TTL_DAYS;
   process.env.NOTIFICATION_DLQ_TTL_DAYS = DLQ_TTL_DAYS;
@@ -24,8 +24,8 @@ beforeEach(async () => {
     mongoose.connection.deleteModel('NotificationDeadLetter');
   }
 
-  // Reload module to apply env overrides and refresh indexes
-  vi.resetModules();
+  // Load module once to apply env overrides and refresh indexes
+  // Note: vi.resetModules() removed to prevent open handle leaks (P189)
   const notificationModels = await import('@/server/models/NotificationLog');
   NotificationLogModel = notificationModels.NotificationLogModel;
   NotificationDeadLetterModel = notificationModels.NotificationDeadLetterModel;
@@ -35,6 +35,16 @@ beforeEach(async () => {
   }
   if (!NotificationDeadLetterModel?.schema) {
     throw new Error('NotificationDeadLetter model not initialized');
+  }
+});
+
+afterAll(async () => {
+  // Clean up models to prevent leaks between test files
+  if (mongoose.connection.models.NotificationLog) {
+    mongoose.connection.deleteModel('NotificationLog');
+  }
+  if (mongoose.connection.models.NotificationDeadLetter) {
+    mongoose.connection.deleteModel('NotificationDeadLetter');
   }
 });
 
