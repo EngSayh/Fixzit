@@ -218,7 +218,7 @@ export async function GET(request: NextRequest) {
 
     const settings = (await PlatformSettings.findOne({
       orgId: user.orgId,
-    })) as unknown as PlatformSettingsDocument | null;
+    }).lean()) as unknown as PlatformSettingsDocument | null;
 
     const faviconData = settings
       ? {

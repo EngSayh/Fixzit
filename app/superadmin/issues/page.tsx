@@ -207,12 +207,15 @@ function PhaseProgressSection() {
 
   if (!summary) return null;
 
+  const phaseStart = phases[0]?.id ?? "P66";
+  const phaseEnd = phases[phases.length - 1]?.id ?? "P110";
+
   return (
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-blue-500" />
-          Phase Progress (P66-P110)
+          Phase Progress ({phaseStart}-{phaseEnd})
         </CardTitle>
         <CardDescription className="text-slate-400">
           Production + continuous improvement: {summary.completed}/{summary.total} completed ({summary.completionPercentage}%)
@@ -903,7 +906,7 @@ export default function SuperadminIssuesPage() {
         </div>
       )}
 
-      {/* Phase Progress Tracking (P66-P75) */}
+      {/* Phase Progress Tracking */}
       <PhaseProgressSection />
 
       {/* Filters - Sticky */}

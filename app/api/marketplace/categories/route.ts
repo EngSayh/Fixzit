@@ -22,8 +22,10 @@ import {
   CACHE_DURATIONS,
 } from "@/lib/api/cache-headers";
 import { getCache, setCache } from "@/lib/redis";
+import { isMarketplaceEnabled, isPlaywrightTests } from "@/lib/marketplace/flags";
 
 export const dynamic = "force-dynamic";
+
 /**
  * @openapi
  * /api/marketplace/categories:
@@ -46,7 +48,7 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
-    if (process.env.MARKETPLACE_ENABLED !== "true") {
+    if (!isMarketplaceEnabled()) {
       return createSecureResponse(
         { error: "Marketplace is disabled" },
         501,
@@ -54,7 +56,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (process.env.PLAYWRIGHT_TESTS === "true") {
+    if (isPlaywrightTests()) {
       const seeded = [
         { _id: "cat-tools", name: "Tools", parentId: undefined },
         { _id: "cat-safety", name: "Safety", parentId: undefined },

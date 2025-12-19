@@ -5,23 +5,31 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Mock mongoose before everything else
+class MockObjectId {
+  value: string;
+
+  constructor(id: string) {
+    this.value = id;
+  }
+
+  toString() {
+    return this.value;
+  }
+
+  static isValid(value: string) {
+    return typeof value === "string" && /^[a-fA-F0-9]{24}$/.test(value);
+  }
+}
+
 vi.mock("mongoose", () => ({
   default: {
     Types: {
-      ObjectId: class {
-        constructor(id: string) {
-          return id;
-        }
-      },
+      ObjectId: MockObjectId,
     },
     connect: vi.fn(),
   },
   Types: {
-    ObjectId: class {
-      constructor(id: string) {
-        return id;
-      }
-    },
+    ObjectId: MockObjectId,
   },
 }));
 
@@ -212,6 +220,24 @@ describe("Issues API Route", () => {
       title: "Test Issue",
       status: "OPEN",
       orgId: "507f1f77bcf86cd799439011",
+    });
+    const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    const { getSessionOrNull } = await import("@/lib/auth/safe-session");
+    vi.mocked(getSessionOrNull).mockResolvedValue(mockSession as any);
+    const { getSuperadminSession } = await import("@/lib/superadmin/auth");
+    vi.mocked(getSuperadminSession).mockResolvedValue(null);
+    const { parseBodySafe } = await import("@/lib/api/parse-body");
+    vi.mocked(parseBodySafe).mockImplementation(async (request: { json?: () => Promise<unknown> }) => {
+      if (!request || typeof request.json !== "function") {
+        return { data: null, error: "Invalid JSON" };
+      }
+      try {
+        const data = await request.json();
+        return { data, error: null };
+      } catch {
+        return { data: null, error: "Invalid JSON" };
+      }
     });
     const routeModule = await import("@/app/api/issues/route");
     GET = routeModule.GET;

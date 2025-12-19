@@ -20,8 +20,11 @@ vi.mock("@/app/api/fm/permissions", () => ({
   }),
 }));
 
+const mockBuildTenantFilter = vi.fn();
+
 vi.mock("@/app/api/fm/utils/tenant", () => ({
   resolveTenantId: vi.fn((_req: unknown, tenantId: string) => ({ tenantId })),
+  buildTenantFilter: (...args: unknown[]) => mockBuildTenantFilter(...args),
   isCrossTenantMode: vi.fn().mockReturnValue(false),
 }));
 
@@ -69,7 +72,9 @@ const importRoute = async () => {
 describe("API /api/fm/support/tickets", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
+    mockBuildTenantFilter.mockReturnValue({ orgId: "org-123" });
   });
 
   describe("GET - List Support Tickets", () => {

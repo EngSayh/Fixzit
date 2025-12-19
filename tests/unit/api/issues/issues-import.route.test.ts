@@ -52,8 +52,20 @@ vi.mock("@/lib/superadmin/auth", () => ({
 }));
 import { mockSuperadmin } from "@/tests/helpers/superadminAuth";
 
-// Mock parse body
-vi.mock("@/lib/api/parse-body", () => ({}));
+// Mock parse body (avoid leaking undefined parseBodySafe into other suites)
+vi.mock("@/lib/api/parse-body", () => ({
+  parseBodySafe: vi.fn(async (request: { json?: () => Promise<unknown> }) => {
+    if (!request || typeof request.json !== "function") {
+      return { data: null, error: "Invalid JSON" };
+    }
+    try {
+      const data = await request.json();
+      return { data, error: null };
+    } catch {
+      return { data: null, error: "Invalid JSON" };
+    }
+  }),
+}));
 
 // Mock Issue model
 const findOneMock = vi.fn().mockReturnValue({
@@ -147,6 +159,12 @@ describe("Issues Import API Route", () => {
       _id: "new-issue-1",
       title: "Test Issue",
     });
+    const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    const { getSessionOrNull } = await import("@/lib/auth/safe-session");
+    vi.mocked(getSessionOrNull).mockResolvedValue(mockSession as any);
+    const { getSuperadminSession } = await import("@/lib/superadmin/auth");
+    vi.mocked(getSuperadminSession).mockResolvedValue(null);
     const routeModule = await import("@/app/api/issues/import/route");
     POST = routeModule.POST;
   });
@@ -208,7 +226,7 @@ describe("Issues Import API Route", () => {
         ],
       });
       const res = await POST(req);
-      expect([400, 500]).toContain(res.status);
+      expect(res.status).toBe(400);
     });
 
     it("skips duplicates when option is enabled", async () => {

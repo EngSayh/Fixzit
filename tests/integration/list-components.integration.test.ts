@@ -14,10 +14,27 @@ const listFiles = {
   employees: "components/hr/EmployeesList.tsx",
   invoices: "components/finance/InvoicesList.tsx",
   leaveRequests: "components/hr/LeaveRequestsList.tsx",
+  properties: "components/aqar/PropertiesList.tsx",
+  products: "components/marketplace/ProductsList.tsx",
+  claims: "components/souq/claims/ClaimList.tsx",
+  reviews: "components/seller/reviews/ReviewList.tsx",
+  violations: "components/seller/health/ViolationsList.tsx",
 } as const;
 
 const readSource = (relativePath: string) =>
   fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+
+const dataTableLists: Array<keyof typeof listFiles> = [
+  "workOrders",
+  "users",
+  "roles",
+  "auditLogs",
+  "employees",
+  "invoices",
+  "leaveRequests",
+  "properties",
+  "products",
+];
 
 describe("List Components Integration", () => {
   describe("Work Orders List", () => {
@@ -71,17 +88,47 @@ describe("List Components Integration", () => {
     });
   });
 
+  describe("Marketplace/Aqar Lists", () => {
+    it("should render PropertiesList with DataTableStandard", () => {
+      const source = readSource(listFiles.properties);
+      expect(source).toContain("DataTableStandard");
+    });
+
+    it("should render ProductsList with DataTableStandard", () => {
+      const source = readSource(listFiles.products);
+      expect(source).toContain("DataTableStandard");
+    });
+  });
+
+  describe("Souq/Seller Lists", () => {
+    it("should render ClaimList with table structure", () => {
+      const source = readSource(listFiles.claims);
+      expect(source).toContain("TableHeader");
+      expect(source).toContain("TableRow");
+    });
+
+    it("should render ReviewList with ReviewCard entries", () => {
+      const source = readSource(listFiles.reviews);
+      expect(source).toContain("ReviewCard");
+    });
+
+    it("should render ViolationsList as a mapped list", () => {
+      const source = readSource(listFiles.violations);
+      expect(source).toContain("violations.map");
+    });
+  });
+
   describe("Consistency Checks", () => {
-    it("all lists reference DataTableStandard", () => {
-      const sources = Object.values(listFiles).map((file) => readSource(file));
+    it("DataTableStandard lists include the shared table component", () => {
+      const sources = dataTableLists.map((key) => readSource(listFiles[key]));
       const dataTableCount = sources.filter((src) =>
         src.includes("DataTableStandard")
       ).length;
-      expect(dataTableCount).toBe(Object.keys(listFiles).length);
+      expect(dataTableCount).toBe(dataTableLists.length);
     });
 
     it("filter components are reused across lists", () => {
-      const sources = Object.values(listFiles).map((file) => readSource(file));
+      const sources = dataTableLists.map((key) => readSource(listFiles[key]));
       const hasFilters = sources.some((src) =>
         ["TableFilterDrawer", "ActiveFiltersChips", "FacetMultiSelect"].some((token) =>
           src.includes(token)

@@ -121,7 +121,7 @@
     "fixzit:agent": "node scripts/fixzit-agent.mjs --report --port 3000 --keepAlive true --limit=0",
     "fixzit:agent:apply": "node scripts/fixzit-agent.mjs --apply --report --port 3000 --keepAlive true --limit=0",
     "fixzit:agent:stop": "node scripts/stop-dev.js",
-    "qa": "mkdir -p reports && pnpm lint && pnpm typecheck && pnpm vitest run --reporter=dot 2>&1 | tee reports/vitest-latest.log",
+    "qa": "mkdir -p reports && pnpm lint && pnpm typecheck && pnpm vitest run --reporter=dot --coverage 2>&1 | tee reports/vitest-latest.log",
     "guard:ci:critical": "tsx scripts/ci/check-critical-env.ts",
     "verify:gate": "npm run typecheck && npm run lint && npm run scan:i18n && npm run test:e2e",
     "test:headed": "bash scripts/run-playwright.sh --headed",

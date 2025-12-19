@@ -36,6 +36,12 @@ describe("EmployeeService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(Employee.findOneAndUpdate).mockReturnValue({
+      exec: vi.fn().mockResolvedValue(null),
+    } as unknown as ReturnType<typeof Employee.findOneAndUpdate>);
+    vi.mocked(AttendanceRecord.findOneAndUpdate).mockReturnValue({
+      exec: vi.fn().mockResolvedValue(null),
+    } as unknown as ReturnType<typeof AttendanceRecord.findOneAndUpdate>);
   });
 
   describe("getById", () => {

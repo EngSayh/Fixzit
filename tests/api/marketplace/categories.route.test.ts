@@ -37,8 +37,14 @@ vi.mock("@/lib/marketplace/serializers", () => ({
   serializeCategory: vi.fn((cat) => cat),
 }));
 
+vi.mock("@/lib/marketplace/flags", () => ({
+  isMarketplaceEnabled: vi.fn(),
+  isPlaywrightTests: vi.fn(),
+}));
+
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { isMarketplaceEnabled, isPlaywrightTests } from "@/lib/marketplace/flags";
 
 const loadHandler = async () => {
   const { GET } = await import("@/app/api/marketplace/categories/route");
@@ -48,9 +54,9 @@ const loadHandler = async () => {
 describe("API /api/marketplace/categories", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
-    // Reset environment
-    process.env.MARKETPLACE_ENABLED = "true";
+    vi.mocked(isMarketplaceEnabled).mockReturnValue(true);
+    vi.mocked(isPlaywrightTests).mockReturnValue(false);
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     vi.mocked(resolveMarketplaceContext).mockResolvedValue({
       tenantKey: "test-tenant",
       orgId: new Types.ObjectId(),
@@ -61,14 +67,14 @@ describe("API /api/marketplace/categories", () => {
   });
 
   describe("GET - List Categories", () => {
-    it("returns categories when marketplace is disabled", async () => {
-      process.env.MARKETPLACE_ENABLED = "false";
+    it("returns 501 when marketplace is disabled", async () => {
+      vi.mocked(isMarketplaceEnabled).mockReturnValue(false);
       const GET = await loadHandler();
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/categories");
       const res = await GET(req);
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(501);
     });
 
     it("returns 429 when rate limit exceeded", async () => {

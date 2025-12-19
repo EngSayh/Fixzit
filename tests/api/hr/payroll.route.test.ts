@@ -80,12 +80,14 @@ describe("API /api/hr/payroll/runs", () => {
   };
 
   beforeEach(() => {
-    sessionUser = null;
+    vi.resetModules();
     vi.clearAllMocks();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     sessionUser = mockUser;
     vi.mocked(hasAllowedRole).mockReturnValue(true);
+    vi.mocked(PayrollService.list).mockResolvedValue([] as never);
     vi.mocked(PayrollService.existsOverlap).mockResolvedValue(false);
+    vi.mocked(parseBodyOrNull).mockResolvedValue(null as never);
   });
 
   describe("GET - List Payroll Runs", () => {

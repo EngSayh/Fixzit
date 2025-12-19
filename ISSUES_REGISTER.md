@@ -16,12 +16,12 @@
 
 **Severity**: 🟨 Medium  
 **Category**: Security, Validation  
-**Status**: ⏳ PENDING
+**Status**: 🔄 IN PROGRESS (Fix applied, pending verification)
 
-**Description**: `validatePublicHttpsUrl` accepts IPv6 link-local (fe80::/10) and unique-local (fc00::/7) addresses. Current tests document behavior but do not enforce rejection, leaving room for private network callback exposure.
+**Description**: `validatePublicHttpsUrl` accepted IPv6 link-local (fe80::/10) and unique-local (fc00::/7) addresses. A fix has been applied to reject these ranges, and tests now assert rejection.
 
-**Evidence**: `tests/server/lib/validate-public-https-url.test.ts` (ISSUE-SEC-IPv6-001 annotations).  
-**Next Steps**: Add IPv6 range validation in `lib/security/validate-public-https-url.ts` and update tests to assert rejection.
+**Evidence**: `lib/security/validate-public-https-url.ts` (IPv6 range checks), `tests/server/lib/validate-public-https-url.test.ts` (new rejection assertions).  
+**Next Steps**: Run `pnpm vitest run tests/server/lib/validate-public-https-url.test.ts` to verify.
 
 ---
 

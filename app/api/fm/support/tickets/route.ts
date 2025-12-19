@@ -122,7 +122,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status")?.trim();
     const priority = searchParams.get("priority")?.trim();
-    const module = searchParams.get("module")?.trim();
+    const moduleParam = searchParams.get("module")?.trim();
     const q = searchParams.get("q")?.trim();
     const pageParam = Number(searchParams.get("page") ?? "1");
     const limitParam = Number(searchParams.get("limit") ?? "50");
@@ -138,7 +138,7 @@ export async function GET(req: NextRequest) {
     const query: Record<string, unknown> = { ...buildTenantFilter(tenantId) };
     if (status) query.status = status;
     if (priority) query.priority = priority;
-    if (module) query.module = module;
+    if (moduleParam) query.module = moduleParam;
     if (q) {
       const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = { $regex: escaped, $options: "i" };

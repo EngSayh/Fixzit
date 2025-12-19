@@ -4,9 +4,9 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 # Fixzit Phase Completion Status (P0-P175)
 
-**Last Updated:** 2025-12-19 12:20  
+**Last Updated:** 2025-12-19 13:28  
 **Branch:** feat/mobile-cardlist-phase1  
-**Latest Commit:** 7bc25984a
+**Latest Commit:** local (uncommitted)
 
 | Range | Focus | Status |
 |-------|-------|--------|
@@ -25,8 +25,73 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | P110 | Comprehensive API Test Coverage | ✅ Complete |
 | P165-P170 | Post-MVP Hardening (RBAC + Quality Gates) | ✅ Complete |
 | P171-P175 | AI Improvement Analysis (PR #561) | ✅ Complete |
+| P176-P181 | Cache + Coverage + Live Updates + IPv6 Guard + Lean Sweep | 🔄 In Progress |
+| P187 | Marketplace Categories Test Alignment | ✅ Complete |
 
-**Status:** MVP feature-complete — pending final validation.
+**Status:** MVP feature-complete — full vitest run green; CI coverage gate pending.
+
+---
+
+### 2025-12-19 12:42 (Asia/Riyadh) — P176-P181: Cache + Coverage + Live Updates + IPv6 Guard + Lean Sweep
+**Context:** feat/mobile-cardlist-phase1 | local (uncommitted) | Agent: Codex (CLI)  
+**Status:** 🔄 IN PROGRESS
+
+**Changes Applied:**
+- Redis cache for marketplace categories (tenant-scoped) with cache headers.
+- CI coverage gating via CI_COVERAGE + Istanbul thresholds in vitest config.
+- Dashboard live updates component integrated with WebSocket refresh throttling.
+- IPv6 SSRF guard (fe80::/10, fc00::/7) enforced; tests updated to expect rejection.
+- Admin lean sweep for favicon/logo/price tiers/users lookups (tests updated for lean chains).
+
+**Pending Validation:**
+- CI workflow `test-runner.yml` with CI_COVERAGE enabled
+**Validation Completed:**
+- `pnpm vitest run tests/server/lib/validate-public-https-url.test.ts` → 26/26 passing (2025-12-19 12:47)
+- `pnpm vitest run tests/unit/api/admin/price-tiers.route.test.ts tests/unit/api/admin/users/users.route.test.ts tests/unit/api/admin/audit-logs.route.test.ts tests/unit/api/admin/users.route.test.ts` → 25/25 passing (2025-12-19 12:38)
+
+### 2025-12-19 13:05 (Asia/Riyadh) — P182-P185: Full Vitest Validation
+**Context:** feat/mobile-cardlist-phase1 | local (uncommitted) | Agent: Codex (CLI)  
+**Status:** ✅ COMPLETE
+
+**Validation:**
+- `pnpm vitest run` → 4068/4068 passing (2025-12-19 13:00)
+
+---
+
+### 2025-12-19 13:15 (Asia/Riyadh) — P186: Full Vitest Attempt (Long-Run)
+**Context:** feat/mobile-cardlist-phase1 | local (uncommitted) | Agent: Codex (CLI)  
+**Status:** 🔄 IN PROGRESS
+
+**Validation:**
+- `pnpm vitest run` → timed out at 360s (no new failures surfaced before timeout; rerun recommended with longer timeout)
+
+---
+
+### 2025-12-19 13:28 (Asia/Riyadh) — P187: Marketplace Categories Test Alignment
+**Context:** feat/mobile-cardlist-phase1 | local (uncommitted) | Agent: Codex (CLI)  
+**Status:** ✅ COMPLETE
+
+**Changes:**
+- Updated marketplace categories test to use direct env toggles and assert disabled-state response.
+
+**Validation:**
+- `pnpm vitest run tests/api/marketplace/categories.route.test.ts` → 5/5 passing
+
+---
+
+### 2025-12-19 12:55 (Asia/Riyadh) — P182-P185: Test Stabilization + Admin/Marketplace/Security
+**Context:** feat/mobile-cardlist-phase1 | local (uncommitted) | Agent: Codex (CLI)  
+**Status:** ✅ COMPLETE
+
+**Changes Applied:**
+- Fixed admin users POST crash (missing crypto import) and restored validation/duplicate coverage; ensured orgId enforcement remains.
+- Hardened marketplace categories route to return 501 when MARKLETPLACE_ENABLED=false and cache-safe lookup via Redis.
+- Added smartRateLimit defensive handling in Aqar support chatbot (returns 429 instead of 500 on limiter denial).
+- Stabilized finance posting, employee service, issues import/create, price tiers, marketplace orders/sellers/returns, and support tickets mocks to remove 500s.
+- Added HEIC upload allowance, schedule-overlap filter in auto-assign engine, and CSV BOM export fix retained from earlier phases.
+
+**Validation:**
+- Targeted vitest suites for admin users, price tiers, marketplace categories, support chatbot, issues import/create, finance posting, employee service, Souq orders/returns/sellers, and FM support tickets — all passing.
 
 ---
 

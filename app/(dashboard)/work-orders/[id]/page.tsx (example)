@@ -288,6 +288,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       <div className={`flex items-center gap-2 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Logo with unsaved changes handler */}
         <button
+          type="button"
           onClick={handleLogoClick}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           aria-label="Go to home"
@@ -313,7 +314,11 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       
       {/* Mobile search button */}
       {screenInfo.isMobile && (
-        <button className="p-2 hover:bg-white/10 rounded-md" onClick={() => {/* Mobile search modal */}}>
+        <button
+          type="button"
+          className="p-2 hover:bg-white/10 rounded-md"
+          onClick={() => {/* Mobile search modal */}}
+        >
           <Search className="w-4 h-4" />
         </button>
       )}
@@ -326,6 +331,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
         {isAuthenticated && (
           <div className="notification-container relative">
             <button
+              type="button"
               onClick={() => {
                 setUserOpen(false); // Close user menu when opening notifications
                 setNotifOpen(!notifOpen);
@@ -360,6 +366,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setNotifOpen(false)}
                   className="p-1 hover:bg-gray-100 rounded-full"
                   aria-label="Close notifications"
@@ -441,7 +448,8 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
           </div>
         )}
         <div className="user-menu-container relative">
-          <button 
+          <button
+            type="button"
             onClick={() => {
               setNotifOpen(false); // Close notifications when opening user menu
               setUserOpen(!userOpen);
@@ -525,18 +533,21 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
               </p>
               <div className="flex gap-3 justify-end">
                 <button
+                  type="button"
                   onClick={() => setShowUnsavedDialog(false)}
                   className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                 >
                   {t('common.cancel', 'Cancel')}
                 </button>
                 <button
+                  type="button"
                   onClick={handleDiscardAndNavigate}
                   className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
                 >
                   {t('common.discard', 'Discard')}
                 </button>
                 <button
+                  type="button"
                   onClick={handleSaveAndNavigate}
                   className="px-4 py-2 bg-primary text-white hover:bg-primary-dark rounded-md transition-colors"
                 >

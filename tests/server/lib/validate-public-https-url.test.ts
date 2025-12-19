@@ -260,13 +260,9 @@ describe("validatePublicHttpsUrl - SSRF Protection v1.5 (sync validator + async 
         "https://[fe80::1234:5678:abcd:ef01]",
       ];
 
-      // ISSUE-SEC-IPv6-001: Reject fe80::/10 link-local range (currently syntax-only validation).
-      // Currently these pass syntax validation but would fail DNS resolution.
-      // Documenting current behavior - enhancement tracked separately.
       for (const url of linkLocal) {
-        // Just verify the URL is handled without crashing
-        const result = await isValidPublicHttpsUrl(url);
-        expect(typeof result).toBe("boolean");
+        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(false);
       }
     });
 
@@ -277,13 +273,9 @@ describe("validatePublicHttpsUrl - SSRF Protection v1.5 (sync validator + async 
         "https://[fdab:cdef:1234::1]",
       ];
 
-      // ISSUE-SEC-IPv6-001: Reject fc00::/7 unique-local range (currently syntax-only validation).
-      // Currently these pass syntax validation but would fail DNS resolution.
-      // Documenting current behavior - enhancement tracked separately.
       for (const url of uniqueLocal) {
-        // Just verify the URL is handled without crashing
-        const result = await isValidPublicHttpsUrl(url);
-        expect(typeof result).toBe("boolean");
+        expect(() => validatePublicHttpsUrl(url)).toThrow(URLValidationError);
+        await expect(isValidPublicHttpsUrl(url)).resolves.toBe(false);
       }
     });
 

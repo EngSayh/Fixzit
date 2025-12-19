@@ -109,17 +109,16 @@ export class JobQueue {
     try {
       const db = await getDatabase();
       const collection = db.collection<Job>(COLLECTION);
+      // PLATFORM-WIDE: job queue is system-wide (no tenant scope).
+      const jobFilter = { _id: new ObjectId(jobId) };
 
-      await collection.updateOne(
-        { _id: new ObjectId(jobId) },
-        {
-          $set: {
-            status: "completed",
-            processedAt: new Date(),
-            updatedAt: new Date(),
-          },
+      await collection.updateOne(jobFilter, {
+        $set: {
+          status: "completed",
+          processedAt: new Date(),
+          updatedAt: new Date(),
         },
-      );
+      });
 
       logger.info("Job completed", { jobId });
     } catch (error) {
@@ -134,8 +133,11 @@ export class JobQueue {
     try {
       const db = await getDatabase();
       const collection = db.collection<Job>(COLLECTION);
+      // PLATFORM-WIDE: job queue is system-wide (no tenant scope).
+      const jobFilter = { _id: new ObjectId(jobId) };
 
-      const job = await collection.findOne({ _id: new ObjectId(jobId) });
+      // eslint-disable-next-line local/require-lean -- NO_LEAN: native MongoDB driver returns plain objects.
+      const job = await collection.findOne(jobFilter);
 
       if (!job) {
         logger.warn("Job not found for failure update", { jobId });
@@ -146,17 +148,14 @@ export class JobQueue {
       // Otherwise, set back to queued for retry
       const status = job.attempts >= job.maxAttempts ? "failed" : "queued";
 
-      await collection.updateOne(
-        { _id: new ObjectId(jobId) },
-        {
-          $set: {
-            status,
-            error,
-            updatedAt: new Date(),
-            ...(status === "failed" && { processedAt: new Date() }),
-          },
+      await collection.updateOne(jobFilter, {
+        $set: {
+          status,
+          error,
+          updatedAt: new Date(),
+          ...(status === "failed" && { processedAt: new Date() }),
         },
-      );
+      });
 
       logger.error("Job failed", new Error(error), {
         jobId,
@@ -178,21 +177,21 @@ export class JobQueue {
 
       const cutoffTime = new Date(Date.now() - timeoutMinutes * 60 * 1000);
 
-      const result = await collection.updateMany(
-        {
-          status: "processing",
-          updatedAt: { $lt: cutoffTime },
-          $expr: {
-            $lt: ["$attempts", { $ifNull: ["$maxAttempts", MAX_ATTEMPTS] }],
-          },
+      // PLATFORM-WIDE: job queue is system-wide (no tenant scope).
+      const retryFilter = {
+        status: "processing" as const,
+        updatedAt: { $lt: cutoffTime },
+        $expr: {
+          $lt: ["$attempts", { $ifNull: ["$maxAttempts", MAX_ATTEMPTS] }],
         },
-        {
-          $set: {
-            status: "queued",
-            updatedAt: new Date(),
-          },
+      };
+
+      const result = await collection.updateMany(retryFilter as Parameters<typeof collection.updateMany>[0], {
+        $set: {
+          status: "queued",
+          updatedAt: new Date(),
         },
-      );
+      });
 
       if (result.modifiedCount > 0) {
         logger.info("Retried stuck jobs", { count: result.modifiedCount });
@@ -219,12 +218,21 @@ export class JobQueue {
       const db = await getDatabase();
       const collection = db.collection<Job>(COLLECTION);
 
+      // PLATFORM-WIDE: job queue is system-wide (no tenant scope).
+      const filters = {
+        queued: { status: "queued" as const },
+        processing: { status: "processing" as const },
+        completed: { status: "completed" as const },
+        failed: { status: "failed" as const },
+        total: {},
+      };
+
       const [queued, processing, completed, failed, total] = await Promise.all([
-        collection.countDocuments({ status: "queued" }),
-        collection.countDocuments({ status: "processing" }),
-        collection.countDocuments({ status: "completed" }),
-        collection.countDocuments({ status: "failed" }),
-        collection.countDocuments(),
+        collection.countDocuments(filters.queued),
+        collection.countDocuments(filters.processing),
+        collection.countDocuments(filters.completed),
+        collection.countDocuments(filters.failed),
+        collection.countDocuments(filters.total),
       ]);
 
       return { queued, processing, completed, failed, total };
@@ -244,10 +252,13 @@ export class JobQueue {
 
       const cutoffDate = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000);
 
-      const result = await collection.deleteMany({
-        status: { $in: ["completed", "failed"] },
+      // PLATFORM-WIDE: job queue is system-wide (no tenant scope).
+      const cleanupFilter = {
+        status: { $in: ["completed", "failed"] as const },
         updatedAt: { $lt: cutoffDate },
-      });
+      };
+
+      const result = await collection.deleteMany(cleanupFilter as Parameters<typeof collection.deleteMany>[0]);
 
       if (result.deletedCount > 0) {
         logger.info("Cleaned up old jobs", { count: result.deletedCount });

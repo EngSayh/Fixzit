@@ -39,6 +39,11 @@ vi.mock("mongoose", () => {
     }),
   });
 
+  const mockObjectId = Object.assign(
+    vi.fn((id?: string) => ({ toString: () => id ?? "mock-id" })),
+    { isValid: vi.fn((value?: string) => typeof value === "string" && /^[a-fA-F0-9]{24}$/.test(value)) },
+  );
+
   return {
     default: {
       Schema: vi.fn(),
@@ -46,7 +51,9 @@ vi.mock("mongoose", () => {
         find: mockFind,
       }),
       models: {},
+      Types: { ObjectId: mockObjectId },
     },
+    Types: { ObjectId: mockObjectId },
   };
 });
 

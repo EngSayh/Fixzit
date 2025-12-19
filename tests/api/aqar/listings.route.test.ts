@@ -83,6 +83,7 @@ const importRoute = async () => {
 describe("API /api/aqar/listings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
     // Reset rate limit mock to allow requests through
     vi.mocked(enforceRateLimit).mockReturnValue(null);
   });

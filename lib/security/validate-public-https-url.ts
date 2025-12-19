@@ -25,6 +25,20 @@ const PRIVATE_RANGES = [
   /^172\.(1[6-9]|2\d|3[01])\.(\d{1,3}\.)\d{1,3}$/, // 172.16.0.0/12
 ];
 
+function normalizeHost(hostname: string): string {
+  return hostname.replace(/^\[|\]$/g, "").toLowerCase();
+}
+
+function getIPv6FirstHextet(hostname: string): number | null {
+  const normalized = normalizeHost(hostname);
+  if (!normalized.includes(":")) return null;
+  const withoutZone = normalized.split("%")[0];
+  const firstSegment = withoutZone.split(":")[0];
+  if (!firstSegment) return null;
+  const parsed = Number.parseInt(firstSegment, 16);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
 function isIPv4(hostname: string): boolean {
   const ipv4 = hostname.match(
     /^(?<a>\d{1,3})\.(?<b>\d{1,3})\.(?<c>\d{1,3})\.(?<d>\d{1,3})$/,
@@ -36,7 +50,7 @@ function isIPv4(hostname: string): boolean {
 }
 
 function isLocalhost(hostname: string): boolean {
-  const normalized = hostname.toLowerCase();
+  const normalized = normalizeHost(hostname);
   return (
     normalized === "localhost" ||
     normalized === "127.0.0.1" ||
@@ -56,6 +70,16 @@ function isLinkLocal(hostname: string): boolean {
   return hostname.startsWith("169.254.");
 }
 
+function isIPv6LinkLocal(hostname: string): boolean {
+  const hextet = getIPv6FirstHextet(hostname);
+  return hextet !== null && hextet >= 0xfe80 && hextet <= 0xfebf;
+}
+
+function isIPv6UniqueLocal(hostname: string): boolean {
+  const hextet = getIPv6FirstHextet(hostname);
+  return hextet !== null && hextet >= 0xfc00 && hextet <= 0xfdff;
+}
+
 export function validatePublicHttpsUrl(urlString: string): URL {
   let parsed: URL;
   try {
@@ -68,13 +92,18 @@ export function validatePublicHttpsUrl(urlString: string): URL {
     throw new URLValidationError(HTTPS_MESSAGE);
   }
 
-  const host = parsed.hostname.toLowerCase();
+  const host = normalizeHost(parsed.hostname);
 
   if (isLocalhost(host)) {
     throw new URLValidationError(LOCALHOST_MESSAGES);
   }
 
-  if (isPrivateIp(host) || isLinkLocal(host)) {
+  if (
+    isPrivateIp(host) ||
+    isLinkLocal(host) ||
+    isIPv6LinkLocal(host) ||
+    isIPv6UniqueLocal(host)
+  ) {
     throw new URLValidationError(PRIVATE_IP_MESSAGE);
   }
 

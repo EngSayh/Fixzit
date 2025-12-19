@@ -58,6 +58,7 @@ export default defineConfig({
   test: {
     coverage: {
       provider: "istanbul",
+      enabled: process.env.CI_COVERAGE === "true",
       reportsDirectory: "coverage",
       reporter: ["text", "json-summary", "lcov"],
       thresholds: {

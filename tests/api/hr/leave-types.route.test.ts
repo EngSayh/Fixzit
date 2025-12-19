@@ -72,6 +72,7 @@ describe("API /api/hr/leave-types", () => {
   };
 
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     sessionUser = mockUser;

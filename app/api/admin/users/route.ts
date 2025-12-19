@@ -14,6 +14,7 @@
  * @throws {401} If not authenticated
  * @throws {403} If not SUPER_ADMIN
  */
+import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { auth } from "@/auth";
@@ -302,7 +303,7 @@ export async function POST(request: NextRequest) {
     const existing = await UserModel.findOne({
       orgId,  // ✅ Validated above
       $or: [{ email: body.email }, { username: body.username }],
-    });
+    }).lean();
 
     if (existing) {
       return NextResponse.json(

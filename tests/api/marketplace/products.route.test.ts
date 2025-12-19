@@ -53,12 +53,17 @@ vi.mock("@/lib/marketplace/objectIds", () => ({
   objectIdFrom: vi.fn((id) => id),
 }));
 
+vi.mock("@/lib/marketplace/flags", () => ({
+  isMarketplaceEnabled: vi.fn(),
+}));
+
+import { isMarketplaceEnabled } from "@/lib/marketplace/flags";
 import { GET, POST } from "@/app/api/marketplace/products/route";
 
 describe("API /api/marketplace/products", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.MARKETPLACE_ENABLED = "true";
+    vi.mocked(isMarketplaceEnabled).mockReturnValue(true);
     // Reset mocks to default behavior
     mockEnforceRateLimit.mockReturnValue(null);
     mockResolveMarketplaceContext.mockResolvedValue({
@@ -77,7 +82,7 @@ describe("API /api/marketplace/products", () => {
 
   describe("GET - List Products", () => {
     it("returns 501 when marketplace is disabled", async () => {
-      process.env.MARKETPLACE_ENABLED = "false";
+      vi.mocked(isMarketplaceEnabled).mockReturnValue(false);
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/products");
       const res = await GET(req);
@@ -109,7 +114,7 @@ describe("API /api/marketplace/products", () => {
 
   describe("POST - Create Product", () => {
     it("returns 501 when marketplace is disabled", async () => {
-      process.env.MARKETPLACE_ENABLED = "false";
+      vi.mocked(isMarketplaceEnabled).mockReturnValue(false);
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/products", {
         method: "POST",

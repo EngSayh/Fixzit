@@ -26,6 +26,7 @@ import {
   applyCacheHeaders,
 } from "@/lib/api/cache-headers";
 import { CacheTTL, getCache, invalidateCache, setCache } from "@/lib/redis";
+import { isMarketplaceEnabled } from "@/lib/marketplace/flags";
 
 const ADMIN_ROLES = new Set([
   "SUPER_ADMIN",
@@ -96,7 +97,7 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
-    if (process.env.MARKETPLACE_ENABLED !== "true") {
+    if (!isMarketplaceEnabled()) {
       return createSecureResponse(
         { error: "Marketplace endpoint not available in this deployment" },
         501,
@@ -207,7 +208,7 @@ export async function POST(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
-    if (process.env.MARKETPLACE_ENABLED !== "true") {
+    if (!isMarketplaceEnabled()) {
       return createSecureResponse(
         { error: "Marketplace endpoint not available in this deployment" },
         501,

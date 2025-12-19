@@ -36,7 +36,8 @@ const mockFind = vi.fn(() => ({
   })),
 }));
 const mockCountDocuments = vi.fn(async () => mockUsers.length);
-const mockFindOne = vi.fn(async () => mockExistingUser);
+const mockFindOneLean = vi.fn(async () => mockExistingUser);
+const mockFindOne = vi.fn(() => ({ lean: mockFindOneLean }));
 const mockCreate = vi.fn(async (data: Record<string, unknown>) => ({
   ...data,
   _id: new ObjectId(),
@@ -51,6 +52,12 @@ vi.mock("mongoose", () => ({
     create: mockCreate,
   })),
   models: { User: undefined },
+  Types: {
+    ObjectId: Object.assign(
+      vi.fn((id?: string) => ({ toString: () => id ?? "mock-id" })),
+      { isValid: vi.fn((value?: string) => typeof value === "string" && /^[a-fA-F0-9]{24}$/.test(value)) },
+    ),
+  },
 }));
 
 vi.mock("bcryptjs", () => ({
@@ -274,7 +281,7 @@ describe("POST /api/admin/users", () => {
   describe("Duplicate Prevention", () => {
     it("returns 409 when user with email exists", async () => {
       mockExistingUser = { email: "new@test.com", username: "existing" };
-      mockFindOne.mockResolvedValueOnce(mockExistingUser);
+      mockFindOneLean.mockResolvedValueOnce(mockExistingUser);
       const res = await POST(
         createPostRequest({
           email: "new@test.com",
@@ -290,7 +297,7 @@ describe("POST /api/admin/users", () => {
 
   describe("Successful Creation", () => {
     it("returns 201 with created user", async () => {
-      mockFindOne.mockResolvedValueOnce(null);
+      mockFindOneLean.mockResolvedValueOnce(null);
       const res = await POST(
         createPostRequest({
           email: "new@test.com",
@@ -307,7 +314,7 @@ describe("POST /api/admin/users", () => {
     });
 
     it("hashes password before storing", async () => {
-      mockFindOne.mockResolvedValueOnce(null);
+      mockFindOneLean.mockResolvedValueOnce(null);
       await POST(
         createPostRequest({
           email: "new@test.com",
@@ -321,7 +328,7 @@ describe("POST /api/admin/users", () => {
     });
 
     it("assigns orgId from session", async () => {
-      mockFindOne.mockResolvedValueOnce(null);
+      mockFindOneLean.mockResolvedValueOnce(null);
       await POST(
         createPostRequest({
           email: "new@test.com",

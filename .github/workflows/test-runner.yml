@@ -40,6 +40,7 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=8192
       NODE_ENV: test
       CI: true
+      CI_COVERAGE: "true"
       # Auth secrets from GitHub Secrets (fallback to deterministic test values)
       JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-secret-key-for-ci-tests-minimum-32-characters' }}
       NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'test-nextauth-secret-for-ci-tests-32-chars' }}
