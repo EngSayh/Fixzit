@@ -116,6 +116,7 @@ export async function PATCH(
     doc.verified_by_id = new Types.ObjectId(user.id);
     await doc.save();
 
+    // AUDIT_LOG: document review is system-level audit trail (scoped via document_id)
     await VerificationLog.create({
       document_id: doc._id,
       action: 'STATUS_CHANGE',
@@ -125,6 +126,7 @@ export async function PATCH(
 
     if (decision === 'VERIFIED') {
       const profileCountry = onboarding.country || 'SA';
+      // PLATFORM-WIDE: DocumentProfile is global configuration; VerificationDocument scoped via onboarding_case_id
       const [profile, docs] = await Promise.all([
         DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean(),
         VerificationDocument.find({ onboarding_case_id: onboarding._id }).lean(),

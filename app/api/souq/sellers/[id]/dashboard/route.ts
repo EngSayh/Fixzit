@@ -84,7 +84,7 @@ export async function GET(
       sellerQuery.orgId = orgId;
     }
 
-    const seller = await SouqSeller.findOne(sellerQuery);
+    const seller = await SouqSeller.findOne(sellerQuery).lean();
 
     if (!seller) {
       return NextResponse.json({ error: "Seller not found" }, { status: 404 });
@@ -179,6 +179,7 @@ export async function GET(
       orgId: seller.orgId,
     });
 
+    // NO_TENANT_SCOPE: productIds derived from org-scoped listings
     const [totalReviews, pendingReviews] = await Promise.all([
       SouqReview.countDocuments({
         productId: { $in: productIds },

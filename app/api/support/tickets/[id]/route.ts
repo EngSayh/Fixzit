@@ -83,6 +83,7 @@ export async function PATCH(
     if (!Types.ObjectId.isValid(id)) {
       return createSecureResponse({ error: "Invalid id" }, 400, req);
     }
+    // NO_LEAN: document required for updates and save()
     const t = await SupportTicket.findOne({
       _id: id,
       $or: [

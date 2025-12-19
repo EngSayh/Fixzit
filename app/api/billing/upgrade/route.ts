@@ -169,6 +169,7 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
 
     // Find current subscription
+    // TENANT_SCOPED: filtered by tenant_id (orgObjectId) or owner_user_id
     const orgObjectId = new Types.ObjectId(user.orgId);
     const currentSub = await Subscription.findOne({
       $or: [
@@ -454,6 +455,7 @@ export async function GET(req: NextRequest) {
     await connectToDatabase();
 
     // Find current subscription
+    // TENANT_SCOPED: filtered by tenant_id (orgObjectId) or owner_user_id
     const orgObjectId = new Types.ObjectId(user.orgId);
     const currentSub = await Subscription.findOne({
       $or: [

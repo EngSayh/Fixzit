@@ -126,7 +126,12 @@ export async function POST(
       updateOps.$set = { status: "Open", updatedAt: new Date() };
     }
 
-    await SupportTicket.updateOne({ _id: id }, updateOps);
+    const updateFilter = {
+      _id: id,
+      $or: [{ orgId: user?.orgId }, ...creatorMatch, ...adminMatch],
+    };
+    // NO_TENANT_SCOPE: update filter mirrors access control (orgId/creator/admin)
+    await SupportTicket.updateOne(updateFilter, updateOps);
     return createSecureResponse({ ok: true }, 200, req);
   } catch (_error) {
     return createSecureResponse({ error: "Internal server error" }, 500, req);

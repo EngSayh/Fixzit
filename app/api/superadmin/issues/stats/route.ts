@@ -60,29 +60,29 @@ export async function GET(req: NextRequest) {
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ], { maxTimeMS: 10_000 }),
 
-    // By priority
+    // SUPER_ADMIN: platform-wide issue tracker - priority aggregation
     BacklogIssue.aggregate([
       { $group: { _id: '$priority', count: { $sum: 1 } } },
     ], { maxTimeMS: 10_000 }),
 
-    // By category
+    // SUPER_ADMIN: platform-wide issue tracker - category aggregation
     BacklogIssue.aggregate([
       { $group: { _id: '$category', count: { $sum: 1 } } },
     ], { maxTimeMS: 10_000 }),
 
-    // Quick wins: XS/S effort, not resolved
+    // SUPER_ADMIN: platform-wide issue tracker - quick wins
     BacklogIssue.countDocuments({
       effort: { $in: ['XS', 'S'] },
       status: { $nin: ['resolved', 'wont_fix'] },
     }),
 
-    // Stale: not updated in 30 days, still pending
+    // SUPER_ADMIN: platform-wide issue tracker - stale items
     BacklogIssue.countDocuments({
       status: 'pending',
       updatedAt: { $lt: thirtyDaysAgo },
     }),
 
-    // Recently resolved: resolved in last 7 days
+    // SUPER_ADMIN: platform-wide issue tracker - recently resolved
     BacklogIssue.countDocuments({
       status: 'resolved',
       updatedAt: { $gte: sevenDaysAgo },

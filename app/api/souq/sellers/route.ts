@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         { contactEmail: validatedData.contactEmail },
         { registrationNumber: validatedData.registrationNumber },
       ],
-    });
+    }).lean();
 
     if (existingSeller) {
       return NextResponse.json(
