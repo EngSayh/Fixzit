@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
       productId: validatedData.productId,
       sellerId: validatedData.sellerId,
       orgId: session.user.orgId,
-    });
+    }).lean();
 
     if (existingListing) {
       return NextResponse.json(

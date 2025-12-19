@@ -42,15 +42,14 @@ export async function GET(
   }
 
   try {
-    // NO_TENANT_SCOPE: user-scoped access (subject/creator) with optional orgId guard
-    const onboarding = await OnboardingCase.findOne({
+    const onboarding = await (/* NO_TENANT_SCOPE */ OnboardingCase.findOne({
       _id: params.caseId,
       $or: [
         { subject_user_id: user.id },
         { created_by_id: user.id },
         ...(user.orgId ? [{ orgId: user.orgId }] : []),
       ],
-    }).lean();
+    }).lean());
     if (!onboarding) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }

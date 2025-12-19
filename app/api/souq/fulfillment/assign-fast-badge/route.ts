@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         orgId,
       };
 
-      const listings = await SouqListing.find(listingQuery);
+      const listings = await SouqListing.find(listingQuery).lean();
 
       for (const listing of listings) {
         const result = await fulfillmentService.assignFastBadge(

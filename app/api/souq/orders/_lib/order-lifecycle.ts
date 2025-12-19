@@ -202,7 +202,7 @@ export async function handleEscrowFailure(
           : String(compensationError),
     });
     try {
-      await SouqOrder.deleteOne({ _id: order._id });
+      await SouqOrder.deleteOne({ _id: order._id, orgId: order.orgId });
       await releaseReservations(reservations);
       logger.warn("[Escrow] Order hard-deleted after escrow failure", { orderId });
     } catch (deleteError) {

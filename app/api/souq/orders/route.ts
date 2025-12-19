@@ -437,7 +437,7 @@ export async function POST(request: NextRequest) {
             compensationError: compensationError instanceof Error ? compensationError.message : String(compensationError),
           });
           try {
-            await SouqOrder.deleteOne({ _id: order._id });
+            await SouqOrder.deleteOne({ _id: order._id, orgId: order.orgId });
             await releaseReservations();
             logger.warn("[Escrow] Order hard-deleted after escrow failure", { orderId });
           } catch (deleteError) {

@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
         { orgId: { $exists: false } },
         { org_id: { $exists: false } },
       ],
-    });
+    }).lean();
     if (!category) {
       return NextResponse.json(
         { error: "Category not found" },
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
         orgId,
         isActive: true,
         "approvedCategories.categoryId": validated.categoryId,
-      });
+      }).lean();
 
       if (!seller) {
         return NextResponse.json(
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
           { orgId: { $exists: false } },
           { org_id: { $exists: false } },
         ],
-      });
+      }).lean();
       if (!brand) {
         return NextResponse.json({ error: "Brand not found" }, { status: 404 });
       }
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
           orgId,
           isActive: true,
           "approvedBrands.brandId": validated.brandId,
-        });
+        }).lean();
 
         if (!seller) {
           return NextResponse.json(
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
     const existingProduct = await SouqProduct.findOne({
       fsin: finalFsin,
       $or: [{ orgId: orgObjectId }, { org_id: orgObjectId }],
-    });
+    }).lean();
     if (existingProduct) {
       // Regenerate FSIN
       const { fsin: newFsin } = generateFSIN();

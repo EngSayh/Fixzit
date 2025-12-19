@@ -60,7 +60,7 @@ export async function GET(
     }
 
     // Get order and verify access (always scoped by orgId)
-    const order = await SouqOrder.findOne({ orderId, orgId });
+    const order = await SouqOrder.findOne({ orderId, orgId }).lean();
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }

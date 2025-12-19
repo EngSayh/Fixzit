@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
 
     // Find user's referral code - lean() returns plain object
     const referralCode = await ReferralCodeModel.findOne({
+      orgId: session.user.orgId,
       referrerId: session.user.id,
       status: "ACTIVE",
     }).lean();

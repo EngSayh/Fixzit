@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get order and verify seller ownership
-    const order = await SouqOrder.findOne({ orderId, orgId });
+    const order = await SouqOrder.findOne({ orderId, orgId }).lean();
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const seller = await SouqSeller.findOne({ _id: session.user.id, orgId });
+    const seller = await SouqSeller.findOne({ _id: session.user.id, orgId }).lean();
     if (!seller) {
       return NextResponse.json(
         { error: "Seller profile not found" },
