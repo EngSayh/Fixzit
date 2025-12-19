@@ -110,13 +110,14 @@ export async function POST(request: NextRequest) {
       )
       .lean();
 
-    // Type-cast for service
+    // Type-cast for service - lean() returns plain objects
     type InvLean = typeof invoices[number] & {
       dueDate?: Date;
       issueDate?: Date;
       orgId?: Types.ObjectId;
       total?: number;
       currency?: string;
+      reminderHistory?: InvoiceForReminder["reminderHistory"];
     };
 
     const invoicesForReminder: InvoiceForReminder[] = (invoices as InvLean[]).map((inv) => ({
@@ -129,10 +130,10 @@ export async function POST(request: NextRequest) {
       total: inv.total || 0,
       currency: inv.currency || "SAR",
       orgId: inv.orgId || new Types.ObjectId(),
-      recipient: inv.recipient || {},
-      issuer: inv.issuer,
+      recipient: (inv.recipient || {}) as InvoiceForReminder["recipient"],
+      issuer: inv.issuer as InvoiceForReminder["issuer"],
       payments: inv.payments as InvoiceForReminder["payments"],
-      reminderHistory: inv.reminderHistory as InvoiceForReminder["reminderHistory"],
+      reminderHistory: inv.reminderHistory,
     }));
 
     // Build config
@@ -266,7 +267,7 @@ export async function GET(request: NextRequest) {
       .select("_id number type status issueDate dueDate total currency recipient payments")
       .lean();
 
-    // Type-cast for service
+    // Type-cast for service - lean() returns plain objects
     type InvLeanGet = typeof invoices[number] & {
       dueDate?: Date;
       issueDate?: Date;
@@ -285,7 +286,7 @@ export async function GET(request: NextRequest) {
       total: inv.total || 0,
       currency: inv.currency || "SAR",
       orgId: inv.orgId || new Types.ObjectId(),
-      recipient: inv.recipient || {},
+      recipient: (inv.recipient || {}) as InvoiceForReminder["recipient"],
       payments: inv.payments as InvoiceForReminder["payments"],
     }));
 

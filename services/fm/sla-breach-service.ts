@@ -286,7 +286,7 @@ async function sendBreachAlert(
 /**
  * Build recipient list for a work order based on breach level
  */
-function buildRecipientList(
+export function buildRecipientList(
   workOrder: WorkOrderForSla,
   level: SlaBreachLevel,
   managerEmails: string[] = []

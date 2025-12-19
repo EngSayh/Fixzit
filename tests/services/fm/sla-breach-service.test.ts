@@ -7,6 +7,7 @@ import {
   detectBreachLevel,
   filterAtRiskWorkOrders,
   scanForSlaBreaches,
+  buildRecipientList,
   SlaBreachService,
   type WorkOrderForSla,
 } from "@/services/fm/sla-breach-service";
@@ -153,7 +154,7 @@ describe("SlaBreachService", () => {
   describe("buildRecipientList", () => {
     it("should include assignee email", () => {
       const wo = createMockWorkOrder();
-      const recipients = SlaBreachService.buildRecipientList(wo, "approaching");
+      const recipients = buildRecipientList(wo, "approaching");
 
       expect(recipients).toHaveLength(1);
       expect(recipients[0].email).toBe("tech@example.com");
@@ -162,7 +163,7 @@ describe("SlaBreachService", () => {
 
     it("should include managers for breached work orders", () => {
       const wo = createMockWorkOrder();
-      const recipients = SlaBreachService.buildRecipientList(wo, "breached", [
+      const recipients = buildRecipientList(wo, "breached", [
         "manager@example.com",
       ]);
 
@@ -172,7 +173,7 @@ describe("SlaBreachService", () => {
 
     it("should include managers for critical work orders", () => {
       const wo = createMockWorkOrder();
-      const recipients = SlaBreachService.buildRecipientList(wo, "critical", [
+      const recipients = buildRecipientList(wo, "critical", [
         "manager1@example.com",
         "manager2@example.com",
       ]);
@@ -185,7 +186,7 @@ describe("SlaBreachService", () => {
       const wo = createMockWorkOrder({
         assignment: {},
       });
-      const recipients = SlaBreachService.buildRecipientList(wo, "approaching");
+      const recipients = buildRecipientList(wo, "approaching");
 
       expect(recipients).toHaveLength(0);
     });
@@ -194,7 +195,7 @@ describe("SlaBreachService", () => {
       const wo = createMockWorkOrder({
         assignment: {},
       });
-      const recipients = SlaBreachService.buildRecipientList(wo, "breached", [
+      const recipients = buildRecipientList(wo, "breached", [
         "manager@example.com",
       ]);
 
