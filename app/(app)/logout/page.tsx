@@ -40,6 +40,11 @@ export default function LogoutPage() {
         'fxz.access',
         'fxz.refresh',
         'fxz.otp',
+        // BUG-001 FIX: Clear impersonation context cookie on logout
+        'support_org_id',
+        // Clear superadmin session cookies
+        'superadmin_session',
+        'superadmin_session.legacy',
       ];
       try {
         const isHttps = window.location.protocol === 'https:';

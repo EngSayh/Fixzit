@@ -190,6 +190,7 @@ export function applySuperadminCookies(
 export function clearSuperadminCookies(response: Response): void {
   const respWithCookies = response as Response & { cookies?: { set: (name: string, value: string, opts: Record<string, unknown>) => void } };
   if (respWithCookies.cookies && typeof respWithCookies.cookies.set === "function") {
+    // Clear superadmin session cookies
     const cookieNames = [SUPERADMIN_COOKIE_NAME, `${SUPERADMIN_COOKIE_NAME}.legacy`];
     const cookiePaths = Array.from(new Set([SUPERADMIN_COOKIE_PATH, ...LEGACY_COOKIE_PATHS]));
 
@@ -204,6 +205,16 @@ export function clearSuperadminCookies(response: Response): void {
         });
       }
     }
+
+    // BUG-001 FIX: Also clear impersonation context cookie on logout
+    // Prevents impersonation cookie from persisting after logout
+    respWithCookies.cookies.set("support_org_id", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
   }
 }
 
