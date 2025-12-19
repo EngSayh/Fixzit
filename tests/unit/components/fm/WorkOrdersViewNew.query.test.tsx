@@ -68,6 +68,13 @@ vi.mock("@/components/common/FilterPresetsDropdown", () => ({
 
 // Component under test
 import { WorkOrdersView } from "@/components/fm/WorkOrdersViewNew";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("WorkOrdersViewNew query params", () => {
   it("includes all filter parameters in the SWR key", () => {

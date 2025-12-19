@@ -3,6 +3,13 @@ import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import WorkOrdersPage from "@/app/(fm)/fm/work-orders/page";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const mockUseSupportOrg = vi.fn();
 const workOrdersViewSpy = vi.fn();

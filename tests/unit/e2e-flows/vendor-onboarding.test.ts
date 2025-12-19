@@ -5,6 +5,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 /**
  * Vendor Onboarding State Machine

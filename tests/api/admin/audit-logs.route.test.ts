@@ -1,7 +1,6 @@
 /**
  * @fileoverview Admin Audit Logs API Route Tests
  * @description Tests for GET /api/admin/audit-logs endpoint
- * @vitest-environment node
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";

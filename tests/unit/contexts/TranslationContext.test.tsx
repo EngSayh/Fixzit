@@ -38,6 +38,13 @@ vi.mock("@/i18n/config", () => ({
 }));
 
 import {
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
   TranslationProvider,
   useTranslation,
 } from "@/contexts/TranslationContext";

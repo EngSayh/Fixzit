@@ -1,6 +1,13 @@
 import fg from "fast-glob";
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const bannedTokens = ["EngSayh", "EngSayh@1985", "EngSayh%401985"];
 const bannedDocTokens = ["EngSayh@1985", "EngSayh%401985"];

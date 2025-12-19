@@ -1,6 +1,13 @@
 import { renderHook, act } from "@testing-library/react";
 import { useDebounce, useDebounceCallback } from "@/hooks/useDebounce";
 import { vi, describe, it, expect, beforeAll, afterAll } from "vitest";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("useDebounce", () => {
   beforeAll(() => {

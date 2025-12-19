@@ -18,6 +18,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
 import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 let WorkOrder: mongoose.Model<any>;
 

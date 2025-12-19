@@ -1,5 +1,12 @@
 // Import actual implementation from lib/ats/scoring (TypeScript/ESM)
 import {
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
   extractSkillsFromText,
   calculateExperienceFromText,
   scoreApplication,

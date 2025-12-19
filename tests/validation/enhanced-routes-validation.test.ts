@@ -11,6 +11,13 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("Enhanced Routes Validation", () => {
   describe("Support Tickets Reply - Atomic Updates", () => {

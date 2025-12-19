@@ -46,6 +46,13 @@ vi.mock("@/server/utils/errorResponses", () => ({
 }));
 
 import { GET } from "@/app/api/admin/users/route";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("GET /api/admin/users filters", () => {
   beforeEach(() => {

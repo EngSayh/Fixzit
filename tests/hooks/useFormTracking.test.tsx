@@ -3,6 +3,13 @@ import { useFormTracking } from "@/hooks/useFormTracking";
 import { FormStateProvider, useFormState } from "@/contexts/FormStateContext";
 import React from "react";
 import { vi, describe, it, expect } from "vitest";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Create a wrapper component that includes the Provider
 const wrapper = ({ children }: { children: React.ReactNode }) => (

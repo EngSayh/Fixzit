@@ -5,6 +5,13 @@
 import fs from "fs";
 import path from "path";
 import { describe, it, expect } from "vitest";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const routePath = path.join(process.cwd(), "app/api/aqar/recommendations/route.ts");
 const routeSource = fs.readFileSync(routePath, "utf8");

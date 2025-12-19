@@ -1,5 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { enqueueExportJob } from "@/lib/export/export-queue";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 vi.mock("@/lib/queues/setup", () => ({
   addJob: vi.fn(async (_queue: string, _name: string, data: unknown) => ({

@@ -10,6 +10,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Test the exported types and interface contracts
 describe("Subscription Billing Service Types", () => {

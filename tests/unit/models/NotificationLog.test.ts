@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import mongoose from 'mongoose';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 let NotificationLogModel: mongoose.Model<unknown>;
 let NotificationDeadLetterModel: mongoose.Model<unknown>;

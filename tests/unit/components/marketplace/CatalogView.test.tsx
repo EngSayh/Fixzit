@@ -110,6 +110,13 @@ if ((global as { vi?: typeof import('vitest') }).vi) {
 
 // After SWR mock is set up above, import component under test
 import CatalogView from '@/components/marketplace/CatalogView'
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Utility: set SWR states for a given test
 function setSWRProducts(state: Partial<SWRProductsState>) {

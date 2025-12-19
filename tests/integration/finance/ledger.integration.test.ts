@@ -6,7 +6,6 @@
  * the full model which has many required fields and plugin dependencies.
  *
  * @module tests/integration/finance/ledger.integration.test.ts
- * @vitest-environment node
  */
 
 import {
@@ -20,6 +19,13 @@ import {
 import mongoose, { Types, Schema, type Model } from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { startMongoMemoryServer } from "../../helpers/mongoMemory";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Test org IDs
 const ORG_A_ID = new Types.ObjectId();

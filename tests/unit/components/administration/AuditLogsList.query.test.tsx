@@ -66,6 +66,13 @@ vi.mock("@/components/common/FilterPresetsDropdown", () => ({
 }));
 
 import { AuditLogsList } from "@/components/administration/AuditLogsList";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("AuditLogsList query params", () => {
   it("includes filters in the SWR key", () => {

@@ -67,6 +67,13 @@ vi.mock("@/components/common/FilterPresetsDropdown", () => ({
 }));
 
 import { UsersList } from "@/components/administration/UsersList";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("UsersList query params", () => {
   it("includes filters in the SWR key", () => {

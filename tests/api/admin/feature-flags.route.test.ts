@@ -1,7 +1,6 @@
 /**
  * @fileoverview Admin Feature Flags API Route Tests
  * @description Tests for GET/PUT /api/admin/feature-flags endpoint
- * @vitest-environment node
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";

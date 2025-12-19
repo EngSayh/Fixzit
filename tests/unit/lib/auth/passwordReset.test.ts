@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
   signPasswordResetToken,
   verifyPasswordResetToken,
   passwordResetLink,

@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { isTruthy } from "@/lib/utils/env";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("isTruthy", () => {
   it("returns true for string true/1", () => {

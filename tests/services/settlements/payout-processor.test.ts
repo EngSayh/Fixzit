@@ -70,6 +70,13 @@ vi.mock("@/lib/id-generator", () => ({
 }));
 
 import { PayoutProcessorService } from "@/services/souq/settlements/payout-processor";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("PayoutProcessorService.requestPayout", () => {
   beforeEach(() => {

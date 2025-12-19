@@ -37,6 +37,13 @@ vi.mock("@/lib/mongodb-unified", () => ({
 }));
 
 import { GET } from "@/app/api/hr/employees/route";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("GET /api/hr/employees filters", () => {
   it("passes UI filters to EmployeeService.searchWithPagination", async () => {

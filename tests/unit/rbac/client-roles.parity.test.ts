@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { Role, SubRole } from "@/lib/rbac/client-roles";
 import { CANONICAL_ROLES } from "@/types/user";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("RBAC client role parity", () => {
   it("includes all canonical roles from types/user.ts", () => {

@@ -179,6 +179,13 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { SellerBalanceService } from "@/services/souq/settlements/balance-service";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const orgId = new ObjectId();
 const sellerObj = new ObjectId();

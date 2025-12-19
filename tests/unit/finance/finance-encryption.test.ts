@@ -12,6 +12,13 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import { startMongoMemoryServer } from "../../helpers/mongoMemory";
 import { generateEncryptionKey, isEncrypted } from "@/lib/security/encryption";
 import {
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
   setAuditContext,
   clearAuditContext,
 } from "@/server/plugins/auditPlugin";

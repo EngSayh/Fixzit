@@ -4,6 +4,13 @@ import { ObjectId } from "mongodb";
 import { applyEntityScope } from "@/app/api/search/route";
 import { UserRole } from "@/types/user";
 import type { SessionUser } from "@/server/middleware/withAuthRbac";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const baseQuery = { orgId: new ObjectId("656f1f1f1f1f1f1f1f1f1f1f") };
 

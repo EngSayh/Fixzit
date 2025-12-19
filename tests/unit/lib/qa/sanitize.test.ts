@@ -4,6 +4,13 @@
 
 import { describe, it, expect } from 'vitest';
 import { sanitizeQaPayload, estimatePayloadSize } from '@/lib/qa/sanitize';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe('sanitizeQaPayload', () => {
   describe('null/undefined handling', () => {

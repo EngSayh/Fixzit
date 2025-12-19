@@ -1,4 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 vi.mock("@/server/middleware/withAuthRbac", () => ({
   getSessionUser: vi.fn().mockRejectedValue(new Error("no session")),

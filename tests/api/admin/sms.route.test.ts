@@ -1,7 +1,6 @@
 /**
  * @fileoverview Admin SMS Settings API Route Tests
  * @description Tests for /api/admin/sms endpoints
- * @vitest-environment node
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";

@@ -3,6 +3,13 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import RBACMatrixTable, { type RolePermission, type Module } from "@/components/admin/RBACMatrixTable";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const modules: Module[] = [
   { id: "work_orders", label: "Work Orders", description: "Maintenance and service requests" },

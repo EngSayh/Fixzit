@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { DOMAINS, isAllowedOrigin } from "@/lib/config/domains";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("isAllowedOrigin", () => {
   it("allows exact primary origin", () => {

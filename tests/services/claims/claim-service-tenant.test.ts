@@ -110,6 +110,13 @@ vi.mock("@/lib/mongodb-unified", () => {
 });
 
 import { ClaimService, type Claim } from "@/services/souq/claims/claim-service";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 let claimAId: string;
 let claimBId: string;

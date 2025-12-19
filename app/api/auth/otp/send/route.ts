@@ -653,9 +653,11 @@ export async function POST(request: NextRequest) {
 
       if (loginType === "personal") {
         // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
+        // NO_LEAN: UserDocument type compatibility with test users requires document shape
         user = await User.findOne({ orgId: orgScopeId, email: loginIdentifier });
       } else {
         // Scope user lookup by both orgId AND company code for defense in depth
+        // NO_LEAN: UserDocument type compatibility with test users requires document shape
         user = await User.findOne({
           orgId: orgScopeId,
           username: loginIdentifier,

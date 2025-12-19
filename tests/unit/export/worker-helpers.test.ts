@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { sanitizeFilters, buildExportKey, assertSupportedEntity } from "@/lib/export/worker-helpers";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("export worker helpers", () => {
   it("sanitizes filters to primitives only", () => {

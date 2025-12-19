@@ -18,6 +18,13 @@ import path from "node:path";
 import baseConfig from "../vitest.config";
 import apiConfig from "../vitest.config.api";
 import modelsConfig from "../vitest.config.models";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Ensure esbuild invariants are satisfied in jsdom pools
 if (!globalThis.TextEncoder) {

@@ -4,6 +4,13 @@ import { ObjectId as MongoObjectId } from "mongodb";
 import { reviewService } from "@/services/souq/reviews/review-service";
 import { SouqReview } from "@/server/models/souq/Review";
 import { SouqProduct } from "@/server/models/souq/Product";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Capture queries for assertion
 const queries: unknown[] = [];

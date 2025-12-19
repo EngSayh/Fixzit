@@ -18,6 +18,13 @@
 
 import { vi, describe, it, expect, beforeEach, beforeAll, afterEach } from 'vitest';
 import type { NextRequest } from 'next/server';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 vi.mock('next/server', () => {
   return {

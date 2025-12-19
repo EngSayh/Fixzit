@@ -23,6 +23,13 @@ vi.mock("@/contexts/TranslationContext", () => ({
 }));
 
 import CurrencySelector from "@/components/i18n/CurrencySelector";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("CurrencySelector smoke", () => {
   it("renders trigger and opens list with currency options", async () => {

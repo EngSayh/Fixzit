@@ -10,6 +10,13 @@ import { describe, it, expect } from "vitest";
 // Import dictionaries directly using path aliases
 import enDictRaw from "@/i18n/en.json";
 import arDictRaw from "@/i18n/ar.json";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Flatten nested JSON to dot-notation keys for comparison
 const flattenDict = (obj: Record<string, unknown>, prefix = ""): Record<string, string> => {

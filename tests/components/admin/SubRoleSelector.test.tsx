@@ -15,6 +15,13 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import SubRoleSelector from '@/components/admin/SubRoleSelector';
 import { Role, SubRole } from '@/lib/rbac/client-roles';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Mock translation context
 vi.mock('@/contexts/TranslationContext', () => ({

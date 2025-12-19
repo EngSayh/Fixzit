@@ -7,6 +7,13 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { CircuitBreaker } from "@/lib/resilience/circuit-breaker";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("CircuitBreaker", () => {
   let breaker: CircuitBreaker;

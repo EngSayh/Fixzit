@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
   sanitizeError,
   sanitizeLogParams,
   sanitizeValue,

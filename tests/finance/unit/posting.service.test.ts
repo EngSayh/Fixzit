@@ -15,6 +15,13 @@ import {
 } from "../../../server/models/plugins/tenantAudit";
 import { setTenantContext as setTenantIsolationContext } from "../../../server/plugins/tenantIsolation";
 import { toMinor, applyFx } from "../../../server/lib/currency";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // TYPESCRIPT FIX: Use ObjectIds instead of strings for type safety
 const TEST_ORG_ID = new mongoose.Types.ObjectId();

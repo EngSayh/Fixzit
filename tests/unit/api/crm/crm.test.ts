@@ -3,6 +3,13 @@
  * @module tests/unit/api/crm/crm.test
  */
 import { describe, it, expect } from "vitest";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // These tests verify the RBAC rules and tenant isolation patterns
 // defined for CRM routes without mocking the full route handlers

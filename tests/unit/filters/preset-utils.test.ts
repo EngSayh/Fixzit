@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { pickSchemaFilters, extractSearchFromPreset } from "@/lib/filters/preset-utils";
 import { type FilterSchema } from "@/components/tables/utils/filterSchema";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 type Filters = { status?: string; priority?: string; dateRange?: string };
 

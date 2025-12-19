@@ -18,6 +18,13 @@
 import path from "path";
 import fs from "fs";
 import { spawnSync } from "child_process";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Try Vitest first; if running under Jest, fall back to globals.
 // @ts-ignore - tolerate missing vitest types when running under Jest

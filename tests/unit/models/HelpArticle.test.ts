@@ -15,6 +15,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import mongoose from 'mongoose';
 import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Model will be imported AFTER mongoose connection is ready
 let HelpArticle: mongoose.Model<any>;

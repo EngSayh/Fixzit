@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
   clearMessageFormatCache,
   formatIcuMessage,
 } from "@/i18n/formatMessage";

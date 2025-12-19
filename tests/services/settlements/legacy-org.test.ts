@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { SettlementCalculatorService } from "@/services/souq/settlements/settlement-calculator";
 import type { Filter } from "mongodb";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 type FindCall = { collection: string; filter: unknown };
 type UpdateCall = { collection: string; filter: unknown };

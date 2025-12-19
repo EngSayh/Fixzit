@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { buildAttendanceCsv } from "@/lib/hr/attendance-export";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("buildAttendanceCsv", () => {
   it("renders header and rows with ISO dates", () => {

@@ -11,6 +11,13 @@ vi.mock("@/lib/queues/setup", () => ({
 }));
 
 import { HrNotificationService } from "@/server/services/hr/hr-notification.service";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("HrNotificationService", () => {
   beforeEach(() => {

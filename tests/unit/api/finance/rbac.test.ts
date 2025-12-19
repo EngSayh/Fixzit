@@ -19,6 +19,13 @@
 
 import { describe, it, expect } from 'vitest';
 import { Types } from 'mongoose';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Type for finance query filter
 interface FinanceFilter {

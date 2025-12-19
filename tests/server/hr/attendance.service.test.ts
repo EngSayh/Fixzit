@@ -2,6 +2,13 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { AttendanceService } from "@/server/services/hr/attendance.service";
 import { AttendanceRecord } from "@/server/models/hr.models";
 import { HrNotificationService } from "@/server/services/hr/hr-notification.service";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 vi.mock("bullmq", () => ({}));
 
 describe("AttendanceService", () => {

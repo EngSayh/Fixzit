@@ -60,6 +60,7 @@ export async function POST(
     const { orgId, isSuperAdmin } = authResult;
 
     // SEC-002 FIX: Scope Job query by orgId upfront (super admins bypass)
+    // NO_LEAN: Document required for publish() method
     const query = isSuperAdmin ? { _id: (await params).id } : { _id: (await params).id, orgId };
     const job = await Job.findOne(query);
     if (!job) return notFoundError("Job");

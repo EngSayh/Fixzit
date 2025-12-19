@@ -67,6 +67,7 @@ export async function PUT(req: NextRequest) {
 
     // SECURITY: Use orgId scoping for tenant isolation
     // Ensures users can only moderate jobs within their organization
+    // NO_LEAN: Document required for save() method
     const job = await Job.findOne({ _id: jobId, orgId: user.orgId });
     if (!job) return notFoundError("Job");
 

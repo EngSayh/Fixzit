@@ -23,6 +23,13 @@ import {
 } from "@/lib/security/monitoring";
 import { hashIdentifier, redactIdentifier } from "@/lib/otp-utils";
 import { setupMonitoringTestIsolation } from "@/tests/utils/monitoring-test-utils";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("Security Monitoring", () => {
   // =============================================================================

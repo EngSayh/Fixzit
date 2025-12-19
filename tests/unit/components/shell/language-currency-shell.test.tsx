@@ -48,6 +48,13 @@ vi.mock("@/components/superadmin/superadmin-session", () => ({
 }));
 
 import { SuperadminHeader } from "@/components/superadmin/SuperadminHeader";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("SuperadminHeader shell elements", () => {
   it("renders brand logo, language selector, and currency selector", () => {

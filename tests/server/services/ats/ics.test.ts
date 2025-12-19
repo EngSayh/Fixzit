@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { generateInterviewICS, type InterviewInviteInput } from "@/server/services/ats/ics";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("ICS Service", () => {
   describe("generateInterviewICS", () => {

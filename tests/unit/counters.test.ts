@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
 import type { BadgeCounts } from "@/config/navigation";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Local copy of the mapping logic used in ClientSidebar/ClientLayout
 const mapCountersToBadgeCounts = (

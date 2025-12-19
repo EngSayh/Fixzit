@@ -3,6 +3,13 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { ALLOWED_ROLES, HARD_CODED_ORG, findHardCodedOrg, findRoleDrift } from '../check-tenant-role-drift';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'tenant-role-drift-'));
 

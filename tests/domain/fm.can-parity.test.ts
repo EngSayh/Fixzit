@@ -34,6 +34,13 @@ import {
 } from '@/domain/fm/fm.types';
 
 import {
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
   computeAllowedModules as computeAllowedModulesLite,
   PLAN_GATES as LITE_PLAN_GATES,
   ROLE_ACTIONS as LITE_ROLE_ACTIONS,

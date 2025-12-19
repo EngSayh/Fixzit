@@ -5,6 +5,13 @@
 
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { isOriginAllowed, parseOrigins } from "@/lib/security/cors-allowlist";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 vi.mock("@/lib/monitoring/security-events", () => ({
   logSecurityEvent: vi.fn().mockResolvedValue(undefined),

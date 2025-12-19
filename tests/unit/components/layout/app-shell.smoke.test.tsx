@@ -39,6 +39,13 @@ vi.mock("@/components/ResponsiveLayout", () => ({
 }));
 
 import { AppShell } from "@/components/layout/AppShell";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("AppShell smoke (non-superadmin)", () => {
   it("renders topbar, sidebar, and content with language/currency selectors", () => {

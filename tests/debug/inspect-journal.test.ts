@@ -1,4 +1,11 @@
 import Journal from '@/server/models/finance/Journal';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe('inspect Journal module', () => {
   it('logs shape', () => {

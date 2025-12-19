@@ -2,6 +2,13 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { PayrollRun } from "@/server/models/hr.models";
 import { PayrollFinanceIntegration } from "@/server/services/hr/payroll-finance.integration";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("PayrollService.updateStatus", () => {
   beforeEach(() => {

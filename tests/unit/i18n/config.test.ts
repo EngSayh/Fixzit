@@ -1,5 +1,12 @@
 // Testing framework: Vitest
 import {
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
   DEFAULT_LOCALE,
   SUPPORTED_LOCALES,
   LOCALE_META,

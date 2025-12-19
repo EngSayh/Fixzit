@@ -10,6 +10,13 @@ import {
 } from "@/config/topbar-modules";
 import { UserRole } from "@/types/user";
 import type { SessionUser } from "@/server/middleware/withAuthRbac";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const orgObjectId = new ObjectId();
 

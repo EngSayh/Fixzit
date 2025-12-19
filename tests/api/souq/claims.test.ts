@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { MongoClient, ObjectId } from "mongodb";
 import type { Db } from "mongodb";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 

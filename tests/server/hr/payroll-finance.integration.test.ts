@@ -19,6 +19,13 @@ vi.mock("@/server/services/finance/postingService", () => ({
 }));
 
 import { PayrollFinanceIntegration } from "@/server/services/hr/payroll-finance.integration";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("PayrollFinanceIntegration", () => {
   const orgId = new Types.ObjectId();

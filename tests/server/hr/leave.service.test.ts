@@ -2,6 +2,13 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { LeaveService } from "@/server/services/hr/leave.service";
 import { LeaveRequest, LeaveBalance } from "@/server/models/hr.models";
 import { HrNotificationService } from "@/server/services/hr/hr-notification.service";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 vi.mock("bullmq", () => ({}));
 
 describe("LeaveService", () => {

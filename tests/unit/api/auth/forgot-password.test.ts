@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { NextRequest } from "next/server";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 /**
  * Lightweight tests for forgot-password API route.

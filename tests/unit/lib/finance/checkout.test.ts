@@ -61,6 +61,13 @@ vi.mock("@/lib/finance/tap-payments", () => ({
 }));
 
 import { createSubscriptionCheckout } from "@/lib/finance/checkout";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const originalEnv = { ...process.env };
 

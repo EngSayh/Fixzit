@@ -5,6 +5,13 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { makeFindSortLimitSelectLean, makeFindOneSelectLean } from './mongooseMocks';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe('Mongoose Mock Helpers', () => {
   describe('makeFindSortLimitSelectLean', () => {

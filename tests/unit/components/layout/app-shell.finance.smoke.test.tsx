@@ -45,6 +45,13 @@ vi.mock("@/components/ResponsiveLayout", () => ({
 
 import { AppShell } from "@/components/layout/AppShell";
 import { InvoicesList } from "@/components/finance/InvoicesList";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("AppShell + Finance smoke", () => {
   it("renders shell with topbar/sidebar, language/currency selectors, and content", () => {

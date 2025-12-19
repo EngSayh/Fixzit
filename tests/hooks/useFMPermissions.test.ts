@@ -4,6 +4,13 @@ import { useSession } from "next-auth/react";
 import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
 import { Role, SubmoduleKey, Plan, SubRole } from "@/domain/fm/fm-lite";
 import { vi, describe, it, expect, beforeEach } from "vitest";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Mock dependencies
 vi.mock("next-auth/react", () => ({

@@ -5,6 +5,13 @@ import { vi } from 'vitest';
 
 import path from 'node:path'
 import url from 'node:url'
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 /**
  * We import the seed-marketplace.ts module.

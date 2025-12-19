@@ -2,6 +2,13 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { vi } from "vitest";
 import { Select, SelectItem, SelectGroup } from "@/components/ui/select";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("Select", () => {
   it("renders with placeholder", () => {

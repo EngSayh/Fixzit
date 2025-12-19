@@ -196,6 +196,13 @@ vi.mock("@/lib/id-generator", () => ({
 }));
 
 import { escrowService } from "@/services/souq/settlements/escrow-service";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("EscrowService", () => {
   const orgId = new Types.ObjectId();

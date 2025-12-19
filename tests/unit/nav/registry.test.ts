@@ -7,6 +7,13 @@
 
 import { describe, it, expect } from "vitest";
 import { modules } from "@/nav/registry";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("🔒 SECURITY: nav/registry.ts - GUEST Role Authorization", () => {
   it("should NOT grant GUEST access to dashboard", () => {

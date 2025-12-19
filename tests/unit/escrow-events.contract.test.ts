@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { validateEscrowEventPayload } from "@/services/souq/settlements/escrow-events.contract";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const basePayload = {
   escrowAccountId: "escrow-123",

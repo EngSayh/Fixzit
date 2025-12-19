@@ -107,6 +107,7 @@ export async function PATCH(
     const { userId, orgId, isSuperAdmin } = authResult;
 
     // SEC-002 FIX: Scope Application query by orgId upfront (super admins bypass)
+    // NO_LEAN: Document required for stage transition save() method
     const query = isSuperAdmin ? { _id: (await params).id } : { _id: (await params).id, orgId };
     const application = await Application.findOne(query);
     if (!application) return notFoundError("Application");

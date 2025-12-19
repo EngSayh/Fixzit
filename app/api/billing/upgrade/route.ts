@@ -175,12 +175,12 @@ export async function POST(req: NextRequest) {
         { tenant_id: orgObjectId, status: { $in: ["ACTIVE", "TRIAL"] } },
         { owner_user_id: new Types.ObjectId(user.id), status: { $in: ["ACTIVE", "TRIAL"] } },
       ],
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 }).lean();
 
     // Get current plan level
     const PLAN_HIERARCHY = { BASIC: 0, STANDARD: 1, PRO: 2, PREMIUM: 3, ENTERPRISE: 4 };
     const currentPlan =
-      (currentSub?.get?.("plan") as string | undefined) || "BASIC";
+      (currentSub as { plan?: string } | null)?.plan || "BASIC";
     const currentLevel = PLAN_HIERARCHY[currentPlan as keyof typeof PLAN_HIERARCHY] ?? 0;
     const targetLevel = PLAN_HIERARCHY[targetPlan as keyof typeof PLAN_HIERARCHY];
 

@@ -41,6 +41,13 @@ vi.mock("@/server/utils/errorResponses", () => ({
 }));
 
 import { GET } from "@/app/api/finance/invoices/route";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("GET /api/finance/invoices filters", () => {
   it("maps UI filters to service list params", async () => {

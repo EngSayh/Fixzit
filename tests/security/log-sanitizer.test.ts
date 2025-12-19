@@ -12,6 +12,13 @@ import {
   sanitizeError,
 } from "@/lib/security/log-sanitizer";
 import { redactIdentifier } from "@/lib/otp-utils";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("Log Sanitizer - Real Implementation Tests", () => {
   describe("sanitizeLogParams", () => {

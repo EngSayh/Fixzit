@@ -1,6 +1,13 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 
 import { POST } from "@/app/api/admin/notifications/test/route";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 vi.mock("@/auth", () => ({
   auth: vi.fn(async () => ({ user: { id: "admin-1", role: "SUPER_ADMIN" } })),

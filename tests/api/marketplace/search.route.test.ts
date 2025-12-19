@@ -4,6 +4,13 @@ import { vi } from 'vitest';
 // These tests mock Mongoose-like models and Next.js Response behavior.
 
 import { GET } from '@/tests/api/marketplace/search.route.impl'; // Fallback: will be replaced below if path differs
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 
 // We will dynamically rewire imports using jest.mock by referencing the same module path as the implementation.

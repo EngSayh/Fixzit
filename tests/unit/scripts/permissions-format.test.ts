@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 import { glob } from "glob";
 import fs from "fs";
 import path from "path";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 /**
  * Guardrail: permission strings in seed scripts must use canonical

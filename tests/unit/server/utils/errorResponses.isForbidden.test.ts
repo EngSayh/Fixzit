@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 
 import { ApiError, isForbidden } from "@/server/utils/errorResponses";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("isForbidden", () => {
   it("detects ApiError with 403 status", () => {

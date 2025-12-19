@@ -12,6 +12,13 @@
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { mockFetch, restoreFetch } from '@/tests/helpers/domMocks';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Mock next/link to a passthrough anchor for test querying
 vi.mock('next/link', () => ({

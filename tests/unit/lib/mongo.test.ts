@@ -4,6 +4,13 @@
  */
 
 import { describe, test, expect } from "vitest";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("MongoDB Unified Connection", () => {
   test("MongoDB unified module should be available", async () => {

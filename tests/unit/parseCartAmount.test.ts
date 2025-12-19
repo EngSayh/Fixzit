@@ -1,5 +1,12 @@
 import { describe, test, expect } from "vitest";
 import { parseCartAmount } from "@/lib/payments/parseCartAmount";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 test("accepts numeric input", () => {
   expect(parseCartAmount(249.99)).toBe(249.99);

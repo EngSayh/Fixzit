@@ -2,6 +2,13 @@ import { describe, it, expect } from "vitest";
 import { Types } from "mongoose";
 import { ObjectId as MongoObjectId } from "mongodb";
 import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("buildSouqOrgFilter", () => {
   it("returns $or with orgId and org_id for string orgId", () => {

@@ -22,6 +22,13 @@ vi.mock("@/contexts/TranslationContext", () => ({
 
 // Component under test
 import { WorkOrdersView } from "@/components/fm/WorkOrdersViewNew";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("WorkOrdersViewNew error state", () => {
   const user = userEvent.setup();

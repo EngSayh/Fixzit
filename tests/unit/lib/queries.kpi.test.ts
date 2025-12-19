@@ -12,6 +12,13 @@ vi.mock("@/lib/mongodb-unified", () => ({
 }));
 
 import {
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
   getInvoiceCounters,
   getRevenueStats,
   getWorkOrderStats,

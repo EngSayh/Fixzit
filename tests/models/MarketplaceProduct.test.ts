@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import mongoose from "mongoose";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 type MarketplaceProductModel = mongoose.Model<unknown> & { schema: mongoose.Schema };
 

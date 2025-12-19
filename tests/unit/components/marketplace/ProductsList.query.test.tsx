@@ -64,6 +64,13 @@ vi.mock("@/components/common/FilterPresetsDropdown", () => ({
 }));
 
 import { ProductsList } from "@/components/marketplace/ProductsList";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("ProductsList query params", () => {
   it("includes filters in the SWR key", () => {

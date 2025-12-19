@@ -3,6 +3,13 @@ import { Types } from "mongoose";
 import { NextRequest } from "next/server";
 
 import { SouqRMA } from "@/server/models/souq/RMA";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Mock auth to control session context per test
 const authMock = vi.hoisted(() => vi.fn());

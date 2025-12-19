@@ -2,6 +2,13 @@ import React from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import {
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
   SupportOrgProvider,
   useSupportOrg,
 } from "@/contexts/SupportOrgContext";

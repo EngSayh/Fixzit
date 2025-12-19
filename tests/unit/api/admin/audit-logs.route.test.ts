@@ -27,6 +27,13 @@ vi.mock("@/server/utils/errorResponses", () => ({
 }));
 
 import { GET } from "@/app/api/admin/audit-logs/route";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("GET /api/admin/audit-logs filters", () => {
   beforeEach(() => {

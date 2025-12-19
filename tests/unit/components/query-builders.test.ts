@@ -4,6 +4,13 @@ import { buildUsersQuery } from "@/components/administration/UsersList";
 import { buildEmployeesQuery } from "@/components/hr/EmployeesList";
 import { buildInvoicesQuery } from "@/components/finance/InvoicesList";
 import { buildAuditLogsQuery } from "@/components/administration/AuditLogsList";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const baseState = {
   page: 1,

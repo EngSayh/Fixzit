@@ -18,6 +18,13 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Types } from 'mongoose';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Type for work order query filter
 interface WorkOrderFilter {

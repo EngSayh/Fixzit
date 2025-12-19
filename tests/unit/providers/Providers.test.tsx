@@ -6,6 +6,13 @@ import { vi, beforeAll, afterAll, describe, test, expect, beforeEach, afterEach 
 import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import Providers from '@/providers/Providers';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Silence console.error during ErrorBoundary test (intentional "Boom" error)
 let consoleErrorSpy: ReturnType<typeof vi.spyOn<typeof console, 'error'>> | undefined;

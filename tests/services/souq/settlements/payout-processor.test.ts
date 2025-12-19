@@ -65,6 +65,13 @@ vi.mock("@/lib/mongodb-unified", () => ({
 
 // Keep mocking minimal; actual service imported below
 import { PayoutProcessorService } from "@/services/souq/settlements/payout-processor";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const orgA = new ObjectId();
 const orgB = new ObjectId();

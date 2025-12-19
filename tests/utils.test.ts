@@ -5,6 +5,13 @@
  */
 import { describe, test, expect } from "vitest";
 import { generateSlug } from "@/lib/utils";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("generateSlug", () => {
   test("returns empty string for empty input", () => {

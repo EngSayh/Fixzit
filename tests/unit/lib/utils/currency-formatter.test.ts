@@ -4,6 +4,13 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
   formatCurrency,
   formatCurrencyAr,
   formatCurrencyEn,

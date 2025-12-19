@@ -45,6 +45,13 @@ vi.mock("@/components/ResponsiveLayout", () => ({
 
 import { AppShell } from "@/components/layout/AppShell";
 import { WorkOrdersView } from "@/components/fm/WorkOrdersViewNew";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("AppShell + WorkOrders smoke", () => {
   it("renders shell with topbar/sidebar, language/currency selectors, and content", () => {

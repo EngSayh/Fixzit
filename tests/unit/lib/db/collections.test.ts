@@ -12,6 +12,13 @@ import { COLLECTIONS } from "@/lib/db/collections";
 import * as fs from "fs";
 import * as path from "path";
 import { glob } from "glob";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("COLLECTIONS constant", () => {
   it("should have all required collection names defined", () => {

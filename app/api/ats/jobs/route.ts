@@ -157,7 +157,8 @@ export async function POST(req: NextRequest) {
     const baseSlug = generateSlug(body.title);
     let slug = baseSlug;
     let counter = 1;
-    while (await Job.findOne({ orgId, slug })) {
+    // Slug uniqueness check - existence query only
+    while (await Job.findOne({ orgId, slug }).lean()) {
       slug = `${baseSlug}-${counter++}`;
     }
 

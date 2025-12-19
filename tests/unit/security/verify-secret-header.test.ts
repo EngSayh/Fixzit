@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { verifySecretHeader } from "@/lib/security/verify-secret-header";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("verifySecretHeader", () => {
   const secret = "super-secret";

@@ -66,6 +66,13 @@ vi.mock("@/components/common/FilterPresetsDropdown", () => ({
 }));
 
 import { InvoicesList } from "@/components/finance/InvoicesList";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("InvoicesList query params", () => {
   it("includes filters in the SWR key", () => {

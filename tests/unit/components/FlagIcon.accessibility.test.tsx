@@ -10,6 +10,13 @@ import { render, screen } from "@testing-library/react";
  * Import the FlagIcon component directly
  */
 import { FlagIcon } from "@/components/FlagIcon";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("FlagIcon", () => {
   describe("common SVG attributes", () => {

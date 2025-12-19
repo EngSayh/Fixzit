@@ -180,6 +180,13 @@ describe("tap webhook route", () => {
     savedPayments.length = 0;
     savedInvoices.length = 0;
     process.env.TAP_WEBHOOK_MAX_BYTES = "64000";
+    mockSmartRateLimit.mockReset();
+    mockSmartRateLimit.mockResolvedValue({ allowed: true });
+    mockParseWebhookEvent.mockReset();
+    mockWithIdempotency.mockReset();
+    mockWithIdempotency.mockImplementation(async (_key: string, cb: () => Promise<unknown>) => cb());
+    mockConnect.mockReset();
+    mockConnect.mockResolvedValue(undefined);
   });
 
   it("returns 429 when rate limit exceeded", async () => {

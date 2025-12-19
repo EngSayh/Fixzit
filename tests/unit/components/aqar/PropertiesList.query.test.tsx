@@ -66,6 +66,13 @@ vi.mock("@/components/common/FilterPresetsDropdown", () => ({
 }));
 
 import { PropertiesList } from "@/components/aqar/PropertiesList";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("PropertiesList query params", () => {
   it("includes filters in the SWR key", () => {

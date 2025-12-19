@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { buildWorkOrderFilter } from "@/app/api/work-orders/route";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const ORG_ID = "org-123";
 const BASE_USER = { id: "user-1", orgId: ORG_ID, role: "ADMIN" };

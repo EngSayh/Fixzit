@@ -2,6 +2,13 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { getServerI18n, getServerTranslation } from "@/lib/i18n/server";
 import { NextRequest } from "next/server";
 import { cookies, headers } from "next/headers";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 vi.mock("next/headers", () => {
   return {

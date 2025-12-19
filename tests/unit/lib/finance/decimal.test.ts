@@ -13,6 +13,13 @@ import {
   formatDecimalCurrency,
 } from '@/lib/finance/decimal';
 import Decimal from 'decimal.js';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe('decimal.ts', () => {
   describe('decimal() function', () => {

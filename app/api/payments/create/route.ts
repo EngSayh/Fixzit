@@ -121,6 +121,7 @@ export async function POST(req: NextRequest) {
     }
 
     await connectToDatabase();
+    // NO_LEAN: Document required for history.push + save() method
     const invoice = await Invoice.findOne({
       _id: invoiceId,
       tenantId: user.orgId,

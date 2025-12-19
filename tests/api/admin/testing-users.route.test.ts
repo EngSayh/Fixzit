@@ -1,7 +1,6 @@
 /**
  * @fileoverview Admin Testing Users API Route Tests
  * @description Tests for /api/admin/testing-users endpoints
- * @vitest-environment node
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";

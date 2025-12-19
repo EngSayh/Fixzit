@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { __internals } from "@/server/middleware/withAuthRbac";
 import { Role } from "@/domain/fm/fm.behavior";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const { normalizeWorkOrderRole } = __internals;
 

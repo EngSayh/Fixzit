@@ -19,6 +19,13 @@ import { useI18n } from "@/i18n/useI18n";
 import { I18nContext } from "@/i18n/I18nProvider";
 
 import { vi } from "vitest";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 type Dict = Record<string, unknown>;
 
 function TestI18nProvider({

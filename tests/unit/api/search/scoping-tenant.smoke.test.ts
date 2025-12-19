@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 import { applyEntityScope } from "@/app/api/search/_lib/scoping";
 import { UserRole } from "@/types/user";
 import type { SessionUser } from "@/types/session-user";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 const baseQuery = { org_id: "org-1" };
 

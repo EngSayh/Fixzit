@@ -10,6 +10,13 @@
 
 import { describe, it, expect } from "vitest";
 import { fmtDate, fmtNumber } from "@/lib/utils/format";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("🔒 RELIABILITY: lib/utils/format.ts - Crash Protection", () => {
   describe("fmtDate - null/undefined handling", () => {

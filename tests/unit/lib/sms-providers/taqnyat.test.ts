@@ -4,6 +4,13 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { TaqnyatProvider } from "@/lib/sms-providers/taqnyat";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("TaqnyatProvider", () => {
   // Store original env

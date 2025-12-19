@@ -1,4 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Mock MongoDB
 vi.mock("@/lib/mongodb-unified", () => ({

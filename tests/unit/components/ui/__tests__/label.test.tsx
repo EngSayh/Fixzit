@@ -1,6 +1,13 @@
 import React, { useRef } from "react";
 import { render, screen } from "@testing-library/react";
 import { Label } from "@/components/ui/label";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("Label", () => {
   it("renders with text", () => {

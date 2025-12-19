@@ -183,6 +183,13 @@ vi.mock('@/lib/logger', () => ({
 import { getDatabase } from '@/lib/mongodb-unified'
 import { NextResponse } from 'next/server'
 import * as HelpArticlesRoute from '@/app/api/help/articles/route'
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 // Import the route handler under test.
 // Try common Next.js route locations; adjust if your project structure differs.

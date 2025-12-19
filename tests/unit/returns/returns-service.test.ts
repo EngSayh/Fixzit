@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import mongoose from "mongoose";
 import { returnsService } from "@/services/souq/returns-service";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("ReturnsService.resolveSellerForItems", () => {
   it("returns sellerId when all items belong to the same seller", () => {

@@ -37,6 +37,13 @@ vi.mock("@/lib/tapConfig", () => ({
 }));
 
 import {
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
   buildTapCustomer,
   buildRedirectUrls,
   buildWebhookConfig,

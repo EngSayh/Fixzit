@@ -68,6 +68,13 @@ vi.mock("@/components/common/FilterPresetsDropdown", () => ({
 }));
 
 import { EmployeesList } from "@/components/hr/EmployeesList";
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 describe("EmployeesList query params", () => {
   it("includes filters in the SWR key", () => {

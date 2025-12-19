@@ -57,6 +57,13 @@ vi.mock('@/components/marketplace/ProductCard', () => ({
 // If your repository locates the page at app/marketplace/page.tsx, adjust the import path accordingly.
 import MarketplacePage from '../../app/(app)/marketplace/page'; // Adjusted to match Next.js route groups
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
+import { resetTestMocks } from "@/tests/helpers/mockDefaults";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetTestMocks();
+});
+
 
 type Product = {
   _id?: string;
