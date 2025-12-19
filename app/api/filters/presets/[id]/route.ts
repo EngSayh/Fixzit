@@ -36,6 +36,10 @@ export async function DELETE(
     throw error;
   }
 
+  if (!session) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  }
+
   const orgId = session.orgId;
   const userId = session.id;
   const presetId = params?.id;

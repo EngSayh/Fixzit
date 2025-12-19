@@ -158,7 +158,6 @@ export async function PATCH(
     }
 
     // SEC-002: Enforce tenant + ownership scope in the query itself
-    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Has tenant scope via $or clause
     const listing = await AqarListing.findOne({
       _id: id,
       listerId: user.id,

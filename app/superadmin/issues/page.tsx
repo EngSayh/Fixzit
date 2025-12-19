@@ -53,6 +53,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonTable, SkeletonKPICard, SkeletonDashboard as _SkeletonDashboard } from "@/components/superadmin/SkeletonTableEnhanced";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -745,12 +746,7 @@ export default function SuperadminIssuesPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         {statsLoading ? (
           Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i} className="bg-card border-border">
-              <CardContent className="p-4">
-                <Skeleton className="h-4 w-20 mb-2 bg-muted" />
-                <Skeleton className="h-8 w-12 bg-muted" />
-              </CardContent>
-            </Card>
+            <SkeletonKPICard key={i} />
           ))
         ) : (
           <>
@@ -1093,11 +1089,7 @@ export default function SuperadminIssuesPage() {
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-8 space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full bg-muted" />
-              ))}
-            </div>
+            <SkeletonTable rows={8} columns={10} />
           ) : issues.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               <Bug className="h-12 w-12 mx-auto mb-4 opacity-50" />

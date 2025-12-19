@@ -4731,41 +4731,11 @@
       "balance": "Balance"
     }
   },
-  "Loading": {
-    "": {
-      "": {
-        "": ""
-      }
-    }
-  },
-  "Optional payment notes": {
-    "": {
-      "": {
-        "": ""
-      }
-    }
-  },
-  "Loading invoices": {
-    "": {
-      "": {
-        "": ""
-      }
-    }
-  },
-  "Creating": {
-    "": {
-      "": {
-        "": ""
-      }
-    }
-  },
-  "Loading account activity": {
-    "": {
-      "": {
-        "": ""
-      }
-    }
-  },
+  "Loading": "Loading...",
+  "Optional payment notes": "Optional payment notes...",
+  "Loading invoices": "Loading invoices...",
+  "Creating": "Creating...",
+  "Loading account activity": "Loading account activity...",
   "auto": {
     "fm": {
       "hr": {

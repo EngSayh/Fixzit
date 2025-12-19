@@ -4731,11 +4731,11 @@
       "balance": "الرصيد"
     }
   },
-  "Loading": "جارٍ التحميل",
-  "Optional payment notes": "ملاحظات الدفع (اختياري)",
-  "Loading invoices": "جارٍ تحميل الفواتير",
-  "Creating": "جارٍ الإنشاء",
-  "Loading account activity": "جارٍ تحميل نشاط الحساب",
+  "Loading": "جارٍ التحميل...",
+  "Optional payment notes": "ملاحظات اختيارية للدفع...",
+  "Loading invoices": "جارٍ تحميل الفواتير...",
+  "Creating": "جارٍ الإنشاء...",
+  "Loading account activity": "جارٍ تحميل نشاط الحساب...",
   "auto": {
     "fm": {
       "hr": {

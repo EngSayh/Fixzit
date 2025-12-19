@@ -120,7 +120,7 @@ export async function GET(
     const vendor = await Vendor.findOne({
       _id: id,
       orgId: user.orgId,
-    });
+    }).lean();
 
     if (!vendor) {
       return createSecureResponse({ error: "Vendor not found" }, 404, req);

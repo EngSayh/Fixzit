@@ -56,6 +56,14 @@ const config = {
         "brand-green": "#094D34",
         "brand-gold": "#C7B27C",
         "brand-bg": "#F4F6F9",
+        /* Fixzit Brand Colors (Superadmin UI) */
+        fixzit: {
+          blue: "#0061A8",
+          "blue-dark": "#023047",
+          orange: "#F6851F",
+          green: "#00A859",
+          yellow: "#FFB400",
+        },
         success: "hsl(var(--success))",
         "success-foreground": "hsl(var(--success-foreground))",
         "success-dark": "#1F7A3A",
@@ -113,11 +121,15 @@ const config = {
         fxz: "var(--shadow-card)",
         "fxz-lg": "var(--shadow-elevated)",
         card: "0 1px 3px rgba(0, 0, 0, 0.05)",
-        "card-hover": "0 4px 6px rgba(0, 0, 0, 0.1)",
+        "card-hover": "0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -4px rgba(0, 0, 0, 0.2)",
         glass: "0 8px 32px 0 rgba(0, 0, 0, 0.15)",
         "glass-lg": "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
         soft: "0 2px 25px -2px rgba(0, 0, 0, 0.12)",
         aurora: "0 0 60px rgba(17, 129, 88, 0.2)",
+        dropdown: "0 10px 38px -10px rgba(0, 0, 0, 0.35), 0 10px 20px -15px rgba(0, 0, 0, 0.2)",
+        dialog: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+        "glow-blue": "0 0 15px rgba(0, 97, 168, 0.5)",
+        "glow-orange": "0 0 15px rgba(246, 133, 31, 0.5)",
       },
       backdropBlur: {
         xs: "2px",
@@ -148,11 +160,16 @@ const config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.4s ease-out",
+        "fade-out": "fade-out 0.2s ease-out",
         "fade-up": "fade-up 0.5s ease-out",
         "fade-down": "fade-down 0.5s ease-out",
+        "fade-in-up": "fade-in-up 0.3s ease-out",
         "scale-in": "scale-in 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        "scale-out": "scale-out 0.15s ease-out",
         "slide-in-left": "slide-in-left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
         "slide-in-right": "slide-in-right 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+        "slide-in-bottom": "slide-in-bottom 0.3s ease-out",
+        "slide-out-bottom": "slide-out-bottom 0.2s ease-out",
         "shimmer": "shimmer 2s linear infinite",
         "pulse-soft": "pulse-soft 3s ease-in-out infinite",
         "float": "float 6s ease-in-out infinite",
@@ -160,6 +177,10 @@ const config = {
         "gradient-shift": "gradient-shift 8s ease infinite",
         "spin-slow": "spin 8s linear infinite",
         "bounce-subtle": "bounce-subtle 2s ease-in-out infinite",
+        "bounce-soft": "bounce-soft 1s ease-in-out infinite",
+        "row-highlight": "row-highlight 1s ease-out",
+        "toast-slide-in": "toast-slide-in 0.2s ease-out",
+        "toast-slide-out": "toast-slide-out 0.15s ease-in",
       },
       keyframes: {
         "accordion-down": {
@@ -217,6 +238,43 @@ const config = {
         "bounce-subtle": {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-4px)" },
+        },
+        "fade-out": {
+          "0%": { opacity: "1", transform: "translateY(0)" },
+          "100%": { opacity: "0", transform: "translateY(10px)" },
+        },
+        "fade-in-up": {
+          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "scale-out": {
+          "0%": { transform: "scale(1)", opacity: "1" },
+          "100%": { transform: "scale(0.95)", opacity: "0" },
+        },
+        "slide-in-bottom": {
+          "0%": { transform: "translateY(100%)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        "slide-out-bottom": {
+          "0%": { transform: "translateY(0)", opacity: "1" },
+          "100%": { transform: "translateY(100%)", opacity: "0" },
+        },
+        "bounce-soft": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-5px)" },
+        },
+        "row-highlight": {
+          "0%": { backgroundColor: "transparent" },
+          "50%": { backgroundColor: "rgba(0, 97, 168, 0.1)" },
+          "100%": { backgroundColor: "transparent" },
+        },
+        "toast-slide-in": {
+          "0%": { transform: "translateX(calc(100% + 24px))" },
+          "100%": { transform: "translateX(0)" },
+        },
+        "toast-slide-out": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(calc(100% + 24px))" },
         },
       },
       spacing: {

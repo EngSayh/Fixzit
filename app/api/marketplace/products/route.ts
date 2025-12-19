@@ -24,11 +24,6 @@ import { createSecureResponse } from "@/server/security/headers";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   applyCacheHeaders,
-  getCached,
-  setCache,
-  createCacheKey,
-  CACHE_DURATIONS,
-  type CacheStatus,
 } from "@/lib/api/cache-headers";
 
 const ADMIN_ROLES = new Set([

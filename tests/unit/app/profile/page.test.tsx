@@ -30,8 +30,12 @@ const originalEnv = { ...process.env };
 
 describe("ProfilePage", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
     process.env = { ...originalEnv, NODE_ENV: "test" };
+    // Ensure no lingering fetch mocks from other suites
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global as any).fetch = undefined;
   });
 
   afterEach(() => {
