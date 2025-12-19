@@ -5,11 +5,11 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T13:27:53+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T13:41:19+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** feat/mobile-cardlist-phase1  
 **Commit:** local (uncommitted) | Origin: pending push
-**Last Work:** P187 - Marketplace categories disabled test alignment + env stub fix
+**Last Work:** P188 - Preflight scan + memory optimization verification
 **MongoDB Status:** 34 issues (10 open, 0 in_progress, 24 resolved)  
 **Working Tree:** DIRTY (local changes in progress)  
 **Test Count:** ⚠️ Full vitest run attempted (timeout ~360s). Last known full pass: 4068/4068 at 2025-12-19 13:00
@@ -33,7 +33,7 @@
 4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[PERF-002]** ✅ RESOLVED - Added .lean() to 8+ read-only Mongoose queries (P146)
 
-### ✅ Current Session (P153-P187)
+### ✅ Current Session (P153-P188)
 1. **[P153]** ✅ HR Leaves Hardening - Added rate limiting to PUT /api/hr/leaves, Zod validation for updateStatus payload, and tests covering auth/role/validation paths.
 2. **[P154]** ✅ Superadmin UI Polish - Added getRowId for correct bulk selection; command palette updated with RTL logical spacing; skeleton table widths made deterministic to avoid hydration mismatches.
 3. **[P155]** ✅ I18n Regen - Ran `pnpm i18n:build`; regenerated flat dictionaries and bundles (31,421 keys per locale).
@@ -68,12 +68,15 @@
 32. **[P185]** ✅ Test Stabilization Sweep - Finance posting, employee service, issues import/create, price tiers, marketplace orders/sellers/returns, FM support tickets mocks updated to avoid 500s; marketplace categories env guard stabilized; last known full vitest pass 4068/4068 at 13:00.
 33. **[P186]** 🔄 Full Vitest Long-Run - Attempted `pnpm vitest run` with 360s timeout; timed out before completion, no new failures observed in logs.
 34. **[P187]** ✅ Marketplace Categories Test Fix - Switched env handling in test to direct `process.env` and aligned disabled-state assertion; `pnpm vitest run tests/api/marketplace/categories.route.test.ts` passing.
+35. **[P188]** ✅ Preflight Scan + Memory Optimization Verification - Confirmed VSCode watcher exclusions + TS server caps; verified outstanding tasks list before fixes.
 
 ### ⏳ Pending – New Session Items
 - Continue .lean() audit on remaining read-only queries to hit 100% coverage across services (Aqar + Finance + FM + Support + CRM + Admin complete).
 - P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components (post-MVP).
-- P3-SOUQ-PRODUCTS — Migrate Souq Products list to DataTableStandard with filters (post-MVP).
-- P3-LIST-INTEGRATION-TESTS — Add integration tests for 12 list components across roles (post-MVP).
+
+### ✅ Newly Verified (DB sync required)
+- P3-SOUQ-PRODUCTS — Migrate Souq Products list to DataTableStandard with filters (completed in components/marketplace/ProductsList.tsx).
+- P3-LIST-INTEGRATION-TESTS — Add integration tests for 12 list components across roles (completed in tests/integration/list-components.integration.test.ts).
 
 ### ✅ Recently Resolved (2025-12-19 Session P143-P152)
 1. **[P143]** ✅ Untracked Features - Bulk operations committed by other agent as 3c93f3b5b
