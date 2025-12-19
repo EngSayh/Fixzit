@@ -375,27 +375,30 @@ export async function getCommunicationStats(filters?: {
 
     const result = await db
       .collection(COLLECTIONS.COMMUNICATION_LOGS)
-      .aggregate([
-        { $match: matchStage },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: 1 },
-            sent: {
-              $sum: { $cond: [{ $eq: ["$status", "sent"] }, 1, 0] },
-            },
-            delivered: {
-              $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] },
-            },
-            failed: {
-              $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] },
-            },
-            pending: {
-              $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
+      .aggregate(
+        [
+          { $match: matchStage },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: 1 },
+              sent: {
+                $sum: { $cond: [{ $eq: ["$status", "sent"] }, 1, 0] },
+              },
+              delivered: {
+                $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] },
+              },
+              failed: {
+                $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] },
+              },
+              pending: {
+                $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
+              },
             },
           },
-        },
-      ])
+        ],
+        { maxTimeMS: 10_000 },
+      )
       .toArray();
 
     const stats = result[0] || {
