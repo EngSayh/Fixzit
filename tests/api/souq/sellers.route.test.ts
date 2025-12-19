@@ -61,6 +61,7 @@ describe("API /api/souq/sellers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionUser = null;
+    vi.resetModules();
     // Reset rate limit mock to allow requests through
     vi.mocked(enforceRateLimit).mockReturnValue(null);
   });

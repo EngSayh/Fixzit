@@ -49,9 +49,21 @@ describe("postingService", () => {
   const accountId1 = new Types.ObjectId();
   const accountId2 = new Types.ObjectId();
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetAllMocks();
+
+    const LedgerEntryModel = (await import("@/server/models/finance/LedgerEntry"))
+      .default;
+    vi.mocked(LedgerEntryModel.getAccountBalance).mockResolvedValue(0);
+
+    const ChartAccountModel = (
+      await import("@/server/models/finance/ChartAccount")
+    ).default;
+    vi.mocked(ChartAccountModel.find).mockReturnValue({
+      session: vi.fn().mockReturnThis(),
+      exec: vi.fn().mockResolvedValue([]),
+    } as never);
   });
 
   describe("createJournal", () => {
