@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       orgId,
       referrerId: session.user.id,
       status: "ACTIVE",
-    });
+    }).lean();
 
     if (existing) {
       return NextResponse.json({ code: existing });

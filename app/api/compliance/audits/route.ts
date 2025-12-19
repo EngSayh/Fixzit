@@ -154,10 +154,12 @@ export async function GET(req: NextRequest) {
 
     const [audits, total, inProgress, upcoming, completed, highRisk] =
       await Promise.all([
+        // TENANT_SCOPED: tenantIsolationPlugin auto-filters by orgId via setTenantContext
         ComplianceAudit.find(filter)
           .sort({ startDate: -1 })
           .limit(limit)
           .lean(),
+        // TENANT_SCOPED: plugin auto-filters
         ComplianceAudit.countDocuments(),
         ComplianceAudit.countDocuments({ status: "IN_PROGRESS" }),
         ComplianceAudit.countDocuments({ status: "PLANNED" }),

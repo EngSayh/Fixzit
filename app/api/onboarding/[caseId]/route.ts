@@ -90,6 +90,7 @@ export async function PATCH(
       setTenantContext({ orgId: user.orgId });
     }
     // Defense-in-depth: Query scoped to user's org from the start
+    // NO_LEAN: Document required for payload/status updates and save()
     const onboarding = await OnboardingCase.findOne({
       _id: params.caseId,
       $or: [
