@@ -192,6 +192,7 @@ async function loadRBACData(
     }
 
     if (roleSlugs.size > 0) {
+      // NO_TENANT_SCOPE: Role definitions are platform-wide (shared across all tenants)
       const rolesFromSlugs = await RoleModel.find({
         slug: { $in: Array.from(roleSlugs) },
       })

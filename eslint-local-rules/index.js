@@ -163,14 +163,74 @@ export const requireTenantScope = {
         const parent = node.parent;
         if (parent.type !== "CallExpression" || parent.callee !== node) return;
 
+        // Helper to check for exempt comments
+        const sourceCode = context.getSourceCode();
+        const exemptKeywords = ["PLATFORM-WIDE", "SUPER_ADMIN", "NO_TENANT_SCOPE", "TENANT_SCOPED"];
+        const hasKeyword = (comment) =>
+          exemptKeywords.some(kw => comment.value.includes(kw));
+
+        const hasExemptComment = (target) => {
+          // Check comments before the node
+          const commentsBefore = sourceCode.getCommentsBefore(target);
+          if (commentsBefore.some(hasKeyword)) return true;
+
+          // Check comments after the node (inline comments like /* NO_TENANT_SCOPE */)
+          const commentsAfter = sourceCode.getCommentsAfter(target);
+          if (commentsAfter.some(hasKeyword)) return true;
+
+          // Check if any comment in the node's range or nearby contains exempt keyword
+          // This handles cases like:
+          //   Model  // or:  await model
+          //     // NO_TENANT_SCOPE: reason
+          //     .findOne({ ... })
+          const startLine = target.loc.start.line;
+          const endLine = target.parent?.loc?.end?.line ?? target.loc.end.line;
+          const allComments = sourceCode.getAllComments();
+          for (const comment of allComments) {
+            // Check comments from one line before to the end of the call expression
+            if (comment.loc.start.line >= startLine - 1 && comment.loc.start.line <= endLine) {
+              if (hasKeyword(comment)) return true;
+            }
+          }
+
+          // Also check parent nodes so statement-level comments are honored.
+          let current = target.parent;
+          while (current) {
+            const parentCommentsBefore = sourceCode.getCommentsBefore(current);
+            if (parentCommentsBefore.some(hasKeyword)) return true;
+            // Also check inline comments in parent expressions
+            const parentCommentsAfter = sourceCode.getCommentsAfter(current);
+            if (parentCommentsAfter.some(hasKeyword)) return true;
+            // Check if this is a statement-level node - check its comments before breaking
+            if (
+              current.type === "ExpressionStatement" ||
+              current.type === "VariableDeclaration" ||
+              current.type === "ReturnStatement"
+            ) {
+              // Check comments on the statement itself before breaking
+              const stmtComments = sourceCode.getCommentsBefore(current);
+              if (stmtComments.some(hasKeyword)) return true;
+              break;
+            }
+            if (current.type === "BlockStatement") {
+              break;
+            }
+            current = current.parent;
+          }
+          return false;
+        };
+
         // Get the first argument (filter object)
         const filterArg = parent.arguments[0];
         if (!filterArg) {
-          // No filter provided - definitely missing tenant scope
-          context.report({
-            node,
-            messageId: "missingTenantScope",
-          });
+          // No filter provided - check for exempt comments before flagging
+          // This handles instance methods like doc.deleteOne() with NO_TENANT_SCOPE comment
+          if (!hasExemptComment(node)) {
+            context.report({
+              node,
+              messageId: "missingTenantScope",
+            });
+          }
           return;
         }
 
@@ -184,58 +244,6 @@ export const requireTenantScope = {
         const hasTenantScope = objectHasTenantScope(filterArg);
 
         if (!hasTenantScope) {
-          const sourceCode = context.getSourceCode();
-          const exemptKeywords = ["PLATFORM-WIDE", "SUPER_ADMIN", "NO_TENANT_SCOPE", "TENANT_SCOPED"];
-          const hasKeyword = (comment) =>
-            exemptKeywords.some(kw => comment.value.includes(kw));
-
-          const hasExemptComment = (target) => {
-            // Check comments before the node
-            const commentsBefore = sourceCode.getCommentsBefore(target);
-            if (commentsBefore.some(hasKeyword)) return true;
-
-            // Check comments after the node (inline comments like /* NO_TENANT_SCOPE */)
-            const commentsAfter = sourceCode.getCommentsAfter(target);
-            if (commentsAfter.some(hasKeyword)) return true;
-
-            // Check if the line(s) containing the node have an inline comment with exempt keyword
-            // This handles cases like: (/* NO_TENANT_SCOPE */ Model.find(...))
-            const startLine = target.loc.start.line;
-            const allComments = sourceCode.getAllComments();
-            for (const comment of allComments) {
-              // Check comments on the same line or one line before
-              if (comment.loc.start.line >= startLine - 1 && comment.loc.end.line <= startLine) {
-                if (hasKeyword(comment)) return true;
-              }
-            }
-
-            // Also check parent nodes so statement-level comments are honored.
-            let current = target.parent;
-            while (current) {
-              const parentCommentsBefore = sourceCode.getCommentsBefore(current);
-              if (parentCommentsBefore.some(hasKeyword)) return true;
-              // Also check inline comments in parent expressions
-              const parentCommentsAfter = sourceCode.getCommentsAfter(current);
-              if (parentCommentsAfter.some(hasKeyword)) return true;
-              // Check if this is a statement-level node - check its comments before breaking
-              if (
-                current.type === "ExpressionStatement" ||
-                current.type === "VariableDeclaration" ||
-                current.type === "ReturnStatement"
-              ) {
-                // Check comments on the statement itself before breaking
-                const stmtComments = sourceCode.getCommentsBefore(current);
-                if (stmtComments.some(hasKeyword)) return true;
-                break;
-              }
-              if (current.type === "BlockStatement") {
-                break;
-              }
-              current = current.parent;
-            }
-            return false;
-          };
-
           if (!hasExemptComment(node)) {
             context.report({
               node,

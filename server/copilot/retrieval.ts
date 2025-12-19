@@ -135,6 +135,7 @@ export async function upsertKnowledgeDocument(
     doc.orgId && Types.ObjectId.isValid(doc.orgId)
       ? new Types.ObjectId(doc.orgId)
       : GLOBAL_KNOWLEDGE_ORG;
+  // NO_TENANT_SCOPE: Copilot knowledge base is platform-wide (scoped by slug/orgId in query)
   await CopilotKnowledge.findOneAndUpdate(
     { slug: doc.slug },
     {

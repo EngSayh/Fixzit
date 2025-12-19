@@ -117,6 +117,7 @@ export async function allocateSeat(
 ): Promise<SubscriptionInstance> {
   await connectToDatabase();
 
+  // NO_LEAN: Document returned to caller who may need to modify seat allocations
   const subscription = await Subscription.findById(subscriptionId);
   if (!subscription) {
     throw new Error(`Subscription not found: ${subscriptionId}`);
@@ -191,6 +192,7 @@ export async function deallocateSeat(
 ): Promise<SubscriptionInstance> {
   await connectToDatabase();
 
+  // NO_LEAN: Document needs metadata access and may be modified for seat removal
   const subscription = await Subscription.findById(subscriptionId);
   if (!subscription) {
     throw new Error(`Subscription not found: ${subscriptionId}`);
@@ -234,6 +236,7 @@ export async function getAvailableSeats(
 ): Promise<number> {
   await connectToDatabase();
 
+  // NO_LEAN: Document metadata accessed for seat allocation counting
   const subscription = await Subscription.findById(subscriptionId);
   if (!subscription) {
     throw new Error(`Subscription not found: ${subscriptionId}`);
@@ -254,6 +257,7 @@ export async function getSeatUsageReport(
 ): Promise<SeatUsageReport> {
   await connectToDatabase();
 
+  // NO_LEAN: Subscription metadata accessed for seat report generation
   const subscription = await Subscription.findById(subscriptionId);
   if (!subscription) {
     throw new Error(`Subscription not found: ${subscriptionId}`);
@@ -325,6 +329,7 @@ export async function recordUserActivation(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // NO_LEAN: Document returned to caller who may need document methods
   const sub = await Subscription.findById(subscriptionId);
   if (!sub) return null;
 
@@ -340,6 +345,7 @@ export async function recordUserDeactivation(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // NO_LEAN: Document may need metadata access for future operations
   const sub = await Subscription.findById(subscriptionId);
   if (!sub) return null;
 
@@ -361,6 +367,7 @@ export async function updateUsageSnapshot(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // NO_LEAN: Document metadata is modified for usage snapshot storage
   const sub = await Subscription.findById(subscriptionId);
   if (!sub) return null;
 

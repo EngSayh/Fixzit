@@ -343,6 +343,7 @@ export async function getApprovalCounters(orgId: string) {
   const base = { orgId: nOrgId, ...softDeleteGuard };
   const now = new Date();
 
+  // TENANT_SCOPED: All queries below are scoped by orgId (nOrgId) from tenant context
   const [total, pending, overdue] = await Promise.all([
     collection.countDocuments(base),
     collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "PENDING" }),

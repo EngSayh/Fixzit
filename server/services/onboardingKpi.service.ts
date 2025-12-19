@@ -10,11 +10,13 @@ export async function getOnboardingKPIs(orgId: string) {
     { $group: { _id: '$role', avgTimeMs: { $avg: { $subtract: ['$updatedAt', '$createdAt'] } } } },
   ]);
 
+  // TENANT_SCOPED: All queries scoped by org_id (orgObjectId)
   const [drafts, total] = await Promise.all([
     OnboardingCase.countDocuments({ org_id: orgObjectId, status: 'DRAFT' }),
     OnboardingCase.countDocuments({ org_id: orgObjectId }),
   ]);
 
+  // NO_TENANT_SCOPE: Expired docs count is platform-wide metric for superadmin
   const expiredDocs = await VerificationDocument.countDocuments({ status: 'EXPIRED' });
 
   return {

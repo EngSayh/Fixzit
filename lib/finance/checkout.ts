@@ -191,8 +191,7 @@ export async function createSubscriptionCheckout(
       quote,
     };
   } catch (error) {
-    // Clean up subscription on failure
-    // NO_TENANT_SCOPE: delete scoped subscription document on failure
+    // NO_TENANT_SCOPE: Cleanup own subscription document on payment failure
     await subscription.deleteOne();
     logger.error("[Checkout] Failed to create TAP charge", {
       error: error instanceof Error ? error.message : String(error),

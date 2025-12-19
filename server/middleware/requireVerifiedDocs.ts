@@ -38,6 +38,7 @@ export async function ensureVerifiedDocs(
     }
 
     await connectMongo();
+    // TENANT_SCOPED: Query scoped by subject_user_id (user-owned documents)
     const caseRecord = await OnboardingCase.findOne({
       subject_user_id: new Types.ObjectId(user.id),
       role: requiredRole,

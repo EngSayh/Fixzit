@@ -642,6 +642,7 @@ export async function saveApprovalWorkflow(
 
     const baseDoc = workflowToDocBase(workflow, request);
 
+    // TENANT_SCOPED: baseDoc includes orgId from request.orgId
     const savedApproval = await FMApproval.create({
       ...baseDoc,
       history: [

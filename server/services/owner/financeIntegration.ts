@@ -56,7 +56,7 @@ type WorkOrderFinanceMeta = {
 async function validateAfterPhotos(
   workOrderId: Types.ObjectId,
 ): Promise<boolean> {
-  // Check if this work order is linked to a move-out inspection
+  // TENANT_SCOPED: Lookup inspection by workOrderId reference (inherits tenant from work order)
   const inspection = await MoveInOutInspectionModel.findOne({
     "references.workOrderId": workOrderId,
     type: { $in: ["MOVE_OUT", "POST_HANDOVER"] },
@@ -188,13 +188,13 @@ export async function postFinanceOnClose(
       orgId: input.orgId,
       code: "5100", // Standard maintenance expense account
       session,
-    });
+    }).lean();
 
     const accountsPayableAccount = await ChartAccountModel.findOne({
       orgId: input.orgId,
       code: "2100", // Standard accounts payable account
       session,
-    });
+    }).lean();
 
     if (!maintenanceExpenseAccount || !accountsPayableAccount) {
       throw new Error(
@@ -343,13 +343,13 @@ export async function postUtilityBillPayment(
       orgId,
       code: "5200", // Utility expense account
       session,
-    });
+    }).lean();
 
     const cashAccount = await ChartAccountModel.findOne({
       orgId,
       code: "1100", // Cash/Bank account
       session,
-    });
+    }).lean();
 
     if (!utilityExpenseAccount || !cashAccount) {
       throw new Error("Chart of accounts not configured for utility bills");
