@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import React from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { User, Settings, Shield, Bell } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useTranslation } from "@/contexts/TranslationContext";
@@ -44,6 +44,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<TabType>("account");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const tRef = useRef(t);
 
   // Original data for reset functionality
   const [originalUser, setOriginalUser] = useState<UserData>({
@@ -78,6 +79,10 @@ export default function ProfilePage() {
     confirmPassword: "",
     twoFactorEnabled: false,
   });
+
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   const fetchProfileData = useCallback(async () => {
     const isProd = process.env.NODE_ENV === "production";
@@ -120,7 +125,7 @@ export default function ProfilePage() {
       }
     } catch (error) {
       logger.error("Error fetching profile:", error);
-      const friendlyError = t(
+      const friendlyError = tRef.current(
         "profile.toast.loadError",
         "Failed to load profile data",
       );
@@ -141,7 +146,7 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   // Fetch user profile data on mount
   useEffect(() => {
