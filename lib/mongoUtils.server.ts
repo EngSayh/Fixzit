@@ -40,7 +40,7 @@ export async function getNextAtomicUserCode(
   // Use MongoDB's atomic findOneAndUpdate with $inc
   // This guarantees uniqueness even if multiple requests happen simultaneously
   const collection = conn.db.collection<CounterDoc>("counters");
-  const rawResult = await collection.findOneAndUpdate(
+  const rawResult = await (/* PLATFORM-WIDE */ collection.findOneAndUpdate(
     { _id: "userCode" },
     {
       $inc: { seq: 1 }, // Atomically increment (Mongo treats missing field as 0)
@@ -50,7 +50,7 @@ export async function getNextAtomicUserCode(
       returnDocument: "after", // Return updated document
       session, // Support transactions
     },
-  );
+  ));
 
   const result = rawResult as ModifyResult<CounterDoc> | CounterDoc | null;
   const seqFromResult =
@@ -61,7 +61,7 @@ export async function getNextAtomicUserCode(
   let seqValue = seqFromResult;
   if (typeof seqValue !== "number" || Number.isNaN(seqValue)) {
     // Fallback to direct read (rare but safe when result is missing)
-    const fallbackDoc = await collection.findOne({ _id: "userCode" });
+    const fallbackDoc = await (/* PLATFORM-WIDE NO_LEAN */ collection.findOne({ _id: "userCode" }));
     seqValue = fallbackDoc?.seq;
   }
 

@@ -102,6 +102,7 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { User } from "@/server/models/User";
+import Organization from "@/server/models/Organization";
 import { db } from "@/lib/mongo";
 import { getJWTSecret as getJWTSecretService } from "@/lib/secrets";
 
@@ -352,14 +353,27 @@ export async function authenticateUser(
     if (!orgId) {
       throw new Error("orgId required for personal login");
     }
+    // NO_LEAN: Document required for .toObject() call below
     user = await User.findOne({ email: emailOrEmployeeNumber, orgId });
   } else {
     // SECURITY: Require companyCode for corporate login
     if (!companyCode) {
       throw new Error("companyCode required for corporate login");
     }
-    // For corporate login, search by employee number (username field) + company code
-    user = await User.findOne({ username: emailOrEmployeeNumber, code: companyCode });
+    const normalizedCompanyCode = companyCode.trim().toUpperCase();
+    // NO_LEAN: Document access pattern
+    const org = await (/* PLATFORM-WIDE */ Organization.findOne({ code: normalizedCompanyCode }));
+    if (!org) {
+      throw new Error("Invalid company code");
+    }
+    const resolvedOrgId = (org as { orgId?: string; _id?: unknown }).orgId || (org as { _id?: unknown })._id;
+    // For corporate login, search by employee number (username field) + company code + orgId
+    // NO_LEAN: Document required for .toObject() call below
+    user = await User.findOne({
+      username: emailOrEmployeeNumber,
+      code: normalizedCompanyCode,
+      orgId: resolvedOrgId,
+    });
   }
 
   if (!user) {

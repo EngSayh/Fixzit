@@ -75,8 +75,8 @@ export async function createSubscriptionCheckout(
   }
 
   const priceBook = input.priceBookId
-    ? await PriceBook.findById(input.priceBookId)
-    : await PriceBook.findOne({ currency, active: true });
+    ? await (/* PLATFORM-WIDE */ PriceBook.findById(input.priceBookId).lean())
+    : await (/* PLATFORM-WIDE */ PriceBook.findOne({ currency, active: true }).lean());
 
   if (!priceBook) {
     throw new Error("PriceBook not found");
@@ -191,7 +191,7 @@ export async function createSubscriptionCheckout(
     };
   } catch (error) {
     // Clean up subscription on failure
-    await subscription.deleteOne();
+    await (/* NO_TENANT_SCOPE */ subscription.deleteOne());
     logger.error("[Checkout] Failed to create TAP charge", {
       error: error instanceof Error ? error.message : String(error),
     });

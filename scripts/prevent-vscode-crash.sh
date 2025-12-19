@@ -19,7 +19,8 @@ echo "🧹 Step 2: Kill Zombie Processes"
 KILLED=0
 
 # Kill duplicate dev servers (only if more than 1 exists AND not actively serving)
-DEV_SERVER_COUNT=$(pgrep -f 'next-server' | wc -l || echo "0")
+DEV_SERVER_COUNT=$(pgrep -f 'next-server' 2>/dev/null | wc -l || true)
+DEV_SERVER_COUNT=${DEV_SERVER_COUNT:-0}
 if [ "$DEV_SERVER_COUNT" -gt 1 ]; then
   echo "  - Found $DEV_SERVER_COUNT Next.js dev servers (expected 1)"
   echo "    Killing duplicates..."
@@ -32,7 +33,8 @@ else
 fi
 
 # Kill orphaned TypeScript servers (more than 2 running)
-TS_COUNT=$(pgrep -f 'tsserver' 2>/dev/null | wc -l || echo "0")
+TS_COUNT=$(pgrep -f 'tsserver' 2>/dev/null | wc -l || true)
+TS_COUNT=${TS_COUNT:-0}
 if [ "$TS_COUNT" -gt 2 ]; then
   echo "  - Found $TS_COUNT TypeScript servers (expected max 2)"
   echo "    Killing oldest ones..."

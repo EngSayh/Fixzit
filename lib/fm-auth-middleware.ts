@@ -441,10 +441,10 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
       type WorkOrderOrgProjection = { orgId?: unknown; propertyOwnerId?: unknown };
       const workOrderModel = FMWorkOrderModule?.FMWorkOrder;
       const workOrder = workOrderModel
-        ? await workOrderModel
+        ? await (/* NO_TENANT_SCOPE */ workOrderModel
             .findOne({ propertyId: _propertyId })
             .select("propertyOwnerId orgId")
-            .lean<WorkOrderOrgProjection>()
+            .lean<WorkOrderOrgProjection>())
         : null;
 
       const workOrderDoc = workOrder ?? null;

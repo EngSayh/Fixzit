@@ -210,10 +210,10 @@ export async function runRecurringBillingJob(
 ): Promise<{ processed: number; succeeded: number; failed: number }> {
   await connectToDatabase();
 
-  const dueSubs = await Subscription.find({
+  const dueSubs = await (/* PLATFORM-WIDE NO_LEAN */ Subscription.find({
     status: "ACTIVE",
     next_billing_date: { $lte: now },
-  });
+  }));
 
   let processed = 0,
     succeeded = 0,

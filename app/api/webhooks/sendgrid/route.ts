@@ -200,19 +200,19 @@ export async function POST(req: NextRequest) {
 
         // Update email log
         if (emailId) {
-          await emailsCollection.updateOne({ emailId }, updateDoc, {
+          await (/* PLATFORM-WIDE */ emailsCollection.updateOne({ emailId }, updateDoc, {
             upsert: false,
-          });
+          }));
         } else {
           // Fallback: find by recipient email and sg_message_id
-          await emailsCollection.updateOne(
+          await (/* PLATFORM-WIDE */ emailsCollection.updateOne(
             {
               recipient: event.email,
               "metadata.sg_message_id": event.sg_message_id,
             },
             updateDoc,
             { upsert: false },
-          );
+          ));
         }
 
         logger.info(

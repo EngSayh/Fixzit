@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
     try {
       await connectToDatabase();
       
-      const updateResult = await SMSMessage.findOneAndUpdate(
+      const updateResult = await (/* PLATFORM-WIDE */ SMSMessage.findOneAndUpdate(
         { 
           $or: [
             { messageSid: messageId },
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
           },
         },
         { new: true }
-      );
+      ));
 
       if (updateResult) {
         logger.info("[Taqnyat Webhook] Updated SMS message status", {

@@ -67,7 +67,7 @@ echo ""
 echo -e "${GREEN}🔍 Checking for duplicate processes...${NC}"
 
 # Count TypeScript servers
-TS_SERVERS=$(pgrep -f "tsserver.js" | wc -l)
+TS_SERVERS=$(pgrep -f "tsserver.js" 2>/dev/null | wc -l || true)
 if [ "$TS_SERVERS" -gt 2 ]; then
   echo -e "${YELLOW}⚠️  Found $TS_SERVERS TypeScript servers (expected: 1-2)${NC}"
   if [ "$AGGRESSIVE" = true ]; then
@@ -83,7 +83,7 @@ else
 fi
 
 # Count Next.js dev servers
-NEXT_SERVERS=$(pgrep -f "next-server" | wc -l)
+NEXT_SERVERS=$(pgrep -f "next-server" 2>/dev/null | wc -l || true)
 if [ "$NEXT_SERVERS" -gt 1 ]; then
   echo -e "${YELLOW}⚠️  Found $NEXT_SERVERS Next.js dev servers (expected: 1)${NC}"
   if [ "$AGGRESSIVE" = true ]; then
@@ -101,7 +101,7 @@ else
 fi
 
 # Count VS Code extension hosts
-EXT_HOSTS=$(pgrep -f "extensionHost" | wc -l)
+EXT_HOSTS=$(pgrep -f "extensionHost" 2>/dev/null | wc -l || true)
 if [ "$EXT_HOSTS" -gt 2 ]; then
   echo -e "${YELLOW}⚠️  Found $EXT_HOSTS VS Code extension hosts (expected: 1-2)${NC}"
   echo -e "${YELLOW}   This usually indicates crashed/orphaned processes${NC}"
@@ -193,25 +193,48 @@ echo ""
 # 5. FINAL MEMORY REPORT
 # ============================================================================
 echo -e "${GREEN}📊 Memory Usage After Cleanup:${NC}"
-free -h || echo "free command not available"
+if [ "$OS" = "Darwin" ]; then
+  vm_stat | perl -ne '/page size of (\d+)/ and $size=$1; /Pages\s+([^:]+)[^\d]+(\d+)/ and printf("%-20s % 16.2f MB\n", "$1:", $2 * $size / 1048576);'
+else
+  free -h || echo "free command not available"
+fi
 echo ""
 
 # Calculate available memory percentage
-if command -v free &> /dev/null; then
+if [ "$OS" = "Darwin" ]; then
+  VM_STAT_OUTPUT="$(vm_stat)"
+  PAGE_SIZE_BYTES=$(echo "$VM_STAT_OUTPUT" | head -1 | awk '{for (i=1;i<=NF;i++) if ($i ~ /^[0-9]+$/) {print $i; exit}}')
+  PAGE_SIZE_BYTES=${PAGE_SIZE_BYTES:-4096}
+  FREE_PAGES=$(echo "$VM_STAT_OUTPUT" | awk '/Pages free/ {gsub("\\.", "", $3); print $3}')
+  INACTIVE_PAGES=$(echo "$VM_STAT_OUTPUT" | awk '/Pages inactive/ {gsub("\\.", "", $3); print $3}')
+  SPECULATIVE_PAGES=$(echo "$VM_STAT_OUTPUT" | awk '/Pages speculative/ {gsub("\\.", "", $3); print $3}')
+  FREE_PAGES=${FREE_PAGES:-0}
+  INACTIVE_PAGES=${INACTIVE_PAGES:-0}
+  SPECULATIVE_PAGES=${SPECULATIVE_PAGES:-0}
+  TOTAL_AVAILABLE_PAGES=$((FREE_PAGES + INACTIVE_PAGES + SPECULATIVE_PAGES))
+  AVAILABLE_BYTES=$((TOTAL_AVAILABLE_PAGES * PAGE_SIZE_BYTES))
+  AVAILABLE_MB=$(awk -v bytes="$AVAILABLE_BYTES" 'BEGIN {printf "%.0f", bytes/1048576}')
+  TOTAL_MEM_MB=$(sysctl -n hw.memsize | awk '{printf "%.0f", $1/1048576}')
+  AVAILABLE_PCT=$(awk -v avail="$AVAILABLE_MB" -v total="$TOTAL_MEM_MB" 'BEGIN {if (total == 0) {print 0} else {printf "%.0f", (avail/total)*100}}')
+elif command -v free &> /dev/null; then
   AVAILABLE_MB=$(free -m | awk 'NR==2 {print $7}')
   TOTAL_MB=$(free -m | awk 'NR==2 {print $2}')
   AVAILABLE_PCT=$((AVAILABLE_MB * 100 / TOTAL_MB))
-  
-  if [ "$AVAILABLE_PCT" -lt 20 ]; then
-    echo -e "${RED}🚨 CRITICAL: Only $AVAILABLE_PCT% memory available${NC}"
-    echo -e "${RED}   VS Code crash risk is HIGH${NC}"
-    echo -e "${RED}   Consider: 1) Restart VS Code, 2) Close unused apps, 3) Reboot${NC}"
-  elif [ "$AVAILABLE_PCT" -lt 30 ]; then
-    echo -e "${YELLOW}⚠️  WARNING: Only $AVAILABLE_PCT% memory available${NC}"
-    echo -e "${YELLOW}   Monitor memory usage closely${NC}"
-  else
-    echo -e "${GREEN}✅ Memory status: $AVAILABLE_PCT% available (healthy)${NC}"
-  fi
+else
+  AVAILABLE_PCT=""
+fi
+
+if [ -z "$AVAILABLE_PCT" ]; then
+  echo -e "${YELLOW}⚠️  Unable to compute memory availability for this OS${NC}"
+elif [ "$AVAILABLE_PCT" -lt 20 ]; then
+  echo -e "${RED}🚨 CRITICAL: Only $AVAILABLE_PCT% memory available${NC}"
+  echo -e "${RED}   VS Code crash risk is HIGH${NC}"
+  echo -e "${RED}   Consider: 1) Restart VS Code, 2) Close unused apps, 3) Reboot${NC}"
+elif [ "$AVAILABLE_PCT" -lt 30 ]; then
+  echo -e "${YELLOW}⚠️  WARNING: Only $AVAILABLE_PCT% memory available${NC}"
+  echo -e "${YELLOW}   Monitor memory usage closely${NC}"
+else
+  echo -e "${GREEN}✅ Memory status: $AVAILABLE_PCT% available (healthy)${NC}"
 fi
 
 echo ""

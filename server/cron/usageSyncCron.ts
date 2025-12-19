@@ -11,9 +11,9 @@ import { WORK_ORDERS_ENTITY_LEGACY } from "@/config/topbar-modules";
 async function syncUsageForAllSubscriptions() {
   await connectToDatabase();
 
-  const activeSubs = await Subscription.find({
+  const activeSubs = await (/* PLATFORM-WIDE */ Subscription.find({
     status: { $in: ["ACTIVE", "PAST_DUE"] },
-  });
+  }));
 
   for (const sub of activeSubs) {
     try {
