@@ -1140,7 +1140,7 @@ export class RefundProcessor {
       },
     ];
 
-    const results = await collection.aggregate(pipeline).toArray();
+    const results = await collection.aggregate(pipeline, { maxTimeMS: 10_000 }).toArray();
 
     // Aggregate results from all status groups
     const byStatus: Record<string, number> = {};

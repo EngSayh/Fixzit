@@ -273,11 +273,11 @@ export async function getSLABreachStats(
     SMSMessage.aggregate([
       { $match: match },
       { $group: { _id: "$priority", count: { $sum: 1 } } },
-    ]),
+    ], { maxTimeMS: 5_000 }),
     SMSMessage.aggregate([
       { $match: match },
       { $group: { _id: "$type", count: { $sum: 1 } } },
-    ]),
+    ], { maxTimeMS: 5_000 }),
     SMSMessage.find(match)
       .sort({ slaBreachAt: -1 })
       .limit(20)

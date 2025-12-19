@@ -937,7 +937,7 @@ export class CampaignService {
             spend: 1,
           },
         },
-      ])
+      ], { maxTimeMS: 10_000 })
       .toArray()) as Array<{
       date: string;
       impressions: number;

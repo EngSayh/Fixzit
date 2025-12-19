@@ -205,7 +205,7 @@ export async function ownerStatement(
         balance: { $sum: "$balanceMinor" },
       },
     },
-  ]);
+  ], { maxTimeMS: 10_000 });
 
   const opening = openingAgg.length
     ? toMinor(openingAgg[0].balance as Types.Decimal128)

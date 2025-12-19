@@ -813,7 +813,7 @@ export class ClaimService {
             totals: { $arrayElemAt: ["$totals", 0] },
           },
         },
-      ])
+      ], { maxTimeMS: 10_000 })
       .toArray();
 
     const byStatus = Object.fromEntries(

@@ -65,7 +65,7 @@ export async function getSLAWatchlist(orgId: string, limit = 50) {
           created_at: 1,
         },
       },
-    ])
+    ], { maxTimeMS: 10_000 })
     .toArray();
 }
 
@@ -168,7 +168,7 @@ export async function getRevenueStats(orgId: string, days = 30) {
           count: { $sum: 1 },
         },
       },
-    ])
+    ], { maxTimeMS: 10_000 })
     .toArray();
 
   return {
@@ -226,7 +226,7 @@ export async function getAttendanceSummary(orgId: string) {
           count: { $sum: 1 },
         },
       },
-    ])
+    ], { maxTimeMS: 10_000 })
     .toArray();
 
   interface AttendanceSummaryResult {

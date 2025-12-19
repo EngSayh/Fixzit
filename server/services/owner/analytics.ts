@@ -177,7 +177,7 @@ export async function calculateRevenue(
           totalRevenue: { $sum: "$amount" },
         },
       },
-    ])
+    ], { maxTimeMS: 10_000 })
     .toArray();
 
   return result[0]?.totalRevenue || 0;
@@ -242,7 +242,7 @@ export async function calculateMaintenanceCosts(
             totalCost: { $sum: "$cost.total" },
           },
         },
-      ])
+      ], { maxTimeMS: 10_000 })
       .toArray();
 
     const perUnitCosts: Record<string, number> = {};
@@ -263,7 +263,7 @@ export async function calculateMaintenanceCosts(
             totalCost: { $sum: "$cost.total" },
           },
         },
-      ])
+      ], { maxTimeMS: 10_000 })
       .toArray();
 
     return result[0]?.totalCost || 0;
@@ -308,7 +308,7 @@ export async function calculateUtilityCosts(
           totalCost: { $sum: "$charges.totalAmount" },
         },
       },
-    ])
+    ], { maxTimeMS: 10_000 })
     .toArray();
 
   return result[0]?.totalCost || 0;
@@ -500,7 +500,7 @@ export async function detectUtilityAnomalies(
           percentageIncrease: "$analytics.percentageChange",
         },
       },
-    ])
+    ], { maxTimeMS: 10_000 })
     .toArray();
 
   return result.map((item) => ({

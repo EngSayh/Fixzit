@@ -258,7 +258,7 @@ export class SellerBalanceService {
               },
             },
           },
-        ])
+        ], { maxTimeMS: 10_000 })
         .toArray();
 
       return result.length > 0 ? parseFloat((result[0].total ?? 0).toFixed(2)) : 0;
@@ -384,6 +384,7 @@ export class SellerBalanceService {
       balanceAggregation = await (transactionsCollection as {
         aggregate: (
           pipeline: Record<string, unknown>[],
+          options?: { maxTimeMS?: number },
         ) => { toArray: () => Promise<Array<{ _id: string; total: number }>> };
       })
         .aggregate([
@@ -395,7 +396,7 @@ export class SellerBalanceService {
               count: { $sum: 1 },
             },
           },
-        ])
+        ], { maxTimeMS: 10_000 })
         .toArray();
     } else {
       // 🧪 Test fallback: mocks may not implement aggregate; use find().toArray() if available

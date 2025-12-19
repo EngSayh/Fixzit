@@ -416,7 +416,7 @@ export class AutoAssignmentEngine {
       },
     ];
 
-    const results = await WorkOrder.aggregate(pipeline);
+    const results = await WorkOrder.aggregate(pipeline, { maxTimeMS: 10_000 });
     const map = new Map<string, number>();
 
     for (const result of results) {

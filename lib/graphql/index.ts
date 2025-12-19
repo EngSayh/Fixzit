@@ -871,7 +871,7 @@ export const resolvers = {
                   total: { $sum: { $ifNull: ["$totalAmount", "$total"] } },
                 },
               },
-            ]).exec(),
+            ], { maxTimeMS: 10_000 }).exec(),
           ]);
 
         const openWorkOrders =

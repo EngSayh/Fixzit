@@ -175,7 +175,7 @@ export class BuyBoxService {
           avgPrice: { $avg: "$price" },
         },
       },
-    ]);
+    ], { maxTimeMS: 5_000 });
 
     return result.length > 0 && result[0].avgPrice ? result[0].avgPrice : 0;
   }
