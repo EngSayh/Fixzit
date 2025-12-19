@@ -257,7 +257,7 @@
 3. Document exceptions: Queries requiring Mongoose virtuals/methods/middleware
 
 **Prevention:**
-- [ ] ESLint rule: Suggest .lean() on findOne/find without .save() in same scope
+- [x] ESLint rule: Suggest .lean() on findOne/find without .save() in same scope
 - [ ] Code review: Check for .lean() in PR diff context
 
 ---
