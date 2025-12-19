@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T16:00:00+03:00 (Asia/Riyadh)  
+**Last Updated:** 2025-12-19T08:50:00+03:00 (Asia/Riyadh)  
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
 **Branch:** feat/mobile-cardlist-phase1  
-**Commit:** 9daccf282 | Origin: 9daccf282 [synced]  
-**Last Work:** Phase 45-48 Complete - SuperAdmin API tests (48) + Finance API tests (22) + Final validation  
+**Commit:** 7bd70357c | Origin: 7bd70357c [synced]  
+**Last Work:** P125-P132 Complete - Cache Observability + 43 Real Tests + Component Integration + Grafana Panels  
 **MongoDB Status:** 34 issues (16 open, 0 in_progress, 18 resolved)  
 **Working Tree:** CLEAN  
-**Test Count:** 3,896/3,896 passing (444 files) - up from 3,811
+**Test Count:** 3,939/3,939 passing (447 files) - +43 tests from P126
 
 ---
 
@@ -32,6 +32,16 @@
 3. [x] **[BUG-WO-FILTERS-MISSING]** ✅ COMPLETED - All list component filters now wired via serializeFilters()
 4. [x] **[PERF-001]** ✅ VERIFIED - All 36 aggregate operations have maxTimeMS protection
 5. [x] **[TEST-004]** ✅ VERIFIED - SuperAdmin API (48 tests) + Finance API (22 tests) coverage added
+
+### ✅ Recently Resolved (2025-12-19 Session P125-P132)
+1. **[P125]** ✅ Cache Observability Fix - X-Cache-Status HIT/MISS/STALE via applyCacheHeaders
+2. **[P126]** ✅ Implement Skipped Tests - 43 real tests (perf, currency, ICU completeness)
+3. **[P127]** ✅ Component Integration - DataRefreshTimestamp on 3 dashboards, HoverTooltip on audit filters
+4. **[P128]** ✅ Offline Banners Extension - FormOfflineBanner added to RFQBoard and FM RFQs
+5. **[P129]** ✅ Audit Log Presets - 4 quick filter preset buttons (Tenant Escalations, RBAC Changes, Deletions, Logins)
+6. **[P130]** ✅ Currency UX Hints - preferenceSource tooltip on CheckoutForm and PDPBuyBox
+7. **[P131]** ✅ Grafana Panels - 3 new panels (Rate Limit Breaches, Cache Status, Rate Limiting)
+8. **[P132]** ✅ Superadmin Dashboard - P125-P132 phases added to progress tracker
 
 ### ✅ Recently Resolved (2025-12-19 Session)
 1. **[Phase 39]** ✅ Scan Pending Items - All routes verified
