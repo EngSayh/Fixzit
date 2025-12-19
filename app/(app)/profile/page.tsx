@@ -79,9 +79,10 @@ export default function ProfilePage() {
     twoFactorEnabled: false,
   });
 
-  const isProd = typeof process !== "undefined" && process.env.NODE_ENV === "production";
-
   const fetchProfileData = useCallback(async () => {
+    // Runtime env detection (not module-scope)
+    const isProd = typeof process !== "undefined" && process.env.NODE_ENV === "production";
+    
     try {
       setLoading(true);
       setLoadError(null);
@@ -121,6 +122,7 @@ export default function ProfilePage() {
       }
     } catch (error) {
       logger.error("Error fetching profile:", error);
+      // Runtime translation reference (not captured at module scope)
       const friendlyError = t(
         "profile.toast.loadError",
         "Failed to load profile data",
@@ -142,7 +144,7 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [isProd]);
+  }, [t]); // Add t to dependencies
 
   // Fetch user profile data on mount
   useEffect(() => {

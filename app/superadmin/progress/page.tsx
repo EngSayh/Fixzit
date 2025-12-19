@@ -1,6 +1,7 @@
 /**
  * Superadmin Progress Dashboard
  * Displays implementation progress for all phases of the impersonation enhancement project
+ * Now reads from SSOT (docs/PENDING_MASTER.md) via centralized parser
  */
 
 "use client";
@@ -8,116 +9,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Circle, Clock, AlertCircle } from "lucide-react";
+import { CheckCircle2, Circle, Clock, AlertCircle, AlertTriangle } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { Phase, PhaseTask, PhaseSummary } from "@/lib/superadmin/phases";
 
-interface PhaseTask {
-  id: string;
-  name: string;
-  status: "completed" | "in-progress" | "pending" | "deferred";
-  commit?: string;
-  priority: "P0" | "P1" | "P2" | "P3";
+interface DashboardData {
+  phases: Phase[];
+  summary: PhaseSummary;
+  usedFallback: boolean;
+  error?: string;
 }
-
-interface Phase {
-  id: string;
-  name: string;
-  description: string;
-  status: "completed" | "in-progress" | "pending";
-  progress: number;
-  tasks: PhaseTask[];
-}
-
-const phases: Phase[] = [
-  {
-    id: "phase-0",
-    name: "Phase 0: Initial Setup",
-    description: "I18n compliance, OpenAPI documentation, audit setup",
-    status: "completed",
-    progress: 100,
-    tasks: [
-      { id: "p0-i18n", name: "I18n compliance - 27 translations (EN + AR)", status: "completed", commit: "934175a", priority: "P0" },
-      { id: "p0-openapi", name: "OpenAPI spec fragment creation", status: "completed", commit: "05413a0", priority: "P1" },
-      { id: "p0-audit", name: "Comprehensive audit report", status: "completed", commit: "05413a0", priority: "P1" },
-    ],
-  },
-  {
-    id: "phase-1",
-    name: "Phase 1: Security Enhancements",
-    description: "Rate limiting for impersonation endpoints",
-    status: "completed",
-    progress: 100,
-    tasks: [
-      { id: "p1-rate-limit-impersonate", name: "Rate limiting - POST /impersonate (10 req/min)", status: "completed", commit: "329088d", priority: "P2" },
-      { id: "p1-rate-limit-search", name: "Rate limiting - GET /organizations/search (20 req/min)", status: "completed", commit: "329088d", priority: "P2" },
-      { id: "p1-rate-limit-tests", name: "Rate limit test coverage", status: "completed", commit: "329088d", priority: "P2" },
-    ],
-  },
-  {
-    id: "phase-2",
-    name: "Phase 2: Testing & Quality",
-    description: "Comprehensive component test coverage",
-    status: "completed",
-    progress: 100,
-    tasks: [
-      { id: "p2-form-tests", name: "ImpersonationForm tests (20 test cases)", status: "completed", commit: "efb8e4d", priority: "P2" },
-      { id: "p2-banner-tests", name: "ImpersonationBanner tests (18 test cases)", status: "completed", commit: "efb8e4d", priority: "P2" },
-    ],
-  },
-  {
-    id: "phase-3",
-    name: "Phase 3: Performance Optimization",
-    description: "Redis caching for organization search",
-    status: "completed",
-    progress: 100,
-    tasks: [
-      { id: "p3-redis-cache", name: "Redis caching (5-min TTL, 95%+ latency reduction)", status: "completed", commit: "69cfc87", priority: "P2" },
-    ],
-  },
-  {
-    id: "phase-4",
-    name: "Phase 4: Accessibility",
-    description: "WCAG 2.1 Level AA compliance",
-    status: "completed",
-    progress: 100,
-    tasks: [
-      { id: "p4-aria", name: "ARIA labels for all interactive elements", status: "completed", commit: "2195464", priority: "P3" },
-      { id: "p4-focus", name: "Focus management (auto-focus, context-aware)", status: "completed", commit: "2195464", priority: "P3" },
-    ],
-  },
-  {
-    id: "phase-5",
-    name: "Phase 5: Security Hardening",
-    description: "IPv6 SSRF protection and DNS rebinding",
-    status: "in-progress",
-    progress: 50,
-    tasks: [
-      { id: "p5-ipv6", name: "IPv6 SSRF protection (fc00::/7, fd00::/8, fe80::/10)", status: "completed", commit: "ffe823e", priority: "P3" },
-      { id: "p5-dns", name: "DNS rebinding protection", status: "deferred", priority: "P3" },
-    ],
-  },
-  {
-    id: "phase-6",
-    name: "Phase 6: Documentation Integration",
-    description: "OpenAPI spec merge and finalization",
-    status: "pending",
-    progress: 0,
-    tasks: [
-      { id: "p6-openapi-merge", name: "Merge OpenAPI fragment into main spec", status: "pending", priority: "P1" },
-    ],
-  },
-  {
-    id: "phase-7",
-    name: "Phase 7: Memory Optimization",
-    description: "VSCode and system memory optimization",
-    status: "pending",
-    progress: 0,
-    tasks: [
-      { id: "p7-vscode", name: "VSCode memory settings optimization", status: "pending", priority: "P3" },
-      { id: "p7-nextjs", name: "Next.js build optimization", status: "pending", priority: "P3" },
-      { id: "p7-typescript", name: "TypeScript configuration optimization", status: "pending", priority: "P3" },
-    ],
-  },
-];
 
 const getStatusIcon = (status: Phase["status"]) => {
   switch (status) {
@@ -154,12 +55,83 @@ const getPriorityColor = (priority: PhaseTask["priority"]) => {
 };
 
 export default function ProgressDashboard() {
-  const totalTasks = phases.reduce((sum, phase) => sum + phase.tasks.length, 0);
-  const completedTasks = phases.reduce((sum, phase) => sum + phase.tasks.filter((t) => t.status === "completed").length, 0);
-  const overallProgress = Math.round((completedTasks / totalTasks) * 100);
-  const completedPhases = phases.filter((p) => p.status === "completed").length;
-  const inProgressPhases = phases.filter((p) => p.status === "in-progress").length;
-  const pendingPhases = phases.filter((p) => p.status === "pending").length;
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await fetch("/api/superadmin/progress");
+        if (!response.ok) {
+          throw new Error(`Failed to fetch progress data: ${response.statusText}`);
+        }
+        const result = await response.json();
+        setData(result);
+      } catch (error) {
+        console.error("Error loading progress data:", error);
+        setData({
+          phases: [],
+          summary: {
+            totalTasks: 0,
+            completedTasks: 0,
+            overallProgress: 0,
+            completedPhases: 0,
+            inProgressPhases: 0,
+            pendingPhases: 0,
+          },
+          usedFallback: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">Impersonation Enhancement Progress</h1>
+          <p className="text-muted-foreground">Loading progress data...</p>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!data || data.error) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">Impersonation Enhancement Progress</h1>
+          <p className="text-muted-foreground">Error loading progress data</p>
+        </div>
+        <Card className="border-red-200 bg-red-50 dark:bg-red-950">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+              <div>
+                <p className="font-semibold text-red-900 dark:text-red-100">Failed to load progress data</p>
+                <p className="text-sm text-red-700 dark:text-red-300">{data?.error || "Unknown error occurred"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const { phases, summary, usedFallback } = data;
+  const { totalTasks, completedTasks, overallProgress, completedPhases, inProgressPhases, pendingPhases } = summary;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -167,10 +139,24 @@ export default function ProgressDashboard() {
         <h1 className="text-3xl font-bold">Impersonation Enhancement Progress</h1>
         <p className="text-muted-foreground">Tracking implementation progress for superadmin impersonation system enhancements</p>
       </div>
+      
+      {usedFallback && (
+        <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-600" />
+              <p className="text-sm text-yellow-900 dark:text-yellow-100">
+                Using fallback data. SSOT (docs/PENDING_MASTER.md) not available or unparseable.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Overall Progress</CardTitle>
-          <CardDescription>{completedTasks} of {totalTasks} tasks completed across 8 phases</CardDescription>
+          <CardDescription>{completedTasks} of {totalTasks} tasks completed across {phases.length} phases</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
