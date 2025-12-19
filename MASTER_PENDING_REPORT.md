@@ -152,7 +152,7 @@
 | ID | Status | Issue | Location | Impact | Fix |
 |----|--------|-------|----------|--------|-----|
 | **BUG-001** | ✅ Resolved (2025-12-19) | Client components read process.env directly (SSR/hydration mismatch risk) | app/error.tsx, app/global-error.tsx, app/(app) privacy/login/docs, app/(fm) dashboards/errors | **FIXED** - Added Config.client toggles (swaggerUiEnabled, vendorAssignments, googleMapsApiKey) and replaced all client process.env usages with Config.env/Config.client. **Evidence:** `rg -l "process\\.env" app --glob "*.tsx" | xargs rg -l "use client"` → 0 matches |
-| **BUG-002** | 🟡 Low | 3 @ts-expect-error suppressions without documented reason | lib/ats/resume-parser.ts:38, lib/markdown.ts:22, issue-tracker/app/api/issues/route.ts:263-318 | **MEDIUM** - Technical debt; may hide type errors or breaking changes in dependencies | Add inline comments explaining why suppression needed (e.g., "pdf-parse ESM/CJS export mismatch", "rehype-sanitize schema type incompatibility") |
+| **BUG-002** | ✅ Resolved | @ts-expect-error suppressions documented | lib/ats/resume-parser.ts:38, lib/markdown.ts:22, issue-tracker/app/api/issues/route.ts:263-318 | **LOW** - documented library compatibility notes | ✅ Inline comments added and pre-commit guard enforces reasons |
 
 ### ⚡ Performance
 
