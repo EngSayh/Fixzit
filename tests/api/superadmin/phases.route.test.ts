@@ -142,6 +142,7 @@ describe("SuperAdmin Phases API", () => {
     it("should calculate completion percentage correctly", async () => {
       mockGetSuperadminSession.mockResolvedValue({ user: "superadmin" });
       mockExistsSync.mockReturnValue(true);
+      // Mock P66-P107 complete (42/45 phases = 93%)
       mockReadFileSync.mockReturnValue(`
 # PENDING_MASTER
 ### 2025-12-18 14:30 (Session 1) — Phase P66-P107
@@ -153,7 +154,8 @@ describe("SuperAdmin Phases API", () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.summary.completionPercentage).toBe(100);
+      // P66-P107 = 42 phases completed out of 45 total (P66-P110)
+      expect(data.summary.completionPercentage).toBe(93);
     });
   });
 });
