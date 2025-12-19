@@ -38,6 +38,7 @@
 1. **[Phase 0]** ✅ Memory + VSCode baseline:
    - Ran `scripts/optimize-memory.sh` (snapshot + cache cleanup)
    - Ran `scripts/vscode-memory-guard.sh --limit-tsserver` (tsserver within limits)
+   - Memory status after cleanup: 51% available
    - Baseline: git clean; aggregate audit queued for next phase
 
 ### ✅ Current Session (P214)
