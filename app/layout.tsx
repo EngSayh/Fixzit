@@ -3,6 +3,7 @@ import Link from 'next/link';
 import './globals.css';
 import ConditionalProviders from '@/providers/ConditionalProviders';
 import { Toaster } from 'sonner';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { 
   Bricolage_Grotesque, 
   Space_Mono, 
@@ -143,6 +144,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               closeButton
               duration={4000}
             />
+            <SpeedInsights />
           </TooltipProvider>
         </ConditionalProviders>
         {isPlaywright && (
