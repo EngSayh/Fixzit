@@ -90,9 +90,10 @@ export async function retrieveKnowledge(
           { orgId: GLOBAL_KNOWLEDGE_ORG },
         ];
 
-  const docs = await (/* NO_TENANT_SCOPE */ CopilotKnowledge.find({
+  // NO_TENANT_SCOPE: orgFilters enforce tenant/global visibility
+  const docs = await CopilotKnowledge.find({
     $and: [{ $or: orgFilters }, { locale: { $in: [session.locale, "en"] } }],
-  }).lean<KnowledgeDoc[]>());
+  }).lean<KnowledgeDoc[]>();
 
   const filtered = docs.filter((doc) => {
     if (doc.roles?.length) {
