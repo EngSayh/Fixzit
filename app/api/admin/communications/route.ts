@@ -23,6 +23,7 @@ import { logger } from "@/lib/logger";
 import { ObjectId } from "mongodb";
 import { COLLECTIONS } from "@/lib/db/collections";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { audit } from "@/lib/audit";
 
 interface MatchStage {
   userId?: ObjectId;
@@ -85,9 +86,39 @@ export async function GET(request: NextRequest) {
     // Check if user is super admin
     const isSuperAdmin = session.user.role === "SUPER_ADMIN";
     if (!isSuperAdmin) {
+      await audit({
+        actorId: session.user.id || "unknown",
+        actorEmail: session.user.email || "unknown",
+        actorRole: session.user.role,
+        action: "admin.communications.forbidden",
+        orgId: (session.user as { orgId?: string }).orgId || "unknown",
+        success: false,
+      });
       return NextResponse.json(
         { success: false, error: "Forbidden: Super admin access required" },
         { status: 403 },
+      );
+    }
+
+    const orgIdString =
+      (session.user as { orgId?: string; tenantId?: string }).orgId ||
+      (session.user as { tenantId?: string }).tenantId ||
+      process.env.SUPERADMIN_ORG_ID ||
+      process.env.PUBLIC_ORG_ID ||
+      process.env.DEFAULT_ORG_ID ||
+      "";
+    if (!orgIdString) {
+      await audit({
+        actorId: session.user.id || "unknown",
+        actorEmail: session.user.email || "unknown",
+        actorRole: session.user.role,
+        action: "admin.communications.missingOrg",
+        orgId: "unknown",
+        success: false,
+      });
+      return NextResponse.json(
+        { success: false, error: "Missing organization context" },
+        { status: 400 },
       );
     }
 
@@ -148,6 +179,7 @@ export async function GET(request: NextRequest) {
     const db = await getDatabase();
 
     // 4. Build aggregation pipeline
+    // SUPERADMIN BYPASS: Communication logs are platform-wide; access is audited below.
     const pipeline: PipelineStage[] = [];
 
     // Match stage - filter by criteria
@@ -237,7 +269,7 @@ export async function GET(request: NextRequest) {
     const countPipeline = [...pipeline, { $count: "total" }];
     const countResult = await db
       .collection(COLLECTIONS.COMMUNICATION_LOGS)
-      .aggregate(countPipeline)
+      .aggregate(countPipeline, { maxTimeMS: 10_000 })
       .toArray();
     const total = countResult[0]?.total || 0;
 
@@ -271,7 +303,7 @@ export async function GET(request: NextRequest) {
     // Execute aggregation
     const communications = await db
       .collection(COLLECTIONS.COMMUNICATION_LOGS)
-      .aggregate(pipeline)
+      .aggregate(pipeline, { maxTimeMS: 10_000 })
       .toArray();
 
     // 5. Get statistics (AUDIT-2025-12-19: Added maxTimeMS)
@@ -319,6 +351,32 @@ export async function GET(request: NextRequest) {
       whatsappCount: 0,
       otpCount: 0,
     };
+
+    const clientIp =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
+
+    await audit({
+      actorId: session.user.id || "unknown",
+      actorEmail: session.user.email || "unknown",
+      actorRole: session.user.role,
+      action: "admin.communications.view",
+      orgId: orgIdString,
+      ipAddress: clientIp,
+      success: true,
+      meta: {
+        scope: "global",
+        filters: {
+          userId: userId || null,
+          channel: channel || null,
+          status: status || null,
+          startDate: startDateParam || null,
+          endDate: endDateParam || null,
+          search: searchValue || null,
+        },
+      },
+    });
 
     // 6. Return response
     return NextResponse.json({

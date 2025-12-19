@@ -13,6 +13,7 @@ import { AqarListing } from "@/server/models/aqar";
 import { SmartHomeLevel } from "@/server/models/aqar/Listing";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { getClientIP } from "@/server/security/headers";
+import { Types } from "mongoose";
 
 import { logger } from "@/lib/logger";
 export const runtime = "nodejs"; // Atlas Search requires Node.js runtime
@@ -30,6 +31,36 @@ export async function GET(request: NextRequest) {
     }
 
     await connectDb();
+
+    // STRICT v4.1: Public Aqar search must be scoped to the configured public org
+    const resolvedOrgId =
+      process.env.PUBLIC_ORG_ID ||
+      (process.env.NODE_ENV !== "production" &&
+        (process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID));
+
+    if (!resolvedOrgId) {
+      logger.error("[aqar/search] Missing org context - search disabled", {
+        severity: "ops_critical",
+        action:
+          "Set PUBLIC_ORG_ID for production (or TEST_ORG_ID/DEFAULT_ORG_ID in non-prod)",
+      });
+      return NextResponse.json(
+        { error: "Search temporarily unavailable. Please try again later." },
+        { status: 503 },
+      );
+    }
+
+    if (!Types.ObjectId.isValid(resolvedOrgId)) {
+      logger.error("[aqar/search] Invalid PUBLIC_ORG_ID", {
+        orgId: resolvedOrgId,
+      });
+      return NextResponse.json(
+        { error: "Search temporarily unavailable. Please try again later." },
+        { status: 503 },
+      );
+    }
+
+    const orgId = new Types.ObjectId(resolvedOrgId);
 
     const { searchParams } = new URL(request.url);
 
@@ -85,6 +116,7 @@ export async function GET(request: NextRequest) {
     // Build query
     const query: Record<string, unknown> = {
       status: "ACTIVE",
+      orgId,
     };
 
     if (intent) query.intent = intent;

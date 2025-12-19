@@ -10,6 +10,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSuperadminSession } from '@/lib/superadmin/auth';
 import { connectMongo } from '@/lib/db/mongoose';
+import { audit } from '@/lib/audit';
+import { logger } from '@/lib/logger';
 import BacklogIssue from '@/server/models/BacklogIssue';
 
 /**
@@ -111,6 +113,28 @@ export async function GET(req: NextRequest) {
 
   // Health score: % of issues resolved (0-100)
   const healthScore = total > 0 ? Math.round((totalClosed / total) * 100) : 100;
+
+  const clientIp =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+
+  void audit({
+    actorId: session.username,
+    actorEmail: session.username,
+    actorRole: session.role,
+    action: "superadmin.issues.stats.read",
+    targetType: "backlog_issue",
+    orgId: session.orgId,
+    ipAddress: clientIp,
+    success: true,
+    meta: {
+      scope: "global",
+      source: "backlog_issues",
+    },
+  }).catch((auditError) => {
+    logger.warn("[Superadmin] Issues stats audit failed", { error: auditError });
+  });
 
   return NextResponse.json({
     total,
