@@ -211,7 +211,7 @@ function PhaseProgressSection() {
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-blue-500" />
-          Phase Progress (P66-P107)
+          Phase Progress (P66-P110)
         </CardTitle>
         <CardDescription className="text-slate-400">
           Production + continuous improvement: {summary.completed}/{summary.total} completed ({summary.completionPercentage}%)
@@ -226,7 +226,7 @@ function PhaseProgressSection() {
           />
         </div>
 
-        {/* Phase Grid - Expanded for P66-P107 */}
+        {/* Phase Grid - Expanded for P66-P110 */}
         <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
           {phases.map((phase) => (
             <div
