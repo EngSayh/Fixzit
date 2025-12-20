@@ -52,54 +52,51 @@ export function HubNavigationCard({
     <Card className={cn(
       "h-full transition-all duration-200",
       !disabled && "hover:shadow-md hover:border-primary/50",
-      disabled && "opacity-60"
+      disabled && "opacity-60",
+      className
     )}>
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-          <div className="space-y-1">
-            <CardTitle className="text-base font-semibold">{title}</CardTitle>
-            <CardDescription className="text-sm">{description}</CardDescription>
-          </div>
-          <div className={cn("p-2 rounded-lg bg-muted", iconColor)}>
-            <Icon className="h-5 w-5" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            {metric !== undefined && (
-              <div>
-                <p className="text-2xl font-bold">{metric}</p>
-                {metricLabel && (
-                  <p className="text-xs text-muted-foreground">{metricLabel}</p>
-                )}
-              </div>
-            )}
-            {!disabled && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="ms-auto group-hover:translate-x-1 transition-transform"
-              >
-                View <ChevronRight className="h-4 w-4 ms-1" />
-              </Button>
-            )}
-            {disabled && (
-              <span className="text-xs text-muted-foreground ms-auto">Coming Soon</span>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+        <div className="space-y-1">
+          <CardTitle className="text-base font-semibold">{title}</CardTitle>
+          <CardDescription className="text-sm">{description}</CardDescription>
+        </div>
+        <div className={cn("p-2 rounded-lg bg-muted", iconColor)}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between">
+          {metric !== undefined && (
+            <div>
+              <p className="text-2xl font-bold">{metric}</p>
+              {metricLabel && (
+                <p className="text-xs text-muted-foreground">{metricLabel}</p>
+              )}
+            </div>
+          )}
+          {!disabled && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="ms-auto group-hover:translate-x-1 transition-transform"
+            >
+              View <ChevronRight className="h-4 w-4 ms-1" />
+            </Button>
+          )}
+          {disabled && (
+            <span className="text-xs text-muted-foreground ms-auto">Coming Soon</span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 
   if (disabled) {
-    return (
-      <div className={cn("block group cursor-not-allowed", className)}>
-        {cardContent}
-      </div>
-    );
+    return <div className="cursor-not-allowed">{cardContent}</div>;
   }
 
   return (
-    <Link href={href} className={cn("block group", className)}>
+    <Link href={href} className="group block">
       {cardContent}
     </Link>
   );

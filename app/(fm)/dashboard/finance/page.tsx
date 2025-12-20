@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Wallet, AlertCircle, CheckCircle } from "lucide-react";
+import { Wallet, AlertCircle, CheckCircle, Receipt, CreditCard, PiggyBank, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useOrgCounters } from "@/hooks/useOrgCounters";
+import { HubNavigationCard } from "@/components/dashboard/HubNavigationCard";
 import type { CounterPayload } from "@/lib/counters";
 
 // ==========================================
@@ -44,13 +45,13 @@ interface FinanceCounters {
 }
 
 // ==========================================
-// FINANCE DASHBOARD - INVOICES TAB
+// FINANCE DASHBOARD
 // ==========================================
 
 export default function FinanceDashboard() {
   const { data: session } = useSession();
   const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
-  const [activeTab, setActiveTab] = useState("invoices");
+  const [activeTab, setActiveTab] = useState("modules");
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();
 
@@ -88,15 +89,53 @@ export default function FinanceDashboard() {
 
   // Tabs
   const tabs = [
+    { id: "modules", label: t("dashboard.finance.tabs.modules", "Modules") },
     {
-      id: "invoices",
-      label: t("dashboard.finance.tabs.invoices", "Invoices"),
+      id: "metrics",
+      label: t("dashboard.finance.tabs.metrics", "Metrics"),
       count: financeCounters?.invoices.unpaid,
     },
-    { id: "payments", label: t("dashboard.finance.tabs.payments", "Payments") },
-    { id: "expenses", label: t("dashboard.finance.tabs.expenses", "Expenses") },
-    { id: "budgets", label: t("dashboard.finance.tabs.budgets", "Budgets") },
-    { id: "reports", label: t("dashboard.finance.tabs.reports", "Reports") },
+  ];
+
+  // Existing sub-modules from route inventory
+  const modules = [
+    {
+      title: t("dashboard.finance.modules.invoices", "Invoices"),
+      description: t("dashboard.finance.modules.invoicesDesc", "Manage invoices"),
+      href: "/fm/finance/invoices",
+      icon: Receipt,
+      iconColor: "text-primary",
+      metric: loading ? "..." : financeCounters?.invoices.total || 0,
+      metricLabel: t("dashboard.finance.metrics.total", "Total"),
+    },
+    {
+      title: t("dashboard.finance.modules.payments", "Payments"),
+      description: t("dashboard.finance.modules.paymentsDesc", "Process payments"),
+      href: "/fm/finance/payments",
+      icon: CreditCard,
+      iconColor: "text-success",
+    },
+    {
+      title: t("dashboard.finance.modules.expenses", "Expenses"),
+      description: t("dashboard.finance.modules.expensesDesc", "Track expenses"),
+      href: "/fm/finance/expenses",
+      icon: Wallet,
+      iconColor: "text-orange-500",
+    },
+    {
+      title: t("dashboard.finance.modules.budgets", "Budgets"),
+      description: t("dashboard.finance.modules.budgetsDesc", "Budget planning"),
+      href: "/fm/finance/budgets",
+      icon: PiggyBank,
+      iconColor: "text-purple-500",
+    },
+    {
+      title: t("dashboard.finance.modules.reports", "Financial Reports"),
+      description: t("dashboard.finance.modules.reportsDesc", "View reports"),
+      href: "/fm/finance/reports",
+      icon: BarChart3,
+      iconColor: "text-blue-500",
+    },
   ];
 
   return (
@@ -137,8 +176,17 @@ export default function FinanceDashboard() {
         ))}
       </div>
 
-      {/* Stats Cards */}
-      {activeTab === "invoices" && (
+      {/* Modules Tab */}
+      {activeTab === "modules" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {modules.map((module) => (
+            <HubNavigationCard key={module.href} {...module} />
+          ))}
+        </div>
+      )}
+
+      {/* Metrics Tab */}
+      {activeTab === "metrics" && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total Invoices */}
@@ -227,26 +275,6 @@ export default function FinanceDashboard() {
             </CardContent>
           </Card>
         </>
-      )}
-
-      {/* Other tabs (placeholder) */}
-      {activeTab !== "invoices" && (
-        <Card>
-          <CardContent className="py-8">
-            {/* guard-placeholders:allow - Dashboard hub page, sub-features on roadmap */}
-            <div className="text-center text-muted-foreground">
-              <p className="font-medium">
-                {tabs.find((tab) => tab.id === activeTab)?.label}
-              </p>
-              <p className="text-sm mt-2">
-                {t(
-                  "dashboard.finance.tabs.placeholder",
-                  "This feature is on our roadmap",
-                )}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       )}
     </div>
   );

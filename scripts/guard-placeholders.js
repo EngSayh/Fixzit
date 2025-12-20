@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * CI Guard: Placeholder Detection v3
+ * CI Guard: Placeholder Detection v4
  * Fails the build if production routes contain placeholder text.
  * 
  * Features:
@@ -9,8 +9,10 @@
  * - Weak patterns (context-checked): "Coming Soon" allowed in badges/comments
  * - .only check: Blocks CI if test files contain .only
  * - Ticketed allow comments: `guard-placeholders:allow(FIXZIT-123)` to exempt specific lines
+ * - CI enforcement: In CI mode, legacy allows (without ticket) are errors
  * 
- * Usage: node scripts/guard-placeholders.js
+ * Usage: node scripts/guard-placeholders.js [--strict]
+ *   --strict: Fail on legacy allows (for CI enforcement)
  * 
  * @module scripts/guard-placeholders
  */
@@ -18,6 +20,13 @@
 const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+
+// CLI flags
+const isStrict = process.argv.includes('--strict');
+const isCI = process.env.CI === 'true' || isStrict;
+
+// Legacy allow cutoff date (after this date, legacy allows fail in CI)
+const LEGACY_CUTOFF_DATE = new Date('2025-01-15');
 
 // Strong patterns - ALWAYS forbidden (no context override)
 const STRONG_PATTERNS = [
@@ -211,18 +220,56 @@ function main() {
     process.exit(1);
   }
 
-  // Warn about legacy allows that need tickets
+  // Handle legacy allows (without ticket IDs)
   if (legacyAllows.length > 0) {
-    console.log('⚠️  WARNING: Found ' + legacyAllows.length + ' allow comment(s) without ticket IDs:\n');
-    for (const line of legacyAllows.slice(0, 10)) {
-      // Extract just file:line portion
-      const match = line.match(/^([^:]+:\d+)/);
-      if (match) console.log(`   ${match[1]}`);
+    const now = new Date();
+    const isPastCutoff = now > LEGACY_CUTOFF_DATE;
+    
+    if (isCI && isPastCutoff) {
+      // CI mode after cutoff: FAIL on legacy allows
+      console.log('❌ LEGACY ALLOW VIOLATION (CI mode)\n');
+      console.log(`   Found ${legacyAllows.length} allow comment(s) without ticket IDs.`);
+      console.log(`   Legacy allows are not permitted after ${LEGACY_CUTOFF_DATE.toISOString().split('T')[0]}.\n`);
+      
+      for (const line of legacyAllows.slice(0, 10)) {
+        const match = line.match(/^([^:]+:\d+)/);
+        if (match) console.log(`   ${match[1]}`);
+      }
+      if (legacyAllows.length > 10) {
+        console.log(`   ... and ${legacyAllows.length - 10} more`);
+      }
+      
+      console.log('\n');
+      console.log('━'.repeat(60));
+      console.log('To fix:');
+      console.log('  Update to ticketed format: guard-placeholders:allow(FIXZIT-XXX)');
+      console.log('  Or remove the placeholder text entirely.');
+      console.log('━'.repeat(60));
+      
+      process.exit(1);
+    } else if (isCI) {
+      // CI mode before cutoff: WARN only
+      console.log('⚠️  WARNING: Found ' + legacyAllows.length + ' allow comment(s) without ticket IDs:\n');
+      for (const line of legacyAllows.slice(0, 10)) {
+        const match = line.match(/^([^:]+:\d+)/);
+        if (match) console.log(`   ${match[1]}`);
+      }
+      if (legacyAllows.length > 10) {
+        console.log(`   ... and ${legacyAllows.length - 10} more`);
+      }
+      console.log(`\n   ⏰ Grace period until ${LEGACY_CUTOFF_DATE.toISOString().split('T')[0]}. Update to ticketed format!\n`);
+    } else {
+      // Local mode: WARN only
+      console.log('⚠️  WARNING: Found ' + legacyAllows.length + ' allow comment(s) without ticket IDs:\n');
+      for (const line of legacyAllows.slice(0, 10)) {
+        const match = line.match(/^([^:]+:\d+)/);
+        if (match) console.log(`   ${match[1]}`);
+      }
+      if (legacyAllows.length > 10) {
+        console.log(`   ... and ${legacyAllows.length - 10} more`);
+      }
+      console.log('\n   ℹ️  Update to ticketed format: guard-placeholders:allow(FIXZIT-XXX)\n');
     }
-    if (legacyAllows.length > 10) {
-      console.log(`   ... and ${legacyAllows.length - 10} more`);
-    }
-    console.log('\n   ℹ️  Update to ticketed format: guard-placeholders:allow(FIXZIT-XXX)\n');
   }
 
   console.log('✅ No placeholder violations found.\n');

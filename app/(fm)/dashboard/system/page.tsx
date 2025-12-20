@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Users, Shield, Building } from "lucide-react";
+import { Users, Shield, Building, Plug, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { fetchOrgCounters } from "@/lib/counters";
+import { HubNavigationCard } from "@/components/dashboard/HubNavigationCard";
+import { RoadmapBanner } from "@/components/dashboard/RoadmapBanner";
 
 interface SystemCounters {
   system: { users: number; roles: number; tenants: number };
@@ -17,7 +19,7 @@ export default function SystemDashboard() {
   const { data: session, status } = useSession();
   const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
   const auto = useAutoTranslator("dashboard.system");
-  const [activeTab, setActiveTab] = useState("users");
+  const [activeTab, setActiveTab] = useState("modules");
   const [counters, setCounters] = useState<SystemCounters | null>(null);
   const [loading, setLoading] = useState(true);
   const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
@@ -55,21 +57,44 @@ export default function SystemDashboard() {
   const headingText = isPlaywright
     ? "إدارة النظام"
     : auto("System Admin", "header.title");
-  const totalUsersLabel = isPlaywright
-    ? "إجمالي المستخدمين"
-    : auto("Total Users", "metrics.totalUsers");
 
   const tabs = [
+    { id: "modules", label: auto("Modules", "tabs.modules") },
     {
-      id: "users",
-      label: auto("Users", "tabs.users"),
+      id: "metrics",
+      label: auto("Metrics", "tabs.metrics"),
       count: counters?.system.users,
     },
-    { id: "roles", label: auto("Roles & Permissions", "tabs.roles") },
-    { id: "billing", label: auto("Billing", "tabs.billing") },
-    { id: "integrations", label: auto("Integrations", "tabs.integrations") },
-    { id: "settings", label: auto("System Settings", "tabs.settings") },
   ];
+
+  // Existing sub-modules from route inventory
+  const modules = [
+    {
+      title: auto("Users", "modules.users"),
+      description: auto("Invite and manage users", "modules.usersDesc"),
+      href: "/fm/system/users/invite",
+      icon: UserPlus,
+      iconColor: "text-primary",
+      metric: loading ? "..." : counters?.system.users || 0,
+      metricLabel: auto("Total", "metrics.total"),
+    },
+    {
+      title: auto("Roles", "modules.roles"),
+      description: auto("Manage roles and permissions", "modules.rolesDesc"),
+      href: "/fm/system/roles/new",
+      icon: Shield,
+      iconColor: "text-success",
+    },
+    {
+      title: auto("Integrations", "modules.integrations"),
+      description: auto("Third-party integrations", "modules.integrationsDesc"),
+      href: "/fm/system/integrations",
+      icon: Plug,
+      iconColor: "text-purple-500",
+    },
+  ];
+
+  const plannedFeatures = ["Billing", "System Settings"];
 
   return (
     <div className="space-y-6">
@@ -104,12 +129,23 @@ export default function SystemDashboard() {
         ))}
       </div>
 
-      {activeTab === "users" && (
+      {activeTab === "modules" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {modules.map((module) => (
+              <HubNavigationCard key={module.href} {...module} />
+            ))}
+          </div>
+          <RoadmapBanner features={plannedFeatures} variant="subtle" />
+        </div>
+      )}
+
+      {activeTab === "metrics" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                {totalUsersLabel}
+                {auto("Total Users", "metrics.totalUsers")}
               </CardTitle>
               <Users className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
@@ -146,25 +182,6 @@ export default function SystemDashboard() {
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {["roles", "billing", "integrations", "settings"].includes(activeTab) && (
-        <Card>
-          <CardContent className="py-8">
-            {/* guard-placeholders:allow - Dashboard hub page, sub-features on roadmap */}
-            <div className="text-center text-muted-foreground">
-              <p className="font-medium">
-                {tabs.find((t) => t.id === activeTab)?.label}
-              </p>
-              <p className="text-sm mt-2">
-                {auto(
-                  "This feature is on our roadmap",
-                  "placeholder.description",
-                )}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       )}
     </div>
   );

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { HubNavigationCard } from "@/components/dashboard/HubNavigationCard";
 import { RoadmapBanner } from "@/components/dashboard/RoadmapBanner";
-import { BarChart3, FileSpreadsheet, LayoutDashboard } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 
 export default function ReportsDashboard() {
   const { t } = useTranslation();

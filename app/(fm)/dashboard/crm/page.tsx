@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { UserCog, Users, FileSignature } from "lucide-react";
+import { UserCog, Users, FileSignature, UserPlus, Building } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { fetchOrgCounters } from "@/lib/counters";
+import { HubNavigationCard } from "@/components/dashboard/HubNavigationCard";
+import { RoadmapBanner } from "@/components/dashboard/RoadmapBanner";
 
 interface CRMCounters {
   customers: { leads: number; active: number; contracts: number };
@@ -17,7 +19,7 @@ export default function CRMDashboard() {
   const { data: session, status } = useSession();
   const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
   const auto = useAutoTranslator("dashboard.crm");
-  const [activeTab, setActiveTab] = useState("customers");
+  const [activeTab, setActiveTab] = useState("modules");
   const [counters, setCounters] = useState<CRMCounters | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,23 +54,37 @@ export default function CRMDashboard() {
   }, [auto, orgId, status]);
 
   const tabs = [
+    { id: "modules", label: auto("Modules", "tabs.modules") },
     {
-      id: "customers",
-      label: auto("Customers", "tabs.customers"),
+      id: "metrics",
+      label: auto("Metrics", "tabs.metrics"),
       count: counters?.customers.active,
     },
-    {
-      id: "leads",
-      label: auto("Leads", "tabs.leads"),
-      count: counters?.customers.leads,
-    },
-    {
-      id: "contracts",
-      label: auto("Contracts", "tabs.contracts"),
-      count: counters?.customers.contracts,
-    },
-    { id: "feedback", label: auto("Feedback", "tabs.feedback") },
   ];
+
+  // Existing sub-modules from route inventory
+  const modules = [
+    {
+      title: auto("Leads", "modules.leads"),
+      description: auto("Manage sales leads", "modules.leadsDesc"),
+      href: "/fm/crm/leads/new",
+      icon: UserPlus,
+      iconColor: "text-orange-500",
+      metric: loading ? "..." : counters?.customers.leads || 0,
+      metricLabel: auto("Active", "metrics.active"),
+    },
+    {
+      title: auto("Accounts", "modules.accounts"),
+      description: auto("Customer accounts", "modules.accountsDesc"),
+      href: "/fm/crm/accounts/new",
+      icon: Building,
+      iconColor: "text-primary",
+      metric: loading ? "..." : counters?.customers.active || 0,
+      metricLabel: auto("Customers", "metrics.customers"),
+    },
+  ];
+
+  const plannedFeatures = ["Contracts", "Feedback", "Campaign Management"];
 
   return (
     <div className="space-y-6">
@@ -106,7 +122,18 @@ export default function CRMDashboard() {
         ))}
       </div>
 
-      {activeTab === "customers" && (
+      {activeTab === "modules" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {modules.map((module) => (
+              <HubNavigationCard key={module.href} {...module} />
+            ))}
+          </div>
+          <RoadmapBanner features={plannedFeatures} variant="subtle" />
+        </div>
+      )}
+
+      {activeTab === "metrics" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -148,25 +175,6 @@ export default function CRMDashboard() {
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {["leads", "contracts", "feedback"].includes(activeTab) && (
-        <Card>
-          <CardContent className="py-8">
-            {/* guard-placeholders:allow - Dashboard hub page, sub-features on roadmap */}
-            <div className="text-center text-muted-foreground">
-              <p className="font-medium">
-                {tabs.find((t) => t.id === activeTab)?.label}
-              </p>
-              <p className="text-sm mt-2">
-                {auto(
-                  "This feature is on our roadmap",
-                  "placeholder.description",
-                )}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       )}
     </div>
   );

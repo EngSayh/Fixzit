@@ -1,18 +1,42 @@
 # System-Wide Test and Guard Audit
 
-Generated: 2025-12-20
+Generated: 2025-12-20  
+Last Updated: Phase 5 Complete
 
 ## Executive Summary
 
 | Category | Finding | Risk |
 |----------|---------|------|
 | Placeholder Patterns | ✅ 0 strong violations | Low |
-| Allow Comments | ⚠️ 10 dashboard hubs with allow | Medium - need ticketing |
+| Allow Comments | ✅ 0 dashboard hubs with allow (Phase 5 fixed) | Low |
 | Coming Soon | ✅ 7 occurrences - all in proper context | Low |
 | .only in Tests | ✅ 0 found | Low |
-| .skip in Tests | ⚠️ 925 skipped test cases | High - need governance |
-| Inline SUPER_ADMIN Checks | ⚠️ 40+ routes with inline role checks | Medium - need standardization |
-| Status 500 Responses | ℹ️ 30+ catch blocks returning 500 | Low - acceptable for unexpected errors |
+| .skip in Tests | ⚠️ 925 skipped test cases (baseline tracked) | Medium - governed |
+| Inline SUPER_ADMIN Checks | ⚠️ 35 routes with inline role checks (baseline: 35) | Medium - governed |
+| Status 500 Responses | ℹ️ 30+ catch blocks returning 500 | Low - acceptable |
+| Test Results | ✅ 4124 total, 3788 passed, 0 failed | Healthy |
+
+---
+
+## Phase 5 Completion Summary
+
+### Changes Made (2025-12-20)
+
+1. **Baseline Relocation**: Moved `SKIPPED_TESTS_BASELINE.json` from `reports/` to `config/qa/`
+2. **Hub Navigation Components**: Created reusable navigation components
+   - `components/dashboard/HubNavigationCard.tsx` - Navigation card with metrics
+   - `components/dashboard/RoadmapBanner.tsx` - Planned features banner
+3. **Dashboard Hub Updates**: All 10 FM dashboard hubs now have proper navigation
+4. **Guard Script Hardening**:
+   - `guard-placeholders.js` v4: CI enforcement for ticketed allows
+   - `guard-admin-checks.js` v2: Scoped to route.ts, allow comment support
+5. **Route Inventory**: Created `config/qa/HUB_ROUTE_INVENTORY.json`
+
+### Test Results
+- **Total Tests**: 4124
+- **Passed**: 3788
+- **Failed**: 0
+- **Skipped**: 336
 
 ---
 
@@ -31,22 +55,24 @@ Generated: 2025-12-20
 
 ## 2. Allow Comments
 
-10 dashboard hub pages use `guard-placeholders:allow`:
+**Phase 5 Status:** ✅ All 10 dashboard hubs cleaned - no more allows needed
 
-| File | Line | Ticket? |
-|------|------|---------|
-| `app/(fm)/dashboard/marketplace/page.tsx` | 173 | ❌ None |
-| `app/(fm)/dashboard/crm/page.tsx` | 156 | ❌ None |
-| `app/(fm)/dashboard/admin/page.tsx` | 49 | ❌ None |
-| `app/(fm)/dashboard/compliance/page.tsx` | 51 | ❌ None |
-| `app/(fm)/dashboard/system/page.tsx` | 154 | ❌ None |
-| `app/(fm)/dashboard/properties/page.tsx` | 168 | ❌ None |
-| `app/(fm)/dashboard/support/page.tsx` | 145 | ❌ None |
-| `app/(fm)/dashboard/hr/page.tsx` | 205 | ❌ None |
-| `app/(fm)/dashboard/finance/page.tsx` | 236 | ❌ None |
-| `app/(fm)/dashboard/reports/page.tsx` | 71 | ❌ None |
+Previously these hubs had `guard-placeholders:allow`:
+- ~~`app/(fm)/dashboard/marketplace/page.tsx`~~ → Now uses HubNavigationCard
+- ~~`app/(fm)/dashboard/crm/page.tsx`~~ → Now uses HubNavigationCard  
+- ~~`app/(fm)/dashboard/admin/page.tsx`~~ → Now uses HubNavigationCard
+- ~~`app/(fm)/dashboard/compliance/page.tsx`~~ → Now uses HubNavigationCard
+- ~~`app/(fm)/dashboard/system/page.tsx`~~ → Now uses HubNavigationCard
+- ~~`app/(fm)/dashboard/properties/page.tsx`~~ → Now uses HubNavigationCard
+- ~~`app/(fm)/dashboard/support/page.tsx`~~ → Now uses HubNavigationCard
+- ~~`app/(fm)/dashboard/hr/page.tsx`~~ → Now uses HubNavigationCard
+- ~~`app/(fm)/dashboard/finance/page.tsx`~~ → Now uses HubNavigationCard
+- ~~`app/(fm)/dashboard/reports/page.tsx`~~ → Now uses HubNavigationCard
 
-**Action Required:** Update guard script to require ticketed format: `guard-placeholders:allow(FIXZIT-XXX)`
+**Guard Script Enforcement:**
+- Local mode: Warns about legacy allows (without ticket)
+- CI mode after 2025-01-15: Fails on legacy allows
+- Required format: `guard-placeholders:allow(FIXZIT-123)`
 
 ---
 
@@ -122,19 +148,50 @@ Found 30+ catch blocks returning status 500. Sample:
 
 ## Recommendations
 
-### Immediate (Before Next Deploy)
-1. ✅ Placeholder patterns - already clean
-2. ⚠️ Tighten allow comments to require ticket IDs
+### ✅ Completed (Phase 5)
+1. ✅ Placeholder patterns - clean
+2. ✅ Dashboard hub navigation - all 10 hubs use HubNavigationCard
+3. ✅ Allow comments removed from hub pages
+4. ✅ Guard scripts hardened (v4 placeholders, v2 admin-checks)
+5. ✅ Baseline governance in place (`config/qa/SKIPPED_TESTS_BASELINE.json`)
+6. ✅ Route inventory created (`config/qa/HUB_ROUTE_INVENTORY.json`)
 
 ### Short-term (Next Sprint)
-1. Baseline skip/todo count and add governance
-2. Migrate 2-3 admin routes to use canonical guards
-3. Add CI warning for new inline role checks
+1. Migrate 2-3 admin routes to use canonical guards (reduce baseline from 35)
+2. Add CI warning for new inline role checks in `--strict` mode
+3. Complete pending tests (336 skipped → target < 300)
 
 ### Medium-term (Backlog)
-1. Replace dashboard hub roadmap blocks with real navigation
-2. Clean up skipped tests in batches
-3. Complete admin guard standardization
+1. Clean up skipped tests in batches
+2. Complete admin guard standardization
+3. Add integration tests for hub navigation
+
+---
+
+## Guard Scripts Reference
+
+### guard-placeholders.js v4
+```bash
+# Local mode (warns on legacy allows)
+node scripts/guard-placeholders.js
+
+# CI mode (fails on legacy allows after cutoff)
+node scripts/guard-placeholders.js --strict
+
+# Cutoff date: 2025-01-15
+```
+
+### guard-admin-checks.js v2
+```bash
+# Local mode (warns on new violations)
+node scripts/guard-admin-checks.js
+
+# CI mode (fails on new violations)
+node scripts/guard-admin-checks.js --strict
+
+# Baseline: 35 inline checks
+# Scans: app/api/admin/**/route.ts only
+```
 
 ---
 
