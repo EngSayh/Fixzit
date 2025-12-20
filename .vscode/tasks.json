@@ -107,7 +107,6 @@
 			"type": "shell",
 			"command": "git status && echo '---' && git log --oneline -3"
 		},
-
 		{
 			"label": "Final Git Status",
 			"type": "shell",
@@ -203,13 +202,11 @@
 			"type": "shell",
 			"command": "git log --oneline -1 2>&1 | head -5"
 		},
-
 		{
 			"label": "Check Status After",
 			"type": "shell",
 			"command": "git log --oneline -3 && git status -s"
 		},
-
 		{
 			"label": "Final Status",
 			"type": "shell",
@@ -280,7 +277,6 @@
 			"type": "shell",
 			"command": "find app/api -name 'route.ts' -type f | wc -l && echo '---' && find tests/api -name '*.test.ts' -type f 2>/dev/null | wc -l"
 		},
-
 		{
 			"label": "Verify Commit",
 			"type": "shell",
@@ -291,7 +287,6 @@
 			"type": "shell",
 			"command": "git push origin HEAD 2>&1 | tail -15"
 		},
-
 		{
 			"label": "Run New Tests",
 			"type": "shell",
@@ -416,6 +411,21 @@
 			"label": "Run API Tests",
 			"type": "shell",
 			"command": "pnpm vitest run tests/api --reporter=verbose 2>&1 | tail -80"
+		},
+		{
+			"label": "Find Large Files",
+			"type": "shell",
+			"command": "node scripts/find-large-files.js"
+		},
+		{
+			"label": "Find Large Files v2",
+			"type": "shell",
+			"command": "node scripts/find-large-files.js 2>&1"
+		},
+		{
+			"label": "Find Large Files v3",
+			"type": "shell",
+			"command": "node scripts/find-large-files.js"
 		}
 	]
 }

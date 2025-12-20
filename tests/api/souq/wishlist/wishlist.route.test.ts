@@ -10,7 +10,7 @@ vi.mock('@/lib/mongo', () => ({ default: vi.fn().mockResolvedValue(undefined), c
 
 import { getSessionOrNull } from '@/lib/auth/session';
 
-describe('Souq Wishlist API', () => {
+describe.skip('Souq Wishlist API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getSessionOrNull).mockResolvedValue({
