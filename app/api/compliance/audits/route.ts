@@ -36,7 +36,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import {
   setTenantContext,
   clearTenantContext,
@@ -93,7 +93,7 @@ const AuditCreateSchema = z.object({
 
 function isUnauthenticatedError(error: unknown): boolean {
   return (
-    error instanceof UnauthorizedError ||
+    isUnauthorizedError(error) ||
     (error instanceof Error &&
       error.message.toLowerCase().includes("unauthenticated"))
   );
