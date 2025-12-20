@@ -14,7 +14,8 @@ import {
   getRecentMetrics,
   getExceededMetrics,
 } from "@/lib/performance";
-import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function GET(req: NextRequest) {
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
       );
     }
   } catch (error) {
-    if (error instanceof UnauthorizedError) {
+    if (isUnauthorizedError(error)) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }

@@ -11,7 +11,8 @@ import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Invoice } from "@/server/models/Invoice";
 import { z } from "zod";
-import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import { generateZATCAQR } from "@/lib/zatca";
 import { nanoid } from "nanoid";
 
@@ -232,7 +233,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (error instanceof UnauthorizedError) {
+    if (isUnauthorizedError(error)) {
       return createSecureResponse(
         { error: "Unauthorized", correlationId },
         401,
@@ -315,7 +316,7 @@ export async function GET(req: NextRequest) {
       stack: error instanceof Error ? error.stack : undefined,
     });
     
-    if (error instanceof UnauthorizedError) {
+    if (isUnauthorizedError(error)) {
       return createSecureResponse(
         { error: "Unauthorized", correlationId },
         401,

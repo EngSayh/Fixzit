@@ -26,7 +26,8 @@ import { z } from "zod";
 import { SouqDeal } from "@/server/models/souq/Deal";
 import { connectDb } from "@/lib/mongodb-unified";
 import { nanoid } from "nanoid";
-import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import { Types } from "mongoose";
 
 const dealCreateSchema = z.object({
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
   try {
     session = await getSessionUser(request);
   } catch (error) {
-    if (error instanceof UnauthorizedError) {
+    if (isUnauthorizedError(error)) {
       return NextResponse.json(
         { error: "Authentication required to create deals" },
         { status: 401 }
@@ -216,7 +217,7 @@ export async function GET(request: NextRequest) {
   try {
     session = await getSessionUser(request);
   } catch (error) {
-    if (error instanceof UnauthorizedError) {
+    if (isUnauthorizedError(error)) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
