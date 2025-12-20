@@ -32,6 +32,8 @@
     "lint:ci": "npm run lint:prod && npm run lint:inventory-org && npm run rbac:client:check && npm run lint:rbac && npm run typecheck && npm run guard:placeholders && npm run guard:admin-checks && pnpm vitest run tests/unit/security/banned-literals.test.ts",
     "guard:placeholders": "node scripts/guard-placeholders.js",
     "guard:admin-checks": "node scripts/guard-admin-checks.js",
+    "qa:guards": "node scripts/guard-placeholders.js && node scripts/guard-admin-checks.js",
+    "qa:gate": "pnpm qa:guards && pnpm lint && pnpm typecheck && pnpm build",
     "lint:next": "next lint",
     "lint:rtl": "node scripts/check-rtl-logical.js",
     "lint:rbac": "npx tsx scripts/lint-rbac-parity.ts",
