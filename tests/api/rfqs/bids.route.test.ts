@@ -6,9 +6,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock rate limiting
-vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+// Mock rate limiting - use the same module as the route
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
+  rateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
+}));
+
+vi.mock("@/server/security/rateLimitKey", () => ({
+  buildOrgAwareRateLimitKey: vi.fn().mockReturnValue("test-rate-key"),
 }));
 
 // Mock auth
@@ -52,7 +57,7 @@ vi.mock("@/server/models/Bid", () => ({
   },
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { auth } from "@/auth";
 
 const importRoute = async () => {
@@ -65,7 +70,8 @@ const importRoute = async () => {
 
 describe("API /api/rfqs/[id]/bids", () => {
   const mockOrgId = "org_123456789";
-  const mockRfqId = "rfq_123";
+  // Use valid ObjectId format (24 hex characters)
+  const mockRfqId = "507f1f77bcf86cd799439011";
   const mockUser = {
     id: "user_123",
     orgId: mockOrgId,
@@ -75,7 +81,7 @@ describe("API /api/rfqs/[id]/bids", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true, remaining: 10 });
     vi.mocked(auth).mockResolvedValue({
       user: mockUser,
       expires: new Date(Date.now() + 86400000).toISOString(),
@@ -90,14 +96,10 @@ describe("API /api/rfqs/[id]/bids", () => {
         return;
       }
 
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        })
-      );
+      vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false, remaining: 0 });
 
       const req = new NextRequest(`http://localhost:3000/api/rfqs/${mockRfqId}/bids`);
-      const response = await route.GET(req, { params: Promise.resolve(mockParams) });
+      const response = await route.GET(req, { params: mockParams });
 
       expect(response.status).toBe(429);
     });
@@ -112,7 +114,7 @@ describe("API /api/rfqs/[id]/bids", () => {
       vi.mocked(auth).mockResolvedValue(null as never);
 
       const req = new NextRequest(`http://localhost:3000/api/rfqs/${mockRfqId}/bids`);
-      const response = await route.GET(req, { params: Promise.resolve(mockParams) });
+      const response = await route.GET(req, { params: mockParams });
 
       expect(response.status).toBe(401);
     });
@@ -136,7 +138,7 @@ describe("API /api/rfqs/[id]/bids", () => {
           validUntil: "2024-12-31",
         }),
       });
-      const response = await route.POST(req, { params: Promise.resolve(mockParams) });
+      const response = await route.POST(req, { params: mockParams });
 
       expect(response.status).toBe(401);
     });
