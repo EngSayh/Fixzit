@@ -44,6 +44,10 @@ describe("AutoAssignmentEngine", () => {
   const orgId = "org-test-123";
   const workOrderId = new Types.ObjectId().toString();
 
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     process.env = { ...originalEnv, NODE_ENV: "test" };

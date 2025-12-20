@@ -11,6 +11,9 @@ import { Vendor } from "@/server/models/Vendor";
 import { User } from "@/server/models/User";
 import { logger } from "@/lib/logger";
 
+/** Default max workload for vendors (effectively unlimited) */
+const DEFAULT_VENDOR_MAX_WORKLOAD = 999;
+
 type CandidateAvailability = "available" | "busy" | "offline";
 
 /**
@@ -451,7 +454,7 @@ export class AutoAssignmentEngine {
           reasons: [],
           availability: "available",
           currentWorkload: workload,
-          maxWorkload: 999,
+          maxWorkload: DEFAULT_VENDOR_MAX_WORKLOAD,
           skills: collectVendorSkills(vendor),
           averageRating: coerceNumber(vendor.performance?.rating),
           lastAssignedAt: vendor.lastAssignedAt,

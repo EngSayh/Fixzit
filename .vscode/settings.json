@@ -4,10 +4,57 @@
 
   "eslint.enable": true,
   "eslint.workingDirectories": [{ "mode": "location" }],
+  "eslint.options": {
+    "cache": true,
+    "cacheLocation": ".eslintcache"
+  },
 
   "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.tsserver.maxTsServerMemory": 8192,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+  "typescript.disableAutomaticTypeAcquisition": true,
 
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
-  }
+  },
+
+  // File watching optimizations for large workspace (77K+ files)
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/_artifacts/**": true,
+    "**/coverage/**": true,
+    "**/playwright-report/**": true,
+    "**/database/**": true,
+    "**/models/**": true,
+    "**/dist/**": true
+  },
+
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/dist": true,
+    "**/_artifacts": true,
+    "**/coverage": true,
+    "**/*.lock": true
+  },
+
+  // Performance optimizations for 12-core/36GB MacBook
+  "files.maxMemoryForLargeFilesMB": 8192,
+
+  // Git performance
+  "git.untrackedChanges": "hidden",
+  "git.ignoreLimitWarning": true,
+
+  // Editor performance
+  "editor.codeLens": false,
+  "editor.minimap.enabled": false,
+
+  // Disable auto-detect tasks
+  "npm.autoDetect": "off",
+  "gulp.autoDetect": "off",
+  "grunt.autoDetect": "off",
+  "jake.autoDetect": "off"
 }

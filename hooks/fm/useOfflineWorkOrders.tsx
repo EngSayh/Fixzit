@@ -45,6 +45,9 @@ export function useOfflineWorkOrderSync(
 ) {
   const { isOnline } = useOnlineStatus();
   const syncingRef = useRef(false);
+  // Use ref for callback to prevent identity changes from triggering re-syncs
+  const onSyncedRef = useRef(onSynced);
+  onSyncedRef.current = onSynced;
 
   useEffect(() => {
     if (!orgId || !isOnline || syncingRef.current) return;
@@ -53,7 +56,7 @@ export function useOfflineWorkOrderSync(
     syncOfflineWorkOrders({ orgId })
       .then((result) => {
         if (!cancelled) {
-          onSynced?.(result);
+          onSyncedRef.current?.(result);
         }
       })
       .catch((error) => {
@@ -69,5 +72,5 @@ export function useOfflineWorkOrderSync(
     return () => {
       cancelled = true;
     };
-  }, [isOnline, onSynced, orgId]);
+  }, [isOnline, orgId]);
 }
