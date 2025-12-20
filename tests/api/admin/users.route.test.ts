@@ -106,7 +106,13 @@ function createRequest(
 describe("API /api/admin/users", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.stubEnv("NODE_ENV", "test");
     mockRateLimit.mockResolvedValue({ allowed: true });
+    mockAuth.mockResolvedValue({
+      user: { id: "admin1", role: "SUPER_ADMIN", orgId: "org1" },
+      expires: new Date(Date.now() + 86400000).toISOString(),
+    });
   });
 
   afterEach(() => {
@@ -141,9 +147,9 @@ describe("API /api/admin/users", () => {
 
     // Note: DB integration tests require MongoMemoryServer setup
     // These are marked .todo for future integration test expansion
-    it.todo("returns users list for SUPER_ADMIN (requires DB integration)")
+    it.todo("returns users list for SUPER_ADMIN (requires DB integration)");
 
-    it.todo("accepts pagination parameters (requires DB integration)")
+    it.todo("accepts pagination parameters (requires DB integration)");
 
     it.todo("caps limit to 1000 (requires DB integration)");
 

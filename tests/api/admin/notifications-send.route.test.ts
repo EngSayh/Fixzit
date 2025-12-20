@@ -66,13 +66,8 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 const mockAuth = vi.mocked(auth);
 const mockRateLimit = vi.mocked(smartRateLimit);
 
-const importRoute = async () => {
-  try {
-    return await import("@/app/api/admin/notifications/send/route");
-  } catch {
-    return null;
-  }
-};
+const importRoute = async () =>
+  import("@/app/api/admin/notifications/send/route");
 
 function createRequest(body: object): NextRequest {
   const url = "http://localhost:3000/api/admin/notifications/send";
@@ -86,7 +81,10 @@ function createRequest(body: object): NextRequest {
 describe("API /api/admin/notifications/send", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.stubEnv("NODE_ENV", "test");
     mockRateLimit.mockResolvedValue({ allowed: true });
+    mockAuth.mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -98,9 +96,6 @@ describe("API /api/admin/notifications/send", () => {
       mockAuth.mockResolvedValueOnce(null);
 
       const routeModule = await importRoute();
-      if (!routeModule) {
-        return; // Skip if route cannot be imported
-      }
 
       const req = createRequest({
         recipients: { type: "all" },
@@ -121,9 +116,6 @@ describe("API /api/admin/notifications/send", () => {
       } as any);
 
       const routeModule = await importRoute();
-      if (!routeModule) {
-        return;
-      }
 
       const req = createRequest({
         recipients: { type: "all" },
@@ -146,9 +138,6 @@ describe("API /api/admin/notifications/send", () => {
       mockRateLimit.mockResolvedValueOnce({ allowed: false });
 
       const routeModule = await importRoute();
-      if (!routeModule) {
-        return;
-      }
 
       const req = createRequest({
         recipients: { type: "all" },
@@ -163,9 +152,11 @@ describe("API /api/admin/notifications/send", () => {
     });
 
     it.todo("returns 400 when recipients type is invalid");
-    
+
     it.todo("returns 400 when channels are not specified");
-    
-    it.todo("successfully sends notifications to all users (requires DB/email integration)");
+
+    it.todo(
+      "successfully sends notifications to all users (requires DB/email integration)",
+    );
   });
 });

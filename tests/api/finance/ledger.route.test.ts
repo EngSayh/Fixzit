@@ -77,13 +77,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 const mockGetSessionUser = vi.mocked(getSessionUser);
 const mockRateLimit = vi.mocked(enforceRateLimit);
 
-const importRoute = async () => {
-  try {
-    return await import("@/app/api/finance/ledger/route");
-  } catch {
-    return null;
-  }
-};
+const importRoute = async () => import("@/app/api/finance/ledger/route");
 
 function createRequest(
   method: string,
@@ -104,7 +98,10 @@ function createRequest(
 describe("API /api/finance/ledger", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.stubEnv("NODE_ENV", "test");
     mockRateLimit.mockReturnValue(null);
+    mockGetSessionUser.mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -116,9 +113,6 @@ describe("API /api/finance/ledger", () => {
       mockGetSessionUser.mockResolvedValueOnce(null);
 
       const routeModule = await importRoute();
-      if (!routeModule) {
-        return; // Skip if route cannot be imported
-      }
 
       const req = createRequest("GET");
       const res = await routeModule.GET(req);
@@ -135,9 +129,6 @@ describe("API /api/finance/ledger", () => {
       );
 
       const routeModule = await importRoute();
-      if (!routeModule) {
-        return;
-      }
 
       const req = createRequest("GET");
       const res = await routeModule.GET(req);
@@ -145,12 +136,14 @@ describe("API /api/finance/ledger", () => {
       expect(res.status).toBe(429);
     });
 
-    it.todo("returns 403 when lacking FINANCE permission (requires permission mock)");
-    
+    it.todo(
+      "returns 403 when lacking FINANCE permission (requires permission mock)",
+    );
+
     it.todo("returns ledger entries with pagination (requires DB integration)");
-    
+
     it.todo("filters by accountId (requires DB integration)");
-    
+
     it.todo("filters by date range (requires DB integration)");
   });
 });

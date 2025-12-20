@@ -104,7 +104,10 @@ function createRequest(
 describe("API /api/admin/discounts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.stubEnv("NODE_ENV", "test");
     mockRateLimit.mockResolvedValue({ allowed: true });
+    mockGetUserFromToken.mockResolvedValue(null);
   });
 
   afterEach(() => {

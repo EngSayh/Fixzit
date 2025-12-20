@@ -68,7 +68,10 @@ function createRequest(
 describe("API /api/admin/feature-flags", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.stubEnv("NODE_ENV", "test");
     mockRateLimit.mockReturnValue(null);
+    mockAuth.mockResolvedValue(null);
     mockListFlags.mockReturnValue([
       { id: "marketplace", name: "Marketplace", defaultEnabled: true },
       { id: "dark-mode", name: "Dark Mode", defaultEnabled: false },
