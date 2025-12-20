@@ -66,22 +66,23 @@ export async function DELETE(
       );
     }
 
-    const favorite = await AqarFavorite.findById(id);
+    // SEC-FIX: Use tenant-scoped findOneAndDelete to prevent cross-tenant access
+    // Combines tenant check + ownership check + delete in a single atomic operation
+    const favorite = await AqarFavorite.findOneAndDelete({
+      _id: new mongoose.Types.ObjectId(id),
+      orgId: new mongoose.Types.ObjectId(user.orgId),
+      userId: new mongoose.Types.ObjectId(user.id),
+    });
 
     if (!favorite) {
+      // Could be: not found, wrong org, or wrong user - return generic 404
       return NextResponse.json(
         { error: "Favorite not found" },
         { status: 404 },
       );
     }
 
-    // Check ownership
-    if (favorite.userId.toString() !== user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    // Delete favorite first
-    await favorite.deleteOne();
+    // Favorite already deleted by findOneAndDelete above
 
     // Decrement analytics after successful deletion (with error handling)
     if (favorite.targetType === "LISTING") {

@@ -24,51 +24,56 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-
 const importRoute = async () => {
   try {
-    return await import("@/app/api/aqar/insights/pricing/route");
+    const rateLimitModule = await import("@/lib/middleware/rate-limit");
+    const route = await import("@/app/api/aqar/insights/pricing/route");
+    return {
+      route,
+      rateLimit: vi.mocked(rateLimitModule.enforceRateLimit),
+    };
   } catch {
     return null;
   }
 };
 
 describe("API /api/aqar/insights/pricing", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    vi.resetModules();
+    const rateLimitModule = await import("@/lib/middleware/rate-limit");
+    vi.mocked(rateLimitModule.enforceRateLimit).mockReturnValue(null);
   });
 
   describe("GET - Get Pricing Insights", () => {
     it("returns 429 when rate limit exceeded", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
+      const imported = await importRoute();
+      if (!imported?.route?.GET) {
         expect(true).toBe(true);
         return;
       }
 
-      vi.mocked(enforceRateLimit).mockReturnValue(
+      imported.rateLimit.mockReturnValue(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,
         }) as never
       );
 
       const req = new NextRequest("http://localhost:3000/api/aqar/insights/pricing");
-      const response = await route.GET(req);
+      const response = await imported.route.GET(req);
 
       expect(response.status).toBe(429);
     });
 
     it("returns pricing insights successfully", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
+      const imported = await importRoute();
+      if (!imported?.route?.GET) {
         expect(true).toBe(true);
         return;
       }
 
       const req = new NextRequest("http://localhost:3000/api/aqar/insights/pricing");
-      const response = await route.GET(req);
+      const response = await imported.route.GET(req);
 
       expect([200, 401, 500]).toContain(response.status);
     });
