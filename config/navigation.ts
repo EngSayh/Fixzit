@@ -754,7 +754,10 @@ export const ROLE_PERMISSIONS = {
   SUPPORT: supportAgentAccess,
   // External roles fall back to view-only
   guest: viewerOnly,
-} satisfies Record<UserRoleType | 'guest', readonly ModuleId[]>;
+  // Authenticated users without explicit role get tenant access (dashboard + properties + support + reports)
+  // This prevents "Coming Soon" appearing for all modules when role is undefined
+  GUEST: ownerTenant,
+} satisfies Record<UserRoleType | 'guest' | 'GUEST', readonly ModuleId[]>;
 
 const CANONICAL_ROLE_SET = new Set(
   Object.keys(ROLE_PERMISSIONS)
@@ -762,11 +765,13 @@ const CANONICAL_ROLE_SET = new Set(
     .filter((value): value is string => Boolean(value))
 );
 
-export const resolveNavigationRole = (role?: string): UserRoleType | 'guest' => {
+export const resolveNavigationRole = (role?: string): UserRoleType | 'guest' | 'GUEST' => {
   const expandedValues = expandRoleValue(role);
   for (const value of expandedValues) {
     if (value && CANONICAL_ROLE_SET.has(value)) {
-      return value === 'GUEST' ? 'guest' : (value as UserRoleType);
+      // Return GUEST uppercase for authenticated users without explicit role
+      // This maps to ownerTenant permissions (dashboard, properties, support, reports)
+      return value as UserRoleType | 'guest' | 'GUEST';
     }
   }
   return 'guest';
