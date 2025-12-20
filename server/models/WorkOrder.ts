@@ -192,6 +192,7 @@ const WorkOrderSchema = new Schema(
       },
       assignedBy: { type: Schema.Types.ObjectId, ref: "User" },
       assignedAt: Date,
+      autoAssigned: { type: Boolean, default: false },
       reassignmentHistory: [
         {
           fromUserId: { type: Schema.Types.ObjectId, ref: "User" },

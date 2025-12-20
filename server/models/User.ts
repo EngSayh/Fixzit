@@ -170,13 +170,14 @@ const UserSchema = new Schema(
       },
       availability: [
         {
-          date: Date,
-          start: String,
-          end: String,
-          status: String, // AVAILABLE, BUSY, OFF
+          date: { type: Date },
+          start: { type: String },
+          end: { type: String },
+          status: { type: String }, // AVAILABLE, BUSY, OFF
         },
       ],
     },
+    lastAssignedAt: { type: Date },
 
     // Performance Metrics
     performance: {
