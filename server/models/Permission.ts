@@ -51,8 +51,8 @@ const PermissionSchema = new Schema(
 );
 
 // Indexes for efficient querying
+// Note: key already has unique:true in schema definition (creates index implicitly)
 PermissionSchema.index({ module: 1, action: 1 });
-PermissionSchema.index({ key: 1 }, { unique: true });
 
 // Pre-save hook to extract module and action from key
 PermissionSchema.pre("save", function (next) {
