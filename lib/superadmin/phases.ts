@@ -183,7 +183,7 @@ export async function loadSuperadminPhaseData(): Promise<PhaseData> {
       pendingItems.push(`${id}: ${title}`);
     }
 
-    const pendingBulletPattern = /^\s*-\s+([^\n]+)/gm;
+    const pendingBulletPattern = /^\s*-\s+(.*\S.*)/gm;
     let pendingBulletMatch: RegExpExecArray | null;
     while ((pendingBulletMatch = pendingBulletPattern.exec(pendingSection)) !== null) {
       pendingItems.push(pendingBulletMatch[1].trim());
