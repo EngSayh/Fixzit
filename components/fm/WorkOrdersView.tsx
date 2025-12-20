@@ -2,7 +2,7 @@
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useTranslation } from "@/contexts/TranslationContext";
@@ -31,6 +31,7 @@ import {
   AlertCircle,
   ShieldAlert,
   Filter,
+  WifiOff,
 } from "lucide-react";
 import { WorkOrderPriority } from "@/lib/sla";
 import ClientDate from "@/components/ClientDate";
@@ -42,6 +43,19 @@ import { TableToolbar } from "@/components/tables/TableToolbar";
 import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
 import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
+import { useOnlineStatus } from "@/components/common/OfflineIndicator";
+import { SubmitOfflineWarning } from "@/components/common/FormOfflineBanner";
+import {
+  queueOfflineWorkOrder,
+  readWorkOrdersCache,
+  syncOfflineWorkOrders,
+  writeWorkOrdersCache,
+  type WorkOrdersCacheEntry,
+} from "@/lib/offline/work-orders";
+import {
+  useOfflineWorkOrderQueue,
+  useOfflineWorkOrderSync,
+} from "@/hooks/fm/useOfflineWorkOrders";
 
 const statusStyles: Record<string, string> = {
   SUBMITTED: "bg-warning/10 text-warning border border-warning/20",
@@ -52,6 +66,7 @@ const statusStyles: Record<string, string> = {
   VERIFIED: "bg-success/10 text-success border border-success/20",
   CLOSED: "bg-success/10 text-success border border-success/20",
   CANCELLED: "bg-destructive/10 text-destructive border border-destructive/20",
+  DRAFT: "bg-muted text-foreground border border-border",
 };
 
 const priorityStyles: Record<string, string> = {
@@ -127,7 +142,8 @@ type WorkOrderRecord = {
     | "COMPLETED"
     | "VERIFIED"
     | "CLOSED"
-    | "CANCELLED";
+    | "CANCELLED"
+    | "DRAFT";
   priority: WorkOrderPriority;
   createdAt?: string;
   dueAt?: string;
@@ -148,6 +164,8 @@ type WorkOrderRecord = {
   assigneeVendorId?: string;
   category?: string;
   attachments?: WorkOrderAttachment[];
+  offlineStatus?: "queued" | "syncing" | "failed";
+  offlineError?: string;
 };
 
 type ApiResponse = {
@@ -155,6 +173,16 @@ type ApiResponse = {
   page: number;
   limit: number;
   total: number;
+};
+
+type WorkOrdersResponse = ApiResponse & {
+  data?: WorkOrderRecord[];
+  pagination?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+    totalPages?: number;
+  };
 };
 
 const fetcher = async (url: string) => {
@@ -195,6 +223,7 @@ export function WorkOrdersView({
   orgId,
 }: WorkOrdersViewProps) {
   const { t } = useTranslation();
+  const { isOnline } = useOnlineStatus();
   const resolvedHeading =
     heading ?? t("workOrders.list.heading", "Work Orders");
   const resolvedDescription =
@@ -215,6 +244,12 @@ export function WorkOrdersView({
   const [density, setDensity] = useState<"comfortable" | "compact">(
     "comfortable",
   );
+  const [cachedSnapshot, setCachedSnapshot] = useState<
+    WorkOrdersCacheEntry<WorkOrdersResponse> | null
+  >(null);
+  const [manualSyncing, setManualSyncing] = useState(false);
+
+  const { items: offlineQueue } = useOfflineWorkOrderQueue(orgId);
 
   useEffect(() => {
     if (!clientReady) {
@@ -250,10 +285,81 @@ export function WorkOrdersView({
     { keepPreviousData: true },
   );
 
-  const workOrders = data?.items ?? [];
-  const totalPages = data
-    ? Math.max(1, Math.ceil(data.total / (data.limit || PAGE_SIZE)))
-    : 1;
+  useEffect(() => {
+    if (!clientReady) return;
+    const cached = readWorkOrdersCache<WorkOrdersResponse>(orgId, query);
+    setCachedSnapshot(cached);
+  }, [clientReady, orgId, query]);
+
+  useEffect(() => {
+    if (!clientReady || !data) return;
+    try {
+      const entry = writeWorkOrdersCache(orgId, query, data);
+      setCachedSnapshot(entry);
+    } catch (cacheError) {
+      logger.warn("[work-orders] Cache write failed", { cacheError });
+    }
+  }, [clientReady, data, orgId, query]);
+
+  const handleSyncResult = useCallback(
+    (result: { synced: number; failed: number; remaining: number }) => {
+      if (result.synced > 0) {
+        toast.success(
+          t("workOrders.offline.syncSuccess", "Offline work orders synced"),
+          {
+            description: t(
+              "workOrders.offline.syncCount",
+              "{{count}} work orders synced",
+            ).replace("{{count}}", String(result.synced)),
+          },
+        );
+        void mutate();
+      }
+      if (result.failed > 0) {
+        toast.error(
+          t("workOrders.offline.syncFailed", "Some offline work orders failed"),
+          {
+            description: t(
+              "workOrders.offline.syncFailedCount",
+              "{{count}} work orders failed to sync",
+            ).replace("{{count}}", String(result.failed)),
+          },
+        );
+      }
+    },
+    [mutate, t],
+  );
+
+  useOfflineWorkOrderSync(orgId, handleSyncResult);
+
+  const resolvedResponse = useMemo(() => {
+    const response = (data ?? cachedSnapshot?.data) as
+      | WorkOrdersResponse
+      | undefined;
+    const items = Array.isArray(response?.items)
+      ? response.items
+      : Array.isArray(response?.data)
+        ? response.data
+        : [];
+    const total =
+      typeof response?.total === "number"
+        ? response.total
+        : typeof response?.pagination?.total === "number"
+          ? response.pagination.total
+          : items.length;
+    const limit =
+      typeof response?.limit === "number"
+        ? response.limit
+        : typeof response?.pagination?.limit === "number"
+          ? response.pagination.limit
+          : PAGE_SIZE;
+    return { items, total, limit };
+  }, [cachedSnapshot?.data, data]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(resolvedResponse.total / (resolvedResponse.limit || PAGE_SIZE)),
+  );
 
   const statusPlaceholder = t("workOrders.list.filters.status", "Status");
   const statusAllLabel = t("workOrders.list.filters.statusAll", "All Statuses");
@@ -317,6 +423,56 @@ export function WorkOrdersView({
     [t],
   );
 
+  const offlineQueueCounts = useMemo(() => {
+    const queued = offlineQueue.filter((item) => item.status === "queued").length;
+    const syncing = offlineQueue.filter((item) => item.status === "syncing").length;
+    const failed = offlineQueue.filter((item) => item.status === "failed").length;
+    return { queued, syncing, failed, total: offlineQueue.length };
+  }, [offlineQueue]);
+
+  const offlineItems = useMemo(() => {
+    if (!offlineQueue.length) return [];
+    const searchTerm = search.toLowerCase();
+    return offlineQueue
+      .filter((item) => {
+        const status = (item.payload.status || "DRAFT").toUpperCase();
+        if (statusFilter && status !== statusFilter) return false;
+        if (priorityFilter && item.payload.priority !== priorityFilter) return false;
+        if (searchTerm) {
+          const haystack = `${item.payload.title} ${item.payload.description || ""}`.toLowerCase();
+          if (!haystack.includes(searchTerm)) return false;
+        }
+        return true;
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+      .map<WorkOrderRecord>((item) => ({
+        id: item.id,
+        title: item.payload.title,
+        description: item.payload.description,
+        status: (item.payload.status || "DRAFT") as WorkOrderRecord["status"],
+        priority: item.payload.priority || "MEDIUM",
+        createdAt: item.createdAt,
+        propertyId: item.payload.propertyId,
+        location: {
+          propertyId: item.payload.propertyId,
+          unitNumber: item.payload.unitNumber,
+        },
+        category: item.payload.category || "GENERAL",
+        offlineStatus: item.status,
+        offlineError: item.lastError,
+      }));
+  }, [offlineQueue, priorityFilter, search, statusFilter]);
+
+  const workOrders = useMemo(() => {
+    if (page !== 1 || !offlineItems.length) {
+      return resolvedResponse.items;
+    }
+    return [...offlineItems, ...resolvedResponse.items];
+  }, [offlineItems, page, resolvedResponse.items]);
+
   const activeFilters = useMemo(() => {
     const filters: { key: string; label: string; onRemove: () => void }[] = [];
     if (statusFilter) {
@@ -366,6 +522,50 @@ export function WorkOrdersView({
   const cardContentClass =
     density === "compact" ? "space-y-2" : "space-y-3";
 
+  const lastUpdatedLabel = cachedSnapshot?.savedAt
+    ? formatDistanceToNowStrict(new Date(cachedSnapshot.savedAt), {
+        addSuffix: true,
+      })
+    : null;
+
+  const handleManualSync = async () => {
+    if (!orgId || manualSyncing) return;
+    setManualSyncing(true);
+    try {
+      const result = await syncOfflineWorkOrders({ orgId });
+      if (result.synced > 0) {
+        toast.success(
+          t("workOrders.offline.syncSuccess", "Offline work orders synced"),
+          {
+            description: t(
+              "workOrders.offline.syncCount",
+              "{{count}} work orders synced",
+            ).replace("{{count}}", String(result.synced)),
+          },
+        );
+        await mutate();
+      }
+      if (result.failed > 0) {
+        toast.error(
+          t("workOrders.offline.syncFailed", "Some offline work orders failed"),
+          {
+            description: t(
+              "workOrders.offline.syncFailedCount",
+              "{{count}} work orders failed to sync",
+            ).replace("{{count}}", String(result.failed)),
+          },
+        );
+      }
+    } catch (syncError) {
+      logger.error("[work-orders] Manual sync failed", { syncError });
+      toast.error(
+        t("workOrders.offline.syncFailed", "Unable to sync offline work orders"),
+      );
+    } finally {
+      setManualSyncing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -375,8 +575,58 @@ export function WorkOrdersView({
           </h1>
           <p className="text-muted-foreground">{resolvedDescription}</p>
         </div>
-        <WorkOrderCreateDialog onCreated={() => mutate()} />
+        <WorkOrderCreateDialog onCreated={() => mutate()} orgId={orgId} />
       </div>
+
+      {!isOnline || offlineQueueCounts.total > 0 ? (
+        <Card className="border-warning/30 bg-warning/10">
+          <CardContent className="flex flex-col gap-2 py-4 text-sm text-warning-foreground">
+            <div className="flex flex-wrap items-center gap-2 font-medium text-foreground">
+              <WifiOff className="h-4 w-4 text-warning" />
+              {!isOnline
+                ? t(
+                    "workOrders.offline.banner",
+                    "Offline mode: showing cached work orders.",
+                  )
+                : t(
+                    "workOrders.offline.bannerOnline",
+                    "Offline work orders queued for sync.",
+                  )}
+            </div>
+            {lastUpdatedLabel && (
+              <p className="text-xs text-muted-foreground">
+                {t("workOrders.offline.lastUpdated", "Last updated")}:{" "}
+                {lastUpdatedLabel}
+              </p>
+            )}
+            {offlineQueueCounts.total > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  "workOrders.offline.queueSummary",
+                  "{{total}} queued · {{failed}} failed · {{syncing}} syncing",
+                )
+                  .replace("{{total}}", String(offlineQueueCounts.total))
+                  .replace("{{failed}}", String(offlineQueueCounts.failed))
+                  .replace("{{syncing}}", String(offlineQueueCounts.syncing))}
+              </p>
+            )}
+            {isOnline && offlineQueueCounts.total > 0 ? (
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleManualSync}
+                  disabled={manualSyncing}
+                >
+                  {manualSyncing
+                    ? t("workOrders.offline.syncing", "Syncing...")
+                    : t("workOrders.offline.syncNow", "Sync now")}
+                </Button>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardContent className="space-y-4 pt-6">
@@ -643,6 +893,23 @@ export function WorkOrdersView({
                     >
                       {getWorkOrderStatusLabel(t, workOrder.status)}
                     </Badge>
+                    {workOrder.offlineStatus && (
+                      <Badge
+                        className={
+                          workOrder.offlineStatus === "failed"
+                            ? "bg-destructive/10 text-destructive border border-destructive/20"
+                            : workOrder.offlineStatus === "syncing"
+                              ? "bg-primary/10 text-primary border border-primary/20"
+                              : "bg-warning/10 text-warning border border-warning/20"
+                        }
+                      >
+                        {workOrder.offlineStatus === "failed"
+                          ? t("workOrders.offline.statusFailed", "Sync failed")
+                          : workOrder.offlineStatus === "syncing"
+                            ? t("workOrders.offline.statusSyncing", "Syncing")
+                            : t("workOrders.offline.statusQueued", "Pending sync")}
+                      </Badge>
+                    )}
                     {attachmentCount > 0 && (
                       <Badge variant="secondary" className="gap-1">
                         📎 {attachmentCount}{" "}
@@ -682,6 +949,12 @@ export function WorkOrdersView({
                     {workOrder.description}
                   </p>
                 )}
+                {workOrder.offlineStatus === "failed" && workOrder.offlineError ? (
+                  <p className="text-xs text-destructive">
+                    {t("workOrders.offline.error", "Offline sync failed")}:{" "}
+                    {workOrder.offlineError}
+                  </p>
+                ) : null}
                 <div className="grid grid-cols-1 gap-3 text-sm text-muted-foreground md:grid-cols-2">
                   <div>
                     <span className="font-medium text-foreground">
@@ -811,8 +1084,8 @@ export function WorkOrdersView({
             "workOrders.list.pagination.summary",
             "Showing {{count}} of {{total}} work orders",
           )
-            .replace("{{count}}", String(data ? data.items.length : 0))
-            .replace("{{total}}", String(data?.total ?? 0))}
+            .replace("{{count}}", String(workOrders.length))
+            .replace("{{total}}", String(resolvedResponse.total))}
         </span>
         <div className="flex items-center gap-2">
           <Button
@@ -853,8 +1126,15 @@ type WorkOrderFormState = {
   propertyId: string;
 };
 
-function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
+function WorkOrderCreateDialog({
+  onCreated,
+  orgId,
+}: {
+  onCreated: () => void;
+  orgId: string;
+}) {
   const { t } = useTranslation();
+  const { isOnline } = useOnlineStatus();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<WorkOrderFormState>({
@@ -879,13 +1159,30 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
     event.preventDefault();
     setSubmitting(true);
     try {
-      const payload: Record<string, unknown> = {
+      const payload = {
         title: form.title,
         description: form.description,
         priority: form.priority,
         category: form.category,
+        status: "SUBMITTED",
+        ...(form.propertyId ? { propertyId: form.propertyId } : {}),
       };
-      if (form.propertyId) payload.propertyId = form.propertyId;
+
+      if (!isOnline) {
+        queueOfflineWorkOrder(payload, orgId);
+        toast.success(
+          t("workOrders.offline.queued", "Work order saved offline"),
+          {
+            description: t(
+              "workOrders.offline.queueDesc",
+              "It will sync automatically when you're back online.",
+            ),
+          },
+        );
+        reset();
+        setOpen(false);
+        return;
+      }
 
       const response = await fetch("/api/work-orders", {
         method: "POST",
@@ -971,22 +1268,22 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
               </label>
               <Select
                 value={form.priority}
-              onValueChange={(value) => {
-                if (isWorkOrderPriority(value)) {
-                  setForm((prev) => ({ ...prev, priority: value }));
-                }
-              }}
-              placeholder={t(
-                "workOrders.create.form.priorityPlaceholder",
-                "Select priority",
-              )}
-            >
-              {PRIORITY_OPTIONS.map((priority) => (
-                <SelectItem key={priority} value={priority}>
-                  {getPriorityLabelText(t, priority)}
-                </SelectItem>
-              ))}
-            </Select>
+                onValueChange={(value) => {
+                  if (isWorkOrderPriority(value)) {
+                    setForm((prev) => ({ ...prev, priority: value }));
+                  }
+                }}
+                placeholder={t(
+                  "workOrders.create.form.priorityPlaceholder",
+                  "Select priority",
+                )}
+              >
+                {PRIORITY_OPTIONS.map((priority) => (
+                  <SelectItem key={priority} value={priority}>
+                    {getPriorityLabelText(t, priority)}
+                  </SelectItem>
+                ))}
+              </Select>
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">
@@ -1016,6 +1313,7 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
             />
           </div>
           <div className="flex justify-end gap-2">
+            <SubmitOfflineWarning className="me-auto" />
             <Button
               type="button"
               variant="outline"

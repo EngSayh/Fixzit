@@ -136,6 +136,7 @@ const VendorSchema = new Schema(
     },
 
     // Performance Metrics
+    lastAssignedAt: { type: Date },
     performance: {
       rating: { type: Number, min: 0, max: 5 },
       completedProjects: Number,

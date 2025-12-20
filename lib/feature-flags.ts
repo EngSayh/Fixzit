@@ -244,6 +244,14 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     category: "fm",
     defaultEnabled: false,
   },
+  "fm.work_order_ai_routing": {
+    id: "fm.work_order_ai_routing",
+    name: "AI Work Order Routing",
+    description: "Enable ML-based technician assignment optimization",
+    category: "fm",
+    defaultEnabled: false,
+    dependencies: ["fm.work_order_auto_assign"],
+  },
   "fm.sla_tracking": {
     id: "fm.sla_tracking",
     name: "SLA Tracking",

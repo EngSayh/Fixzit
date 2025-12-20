@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useOnlineStatus } from "@/components/common/OfflineIndicator";
 import {
   AlertCircle,
   CheckCircle2,
@@ -32,6 +33,7 @@ interface Props {
   onChange?: (attachments: WorkOrderAttachment[]) => void;
   initialAttachments?: WorkOrderAttachment[];
   draftCreator?: () => Promise<string | undefined>;
+  disabled?: boolean;
 }
 
 type UploadingFile = {
@@ -61,7 +63,9 @@ export function WorkOrderAttachments({
   onChange,
   initialAttachments,
   draftCreator,
+  disabled = false,
 }: Props) {
+  const { isOnline } = useOnlineStatus();
   const [attachments, setAttachments] = useState<WorkOrderAttachment[]>(() =>
     (initialAttachments || []).map((att) => ({
       ...att,
@@ -206,6 +210,10 @@ export function WorkOrderAttachments({
   };
 
   const handleFiles = async (fileList: FileList | null) => {
+    if (!isOnline || disabled) {
+      setError("Uploads require an online connection.");
+      return;
+    }
     const files = validateFiles(fileList);
     if (files.length === 0) return;
 
@@ -464,10 +472,15 @@ export function WorkOrderAttachments({
           type="file"
           multiple
           onChange={(e) => handleFiles(e.target.files)}
-          disabled={uploading}
+          disabled={uploading || disabled || !isOnline}
           className="max-w-xs"
         />
       </div>
+      {!isOnline || disabled ? (
+        <div className="text-xs text-muted-foreground">
+          Uploads are available when you're back online.
+        </div>
+      ) : null}
       {error && (
         <div className="text-xs text-destructive flex items-center gap-2">
           <AlertCircle className="h-4 w-4" />

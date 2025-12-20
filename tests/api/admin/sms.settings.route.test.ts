@@ -37,6 +37,21 @@ vi.mock("@/lib/logger", () => ({
     error: vi.fn(),
   },
 }));
+// Mock SSRF validator to allow valid HTTPS URLs
+vi.mock("@/lib/security/validate-public-https-url", () => ({
+  validatePublicHttpsUrl: vi.fn().mockImplementation((url: string) => {
+    // Reject HTTP
+    if (url.startsWith("http://")) {
+      return Promise.reject(new Error("Only HTTPS URLs are allowed"));
+    }
+    // Reject localhost
+    if (url.includes("localhost") || url.includes("127.0.0.1")) {
+      return Promise.reject(new Error("Localhost/loopback URLs are not allowed"));
+    }
+    // Accept valid HTTPS
+    return Promise.resolve(new URL(url));
+  }),
+}));
 
 const { connectToDatabase } = await import("@/lib/mongodb-unified");
 const { SMSSettings } = await import("@/server/models/SMSSettings");

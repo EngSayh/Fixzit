@@ -177,6 +177,7 @@ const UserSchema = new Schema(
         },
       ],
     },
+    lastAssignedAt: Date,
 
     // Performance Metrics
     performance: {

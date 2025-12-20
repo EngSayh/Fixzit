@@ -15,7 +15,9 @@ const POLL_INTERVAL_MS = 10_000;
 const HEARTBEAT_MS = 25_000;
 
 const normalizeCounters = (payload: Record<string, unknown>) => {
-  const { lastUpdated: _lastUpdated, ...rest } = payload as { lastUpdated?: string };
+  const { lastUpdated: _lastUpdated, ...rest } = payload as {
+    lastUpdated?: string;
+  };
   return rest;
 };
 

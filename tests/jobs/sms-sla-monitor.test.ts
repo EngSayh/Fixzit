@@ -25,27 +25,59 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
+// Mock SSRF validator to allow valid HTTPS URLs
+vi.mock("@/lib/security/validate-public-https-url", () => ({
+  validatePublicHttpsUrl: vi.fn().mockImplementation((url: string) => {
+    // Reject HTTP
+    if (url.startsWith("http://")) {
+      return Promise.reject(new Error("Only HTTPS URLs are allowed"));
+    }
+    // Reject localhost
+    if (url.includes("localhost") || url.includes("127.0.0.1")) {
+      return Promise.reject(new Error("Localhost/loopback URLs are not allowed"));
+    }
+    // Accept valid HTTPS
+    return Promise.resolve(new URL(url));
+  }),
+  isValidPublicHttpsUrl: vi.fn().mockImplementation(async (url: string) => {
+    // Reject HTTP
+    if (url.startsWith("http://")) {
+      return false;
+    }
+    // Reject localhost
+    if (url.includes("localhost") || url.includes("127.0.0.1")) {
+      return false;
+    }
+    // Accept valid HTTPS
+    return true;
+  }),
+}));
+
 type SmsSettingsModule = typeof import("@/server/models/SMSSettings");
 type EmailModule = typeof import("@/lib/email");
 type LoggerModule = typeof import("@/lib/logger");
 type SmsMonitorModule = typeof import("@/lib/jobs/sms-sla-monitor");
+type ValidatorModule = typeof import("@/lib/security/validate-public-https-url");
 
 let SMSSettings: SmsSettingsModule["SMSSettings"];
 let sendEmail: EmailModule["sendEmail"];
 let logger: LoggerModule["logger"];
 let sendBreachNotification: SmsMonitorModule["sendBreachNotification"];
+let validatePublicHttpsUrl: ValidatorModule["validatePublicHttpsUrl"];
 
 const reloadModules = async () => {
   ({ SMSSettings } = await import("@/server/models/SMSSettings"));
   ({ sendEmail } = await import("@/lib/email"));
   ({ logger } = await import("@/lib/logger"));
   ({ sendBreachNotification } = await import("@/lib/jobs/sms-sla-monitor"));
+  ({ validatePublicHttpsUrl } = await import("@/lib/security/validate-public-https-url"));
 };
 
 describe("SLA Breach Notification Webhook SSRF guard", () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
+    
     await reloadModules();
     vi.mocked(sendEmail).mockResolvedValue(undefined as any);
     // @ts-expect-error set global fetch for tests
