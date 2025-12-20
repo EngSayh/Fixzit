@@ -74,7 +74,7 @@ describe("API /api/webhooks/taqnyat", () => {
       expect(response.status).toBe(429);
     });
 
-    it("returns 200 for valid SMS delivery report", async () => {
+    it("returns 401 for unsigned webhook request", async () => {
       const route = await importRoute();
       if (!route?.POST) {
         expect(true).toBe(true);
@@ -94,8 +94,8 @@ describe("API /api/webhooks/taqnyat", () => {
       });
       const response = await route.POST(req);
 
-      // Accept various success/validation statuses
-      expect([200, 201, 202, 400]).toContain(response.status);
+      // Webhook requires signature verification - returns 401 without valid signature
+      expect(response.status).toBe(401);
     });
 
     it("handles malformed payload gracefully", async () => {
