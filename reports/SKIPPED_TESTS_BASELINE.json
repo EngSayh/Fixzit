@@ -1,0 +1,17 @@
+{
+  "generated": "2025-12-20",
+  "baseline": {
+    "skipCount": 925,
+    "todoCount": 54,
+    "threshold": {
+      "warnIfGrowsBy": 10,
+      "failIfGrowsBy": 50
+    }
+  },
+  "notes": [
+    "Baseline established from system-wide audit",
+    "Skip count includes describe.skip, it.skip, test.skip",
+    "Todo count from vitest summary",
+    "CI should warn if skip count grows beyond threshold"
+  ]
+}
