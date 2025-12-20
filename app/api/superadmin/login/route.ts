@@ -20,6 +20,7 @@ import { logger } from "@/lib/logger";
 
 const SUPERADMIN_USERNAME = process.env.SUPERADMIN_USERNAME || "superadmin";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
+const INCLUDE_ERROR_DETAILS = process.env.NODE_ENV !== "production";
 
 export async function POST(request: NextRequest) {
   // Primary rate limiting via enforceRateLimit middleware (5 req/min for login)
@@ -81,10 +82,15 @@ export async function POST(request: NextRequest) {
       if (passwordResult.reason === 'not_configured') {
         logger.error("[SUPERADMIN] Server misconfigured - no password set", { ip });
         return NextResponse.json(
-          { 
-            error: "Server configuration error. SUPERADMIN_PASSWORD is not set.", 
+          {
+            error: "Superadmin login temporarily unavailable.",
             code: "PASSWORD_NOT_CONFIGURED",
-            details: "Contact system administrator to configure SUPERADMIN_PASSWORD or SUPERADMIN_PASSWORD_HASH in environment variables."
+            ...(INCLUDE_ERROR_DETAILS
+              ? {
+                  details:
+                    "Contact system administrator to configure SUPERADMIN_PASSWORD or SUPERADMIN_PASSWORD_HASH in environment variables.",
+                }
+              : {}),
           },
           { status: 500, headers: ROBOTS_HEADER }
         );
@@ -120,9 +126,14 @@ export async function POST(request: NextRequest) {
       // Handle missing org id configuration
       logger.error("[SUPERADMIN] Token signing failed", tokenError instanceof Error ? tokenError : new Error(String(tokenError)));
       return NextResponse.json(
-        { 
-          error: "Server configuration error. Please contact system administrator.", 
-          details: tokenError instanceof Error ? tokenError.message : "Token generation failed"
+        {
+          error: "Superadmin login temporarily unavailable.",
+          ...(INCLUDE_ERROR_DETAILS
+            ? {
+                details:
+                  tokenError instanceof Error ? tokenError.message : "Token generation failed",
+              }
+            : {}),
         },
         { status: 500, headers: ROBOTS_HEADER }
       );

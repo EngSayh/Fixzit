@@ -1,7 +1,39 @@
 {
-  // Dedicated config so editors and language services resolve @/* paths in tests
-  "extends": "../tsconfig.vitest.json",
+  "extends": "../tsconfig.json",
   "compilerOptions": {
-    "types": ["vitest/globals"]
-  }
+    "noEmit": true,
+    "types": ["vitest/globals", "node"],
+    "skipLibCheck": true
+  },
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+    "../app/**/*.ts",
+    "../app/**/*.tsx",
+    "../lib/**/*.ts",
+    "../lib/**/*.tsx",
+    "../components/**/*.ts",
+    "../components/**/*.tsx",
+    "../server/**/*.ts",
+    "../services/**/*.ts",
+    "../models/**/*.ts",
+    "../types/**/*.ts",
+    "../contexts/**/*.ts",
+    "../contexts/**/*.tsx",
+    "../hooks/**/*.ts",
+    "../providers/**/*.ts",
+    "../providers/**/*.tsx",
+    "../auth.ts",
+    "../auth.config.ts",
+    "../middleware.ts",
+    "../vitest.setup.ts"
+  ],
+  "exclude": [
+    "../node_modules",
+    "../.next",
+    "../dist",
+    "../build",
+    "../public",
+    "../issue-tracker"
+  ]
 }

@@ -2,7 +2,7 @@ import { ZodError } from "zod";
 import { createSecureResponse } from "@/server/security/headers";
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import { UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 
 export interface ErrorResponse {
   error: string;
@@ -185,11 +185,9 @@ export function handleApiError(error: unknown): NextResponse {
     );
   }
 
-  // Duck-type check for UnauthorizedError to handle both real instances and mocked classes
-  if (
-    error instanceof UnauthorizedError ||
-    (error instanceof Error && error.name === "UnauthorizedError")
-  ) {
+  // Use centralized guard for UnauthorizedError detection
+  // Handles both real instances and test mocks with different class identity
+  if (isUnauthorizedError(error)) {
     return unauthorizedError();
   }
 

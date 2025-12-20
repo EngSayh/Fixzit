@@ -87,6 +87,7 @@
     "test:services": "pnpm exec vitest run tests/services",
     "test:auth": "vitest -c vitest.config.api.ts run tests/api/auth/**/*.test.{ts,tsx}",
     "test:api": "vitest -c vitest.config.api.ts run",
+    "test:api:ci": "mkdir -p reports && CI=true vitest run --project=server --maxWorkers=2 --pool=forks --bail 1 --reporter=default --reporter=json --outputFile=reports/vitest.server.json",
     "test:api:bounded": "vitest -c vitest.config.api.ts run --maxConcurrency=2 --testTimeout=120000 --hookTimeout=120000 --teardownTimeout=60000 --slowTestThreshold=120000",
     "test:ui:bounded": "vitest -c vitest.config.api.ts --project ui run --maxConcurrency=2 --testTimeout=120000 --hookTimeout=120000 --teardownTimeout=60000 --slowTestThreshold=120000",
     "test:models:ci": "vitest -c vitest.config.models.ts run --runInBand --testTimeout=120000 --hookTimeout=120000 --teardownTimeout=60000",

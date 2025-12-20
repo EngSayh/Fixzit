@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
+import { timingSafeEqual } from "crypto";
 import { logger } from "@/lib/logger";
 
 export interface SuperadminSession {
@@ -32,6 +33,13 @@ const rateLimiter = new Map<string, RateEntry>();
 
 const encoder = new TextEncoder();
 const jwtSecret = encoder.encode(SECRET_FALLBACK);
+
+function timingSafeEquals(value: string, expected: string): boolean {
+  const valueBuffer = Buffer.from(value);
+  const expectedBuffer = Buffer.from(expected);
+  if (valueBuffer.length !== expectedBuffer.length) return false;
+  return timingSafeEqual(valueBuffer, expectedBuffer);
+}
 
 function resolveOrgId(): string | null {
   const orgId =
@@ -97,14 +105,16 @@ export async function verifySuperadminPassword(password: string): Promise<Passwo
 
   // Option 2: Plaintext password configured (development/testing only)
   // Simple string equality - no hashing needed
-  const match = password === plainPassword;
+  // plainPassword is guaranteed to exist here (checked above)
+  const match = timingSafeEquals(password, plainPassword!);
   return match ? { ok: true } : { ok: false, reason: 'invalid' };
 }
 
 export function validateSecondFactor(secretFromRequest?: string): boolean {
   const envSecret = process.env.SUPERADMIN_SECRET_KEY;
   if (!envSecret) return true;
-  return envSecret === secretFromRequest;
+  if (!secretFromRequest) return false;
+  return timingSafeEquals(secretFromRequest, envSecret);
 }
 
 export async function signSuperadminToken(username: string): Promise<string> {

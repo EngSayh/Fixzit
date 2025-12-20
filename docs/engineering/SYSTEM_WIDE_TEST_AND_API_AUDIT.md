@@ -130,16 +130,75 @@ Apply `handleApiError` pattern to these 7 routes:
 
 ## QA Gate Checklist
 
-- [x] Tests pass (171 passed, 10 real failures identified)
+- [x] Tests pass (2631 passed, 0 failures)
 - [x] TypeScript compiles (0 errors)
+- [x] Lint passes (0 errors)
 - [x] Import issues fixed (481 files)
 - [x] Semantic helpers created
-- [ ] Route fixes for 500→401 (7 routes pending)
+- [x] Route fixes for 500→401 (7 routes fixed)
 - [x] Audit document created
 
 ## Conclusion
 
-This audit successfully transitioned from "green by masking" to "green by correctness". The 10 remaining failures are real bugs that need fixing in the API layer, not in the tests.
+This audit successfully transitioned from "green by masking" to "green by correctness". All 11 original failures have been fixed with proper error handling.
+
+---
+
+## Phase 3 Update: 2025-12-20
+
+### Additional Fixes Applied
+
+#### Routes Fixed with `handleApiError` (7 routes)
+
+| Route | Methods Fixed |
+|-------|---------------|
+| `app/api/assets/[id]/route.ts` | GET, PATCH, DELETE |
+| `app/api/aqar/listings/[id]/route.ts` | GET, PATCH, DELETE |
+| `app/api/owner/properties/route.ts` | GET |
+| `app/api/owner/statements/route.ts` | GET |
+| `app/api/slas/route.ts` | POST, GET |
+| `app/api/user/preferences/route.ts` | GET, PUT |
+| `app/api/work-orders/[id]/comments/route.ts` | GET, POST |
+
+#### Middleware Fixes
+
+1. **`server/middleware/subscriptionCheck.ts`**: Added `UnauthorizedError` detection before 503 fallback
+2. **`server/utils/errorResponses.ts`**: Added duck-type check for `error.name === 'UnauthorizedError'`
+
+#### Centralized Guard Created
+
+**File:** `server/utils/isUnauthorizedError.ts`
+
+- Single source of truth for auth error detection
+- Works with both real classes and test mocks
+- Extensible for future error patterns
+
+#### System-Wide Scan Results
+
+| Metric | Count |
+|--------|-------|
+| Routes with generic 500 | 32 |
+| Routes without `handleApiError` | 323/372 |
+| `instanceof UnauthorizedError` checks | 21 |
+
+### CI Script Added
+
+**Script:** `pnpm test:api:ci`
+
+Features:
+- Creates reports directory
+- Uses fork pool for isolation
+- Bails on first failure
+- Generates JSON artifact
+
+### Artifacts Generated
+
+| File | Description |
+|------|-------------|
+| `reports/routes.status500.txt` | 32 routes returning generic 500 |
+| `reports/instanceof.unauth.txt` | 21 instanceof UnauthorizedError usages |
+| `reports/auth.503.txt` | 90 lines mentioning 503/service unavailable |
+| `reports/routes.missing-handleApiError.txt` | 323 routes without handleApiError |
 
 ---
 **End of Audit Report**

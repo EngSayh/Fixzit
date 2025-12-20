@@ -52,9 +52,8 @@ describe("generateSlug", () => {
   });
 
   test("handles undefined/null at runtime defensively", () => {
-    // @ts-expect-error - Testing runtime behavior with invalid types
+    // Function now properly accepts undefined/null
     expect(generateSlug(undefined)).toBe("");
-    // @ts-expect-error - Testing runtime behavior with invalid types
     expect(generateSlug(null)).toBe("");
   });
 
