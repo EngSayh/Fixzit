@@ -7,37 +7,24 @@
  * @module app/superadmin/audit/page
  */
 
-import { useI18n } from "@/i18n/useI18n";
 import { FileText } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlannedFeature } from "@/components/superadmin/PlannedFeature";
 
 export default function SuperadminAuditPage() {
-  const { t } = useI18n();
-
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white mb-2">
-          {t("superadmin.nav.audit")}
-        </h1>
-        <p className="text-slate-400">
-          System-wide audit trail
-        </p>
-      </div>
-
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <FileText className="h-5 w-5" />
-            Coming Soon
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-slate-400">
-            Audit logs interface will be implemented here.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <PlannedFeature
+      title="Audit Logs"
+      description="View system-wide audit trails and security events"
+      icon={<FileText className="h-6 w-6" />}
+      status="in-development"
+      plannedRelease="Q1 2026"
+      features={[
+        "Real-time audit event streaming",
+        "Filter by user, action, or resource",
+        "Export audit logs to CSV/JSON",
+        "Compliance reporting (SOC2, HIPAA)",
+        "Retention policy management",
+      ]}
+    />
   );
 }

@@ -8,36 +8,23 @@
  */
 
 import { Store } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlannedFeature } from "@/components/superadmin/PlannedFeature";
 
 export default function SuperadminVendorsPage() {
-
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white mb-2">
-          Vendor Administration
-        </h1>
-        <p className="text-slate-400">
-          Manage all marketplace vendors, approvals, and vendor settings
-        </p>
-      </div>
-
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Store className="h-5 w-5" />
-            Coming Soon
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-slate-400">
-            Vendor administration interface will be implemented here.
-            This will include vendor approvals, performance monitoring, payout management,
-            and vendor-specific settings.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <PlannedFeature
+      title="Vendor Administration"
+      description="Manage all marketplace vendors, approvals, and vendor settings"
+      icon={<Store className="h-6 w-6" />}
+      status="planned"
+      plannedRelease="Q2 2026"
+      features={[
+        "Vendor onboarding and approval workflow",
+        "Performance monitoring and scorecards",
+        "Commission and payout management",
+        "Vendor suspension and compliance tools",
+        "Vendor communication and support portal",
+      ]}
+    />
   );
 }
