@@ -12,10 +12,8 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import {
-  getSessionUser,
-  UnauthorizedError,
-} from "@/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import { PricingInsightsService } from "@/services/aqar/pricing-insights-service";
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { isValidObjectIdSafe } from "@/lib/api/validation";
@@ -47,7 +45,7 @@ export async function GET(request: NextRequest) {
     try {
       user = await getSessionUser(request);
     } catch (error) {
-      if (!(error instanceof UnauthorizedError)) {
+      if (!isUnauthorizedError(error)) {
         const message =
           error instanceof Error ? error.message : "Unknown auth error";
         logger.warn("AQAR_PRICING_SESSION_WARN", {

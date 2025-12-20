@@ -7,10 +7,8 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import {
-  getSessionUser,
-  UnauthorizedError,
-} from "@/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import { Types } from "mongoose";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
@@ -141,7 +139,7 @@ export async function POST(
       },
     });
   } catch (error: unknown) {
-    if (error instanceof UnauthorizedError) {
+    if (isUnauthorizedError(error)) {
       return createSecureResponse({ error: "Unauthorized" }, 401, req);
     }
     return handleApiError(error);

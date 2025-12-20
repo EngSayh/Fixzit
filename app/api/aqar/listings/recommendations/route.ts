@@ -12,10 +12,8 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import {
-  getSessionUser,
-  UnauthorizedError,
-} from "@/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import { connectDb } from "@/lib/mongo";
 import { AqarFavorite } from "@/server/models/aqar";
 import { FavoriteType, type IFavorite } from "@/server/models/aqar/Favorite";
@@ -67,7 +65,7 @@ export async function GET(request: NextRequest) {
     try {
       user = await getSessionUser(request);
     } catch (error) {
-      if (!(error instanceof UnauthorizedError)) {
+      if (!isUnauthorizedError(error)) {
         const message =
           error instanceof Error ? error.message : "Unknown auth error";
         logger.warn("AQAR_RECO_USER_LOOKUP_FAILED", {

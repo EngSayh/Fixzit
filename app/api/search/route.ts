@@ -18,9 +18,9 @@ import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
 import {
   getSessionUser,
-  UnauthorizedError,
   type SessionUser,
 } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import { ObjectId } from "mongodb";
 import { UserRole, type UserRoleType } from "@/types/user";
 
@@ -633,7 +633,7 @@ export async function GET(req: NextRequest) {
     }
     orgObjectId = new ObjectId(orgId);
   } catch (error) {
-    if (error instanceof UnauthorizedError) {
+    if (isUnauthorizedError(error)) {
       return createSecureResponse(
         { error: "Authentication required" },
         401,
