@@ -5,7 +5,6 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 const { globSync } = require('glob');
 
 const testFiles = globSync('tests/api/**/*.test.ts');

@@ -3,6 +3,8 @@
  * Ensures consistent dynamic import pattern across all test files
  */
 
+import type { it as vitestIt } from 'vitest';
+
 type RouteModule = {
   GET?: (req: Request, context?: unknown) => Promise<Response>;
   POST?: (req: Request, context?: unknown) => Promise<Response>;
@@ -31,9 +33,10 @@ type LoadRouteResult = {
  */
 export async function loadRoute(routePath: string): Promise<LoadRouteResult> {
   try {
-    const module = await import(routePath);
+    // eslint-disable-next-line @next/next/no-assign-module-variable
+    const routeModule = await import(routePath);
     return {
-      route: module,
+      route: routeModule,
       error: null,
       exists: true,
     };
@@ -61,8 +64,8 @@ export function hasMethod(route: RouteModule | null, method: 'GET' | 'POST' | 'P
  * Skip test if route doesn't exist
  * Use this for stub/future route tests
  */
-export function skipIfMissing(result: LoadRouteResult, it: typeof globalThis.it): void {
+export function skipIfMissing(result: LoadRouteResult, testFn: typeof vitestIt): void {
   if (!result.exists) {
-    it.skip(`Route not implemented: ${result.error}`);
+    testFn.skip(`Route not implemented: ${result.error}`);
   }
 }

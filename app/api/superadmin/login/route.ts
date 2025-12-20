@@ -76,8 +76,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const passwordOk = await verifySuperadminPassword(password);
-    if (!passwordOk) {
+    const passwordResult = await verifySuperadminPassword(password);
+    if (!passwordResult.ok) {
+      if (passwordResult.reason === 'not_configured') {
+        logger.error("[SUPERADMIN] Server misconfigured - no password set", { ip });
+        return NextResponse.json(
+          { 
+            error: "Server configuration error. SUPERADMIN_PASSWORD is not set.", 
+            code: "PASSWORD_NOT_CONFIGURED",
+            details: "Contact system administrator to configure SUPERADMIN_PASSWORD or SUPERADMIN_PASSWORD_HASH in environment variables."
+          },
+          { status: 500, headers: ROBOTS_HEADER }
+        );
+      }
       logger.warn("[SUPERADMIN] Failed password attempt", { username, ip });
       return NextResponse.json(
         { error: "Password is incorrect", field: "password", code: "INVALID_PASSWORD" },

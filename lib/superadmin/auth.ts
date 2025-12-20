@@ -77,22 +77,27 @@ export function isRateLimited(ip: string): boolean {
   return entry.count > RATE_LIMIT_MAX;
 }
 
-export async function verifySuperadminPassword(password: string): Promise<boolean> {
+export type PasswordVerifyResult = { ok: true } | { ok: false; reason: 'not_configured' | 'invalid' };
+
+export async function verifySuperadminPassword(password: string): Promise<PasswordVerifyResult> {
   const configuredHash = process.env.SUPERADMIN_PASSWORD_HASH;
   const plainPassword = process.env.SUPERADMIN_PASSWORD;
 
   if (!configuredHash && !plainPassword) {
-    logger.error("[SUPERADMIN] SUPERADMIN_PASSWORD_HASH or SUPERADMIN_PASSWORD not configured");
-    return false;
+    logger.error("[SUPERADMIN] CRITICAL: SUPERADMIN_PASSWORD_HASH or SUPERADMIN_PASSWORD not configured");
+    logger.error("[SUPERADMIN] Please set one of these environment variables in Vercel/production");
+    return { ok: false, reason: 'not_configured' };
   }
 
   if (configuredHash) {
-    return bcrypt.compare(password, configuredHash);
+    const match = await bcrypt.compare(password, configuredHash);
+    return match ? { ok: true } : { ok: false, reason: 'invalid' };
   }
 
   // Hash the provided plaintext password from env once per process
   const derivedHash = await bcrypt.hash(plainPassword || "", 10);
-  return bcrypt.compare(password, derivedHash);
+  const match = await bcrypt.compare(password, derivedHash);
+  return match ? { ok: true } : { ok: false, reason: 'invalid' };
 }
 
 export function validateSecondFactor(secretFromRequest?: string): boolean {
