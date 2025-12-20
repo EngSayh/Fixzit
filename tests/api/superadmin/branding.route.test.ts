@@ -58,9 +58,19 @@ const { validatePublicHttpsUrl } = await import("@/lib/security/validate-public-
 describe("Superadmin Branding API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    // Reset rate limit mock to allow requests
-    vi.mocked(enforceRateLimit).mockResolvedValue(undefined);
+
+    vi.unstubAllEnvs();
+    vi.stubEnv("NODE_ENV", "test");
+
+    // Reset rate limit mock to allow requests (returns null = no rate limit)
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    vi.mocked(getSuperadminSession).mockResolvedValue({
+      username: "superadmin",
+      role: "superadmin",
+    } as any);
+    vi.mocked(validatePublicHttpsUrl).mockResolvedValue(
+      new URL("https://example.com"),
+    );
   });
 
   describe("GET /api/superadmin/branding", () => {
