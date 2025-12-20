@@ -1,8 +1,8 @@
 /**
-import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Superadmin Logs API
  * @description Tests the /api/superadmin/logs endpoint
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';

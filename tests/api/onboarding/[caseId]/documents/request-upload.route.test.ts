@@ -1,8 +1,8 @@
 /**
-import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Onboarding CaseId Documents Request Upload API
  * @description Tests the /api/onboarding/[caseId]/documents/request-upload endpoint
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';

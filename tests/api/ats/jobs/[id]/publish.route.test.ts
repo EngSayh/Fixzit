@@ -1,8 +1,8 @@
 /**
-import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Ats Jobs Id Publish API
  * @description Tests the /api/ats/jobs/[id]/publish endpoint
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';

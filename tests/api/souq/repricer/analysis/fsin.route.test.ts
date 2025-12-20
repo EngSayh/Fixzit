@@ -1,8 +1,8 @@
 /**
-import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Souq Repricer Analysis Fsin API
  * @description Tests the /api/souq/repricer/analysis/[fsin] endpoint
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';

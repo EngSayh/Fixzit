@@ -1,9 +1,9 @@
 /**
-import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/finance/expenses routes
  * Tests expense management with approval workflow and line items
  * FINANCIAL TAG: Critical for accurate expense tracking and accounting
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 

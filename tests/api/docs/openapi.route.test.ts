@@ -1,8 +1,8 @@
 /**
-import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Docs Openapi API
  * @description Tests the /api/docs/openapi endpoint
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';

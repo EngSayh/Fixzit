@@ -17,12 +17,12 @@ for (const file of testFiles) {
     const content = fs.readFileSync(file, 'utf-8');
     const lines = content.split('\n');
     
-    // Check if line 1 is /** and line 2 is an import
-    if (lines[0] === '/**' && lines[1] && lines[1].startsWith('import {')) {
-      // Find where the JSDoc comment ends
+    // Check if line 0 is /** and line 1 is an import from _helpers
+    if (lines[0] === '/**' && lines[1] && lines[1].includes("from '@/tests/api/_helpers'")) {
+      // Find where the JSDoc comment ends (looking for line with just ` */`)
       let jsdocEnd = -1;
       for (let i = 2; i < lines.length; i++) {
-        if (lines[i].includes('*/')) {
+        if (lines[i].trim() === '*/') {
           jsdocEnd = i;
           break;
         }
@@ -36,18 +36,16 @@ for (const file of testFiles) {
       // Extract the misplaced import
       const misplacedImport = lines[1];
       
-      // Find where other imports start (after JSDoc)
-      let firstImportLine = jsdocEnd + 1;
-      
       // Reconstruct the file:
-      // 1. JSDoc without misplaced import
-      // 2. Existing imports (after JSDoc)
-      // 3. Add misplaced import at proper location
+      // Line 0: /**
+      // Lines 2 to jsdocEnd: rest of JSDoc (skip line 1 which is misplaced import)
+      // After JSDoc: moved import
+      // Rest of file
       
       const newLines = [
         lines[0], // /**
-        ...lines.slice(2, jsdocEnd + 1), // rest of JSDoc (skip misplaced import)
-        misplacedImport, // moved import
+        ...lines.slice(2, jsdocEnd + 1), // rest of JSDoc (lines 2 through jsdocEnd, skip misplaced import on line 1)
+        misplacedImport, // moved import after JSDoc closes
         ...lines.slice(jsdocEnd + 1) // rest of file
       ];
       

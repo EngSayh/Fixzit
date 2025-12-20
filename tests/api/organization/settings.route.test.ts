@@ -1,8 +1,8 @@
 /**
-import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Organization Settings API
  * @description Tests the /api/organization/settings endpoint
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
@@ -45,8 +45,8 @@ describe('Organization Settings API', () => {
   });
 
   describe('GET /api/organization/settings', () => {
-    it('should reject unauthenticated requests', async () => {
-      // Mock unauthenticated session - return null
+    it('should return default branding for unauthenticated requests', async () => {
+      // Route is public - unauthenticated users get default branding
       vi.mocked(auth).mockResolvedValue(null);
 
       const { GET } = await import('@/app/api/organization/settings/route');
@@ -55,7 +55,9 @@ describe('Organization Settings API', () => {
       });
 
       const response = await GET(req);
-      expectAuthFailure(response);
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.name).toBe('FIXZIT ENTERPRISE');
     });
   });
 });

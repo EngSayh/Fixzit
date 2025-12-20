@@ -1,8 +1,8 @@
 /**
-import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/aqar/favorites/[id] DELETE route
  * Tests favorite deletion for individual favorites by ID
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 

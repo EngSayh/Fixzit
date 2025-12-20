@@ -1,6 +1,6 @@
 /**
-import { expectAuthFailure } from '@/tests/api/_helpers';
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 

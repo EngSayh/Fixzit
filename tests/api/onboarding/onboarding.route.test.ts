@@ -1,9 +1,9 @@
 /**
-import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/onboarding routes
  * Tests onboarding case management for KYC, document submission, and approval workflows
  * CRITICAL: Core user registration flow
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 

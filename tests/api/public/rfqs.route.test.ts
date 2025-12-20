@@ -1,8 +1,8 @@
 /**
-import { expectValidationFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/public/rfqs routes
  * Tests public RFQ (Request for Quote) API
  */
+import { expectValidationFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 

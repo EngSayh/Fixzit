@@ -1,8 +1,8 @@
 /**
-import { expectAuthFailure, expectValidationFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/checkout/complete routes
  * Tests checkout completion flow for orders/payments
  */
+import { expectAuthFailure, expectValidationFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 

@@ -1,9 +1,9 @@
 /**
-import { expectAuthFailure, expectValidationFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/vendors routes
  * Tests vendor listing and creation
  * MULTI-TENANT: Enforces org_id scope
  */
+import { expectAuthFailure, expectValidationFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 

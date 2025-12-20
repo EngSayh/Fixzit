@@ -1,9 +1,9 @@
 /**
-import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/souq/analytics/dashboard routes
  * Tests seller analytics dashboard with sales, traffic, and customer metrics
  * MARKETPLACE: Critical business intelligence for sellers
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 

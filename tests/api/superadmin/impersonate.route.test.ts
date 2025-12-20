@@ -1,8 +1,8 @@
 /**
-import { expectAuthFailure } from '@/tests/api/_helpers';
  * Superadmin Impersonation API Tests
  * Tests for POST/DELETE /api/superadmin/impersonate
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { POST, DELETE } from "@/app/api/superadmin/impersonate/route";

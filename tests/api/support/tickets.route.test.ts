@@ -1,9 +1,9 @@
 /**
-import { expectAuthFailure, expectValidationFailure, expectSuccess } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/support/tickets routes
  * Tests support ticket management with CRUD operations
  * CRITICAL: Customer support workflow
  */
+import { expectAuthFailure, expectValidationFailure, expectSuccess } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 

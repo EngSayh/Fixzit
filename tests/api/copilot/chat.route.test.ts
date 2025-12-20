@@ -1,8 +1,8 @@
 /**
-import { expectAuthFailure, expectValidationFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/copilot/chat routes
  * Tests AI copilot chat interactions
  */
+import { expectAuthFailure, expectValidationFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 

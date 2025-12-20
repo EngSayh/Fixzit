@@ -1,9 +1,9 @@
 /**
-import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/finance/accounts routes
  * Tests Chart of Accounts management with hierarchical structure
  * FINANCIAL TAG: Critical for accounting structure and double-entry bookkeeping
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 

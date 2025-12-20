@@ -1,9 +1,9 @@
 /**
-import { expectAuthFailure, expectValidationFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/search routes
  * Tests global search functionality
  * MULTI-TENANT: Enforces org_id scope in search results
  */
+import { expectAuthFailure, expectValidationFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 

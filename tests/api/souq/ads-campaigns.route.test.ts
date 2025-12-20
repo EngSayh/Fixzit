@@ -1,9 +1,9 @@
 /**
-import { expectAuthFailure, expectSuccess } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/souq/ads/campaigns routes
  * Tests ad campaign management for marketplace sellers
  * MARKETPLACE: Revenue-critical advertising functionality
  */
+import { expectAuthFailure, expectSuccess } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 

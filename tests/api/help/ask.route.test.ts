@@ -1,9 +1,9 @@
 /**
-import { expectValidationFailure, expectSuccess } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/help/ask routes
  * Tests AI-powered help system with knowledge base search
  * CRITICAL: User assistance and knowledge base integration
  */
+import { expectValidationFailure, expectSuccess } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
