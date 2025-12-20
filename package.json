@@ -92,6 +92,7 @@
     "test:server": "vitest -c vitest.config.ts --project server run",
     "test:watch": "vitest",
     "test:ci": "vitest run --bail 1",
+    "test:ci:shard": "node scripts/vitest-shard.mjs",
     "test:peek": "pnpm test 2>&1 | head -n 200",
     "test:fail": "pnpm test 2>&1 | grep -A 8 -E 'FAIL|✖|Error|AssertionError|Test Files|failed'",
     "test:summary": "pnpm test 2>&1 | tail -n 50",

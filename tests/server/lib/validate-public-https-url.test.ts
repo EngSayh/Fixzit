@@ -1,7 +1,31 @@
-import { describe, it, expect } from 'vitest';
-import { validatePublicHttpsUrl, isValidPublicHttpsUrl, URLValidationError } from '@/lib/security/validate-public-https-url';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { URLValidationError } from '@/lib/security/validate-public-https-url';
+
+// Mock DNS lookup BEFORE importing the module that uses it
+// dns.lookup with { all: true } returns an array of { address, family }
+vi.mock('node:dns', () => ({
+  promises: {
+    lookup: vi.fn().mockImplementation((host, options) => {
+      // Return IPv4 for family: 4, reject for family: 6
+      if (options?.family === 4) {
+        return Promise.resolve([{ address: '93.184.216.34', family: 4 }]);
+      }
+      if (options?.family === 6) {
+        return Promise.reject(new Error('No AAAA records'));
+      }
+      return Promise.resolve([{ address: '93.184.216.34', family: 4 }]);
+    }),
+  },
+}));
+
+// Import AFTER mock is set up
+const { validatePublicHttpsUrl, isValidPublicHttpsUrl } = await import('@/lib/security/validate-public-https-url');
 
 describe('validatePublicHttpsUrl - SSRF Protection v2.0', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('Valid Public HTTPS URLs', () => {
     it('should accept valid public HTTPS URLs with DNS resolution', async () => {
       const validUrls = [

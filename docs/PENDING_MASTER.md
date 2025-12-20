@@ -8440,7 +8440,15 @@ grep -rn "getSessionUser.*\.catch.*=> null" app/api --include="*.ts" | wc -l
 | 🟡 Medium | Pagination | Inconsistent across modules | Standardize cursor-based pagination utility | UX consistency |
 | 🟢 Low | Dark Mode | Partial support | Complete dark mode support across all modules | Accessibility |
 
-#### B. New Features Aligned with Industry Trends
+#### B. UX Improvements
+
+| Improvement | Current State | Proposed Enhancement |
+|-------------|---------------|---------------------|
+| Bulk Actions | ✅ Implemented for invoices/work orders | Extend to all list views |
+| Real-time Notifications | ✅ SSE stream implemented | Add push notifications (FCM/APNs) |
+| Search | Basic filtering | Full-text search with Elasticsearch/Atlas Search |
+
+#### C. New Features Aligned with Industry Trends
 
 | Feature | Description | Business Value | Effort |
 |---------|-------------|----------------|--------|
@@ -8465,13 +8473,11 @@ grep -rn "getSessionUser.*\.catch.*=> null" app/api --include="*.ts" | wc -l
 
 #### B. Automation Opportunities
 
-| Process | Current State | Automation Proposal | Time Saved |
-|---------|---------------|---------------------|------------|
-| **Translation Audit** | Manual script run | Pre-commit hook + CI gate | 15 min/PR |
-| **Test Coverage Check** | Manual review | Codecov threshold gate | 10 min/PR |
-| **Dependency Updates** | Manual Renovate merge | Auto-merge for patch versions | 2 hrs/week |
-| **Type Generation** | Manual OpenAPI sync | Auto-generate from routes | 1 hr/change |
-| **Database Migrations** | Manual verification | Migration test in CI | 30 min/deploy |
+| Current State | Automation Proposed | Impact |
+|---------------|---------------------|--------|
+| Manual PR reviews | Automated code quality gates | ✅ Already implemented (pre-commit hooks) |
+| Manual deployments | Vercel auto-deploy | ✅ Already implemented |
+| Manual i18n sync | Automated locale generation | ✅ Already implemented (`pnpm i18n:build`) |
 
 #### C. Performance Optimizations
 

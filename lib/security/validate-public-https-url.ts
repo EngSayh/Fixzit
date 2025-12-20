@@ -25,9 +25,9 @@ const INVALID_MESSAGE = "Invalid URL format";
 const DNS_FAILURE_MESSAGE = "DNS resolution failed";
 
 const PRIVATE_IPV4_RANGES = [
-  /^10\.(\d{1,3}\.){2}\d{1,3}$/, // 10.0.0.0/8
-  /^192\.168\.(\d{1,3}\.)\d{1,3}$/, // 192.168.0.0/16
-  /^172\.(1[6-9]|2\d|3[01])\.(\d{1,3}\.)\d{1,3}$/, // 172.16.0.0/12
+  /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/, // 10.0.0.0/8
+  /^192\.168\.\d{1,3}\.\d{1,3}$/, // 192.168.0.0/16
+  /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/, // 172.16.0.0/12
 ];
 
 function isLocalhost(hostname: string): boolean {
@@ -138,7 +138,16 @@ export async function validatePublicHttpsUrl(urlString: string): Promise<URL> {
     throw new URLValidationError(INTERNAL_TLD_MESSAGE);
   }
 
+  // Check for private/link-local IPs BEFORE rejecting all direct IPs
+  // This provides more specific error messages
   if (isDirectIp(host)) {
+    if (isPrivateIPv4(host) || isLinkLocal(host)) {
+      throw new URLValidationError(PRIVATE_IP_MESSAGE);
+    }
+    if (isPrivateIPv6(host)) {
+      throw new URLValidationError(PRIVATE_IP_MESSAGE);
+    }
+    // Reject remaining direct IPs (public IPs should use hostnames)
     throw new URLValidationError(DIRECT_IP_MESSAGE);
   }
 
