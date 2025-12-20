@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-20T07:00:00+03:00 (Asia/Riyadh)  
-**Scanner Version:** v4.3 (Test Coverage Expansion)  
+**Last Updated:** 2025-12-20T10:15:00+03:00 (Asia/Riyadh)  
+**Scanner Version:** v4.5 (Production Readiness Verification)  
 **Branch:** phase-p233-test-coverage-expansion  
-**Commit:** aa1ac6196 (feat(tests): add API tests for work-orders, payments, and owner routes)  
-**Last Work:** P233 - Test Coverage Expansion Phase  
+**Commit:** 93f877e37 (fix(tests): tighten fragile assertions)  
+**Last Work:** P234 - Rate Limiting + Test Quality Fixes  
 **MongoDB Status:** ⚠️ Not synced this session  
-**Working Tree:** CLEAN
-**Test Count:** ✅ 412+ test files, 3700+ tests passing; API tests: 113 files; TypeScript: 0 errors; ESLint: 0 warnings
+**Working Tree:** CLEAN  
+**Test Count:** ✅ 420 test files, 3695 tests passing; TypeScript: 0 errors; ESLint: 0 warnings
 
 ---
 
@@ -20,14 +20,15 @@
 
 | Metric | Value |
 |--------|-------|
-| **Health Score** | 97/100 |
+| **Health Score** | 98/100 |
 | **API Routes** | 369 total |
-| **API Test Files** | 113 (30.6% coverage) |
-| **Test Files Total** | 412+ |
+| **Test Files Total** | 420 |
+| **Tests Passing** | 3695 |
+| **Rate-Limit Pattern** | ✅ All routes verified |
 | **Components** | 240 |
 | **Services** | 39 |
 | **Models** | 145 |
-| **Build Status** | ✅ TS=0, ESLint=0, Tests=4103/4103 |
+| **Build Status** | ✅ TS=0, ESLint=0, Tests=3695/3695 |
 
 ---
 
@@ -39,6 +40,7 @@
 | SEC-002 | Tenant scope validation | ✅ RESOLVED | ESLint `require-tenant-scope`: 0 warnings (from 81) |
 | SEC-CRM-001 | CRM accounts/share tenant scope | ✅ RESOLVED | Commit cf04061f1, 7/7 tests passing |
 | SEC-001 | Rate limiting on public routes | ✅ RESOLVED | All 379 routes verified |
+| SEC-003 | Rate limiting on superadmin routes | ✅ RESOLVED | P234: Added to impersonate, issues, issues/import |
 
 ### Performance ✅
 | ID | Item | Status | Evidence |
@@ -65,6 +67,7 @@
 | TEST-004 | JSON parse guards | ✅ RESOLVED | All POST routes have try-catch |
 | BUG-002 | @ts-expect-error documented | ✅ RESOLVED | All 5 suppressions have reasons |
 | i18n | Locale coverage | ✅ 100% | 30,852 keys per locale |
+| TEST-QUALITY-001 | Fragile assertion cleanup | ✅ RESOLVED | P234: Removed 500-acceptance from billing/souq tests |
 
 ---
 
