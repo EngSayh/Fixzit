@@ -50,19 +50,19 @@ jobs:
           mkdir -p reports
           NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/api \
             --project=server --reporter=junit --outputFile=reports/junit-api.xml \
-            --maxWorkers=2 || true
+            --maxWorkers=2
 
       - name: Vitest (Unit shard + JUnit)
         run: |
           NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/unit \
             --reporter=junit --outputFile=reports/junit-unit.xml \
-            --maxWorkers=2 || true
+            --maxWorkers=2
 
       - name: Coverage (API scope)
         run: |
           pnpm vitest run tests/api/_smoke --project=server --coverage \
             --coverage.provider=v8 --coverage.reporter=text-summary \
-            --coverage.reporter=lcov --maxWorkers=1 || true
+            --coverage.reporter=lcov --maxWorkers=1
 
       - name: Build
         run: pnpm build

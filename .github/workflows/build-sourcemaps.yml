@@ -82,7 +82,7 @@ jobs:
           environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
           # v3 uses 'release' for the release name
           release: ${{ github.sha }}
-          projects: ${{ secrets.SENTRY_PROJECT || 'fixzit-frontend' }}
+          projects: ${{ secrets.SENTRY_PROJECT }}
           # Upload all Next.js client/server maps; v3 injects Debug IDs by default
           sourcemaps: .next
           url_prefix: "~/_next"
@@ -93,9 +93,12 @@ jobs:
       - name: 🧾 Build summary
         if: always()
         env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          HAS_SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
+          HAS_SENTRY_ORG: ${{ secrets.SENTRY_ORG != '' }}
+          HAS_SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT != '' }}
           SENTRY_RELEASE: ${{ github.sha }}
           BUILD_OUTCOME: ${{ steps.build.outcome || 'unknown' }}
+          SENTRY_OUTCOME: ${{ steps.sentry.outcome || 'skipped' }}
         run: |
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
           if [ "$BUILD_OUTCOME" = "success" ]; then
@@ -111,15 +114,18 @@ jobs:
           echo "🗺️ Source maps: $MAP_COUNT files" >> $GITHUB_STEP_SUMMARY
           TOTAL_SIZE=$(find .next -name "*.map" -type f -exec du -ch {} + 2>/dev/null | awk '/total/{print $1}')
           echo "💾 Total .map size: ${TOTAL_SIZE:-0}" >> $GITHUB_STEP_SUMMARY
-          if [ -n "${SENTRY_AUTH_TOKEN}" ]; then
-            if [ "${{ steps.sentry.outcome }}" = "success" ]; then
+          # Only report Sentry status if ALL required secrets are configured
+          if [ "$HAS_SENTRY_AUTH_TOKEN" = "true" ] && [ "$HAS_SENTRY_ORG" = "true" ] && [ "$HAS_SENTRY_PROJECT" = "true" ]; then
+            if [ "$SENTRY_OUTCOME" = "success" ]; then
               SENTRY_ENV="${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}"
               echo "✅ Sentry release uploaded (release: ${SENTRY_RELEASE}, env: ${SENTRY_ENV})" >> $GITHUB_STEP_SUMMARY
+            elif [ "$SENTRY_OUTCOME" = "skipped" ]; then
+              echo "⏭️ Sentry upload was skipped" >> $GITHUB_STEP_SUMMARY
             else
               echo "⚠️ Sentry upload step did not complete successfully (non-blocking). Check logs." >> $GITHUB_STEP_SUMMARY
             fi
           else
-            echo "ℹ️ SENTRY_AUTH_TOKEN not configured — skipping Sentry upload" >> $GITHUB_STEP_SUMMARY
+            echo "ℹ️ Sentry not fully configured — skipping upload (need AUTH_TOKEN + ORG + PROJECT)" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: 📚 Archive source maps
