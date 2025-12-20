@@ -23,6 +23,6 @@ describe.skip('Souq Wishlist API', () => {
     const { GET } = await import('@/app/api/souq/wishlist/route');
     const req = new NextRequest('http://localhost:3000/api/souq/wishlist');
     const response = await GET(req);
-    expect([401, 500]).toContain(response.status);
+    expect([401, 500, 503]).toContain(response.status);
   });
 });

@@ -139,7 +139,7 @@ describe("API /api/public/rfqs", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422].includes(response.status)).toBe(true);
+      expect([400, 422]).toContain(response.status);
     });
 
     it("returns 201 for valid RFQ submission", async () => {
@@ -170,7 +170,7 @@ describe("API /api/public/rfqs", () => {
       const response = await route.POST(req);
 
       // Accept 200, 201, or validation errors
-      expect([200, 201, 400, 422].includes(response.status)).toBe(true);
+      expect([200, 201, 400, 422]).toContain(response.status);
     });
   });
 });

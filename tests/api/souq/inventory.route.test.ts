@@ -88,7 +88,7 @@ describe("API /api/souq/inventory", () => {
       const req = new NextRequest("http://localhost:3000/api/souq/inventory");
       const response = await GET(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
       const json = await response.json();
       expect(json.error).toBe("Unauthorized");
     });

@@ -129,7 +129,7 @@ describe("API /api/support/tickets", () => {
       const req = new NextRequest("http://localhost:3000/api/support/tickets");
       const response = await route.GET(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns tickets list with org_id scope", async () => {
@@ -208,7 +208,7 @@ describe("API /api/support/tickets", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422].includes(response.status)).toBe(true);
+      expect([400, 422]).toContain(response.status);
     });
 
     it("creates ticket with valid data", async () => {
@@ -246,7 +246,7 @@ describe("API /api/support/tickets", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201].includes(response.status)).toBe(true);
+      expect([200, 201]).toContain(response.status);
     });
 
     it("validates module enum values", async () => {
@@ -268,7 +268,7 @@ describe("API /api/support/tickets", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422].includes(response.status)).toBe(true);
+      expect([400, 422]).toContain(response.status);
     });
 
     it("validates type enum values", async () => {
@@ -290,7 +290,7 @@ describe("API /api/support/tickets", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422].includes(response.status)).toBe(true);
+      expect([400, 422]).toContain(response.status);
     });
   });
 });

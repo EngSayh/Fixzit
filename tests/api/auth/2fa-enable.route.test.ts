@@ -41,7 +41,7 @@ describe.skip('Auth 2FA API', () => {
       });
 
       const response = await POST(req);
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
   });
 });

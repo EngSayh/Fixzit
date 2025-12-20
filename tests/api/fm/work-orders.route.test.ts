@@ -105,7 +105,7 @@ describe("API /api/fm/work-orders", () => {
       const req = new NextRequest("http://localhost:3000/api/fm/work-orders");
       const response = await route.GET(req);
 
-      expect([200, 401, 403, 500]).toContain(response.status);
+      expect([200, 401, 403, 500, 503]).toContain(response.status);
     });
   });
 

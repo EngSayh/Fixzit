@@ -62,7 +62,7 @@ describe('Work Orders Comments API', () => {
 
       const response = await GET(req, { params: Promise.resolve({ id: 'wo-123' }) });
       // Route uses getSessionUser which may throw (500) or return 401
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
   });
 });

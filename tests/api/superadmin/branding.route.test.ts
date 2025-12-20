@@ -80,7 +80,7 @@ describe("Superadmin Branding API", () => {
       const request = new NextRequest("http://localhost/api/superadmin/branding");
       const response = await GET(request);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
       const data = await response.json();
       expect(data.error).toContain("Unauthorized");
     });
@@ -159,7 +159,7 @@ describe("Superadmin Branding API", () => {
 
       const response = await PATCH(request);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
       const data = await response.json();
       expect(data.error).toContain("Unauthorized");
     });

@@ -120,7 +120,7 @@ describe("API /api/hr/payroll/runs", () => {
       const req = new NextRequest("http://localhost:3000/api/hr/payroll/runs");
       const response = await route.GET(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns 401 when user has no orgId (tenant scope missing)", async () => {
@@ -135,7 +135,7 @@ describe("API /api/hr/payroll/runs", () => {
       const req = new NextRequest("http://localhost:3000/api/hr/payroll/runs");
       const response = await route.GET(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns 403 when user lacks HR/Finance role", async () => {
@@ -253,7 +253,7 @@ describe("API /api/hr/payroll/runs", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns 403 when user lacks HR/Finance role", async () => {

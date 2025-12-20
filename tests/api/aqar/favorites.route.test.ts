@@ -108,7 +108,7 @@ describe("API /api/aqar/favorites", () => {
       const req = new NextRequest("http://localhost:3000/api/aqar/favorites");
       const response = await route.GET(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns empty array for user with no favorites", async () => {

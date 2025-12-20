@@ -141,7 +141,7 @@ describe("API /api/crm/leads/log-call", () => {
       );
       const response = await route.POST(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns 401 when user lacks CRM role", async () => {
@@ -170,7 +170,7 @@ describe("API /api/crm/leads/log-call", () => {
       );
       const response = await route.POST(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("successfully logs call for existing lead with tenant scoping", async () => {

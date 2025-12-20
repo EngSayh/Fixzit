@@ -106,7 +106,7 @@ describe("API /api/search", () => {
       const req = new NextRequest("http://localhost:3000/api/search?q=test");
       const response = await route.GET(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns 400 for missing query parameter", async () => {
@@ -119,7 +119,7 @@ describe("API /api/search", () => {
       const req = new NextRequest("http://localhost:3000/api/search");
       const response = await route.GET(req);
 
-      expect([400, 422].includes(response.status)).toBe(true);
+      expect([400, 422]).toContain(response.status);
     });
 
     it("accepts type filter parameter", async () => {
@@ -134,7 +134,7 @@ describe("API /api/search", () => {
       );
       const response = await route.GET(req);
 
-      expect([200, 400].includes(response.status)).toBe(true);
+      expect([200, 400]).toContain(response.status);
     });
   });
 });

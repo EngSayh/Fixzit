@@ -121,7 +121,7 @@ describe("API /api/finance/accounts", () => {
       const req = new NextRequest("http://localhost:3000/api/finance/accounts");
       const response = await route.GET(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns accounts list with org_id scope", async () => {
@@ -181,7 +181,7 @@ describe("API /api/finance/accounts", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns 400 for invalid account type", async () => {

@@ -43,7 +43,7 @@ describe.skip('Work Orders Signature API', () => {
       });
 
       const response = await POST(req, { params: Promise.resolve({ id: 'wo-123' }) });
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
   });
 });

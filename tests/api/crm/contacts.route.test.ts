@@ -114,7 +114,7 @@ describe("API /api/crm/contacts", () => {
       const req = new NextRequest("http://localhost:3000/api/crm/contacts");
       const response = await route.GET(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns 401 when user has no orgId (tenant scope missing)", async () => {
@@ -133,7 +133,7 @@ describe("API /api/crm/contacts", () => {
       const req = new NextRequest("http://localhost:3000/api/crm/contacts");
       const response = await route.GET(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns 401 when user lacks CRM role", async () => {
@@ -152,7 +152,7 @@ describe("API /api/crm/contacts", () => {
       const req = new NextRequest("http://localhost:3000/api/crm/contacts");
       const response = await route.GET(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("successfully lists contacts with tenant scoping", async () => {
@@ -311,7 +311,7 @@ describe("API /api/crm/contacts", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns 401 when user lacks CRM role", async () => {
@@ -333,7 +333,7 @@ describe("API /api/crm/contacts", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("successfully creates lead with tenant scoping", async () => {

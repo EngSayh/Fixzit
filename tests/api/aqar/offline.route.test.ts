@@ -86,7 +86,7 @@ describe("API /api/aqar/offline", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
   });
 });

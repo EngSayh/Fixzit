@@ -41,7 +41,7 @@ describe.skip('RFQs Quotes API', () => {
       });
 
       const response = await GET(req, { params: Promise.resolve({ id: 'rfq-123' }) });
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
   });
 });

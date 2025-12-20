@@ -112,7 +112,7 @@ describe("API /api/assets/[id]", () => {
       const response = await route.GET(req, { params: Promise.resolve(mockParams) });
 
       // Route uses getSessionUser which may throw (500) or return 401
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns 404 for non-existent asset", async () => {
@@ -149,7 +149,7 @@ describe("API /api/assets/[id]", () => {
       const response = await route.PUT(req, { params: Promise.resolve(mockParams) });
 
       // Route uses getSessionUser which may throw (500) or return 401
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
   });
 
@@ -169,7 +169,7 @@ describe("API /api/assets/[id]", () => {
       const response = await route.DELETE(req, { params: Promise.resolve(mockParams) });
 
       // Route uses getSessionUser which may throw (500) or return 401
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
   });
 });

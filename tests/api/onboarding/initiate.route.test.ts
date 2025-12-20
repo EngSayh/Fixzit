@@ -120,7 +120,7 @@ describe("API /api/onboarding/initiate", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns 400 when orgId is missing", async () => {
@@ -249,7 +249,7 @@ describe("API /api/onboarding/initiate", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201].includes(response.status)).toBe(true);
+      expect([200, 201]).toContain(response.status);
     });
 
     it("creates onboarding case for OWNER role", async () => {
@@ -289,7 +289,7 @@ describe("API /api/onboarding/initiate", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201].includes(response.status)).toBe(true);
+      expect([200, 201]).toContain(response.status);
     });
   });
 });

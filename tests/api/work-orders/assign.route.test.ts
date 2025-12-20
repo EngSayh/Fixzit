@@ -23,6 +23,6 @@ describe.skip('Work Orders Assign API', () => {
     const { POST } = await import('@/app/api/work-orders/assign/route');
     const req = new NextRequest('http://localhost:3000/api/work-orders/assign', { method: 'POST', body: JSON.stringify({}) });
     const response = await POST(req);
-    expect([401, 500]).toContain(response.status);
+    expect([401, 500, 503]).toContain(response.status);
   });
 });

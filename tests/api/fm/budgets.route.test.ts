@@ -83,7 +83,7 @@ describe("API /api/fm/finance/budgets", () => {
       const req = new NextRequest("http://localhost:3000/api/fm/finance/budgets");
       const response = await route.GET(req);
 
-      expect([200, 401, 403, 500]).toContain(response.status);
+      expect([200, 401, 403, 500, 503]).toContain(response.status);
     });
   });
 

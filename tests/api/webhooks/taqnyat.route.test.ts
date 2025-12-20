@@ -95,7 +95,7 @@ describe("API /api/webhooks/taqnyat", () => {
       const response = await route.POST(req);
 
       // Accept various success/validation statuses
-      expect([200, 201, 202, 400].includes(response.status)).toBe(true);
+      expect([200, 201, 202, 400]).toContain(response.status);
     });
 
     it("handles malformed payload gracefully", async () => {
@@ -113,7 +113,7 @@ describe("API /api/webhooks/taqnyat", () => {
       try {
         const response = await route.POST(req);
         // Should return error status for malformed JSON
-        expect([400, 422, 500].includes(response.status)).toBe(true);
+        expect([400, 422, 500]).toContain(response.status);
       } catch {
         // JSON parse error is also acceptable
         expect(true).toBe(true);

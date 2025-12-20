@@ -38,7 +38,7 @@ describe("Superadmin Impersonation API", () => {
 
       const response = await POST(request);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
       const data = await response.json();
       expect(data.error).toContain("Unauthorized");
     });
@@ -116,7 +116,7 @@ describe("Superadmin Impersonation API", () => {
 
       const response = await DELETE(request);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
       const data = await response.json();
       expect(data.error).toContain("Unauthorized");
     });

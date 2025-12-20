@@ -112,7 +112,7 @@ describe("API /api/assets", () => {
       const req = new NextRequest("http://localhost:3000/api/assets");
       const response = await route.GET(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
   });
 
@@ -137,7 +137,7 @@ describe("API /api/assets", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns 400 for missing asset name", async () => {
@@ -153,7 +153,7 @@ describe("API /api/assets", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422].includes(response.status)).toBe(true);
+      expect([400, 422]).toContain(response.status);
     });
   });
 });

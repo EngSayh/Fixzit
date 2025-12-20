@@ -97,7 +97,7 @@ describe("API /api/webhooks/sendgrid", () => {
       const response = await route.POST(req);
 
       // Accept 200, 201, or 202 for webhook processing
-      expect([200, 201, 202, 400].includes(response.status)).toBe(true);
+      expect([200, 201, 202, 400]).toContain(response.status);
     });
 
     it("handles empty event array gracefully", async () => {
@@ -114,7 +114,7 @@ describe("API /api/webhooks/sendgrid", () => {
       const response = await route.POST(req);
 
       // Empty events should be accepted or rejected with validation error
-      expect([200, 201, 202, 400, 422].includes(response.status)).toBe(true);
+      expect([200, 201, 202, 400, 422]).toContain(response.status);
     });
   });
 });

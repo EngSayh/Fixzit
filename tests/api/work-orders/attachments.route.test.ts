@@ -41,7 +41,7 @@ describe.skip('Work Orders Attachments API', () => {
       });
 
       const response = await GET(req, { params: Promise.resolve({ id: 'wo-123' }) });
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
   });
 });

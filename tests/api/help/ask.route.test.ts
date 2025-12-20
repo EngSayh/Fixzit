@@ -140,7 +140,7 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422].includes(response.status)).toBe(true);
+      expect([400, 422]).toContain(response.status);
     });
 
     it("returns 400 for empty question", async () => {
@@ -161,7 +161,7 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422].includes(response.status)).toBe(true);
+      expect([400, 422]).toContain(response.status);
     });
 
     it("returns search results for valid question", async () => {
@@ -182,7 +182,7 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201].includes(response.status)).toBe(true);
+      expect([200, 201]).toContain(response.status);
     });
 
     it("accepts optional category filter", async () => {
@@ -203,7 +203,7 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201].includes(response.status)).toBe(true);
+      expect([200, 201]).toContain(response.status);
     });
 
     it("accepts optional language filter", async () => {
@@ -224,7 +224,7 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201].includes(response.status)).toBe(true);
+      expect([200, 201]).toContain(response.status);
     });
 
     it("respects limit parameter", async () => {
@@ -245,7 +245,7 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201].includes(response.status)).toBe(true);
+      expect([200, 201]).toContain(response.status);
     });
 
     it("works without authentication (public help)", async () => {
@@ -273,7 +273,7 @@ describe("API /api/help/ask", () => {
       const response = await route.POST(req);
 
       // Help should be available to non-authenticated users
-      expect([200, 201, 401].includes(response.status)).toBe(true);
+      expect([200, 201, 401]).toContain(response.status);
     });
   });
 });

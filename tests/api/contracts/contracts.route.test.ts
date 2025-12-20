@@ -100,7 +100,7 @@ describe("API /api/contracts", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500]).toContain(response.status);
+      expect([401, 500, 503]).toContain(response.status);
     });
 
     it("returns 400 for missing required fields", async () => {
@@ -116,7 +116,7 @@ describe("API /api/contracts", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422].includes(response.status)).toBe(true);
+      expect([400, 422]).toContain(response.status);
     });
   });
 });

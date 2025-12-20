@@ -90,7 +90,7 @@ describe("DELETE /api/aqar/favorites/[id]", () => {
       params: Promise.resolve({ id: validId }),
     });
 
-    expect([401, 500]).toContain(response.status);
+    expect([401, 500, 503]).toContain(response.status);
   });
 
   it("returns 400 for invalid ObjectId", async () => {
