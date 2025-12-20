@@ -103,8 +103,8 @@ describe("API /api/billing/subscribe", () => {
       );
       const res = await POST(req);
 
-      // Should return 400 for invalid plan; allow 401/500 for unexpected auth/validation branches
-      expect([400, 401, 500]).toContain(res.status);
+      // Route uses Zod validation - returns 400 for invalid plan schema
+      expect(res.status).toBe(400);
       expect(getUserFromToken).toHaveBeenCalled();
     });
 

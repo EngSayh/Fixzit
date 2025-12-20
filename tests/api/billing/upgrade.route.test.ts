@@ -89,8 +89,8 @@ describe("API /api/billing/upgrade", () => {
       });
       const res = await POST(req);
 
-      // Should return 400 for missing target plan; allow 500 for unexpected validation paths
-      expect([400, 500]).toContain(res.status);
+      // Route uses Zod validation - returns 400 for missing required targetPlan
+      expect(res.status).toBe(400);
     });
 
     it("returns 429 when tenant rate limit exceeded", async () => {

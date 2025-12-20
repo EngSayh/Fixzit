@@ -35,15 +35,16 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
 
-// Mock Order model
+// Mock Order model with full chainable query (inline to avoid hoisting issues)
 vi.mock("@/server/models/souq/Order", () => ({
   SouqOrder: {
-    find: vi.fn().mockReturnValue({
+    find: vi.fn().mockImplementation(() => ({
+      populate: vi.fn().mockReturnThis(),
       skip: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       sort: vi.fn().mockReturnThis(),
       lean: vi.fn().mockResolvedValue([]),
-    }),
+    })),
     countDocuments: vi.fn().mockResolvedValue(0),
     create: vi.fn(),
   },
@@ -146,8 +147,8 @@ describe("API /api/souq/orders", () => {
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
-      // Should return 200 or handle gracefully
-      expect([200, 500]).toContain(res.status);
+      // Mocked model returns empty array; should succeed
+      expect(res.status).toBe(200);
     });
 
     it("supports status filter", async () => {
@@ -162,7 +163,7 @@ describe("API /api/souq/orders", () => {
       );
       const res = await GET(req);
 
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("supports customerId filter", async () => {
@@ -177,7 +178,7 @@ describe("API /api/souq/orders", () => {
       );
       const res = await GET(req);
 
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("supports pagination parameters", async () => {
@@ -192,7 +193,7 @@ describe("API /api/souq/orders", () => {
       );
       const res = await GET(req);
 
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
   });
 
