@@ -1,30 +1,276 @@
 "use client";
 
 /**
- * Superadmin Data Import/Export
- * Bulk data operations, migrations, and backup management
+ * Superadmin Import/Export
+ * Bulk data import/export using /api/admin/export endpoints
  * 
  * @module app/superadmin/import-export/page
  */
 
-import { FileUp } from "lucide-react";
-import { PlannedFeature } from "@/components/superadmin/PlannedFeature";
+import { useState } from "react";
+import { useI18n } from "@/i18n/useI18n";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import { 
+  Upload, Download, FileText, RefreshCw, CheckCircle, AlertTriangle,
+  Database, Building2, Users, Wrench, FileJson, FileSpreadsheet,
+} from "lucide-react";
+
+const EXPORTABLE_COLLECTIONS = [
+  { id: "workorders", name: "Work Orders", icon: Wrench, count: 12450 },
+  { id: "properties", name: "Properties", icon: Building2, count: 3240 },
+  { id: "vendors", name: "Vendors", icon: Users, count: 856 },
+  { id: "units", name: "Units", icon: Database, count: 15680 },
+  { id: "users", name: "Users", icon: Users, count: 4520 },
+  { id: "invoices", name: "Invoices", icon: FileText, count: 28340 },
+  { id: "tenancies", name: "Tenancies", icon: Building2, count: 8920 },
+];
+
+interface ExportJob {
+  id: string;
+  collections: string[];
+  format: string;
+  status: string;
+  progress: number;
+  createdAt: string;
+  downloadUrl?: string;
+}
 
 export default function SuperadminImportExportPage() {
+  const { t } = useI18n();
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
+  const [exportFormat, setExportFormat] = useState<string>("json");
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [recentExports, setRecentExports] = useState<ExportJob[]>([]);
+
+  const toggleCollection = (id: string) => {
+    setSelectedCollections(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+  };
+
+  const selectAll = () => {
+    setSelectedCollections(selectedCollections.length === EXPORTABLE_COLLECTIONS.length ? [] : EXPORTABLE_COLLECTIONS.map(c => c.id));
+  };
+
+  const handleExport = async () => {
+    if (selectedCollections.length === 0) {
+      toast.error("Please select at least one collection");
+      return;
+    }
+    if (selectedCollections.length > 5) {
+      toast.error("Maximum 5 collections per export");
+      return;
+    }
+
+    try {
+      setExporting(true);
+      setExportProgress(10);
+
+      const response = await fetch("/api/admin/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ format: exportFormat, collections: selectedCollections }),
+      });
+
+      setExportProgress(50);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Export failed");
+      }
+
+      setExportProgress(80);
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `fixzit-export-${new Date().toISOString().split("T")[0]}.${exportFormat === "csv" ? "zip" : "json"}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      setExportProgress(100);
+      toast.success("Export completed successfully");
+
+      setRecentExports(prev => [{
+        id: Date.now().toString(),
+        collections: selectedCollections,
+        format: exportFormat,
+        status: "completed",
+        progress: 100,
+        createdAt: new Date().toISOString(),
+      }, ...prev.slice(0, 4)]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(false);
+      setExportProgress(0);
+    }
+  };
+
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
   return (
-    <PlannedFeature
-      title="Import/Export"
-      description="Bulk data operations, migrations, and backup management"
-      icon={<FileUp className="h-6 w-6" />}
-      status="planned"
-      plannedRelease="Q2 2026"
-      features={[
-        "Bulk CSV/Excel data imports with validation",
-        "Scheduled data exports and backups",
-        "Database migration tools",
-        "Data transformation and mapping",
-        "Tenant data isolation during imports",
-      ]}
-    />
+    <div className="p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.import-export") || "Import / Export"}</h1>
+          <p className="text-slate-400">Bulk data import and export operations</p>
+        </div>
+      </div>
+
+      <Tabs defaultValue="export" className="w-full">
+        <TabsList className="bg-slate-800 border-slate-700">
+          <TabsTrigger value="export" className="data-[state=active]:bg-slate-700"><Download className="h-4 w-4 me-2" />Export</TabsTrigger>
+          <TabsTrigger value="import" className="data-[state=active]:bg-slate-700"><Upload className="h-4 w-4 me-2" />Import</TabsTrigger>
+          <TabsTrigger value="history" className="data-[state=active]:bg-slate-700"><FileText className="h-4 w-4 me-2" />History</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="export">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Card className="bg-slate-900 border-slate-800">
+                <CardHeader className="border-b border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-white">Select Collections</CardTitle>
+                      <CardDescription className="text-slate-400">Choose up to 5 collections to export</CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={selectAll} className="border-slate-700">
+                      {selectedCollections.length === EXPORTABLE_COLLECTIONS.length ? "Deselect All" : "Select All"}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {EXPORTABLE_COLLECTIONS.map((collection) => {
+                      const Icon = collection.icon;
+                      return (
+                        <div
+                          key={collection.id}
+                          className={`flex items-center justify-between p-4 rounded-lg cursor-pointer transition-colors ${selectedCollections.includes(collection.id) ? "bg-blue-500/20 border border-blue-500/50" : "bg-slate-800 border border-transparent hover:border-slate-700"}`}
+                          onClick={() => toggleCollection(collection.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Checkbox checked={selectedCollections.includes(collection.id)} onCheckedChange={() => toggleCollection(collection.id)} />
+                            <Icon className="h-5 w-5 text-slate-400" />
+                            <div>
+                              <p className="text-white font-medium">{collection.name}</p>
+                              <p className="text-slate-500 text-sm">{collection.count.toLocaleString()} records</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div>
+              <Card className="bg-slate-900 border-slate-800">
+                <CardHeader className="border-b border-slate-800">
+                  <CardTitle className="text-white">Export Options</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4">
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Format</Label>
+                    <Select value={exportFormat} onValueChange={setExportFormat}>
+                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-slate-700">
+                        <SelectItem value="json"><div className="flex items-center gap-2"><FileJson className="h-4 w-4" />JSON</div></SelectItem>
+                        <SelectItem value="csv"><div className="flex items-center gap-2"><FileSpreadsheet className="h-4 w-4" />CSV (ZIP)</div></SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="bg-slate-800 p-3 rounded-lg">
+                    <p className="text-slate-400 text-sm mb-1">Selected</p>
+                    <p className="text-white font-medium">{selectedCollections.length} collection(s)</p>
+                  </div>
+
+                  {exporting && (
+                    <div className="space-y-2">
+                      <Progress value={exportProgress} className="h-2" />
+                      <p className="text-slate-400 text-sm text-center">{exportProgress}% complete</p>
+                    </div>
+                  )}
+
+                  <Button onClick={handleExport} disabled={exporting || selectedCollections.length === 0} className="w-full bg-blue-600 hover:bg-blue-700">
+                    {exporting ? <><RefreshCw className="h-4 w-4 me-2 animate-spin" />Exporting...</> : <><Download className="h-4 w-4 me-2" />Export Data</>}
+                  </Button>
+
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                    <p className="text-yellow-200 text-xs flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                      Exports are tenant-scoped. Sensitive fields (passwords, tokens) are excluded.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="import">
+          <Card className="bg-slate-900 border-slate-800">
+            <CardContent className="p-8">
+              <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-slate-700 rounded-lg">
+                <Upload className="h-16 w-16 text-slate-600 mb-4" />
+                <h3 className="text-xl font-medium text-white mb-2">Import Data</h3>
+                <p className="text-slate-400 text-center mb-4 max-w-md">Import functionality requires validation rules and dry-run preview. Contact support for bulk imports.</p>
+                <Badge className="bg-yellow-500/20 text-yellow-400">Coming Soon</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history">
+          <Card className="bg-slate-900 border-slate-800">
+            <CardHeader className="border-b border-slate-800">
+              <CardTitle className="text-white">Recent Exports</CardTitle>
+              <CardDescription className="text-slate-400">Your export history (this session)</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {recentExports.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <FileText className="h-12 w-12 text-slate-600 mb-4" />
+                  <p className="text-slate-400">No exports yet</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-800">
+                  {recentExports.map((job) => (
+                    <div key={job.id} className="flex items-center justify-between p-4">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 bg-slate-800 rounded-lg">
+                          {job.format === "csv" ? <FileSpreadsheet className="h-5 w-5 text-green-400" /> : <FileJson className="h-5 w-5 text-blue-400" />}
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">{job.collections.join(", ")}</p>
+                          <p className="text-slate-400 text-sm">{formatDate(job.createdAt)} · {job.format.toUpperCase()}</p>
+                        </div>
+                      </div>
+                      <Badge className="bg-green-500/20 text-green-400"><CheckCircle className="h-3 w-3 me-1" />Completed</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

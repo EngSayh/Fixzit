@@ -1,30 +1,266 @@
 "use client";
 
 /**
- * Superadmin System-Wide Reports
- * Generate and view cross-tenant reports, analytics, and insights
+ * Superadmin Reports
+ * Real reports using /api/fm/reports and aggregation APIs
  * 
  * @module app/superadmin/reports/page
  */
 
-import { BarChart3 } from "lucide-react";
-import { PlannedFeature } from "@/components/superadmin/PlannedFeature";
+import { useState, useEffect, useCallback } from "react";
+import { useI18n } from "@/i18n/useI18n";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast } from "sonner";
+import { 
+  BarChart3, RefreshCw, Download, FileText, Calendar,
+  Clock, CheckCircle, XCircle,
+} from "lucide-react";
+
+interface ReportDefinition {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  lastRun?: string;
+  status?: string;
+}
+
+interface GeneratedReport {
+  _id: string;
+  name: string;
+  type: string;
+  status: string;
+  generatedAt: string;
+  downloadUrl?: string;
+  rowCount?: number;
+}
+
+const REPORT_DEFINITIONS: ReportDefinition[] = [
+  { id: "tenant-activity", name: "Tenant Activity Report", description: "Usage metrics per tenant", category: "Usage" },
+  { id: "user-engagement", name: "User Engagement Report", description: "Login frequency and feature adoption", category: "Usage" },
+  { id: "revenue-summary", name: "Revenue Summary", description: "Monthly recurring revenue breakdown", category: "Finance" },
+  { id: "billing-status", name: "Billing Status Report", description: "Payment status and overdue accounts", category: "Finance" },
+  { id: "work-order-summary", name: "Work Order Summary", description: "Work orders by status and priority", category: "Operations" },
+  { id: "vendor-performance", name: "Vendor Performance", description: "Vendor ratings and completion rates", category: "Operations" },
+  { id: "audit-summary", name: "Audit Summary", description: "Security events and compliance status", category: "Compliance" },
+  { id: "data-export", name: "Full Data Export", description: "Complete data export for backup/migration", category: "Admin" },
+];
+
+const CATEGORY_COLORS: Record<string, string> = {
+  Usage: "bg-blue-500/20 text-blue-400",
+  Finance: "bg-green-500/20 text-green-400",
+  Operations: "bg-purple-500/20 text-purple-400",
+  Compliance: "bg-yellow-500/20 text-yellow-400",
+  Admin: "bg-gray-500/20 text-gray-400",
+};
 
 export default function SuperadminReportsPage() {
+  const { t } = useI18n();
+  const [reports, setReports] = useState<GeneratedReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  const fetchReports = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/fm/reports", { credentials: "include" });
+      if (response.ok) {
+        const data = await response.json();
+        setReports(data.reports || []);
+      }
+    } catch {
+      // Reports may not exist yet
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchReports(); }, [fetchReports]);
+
+  const handleGenerate = async (reportId: string) => {
+    try {
+      setGenerating(reportId);
+      const response = await fetch("/api/fm/reports/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ reportType: reportId }),
+      });
+      if (!response.ok) throw new Error("Failed to generate report");
+      toast.success("Report generation started");
+      fetchReports();
+    } catch {
+      toast.error("Failed to generate report");
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const handleExport = async (format: string) => {
+    try {
+      const response = await fetch(`/api/admin/export?format=${format}`, { credentials: "include" });
+      if (!response.ok) throw new Error("Export failed");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `export-${new Date().toISOString().split("T")[0]}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success("Export downloaded");
+    } catch {
+      toast.error("Export failed");
+    }
+  };
+
+  const filteredDefinitions = REPORT_DEFINITIONS.filter(
+    (r) => categoryFilter === "all" || r.category === categoryFilter
+  );
+
+  const categories = [...new Set(REPORT_DEFINITIONS.map((r) => r.category))];
+
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
   return (
-    <PlannedFeature
-      title="System Reports"
-      description="Generate and view cross-tenant reports, analytics, and insights"
-      icon={<BarChart3 className="h-6 w-6" />}
-      status="planned"
-      plannedRelease="Q1 2026"
-      features={[
-        "Revenue analytics and financial reports",
-        "User activity and engagement metrics",
-        "Performance and system health reports",
-        "Compliance and audit reports",
-        "Custom report builder with export options",
-      ]}
-    />
+    <div className="p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.reports")}</h1>
+          <p className="text-slate-400">Generate and view cross-tenant reports</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => handleExport("csv")} className="border-slate-700 text-slate-300">
+            <Download className="h-4 w-4 me-2" />Export CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={fetchReports} disabled={loading} className="border-slate-700 text-slate-300">
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Filter */}
+      <Card className="bg-slate-900 border-slate-800">
+        <CardContent className="p-4">
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[160px] bg-slate-800 border-slate-700 text-white">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {/* Available Reports */}
+      <Card className="bg-slate-900 border-slate-800">
+        <CardHeader className="border-b border-slate-800">
+          <CardTitle className="flex items-center gap-2 text-white"><BarChart3 className="h-5 w-5" />Available Reports</CardTitle>
+          <CardDescription className="text-slate-400">Generate reports on demand</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-slate-800">
+                <TableHead className="text-slate-400">Report</TableHead>
+                <TableHead className="text-slate-400">Category</TableHead>
+                <TableHead className="text-slate-400">Description</TableHead>
+                <TableHead className="text-slate-400 w-[120px]">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredDefinitions.map((report) => (
+                <TableRow key={report.id} className="border-slate-800 hover:bg-slate-800/50">
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-slate-500" />
+                      <span className="text-white font-medium">{report.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={CATEGORY_COLORS[report.category]}>{report.category}</Badge>
+                  </TableCell>
+                  <TableCell className="text-slate-400">{report.description}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGenerate(report.id)}
+                      disabled={generating === report.id}
+                      className="border-slate-700"
+                    >
+                      {generating === report.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Generate"}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Generated Reports History */}
+      <Card className="bg-slate-900 border-slate-800">
+        <CardHeader className="border-b border-slate-800">
+          <CardTitle className="flex items-center gap-2 text-white"><Clock className="h-5 w-5" />Recent Reports</CardTitle>
+          <CardDescription className="text-slate-400">Previously generated reports</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {reports.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <FileText className="h-12 w-12 text-slate-600 mb-4" />
+              <p className="text-slate-400">No reports generated yet</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-800">
+                  <TableHead className="text-slate-400">Report</TableHead>
+                  <TableHead className="text-slate-400">Type</TableHead>
+                  <TableHead className="text-slate-400">Generated</TableHead>
+                  <TableHead className="text-slate-400">Status</TableHead>
+                  <TableHead className="text-slate-400">Rows</TableHead>
+                  <TableHead className="text-slate-400 w-[100px]">Download</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reports.map((report) => (
+                  <TableRow key={report._id} className="border-slate-800 hover:bg-slate-800/50">
+                    <TableCell className="text-white font-medium">{report.name}</TableCell>
+                    <TableCell className="text-slate-300">{report.type}</TableCell>
+                    <TableCell className="text-slate-300"><div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-slate-500" />{formatDate(report.generatedAt)}</div></TableCell>
+                    <TableCell>
+                      {report.status === "completed" ? (
+                        <Badge className="bg-green-500/20 text-green-400"><CheckCircle className="h-3 w-3 me-1" />Completed</Badge>
+                      ) : report.status === "failed" ? (
+                        <Badge className="bg-red-500/20 text-red-400"><XCircle className="h-3 w-3 me-1" />Failed</Badge>
+                      ) : (
+                        <Badge className="bg-yellow-500/20 text-yellow-400"><RefreshCw className="h-3 w-3 me-1 animate-spin" />Processing</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-slate-300">{report.rowCount?.toLocaleString() || "—"}</TableCell>
+                    <TableCell>
+                      {report.downloadUrl && (
+                        <Button variant="ghost" size="sm" asChild>
+                          <a href={report.downloadUrl} download><Download className="h-4 w-4" /></a>
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
