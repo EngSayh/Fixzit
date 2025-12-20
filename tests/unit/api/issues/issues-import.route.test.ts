@@ -4,6 +4,12 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+// Hoisted mock state and mock function - must be hoisted to work with vi.mock()
+const { mockState, getSessionOrNullMock } = vi.hoisted(() => ({
+  mockState: { sessionResult: null as any },
+  getSessionOrNullMock: vi.fn(),
+}));
+
 // Mock NextResponse
 vi.mock("next/server", () => ({
   NextRequest: class {},
@@ -33,7 +39,7 @@ vi.mock("@/server/models/IssueEvent", () => ({
   default: { create: vi.fn().mockResolvedValue({}) },
 }));
 
-// Mock auth
+// Mock auth - use hoisted state so tests can mutate it
 const mockSession = {
   session: {
     id: "user-1",
@@ -43,8 +49,9 @@ const mockSession = {
   ok: true,
 };
 
+// Use the hoisted mock function in the vi.mock() factory
 vi.mock("@/lib/auth/safe-session", () => ({
-  getSessionOrNull: vi.fn().mockResolvedValue(mockSession),
+  getSessionOrNull: getSessionOrNullMock,
 }));
 
 vi.mock("@/lib/superadmin/auth", () => ({
@@ -135,10 +142,10 @@ describe("Issues Import API Route", () => {
   let POST: typeof import("@/app/api/issues/import/route").POST;
 
   beforeEach(async () => {
+    // Test hygiene: clear call history, then re-apply defaults.
     vi.clearAllMocks();
-    // Reset mock default return values
-    const { getSessionOrNull } = await import("@/lib/auth/safe-session");
-    vi.mocked(getSessionOrNull).mockResolvedValue(mockSession as any);
+    mockState.sessionResult = mockSession;
+    getSessionOrNullMock.mockImplementation(() => Promise.resolve(mockState.sessionResult));
     const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     const routeModule = await import("@/app/api/issues/import/route");
@@ -147,12 +154,8 @@ describe("Issues Import API Route", () => {
 
   describe("POST /api/issues/import", () => {
     it("returns 401 when not authenticated", async () => {
-      const { getSessionOrNull } = await import("@/lib/auth/safe-session");
-      vi.mocked(getSessionOrNull).mockReset();
-      vi.mocked(getSessionOrNull).mockResolvedValueOnce({
-        ok: true,
-        session: null,
-      } as any);
+      // Override session state for this test
+      mockState.sessionResult = { ok: true, session: null };
 
       const req = makeRequest();
       const res = await POST(req);
@@ -160,12 +163,11 @@ describe("Issues Import API Route", () => {
     });
 
     it("returns 403 when role is not allowed", async () => {
-      const { getSessionOrNull } = await import("@/lib/auth/safe-session");
-      vi.mocked(getSessionOrNull).mockReset();
-      vi.mocked(getSessionOrNull).mockResolvedValueOnce({
+      // Override session state for this test
+      mockState.sessionResult = {
         ok: true,
         session: { id: "user-1", role: "viewer", orgId: "org-123" },
-      } as any);
+      };
 
       const req = makeRequest();
       const res = await POST(req);
@@ -173,9 +175,6 @@ describe("Issues Import API Route", () => {
     });
 
     it("imports issues successfully", async () => {
-      const { getSessionOrNull } = await import("@/lib/auth/safe-session");
-      const { getSuperadminSession } = await import("@/lib/superadmin/auth");
-      vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
       mockSuperadmin();
 
       const req = makeRequest();
@@ -184,8 +183,6 @@ describe("Issues Import API Route", () => {
     });
 
     it("returns 400 when body parsing fails", async () => {
-      const { getSessionOrNull } = await import("@/lib/auth/safe-session");
-      vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
       mockSuperadmin();
 
       const req = { json: vi.fn().mockResolvedValue(null) } as any;
@@ -194,8 +191,6 @@ describe("Issues Import API Route", () => {
     });
 
     it("validates required fields", async () => {
-      const { getSessionOrNull } = await import("@/lib/auth/safe-session");
-      vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
       mockSuperadmin();
 
       const req = makeRequest({
@@ -208,8 +203,6 @@ describe("Issues Import API Route", () => {
     });
 
     it("skips duplicates when option is enabled", async () => {
-      const { getSessionOrNull } = await import("@/lib/auth/safe-session");
-      vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
       mockSuperadmin();
 
       // Mock finding existing issue
@@ -230,10 +223,19 @@ describe("Issues Import API Route", () => {
       expect([200, 500]).toContain(res.status);
     });
 
+    it("handles dry run mode", async () => {
+      mockSuperadmin();
+
+      const req = makeRequest({
+        dryRun: true,
+        issues: [defaultPayload.issues[0]],
+      });
+      const res = await POST(req);
+      expect([200, 500]).toContain(res.status);
+    });
+
     it("propagates Retry-After when rate limited", async () => {
       const routeModule = await import("@/lib/middleware/rate-limit");
-      const { getSessionOrNull } = await import("@/lib/auth/safe-session");
-      vi.mocked(getSessionOrNull).mockResolvedValueOnce(mockSession as any);
       mockSuperadmin();
 
       const retryResp = new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
