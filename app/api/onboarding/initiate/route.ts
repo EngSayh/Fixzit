@@ -55,6 +55,13 @@ export async function POST(req: NextRequest) {
   }
   const user = sessionResult.session;
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const orgId =
+    (user as { orgId?: string; tenantId?: string }).orgId ||
+    (user as { tenantId?: string }).tenantId ||
+    null;
+  if (!orgId || !Types.ObjectId.isValid(orgId)) {
+    return NextResponse.json({ error: 'Organization context required' }, { status: 400 });
+  }
 
   const { data: body, error: parseError } = await parseBodySafe<InitiateBody>(req, { logPrefix: '[onboarding:initiate]' });
   if (parseError) {
@@ -73,7 +80,7 @@ export async function POST(req: NextRequest) {
     await connectMongo();
     // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const onboarding = await OnboardingCase.create({
-      orgId: user.orgId ? new Types.ObjectId(user.orgId) : null,
+      orgId: new Types.ObjectId(orgId),
       subject_user_id: new Types.ObjectId(user.id),
       role,
       basic_info,

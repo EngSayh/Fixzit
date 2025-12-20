@@ -1,10 +1,18 @@
-# Fixzit - Agent Working Agreement v5.1 (Codex + VS Code + Claude Code)
+# Fixzit - Agent Working Agreement v5.2 (Codex + VS Code + Claude Code)
 
 Owner: Eng. Sultan Al Hassni  
 System: Fixzit Facility-Management + Marketplace (Fixzit Souq) + Real Estate (Aqar)  
 Stack: Next.js App Router + TypeScript + MongoDB Atlas/Mongoose + Tailwind/shadcn + Vitest (+ Playwright if enabled)
 
 NON-NEGOTIABLE. Violations = AUTO-FAIL.
+
+---
+
+## System Stability (AUTO-TRIGGERED)
+A background daemon runs every 2 minutes to prevent VS Code Code 5 crashes:
+- LaunchAgent: `com.fixzit.agent-preflight`
+- Logs: `/tmp/agent-preflight.log`
+- Manual run: `./tools/vscode-optimizer.sh`
 
 ---
 
