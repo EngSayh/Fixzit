@@ -14,6 +14,7 @@ import { getSuperadminSession } from '@/lib/superadmin/auth';
 import { connectMongo } from '@/lib/db/mongoose';
 import BacklogIssue from '@/server/models/BacklogIssue';
 import BacklogEvent from '@/server/models/BacklogEvent';
+import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 
 /**
  * GET /api/superadmin/issues - List backlog issues with optional filtering
@@ -37,9 +38,17 @@ import BacklogEvent from '@/server/models/BacklogEvent';
  *
  * @security
  * - Requires valid superadmin session (no tenant isolation - global view)
- * - No rate limiting (internal admin tool)
+ * - Rate limited: 60 requests per minute
  */
 export async function GET(req: NextRequest) {
+  // Rate limit: 60 reads per minute per IP
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "superadmin-issues:get",
+    requests: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const session = await getSuperadminSession(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -96,8 +105,17 @@ export async function GET(req: NextRequest) {
  * - Requires valid superadmin session
  * - Creates audit events (BacklogEvent) for status changes and comments
  * - Actor derived from session username/email
+ * - Rate limited: 30 requests per minute
  */
 export async function POST(req: NextRequest) {
+  // Rate limit: 30 mutations per minute per IP
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "superadmin-issues:post",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const session = await getSuperadminSession(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

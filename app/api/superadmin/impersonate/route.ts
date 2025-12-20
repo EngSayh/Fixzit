@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const ImpersonateSchema = z.object({
   orgId: z.string().min(1, "Organization ID is required"),
@@ -21,6 +22,14 @@ const ImpersonateSchema = z.object({
  * Set organization impersonation context (support_org_id cookie)
  */
 export async function POST(request: NextRequest) {
+  // Rate limit: 10 impersonation attempts per minute per IP
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "superadmin-impersonate:post",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Verify superadmin session
     const session = await getSuperadminSession(request);
@@ -90,6 +99,14 @@ export async function POST(request: NextRequest) {
  * Clear organization impersonation context (remove support_org_id cookie)
  */
 export async function DELETE(request: NextRequest) {
+  // Rate limit: 20 clears per minute per IP
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "superadmin-impersonate:delete",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Verify superadmin session
     const session = await getSuperadminSession(request);

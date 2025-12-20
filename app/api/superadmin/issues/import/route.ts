@@ -14,6 +14,7 @@ import { connectMongo } from '@/lib/db/mongoose';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { importPendingMaster } from '@/lib/backlog/importPendingMaster';
+import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 
 /**
  * POST /api/superadmin/issues/import - Import issues from PENDING_MASTER.md
@@ -41,8 +42,17 @@ import { importPendingMaster } from '@/lib/backlog/importPendingMaster';
  * - Parses entire PENDING_MASTER.md file (typically 500-2000 lines)
  * - Batch MongoDB operations (not transactional)
  * - Average execution time: 2-5 seconds for 50-100 issues
+ * - Rate limited: 5 requests per minute
  */
 export async function POST(req: NextRequest) {
+  // Rate limit: 5 imports per minute per IP (heavy operation)
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "superadmin-issues-import:post",
+    requests: 5,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const session = await getSuperadminSession(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
