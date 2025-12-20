@@ -115,7 +115,7 @@ describe("notifications route", () => {
       const req = createRequest("GET");
       const res = await GET(req);
       
-      expect([200, 401]).toContain(res.status); // Accept 200 or 401 based on auth mock
+      expect(res.status).toBe(200);
     });
   });
 

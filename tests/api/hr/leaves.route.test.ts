@@ -3,7 +3,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 const mockAuth = vi.fn();
 const mockEnforceRateLimit = vi.fn();
 const mockConnectToDatabase = vi.fn();
-const mockLeaveService = vi.fn();
+const mockLeaveList = vi.fn();
+const mockLeaveRequest = vi.fn();
 const mockHasAllowedRole = vi.fn();
 
 vi.mock("@/auth", () => ({
@@ -20,8 +21,8 @@ vi.mock("@/lib/mongodb-unified", () => ({
 
 vi.mock("@/server/services/hr/leave.service", () => ({
   LeaveService: {
-    listByOrg: (...args: unknown[]) => mockLeaveService(...args),
-    create: (...args: unknown[]) => mockLeaveService(...args),
+    list: (...args: unknown[]) => mockLeaveList(...args),
+    request: (...args: unknown[]) => mockLeaveRequest(...args),
   },
 }));
 
@@ -82,7 +83,12 @@ describe("hr/leaves route", () => {
     mockConnectToDatabase.mockResolvedValue(undefined);
     mockAuth.mockResolvedValue(mockSession);
     mockHasAllowedRole.mockReturnValue(true);
-    mockLeaveService.mockResolvedValue([]);
+    mockLeaveList.mockResolvedValue([]);
+    mockLeaveRequest.mockResolvedValue({
+      _id: "leave-1",
+      status: "PENDING",
+      employeeId: "emp-1",
+    });
   });
 
   describe("GET /api/hr/leaves", () => {
@@ -116,15 +122,14 @@ describe("hr/leaves route", () => {
     });
 
     it("returns leave requests list when authenticated with proper role", async () => {
-      mockLeaveService.mockResolvedValueOnce([
+      mockLeaveList.mockResolvedValueOnce([
         { _id: "leave-1", status: "PENDING", employeeId: "emp-1" }
       ]);
       
       const req = createRequest("GET");
       const res = await GET(req);
       
-      // Accept 200 or 500 (may fail due to service mock complexity)
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
   });
 
