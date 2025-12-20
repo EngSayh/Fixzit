@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Notifications Mark Read API
  * @description Tests the /api/notifications/mark-read endpoint
  */
@@ -43,7 +44,7 @@ describe.skip('Notifications Mark Read API', () => {
       });
 
       const response = await POST(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

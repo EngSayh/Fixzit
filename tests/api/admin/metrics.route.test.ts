@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Admin Metrics API
  * @description Tests the /api/admin/metrics endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('Admin Metrics API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

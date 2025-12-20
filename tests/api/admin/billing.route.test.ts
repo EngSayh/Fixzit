@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Admin Billing API
  */
 
@@ -23,6 +24,6 @@ describe.skip('Admin Billing API', () => {
     const { GET } = await import('@/app/api/admin/billing/route');
     const req = new NextRequest('http://localhost:3000/api/admin/billing');
     const response = await GET(req);
-    expect([401, 500, 503]).toContain(response.status);
+    expectAuthFailure(response);
   });
 });

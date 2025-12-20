@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Audit Logs List API
  * @description Tests the /api/audit-logs endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('Audit Logs List API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Admin Logo Upload API
  * @description Tests the /api/admin/logo/upload endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Admin Logo Upload API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

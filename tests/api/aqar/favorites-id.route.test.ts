@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/aqar/favorites/[id] DELETE route
  * Tests favorite deletion for individual favorites by ID
  */
@@ -90,7 +91,7 @@ describe("DELETE /api/aqar/favorites/[id]", () => {
       params: Promise.resolve({ id: validId }),
     });
 
-    expect([401, 500, 503]).toContain(response.status);
+    expectAuthFailure(response);
   });
 
   it("returns 400 for invalid ObjectId", async () => {

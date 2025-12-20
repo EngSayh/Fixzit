@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Auth Test Credentials Debug API
  * @description Tests the /api/auth/test/credentials-debug endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Auth Test Credentials Debug API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

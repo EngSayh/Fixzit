@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure, expectValidationFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/search routes
  * Tests global search functionality
  * MULTI-TENANT: Enforces org_id scope in search results
@@ -106,7 +107,7 @@ describe("API /api/search", () => {
       const req = new NextRequest("http://localhost:3000/api/search?q=test");
       const response = await route.GET(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 400 for missing query parameter", async () => {
@@ -119,7 +120,7 @@ describe("API /api/search", () => {
       const req = new NextRequest("http://localhost:3000/api/search");
       const response = await route.GET(req);
 
-      expect([400, 422]).toContain(response.status);
+      expectValidationFailure(response);
     });
 
     it("accepts type filter parameter", async () => {

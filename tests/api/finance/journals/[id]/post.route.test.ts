@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Finance Journals Id Post API
  * @description Tests the /api/finance/journals/[id]/post endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Finance Journals Id Post API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

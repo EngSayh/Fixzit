@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Superadmin Issues Import API
  * @description Tests the /api/superadmin/issues/import endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Superadmin Issues Import API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

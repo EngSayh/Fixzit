@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Finance Expenses Id API
  * @description Tests the /api/finance/expenses/[id] endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Finance Expenses Id API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

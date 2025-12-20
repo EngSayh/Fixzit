@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for SLAs API
  * @description Tests the /api/slas endpoint
  */
@@ -54,7 +55,7 @@ describe('SLAs API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

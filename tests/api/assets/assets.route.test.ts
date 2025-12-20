@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure, expectValidationFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/assets routes
  * Tests asset listing and creation
  * MULTI-TENANT: Enforces org_id scope
@@ -112,7 +113,7 @@ describe("API /api/assets", () => {
       const req = new NextRequest("http://localhost:3000/api/assets");
       const response = await route.GET(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 
@@ -137,7 +138,7 @@ describe("API /api/assets", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 400 for missing asset name", async () => {
@@ -153,7 +154,7 @@ describe("API /api/assets", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422]).toContain(response.status);
+      expectValidationFailure(response);
     });
   });
 });

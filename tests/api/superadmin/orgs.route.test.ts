@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Superadmin Orgs API
  * @description Tests the /api/superadmin/orgs endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('Superadmin Orgs API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

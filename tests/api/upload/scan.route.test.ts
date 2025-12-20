@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Upload Scan API
  * @description Tests the /api/upload/scan endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Upload Scan API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

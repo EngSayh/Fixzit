@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Auth Otp Verify API
  * @description Tests the /api/auth/otp/verify endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Auth Otp Verify API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

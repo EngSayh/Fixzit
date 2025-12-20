@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/finance/accounts routes
  * Tests Chart of Accounts management with hierarchical structure
  * FINANCIAL TAG: Critical for accounting structure and double-entry bookkeeping
@@ -121,7 +122,7 @@ describe("API /api/finance/accounts", () => {
       const req = new NextRequest("http://localhost:3000/api/finance/accounts");
       const response = await route.GET(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns accounts list with org_id scope", async () => {
@@ -181,7 +182,7 @@ describe("API /api/finance/accounts", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 400 for invalid account type", async () => {

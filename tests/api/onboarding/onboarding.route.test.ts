@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/onboarding routes
  * Tests onboarding case management for KYC, document submission, and approval workflows
  * CRITICAL: Core user registration flow
@@ -105,7 +106,7 @@ describe("API /api/onboarding", () => {
       const req = new NextRequest("http://localhost:3000/api/onboarding");
       const response = await route.GET(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 400 when orgId is missing", async () => {

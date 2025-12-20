@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Owner Statements API
  * @description Tests the /api/owner/statements endpoint
  */
@@ -54,7 +55,7 @@ describe('Owner Statements API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Payments Tap Checkout API
  * @description Tests the /api/payments/tap/checkout endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Payments Tap Checkout API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

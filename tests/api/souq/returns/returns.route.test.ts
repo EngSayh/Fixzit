@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Souq Returns List API
  * @description Tests the /api/souq/returns endpoint (list)
  */
@@ -61,7 +62,7 @@ describe('Souq Returns List API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/rfqs/[id]/bids routes
  * Tests RFQ bid management
  * MULTI-TENANT: Enforces org_id scope
@@ -116,7 +117,7 @@ describe("API /api/rfqs/[id]/bids", () => {
       const req = new NextRequest(`http://localhost:3000/api/rfqs/${mockRfqId}/bids`);
       const response = await route.GET(req, { params: mockParams });
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 
@@ -140,7 +141,7 @@ describe("API /api/rfqs/[id]/bids", () => {
       });
       const response = await route.POST(req, { params: mockParams });
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

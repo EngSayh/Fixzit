@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Souq Inventory API
  */
 
@@ -47,6 +48,6 @@ describe('Souq Inventory API', () => {
     const { GET } = await import('@/app/api/souq/inventory/route');
     const req = new NextRequest('http://localhost:3000/api/souq/inventory');
     const response = await GET(req);
-    expect([401, 500, 503]).toContain(response.status);
+    expectAuthFailure(response);
   });
 });

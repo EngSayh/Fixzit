@@ -11,7 +11,7 @@ import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Invoice } from "@/server/models/Invoice";
 import { z } from "zod";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
 import { generateZATCAQR } from "@/lib/zatca";
 import { nanoid } from "nanoid";
 
@@ -232,6 +232,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (error instanceof UnauthorizedError) {
+      return createSecureResponse(
+        { error: "Unauthorized", correlationId },
+        401,
+        req,
+      );
+    }
+
     return createSecureResponse(
       {
         error: "Failed to create invoice",
@@ -306,6 +314,15 @@ export async function GET(req: NextRequest) {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
+    
+    if (error instanceof UnauthorizedError) {
+      return createSecureResponse(
+        { error: "Unauthorized", correlationId },
+        401,
+        req,
+      );
+    }
+    
     return createSecureResponse(
       {
         error: "Failed to fetch invoices",

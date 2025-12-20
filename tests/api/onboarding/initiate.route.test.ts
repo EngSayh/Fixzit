@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure, expectSuccess } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/onboarding/initiate routes
  * Tests onboarding case creation for various user roles
  * CRITICAL: Entry point for KYC and verification workflows
@@ -120,7 +121,7 @@ describe("API /api/onboarding/initiate", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 400 when orgId is missing", async () => {
@@ -249,7 +250,7 @@ describe("API /api/onboarding/initiate", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201]).toContain(response.status);
+      expectSuccess(response);
     });
 
     it("creates onboarding case for OWNER role", async () => {
@@ -289,7 +290,7 @@ describe("API /api/onboarding/initiate", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201]).toContain(response.status);
+      expectSuccess(response);
     });
   });
 });

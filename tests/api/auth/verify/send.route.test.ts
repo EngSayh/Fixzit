@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Auth Verify Send API
  * @description Tests the /api/auth/verify/send endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Auth Verify Send API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

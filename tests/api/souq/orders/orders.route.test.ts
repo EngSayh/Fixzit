@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Souq Orders API
  */
 
@@ -47,6 +48,6 @@ describe('Souq Orders API', () => {
     const { GET } = await import('@/app/api/souq/orders/route');
     const req = new NextRequest('http://localhost:3000/api/souq/orders');
     const response = await GET(req);
-    expect([401, 500, 503]).toContain(response.status);
+    expectAuthFailure(response);
   });
 });

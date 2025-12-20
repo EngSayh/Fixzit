@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for FM Inspections API
  * @description Tests the /api/fm/inspections endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('FM Inspections API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Ats Public Post API
  * @description Tests the /api/ats/public-post endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Ats Public Post API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

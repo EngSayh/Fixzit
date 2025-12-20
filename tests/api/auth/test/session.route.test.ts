@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Auth Test Session API
  * @description Tests the /api/auth/test/session endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Auth Test Session API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

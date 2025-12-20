@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Souq Buybox Offers Fsin API
  * @description Tests the /api/souq/buybox/offers/[fsin] endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Souq Buybox Offers Fsin API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

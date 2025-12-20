@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Crm Accounts Share API
  * @description Tests the /api/crm/accounts/share endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Crm Accounts Share API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

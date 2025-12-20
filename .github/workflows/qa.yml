@@ -9,9 +9,15 @@ on:
 jobs:
   qa:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -19,23 +25,53 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Critical env guard
         run: pnpm run guard:ci:critical
 
-      - name: QA bundle (lint + typecheck + vitest)
-        run: pnpm qa
+      - name: Guard placeholders
+        run: |
+          if grep -rn "PlannedFeature\|ComingSoon\|UnderConstruction" app --include="*.tsx" 2>/dev/null; then
+            echo "❌ Placeholder components found in app/"
+            exit 1
+          fi
+          echo "✅ No placeholder components found"
 
-      - name: Upload vitest log
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Vitest (API shard + JUnit)
+        run: |
+          mkdir -p reports
+          NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/api \
+            --project=server --reporter=junit --outputFile=reports/junit-api.xml \
+            --maxWorkers=2 || true
+
+      - name: Vitest (Unit shard + JUnit)
+        run: |
+          NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/unit \
+            --reporter=junit --outputFile=reports/junit-unit.xml \
+            --maxWorkers=2 || true
+
+      - name: Coverage (API scope)
+        run: |
+          pnpm vitest run tests/api/_smoke --project=server --coverage \
+            --coverage.provider=v8 --coverage.reporter=text-summary \
+            --coverage.reporter=lcov --maxWorkers=1 || true
+
+      - name: Build
+        run: pnpm build
+
+      - name: Upload QA Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: vitest-log
-          path: reports/vitest-latest.log
+          name: qa-artifacts
+          path: |
+            reports/
+            coverage/

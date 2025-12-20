@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Auth Change Password API
  * @description Tests the /api/auth/change-password endpoint
  */
@@ -43,7 +44,7 @@ describe.skip('Auth Change Password API', () => {
       });
 
       const response = await POST(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

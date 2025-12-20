@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Admin Pricing API
  * @description Tests the /api/admin/pricing endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('Admin Pricing API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

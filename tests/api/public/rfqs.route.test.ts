@@ -1,4 +1,5 @@
 /**
+import { expectValidationFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/public/rfqs routes
  * Tests public RFQ (Request for Quote) API
  */
@@ -133,7 +134,7 @@ describe("API /api/public/rfqs", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422]).toContain(response.status);
+      expectValidationFailure(response);
     });
 
     it("returns 201 for valid RFQ submission", async () => {

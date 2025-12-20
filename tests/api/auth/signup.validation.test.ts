@@ -1,4 +1,5 @@
 /**
+import { expectValidationFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/auth/signup routes
  * Tests user registration flow
  */
@@ -96,7 +97,7 @@ describe("API /api/auth/signup", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422]).toContain(response.status);
+      expectValidationFailure(response);
     });
 
     it("returns 400 for weak password", async () => {
@@ -116,7 +117,7 @@ describe("API /api/auth/signup", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422]).toContain(response.status);
+      expectValidationFailure(response);
     });
 
     it("returns 400 for missing required fields", async () => {
@@ -132,7 +133,7 @@ describe("API /api/auth/signup", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422]).toContain(response.status);
+      expectValidationFailure(response);
     });
   });
 });

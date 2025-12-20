@@ -1,4 +1,5 @@
 /**
+import { expectValidationFailure, expectSuccess } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/help/ask routes
  * Tests AI-powered help system with knowledge base search
  * CRITICAL: User assistance and knowledge base integration
@@ -140,7 +141,7 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422]).toContain(response.status);
+      expectValidationFailure(response);
     });
 
     it("returns 400 for empty question", async () => {
@@ -161,7 +162,7 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422]).toContain(response.status);
+      expectValidationFailure(response);
     });
 
     it("returns search results for valid question", async () => {
@@ -182,7 +183,7 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201]).toContain(response.status);
+      expectSuccess(response);
     });
 
     it("accepts optional category filter", async () => {
@@ -203,7 +204,7 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201]).toContain(response.status);
+      expectSuccess(response);
     });
 
     it("accepts optional language filter", async () => {
@@ -224,7 +225,7 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201]).toContain(response.status);
+      expectSuccess(response);
     });
 
     it("respects limit parameter", async () => {
@@ -245,7 +246,7 @@ describe("API /api/help/ask", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201]).toContain(response.status);
+      expectSuccess(response);
     });
 
     it("works without authentication (public help)", async () => {

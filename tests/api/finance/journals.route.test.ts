@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/finance/journals routes
  * Tests journal entry management for double-entry bookkeeping
  * FINANCIAL TAG: Critical for accurate accounting and ledger posting
@@ -133,7 +134,7 @@ describe("API /api/finance/journals", () => {
       const req = new NextRequest("http://localhost:3000/api/finance/journals");
       const response = await route.GET(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns journals list with org_id scope", async () => {
@@ -226,7 +227,7 @@ describe("API /api/finance/journals", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("requires balanced journal entry (debits = credits)", async () => {

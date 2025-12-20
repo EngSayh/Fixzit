@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Souq Catalog Products API
  * @description Tests the /api/souq/catalog/products endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Souq Catalog Products API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

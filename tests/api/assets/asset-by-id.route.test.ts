@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/assets/[id] routes
  * Tests single asset retrieval/update/delete operations
  * MULTI-TENANT: Enforces org_id scope
@@ -112,7 +113,7 @@ describe("API /api/assets/[id]", () => {
       const response = await route.GET(req, { params: Promise.resolve(mockParams) });
 
       // Route uses getSessionUser which may throw (500) or return 401
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 404 for non-existent asset", async () => {
@@ -149,7 +150,7 @@ describe("API /api/assets/[id]", () => {
       const response = await route.PUT(req, { params: Promise.resolve(mockParams) });
 
       // Route uses getSessionUser which may throw (500) or return 401
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 
@@ -169,7 +170,7 @@ describe("API /api/assets/[id]", () => {
       const response = await route.DELETE(req, { params: Promise.resolve(mockParams) });
 
       // Route uses getSessionUser which may throw (500) or return 401
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

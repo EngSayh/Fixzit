@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Souq Fulfillment Assign Fast Badge API
  * @description Tests the /api/souq/fulfillment/assign-fast-badge endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Souq Fulfillment Assign Fast Badge API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

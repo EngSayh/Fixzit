@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/tenants routes
  * Tests tenant management with CRUD operations
  * MULTI-TENANT: Critical for org isolation
@@ -85,7 +86,7 @@ describe("API /api/tenants", () => {
       const req = new NextRequest("http://localhost:3000/api/tenants");
       const response = await route.GET(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 403 for non-super-admin users", async () => {
@@ -124,7 +125,7 @@ describe("API /api/tenants", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

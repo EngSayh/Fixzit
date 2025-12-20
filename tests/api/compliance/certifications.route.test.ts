@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Compliance Certifications API
  * @description Tests the /api/compliance/certifications endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('Compliance Certifications API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

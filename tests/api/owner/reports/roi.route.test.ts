@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Owner Reports Roi API
  * @description Tests the /api/owner/reports/roi endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Owner Reports Roi API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

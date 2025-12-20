@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/crm/leads/log-call routes
  * Tests CRM call logging functionality
  */
@@ -141,7 +142,7 @@ describe("API /api/crm/leads/log-call", () => {
       );
       const response = await route.POST(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 401 when user lacks CRM role", async () => {
@@ -170,7 +171,7 @@ describe("API /api/crm/leads/log-call", () => {
       );
       const response = await route.POST(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("successfully logs call for existing lead with tenant scoping", async () => {

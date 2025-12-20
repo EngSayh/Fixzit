@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Auth 2FA API
  * @description Tests the /api/auth/2fa endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('Auth 2FA API', () => {
       });
 
       const response = await POST(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

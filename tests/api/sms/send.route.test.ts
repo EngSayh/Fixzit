@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for SMS Send API
  * @description Tests the /api/sms/send endpoint
  */
@@ -43,7 +44,7 @@ describe.skip('SMS Send API', () => {
       });
 
       const response = await POST(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

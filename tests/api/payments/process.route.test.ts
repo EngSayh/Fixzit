@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Payments Process API
  * @description Tests the /api/payments/process endpoint
  */
@@ -47,7 +48,7 @@ describe.skip('Payments Process API', () => {
       });
 
       const response = await POST(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Souq Seller Central Reviews API
  * @description Tests the /api/souq/seller-central/reviews endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Souq Seller Central Reviews API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

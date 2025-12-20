@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Souq Addresses API
  * @description Tests the /api/souq/addresses endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('Souq Addresses API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

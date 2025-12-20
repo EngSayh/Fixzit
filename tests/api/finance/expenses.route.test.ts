@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/finance/expenses routes
  * Tests expense management with approval workflow and line items
  * FINANCIAL TAG: Critical for accurate expense tracking and accounting
@@ -125,7 +126,7 @@ describe("API /api/finance/expenses", () => {
       const req = new NextRequest("http://localhost:3000/api/finance/expenses");
       const response = await route.GET(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("successfully lists expenses with tenant scoping", async () => {
@@ -285,7 +286,7 @@ describe("API /api/finance/expenses", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("successfully creates expense with tenant scoping", async () => {

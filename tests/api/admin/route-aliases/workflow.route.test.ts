@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Admin Route Aliases Workflow API
  * @description Tests the /api/admin/route-aliases/workflow endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Admin Route Aliases Workflow API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

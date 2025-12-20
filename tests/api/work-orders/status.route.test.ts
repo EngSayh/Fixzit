@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Work Orders Status API
  */
 
@@ -23,6 +24,6 @@ describe.skip('Work Orders Status API', () => {
     const { PATCH } = await import('@/app/api/work-orders/status/route');
     const req = new NextRequest('http://localhost:3000/api/work-orders/status', { method: 'PATCH', body: JSON.stringify({}) });
     const response = await PATCH(req);
-    expect([401, 500, 503]).toContain(response.status);
+    expectAuthFailure(response);
   });
 });

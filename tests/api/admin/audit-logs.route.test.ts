@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/admin/audit-logs route
  * Tests audit log retrieval with filtering and pagination
  * SECURITY TAG: Critical for compliance and security monitoring
@@ -106,7 +107,7 @@ describe("API /api/admin/audit-logs", () => {
       const req = new NextRequest("http://localhost:3000/api/admin/audit-logs");
       const response = await route.GET(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
       const json = await response.json();
       expect(json.error).toBe("Unauthorized");
     });

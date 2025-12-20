@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/aqar/offline routes
  * Tests Aqar offline sync functionality
  */
@@ -86,7 +87,7 @@ describe("API /api/aqar/offline", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

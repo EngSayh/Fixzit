@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure, expectValidationFailure, expectSuccess } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/support/tickets routes
  * Tests support ticket management with CRUD operations
  * CRITICAL: Customer support workflow
@@ -129,7 +130,7 @@ describe("API /api/support/tickets", () => {
       const req = new NextRequest("http://localhost:3000/api/support/tickets");
       const response = await route.GET(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns tickets list with org_id scope", async () => {
@@ -208,7 +209,7 @@ describe("API /api/support/tickets", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422]).toContain(response.status);
+      expectValidationFailure(response);
     });
 
     it("creates ticket with valid data", async () => {
@@ -246,7 +247,7 @@ describe("API /api/support/tickets", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201]).toContain(response.status);
+      expectSuccess(response);
     });
 
     it("validates module enum values", async () => {
@@ -268,7 +269,7 @@ describe("API /api/support/tickets", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422]).toContain(response.status);
+      expectValidationFailure(response);
     });
 
     it("validates type enum values", async () => {
@@ -290,7 +291,7 @@ describe("API /api/support/tickets", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422]).toContain(response.status);
+      expectValidationFailure(response);
     });
   });
 });

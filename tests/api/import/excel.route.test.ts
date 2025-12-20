@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Import Excel API
  * @description Tests the /api/import/excel endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('Import Excel API', () => {
       });
 
       const response = await POST(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

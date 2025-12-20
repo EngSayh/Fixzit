@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Subscriptions Tenant API
  * @description Tests the /api/subscriptions/tenant endpoint
  */
@@ -54,7 +55,7 @@ describe('Subscriptions Tenant API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

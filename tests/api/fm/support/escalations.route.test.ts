@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Fm Support Escalations API
  * @description Tests the /api/fm/support/escalations endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Fm Support Escalations API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

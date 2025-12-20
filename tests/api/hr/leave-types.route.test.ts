@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for HR Leave Types API
  * @description Tests the /api/hr/leave-types endpoint
  */
@@ -61,7 +62,7 @@ describe('HR Leave Types API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

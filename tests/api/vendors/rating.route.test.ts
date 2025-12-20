@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Vendors Rating API
  * @description Tests the /api/vendors/[id]/rating endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('Vendors Rating API', () => {
       });
 
       const response = await GET(req, { params: Promise.resolve({ id: 'vendor-123' }) });
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

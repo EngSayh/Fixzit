@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Fm System Roles API
  * @description Tests the /api/fm/system/roles endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Fm System Roles API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Souq Returns Stats SellerId API
  * @description Tests the /api/souq/returns/stats/[sellerId] endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Souq Returns Stats SellerId API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

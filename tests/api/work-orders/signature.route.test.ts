@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Work Orders Signature API
  * @description Tests the /api/work-orders/[id]/signature endpoint
  */
@@ -43,7 +44,7 @@ describe.skip('Work Orders Signature API', () => {
       });
 
       const response = await POST(req, { params: Promise.resolve({ id: 'wo-123' }) });
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

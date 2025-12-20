@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/admin/audit-logs routes
  * Tests audit log viewing with filtering and pagination
  * SECURITY: Critical for compliance and security monitoring
@@ -100,7 +101,7 @@ describe("API /api/admin/audit-logs", () => {
       const response = await route.GET(req);
 
       // Route may use getSessionUser which throws (500) or return 401
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 403 for non-admin users", async () => {

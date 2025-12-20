@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/aqar/listings/[id] routes
  * Tests single listing CRUD operations
  */
@@ -130,7 +131,7 @@ describe("PATCH /api/aqar/listings/[id]", () => {
       params: Promise.resolve({ id: validId }),
     });
 
-    expect([401, 500, 503]).toContain(response.status);
+    expectAuthFailure(response);
   });
 
   it("returns 400 for invalid ObjectId", async () => {
@@ -179,7 +180,7 @@ describe("DELETE /api/aqar/listings/[id]", () => {
       params: Promise.resolve({ id: validId }),
     });
 
-    expect([401, 500, 503]).toContain(response.status);
+    expectAuthFailure(response);
   });
 
   it("returns 400 for invalid ObjectId", async () => {

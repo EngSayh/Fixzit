@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/vendors/[id] routes
  * Tests single vendor retrieval/update/delete operations
  * MULTI-TENANT: Enforces org_id scope
@@ -103,7 +104,7 @@ describe("API /api/vendors/[id]", () => {
       const response = await route.GET(req, { params: Promise.resolve(mockParams) });
 
       // Route may use getSessionUser which throws (500) or return 401
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 404 for non-existent vendor", async () => {
@@ -140,7 +141,7 @@ describe("API /api/vendors/[id]", () => {
       const response = await route.PUT(req, { params: Promise.resolve(mockParams) });
 
       // Route may use getSessionUser which throws (500) or return 401
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Aqar Favorites Id API
  * @description Tests the /api/aqar/favorites/[id] endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Aqar Favorites Id API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

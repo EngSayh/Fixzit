@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Souq Repricer Settings API
  * @description Tests the /api/souq/repricer/settings endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Souq Repricer Settings API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

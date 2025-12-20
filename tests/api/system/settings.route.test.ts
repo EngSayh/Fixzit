@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for System Settings API
  * @description Tests the /api/system/settings endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('System Settings API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure, expectValidationFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/copilot/chat routes
  * Tests AI copilot chat interactions
  */
@@ -115,7 +116,7 @@ describe("API /api/copilot/chat", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 400 for empty message", async () => {
@@ -131,7 +132,7 @@ describe("API /api/copilot/chat", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422]).toContain(response.status);
+      expectValidationFailure(response);
     });
   });
 });

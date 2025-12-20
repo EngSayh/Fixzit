@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Tenants Lookup API
  * @description Tests the /api/tenants/lookup endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('Tenants Lookup API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

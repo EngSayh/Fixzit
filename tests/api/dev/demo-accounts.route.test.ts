@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Dev Demo Accounts API
  * @description Tests the /api/dev/demo-accounts endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Dev Demo Accounts API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Work Orders Checklist API
  * @description Tests the /api/work-orders/[id]/checklist endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('Work Orders Checklist API', () => {
       });
 
       const response = await GET(req, { params: Promise.resolve({ id: 'wo-123' }) });
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

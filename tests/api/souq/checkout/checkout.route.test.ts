@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Souq Checkout API
  */
 
@@ -23,6 +24,6 @@ describe.skip('Souq Checkout API', () => {
     const { POST } = await import('@/app/api/souq/checkout/route');
     const req = new NextRequest('http://localhost:3000/api/souq/checkout', { method: 'POST', body: JSON.stringify({}) });
     const response = await POST(req);
-    expect([401, 500, 503]).toContain(response.status);
+    expectAuthFailure(response);
   });
 });

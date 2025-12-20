@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Organization Settings API
  * @description Tests the /api/organization/settings endpoint
  */
@@ -54,7 +55,7 @@ describe('Organization Settings API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Owners Groups Assign Primary API
  * @description Tests the /api/owners/groups/assign-primary endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Owners Groups Assign Primary API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

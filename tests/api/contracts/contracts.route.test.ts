@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure, expectValidationFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/contracts routes
  * Tests contract management
  * MULTI-TENANT: Enforces org_id scope
@@ -100,7 +101,7 @@ describe("API /api/contracts", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 400 for missing required fields", async () => {
@@ -116,7 +117,7 @@ describe("API /api/contracts", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422]).toContain(response.status);
+      expectValidationFailure(response);
     });
   });
 });

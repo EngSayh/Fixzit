@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Feeds Indeed API
  * @description Tests the /api/feeds/indeed endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Feeds Indeed API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

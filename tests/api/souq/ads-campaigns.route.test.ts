@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure, expectSuccess } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/souq/ads/campaigns routes
  * Tests ad campaign management for marketplace sellers
  * MARKETPLACE: Revenue-critical advertising functionality
@@ -105,7 +106,7 @@ describe("API /api/souq/ads/campaigns", () => {
       const req = new NextRequest("http://localhost:3000/api/souq/ads/campaigns");
       const response = await route.GET(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 403 when user lacks ad role", async () => {
@@ -190,7 +191,7 @@ describe("API /api/souq/ads/campaigns", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 403 when user lacks ad role", async () => {
@@ -255,7 +256,7 @@ describe("API /api/souq/ads/campaigns", () => {
       });
       const response = await route.POST(req);
 
-      expect([200, 201]).toContain(response.status);
+      expectSuccess(response);
     });
   });
 });

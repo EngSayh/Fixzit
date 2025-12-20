@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Ats Jobs Id Publish API
  * @description Tests the /api/ats/jobs/[id]/publish endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Ats Jobs Id Publish API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

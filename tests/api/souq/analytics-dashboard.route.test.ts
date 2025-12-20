@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/souq/analytics/dashboard routes
  * Tests seller analytics dashboard with sales, traffic, and customer metrics
  * MARKETPLACE: Critical business intelligence for sellers
@@ -96,7 +97,7 @@ describe("API /api/souq/analytics/dashboard", () => {
       const req = new NextRequest("http://localhost:3000/api/souq/analytics/dashboard");
       const response = await route.GET(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 403 when orgId is missing (tenant isolation)", async () => {

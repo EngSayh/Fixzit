@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Properties Leases API
  * @description Tests the /api/properties/[id]/leases endpoint
  */
@@ -41,7 +42,7 @@ describe.skip('Properties Leases API', () => {
       });
 
       const response = await GET(req, { params: Promise.resolve({ id: 'prop-123' }) });
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

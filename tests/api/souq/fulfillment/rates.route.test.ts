@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Souq Fulfillment Rates API
  * @description Tests the /api/souq/fulfillment/rates endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Souq Fulfillment Rates API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

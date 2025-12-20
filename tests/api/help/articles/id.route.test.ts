@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Help Articles Id API
  * @description Tests the /api/help/articles/[id] endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Help Articles Id API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for /api/hr/payroll/runs routes
  * Tests HR payroll run management including creation and listing
  */
@@ -120,7 +121,7 @@ describe("API /api/hr/payroll/runs", () => {
       const req = new NextRequest("http://localhost:3000/api/hr/payroll/runs");
       const response = await route.GET(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 401 when user has no orgId (tenant scope missing)", async () => {
@@ -135,7 +136,7 @@ describe("API /api/hr/payroll/runs", () => {
       const req = new NextRequest("http://localhost:3000/api/hr/payroll/runs");
       const response = await route.GET(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 403 when user lacks HR/Finance role", async () => {
@@ -253,7 +254,7 @@ describe("API /api/hr/payroll/runs", () => {
       });
       const response = await route.POST(req);
 
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns 403 when user lacks HR/Finance role", async () => {

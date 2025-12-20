@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Billing Charge Recurring API
  * @description Tests the /api/billing/charge-recurring endpoint
  */
@@ -46,7 +47,7 @@ describe.skip('Billing Charge Recurring API', () => {
       });
 
       const response = await GET(req);
-      expect([401, 403, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });

@@ -1,4 +1,5 @@
 /**
+import { expectAuthFailure } from '@/tests/api/_helpers';
  * @fileoverview Tests for Finance Invoices Detail API
  * @description Tests the /api/finance/invoices/[id] endpoint
  */
@@ -38,7 +39,7 @@ describe('Finance Invoices Detail API', () => {
 
       const response = await route.GET(req, { params: Promise.resolve({ id: 'inv-123' }) });
       // Route uses getUserFromToken which may throw (500) or return 401
-      expect([401, 500, 503]).toContain(response.status);
+      expectAuthFailure(response);
     });
   });
 });
