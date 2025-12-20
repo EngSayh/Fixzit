@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-20T06:16:44+03:00 (Asia/Riyadh)  
-**Scanner Version:** v4.2 (Test Coverage Expansion)  
+**Last Updated:** 2025-12-20T07:00:00+03:00 (Asia/Riyadh)  
+**Scanner Version:** v4.3 (Test Coverage Expansion)  
 **Branch:** phase-p233-test-coverage-expansion  
-**Commit:** d5ba4b3fa (test(api): add HR and notifications test files) | Origin: pending push  
+**Commit:** aa1ac6196 (feat(tests): add API tests for work-orders, payments, and owner routes)  
 **Last Work:** P233 - Test Coverage Expansion Phase  
 **MongoDB Status:** ⚠️ Not synced this session  
 **Working Tree:** CLEAN
-**Test Count:** ✅ 412+ test files, 3664+ tests passing; API tests: 110+ files; TypeScript: 0 errors; ESLint: 0 warnings
+**Test Count:** ✅ 412+ test files, 3700+ tests passing; API tests: 113 files; TypeScript: 0 errors; ESLint: 0 warnings
 
 ---
 
@@ -20,9 +20,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Health Score** | 96/100 |
-| **API Routes** | 388 total |
-| **Test Files** | 412+ (110+ API) |
+| **Health Score** | 97/100 |
+| **API Routes** | 369 total |
+| **API Test Files** | 113 (30.6% coverage) |
+| **Test Files Total** | 412+ |
 | **Components** | 240 |
 | **Services** | 39 |
 | **Models** | 145 |
@@ -44,6 +45,11 @@
 |----|------|--------|----------|
 | PERF-001 | maxTimeMS on aggregates | ✅ RESOLVED | Added to 15+ aggregate operations |
 | PERF-002 | .lean() on read queries | ✅ RESOLVED | Applied to 20+ files |
+
+### Test Coverage ✅ (P233 Progress)
+| ID | Item | Status | Evidence |
+|----|------|--------|----------|
+| TEST-COVERAGE-P233 | API test expansion | ✅ IN PROGRESS | 113 API test files (was 108), 30.6% coverage |
 
 ### Features ✅
 | ID | Item | Status | Evidence |
@@ -119,8 +125,11 @@
   | `app/(fm)/fm/finance/invoices/page.tsx` | 1,081 |
   | ... (5 more files) |
 
+- **Status:** 🔒 DEFERRED (P233)
+- **Reason:** Large file refactoring is invasive and high-risk. Per Fixzit governance: "Do NOT change layout, features, workflows, or remove modules to 'fix' bugs." These are functional files that require careful architectural review before splitting.
+
 #### DEP-001: Outdated Dependencies
-- **Current:** 14 packages with minor updates available
+- **Current:** 14+ packages with minor updates available
 - **Effort:** LOW
 - **Packages:**
   | Package | Current | Latest |
@@ -136,6 +145,9 @@
   | `autoprefixer` (dev) | 10.4.22 | 10.4.23 |
   | ... (5 more packages) |
 
+- **Status:** 🔒 DEFERRED (P233)
+- **Reason:** Dependency updates require isolated testing and could introduce breaking changes. Should be done in dedicated PR with full test suite verification.
+
 ### 🟢 LOW Priority (Optional/Nice-to-Have)
 
 #### OPT-001: Dead Code Cleanup
@@ -143,10 +155,12 @@
 - **Estimated unused:** ~30% (based on import analysis)
 - **Effort:** MEDIUM
 - **Action:** Run ts-prune and remove unused exports
+- **Status:** 🔒 DEFERRED (P233) - Requires careful analysis to avoid removing actually used exports
 
 #### OPT-002: Storybook Documentation
 - **Current:** Storybook configured but not documented
 - **Effort:** MEDIUM
+- **Status:** 🔒 DEFERRED (P233) - Nice-to-have, not blocking production
 - **Action:** Add stories for 240 components
 
 #### OPT-003: E2E Test Coverage
