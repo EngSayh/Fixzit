@@ -55,7 +55,7 @@ export function ExpenseReceiptsUploader({
                 className="relative group border border-border rounded-lg overflow-hidden"
               >
                 {receipt.file.type.startsWith("image/") ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
+                  // Using native img for blob URL previews (next/image doesn't support blob URLs)
                   <img
                     src={receipt.preview}
                     alt="Receipt"
