@@ -136,6 +136,11 @@ describe("Issues Import API Route", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    // Reset mock default return values
+    const { getSessionOrNull } = await import("@/lib/auth/safe-session");
+    vi.mocked(getSessionOrNull).mockResolvedValue(mockSession as any);
+    const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     const routeModule = await import("@/app/api/issues/import/route");
     POST = routeModule.POST;
   });
@@ -143,6 +148,7 @@ describe("Issues Import API Route", () => {
   describe("POST /api/issues/import", () => {
     it("returns 401 when not authenticated", async () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
+      vi.mocked(getSessionOrNull).mockReset();
       vi.mocked(getSessionOrNull).mockResolvedValueOnce({
         ok: true,
         session: null,
@@ -155,6 +161,7 @@ describe("Issues Import API Route", () => {
 
     it("returns 403 when role is not allowed", async () => {
       const { getSessionOrNull } = await import("@/lib/auth/safe-session");
+      vi.mocked(getSessionOrNull).mockReset();
       vi.mocked(getSessionOrNull).mockResolvedValueOnce({
         ok: true,
         session: { id: "user-1", role: "viewer", orgId: "org-123" },

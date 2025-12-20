@@ -24,6 +24,15 @@ describe('GET /api/marketplace/search', () => {
     console.error = originalConsoleError;
   });
 
+  // Reset global state before each test to ensure isolation under shuffle
+  beforeEach(() => {
+    globalThis.__mp_find_calls__ = [];
+    globalThis.__mp_sort_calls__ = [];
+    globalThis.__mp_limit_calls__ = [];
+    globalThis.__mp_throw_on_lean__ = false;
+    globalThis.__syn_findOne_queue__ = [];
+  });
+
   const makeReq = (q?: string, locale?: string, orgId?: string) => {
     const params = new URLSearchParams();
     if (q !== undefined) params.set('q', q);

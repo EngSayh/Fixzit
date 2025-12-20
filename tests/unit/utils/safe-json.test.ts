@@ -94,8 +94,13 @@ describe("parseLocalStorage", () => {
   };
 
   beforeEach(() => {
+    // Reset all mock state
+    localStorageMock.getItem.mockReset();
+    localStorageMock.setItem.mockReset();
+    localStorageMock.removeItem.mockReset();
+    localStorageMock.clear.mockReset();
+    localStorageMock.key.mockReset();
     vi.stubGlobal("localStorage", localStorageMock);
-    vi.clearAllMocks();
   });
 
   it("returns fallback when item not found", () => {

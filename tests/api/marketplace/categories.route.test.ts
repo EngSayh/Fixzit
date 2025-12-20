@@ -44,6 +44,8 @@ import { GET } from "@/app/api/marketplace/categories/route";
 describe("API /api/marketplace/categories", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset mock return values to defaults
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     // Reset environment
     process.env.MARKETPLACE_ENABLED = "true";
   });

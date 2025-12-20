@@ -65,7 +65,11 @@ vi.mock("next/server", () => {
 
 describe("GET /api/souq/search", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
+    // Reset mock return values to defaults
+    searchMock.mockReset();
+    smartRateLimitMock.mockReset();
+    resolveMarketplaceContextMock.mockReset();
     smartRateLimitMock.mockResolvedValue({ allowed: true, remaining: 99 });
     resolveMarketplaceContextMock.mockResolvedValue({
       orgId: "org-1",

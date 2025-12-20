@@ -184,6 +184,10 @@ function makeCategories(cats: Category[]) {
 }
 
 beforeEach(() => {
+  // Fully reset module state to ensure test isolation under shuffle
+  _productsState = {}
+  _categoriesState = {}
+  
   // Reset SWR mocks - set all properties explicitly
   setSWRProducts({ data: makeCatalog([]), isLoading: false, error: undefined, mutate: jestLike.fn() })
   setSWRCategories({ data: makeCategories([{ id: 'c1', name: 'Materials', slug: 'materials' }]), isLoading: false, error: undefined })
@@ -194,7 +198,7 @@ beforeEach(() => {
   localStorage.clear()
 
   // Reset fetch mock
-vi.stubGlobal('fetch', undefined as unknown as typeof fetch);
+  vi.stubGlobal('fetch', undefined as unknown as typeof fetch);
 })
 
 describe('CatalogView - basic rendering', () => {
