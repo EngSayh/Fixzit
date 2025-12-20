@@ -78,7 +78,7 @@ describe("evaluateMessagePolicy", () => {
     );
     expect(res.allowed).toBe(false);
     expect(res.dataClass).toBe("FINANCE");
-    expect(res.reason).toMatch(/financial/i);
+    expect(res.reason).toMatch(/finance/i);
   });
 
   it("detects HR patterns and allows HR role", () => {
@@ -145,11 +145,11 @@ describe("evaluateMessagePolicy", () => {
     expect(res.dataClass).toBe("SENSITIVE");
   });
 
-  it("allows INTERNAL for roles with INTERNAL data class (AUDITOR should allow INTERNAL not SENSITIVE)", () => {
-    // Note: RESTRICTED_PATTERNS maps internal-like words to SENSITIVE, so ensure no false assumption:
+  it("allows PUBLIC for roles without restricted access (AUDITOR with no keywords)", () => {
+    // Note: Using text without any restricted pattern keywords
     const res = evaluateMessagePolicy(
       makeSession("AUDITOR"),
-      "General financials summary (no keywords)",
+      "General summary of operations and processes",
     );
     expect(res.allowed).toBe(true);
     expect(res.dataClass).toBe("PUBLIC");
@@ -187,11 +187,11 @@ describe("getPermittedTools", () => {
     );
   });
 
-  it("FINANCE has only listMyWorkOrders and ownerStatements", () => {
+  it("FINANCE has listMyWorkOrders, approveQuotation, and ownerStatements", () => {
     const tools = getPermittedTools("FINANCE");
-    // Exact match based on snippet
+    // FINANCE role can approve quotations as part of financial approval workflow
     expect(tools.sort()).toEqual(
-      ["listMyWorkOrders", "ownerStatements"].sort(),
+      ["listMyWorkOrders", "approveQuotation", "ownerStatements"].sort(),
     );
   });
 

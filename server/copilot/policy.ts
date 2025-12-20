@@ -57,9 +57,11 @@ const ROLE_DATA_CLASS: Record<CopilotRole, DataClass[]> = {
 };
 
 const RESTRICTED_PATTERNS: { pattern: RegExp; dataClass: DataClass }[] = [
+  // OWNER_SCOPED must come before FINANCE to match "owner statement" correctly
+  { pattern: /(owner statement|owner report)/i, dataClass: "OWNER_SCOPED" },
   {
     pattern:
-      /(financial statement|income statement|owner statement|balance sheet|revenue|expense|invoice|financials?)/i,
+      /(financial statement|income statement|balance sheet|revenue|expense|invoice|financials?)/i,
     dataClass: "FINANCE",
   },
   {
@@ -75,7 +77,7 @@ const RESTRICTED_PATTERNS: { pattern: RegExp; dataClass: DataClass }[] = [
     pattern: /(internal document|confidential|secret|token|password|api key)/i,
     dataClass: "SENSITIVE",
   },
-  { pattern: /(owner statement|owner report)/i, dataClass: "OWNER_SCOPED" },
+  // Note: OWNER_SCOPED pattern is at the top of the list to match before FINANCE
   // Enhanced Arabic patterns for Saudi market
   {
     pattern: /(iqama|residence permit|national id|passport|civil id)/i,
@@ -189,7 +191,8 @@ export function getPermittedTools(role: CopilotRole): string[] {
 
 const EMAIL_REGEX = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 const PHONE_REGEX = /\b(\+?\d[\d\s-]{7,}\d)\b/g;
-const IBAN_REGEX = /SA\d{2}[A-Z0-9]{2}\d{18}/gi;
+// Saudi IBAN format: SA + 2 check digits + 2 bank code + 14-18 digits
+const IBAN_REGEX = /SA\d{2}[A-Z0-9]{2}\d{14,18}/gi;
 // Enhanced: Saudi National ID (10 digits starting with 1 or 2)
 const SAUDI_ID_REGEX = /\b[12]\d{9}\b/g;
 // Iqama/Residence ID (10 digits)
