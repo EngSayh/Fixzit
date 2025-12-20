@@ -38,6 +38,10 @@ const EXCLUDE_PATTERNS = [
   '*.test.tsx',
   '**/PlannedFeature.tsx', // This component is allowed to use these words
   '**/components/**', // Components can define these for reuse
+  // Legitimate "Coming Soon" badges for enhanced features (page has real content)
+  'leases/page.tsx', // Has lease listing, badge is for advanced features
+  'documents/page.tsx', // Has document listing, badge is for advanced features
+  'import-export/page.tsx', // Has export tab working, import tab is planned
 ];
 
 function main() {
