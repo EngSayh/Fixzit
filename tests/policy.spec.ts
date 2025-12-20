@@ -228,7 +228,8 @@ describe("redactSensitiveText", () => {
   });
 
   it("redacts SA-format IBAN", () => {
-    const input = "IBAN: SA12AB3412341234123412";
+    // Valid Saudi IBAN format: SA + 2 check + 2 bank + 18 account = 24 chars
+    const input = "IBAN: SA1234567890123456789012";
     const out = redactSensitiveText(input);
     expect(out).toContain("[redacted-iban]");
   });
@@ -240,8 +241,9 @@ describe("redactSensitiveText", () => {
   });
 
   it("handles multiple matches in one string", () => {
+    // Valid Saudi IBAN format: SA + 2 check + 2 bank + 18 account = 24 chars
     const input =
-      "Email a@b.com and call +49 123 456 789 and IBAN SA12AB3412341234123412";
+      "Email a@b.com and call +49 123 456 789 and IBAN SA1234567890123456789012";
     const out = redactSensitiveText(input);
     expect(out).toContain("[redacted-email]");
     expect(out).toContain("[redacted-phone]");
