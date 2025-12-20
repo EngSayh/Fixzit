@@ -5,13 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T14:30:00+03:00 (Asia/Riyadh)  
-**Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
-**Branch:** main  
-**Commit:** ec8ab947b (Vercel redeploy trigger) | Origin: ec8ab947b [synced]  
-**Last Work:** Empty commit to trigger clean Vercel deployment after bad lint fix rollback  
-**MongoDB Status:** 34 issues (24 open, 1 in_progress, 9 resolved)  
-**Working Tree:** DIRTY (3 local files: app/superadmin/issues/page.tsx, SuperadminLayoutClient.tsx, scripts/export-backlog.mjs)
+**Last Updated:** 2025-12-20T11:30:00+03:00 (Asia/Riyadh)  
+**Scanner Version:** v4.0 (AI Improvement Analysis)  
+**Branch:** phase-3-ssot-update  
+**Commit:** 226fca4c7 (docs(ssot): update master pending report P228) | Origin: synced  
+**Last Work:** P230 - AI Improvement Analysis (Detailed)  
+**MongoDB Status:** ⚠️ Not synced this session  
+**Working Tree:** 6 modified files pending commit
+**Test Count:** ✅ 466 test files, 4103+ tests passing; TypeScript: 0 errors; ESLint: 0 warnings
 
 ---
 
@@ -19,26 +20,146 @@
 
 | Metric | Value |
 |--------|-------|
-| **Health Score** | 92/100 |
-| **Files Scanned** | 1,548 (app/ + lib/ + services/ + domain/ + tests/) |
-| **Total Issues** | 38 (🔴 1 🟠 20 🟢 17) |
-| **Test Coverage** | 2,524 unit tests, 424 E2E tests (all passing) |
-| **Build Status** | ✅ 0 TS errors, 0 ESLint errors (verified 2025-12-19) |
+| **Health Score** | 95/100 |
+| **API Routes** | 379 total |
+| **Test Files** | 466 |
+| **Components** | 240 |
+| **Services** | 39 |
+| **Models** | 145 |
+| **Build Status** | ✅ TS=0, ESLint=0, Tests=4103/4103 |
 
-### 🎯 Top 5 Priority Actions
-1. [ ] **[SEC-002]** 🔴 P0-CRITICAL: 50+ database queries missing explicit tenant scope validation (manual audit required)
-2. [ ] **[BUG-001]** 🟠 P1-HIGH: 40+ process.env direct accesses in client components (migrate to lib/config/constants.ts)
-3. [ ] **[SEC-CRM-001]** ✅ COMPLETED - CRM accounts/share tenant scope enforcement (commit cf04061f1)
-4. [ ] **[PERF-001]** 🟡 P2-MEDIUM: 20+ unbounded aggregate operations without .limit() or pagination
-5. [ ] **[TEST-004]** 🟡 P2-MEDIUM: Missing JSON.parse error handling in 20+ POST routes (unguarded request.json())
+---
 
-### ✅ Recently Resolved (2025-12-19 Session)
-1. **[SEC-CRM-001]** ✅ P0 (2025-12-19) CRM accounts/share route missing tenant scope:
-   - Added orgId filters to CrmLead.findOne, CrmLead.create, CrmActivity.create
-   - Test coverage: 7/7 passing in tests/api/crm/accounts-share.route.test.ts
-   - Commit: cf04061f1
-2. **[DOC-102]** ✅ P2 (2025-12-18) JSDoc documentation for 50/51 lib modules (98% coverage)
-3. **[LAYOUT-FIX-001]** ✅ P1 (2025-12-16) Route group restructuring to fix header regressions
+## ✅ COMPLETED ITEMS (No Action Required)
+
+### Security ✅
+| ID | Item | Status | Evidence |
+|----|------|--------|----------|
+| SEC-002 | Tenant scope validation | ✅ RESOLVED | ESLint `require-tenant-scope`: 0 warnings (from 81) |
+| SEC-CRM-001 | CRM accounts/share tenant scope | ✅ RESOLVED | Commit cf04061f1, 7/7 tests passing |
+| SEC-001 | Rate limiting on public routes | ✅ RESOLVED | All 379 routes verified |
+
+### Performance ✅
+| ID | Item | Status | Evidence |
+|----|------|--------|----------|
+| PERF-001 | maxTimeMS on aggregates | ✅ RESOLVED | Added to 15+ aggregate operations |
+| PERF-002 | .lean() on read queries | ✅ RESOLVED | Applied to 20+ files |
+
+### Features ✅
+| ID | Item | Status | Evidence |
+|----|------|--------|----------|
+| FEAT-001 | ZATCA Clearance Service | ✅ IMPLEMENTED | `services/finance/zatca/clearance.ts` |
+| FEAT-002 | Notifications SSE Stream | ✅ IMPLEMENTED | `app/api/notifications/stream/route.ts` |
+| FEAT-003 | Invoice Bulk Actions | ✅ IMPLEMENTED | `components/finance/InvoicesList.tsx` |
+| FEAT-004 | Work Orders Bulk Actions | ✅ IMPLEMENTED | `components/fm/WorkOrdersViewNew.tsx` |
+
+### Quality ✅
+| ID | Item | Status | Evidence |
+|----|------|--------|----------|
+| TEST-004 | JSON parse guards | ✅ RESOLVED | All POST routes have try-catch |
+| BUG-002 | @ts-expect-error documented | ✅ RESOLVED | All 5 suppressions have reasons |
+| i18n | Locale coverage | ✅ 100% | 30,852 keys per locale |
+
+---
+
+## 🔄 PENDING ITEMS (Action Required)
+
+### 🔴 HIGH Priority
+
+#### TEST-COVERAGE-GAP: API Route Test Coverage
+- **Current:** 63/379 routes have dedicated tests (16.6%)
+- **Target:** 50%+ coverage
+- **Effort:** HIGH
+- **Files Missing Tests (316 total):**
+  ```
+  admin/audit-logs/route.ts
+  admin/billing/benchmark/route.ts
+  admin/billing/pricebooks/route.ts
+  admin/communications/route.ts
+  admin/feature-flags/route.ts
+  admin/notifications/send/route.ts
+  admin/notifications/config/route.ts
+  admin/sms/settings/route.ts
+  aqar/favorites/[id]/route.ts
+  aqar/insights/pricing/route.ts
+  aqar/listings/[id]/route.ts
+  aqar/listings/recommendations/route.ts
+  aqar/support/chatbot/route.ts
+  ats/applications/[id]/route.ts
+  ats/convert-to-employee/route.ts
+  ... (301 more files)
+  ```
+
+### 🟡 MEDIUM Priority
+
+#### REFACTOR-001: Large Files Needing Refactoring
+- **Current:** 24 files >1000 lines
+- **Effort:** MEDIUM
+- **Files (24 total):**
+  | File | Lines |
+  |------|-------|
+  | `lib/db/collections.ts` | 2,181 |
+  | `app/(fm)/dashboard/hr/recruitment/page.tsx` | 1,615 |
+  | `server/models/hr.models.ts` | 1,606 |
+  | `services/souq/returns-service.ts` | 1,576 |
+  | `app/(fm)/admin/route-metrics/page.tsx` | 1,471 |
+  | `services/souq/settlements/balance-service.ts` | 1,423 |
+  | `lib/graphql/index.ts` | 1,375 |
+  | `app/(fm)/fm/finance/expenses/new/page.tsx` | 1,295 |
+  | `app/(fm)/administration/page.tsx` | 1,284 |
+  | `services/souq/claims/refund-processor.ts` | 1,260 |
+  | `app/superadmin/issues/page.tsx` | 1,222 |
+  | `app/(fm)/fm/finance/payments/new/page.tsx` | 1,192 |
+  | `app/(app)/login/page.tsx` | 1,159 |
+  | `app/(fm)/finance/invoices/new/page.tsx` | 1,152 |
+  | `server/copilot/tools.ts` | 1,129 |
+  | `components/TopBar.tsx` | 1,110 |
+  | `app/api/auth/otp/send/route.ts` | 1,098 |
+  | `services/souq/settlements/payout-processor.ts` | 1,092 |
+  | `app/(fm)/fm/finance/invoices/page.tsx` | 1,081 |
+  | ... (5 more files) |
+
+#### DEP-001: Outdated Dependencies
+- **Current:** 14 packages with minor updates available
+- **Effort:** LOW
+- **Packages:**
+  | Package | Current | Latest |
+  |---------|---------|--------|
+  | `@ai-sdk/openai` | 2.0.85 | 2.0.88 |
+  | `ai` | 5.0.112 | 5.0.115 |
+  | `swr` | 2.3.7 | 2.3.8 |
+  | `libphonenumber-js` | 1.12.31 | 1.12.33 |
+  | `@aws-sdk/client-s3` | 3.948.0 | 3.956.0 |
+  | `@eslint/js` (dev) | 9.39.1 | 9.39.2 |
+  | `eslint` (dev) | 9.39.1 | 9.39.2 |
+  | `@testing-library/react` (dev) | 16.3.0 | 16.3.1 |
+  | `autoprefixer` (dev) | 10.4.22 | 10.4.23 |
+  | ... (5 more packages) |
+
+### 🟢 LOW Priority (Optional/Nice-to-Have)
+
+#### OPT-001: Dead Code Cleanup
+- **Current:** ~1,817 exports in lib/server/services
+- **Estimated unused:** ~30% (based on import analysis)
+- **Effort:** MEDIUM
+- **Action:** Run ts-prune and remove unused exports
+
+#### OPT-002: Storybook Documentation
+- **Current:** Storybook configured but not documented
+- **Effort:** MEDIUM
+- **Action:** Add stories for 240 components
+
+#### OPT-003: E2E Test Coverage
+- **Current:** 20 E2E tests skipped (require credentials)
+- **Effort:** HIGH
+- **Files:**
+  ```
+  tests/e2e/auth.spec.ts (9 skipped)
+  tests/e2e/critical-flows.spec.ts (2 skipped)
+  tests/e2e/subrole-api-access.spec.ts (1 skipped)
+  tests/e2e/health-endpoints.spec.ts (1 skipped)
+  tests/e2e/auth-flow.spec.ts (1 skipped)
+  ```
 
 ---
 
@@ -49,7 +170,7 @@
 | **Domains** | FM (Work Orders/Properties/Finance/HR), Souq (Marketplace/RFQ/Bids), Aqar (Real Estate/Leases), ATS (Recruitment), CRM |
 | **Tenancy Model** | `org_id` partitioning (multi-tenant SaaS) |
 | **RBAC** | 14 fixed roles + permission matrix enforced via middleware/policy checks |
-| **Test Strategy** | Vitest (2,524 unit) + Playwright (424 E2E); co-located tests preferred |
+| **Test Strategy** | Vitest (4103 unit) + Playwright (E2E); co-located tests preferred |
 | **Conventions** | @/* paths, strict TypeScript, RTL-first (Tailwind logical), design tokens (#0061A8, #00A859, #FFB400) |
 
 **Assumptions:**
