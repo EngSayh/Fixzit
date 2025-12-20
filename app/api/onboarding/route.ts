@@ -23,6 +23,7 @@
  * - Privacy: Non-privileged users restricted to own cases
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { Types } from 'mongoose';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { OnboardingCase, ONBOARDING_STATUSES, ONBOARDING_ROLES } from '@/server/models/onboarding/OnboardingCase';
@@ -41,8 +42,15 @@ export async function GET(req: NextRequest) {
   const user = sessionResult.session;
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const orgId =
+    (user as { orgId?: string; tenantId?: string }).orgId ||
+    (user as { tenantId?: string }).tenantId ||
+    null;
+  if (!orgId || !Types.ObjectId.isValid(orgId)) {
+    return NextResponse.json({ error: 'Organization context required' }, { status: 400 });
+  }
+
   const { searchParams } = new URL(req.url);
-  const orgId = user.orgId;
   const status = searchParams.get('status');
   const role = searchParams.get('role');
   const limitParam = Number(searchParams.get('limit') || 25);
@@ -54,7 +62,7 @@ export async function GET(req: NextRequest) {
 
   const filter: Record<string, unknown> = {};
   // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
-  if (orgId) filter.orgId = orgId;
+  filter.orgId = orgId;
   if (status && ONBOARDING_STATUSES.includes(status as (typeof ONBOARDING_STATUSES)[number])) {
     filter.status = status;
   }
@@ -71,9 +79,7 @@ export async function GET(req: NextRequest) {
 
   try {
     await connectMongo();
-    if (orgId) {
-      setTenantContext({ orgId });
-    }
+    setTenantContext({ orgId });
     const cases = await OnboardingCase.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit)
