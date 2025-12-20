@@ -67,7 +67,7 @@ jobs:
       # Required (blocking) on main/develop when token is set; optional (non-blocking) elsewhere
       - name: 🚀 Create & upload Sentry release
         id: sentry
-        if: ${{ (vars.ENABLE_SENTRY || 'true') != 'false' && secrets.SENTRY_AUTH_TOKEN != '' }}
+        if: ${{ vars.ENABLE_SENTRY != 'false' && secrets.SENTRY_AUTH_TOKEN != '' }}
         uses: getsentry/action-release@v3
         continue-on-error: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
         env:
