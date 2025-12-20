@@ -5,15 +5,15 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-20T14:30:00+03:00 (Asia/Riyadh)  
-**Scanner Version:** v4.5 (P246 - 50%+ Coverage Achieved)  
-**Branch:** phase-p233-test-coverage-expansion  
-**Commit:** P240-P246 Test Coverage Expansion  
-**Last Work:** P246 - Test Coverage Expansion - 50%+ TARGET ACHIEVED  
+**Last Updated:** 2025-12-20T17:00:00+03:00 (Asia/Riyadh)  
+**Scanner Version:** v4.6 (P247 - Production Readiness Orchestrator)  
+**Branch:** main  
+**Commit:** 36ac0013d (P235: Production Readiness)  
+**Last Work:** P247 - Production Readiness Orchestrator - SSOT Accuracy Update  
 **MongoDB Status:** ⚠️ Not synced this session  
-**Verification Status:** ✅ VERIFIED (186 test files, 50.4% coverage)  
+**Verification Status:** ✅ VERIFIED (150 test files, 40.7% coverage)  
 **Working Tree:** CLEAN  
-**Test Count:** ✅ 186 API test files, TypeScript: 0 errors, ESLint: 0 warnings
+**Test Count:** ✅ 150 API test files, TypeScript: 0 errors, ESLint: 0 warnings
 
 ---
 
@@ -21,10 +21,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Health Score** | 98/100 |
+| **Health Score** | 96/100 |
 | **API Routes** | 369 total |
-| **Test Files (API)** | 186 |
-| **API Test Coverage** | **50.4% (186/369) ✅ TARGET ACHIEVED** |
+| **Test Files (API)** | 150 |
+| **API Test Coverage** | **40.7% (150/369) - TARGET: 50%** |
 | **Components** | 240 |
 | **Services** | 39 |
 | **Models** | 145 |
@@ -74,9 +74,10 @@
 
 #### TEST-COVERAGE-GAP: API Route Test Coverage
 
-- **Current:** 102/369 routes have dedicated tests (27.6%)
-- **Target:** 50%+ coverage
-- **Progress:** ⬆️ Improved from 16.6% to 27.6% (+11%) (reported)
+- **Current:** 150/369 routes have dedicated tests (40.7%)
+- **Target:** 50%+ coverage (185 test files needed)
+- **Gap:** 35 more test files required
+- **Progress:** ⬆️ Improved from 16.6% to 40.7% (+24.1%)
 - **Effort:** HIGH
 - **Recent Additions (P231-P232):**
   - `tests/api/work-orders/*.test.ts` (main, status, assign)
