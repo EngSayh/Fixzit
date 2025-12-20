@@ -5,14 +5,15 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-20T11:30:00+03:00 (Asia/Riyadh)  
-**Scanner Version:** v4.0 (AI Improvement Analysis)  
-**Branch:** phase-3-ssot-update  
-**Commit:** 226fca4c7 (docs(ssot): update master pending report P228) | Origin: synced  
-**Last Work:** P230 - AI Improvement Analysis (Detailed)  
+**Last Updated:** 2025-12-20T13:35:00+03:00 (Asia/Riyadh)  
+**Scanner Version:** v4.2 (P232 Test Coverage Session)  
+**Branch:** detached HEAD (from main cdab87b34)  
+**Commit:** 2ec9af063 (test(api): Stabilize admin, finance, and superadmin route tests)  
+**Last Work:** P232 - Test Coverage Expansion + Stabilization  
 **MongoDB Status:** ⚠️ Not synced this session  
-**Working Tree:** 6 modified files pending commit
-**Test Count:** ✅ 466 test files, 4103+ tests passing; TypeScript: 0 errors; ESLint: 0 warnings
+**Verification Status:** UNVERIFIED (evidence required)  
+**Working Tree:** NOT VERIFIED  
+**Test Count:** NOT VERIFIED (evidence required)
 
 ---
 
@@ -20,19 +21,21 @@
 
 | Metric | Value |
 |--------|-------|
-| **Health Score** | 95/100 |
-| **API Routes** | 379 total |
-| **Test Files** | 466 |
+| **Health Score** | 96/100 |
+| **API Routes** | 369 total |
+| **Test Files (API)** | 102 |
+| **API Test Coverage** | 27.6% (102/369) |
 | **Components** | 240 |
 | **Services** | 39 |
 | **Models** | 145 |
-| **Build Status** | ✅ TS=0, ESLint=0, Tests=4103/4103 |
+| **Build Status** | UNVERIFIED (evidence required) |
 
 ---
 
 ## ✅ COMPLETED ITEMS (No Action Required)
 
 ### Security ✅
+
 | ID | Item | Status | Evidence |
 |----|------|--------|----------|
 | SEC-002 | Tenant scope validation | ✅ RESOLVED | ESLint `require-tenant-scope`: 0 warnings (from 81) |
@@ -40,12 +43,14 @@
 | SEC-001 | Rate limiting on public routes | ✅ RESOLVED | All 379 routes verified |
 
 ### Performance ✅
+
 | ID | Item | Status | Evidence |
 |----|------|--------|----------|
 | PERF-001 | maxTimeMS on aggregates | ✅ RESOLVED | Added to 15+ aggregate operations |
 | PERF-002 | .lean() on read queries | ✅ RESOLVED | Applied to 20+ files |
 
 ### Features ✅
+
 | ID | Item | Status | Evidence |
 |----|------|--------|----------|
 | FEAT-001 | ZATCA Clearance Service | ✅ IMPLEMENTED | `services/finance/zatca/clearance.ts` |
@@ -54,6 +59,7 @@
 | FEAT-004 | Work Orders Bulk Actions | ✅ IMPLEMENTED | `components/fm/WorkOrdersViewNew.tsx` |
 
 ### Quality ✅
+
 | ID | Item | Status | Evidence |
 |----|------|--------|----------|
 | TEST-004 | JSON parse guards | ✅ RESOLVED | All POST routes have try-catch |
@@ -67,35 +73,39 @@
 ### 🔴 HIGH Priority
 
 #### TEST-COVERAGE-GAP: API Route Test Coverage
-- **Current:** 63/379 routes have dedicated tests (16.6%)
+
+- **Current:** 102/369 routes have dedicated tests (27.6%)
 - **Target:** 50%+ coverage
+- **Progress:** ⬆️ Improved from 16.6% to 27.6% (+11%) (reported)
 - **Effort:** HIGH
-- **Files Missing Tests (316 total):**
-  ```
+- **Recent Additions (P231-P232):**
+  - `tests/api/work-orders/*.test.ts` (main, status, assign)
+  - `tests/api/properties/*.test.ts` (main, [id])
+  - `tests/api/admin/*.test.ts` (discounts, feature-flags, notifications-send, users)
+  - `tests/api/finance/*.test.ts` (ledger)
+  - `tests/api/superadmin/*.test.ts` (branding)
+- **Files Still Missing Tests (267 remaining):**
+
+  ```text
   admin/audit-logs/route.ts
   admin/billing/benchmark/route.ts
   admin/billing/pricebooks/route.ts
-  admin/communications/route.ts
-  admin/feature-flags/route.ts
-  admin/notifications/send/route.ts
-  admin/notifications/config/route.ts
-  admin/sms/settings/route.ts
   aqar/favorites/[id]/route.ts
   aqar/insights/pricing/route.ts
   aqar/listings/[id]/route.ts
-  aqar/listings/recommendations/route.ts
-  aqar/support/chatbot/route.ts
   ats/applications/[id]/route.ts
   ats/convert-to-employee/route.ts
-  ... (301 more files)
+  ... (259 more files)
   ```
 
 ### 🟡 MEDIUM Priority
 
 #### REFACTOR-001: Large Files Needing Refactoring
+
 - **Current:** 24 files >1000 lines
 - **Effort:** MEDIUM
 - **Files (24 total):**
+
   | File | Lines |
   |------|-------|
   | `lib/db/collections.ts` | 2,181 |

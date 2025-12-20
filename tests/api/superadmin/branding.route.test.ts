@@ -1,20 +1,76 @@
 /**
- * @fileoverview Superadmin Branding API Tests
- * @status TEMPORARILY SKIPPED - Dynamic import/mock infrastructure issue
- * @todo Fix vitest mock hoisting for dynamic imports - tracked in ISSUE-TEST-001
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-// Skip entire test suite until mock infrastructure is fixed
-// The issue is that vitest mocks aren't properly applied to dynamically imported modules
-// when the route uses ES module imports
-describe.skip("Superadmin Branding API", () => {
+// Mock dependencies BEFORE importing the route
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectDb: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/superadmin/auth", () => ({
+  getSuperadminSession: vi.fn(),
+}));
+
+vi.mock("@/server/models/PlatformSettings", () => ({
+  PlatformSettings: {
+    findOne: vi.fn(),
+    findOneAndUpdate: vi.fn(),
+    create: vi.fn(),
+  },
+}));
+
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: vi.fn(),
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+// Mock the SSRF validator to allow all URLs in tests
+vi.mock("@/lib/security/validate-public-https-url", () => ({
+  validatePublicHttpsUrl: vi.fn().mockResolvedValue(new URL("https://example.com")),
+  isValidPublicHttpsUrl: vi.fn().mockResolvedValue(true),
+  URLValidationError: class URLValidationError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = "URLValidationError";
+    }
+  },
+}));
+
+// Dynamic imports AFTER mocks are set up
+const { GET, PATCH } = await import("@/app/api/superadmin/branding/route");
+const { PlatformSettings } = await import("@/server/models/PlatformSettings");
+const { getSuperadminSession } = await import("@/lib/superadmin/auth");
+const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
+const { validatePublicHttpsUrl } = await import("@/lib/security/validate-public-https-url");
+
+describe("Superadmin Branding API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    // Reset rate limit mock to allow requests
-    vi.mocked(enforceRateLimit).mockResolvedValue(undefined);
+
+    vi.unstubAllEnvs();
+    vi.stubEnv("NODE_ENV", "test");
+
+    // Reset rate limit mock to allow requests (returns null = no rate limit)
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    vi.mocked(getSuperadminSession).mockResolvedValue({
+      username: "superadmin",
+      role: "superadmin",
+    } as any);
+    vi.mocked(validatePublicHttpsUrl).mockResolvedValue(
+      new URL("https://example.com"),
+    );
   });
 
   describe("GET /api/superadmin/branding", () => {
