@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 const mockGetSessionUser = vi.fn();
 const mockSmartRateLimit = vi.fn();
 const mockGetCollections = vi.fn();
+const mockIsTruthy = vi.fn();
 
 vi.mock("@/server/middleware/withAuthRbac", () => ({
   getSessionUser: (...args: unknown[]) => mockGetSessionUser(...args),
@@ -21,7 +22,7 @@ vi.mock("@/server/security/rateLimitKey", () => ({
 }));
 
 vi.mock("@/lib/utils/env", () => ({
-  isTruthy: vi.fn().mockReturnValue(false),
+  isTruthy: (...args: unknown[]) => mockIsTruthy(...args),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -78,6 +79,7 @@ describe("notifications route", () => {
     vi.clearAllMocks();
     mockSmartRateLimit.mockResolvedValue({ allowed: true, remaining: 100 });
     mockGetSessionUser.mockResolvedValue(mockSession);
+    mockIsTruthy.mockReturnValue(false);
     mockGetCollections.mockResolvedValue({
       notifications: {
         find: vi.fn().mockReturnValue({
