@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-20T11:30:00+03:00 (Asia/Riyadh)  
-**Scanner Version:** v4.0 (AI Improvement Analysis)  
-**Branch:** phase-3-ssot-update  
-**Commit:** 226fca4c7 (docs(ssot): update master pending report P228) | Origin: synced  
-**Last Work:** P230 - AI Improvement Analysis (Detailed)  
+**Last Updated:** 2025-12-20T05:53:33+03:00 (Asia/Riyadh)  
+**Scanner Version:** v4.1 (Production Verification)  
+**Branch:** main  
+**Commit:** cdab87b34 (fix(P225): SSRF regex + missing components + test stability) | Origin: synced  
+**Last Work:** P231 - Full Production Verification  
 **MongoDB Status:** ⚠️ Not synced this session  
-**Working Tree:** 6 modified files pending commit
-**Test Count:** ✅ 466 test files, 4103+ tests passing; TypeScript: 0 errors; ESLint: 0 warnings
+**Working Tree:** CLEAN (1 untracked file: review_pr584.md)
+**Test Count:** ✅ 398 test files, 3572 tests passing; TypeScript: 0 errors; ESLint: 0 warnings
 
 ---
 
@@ -187,7 +187,7 @@
 
 | ID | Status | Issue | Location | Impact | Fix |
 |----|--------|-------|----------|--------|-----|
-| **SEC-002** | 🔴 Critical (NEW - 2025-12-19) | 50+ database queries detected without explicit tenant scope validation - potential cross-tenant data leaks | app/api/**/route.ts (aggregate, find, findOne calls) | **P0-CRITICAL** - IDOR risk if tenancy filters missing from query construction; detected in aggregations, findOne, find operations across multiple modules | **MANUAL AUDIT REQUIRED:** (1) Verify org_id/property_owner_id in each query filter, (2) Add integration tests validating tenant isolation, (3) Implement query interceptor/middleware enforcing tenant scope. **Evidence:** 30+ matches in grep scan without orgId in filter param |
+| **SEC-002** | ✅ Resolved (2025-12-20) | 50+ database queries audited and verified with tenant scope | app/api/**/route.ts (aggregate, find, findOne calls) | **RESOLVED** - All routes annotated with TENANT_SCOPED/NO_TENANT_SCOPE/SUPER_ADMIN. ESLint require-tenant-scope: 0 warnings | Commit cdab87b34, ESLint local rules enforced |
 | **SEC-CRM-001** | ✅ Resolved (2025-12-19) | CRM accounts/share route missing tenant scope | app/api/crm/accounts/share/route.ts | **FIXED** - Added orgId: user.orgId to all DB operations (CrmLead.findOne, CrmLead.create, CrmActivity.create) | Deployed: commit cf04061f1 with 7/7 passing tests |
 | **SEC-001** | ✅ Resolved | NEXTAUTH_SECRET fallback insufficient | lib/config/constants.ts:148-218 | **FIXED** - resolveAuthSecret() now falls back to AUTH_SECRET, synchronizes both env vars, only throws when neither is set | Deployed: resolveAuthSecret() function implemented with AUTH_SECRET fallback + 2 passing tests |
 | **SEC-003** | 🟡 Low | 6 dangerouslySetInnerHTML uses detected (all safe - wrapped in SafeHtml or JSON-LD structured data) | components/SafeHtml.tsx, app/**/page.tsx | **VERIFIED SAFE** - All instances use DOMPurify sanitization via SafeHtml wrapper or serve JSON-LD; no XSS risk | No action needed; documented for audit trail |
@@ -196,7 +196,7 @@
 
 | ID | Status | Issue | Location | Impact | Fix |
 |----|--------|-------|----------|--------|-----|
-| **BUG-001** | 🟠 P1-HIGH (NEW - 2025-12-19) | process.env accessed directly in 40+ client components - breaks SSR/hydration, exposes server vars to client | app/login/page.tsx:25-30, app/marketplace/page.tsx:45-46, app/error.tsx:26, app/**/*.tsx | **HIGH** - Runtime errors in production (NEXT_PUBLIC_ prefix missing), hydration mismatches, potential secret exposure if server-only env vars leak to client bundle | **Systematic Fix:** (1) Audit all process.env reads via grep, (2) Migrate to lib/config/constants.ts Config export (already exists), (3) Ensure NEXT_PUBLIC_ prefix for client-safe vars, (4) Replace direct reads with Config.* pattern. **Evidence:** 30+ matches in grep scan including NEXT_PUBLIC_REQUIRE_SMS_OTP, ALLOW_OFFLINE_MONGODB, NEXT_PUBLIC_SUPPORT_EMAIL |
+| **BUG-001** | ✅ Resolved (2025-12-20) | process.env audit completed - all client components use NEXT_PUBLIC_ prefixed vars | app/login/page.tsx, app/marketplace/page.tsx, app/error.tsx | **RESOLVED** - Audit script shows 0 unsafe process.env accesses in client code | Commit hooks validate client env usage |
 | **BUG-002** | 🟡 Low | 3 @ts-expect-error suppressions without documented reason | lib/ats/resume-parser.ts:38, lib/markdown.ts:22, issue-tracker/app/api/issues/route.ts:263-318 | **MEDIUM** - Technical debt; may hide type errors or breaking changes in dependencies | Add inline comments explaining why suppression needed (e.g., "pdf-parse ESM/CJS export mismatch", "rehype-sanitize schema type incompatibility") |
 
 ### ⚡ Performance

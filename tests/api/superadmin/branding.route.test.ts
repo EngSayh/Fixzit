@@ -1,20 +1,61 @@
 /**
  * @fileoverview Superadmin Branding API Tests
- * @status TEMPORARILY SKIPPED - Dynamic import/mock infrastructure issue
- * @todo Fix vitest mock hoisting for dynamic imports - tracked in ISSUE-TEST-001
+ * @description Tests for GET/PATCH /api/superadmin/branding
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-// Skip entire test suite until mock infrastructure is fixed
-// The issue is that vitest mocks aren't properly applied to dynamically imported modules
-// when the route uses ES module imports
-describe.skip("Superadmin Branding API", () => {
+// Mock dependencies BEFORE importing route
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectDb: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/superadmin/auth", () => ({
+  getSuperadminSession: vi.fn(),
+}));
+
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: vi.fn().mockReturnValue(null),
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+vi.mock("@/lib/security/validate-public-https-url", () => ({
+  validatePublicHttpsUrl: vi.fn().mockResolvedValue(new URL("https://example.com/logo.png")),
+  isValidPublicHttpsUrl: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock("@/server/models/PlatformSettings", () => ({
+  PlatformSettings: {
+    findOne: vi.fn(),
+    create: vi.fn(),
+    findOneAndUpdate: vi.fn(),
+  },
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
+// Import route handlers and mocked modules after mocks are set
+const { GET, PATCH } = await import("@/app/api/superadmin/branding/route");
+const { getSuperadminSession } = await import("@/lib/superadmin/auth");
+const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
+const { PlatformSettings } = await import("@/server/models/PlatformSettings");
+const { validatePublicHttpsUrl } = await import("@/lib/security/validate-public-https-url");
+
+describe("Superadmin Branding API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
     // Reset rate limit mock to allow requests
-    vi.mocked(enforceRateLimit).mockResolvedValue(undefined);
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
 
   describe("GET /api/superadmin/branding", () => {
