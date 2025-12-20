@@ -5,10 +5,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock rate limiting
-vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
-  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+// Mock rate limiting - route uses smartRateLimit from @/server/security/rateLimit
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
+  rateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
 }));
 
 // Mock database connection
@@ -40,7 +40,7 @@ vi.mock("bcryptjs", () => ({
   hash: vi.fn().mockResolvedValue("hashedpassword"),
 }));
 
-import { enforceRateLimit, smartRateLimit } from "@/lib/middleware/rate-limit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 
 const importRoute = async () => {
   try {
@@ -53,8 +53,7 @@ const importRoute = async () => {
 describe("API /api/auth/signup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
-    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true } as never);
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true, remaining: 10 } as never);
   });
 
   describe("POST - User Signup", () => {
@@ -65,11 +64,7 @@ describe("API /api/auth/signup", () => {
         return;
       }
 
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        })
-      );
+      vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false, remaining: 0 } as never);
 
       const req = new NextRequest("http://localhost:3000/api/auth/signup", {
         method: "POST",
