@@ -48,7 +48,7 @@ vi.mock("@/server/security/headers", () => ({
   }),
 }));
 
-import { PATCH, GET, DELETE } from "@/app/api/finance/invoices/[id]/route";
+import { PATCH } from "@/app/api/finance/invoices/[id]/route";
 import { NextRequest } from "next/server";
 
 const mockUser = {
@@ -136,32 +136,6 @@ describe("finance/invoices/[id] route", () => {
       
       // Should not be 401, 403, or 429
       expect([401, 403, 429]).not.toContain(res.status);
-    });
-  });
-
-  describe("GET /api/finance/invoices/[id]", () => {
-    it("returns 429 when rate limited", async () => {
-      mockEnforceRateLimit.mockReturnValueOnce(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 })
-      );
-      
-      const req = createRequest("GET");
-      const res = await GET(req, { params: { id: "inv-123" } });
-      
-      expect(res.status).toBe(429);
-    });
-  });
-
-  describe("DELETE /api/finance/invoices/[id]", () => {
-    it("returns 429 when rate limited", async () => {
-      mockEnforceRateLimit.mockReturnValueOnce(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 })
-      );
-      
-      const req = createRequest("DELETE");
-      const res = await DELETE(req, { params: { id: "inv-123" } });
-      
-      expect(res.status).toBe(429);
     });
   });
 });

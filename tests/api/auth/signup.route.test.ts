@@ -19,7 +19,7 @@ vi.mock("@/lib/mongodb-unified", () => ({
 
 vi.mock("@/server/models/User", () => ({
   User: {
-    findOne: (...args: unknown[]) => mockUserFindOne(...args),
+    findOne: (...args: unknown[]) => ({ lean: () => mockUserFindOne(...args) }),
     create: (...args: unknown[]) => mockUserCreate(...args),
   },
 }));
@@ -49,12 +49,19 @@ vi.mock("@/lib/logger", () => ({
 vi.mock("@/server/security/headers", () => ({
   getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
   createSecureResponse: vi.fn((data, opts) => {
-    const res = new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify(data), {
       status: opts?.status || 200,
       headers: { "Content-Type": "application/json" },
     });
-    return res;
   }),
+}));
+
+// Mock the error response utilities to return proper responses
+vi.mock("@/server/utils/errorResponses", () => ({
+  zodValidationError: vi.fn((err) => new Response(JSON.stringify({ error: err.issues?.[0]?.message || "Validation error" }), { status: 400 })),
+  rateLimitError: vi.fn(() => new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 })),
+  duplicateKeyError: vi.fn(() => new Response(JSON.stringify({ error: "Duplicate key" }), { status: 409 })),
+  handleApiError: vi.fn((err) => new Response(JSON.stringify({ error: String(err) }), { status: 500 })),
 }));
 
 import { POST } from "@/app/api/auth/signup/route";

@@ -115,7 +115,9 @@ async function resolveUser(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "compliance:audits:list" });
+  const rateLimitResponse = enforceRateLimit(req, { requests: 60, windowMs: 60_000, keyPrefix: "compliance:audits:list" });
+  if (rateLimitResponse) return rateLimitResponse;
+  
   const user = await resolveUser(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -194,6 +196,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, { requests: 30, windowMs: 60_000, keyPrefix: "compliance:audits:create" });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const user = await resolveUser(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
