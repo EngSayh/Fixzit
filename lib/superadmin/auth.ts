@@ -89,14 +89,15 @@ export async function verifySuperadminPassword(password: string): Promise<Passwo
     return { ok: false, reason: 'not_configured' };
   }
 
+  // Option 1: Bcrypt hash configured (production recommended)
   if (configuredHash) {
     const match = await bcrypt.compare(password, configuredHash);
     return match ? { ok: true } : { ok: false, reason: 'invalid' };
   }
 
-  // Hash the provided plaintext password from env once per process
-  const derivedHash = await bcrypt.hash(plainPassword || "", 10);
-  const match = await bcrypt.compare(password, derivedHash);
+  // Option 2: Plaintext password configured (development/testing only)
+  // Simple string equality - no hashing needed
+  const match = password === plainPassword;
   return match ? { ok: true } : { ok: false, reason: 'invalid' };
 }
 
