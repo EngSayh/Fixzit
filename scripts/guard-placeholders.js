@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * CI Guard: Placeholder Detection v2
+ * CI Guard: Placeholder Detection v3
  * Fails the build if production routes contain placeholder text.
  * 
  * Features:
  * - Strong patterns (always forbidden): "will be implemented here", "TODO: Implement"
  * - Weak patterns (context-checked): "Coming Soon" allowed in badges/comments
  * - .only check: Blocks CI if test files contain .only
- * - Allow comments: Add `guard-placeholders:allow` to exempt specific lines
+ * - Ticketed allow comments: `guard-placeholders:allow(FIXZIT-123)` to exempt specific lines
  * 
  * Usage: node scripts/guard-placeholders.js
  * 
@@ -32,13 +32,19 @@ const WEAK_PATTERNS = [
   'Coming Soon',
 ];
 
+// Ticket pattern for allow comments (FIXZIT-123, FIX-123, #123)
+const TICKET_PATTERN = /guard-placeholders:allow\((FIXZIT-\d+|FIX-\d+|#\d+)\)/i;
+
+// Legacy allow without ticket (to be deprecated)
+const LEGACY_ALLOW_PATTERN = /guard-placeholders:allow(?!\()/i;
+
 // Allowed contexts for weak patterns (regex patterns)
 const ALLOWED_CONTEXTS = [
   /\{\/\*.*Coming Soon.*\*\/\}/i,          // JSX comments: {/* Coming Soon */}
   /\/\/.*Coming Soon/i,                     // Line comments: // Coming Soon
   /Badge.*Coming Soon|Coming Soon.*Badge/i, // Badge component usage
   /i18n|t\(|auto\(/i,                       // i18n function calls
-  /guard-placeholders:allow/i,              // Explicit allow marker
+  TICKET_PATTERN,                           // Ticketed allow marker
 ];
 
 // Directories to scan
@@ -60,7 +66,16 @@ const EXCLUDE_PATTERNS = [
   'import-export/page.tsx',
 ];
 
+// Track legacy allows for warning
+const legacyAllows = [];
+
 function isAllowedContext(line) {
+  // Check for legacy (non-ticketed) allow
+  if (LEGACY_ALLOW_PATTERN.test(line) && !TICKET_PATTERN.test(line)) {
+    legacyAllows.push(line);
+    // Still allow for now (grace period), but warn
+    return true;
+  }
   return ALLOWED_CONTEXTS.some(regex => regex.test(line));
 }
 
@@ -189,11 +204,25 @@ function main() {
     console.log('━'.repeat(60));
     console.log('To fix:');
     console.log('  1. Replace placeholder text with real implementations');
-    console.log('  2. Or add comment: {/* guard-placeholders:allow - reason */}');
+    console.log('  2. Or add ticketed allow: {/* guard-placeholders:allow(FIXZIT-123) */}');
     console.log('  3. Or use PlannedFeature component for roadmap items');
     console.log('━'.repeat(60));
     
     process.exit(1);
+  }
+
+  // Warn about legacy allows that need tickets
+  if (legacyAllows.length > 0) {
+    console.log('⚠️  WARNING: Found ' + legacyAllows.length + ' allow comment(s) without ticket IDs:\n');
+    for (const line of legacyAllows.slice(0, 10)) {
+      // Extract just file:line portion
+      const match = line.match(/^([^:]+:\d+)/);
+      if (match) console.log(`   ${match[1]}`);
+    }
+    if (legacyAllows.length > 10) {
+      console.log(`   ... and ${legacyAllows.length - 10} more`);
+    }
+    console.log('\n   ℹ️  Update to ticketed format: guard-placeholders:allow(FIXZIT-XXX)\n');
   }
 
   console.log('✅ No placeholder violations found.\n');

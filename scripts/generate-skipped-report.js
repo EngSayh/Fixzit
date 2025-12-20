@@ -28,9 +28,46 @@ const path = require('path');
 
 const JSON_PATH = path.join(process.cwd(), 'reports', 'vitest.json');
 const OUTPUT_PATH = path.join(process.cwd(), 'reports', 'SKIPPED_TESTS.md');
+const BASELINE_PATH = path.join(process.cwd(), 'reports', 'SKIPPED_TESTS_BASELINE.json');
 
 // Pattern to detect ticket references (e.g., FIX-123, FIXZIT-456, #123)
 const TICKET_PATTERN = /(FIX-\d+|FIXZIT-\d+|#\d+)/i;
+
+function loadBaseline() {
+  try {
+    if (fs.existsSync(BASELINE_PATH)) {
+      return JSON.parse(fs.readFileSync(BASELINE_PATH, 'utf8'));
+    }
+  } catch {
+    // Ignore baseline errors
+  }
+  return null;
+}
+
+function checkBaseline(skippedCount, todoCount, baseline) {
+  if (!baseline?.baseline) return { warn: false, fail: false, message: '' };
+  
+  const { skipCount: baseSkip, threshold } = baseline.baseline;
+  const growth = skippedCount - baseSkip;
+  
+  if (growth > (threshold?.failIfGrowsBy || 50)) {
+    return {
+      warn: true,
+      fail: true,
+      message: `Skip count grew by ${growth} (threshold: ${threshold.failIfGrowsBy}). Baseline: ${baseSkip}, Current: ${skippedCount}`,
+    };
+  }
+  
+  if (growth > (threshold?.warnIfGrowsBy || 10)) {
+    return {
+      warn: true,
+      fail: false,
+      message: `Skip count grew by ${growth} (threshold: ${threshold.warnIfGrowsBy}). Baseline: ${baseSkip}, Current: ${skippedCount}`,
+    };
+  }
+  
+  return { warn: false, fail: false, message: '' };
+}
 
 function main() {
   console.log('📊 Generating Skipped Tests Report...\n');
@@ -138,6 +175,17 @@ function main() {
   console.log(`✅ Report written to ${OUTPUT_PATH}`);
   console.log(`   Skipped: ${skippedTests.length}, Todo: ${todoTests.length}`);
   
+  // Check against baseline
+  const baseline = loadBaseline();
+  const baselineCheck = checkBaseline(skippedTests.length, todoTests.length, baseline);
+  
+  if (baselineCheck.warn) {
+    console.log(`\n⚠️  BASELINE WARNING: ${baselineCheck.message}`);
+    if (baselineCheck.fail) {
+      console.log('   ❌ This exceeds the fail threshold. Consider cleaning up skipped tests.');
+    }
+  }
+  
   // Warn if skipped without tickets
   const noTicket = skippedTests.filter(t => !t.hasTicket).length;
   if (noTicket > 0) {
@@ -145,6 +193,7 @@ function main() {
     console.log('   Consider adding FIX-XXX or #XXX to the test name.\n');
   }
   
+  // Don't fail on baseline warnings (just warn for now)
   process.exit(0);
 }
 
