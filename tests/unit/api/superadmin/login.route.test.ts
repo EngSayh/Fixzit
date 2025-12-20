@@ -85,7 +85,7 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should return 401 for invalid password", async () => {
-    mockVerifyPassword.mockResolvedValue(false);
+    mockVerifyPassword.mockResolvedValue({ ok: false });
     
     const { POST } = await import("@/app/api/superadmin/login/route");
     
@@ -142,7 +142,7 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should return 200 with valid credentials", async () => {
-    mockVerifyPassword.mockResolvedValue(true);
+    mockVerifyPassword.mockResolvedValue({ ok: true });
     mockValidateSecondFactor.mockReturnValue(true);
     
     const { POST } = await import("@/app/api/superadmin/login/route");
@@ -163,7 +163,7 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should set noindex header", async () => {
-    mockVerifyPassword.mockResolvedValue(false);
+    mockVerifyPassword.mockResolvedValue({ ok: false });
     
     const { POST } = await import("@/app/api/superadmin/login/route");
     

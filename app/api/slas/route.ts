@@ -21,7 +21,7 @@ import { z, ZodError } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
-import { rateLimitError } from "@/server/utils/errorResponses";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 
@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
     );
 
     // Return generic error to client
-    return createSecureResponse({ error: "Internal server error" }, 500, req);
+    return handleApiError(error);
   }
 }
 
@@ -282,6 +282,6 @@ export async function GET(req: NextRequest) {
     );
 
     // Return generic error to client (no sensitive details)
-    return createSecureResponse({ error: "Failed to fetch SLAs" }, 500, req);
+    return handleApiError(error);
   }
 }

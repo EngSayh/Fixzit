@@ -185,7 +185,11 @@ export function handleApiError(error: unknown): NextResponse {
     );
   }
 
-  if (error instanceof UnauthorizedError) {
+  // Duck-type check for UnauthorizedError to handle both real instances and mocked classes
+  if (
+    error instanceof UnauthorizedError ||
+    (error instanceof Error && error.name === "UnauthorizedError")
+  ) {
     return unauthorizedError();
   }
 

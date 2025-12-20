@@ -28,7 +28,7 @@ const path = require('path');
 
 const JSON_PATH = path.join(process.cwd(), 'reports', 'vitest.json');
 const OUTPUT_PATH = path.join(process.cwd(), 'reports', 'SKIPPED_TESTS.md');
-const BASELINE_PATH = path.join(process.cwd(), 'reports', 'SKIPPED_TESTS_BASELINE.json');
+const BASELINE_PATH = path.join(process.cwd(), 'config', 'qa', 'SKIPPED_TESTS_BASELINE.json');
 
 // Pattern to detect ticket references (e.g., FIX-123, FIXZIT-456, #123)
 const TICKET_PATTERN = /(FIX-\d+|FIXZIT-\d+|#\d+)/i;

@@ -15,6 +15,7 @@ vi.mock('@/auth', () => ({
 vi.mock('@/server/security/rateLimit', () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
   rateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
+  buildOrgAwareRateLimitKey: vi.fn().mockReturnValue('test-key'),
 }));
 
 vi.mock('@/lib/mongodb-unified', () => ({
@@ -28,6 +29,7 @@ vi.mock('@/lib/auth/session', () => ({
 vi.mock('@/lib/mongo', () => ({
   default: vi.fn().mockResolvedValue(undefined),
   connectMongo: vi.fn().mockResolvedValue(undefined),
+  connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { getSessionOrNull } from '@/lib/auth/session';

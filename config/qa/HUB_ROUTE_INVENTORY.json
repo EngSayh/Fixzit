@@ -1,0 +1,109 @@
+{
+  "generated": "2025-12-20",
+  "version": "1.0",
+  "description": "Route inventory for dashboard hub navigation",
+  "hubs": {
+    "marketplace": {
+      "basePath": "/fm/marketplace",
+      "dashboardPath": "/dashboard/marketplace",
+      "modules": [
+        { "name": "Vendors", "path": "/fm/vendors", "icon": "Store", "status": "active" },
+        { "name": "Listings", "path": "/fm/marketplace/listings/new", "icon": "Package", "status": "active" },
+        { "name": "Orders", "path": "/fm/marketplace/orders/new", "icon": "ShoppingCart", "status": "active" },
+        { "name": "RFQs", "path": "/fm/rfqs", "icon": "FileQuestion", "status": "active" }
+      ],
+      "planned": ["Catalog Browser", "Reviews"]
+    },
+    "crm": {
+      "basePath": "/fm/crm",
+      "dashboardPath": "/dashboard/crm",
+      "modules": [
+        { "name": "Leads", "path": "/fm/crm/leads/new", "icon": "UserPlus", "status": "active" },
+        { "name": "Accounts", "path": "/fm/crm/accounts/new", "icon": "Building", "status": "active" }
+      ],
+      "planned": ["Contracts", "Feedback", "Campaign Management"]
+    },
+    "admin": {
+      "basePath": "/fm/administration",
+      "dashboardPath": "/dashboard/admin",
+      "modules": [
+        { "name": "Policies", "path": "/fm/administration/policies/new", "icon": "FileText", "status": "active" },
+        { "name": "Assets", "path": "/fm/administration/assets/new", "icon": "Box", "status": "active" }
+      ],
+      "planned": ["DOA Workflows", "Facilities Management", "Document Control"]
+    },
+    "compliance": {
+      "basePath": "/fm/compliance",
+      "dashboardPath": "/dashboard/compliance",
+      "modules": [
+        { "name": "Audits", "path": "/fm/compliance/audits", "icon": "ClipboardCheck", "status": "active" },
+        { "name": "Contracts", "path": "/fm/compliance/contracts/new", "icon": "FileSignature", "status": "active" },
+        { "name": "Policies", "path": "/fm/compliance/policies", "icon": "ScrollText", "status": "active" }
+      ],
+      "planned": ["Disputes", "Audit Trail"]
+    },
+    "system": {
+      "basePath": "/fm/system",
+      "dashboardPath": "/dashboard/system",
+      "modules": [
+        { "name": "Users", "path": "/fm/system/users/invite", "icon": "Users", "status": "active" },
+        { "name": "Roles", "path": "/fm/system/roles/new", "icon": "Shield", "status": "active" },
+        { "name": "Integrations", "path": "/fm/system/integrations", "icon": "Plug", "status": "active" }
+      ],
+      "planned": ["Billing", "System Settings"]
+    },
+    "properties": {
+      "basePath": "/fm/properties",
+      "dashboardPath": "/dashboard/properties",
+      "modules": [
+        { "name": "Properties", "path": "/fm/properties", "icon": "Building2", "status": "active" },
+        { "name": "Units", "path": "/fm/properties/units", "icon": "Home", "status": "active" },
+        { "name": "Leases", "path": "/fm/properties/leases", "icon": "Key", "status": "active" },
+        { "name": "Inspections", "path": "/fm/properties/inspections", "icon": "ClipboardList", "status": "active" },
+        { "name": "Documents", "path": "/fm/properties/documents", "icon": "Files", "status": "active" }
+      ],
+      "planned": ["Maintenance Requests"]
+    },
+    "support": {
+      "basePath": "/fm/support",
+      "dashboardPath": "/dashboard/support",
+      "modules": [
+        { "name": "Tickets", "path": "/fm/support/tickets", "icon": "MessageSquare", "status": "active" },
+        { "name": "Escalations", "path": "/fm/support/escalations/new", "icon": "AlertTriangle", "status": "active" }
+      ],
+      "planned": ["Knowledge Base", "Live Chat", "SLA Management"]
+    },
+    "hr": {
+      "basePath": "/fm/hr",
+      "dashboardPath": "/dashboard/hr",
+      "modules": [
+        { "name": "Employees", "path": "/fm/hr/employees", "icon": "Users", "status": "active" },
+        { "name": "Directory", "path": "/fm/hr/directory", "icon": "BookUser", "status": "active" },
+        { "name": "Leave", "path": "/fm/hr/leave", "icon": "CalendarOff", "status": "active" },
+        { "name": "Payroll", "path": "/fm/hr/payroll", "icon": "Wallet", "status": "active" },
+        { "name": "Recruitment", "path": "/fm/hr/recruitment", "icon": "UserPlus", "status": "active" }
+      ],
+      "planned": ["Training", "Performance Reviews"]
+    },
+    "finance": {
+      "basePath": "/fm/finance",
+      "dashboardPath": "/dashboard/finance",
+      "modules": [
+        { "name": "Invoices", "path": "/fm/finance/invoices", "icon": "Receipt", "status": "active" },
+        { "name": "Payments", "path": "/fm/finance/payments", "icon": "CreditCard", "status": "active" },
+        { "name": "Expenses", "path": "/fm/finance/expenses", "icon": "Wallet", "status": "active" },
+        { "name": "Budgets", "path": "/fm/finance/budgets", "icon": "PiggyBank", "status": "active" },
+        { "name": "Financial Reports", "path": "/fm/finance/reports", "icon": "BarChart3", "status": "active" }
+      ],
+      "planned": []
+    },
+    "reports": {
+      "basePath": "/fm/reports",
+      "dashboardPath": "/dashboard/reports",
+      "modules": [
+        { "name": "Reports", "path": "/fm/reports", "icon": "BarChart3", "status": "active" }
+      ],
+      "planned": ["Custom Reports", "Dashboards Builder"]
+    }
+  }
+}

@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ShoppingBag, Package, Star } from "lucide-react";
+import { ShoppingBag, Package, Star, Store, FileQuestion, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { fetchOrgCounters } from "@/lib/counters";
+import { HubNavigationCard } from "@/components/dashboard/HubNavigationCard";
+import { RoadmapBanner } from "@/components/dashboard/RoadmapBanner";
 
 interface MarketplaceCounters {
   marketplace: { listings: number; orders: number; reviews: number };
@@ -17,7 +19,7 @@ export default function MarketplaceDashboard() {
   const { data: session, status } = useSession();
   const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
   const auto = useAutoTranslator("dashboard.marketplace");
-  const [activeTab, setActiveTab] = useState("vendors");
+  const [activeTab, setActiveTab] = useState("modules");
   const [counters, setCounters] = useState<MarketplaceCounters | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -76,19 +78,51 @@ export default function MarketplaceDashboard() {
   }, [auto, orgId, status]);
 
   const tabs = [
-    { id: "vendors", label: auto("Vendors", "tabs.vendors") },
+    { id: "modules", label: auto("Modules", "tabs.modules") },
     {
-      id: "catalog",
-      label: auto("Catalog", "tabs.catalog"),
-      count: counters?.marketplace.listings,
-    },
-    {
-      id: "orders",
-      label: auto("Orders", "tabs.orders"),
+      id: "metrics",
+      label: auto("Metrics", "tabs.metrics"),
       count: counters?.marketplace.orders,
     },
-    { id: "rfqs", label: auto("RFQs", "tabs.rfqs") },
   ];
+
+  // Existing sub-modules from route inventory
+  const modules = [
+    {
+      title: auto("Vendors", "modules.vendors"),
+      description: auto("Manage marketplace vendors", "modules.vendorsDesc"),
+      href: "/fm/vendors",
+      icon: Store,
+      iconColor: "text-primary",
+    },
+    {
+      title: auto("Listings", "modules.listings"),
+      description: auto("Create and manage listings", "modules.listingsDesc"),
+      href: "/fm/marketplace/listings/new",
+      icon: Package,
+      iconColor: "text-success",
+      metric: loading ? "..." : counters?.marketplace.listings || 0,
+      metricLabel: auto("Active", "metrics.active"),
+    },
+    {
+      title: auto("Orders", "modules.orders"),
+      description: auto("Track marketplace orders", "modules.ordersDesc"),
+      href: "/fm/marketplace/orders/new",
+      icon: ShoppingCart,
+      iconColor: "text-orange-500",
+      metric: loading ? "..." : counters?.marketplace.orders || 0,
+      metricLabel: auto("Total", "metrics.total"),
+    },
+    {
+      title: auto("RFQs", "modules.rfqs"),
+      description: auto("Request for quotations", "modules.rfqsDesc"),
+      href: "/fm/rfqs",
+      icon: FileQuestion,
+      iconColor: "text-purple-500",
+    },
+  ];
+
+  const plannedFeatures = ["Catalog Browser", "Reviews"];
 
   return (
     <div className="space-y-6">
@@ -123,7 +157,18 @@ export default function MarketplaceDashboard() {
         ))}
       </div>
 
-      {activeTab === "catalog" && (
+      {activeTab === "modules" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {modules.map((module) => (
+              <HubNavigationCard key={module.href} {...module} />
+            ))}
+          </div>
+          <RoadmapBanner features={plannedFeatures} variant="subtle" />
+        </div>
+      )}
+
+      {activeTab === "metrics" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -165,25 +210,6 @@ export default function MarketplaceDashboard() {
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {["vendors", "orders", "rfqs"].includes(activeTab) && (
-        <Card>
-          <CardContent className="py-8">
-            {/* guard-placeholders:allow - Dashboard hub page, sub-features on roadmap */}
-            <div className="text-center text-muted-foreground">
-              <p className="font-medium">
-                {tabs.find((t) => t.id === activeTab)?.label}
-              </p>
-              <p className="text-sm mt-2">
-                {auto(
-                  "This feature is on our roadmap",
-                  "placeholder.description",
-                )}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       )}
     </div>
   );

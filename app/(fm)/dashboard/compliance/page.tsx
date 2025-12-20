@@ -4,16 +4,45 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { HubNavigationCard } from "@/components/dashboard/HubNavigationCard";
+import { RoadmapBanner } from "@/components/dashboard/RoadmapBanner";
+import { ClipboardCheck, FileSignature, ScrollText } from "lucide-react";
 
 export default function ComplianceDashboard() {
   const auto = useAutoTranslator("dashboard.compliance");
-  const [activeTab, setActiveTab] = useState("contracts");
+  const [activeTab, setActiveTab] = useState("modules");
 
   const tabs = [
-    { id: "contracts", label: auto("Contracts", "tabs.contracts") },
-    { id: "disputes", label: auto("Disputes", "tabs.disputes") },
-    { id: "audit", label: auto("Audit Trail", "tabs.audit") },
+    { id: "modules", label: auto("Modules", "tabs.modules") },
+    { id: "roadmap", label: auto("Roadmap", "tabs.roadmap") },
   ];
+
+  // Existing sub-modules from route inventory
+  const modules = [
+    {
+      title: auto("Audits", "modules.audits"),
+      description: auto("Schedule and track compliance audits", "modules.auditsDesc"),
+      href: "/fm/compliance/audits",
+      icon: ClipboardCheck,
+      iconColor: "text-primary",
+    },
+    {
+      title: auto("Contracts", "modules.contracts"),
+      description: auto("Manage contracts and agreements", "modules.contractsDesc"),
+      href: "/fm/compliance/contracts/new",
+      icon: FileSignature,
+      iconColor: "text-success",
+    },
+    {
+      title: auto("Policies", "modules.policies"),
+      description: auto("Compliance policies and procedures", "modules.policiesDesc"),
+      href: "/fm/compliance/policies",
+      icon: ScrollText,
+      iconColor: "text-orange-500",
+    },
+  ];
+
+  const plannedFeatures = ["Disputes", "Audit Trail"];
 
   return (
     <div className="space-y-6">
@@ -46,22 +75,33 @@ export default function ComplianceDashboard() {
         ))}
       </div>
 
-      <Card>
-        <CardContent className="py-8">
-          {/* guard-placeholders:allow - Dashboard hub page, sub-features on roadmap */}
-          <div className="text-center text-muted-foreground">
-            <p className="font-medium">
-              {tabs.find((t) => t.id === activeTab)?.label}
-            </p>
-            <p className="text-sm mt-2">
-              {auto(
-                "This feature is on our roadmap",
-                "placeholder.description",
-              )}
-            </p>
+      {activeTab === "modules" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {modules.map((module) => (
+              <HubNavigationCard key={module.href} {...module} />
+            ))}
           </div>
-        </CardContent>
-      </Card>
+          <RoadmapBanner features={plannedFeatures} variant="subtle" />
+        </div>
+      )}
+
+      {activeTab === "roadmap" && (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">
+              <p className="font-medium">
+                {auto("Planned Features", "roadmap.title")}
+              </p>
+              <ul className="mt-4 space-y-2">
+                {plannedFeatures.map((feature) => (
+                  <li key={feature} className="text-sm">{feature}</li>
+                ))}
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

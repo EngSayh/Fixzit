@@ -13,6 +13,7 @@ import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse } from "@/server/security/headers";
+import { handleApiError } from "@/server/utils/errorResponses";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
@@ -57,7 +58,7 @@ export async function GET(
     return createSecureResponse(communication?.comments ?? [], 200, req);
   } catch (error) {
     logger.error("[work-orders/comments] GET error", { error });
-    return createSecureResponse({ error: "Failed to fetch comments" }, 500, req);
+    return handleApiError(error);
   }
 }
 
@@ -92,6 +93,6 @@ export async function POST(
     return createSecureResponse({ ok: true }, 200, req);
   } catch (error) {
     logger.error("[work-orders/comments] POST error", { error });
-    return createSecureResponse({ error: "Failed to add comment" }, 500, req);
+    return handleApiError(error);
   }
 }

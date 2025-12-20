@@ -2,8 +2,6 @@
  * @fileoverview Tests for Organization Settings API
  * @description Tests the /api/organization/settings endpoint
  */
-import { expectAuthFailure } from '@/tests/api/_helpers';
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
@@ -19,6 +17,22 @@ vi.mock('@/server/security/rateLimit', () => ({
 
 vi.mock('@/lib/mongodb-unified', () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
+  connectDb: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/lib/middleware/rate-limit', () => ({
+  enforceRateLimit: vi.fn().mockReturnValue(null),
+}));
+
+// Mock getSessionUser to throw UnauthorizedError for unauthenticated tests
+vi.mock('@/server/middleware/withAuthRbac', () => ({
+  getSessionUser: vi.fn().mockRejectedValue(new Error('Unauthenticated')),
+  UnauthorizedError: class UnauthorizedError extends Error {
+    constructor(msg: string) {
+      super(msg);
+      this.name = 'UnauthorizedError';
+    }
+  },
 }));
 
 vi.mock('@/lib/auth/session', () => ({

@@ -4,17 +4,38 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { HubNavigationCard } from "@/components/dashboard/HubNavigationCard";
+import { RoadmapBanner } from "@/components/dashboard/RoadmapBanner";
+import { FileText, Box } from "lucide-react";
 
 export default function AdminDashboard() {
   const auto = useAutoTranslator("dashboard.admin");
-  const [activeTab, setActiveTab] = useState("doa");
+  const [activeTab, setActiveTab] = useState("modules");
 
   const tabs = [
-    { id: "doa", label: auto("DOA & Policies", "tabs.doa") },
-    { id: "assets", label: auto("Assets", "tabs.assets") },
-    { id: "facilities", label: auto("Facilities", "tabs.facilities") },
-    { id: "documents", label: auto("Documents", "tabs.documents") },
+    { id: "modules", label: auto("Modules", "tabs.modules") },
+    { id: "roadmap", label: auto("Roadmap", "tabs.roadmap") },
   ];
+
+  // Existing sub-modules from route inventory
+  const modules = [
+    {
+      title: auto("Policies", "modules.policies"),
+      description: auto("Manage organizational policies", "modules.policiesDesc"),
+      href: "/fm/administration/policies/new",
+      icon: FileText,
+      iconColor: "text-primary",
+    },
+    {
+      title: auto("Assets", "modules.assets"),
+      description: auto("Track and manage assets", "modules.assetsDesc"),
+      href: "/fm/administration/assets/new",
+      icon: Box,
+      iconColor: "text-success",
+    },
+  ];
+
+  const plannedFeatures = ["DOA Workflows", "Facilities Management", "Document Control"];
 
   return (
     <div className="space-y-6">
@@ -44,22 +65,33 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <Card>
-        <CardContent className="py-8">
-          {/* guard-placeholders:allow - Dashboard hub page, sub-features on roadmap */}
-          <div className="text-center text-muted-foreground">
-            <p className="font-medium">
-              {tabs.find((t) => t.id === activeTab)?.label}
-            </p>
-            <p className="text-sm mt-2">
-              {auto(
-                "This feature is on our roadmap",
-                "placeholder.description",
-              )}
-            </p>
+      {activeTab === "modules" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {modules.map((module) => (
+              <HubNavigationCard key={module.href} {...module} />
+            ))}
           </div>
-        </CardContent>
-      </Card>
+          <RoadmapBanner features={plannedFeatures} variant="subtle" />
+        </div>
+      )}
+
+      {activeTab === "roadmap" && (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">
+              <p className="font-medium">
+                {auto("Planned Features", "roadmap.title")}
+              </p>
+              <ul className="mt-4 space-y-2">
+                {plannedFeatures.map((feature) => (
+                  <li key={feature} className="text-sm">{feature}</li>
+                ))}
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

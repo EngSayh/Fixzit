@@ -60,7 +60,7 @@ vitest.on('close', (exitCode) => {
   console.log('\n📋 Generating skipped tests report...');
   try {
     execSync('node scripts/generate-skipped-report.js', { stdio: 'inherit' });
-  } catch (e) {
+  } catch {
     console.log('⚠️  Skipped report generation failed (non-fatal)');
   }
   

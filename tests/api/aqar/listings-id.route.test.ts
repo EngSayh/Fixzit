@@ -14,6 +14,12 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 // Mock authentication
 vi.mock("@/server/middleware/withAuthRbac", () => ({
   getSessionUser: vi.fn(),
+  UnauthorizedError: class UnauthorizedError extends Error {
+    constructor(msg: string) {
+      super(msg);
+      this.name = 'UnauthorizedError';
+    }
+  },
 }));
 
 // Mock database
@@ -120,7 +126,9 @@ describe("PATCH /api/aqar/listings/[id]", () => {
       return;
     }
 
-    vi.mocked(getSessionUser).mockRejectedValue(new Error("Not authenticated"));
+    const authError = new Error("Not authenticated");
+    authError.name = "UnauthorizedError";
+    vi.mocked(getSessionUser).mockRejectedValue(authError);
 
     const validId = "507f1f77bcf86cd799439011";
     const req = new NextRequest(`http://localhost:3000/api/aqar/listings/${validId}`, {
@@ -172,7 +180,9 @@ describe("DELETE /api/aqar/listings/[id]", () => {
       return;
     }
 
-    vi.mocked(getSessionUser).mockRejectedValue(new Error("Not authenticated"));
+    const authError = new Error("Not authenticated");
+    authError.name = "UnauthorizedError";
+    vi.mocked(getSessionUser).mockRejectedValue(authError);
 
     const validId = "507f1f77bcf86cd799439011";
     const req = new NextRequest(`http://localhost:3000/api/aqar/listings/${validId}`);

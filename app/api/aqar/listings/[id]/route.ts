@@ -28,6 +28,7 @@ import { parseBodySafe } from "@/lib/api/parse-body";
 import mongoose from "mongoose";
 
 import { logger } from "@/lib/logger";
+import { handleApiError } from "@/server/utils/errorResponses";
 import {
   normalizeImmersive,
   normalizeProptech,
@@ -122,10 +123,7 @@ export async function GET(
     return ok({ listing }, { correlationId });
   } catch (error) {
     logger.error("Error fetching listing:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch listing" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -300,10 +298,7 @@ export async function PATCH(
     return NextResponse.json({ listing });
   } catch (error) {
     logger.error("Error updating listing:", error);
-    return NextResponse.json(
-      { error: "Failed to update listing" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -349,9 +344,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     logger.error("Error deleting listing:", error);
-    return NextResponse.json(
-      { error: "Failed to delete listing" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
