@@ -5,15 +5,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock rate limiting
-vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
-  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+// Mock rate limiting - route uses smartRateLimit from @/server/security/rateLimit
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
+  rateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
 }));
 
-// Mock auth
-vi.mock("@/auth", () => ({
-  auth: vi.fn(),
+// Mock auth - route uses resolveCopilotSession
+vi.mock("@/server/copilot/session", () => ({
+  resolveCopilotSession: vi.fn(),
 }));
 
 // Mock database connection
@@ -50,8 +50,8 @@ vi.mock("@/server/models/ChatHistory", () => ({
   },
 }));
 
-import { enforceRateLimit, smartRateLimit } from "@/lib/middleware/rate-limit";
-import { auth } from "@/auth";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { resolveCopilotSession } from "@/server/copilot/session";
 
 const importRoute = async () => {
   try {
@@ -63,19 +63,15 @@ const importRoute = async () => {
 
 describe("API /api/copilot/chat", () => {
   const mockOrgId = "org_123456789";
-  const mockUser = {
-    id: "user_123",
-    orgId: mockOrgId,
-    role: "ADMIN",
-  };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
-    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true } as never);
-    vi.mocked(auth).mockResolvedValue({
-      user: mockUser,
-      expires: new Date(Date.now() + 86400000).toISOString(),
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true, remaining: 10 } as never);
+    vi.mocked(resolveCopilotSession).mockResolvedValue({
+      userId: "user_123",
+      tenantId: mockOrgId,
+      role: "ADMIN",
+      locale: "en",
     } as never);
   });
 
@@ -87,11 +83,7 @@ describe("API /api/copilot/chat", () => {
         return;
       }
 
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        })
-      );
+      vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false, remaining: 0 } as never);
 
       const req = new NextRequest("http://localhost:3000/api/copilot/chat", {
         method: "POST",
@@ -109,7 +101,13 @@ describe("API /api/copilot/chat", () => {
         return;
       }
 
-      vi.mocked(auth).mockResolvedValue(null as never);
+      // Non-guest role but no tenantId should get 401
+      vi.mocked(resolveCopilotSession).mockResolvedValue({
+        userId: null,
+        tenantId: null,
+        role: "USER",
+        locale: "en",
+      } as never);
 
       const req = new NextRequest("http://localhost:3000/api/copilot/chat", {
         method: "POST",
