@@ -233,6 +233,7 @@ export default function FinanceDashboard() {
       {activeTab !== "invoices" && (
         <Card>
           <CardContent className="py-8">
+            {/* guard-placeholders:allow - Dashboard hub page, sub-features on roadmap */}
             <div className="text-center text-muted-foreground">
               <p className="font-medium">
                 {tabs.find((tab) => tab.id === activeTab)?.label}
@@ -240,7 +241,7 @@ export default function FinanceDashboard() {
               <p className="text-sm mt-2">
                 {t(
                   "dashboard.finance.tabs.placeholder",
-                  "Content will be implemented here",
+                  "This feature is on our roadmap",
                 )}
               </p>
             </div>

@@ -1,33 +1,50 @@
 #!/usr/bin/env node
 
 /**
- * CI Guard: Placeholder Detection
- * Fails the build if production routes contain placeholder text like "Coming Soon"
+ * CI Guard: Placeholder Detection v2
+ * Fails the build if production routes contain placeholder text.
  * 
- * This prevents unfinished features from shipping to production.
+ * Features:
+ * - Strong patterns (always forbidden): "will be implemented here", "TODO: Implement"
+ * - Weak patterns (context-checked): "Coming Soon" allowed in badges/comments
+ * - .only check: Blocks CI if test files contain .only
+ * - Allow comments: Add `guard-placeholders:allow` to exempt specific lines
  * 
  * Usage: node scripts/guard-placeholders.js
- * Add to package.json scripts: "guard:placeholders": "node scripts/guard-placeholders.js"
  * 
  * @module scripts/guard-placeholders
  */
 
 const { execSync } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
-// Patterns that indicate placeholder/stub pages
-const FORBIDDEN_PATTERNS = [
-  'Coming Soon',
+// Strong patterns - ALWAYS forbidden (no context override)
+const STRONG_PATTERNS = [
   'will be implemented here',
-  'Under Construction',
   'TODO: Implement',
   'PLACEHOLDER',
+  'Under Construction',
+];
+
+// Weak patterns - forbidden unless in allowed context
+const WEAK_PATTERNS = [
+  'Coming Soon',
+];
+
+// Allowed contexts for weak patterns (regex patterns)
+const ALLOWED_CONTEXTS = [
+  /\{\/\*.*Coming Soon.*\*\/\}/i,          // JSX comments: {/* Coming Soon */}
+  /\/\/.*Coming Soon/i,                     // Line comments: // Coming Soon
+  /Badge.*Coming Soon|Coming Soon.*Badge/i, // Badge component usage
+  /i18n|t\(|auto\(/i,                       // i18n function calls
+  /guard-placeholders:allow/i,              // Explicit allow marker
 ];
 
 // Directories to scan
 const SCAN_DIRS = [
   'app/superadmin',
-  'app/fm',
+  'app/(fm)',
   'app/aqar',
   'app/souq',
 ];
@@ -36,60 +53,133 @@ const SCAN_DIRS = [
 const EXCLUDE_PATTERNS = [
   '*.test.ts',
   '*.test.tsx',
-  '**/PlannedFeature.tsx', // This component is allowed to use these words
-  '**/components/**', // Components can define these for reuse
-  // Legitimate "Coming Soon" badges for enhanced features (page has real content)
-  'leases/page.tsx', // Has lease listing, badge is for advanced features
-  'documents/page.tsx', // Has document listing, badge is for advanced features
-  'import-export/page.tsx', // Has export tab working, import tab is planned
+  '**/PlannedFeature.tsx',
+  '**/components/**',
+  'leases/page.tsx',
+  'documents/page.tsx',
+  'import-export/page.tsx',
 ];
 
+function isAllowedContext(line) {
+  return ALLOWED_CONTEXTS.some(regex => regex.test(line));
+}
+
+function checkForOnly() {
+  console.log('🔍 Checking for .only in test files...\n');
+  
+  try {
+    const cmd = `grep -rn "\\.only" tests/ --include="*.test.ts" --include="*.test.tsx" 2>/dev/null || true`;
+    const result = execSync(cmd, { encoding: 'utf8' }).trim();
+    
+    if (result) {
+      // Filter to only match describe.only, it.only, test.only
+      const lines = result.split('\n').filter(line => 
+        /\b(describe|it|test)\.only\b/.test(line)
+      );
+      
+      if (lines.length > 0) {
+        console.log('❌ .only DETECTED IN TESTS\n');
+        console.log('The following test files contain .only which blocks CI:\n');
+        lines.forEach(line => console.log(`   ${line}`));
+        console.log('\nRemove .only before committing.\n');
+        return true;
+      }
+    }
+  } catch {
+    // Ignore errors
+  }
+  
+  return false;
+}
+
 function main() {
-  console.log('🔍 Scanning for placeholder patterns in production routes...\n');
+  console.log('🔍 Guard v2: Scanning for placeholder patterns...\n');
   
   let hasViolations = false;
   const violations = [];
 
-  for (const pattern of FORBIDDEN_PATTERNS) {
+  // Check for .only first
+  if (checkForOnly()) {
+    hasViolations = true;
+  }
+
+  // Check strong patterns (always forbidden)
+  for (const pattern of STRONG_PATTERNS) {
     for (const dir of SCAN_DIRS) {
       const dirPath = path.join(process.cwd(), dir);
       
+      if (!fs.existsSync(dirPath)) continue;
+      
       try {
-        // Use grep to find matches
         const cmd = `grep -rn "${pattern}" "${dirPath}" --include="*.tsx" --include="*.ts" 2>/dev/null || true`;
         const result = execSync(cmd, { encoding: 'utf8' });
         
         if (result.trim()) {
-          // Filter out excluded patterns
           const lines = result.trim().split('\n').filter(line => {
-            return !EXCLUDE_PATTERNS.some(exclude => {
-              if (exclude.startsWith('**/')) {
-                return line.includes(exclude.slice(3));
-              }
+            // Exclude by path pattern
+            if (EXCLUDE_PATTERNS.some(exclude => {
+              if (exclude.startsWith('**/')) return line.includes(exclude.slice(3));
               return line.includes(exclude);
-            });
+            })) return false;
+            
+            // Check for explicit allow marker
+            if (/guard-placeholders:allow/i.test(line)) return false;
+            
+            return true;
           });
           
           if (lines.length > 0) {
             hasViolations = true;
-            violations.push({
-              pattern,
-              matches: lines,
-            });
+            violations.push({ pattern, matches: lines, type: 'strong' });
           }
         }
       } catch {
-        // Directory doesn't exist, skip
+        // Directory scan failed
+      }
+    }
+  }
+
+  // Check weak patterns (context-aware)
+  for (const pattern of WEAK_PATTERNS) {
+    for (const dir of SCAN_DIRS) {
+      const dirPath = path.join(process.cwd(), dir);
+      
+      if (!fs.existsSync(dirPath)) continue;
+      
+      try {
+        const cmd = `grep -rn "${pattern}" "${dirPath}" --include="*.tsx" --include="*.ts" 2>/dev/null || true`;
+        const result = execSync(cmd, { encoding: 'utf8' });
+        
+        if (result.trim()) {
+          const lines = result.trim().split('\n').filter(line => {
+            // Exclude by path pattern
+            if (EXCLUDE_PATTERNS.some(exclude => {
+              if (exclude.startsWith('**/')) return line.includes(exclude.slice(3));
+              return line.includes(exclude);
+            })) return false;
+            
+            // Check if in allowed context
+            if (isAllowedContext(line)) return false;
+            
+            return true;
+          });
+          
+          if (lines.length > 0) {
+            hasViolations = true;
+            violations.push({ pattern, matches: lines, type: 'weak' });
+          }
+        }
+      } catch {
+        // Directory scan failed
       }
     }
   }
 
   if (hasViolations) {
     console.log('❌ PLACEHOLDER VIOLATION DETECTED\n');
-    console.log('The following placeholder patterns were found in production routes:\n');
     
-    for (const { pattern, matches } of violations) {
-      console.log(`\n📍 Pattern: "${pattern}"`);
+    for (const { pattern, matches, type } of violations) {
+      console.log(`\n📍 Pattern: "${pattern}" (${type})`);
       for (const match of matches) {
         console.log(`   ${match}`);
       }
@@ -97,14 +187,16 @@ function main() {
     
     console.log('\n');
     console.log('━'.repeat(60));
-    console.log('To fix: Replace placeholder pages with real implementations');
-    console.log('or use the PlannedFeature component for roadmap items.');
+    console.log('To fix:');
+    console.log('  1. Replace placeholder text with real implementations');
+    console.log('  2. Or add comment: {/* guard-placeholders:allow - reason */}');
+    console.log('  3. Or use PlannedFeature component for roadmap items');
     console.log('━'.repeat(60));
     
     process.exit(1);
   }
 
-  console.log('✅ No placeholder violations found in production routes.\n');
+  console.log('✅ No placeholder violations found.\n');
   process.exit(0);
 }
 

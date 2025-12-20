@@ -16,7 +16,10 @@ const baseExcludes = [
 const sharedProjectConfig = {
   globals: true,
   setupFiles: ["./vitest.setup.ts"], // MongoDB Memory Server for model tests (no mongoose mocks)
-  reporters: ["default"],
+  reporters: process.env.CI ? ["default", "junit"] : ["default"],
+  outputFile: {
+    junit: "reports/junit-vitest.xml",
+  },
   pool: "threads",
   maxWorkers: 4,
   minWorkers: 1,

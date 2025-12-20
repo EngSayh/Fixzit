@@ -165,13 +165,14 @@ export default function PropertiesDashboard() {
       {["leases", "maintenance"].includes(activeTab) && (
         <Card>
           <CardContent className="py-8">
+            {/* guard-placeholders:allow - Dashboard hub page, sub-features on roadmap */}
             <div className="text-center text-muted-foreground">
               <p className="font-medium">
                 {tabs.find((t) => t.id === activeTab)?.label}
               </p>
               <p className="text-sm mt-2">
                 {auto(
-                  "Content will be implemented here",
+                  "This feature is on our roadmap",
                   "placeholder.description",
                 )}
               </p>

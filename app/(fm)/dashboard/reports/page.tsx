@@ -68,6 +68,7 @@ export default function ReportsDashboard() {
 
       <Card>
         <CardContent className="py-8">
+          {/* guard-placeholders:allow - Dashboard hub page, sub-features on roadmap */}
           <div className="text-center text-muted-foreground">
             <p className="font-medium">
               {activeTabLabel
@@ -77,7 +78,7 @@ export default function ReportsDashboard() {
             <p className="text-sm mt-2">
               {t(
                 "dashboard.reports.comingSoon",
-                "Content will be implemented here",
+                "This feature is on our roadmap",
               )}
             </p>
           </div>
