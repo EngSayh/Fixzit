@@ -20,9 +20,9 @@ const DIRECT_IP_MESSAGE = "Direct IP addresses are discouraged";
 const INVALID_MESSAGE = "Invalid URL format";
 
 const PRIVATE_RANGES = [
-  /^10\.(\d{1,3}\.){2}\d{1,3}$/, // 10.0.0.0/8
-  /^192\.168\.(\d{1,3}\.)\d{1,3}$/, // 192.168.0.0/16
-  /^172\.(1[6-9]|2\d|3[01])\.(\d{1,3}\.)\d{1,3}$/, // 172.16.0.0/12
+  /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/, // 10.0.0.0/8
+  /^192\.168\.\d{1,3}\.\d{1,3}$/, // 192.168.0.0/16
+  /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/, // 172.16.0.0/12
 ];
 
 function normalizeHost(hostname: string): string {

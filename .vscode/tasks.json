@@ -1,47 +1,127 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Build: Typecheck",
-      "type": "shell",
-      "command": "pnpm typecheck",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": [
-        "$tsc"
-      ],
-      "detail": "Run TypeScript type checking"
-    },
-    {
-      "label": "Build: Lint",
-      "type": "shell",
-      "command": "pnpm lint",
-      "group": "build",
-      "problemMatcher": [
-        "$eslint-stylish"
-      ],
-      "detail": "Run ESLint on the codebase"
-    },
-    {
-      "label": "Test: Vitest (dot reporter)",
-      "type": "shell",
-      "command": "pnpm vitest run --reporter=dot",
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      },
-      "problemMatcher": [],
-      "detail": "Run full Vitest suite with dot reporter"
-    },
-    {
-      "label": "Dev: Start Server",
-      "type": "shell",
-      "command": "pnpm dev",
-      "isBackground": true,
-      "problemMatcher": [],
-      "detail": "Start Next.js development server"
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build: Typecheck",
+			"type": "shell",
+			"command": "pnpm typecheck",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$tsc"
+			],
+			"detail": "Run TypeScript type checking"
+		},
+		{
+			"label": "Build: Lint",
+			"type": "shell",
+			"command": "pnpm lint",
+			"group": "build",
+			"problemMatcher": [
+				"$eslint-stylish"
+			],
+			"detail": "Run ESLint on the codebase"
+		},
+		{
+			"label": "Test: Vitest (dot reporter)",
+			"type": "shell",
+			"command": "pnpm vitest run --reporter=dot",
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			},
+			"problemMatcher": [],
+			"detail": "Run full Vitest suite with dot reporter"
+		},
+		{
+			"label": "Dev: Start Server",
+			"type": "shell",
+			"command": "pnpm dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"detail": "Start Next.js development server"
+		},
+		{
+			"label": "Git Status Check",
+			"type": "shell",
+			"command": "git status && git branch --show-current && git log --oneline -3"
+		},
+		{
+			"label": "List Open PRs",
+			"type": "shell",
+			"command": "gh pr list --state open --json number,title,createdAt,isDraft,mergeable,headRefName,baseRefName --limit 25"
+		},
+		{
+			"label": "List All Open PRs",
+			"type": "shell",
+			"command": "gh pr list --state open --json number,title,createdAt,isDraft,mergeable,headRefName,baseRefName --limit 25 | cat"
+		},
+		{
+			"label": "PR 562 Comments",
+			"type": "shell",
+			"command": "gh pr view 562 --comments 2>&1 | head -100"
+		},
+		{
+			"label": "PR 562 Reviews",
+			"type": "shell",
+			"command": "gh pr view 562 --json comments,reviews 2>&1"
+		},
+		{
+			"label": "PR 562 Comment Bodies",
+			"type": "shell",
+			"command": "gh pr view 562 --json comments --jq '.comments[] | .body' 2>&1"
+		},
+		{
+			"label": "PR 562 Review Bodies",
+			"type": "shell",
+			"command": "gh pr view 562 --json reviews --jq '.reviews[] | \"State: \" + .state + \" - Body: \" + .body' 2>&1"
+		},
+		{
+			"label": "PR 562 Line Comments",
+			"type": "shell",
+			"command": "gh api repos/EngSayh/Fixzit/pulls/562/comments --jq '.[] | \"File: \" + .path + \":\" + (.line|tostring) + \" - \" + .body' 2>&1 | head -50"
+		},
+		{
+			"label": "PR 562 Detailed Comments",
+			"type": "shell",
+			"command": "gh api repos/EngSayh/Fixzit/pulls/562/comments 2>&1 | jq -r '.[] | \"\\n=== File: \" + .path + \" Line: \" + (.line|tostring) + \" ===\\n\" + .body' 2>&1 | head -200"
+		},
+		{
+			"label": "Save PR 562 Comments",
+			"type": "shell",
+			"command": "gh api repos/EngSayh/Fixzit/pulls/562/comments 2>&1 > /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/pr562-comments.json"
+		},
+		{
+			"label": "PR 562 Review Summaries",
+			"type": "shell",
+			"command": "gh api repos/EngSayh/Fixzit/pulls/562/reviews 2>&1 | jq -r '.[] | select(.body != \"\") | \"Review by \" + .user.login + \" (\" + .state + \"):\\n\" + .body + \"\\n---\"' 2>&1 | head -150"
+		},
+		{
+			"label": "PR 562 Full Reviews",
+			"type": "shell",
+			"command": "gh api repos/EngSayh/Fixzit/pulls/562/reviews 2>&1 > pr562-reviews.json && cat pr562-reviews.json | head -500"
+		},
+		{
+			"label": "Check diff",
+			"type": "shell",
+			"command": "git diff lib/security/validate-public-https-url.ts 2>&1 | head -50"
+		},
+		{
+			"label": "Commit and Push Fix",
+			"type": "shell",
+			"command": "git add lib/security/validate-public-https-url.ts && git commit -m 'fix(security): correct private IP regex patterns in SSRF validation' && git push origin phase-3-ssot-update"
+		},
+		{
+			"label": "Check Status",
+			"type": "shell",
+			"command": "git status && git log --oneline -3"
+		},
+		{
+			"label": "Check if diff still exists",
+			"type": "shell",
+			"command": "git diff lib/security/validate-public-https-url.ts | wc -l"
+		}
+	]
 }
