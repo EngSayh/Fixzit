@@ -251,6 +251,48 @@ Resolves ISSUE-SEC-003
 - Check permissions server-side
 - Principle of least privilege
 
+**🔒 Admin Guard Standardization (NEW - Phase 4)**
+
+When protecting admin API routes, use the standardized helpers from `lib/auth/require-super-admin.ts`:
+
+```typescript
+// ✅ CORRECT: Use withSuperAdmin wrapper
+import { withSuperAdmin } from "@/lib/auth/require-super-admin";
+
+export const GET = withSuperAdmin(async (request, { user }) => {
+  // user is guaranteed to be a super admin here
+  return NextResponse.json({ data });
+});
+
+// ✅ CORRECT: Use withAdmin wrapper
+import { withAdmin } from "@/lib/auth/require-super-admin";
+
+export const GET = withAdmin(async (request, { user }) => {
+  // user is guaranteed to be an admin here
+  return NextResponse.json({ data });
+});
+
+// ❌ WRONG: Inline role checks (legacy pattern - do not add new ones)
+if (session.user.role !== "SUPER_ADMIN") {
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+}
+```
+
+**Available helpers:**
+- `withSuperAdmin()` - Route handler wrapper for SUPER_ADMIN only
+- `withAdmin()` - Route handler wrapper for any admin role
+- `guardSuperAdmin()` - Server action guard for SUPER_ADMIN
+- `guardAdmin()` - Server action guard for any admin
+- `isSuperAdmin(user)` - Boolean check
+- `isAdmin(user)` - Boolean check
+
+**Status codes (standardized):**
+- `401` - Not authenticated (no session)
+- `403` - Not authorized (wrong role)
+- `429` - Rate limited
+- `500` - Unexpected error only
+- `503` - Dependency unavailable (DB, external service)
+
 **🔒 STRICT v4.1 Role Hierarchy (9 canonical roles)**:
 ```
 SUPER_ADMIN
