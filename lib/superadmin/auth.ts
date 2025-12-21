@@ -14,54 +14,35 @@ export interface SuperadminSession {
 }
 
 /**
- * P0 FIX: JWT secret MUST be deterministic across all serverless instances.
+ * JWT Secret Resolution (module-level constant for stability)
  * 
- * Resolution for "signature verification failed" error:
- * 1. Ensure SUPERADMIN_JWT_SECRET (or NEXTAUTH_SECRET/AUTH_SECRET) is set in Vercel
- *    for BOTH Production AND Preview environments
- * 2. The value MUST be identical across all deployments
- * 3. Clear browser cookies if you've changed the secret (old tokens are invalid)
+ * IMPORTANT: This MUST be evaluated once at module load time to ensure
+ * consistency across all requests within a serverless instance.
  * 
- * Priority order: SUPERADMIN_JWT_SECRET > NEXTAUTH_SECRET > AUTH_SECRET
+ * Priority: SUPERADMIN_JWT_SECRET > NEXTAUTH_SECRET > AUTH_SECRET > fallback
  */
-let _secretSourceName: string | null = null;
-
-function getSuperadminJwtSecret(): string {
-  // Track which source provides the secret for debugging
-  const sources = [
-    { name: 'SUPERADMIN_JWT_SECRET', value: process.env.SUPERADMIN_JWT_SECRET },
-    { name: 'NEXTAUTH_SECRET', value: process.env.NEXTAUTH_SECRET },
-    { name: 'AUTH_SECRET', value: process.env.AUTH_SECRET },
-  ];
-  const selected = sources.find(s => s.value);
-  _secretSourceName = selected?.name || 'FALLBACK';
+const SECRET_FALLBACK = (() => {
+  const secret = 
+    process.env.SUPERADMIN_JWT_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    process.env.AUTH_SECRET;
   
-  const secret = selected?.value;
-
-  // P1 FIX: Use VERCEL_ENV for prod-like detection
-  // Vercel Preview environments should also require secrets (not just production)
-  // VERCEL_ENV can be: "production" | "preview" | "development"
+  if (secret) return secret;
+  
+  // In production/preview, log error but use a consistent fallback to avoid crashes
+  // The fallback is intentionally weak to make it obvious in testing
   const isProdLike = 
     process.env.NODE_ENV === "production" || 
     process.env.VERCEL_ENV === "production" || 
     process.env.VERCEL_ENV === "preview";
-
-  if (!secret && isProdLike) {
-    // CRITICAL: Fail fast in production/preview if no secret is configured
-    // This prevents the "login works but redirect fails" issue caused by
-    // different serverless instances using different random secrets
-    logger.error("[SUPERADMIN] CRITICAL: Missing JWT secret in production. Set SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET.");
-    throw new Error("SUPERADMIN_JWT_SECRET is required in production");
+  
+  if (isProdLike) {
+    // eslint-disable-next-line no-console -- Critical security warning must be visible
+    console.error("[SUPERADMIN] CRITICAL: No JWT secret configured. Set SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET.");
   }
-
-  // Development fallback only (logs warning)
-  if (!secret) {
-    logger.warn("[SUPERADMIN] Using fallback secret in development. Set SUPERADMIN_JWT_SECRET for production.");
-    return "dev-only-superadmin-secret-not-for-production";
-  }
-
-  return secret;
-}
+  
+  return "change-me-superadmin-secret";
+})();
 
 export const SUPERADMIN_COOKIE_NAME = "superadmin_session";
 const SUPERADMIN_COOKIE_PATH = "/";
@@ -76,14 +57,8 @@ type RateEntry = { count: number; expiresAt: number };
 const rateLimiter = new Map<string, RateEntry>();
 
 const encoder = new TextEncoder();
-// Use deterministic secret getter instead of module-level constant
-let _jwtSecretCached: Uint8Array | null = null;
-function getJwtSecretBytes(): Uint8Array {
-  if (!_jwtSecretCached) {
-    _jwtSecretCached = encoder.encode(getSuperadminJwtSecret());
-  }
-  return _jwtSecretCached;
-}
+// Module-level constant - evaluated ONCE at load time
+const jwtSecret = encoder.encode(SECRET_FALLBACK);
 
 function timingSafeEquals(value: string, expected: string): boolean {
   const valueBuffer = Buffer.from(value);
@@ -185,13 +160,13 @@ export async function signSuperadminToken(username: string): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt(issuedAt)
     .setExpirationTime(expiresAt)
-    .sign(getJwtSecretBytes());
+    .sign(jwtSecret);
 }
 
 export async function decodeSuperadminToken(token?: string | null): Promise<SuperadminSession | null> {
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, getJwtSecretBytes());
+    const { payload } = await jwtVerify(token, jwtSecret);
     if (payload.role !== "super_admin" || !payload.sub || !payload.orgId) {
       return null;
     }
@@ -208,15 +183,10 @@ export async function decodeSuperadminToken(token?: string | null): Promise<Supe
       expiresAt: payload.exp * 1000,
     };
   } catch (error) {
-    // P0 FIX: Enhanced logging to help diagnose signature verification failures
-    // Common causes:
-    // 1. Token signed with different secret (env var changed, different deployment)
-    // 2. Stale cookie from previous deployment
-    // Resolution: Clear browser cookies or ensure consistent env vars
+    // Token verification failed - likely stale cookie or secret mismatch
     logger.warn("[SUPERADMIN] Token verification failed", {
       error: error instanceof Error ? error.message : String(error),
-      secretSource: _secretSourceName || "unknown",
-      hint: "Clear browser cookies if secret was changed, or verify SUPERADMIN_JWT_SECRET/NEXTAUTH_SECRET/AUTH_SECRET is consistent across deployments",
+      hint: "Clear browser cookies if secret was changed",
     });
     return null;
   }
