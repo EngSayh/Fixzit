@@ -145,6 +145,75 @@ End with: "Merge-ready for Fixzit Phase 1 MVP."
 
 ---
 
+## Multi-Agent Coordination Protocol (CRITICAL)
+
+### Problem: Multiple agents cause VS Code Exit Code 5 crashes
+When multiple agents work simultaneously, each creates worktrees/processes that consume memory.
+7 worktrees = ~4-6GB RAM overhead → OOM → VS Code crashes.
+
+### Solution: Agent Assignment System
+
+**Before starting work, each agent MUST:**
+1. Check `/tmp/agent-assignments.json` for current file locks
+2. Register their assignment with a unique agent ID
+3. Work ONLY on assigned files
+4. Release locks when done
+
+### Assignment File Format (`/tmp/agent-assignments.json`)
+```json
+{
+  "agents": {
+    "AGENT-001": {
+      "name": "VS Code Copilot",
+      "assigned": ["app/api/finance/**", "lib/finance/**"],
+      "started": "2025-12-21T10:00:00Z",
+      "status": "active"
+    },
+    "AGENT-002": {
+      "name": "Claude Code",
+      "assigned": ["app/api/souq/**", "services/souq/**"],
+      "started": "2025-12-21T10:05:00Z",
+      "status": "active"
+    }
+  },
+  "locked_paths": [
+    "app/api/finance/**",
+    "lib/finance/**",
+    "app/api/souq/**",
+    "services/souq/**"
+  ]
+}
+```
+
+### Agent ID Assignment (Use your designated ID):
+| Agent ID | Type | Default Domain |
+|----------|------|----------------|
+| AGENT-001 | VS Code Copilot (Primary) | Core/Auth/Middleware |
+| AGENT-002 | Claude Code | Finance/Billing |
+| AGENT-003 | Codex | Souq/Marketplace |
+| AGENT-004 | Cursor | Aqar/Real Estate |
+| AGENT-005 | Windsurf | HR/Payroll |
+| AGENT-006 | Reserved | Tests/Scripts |
+
+### Rules:
+1. **NO WORKTREES** — All agents work on main branch only
+2. **CHECK LOCKS FIRST** — If path is locked by another agent, SKIP or WAIT
+3. **SMALL COMMITS** — Commit after each file to avoid merge conflicts
+4. **ANNOUNCE INTENT** — Start response with: `[AGENT-XXX] Working on: <file paths>`
+5. **RELEASE ON DONE** — Update assignment file when task complete
+
+### Memory Budget:
+- Max 2 agents active simultaneously
+- Each agent limited to 1 worktree (main only)
+- If memory < 500MB free, pause and wait for cleanup
+
+### Conflict Resolution:
+- First agent to lock wins
+- If conflict detected: agent with LOWER ID keeps lock
+- Disputed files → escalate to Eng. Sultan
+
+---
+
 ## Manual chat prompt (when not using /fixzit-audit)
 Audit the selected/open files and Problems panel items using the Fixzit Evidence Protocol:
 1) Build an Issues Ledger (source + verbatim message + file+lines).
