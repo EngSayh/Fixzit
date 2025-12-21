@@ -8,13 +8,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   applySuperadminCookies,
-  getClientIp,
   isIpAllowed,
   isRateLimited,
   signSuperadminToken,
   validateSecondFactor,
   verifySuperadminPassword,
 } from "@/lib/superadmin/auth";
+import { getClientIP } from "@/server/security/headers";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/logger";
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   });
   if (rateLimitResponse) return rateLimitResponse;
 
-  const ip = getClientIp(request);
+  const ip = getClientIP(request);
 
   if (!isIpAllowed(ip)) {
     return NextResponse.json(

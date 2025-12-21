@@ -85,7 +85,7 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should return 401 for invalid password", async () => {
-    mockVerifyPassword.mockResolvedValue({ ok: false });
+    mockVerifyPassword.mockResolvedValue({ ok: false, reason: 'invalid' });
     
     const { POST } = await import("@/app/api/superadmin/login/route");
     
@@ -93,7 +93,7 @@ describe("POST /api/superadmin/login", () => {
       url: "http://localhost:3000/api/superadmin/login",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
       json: vi.fn().mockResolvedValue({ 
-        username: "admin", 
+        username: "superadmin", 
         password: "wrong",
         secretKey: "test-key"
       }),
@@ -112,7 +112,7 @@ describe("POST /api/superadmin/login", () => {
       url: "http://localhost:3000/api/superadmin/login",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
       json: vi.fn().mockResolvedValue({ 
-        username: "admin", 
+        username: "superadmin", 
         password: "password",
         secretKey: "test-key"
       }),
@@ -131,7 +131,7 @@ describe("POST /api/superadmin/login", () => {
       url: "http://localhost:3000/api/superadmin/login",
       headers: new Map([["x-forwarded-for", "192.168.1.100"]]),
       json: vi.fn().mockResolvedValue({ 
-        username: "admin", 
+        username: "superadmin", 
         password: "password",
         secretKey: "test-key"
       }),
@@ -163,7 +163,7 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should set noindex header", async () => {
-    mockVerifyPassword.mockResolvedValue({ ok: false });
+    mockVerifyPassword.mockResolvedValue({ ok: false, reason: 'invalid' });
     
     const { POST } = await import("@/app/api/superadmin/login/route");
     
@@ -171,7 +171,7 @@ describe("POST /api/superadmin/login", () => {
       url: "http://localhost:3000/api/superadmin/login",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
       json: vi.fn().mockResolvedValue({ 
-        username: "admin", 
+        username: "superadmin", 
         password: "wrong",
         secretKey: "test-key"
       }),
