@@ -38,8 +38,16 @@ function getSuperadminJwtSecret(): string {
   
   const secret = selected?.value;
 
-  if (!secret && process.env.NODE_ENV === "production") {
-    // CRITICAL: Fail fast in production if no secret is configured
+  // P1 FIX: Use VERCEL_ENV for prod-like detection
+  // Vercel Preview environments should also require secrets (not just production)
+  // VERCEL_ENV can be: "production" | "preview" | "development"
+  const isProdLike = 
+    process.env.NODE_ENV === "production" || 
+    process.env.VERCEL_ENV === "production" || 
+    process.env.VERCEL_ENV === "preview";
+
+  if (!secret && isProdLike) {
+    // CRITICAL: Fail fast in production/preview if no secret is configured
     // This prevents the "login works but redirect fails" issue caused by
     // different serverless instances using different random secrets
     logger.error("[SUPERADMIN] CRITICAL: Missing JWT secret in production. Set SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET.");
