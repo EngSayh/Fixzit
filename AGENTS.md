@@ -1,10 +1,66 @@
-# Fixzit - Agent Working Agreement v5.2 (Codex + VS Code + Claude Code)
+# Fixzit - Agent Working Agreement v5.3 (Codex + VS Code + Claude Code)
 
 Owner: Eng. Sultan Al Hassni  
 System: Fixzit Facility-Management + Marketplace (Fixzit Souq) + Real Estate (Aqar)  
 Stack: Next.js App Router + TypeScript + MongoDB Atlas/Mongoose + Tailwind/shadcn + Vitest (+ Playwright if enabled)
 
 NON-NEGOTIABLE. Violations = AUTO-FAIL.
+
+---
+
+## ⚠️ MANDATORY: Agent Claim Protocol (ENFORCED BY DEFAULT)
+
+**NO AGENT MAY WORK WITHOUT A VALID CLAIM. This is non-negotiable.**
+
+### Pre-Start Checklist (BEFORE ANY WORK)
+Every agent MUST complete these steps BEFORE touching any code:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  AGENT PRE-START PROTOCOL (Required for ALL agents)        │
+├─────────────────────────────────────────────────────────────┤
+│  1. □ Read /tmp/agent-assignments.json                      │
+│  2. □ Claim available slot: [AGENT-XXX-Y]                   │
+│  3. □ List EXACT files to modify (no wildcards)             │
+│  4. □ Check git status - must be clean                      │
+│  5. □ Check for stale worktrees: git worktree list          │
+│  6. □ Run: pnpm typecheck (must pass)                       │
+│  7. □ Run: pnpm lint (must pass)                            │
+│  8. □ Announce: "[AGENT-XXX-Y] Claimed. Files: <list>"      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Post-Task Checklist (BEFORE CLOSING ANY TASK)
+Every agent MUST complete these steps BEFORE marking task complete:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  AGENT POST-TASK PROTOCOL (Required for ALL agents)        │
+├─────────────────────────────────────────────────────────────┤
+│  1. □ Run: pnpm typecheck (must pass - 0 errors)            │
+│  2. □ Run: pnpm lint (must pass - 0 warnings)               │
+│  3. □ Run: pnpm vitest run --reporter=dot (tests green)     │
+│  4. □ Check git status - commit all changes                 │
+│  5. □ Create PR if not exists (or push to existing PR)      │
+│  6. □ Clean up: remove any temp files, debug logs           │
+│  7. □ Release lock: update /tmp/agent-assignments.json      │
+│  8. □ Announce: "[AGENT-XXX-Y] Complete. PR: #XXX"          │
+│  9. □ DO NOT close task - only Eng. Sultan approves closure │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Agent Lifecycle (ENFORCED)
+
+```
+┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐
+│  1. CLAIM  │ ──▶ │  2. WORK   │ ──▶ │  3. VERIFY │ ──▶ │ 4. CLEANUP │
+│            │     │            │     │            │     │            │
+│ Read JSON  │     │ Edit files │     │ typecheck  │     │ Commit all │
+│ Pick slot  │     │ Small cmts │     │ lint       │     │ Create PR  │
+│ Lock files │     │ Test often │     │ tests      │     │ Release    │
+│ Announce   │     │ No mess    │     │ git status │     │ Announce   │
+└────────────┘     └────────────┘     └────────────┘     └────────────┘
+```
 
 ---
 
@@ -237,6 +293,56 @@ When running multiple instances of ANY agent type, each MUST claim a unique sub-
 - First agent to lock wins
 - If conflict detected: agent with LOWER ID keeps lock
 - Disputed files → escalate to Eng. Sultan
+
+---
+
+## PR & Cleanup Protocol (MANDATORY)
+
+### Every Agent MUST Create/Update PRs
+```bash
+# If no PR exists for your changes:
+git checkout -b fix/<agent-id>-<task-summary>
+git add <changed-files>
+git commit -m "<type>(<scope>): <description>
+
+[AGENT-XXX-Y] <task summary>
+Files: <list of files modified>"
+git push origin HEAD
+gh pr create --title "<type>(<scope>): <description>" --body "## Agent: AGENT-XXX-Y
+## Files Modified:
+- file1.ts
+- file2.ts
+
+## Verification:
+- [ ] pnpm typecheck passes
+- [ ] pnpm lint passes
+- [ ] pnpm vitest run passes"
+```
+
+### Cleanup Responsibilities (ENFORCED)
+Each agent is responsible for cleaning up its own mess:
+
+| Cleanup Item | When | Command |
+|--------------|------|---------|
+| Uncommitted changes | Before start + after task | `git status` must be clean |
+| Stale worktrees | Before start | `git worktree list` → remove if >1 |
+| Debug console.logs | Before commit | Remove all debug statements |
+| Temp files | Before commit | Remove any .tmp, .bak, debug files |
+| Broken tests | Before PR | Fix or document why skipped |
+| TypeScript errors | Before PR | 0 errors required |
+| ESLint warnings | Before PR | 0 warnings required |
+
+### Agent Self-Cleanup Commands
+```bash
+# Run these BEFORE closing any task:
+git status                           # Must be clean
+git worktree list                    # Must show only main
+pnpm typecheck                       # Must pass (0 errors)
+pnpm lint                            # Must pass (0 warnings)
+pnpm vitest run --reporter=dot       # Must pass (all green)
+git log --oneline -3                 # Verify your commits
+gh pr list --author @me              # Verify PR created
+```
 
 ---
 
