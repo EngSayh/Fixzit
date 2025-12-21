@@ -1,6 +1,7 @@
 import { CopilotSession } from "./session";
 import { logger } from "@/lib/logger";
 import { setTenantContext } from "../plugins/tenantIsolation";
+import { isMongoOffline } from "@/lib/mongo";
 
 export interface AuditOptions {
   session: CopilotSession;
@@ -14,6 +15,15 @@ export interface AuditOptions {
 }
 
 export async function recordAudit(options: AuditOptions) {
+  // Skip audit recording in offline mode (no MongoDB connection)
+  if (isMongoOffline()) {
+    logger.info("[CopilotAudit] Skipping audit in offline mode", {
+      intent: options.intent,
+      status: options.status,
+    });
+    return;
+  }
+
   // Ensure tenant context is set so tenantIsolation plugin can inject orgId
   setTenantContext({ orgId: options.session.tenantId });
   try {

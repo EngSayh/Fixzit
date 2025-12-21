@@ -8,6 +8,16 @@ NON-NEGOTIABLE. Violations = AUTO-FAIL.
 
 ---
 
+## 📚 See Also: AGENTS.md v5.5
+For complete agent governance protocols, see [AGENTS.md](../AGENTS.md) which includes:
+- Agent Claim Protocol with Pre-Start/Post-Task checklists
+- Agent Task Handoff Protocol for cross-agent work
+- Pending Backlog Extractor v2.5 (SSOT-integrated)
+- SSOT Chat History + Backlog Sync Protocol
+- Code Quality Standards and PR Scorecard
+
+---
+
 ## 0) Sources of Truth (SoT) — No Guessing
 Use these as authoritative:
 - STRICT v4 (HFV loop, proof packs, language/currency/footer, no bypass, no build-output edits)
