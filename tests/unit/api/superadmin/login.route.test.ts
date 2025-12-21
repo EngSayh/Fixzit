@@ -141,6 +141,9 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should return 200 with valid credentials", async () => {
+    vi.resetModules();
+    mockIsRateLimited.mockReturnValue(false);
+    mockIsIpAllowed.mockReturnValue(true);
     mockVerifyPassword.mockResolvedValue({ ok: true });
     mockValidateSecondFactor.mockReturnValue(true);
     
