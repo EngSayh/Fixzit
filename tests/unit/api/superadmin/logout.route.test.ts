@@ -3,6 +3,7 @@
  * @module tests/unit/api/superadmin/logout.route.test
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mock NextResponse
 vi.mock("next/server", () => ({
@@ -47,6 +48,7 @@ vi.mock("@/server/security/headers", () => ({
 describe("POST /api/superadmin/logout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
 
   it("should return 200 on successful logout", async () => {

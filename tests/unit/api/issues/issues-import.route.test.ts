@@ -51,6 +51,7 @@ vi.mock("@/lib/superadmin/auth", () => ({
   getSuperadminSession: vi.fn().mockResolvedValue(null),
 }));
 import { mockSuperadmin } from "@/tests/helpers/superadminAuth";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mock parse body (avoid leaking undefined parseBodySafe into other suites)
 vi.mock("@/lib/api/parse-body", () => ({

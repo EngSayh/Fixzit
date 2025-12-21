@@ -3,6 +3,7 @@
  * @module tests/unit/api/issues/issues.route.test
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mock mongoose before everything else
 class MockObjectId {

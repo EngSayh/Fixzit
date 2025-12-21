@@ -8,6 +8,7 @@ import { POST, GET } from "@/app/api/filters/presets/route";
 import { NextRequest } from "next/server";
 import { connectDb } from "@/lib/mongodb-unified";
 import { FilterPreset } from "@/server/models/common/FilterPreset";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // In-memory preset store to avoid real DB/server-only module issues in jsdom
 const presetStore: any[] = [];
@@ -88,6 +89,7 @@ describe("Filter Preset API - Contract Tests", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     presetStore.length = 0;
     presetCounter = 1;
   });

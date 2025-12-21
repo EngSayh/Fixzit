@@ -30,10 +30,12 @@ vi.mock("@/lib/utils/env", async (orig) => {
 });
 
 import { GET } from "@/app/api/counters/route";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 describe("/api/counters contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
 
   afterEach(() => {

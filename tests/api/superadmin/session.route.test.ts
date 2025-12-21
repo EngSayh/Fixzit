@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { GET } from "@/app/api/superadmin/session/route";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mock dependencies
 vi.mock("@/lib/logger", () => ({
@@ -52,6 +53,7 @@ function createRequest(cookieValue?: string): NextRequest {
 describe("GET /api/superadmin/session", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     mockDecodeSuperadminToken.mockReset();
   });
 

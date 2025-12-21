@@ -3,6 +3,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type SessionUser = {
   id?: string;
@@ -45,6 +46,7 @@ const { parseBodySafe } = await import("@/lib/api/parse-body");
 describe("Admin SMS Settings API - SSRF protection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     sessionUser = { role: "SUPER_ADMIN", email: "admin@fixzit.co" };
     vi.mocked(connectToDatabase).mockResolvedValue(undefined as any);
   });

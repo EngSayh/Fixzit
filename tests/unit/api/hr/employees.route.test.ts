@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 const searchMock = vi.hoisted(() => vi.fn());
@@ -25,7 +25,7 @@ vi.mock("@/lib/mongo", () => ({
 }));
 
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: () => null,
+  enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock("@/lib/auth/role-guards", () => ({
@@ -37,8 +37,14 @@ vi.mock("@/lib/mongodb-unified", () => ({
 }));
 
 import { GET } from "@/app/api/hr/employees/route";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 describe("GET /api/hr/employees filters", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
+  });
+
   it("passes UI filters to EmployeeService.searchWithPagination", async () => {
     searchMock.mockResolvedValue({ items: [], total: 0, page: 1, limit: 20 });
     const url =

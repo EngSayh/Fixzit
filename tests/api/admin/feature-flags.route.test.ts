@@ -44,6 +44,7 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { auth } from "@/auth";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 function makeGetRequest(): NextRequest {
   return new NextRequest(new URL("http://localhost:3000/api/admin/feature-flags"));
@@ -60,6 +61,7 @@ function makePutRequest(body: unknown): NextRequest {
 describe("Admin Feature Flags API Route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
 
   describe("GET /api/admin/feature-flags", () => {

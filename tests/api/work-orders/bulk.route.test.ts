@@ -44,6 +44,7 @@ vi.mock("@/lib/api/parse-body", () => ({
 
 import { auth } from "@/auth";
 import { WorkOrder } from "@/server/models/WorkOrder";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const mockAuth = vi.mocked(auth);
 const mockWorkOrder = vi.mocked(WorkOrder);
@@ -62,6 +63,7 @@ describe("POST /api/work-orders/bulk", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
 
     // Default auth mock - FM_MANAGER role
     mockAuth.mockResolvedValue({

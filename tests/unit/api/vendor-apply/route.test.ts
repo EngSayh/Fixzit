@@ -47,7 +47,8 @@ vi.mock("next/server", () => {
 
 describe("POST /api/vendor/apply", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+
+    vi.clearAllMocks();
     enforceRateLimitMock.mockReturnValue(null);
     connectToDatabaseMock.mockResolvedValue(undefined);
   });

@@ -303,6 +303,7 @@ describe("tap webhook route", () => {
           charge: "chg_refund",
           amount: 5000,
           currency: "SAR",
+          metadata: { organizationId: orgId },
           reason: "customer_request",
           response: { code: "200", message: "ok" },
         },

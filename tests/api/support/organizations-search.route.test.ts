@@ -14,6 +14,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { GET } from "@/app/api/support/organizations/search/route";
 import { NextRequest } from "next/server";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mock dependencies
 vi.mock("@/auth", () => ({

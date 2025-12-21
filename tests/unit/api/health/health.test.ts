@@ -7,6 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Default mocks for happy path
 vi.mock("@/lib/mongo", () => ({
@@ -52,6 +53,7 @@ function createMockRequest(url = "http://localhost:3000/api/health/ready") {
 describe("Health Endpoints", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
 
   afterEach(() => {

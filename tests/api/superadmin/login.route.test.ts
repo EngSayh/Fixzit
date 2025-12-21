@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/superadmin/login/route";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mock dependencies
 vi.mock("@/lib/logger", () => ({
@@ -49,6 +50,7 @@ function createRequest(body: Record<string, unknown>): NextRequest {
 describe("POST /api/superadmin/login", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     mockVerifySuperadminPassword.mockReset();
     mockSignSuperadminToken.mockReset();
     mockValidateSecondFactor.mockReset();

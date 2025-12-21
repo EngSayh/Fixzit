@@ -3,6 +3,7 @@
  * @module tests/unit/api/superadmin/login.route.test
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mock NextResponse
 vi.mock("next/server", () => ({
@@ -65,6 +66,7 @@ vi.mock("@/server/security/headers", () => ({
 describe("POST /api/superadmin/login", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     vi.resetModules();
     mockIsRateLimited.mockReturnValue(false);
     mockIsIpAllowed.mockReturnValue(true);

@@ -46,10 +46,12 @@ vi.mock("@/server/models/Notification", () => ({
 }));
 
 import { auth } from "@/auth";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 describe("Admin Notifications API Route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
 
   describe("GET /api/admin/notifications/config", () => {

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const connectToDatabaseMock = vi.fn();
 const findOneLeanMock = vi.fn();
@@ -37,6 +38,8 @@ function buildRequest(body: Record<string, unknown>) {
 describe("POST /api/auth/test/session (fail-closed)", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     connectToDatabaseMock.mockResolvedValue(undefined);
     findOneLeanMock.mockResolvedValue({
       _id: "507f1f77bcf86cd799439011",

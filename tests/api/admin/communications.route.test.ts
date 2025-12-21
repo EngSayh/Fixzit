@@ -33,10 +33,12 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { auth } from "@/auth";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 describe("Admin Communications API Route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
 
   describe("Authentication & Authorization", () => {

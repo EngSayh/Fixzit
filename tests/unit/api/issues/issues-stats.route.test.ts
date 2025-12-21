@@ -3,6 +3,7 @@
  * @module tests/unit/api/issues/issues-stats.route.test
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mock NextResponse
 vi.mock("next/server", () => ({

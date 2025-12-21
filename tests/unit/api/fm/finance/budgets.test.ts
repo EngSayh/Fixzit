@@ -108,6 +108,7 @@ vi.mock("@/lib/logger", () => ({
 
 // ----- Import Route After Mocks -----
 import { GET, POST } from "@/app/api/fm/finance/budgets/route";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // ----- Helpers -----
 function createGetRequest(params: Record<string, string> = {}): NextRequest {
@@ -135,6 +136,7 @@ function createPostRequest(
 describe("GET /api/fm/finance/budgets", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     mockPermissionUser = {
       id: USER_ID,
       userId: USER_ID,

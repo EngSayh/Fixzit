@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { GET, PATCH } from "@/app/api/superadmin/branding/route";
 import { NextRequest } from "next/server";
 import { PlatformSettings } from "@/server/models/PlatformSettings";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mock dependencies
 vi.mock("@/lib/mongodb-unified", () => ({

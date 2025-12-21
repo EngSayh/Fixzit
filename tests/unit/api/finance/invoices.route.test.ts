@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 const listMock = vi.hoisted(() => vi.fn());
@@ -31,7 +31,7 @@ vi.mock("@/server/security/rateLimit", () => ({
 }));
 
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: () => null,
+  enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock("@/server/utils/errorResponses", () => ({
@@ -41,8 +41,14 @@ vi.mock("@/server/utils/errorResponses", () => ({
 }));
 
 import { GET } from "@/app/api/finance/invoices/route";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 describe("GET /api/finance/invoices filters", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
+  });
+
   it("maps UI filters to service list params", async () => {
     listMock.mockResolvedValue([]);
     const url =

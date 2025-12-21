@@ -33,10 +33,12 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 }));
 
 import * as route from "@/app/api/filters/presets/route";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 describe("Filter presets API tenancy + validation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     hoisted.findChain.exec.mockResolvedValue([
       { org_id: "org-1", user_id: "u1", entity_type: "workOrders", filters: {} },
     ]);

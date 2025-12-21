@@ -4,12 +4,15 @@
  */
 import fs from "fs";
 import path from "path";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const routePath = path.join(process.cwd(), "app/api/aqar/listings/route.ts");
 const routeSource = fs.readFileSync(routePath, "utf8");
 
 describe('Aqar Listings API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
   it('should require authentication for POST /api/aqar/listings', () => {
     expect(routeSource).toContain("getSessionUser");
   });

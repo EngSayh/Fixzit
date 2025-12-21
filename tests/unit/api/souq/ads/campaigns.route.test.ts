@@ -40,6 +40,7 @@ vi.mock("@/lib/logger", () => ({
 
 // ----- Import Route After Mocks -----
 import { POST, GET } from "@/app/api/souq/ads/campaigns/route";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // ----- Helpers -----
 function createPostRequest(body: Record<string, unknown>): NextRequest {
@@ -70,6 +71,7 @@ const validCampaignBody = {
 describe("POST /api/souq/ads/campaigns", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     mockSession = { user: { id: USER_ID, orgId: ORG_ID, role: "VENDOR" } };
   });
 

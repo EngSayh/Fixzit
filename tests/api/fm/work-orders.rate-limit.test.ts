@@ -19,6 +19,7 @@ vi.mock("@/server/auth", () => ({
 describe("FM Work Orders Rate Limiting", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
 
   it("should handle rate limit response structure correctly", async () => {

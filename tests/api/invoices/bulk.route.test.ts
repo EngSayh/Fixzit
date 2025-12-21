@@ -44,6 +44,7 @@ vi.mock("@/lib/api/parse-body", () => ({
 
 import { auth } from "@/auth";
 import { Invoice } from "@/server/models/Invoice";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const mockAuth = vi.mocked(auth);
 const mockInvoice = vi.mocked(Invoice);
@@ -62,6 +63,7 @@ describe("POST /api/invoices/bulk", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
 
     // Default auth mock - FINANCE_MANAGER role
     mockAuth.mockResolvedValue({
