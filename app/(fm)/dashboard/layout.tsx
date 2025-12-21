@@ -4,14 +4,11 @@ import { auth } from "@/auth";
 import dynamic from "next/dynamic";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { logger } from "@/lib/logger";
+import DashboardClientShell from "./DashboardClientShell";
 
 // Dynamic imports for client components
 const ClientSidebar = dynamic(() => import("@/app/_shell/ClientSidebar"));
 const TopBar = dynamic(() => import("@/components/TopBar"));
-const DashboardLiveUpdates = dynamic(
-  () => import("@/components/dashboard/DashboardLiveUpdates"),
-  { ssr: false },
-);
 
 /**
  * Dashboard Layout - AppShell Container
@@ -53,7 +50,7 @@ export default async function DashboardLayout({
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-background">
-        <DashboardLiveUpdates />
+        <DashboardClientShell />
         {/* Header */}
         <header className="fixed top-0 inset-x-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <TopBar />
