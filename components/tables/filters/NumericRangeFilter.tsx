@@ -73,8 +73,8 @@ export function NumericRangeFilter({
               step={step}
               placeholder="No min"
               className={[
-                'w-full rounded-md border border-gray-300 py-2 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-gray-600 dark:bg-gray-800 dark:text-white',
-                prefix ? 'pl-10' : 'pl-3',
+                'w-full rounded-md border border-gray-300 py-2 pe-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-gray-600 dark:bg-gray-800 dark:text-white',
+                prefix ? 'ps-10' : 'ps-3',
               ].join(' ')}
             />
             {suffix && (
@@ -107,8 +107,8 @@ export function NumericRangeFilter({
               step={step}
               placeholder="No max"
               className={[
-                'w-full rounded-md border border-gray-300 py-2 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-gray-600 dark:bg-gray-800 dark:text-white',
-                prefix ? 'pl-10' : 'pl-3',
+                'w-full rounded-md border border-gray-300 py-2 pe-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-gray-600 dark:bg-gray-800 dark:text-white',
+                prefix ? 'ps-10' : 'ps-3',
               ].join(' ')}
             />
             {suffix && (

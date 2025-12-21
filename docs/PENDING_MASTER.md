@@ -1,5 +1,59 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-21 20:15 (Asia/Riyadh) — PR #599 Review Findings & Fixes
+**Context:** main | Commit: pending | PR #599 Architectural Review
+**Agent:** GitHub Copilot (VS Code) - Security Hardening Pass
+**DB Sync:** 2 new items added, fixing in progress
+
+---
+
+## 🔧 NEW FINDINGS FROM PR #599 REVIEW
+
+| Priority | Category | Count | Description | Status |
+|----------|----------|-------|-------------|--------|
+| 🟠 HIGH | Tenant Scope | 25 | `findById` calls without org_id/orgId filter | ✅ Audited - All Legitimate |
+| 🟡 MODERATE | RTL/i18n | 22 | Physical direction classes (pl-/pr-/ml-/mr-) instead of logical | ✅ FIXED (11 files) |
+
+### Tenant Scope Issues (SECURITY)
+Files requiring `orgId` or `org_id` filter on findById calls:
+
+**ALL AUDITED - NO FIXES REQUIRED:**
+
+| File | Pattern | Status |
+|------|---------|--------|
+| `app/api/aqar/leads/route.ts` | Public inquiry - derives org from listing | ✅ Legitimate |
+| `app/api/aqar/support/chatbot/route.ts` | Public inquiry - derives org from listing | ✅ Legitimate |
+| `app/api/admin/sms/route.ts` | SUPER_ADMIN only + validates orgId after lookup | ✅ Protected |
+| `lib/queues/sms-queue.ts` | Internal queue + validates orgId after lookup | ✅ Protected |
+| `lib/finance/checkout.ts` | PriceBook is global/shared resource | ✅ Legitimate |
+| `services/aqar/fm-lifecycle-service.ts` | Event-driven, orgId in listing document | ✅ Legitimate |
+| `lib/finance/tap-webhook/persistence.ts` | Uses findOne with org-scoped filter | ✅ Fixed in PR #599 |
+
+**Legitimate exceptions (no tenant scope needed):**
+- User lookups by ID (auth flows): `app/api/auth/*`, `lib/auth.ts`
+- Testing/admin tools: `app/api/admin/testing-users/*`
+- User preferences (self-access): `app/api/user/preferences/*`
+- Public careers/ATS: `app/api/careers/*`, `app/api/ats/*`
+
+### RTL Violations (UI/UX) — ✅ FIXED (2025-12-21)
+Files using physical direction classes that need logical equivalents:
+
+| File | Change | Status |
+|------|--------|--------|
+| `components/tables/filters/DateRangePicker.tsx` | pl-10, pr-3 → ps-10, pe-3 | ✅ Fixed |
+| `components/tables/filters/NumericRangeFilter.tsx` | pl-10, pl-3, pr-3 → ps-10, ps-3, pe-3 | ✅ Fixed |
+| `components/tables/filters/FacetMultiSelect.tsx` | pl-10, pr-3 → ps-10, pe-3 | ✅ Fixed |
+| `components/bulk/BulkActionsToolbar.tsx` | ml-1 → ms-1 | ✅ Fixed |
+| `components/superadmin/FloatingBulkActions.tsx` | mr-2 → me-2 (3 occurrences) | ✅ Fixed |
+| `components/superadmin/SuperadminHeader.tsx` | pl-10, pr-16 → ps-10, pe-16 | ✅ Fixed |
+| `components/superadmin/CommandPalette.tsx` | mr-3 → me-3 | ✅ Fixed |
+| `components/superadmin/ImpersonationForm.tsx` | mr-2 → me-2 | ✅ Fixed |
+| `components/superadmin/ImpersonationBanner.tsx` | mr-1 → me-1 | ✅ Fixed |
+| `app/(fm)/admin/feature-settings/page.tsx` | pl-10 → ps-10 | ✅ Fixed |
+| `app/superadmin/issues/[id]/page.tsx` | mr-2, mr-1 → me-2, me-1 (4 occurrences) | ✅ Fixed |
+
+---
+
 ### 2025-12-21 18:00 (Asia/Riyadh) — SSOT FINAL SYNC: ALL 22 ITEMS RESOLVED
 **Context:** main | Commit: 0b6a5ecc5 | Direct to main
 **Agent:** GitHub Copilot (VS Code) - SSOT Final Sync

@@ -143,7 +143,7 @@ export function SuperadminHeader() {
             placeholder="Search..."
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
-            className="pl-10 pr-16 w-64 h-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+            className="ps-10 pe-16 w-64 h-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
           />
           <kbd className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded border border-slate-600">
             <Command className="inline h-3 w-3" />K

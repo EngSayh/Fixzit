@@ -257,7 +257,7 @@ export default function IssueDetailPage() {
       <div className="flex flex-col items-center justify-center h-screen gap-4">
         <div className="text-lg">Issue not found</div>
         <Button onClick={() => router.push("/superadmin/issues")}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="w-4 h-4 me-2" />
           Back to Issues
         </Button>
       </div>
@@ -271,7 +271,7 @@ export default function IssueDetailPage() {
           variant="ghost"
           onClick={() => router.push("/superadmin/issues")}
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="w-4 h-4 me-2" />
           Back to Issues
         </Button>
       </div>
@@ -289,7 +289,7 @@ export default function IssueDetailPage() {
                   {issue.priority}
                 </Badge>
                 <Badge variant="outline">
-                  <Tag className="w-3 h-3 mr-1" />
+                  <Tag className="w-3 h-3 me-1" />
                   {issue.category}
                 </Badge>
               </div>

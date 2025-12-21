@@ -115,7 +115,7 @@ export function BulkActionsToolbar<T>({
             ) : (
               action.icon
             )}
-            <span className="ml-1">{action.label}</span>
+            <span className="ms-1">{action.label}</span>
           </Button>
         ))}
       </div>

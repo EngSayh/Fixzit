@@ -359,7 +359,7 @@ export default function FeatureSettingsPage() {
           <div className="relative">
             <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
             <Input
-              className="pl-10 w-64"
+              className="ps-10 w-64"
               placeholder={auto("Search by name or key", "admin.featureFlags.search")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
