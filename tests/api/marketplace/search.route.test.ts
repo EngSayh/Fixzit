@@ -26,6 +26,7 @@ describe('GET /api/marketplace/search', () => {
 
   // Reset global state before each test to ensure isolation under shuffle
   beforeEach(() => {
+    vi.clearAllMocks();
     globalThis.__mp_find_calls__ = [];
     globalThis.__mp_sort_calls__ = [];
     globalThis.__mp_limit_calls__ = [];
