@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     const referralCode = await ReferralCodeModel.findOne({
       referrerId: session.user.id,
       status: "ACTIVE",
-    });
+    }).lean();
 
     if (!referralCode) {
       return NextResponse.json({
@@ -51,10 +51,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const referralDoc =
-      typeof referralCode.toObject === "function"
-        ? referralCode.toObject()
-        : (referralCode as unknown as { referrals?: unknown[] });
+    // With .lean(), referralCode is already a plain object
+    const referralDoc = referralCode as { referrals?: unknown[] };
 
     // Paginate referrals array
     const total = Array.isArray(referralDoc.referrals)

@@ -180,7 +180,7 @@ export async function GET(req: NextRequest) {
     }
 
     await connectDb();
-    const user = await User.findById(session.user.id).select('preferences');
+    const user = await User.findById(session.user.id).select('preferences').lean();
 
     if (!user) {
       if (allowPlaywright) {

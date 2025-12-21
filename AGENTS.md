@@ -54,8 +54,31 @@ Every agent MUST complete these steps BEFORE marking task complete:
 
 ## 🔄 Auto-Review Protocol (MANDATORY AFTER EVERY TASK)
 
+### VS Code Copilot ↔ Codex Integration (ENFORCED)
+- **VS Code Copilot** agents MUST work WITH **Codex** for final review
+- Codex is installed in VS Code AND GitHub — use BOTH
+- Final solution MUST be **100% perfect** before PR merge
+- **Eng. Sultan MUST be notified** of final output from agent
+
 ### Trigger Condition
 After completing ANY task (code changes, fixes, features), the agent MUST trigger an automatic review request to Codex using the HIGH REASONING model.
+
+### How to Trigger Codex Review (VS Code)
+```
+1. Open Codex panel in VS Code (or use @codex in chat)
+2. Paste the review request template below
+3. Wait for Codex response
+4. Handle response per the table below
+5. Report final status to Eng. Sultan
+```
+
+### How to Trigger Codex Review (GitHub)
+```
+1. Create/update PR with all changes
+2. Add comment: @codex review this PR
+3. Or use GitHub Actions Codex workflow if configured
+4. Wait for Codex review comment on PR
+```
 
 ### Review Request Format
 Submit the following to Codex for review:
@@ -116,10 +139,41 @@ Files Modified:
 | 🟡 SUGGESTIONS | Log to PENDING_MASTER.md as P3, proceed to close |
 | 📋 SIMILAR ISSUES | Create issues in MongoDB + PENDING_MASTER.md, proceed to close |
 
+### Final Output Notification to Eng. Sultan (MANDATORY)
+
+After Codex review, agent MUST provide final summary:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  🔔 FINAL OUTPUT — AGENT TASK COMPLETE                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Agent: [AGENT-XXX-Y]                                                   │
+│  Task: <summary>                                                        │
+│  PR: #<number> — <link>                                                 │
+│                                                                         │
+│  ✅ Codex Review: APPROVED / 🔴 BLOCKED / 🟡 SUGGESTIONS                │
+│                                                                         │
+│  Files Modified: <N>                                                    │
+│  - file1.ts (lines X-Y)                                                 │
+│  - file2.ts (lines A-B)                                                 │
+│                                                                         │
+│  Verification:                                                          │
+│  - pnpm typecheck: ✅ 0 errors                                          │
+│  - pnpm lint: ✅ 0 warnings                                             │
+│  - pnpm vitest: ✅ all passing                                          │
+│                                                                         │
+│  Deep-Dive: <N> similar issues found and fixed across codebase          │
+│                                                                         │
+│  Status: READY FOR ENG. SULTAN REVIEW                                   │
+│  Next: Awaiting approval to merge PR #<number>                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
 ### Wait for Review
 - Agent MUST wait for Codex review response before announcing completion
 - If review not received within 5 minutes, proceed with warning note
 - All review feedback logged to PR comments
+- **ALWAYS notify Eng. Sultan with final output box above**
 
 ### Agent Lifecycle (ENFORCED)
 

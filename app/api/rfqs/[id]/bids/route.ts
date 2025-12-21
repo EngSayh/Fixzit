@@ -297,7 +297,7 @@ export async function GET(
     }
     await connectToDatabase();
 
-    const rfq = await RFQ.findOne({ _id: params.id, orgId: user.orgId });
+    const rfq = await RFQ.findOne({ _id: params.id, orgId: user.orgId }).lean();
 
     if (!rfq) {
       return createSecureResponse({ error: "RFQ not found" }, 404, req);
