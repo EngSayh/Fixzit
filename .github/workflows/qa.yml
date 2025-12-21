@@ -6,16 +6,18 @@ on:
   push:
     branches: [main, develop]
 
-permissions:
-  contents: read
-  actions: write
-
 jobs:
   qa:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -23,32 +25,95 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # P120: Cache MongoMemoryServer binaries to speed up CI
-      - name: Cache MongoMemoryServer binaries
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/mongodb-binaries
-          key: ${{ runner.os }}-mongodb-binaries-7.0.4
-          restore-keys: |
-            ${{ runner.os }}-mongodb-binaries-
+      - name: 🔒 Assert non-production MongoDB
+        if: ${{ env.MONGODB_URI != '' }}
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          CI: "true"
+        run: pnpm tsx scripts/assert-nonprod-mongo.ts
+
+      - name: 🧪 Skip governance (.only hard-fail + skip baseline cap)
+        run: |
+          echo "=== Checking for .only() ==="
+          if rg -n "\.(only)\(" tests app server lib 2>/dev/null; then
+            echo "❌ Found .only() - this would skip other tests!"
+            exit 1
+          fi
+          echo "✅ No .only() found"
+
+          echo ""
+          echo "=== Skip baseline cap check ==="
+          SKIP_BASELINE=470
+          SKIP_COUNT=$(rg -c "describe\.skip\(|it\.skip\(|test\.skip\(" tests 2>/dev/null | awk -F: '{sum+=$2} END {print sum}')
+          echo "Current skip count: ${SKIP_COUNT:-0}"
+          echo "Baseline: $SKIP_BASELINE"
+          if [ "${SKIP_COUNT:-0}" -gt "$SKIP_BASELINE" ]; then
+            echo "❌ Skip count ($SKIP_COUNT) exceeds baseline ($SKIP_BASELINE)!"
+            echo "If you need to add skips, increase the baseline in qa.yml with justification."
+            exit 1
+          fi
+          echo "✅ Skip count within baseline"
 
       - name: Critical env guard
         run: pnpm run guard:ci:critical
 
-      - name: QA bundle (lint + typecheck + vitest)
-        run: pnpm qa
+      - name: Guard placeholders
+        run: |
+          if grep -rn "PlannedFeature\|ComingSoon\|UnderConstruction" app --include="*.tsx" 2>/dev/null; then
+            echo "❌ Placeholder components found in app/"
+            exit 1
+          fi
+          echo "✅ No placeholder components found"
 
-      - name: Upload vitest log
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Vitest (API shard + JUnit)
+        run: |
+          set -o pipefail
+          mkdir -p reports
+          NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/api \
+            --project=server --reporter=junit --outputFile=reports/junit-api.xml \
+            --maxWorkers=2 2>&1 | tee reports/vitest-api.log
+          echo "api_exit=$?"
+
+      - name: Vitest (Unit shard + JUnit)
+        run: |
+          set -o pipefail
+          NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/unit \
+            --reporter=junit --outputFile=reports/junit-unit.xml \
+            --maxWorkers=2 2>&1 | tee reports/vitest-unit.log
+          echo "unit_exit=$?"
+
+      - name: Vitest (Full Run - Evidence Grade)
+        timeout-minutes: 30
+        run: |
+          set -o pipefail
+          NODE_OPTIONS="--max-old-space-size=4096" CI=true pnpm vitest run \
+            --reporter=dot --maxWorkers=2 2>&1 | tee reports/vitest-full.log
+          echo "full_exit=$?"
+          grep -E "Test Files|Tests|Duration|passed|failed" reports/vitest-full.log | tail -10
+
+      - name: Coverage (API scope)
+        run: |
+          pnpm vitest run tests/api/_smoke --project=server --coverage \
+            --coverage.provider=v8 --coverage.reporter=text-summary \
+            --coverage.reporter=lcov --maxWorkers=1
+
+      - name: Build
+        run: pnpm build
+
+      - name: Upload QA Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: vitest-log
-          path: reports/vitest-latest.log
+          name: qa-artifacts
+          path: |
+            reports/
+            coverage/

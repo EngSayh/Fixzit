@@ -1,4 +1,4 @@
-import { addMinutes, addDays, setHours, setMinutes, getDay, startOfDay } from "date-fns";
+import { addMinutes, isWeekend as _isWeekend, setHours, setMinutes, addDays, getDay, getHours, getMinutes } from "date-fns";
 
 export type WorkOrderPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
@@ -10,141 +10,21 @@ const SLA_MINUTES_MAP: Record<WorkOrderPriority, number> = {
 };
 
 /**
- * Business hours configuration for SLA calculation
- * Default: Saudi Arabia work week (Sunday-Thursday, 8:00-18:00)
+ * Business hours configuration (Saudi Arabia)
+ * Sunday-Thursday: 08:00-17:00 (9 hours/day)
+ * Friday-Saturday: Off
  */
 export interface BusinessHoursConfig {
-  /** Work week start day (0 = Sunday, 1 = Monday, etc.) */
-  workWeekStart: number;
-  /** Work week end day */
-  workWeekEnd: number;
-  /** Daily start hour (0-23) */
   startHour: number;
-  /** Daily end hour (0-23) */
   endHour: number;
-  /** Public holidays (ISO date strings: YYYY-MM-DD) */
-  holidays?: string[];
+  workDays: number[]; // 0=Sunday, 1=Monday, ... 6=Saturday
 }
 
-/** Default Saudi Arabia business hours */
 export const DEFAULT_BUSINESS_HOURS: BusinessHoursConfig = {
-  workWeekStart: 0, // Sunday
-  workWeekEnd: 4, // Thursday
   startHour: 8,
-  endHour: 18,
-  holidays: [],
+  endHour: 17,
+  workDays: [0, 1, 2, 3, 4], // Sunday-Thursday (Saudi work week)
 };
-
-/**
- * Check if a given date/time falls within business hours
- */
-export function isBusinessHours(
-  date: Date,
-  config: BusinessHoursConfig = DEFAULT_BUSINESS_HOURS
-): boolean {
-  const dayOfWeek = getDay(date);
-  const hour = date.getHours();
-  
-  // Check if it's a working day
-  const isWorkingDay = dayOfWeek >= config.workWeekStart && dayOfWeek <= config.workWeekEnd;
-  if (!isWorkingDay) return false;
-  
-  // Check if it's a holiday
-  const dateStr = date.toISOString().split('T')[0];
-  if (config.holidays?.includes(dateStr)) return false;
-  
-  // Check if within working hours
-  return hour >= config.startHour && hour < config.endHour;
-}
-
-/**
- * Get the next business day start
- */
-export function getNextBusinessDayStart(
-  from: Date,
-  config: BusinessHoursConfig = DEFAULT_BUSINESS_HOURS
-): Date {
-  let current = new Date(from);
-  
-  // If we're past end of day, move to next day
-  if (current.getHours() >= config.endHour) {
-    current = addDays(current, 1);
-  }
-  
-  // Set to start of business hours
-  current = setHours(setMinutes(startOfDay(current), 0), config.startHour);
-  
-  // Find next working day
-  let attempts = 0;
-  while (attempts < 10) { // Safety limit
-    const dayOfWeek = getDay(current);
-    const dateStr = current.toISOString().split('T')[0];
-    
-    const isWorkingDay = dayOfWeek >= config.workWeekStart && dayOfWeek <= config.workWeekEnd;
-    const isHoliday = config.holidays?.includes(dateStr);
-    
-    if (isWorkingDay && !isHoliday) {
-      return current;
-    }
-    
-    current = addDays(current, 1);
-    current = setHours(setMinutes(startOfDay(current), 0), config.startHour);
-    attempts++;
-  }
-  
-  return current;
-}
-
-/**
- * Calculate SLA deadline considering business hours only
- * 
- * Example: 4-hour SLA created Friday 4pm (Saudi)
- * - Friday is a weekend day, so start Sunday 8am
- * - Sunday 8am + 4 hours = Sunday 12pm
- * 
- * @param start - When the work order was created
- * @param slaMinutes - SLA window in minutes
- * @param config - Business hours configuration
- * @returns The SLA deadline (adjusted for business hours)
- */
-export function computeDueAtBusinessHours(
-  start: Date,
-  slaMinutes: number,
-  config: BusinessHoursConfig = DEFAULT_BUSINESS_HOURS
-): Date {
-  const hoursPerDay = config.endHour - config.startHour;
-  const minutesPerDay = hoursPerDay * 60;
-  
-  let remainingMinutes = slaMinutes;
-  let current = new Date(start);
-  
-  // If starting outside business hours, move to next business day start
-  if (!isBusinessHours(current, config)) {
-    current = getNextBusinessDayStart(current, config);
-  } else {
-    // If we're in business hours but it's too late to fit remaining time today
-    const todayEnd = setHours(setMinutes(startOfDay(current), 0), config.endHour);
-    const minutesRemainingToday = Math.max(0, (todayEnd.getTime() - current.getTime()) / 60000);
-    
-    if (minutesRemainingToday >= remainingMinutes) {
-      // Can complete within today's business hours
-      return addMinutes(current, remainingMinutes);
-    }
-    
-    // Use up remaining today, continue tomorrow
-    remainingMinutes -= minutesRemainingToday;
-    current = getNextBusinessDayStart(addDays(current, 1), config);
-  }
-  
-  // Process full business days
-  while (remainingMinutes > minutesPerDay) {
-    remainingMinutes -= minutesPerDay;
-    current = getNextBusinessDayStart(addDays(current, 1), config);
-  }
-  
-  // Add remaining minutes within the final day
-  return addMinutes(current, remainingMinutes);
-}
 
 /**
  * Returns the SLA resolution window in minutes for a work order priority.
@@ -156,13 +36,108 @@ export function computeSlaMinutes(priority: WorkOrderPriority): number {
 }
 
 /**
+ * Checks if a given date/time falls within business hours
+ */
+export function isBusinessHour(
+  date: Date,
+  config: BusinessHoursConfig = DEFAULT_BUSINESS_HOURS
+): boolean {
+  const dayOfWeek = getDay(date);
+  const hour = getHours(date);
+  
+  if (!config.workDays.includes(dayOfWeek)) return false;
+  if (hour < config.startHour || hour >= config.endHour) return false;
+  
+  return true;
+}
+
+/**
+ * Gets the next business hour start from a given date
+ */
+export function getNextBusinessHourStart(
+  date: Date,
+  config: BusinessHoursConfig = DEFAULT_BUSINESS_HOURS
+): Date {
+  let current = new Date(date);
+  
+  // If already in business hours, return as-is
+  if (isBusinessHour(current, config)) {
+    return current;
+  }
+  
+  // Find the next work day
+  let daysChecked = 0;
+  while (daysChecked < 7) {
+    const dayOfWeek = getDay(current);
+    const hour = getHours(current);
+    
+    if (config.workDays.includes(dayOfWeek)) {
+      // It's a work day
+      if (hour < config.startHour) {
+        // Before start - jump to start
+        return setMinutes(setHours(current, config.startHour), 0);
+      } else if (hour >= config.endHour) {
+        // After end - go to next day
+        current = addDays(current, 1);
+        current = setMinutes(setHours(current, config.startHour), 0);
+      } else {
+        // Within hours
+        return current;
+      }
+    } else {
+      // Not a work day - go to next day at start hour
+      current = addDays(current, 1);
+      current = setMinutes(setHours(current, config.startHour), 0);
+    }
+    daysChecked++;
+  }
+  
+  // Fallback (shouldn't happen with valid config)
+  return setMinutes(setHours(addDays(date, 1), config.startHour), 0);
+}
+
+/**
  * Calculates the due date for a work order by adding the SLA window to
  * the provided start time. A new Date instance is always returned.
  * 
- * @deprecated Use resolveSlaTarget with useBusinessHours: true for accurate deadlines
+ * @deprecated Use computeDueAtBusinessHours for business-hours-aware calculation
  */
 export function computeDueAt(start: Date, slaMinutes: number): Date {
   return addMinutes(start, slaMinutes);
+}
+
+/**
+ * Calculates the due date accounting for business hours.
+ * Example: 4-hour SLA created Friday 4pm → Due Monday 12pm (skips weekend)
+ */
+export function computeDueAtBusinessHours(
+  start: Date,
+  slaMinutes: number,
+  config: BusinessHoursConfig = DEFAULT_BUSINESS_HOURS
+): Date {
+  const minutesPerDay = (config.endHour - config.startHour) * 60;
+  let remainingMinutes = slaMinutes;
+  let current = getNextBusinessHourStart(start, config);
+  
+  while (remainingMinutes > 0) {
+    const hour = getHours(current);
+    const minute = getMinutes(current);
+    const currentMinuteOfDay = (hour - config.startHour) * 60 + minute;
+    const remainingTodayMinutes = minutesPerDay - currentMinuteOfDay;
+    
+    if (remainingMinutes <= remainingTodayMinutes) {
+      // Fits within today
+      return addMinutes(current, remainingMinutes);
+    }
+    
+    // Consume today's remaining time and move to next business day
+    remainingMinutes -= remainingTodayMinutes;
+    current = addDays(current, 1);
+    current = setMinutes(setHours(current, config.startHour), 0);
+    current = getNextBusinessHourStart(current, config);
+  }
+  
+  return current;
 }
 
 /**
@@ -171,30 +146,22 @@ export function computeDueAt(start: Date, slaMinutes: number): Date {
  * concise and guarantees consistent calculations across the app and QA
  * tooling.
  * 
- * @param priority - Work order priority level
- * @param start - When the work order was created (default: now)
- * @param options - Optional configuration
- * @param options.useBusinessHours - If true, calculate deadline using business hours only
- * @param options.businessHoursConfig - Custom business hours (default: Saudi work week)
+ * @param useBusinessHours - If true, calculates using business hours calendar
  */
 export function resolveSlaTarget(
   priority: WorkOrderPriority,
   start: Date = new Date(),
-  options?: {
-    useBusinessHours?: boolean;
-    businessHoursConfig?: BusinessHoursConfig;
-  }
+  useBusinessHours: boolean = false,
+  config: BusinessHoursConfig = DEFAULT_BUSINESS_HOURS
 ) {
   const slaMinutes = computeSlaMinutes(priority);
-  const { useBusinessHours = false, businessHoursConfig = DEFAULT_BUSINESS_HOURS } = options || {};
-  
   const dueAt = useBusinessHours
-    ? computeDueAtBusinessHours(start, slaMinutes, businessHoursConfig)
+    ? computeDueAtBusinessHours(start, slaMinutes, config)
     : computeDueAt(start, slaMinutes);
   
   return {
     slaMinutes,
     dueAt,
-    usedBusinessHours: useBusinessHours,
+    useBusinessHours,
   };
 }

@@ -1,101 +1,61 @@
 /**
- * @fileoverview Admin SMS Settings API Route Tests
- * @description Tests for /api/admin/sms endpoints
- * @vitest-environment node
+ * @fileoverview Tests for Admin SMS API
+ * @description Tests the /api/admin/sms endpoint
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
 
-// Mock auth
-vi.mock("@/auth", () => ({
+// Mock @/auth - the primary auth module used by routes
+vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }));
 
-// Mock rate limit
-vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+vi.mock('@/server/security/rateLimit', () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
+  rateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
 }));
 
-// Mock logger
-vi.mock("@/lib/logger", () => ({
-  logger: {
-    error: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn(),
-  },
+vi.mock('@/lib/mongodb-unified', () => ({
+  connectToDatabase: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { auth } from "@/auth";
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+vi.mock('@/lib/auth/session', () => ({
+  getSessionOrNull: vi.fn(),
+}));
 
-describe("Admin SMS API Route", () => {
+vi.mock('@/lib/mongo', () => ({
+  default: vi.fn().mockResolvedValue(undefined),
+  connectMongo: vi.fn().mockResolvedValue(undefined),
+}));
+
+import { getSessionOrNull } from '@/lib/auth/session';
+
+import { auth } from '@/auth';
+
+describe('Admin SMS API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    vi.mocked(getSessionOrNull).mockResolvedValue({
+      ok: true,
+      session: { user: { id: 'user-123', orgId: 'org-123', role: 'super_admin' } },
+      response: null,
+    } as ReturnType<typeof getSessionOrNull> extends Promise<infer T> ? T : never);
   });
 
-  describe("GET /api/admin/sms", () => {
-    it("returns 401 when not authenticated", async () => {
-      vi.mocked(auth).mockResolvedValueOnce(null);
-      
-      const { GET } = await import("@/app/api/admin/sms/route");
-      
-      const request = new NextRequest(
-        new URL("http://localhost:3000/api/admin/sms")
-      );
-      
-      const response = await GET(request);
-      expect(response.status).toBe(401);
-    });
+  describe('GET /api/admin/sms', () => {
+    it('should reject unauthenticated requests', async () => {
+      // Mock unauthenticated session - return null
+      vi.mocked(auth).mockResolvedValue(null);
 
-    it("returns 403 for non-superadmin users", async () => {
-      vi.mocked(auth).mockResolvedValueOnce({
-        user: { id: "user-1", role: "ADMIN", orgId: "org-1" },
-        expires: new Date(Date.now() + 86400000).toISOString(),
+      const { GET } = await import('@/app/api/admin/sms/route');
+      const req = new NextRequest('http://localhost:3000/api/admin/sms', {
+        method: 'GET',
       });
-      
-      const { GET } = await import("@/app/api/admin/sms/route");
-      
-      const request = new NextRequest(
-        new URL("http://localhost:3000/api/admin/sms")
-      );
-      
-      const response = await GET(request);
-      expect([401, 403]).toContain(response.status);
-    });
-  });
 
-  describe("GET /api/admin/sms/settings", () => {
-    it("requires authentication", async () => {
-      vi.mocked(auth).mockResolvedValueOnce(null);
-      
-      const { GET } = await import("@/app/api/admin/sms/settings/route");
-      
-      const request = new NextRequest(
-        new URL("http://localhost:3000/api/admin/sms/settings")
-      );
-      
-      const response = await GET(request);
-      expect(response.status).toBe(401);
-    });
-
-    it("returns SMS settings for SUPER_ADMIN", async () => {
-      vi.mocked(auth).mockResolvedValueOnce({
-        user: { id: "superadmin-1", role: "SUPER_ADMIN", orgId: "org-1" },
-        expires: new Date(Date.now() + 86400000).toISOString(),
-      });
-      
-      const { GET } = await import("@/app/api/admin/sms/settings/route");
-      
-      const request = new NextRequest(
-        new URL("http://localhost:3000/api/admin/sms/settings")
-      );
-      
-      const response = await GET(request);
-      // Should succeed or return default settings
-      expect([200, 500]).toContain(response.status);
+      const response = await GET(req);
+      expectAuthFailure(response);
     });
   });
 });

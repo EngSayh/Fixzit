@@ -29,13 +29,11 @@ import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
-import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
 import {
   buildActiveFilterChips,
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
-import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -68,7 +66,7 @@ const statusStyles: Record<string, string> = {
   LOCKED: "bg-[#FFB400]/10 text-[#FFB400] border border-[#FFB400]/30",
 };
 
-export type UserFilters = {
+type UserFilters = {
   role?: string;
   status?: string;
   department?: string;
@@ -77,7 +75,7 @@ export type UserFilters = {
   lastLoginTo?: string;
 };
 
-export const USER_FILTER_SCHEMA: FilterSchema<UserFilters>[] = [
+const USER_FILTER_SCHEMA: FilterSchema<UserFilters>[] = [
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   { key: "role", param: "role", label: (f) => `Role: ${f.role}` },
   { key: "department", param: "department", label: (f) => `Department: ${f.department}` },
@@ -155,35 +153,13 @@ export function UsersList({ orgId }: UsersListProps) {
   const users = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
-  const filters = state.filters as UserFilters;
-  const currentFilters = state.filters || {};
 
   // Quick chips (P0)
   const quickChips = [
-    {
-      key: "active",
-      label: "Active",
-      onClick: () => updateState({ filters: { status: "ACTIVE" }, page: 1 }),
-      selected: filters.status === "ACTIVE",
-    },
-    {
-      key: "locked",
-      label: "Locked",
-      onClick: () => updateState({ filters: { status: "LOCKED" }, page: 1 }),
-      selected: filters.status === "LOCKED",
-    },
-    {
-      key: "admins",
-      label: "Admins",
-      onClick: () => updateState({ filters: { role: "ORG_ADMIN" }, page: 1 }),
-      selected: filters.role === "ORG_ADMIN",
-    },
-    {
-      key: "inactive-30d",
-      label: "Inactive > 30d",
-      onClick: () => updateState({ filters: { inactiveDays: 30 }, page: 1 }),
-      selected: filters.inactiveDays === 30,
-    },
+    { key: "active", label: "Active", onClick: () => updateState({ filters: { status: "ACTIVE" }, page: 1 }) },
+    { key: "locked", label: "Locked", onClick: () => updateState({ filters: { status: "LOCKED" }, page: 1 }) },
+    { key: "admins", label: "Admins", onClick: () => updateState({ filters: { role: "ORG_ADMIN" }, page: 1 }) },
+    { key: "inactive-30d", label: "Inactive > 30d", onClick: () => updateState({ filters: { inactiveDays: 30 }, page: 1 }) },
   ];
 
   // Active filters
@@ -195,8 +171,8 @@ export function UsersList({ orgId }: UsersListProps) {
     [state.filters, updateState]
   );
 
-  // Table columns - memoized to prevent unnecessary re-renders
-  const columns = useMemo<DataTableColumn<UserRecord>[]>(() => [
+  // Table columns
+  const columns: DataTableColumn<UserRecord>[] = [
     {
       id: "name",
       header: "Name",
@@ -253,7 +229,7 @@ export function UsersList({ orgId }: UsersListProps) {
       header: "Created",
       cell: (row) => formatDistanceToNowStrict(new Date(row.createdAt), { addSuffix: true }),
     },
-  ], []);
+  ];
 
   const emptyState = (
     <EmptyState
@@ -284,22 +260,6 @@ export function UsersList({ orgId }: UsersListProps) {
     setDraftFilters({});
     updateState({ filters: {}, page: 1 });
     setFilterDrawerOpen(false);
-  };
-
-  const handleLoadPreset = (
-    presetFilters: Record<string, unknown>,
-    _sort?: { field: string; direction: "asc" | "desc" },
-    search?: string
-  ) => {
-    const normalizedFilters = pickSchemaFilters<UserFilters>(
-      presetFilters,
-      USER_FILTER_SCHEMA
-    );
-    setDraftFilters(normalizedFilters);
-    updateState({
-      filters: normalizedFilters,
-      q: typeof search === "string" ? search : "",
-    });
   };
 
   return (
@@ -343,7 +303,7 @@ export function UsersList({ orgId }: UsersListProps) {
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
+                <Chip key={chip.key} onClick={chip.onClick}>
                   {chip.label}
                 </Chip>
               ))}
@@ -353,25 +313,7 @@ export function UsersList({ orgId }: UsersListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <FilterPresetsDropdown
-              entityType="users"
-              currentFilters={pickSchemaFilters<UserFilters>(
-                currentFilters,
-                USER_FILTER_SCHEMA
-              )}
-              currentSearch={state.q}
-              normalizeFilters={(filters) =>
-                pickSchemaFilters<UserFilters>(filters, USER_FILTER_SCHEMA)
-              }
-              onLoadPreset={handleLoadPreset}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFilterDrawerOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={filterDrawerOpen}
-            >
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (

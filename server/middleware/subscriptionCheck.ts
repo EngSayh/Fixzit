@@ -15,6 +15,7 @@ import { Types } from "mongoose";
 import { OwnerModel } from "@/server/models/Owner";
 import { logger } from "@/lib/logger";
 import { getSessionUser } from "./withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 
 export interface SubscriptionCheckOptions {
   requireFeature?: string; // Specific feature required (e.g., 'roiAnalytics', 'utilitiesTracking')
@@ -159,6 +160,16 @@ export async function requireSubscription(
     try {
       session = await getSessionUser(req);
     } catch (error) {
+      // Use centralized guard - handles both real instances and test mocks
+      if (isUnauthorizedError(error)) {
+        return {
+          error: NextResponse.json(
+            { error: "Authentication required" },
+            { status: 401 },
+          ),
+        };
+      }
+      // Other errors (DB issues, etc.) are service failures
       logger.error("[subscriptionCheck] Auth service failure", { error });
       return {
         error: NextResponse.json(

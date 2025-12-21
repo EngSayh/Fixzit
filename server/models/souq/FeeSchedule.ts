@@ -188,7 +188,7 @@ const HighVolumeDiscountSchema = new Schema<IHighVolumeDiscount>(
 
 const FeeScheduleSchema = new Schema<IFeeSchedule>(
   {
-    feeScheduleId: { type: String, required: true, unique: true, index: true },
+    feeScheduleId: { type: String, required: true, unique: true }, // unique implies index
     orgId: { type: String, required: true, index: true },
     version: { type: String, required: true, index: true },
     effectiveFrom: { type: Date, required: true, index: true },

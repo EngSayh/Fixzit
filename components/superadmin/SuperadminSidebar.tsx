@@ -25,6 +25,13 @@ import {
   BarChart3,
   Lock,
   Bell,
+  ScrollText,
+  Package,
+  UserCheck,
+  Upload,
+  PieChart,
+  Headphones,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +49,11 @@ const SUPERADMIN_NAV_ITEMS: NavItem[] = [
     href: "/superadmin/issues",
     icon: Bug,
     labelKey: "superadmin.nav.issues",
+  },
+  {
+    href: "/superadmin/ssot",
+    icon: ScrollText,
+    labelKey: "superadmin.nav.ssot",
   },
   {
     href: "/superadmin/tenants",
@@ -125,6 +137,37 @@ const SUPERADMIN_NAV_ITEMS: NavItem[] = [
     icon: Bell,
     labelKey: "superadmin.nav.notifications",
     comingSoon: true,
+  },
+  // Additional modules (previously hidden)
+  {
+    href: "/superadmin/catalog",
+    icon: Package,
+    labelKey: "superadmin.nav.catalog",
+  },
+  {
+    href: "/superadmin/impersonate",
+    icon: UserCheck,
+    labelKey: "superadmin.nav.impersonate",
+  },
+  {
+    href: "/superadmin/import-export",
+    icon: Upload,
+    labelKey: "superadmin.nav.importExport",
+  },
+  {
+    href: "/superadmin/reports",
+    icon: PieChart,
+    labelKey: "superadmin.nav.reports",
+  },
+  {
+    href: "/superadmin/support",
+    icon: Headphones,
+    labelKey: "superadmin.nav.support",
+  },
+  {
+    href: "/superadmin/vendors",
+    icon: Store,
+    labelKey: "superadmin.nav.vendors",
   },
 ];
 

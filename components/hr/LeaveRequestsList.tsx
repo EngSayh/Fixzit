@@ -197,8 +197,8 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
     return filters;
   }, [state.filters, t, updateState]);
 
-  // Table columns - memoized to prevent re-render churn
-  const columns = useMemo<DataTableColumn<LeaveRequestRecord>[]>(() => [
+  // Table columns
+  const columns: DataTableColumn<LeaveRequestRecord>[] = [
     {
       id: "employee",
       header: t("hr.leave.columns.employee", "Employee"),
@@ -269,7 +269,7 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
         </div>
       ),
     },
-  ], [t]);
+  ];
 
   const handleApplyFilters = () => {
     updateState({ filters: draftFilters, page: 1 });

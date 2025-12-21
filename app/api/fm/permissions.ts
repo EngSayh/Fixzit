@@ -18,9 +18,9 @@ import {
 import { FMErrors } from "./errors";
 import {
   getSessionUser,
-  UnauthorizedError,
   type SessionUser,
 } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import { fmErrorContext } from "./errors";
 import { connectDb } from "@/lib/mongo";
 import { Organization } from "@/server/models/Organization";
@@ -198,7 +198,7 @@ export async function requireFmPermission(
       userId: sessionUser.id,
     };
   } catch (error) {
-    if (error instanceof UnauthorizedError) {
+    if (isUnauthorizedError(error)) {
       return FMErrors.unauthorized(
         "Authentication required",
         fmErrorContext(req),

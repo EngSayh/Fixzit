@@ -94,23 +94,6 @@ export function CardList<TData extends Record<string, unknown>>({
   className,
   cardClassName,
 }: CardListProps<TData>) {
-  // P92: Performance observability markers
-  React.useEffect(() => {
-    if (typeof performance !== 'undefined' && performance.mark) {
-      performance.mark('CardList:mount');
-      return () => {
-        performance.mark('CardList:unmount');
-        performance.measure('CardList:lifetime', 'CardList:mount', 'CardList:unmount');
-      };
-    }
-  }, []);
-
-  React.useEffect(() => {
-    if (typeof performance !== 'undefined' && performance.mark && !loading) {
-      performance.mark(`CardList:render:${data.length}items`);
-    }
-  }, [data.length, loading]);
-
   const getRowId = (row: TData): string => {
     if (typeof rowIdAccessor === "function") {
       return rowIdAccessor(row);
@@ -168,30 +151,29 @@ export function CardList<TData extends Record<string, unknown>>({
 
   if (loading) {
     return (
-      <div className={cn("space-y-3", className)} role="status" aria-busy="true" aria-label="Loading items">
+      <div className={cn("space-y-3", className)}>
         {[...Array(3)].map((_, i) => (
-          <Card key={i} className="animate-pulse" aria-hidden="true">
+          <Card key={i} className="animate-pulse">
             <CardContent className="p-4">
               <div className="h-5 bg-muted rounded w-1/3 mb-2" />
               <div className="h-4 bg-muted rounded w-1/2" />
             </CardContent>
           </Card>
         ))}
-        <span className="sr-only">Loading items, please wait...</span>
       </div>
     );
   }
 
   if (data.length === 0) {
     return (
-      <div className="text-center py-12" role="status">
+      <div className="text-center py-12">
         <p className="text-muted-foreground">{emptyMessage}</p>
       </div>
     );
   }
 
   return (
-    <div className={cn("space-y-3", className)} role="list" aria-label="Item list">
+    <div className={cn("space-y-3", className)}>
       {/* Sort & Select All Bar */}
       <div className="flex items-center justify-between gap-2 px-1">
         {selectable && (
@@ -199,8 +181,7 @@ export function CardList<TData extends Record<string, unknown>>({
             <Checkbox
               checked={selectedIds.size === data.length && data.length > 0}
               onCheckedChange={toggleSelectAll}
-              className="hit-target"
-              aria-label={selectedIds.size === data.length ? "Deselect all items" : "Select all items"}
+              className="hit-target" 
             />
             <span className="text-sm text-muted-foreground">
               {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
@@ -210,7 +191,7 @@ export function CardList<TData extends Record<string, unknown>>({
         
         {sortOptions && sortOptions.length > 0 && (
           <Select value={currentSort} onValueChange={onSortChange}>
-            <SelectTrigger className="w-[180px] h-11" aria-label="Sort items by">
+            <SelectTrigger className="w-[180px] h-11">
               <SelectValue placeholder="Sort by..." />
             </SelectTrigger>
             <SelectContent>
@@ -225,7 +206,7 @@ export function CardList<TData extends Record<string, unknown>>({
       </div>
 
       {/* Cards */}
-      {data.map((row, index) => {
+      {data.map((row) => {
         const rowId = getRowId(row);
         const isSelected = selectedIds.has(rowId);
         const primary = getPrimaryValue(row);
@@ -236,13 +217,8 @@ export function CardList<TData extends Record<string, unknown>>({
         return (
           <Card
             key={rowId}
-            role="listitem"
-            tabIndex={0}
-            aria-selected={selectable ? isSelected : undefined}
-            aria-label={`Item ${index + 1}: ${primary}`}
             className={cn(
               "cursor-pointer transition-all hover:shadow-md active:scale-98",
-              "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
               isSelected && "ring-2 ring-primary",
               cardClassName
             )}
@@ -258,14 +234,6 @@ export function CardList<TData extends Record<string, unknown>>({
                 onRowClick(row);
               }
             }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                if (onRowClick) {
-                  onRowClick(row);
-                }
-              }
-            }}
           >
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
@@ -275,8 +243,7 @@ export function CardList<TData extends Record<string, unknown>>({
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={() => toggleSelection(rowId)}
-                      className="hit-target"
-                      aria-label={`Select ${primary}`}
+                      className="hit-target" 
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
@@ -313,7 +280,6 @@ export function CardList<TData extends Record<string, unknown>>({
                     variant="ghost"
                     size="icon"
                     className="hit-target"
-                    aria-label={`View details for ${primary}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (onRowAction) {
@@ -323,8 +289,7 @@ export function CardList<TData extends Record<string, unknown>>({
                       }
                     }}
                   >
-                    <ChevronRight className="h-5 w-5" aria-hidden="true" />
-                    <span className="sr-only">View details</span>
+                    <ChevronRight className="h-5 w-5" />
                   </Button>
                 </div>
               </div>

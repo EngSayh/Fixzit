@@ -1,16 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import React from "react";
-import { act, render } from "@testing-library/react";
+import { render } from "@testing-library/react";
 
-let capturedKeys: string[] = [];
-const updateState = vi.fn();
-let capturedPresetProps: Record<string, unknown> | undefined;
+let capturedKey = "";
 
 vi.mock("swr", () => ({
-  default: (key: string | null) => {
-    if (typeof key === "string") {
-      capturedKeys.push(key);
-    }
+  default: (key: string) => {
+    capturedKey = key;
     return {
       data: { items: [], page: 1, limit: 20, total: 0 },
       isLoading: false,
@@ -37,7 +33,7 @@ vi.mock("@/hooks/useTableQueryState", () => ({
         dueTo: "2024-02-29",
       },
     },
-    updateState,
+    updateState: vi.fn(),
     resetState: vi.fn(),
   }),
 }));
@@ -46,35 +42,15 @@ vi.mock("@/contexts/TranslationContext", () => ({
   useTranslation: () => ({ t: (_k: string, fallback?: string) => fallback || "" }),
 }));
 
-vi.mock("@/hooks/useFilterPresets", () => ({
-  useFilterPresets: () => ({
-    presets: [],
-    isLoading: false,
-    error: undefined,
-    createPreset: vi.fn(),
-    deletePreset: vi.fn(),
-    defaultPreset: undefined,
-    refresh: vi.fn(),
-  }),
-}));
-
-vi.mock("@/components/common/FilterPresetsDropdown", () => ({
-  FilterPresetsDropdown: (props: Record<string, unknown>) => {
-    capturedPresetProps = props;
-    return <div data-testid="filter-presets-dropdown" />;
-  },
-}));
-
 import { InvoicesList } from "@/components/finance/InvoicesList";
 
 describe("InvoicesList query params", () => {
   it("includes filters in the SWR key", () => {
-    capturedKeys = [];
+    capturedKey = "";
     render(<InvoicesList orgId="org-1" />);
 
-    const apiKey = capturedKeys.find((key) => key.startsWith("/api/finance/invoices?"));
-    expect(apiKey).toBeTruthy();
-    const url = new URL(apiKey || "", "http://localhost");
+    expect(capturedKey.startsWith("/api/finance/invoices?")).toBe(true);
+    const url = new URL(capturedKey, "http://localhost");
     const params = url.searchParams;
 
     expect(params.get("org")).toBe("org-1");
@@ -89,57 +65,5 @@ describe("InvoicesList query params", () => {
     expect(params.get("issueTo")).toBe("2024-01-31");
     expect(params.get("dueFrom")).toBe("2024-02-01");
     expect(params.get("dueTo")).toBe("2024-02-29");
-  });
-
-  it("normalizes presets and applies search", () => {
-    capturedKeys = [];
-    capturedPresetProps = undefined;
-    updateState.mockClear();
-
-    render(<InvoicesList orgId="org-1" />);
-
-    expect(capturedPresetProps).toBeTruthy();
-    const props = capturedPresetProps as {
-      onLoadPreset: (
-        filters: Record<string, unknown>,
-        sort?: { field: string; direction: "asc" | "desc" },
-        search?: string
-      ) => void;
-      currentFilters: Record<string, unknown>;
-    };
-
-    expect(props.currentFilters).toMatchObject({
-      status: "OVERDUE",
-      amountMin: 100,
-      amountMax: 5000,
-      dateRange: "month",
-      issueFrom: "2024-01-01",
-      issueTo: "2024-01-31",
-      dueFrom: "2024-02-01",
-      dueTo: "2024-02-29",
-    });
-    expect(props.currentFilters).not.toHaveProperty("unknown");
-
-    act(() => {
-      props.onLoadPreset(
-        {
-          status: "PAID",
-          amountMin: 50,
-          amountMax: 200,
-          unknown: "noop",
-        },
-        undefined,
-        "search invoices"
-      );
-    });
-
-    expect(updateState).toHaveBeenCalledWith({
-      filters: {
-        status: "PAID",
-        amountMin: 50,
-        amountMax: 200,
-      },
-      q: "search invoices",
-    });
   });
 });

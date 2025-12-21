@@ -1,21 +1,28 @@
 "use client";
 
-import React, { useState } from "react";
-import dynamic from "next/dynamic";
+/**
+ * Superadmin Header
+ * Top bar with user info, settings, and logout
+ * 
+ * @module components/superadmin/SuperadminHeader
+ */
+
 import { useRouter } from "next/navigation";
-import { LogOut, Settings, User, Search, Sun, Moon, Bell, Command } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
+import { LogOut, Settings, User, Search, Sun, Moon, Bell, Command, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { logger } from "@/lib/logger";
+import dynamic from "next/dynamic";
 import { Select, SelectItem } from "@/components/ui/select";
 import { BrandLogo } from "@/components/brand";
 import { useThemeCtx } from "@/contexts/ThemeContext";
-import { useI18n } from "@/i18n/useI18n";
 import {
   LANGUAGE_OPTIONS,
   type LanguageOption,
 } from "@/config/language-options";
 import type { Locale } from "@/i18n/config";
-import { logger } from "@/lib/logger";
 import { useSuperadminSession } from "./superadmin-session";
 
 const CurrencySelector = dynamic(
@@ -45,21 +52,20 @@ function SuperadminLanguageDropdown() {
   };
 
   return (
-    <div className="min-w-[160px]">
-      <Select
-        aria-label={t("i18n.selectLanguageLabel")}
-        value={active.language}
-        onValueChange={handleChange}
-        className="h-10 bg-slate-900 text-slate-100 border-slate-700 pe-9 ps-3"
-        data-testid="language-select"
-      >
-        {ENABLED_LOCALES.map((option) => (
-          <SelectItem key={option.language} value={option.language}>
-            {option.flag} {option.native}
-          </SelectItem>
-        ))}
-      </Select>
-    </div>
+    <Select
+      aria-label={t("i18n.selectLanguageLabel")}
+      value={active.language}
+      onValueChange={handleChange}
+      wrapperClassName="min-w-[160px]"
+      className="h-10 bg-slate-900 text-slate-100 border-slate-700 pe-9 ps-3"
+      data-testid="superadmin-language-dropdown"
+    >
+      {ENABLED_LOCALES.map((option) => (
+        <SelectItem key={option.language} value={option.language}>
+          {option.flag} {option.native}
+        </SelectItem>
+      ))}
+    </Select>
   );
 }
 
@@ -71,47 +77,10 @@ export function SuperadminHeader() {
   const session = useSuperadminSession();
   const [loggingOut, setLoggingOut] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
-  const searchInputId = "superadmin-search-input";
   const username = session?.user?.username?.trim() || null;
   const displayName = username || t("superadmin.account");
-  const submitSearch = () => {
-    const q = globalSearch.trim();
-    if (!q) return;
-    navigate(`/superadmin/search?q=${encodeURIComponent(q)}`);
-  };
-  const labelWithFallback = (key: string, fallback: string) => {
-    const value = t(key);
-    return !value || value === key ? fallback : value;
-  };
-  const homeLabel = labelWithFallback("header.homeLink", "Go to landing");
-  const tenantShortcutLabel = labelWithFallback(
-    "superadmin.switchTenantShortcut",
-    "Switch tenant (Alt+Click logo)"
-  );
-  const switchTenantLabel = labelWithFallback(
-    "superadmin.switchTenant",
-    "Switch tenant",
-  );
-  const currencyLabel = labelWithFallback(
-    "currency.selectorLabel",
-    "Currency selector",
-  );
-  const navigate = (href: string) => {
-    const pushFn =
-      (router as { push?: (path: string) => void } | undefined)?.push ||
-      (globalThis as { __fixzitRouterPush?: (path: string) => void })
-        .__fixzitRouterPush;
-
-    if (typeof pushFn === "function") {
-      pushFn(href);
-      return;
-    }
-
-    logger.warn("[SUPERADMIN] Navigation skipped - no router available", {
-      component: "SuperadminHeader",
-      href,
-    });
-  };
+  const switchTenantLabel =
+    t("superadmin.switchTenant") || "Switch tenant";
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -121,7 +90,7 @@ export function SuperadminHeader() {
       });
 
       if (response.ok) {
-        navigate("/superadmin/login");
+        router.push("/superadmin/login");
       } else {
         logger.warn("[SUPERADMIN] Logout failed", {
           component: "SuperadminHeader",
@@ -139,42 +108,15 @@ export function SuperadminHeader() {
     }
   };
 
-  React.useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      const isMetaK = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k";
-      const target = event.target as HTMLElement | null;
-      const targetIsTyping =
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.getAttribute?.("contenteditable") === "true");
-
-      if (isMetaK && !targetIsTyping) {
-        event.preventDefault();
-        const input = document.getElementById(searchInputId) as HTMLInputElement | null;
-        input?.focus();
-      }
-    };
-
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-
   return (
-    <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 gap-4">
+    <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6">
+      {/* Title */}
       <div className="flex items-center gap-3">
         <button
-          type="button"
-          onClick={(e) => {
-            if (e.altKey || e.metaKey || e.ctrlKey) {
-              navigate("/superadmin/tenants");
-              return;
-            }
-            navigate("/");
-          }}
+          onClick={() => router.push("/superadmin/tenants")}
           className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-700 hover:bg-slate-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-600"
-          aria-label={homeLabel}
-          title={tenantShortcutLabel}
+          aria-label={switchTenantLabel}
+          type="button"
         >
           <BrandLogo
             size="sm"
@@ -193,100 +135,73 @@ export function SuperadminHeader() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      {/* AcGlobal Search with Cmd+K hint */}
         <div className="relative">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             type="text"
             placeholder="Search..."
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                submitSearch();
-              }
-            }}
-            id={searchInputId}
-            className="ps-10 pe-16 w-64 h-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
-            aria-label={t("superadmin.search", "Search superadmin")}
+            className="pl-10 pr-16 w-64 h-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
           />
-          <kbd className="absolute end-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded border border-slate-600">
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded border border-slate-600">
             <Command className="inline h-3 w-3" />K
           </kbd>
         </div>
 
+        {/* Theme Toggle - Cycles: light → dark → system */}
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          onClick={() => {
+            const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light';
+            setTheme(next);
+          }}
           className="text-slate-300 hover:text-white"
-          title="Toggle theme"
+          title={`Theme: ${theme} (click to change)`}
         >
-          {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          {theme === 'light' ? <Sun className="h-4 w-4" /> : theme === 'dark' ? <Moon className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
         </Button>
 
+        {/* Notifications Bell */}
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate("/superadmin/notifications")}
+          onClick={() => router.push("/superadmin/notifications")}
           className="text-slate-300 hover:text-white relative"
         >
           <Bell className="h-4 w-4" />
-          <span className="absolute top-1 end-1 w-2 h-2 bg-red-500 rounded-full" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
         </Button>
 
+        {/* tions */}
+      <div className="flex items-center gap-3">
+        {/* Language Selector (dropdown with flags) */}
         <SuperadminLanguageDropdown />
 
-        <div
-          className="flex items-center gap-2 text-slate-300"
-          aria-label={currencyLabel}
-        >
-          <span className="sr-only sm:not-sr-only sm:text-xs sm:text-slate-400">
-            {currencyLabel}
-          </span>
+        {/* Currency Selector */}
+        <div className="text-slate-300">
           <CurrencySelector variant="compact" />
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={async () => {
-            try {
-              const origin =
-                typeof window !== "undefined" && window.location
-                  ? window.location.origin
-                  : "http://localhost:3000";
-              const auditUrl = `${origin}/api/superadmin/tenant-switch/audit`;
-              void fetch(auditUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ via: "header-button" }),
-              });
-            } catch {
-              // non-blocking
-            }
-            navigate("/superadmin/tenants");
-          }}
-          className="text-slate-300 hover:text-white"
-        >
-          {switchTenantLabel}
-        </Button>
-
+        {/* User Badge */}
         <div className="flex items-center gap-2 px-3 py-2 bg-slate-800 rounded-lg border border-slate-700">
           <User className="h-4 w-4 text-slate-400" />
           <span className="text-white text-sm">{displayName}</span>
         </div>
 
+        {/* Settings */}
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate("/superadmin/system")}
+          onClick={() => router.push("/superadmin/system")}
           className="text-slate-300 hover:text-white"
         >
           <Settings className="h-4 w-4" />
         </Button>
 
+        {/* Logout */}
         <Button
           variant="ghost"
           size="sm"

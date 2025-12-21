@@ -38,9 +38,9 @@ import {
 import { resolveTenantId } from "../../../utils/tenant";
 import {
   getSessionUser,
-  UnauthorizedError,
   type SessionUser,
 } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import type { WorkOrderUser } from "@/types/fm/work-order";
 
 interface AttachmentWithCategory {
@@ -371,7 +371,7 @@ export async function POST(
       message: `Work order transitioned to ${toStatus}`,
     });
   } catch (error) {
-    if (error instanceof UnauthorizedError) {
+    if (isUnauthorizedError(error)) {
       return FMErrors.unauthorized();
     }
     logger.error("FM Work Order Transition API error", error as Error);

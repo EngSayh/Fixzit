@@ -1,10 +1,18 @@
-# Fixzit - Agent Working Agreement v5.1 (Codex + VS Code + Claude Code)
+# Fixzit - Agent Working Agreement v5.2 (Codex + VS Code + Claude Code)
 
 Owner: Eng. Sultan Al Hassni  
 System: Fixzit Facility-Management + Marketplace (Fixzit Souq) + Real Estate (Aqar)  
 Stack: Next.js App Router + TypeScript + MongoDB Atlas/Mongoose + Tailwind/shadcn + Vitest (+ Playwright if enabled)
 
 NON-NEGOTIABLE. Violations = AUTO-FAIL.
+
+---
+
+## System Stability (AUTO-TRIGGERED)
+A background daemon runs every 2 minutes to prevent VS Code Code 5 crashes:
+- LaunchAgent: `com.fixzit.agent-preflight`
+- Logs: `/tmp/agent-preflight.log`
+- Manual run: `./tools/vscode-optimizer.sh`
 
 ---
 
@@ -18,6 +26,7 @@ Use these as authoritative:
 - STRICT v4 (HFV loop, proof packs, language/currency/footer, no bypass, no build-output edits)
 - Fixzit Blueprint/SDD: Multi-tenancy (org_id/property_owner_id), RBAC, Golden workflows
 - Verification log patterns: missing language selector/flags, missing currency, missing universal sidebar/footer, logo regressions, social login buttons missing
+- CI/Quality Gates: `.github/workflows/fixzit-quality-gates.yml` and `.github/workflows/build-sourcemaps.yml` must be reviewed when any task touches builds, tests, or release workflows.
 
 Owner Override (Session): If SDD is missing/unreadable, proceed using available SoT files
 (`docs/FIXZIT_ONBOARDING_VERIFICATION_BLUEPRINT_V7.md`, `docs/UI_UX_ENHANCEMENT_BLUEPRINT_V1.md`,

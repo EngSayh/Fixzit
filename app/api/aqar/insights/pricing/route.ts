@@ -12,10 +12,8 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import {
-  getSessionUser,
-  UnauthorizedError,
-} from "@/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import { PricingInsightsService } from "@/services/aqar/pricing-insights-service";
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { isValidObjectIdSafe } from "@/lib/api/validation";
@@ -34,13 +32,11 @@ const sanitizeEnum = <T extends string>(
 
 export async function GET(request: NextRequest) {
   // Rate limiting: 60 requests per minute per IP
-  const rateLimitResponse = await Promise.resolve(
-    enforceRateLimit(request, {
-      keyPrefix: "aqar:insights:pricing",
-      requests: 60,
-      windowMs: 60_000,
-    }),
-  );
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:insights:pricing",
+    requests: 60,
+    windowMs: 60_000,
+  });
   if (rateLimitResponse) return rateLimitResponse;
 
   const correlationId = crypto.randomUUID();
@@ -49,25 +45,14 @@ export async function GET(request: NextRequest) {
     try {
       user = await getSessionUser(request);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unknown auth error";
-      if (!(error instanceof UnauthorizedError)) {
+      if (!isUnauthorizedError(error)) {
+        const message =
+          error instanceof Error ? error.message : "Unknown auth error";
         logger.warn("AQAR_PRICING_SESSION_WARN", {
           error: message,
           correlationId,
         });
       }
-      return NextResponse.json(
-        { error: "Unauthorized", correlationId },
-        { status: 401 },
-      );
-    }
-
-    if (!user?.orgId || !isValidObjectIdSafe(user.orgId)) {
-      return NextResponse.json(
-        { error: "Organization context is required", correlationId },
-        { status: 403 },
-      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -87,7 +72,7 @@ export async function GET(request: NextRequest) {
       neighborhood,
       propertyType,
       intent,
-      orgId: user.orgId,
+      orgId: user?.orgId,
       correlationId,
     });
 
@@ -107,13 +92,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const correlationId = crypto.randomUUID();
   // Rate limiting: 10 requests per minute per IP (recalculation is expensive)
-  const rateLimitResponse = await Promise.resolve(
-    enforceRateLimit(request, {
-      keyPrefix: "aqar:insights:pricing:recalc",
-      requests: 10,
-      windowMs: 60_000,
-    }),
-  );
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "aqar:insights:pricing:recalc",
+    requests: 10,
+    windowMs: 60_000,
+  });
   if (rateLimitResponse) return rateLimitResponse;
 
   try {

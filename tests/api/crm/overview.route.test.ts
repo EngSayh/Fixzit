@@ -2,6 +2,7 @@
  * @fileoverview Tests for /api/crm/overview routes
  * Tests CRM dashboard statistics and aggregations
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -109,7 +110,7 @@ describe("API /api/crm/overview", () => {
       const req = new NextRequest("http://localhost:3000/api/crm/overview");
       const response = await route.GET(req);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
     });
 
     it("returns 401 when user has no orgId (tenant scope missing)", async () => {
@@ -127,7 +128,7 @@ describe("API /api/crm/overview", () => {
       const req = new NextRequest("http://localhost:3000/api/crm/overview");
       const response = await route.GET(req);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
     });
 
     it("returns 401 when user lacks CRM role", async () => {
@@ -145,7 +146,7 @@ describe("API /api/crm/overview", () => {
       const req = new NextRequest("http://localhost:3000/api/crm/overview");
       const response = await route.GET(req);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
     });
 
     it("successfully retrieves overview with tenant scoping", async () => {

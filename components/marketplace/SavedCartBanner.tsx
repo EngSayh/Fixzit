@@ -3,7 +3,6 @@
 
 import React from "react";
 import Link from "next/link";
-import { GUEST_CART_KEY } from "@/lib/marketplace/cartClient";
 
 type SavedLine = {
   title?: string;
@@ -12,12 +11,14 @@ type SavedLine = {
   currency?: string;
 };
 
+const STORAGE_KEY = "marketplace_saved_cart";
+
 export function SavedCartBanner() {
   const [saved, setSaved] = React.useState<SavedLine[]>([]);
 
   React.useEffect(() => {
     try {
-      const raw = localStorage.getItem(GUEST_CART_KEY);
+      const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {

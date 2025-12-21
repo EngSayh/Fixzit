@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { MessageSquare, AlertCircle, CheckCircle } from "lucide-react";
+import { MessageSquare, AlertCircle, CheckCircle, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { fetchOrgCounters } from "@/lib/counters";
+import { HubNavigationCard } from "@/components/dashboard/HubNavigationCard";
+import { RoadmapBanner } from "@/components/dashboard/RoadmapBanner";
 
 interface SupportCounters {
   support: { open: number; pending: number; resolved: number };
@@ -17,7 +19,7 @@ export default function SupportDashboard() {
   const { data: session, status } = useSession();
   const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
   const auto = useAutoTranslator("dashboard.support");
-  const [activeTab, setActiveTab] = useState("tickets");
+  const [activeTab, setActiveTab] = useState("modules");
   const [counters, setCounters] = useState<SupportCounters | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,15 +54,35 @@ export default function SupportDashboard() {
   }, [auto, orgId, status]);
 
   const tabs = [
+    { id: "modules", label: auto("Modules", "tabs.modules") },
     {
-      id: "tickets",
-      label: auto("Tickets", "tabs.tickets"),
+      id: "metrics",
+      label: auto("Metrics", "tabs.metrics"),
       count: counters?.support.open,
     },
-    { id: "knowledge", label: auto("Knowledge Base", "tabs.knowledge") },
-    { id: "chat", label: auto("Live Chat", "tabs.chat") },
-    { id: "sla", label: auto("SLA Management", "tabs.sla") },
   ];
+
+  // Existing sub-modules from route inventory
+  const modules = [
+    {
+      title: auto("Tickets", "modules.tickets"),
+      description: auto("Support ticket management", "modules.ticketsDesc"),
+      href: "/fm/support/tickets",
+      icon: MessageSquare,
+      iconColor: "text-primary",
+      metric: loading ? "..." : counters?.support.open || 0,
+      metricLabel: auto("Open", "metrics.open"),
+    },
+    {
+      title: auto("Escalations", "modules.escalations"),
+      description: auto("Manage escalated issues", "modules.escalationsDesc"),
+      href: "/fm/support/escalations/new",
+      icon: AlertTriangle,
+      iconColor: "text-orange-500",
+    },
+  ];
+
+  const plannedFeatures = ["Knowledge Base", "Live Chat", "SLA Management"];
 
   return (
     <div className="space-y-6">
@@ -95,7 +117,18 @@ export default function SupportDashboard() {
         ))}
       </div>
 
-      {activeTab === "tickets" && (
+      {activeTab === "modules" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {modules.map((module) => (
+              <HubNavigationCard key={module.href} {...module} />
+            ))}
+          </div>
+          <RoadmapBanner features={plannedFeatures} variant="subtle" />
+        </div>
+      )}
+
+      {activeTab === "metrics" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -137,24 +170,6 @@ export default function SupportDashboard() {
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {["knowledge", "chat", "sla"].includes(activeTab) && (
-        <Card>
-          <CardContent className="py-8">
-            <div className="text-center text-muted-foreground">
-              <p className="font-medium">
-                {tabs.find((t) => t.id === activeTab)?.label}
-              </p>
-              <p className="text-sm mt-2">
-                {auto(
-                  "Content will be implemented here",
-                  "placeholder.description",
-                )}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       )}
     </div>
   );

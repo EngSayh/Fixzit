@@ -17,7 +17,7 @@ import {
 } from "@/server/plugins/tenantIsolation";
 import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
-import { rateLimitError } from "@/server/utils/errorResponses";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 
 interface StatementLine {
@@ -382,13 +382,6 @@ export async function GET(req: NextRequest) {
     }
   } catch (error) {
     logger.error("Error generating owner statement", error as Error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to generate statement",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

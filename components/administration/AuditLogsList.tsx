@@ -29,14 +29,11 @@ import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
-import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
-import { ExportCenterDrawer } from "@/components/export/ExportCenterDrawer";
 import {
   buildActiveFilterChips,
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
-import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -63,7 +60,7 @@ type ApiResponse = {
   total: number;
 };
 
-export type AuditFilters = {
+type AuditFilters = {
   eventType?: string;
   status?: string;
   userId?: string;
@@ -74,7 +71,7 @@ export type AuditFilters = {
   timestampTo?: string;
 };
 
-export const AUDIT_FILTER_SCHEMA: FilterSchema<AuditFilters>[] = [
+const AUDIT_FILTER_SCHEMA: FilterSchema<AuditFilters>[] = [
   { key: "eventType", param: "eventType", label: (f) => `Event: ${f.eventType}` },
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   { key: "userId", param: "userId", label: (f) => `User: ${f.userId}` },
@@ -151,7 +148,7 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
   }, [orgId, state]);
 
   const { data, error: _error, isLoading, mutate, isValidating } = useSWR(
-    `/api/admin/audit-logs?${query}`,
+    `/api/audit-logs?${query}`,
     fetcher,
     { keepPreviousData: true, refreshInterval: 30000 }
   );
@@ -159,41 +156,14 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
   const logs = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 50))) : 1;
   const totalCount = data?.total ?? 0;
-  const filters = state.filters as AuditFilters;
-  const currentFilters = state.filters || {};
 
   // Quick chips (P0)
   const quickChips = [
-    {
-      key: "today",
-      label: "Today",
-      onClick: () => updateState({ filters: { dateRange: "today" }, page: 1 }),
-      selected: filters.dateRange === "today",
-    },
-    {
-      key: "7d",
-      label: "Last 7 days",
-      onClick: () => updateState({ filters: { dateRange: "7d" }, page: 1 }),
-      selected: filters.dateRange === "7d",
-    },
-    {
-      key: "logins",
-      label: "Login Events",
-      onClick: () => updateState({ filters: { eventType: "LOGIN" }, page: 1 }),
-      selected: filters.eventType === "LOGIN",
-    },
-    {
-      key: "admin",
-      label: "Admin Actions",
-      onClick: () => updateState({ filters: { action: "admin" }, page: 1 }),
-      selected: filters.action === "admin",
-    },
-    {
-      key: "errors",
-      label: "Errors",
-      onClick: () => updateState({ filters: { status: "FAILURE" }, page: 1 }),
-      selected: filters.status === "FAILURE",
-    },
+    { key: "today", label: "Today", onClick: () => updateState({ filters: { dateRange: "today" }, page: 1 }) },
+    { key: "7d", label: "Last 7 days", onClick: () => updateState({ filters: { dateRange: "7d" }, page: 1 }) },
+    { key: "logins", label: "Login Events", onClick: () => updateState({ filters: { eventType: "LOGIN" }, page: 1 }) },
+    { key: "admin", label: "Admin Actions", onClick: () => updateState({ filters: { action: "admin" }, page: 1 }) },
+    { key: "errors", label: "Errors", onClick: () => updateState({ filters: { status: "FAILURE" }, page: 1 }) },
   ];
 
   // Active filters
@@ -205,8 +175,8 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
     [state.filters, updateState]
   );
 
-  // Table columns - memoized to prevent unnecessary re-renders
-  const columns = useMemo<DataTableColumn<AuditLogRecord>[]>(() => [
+  // Table columns
+  const columns: DataTableColumn<AuditLogRecord>[] = [
     {
       id: "timestamp",
       header: "Timestamp",
@@ -268,7 +238,7 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
         <span className="font-mono text-sm">{row.ipAddress || <span className="text-muted-foreground">—</span>}</span>
       ),
     },
-  ], []);
+  ];
 
   const emptyState = (
     <EmptyState
@@ -294,22 +264,6 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
     setDraftFilters({});
     updateState({ filters: {}, page: 1 });
     setFilterDrawerOpen(false);
-  };
-
-  const handleLoadPreset = (
-    presetFilters: Record<string, unknown>,
-    _sort?: { field: string; direction: "asc" | "desc" },
-    search?: string
-  ) => {
-    const normalizedFilters = pickSchemaFilters<AuditFilters>(
-      presetFilters,
-      AUDIT_FILTER_SCHEMA
-    );
-    setDraftFilters(normalizedFilters);
-    updateState({
-      filters: normalizedFilters,
-      q: typeof search === "string" ? search : "",
-    });
   };
 
   return (
@@ -349,7 +303,7 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
+                <Chip key={chip.key} onClick={chip.onClick}>
                   {chip.label}
                 </Chip>
               ))}
@@ -359,31 +313,7 @@ export function AuditLogsList({ orgId }: AuditLogsListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <FilterPresetsDropdown
-              entityType="auditLogs"
-              currentFilters={pickSchemaFilters<AuditFilters>(currentFilters, AUDIT_FILTER_SCHEMA)}
-              currentSearch={state.q}
-              normalizeFilters={(filters) =>
-                pickSchemaFilters<AuditFilters>(filters, AUDIT_FILTER_SCHEMA)
-              }
-              onLoadPreset={handleLoadPreset}
-            />
-            <ExportCenterDrawer
-              entityType="auditLogs"
-              currentFilters={pickSchemaFilters<AuditFilters>(
-                currentFilters,
-                AUDIT_FILTER_SCHEMA
-              )}
-              currentSearch={state.q}
-              selectedIds={[]}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFilterDrawerOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={filterDrawerOpen}
-            >
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (

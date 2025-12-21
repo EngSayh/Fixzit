@@ -4,11 +4,30 @@
     "noEmit": true
   },
   "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
     "tests",
     "tests/**/*.ts",
     "tests/**/*.tsx",
     "tests/**/*.mts",
     "tests/**/*.cts"
   ],
-  "exclude": []
+  "exclude": [
+    "node_modules",
+    ".next",
+    "out",
+    "dist",
+    "build",
+    "coverage",
+    "playwright-report",
+    "test-results",
+    "public",
+    "issue-tracker",
+    "qa",
+    "scripts",
+    "tools",
+    "deployment"
+  ]
 }

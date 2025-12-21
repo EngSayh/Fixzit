@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { ObjectId } from "mongodb";
 
 // In-memory stores for test isolation
@@ -158,8 +158,8 @@ describe("sendSellerNotification status logging", () => {
   });
 
   it("logs sent when email skipped but SMS succeeds", async () => {
-    (getEnv as vi.Mock).mockReturnValue(undefined);
-    (sendSMS as vi.Mock).mockResolvedValue({ success: true });
+    (getEnv as Mock).mockReturnValue(undefined);
+    (sendSMS as Mock).mockResolvedValue({ success: true });
     const orgId = new ObjectId().toHexString();
     await seedSeller(orgId, {
       sellerId: "seller-1",

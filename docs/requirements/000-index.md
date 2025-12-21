@@ -5,6 +5,7 @@ This index summarizes the authoritative requirement digests that codify the Fixz
 ## Requirement Digests
 
 - [Fixzit Bible](010-fixzit-bible.md) — holistic product vision, success metrics, and global UX/engineering guardrails.
+- [Fixzit System Blueprint & Master System Bible (v2025.12.19)](011-fixzit-system-blueprint-master-bible-2025-12-19.md) — comprehensive blueprint and QA validation reference.
 - [Language Selector](020-language-selector.md) — localization surface areas and fallback rules.
 - [Error Experience](030-error-ux.md) — messaging tone, recovery affordances, and logging needs.
 - [Role-Based Access Control](040-rbac.md) — persona definitions and authorization matrices.

@@ -51,8 +51,7 @@ Object.defineProperty(globalThis, 'jest', {
 });
 
 if (!process.env.MONGO_MEMORY_LAUNCH_TIMEOUT) {
-  // Allow MongoMemoryServer up to 60s to start to reduce flakiness on slower runners
-  process.env.MONGO_MEMORY_LAUNCH_TIMEOUT = "60000";
+  process.env.MONGO_MEMORY_LAUNCH_TIMEOUT = "20000";
 }
 
 const MONGO_MEMORY_LAUNCH_TIMEOUT_MS = Number(
@@ -83,71 +82,6 @@ if (!process.env.NEXTAUTH_SECRET) {
 
 // Vitest should run under NODE_ENV=test so request-session helpers bypass NextAuth
 Reflect.set(process.env, "NODE_ENV", "test");
-
-// Reduce noisy test output: suppress known encryption key missing warnings in non-prod
-const originalWarn = logger.warn.bind(logger) as (...args: unknown[]) => unknown;
-const originalError = logger.error.bind(logger) as (...args: unknown[]) => unknown;
-
-const shouldSilence = (msg: string) =>
-  msg.includes("encryption:key_missing") ||
-  msg.includes("Failed to format ICU message") ||
-  msg.includes("Unknown JTI - potential replay attack") ||
-  // Silence intentional error-boundary test noise
-  msg.includes("Error fetching profile") ||
-  msg.includes("Boom") ||
-  msg.includes("Something went wrong") ||
-  // Silence i18n fallback warnings in tests
-  msg.includes("Missing translation") ||
-  msg.includes("ICU message") ||
-  msg.includes("formatMessage");
-
-// Also silence native console.error/warn for expected React error boundary output
-// eslint-disable-next-line no-console
-const originalConsoleError = console.error.bind(console);
-// eslint-disable-next-line no-console
-const originalConsoleWarn = console.warn.bind(console);
-
-const shouldSilenceConsole = (msg: string) =>
-  msg.includes("Error: Boom") ||
-  msg.includes("Error fetching profile") ||
-  msg.includes("Something went wrong") ||
-  msg.includes("The above error occurred") ||
-  msg.includes("Error boundaries") ||
-  msg.includes("act(...) warning") ||
-  msg.includes("ReactDOM.render is no longer supported");
-
-// eslint-disable-next-line no-console
-console.error = (...args: unknown[]) => {
-  const msg = args.map(a => String(a)).join(" ");
-  if (shouldSilenceConsole(msg)) return;
-  return originalConsoleError(...args);
-};
-
-// eslint-disable-next-line no-console
-console.warn = (...args: unknown[]) => {
-  const msg = args.map(a => String(a)).join(" ");
-  if (shouldSilenceConsole(msg)) return;
-  return originalConsoleWarn(...args);
-};
-
-logger.warn = (...args: unknown[]) => {
-  const [first] = args;
-  const msg =
-    typeof first === "string"
-      ? first
-      : typeof first === "object" && first !== null && "warning" in (first as Record<string, unknown>)
-        ? String((first as Record<string, unknown>).warning)
-        : "";
-  if (shouldSilence(msg)) return;
-  return originalWarn(...(args as Parameters<typeof originalWarn>));
-};
-
-logger.error = (...args: unknown[]) => {
-  const [first] = args;
-  const msg = typeof first === "string" ? first : "";
-  if (shouldSilence(msg)) return;
-  return originalError(...(args as Parameters<typeof originalError>));
-};
 
 // Ensure fetch/Request/Response are present in worker threads (Node pools can omit them)
 const ensureFetchGlobals = () => {
@@ -289,23 +223,22 @@ vi.mock("next/navigation", () => {
   const backMock = vi.fn();
   const forwardMock = vi.fn();
   const refreshMock = vi.fn();
-  const useRouterMock = vi.fn(() => ({
-    push: pushMock,
-    replace: replaceMock,
-    prefetch: prefetchMock,
-    back: backMock,
-    forward: forwardMock,
-    refresh: refreshMock,
-    pathname: "/fm/dashboard",
-    query: {},
-    asPath: "/fm/dashboard",
-  }));
 
   return {
-    useRouter: useRouterMock,
-    usePathname: vi.fn(() => "/fm/dashboard"),
-    useSearchParams: vi.fn(() => new URLSearchParams()),
-    useParams: vi.fn(() => ({})),
+    useRouter: () => ({
+      push: pushMock,
+      replace: replaceMock,
+      prefetch: prefetchMock,
+      back: backMock,
+      forward: forwardMock,
+      refresh: refreshMock,
+      pathname: "/fm/dashboard",
+      query: {},
+      asPath: "/fm/dashboard",
+    }),
+    usePathname: () => "/fm/dashboard",
+    useSearchParams: () => new URLSearchParams(),
+    useParams: () => ({}),
     notFound: vi.fn(() => {
       throw new Error("NEXT_NOT_FOUND");
     }),
@@ -586,7 +519,6 @@ const shouldUseInMemoryMongo = forceMongo || !isJsdomEnv || !skipGlobalMongo;
 let mongoServer: MongoMemoryServer | undefined;
 let mongoUriRef: string | undefined;
 let shuttingDownMongo = false;
-let reconnectListenerAttached = false;
 const mongoStartAttempts = Number(process.env.MONGO_MEMORY_ATTEMPTS || "3");
 
 async function getAvailablePort(): Promise<number> {
@@ -663,52 +595,28 @@ beforeAll(async () => {
     process.env.MONGODB_DB = "fixzit-test";
     // Ensure previous connections are closed before connecting
     if (mongoose.connection.readyState !== 0) {
-      await realDisconnect();
+      await mongoose.disconnect();
     }
     await mongoose.connect(mongoUri, {
       autoCreate: true,
       autoIndex: true,
     });
-    // Avoid MaxListeners warnings when multiple suites touch the shared connection.
-    try {
-      mongoose.connection.setMaxListeners(0);
-    } catch {
-      // non-fatal
-    }
 
     // Reconnect guard: if the in-memory server drops the connection mid-suite,
     // attempt a single reconnect to keep long-running server tests stable.
-    // Protected by reconnectListenerAttached flag to prevent duplicate listeners.
-    if (!reconnectListenerAttached) {
-      reconnectListenerAttached = true;
-      mongoose.connection.on("disconnected", async () => {
-        if (shuttingDownMongo) {
-          logger.debug("[MongoMemory] Skipping reconnect during shutdown");
-          return;
-        }
-        if (!mongoUriRef) {
-          logger.warn("[MongoMemory] Cannot reconnect - mongoUriRef is null");
-          return;
-        }
-        // Check if already connected (prevents double reconnect)
-        if (mongoose.connection.readyState === 1) {
-          logger.debug("[MongoMemory] Already connected, skipping reconnect");
-          return;
-        }
-        try {
-          logger.debug("[MongoMemory] Attempting reconnect after disconnect...");
-          await mongoose.connect(mongoUriRef, {
-            autoCreate: true,
-            autoIndex: true,
-          });
-          logger.debug("[MongoMemory] ✅ Reconnected successfully");
-        } catch (err) {
-          logger.error("[MongoMemory] ❌ Reconnect failed", err as Error);
-          // Don't throw - let tests fail gracefully with connection error
-        }
-      });
-      logger.debug("[MongoMemory] Reconnect listener attached");
-    }
+    mongoose.connection.on("disconnected", async () => {
+      if (shuttingDownMongo) return;
+      if (!mongoUriRef) return;
+      try {
+        await mongoose.connect(mongoUriRef, {
+          autoCreate: true,
+          autoIndex: true,
+        });
+        logger.debug("[MongoMemory] Reconnected after disconnect");
+      } catch (err) {
+        logger.error("[MongoMemory] Reconnect failed after disconnect", err as Error);
+      }
+    });
 
     logger.debug("✅ MongoDB Memory Server started:", { mongoUri });
   } catch (error) {
@@ -766,7 +674,7 @@ afterAll(async () => {
 
     // Close mongoose connection
     if (mongoose.connection && mongoose.connection.readyState !== 0) {
-      await realClose(true); // Force close
+      await mongoose.connection.close(true); // Force close
     }
 
     // Stop MongoDB Memory Server

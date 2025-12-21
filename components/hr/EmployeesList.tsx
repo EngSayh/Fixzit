@@ -29,13 +29,11 @@ import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
-import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
 import {
   buildActiveFilterChips,
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
-import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -72,7 +70,7 @@ const statusStyles: Record<string, string> = {
   TERMINATED: "bg-destructive/10 text-destructive border border-destructive/20",
 };
 
-export type EmployeeFilters = {
+type EmployeeFilters = {
   status?: string;
   department?: string;
   employmentType?: string;
@@ -82,7 +80,7 @@ export type EmployeeFilters = {
   joiningTo?: string;
 };
 
-export const EMPLOYEE_FILTER_SCHEMA: FilterSchema<EmployeeFilters>[] = [
+const EMPLOYEE_FILTER_SCHEMA: FilterSchema<EmployeeFilters>[] = [
   { key: "status", param: "status", label: (f) => `Status: ${f.status?.toString().replace(/_/g, " ")}` },
   { key: "department", param: "department", label: (f) => `Department: ${f.department}` },
   { key: "employmentType", param: "employmentType", label: (f) => `Type: ${f.employmentType?.toString().replace(/_/g, " ")}` },
@@ -165,35 +163,13 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
   const employees = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
-  const filters = state.filters as EmployeeFilters;
-  const currentFilters = state.filters || {};
 
   // Quick chips (P0)
   const quickChips = [
-    {
-      key: "active",
-      label: "Active",
-      onClick: () => updateState({ filters: { status: "ACTIVE" }, page: 1 }),
-      selected: filters.status === "ACTIVE",
-    },
-    {
-      key: "leave",
-      label: "On Leave",
-      onClick: () => updateState({ filters: { status: "ON_LEAVE" }, page: 1 }),
-      selected: filters.status === "ON_LEAVE",
-    },
-    {
-      key: "new-hires",
-      label: "New Hires",
-      onClick: () => updateState({ filters: { joiningDateDays: 30 }, page: 1 }),
-      selected: filters.joiningDateDays === 30,
-    },
-    {
-      key: "review-due",
-      label: "Review Due",
-      onClick: () => updateState({ filters: { reviewDueDays: 7 }, page: 1 }),
-      selected: filters.reviewDueDays === 7,
-    },
+    { key: "active", label: "Active", onClick: () => updateState({ filters: { status: "ACTIVE" }, page: 1 }) },
+    { key: "leave", label: "On Leave", onClick: () => updateState({ filters: { status: "ON_LEAVE" }, page: 1 }) },
+    { key: "new-hires", label: "New Hires", onClick: () => updateState({ filters: { joiningDateDays: 30 }, page: 1 }) },
+    { key: "review-due", label: "Review Due", onClick: () => updateState({ filters: { reviewDueDays: 7 }, page: 1 }) },
   ];
 
   // Active filters
@@ -205,8 +181,8 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
     [state.filters, updateState]
   );
 
-  // Table columns - memoized to prevent unnecessary re-renders
-  const columns = useMemo<DataTableColumn<EmployeeRecord>[]>(() => [
+  // Table columns
+  const columns: DataTableColumn<EmployeeRecord>[] = [
     {
       id: "name",
       header: "Name",
@@ -284,7 +260,7 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
         );
       },
     },
-  ], []);
+  ];
 
   const emptyState = (
     <EmptyState
@@ -315,22 +291,6 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
     setDraftFilters({});
     updateState({ filters: {}, page: 1 });
     setFilterDrawerOpen(false);
-  };
-
-  const handleLoadPreset = (
-    presetFilters: Record<string, unknown>,
-    _sort?: { field: string; direction: "asc" | "desc" },
-    search?: string
-  ) => {
-    const normalizedFilters = pickSchemaFilters<EmployeeFilters>(
-      presetFilters,
-      EMPLOYEE_FILTER_SCHEMA
-    );
-    setDraftFilters(normalizedFilters);
-    updateState({
-      filters: normalizedFilters,
-      q: typeof search === "string" ? search : "",
-    });
   };
 
   return (
@@ -374,7 +334,7 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
+                <Chip key={chip.key} onClick={chip.onClick}>
                   {chip.label}
                 </Chip>
               ))}
@@ -384,28 +344,7 @@ export function EmployeesList({ orgId }: EmployeesListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <FilterPresetsDropdown
-              entityType="employees"
-              currentFilters={pickSchemaFilters<EmployeeFilters>(
-                currentFilters,
-                EMPLOYEE_FILTER_SCHEMA
-              )}
-              currentSearch={state.q}
-              normalizeFilters={(filters) =>
-                pickSchemaFilters<EmployeeFilters>(
-                  filters,
-                  EMPLOYEE_FILTER_SCHEMA
-                )
-              }
-              onLoadPreset={handleLoadPreset}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFilterDrawerOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={filterDrawerOpen}
-            >
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (

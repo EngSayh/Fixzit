@@ -207,16 +207,17 @@ const nextConfig = {
   // Clean build artifacts on each build to prevent accumulation
   cleanDistDir: true,
 
-  // TypeScript and ESLint - PRODUCTION QUALITY GATES
-  // ✅ RESTORED: Build-time type checking and linting enforced
-  // These checks are CRITICAL for preventing broken code from reaching production
-  // If builds are slow, fix the errors - don't disable the checks
+  // TypeScript and ESLint - STRICT MODE (no bypass)
+  // tsconfig.build.json scopes to runtime sources only (excludes tests, docs, scripts)
+  // eslint.dirs limits lint scope to Next.js runtime folders
   typescript: {
-    ignoreBuildErrors: false, // ✅ ENFORCE: Build fails if TypeScript errors exist
-    tsconfigPath: './tsconfig.json'
+    ignoreBuildErrors: false,
+    tsconfigPath: './tsconfig.build.json',
   },
   eslint: {
-    ignoreDuringBuilds: false, // ✅ ENFORCE: Build fails if ESLint errors exist
+    ignoreDuringBuilds: false,
+    // Scope lint to runtime folders only (reduces build time without bypassing)
+    dirs: ['app', 'components', 'lib', 'services', 'server', 'hooks', 'providers', 'contexts'],
   },
 
   serverExternalPackages: [

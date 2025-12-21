@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { MongoClient, ObjectId, type Db } from "mongodb";
 import { NextRequest } from "next/server";
 import { UserRole } from "@/types/user";
@@ -84,11 +84,6 @@ describe("GET /api/search (integration, in-memory Mongo)", () => {
   afterAll(async () => {
     await client?.close();
     await mongo?.stop();
-  });
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockSession = null;
   });
 
   it("returns only tenant-owned work orders", async () => {

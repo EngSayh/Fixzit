@@ -2,6 +2,7 @@
  * @fileoverview Tests for /api/hr/employees routes
  * Tests HR employee management including CRUD operations
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -119,7 +120,7 @@ describe("API /api/hr/employees", () => {
       const req = new NextRequest("http://localhost:3000/api/hr/employees");
       const response = await route.GET(req);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
       const data = await response.json();
       expect(data.error).toBe("Unauthorized");
     });
@@ -135,7 +136,7 @@ describe("API /api/hr/employees", () => {
       const req = new NextRequest("http://localhost:3000/api/hr/employees");
       const response = await route.GET(req);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
     });
 
     it("returns 403 when user lacks HR role", async () => {
@@ -288,7 +289,7 @@ describe("API /api/hr/employees", () => {
       });
       const response = await route.POST(req);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
     });
 
     it("returns 403 when user lacks HR role", async () => {

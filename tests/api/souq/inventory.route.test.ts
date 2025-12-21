@@ -2,6 +2,7 @@
  * @fileoverview Tests for /api/souq/inventory routes
  * Tests inventory management operations including listing, adjustments, and reservations
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -94,7 +95,7 @@ describe("API /api/souq/inventory", () => {
       const req = new NextRequest("http://localhost:3000/api/souq/inventory");
       const response = await GET(req);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
       const json = await response.json();
       expect(json.error).toBe("Unauthorized");
     });

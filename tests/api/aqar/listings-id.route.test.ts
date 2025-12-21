@@ -2,6 +2,7 @@
  * @fileoverview Tests for /api/aqar/listings/[id] routes
  * Tests single listing CRUD operations
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -13,6 +14,12 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 // Mock authentication
 vi.mock("@/server/middleware/withAuthRbac", () => ({
   getSessionUser: vi.fn(),
+  UnauthorizedError: class UnauthorizedError extends Error {
+    constructor(msg: string) {
+      super(msg);
+      this.name = 'UnauthorizedError';
+    }
+  },
 }));
 
 // Mock database
@@ -116,7 +123,9 @@ describe("PATCH /api/aqar/listings/[id]", () => {
       throw new Error("Route handler missing: PATCH");
     }
 
-    vi.mocked(getSessionUser).mockRejectedValue(new Error("Not authenticated"));
+    const authError = new Error("Not authenticated");
+    authError.name = "UnauthorizedError";
+    vi.mocked(getSessionUser).mockRejectedValue(authError);
 
     const validId = "507f1f77bcf86cd799439011";
     const req = new NextRequest(`http://localhost:3000/api/aqar/listings/${validId}`, {
@@ -127,7 +136,7 @@ describe("PATCH /api/aqar/listings/[id]", () => {
       params: Promise.resolve({ id: validId }),
     });
 
-    expect([401, 500]).toContain(response.status);
+    expectAuthFailure(response);
   });
 
   it("returns 400 for invalid ObjectId", async () => {
@@ -166,7 +175,9 @@ describe("DELETE /api/aqar/listings/[id]", () => {
       throw new Error("Route handler missing: DELETE");
     }
 
-    vi.mocked(getSessionUser).mockRejectedValue(new Error("Not authenticated"));
+    const authError = new Error("Not authenticated");
+    authError.name = "UnauthorizedError";
+    vi.mocked(getSessionUser).mockRejectedValue(authError);
 
     const validId = "507f1f77bcf86cd799439011";
     const req = new NextRequest(`http://localhost:3000/api/aqar/listings/${validId}`);
@@ -174,7 +185,7 @@ describe("DELETE /api/aqar/listings/[id]", () => {
       params: Promise.resolve({ id: validId }),
     });
 
-    expect([401, 500]).toContain(response.status);
+    expectAuthFailure(response);
   });
 
   it("returns 400 for invalid ObjectId", async () => {

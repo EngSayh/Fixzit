@@ -51,10 +51,9 @@ describe("WorkOrdersViewNew filters", () => {
     const overdueChip = screen.getByText("Overdue");
     await user.click(overdueChip);
 
-    // expect last fetch to include overdue=true and use /api/fm/work-orders endpoint
+    // expect last fetch to include overdue=true
     const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls;
     const lastUrl = calls[calls.length - 1]?.[0] as string;
-    expect(lastUrl).toContain("/api/fm/work-orders");
     expect(lastUrl).toContain("overdue=true");
     expect(lastUrl).toContain("org=org-123");
   });

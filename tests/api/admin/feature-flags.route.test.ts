@@ -1,39 +1,36 @@
 /**
- * @fileoverview Admin Feature Flags API Route Tests
- * @description Tests for GET/PUT /api/admin/feature-flags endpoint
- * @vitest-environment node
+ * @fileoverview Tests for /api/admin/feature-flags route
+ * @description SUPER_ADMIN only access to feature flags management
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 import { GET, PUT } from "@/app/api/admin/feature-flags/route";
 
-// Mock auth
+// Mock dependencies
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
 }));
 
-// Mock feature flags
 vi.mock("@/lib/feature-flags", () => ({
-  isFeatureEnabled: vi.fn().mockReturnValue(true),
-  listFeatureFlags: vi.fn().mockReturnValue([
-    { id: "dark-mode", name: "Dark Mode", description: "Enable dark mode" },
-    { id: "new-dashboard", name: "New Dashboard", description: "Enable new dashboard UI" },
+  isFeatureEnabled: vi.fn(() => true),
+  listFeatureFlags: vi.fn(() => [
+    { id: "marketplace", name: "Marketplace", defaultEnabled: true },
+    { id: "dark-mode", name: "Dark Mode", defaultEnabled: false },
   ]),
-  setFeatureFlag: vi.fn().mockResolvedValue({ success: true }),
-  getFeatureFlagDefinition: vi.fn().mockReturnValue({
-    id: "dark-mode",
-    name: "Dark Mode",
-    description: "Enable dark mode",
+  setFeatureFlag: vi.fn(() => true),
+  getFeatureFlagDefinition: vi.fn((id: string) => {
+    if (id === "marketplace") {
+      return { id: "marketplace", name: "Marketplace", defaultEnabled: true };
+    }
+    return null;
   }),
 }));
 
-// Mock rate limit
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: vi.fn(() => null),
 }));
 
-// Mock logger
 vi.mock("@/lib/logger", () => ({
   logger: {
     error: vi.fn(),
@@ -45,104 +42,154 @@ vi.mock("@/lib/logger", () => ({
 
 import { auth } from "@/auth";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { listFeatureFlags, getFeatureFlagDefinition, setFeatureFlag } from "@/lib/feature-flags";
 
-function makeGetRequest(): NextRequest {
-  return new NextRequest(new URL("http://localhost:3000/api/admin/feature-flags"));
-}
+const mockAuth = vi.mocked(auth);
+const mockRateLimit = vi.mocked(enforceRateLimit);
+const mockListFlags = vi.mocked(listFeatureFlags);
+const mockGetFlagDef = vi.mocked(getFeatureFlagDefinition);
+const mockSetFlag = vi.mocked(setFeatureFlag);
 
-function makePutRequest(body: unknown): NextRequest {
-  return new NextRequest(new URL("http://localhost:3000/api/admin/feature-flags"), {
-    method: "PUT",
+function createRequest(
+  method: string,
+  body?: object,
+): NextRequest {
+  const url = "http://localhost:3000/api/admin/feature-flags";
+  const init: RequestInit = {
+    method,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  };
+  if (body) {
+    init.body = JSON.stringify(body);
+  }
+  return new NextRequest(url, init);
 }
 
-describe("Admin Feature Flags API Route", () => {
+describe("API /api/admin/feature-flags", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    vi.unstubAllEnvs();
+    vi.stubEnv("NODE_ENV", "test");
+    mockRateLimit.mockReturnValue(null);
+    mockAuth.mockResolvedValue(null);
+    mockListFlags.mockReturnValue([
+      { id: "marketplace", name: "Marketplace", defaultEnabled: true },
+      { id: "dark-mode", name: "Dark Mode", defaultEnabled: false },
+    ]);
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
   });
 
   describe("GET /api/admin/feature-flags", () => {
     it("returns 401 when not authenticated", async () => {
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      mockAuth.mockResolvedValueOnce(null);
 
-      const response = await GET(makeGetRequest());
-      expect(response.status).toBe(401);
-      
-      const json = await response.json();
-      expect(json.error).toBe("Unauthorized");
+      const req = createRequest("GET");
+      const res = await GET(req);
+
+      expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data.error).toBe("Unauthorized");
     });
 
-    it("returns 403 when user is not SUPER_ADMIN", async () => {
-      vi.mocked(auth).mockResolvedValueOnce({
-        user: { id: "user-1", role: "ADMIN", orgId: "org-1" },
+    it("returns 403 when not SUPER_ADMIN", async () => {
+      mockAuth.mockResolvedValueOnce({
+        user: { id: "user1", role: "TECHNICIAN", orgId: "org1" },
         expires: new Date(Date.now() + 86400000).toISOString(),
       });
 
-      const response = await GET(makeGetRequest());
-      expect(response.status).toBe(403);
-      
-      const json = await response.json();
-      expect(json.error).toContain("Forbidden");
+      const req = createRequest("GET");
+      const res = await GET(req);
+
+      expect(res.status).toBe(403);
+      const data = await res.json();
+      expect(data.error).toContain("Forbidden");
     });
 
-    it("returns feature flags for SUPER_ADMIN", async () => {
-      vi.mocked(auth).mockResolvedValueOnce({
-        user: { id: "superadmin-1", role: "SUPER_ADMIN", orgId: "org-1" },
+    it("returns feature flags list for SUPER_ADMIN", async () => {
+      mockAuth.mockResolvedValueOnce({
+        user: { id: "admin1", role: "SUPER_ADMIN", orgId: "org1" },
         expires: new Date(Date.now() + 86400000).toISOString(),
       });
 
-      const response = await GET(makeGetRequest());
-      expect(response.status).toBe(200);
-      
-      const json = await response.json();
-      expect(json).toHaveProperty("flags");
-      expect(json).toHaveProperty("evaluatedAt");
-      expect(Array.isArray(json.flags)).toBe(true);
+      const req = createRequest("GET");
+      const res = await GET(req);
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.flags).toBeDefined();
+      expect(Array.isArray(data.flags)).toBe(true);
+      expect(data.evaluatedAt).toBeDefined();
     });
 
-    it("returns flags with enabled status", async () => {
-      vi.mocked(auth).mockResolvedValueOnce({
-        user: { id: "superadmin-1", role: "SUPER_ADMIN", orgId: "org-1" },
-        expires: new Date(Date.now() + 86400000).toISOString(),
-      });
+    it("enforces rate limiting", async () => {
+      mockRateLimit.mockReturnValueOnce(
+        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+          status: 429,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
 
-      const response = await GET(makeGetRequest());
-      const json = await response.json();
-      
-      expect(json.flags[0]).toHaveProperty("enabled");
+      const req = createRequest("GET");
+      const res = await GET(req);
+
+      expect(res.status).toBe(429);
     });
   });
 
   describe("PUT /api/admin/feature-flags", () => {
     it("returns 401 when not authenticated", async () => {
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      mockAuth.mockResolvedValueOnce(null);
 
-      const response = await PUT(makePutRequest({ flagId: "dark-mode", enabled: true }));
-      expect(response.status).toBe(401);
+      const req = createRequest("PUT", { id: "marketplace", enabled: false });
+      const res = await PUT(req);
+
+      expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data.error).toBe("Unauthorized");
     });
 
-    it("returns 403 when user is not SUPER_ADMIN", async () => {
-      vi.mocked(auth).mockResolvedValueOnce({
-        user: { id: "user-1", role: "MANAGER", orgId: "org-1" },
+    it("returns 403 when not SUPER_ADMIN", async () => {
+      mockAuth.mockResolvedValueOnce({
+        user: { id: "user1", role: "ADMIN", orgId: "org1" },
         expires: new Date(Date.now() + 86400000).toISOString(),
       });
 
-      const response = await PUT(makePutRequest({ flagId: "dark-mode", enabled: true }));
-      expect(response.status).toBe(403);
+      const req = createRequest("PUT", { id: "marketplace", enabled: false });
+      const res = await PUT(req);
+
+      expect(res.status).toBe(403);
+      const data = await res.json();
+      expect(data.error).toContain("Forbidden");
     });
 
-    it("validates request body for SUPER_ADMIN", async () => {
-      vi.mocked(auth).mockResolvedValueOnce({
-        user: { id: "superadmin-1", role: "SUPER_ADMIN", orgId: "org-1" },
+    it("returns 400 when body is invalid", async () => {
+      mockAuth.mockResolvedValueOnce({
+        user: { id: "admin1", role: "SUPER_ADMIN", orgId: "org1" },
         expires: new Date(Date.now() + 86400000).toISOString(),
       });
 
-      const response = await PUT(makePutRequest({ flagId: "dark-mode", enabled: false }));
-      // Route validates body format - 200 for valid, 400 for missing required fields
-      expect([200, 400]).toContain(response.status);
+      const req = createRequest("PUT", { id: "marketplace" }); // missing enabled
+      const res = await PUT(req);
+
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 404 for unknown feature flag", async () => {
+      mockAuth.mockResolvedValueOnce({
+        user: { id: "admin1", role: "SUPER_ADMIN", orgId: "org1" },
+        expires: new Date(Date.now() + 86400000).toISOString(),
+      });
+      mockGetFlagDef.mockReturnValueOnce(null);
+
+      const req = createRequest("PUT", { id: "unknown-flag", enabled: true });
+      const res = await PUT(req);
+
+      expect(res.status).toBe(404);
+      const data = await res.json();
+      expect(data.error).toContain("Unknown");
     });
   });
 });

@@ -1,5 +1,4 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
-import mongoose from "mongoose";
 
 type StartOptions = {
   launchTimeoutMs?: number;
@@ -47,33 +46,4 @@ export async function startMongoMemoryServer(
     }
   }
   throw lastError ?? new Error("MongoMemoryServer failed to start");
-}
-
-let singletonServer: MongoMemoryServer | null = null;
-
-export async function startMongoMemory(
-  options: StartOptions = {},
-): Promise<MongoMemoryServer> {
-  if (singletonServer) return singletonServer;
-  singletonServer = await startMongoMemoryServer(options);
-  const uri = singletonServer.getUri();
-  await mongoose.connect(uri, { dbName: "test" });
-  return singletonServer;
-}
-
-export async function stopMongoMemory(): Promise<void> {
-  if (!singletonServer) return;
-  try {
-    await mongoose.connection.close();
-  } catch {
-    // ignore
-  }
-  await singletonServer.stop();
-  singletonServer = null;
-}
-
-export async function clearCollections(): Promise<void> {
-  if (mongoose.connection.readyState !== 1) return;
-  const collections = Object.values(mongoose.connection.collections);
-  await Promise.all(collections.map((collection) => collection.deleteMany({})));
 }

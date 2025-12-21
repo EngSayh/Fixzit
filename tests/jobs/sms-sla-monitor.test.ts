@@ -1,8 +1,7 @@
 /**
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mockFetch, restoreFetch } from "@/tests/helpers/domMocks";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 vi.mock("@/server/models/SMSSettings", () => ({
   SMSSettings: {
@@ -26,36 +25,63 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
+// Mock SSRF validator to allow valid HTTPS URLs
+vi.mock("@/lib/security/validate-public-https-url", () => ({
+  validatePublicHttpsUrl: vi.fn().mockImplementation((url: string) => {
+    // Reject HTTP
+    if (url.startsWith("http://")) {
+      return Promise.reject(new Error("Only HTTPS URLs are allowed"));
+    }
+    // Reject localhost
+    if (url.includes("localhost") || url.includes("127.0.0.1")) {
+      return Promise.reject(new Error("Localhost/loopback URLs are not allowed"));
+    }
+    // Accept valid HTTPS
+    return Promise.resolve(new URL(url));
+  }),
+  isValidPublicHttpsUrl: vi.fn().mockImplementation(async (url: string) => {
+    // Reject HTTP
+    if (url.startsWith("http://")) {
+      return false;
+    }
+    // Reject localhost
+    if (url.includes("localhost") || url.includes("127.0.0.1")) {
+      return false;
+    }
+    // Accept valid HTTPS
+    return true;
+  }),
+}));
+
 type SmsSettingsModule = typeof import("@/server/models/SMSSettings");
 type EmailModule = typeof import("@/lib/email");
 type LoggerModule = typeof import("@/lib/logger");
 type SmsMonitorModule = typeof import("@/lib/jobs/sms-sla-monitor");
+type ValidatorModule = typeof import("@/lib/security/validate-public-https-url");
 
 let SMSSettings: SmsSettingsModule["SMSSettings"];
 let sendEmail: EmailModule["sendEmail"];
 let logger: LoggerModule["logger"];
 let sendBreachNotification: SmsMonitorModule["sendBreachNotification"];
-let fetchSpy: ReturnType<typeof mockFetch>;
+let validatePublicHttpsUrl: ValidatorModule["validatePublicHttpsUrl"];
 
 const reloadModules = async () => {
   ({ SMSSettings } = await import("@/server/models/SMSSettings"));
   ({ sendEmail } = await import("@/lib/email"));
   ({ logger } = await import("@/lib/logger"));
   ({ sendBreachNotification } = await import("@/lib/jobs/sms-sla-monitor"));
+  ({ validatePublicHttpsUrl } = await import("@/lib/security/validate-public-https-url"));
 };
 
 describe("SLA Breach Notification Webhook SSRF guard", () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
-    fetchSpy = mockFetch();
+    
     await reloadModules();
     vi.mocked(sendEmail).mockResolvedValue(undefined as any);
-    fetchSpy.mockResolvedValue({ ok: true } as Response);
-  });
-
-  afterEach(() => {
-    restoreFetch();
+    // @ts-expect-error set global fetch for tests
+    global.fetch = vi.fn().mockResolvedValue({ ok: true });
   });
 
   const mockMessages = [
@@ -76,7 +102,7 @@ describe("SLA Breach Notification Webhook SSRF guard", () => {
 
     await sendBreachNotification("org_123", mockMessages as any);
 
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalled();
   });
 
@@ -88,8 +114,8 @@ describe("SLA Breach Notification Webhook SSRF guard", () => {
 
     await sendBreachNotification("org_123", mockMessages as any);
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(fetchSpy).toHaveBeenCalledWith(
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
       "https://hooks.example.com/notify",
       expect.objectContaining({ method: "POST" })
     );

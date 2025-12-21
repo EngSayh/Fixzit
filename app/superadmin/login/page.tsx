@@ -8,7 +8,6 @@
  */
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Lock, AlertCircle, Shield, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +29,6 @@ type FieldErrors = {
 };
 
 export default function SuperadminLoginPage() {
-  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [secretKey, setSecretKey] = useState("");
@@ -71,8 +69,11 @@ export default function SuperadminLoginPage() {
         return;
       }
 
-      // Redirect to superadmin dashboard
-      router.push("/superadmin/issues");
+      // CRITICAL: Use window.location.href for full page reload after login
+      // router.push() uses client-side navigation which doesn't properly
+      // send the newly-set httpOnly cookie to the server on first request.
+      // A full page reload ensures the browser includes the cookie.
+      window.location.href = "/superadmin/issues";
     } catch (_err) {
       setError("Connection error. Please try again.");
     } finally {

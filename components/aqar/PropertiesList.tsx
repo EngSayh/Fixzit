@@ -19,7 +19,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Chip } from "@/components/ui/chip";
-import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
 import { Home, Plus, RefreshCcw, Search, Filter, Bed, Bath, Maximize } from "lucide-react";
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
@@ -34,7 +33,6 @@ import {
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
-import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -75,7 +73,7 @@ const statusStyles: Record<string, string> = {
   RESERVED: "bg-warning/10 text-warning border border-warning/20",
 };
 
-export type PropertyFilters = {
+type PropertyFilters = {
   type?: string;
   listingType?: string;
   city?: string;
@@ -88,7 +86,7 @@ export type PropertyFilters = {
   bathroomsMax?: number;
 };
 
-export const PROPERTY_FILTER_SCHEMA: FilterSchema<PropertyFilters>[] = [
+const PROPERTY_FILTER_SCHEMA: FilterSchema<PropertyFilters>[] = [
   { key: "type", param: "type", label: (f) => `Type: ${f.type}` },
   { key: "listingType", param: "listingType", label: (f) => `Listing: ${f.listingType}` },
   { key: "city", param: "city", label: (f) => `City: ${f.city}` },
@@ -171,17 +169,6 @@ export type PropertiesListProps = {
 };
 
 export function PropertiesList({ orgId }: PropertiesListProps) {
-  // P92: Performance observability markers
-  React.useEffect(() => {
-    if (typeof performance !== 'undefined' && performance.mark) {
-      performance.mark('PropertiesList:mount');
-      return () => {
-        performance.mark('PropertiesList:unmount');
-        performance.measure('PropertiesList:lifetime', 'PropertiesList:mount', 'PropertiesList:unmount');
-      };
-    }
-  }, []);
-
   const { state, updateState, resetState } = useTableQueryState("aqar-properties", {
     page: 1,
     pageSize: 20,
@@ -216,8 +203,6 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
   const properties = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
-  const filters = state.filters as PropertyFilters;
-  const currentFilters = state.filters || {};
 
   // Auto-switch to cards on mobile
   React.useEffect(() => {
@@ -240,8 +225,30 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
     [state.filters, updateState]
   );
 
-  // Table columns - memoized to prevent re-render churn (must be before early return)
-  const columns = useMemo<DataTableColumn<PropertyRecord>[]>(() => [
+  // Early return AFTER all hooks
+  if (tenantMissing) {
+    return (
+      <div className="p-6">
+        <EmptyState
+          icon={Home}
+          title="Organization required"
+          description="Tenant context is missing. Please select an organization to view properties."
+        />
+      </div>
+    );
+  }
+
+  // Quick chips (P0)
+  const quickChips = [
+    { key: "rent", label: "Rent", onClick: () => updateState({ filters: { listingType: "RENT" }, page: 1 }) },
+    { key: "sale", label: "Sale", onClick: () => updateState({ filters: { listingType: "SALE" }, page: 1 }) },
+    { key: "featured", label: "Featured", onClick: () => updateState({ filters: { featured: true }, page: 1 }) },
+    { key: "riyadh", label: "Riyadh", onClick: () => updateState({ filters: { city: "Riyadh" }, page: 1 }) },
+    { key: "2-3br", label: "2-3 BR", onClick: () => updateState({ filters: { bedroomsMin: 2, bedroomsMax: 3 }, page: 1 }) },
+  ];
+
+  // Table columns
+  const columns: DataTableColumn<PropertyRecord>[] = [
     {
       id: "property",
       header: "Property",
@@ -317,53 +324,6 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
           <Badge className={statusStyles[row.status]}>{row.status}</Badge>
         </div>
       ),
-    },
-  ], []);
-
-  // Early return AFTER all hooks
-  if (tenantMissing) {
-    return (
-      <div className="p-6">
-        <EmptyState
-          icon={Home}
-          title="Organization required"
-          description="Tenant context is missing. Please select an organization to view properties."
-        />
-      </div>
-    );
-  }
-
-  // Quick chips (P0)
-  const quickChips = [
-    {
-      key: "rent",
-      label: "Rent",
-      onClick: () => updateState({ filters: { listingType: "RENT" }, page: 1 }),
-      selected: filters.listingType === "RENT",
-    },
-    {
-      key: "sale",
-      label: "Sale",
-      onClick: () => updateState({ filters: { listingType: "SALE" }, page: 1 }),
-      selected: filters.listingType === "SALE",
-    },
-    {
-      key: "featured",
-      label: "Featured",
-      onClick: () => updateState({ filters: { featured: true }, page: 1 }),
-      selected: Boolean(filters.featured),
-    },
-    {
-      key: "riyadh",
-      label: "Riyadh",
-      onClick: () => updateState({ filters: { city: "Riyadh" }, page: 1 }),
-      selected: filters.city === "Riyadh",
-    },
-    {
-      key: "2-3br",
-      label: "2-3 BR",
-      onClick: () => updateState({ filters: { bedroomsMin: 2, bedroomsMax: 3 }, page: 1 }),
-      selected: filters.bedroomsMin === 2 && filters.bedroomsMax === 3,
     },
   ];
 
@@ -449,22 +409,6 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
     setFilterDrawerOpen(false);
   };
 
-  const handleLoadPreset = (
-    presetFilters: Record<string, unknown>,
-    _sort?: { field: string; direction: "asc" | "desc" },
-    search?: string
-  ) => {
-    const normalizedFilters = pickSchemaFilters<PropertyFilters>(
-      presetFilters,
-      PROPERTY_FILTER_SCHEMA
-    );
-    setDraftFilters(normalizedFilters);
-    updateState({
-      filters: normalizedFilters,
-      q: typeof search === "string" ? search : "",
-    });
-  };
-
   return (
     <div className="space-y-6 p-6">
       {/* PageHeader */}
@@ -506,7 +450,7 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
+                <Chip key={chip.key} onClick={chip.onClick}>
                   {chip.label}
                 </Chip>
               ))}
@@ -516,48 +460,15 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
         end={
           <>
             <div className="hidden md:flex gap-2">
-              <Button
-                variant={viewMode === "table" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("table")}
-                aria-pressed={viewMode === "table"}
-                aria-label="Show table view"
-              >
+              <Button variant={viewMode === "table" ? "default" : "outline"} size="sm" onClick={() => setViewMode("table")}>
                 Table
               </Button>
-              <Button
-                variant={viewMode === "cards" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("cards")}
-                aria-pressed={viewMode === "cards"}
-                aria-label="Show card view"
-              >
+              <Button variant={viewMode === "cards" ? "default" : "outline"} size="sm" onClick={() => setViewMode("cards")}>
                 Cards
               </Button>
             </div>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <FilterPresetsDropdown
-              entityType="properties"
-              currentFilters={pickSchemaFilters<PropertyFilters>(
-                currentFilters,
-                PROPERTY_FILTER_SCHEMA
-              )}
-              currentSearch={state.q}
-              normalizeFilters={(filters) =>
-                pickSchemaFilters<PropertyFilters>(
-                  filters,
-                  PROPERTY_FILTER_SCHEMA
-                )
-              }
-              onLoadPreset={handleLoadPreset}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFilterDrawerOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={filterDrawerOpen}
-            >
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (

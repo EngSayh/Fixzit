@@ -6,12 +6,7 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, describe, test, expect, beforeEach, afterEach } from "vitest";
-import {
-  mockClipboard,
-  restoreClipboard,
-  mockFetch,
-  restoreFetch,
-} from "@/tests/helpers/domMocks";
+import { mockClipboard, restoreClipboard, mockFetch, restoreFetch } from "@/tests/helpers/domMocks";
 // Note: @ts-expect-error annotations in this file are used only to mock clipboard APIs in jsdom.
 
 // Using path mapping for cleaner imports
@@ -23,7 +18,6 @@ const origFetch = global.fetch;
 const origGetItem = window.localStorage.getItem;
 const origSetItem = window.localStorage.setItem;
 const origRemoveItem = window.localStorage.removeItem;
-let clipboardMock: { writeText: ReturnType<typeof vi.fn> };
 
 beforeEach(() => {
   // jsdom localStorage is available; ensure deterministic state
@@ -38,7 +32,7 @@ beforeEach(() => {
     store.delete(key);
   });
   window.alert = vi.fn();
-  clipboardMock = mockClipboard();
+  mockClipboard();
   mockFetch();
 });
 
@@ -185,7 +179,7 @@ describe("SupportPopup - copy details", () => {
 
   test("silently ignores clipboard errors", async () => {
     // Intentional override of mock for error testing
-    clipboardMock.writeText = vi
+    navigator.clipboard.writeText = vi
       .fn()
       .mockRejectedValue(new Error("Clipboard denied"));
     render(<SupportPopup open={true} onClose={vi.fn()} />);

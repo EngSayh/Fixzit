@@ -1,0 +1,19 @@
+{
+  "generated": "2025-12-20",
+  "version": "2.0",
+  "baseline": {
+    "staticSkipMarkers": 925,
+    "vitestSkippedTests": 0,
+    "todoCount": 54,
+    "threshold": {
+      "warnIfGrowsBy": 10,
+      "failIfGrowsBy": 50
+    }
+  },
+  "notes": [
+    "Baseline established from system-wide audit 2025-12-20",
+    "staticSkipMarkers: grep count of .skip in test files",
+    "vitestSkippedTests: actual skipped tests from vitest.json at runtime",
+    "CI should warn if either count grows beyond threshold"
+  ]
+}

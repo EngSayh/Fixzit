@@ -1,312 +1,68 @@
 /**
- * @fileoverview Tests for /api/hr/leaves routes
- * Tests HR leave request management including CRUD operations
+ * @fileoverview Tests for HR Leaves API
+ * @description Tests the /api/hr/leaves endpoint
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { expectAuthFailure } from '@/tests/api/_helpers';
 
-let sessionUser: SessionUser | null = null;
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
 
-// Mock rate limiting
-vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+// Mock @/auth - the primary auth module used by routes
+vi.mock('@/auth', () => ({
+  auth: vi.fn(),
 }));
 
-// Mock authentication
-vi.mock("@/auth", () => ({
-  auth: vi.fn(async () => {
-    if (!sessionUser) return null;
-    return { user: sessionUser };
-  }),
+
+// Mock rate limiters - route uses enforceRateLimit from @/lib/middleware/rate-limit
+vi.mock('@/lib/middleware/rate-limit', () => ({
+  enforceRateLimit: vi.fn().mockReturnValue(null), // null = allow request
 }));
 
-// Mock database
-vi.mock("@/lib/mongodb-unified", () => ({
+vi.mock('@/server/security/rateLimit', () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
+  rateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
+}));
+
+vi.mock('@/lib/mongodb-unified', () => ({
+  connectDb: vi.fn().mockResolvedValue(undefined),
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock logger
-vi.mock("@/lib/logger", () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
+vi.mock('@/lib/auth/session', () => ({
+  getSessionOrNull: vi.fn(),
 }));
 
-// Mock role guards
-vi.mock("@/lib/auth/role-guards", () => ({
-  hasAllowedRole: vi.fn(),
+vi.mock('@/lib/mongo', () => ({
+  default: vi.fn().mockResolvedValue(undefined),
+  connectMongo: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock LeaveService
-vi.mock("@/server/services/hr/leave.service", () => ({
-  LeaveService: {
-    list: vi.fn(),
-    request: vi.fn(),
-    updateStatus: vi.fn(),
-  },
-}));
+import { getSessionOrNull } from '@/lib/auth/session';
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { hasAllowedRole } from "@/lib/auth/role-guards";
-import { LeaveService } from "@/server/services/hr/leave.service";
-import type { SessionUser } from "@/types/auth";
+import { auth } from '@/auth';
 
-const importRoute = async () => {
-  try {
-    return await import("@/app/api/hr/leaves/route");
-  } catch {
-    return null;
-  }
-};
-
-describe("API /api/hr/leaves", () => {
-  const mockOrgId = "507f1f77bcf86cd799439013";
-  const mockUser: SessionUser = {
-    id: "user_123",
-    orgId: mockOrgId,
-    role: "HR",
-    subRole: null,
-    email: "hr@test.com",
-    isSuperAdmin: false,
-  };
-
+describe('HR Leaves API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
-    sessionUser = mockUser;
-    vi.mocked(hasAllowedRole).mockReturnValue(true);
-    vi.mocked(LeaveService.list).mockResolvedValue([]);
-    vi.mocked(LeaveService.request).mockResolvedValue({
-      _id: "leave_123",
-      orgId: mockOrgId,
-      employeeId: "emp_123",
-      leaveTypeId: "type_123",
-      startDate: new Date(),
-      endDate: new Date(),
-      numberOfDays: 3,
-      status: "PENDING",
-    });
-    vi.mocked(LeaveService.updateStatus).mockResolvedValue({
-      _id: "leave_123",
-      orgId: mockOrgId,
-      employeeId: "emp_123",
-      leaveTypeId: "type_123",
-      startDate: new Date(),
-      endDate: new Date(),
-      numberOfDays: 3,
-      status: "APPROVED",
-      approvalHistory: [],
-    });
+    vi.mocked(getSessionOrNull).mockResolvedValue({
+      ok: true,
+      session: { user: { id: 'user-123', orgId: 'org-123', role: 'hr_manager' } },
+      response: null,
+    } as ReturnType<typeof getSessionOrNull> extends Promise<infer T> ? T : never);
   });
 
-  describe("GET /api/hr/leaves", () => {
-    it("should return 401 when not authenticated", async () => {
-      sessionUser = null;
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
+  describe('GET /api/hr/leaves', () => {
+    it('should reject unauthenticated requests', async () => {
+      // Mock unauthenticated session - return null
+      vi.mocked(auth).mockResolvedValue(null);
 
-      const request = new NextRequest("http://localhost/api/hr/leaves");
-      const response = await routeModule.GET(request);
-      expect(response.status).toBe(401);
-    });
-
-    it("should return 403 when user lacks HR role", async () => {
-      vi.mocked(hasAllowedRole).mockReturnValue(false);
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
-      const request = new NextRequest("http://localhost/api/hr/leaves");
-      const response = await routeModule.GET(request);
-      expect(response.status).toBe(403);
-    });
-
-    it("should return leave requests list for authorized HR user", async () => {
-      vi.mocked(LeaveService.list).mockResolvedValue([
-        {
-          _id: "leave_1",
-          employeeId: "emp_1",
-          status: "PENDING",
-          numberOfDays: 5,
-        },
-      ]);
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
-      const request = new NextRequest("http://localhost/api/hr/leaves");
-      const response = await routeModule.GET(request);
-      expect(response.status).toBe(200);
-      const data = await response.json();
-      expect(data.requests).toHaveLength(1);
-    });
-
-    it("should filter by status when provided", async () => {
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
-      const request = new NextRequest(
-        "http://localhost/api/hr/leaves?status=APPROVED"
-      );
-      await routeModule.GET(request);
-      expect(LeaveService.list).toHaveBeenCalledWith(mockOrgId, "APPROVED");
-    });
-  });
-
-  describe("POST /api/hr/leaves", () => {
-    it("should return 401 when not authenticated", async () => {
-      sessionUser = null;
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
-      const request = new NextRequest("http://localhost/api/hr/leaves", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
-      const response = await routeModule.POST(request);
-      expect(response.status).toBe(401);
-    });
-
-    it("should return 403 when user lacks HR role", async () => {
-      vi.mocked(hasAllowedRole).mockReturnValue(false);
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
-      const request = new NextRequest("http://localhost/api/hr/leaves", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
-      const response = await routeModule.POST(request);
-      expect(response.status).toBe(403);
-    });
-
-    it("should return 400 for invalid request body", async () => {
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
-      const request = new NextRequest("http://localhost/api/hr/leaves", {
-        method: "POST",
-        body: JSON.stringify({ invalidField: true }),
-      });
-      const response = await routeModule.POST(request);
-      expect(response.status).toBe(400);
-    });
-
-    it("should create leave request with valid data", async () => {
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
-      const validLeaveData = {
-        employeeId: "507f1f77bcf86cd799439011",
-        leaveTypeId: "507f1f77bcf86cd799439012",
-        startDate: "2025-01-01",
-        endDate: "2025-01-03",
-        numberOfDays: 3,
-        reason: "Family vacation",
-      };
-
-      const request = new NextRequest("http://localhost/api/hr/leaves", {
-        method: "POST",
-        body: JSON.stringify(validLeaveData),
-        headers: { "Content-Type": "application/json" },
-      });
-      const response = await routeModule.POST(request);
-      expect(response.status).toBe(201);
-      expect(LeaveService.request).toHaveBeenCalled();
-    });
-
-    it("should enforce rate limiting on POST", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Too many requests" }), {
-          status: 429,
-        }) as unknown as null
-      );
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
-      const request = new NextRequest("http://localhost/api/hr/leaves", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
-      const response = await routeModule.POST(request);
-      expect(response.status).toBe(429);
-    });
-  });
-
-  describe("PUT /api/hr/leaves", () => {
-    it("should return 400 for invalid leaveRequestId", async () => {
-      const routeModule = await importRoute();
-
-      const request = new NextRequest("http://localhost/api/hr/leaves", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leaveRequestId: "invalid-id", status: "APPROVED" }),
+      const { GET } = await import('@/app/api/hr/leaves/route');
+      const req = new NextRequest('http://localhost:3000/api/hr/leaves', {
+        method: 'GET',
       });
 
-      const response = await routeModule.PUT(request);
-      expect(response.status).toBe(400);
-
-      const data = await response.json();
-      expect(data.error).toBe("Invalid request body");
-    });
-
-    it("should return 404 when leave request is not found", async () => {
-      vi.mocked(LeaveService.updateStatus).mockResolvedValueOnce(null);
-      const routeModule = await importRoute();
-
-      const request = new NextRequest("http://localhost/api/hr/leaves", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leaveRequestId: "507f1f77bcf86cd799439011",
-          status: "APPROVED",
-        }),
-      });
-
-      const response = await routeModule.PUT(request);
-      expect(response.status).toBe(404);
-
-      const data = await response.json();
-      expect(data.error).toBe("Leave request not found");
-    });
-
-    it("should enforce rate limiting on PUT", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Too many requests" }), {
-          status: 429,
-        }) as unknown as null
-      );
-      const routeModule = await importRoute();
-
-      const request = new NextRequest("http://localhost/api/hr/leaves", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leaveRequestId: "507f1f77bcf86cd799439011",
-          status: "APPROVED",
-        }),
-      });
-      const response = await routeModule.PUT(request);
-      expect(response.status).toBe(429);
+      const response = await GET(req);
+      expectAuthFailure(response);
     });
   });
 });

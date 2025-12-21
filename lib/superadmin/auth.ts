@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
+import { timingSafeEqual } from "crypto";
 import { logger } from "@/lib/logger";
 
 export interface SuperadminSession {
@@ -12,11 +13,30 @@ export interface SuperadminSession {
   expiresAt: number;
 }
 
-const SECRET_FALLBACK =
-  process.env.SUPERADMIN_JWT_SECRET ||
-  process.env.NEXTAUTH_SECRET ||
-  process.env.AUTH_SECRET ||
-  "change-me-superadmin-secret";
+// P0 FIX: JWT secret MUST be deterministic across all serverless instances.
+// In production, require an explicit secret to prevent session verification failures
+// when requests hit different Vercel instances with different random secrets.
+function getSuperadminJwtSecret(): string {
+  const secret = process.env.SUPERADMIN_JWT_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    process.env.AUTH_SECRET;
+
+  if (!secret && process.env.NODE_ENV === "production") {
+    // CRITICAL: Fail fast in production if no secret is configured
+    // This prevents the "login works but redirect fails" issue caused by
+    // different serverless instances using different random secrets
+    logger.error("[SUPERADMIN] CRITICAL: Missing JWT secret in production. Set SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET.");
+    throw new Error("SUPERADMIN_JWT_SECRET is required in production");
+  }
+
+  // Development fallback only (logs warning)
+  if (!secret) {
+    logger.warn("[SUPERADMIN] Using fallback secret in development. Set SUPERADMIN_JWT_SECRET for production.");
+    return "dev-only-superadmin-secret-not-for-production";
+  }
+
+  return secret;
+}
 
 export const SUPERADMIN_COOKIE_NAME = "superadmin_session";
 const SUPERADMIN_COOKIE_PATH = "/";
@@ -31,7 +51,21 @@ type RateEntry = { count: number; expiresAt: number };
 const rateLimiter = new Map<string, RateEntry>();
 
 const encoder = new TextEncoder();
-const jwtSecret = encoder.encode(SECRET_FALLBACK);
+// Use deterministic secret getter instead of module-level constant
+let _jwtSecretCached: Uint8Array | null = null;
+function getJwtSecretBytes(): Uint8Array {
+  if (!_jwtSecretCached) {
+    _jwtSecretCached = encoder.encode(getSuperadminJwtSecret());
+  }
+  return _jwtSecretCached;
+}
+
+function timingSafeEquals(value: string, expected: string): boolean {
+  const valueBuffer = Buffer.from(value);
+  const expectedBuffer = Buffer.from(expected);
+  if (valueBuffer.length !== expectedBuffer.length) return false;
+  return timingSafeEqual(valueBuffer, expectedBuffer);
+}
 
 function resolveOrgId(): string | null {
   const orgId =
@@ -77,28 +111,36 @@ export function isRateLimited(ip: string): boolean {
   return entry.count > RATE_LIMIT_MAX;
 }
 
-export async function verifySuperadminPassword(password: string): Promise<boolean> {
+export type PasswordVerifyResult = { ok: true } | { ok: false; reason: 'not_configured' | 'invalid' };
+
+export async function verifySuperadminPassword(password: string): Promise<PasswordVerifyResult> {
   const configuredHash = process.env.SUPERADMIN_PASSWORD_HASH;
   const plainPassword = process.env.SUPERADMIN_PASSWORD;
 
   if (!configuredHash && !plainPassword) {
-    logger.error("[SUPERADMIN] SUPERADMIN_PASSWORD_HASH or SUPERADMIN_PASSWORD not configured");
-    return false;
+    logger.error("[SUPERADMIN] CRITICAL: SUPERADMIN_PASSWORD_HASH or SUPERADMIN_PASSWORD not configured");
+    logger.error("[SUPERADMIN] Please set one of these environment variables in Vercel/production");
+    return { ok: false, reason: 'not_configured' };
   }
 
+  // Option 1: Bcrypt hash configured (production recommended)
   if (configuredHash) {
-    return bcrypt.compare(password, configuredHash);
+    const match = await bcrypt.compare(password, configuredHash);
+    return match ? { ok: true } : { ok: false, reason: 'invalid' };
   }
 
-  // Hash the provided plaintext password from env once per process
-  const derivedHash = await bcrypt.hash(plainPassword || "", 10);
-  return bcrypt.compare(password, derivedHash);
+  // Option 2: Plaintext password configured (development/testing only)
+  // Simple string equality - no hashing needed
+  // plainPassword is guaranteed to exist here (checked above)
+  const match = timingSafeEquals(password, plainPassword!);
+  return match ? { ok: true } : { ok: false, reason: 'invalid' };
 }
 
 export function validateSecondFactor(secretFromRequest?: string): boolean {
   const envSecret = process.env.SUPERADMIN_SECRET_KEY;
   if (!envSecret) return true;
-  return envSecret === secretFromRequest;
+  if (!secretFromRequest) return false;
+  return timingSafeEquals(secretFromRequest, envSecret);
 }
 
 export async function signSuperadminToken(username: string): Promise<string> {
@@ -118,13 +160,13 @@ export async function signSuperadminToken(username: string): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt(issuedAt)
     .setExpirationTime(expiresAt)
-    .sign(jwtSecret);
+    .sign(getJwtSecretBytes());
 }
 
 export async function decodeSuperadminToken(token?: string | null): Promise<SuperadminSession | null> {
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, jwtSecret);
+    const { payload } = await jwtVerify(token, getJwtSecretBytes());
     if (payload.role !== "super_admin" || !payload.sub || !payload.orgId) {
       return null;
     }
@@ -166,7 +208,7 @@ export async function getSuperadminSessionFromCookies(): Promise<SuperadminSessi
 }
 
 export function applySuperadminCookies(
-  response: Response,
+  response: NextResponse,
   token: string,
   maxAgeSeconds: number
 ): void {
@@ -174,35 +216,30 @@ export function applySuperadminCookies(
   const sameSite: "lax" | "strict" = "lax";
 
   // Single root-scoped cookie so UI (/superadmin) and API (/api/superadmin, /api/issues) both receive it
-  const respWithCookies = response as Response & { cookies?: { set: (name: string, value: string, opts: Record<string, unknown>) => void } };
-  if (respWithCookies.cookies && typeof respWithCookies.cookies.set === "function") {
-    respWithCookies.cookies.set(SUPERADMIN_COOKIE_NAME, token, {
-      httpOnly: true,
-      secure,
-      sameSite,
-      path: SUPERADMIN_COOKIE_PATH,
-      maxAge: maxAgeSeconds,
-      priority: "high",
-    });
-  }
+  // NextResponse.cookies.set() is the proper way to set cookies in Next.js 13+ App Router
+  response.cookies.set(SUPERADMIN_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure,
+    sameSite,
+    path: SUPERADMIN_COOKIE_PATH,
+    maxAge: maxAgeSeconds,
+    priority: "high",
+  });
 }
 
-export function clearSuperadminCookies(response: Response): void {
-  const respWithCookies = response as Response & { cookies?: { set: (name: string, value: string, opts: Record<string, unknown>) => void } };
-  if (respWithCookies.cookies && typeof respWithCookies.cookies.set === "function") {
-    const cookieNames = [SUPERADMIN_COOKIE_NAME, `${SUPERADMIN_COOKIE_NAME}.legacy`];
-    const cookiePaths = Array.from(new Set([SUPERADMIN_COOKIE_PATH, ...LEGACY_COOKIE_PATHS]));
+export function clearSuperadminCookies(response: NextResponse): void {
+  const cookieNames = [SUPERADMIN_COOKIE_NAME, `${SUPERADMIN_COOKIE_NAME}.legacy`];
+  const cookiePaths = Array.from(new Set([SUPERADMIN_COOKIE_PATH, ...LEGACY_COOKIE_PATHS]));
 
-    for (const name of cookieNames) {
-      for (const path of cookiePaths) {
-        respWithCookies.cookies.set(name, "", {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path,
-          maxAge: 0,
-        });
-      }
+  for (const name of cookieNames) {
+    for (const path of cookiePaths) {
+      response.cookies.set(name, "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path,
+        maxAge: 0,
+      });
     }
   }
 }

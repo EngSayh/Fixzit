@@ -184,17 +184,31 @@ function makeCategories(cats: Category[]) {
 }
 
 beforeEach(() => {
+  // Clear all mock implementations and call counts first
+  vi.clearAllMocks();
+  
+  // Fully reset module state to ensure test isolation under shuffle
+  _productsState = {}
+  _categoriesState = {}
+  
   // Reset SWR mocks - set all properties explicitly
   setSWRProducts({ data: makeCatalog([]), isLoading: false, error: undefined, mutate: jestLike.fn() })
   setSWRCategories({ data: makeCategories([{ id: 'c1', name: 'Materials', slug: 'materials' }]), isLoading: false, error: undefined })
   useSWRCalls.length = 0
 
-  // Reset cookies/localStorage
-  document.cookie = ''
+  // Reset cookies properly - delete each cookie by setting expiry in past
+  document.cookie.split(';').forEach((c) => {
+    const eqPos = c.indexOf('=');
+    const name = eqPos > -1 ? c.substring(0, eqPos).trim() : c.trim();
+    if (name) {
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+    }
+  });
   localStorage.clear()
 
-  // Reset fetch mock
-vi.stubGlobal('fetch', undefined as unknown as typeof fetch);
+  // Reset fetch mock - unstub first then stub fresh
+  vi.unstubAllGlobals();
+  vi.stubGlobal('fetch', undefined as unknown as typeof fetch);
 })
 
 describe('CatalogView - basic rendering', () => {

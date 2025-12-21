@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Chip } from "@/components/ui/chip";
-import { Receipt, Plus, RefreshCcw, Search, Filter, AlertCircle, Download, Printer } from "lucide-react";
+import { Receipt, Plus, RefreshCcw, Search, Filter, AlertCircle } from "lucide-react";
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
 import { CardList } from "@/components/tables/CardList";
@@ -31,17 +31,13 @@ import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
-import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
 import {
   buildActiveFilterChips,
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
-import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
-import { logger } from "@/lib/logger";
-import { useTranslation } from "@/contexts/TranslationContext";
 
 type InvoiceRecord = {
   id: string;
@@ -75,7 +71,7 @@ const statusStyles: Record<string, string> = {
   CANCELLED: "bg-muted text-muted-foreground border border-border",
 };
 
-export type InvoiceFilters = {
+type InvoiceFilters = {
   status?: string;
   amountMin?: number;
   amountMax?: number;
@@ -86,7 +82,7 @@ export type InvoiceFilters = {
   dueTo?: string;
 };
 
-export const INVOICE_FILTER_SCHEMA: FilterSchema<InvoiceFilters>[] = [
+const INVOICE_FILTER_SCHEMA: FilterSchema<InvoiceFilters>[] = [
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   {
     key: "amountMin",
@@ -176,18 +172,6 @@ export function buildInvoicesQuery(state: ReturnType<typeof useTableQueryState>[
 }
 
 export function InvoicesList({ orgId }: InvoicesListProps) {
-  // P92: Performance observability markers
-  React.useEffect(() => {
-    if (typeof performance !== 'undefined' && performance.mark) {
-      performance.mark('InvoicesList:mount');
-      return () => {
-        performance.mark('InvoicesList:unmount');
-        performance.measure('InvoicesList:lifetime', 'InvoicesList:mount', 'InvoicesList:unmount');
-      };
-    }
-  }, []);
-
-  const { t } = useTranslation();
   const { state, updateState, resetState } = useTableQueryState("invoices", {
     page: 1,
     pageSize: 20,
@@ -198,7 +182,6 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState(state.filters || {});
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
-  const [isExporting, setIsExporting] = useState(false);
 
   const query = useMemo(() => {
     return buildInvoicesQuery(state, orgId);
@@ -210,86 +193,17 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
     { keepPreviousData: true }
   );
 
-  // Export handler
-  const handleExport = async (format: "csv" | "xlsx") => {
-    setIsExporting(true);
-    try {
-      const response = await fetch(`/api/export-jobs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          org_id: orgId,
-          entity_type: "invoices",
-          format,
-          filters: state.filters,
-          search: state.q,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Export failed (${response.status})`);
-      }
-
-      const job = await response.json();
-      toast.success(
-        t(
-          "finance.invoices.exportStarted",
-          `Export started (${format.toUpperCase()})! Job ID: ${job.id}`
-        )
-      );
-    } catch (error) {
-      logger.error("Export error", { error });
-      toast.error(
-        t(
-          "finance.invoices.exportFailed",
-          error instanceof Error ? error.message : "Failed to start export"
-        )
-      );
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  // Print handler
-  const handlePrint = () => {
-    window.print();
-  };
-
   const invoices = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
   const totalAmount = data?.totalAmount ?? 0;
-  const filters = state.filters as InvoiceFilters;
-  const currentFilters = state.filters || {};
 
   // Quick chips (P0)
   const quickChips = [
-    {
-      key: "unpaid",
-      label: "Unpaid",
-      onClick: () => updateState({ filters: { status: "SENT" }, page: 1 }),
-      selected: filters.status === "SENT",
-    },
-    {
-      key: "overdue",
-      label: "Overdue",
-      onClick: () => updateState({ filters: { status: "OVERDUE" }, page: 1 }),
-      selected: filters.status === "OVERDUE",
-    },
-    {
-      key: "paid",
-      label: "Paid",
-      onClick: () => updateState({ filters: { status: "PAID" }, page: 1 }),
-      selected: filters.status === "PAID",
-    },
-    {
-      key: "this-month",
-      label: "This Month",
-      onClick: () => updateState({ filters: { dateRange: "month" }, page: 1 }),
-      selected: filters.dateRange === "month",
-    },
+    { key: "unpaid", label: "Unpaid", onClick: () => updateState({ filters: { status: "SENT" }, page: 1 }) },
+    { key: "overdue", label: "Overdue", onClick: () => updateState({ filters: { status: "OVERDUE" }, page: 1 }) },
+    { key: "paid", label: "Paid", onClick: () => updateState({ filters: { status: "PAID" }, page: 1 }) },
+    { key: "this-month", label: "This Month", onClick: () => updateState({ filters: { dateRange: "month" }, page: 1 }) },
   ];
 
   // Active filters
@@ -301,8 +215,8 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
     [state.filters, updateState]
   );
 
-  // Table columns - memoized to prevent unnecessary re-renders
-  const columns = useMemo<DataTableColumn<InvoiceRecord>[]>(() => [
+  // Table columns
+  const columns: DataTableColumn<InvoiceRecord>[] = [
     {
       id: "invoice",
       header: "Invoice",
@@ -363,29 +277,22 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         return format(new Date(row.paidDate), "MMM d, yyyy");
       },
     },
-  ], []);
+  ];
 
   const emptyState = (
     <EmptyState
       icon={Receipt}
-      title={t("finance.invoices.emptyTitle", "No invoices found")}
-      description={t(
-        "finance.invoices.emptyDesc",
-        "Adjust filters or create a new invoice to get started.",
-      )}
+      title="No invoices found"
+      description="Adjust filters or create a new invoice to get started."
       action={
         activeFilters.length > 0 ? (
           <Button variant="outline" onClick={() => resetState()}>
-            {t("finance.invoices.clearFilters", "Clear all filters")}
+            Clear all filters
           </Button>
         ) : (
-          <Button
-            onClick={() =>
-              toast.info(t("finance.invoices.createFlow", "Create invoice flow"))
-            }
-          >
+          <Button onClick={() => toast.info("Create invoice flow")}>
             <Plus className="w-4 h-4 me-2" />
-            {t("finance.invoices.createCta", "Create Invoice")}
+            Create Invoice
           </Button>
         )
       }
@@ -401,22 +308,6 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
     setDraftFilters({});
     updateState({ filters: {}, page: 1 });
     setFilterDrawerOpen(false);
-  };
-
-  const handleLoadPreset = (
-    presetFilters: Record<string, unknown>,
-    _sort?: { field: string; direction: "asc" | "desc" },
-    search?: string
-  ) => {
-    const normalizedFilters = pickSchemaFilters<InvoiceFilters>(
-      presetFilters,
-      INVOICE_FILTER_SCHEMA
-    );
-    setDraftFilters(normalizedFilters);
-    updateState({
-      filters: normalizedFilters,
-      q: typeof search === "string" ? search : "",
-    });
   };
 
   return (
@@ -475,7 +366,7 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
+                <Chip key={chip.key} onClick={chip.onClick}>
                   {chip.label}
                 </Chip>
               ))}
@@ -485,50 +376,7 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={isExporting}
-              onClick={() => handleExport("csv")}
-            >
-              {isExporting ? (
-                <>
-                  <RefreshCcw className="w-4 h-4 me-2 animate-spin" />
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4 me-2" />
-                  Export CSV
-                </>
-              )}
-            </Button>
-            <Button variant="outline" size="sm" onClick={handlePrint}>
-              <Printer className="w-4 h-4 me-2" />
-              Print
-            </Button>
-            <FilterPresetsDropdown
-              entityType="invoices"
-              currentFilters={pickSchemaFilters<InvoiceFilters>(
-                currentFilters,
-                INVOICE_FILTER_SCHEMA
-              )}
-              currentSearch={state.q}
-              normalizeFilters={(filters) =>
-                pickSchemaFilters<InvoiceFilters>(
-                  filters,
-                  INVOICE_FILTER_SCHEMA
-                )
-              }
-              onLoadPreset={handleLoadPreset}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFilterDrawerOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={filterDrawerOpen}
-            >
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (
@@ -567,13 +415,7 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
           metadataAccessor={(inv) => 
             `Due: ${formatDistanceToNowStrict(new Date(inv.dueDate), { addSuffix: true })} • Issued ${formatDistanceToNowStrict(new Date(inv.issueDate), { addSuffix: true })}`
           }
-        onRowClick={(inv) =>
-          toast.info(
-            t("finance.invoices.openInvoice", "Open invoice {{id}}", {
-              id: inv.id,
-            }),
-          )
-        }
+          onRowClick={(inv) => toast.info(`Open invoice ${inv.id}`)}
           loading={isLoading}
           emptyMessage="No invoices found"
         />
@@ -587,13 +429,7 @@ export function InvoicesList({ orgId }: InvoicesListProps) {
           loading={isLoading}
           emptyState={emptyState}
           density={density}
-        onRowClick={(row) =>
-          toast.info(
-            t("finance.invoices.openInvoice", "Open invoice {{id}}", {
-              id: row.id,
-            }),
-          )
-        }
+          onRowClick={(row) => toast.info(`Open invoice ${row.id}`)}
         />
       </div>
 

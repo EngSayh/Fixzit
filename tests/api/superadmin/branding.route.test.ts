@@ -1,12 +1,10 @@
 /**
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { GET, PATCH } from "@/app/api/superadmin/branding/route";
 import { NextRequest } from "next/server";
-import { PlatformSettings } from "@/server/models/PlatformSettings";
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
-// Mock dependencies
+// Mock dependencies BEFORE importing the route
 vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn().mockResolvedValue(undefined),
 }));
@@ -39,15 +37,41 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
+// Mock the SSRF validator to allow all URLs in tests
+vi.mock("@/lib/security/validate-public-https-url", () => ({
+  validatePublicHttpsUrl: vi.fn().mockResolvedValue(new URL("https://example.com")),
+  isValidPublicHttpsUrl: vi.fn().mockResolvedValue(true),
+  URLValidationError: class URLValidationError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = "URLValidationError";
+    }
+  },
+}));
+
+// Dynamic imports AFTER mocks are set up
+const { GET, PATCH } = await import("@/app/api/superadmin/branding/route");
+const { PlatformSettings } = await import("@/server/models/PlatformSettings");
 const { getSuperadminSession } = await import("@/lib/superadmin/auth");
 const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
+const { validatePublicHttpsUrl } = await import("@/lib/security/validate-public-https-url");
 
 describe("Superadmin Branding API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    // Reset rate limit mock to allow requests
-    vi.mocked(enforceRateLimit).mockResolvedValue(undefined);
+
+    vi.unstubAllEnvs();
+    vi.stubEnv("NODE_ENV", "test");
+
+    // Reset rate limit mock to allow requests (returns null = no rate limit)
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    vi.mocked(getSuperadminSession).mockResolvedValue({
+      username: "superadmin",
+      role: "superadmin",
+    } as any);
+    vi.mocked(validatePublicHttpsUrl).mockResolvedValue(
+      new URL("https://example.com"),
+    );
   });
 
   describe("GET /api/superadmin/branding", () => {
@@ -57,7 +81,7 @@ describe("Superadmin Branding API", () => {
       const request = new NextRequest("http://localhost/api/superadmin/branding");
       const response = await GET(request);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
       const data = await response.json();
       expect(data.error).toContain("Unauthorized");
     });
@@ -136,7 +160,7 @@ describe("Superadmin Branding API", () => {
 
       const response = await PATCH(request);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
       const data = await response.json();
       expect(data.error).toContain("Unauthorized");
     });
@@ -211,6 +235,11 @@ describe("Superadmin Branding API", () => {
     });
 
     it("should reject HTTP URLs (only HTTPS allowed)", async () => {
+      // Mock validator to throw HTTPS error
+      vi.mocked(validatePublicHttpsUrl).mockRejectedValueOnce(
+        new Error("Only HTTPS URLs are allowed")
+      );
+
       const request = new NextRequest("http://localhost/api/superadmin/branding", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -225,6 +254,10 @@ describe("Superadmin Branding API", () => {
     });
 
     it("should reject localhost URLs", async () => {
+      vi.mocked(validatePublicHttpsUrl).mockRejectedValueOnce(
+        new Error("Localhost/loopback URLs are not allowed")
+      );
+
       const request = new NextRequest("http://localhost/api/superadmin/branding", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -239,6 +272,10 @@ describe("Superadmin Branding API", () => {
     });
 
     it("should reject private IP addresses (192.168.x.x)", async () => {
+      vi.mocked(validatePublicHttpsUrl).mockRejectedValueOnce(
+        new Error("Private IP address URLs are not allowed")
+      );
+
       const request = new NextRequest("http://localhost/api/superadmin/branding", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -253,6 +290,10 @@ describe("Superadmin Branding API", () => {
     });
 
     it("should reject AWS metadata endpoint (169.254.169.254)", async () => {
+      vi.mocked(validatePublicHttpsUrl).mockRejectedValueOnce(
+        new Error("Private IP address URLs are not allowed")
+      );
+
       const request = new NextRequest("http://localhost/api/superadmin/branding", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -267,6 +308,10 @@ describe("Superadmin Branding API", () => {
     });
 
     it("should reject internal domains (.local/.internal)", async () => {
+      vi.mocked(validatePublicHttpsUrl).mockRejectedValueOnce(
+        new Error("Internal TLD (.local, .internal, .test) URLs are not allowed")
+      );
+
       const request = new NextRequest("http://localhost/api/superadmin/branding", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -283,6 +328,10 @@ describe("Superadmin Branding API", () => {
     });
 
     it("should accept valid public HTTPS URLs", async () => {
+      // Reset mock to allow this URL
+      vi.mocked(validatePublicHttpsUrl).mockResolvedValueOnce(
+        new URL("https://cdn.example.com/logo.png")
+      );
       vi.mocked(PlatformSettings.findOneAndUpdate).mockResolvedValue({
         logoUrl: "https://cdn.example.com/logo.png",
       } as any);

@@ -122,7 +122,8 @@ describe('Work Order Status Race Conditions', () => {
       const mockFindOneAndUpdate = vi.fn().mockImplementation(
         async (filter: Record<string, unknown>, update: Record<string, unknown>, options: Record<string, unknown>) => {
           // Simulate atomic find and update
-          return options.new ? { ...filter, ...update.$set } : { ...filter };
+          const setFields = (update.$set ?? {}) as Record<string, unknown>;
+          return options.new ? { ...filter, ...setFields } : { ...filter };
         }
       );
 

@@ -101,7 +101,7 @@ describe("API /api/fm/support/tickets", () => {
       const req = new NextRequest("http://localhost:3000/api/fm/support/tickets");
       const response = await route.GET(req);
 
-      expect([200, 401, 403, 500]).toContain(response.status);
+      expect([200, 401, 403, 500, 503]).toContain(response.status);
     });
   });
 

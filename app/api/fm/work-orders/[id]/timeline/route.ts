@@ -26,7 +26,7 @@ import { logger } from "@/lib/logger";
 import type { WorkOrderTimeline } from "@/types/fm";
 import { buildWorkOrderUser } from "../../utils";
 import { requireFmAbility } from "../../../utils/fm-auth";
-import { resolveTenantId } from "../../../utils/tenant";
+import { buildTenantFilter, resolveTenantId } from "../../../utils/tenant";
 import { FMErrors } from "../../../errors";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
@@ -76,8 +76,8 @@ export async function GET(
 
     const db = await getDatabase();
     const collection = db.collection(COLLECTIONS.WORKORDER_TIMELINE);
-    // RBAC-002 FIX: Use tenantId variable (has fallback) for STRICT v4 tenant isolation
-    const filter = { tenantId: tenantId, workOrderId };
+    // SEC-001: Use buildTenantFilter for proper orgId field name (collection is orgId-indexed)
+    const filter = { ...buildTenantFilter(tenantId), workOrderId };
 
     const [entries, total] = await Promise.all([
       collection

@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Building2, Home, Key, TrendingUp } from "lucide-react";
+import { Building2, Home, Key, TrendingUp, ClipboardList, Files } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { fetchOrgCounters } from "@/lib/counters";
+import { HubNavigationCard } from "@/components/dashboard/HubNavigationCard";
+import { RoadmapBanner } from "@/components/dashboard/RoadmapBanner";
 
 interface PropertyCounters {
   properties: {
@@ -22,7 +24,7 @@ export default function PropertiesDashboard() {
   const { data: session, status } = useSession();
   const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
   const auto = useAutoTranslator("dashboard.properties");
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("modules");
   const [counters, setCounters] = useState<PropertyCounters | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -58,14 +60,56 @@ export default function PropertiesDashboard() {
   }, [auto, orgId, status]);
 
   const tabs = [
+    { id: "modules", label: auto("Modules", "tabs.modules") },
     {
-      id: "overview",
-      label: auto("Overview", "tabs.overview"),
+      id: "metrics",
+      label: auto("Metrics", "tabs.metrics"),
       count: counters?.properties.total,
     },
-    { id: "leases", label: auto("Leases", "tabs.leases") },
-    { id: "maintenance", label: auto("Maintenance", "tabs.maintenance") },
   ];
+
+  // Existing sub-modules from route inventory
+  const modules = [
+    {
+      title: auto("Properties", "modules.properties"),
+      description: auto("Manage all properties", "modules.propertiesDesc"),
+      href: "/fm/properties",
+      icon: Building2,
+      iconColor: "text-primary",
+      metric: loading ? "..." : counters?.properties.total || 0,
+      metricLabel: auto("Total", "metrics.total"),
+    },
+    {
+      title: auto("Units", "modules.units"),
+      description: auto("Property units management", "modules.unitsDesc"),
+      href: "/fm/properties/units",
+      icon: Home,
+      iconColor: "text-success",
+    },
+    {
+      title: auto("Leases", "modules.leases"),
+      description: auto("Lease agreements", "modules.leasesDesc"),
+      href: "/fm/properties/leases",
+      icon: Key,
+      iconColor: "text-orange-500",
+    },
+    {
+      title: auto("Inspections", "modules.inspections"),
+      description: auto("Property inspections", "modules.inspectionsDesc"),
+      href: "/fm/properties/inspections",
+      icon: ClipboardList,
+      iconColor: "text-purple-500",
+    },
+    {
+      title: auto("Documents", "modules.documents"),
+      description: auto("Property documents", "modules.documentsDesc"),
+      href: "/fm/properties/documents",
+      icon: Files,
+      iconColor: "text-blue-500",
+    },
+  ];
+
+  const plannedFeatures = ["Maintenance Requests"];
 
   return (
     <div className="space-y-6">
@@ -103,7 +147,20 @@ export default function PropertiesDashboard() {
         ))}
       </div>
 
-      {activeTab === "overview" && (
+      {activeTab === "modules" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {modules.map((module) => (
+              <HubNavigationCard key={module.href} {...module} />
+            ))}
+          </div>
+          {plannedFeatures.length > 0 && (
+            <RoadmapBanner features={plannedFeatures} variant="subtle" />
+          )}
+        </div>
+      )}
+
+      {activeTab === "metrics" && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -160,24 +217,6 @@ export default function PropertiesDashboard() {
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {["leases", "maintenance"].includes(activeTab) && (
-        <Card>
-          <CardContent className="py-8">
-            <div className="text-center text-muted-foreground">
-              <p className="font-medium">
-                {tabs.find((t) => t.id === activeTab)?.label}
-              </p>
-              <p className="text-sm mt-2">
-                {auto(
-                  "Content will be implemented here",
-                  "placeholder.description",
-                )}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       )}
     </div>
   );

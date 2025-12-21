@@ -172,6 +172,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // P0 FIX: NEVER cache superadmin routes - authentication cookies must always
+  // be sent fresh to the server. Caching these routes causes "login works but
+  // redirect fails" issues because stale responses don't see the new cookie.
+  const path = url.pathname;
+  if (path.startsWith("/superadmin") || path.startsWith("/api/superadmin")) {
+    // Network-only for superadmin routes - no caching, no fallback
+    return;
+  }
+
   event.respondWith(handleRequest(request));
 });
 

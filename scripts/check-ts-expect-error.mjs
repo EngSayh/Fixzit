@@ -1,66 +1,67 @@
 #!/usr/bin/env node
 /**
- * @fileoverview Enforce @ts-expect-error comments include a reason in staged files.
- *
- * This guard prevents undocumented suppressions from being committed.
- * It only inspects staged JS/TS files to avoid legacy noise.
+ * Pre-commit hook to ensure @ts-expect-error comments include reasons
+ * Checks staged .ts/.tsx files for @ts-expect-error without explanatory comments
  */
-import { execFileSync } from "node:child_process";
+import { execSync } from "child_process";
 
-const git = (args) => execFileSync("git", args, { encoding: "utf8" });
-
-const stagedFiles = git([
-  "diff",
-  "--cached",
-  "--name-only",
-  "--diff-filter=ACMR",
-])
-  .trim()
-  .split("\n")
-  .map((file) => file.trim())
-  .filter(Boolean)
-  .filter((file) => /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(file))
-  .filter((file) => !file.includes("node_modules/"));
-
-if (!stagedFiles.length) {
-  console.log("✅ No staged JS/TS files to check for @ts-expect-error comments.");
-  process.exit(0);
-}
-
-const issues = [];
-const marker = "@ts-expect-error";
-
-for (const file of stagedFiles) {
-  let contents = "";
+const getStagedFiles = () => {
   try {
-    contents = execFileSync("git", ["show", `:${file}`], {
+    const output = execSync("git diff --cached --name-only --diff-filter=ACM", {
       encoding: "utf8",
     });
+    return output
+      .split("\n")
+      .filter((f) => f.endsWith(".ts") || f.endsWith(".tsx"));
   } catch {
-    continue;
+    return [];
+  }
+};
+
+const checkFile = (file) => {
+  try {
+    const content = execSync(`git show :${file}`, { encoding: "utf8" });
+    const lines = content.split("\n");
+    const issues = [];
+
+    lines.forEach((line, idx) => {
+      // Match @ts-expect-error without a reason (just the directive alone)
+      if (
+        line.includes("@ts-expect-error") &&
+        !line.match(/@ts-expect-error\s+\S/)
+      ) {
+        issues.push({ file, line: idx + 1, content: line.trim() });
+      }
+    });
+
+    return issues;
+  } catch {
+    return [];
+  }
+};
+
+const main = () => {
+  const stagedFiles = getStagedFiles();
+
+  if (stagedFiles.length === 0) {
+    console.log("✅ No staged JS/TS files to check for @ts-expect-error comments.");
+    process.exit(0);
   }
 
-  const lines = contents.split("\n");
-  lines.forEach((line, index) => {
-    if (!line.includes(marker)) return;
-    const after = line.split(marker)[1] ?? "";
-    if (!after.trim()) {
-      issues.push({
-        file,
-        line: index + 1,
-        code: line.trim(),
-      });
-    }
+  const allIssues = stagedFiles.flatMap(checkFile);
+
+  if (allIssues.length === 0) {
+    console.log("✅ @ts-expect-error comments include reasons in staged files.");
+    process.exit(0);
+  }
+
+  console.error("❌ Found @ts-expect-error without reasons:");
+  allIssues.forEach(({ file, line, content }) => {
+    console.error(`  ${file}:${line} - ${content}`);
   });
-}
-
-if (issues.length) {
-  console.error("❌ @ts-expect-error must include a reason:");
-  for (const issue of issues) {
-    console.error(`  - ${issue.file}:${issue.line} → ${issue.code}`);
-  }
-  console.error("Add a reason, e.g. // @ts-expect-error - upstream type mismatch");
+  console.error("\nPlease add a reason after @ts-expect-error, e.g.:");
+  console.error("  // @ts-expect-error - Legacy API returns unknown type");
   process.exit(1);
-}
+};
 
-console.log("✅ @ts-expect-error comments include reasons in staged files.");
+main();

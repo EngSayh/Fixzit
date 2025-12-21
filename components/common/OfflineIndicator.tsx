@@ -1,130 +1,16 @@
-/**
- * Offline Indicator Component
- * 
- * Displays a banner when the user is offline.
- * Uses navigator.onLine API with event listeners for real-time updates.
- * 
- * @module components/common/OfflineIndicator
- */
-
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { WifiOff, Wifi } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useTranslation } from "@/contexts/TranslationContext";
-
-interface OfflineIndicatorProps {
-  /** Position of the indicator */
-  position?: "top" | "bottom";
-  /** Whether to show a reconnection message briefly after coming back online */
-  showReconnectedMessage?: boolean;
-  /** Duration (ms) to show the reconnected message */
-  reconnectedMessageDuration?: number;
-  /** Additional CSS classes */
-  className?: string;
-}
-
-export function OfflineIndicator({
-  position = "top",
-  showReconnectedMessage = true,
-  reconnectedMessageDuration = 3000,
-  className,
-}: OfflineIndicatorProps) {
-  const { t } = useTranslation();
-  const [isOnline, setIsOnline] = useState(true);
-  const [showReconnected, setShowReconnected] = useState(false);
-  const reconnectedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    // Initialize with current status
-    setIsOnline(typeof navigator !== "undefined" ? navigator.onLine : true);
-
-    const handleOnline = () => {
-      setIsOnline(true);
-      if (showReconnectedMessage) {
-        // Clear any existing timeout before scheduling a new one
-        if (reconnectedTimeoutRef.current) {
-          clearTimeout(reconnectedTimeoutRef.current);
-        }
-        setShowReconnected(true);
-        reconnectedTimeoutRef.current = setTimeout(() => {
-          setShowReconnected(false);
-          reconnectedTimeoutRef.current = null;
-        }, reconnectedMessageDuration);
-      }
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      setShowReconnected(false);
-      // Clear timeout when going offline
-      if (reconnectedTimeoutRef.current) {
-        clearTimeout(reconnectedTimeoutRef.current);
-        reconnectedTimeoutRef.current = null;
-      }
-    };
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-      // Clean up timeout on unmount
-      if (reconnectedTimeoutRef.current) {
-        clearTimeout(reconnectedTimeoutRef.current);
-      }
-    };
-  }, [showReconnectedMessage, reconnectedMessageDuration]);
-
-  // Don't render if online and not showing reconnected message
-  if (isOnline && !showReconnected) {
-    return null;
-  }
-
-  const positionClasses = position === "top" 
-    ? "top-0 left-0 right-0" 
-    : "bottom-0 left-0 right-0";
-
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className={cn(
-        "fixed z-50 px-4 py-2 flex items-center justify-center gap-2 text-sm font-medium transition-all duration-300",
-        positionClasses,
-        isOnline && showReconnected
-          ? "bg-[#00A859] text-white" // Fixzit Green brand token
-          : "bg-destructive text-destructive-foreground",
-        className
-      )}
-    >
-      {isOnline && showReconnected ? (
-        <>
-          <Wifi className="w-4 h-4 me-1" aria-hidden="true" />
-          <span>{t("common.offline.backOnline", "You're back online!")}</span>
-        </>
-      ) : (
-        <>
-          <WifiOff className="w-4 h-4 me-1" aria-hidden="true" />
-          <span>{t("common.offline.offline", "You're offline. Some features may be unavailable.")}</span>
-        </>
-      )}
-    </div>
-  );
-}
+import { useState, useEffect } from "react";
 
 /**
- * Hook to check online status
- * 
- * @returns {{ isOnline: boolean }} Current online status
+ * Hook to track online/offline status
  */
 export function useOnlineStatus(): { isOnline: boolean } {
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
-    setIsOnline(typeof navigator !== "undefined" ? navigator.onLine : true);
+    // Check initial status
+    setIsOnline(navigator.onLine);
 
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -139,4 +25,37 @@ export function useOnlineStatus(): { isOnline: boolean } {
   }, []);
 
   return { isOnline };
+}
+
+/**
+ * Visual indicator when the user is offline
+ */
+export function OfflineIndicator(): JSX.Element | null {
+  const { isOnline } = useOnlineStatus();
+
+  if (isOnline) return null;
+
+  return (
+    <div
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-500 text-black px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
+      role="alert"
+      aria-live="assertive"
+    >
+      <svg
+        className="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3"
+        />
+      </svg>
+      <span className="font-medium">You are offline</span>
+    </div>
+  );
 }

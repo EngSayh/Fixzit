@@ -30,13 +30,11 @@ import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
-import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
 import {
   buildActiveFilterChips,
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
-import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
 
@@ -66,7 +64,7 @@ const typeStyles: Record<string, string> = {
   CUSTOM: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/20",
 };
 
-export type RoleFilters = {
+type RoleFilters = {
   type?: string;
   status?: string;
   membersMin?: number;
@@ -75,7 +73,7 @@ export type RoleFilters = {
   createdTo?: string;
 };
 
-export const ROLE_FILTER_SCHEMA: FilterSchema<RoleFilters>[] = [
+const ROLE_FILTER_SCHEMA: FilterSchema<RoleFilters>[] = [
   { key: "type", param: "type", label: (f) => `Type: ${f.type}` },
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   {
@@ -163,52 +161,13 @@ export function RolesList({ orgId }: RolesListProps) {
   const roles = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
-  const filters = state.filters as RoleFilters;
-  const currentFilters = state.filters || {};
-
-  // handleLoadPreset for filter presets
-  const handleLoadPreset = (
-    presetFilters: Record<string, unknown>,
-    _sort?: { field: string; direction: "asc" | "desc" },
-    search?: string
-  ) => {
-    const normalizedFilters = pickSchemaFilters<RoleFilters>(
-      presetFilters,
-      ROLE_FILTER_SCHEMA
-    );
-    setDraftFilters(normalizedFilters);
-    updateState({
-      filters: normalizedFilters,
-      q: typeof search === "string" ? search : "",
-    });
-  };
 
   // Quick chips (P0)
   const quickChips = [
-    {
-      key: "system",
-      label: "System Roles",
-      onClick: () => updateState({ filters: { type: "SYSTEM" }, page: 1 }),
-      selected: filters.type === "SYSTEM",
-    },
-    {
-      key: "custom",
-      label: "Custom Roles",
-      onClick: () => updateState({ filters: { type: "CUSTOM" }, page: 1 }),
-      selected: filters.type === "CUSTOM",
-    },
-    {
-      key: "active",
-      label: "Active",
-      onClick: () => updateState({ filters: { status: "ACTIVE" }, page: 1 }),
-      selected: filters.status === "ACTIVE",
-    },
-    {
-      key: "unused",
-      label: "Unused",
-      onClick: () => updateState({ filters: { membersMax: 0 }, page: 1 }),
-      selected: filters.membersMax === 0,
-    },
+    { key: "system", label: "System Roles", onClick: () => updateState({ filters: { type: "SYSTEM" }, page: 1 }) },
+    { key: "custom", label: "Custom Roles", onClick: () => updateState({ filters: { type: "CUSTOM" }, page: 1 }) },
+    { key: "active", label: "Active", onClick: () => updateState({ filters: { status: "ACTIVE" }, page: 1 }) },
+    { key: "unused", label: "Unused", onClick: () => updateState({ filters: { membersMax: 0 }, page: 1 }) },
   ];
 
   // Active filters
@@ -220,8 +179,8 @@ export function RolesList({ orgId }: RolesListProps) {
     [state.filters, updateState]
   );
 
-  // Table columns - memoized to prevent unnecessary re-renders
-  const columns = useMemo<DataTableColumn<RoleRecord>[]>(() => [
+  // Table columns
+  const columns: DataTableColumn<RoleRecord>[] = [
     {
       id: "name",
       header: "Role Name",
@@ -267,7 +226,7 @@ export function RolesList({ orgId }: RolesListProps) {
       header: "Created",
       cell: (row) => formatDistanceToNowStrict(new Date(row.createdAt), { addSuffix: true }),
     },
-  ], []);
+  ];
 
   const emptyState = (
     <EmptyState
@@ -341,7 +300,7 @@ export function RolesList({ orgId }: RolesListProps) {
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
+                <Chip key={chip.key} onClick={chip.onClick}>
                   {chip.label}
                 </Chip>
               ))}
@@ -351,25 +310,7 @@ export function RolesList({ orgId }: RolesListProps) {
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <FilterPresetsDropdown
-              entityType="roles"
-              currentFilters={pickSchemaFilters<RoleFilters>(
-                currentFilters,
-                ROLE_FILTER_SCHEMA
-              )}
-              currentSearch={state.q}
-              normalizeFilters={(filters) =>
-                pickSchemaFilters<RoleFilters>(filters, ROLE_FILTER_SCHEMA)
-              }
-              onLoadPreset={handleLoadPreset}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFilterDrawerOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={filterDrawerOpen}
-            >
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (

@@ -173,7 +173,8 @@ export async function GET(req: NextRequest) {
 // ============================================================================
 
 interface IAccountNode {
-  id: Types.ObjectId;
+  id?: Types.ObjectId;
+  _id?: Types.ObjectId;
   accountCode: string;
   accountName: string;
   accountType: string;
@@ -191,14 +192,20 @@ function buildAccountTree(accounts: unknown[]): IAccountNode[] {
   const accountMap = new Map<string, IAccountNode>();
   const roots: IAccountNode[] = [];
 
+  const getAccountId = (account: IAccountNode) => account.id ?? account._id ?? null;
+
   // First pass: create map with children arrays
   typedAccounts.forEach((account) => {
-    accountMap.set(account.id.toString(), { ...account, children: [] });
+    const accountId = getAccountId(account);
+    if (!accountId) return;
+    accountMap.set(accountId.toString(), { ...account, children: [] });
   });
 
   // Second pass: build tree
   typedAccounts.forEach((account) => {
-    const node = accountMap.get(account.id.toString());
+    const accountId = getAccountId(account);
+    if (!accountId) return;
+    const node = accountMap.get(accountId.toString());
     if (!node) return;
 
     if (account.parentId) {

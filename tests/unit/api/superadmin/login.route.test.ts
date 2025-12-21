@@ -40,7 +40,6 @@ const mockVerifyPassword = vi.fn();
 const mockSignToken = vi.fn().mockResolvedValue("mock-jwt-token");
 const mockIsRateLimited = vi.fn().mockReturnValue(false);
 const mockIsIpAllowed = vi.fn().mockReturnValue(true);
-const mockGetClientIp = vi.fn().mockReturnValue("127.0.0.1");
 const mockValidateSecondFactor = vi.fn().mockReturnValue(true);
 
 vi.mock("@/lib/superadmin/auth", () => ({
@@ -48,15 +47,15 @@ vi.mock("@/lib/superadmin/auth", () => ({
   signSuperadminToken: mockSignToken,
   isRateLimited: mockIsRateLimited,
   isIpAllowed: mockIsIpAllowed,
-  getClientIp: mockGetClientIp,
   validateSecondFactor: mockValidateSecondFactor,
   applySuperadminCookies: vi.fn(),
   SUPERADMIN_COOKIE_NAME: "superadmin_token",
 }));
 
 // Mock rate-limit middleware
+const mockEnforceRateLimit = vi.fn().mockReturnValue(null);
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: mockEnforceRateLimit,
 }));
 
 vi.mock("@/server/security/headers", () => ({
@@ -70,7 +69,7 @@ describe("POST /api/superadmin/login", () => {
     vi.resetModules();
     mockIsRateLimited.mockReturnValue(false);
     mockIsIpAllowed.mockReturnValue(true);
-    mockGetClientIp.mockReturnValue("127.0.0.1");
+    mockEnforceRateLimit.mockReturnValue(null);
   });
 
   it("should return 400 for missing credentials", async () => {
@@ -87,7 +86,7 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should return 401 for invalid password", async () => {
-    mockVerifyPassword.mockResolvedValue(false);
+    mockVerifyPassword.mockResolvedValue({ ok: false, reason: 'invalid' });
     
     const { POST } = await import("@/app/api/superadmin/login/route");
     
@@ -95,7 +94,7 @@ describe("POST /api/superadmin/login", () => {
       url: "http://localhost:3000/api/superadmin/login",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
       json: vi.fn().mockResolvedValue({ 
-        username: "admin", 
+        username: "superadmin", 
         password: "wrong",
         secretKey: "test-key"
       }),
@@ -114,7 +113,7 @@ describe("POST /api/superadmin/login", () => {
       url: "http://localhost:3000/api/superadmin/login",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
       json: vi.fn().mockResolvedValue({ 
-        username: "admin", 
+        username: "superadmin", 
         password: "password",
         secretKey: "test-key"
       }),
@@ -133,7 +132,7 @@ describe("POST /api/superadmin/login", () => {
       url: "http://localhost:3000/api/superadmin/login",
       headers: new Map([["x-forwarded-for", "192.168.1.100"]]),
       json: vi.fn().mockResolvedValue({ 
-        username: "admin", 
+        username: "superadmin", 
         password: "password",
         secretKey: "test-key"
       }),
@@ -144,7 +143,10 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should return 200 with valid credentials", async () => {
-    mockVerifyPassword.mockResolvedValue(true);
+    vi.resetModules();
+    mockIsRateLimited.mockReturnValue(false);
+    mockIsIpAllowed.mockReturnValue(true);
+    mockVerifyPassword.mockResolvedValue({ ok: true });
     mockValidateSecondFactor.mockReturnValue(true);
     
     const { POST } = await import("@/app/api/superadmin/login/route");
@@ -165,7 +167,7 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should set noindex header", async () => {
-    mockVerifyPassword.mockResolvedValue(false);
+    mockVerifyPassword.mockResolvedValue({ ok: false, reason: 'invalid' });
     
     const { POST } = await import("@/app/api/superadmin/login/route");
     
@@ -173,7 +175,7 @@ describe("POST /api/superadmin/login", () => {
       url: "http://localhost:3000/api/superadmin/login",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
       json: vi.fn().mockResolvedValue({ 
-        username: "admin", 
+        username: "superadmin", 
         password: "wrong",
         secretKey: "test-key"
       }),
@@ -182,5 +184,107 @@ describe("POST /api/superadmin/login", () => {
     const response = await POST(request as any);
     // Response should have X-Robots-Tag header
     expect(response.headers?.get?.("X-Robots-Tag") || "noindex").toContain("noindex");
+  });
+
+  describe("non-string input handling", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      vi.resetModules();
+      mockIsRateLimited.mockReturnValue(false);
+      mockIsIpAllowed.mockReturnValue(true);
+    });
+
+    it("should return 400 for non-string username", async () => {
+      const { POST } = await import("@/app/api/superadmin/login/route");
+      
+      const request = {
+        url: "http://localhost:3000/api/superadmin/login",
+        headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
+        json: vi.fn().mockResolvedValue({ 
+          username: 12345, // number instead of string
+          password: "password",
+          secretKey: "test-key"
+        }),
+      };
+
+      const response = await POST(request as any);
+      expect(response.status).toBe(400);
+      expect(response.body?.code).toBe("MISSING_USERNAME");
+    });
+
+    it("should return 400 for null username", async () => {
+      const { POST } = await import("@/app/api/superadmin/login/route");
+      
+      const request = {
+        url: "http://localhost:3000/api/superadmin/login",
+        headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
+        json: vi.fn().mockResolvedValue({ 
+          username: null,
+          password: "password",
+          secretKey: "test-key"
+        }),
+      };
+
+      const response = await POST(request as any);
+      expect(response.status).toBe(400);
+      expect(response.body?.code).toBe("MISSING_USERNAME");
+    });
+
+    it("should return 400 for non-string password", async () => {
+      const { POST } = await import("@/app/api/superadmin/login/route");
+      
+      const request = {
+        url: "http://localhost:3000/api/superadmin/login",
+        headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
+        json: vi.fn().mockResolvedValue({ 
+          username: "superadmin",
+          password: { value: "hack" }, // object instead of string
+          secretKey: "test-key"
+        }),
+      };
+
+      const response = await POST(request as any);
+      expect(response.status).toBe(400);
+      expect(response.body?.code).toBe("MISSING_PASSWORD");
+    });
+
+    it("should return 400 for array password", async () => {
+      const { POST } = await import("@/app/api/superadmin/login/route");
+      
+      const request = {
+        url: "http://localhost:3000/api/superadmin/login",
+        headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
+        json: vi.fn().mockResolvedValue({ 
+          username: "superadmin",
+          password: ["password1", "password2"], // array instead of string
+          secretKey: "test-key"
+        }),
+      };
+
+      const response = await POST(request as any);
+      expect(response.status).toBe(400);
+      expect(response.body?.code).toBe("MISSING_PASSWORD");
+    });
+
+    it("should handle non-string secretKey gracefully", async () => {
+      mockVerifyPassword.mockResolvedValue({ ok: true });
+      mockValidateSecondFactor.mockReturnValue(true);
+      
+      const { POST } = await import("@/app/api/superadmin/login/route");
+      
+      const request = {
+        url: "http://localhost:3000/api/superadmin/login",
+        headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
+        json: vi.fn().mockResolvedValue({ 
+          username: "superadmin",
+          password: "correct-password",
+          secretKey: 12345 // number instead of string - should be treated as undefined
+        }),
+      };
+
+      const response = await POST(request as any);
+      // Should proceed with undefined secretKey (validateSecondFactor will handle)
+      expect([200, 401]).toContain(response.status);
+    });
   });
 });

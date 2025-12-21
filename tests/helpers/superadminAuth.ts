@@ -12,7 +12,7 @@ export type SuperadminSession = {
 const defaultSession: SuperadminSession = {
   username: "superadmin",
   role: "super_admin",
-  orgId: "507f1f77bcf86cd799439011",
+  orgId: "org-123",
   issuedAt: Date.now(),
   expiresAt: Date.now() + 8 * 60 * 60 * 1000,
 };

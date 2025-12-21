@@ -4,36 +4,31 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/TranslationContext";
-
-type ReportTab = {
-  id: string;
-  labelKey: string;
-  fallback: string;
-};
-
-const TABS: ReportTab[] = [
-  {
-    id: "standard",
-    labelKey: "dashboard.reports.tabs.standard",
-    fallback: "Standard Reports",
-  },
-  {
-    id: "custom",
-    labelKey: "dashboard.reports.tabs.custom",
-    fallback: "Custom Reports",
-  },
-  {
-    id: "dashboards",
-    labelKey: "dashboard.reports.tabs.dashboards",
-    fallback: "Dashboards",
-  },
-];
+import { HubNavigationCard } from "@/components/dashboard/HubNavigationCard";
+import { RoadmapBanner } from "@/components/dashboard/RoadmapBanner";
+import { BarChart3 } from "lucide-react";
 
 export default function ReportsDashboard() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState(TABS[0]?.id ?? "standard");
+  const [activeTab, setActiveTab] = useState("modules");
 
-  const activeTabLabel = TABS.find((tab) => tab.id === activeTab);
+  const tabs = [
+    { id: "modules", label: t("dashboard.reports.tabs.modules", "Modules") },
+    { id: "roadmap", label: t("dashboard.reports.tabs.roadmap", "Roadmap") },
+  ];
+
+  // Existing sub-modules from route inventory
+  const modules = [
+    {
+      title: t("dashboard.reports.modules.standard", "Standard Reports"),
+      description: t("dashboard.reports.modules.standardDesc", "Pre-built business reports"),
+      href: "/fm/reports",
+      icon: BarChart3,
+      iconColor: "text-primary",
+    },
+  ];
+
+  const plannedFeatures = ["Custom Reports", "Dashboards Builder"];
 
   return (
     <div className="space-y-6">
@@ -50,8 +45,8 @@ export default function ReportsDashboard() {
       </div>
 
       <div className="flex items-center gap-2 border-b">
-        {TABS.map((tab) => (
-          <button type="button"
+        {tabs.map((tab) => (
+          <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
@@ -61,28 +56,38 @@ export default function ReportsDashboard() {
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
-            {t(tab.labelKey, tab.fallback)}
+            {tab.label}
           </button>
         ))}
       </div>
 
-      <Card>
-        <CardContent className="py-8">
-          <div className="text-center text-muted-foreground">
-            <p className="font-medium">
-              {activeTabLabel
-                ? t(activeTabLabel.labelKey, activeTabLabel.fallback)
-                : ""}
-            </p>
-            <p className="text-sm mt-2">
-              {t(
-                "dashboard.reports.comingSoon",
-                "Content will be implemented here",
-              )}
-            </p>
+      {activeTab === "modules" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {modules.map((module) => (
+              <HubNavigationCard key={module.href} {...module} />
+            ))}
           </div>
-        </CardContent>
-      </Card>
+          <RoadmapBanner features={plannedFeatures} variant="info" />
+        </div>
+      )}
+
+      {activeTab === "roadmap" && (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">
+              <p className="font-medium">
+                {t("dashboard.reports.roadmap.title", "Planned Features")}
+              </p>
+              <ul className="mt-4 space-y-2">
+                {plannedFeatures.map((feature) => (
+                  <li key={feature} className="text-sm">{feature}</li>
+                ))}
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

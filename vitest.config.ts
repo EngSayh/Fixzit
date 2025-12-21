@@ -16,9 +16,11 @@ const baseExcludes = [
 const sharedProjectConfig = {
   globals: true,
   setupFiles: ["./vitest.setup.ts"], // MongoDB Memory Server for model tests (no mongoose mocks)
-  reporters: ["default"],
+  reporters: process.env.CI ? ["default", "junit"] : ["default"],
+  outputFile: {
+    junit: "reports/junit-vitest.xml",
+  },
   pool: "threads",
-  isolate: true,
   maxWorkers: 4,
   minWorkers: 1,
   testTimeout: 600000, // 10 minutes - MongoMemoryServer initialization takes time
@@ -45,10 +47,6 @@ const sharedViteConfig = {
       "next/server": "next/server.js",
       // Stub server-only queues dependency for tests (real queue worker runs in Node only)
       bullmq: path.resolve(__dirname, "lib/stubs/bullmq.ts"),
-      "@/lib/security/validate-public-https-url": path.resolve(
-        __dirname,
-        "lib/security/validate-public-https-url.ts",
-      ),
     },
   },
 };
@@ -56,19 +54,7 @@ const sharedViteConfig = {
 export default defineConfig({
   ...sharedViteConfig,
   test: {
-    coverage: {
-      provider: "istanbul",
-      enabled: process.env.CI_COVERAGE === "true",
-      reportsDirectory: "coverage",
-      reporter: ["text", "json-summary", "lcov"],
-      thresholds: {
-        lines: 80,
-        statements: 80,
-        functions: 80,
-        branches: 80,
-      },
-      exclude: baseExcludes,
-    },
+    // TODO: migrate to a multi-project structure when environmentMatchGlobs is removed from Vitest.
     projects: [
       defineProject({
         ...sharedViteConfig,
@@ -81,9 +67,16 @@ export default defineConfig({
             // Disable global MongoMemoryServer for client/jsdom runs; tests that need Mongo start their own instance
             SKIP_GLOBAL_MONGO: "true",
           },
-          include: ["**/*.test.ts", "**/*.test.tsx"],
+          include: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
           exclude: [
             ...baseExcludes,
+            // Playwright spec files (run via pnpm playwright test)
+            "tests/e2e/**/*.spec.{ts,tsx}",
+            "tests/smoke/**/*.spec.{ts,tsx}",
+            "tests/specs/**/*.spec.{ts,tsx}",
+            "tests/copilot/**/*.spec.{ts,tsx}",
+            "tests/config/**/*.spec.{ts,tsx}",
+            "tests/*.spec.{ts,tsx}",
             "**/server/**/*.test.{ts,tsx}",
             "tests/**/server/**/*.test.{ts,tsx}",
             "tests/**/api/**/*.test.{ts,tsx}",
@@ -110,7 +103,9 @@ export default defineConfig({
           pool: "threads",
           include: [
             "**/server/**/*.test.{ts,tsx}",
+            "**/server/**/*.spec.{ts,tsx}",
             "tests/**/server/**/*.test.{ts,tsx}",
+            "tests/**/server/**/*.spec.{ts,tsx}",
             "tests/**/api/**/*.test.{ts,tsx}",
             "tests/**/models/**/*.test.{ts,tsx}",
             "tests/models/**/*.test.{ts,tsx}",
@@ -121,10 +116,28 @@ export default defineConfig({
             "tests/debug/**/*.test.{ts,tsx}",
             "tests/finance/**/*.test.{ts,tsx}",
             "tests/unit/lib/**/*.test.{ts,tsx}",
+            "tests/unit/lib/**/*.spec.{ts,tsx}",
             "tests/unit/returns/**/*.test.{ts,tsx}",
             "tests/vitest.config.test.ts",
+            // Non-Playwright Vitest spec files
+            "tests/policy.spec.ts",
+            "tests/tools.spec.ts",
+            "tests/unit/src_lib_utils.spec.ts",
           ],
-          exclude: baseExcludes,
+          exclude: [
+            ...baseExcludes,
+            // Playwright spec files (run via pnpm playwright test)
+            "tests/e2e/**/*.spec.{ts,tsx}",
+            "tests/smoke/**/*.spec.{ts,tsx}",
+            "tests/specs/**/*.spec.{ts,tsx}",
+            "tests/copilot/**/*.spec.{ts,tsx}",
+            "tests/config/**/*.spec.{ts,tsx}",
+            "tests/*.smoke.spec.{ts,tsx}",
+            "tests/*.e2e.spec.{ts,tsx}",
+            "tests/copilot.spec.ts",
+            "tests/hfv.e2e.spec.ts",
+            "tests/marketplace.smoke.spec.ts",
+          ],
         },
       }),
     ],

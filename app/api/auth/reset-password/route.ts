@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
     // Update user's password and reset security flags
     // eslint-disable-next-line local/require-tenant-scope -- SAFE: updateOne uses _id from already-scoped user (line 129)
     await User.updateOne(
-      { _id: user._id },
+      { _id: user._id, orgId: resolvedOrgId },
       {
         $set: {
           password: hashedPassword,

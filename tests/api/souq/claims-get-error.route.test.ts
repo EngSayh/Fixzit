@@ -48,6 +48,7 @@ function buildRequest() {
 describe("GET /api/souq/claims/[id] error handling", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.clearAllMocks();
 
     enforceRateLimitMock.mockReturnValue(null);
     resolveRequestSessionMock.mockResolvedValue({

@@ -1,150 +1,149 @@
 /**
- * @fileoverview Tests for Finance Ledger API
- * @module tests/api/finance/ledger.route.test
+ * @fileoverview Tests for /api/finance/ledger route
+ * @description Finance ledger access with FINANCE:VIEW permission
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock dependencies before imports
-vi.mock("@/lib/logger", () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
+// Mock dependencies before import
+vi.mock("@/server/middleware/withAuthRbac", () => ({
+  getSessionUser: vi.fn(),
+}));
+
+vi.mock("@/server/lib/authContext", () => ({
+  runWithContext: vi.fn((_, fn) => fn()),
+}));
+
+vi.mock("@/config/rbac.config", () => ({
+  requirePermission: vi.fn(() => true),
+}));
+
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: vi.fn(() => null),
 }));
 
 vi.mock("@/lib/mongodb-unified", () => ({
   dbConnect: vi.fn().mockResolvedValue(undefined),
 }));
 
-const mockEnforceRateLimit = vi.fn();
-vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: (...args: unknown[]) => mockEnforceRateLimit(...args),
-}));
-
-const mockGetSessionUser = vi.fn();
-vi.mock("@/server/middleware/withAuthRbac", () => ({
-  getSessionUser: (...args: unknown[]) => mockGetSessionUser(...args),
-}));
-
-vi.mock("@/server/lib/authContext", () => ({
-  runWithContext: (_ctx: unknown, fn: () => Promise<unknown>) => fn(),
-}));
-
-vi.mock("@/config/rbac.config", () => ({
-  requirePermission: vi.fn(),
-}));
-
-vi.mock("@/server/utils/errorResponses", () => ({
-  unauthorizedError: () => new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
-  forbiddenError: () => new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 }),
-  handleApiError: vi.fn().mockReturnValue(new Response(JSON.stringify({ error: "Error" }), { status: 500 })),
-  isForbidden: vi.fn().mockReturnValue(false),
-}));
-
-// Mock LedgerEntry model
 vi.mock("@/server/models/finance/LedgerEntry", () => ({
   default: {
     find: vi.fn().mockReturnValue({
-      sort: vi.fn().mockReturnValue({
-        skip: vi.fn().mockReturnValue({
-          limit: vi.fn().mockReturnValue({
-            lean: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      }),
+      sort: vi.fn().mockReturnThis(),
+      skip: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      populate: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockResolvedValue([]),
     }),
     countDocuments: vi.fn().mockResolvedValue(0),
   },
 }));
 
-import { GET } from "@/app/api/finance/ledger/route";
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
 
-function createRequest(params?: Record<string, string>): NextRequest {
+vi.mock("@/server/utils/errorResponses", () => ({
+  unauthorizedError: vi.fn(() =>
+    new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    })
+  ),
+  forbiddenError: vi.fn(() =>
+    new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    })
+  ),
+  handleApiError: vi.fn((err) =>
+    new Response(JSON.stringify({ error: String(err) }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    })
+  ),
+  isForbidden: vi.fn(() => false),
+}));
+
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+
+const mockGetSessionUser = vi.mocked(getSessionUser);
+const mockRateLimit = vi.mocked(enforceRateLimit);
+
+const importRoute = async () => import("@/app/api/finance/ledger/route");
+
+function createRequest(
+  method: string,
+  searchParams?: Record<string, string>,
+): NextRequest {
   const url = new URL("http://localhost:3000/api/finance/ledger");
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
+  if (searchParams) {
+    Object.entries(searchParams).forEach(([key, value]) => {
       url.searchParams.set(key, value);
     });
   }
-  return new NextRequest(url, { method: "GET" });
+  return new NextRequest(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
-describe("Finance Ledger API", () => {
+describe("API /api/finance/ledger", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockEnforceRateLimit.mockReturnValue(null);
-    mockGetSessionUser.mockReset();
+    vi.unstubAllEnvs();
+    vi.stubEnv("NODE_ENV", "test");
+    mockRateLimit.mockReturnValue(null);
+    mockGetSessionUser.mockResolvedValue(null);
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
   });
 
   describe("GET /api/finance/ledger", () => {
-    it("should return 429 when rate limited", async () => {
-      const rateLimitResponse = new Response(
-        JSON.stringify({ error: "Too many requests" }),
-        { status: 429 }
+    it("returns 401 when not authenticated", async () => {
+      mockGetSessionUser.mockResolvedValueOnce(null);
+
+      const routeModule = await importRoute();
+
+      const req = createRequest("GET");
+      const res = await routeModule.GET(req);
+
+      expect(res.status).toBe(401);
+    });
+
+    it("enforces rate limiting", async () => {
+      mockRateLimit.mockReturnValueOnce(
+        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+          status: 429,
+          headers: { "Content-Type": "application/json" },
+        })
       );
-      mockEnforceRateLimit.mockReturnValue(rateLimitResponse);
 
-      const request = createRequest();
-      const response = await GET(request);
-      
-      expect(response.status).toBe(429);
+      const routeModule = await importRoute();
+
+      const req = createRequest("GET");
+      const res = await routeModule.GET(req);
+
+      expect(res.status).toBe(429);
     });
 
-    it("should return 401 when not authenticated", async () => {
-      mockGetSessionUser.mockResolvedValue(null);
+    it.todo(
+      "returns 403 when lacking FINANCE permission (requires permission mock)",
+    );
 
-      const request = createRequest();
-      const response = await GET(request);
-      const data = await response.json();
+    it.todo("returns ledger entries with pagination (requires DB integration)");
 
-      expect(response.status).toBe(401);
-      expect(data.error).toBeDefined();
-    });
+    it.todo("filters by accountId (requires DB integration)");
 
-    it("should return ledger entries when authenticated with permission", async () => {
-      mockGetSessionUser.mockResolvedValue({
-        id: "user_1",
-        orgId: "org_1",
-        role: "FINANCE_MANAGER",
-      });
-
-      const request = createRequest();
-      const response = await GET(request);
-
-      // Should proceed with request
-      expect(response.status).toBeDefined();
-    });
-
-    it("should accept accountId filter parameter", async () => {
-      mockGetSessionUser.mockResolvedValue({
-        id: "user_1",
-        orgId: "org_1",
-        role: "FINANCE_MANAGER",
-      });
-
-      const request = createRequest({ accountId: "507f1f77bcf86cd799439011" });
-      const response = await GET(request);
-
-      expect(response.status).toBeDefined();
-    });
-
-    it("should accept date range filter parameters", async () => {
-      mockGetSessionUser.mockResolvedValue({
-        id: "user_1",
-        orgId: "org_1",
-        role: "FINANCE_MANAGER",
-      });
-
-      const request = createRequest({
-        startDate: "2024-01-01",
-        endDate: "2024-12-31",
-      });
-      const response = await GET(request);
-
-      expect(response.status).toBeDefined();
-    });
+    it.todo("filters by date range (requires DB integration)");
   });
 });

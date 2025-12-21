@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { aggregateWithTenantScope } from "@/lib/db/aggregateWithTenantScope";
+import { aggregateWithTenantScope } from "@/server/db/aggregateWithTenantScope";
 
 describe("aggregateWithTenantScope", () => {
   const aggregateMock = vi.fn();

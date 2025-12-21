@@ -1,0 +1,50 @@
+/**
+ * @fileoverview Tests for Souq Payments API
+ * @description Tests the /api/souq/payments endpoint
+ */
+import { expectAuthFailure } from '@/tests/api/_helpers';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
+
+vi.mock('@/lib/auth/session', () => ({
+  getSessionOrNull: vi.fn(),
+}));
+
+vi.mock('@/lib/mongo', () => ({
+  default: vi.fn().mockResolvedValue(undefined),
+  connectMongo: vi.fn().mockResolvedValue(undefined),
+}));
+
+import { getSessionOrNull } from '@/lib/auth/session';
+
+describe.skip('Souq Payments API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getSessionOrNull).mockResolvedValue({
+      ok: true,
+      session: { user: { id: 'user-123', orgId: 'org-123', role: 'user' } },
+      response: null,
+    } as ReturnType<typeof getSessionOrNull> extends Promise<infer T> ? T : never);
+  });
+
+  describe.skip('POST /api/souq/payments', () => {
+    it('should reject unauthenticated requests', async () => {
+      vi.mocked(getSessionOrNull).mockResolvedValue({
+        ok: true,
+        session: null,
+        response: null,
+      } as ReturnType<typeof getSessionOrNull> extends Promise<infer T> ? T : never);
+
+      const { POST } = await import('@/app/api/souq/payments/route');
+      const req = new NextRequest('http://localhost:3000/api/souq/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: 'order-123', amount: 100 }),
+      });
+
+      const response = await POST(req);
+      expectAuthFailure(response);
+    });
+  });
+});

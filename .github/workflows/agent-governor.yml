@@ -73,6 +73,13 @@ jobs:
       - name: Lint check
         run: pnpm run lint
 
+      - name: 🔒 Assert non-production MongoDB
+        if: ${{ secrets.MONGODB_URI != '' }}
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          CI: "true"
+        run: pnpm tsx scripts/assert-nonprod-mongo.ts
+
       - name: Ensure Mongo Indexes (idempotent)
         # IMPORTANT: secrets are empty on fork PRs; skip instead of trying localhost.
         env:

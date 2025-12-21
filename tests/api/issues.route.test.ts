@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { GET, POST } from "@/app/api/issues/route";
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mocks
 vi.mock("@/lib/mongodb-unified", () => ({

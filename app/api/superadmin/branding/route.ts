@@ -16,7 +16,6 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { revalidatePath } from "next/cache";
 import { validatePublicHttpsUrl } from "@/lib/security/validate-public-https-url";
 import { z } from "zod";
-import { audit } from "@/lib/audit";
 
 const HEX_COLOR_REGEX = /^#(?:[0-9a-fA-F]{3}){1,2}$/;
 
@@ -47,7 +46,7 @@ type BrandingUpdatePayload = z.infer<typeof BrandingUpdateSchema>;
  * Retrieve current platform branding settings
  */
 export async function GET(request: NextRequest) {
-  const rateLimitResponse = await enforceRateLimit(request, {
+  const rateLimitResponse = enforceRateLimit(request, {
     requests: 60,
     windowMs: 60_000,
     keyPrefix: "superadmin:branding:get",
@@ -55,14 +54,14 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
+    // Verify superadmin session
     const session = await getSuperadminSession(request);
     if (!session) {
       return NextResponse.json(
         { error: "Unauthorized - Superadmin access required" },
-        { status: 401 },
+        { status: 401 }
       );
     }
-    const username = session.username ?? "superadmin";
 
     await connectDb();
 
@@ -77,7 +76,7 @@ export async function GET(request: NextRequest) {
         brandColor: "#0061A8",
         // createdBy/updatedBy are set by auditPlugin
       });
-      logger.info("Created default platform settings", { username });
+      logger.info("Created default platform settings", { username: session.username });
     }
 
     return NextResponse.json({
@@ -99,7 +98,7 @@ export async function GET(request: NextRequest) {
     logger.error("Failed to fetch platform branding", { error });
     return NextResponse.json(
       { error: "Failed to fetch branding settings" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -109,7 +108,7 @@ export async function GET(request: NextRequest) {
  * Update platform branding settings (superadmin only)
  */
 export async function PATCH(request: NextRequest) {
-  const rateLimitResponse = await enforceRateLimit(request, {
+  const rateLimitResponse = enforceRateLimit(request, {
     requests: 10,
     windowMs: 60_000,
     keyPrefix: "superadmin:branding:patch",
@@ -128,12 +127,8 @@ export async function PATCH(request: NextRequest) {
 
     await connectDb();
 
-    const sessionUsername = session.username ?? "superadmin";
-    const sessionRole = session.role;
-    const sessionOrgId = session.orgId;
-
     // Parse and validate request body
-    let rawBody: Record<string, unknown>;
+    let rawBody: any;
     try {
       rawBody = await request.json();
     } catch (parseError) {
@@ -213,81 +208,37 @@ export async function PATCH(request: NextRequest) {
       }
     );
 
-    const safeSettings =
-      settings ??
-      {
-        logoUrl: updates.logoUrl ?? "/img/fixzit-logo.png",
-        logoStorageKey: updates.logoStorageKey,
-        logoFileName: updates.logoFileName,
-        logoMimeType: updates.logoMimeType,
-        logoFileSize: updates.logoFileSize,
-        faviconUrl: updates.faviconUrl,
-        brandName: updates.brandName ?? "Fixzit Enterprise",
-        brandColor: updates.brandColor ?? "#0061A8",
-        updatedAt: new Date(),
-        updatedBy: sessionUsername,
-      };
-
     logger.info("Platform branding updated", {
-      username: sessionUsername,
+      username: session.username,
       orgId: orgId || "global",
       fields: Object.keys(updates),
     });
 
     // Invalidate cached branding across the app
-    try {
-      revalidatePath("/", "layout");
-      revalidatePath("/superadmin", "layout");
-      
-      // Also invalidate org settings API cache if tenant-specific
-      if (orgId) {
-        revalidatePath("/api/organization/settings");
-      }
-    } catch (revalidateError) {
-      logger.warn("Branding revalidate skipped", { error: revalidateError });
+    revalidatePath("/", "layout");
+    revalidatePath("/superadmin", "layout");
+    
+    // Also invalidate org settings API cache if tenant-specific
+    if (orgId) {
+      revalidatePath("/api/organization/settings");
     }
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
       data: {
-        logoUrl: safeSettings.logoUrl,
-        logoStorageKey: safeSettings.logoStorageKey,
-        logoFileName: safeSettings.logoFileName,
-        logoMimeType: safeSettings.logoMimeType,
-        logoFileSize: safeSettings.logoFileSize,
-        faviconUrl: safeSettings.faviconUrl,
-        brandName: safeSettings.brandName,
-        brandColor: safeSettings.brandColor,
-        updatedAt: safeSettings.updatedAt,
-        updatedBy: (safeSettings as any).updatedBy || sessionUsername,
+        logoUrl: settings.logoUrl,
+        logoStorageKey: settings.logoStorageKey,
+        logoFileName: settings.logoFileName,
+        logoMimeType: settings.logoMimeType,
+        logoFileSize: settings.logoFileSize,
+        faviconUrl: settings.faviconUrl,
+        brandName: settings.brandName,
+        brandColor: settings.brandColor,
+        updatedAt: settings.updatedAt,
+        updatedBy: (settings as any).updatedBy || session.username,
       },
       message: "Branding settings updated successfully",
     });
-
-    // Fire-and-forget audit entry
-    const clientIp =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
-
-    void audit({
-      actorId: sessionUsername,
-      actorEmail: sessionUsername,
-      actorRole: sessionRole,
-      action: "superadmin.branding.update",
-      target: orgId || "global",
-      targetType: "branding",
-      orgId: sessionOrgId,
-      ipAddress: clientIp,
-      success: true,
-      meta: {
-        fields: Object.keys(updates),
-      },
-    }).catch((auditError) => {
-      logger.warn("Branding audit failed", { error: auditError });
-    });
-
-    return response;
   } catch (error) {
     logger.error("Failed to update platform branding", { error });
     return NextResponse.json(

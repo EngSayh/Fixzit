@@ -87,7 +87,7 @@ export interface IEscrowAccount {
 const EscrowAccountSchema = new Schema<IEscrowAccount>(
   {
     orgId: { type: Schema.Types.ObjectId, required: true, index: true },
-    escrowNumber: { type: String, required: true, unique: true, index: true },
+    escrowNumber: { type: String, required: true, unique: true }, // unique implies index
     source: {
       type: String,
       enum: Object.values(EscrowSource),

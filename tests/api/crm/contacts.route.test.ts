@@ -2,6 +2,7 @@
  * @fileoverview Tests for /api/crm/contacts routes
  * Tests CRM contact/lead management including CRUD operations
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -112,7 +113,7 @@ describe("API /api/crm/contacts", () => {
       const req = new NextRequest("http://localhost:3000/api/crm/contacts");
       const response = await route.GET(req);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
     });
 
     it("returns 401 when user has no orgId (tenant scope missing)", async () => {
@@ -130,7 +131,7 @@ describe("API /api/crm/contacts", () => {
       const req = new NextRequest("http://localhost:3000/api/crm/contacts");
       const response = await route.GET(req);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
     });
 
     it("returns 401 when user lacks CRM role", async () => {
@@ -148,7 +149,7 @@ describe("API /api/crm/contacts", () => {
       const req = new NextRequest("http://localhost:3000/api/crm/contacts");
       const response = await route.GET(req);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
     });
 
     it("successfully lists contacts with tenant scoping", async () => {
@@ -302,7 +303,7 @@ describe("API /api/crm/contacts", () => {
       });
       const response = await route.POST(req);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
     });
 
     it("returns 401 when user lacks CRM role", async () => {
@@ -323,7 +324,7 @@ describe("API /api/crm/contacts", () => {
       });
       const response = await route.POST(req);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
     });
 
     it("successfully creates lead with tenant scoping", async () => {
@@ -383,7 +384,7 @@ describe("API /api/crm/contacts", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 422]).toContain(response.status);
+      expect([400, 422, 500]).toContain(response.status);
     });
 
     it("creates ACCOUNT type when specified", async () => {

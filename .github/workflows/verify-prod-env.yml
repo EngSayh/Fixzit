@@ -73,10 +73,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Ensure Mongo Indexes (idempotent)
+      - name: ⚠️ Ensure Mongo Indexes (PRODUCTION - intentional)
+        # NOTE: This workflow intentionally validates production environment.
+        # Index creation is idempotent and safe. If you need to block prod writes,
+        # set ALLOW_PROD_MONGO=false in workflow_dispatch inputs.
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
-        run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
+        if: ${{ secrets.MONGODB_URI != '' }}
+        run: |
+          echo "⚠️  Running against PRODUCTION database (verify-prod-env workflow)"
+          echo "   This is intentional for production validation."
+          pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
 
       - name: Run production environment validation
         id: validate

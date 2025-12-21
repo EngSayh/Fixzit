@@ -6,7 +6,7 @@ import { APP_DEFAULTS } from '@/config/constants';
 import { logger } from '@/lib/logger';
 import { isTruthy } from '@/lib/utils/env';
 import { buildOrgAwareRateLimitKey, smartRateLimit } from '@/server/security/rateLimit';
-import { rateLimitError } from '@/server/utils/errorResponses';
+import { rateLimitError, handleApiError } from '@/server/utils/errorResponses';
 import type { Session } from 'next-auth';
 
 type ThemePreference = 'light' | 'dark' | 'system' | 'LIGHT' | 'DARK' | 'SYSTEM' | 'AUTO';
@@ -204,7 +204,7 @@ export async function GET(req: NextRequest) {
       logger.warn('PLAYWRIGHT_TESTS=true: returning default preferences after error');
       return NextResponse.json({ preferences: DEFAULT_PREFERENCES, source: 'playwright-defaults', reason: 'exception' });
     }
-    return NextResponse.json({ error: 'Failed to fetch preferences' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -390,10 +390,7 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     logger.error('Failed to update user preferences:', error);
-    return NextResponse.json(
-      { error: 'Failed to update preferences' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 

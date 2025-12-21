@@ -43,8 +43,9 @@ describe("generateSlug", () => {
     );
   });
 
-  test("drops non-ASCII letters (accents) and normalizes spaces", () => {
-    expect(generateSlug("Café à la crème")).toBe("caf-la-crme");
+  test("preserves accented characters (Unicode support)", () => {
+    // Implementation uses Unicode property escapes to preserve all letters
+    expect(generateSlug("Café à la crème")).toBe("café-à-la-crème");
   });
 
   test("returns empty string for empty input", () => {
@@ -52,9 +53,8 @@ describe("generateSlug", () => {
   });
 
   test("handles undefined/null at runtime defensively", () => {
-    // @ts-expect-error - Testing runtime behavior with invalid types
+    // Function now properly accepts undefined/null
     expect(generateSlug(undefined)).toBe("");
-    // @ts-expect-error - Testing runtime behavior with invalid types
     expect(generateSlug(null)).toBe("");
   });
 
@@ -73,7 +73,9 @@ describe("generateSlug", () => {
     expect(generateSlug("-----")).toBe("-");
   });
 
-  test("non-Latin characters are removed", () => {
-    expect(generateSlug("你好，世界")).toBe("");
+  test("preserves non-Latin characters (Arabic, Chinese, etc.)", () => {
+    // Implementation preserves all Unicode letters for i18n support
+    expect(generateSlug("你好，世界")).toBe("你好世界");
+    expect(generateSlug("منتج")).toBe("منتج");
   });
 });

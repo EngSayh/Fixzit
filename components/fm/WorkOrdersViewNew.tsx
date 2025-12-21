@@ -13,7 +13,7 @@
  */
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState, useMemo } from "react";
 import useSWR from "swr";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useTranslation } from "@/contexts/TranslationContext";
@@ -40,21 +40,16 @@ import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { DateRangePicker } from "@/components/tables/filters/DateRangePicker";
-import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
-import { ExportCenterDrawer } from "@/components/export/ExportCenterDrawer";
 import {
   buildActiveFilterChips,
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
-import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 
 import ClientDate from "@/components/ClientDate";
 import { WorkOrderPriority } from "@/lib/sla";
 import { toast } from "sonner";
-import { SLABadge, getSLAStatus, formatSLATimeRemaining } from "@/components/fm/SLABadge";
-import { OfflineIndicator } from "@/components/common/OfflineIndicator";
 
 // Types
 type WorkOrderRecord = {
@@ -102,7 +97,7 @@ const priorityStyles: Record<string, string> = {
   CRITICAL: "bg-destructive/10 text-destructive border border-destructive/20",
 };
 
-export type WorkOrderFilters = {
+type WorkOrderFilters = {
   status?: string;
   priority?: WorkOrderPriority;
   overdue?: boolean;
@@ -113,7 +108,7 @@ export type WorkOrderFilters = {
   dueDateTo?: string;
 };
 
-export const WORK_ORDER_FILTER_SCHEMA: FilterSchema<WorkOrderFilters>[] = [
+const WORK_ORDER_FILTER_SCHEMA: FilterSchema<WorkOrderFilters>[] = [
   {
     key: "status",
     param: "status",
@@ -216,8 +211,8 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
     return buildWorkOrdersQuery(state, orgId);
   }, [orgId, state]);
 
-  const { data, error, isLoading, mutate, isValidating } = useSWR(
-    `/api/fm/work-orders?${query}`,
+  const { data, error: _error, isLoading, mutate, isValidating } = useSWR(
+    `/api/work-orders?${query}`,
     fetcher,
     { keepPreviousData: true }
   );
@@ -225,47 +220,15 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
   const workOrders = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
-  const filters = state.filters as WorkOrderFilters;
-  const currentFilters = state.filters || {};
 
   // Quick filter chips (P0 requirement)
   const quickChips = [
-    {
-      key: "open",
-      label: "Open",
-      onClick: () => updateState({ filters: { status: "SUBMITTED" }, page: 1 }),
-      selected: filters.status === "SUBMITTED",
-    },
-    {
-      key: "overdue",
-      label: "Overdue",
-      onClick: () => updateState({ filters: { overdue: true }, page: 1 }),
-      selected: Boolean(filters.overdue),
-    },
-    {
-      key: "mine",
-      label: "Mine",
-      onClick: () => updateState({ filters: { assignedToMe: true }, page: 1 }),
-      selected: Boolean(filters.assignedToMe),
-    },
-    {
-      key: "unassigned",
-      label: "Unassigned",
-      onClick: () => updateState({ filters: { unassigned: true }, page: 1 }),
-      selected: Boolean(filters.unassigned),
-    },
-    {
-      key: "high",
-      label: "High Priority",
-      onClick: () => updateState({ filters: { priority: "HIGH" }, page: 1 }),
-      selected: filters.priority === "HIGH",
-    },
-    {
-      key: "sla-risk",
-      label: "SLA Risk",
-      onClick: () => updateState({ filters: { slaRisk: true }, page: 1 }),
-      selected: Boolean(filters.slaRisk),
-    },
+    { key: "open", label: "Open", onClick: () => updateState({ filters: { status: "SUBMITTED" }, page: 1 }) },
+    { key: "overdue", label: "Overdue", onClick: () => updateState({ filters: { overdue: true }, page: 1 }) },
+    { key: "mine", label: "Mine", onClick: () => updateState({ filters: { assignedToMe: true }, page: 1 }) },
+    { key: "unassigned", label: "Unassigned", onClick: () => updateState({ filters: { unassigned: true }, page: 1 }) },
+    { key: "high", label: "High Priority", onClick: () => updateState({ filters: { priority: "HIGH" }, page: 1 }) },
+    { key: "sla-risk", label: "SLA Risk", onClick: () => updateState({ filters: { slaRisk: true }, page: 1 }) },
   ];
 
   // Active filters chips
@@ -277,8 +240,8 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
     [state.filters, updateState]
   );
 
-  // Table columns - memoized to prevent unnecessary re-renders
-  const columns = useMemo<DataTableColumn<WorkOrderRecord>[]>(() => [
+  // Table columns
+  const columns: DataTableColumn<WorkOrderRecord>[] = [
     {
       id: "code",
       header: "Code",
@@ -317,16 +280,6 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
       ),
     },
     {
-      id: "sla",
-      header: "SLA",
-      cell: (row) => {
-        const dueDate = row.dueAt ? new Date(row.dueAt) : undefined;
-        const slaStatus = getSLAStatus(dueDate, 120);
-        const timeLabel = formatSLATimeRemaining(dueDate);
-        return <SLABadge status={slaStatus} timeLabel={timeLabel} size="sm" showIcon />;
-      },
-    },
-    {
       id: "created",
       header: "Created",
       cell: (row) => row.createdAt ? <ClientDate date={row.createdAt} format="relative" /> : "—",
@@ -346,7 +299,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
         );
       },
     },
-  ], []);
+  ];
 
   // Empty state
   const emptyState = (
@@ -382,31 +335,8 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
     setFilterDrawerOpen(false);
   };
 
-  const handleLoadPreset = (
-    presetFilters: Record<string, unknown>,
-    _sort?: { field: string; direction: "asc" | "desc" },
-    search?: string
-  ) => {
-    const normalizedFilters = pickSchemaFilters<WorkOrderFilters>(
-      presetFilters,
-      WORK_ORDER_FILTER_SCHEMA
-    );
-    setDraftFilters(normalizedFilters);
-    updateState({
-      filters: normalizedFilters,
-      q: typeof search === "string" ? search : "",
-      page: 1,
-    });
-  };
-
-  // Auto-apply default preset when none is set in state (handled by FilterPresetsDropdown)
-  useEffect(() => {
-    // no-op: handled by dropdown through onLoadPreset + autoloadDefault
-  }, []);
-
   return (
     <div className="space-y-6 p-6">
-      <OfflineIndicator position="top" />
       {/* PageHeader (P0) */}
       <div className="flex items-center justify-between">
         <div>
@@ -430,32 +360,6 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
         </div>
       </div>
 
-      {error && (
-        <div
-          className="flex items-start justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive"
-          role="alert"
-        >
-          <div>
-            <p className="font-semibold">
-              {t("workOrders.list.errorTitle", "Unable to load work orders")}
-            </p>
-            <p className="text-sm text-destructive/80">
-              {error instanceof Error
-                ? error.message
-                : t("workOrders.list.errorUnknown", "Unexpected error")}
-            </p>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => mutate()}
-            disabled={isValidating}
-          >
-            {t("common.retry", "Retry")}
-          </Button>
-        </div>
-      )}
-
       {/* Toolbar (P0) */}
       <TableToolbar
         start={
@@ -472,7 +376,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
+                <Chip key={chip.key} onClick={chip.onClick}>
                   {chip.label}
                 </Chip>
               ))}
@@ -482,37 +386,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
         end={
           <>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <FilterPresetsDropdown
-              entityType="workOrders"
-              currentFilters={pickSchemaFilters<WorkOrderFilters>(
-                currentFilters,
-                WORK_ORDER_FILTER_SCHEMA
-              )}
-              currentSearch={state.q}
-              normalizeFilters={(filters) =>
-                pickSchemaFilters<WorkOrderFilters>(
-                  filters,
-                  WORK_ORDER_FILTER_SCHEMA
-                )
-              }
-              onLoadPreset={handleLoadPreset}
-            />
-            <ExportCenterDrawer
-              entityType="workOrders"
-              currentFilters={pickSchemaFilters<WorkOrderFilters>(
-                currentFilters,
-                WORK_ORDER_FILTER_SCHEMA
-              )}
-              currentSearch={state.q}
-              selectedIds={[]}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFilterDrawerOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={filterDrawerOpen}
-            >
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (

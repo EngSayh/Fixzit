@@ -53,7 +53,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SkeletonTable, SkeletonKPICard, SkeletonDashboard as _SkeletonDashboard } from "@/components/superadmin/SkeletonTableEnhanced";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -70,6 +69,7 @@ import { Sparkline } from "@/components/superadmin/Sparkline";
 import { TrendIndicator } from "@/components/superadmin/TrendIndicator";
 import { SlideOverDrawer } from "@/components/superadmin/SlideOverDrawer";
 import { FloatingBulkActions } from "@/components/superadmin/FloatingBulkActions";
+import { TrackerSourceSwitch } from "@/components/superadmin/TrackerSourceSwitch";
 
 // ============================================================================
 // TYPES
@@ -143,137 +143,6 @@ const CATEGORY_ICONS: Record<string, typeof Bug> = {
   missing_test: FileCode,
   logic_error: AlertTriangle,
 };
-
-// ============================================================================
-// PHASE PROGRESS COMPONENT
-// ============================================================================
-
-interface PhaseData {
-  id: string;
-  title: string;
-  status: "completed" | "in-progress" | "not-started";
-  date?: string;
-  description: string;
-}
-
-interface PhaseSummary {
-  total: number;
-  completed: number;
-  inProgress: number;
-  notStarted: number;
-  completionPercentage: number;
-}
-
-function PhaseProgressSection() {
-  const [phases, setPhases] = useState<PhaseData[]>([]);
-  const [summary, setSummary] = useState<PhaseSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    const fetchPhases = async () => {
-      try {
-        const res = await fetch("/api/superadmin/phases");
-        if (!res.ok) throw new Error("Failed to fetch phase data");
-        const data = await res.json();
-        setPhases(data.phases || []);
-        setSummary(data.summary || null);
-      } catch (_error) {
-        // Phase fetch failed - show user-friendly toast
-        toast({
-          title: "Error",
-          description: "Failed to load phase progress data",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPhases();
-  }, [toast]);
-
-  if (loading) {
-    return (
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-24 w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!summary) return null;
-
-  const phaseStart = phases[0]?.id ?? "P66";
-  const phaseEnd = phases[phases.length - 1]?.id ?? "P110";
-
-  return (
-    <Card className="bg-card border-border">
-      <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-blue-500" />
-          Phase Progress ({phaseStart}-{phaseEnd})
-        </CardTitle>
-        <CardDescription className="text-slate-400">
-          Production + continuous improvement: {summary.completed}/{summary.total} completed ({summary.completionPercentage}%)
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Progress Bar */}
-        <div className="w-full bg-slate-700 rounded-full h-3 overflow-hidden">
-          <div
-            className="bg-gradient-to-r from-blue-500 to-green-500 h-full transition-all duration-500"
-            style={{ width: `${summary.completionPercentage}%` }}
-          />
-        </div>
-
-        {/* Phase Grid - Expanded for P66-P110 */}
-        <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
-          {phases.map((phase) => (
-            <div
-              key={phase.id}
-              className={`px-2 py-1.5 rounded-md text-xs font-medium text-center transition-all ${
-                phase.status === "completed"
-                  ? "bg-green-500/20 text-green-400 border border-green-500/50"
-                  : phase.status === "in-progress"
-                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/50 animate-pulse"
-                  : "bg-slate-700 text-slate-400 border border-slate-600"
-              }`}
-              title={`${phase.title} - ${phase.status}`}
-            >
-              {phase.id}
-              {phase.status === "completed" && (
-                <CheckCircle2 className="inline-block h-3 w-3 ms-1" />
-              )}
-              {phase.status === "in-progress" && (
-                <Clock className="inline-block h-3 w-3 ms-1 animate-spin" />
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-4 text-center pt-2 border-t border-slate-700">
-          <div>
-            <p className="text-xs text-slate-400">Completed</p>
-            <p className="text-lg font-bold text-green-400">{summary.completed}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-400">In Progress</p>
-            <p className="text-lg font-bold text-blue-400">{summary.inProgress}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-400">Remaining</p>
-            <p className="text-lg font-bold text-slate-400">{summary.notStarted}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 // ============================================================================
 // COMPONENT
@@ -493,9 +362,7 @@ export default function SuperadminIssuesPage() {
       if (viewMode === "quickWins") params.set("quickWins", "true");
       if (viewMode === "stale") params.set("stale", "true");
 
-      // BUG-FIX: Use /api/superadmin/issues which queries BacklogIssue (PENDING_MASTER.md imports)
-      // Previously was using /api/issues which queries Issue model (different collection)
-      const response = await fetch(`/api/superadmin/issues?${params.toString()}`);
+      const response = await fetch(`/api/issues?${params.toString()}`);
       
       if (!response.ok) {
         throw new Error("Failed to fetch issues");
@@ -520,8 +387,7 @@ export default function SuperadminIssuesPage() {
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
-      // BUG-FIX: Use /api/superadmin/issues/stats which queries BacklogIssue
-      const response = await fetch("/api/superadmin/issues/stats");
+      const response = await fetch("/api/issues/stats");
       
       if (!response.ok) {
         throw new Error("Failed to fetch stats");
@@ -582,8 +448,7 @@ export default function SuperadminIssuesPage() {
   // Export handler
   const handleExport = async () => {
     try {
-      // BUG-FIX: Use /api/superadmin/issues which queries BacklogIssue
-      const response = await fetch("/api/superadmin/issues?limit=100");
+      const response = await fetch("/api/issues?limit=5000");
       const data = await response.json();
       const payload = data.data || data;
       const issuesCount = (payload.issues || []).length;
@@ -637,8 +502,7 @@ export default function SuperadminIssuesPage() {
         }));
       }
 
-      // BUG-FIX: Use /api/superadmin/issues/import which writes to BacklogIssue
-      const response = await fetch("/api/superadmin/issues/import", {
+      const response = await fetch("/api/issues/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -682,6 +546,9 @@ export default function SuperadminIssuesPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Source Switch */}
+      <TrackerSourceSwitch activeSource="system-issues" />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -749,7 +616,12 @@ export default function SuperadminIssuesPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         {statsLoading ? (
           Array.from({ length: 8 }).map((_, i) => (
-            <SkeletonKPICard key={i} />
+            <Card key={i} className="bg-card border-border">
+              <CardContent className="p-4">
+                <Skeleton className="h-4 w-20 mb-2 bg-muted" />
+                <Skeleton className="h-8 w-12 bg-muted" />
+              </CardContent>
+            </Card>
           ))
         ) : (
           <>
@@ -905,9 +777,6 @@ export default function SuperadminIssuesPage() {
           </Card>
         </div>
       )}
-
-      {/* Phase Progress Tracking */}
-      <PhaseProgressSection />
 
       {/* Filters - Sticky */}
       <Card className="bg-slate-800 border-slate-700 sticky top-0 z-10">
@@ -1092,7 +961,11 @@ export default function SuperadminIssuesPage() {
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <SkeletonTable rows={8} columns={10} />
+            <div className="p-8 space-y-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full bg-muted" />
+              ))}
+            </div>
           ) : issues.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               <Bug className="h-12 w-12 mx-auto mb-4 opacity-50" />

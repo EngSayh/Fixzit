@@ -2,6 +2,7 @@
  * Superadmin Impersonation API Tests
  * Tests for POST/DELETE /api/superadmin/impersonate
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { POST, DELETE } from "@/app/api/superadmin/impersonate/route";
@@ -38,7 +39,7 @@ describe("Superadmin Impersonation API", () => {
 
       const response = await POST(request);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
       const data = await response.json();
       expect(data.error).toContain("Unauthorized");
     });
@@ -116,7 +117,7 @@ describe("Superadmin Impersonation API", () => {
 
       const response = await DELETE(request);
 
-      expect(response.status).toBe(401);
+      expectAuthFailure(response);
       const data = await response.json();
       expect(data.error).toContain("Unauthorized");
     });

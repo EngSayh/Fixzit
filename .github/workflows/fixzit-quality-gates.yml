@@ -19,7 +19,7 @@ concurrency:
 permissions:
   contents: read
   security-events: write
-  actions: write
+  actions: read
   pull-requests: write
 
 jobs:
@@ -157,15 +157,32 @@ jobs:
             *) npm run typecheck || npm run tsc --noEmit ;;
           esac
 
-      - name: Client env guard
+      - name: 🔒 Assert non-production MongoDB
         shell: bash
-        run: node scripts/audit-client-env.mjs
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          CI: "true"
+        run: |
+          if [ -z "$MONGODB_URI" ]; then
+            echo "⏭️ Skipping - MONGODB_URI not configured"
+            exit 0
+          fi
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm tsx scripts/assert-nonprod-mongo.ts ;;
+            yarn) yarn tsx scripts/assert-nonprod-mongo.ts ;;
+            *) npx tsx scripts/assert-nonprod-mongo.ts ;;
+          esac
 
       - name: Ensure Mongo Indexes (idempotent)
         shell: bash
         env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/fixzit_test' }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          CI: "true"
         run: |
+          if [ -z "$MONGODB_URI" ]; then
+            echo "⏭️ Skipping - MONGODB_URI not configured"
+            exit 0
+          fi
           case "${{ steps.pm.outputs.manager }}" in
             pnpm) pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();" ;;
             yarn) yarn tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();" ;;
@@ -552,10 +569,17 @@ jobs:
 
       # ---------- Summary ----------
       - name: Summary
+        if: always()
         run: |
           echo "## 🎯 Fixzit Quality Gates Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Quality gates completed successfully!**" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ **Quality gates completed successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Quality gates completed with warnings or failures.**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Check the job logs above for details on which steps failed." >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📦 Generated Artifacts:" >> $GITHUB_STEP_SUMMARY
           echo "- **OpenAPI Specification** (if found or generated)" >> $GITHUB_STEP_SUMMARY

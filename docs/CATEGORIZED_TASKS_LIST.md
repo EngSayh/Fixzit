@@ -9,6 +9,15 @@
 **Source**: Past 5 days analysis + TODO/FIXME scan + Test results
 
 ---
+## Active Task Ledger (Phase P235 - Orchestrator Override)
+
+| ID | Domain | Priority | Severity | Status | Owner | Branch/PR | Verification Commands | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| SEC-ONB-ORGID-001 | Onboarding/Security | P0 | Blocker | Done | You | phase-p235-production-readiness | `pnpm vitest -c vitest.config.api.ts run tests/api/onboarding/onboarding.route.test.ts tests/api/onboarding/initiate.route.test.ts` | Enforce orgId/tenantId for onboarding list/initiate; return 400 when missing; tests added. |
+| TEST-MOCK-API-001 | Testing | P2 | Minor | Done | You | phase-p235-production-readiness | `pnpm vitest -c vitest.config.api.ts run tests/api/finance/accounts.route.test.ts tests/api/finance/journals.route.test.ts tests/api/help/ask.route.test.ts tests/api/support/tickets.route.test.ts tests/api/onboarding/onboarding.route.test.ts tests/api/onboarding/initiate.route.test.ts` | Align API mocks with route contracts; add env reset defaults per Mock Hygiene protocol. |
+| FIN-ACCT-TREE-001 | Finance/Backend | P1 | Major | Done | You | phase-p235-production-readiness | `pnpm vitest -c vitest.config.api.ts run tests/api/finance/accounts.route.test.ts` | Prevent 500s in account tree building by handling lean results that omit `id`. |
+
+---
 
 ## Current Snapshot (Dec 2025)
 

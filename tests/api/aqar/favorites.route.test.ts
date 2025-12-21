@@ -2,6 +2,7 @@
  * @fileoverview Tests for /api/aqar/favorites routes
  * Tests favorite management for Aqar property listings
  */
+import { expectAuthFailure } from '@/tests/api/_helpers';
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -106,7 +107,7 @@ describe("API /api/aqar/favorites", () => {
       const req = new NextRequest("http://localhost:3000/api/aqar/favorites");
       const response = await route.GET(req);
 
-      expect([401, 500]).toContain(response.status);
+      expectAuthFailure(response);
     });
 
     it("returns empty array for user with no favorites", async () => {

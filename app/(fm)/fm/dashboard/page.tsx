@@ -2,7 +2,7 @@
 import { logger } from "@/lib/logger";
 import { toFiniteNumber } from "@/lib/numbers";
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
@@ -65,6 +65,8 @@ interface WorkOrderWithDue extends WorkOrder {
   dueAt?: string;
 }
 
+const LIVE_REFRESH_MIN_INTERVAL_MS = 15_000;
+
 export default function DashboardPage() {
   return (
     <FmGuardedPage moduleId="dashboard">
@@ -119,22 +121,91 @@ function DashboardContent({ orgId, supportBanner }: DashboardContentProps) {
       });
 
   // Fetch dashboard data
-  const { data: workOrders } = useSWR(
+  const { data: workOrders, mutate: refreshWorkOrders } = useSWR(
     orgId ? ["/api/work-orders?limit=5", orgId] : null,
     ([url]) => fetcher(url),
   );
-  const { data: properties } = useSWR(
+  const { data: properties, mutate: refreshProperties } = useSWR(
     orgId ? ["/api/properties?limit=5", orgId] : null,
     ([url]) => fetcher(url),
   );
-  const { data: assets } = useSWR(
+  const { data: assets, mutate: refreshAssets } = useSWR(
     orgId ? ["/api/assets?status=MAINTENANCE&limit=5", orgId] : null,
     ([url]) => fetcher(url),
   );
-  const { data: invoices } = useSWR(
+  const { data: invoices, mutate: refreshInvoices } = useSWR(
     orgId ? ["/api/finance/invoices?status=OVERDUE&limit=5", orgId] : null,
     ([url]) => fetcher(url),
   );
+
+  const lastRefreshRef = useRef(0);
+  const pendingRefreshRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const refreshDashboardData = useCallback(() => {
+    const now = Date.now();
+    const elapsed = now - lastRefreshRef.current;
+    const runRefresh = () => {
+      lastRefreshRef.current = Date.now();
+      void refreshWorkOrders();
+      void refreshProperties();
+      void refreshAssets();
+      void refreshInvoices();
+    };
+
+    if (elapsed >= LIVE_REFRESH_MIN_INTERVAL_MS) {
+      runRefresh();
+      return;
+    }
+
+    if (!pendingRefreshRef.current) {
+      const delay = Math.max(250, LIVE_REFRESH_MIN_INTERVAL_MS - elapsed);
+      pendingRefreshRef.current = setTimeout(() => {
+        pendingRefreshRef.current = null;
+        runRefresh();
+      }, delay);
+    }
+  }, [refreshWorkOrders, refreshProperties, refreshAssets, refreshInvoices]);
+
+  useEffect(() => {
+    if (sessionStatus !== "authenticated" || !orgId) return;
+
+    const source = new EventSource("/api/counters/stream");
+    const onCounters = (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data) as { orgId?: string };
+        if (payload?.orgId && payload.orgId !== orgId) {
+          logger.warn("[Dashboard] KPI stream org mismatch", {
+            orgId,
+            payloadOrgId: payload.orgId,
+          });
+          return;
+        }
+        refreshDashboardData();
+      } catch (error) {
+        logger.warn("[Dashboard] KPI stream payload error", {
+          error,
+          orgId,
+        });
+      }
+    };
+
+    source.addEventListener("counters", onCounters);
+    source.onerror = (error) => {
+      logger.warn("[Dashboard] KPI stream error", {
+        error,
+        orgId,
+      });
+    };
+
+    return () => {
+      source.removeEventListener("counters", onCounters);
+      source.close();
+      if (pendingRefreshRef.current) {
+        clearTimeout(pendingRefreshRef.current);
+        pendingRefreshRef.current = null;
+      }
+    };
+  }, [sessionStatus, orgId, refreshDashboardData]);
 
   // isLoading computed but unused - keep for future loading states
   // const isLoading = woLoading || propsLoading || assetsLoading || invoicesLoading;

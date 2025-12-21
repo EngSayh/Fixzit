@@ -24,6 +24,7 @@ import { smartRateLimit } from "@/server/security/rateLimit";
 import {
   zodValidationError,
   rateLimitError,
+  handleApiError,
 } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
@@ -144,7 +145,7 @@ export async function GET(
     if (name === "CastError") {
       return createSecureResponse({ error: "Invalid asset id" }, 400, req);
     }
-    return createSecureResponse({ error: "Internal server error" }, 500, req);
+    return handleApiError(error);
   }
 }
 
@@ -195,7 +196,7 @@ export async function PATCH(
     if (name === "CastError") {
       return createSecureResponse({ error: "Invalid asset id" }, 400, req);
     }
-    return createSecureResponse({ error: "Internal server error" }, 500, req);
+    return handleApiError(error);
   }
 }
 
@@ -241,6 +242,6 @@ export async function DELETE(
     if (name === "CastError") {
       return createSecureResponse({ error: "Invalid asset id" }, 400, req);
     }
-    return createSecureResponse({ error: "Internal server error" }, 500, req);
+    return handleApiError(error);
   }
 }

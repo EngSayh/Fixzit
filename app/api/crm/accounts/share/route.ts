@@ -32,10 +32,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
-import {
-  getSessionUser,
-  UnauthorizedError,
-} from "@/server/middleware/withAuthRbac";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import {
   setTenantContext,
   clearTenantContext,
@@ -70,7 +68,7 @@ const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
 
 function isUnauthenticatedError(error: unknown): boolean {
   return (
-    error instanceof UnauthorizedError ||
+    isUnauthorizedError(error) ||
     (error instanceof Error &&
       error.message.toLowerCase().includes("unauthenticated"))
   );

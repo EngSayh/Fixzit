@@ -5,7 +5,6 @@ import { isOriginAllowed } from '@/lib/security/cors-allowlist';
 import { logSecurityEvent } from '@/lib/monitoring/security-events';
 import { getClientIP } from '@/server/security/headers';
 import { getSuperadminSession, isIpAllowed as isSuperadminIpAllowed } from '@/lib/superadmin/auth';
-import { getOrGenerateRequestId } from '@/lib/observability/correlation-id';
 import {
   AUTH_ROUTES,
   MARKETING_ROUTES,
@@ -53,6 +52,7 @@ const CSRF_EXEMPT_ROUTES = [
   '/api/qa/log',     // QA logging endpoints are test utilities
   '/api/qa/reconnect', // QA heartbeat endpoint used by Playwright harness
   '/api/projects',   // Projects mock API used by Playwright tests
+  '/api/superadmin/login', // Superadmin login cannot send CSRF (no session yet); uses its own rate limiting
 ];
 
 /**
@@ -264,20 +264,21 @@ export function sanitizeIncomingHeaders(request: NextRequest): Headers {
 }
 
 export async function middleware(request: NextRequest) {
-  // OBSERVABILITY: Generate or extract correlation ID for request tracing
-  const requestId = getOrGenerateRequestId(request);
-  
+  const rawPathname = request.nextUrl.pathname;
+
+  // Early bail-out for Vercel internal paths (Speed Insights, Analytics, etc.)
+  if (rawPathname.startsWith('/_vercel')) {
+    return NextResponse.next();
+  }
+
   // SECURITY: Strip any incoming x-user/x-org headers to prevent spoofing
   // These headers are set by middleware ONLY after validating the session
   const sanitizedHeaders = sanitizeIncomingHeaders(request);
-  
-  // Add correlation ID to headers for downstream services
-  sanitizedHeaders.set('x-request-id', requestId);
 
   // Use a request clone with sanitized headers for all downstream logic
   const sanitizedRequest = new NextRequest(request, { headers: sanitizedHeaders });
 
-  const { pathname } = sanitizedRequest.nextUrl;
+  const pathname = sanitizedRequest.nextUrl.pathname;
   const method = sanitizedRequest.method;
   const isApiRequest = pathname.startsWith('/api');
   const isUnitTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
@@ -305,9 +306,12 @@ export async function middleware(request: NextRequest) {
     }
 
     const isLogin = pathname.startsWith('/superadmin/login') || pathname.startsWith('/api/superadmin/login');
-    if (isLogin) {
+    const isHealth = pathname === '/api/superadmin/health';
+    // Allow login and health endpoints pre-auth (health has its own access key protection)
+    if (isLogin || isHealth) {
       const res = NextResponse.next();
       res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+      res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       return res;
     }
 
@@ -692,7 +696,7 @@ export async function middleware(request: NextRequest) {
 // ---------- Matcher ----------
 export const config = {
   matcher: [
-    // Match everything except Next static/image and favicon; public/ isn't a real route but keep the guard.
-    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
+    // Match everything except Next static/image, favicon, Vercel internal paths, and public folder.
+    '/((?!_next/static|_next/image|_vercel|favicon.ico|public/).*)',
   ],
 };

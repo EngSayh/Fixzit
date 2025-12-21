@@ -28,20 +28,13 @@ import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
 import { TableDensityToggle } from "@/components/tables/TableDensityToggle";
 import { FacetMultiSelect } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter } from "@/components/tables/filters/NumericRangeFilter";
-import { FilterPresetsDropdown } from "@/components/common/FilterPresetsDropdown";
-import { TableSkeleton } from "@/components/skeletons";
 import {
   buildActiveFilterChips,
   serializeFilters,
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
-import { pickSchemaFilters } from "@/lib/filters/preset-utils";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
 import { toast } from "sonner";
-import { useTranslation } from "@/contexts/TranslationContext";
-import { useCurrency } from "@/contexts/CurrencyContext";
-import { SavedCartBanner } from "./SavedCartBanner";
-import { RecentlyViewed } from "./RecentlyViewed";
 
 type ProductRecord = {
   id: string;
@@ -78,7 +71,7 @@ const statusStyles: Record<string, string> = {
   DISCONTINUED: "bg-destructive/10 text-destructive border border-destructive/20",
 };
 
-export type ProductFilters = {
+type ProductFilters = {
   category?: string;
   status?: string;
   sellerType?: string;
@@ -87,7 +80,7 @@ export type ProductFilters = {
   ratingMin?: number;
 };
 
-export const PRODUCT_FILTER_SCHEMA: FilterSchema<ProductFilters>[] = [
+const PRODUCT_FILTER_SCHEMA: FilterSchema<ProductFilters>[] = [
   { key: "category", param: "category", label: (f) => `Category: ${f.category}` },
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   { key: "sellerType", param: "sellerType", label: (f) => `Seller: ${f.sellerType}` },
@@ -129,25 +122,12 @@ export type ProductsListProps = {
 };
 
 export function ProductsList({ orgId }: ProductsListProps) {
-  const { t } = useTranslation();
-  const { currency } = useCurrency();
   const { state, updateState, resetState } = useTableQueryState("souq-products", {
     page: 1,
     pageSize: 20,
     q: "",
     filters: {},
   });
-
-  // Performance markers for observability
-  React.useEffect(() => {
-    if (typeof performance !== 'undefined' && performance.mark) {
-      performance.mark('ProductsList:mount');
-      return () => {
-        performance.mark('ProductsList:unmount');
-        performance.measure('ProductsList:lifetime', 'ProductsList:mount', 'ProductsList:unmount');
-      };
-    }
-  }, []);
 
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState(state.filters || {});
@@ -176,15 +156,6 @@ export function ProductsList({ orgId }: ProductsListProps) {
   const products = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || 20))) : 1;
   const totalCount = data?.total ?? 0;
-  const filters = state.filters as ProductFilters;
-  const currentFilters = state.filters || {};
-
-  // Track data load timing
-  React.useEffect(() => {
-    if (typeof performance !== 'undefined' && performance.mark && data && !isLoading) {
-      performance.mark(`ProductsList:dataLoaded:${products.length}items`);
-    }
-  }, [data, isLoading, products.length]);
 
   // Auto-switch to cards on mobile
   React.useEffect(() => {
@@ -207,8 +178,29 @@ export function ProductsList({ orgId }: ProductsListProps) {
     [state.filters, updateState]
   );
 
-  // Table columns - memoized to prevent re-render churn (must be before early return)
-  const columns = useMemo<DataTableColumn<ProductRecord>[]>(() => [
+  // Early return AFTER all hooks
+  if (tenantMissing) {
+    return (
+      <div className="p-6">
+        <EmptyState
+          icon={Package}
+          title="Organization required"
+          description="Tenant context is missing. Please select an organization to view products."
+        />
+      </div>
+    );
+  }
+
+  // Quick chips (P0)
+  const quickChips = [
+    { key: "fm-supplies", label: "FM Supplies", onClick: () => updateState({ filters: { category: "FM Supplies" }, page: 1 }) },
+    { key: "tools", label: "Tools", onClick: () => updateState({ filters: { category: "Tools & Equipment" }, page: 1 }) },
+    { key: "highly-rated", label: "Highly Rated", onClick: () => updateState({ filters: { ratingMin: 4.5 }, page: 1 }) },
+    { key: "verified", label: "Verified Sellers", onClick: () => updateState({ filters: { sellerType: "FIXZIT" }, page: 1 }) },
+  ];
+
+  // Table columns
+  const columns: DataTableColumn<ProductRecord>[] = [
     {
       id: "product",
       header: "Product",
@@ -277,67 +269,13 @@ export function ProductsList({ orgId }: ProductsListProps) {
         </div>
       ),
     },
-  ], []);
-
-  // Early return AFTER all hooks
-  if (tenantMissing) {
-    return (
-      <div className="p-6">
-        <EmptyState
-          icon={Package}
-          title={t("marketplace.products.orgRequiredTitle", "Organization required")}
-          description={t(
-            "marketplace.products.orgRequiredDesc",
-            "Tenant context is missing. Please select an organization to view products.",
-          )}
-        />
-      </div>
-    );
-  }
-
-  // Quick chips (P0)
-  const quickChips = [
-    {
-      key: "fm-supplies",
-      label: "FM Supplies",
-      onClick: () => updateState({ filters: { category: "FM Supplies" }, page: 1 }),
-      selected: filters.category === "FM Supplies",
-    },
-    {
-      key: "tools",
-      label: "Tools",
-      onClick: () => updateState({ filters: { category: "Tools & Equipment" }, page: 1 }),
-      selected: filters.category === "Tools & Equipment",
-    },
-    {
-      key: "highly-rated",
-      label: "Highly Rated",
-      onClick: () => updateState({ filters: { ratingMin: 4.5 }, page: 1 }),
-      selected: filters.ratingMin === 4.5,
-    },
-    {
-      key: "verified",
-      label: "Verified Sellers",
-      onClick: () => updateState({ filters: { sellerType: "FIXZIT" }, page: 1 }),
-      selected: filters.sellerType === "FIXZIT",
-    },
   ];
 
   // Card view
   const CardView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {products.map((product) => (
-        <div
-          key={product.id}
-          className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer"
-          onClick={() =>
-            toast.info(
-              t("marketplace.products.openProduct", "Open product {{id}}", {
-                id: product.id,
-              }),
-            )
-          }
-        >
+        <div key={product.id} className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer" onClick={() => toast.info(`Open product ${product.id}`)}>
           {product.imageUrl && (
             <img src={product.imageUrl} alt={product.name} className="w-full h-48 object-cover" />
           )}
@@ -382,11 +320,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
             Clear all filters
           </Button>
         ) : (
-          <Button
-            onClick={() =>
-              toast.info(t("marketplace.products.addProduct", "Add product flow"))
-            }
-          >
+          <Button onClick={() => toast.info("Add product flow")}>
             <Plus className="w-4 h-4 me-2" />
             Add Product
           </Button>
@@ -406,28 +340,8 @@ export function ProductsList({ orgId }: ProductsListProps) {
     setFilterDrawerOpen(false);
   };
 
-  const handleLoadPreset = (
-    presetFilters: Record<string, unknown>,
-    _sort?: { field: string; direction: "asc" | "desc" },
-    search?: string
-  ) => {
-    const normalizedFilters = pickSchemaFilters<ProductFilters>(
-      presetFilters,
-      PRODUCT_FILTER_SCHEMA
-    );
-    setDraftFilters(normalizedFilters);
-    updateState({
-      filters: normalizedFilters,
-      q: typeof search === "string" ? search : "",
-    });
-  };
-
   return (
     <div className="space-y-6 p-6">
-      <div className="grid gap-3 md:grid-cols-2">
-        <SavedCartBanner />
-        <RecentlyViewed />
-      </div>
       {/* PageHeader */}
       <div className="flex items-center justify-between">
         <div>
@@ -467,7 +381,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
             </div>
             <div className="flex gap-2">
               {quickChips.map((chip) => (
-                <Chip key={chip.key} onClick={chip.onClick} selected={chip.selected}>
+                <Chip key={chip.key} onClick={chip.onClick}>
                   {chip.label}
                 </Chip>
               ))}
@@ -477,48 +391,15 @@ export function ProductsList({ orgId }: ProductsListProps) {
         end={
           <>
             <div className="hidden md:flex gap-2">
-              <Button
-                variant={viewMode === "table" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("table")}
-                aria-pressed={viewMode === "table"}
-                aria-label="Show table view"
-              >
+              <Button variant={viewMode === "table" ? "default" : "outline"} size="sm" onClick={() => setViewMode("table")}>
                 Table
               </Button>
-              <Button
-                variant={viewMode === "cards" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("cards")}
-                aria-pressed={viewMode === "cards"}
-                aria-label="Show card view"
-              >
+              <Button variant={viewMode === "cards" ? "default" : "outline"} size="sm" onClick={() => setViewMode("cards")}>
                 Cards
               </Button>
             </div>
             <TableDensityToggle density={density} onChange={setDensity} />
-            <FilterPresetsDropdown
-              entityType="products"
-              currentFilters={pickSchemaFilters<ProductFilters>(
-                currentFilters,
-                PRODUCT_FILTER_SCHEMA
-              )}
-              currentSearch={state.q}
-              normalizeFilters={(filters) =>
-                pickSchemaFilters<ProductFilters>(
-                  filters,
-                  PRODUCT_FILTER_SCHEMA
-                )
-              }
-              onLoadPreset={handleLoadPreset}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFilterDrawerOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={filterDrawerOpen}
-            >
+            <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
               <Filter className="w-4 h-4 me-2" />
               Filters
               {activeFilters.length > 0 && (
@@ -538,7 +419,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
 
       {/* Content */}
       {isLoading ? (
-        <TableSkeleton rows={10} />
+        <div className="text-center py-12 text-muted-foreground">Loading products...</div>
       ) : products.length === 0 ? (
         emptyState
       ) : viewMode === "cards" ? (
@@ -550,13 +431,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
           loading={isLoading}
           emptyState={emptyState}
           density={density}
-          onRowClick={(row) =>
-            toast.info(
-              t("marketplace.products.openProduct", "Open product {{id}}", {
-                id: row.id,
-              }),
-            )
-          }
+          onRowClick={(row) => toast.info(`Open product ${row.id}`)}
         />
       )}
 
@@ -629,7 +504,7 @@ export function ProductsList({ orgId }: ProductsListProps) {
             label="Price"
             value={{ min: draftFilters.priceMin as number, max: draftFilters.priceMax as number }}
             onChange={(range) => setDraftFilters({ ...draftFilters, priceMin: range.min, priceMax: range.max })}
-            prefix={currency}
+            prefix="SAR"
           />
           
           <NumericRangeFilter

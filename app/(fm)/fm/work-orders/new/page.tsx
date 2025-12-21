@@ -1,24 +1,34 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { WorkOrderAttachments } from "@/components/fm/WorkOrderAttachments";
-import { useState } from "react";
 import type { WorkOrderAttachment } from "@/components/fm/WorkOrderAttachments";
 import { WORK_ORDERS_MODULE_ID } from "@/config/navigation/constants";
 import { FormOfflineBanner } from "@/components/common/FormOfflineBanner";
+import { useOnlineStatus } from "@/components/common/OfflineIndicator";
+import { logger } from "@/lib/logger";
+import type { WorkOrderPriority } from "@/lib/sla";
+import {
+  clearWorkOrderDraft,
+  queueOfflineWorkOrder,
+  readWorkOrderDraft,
+  writeWorkOrderDraft,
+} from "@/lib/offline/work-orders";
 
 export default function NewWorkOrderPage() {
   const { t } = useTranslation();
-  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
+  const { isOnline } = useOnlineStatus();
+  const { hasOrgContext, guard, supportOrg, orgId } = useFmOrgGuard({
     moduleId: WORK_ORDERS_MODULE_ID,
   });
   const [attachments, setAttachments] = useState<WorkOrderAttachment[]>([]);
   const [workOrderId, setWorkOrderId] = useState<string | null>(null);
+  const [queuedId, setQueuedId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
-  const [priority, setPriority] = useState("MEDIUM");
+  const [priority, setPriority] = useState<WorkOrderPriority>("MEDIUM");
   const [description, setDescription] = useState("");
   const [propertyId, setPropertyId] = useState("");
   const [unitNumber, setUnitNumber] = useState("");
@@ -26,10 +36,62 @@ export default function NewWorkOrderPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [draftSaving, setDraftSaving] = useState(false);
+  const [offlineQueued, setOfflineQueued] = useState(false);
+  const [draftSavingEnabled, setDraftSavingEnabled] = useState(false);
+  const skipDraftSaveRef = useRef(true);
+
+  useEffect(() => {
+    if (!orgId) return;
+    const draft = readWorkOrderDraft(orgId);
+    if (draft) {
+      setTitle(draft.title || "");
+      setDescription(draft.description || "");
+      setPriority(draft.priority || "MEDIUM");
+      setPropertyId(draft.propertyId || "");
+      setUnitNumber(draft.unitNumber || "");
+      setDraftSavingEnabled(true);
+    }
+  }, [orgId]);
+
+  useEffect(() => {
+    if (!orgId) return;
+    if (skipDraftSaveRef.current) {
+      skipDraftSaveRef.current = false;
+      return;
+    }
+    const hasDraft = Boolean(
+      title || description || propertyId || unitNumber,
+    );
+    if (!hasDraft) {
+      clearWorkOrderDraft(orgId);
+      setDraftSavingEnabled(false);
+      return;
+    }
+    const handle = window.setTimeout(() => {
+      try {
+        writeWorkOrderDraft(orgId, {
+          title,
+          description,
+          priority,
+          category: "GENERAL",
+          propertyId,
+          unitNumber,
+          updatedAt: new Date().toISOString(),
+        });
+        setDraftSavingEnabled(true);
+      } catch (draftError) {
+        logger.warn("[work-orders] Draft save failed", { draftError });
+        setDraftSavingEnabled(false);
+      }
+    }, 400);
+    return () => window.clearTimeout(handle);
+  }, [description, orgId, priority, propertyId, title, unitNumber]);
 
   if (!hasOrgContext) {
     return guard;
   }
+
+  const displayId = workOrderId ?? queuedId;
 
   return (
     <div className="space-y-6">
@@ -41,6 +103,13 @@ export default function NewWorkOrderPage() {
           })}
         </div>
       )}
+      <FormOfflineBanner
+        formType="work-order"
+        hasUnsavedChanges={Boolean(
+          title || description || propertyId || unitNumber,
+        )}
+        draftSavingEnabled={draftSavingEnabled}
+      />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -54,19 +123,15 @@ export default function NewWorkOrderPage() {
             )}
           </p>
         </div>
-
-      {/* P118: Offline banner for long-lived form */}
-      <FormOfflineBanner
-        formType="work-order"
-        hasUnsavedChanges={Boolean(title || description || propertyId)}
-        draftSavingEnabled={false}
-      />
         <div className="flex gap-2">
-          <button type="button"
+          <button
             className="btn-primary"
             onClick={async () => {
               setCreating(true);
               setError(null);
+              setSuccess(false);
+              setOfflineQueued(false);
+              setQueuedId(null);
               try {
                 if (!propertyId || !title) {
                   throw new Error(
@@ -76,18 +141,34 @@ export default function NewWorkOrderPage() {
                     ),
                   );
                 }
+                const payload = {
+                  title: title || "New Work Order",
+                  priority,
+                  description: description || undefined,
+                  propertyId: propertyId || undefined,
+                  unitNumber: unitNumber || undefined,
+                  status: "SUBMITTED",
+                };
+
+                if (!isOnline) {
+                  if (!orgId) {
+                    throw new Error("Missing organization context");
+                  }
+                  const queued = queueOfflineWorkOrder(payload, orgId);
+                  setQueuedId(queued.id);
+                  setWorkOrderId(null);
+                  setOfflineQueued(true);
+                  setSuccess(true);
+                  clearWorkOrderDraft(orgId);
+                  return;
+                }
                 // NOTE: Attachments are NOT sent here. They're uploaded AFTER WO creation
                 // via WorkOrderAttachments component which PATCHes the WO once files are uploaded to S3.
                 const res = await fetch("/api/work-orders", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
-                    title: title || "New Work Order",
-                    priority,
-                    description: description || undefined,
-                    propertyId: propertyId || undefined,
-                    unitNumber: unitNumber || undefined,
-                    status: "SUBMITTED",
+                    ...payload,
                     // attachments deliberately omitted - uploaded separately after WO exists
                   }),
                 });
@@ -96,7 +177,12 @@ export default function NewWorkOrderPage() {
                   throw new Error(json?.error || "Failed to create work order");
                 }
                 setWorkOrderId(json.data._id as string);
+                setQueuedId(null);
+                setOfflineQueued(false);
                 setSuccess(true);
+                if (orgId) {
+                  clearWorkOrderDraft(orgId);
+                }
               } catch (err) {
                 setError(
                   err instanceof Error
@@ -121,20 +207,33 @@ export default function NewWorkOrderPage() {
           <p>{error}</p>
         </div>
       )}
-      {success && workOrderId && (
+      {success && displayId && (
         <div className="rounded-lg border border-success bg-success/10 px-4 py-3 text-sm text-success-dark">
           <p className="font-medium">
-            {t("workOrders.new.success", "Work order created successfully!")}
+            {offlineQueued
+              ? t(
+                  "workOrders.new.offlineQueued",
+                  "Work order saved offline. It will sync when you are back online.",
+                )
+              : t(
+                  "workOrders.new.success",
+                  "Work order created successfully!",
+                )}
           </p>
           <p className="mt-1">
             {t("workOrders.new.woNumber", "Work Order ID:")}{" "}
-            <span className="font-mono font-semibold">{workOrderId}</span>
+            <span className="font-mono font-semibold">{displayId}</span>
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
-            {t(
-              "workOrders.new.uploadHint",
-              "You can now upload attachments using the panel on the right.",
-            )}
+            {offlineQueued
+              ? t(
+                  "workOrders.new.offlineHint",
+                  "Attachments can be added after the work order syncs.",
+                )
+              : t(
+                  "workOrders.new.uploadHint",
+                  "You can now upload attachments using the panel on the right.",
+                )}
           </p>
         </div>
       )}
@@ -169,7 +268,9 @@ export default function NewWorkOrderPage() {
                 <select
                   className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
+                  onChange={(e) =>
+                    setPriority(e.target.value as WorkOrderPriority)
+                  }
                 >
                   <option value="CRITICAL">
                     {t("workOrders.priority.p1", "P1 - Critical")}
@@ -292,7 +393,17 @@ export default function NewWorkOrderPage() {
             <WorkOrderAttachments
               workOrderId={workOrderId ?? undefined}
               onChange={setAttachments}
+              disabled={!isOnline || offlineQueued}
               draftCreator={async () => {
+                if (!isOnline || offlineQueued) {
+                  setError(
+                    t(
+                      "workOrders.attachments.offline",
+                      "Attachments require an online connection.",
+                    ),
+                  );
+                  return undefined;
+                }
                 if (workOrderId || draftSaving) return workOrderId || undefined;
                 setDraftSaving(true);
                 setError(null);
@@ -347,13 +458,13 @@ export default function NewWorkOrderPage() {
               {t("workOrders.quickActions", "Quick Actions")}
             </h3>
             <div className="space-y-2">
-              <button type="button" className="w-full btn-ghost text-start">
+              <button className="w-full btn-ghost text-start">
                 📋 {t("workOrders.createFromTemplate", "Create from Template")}
               </button>
-              <button type="button" className="w-full btn-ghost text-start">
+              <button className="w-full btn-ghost text-start">
                 📞 {t("workOrders.emergencyContact", "Emergency Contact")}
               </button>
-              <button type="button" className="w-full btn-ghost text-start">
+              <button className="w-full btn-ghost text-start">
                 📊 {t("workOrders.costCalculator", "Cost Calculator")}
               </button>
             </div>

@@ -77,7 +77,7 @@ describe("Enhanced Routes Validation", () => {
     });
 
     it("should handle null return value from findOneAndUpdate", () => {
-      const claimResult = null; // No more queued jobs
+      const claimResult: { value?: unknown } | null = null; // No more queued jobs
 
       if (!claimResult?.value) {
         expect(claimResult).toBeNull();
@@ -180,7 +180,7 @@ describe("Enhanced Routes Validation", () => {
 
   describe("Tap Webhook - Null Safety", () => {
     it("should handle missing charge.response gracefully", () => {
-      const charge = {
+      const charge: { id: string; amount: number; response?: { code?: string; message?: string } } = {
         id: "chg_123",
         amount: 10000,
         // response is undefined
@@ -195,7 +195,7 @@ describe("Enhanced Routes Validation", () => {
     });
 
     it("should handle missing refund.response gracefully", () => {
-      const refund = {
+      const refund: { id: string; charge: string; amount: number; response?: { code?: string; message?: string } } = {
         id: "ref_456",
         charge: "chg_123",
         amount: 5000,

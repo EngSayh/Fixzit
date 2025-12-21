@@ -3,7 +3,6 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type SessionUser = {
   id?: string;
@@ -38,6 +37,21 @@ vi.mock("@/lib/logger", () => ({
     error: vi.fn(),
   },
 }));
+// Mock SSRF validator to allow valid HTTPS URLs
+vi.mock("@/lib/security/validate-public-https-url", () => ({
+  validatePublicHttpsUrl: vi.fn().mockImplementation((url: string) => {
+    // Reject HTTP
+    if (url.startsWith("http://")) {
+      return Promise.reject(new Error("Only HTTPS URLs are allowed"));
+    }
+    // Reject localhost
+    if (url.includes("localhost") || url.includes("127.0.0.1")) {
+      return Promise.reject(new Error("Localhost/loopback URLs are not allowed"));
+    }
+    // Accept valid HTTPS
+    return Promise.resolve(new URL(url));
+  }),
+}));
 
 const { connectToDatabase } = await import("@/lib/mongodb-unified");
 const { SMSSettings } = await import("@/server/models/SMSSettings");
@@ -46,7 +60,6 @@ const { parseBodySafe } = await import("@/lib/api/parse-body");
 describe("Admin SMS Settings API - SSRF protection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
     sessionUser = { role: "SUPER_ADMIN", email: "admin@fixzit.co" };
     vi.mocked(connectToDatabase).mockResolvedValue(undefined as any);
   });
