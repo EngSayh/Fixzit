@@ -69,6 +69,7 @@ import { Sparkline } from "@/components/superadmin/Sparkline";
 import { TrendIndicator } from "@/components/superadmin/TrendIndicator";
 import { SlideOverDrawer } from "@/components/superadmin/SlideOverDrawer";
 import { FloatingBulkActions } from "@/components/superadmin/FloatingBulkActions";
+import { TrackerSourceSwitch } from "@/components/superadmin/TrackerSourceSwitch";
 
 // ============================================================================
 // TYPES
@@ -545,6 +546,9 @@ export default function SuperadminIssuesPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Source Switch */}
+      <TrackerSourceSwitch activeSource="system-issues" />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
