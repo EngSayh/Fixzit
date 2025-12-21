@@ -131,7 +131,7 @@ export async function GET(
     const asset = await Asset.findOne({
       _id: params.id,
       orgId: { $in: orgCandidates },
-    });
+    }).lean();
 
     if (!asset) {
       return createSecureResponse({ error: "Asset not found" }, 404, req);

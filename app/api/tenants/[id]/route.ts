@@ -124,7 +124,7 @@ export async function GET(
     const tenant = await Tenant.findOne({
       _id: params.id,
       tenantId: user.tenantId,
-    });
+    }).lean();
 
     if (!tenant) {
       return createSecureResponse({ error: "Tenant not found" }, 404, req);
