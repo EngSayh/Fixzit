@@ -18,7 +18,7 @@ export function initSentry() {
   const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN;
   
   if (!dsn) {
-    console.warn('[INFRA-SENTRY] Sentry DSN not configured. Error tracking disabled.');
+    // Sentry DSN not configured - error tracking disabled (silent in production)
     return;
   }
 
@@ -31,7 +31,7 @@ export function initSentry() {
     beforeSend(event, hint) {
       // Add org_id if available in context
       if (hint.originalException && typeof hint.originalException === 'object') {
-        const err = hint.originalException as any;
+        const err = hint.originalException as Record<string, unknown>;
         if (err.org_id) {
           event.contexts = event.contexts || {};
           event.contexts.tenant = { org_id: err.org_id };
@@ -51,7 +51,7 @@ export function initSentry() {
   });
 
   initialized = true;
-  console.log('[INFRA-SENTRY] Sentry initialized');
+  // Sentry initialized successfully (silent)
 }
 
 /**
