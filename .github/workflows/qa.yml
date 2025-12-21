@@ -28,6 +28,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: 🔒 Assert non-production MongoDB
+        if: ${{ env.MONGODB_URI != '' }}
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          CI: "true"
+        run: pnpm tsx scripts/assert-nonprod-mongo.ts
+
+      - name: 🧪 Skip governance (.only hard-fail)
+        run: |
+          echo "Checking for .only() that would skip other tests..."
+          if rg -n "\.(only)\(" tests app server lib 2>/dev/null; then
+            echo "❌ Found .only() - this would skip other tests!"
+            exit 1
+          fi
+          echo "✅ No .only() found"
+
       - name: Critical env guard
         run: pnpm run guard:ci:critical
 

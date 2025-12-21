@@ -54,6 +54,13 @@ jobs:
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: 🔒 Assert non-production MongoDB
+        if: env.HAS_MONGODB_URI == 'true'
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          CI: "true"
+        run: pnpm tsx scripts/assert-nonprod-mongo.ts
+
       - name: Ensure Mongo Indexes (idempotent)
         if: env.HAS_MONGODB_URI == 'true'
         env:
