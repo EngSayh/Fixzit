@@ -9,7 +9,7 @@
 
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/useI18n";
-import { LogOut, Settings, User, Search, Sun, Moon, Bell, Command } from "lucide-react";
+import { LogOut, Settings, User, Search, Sun, Moon, Bell, Command, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
@@ -150,15 +150,18 @@ export function SuperadminHeader() {
           </kbd>
         </div>
 
-        {/* Theme Toggle */}
+        {/* Theme Toggle - Cycles: light → dark → system */}
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          onClick={() => {
+            const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light';
+            setTheme(next);
+          }}
           className="text-slate-300 hover:text-white"
-          title="Toggle theme"
+          title={`Theme: ${theme} (click to change)`}
         >
-          {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          {theme === 'light' ? <Sun className="h-4 w-4" /> : theme === 'dark' ? <Moon className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
         </Button>
 
         {/* Notifications Bell */}

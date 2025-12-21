@@ -264,6 +264,13 @@ export function sanitizeIncomingHeaders(request: NextRequest): Headers {
 }
 
 export async function middleware(request: NextRequest) {
+  const rawPathname = request.nextUrl.pathname;
+
+  // Early bail-out for Vercel internal paths (Speed Insights, Analytics, etc.)
+  if (rawPathname.startsWith('/_vercel')) {
+    return NextResponse.next();
+  }
+
   // SECURITY: Strip any incoming x-user/x-org headers to prevent spoofing
   // These headers are set by middleware ONLY after validating the session
   const sanitizedHeaders = sanitizeIncomingHeaders(request);
@@ -271,7 +278,7 @@ export async function middleware(request: NextRequest) {
   // Use a request clone with sanitized headers for all downstream logic
   const sanitizedRequest = new NextRequest(request, { headers: sanitizedHeaders });
 
-  const { pathname } = sanitizedRequest.nextUrl;
+  const pathname = sanitizedRequest.nextUrl.pathname;
   const method = sanitizedRequest.method;
   const isApiRequest = pathname.startsWith('/api');
   const isUnitTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
@@ -689,7 +696,7 @@ export async function middleware(request: NextRequest) {
 // ---------- Matcher ----------
 export const config = {
   matcher: [
-    // Match everything except Next static/image and favicon; public/ isn't a real route but keep the guard.
-    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
+    // Match everything except Next static/image, favicon, Vercel internal paths, and public folder.
+    '/((?!_next/static|_next/image|_vercel|favicon.ico|public/).*)',
   ],
 };

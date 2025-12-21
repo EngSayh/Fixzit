@@ -79,7 +79,7 @@ export default function SuperadminNotificationsPage() {
       const params = new URLSearchParams({ page: String(page), limit: "20" });
       if (channelFilter !== "all") params.set("channel", channelFilter);
       
-      const response = await fetch(`/api/admin/notifications/history?${params}`, { credentials: "include" });
+      const response = await fetch(`/api/superadmin/notifications/history?${params}`, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to load notifications");
       const data = await response.json();
       setNotifications(data.notifications || []);
@@ -94,7 +94,7 @@ export default function SuperadminNotificationsPage() {
 
   const fetchConfig = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/notifications/config", { credentials: "include" });
+      const response = await fetch("/api/superadmin/notifications/config", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setConfig(data.config || data);
@@ -113,7 +113,7 @@ export default function SuperadminNotificationsPage() {
     }
     try {
       setSending(true);
-      const response = await fetch("/api/admin/notifications/send", {
+      const response = await fetch("/api/superadmin/notifications/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -133,7 +133,7 @@ export default function SuperadminNotificationsPage() {
 
   const handleTestChannel = async (channel: string) => {
     try {
-      const response = await fetch("/api/admin/notifications/test", {
+      const response = await fetch("/api/superadmin/notifications/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
