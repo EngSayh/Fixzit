@@ -188,32 +188,37 @@ When multiple agents work simultaneously, each creates worktrees/processes that 
 ### Agent ID Assignment (Use your designated ID):
 | Agent ID | Type | Default Domain |
 |----------|------|----------------|
-| AGENT-001 | VS Code Copilot (Primary) | Core/Auth/Middleware |
+| AGENT-001 | VS Code Copilot | Core/Auth/Middleware |
 | AGENT-002 | Claude Code | Finance/Billing |
 | AGENT-003 | Codex | Souq/Marketplace |
 | AGENT-004 | Cursor | Aqar/Real Estate |
 | AGENT-005 | Windsurf | HR/Payroll |
 | AGENT-006 | Reserved | Tests/Scripts |
 
-### Multiple VS Code Copilot Instances
-When running multiple VS Code Copilot agents, each MUST claim a unique sub-ID:
+### Multiple Agent Instances (ALL AGENT TYPES)
+When running multiple instances of ANY agent type, each MUST claim a unique sub-ID:
 
-| Sub-ID | Claim Method |
-|--------|--------------|
-| AGENT-001-A | First Copilot instance |
-| AGENT-001-B | Second Copilot instance |
-| AGENT-001-C | Third Copilot instance |
+| Pattern | Examples | Description |
+|---------|----------|-------------|
+| AGENT-001-A/B/C | VS Code Copilot #1, #2, #3 | Multiple Copilot windows |
+| AGENT-002-A/B/C | Claude Code #1, #2, #3 | Multiple Claude sessions |
+| AGENT-003-A/B/C | Codex #1, #2, #3 | Multiple Codex instances |
+| AGENT-004-A/B/C | Cursor #1, #2, #3 | Multiple Cursor windows |
+| AGENT-005-A/B/C | Windsurf #1, #2, #3 | Multiple Windsurf sessions |
+| AGENT-006-A/B/C | Reserved #1, #2, #3 | Tests/Scripts runners |
 
-**On session start, each Copilot agent MUST:**
+**On session start, EVERY agent MUST:**
 1. Read `/tmp/agent-assignments.json`
-2. Find the next available sub-ID (A, B, C...)
-3. Register with assigned files
-4. Start response with: `[AGENT-001-X] Claimed. Working on: <paths>`
+2. Find the first available sub-ID for your agent type (A, B, C...)
+3. Register with assigned files and set status to "active"
+4. Start FIRST response with: `[AGENT-XXX-Y] Claimed. Working on: <paths>`
+5. If all slots taken → WAIT or ask user to release a slot
 
-**Example claim:**
+**Example claims:**
 ```
-[AGENT-001-B] Claimed. Working on: app/api/hr/**, services/hr/**
-Files locked. Other agents: skip these paths.
+[AGENT-001-A] Claimed. Working on: app/api/auth/**, middleware.ts
+[AGENT-002-B] Claimed. Working on: app/api/finance/**, lib/finance/**
+[AGENT-003-A] Claimed. Working on: app/api/souq/**, services/souq/**
 ```
 
 ### Rules:
