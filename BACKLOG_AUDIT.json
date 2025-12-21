@@ -209,14 +209,14 @@
       "title": "Bulk operations UI (select multiple rows, batch actions)",
       "category": "feature",
       "priority": "P1",
-      "status": "deferred",
+      "status": "resolved",
       "effort": "M",
-      "location": "components/fm/WorkOrdersViewNew.tsx, components/finance/InvoicesList.tsx",
+      "location": "components/tables/DataTableStandard.tsx",
       "sourcePath": "AI_IMPROVEMENT_ANALYSIS_REPORT.md",
       "sourceRef": "analysis:AI_IMPROVEMENT_ANALYSIS_REPORT.md:feature-002",
-      "evidenceSnippet": "Single-item operations only",
+      "evidenceSnippet": "DataTableStandard now supports selectable + bulkActions props",
       "description": "Add bulk approve/reject/assign/delete for 80% time savings in batch operations",
-      "deferredReason": "Post-MVP feature; Q2 2026 roadmap"
+      "resolution": "Resolved 2025-12-21: Added selectable, bulkActions, onSelectionChange props to DataTableStandard. 10 unit tests pass."
     },
     {
       "key": "LOGIC-001",

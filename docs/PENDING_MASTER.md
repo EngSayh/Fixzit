@@ -1,5 +1,38 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-21 17:00 (Asia/Riyadh) — FEATURE-002 Completed (Bulk Operations UI)
+**Context:** main | Direct to main
+**Agent:** GitHub Copilot (VS Code) - Feature Implementation
+**Duration:** 15 minutes | **Files:** 3 changed
+
+**✅ COMPLETED: FEATURE-002 (Bulk operations UI)**
+- Enhanced `DataTableStandard` component with:
+  - `selectable` prop: Enable row selection with checkboxes
+  - `bulkActions` prop: Array of actions (label, icon, variant, onAction)
+  - `onSelectionChange` callback: Track selection state
+  - `rowKey` prop: Custom key extractor for unique row identification
+- Enhanced `Checkbox` component with `indeterminate` prop support
+- Added 10 unit tests for bulk selection (all passing)
+
+**Files Changed:**
+| File | Changes |
+|------|---------|
+| `components/tables/DataTableStandard.tsx` | +120 lines (bulk selection logic) |
+| `components/ui/checkbox.tsx` | +15 lines (indeterminate support) |
+| `tests/unit/components/tables/DataTableStandard.bulk.test.tsx` | +235 lines (10 tests) |
+
+**Quality Gates:**
+- TypeScript: 0 errors ✅
+- ESLint: 0 warnings ✅
+- Tests: 10/10 passed ✅
+
+**Backlog Status:**
+- ✅ Resolved: 18 items
+- 🟠 Deferred: 3 items (Q1-Q2 2026: FEATURE-001, COMP-001, INFRA-SENTRY)
+- 🔴 Open: 0 items
+
+---
+
 ### 2025-12-21 14:30 (Asia/Riyadh) — Final SSOT Sync + Quality Gates Verified
 **Context:** main | Commit: 496eac1ed | Direct to main
 **Agent:** GitHub Copilot (VS Code) - SSOT Backlog Sync

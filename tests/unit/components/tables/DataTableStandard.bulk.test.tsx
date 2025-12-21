@@ -1,5 +1,5 @@
+// @vitest-environment jsdom
 /**
- * @vitest-environment jsdom
  * Tests for DataTableStandard bulk selection feature (FEATURE-002)
  */
 import React from "react";
