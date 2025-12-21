@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-12-21T13:41:07+03:00",
+  "generatedAt": "2025-12-21T13:55:33+03:00",
   "source": "docs/PENDING_MASTER.md",
   "issues": [
     {
@@ -9,7 +9,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:514-514",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:561-561",
       "evidenceSnippet": "| 5 | INFRA-SENTRY | Activate Sentry error tracking | Q1 2026 | Needs DSN configuration |",
       "description": "| 5 | INFRA-SENTRY | Activate Sentry error tracking | Q1 2026 | Needs DSN configuration |"
     },
@@ -20,7 +20,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:510-510",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:557-557",
       "evidenceSnippet": "| 1 | FEATURE-001 | Real-time SSE notifications | Q1 2026 | ADR-001 decision pending |",
       "description": "| 1 | FEATURE-001 | Real-time SSE notifications | Q1 2026 | ADR-001 decision pending |"
     },
@@ -32,86 +32,20 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:810-810",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:857-857",
       "evidenceSnippet": "| P3-SOUQ-PRODUCTS | P3 | In Progress | M | Souq Products migration |",
       "description": "| P3-SOUQ-PRODUCTS | P3 | In Progress | M | Souq Products migration |"
     },
     {
       "key": "DOCS-TODO-001",
-      "title": "[ ] DOCS-TODO-001: Document TODOs as tracked issues",
+      "title": "[x] DOCS-TODO-001: Documented 17 TODOs with categories and priorities",
       "category": "documentation",
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:63-63",
-      "evidenceSnippet": "- [ ] DOCS-TODO-001: Document TODOs as tracked issues",
-      "description": "- [ ] DOCS-TODO-001: Document TODOs as tracked issues"
-    },
-    {
-      "key": "I18N-HARDCODED-001",
-      "title": "Hardcoded strings in FM",
-      "category": "efficiency",
-      "status": "open",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:40-40",
-      "evidenceSnippet": "| I18N-HARDCODED-001 | Hardcoded strings in FM | ~10+ | Arabic UX incomplete | 🔲 Pending |",
-      "description": "| I18N-HARDCODED-001 | Hardcoded strings in FM | ~10+ | Arabic UX incomplete | 🔲 Pending |"
-    },
-    {
-      "key": "TYPE-ANY-001",
-      "title": "Explicit `any` types",
-      "category": "efficiency",
-      "status": "open",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:39-39",
-      "evidenceSnippet": "| TYPE-ANY-001 | Explicit `any` types | 20 | Type safety gaps | 🔲 Pending |",
-      "description": "| TYPE-ANY-001 | Explicit `any` types | 20 | Type safety gaps | 🔲 Pending |"
-    },
-    {
-      "key": "A11Y-ALT-001",
-      "title": "Images missing alt text",
-      "category": "efficiency",
-      "status": "open",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:33-33",
-      "evidenceSnippet": "| A11Y-ALT-001 | Images missing alt text | 38 | WCAG non-compliance | 🔲 Pending |",
-      "description": "| A11Y-ALT-001 | Images missing alt text | 38 | WCAG non-compliance | 🔲 Pending |"
-    },
-    {
-      "key": "HYGIENE-CONSOLE-001",
-      "title": "Console.log in production",
-      "category": "efficiency",
-      "status": "open",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:32-32",
-      "evidenceSnippet": "| HYGIENE-CONSOLE-001 | Console.log in production | 46 | Debug noise, security risk | 🔲 Pending |",
-      "description": "| HYGIENE-CONSOLE-001 | Console.log in production | 46 | Debug noise, security risk | 🔲 Pending |"
-    },
-    {
-      "key": "PERF-N1-001",
-      "title": "N+1 sequential await patterns",
-      "category": "efficiency",
-      "status": "in_progress",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:26-26",
-      "evidenceSnippet": "| PERF-N1-001 | N+1 sequential await patterns | 14 | Response latency | 🔲 In Progress |",
-      "description": "| PERF-N1-001 | N+1 sequential await patterns | 14 | Response latency | 🔲 In Progress |"
-    },
-    {
-      "key": "PERF-LEAN-001",
-      "title": "Queries without `.lean()`",
-      "category": "efficiency",
-      "status": "in_progress",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:25-25",
-      "evidenceSnippet": "| PERF-LEAN-001 | Queries without `.lean()` | 622/705 | 15-30% memory overhead | 🔲 In Progress |",
-      "description": "| PERF-LEAN-001 | Queries without `.lean()` | 622/705 | 15-30% memory overhead | 🔲 In Progress |"
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:96-96",
+      "evidenceSnippet": "- [x] DOCS-TODO-001: Documented 17 TODOs with categories and priorities",
+      "description": "- [x] DOCS-TODO-001: Documented 17 TODOs with categories and priorities"
     },
     {
       "key": "BLOCKER-001",
@@ -120,64 +54,9 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:1170-1170",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:1217-1217",
       "evidenceSnippet": "- **BLOCKER-001:** Vercel build failing (webpack \"Module not found\") - Needs investigation",
       "description": "- **BLOCKER-001:** Vercel build failing (webpack \"Module not found\") - Needs investigation"
-    },
-    {
-      "key": "-ALL108-114",
-      "title": "BUG-AUDITLOGS-FILTERS-MISSING — sourceRef: code-review:components/administration/AuditLogsList.tsx:108-114 (pending DB import)",
-      "category": "security",
-      "status": "open",
-      "location": "components/administration/AuditLogsList.tsx",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:1570-1570",
-      "evidenceSnippet": "- BUG-AUDITLOGS-FILTERS-MISSING — sourceRef: code-review:components/administration/AuditLogsList.tsx:108-114 (pending DB import)",
-      "description": "- BUG-AUDITLOGS-FILTERS-MISSING — sourceRef: code-review:components/administration/AuditLogsList.tsx:108-114 (pending DB import)"
-    },
-    {
-      "key": "-IL111-116",
-      "title": "BUG-INVOICES-FILTERS-MISSING — sourceRef: code-review:components/finance/InvoicesList.tsx:111-116 (pending DB import)",
-      "category": "security",
-      "status": "open",
-      "location": "components/finance/InvoicesList.tsx",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:1569-1569",
-      "evidenceSnippet": "- BUG-INVOICES-FILTERS-MISSING — sourceRef: code-review:components/finance/InvoicesList.tsx:111-116 (pending DB import)",
-      "description": "- BUG-INVOICES-FILTERS-MISSING — sourceRef: code-review:components/finance/InvoicesList.tsx:111-116 (pending DB import)"
-    },
-    {
-      "key": "-EL112-116",
-      "title": "BUG-EMPLOYEES-FILTERS-MISSING — sourceRef: code-review:components/hr/EmployeesList.tsx:112-116 (pending DB import)",
-      "category": "security",
-      "status": "open",
-      "location": "components/hr/EmployeesList.tsx",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:1568-1568",
-      "evidenceSnippet": "- BUG-EMPLOYEES-FILTERS-MISSING — sourceRef: code-review:components/hr/EmployeesList.tsx:112-116 (pending DB import)",
-      "description": "- BUG-EMPLOYEES-FILTERS-MISSING — sourceRef: code-review:components/hr/EmployeesList.tsx:112-116 (pending DB import)"
-    },
-    {
-      "key": "-UL107-113",
-      "title": "BUG-USERS-FILTERS-MISSING — sourceRef: code-review:components/administration/UsersList.tsx:107-113 (pending DB import)",
-      "category": "security",
-      "status": "open",
-      "location": "components/administration/UsersList.tsx",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:1567-1567",
-      "evidenceSnippet": "- BUG-USERS-FILTERS-MISSING — sourceRef: code-review:components/administration/UsersList.tsx:107-113 (pending DB import)",
-      "description": "- BUG-USERS-FILTERS-MISSING — sourceRef: code-review:components/administration/UsersList.tsx:107-113 (pending DB import)"
-    },
-    {
-      "key": "-WOVN124-153",
-      "title": "BUG-WO-FILTERS-MISSING — sourceRef: code-review:components/fm/WorkOrdersViewNew.tsx:124-153 (pending DB import)",
-      "category": "security",
-      "status": "open",
-      "location": "components/fm/WorkOrdersViewNew.tsx",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:1566-1566",
-      "evidenceSnippet": "- BUG-WO-FILTERS-MISSING — sourceRef: code-review:components/fm/WorkOrdersViewNew.tsx:124-153 (pending DB import)",
-      "description": "- BUG-WO-FILTERS-MISSING — sourceRef: code-review:components/fm/WorkOrdersViewNew.tsx:124-153 (pending DB import)"
     },
     {
       "key": "DOC-101",
@@ -186,7 +65,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:3541-3541",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:3588-3588",
       "evidenceSnippet": "- DOC-101 through DOC-110: Documentation gaps (JSDoc, OpenAPI, READMEs)",
       "description": "- DOC-101 through DOC-110: Documentation gaps (JSDoc, OpenAPI, READMEs)"
     },
@@ -197,7 +76,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:3541-3541",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:3588-3588",
       "evidenceSnippet": "- DOC-101 through DOC-110: Documentation gaps (JSDoc, OpenAPI, READMEs)",
       "description": "- DOC-101 through DOC-110: Documentation gaps (JSDoc, OpenAPI, READMEs)"
     },
@@ -209,7 +88,7 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:3727-3727",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:3774-3774",
       "evidenceSnippet": "- **Remaining P3:** PERF-002, TEST-001, TEST-005 (in progress)",
       "description": "- **Remaining P3:** PERF-002, TEST-001, TEST-005 (in progress)"
     },
@@ -221,20 +100,9 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:3224-3224",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:3271-3271",
       "evidenceSnippet": "- **REF-001** — Create CRM route handler unit tests (P2, effort:M, sourceRef:PENDING_MASTER)",
       "description": "- **REF-001** — Create CRM route handler unit tests (P2, effort:M, sourceRef:PENDING_MASTER)"
-    },
-    {
-      "key": "1786-890",
-      "title": "**State**: OPEN - Large divergence from main (89 files, +1786/-890 lines)",
-      "category": "security",
-      "status": "open",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:4004-4004",
-      "evidenceSnippet": "- **State**: OPEN - Large divergence from main (89 files, +1786/-890 lines)",
-      "description": "- **State**: OPEN - Large divergence from main (89 files, +1786/-890 lines)"
     },
     {
       "key": "TEST-002",
@@ -243,7 +111,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:4035-4035",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:4082-4082",
       "evidenceSnippet": "- TEST-002, TEST-003, REF-001 — HR/Finance/CRM test suites pending",
       "description": "- TEST-002, TEST-003, REF-001 — HR/Finance/CRM test suites pending"
     },
@@ -254,20 +122,9 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:4035-4035",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:4082-4082",
       "evidenceSnippet": "- TEST-002, TEST-003, REF-001 — HR/Finance/CRM test suites pending",
       "description": "- TEST-002, TEST-003, REF-001 — HR/Finance/CRM test suites pending"
-    },
-    {
-      "key": "-60",
-      "title": "Branch `docs/pending-v60` deleted locally and remotely",
-      "category": "security",
-      "status": "open",
-      "location": "docs/pending-v60",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:4816-4816",
-      "evidenceSnippet": "- Branch `docs/pending-v60` deleted locally and remotely",
-      "description": "- Branch `docs/pending-v60` deleted locally and remotely"
     },
     {
       "key": "DOC-108",
@@ -277,7 +134,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:4354-4354",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:4401-4401",
       "evidenceSnippet": "4. **API contract (P2):** DOC-108 (update OpenAPI spec)",
       "description": "4. **API contract (P2):** DOC-108 (update OpenAPI spec)"
     },
@@ -289,7 +146,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:4395-4395",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:4442-4442",
       "evidenceSnippet": "- **Open (7):** SEC-002 (P1), BUG-001 (P1), PERF-001 (P2), TEST-004 (P2), TEST-002 (P2), TEST-003 (P2), PERF-002 (P3)",
       "description": "- **Open (7):** SEC-002 (P1), BUG-001 (P1), PERF-001 (P2), TEST-004 (P2), TEST-002 (P2), TEST-003 (P2), PERF-002 (P3)"
     },
@@ -300,7 +157,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8049-8049",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8096-8096",
       "evidenceSnippet": "| TYPE-003 | 🟡 Medium | 6 files | `@ts-ignore`/`@ts-expect-error` | Document or fix underlying issues |",
       "description": "| TYPE-003 | 🟡 Medium | 6 files | `@ts-ignore`/`@ts-expect-error` | Document or fix underlying issues |"
     },
@@ -311,7 +168,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8027-8027",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8074-8074",
       "evidenceSnippet": "| RTL-002 | 🟡 Medium | Multiple components | Physical `left/right` classes | Audit and replace |",
       "description": "| RTL-002 | 🟡 Medium | Multiple components | Physical `left/right` classes | Audit and replace |"
     },
@@ -322,7 +179,7 @@
       "status": "open",
       "location": "error.tsx",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8026-8026",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8073-8073",
       "evidenceSnippet": "| RTL-001 | 🟡 Medium | 20+ error.tsx files | `mr-2` instead of `me-2` | Replace with logical class |",
       "description": "| RTL-001 | 🟡 Medium | 20+ error.tsx files | `mr-2` instead of `me-2` | Replace with logical class |"
     },
@@ -333,7 +190,7 @@
       "status": "open",
       "location": "admin/notifications/test/route.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8018-8018",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8065-8065",
       "evidenceSnippet": "| ERR-003 | 🟡 Medium | `admin/notifications/test/route.ts:165` | `.catch(() => ({}))` on error response | Add logging |",
       "description": "| ERR-003 | 🟡 Medium | `admin/notifications/test/route.ts:165` | `.catch(() => ({}))` on error response | Add logging |"
     },
@@ -344,7 +201,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:7996-7996",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8043-8043",
       "evidenceSnippet": "| SEC-004 | 🟡 Medium | Multiple routes | 147 RBAC checks vs 371 routes = 39% coverage | Add RBAC to remaining routes |",
       "description": "| SEC-004 | 🟡 Medium | Multiple routes | 147 RBAC checks vs 371 routes = 39% coverage | Add RBAC to remaining routes |"
     },
@@ -355,7 +212,7 @@
       "status": "open",
       "location": "lib/ats/rbac.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:7974-7974",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8021-8021",
       "evidenceSnippet": "| TEN-004 | 🟡 Medium | `lib/ats/rbac.ts:106` | Fallback to `NEXT_PUBLIC_ORG_ID` | Document as intentional or remove |",
       "description": "| TEN-004 | 🟡 Medium | `lib/ats/rbac.ts:106` | Fallback to `NEXT_PUBLIC_ORG_ID` | Document as intentional or remove |"
     },
@@ -366,20 +223,9 @@
       "status": "open",
       "location": "lib/jobs/sms-sla-monitor.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:7973-7973",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8020-8020",
       "evidenceSnippet": "| TEN-003 | 🟡 Medium | `lib/jobs/sms-sla-monitor.ts:64` | `orgId \\|\\| \"global\"` in job context | Validate orgId before processing |",
       "description": "| TEN-003 | 🟡 Medium | `lib/jobs/sms-sla-monitor.ts:64` | `orgId \\|\\| \"global\"` in job context | Validate orgId before processing |"
-    },
-    {
-      "key": "20-47",
-      "title": "Hardened PR Agent to ignore bots, require repo PR context, and skip when `OPENAI_KEY` missing (`.github/workflows/pr_agent.yml:20-47`).",
-      "category": "test",
-      "status": "open",
-      "location": "github/workflows/pr_agent.yml",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:5512-5512",
-      "evidenceSnippet": "- Hardened PR Agent to ignore bots, require repo PR context, and skip when `OPENAI_KEY` missing (`.github/workflows/pr_agent.yml:20-47`).",
-      "description": "- Hardened PR Agent to ignore bots, require repo PR context, and skip when `OPENAI_KEY` missing (`.github/workflows/pr_agent.yml:20-47`)."
     },
     {
       "key": "TEST-AQAR",
@@ -389,7 +235,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:7210-7210",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:7257-7257",
       "evidenceSnippet": "| TEST-AQAR | Aqar Module | Route coverage gap | 14 routes | 🟡 P2 |",
       "description": "| TEST-AQAR | Aqar Module | Route coverage gap | 14 routes | 🟡 P2 |"
     },
@@ -401,7 +247,7 @@
       "status": "in_progress",
       "location": "payments/tap/checkout/route.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:7192-7192",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:7239-7239",
       "evidenceSnippet": "| BUG-PAY-001 | `payments/tap/checkout/route.ts:251` | localhost:3000 fallback | 🟠 P1 | ⏳ Pending |",
       "description": "| BUG-PAY-001 | `payments/tap/checkout/route.ts:251` | localhost:3000 fallback | 🟠 P1 | ⏳ Pending |"
     },
@@ -413,7 +259,7 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:7191-7191",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:7238-7238",
       "evidenceSnippet": "| BUG-KYC-001 | `seller-central/kyc/submit` | No RBAC guard on route | 🟠 P1 | ⏳ Pending |",
       "description": "| BUG-KYC-001 | `seller-central/kyc/submit` | No RBAC guard on route | 🟠 P1 | ⏳ Pending |"
     },
@@ -425,20 +271,9 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:7188-7188",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:7235-7235",
       "evidenceSnippet": "| OTP-001 | auth OTP flow | Taqnyat SMS delivery needs env verification | 🔴 P0 | ⏳ Pending |",
       "description": "| OTP-001 | auth OTP flow | Taqnyat SMS delivery needs env verification | 🔴 P0 | ⏳ Pending |"
-    },
-    {
-      "key": "-17-100",
-      "title": "`app/api/souq/seller-central/kyc/submit/route.ts:17-100` — Route still sets vendorId to user.id; needs explicit vendor guard + vendorId prop",
-      "category": "next_step",
-      "status": "open",
-      "location": "app/api/souq/seller-central/kyc/submit/route.ts",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:7049-7049",
-      "evidenceSnippet": "- `app/api/souq/seller-central/kyc/submit/route.ts:17-100` — Route still sets vendorId to user.id; needs explicit vendor guard + vendorId propagation from session.",
-      "description": "- `app/api/souq/seller-central/kyc/submit/route.ts:17-100` — Route still sets vendorId to user.id; needs explicit vendor guard + vendorId propagation from session."
     },
     {
       "key": "LOGIC-005",
@@ -447,7 +282,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9109-9109",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9156-9156",
       "evidenceSnippet": "| LOGIC-005 | 20+ upload/help/onboarding routes | Auth failure treated as 401 (masks 503 infra errors) | Apply `getSessionOrError` wrapper | 🔴 TODO |",
       "description": "| LOGIC-005 | 20+ upload/help/onboarding routes | Auth failure treated as 401 (masks 503 infra errors) | Apply `getSessionOrError` wrapper | 🔴 TODO |"
     },
@@ -458,7 +293,7 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9103-9103",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9150-9150",
       "evidenceSnippet": "| BUG-006 | 🟠 High | 20+ routes | `getSessionUser(...).catch(() => null)` masks auth infra failures as 401 | 🔴 TODO |",
       "description": "| BUG-006 | 🟠 High | 20+ routes | `getSessionUser(...).catch(() => null)` masks auth infra failures as 401 | 🔴 TODO |"
     },
@@ -469,7 +304,7 @@
       "status": "open",
       "location": "tests/unit/api/souq/seller-central/kyc-submit.test.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27667-27667",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27714-27714",
       "evidenceSnippet": "| BUG-1715 | tests/unit/api/souq/seller-central/kyc-submit.test.ts (mocks) | Mocks bypass RBAC/tenant context; could mask regressions if route tightens checks. | 🟡 Review route and update tests to",
       "description": "| BUG-1715 | tests/unit/api/souq/seller-central/kyc-submit.test.ts (mocks) | Mocks bypass RBAC/tenant context; could mask regressions if route tightens checks. | 🟡 Review route and update tests to assert org/role enforcement. |"
     },
@@ -480,31 +315,9 @@
       "status": "open",
       "location": "tests/unit/api/fm/finance/budgets.test.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27666-27666",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27713-27713",
       "evidenceSnippet": "| BUG-1714 | tests/unit/api/fm/finance/budgets.test.ts (fixtures) | Budgets tests rely on implicit defaults; risk of silent break if route requires org scoping or stricter validation. |",
       "description": "| BUG-1714 | tests/unit/api/fm/finance/budgets.test.ts (fixtures) | Budgets tests rely on implicit defaults; risk of silent break if route requires org scoping or stricter validation. | 🟡 Investigate underlying route to ensure org + RBAC enforced; adjust fixtures accordingly. |"
-    },
-    {
-      "key": "--262-282",
-      "title": "`services/souq/seller-kyc-service.ts:262-282` — `seller.kycStatus.status` set to `\"approved\"` after company_info before document/bank verifi",
-      "category": "next_step",
-      "status": "open",
-      "location": "services/souq/seller-kyc-service.ts",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:7895-7895",
-      "evidenceSnippet": "- `services/souq/seller-kyc-service.ts:262-282` — `seller.kycStatus.status` set to `\"approved\"` after company_info before document/bank verification; prematurely activates seller. Action: keep status `\"pending\"`/`\"in_review\"` until documents and bank details verified.",
-      "description": "- `services/souq/seller-kyc-service.ts:262-282` — `seller.kycStatus.status` set to `\"approved\"` after company_info before document/bank verification; prematurely activates seller. Action: keep status `\"pending\"`/`\"in_review\"` until documents and bank details verified."
-    },
-    {
-      "key": "BUG-1708-1710",
-      "title": "🟠 High",
-      "category": "bug",
-      "status": "in_progress",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8655-8655",
-      "evidenceSnippet": "| BUG-1708-1710 | 🟠 High | upload/verify-metadata, scan, scan-status | Cross-tenant S3 key access | 🟢 Fixed (v28.5) |",
-      "description": "| BUG-1708-1710 | 🟠 High | upload/verify-metadata, scan, scan-status | Cross-tenant S3 key access | 🟢 Fixed (v28.5) |"
     },
     {
       "key": "P2-005",
@@ -514,7 +327,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9791-9791",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9838-9838",
       "evidenceSnippet": "| P2-005 | Testing | Admin module | 23 routes missing tests | 🟡 Backlog | Add test files |",
       "description": "| P2-005 | Testing | Admin module | 23 routes missing tests | 🟡 Backlog | Add test files |"
     },
@@ -526,7 +339,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9790-9790",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9837-9837",
       "evidenceSnippet": "| P2-004 | Testing | FM module | 17 routes missing tests | 🟡 Backlog | Add test files |",
       "description": "| P2-004 | Testing | FM module | 17 routes missing tests | 🟡 Backlog | Add test files |"
     },
@@ -538,7 +351,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9789-9789",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9836-9836",
       "evidenceSnippet": "| P2-003 | Testing | Aqar module | 11 routes missing tests | 🟡 Backlog | Add test files |",
       "description": "| P2-003 | Testing | Aqar module | 11 routes missing tests | 🟡 Backlog | Add test files |"
     },
@@ -550,7 +363,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9788-9788",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9835-9835",
       "evidenceSnippet": "| P2-002 | Validation | ~118 routes | Missing Zod validation | 🟡 Backlog | Add schemas |",
       "description": "| P2-002 | Validation | ~118 routes | Missing Zod validation | 🟡 Backlog | Add schemas |"
     },
@@ -562,7 +375,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9787-9787",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9834-9834",
       "evidenceSnippet": "| P2-001 | Architecture | 10 route files | Files >400 lines need splitting | 🟡 Backlog | Modularize handlers |",
       "description": "| P2-001 | Architecture | 10 route files | Files >400 lines need splitting | 🟡 Backlog | Modularize handlers |"
     },
@@ -574,7 +387,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9780-9780",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9827-9827",
       "evidenceSnippet": "| P1-003 | Reliability | Multiple upload routes | getSessionUser silent failures | 🔴 TODO | Add telemetry wrapper |",
       "description": "| P1-003 | Reliability | Multiple upload routes | getSessionUser silent failures | 🔴 TODO | Add telemetry wrapper |"
     },
@@ -586,7 +399,7 @@
       "status": "open",
       "location": "vendor/apply/route.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9779-9779",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9826-9826",
       "evidenceSnippet": "| P1-002 | Reliability | vendor/apply/route.ts | Silent DB failure on apply | 🔴 TODO | Return 503 on failure |",
       "description": "| P1-002 | Reliability | vendor/apply/route.ts | Silent DB failure on apply | 🔴 TODO | Return 503 on failure |"
     },
@@ -598,7 +411,7 @@
       "status": "open",
       "location": "req.json",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9778-9778",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9825-9825",
       "evidenceSnippet": "| P1-001 | Reliability | 30 API routes | `req.json().catch(() => ({}))` swallows errors | 🔴 TODO | Create shared safeParseJSON |",
       "description": "| P1-001 | Reliability | 30 API routes | `req.json().catch(() => ({}))` swallows errors | 🔴 TODO | Create shared safeParseJSON |"
     },
@@ -610,7 +423,7 @@
       "status": "open",
       "location": "vendors/route.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9772-9772",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9819-9819",
       "evidenceSnippet": "| P0-003 | Security | `vendors/route.ts:214,218` | Vendor.find/countDocuments missing orgId | ⚠️ Verify | Check if scoped elsewhere |",
       "description": "| P0-003 | Security | `vendors/route.ts:214,218` | Vendor.find/countDocuments missing orgId | ⚠️ Verify | Check if scoped elsewhere |"
     },
@@ -622,7 +435,7 @@
       "status": "open",
       "location": "pm/plans/route.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9771-9771",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9818-9818",
       "evidenceSnippet": "| P0-002 | Security | `pm/plans/route.ts:42,68,189` | FMPMPlan.find without orgId | 🔴 TODO | Add tenant scoping |",
       "description": "| P0-002 | Security | `pm/plans/route.ts:42,68,189` | FMPMPlan.find without orgId | 🔴 TODO | Add tenant scoping |"
     },
@@ -634,20 +447,9 @@
       "status": "open",
       "location": "assistant/query/route.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9770-9770",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9817-9817",
       "evidenceSnippet": "| P0-001 | Security | `assistant/query/route.ts:259` | WorkOrder.find without orgId | 🔴 TODO | Add tenant scoping |",
       "description": "| P0-001 | Security | `assistant/query/route.ts:259` | WorkOrder.find without orgId | 🔴 TODO | Add tenant scoping |"
-    },
-    {
-      "key": "-59",
-      "title": "PR #549: `docs/pending-v59` — Souq rules-config + 5 new tests",
-      "category": "bug",
-      "status": "open",
-      "location": "docs/pending-v59",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9995-9995",
-      "evidenceSnippet": "- PR #549: `docs/pending-v59` — Souq rules-config + 5 new tests",
-      "description": "- PR #549: `docs/pending-v59` — Souq rules-config + 5 new tests"
     },
     {
       "key": "SENTRY-001",
@@ -656,7 +458,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:19851-19851",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:19898-19898",
       "evidenceSnippet": "| SENTRY-001 | Add Sentry context to FM/Souq modules | 🔲 TODO |",
       "description": "| SENTRY-001 | Add Sentry context to FM/Souq modules | 🔲 TODO |"
     },
@@ -667,7 +469,7 @@
       "status": "open",
       "location": "domain/aqar",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27620-27620",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27667-27667",
       "evidenceSnippet": "| BUG-1711 | domain/aqar (late fee calc patterns) | Time-of-day differences can overcount late days (ceil on millis) leading to extra fees; normalize to whole-day",
       "description": "| BUG-1711 | domain/aqar (late fee calc patterns) | Time-of-day differences can overcount late days (ceil on millis) leading to extra fees; normalize to whole-day floor before multiplying. | 🟡 Investigate/align prod logic |"
     },
@@ -678,7 +480,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8898-8898",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8945-8945",
       "evidenceSnippet": "| LOGIC-123 | Aqar writes | Mixed orgId/userId persistence causes cross-tenant data and type drift | 🔴 Open |",
       "description": "| LOGIC-123 | Aqar writes | Mixed orgId/userId persistence causes cross-tenant data and type drift | 🔴 Open |"
     },
@@ -689,7 +491,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8897-8897",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8944-8944",
       "evidenceSnippet": "| LOGIC-122 | Souq review flow | Asymmetric org enforcement (GET strict, POST lax) leading to tenant drift | 🔴 Open |",
       "description": "| LOGIC-122 | Souq review flow | Asymmetric org enforcement (GET strict, POST lax) leading to tenant drift | 🔴 Open |"
     },
@@ -700,7 +502,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8896-8896",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8943-8943",
       "evidenceSnippet": "| LOGIC-121 | GraphQL read resolvers | No tenant/audit context set on read paths; inconsistent with mutation isolation | 🔴 Open |",
       "description": "| LOGIC-121 | GraphQL read resolvers | No tenant/audit context set on read paths; inconsistent with mutation isolation | 🔴 Open |"
     },
@@ -711,7 +513,7 @@
       "status": "open",
       "location": "app/api/aqar/favorites/route.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8891-8891",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8938-8938",
       "evidenceSnippet": "| BUG-1707 | app/api/aqar/favorites/route.ts:61-138 | Favorites stored with user-id fallback | 🔴 Open |",
       "description": "| BUG-1707 | app/api/aqar/favorites/route.ts:61-138 | Favorites stored with user-id fallback | 🔴 Open |"
     },
@@ -722,7 +524,7 @@
       "status": "open",
       "location": "app/api/aqar/packages/route.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8890-8890",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8937-8937",
       "evidenceSnippet": "| BUG-1706 | app/api/aqar/packages/route.ts:102-124 | Payments/packages allow user-id org fallback | 🔴 Open |",
       "description": "| BUG-1706 | app/api/aqar/packages/route.ts:102-124 | Payments/packages allow user-id org fallback | 🔴 Open |"
     },
@@ -733,7 +535,7 @@
       "status": "open",
       "location": "app/api/aqar/listings/route.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8889-8889",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8936-8936",
       "evidenceSnippet": "| BUG-1705 | app/api/aqar/listings/route.ts:99-138 | orgId falls back to user.id | 🔴 Open |",
       "description": "| BUG-1705 | app/api/aqar/listings/route.ts:99-138 | orgId falls back to user.id | 🔴 Open |"
     },
@@ -744,7 +546,7 @@
       "status": "open",
       "location": "app/api/souq/reviews/route.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8888-8888",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8935-8935",
       "evidenceSnippet": "| BUG-1704 | app/api/souq/reviews/route.ts:61-108 | POST falls back to user id; GET enforces org | 🔴 Open |",
       "description": "| BUG-1704 | app/api/souq/reviews/route.ts:61-108 | POST falls back to user id; GET enforces org | 🔴 Open |"
     },
@@ -755,7 +557,7 @@
       "status": "open",
       "location": "lib/graphql/index.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8887-8887",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8934-8934",
       "evidenceSnippet": "| BUG-1703 | lib/graphql/index.ts:936-1052 | `createWorkOrder` writes with userId fallback instead of required org | 🔴 Open |",
       "description": "| BUG-1703 | lib/graphql/index.ts:936-1052 | `createWorkOrder` writes with userId fallback instead of required org | 🔴 Open |"
     },
@@ -766,7 +568,7 @@
       "status": "open",
       "location": "lib/graphql/index.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8886-8886",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8933-8933",
       "evidenceSnippet": "| BUG-1702 | lib/graphql/index.ts:803-887 | `dashboardStats` uses `ctx.orgId ?? ctx.userId`, no tenant/audit context | 🔴 Open |",
       "description": "| BUG-1702 | lib/graphql/index.ts:803-887 | `dashboardStats` uses `ctx.orgId ?? ctx.userId`, no tenant/audit context | 🔴 Open |"
     },
@@ -777,7 +579,7 @@
       "status": "open",
       "location": "lib/graphql/index.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8885-8885",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:8932-8932",
       "evidenceSnippet": "| BUG-1701 | lib/graphql/index.ts:769-801 | `workOrder` query lacks org filter; id-only lookup | 🔴 Open |",
       "description": "| BUG-1701 | lib/graphql/index.ts:769-801 | `workOrder` query lacks org filter; id-only lookup | 🔴 Open |"
     },
@@ -788,7 +590,7 @@
       "status": "open",
       "location": "tests/unit/security/banned-literals.test.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9033-9033",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9080-9080",
       "evidenceSnippet": "| LOGIC-021 | Secrets guard scope | `tests/unit/security/banned-literals.test.ts` ignores `docs/**`, leaving documented literals unsanitized. | Add docs scrub task or broaden guard with a sanitized",
       "description": "| LOGIC-021 | Secrets guard scope | `tests/unit/security/banned-literals.test.ts` ignores `docs/**`, leaving documented literals unsanitized. | Add docs scrub task or broaden guard with a sanitized allowlist. | 🔴 TODO |"
     },
@@ -799,7 +601,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9032-9032",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9079-9079",
       "evidenceSnippet": "| LOGIC-020 | Souq rule consumption | Missing central getter in fulfillment/pricing flows means overrides/telemetry not applied. | Refactor to call `getSouqRuleConfig(orgId)` everywhere and delete",
       "description": "| LOGIC-020 | Souq rule consumption | Missing central getter in fulfillment/pricing flows means overrides/telemetry not applied. | Refactor to call `getSouqRuleConfig(orgId)` everywhere and delete local thresholds. | 🔴 TODO |"
     },
@@ -810,7 +612,7 @@
       "status": "open",
       "location": "docs/analysis/COMPREHENSIVE_DEPLOYMENT_AUDIT.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9027-9027",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9074-9074",
       "evidenceSnippet": "| BUG-1528 | 🟡 Medium | Repo docs (e.g., docs/analysis/COMPREHENSIVE_DEPLOYMENT_AUDIT.md:177-180; docs/fixes/DEPLOYMENT_FIX_STEP_BY_STEP.md:275-286) | Live credentials remain in documentation; code guard excludes docs so leakage risk persists.",
       "description": "| BUG-1528 | 🟡 Medium | Repo docs (e.g., docs/analysis/COMPREHENSIVE_DEPLOYMENT_AUDIT.md:177-180; docs/fixes/DEPLOYMENT_FIX_STEP_BY_STEP.md:275-286) | Live credentials remain in documentation; code guard excludes docs so leakage risk persists. | 🔴 TODO |"
     },
@@ -821,7 +623,7 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9026-9026",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9073-9073",
       "evidenceSnippet": "| BUG-1527 | 🟠 High | Souq fulfillment/pricing | Still bypass shared rules (no `getSouqRuleConfig` usage), risking inconsistent return/fraud windows. | 🔴 TODO |",
       "description": "| BUG-1527 | 🟠 High | Souq fulfillment/pricing | Still bypass shared rules (no `getSouqRuleConfig` usage), risking inconsistent return/fraud windows. | 🔴 TODO |"
     },
@@ -832,7 +634,7 @@
       "status": "in_progress",
       "location": "lib/config/constants.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9025-9025",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9072-9072",
       "evidenceSnippet": "| BUG-1526 | 🟠 High | lib/config/constants.ts | AWS_REGION/AWS_S3_BUCKET previously allowed silent fallback; now fail-fast with metrics. | ✅ Fixed |",
       "description": "| BUG-1526 | 🟠 High | lib/config/constants.ts | AWS_REGION/AWS_S3_BUCKET previously allowed silent fallback; now fail-fast with metrics. | ✅ Fixed |"
     },
@@ -843,7 +645,7 @@
       "status": "in_progress",
       "location": "scripts/update-superadmin-credentials.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9024-9024",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9071-9071",
       "evidenceSnippet": "| BUG-1525 | 🟠 High | scripts/update-superadmin-credentials.ts | Hardcoded SuperAdmin credentials replaced with env-only via `requireEnv`; removed plaintext echoes. | ✅ Fixed |",
       "description": "| BUG-1525 | 🟠 High | scripts/update-superadmin-credentials.ts | Hardcoded SuperAdmin credentials replaced with env-only via `requireEnv`; removed plaintext echoes. | ✅ Fixed |"
     },
@@ -854,7 +656,7 @@
       "status": "open",
       "location": "app/api/help/escalate/route.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9935-9935",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9982-9982",
       "evidenceSnippet": "| SILENT-HELP-JSON-001 | Correctness | app/api/help/escalate/route.ts | Body parsed with `req.json().catch(() => ({}))` and module defaults to \"Other\"; combined with silent auth failure it can",
       "description": "| SILENT-HELP-JSON-001 | Correctness | app/api/help/escalate/route.ts | Body parsed with `req.json().catch(() => ({}))` and module defaults to \"Other\"; combined with silent auth failure it can open tickets with missing context and no logging. | Bad requests produce tickets with null module/attempted_action; invalid JSON not surfaced; incident triage loses signal. | Use safe JSON parser returning 400 with correlation id; log parse/auth errors; add negative tests for malformed body and auth store outage. |"
     },
@@ -866,7 +668,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:17790-17790",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:17837-17837",
       "evidenceSnippet": "| P3-004 | Unused exports | Optional cleanup | 🔲 DEFERRED |",
       "description": "| P3-004 | Unused exports | Optional cleanup | 🔲 DEFERRED |"
     },
@@ -877,7 +679,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24247-24247",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24294-24294",
       "evidenceSnippet": "| 1 | DOC-003 | API route documentation (OpenAPI) | 🔄 DEFERRED |",
       "description": "| 1 | DOC-003 | API route documentation (OpenAPI) | 🔄 DEFERRED |"
     },
@@ -888,7 +690,7 @@
       "status": "open",
       "location": "route.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9479-9479",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9526-9526",
       "evidenceSnippet": "| BUG-005 | 🟡 Medium | `files/resumes/[file]/route.ts` | Auth failure → 401 (masks 503) | 🔴 TODO | 30m |",
       "description": "| BUG-005 | 🟡 Medium | `files/resumes/[file]/route.ts` | Auth failure → 401 (masks 503) | 🔴 TODO | 30m |"
     },
@@ -899,7 +701,7 @@
       "status": "in_progress",
       "location": "tenant.server.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9478-9478",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:9525-9525",
       "evidenceSnippet": "| BUG-004 | 🟠 High | `tenant.server.ts:101` | Silent fallback to defaults on config error | ✅ Fixed | — |",
       "description": "| BUG-004 | 🟠 High | `tenant.server.ts:101` | Silent fallback to defaults on config error | ✅ Fixed | — |"
     },
@@ -910,7 +712,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:23071-23071",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:23118-23118",
       "evidenceSnippet": "| TEST-008 | Withdrawal manual payout flow | 🟡 MEDIUM | 2h | Session analysis |",
       "description": "| TEST-008 | Withdrawal manual payout flow | 🟡 MEDIUM | 2h | Session analysis |"
     },
@@ -921,7 +723,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:13680-13680",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:13727-13727",
       "evidenceSnippet": "| GQL-002 | Incomplete | 2 resolvers | TODO stubs in property/invoice | 30m |",
       "description": "| GQL-002 | Incomplete | 2 resolvers | TODO stubs in property/invoice | 30m |"
     },
@@ -932,7 +734,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:13671-13671",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:13718-13718",
       "evidenceSnippet": "| JSON-001 | Crash Risk | 8 files | Unprotected `JSON.parse` can crash on malformed input | 🟡 Medium | 45m |",
       "description": "| JSON-001 | Crash Risk | 8 files | Unprotected `JSON.parse` can crash on malformed input | 🟡 Medium | 45m |"
     },
@@ -943,7 +745,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21611-21611",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21658-21658",
       "evidenceSnippet": "| AUTH-TEST-002 | Tests | 🟡 Pending | Add unit/integration coverage for `resolveAuthSecret()` + `/api/health/auth` healthy state when either secret present. |",
       "description": "| AUTH-TEST-002 | Tests | 🟡 Pending | Add unit/integration coverage for `resolveAuthSecret()` + `/api/health/auth` healthy state when either secret present. |"
     },
@@ -954,7 +756,7 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21610-21610",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21657-21657",
       "evidenceSnippet": "| AUTH-LOGIC-001 | Logic | 🟠 Pending | Align auth routes/services to consume `Config.auth.secret` where possible to avoid divergent env access. |",
       "description": "| AUTH-LOGIC-001 | Logic | 🟠 Pending | Align auth routes/services to consume `Config.auth.secret` where possible to avoid divergent env access. |"
     },
@@ -965,7 +767,7 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21609-21609",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21656-21656",
       "evidenceSnippet": "| AUTH-OPS-002 | DevOps | 🟠 Pending | Enforce identical secrets across Vercel/preview/local; add secret checks in CI/CD; rotate placeholders. |",
       "description": "| AUTH-OPS-002 | DevOps | 🟠 Pending | Enforce identical secrets across Vercel/preview/local; add secret checks in CI/CD; rotate placeholders. |"
     },
@@ -976,20 +778,9 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21608-21608",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21655-21655",
       "evidenceSnippet": "| AUTH-BUG-001 | Bug | 🟠 Pending | Runtime/console crash if neither secret is set (observed in SW logs). Mitigate by setting real secret everywhere.",
       "description": "| AUTH-BUG-001 | Bug | 🟠 Pending | Runtime/console crash if neither secret is set (observed in SW logs). Mitigate by setting real secret everywhere. |"
-    },
-    {
-      "key": "-5",
-      "title": "Pending counts adjusted (-5 items) after test coverage; full recount pending for JSON-protection backlog.",
-      "category": "test",
-      "status": "open",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21365-21365",
-      "evidenceSnippet": "- Pending counts adjusted (-5 items) after test coverage; full recount pending for JSON-protection backlog.",
-      "description": "- Pending counts adjusted (-5 items) after test coverage; full recount pending for JSON-protection backlog."
     },
     {
       "key": "PERF-004",
@@ -998,20 +789,9 @@
       "status": "in_progress",
       "location": "app/api/admin/notifications/send/route.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21740-21740",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21787-21787",
       "evidenceSnippet": "| PERF-004 | Sequential notifications | app/api/admin/notifications/send/route.ts | 1000×3 = 3000 API calls | Use batch APIs, queue with BullMQ | ⏳ TODO |",
       "description": "| PERF-004 | Sequential notifications | app/api/admin/notifications/send/route.ts | 1000×3 = 3000 API calls | Use batch APIs, queue with BullMQ | ⏳ TODO |"
-    },
-    {
-      "key": "--136",
-      "title": "`lib/monitoring/memory-leak-detector.ts:136` — ⚠️ Review needed",
-      "category": "test",
-      "status": "open",
-      "location": "lib/monitoring/memory-leak-detector.ts",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20926-20926",
-      "evidenceSnippet": "- `lib/monitoring/memory-leak-detector.ts:136` — ⚠️ Review needed",
-      "description": "- `lib/monitoring/memory-leak-detector.ts:136` — ⚠️ Review needed"
     },
     {
       "key": "TEST-API-GAP",
@@ -1020,7 +800,7 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20914-20914",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20961-20961",
       "evidenceSnippet": "| TEST-API-GAP | 127 API routes without dedicated tests | ⏳ Coverage gap |",
       "description": "| TEST-API-GAP | 127 API routes without dedicated tests | ⏳ Coverage gap |"
     },
@@ -1031,7 +811,7 @@
       "status": "in_progress",
       "location": "lib/sms-providers/taqnyat.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20913-20913",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20960-20960",
       "evidenceSnippet": "| TEST-TAQNYAT | `lib/sms-providers/taqnyat.ts` | ⏳ No tests |",
       "description": "| TEST-TAQNYAT | `lib/sms-providers/taqnyat.ts` | ⏳ No tests |"
     },
@@ -1042,7 +822,7 @@
       "status": "in_progress",
       "location": "lib/security/ip-reputation.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20912-20912",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20959-20959",
       "evidenceSnippet": "| TEST-IP | `lib/security/ip-reputation.ts` | ⏳ No tests |",
       "description": "| TEST-IP | `lib/security/ip-reputation.ts` | ⏳ No tests |"
     },
@@ -1053,7 +833,7 @@
       "status": "in_progress",
       "location": "mongo.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20907-20907",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20954-20954",
       "evidenceSnippet": "| INTERVAL-002 | setInterval cleanup in mongo.ts | `lib/mongo.ts:418` | ⏳ Review needed |",
       "description": "| INTERVAL-002 | setInterval cleanup in mongo.ts | `lib/mongo.ts:418` | ⏳ Review needed |"
     },
@@ -1064,7 +844,7 @@
       "status": "in_progress",
       "location": "lib/graphql",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20287-20287",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20334-20334",
       "evidenceSnippet": "| TODO-001 | Cleanup | 🟩 Minor | ⏳ Open | 7 TODO comments in lib/graphql |",
       "description": "| TODO-001 | Cleanup | 🟩 Minor | ⏳ Open | 7 TODO comments in lib/graphql |"
     },
@@ -1075,20 +855,9 @@
       "status": "in_progress",
       "location": "req.json",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20286-20286",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20333-20333",
       "evidenceSnippet": "| PATTERN-001 | Reliability | 🟨 Moderate | ⏳ Open | 138 `req.json()` calls without try-catch wrapper |",
       "description": "| PATTERN-001 | Reliability | 🟨 Moderate | ⏳ Open | 138 `req.json()` calls without try-catch wrapper |"
-    },
-    {
-      "key": "TEST-001002",
-      "title": "**Planned next steps:** (1) Rerun Playwright with extended timeout to close e2e gate. (2) Address CRITICAL items still open: OTP-001 (SMS de",
-      "category": "test",
-      "status": "open",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:20475-20475",
-      "evidenceSnippet": "- **Planned next steps:** (1) Rerun Playwright with extended timeout to close e2e gate. (2) Address CRITICAL items still open: OTP-001 (SMS delivery), SEC-001 (Taqnyat",
-      "description": "- **Planned next steps:** (1) Rerun Playwright with extended timeout to close e2e gate. (2) Address CRITICAL items still open: OTP-001 (SMS delivery), SEC-001 (Taqnyat webhook signature). (3) Add coverage for tap-payments/checkout (TEST-001/002) and remaining auth route tests."
     },
     {
       "key": "TYPE-001",
@@ -1097,7 +866,7 @@
       "status": "open",
       "location": "lib/finance/checkout.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21160-21160",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21207-21207",
       "evidenceSnippet": "| TYPE-001 | ITapInfo missing `chargeId` on checkout payload | lib/finance/checkout.ts:171 | 🟡 HIGH | 🚧 ACTIVE |",
       "description": "| TYPE-001 | ITapInfo missing `chargeId` on checkout payload | lib/finance/checkout.ts:171 | 🟡 HIGH | 🚧 ACTIVE |"
     },
@@ -1108,7 +877,7 @@
       "status": "open",
       "location": "release-gate.yml",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21195-21195",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21242-21242",
       "evidenceSnippet": "| GH-003 | release-gate.yml:196 | `environment: production` not found | ⚠️ Warning | **REPO CONFIG NEEDED** | Requires GitHub Settings > Environments > Create \"production\"",
       "description": "| GH-003 | release-gate.yml:196 | `environment: production` not found | ⚠️ Warning | **REPO CONFIG NEEDED** | Requires GitHub Settings > Environments > Create \"production\" |"
     },
@@ -1119,7 +888,7 @@
       "status": "open",
       "location": "release-gate.yml",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21194-21194",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21241-21241",
       "evidenceSnippet": "| GH-002 | release-gate.yml:180 | `environment: production-approval` not found | ⚠️ Warning | **REPO CONFIG NEEDED** | Requires GitHub Settings > Environments > Create \"production-approval\"",
       "description": "| GH-002 | release-gate.yml:180 | `environment: production-approval` not found | ⚠️ Warning | **REPO CONFIG NEEDED** | Requires GitHub Settings > Environments > Create \"production-approval\" |"
     },
@@ -1130,7 +899,7 @@
       "status": "open",
       "location": "release-gate.yml",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21193-21193",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21240-21240",
       "evidenceSnippet": "| GH-001 | release-gate.yml:87 | `environment: staging` not found | ⚠️ Warning | **REPO CONFIG NEEDED** | Requires GitHub Settings > Environments > Create \"staging\"",
       "description": "| GH-001 | release-gate.yml:87 | `environment: staging` not found | ⚠️ Warning | **REPO CONFIG NEEDED** | Requires GitHub Settings > Environments > Create \"staging\" |"
     },
@@ -1141,7 +910,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24093-24093",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24140-24140",
       "evidenceSnippet": "| AUTH-TEST-001 | Tests | 🟡 Pending | Add regression test for Config.auth.secret covering AUTH_SECRET fallback and production throw when both secrets are missing. |",
       "description": "| AUTH-TEST-001 | Tests | 🟡 Pending | Add regression test for Config.auth.secret covering AUTH_SECRET fallback and production throw when both secrets are missing. |"
     },
@@ -1152,7 +921,7 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24092-24092",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24139-24139",
       "evidenceSnippet": "| AUTH-SEC-002 | DevOps | 🟠 Pending | Set 32+ char NEXTAUTH_SECRET (or AUTH_SECRET) in all environments to remove runtime warnings and keep session signing",
       "description": "| AUTH-SEC-002 | DevOps | 🟠 Pending | Set 32+ char NEXTAUTH_SECRET (or AUTH_SECRET) in all environments to remove runtime warnings and keep session signing consistent. |"
     },
@@ -1163,7 +932,7 @@
       "status": "open",
       "location": "fetcher.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24785-24785",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24832-24832",
       "evidenceSnippet": "| 53 | ERR-007 | Document SWR fetcher | fetcher.ts:14 | 🟡 ENHANCEMENT - Could add JSDoc |",
       "description": "| 53 | ERR-007 | Document SWR fetcher | fetcher.ts:14 | 🟡 ENHANCEMENT - Could add JSDoc |"
     },
@@ -1174,7 +943,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:13809-13809",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:13856-13856",
       "evidenceSnippet": "| TQ-003 | ErrorBoundary Coverage | 4 | 4 components | Limited error boundary usage | 🟡 Medium |",
       "description": "| TQ-003 | ErrorBoundary Coverage | 4 | 4 components | Limited error boundary usage | 🟡 Medium |"
     },
@@ -1185,42 +954,9 @@
       "status": "open",
       "location": "docs/GITHUB_SECRETS_SETUP.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:26363-26363",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:26410-26410",
       "evidenceSnippet": "- **ISSUE-CI-001 – GitHub Actions Workflows Failing** (High, Pending Investigation): check runners, secrets per `docs/GITHUB_SECRETS_SETUP.md`, review workflow syntax.",
       "description": "- **ISSUE-CI-001 – GitHub Actions Workflows Failing** (High, Pending Investigation): check runners, secrets per `docs/GITHUB_SECRETS_SETUP.md`, review workflow syntax."
-    },
-    {
-      "key": "2025-12-11T094103",
-      "title": "v12.5 (2025-12-11T09:41+03) - UI/UX & Accessibility audit complete, reduced to 30 pending",
-      "category": "documentation",
-      "status": "open",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27464-27464",
-      "evidenceSnippet": "- v12.5 (2025-12-11T09:41+03) - UI/UX & Accessibility audit complete, reduced to 30 pending",
-      "description": "- v12.5 (2025-12-11T09:41+03) - UI/UX & Accessibility audit complete, reduced to 30 pending"
-    },
-    {
-      "key": "2025-12-11T092803",
-      "title": "v12.4 (2025-12-11T09:28+03) - Code Hygiene audit complete (5/5 clean), reduced to 37 pending",
-      "category": "documentation",
-      "status": "open",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27465-27465",
-      "evidenceSnippet": "- v12.4 (2025-12-11T09:28+03) - Code Hygiene audit complete (5/5 clean), reduced to 37 pending",
-      "description": "- v12.4 (2025-12-11T09:28+03) - Code Hygiene audit complete (5/5 clean), reduced to 37 pending"
-    },
-    {
-      "key": "2025-12-11T084903",
-      "title": "v12.2 (2025-12-11T08:49+03) - Consolidated action plan, counts (42 pending)",
-      "category": "documentation",
-      "status": "open",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27467-27467",
-      "evidenceSnippet": "- v12.2 (2025-12-11T08:49+03) - Consolidated action plan, counts (42 pending)",
-      "description": "- v12.2 (2025-12-11T08:49+03) - Consolidated action plan, counts (42 pending)"
     },
     {
       "key": "PF-004",
@@ -1229,7 +965,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27267-27267",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27314-27314",
       "evidenceSnippet": "| PF-004 | Image optimization (WebP) | Smaller assets | 🔲 Not Started |",
       "description": "| PF-004 | Image optimization (WebP) | Smaller assets | 🔲 Not Started |"
     },
@@ -1240,7 +976,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27266-27266",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27313-27313",
       "evidenceSnippet": "| PF-003 | Enable Redis caching in prod | Faster queries | 🔲 User Action |",
       "description": "| PF-003 | Enable Redis caching in prod | Faster queries | 🔲 User Action |"
     },
@@ -1251,7 +987,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27265-27265",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27312-27312",
       "evidenceSnippet": "| PF-002 | Bundle size optimization | Faster page loads | 🔲 Not Started |",
       "description": "| PF-002 | Bundle size optimization | Faster page loads | 🔲 Not Started |"
     },
@@ -1262,7 +998,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27246-27246",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27293-27293",
       "evidenceSnippet": "| TG-006 | Webhook delivery tests | Event delivery retry | 🔲 Not Started |",
       "description": "| TG-006 | Webhook delivery tests | Event delivery retry | 🔲 Not Started |"
     },
@@ -1273,7 +1009,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27245-27245",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27292-27292",
       "evidenceSnippet": "| TG-005 | Marketplace vendor tests | Vendor onboarding | 🔲 Not Started |",
       "description": "| TG-005 | Marketplace vendor tests | Vendor onboarding | 🔲 Not Started |"
     },
@@ -1284,7 +1020,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27244-27244",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27291-27291",
       "evidenceSnippet": "| TG-004 | Integration tests for Souq flows | Order lifecycle | 🔲 Not Started |",
       "description": "| TG-004 | Integration tests for Souq flows | Order lifecycle | 🔲 Not Started |"
     },
@@ -1295,7 +1031,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27243-27243",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27290-27290",
       "evidenceSnippet": "| TG-003 | E2E for finance PII encryption | Security validation | 🔲 Not Started |",
       "description": "| TG-003 | E2E for finance PII encryption | Security validation | 🔲 Not Started |"
     },
@@ -1306,7 +1042,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27242-27242",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27289-27289",
       "evidenceSnippet": "| TG-002 | Auth middleware edge cases | Token expiry, invalid tokens | 🔲 Not Started |",
       "description": "| TG-002 | Auth middleware edge cases | Token expiry, invalid tokens | 🔲 Not Started |"
     },
@@ -1317,7 +1053,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27241-27241",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27288-27288",
       "evidenceSnippet": "| TG-001 | RBAC role-based filtering tests | Work orders, finance, HR | 🔲 Not Started |",
       "description": "| TG-001 | RBAC role-based filtering tests | Work orders, finance, HR | 🔲 Not Started |"
     },
@@ -1328,7 +1064,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27228-27228",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27275-27275",
       "evidenceSnippet": "| CQ-003 | Magic numbers in business rules | Multiple services | 🔲 Not Started |",
       "description": "| CQ-003 | Magic numbers in business rules | Multiple services | 🔲 Not Started |"
     },
@@ -1339,7 +1075,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27227-27227",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27274-27274",
       "evidenceSnippet": "| CQ-002 | Remaining `any` types | Various files | 🔲 Not Started |",
       "description": "| CQ-002 | Remaining `any` types | Various files | 🔲 Not Started |"
     },
@@ -1350,7 +1086,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27226-27226",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27273-27273",
       "evidenceSnippet": "| CQ-001 | Mixed async/await patterns | Various services | 🔲 Not Started |",
       "description": "| CQ-001 | Mixed async/await patterns | Various services | 🔲 Not Started |"
     },
@@ -1361,20 +1097,9 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27218-27218",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27265-27265",
       "evidenceSnippet": "| HIGH-004 | Payment Config (Tap secrets) | Vercel env vars | ⏳ User Action | User |",
       "description": "| HIGH-004 | Payment Config (Tap secrets) | Vercel env vars | ⏳ User Action | User |"
-    },
-    {
-      "key": "2025-12-11T080803",
-      "title": "v11.0 (2025-12-11T08:08+03) - Updated timestamp, all pending items organized by category",
-      "category": "documentation",
-      "status": "open",
-      "location": "docs/PENDING_MASTER.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27469-27469",
-      "evidenceSnippet": "- v11.0 (2025-12-11T08:08+03) - Updated timestamp, all pending items organized by category",
-      "description": "- v11.0 (2025-12-11T08:08+03) - Updated timestamp, all pending items organized by category"
     },
     {
       "key": "UX-005",
@@ -1383,7 +1108,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27310-27310",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27357-27357",
       "evidenceSnippet": "| UX-005 | Color contrast fixes | 4.5:1 ratio | 🔲 Future sprint (needs visual audit) |",
       "description": "| UX-005 | Color contrast fixes | 4.5:1 ratio | 🔲 Future sprint (needs visual audit) |"
     },
@@ -1394,7 +1119,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27290-27290",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27337-27337",
       "evidenceSnippet": "| CH-004 | Long function refactoring | >100 line functions | 🔲 Future sprint (1511 functions, needs sampling) |",
       "description": "| CH-004 | Long function refactoring | >100 line functions | 🔲 Future sprint (1511 functions, needs sampling) |"
     },
@@ -1406,7 +1131,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24223-24223",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24270-24270",
       "evidenceSnippet": "| 6 | TEST-CMP | Compliance route tests | 3h | 🟡 P2 | 🔄 DEFERRED |",
       "description": "| 6 | TEST-CMP | Compliance route tests | 3h | 🟡 P2 | 🔄 DEFERRED |"
     },
@@ -1418,7 +1143,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24222-24222",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24269-24269",
       "evidenceSnippet": "| 5 | TEST-ADM | Admin operation tests | 6h | 🟡 P2 | 🔄 DEFERRED |",
       "description": "| 5 | TEST-ADM | Admin operation tests | 6h | 🟡 P2 | 🔄 DEFERRED |"
     },
@@ -1430,7 +1155,7 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24221-24221",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24268-24268",
       "evidenceSnippet": "| 4 | TEST-ONB | Onboarding flow tests | 4h | 🟠 P1 | ✅ COMPLETED |",
       "description": "| 4 | TEST-ONB | Onboarding flow tests | 4h | 🟠 P1 | ✅ COMPLETED |"
     },
@@ -1442,7 +1167,7 @@
       "status": "in_progress",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24220-24220",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:24267-24267",
       "evidenceSnippet": "| 3 | TEST-HR | HR/payroll route tests | 4h | 🟠 P1 | ✅ COMPLETED |",
       "description": "| 3 | TEST-HR | HR/payroll route tests | 4h | 🟠 P1 | ✅ COMPLETED |"
     },
@@ -1453,108 +1178,9 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:26557-26557",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:26604-26604",
       "evidenceSnippet": "| CQ-008 | Mixed async/await and Promise chains | Various | Pending: Standardize to async/await |",
       "description": "| CQ-008 | Mixed async/await and Promise chains | Various | Pending: Standardize to async/await |"
-    },
-    {
-      "key": "-250",
-      "title": "⚠️ Fix `fulfillment-service.ts:250` placeholder phone",
-      "category": "security",
-      "status": "open",
-      "location": "fulfillment-service.ts",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:26733-26733",
-      "evidenceSnippet": "1. ⚠️ Fix `fulfillment-service.ts:250` placeholder phone",
-      "description": "1. ⚠️ Fix `fulfillment-service.ts:250` placeholder phone"
-    },
-    {
-      "key": "PENDINGREPORT2025-12-10T10-35-34Z",
-      "title": "`docs/archived/PENDING_REPORT_2025-12-10T10-35-34Z.md`",
-      "category": "test",
-      "status": "open",
-      "location": "docs/archived/PENDING_REPORT_2025-12-10T10-35-34Z.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27139-27139",
-      "evidenceSnippet": "- `docs/archived/PENDING_REPORT_2025-12-10T10-35-34Z.md`",
-      "description": "- `docs/archived/PENDING_REPORT_2025-12-10T10-35-34Z.md`"
-    },
-    {
-      "key": "PENDINGREPORT2025-12-10T10-35-17Z",
-      "title": "`docs/archived/PENDING_REPORT_2025-12-10T10-35-17Z.md`",
-      "category": "test",
-      "status": "open",
-      "location": "docs/archived/PENDING_REPORT_2025-12-10T10-35-17Z.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27138-27138",
-      "evidenceSnippet": "- `docs/archived/PENDING_REPORT_2025-12-10T10-35-17Z.md`",
-      "description": "- `docs/archived/PENDING_REPORT_2025-12-10T10-35-17Z.md`"
-    },
-    {
-      "key": "PENDINGREPORT2025-12-10T10-34-18Z",
-      "title": "`docs/archived/PENDING_REPORT_2025-12-10T10-34-18Z.md`",
-      "category": "test",
-      "status": "open",
-      "location": "docs/archived/PENDING_REPORT_2025-12-10T10-34-18Z.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27137-27137",
-      "evidenceSnippet": "- `docs/archived/PENDING_REPORT_2025-12-10T10-34-18Z.md`",
-      "description": "- `docs/archived/PENDING_REPORT_2025-12-10T10-34-18Z.md`"
-    },
-    {
-      "key": "PENDINGREPORT2025-12-10T10-26-13Z",
-      "title": "`docs/archived/PENDING_REPORT_2025-12-10T10-26-13Z.md`",
-      "category": "test",
-      "status": "open",
-      "location": "docs/archived/PENDING_REPORT_2025-12-10T10-26-13Z.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27136-27136",
-      "evidenceSnippet": "- `docs/archived/PENDING_REPORT_2025-12-10T10-26-13Z.md`",
-      "description": "- `docs/archived/PENDING_REPORT_2025-12-10T10-26-13Z.md`"
-    },
-    {
-      "key": "PENDINGREPORT2025-12-10T10-20-55Z",
-      "title": "`docs/archived/PENDING_REPORT_2025-12-10T10-20-55Z.md`",
-      "category": "test",
-      "status": "open",
-      "location": "docs/archived/PENDING_REPORT_2025-12-10T10-20-55Z.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27135-27135",
-      "evidenceSnippet": "- `docs/archived/PENDING_REPORT_2025-12-10T10-20-55Z.md`",
-      "description": "- `docs/archived/PENDING_REPORT_2025-12-10T10-20-55Z.md`"
-    },
-    {
-      "key": "DAILYPROGRESSREPORTS2025-12-1013-20-04PENDINGITEMS",
-      "title": "`docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md`",
-      "category": "test",
-      "status": "open",
-      "location": "docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27141-27141",
-      "evidenceSnippet": "- `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md`",
-      "description": "- `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_13-20-04_PENDING_ITEMS.md`"
-    },
-    {
-      "key": "DAILYPROGRESSREPORTS2025-12-10CONSOLIDATEDPENDING",
-      "title": "`docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_CONSOLIDATED_PENDING.md`",
-      "category": "test",
-      "status": "open",
-      "location": "docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_CONSOLIDATED_PENDING.md",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:27140-27140",
-      "evidenceSnippet": "- `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_CONSOLIDATED_PENDING.md`",
-      "description": "- `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-10_CONSOLIDATED_PENDING.md`"
-    },
-    {
-      "key": "2--",
-      "title": "**Pending Operational Checks (Auth & Email Domain)**: set `EMAIL_DOMAIN` (and expose `window.EMAIL_DOMAIN`) before demos/public pages; run `",
-      "category": "documentation",
-      "status": "open",
-      "location": "scripts/test-api-endpoints.ts",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:26365-26365",
-      "evidenceSnippet": "- **Pending Operational Checks (Auth & Email Domain)**: set `EMAIL_DOMAIN` (and expose `window.EMAIL_DOMAIN`) before demos/public pages; run `npx tsx scripts/test-api-endpoints.ts --endpoint=auth --BASE_URL=<env-url>`; run E2E auth",
-      "description": "- **Pending Operational Checks (Auth & Email Domain)**: set `EMAIL_DOMAIN` (and expose `window.EMAIL_DOMAIN`) before demos/public pages; run `npx tsx scripts/test-api-endpoints.ts --endpoint=auth --BASE_URL=<env-url>`; run E2E auth suites `qa/tests/e2e-auth-unified.spec.ts` and `qa/tests/auth-flows.spec.ts`."
     },
     {
       "key": "ISSUE-005",
@@ -1563,18 +1189,7 @@
       "status": "open",
       "location": "scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:26364-26364",
-      "evidenceSnippet": "- **ISSUE-005 – Mixed orgId Storage in Souq Payouts/Withdrawals** (Major, Pending Migration - Ops): run `npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts` (dry-run then execute).",
-      "description": "- **ISSUE-005 – Mixed orgId Storage in Souq Payouts/Withdrawals** (Major, Pending Migration - Ops): run `npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts` (dry-run then execute)."
-    },
-    {
-      "key": "2025-12-07----I",
-      "title": "**ISSUE-005 – Mixed orgId Storage in Souq Payouts/Withdrawals** (Major, Pending Migration - Ops): run `npx tsx scripts/migrations/2025-12-07",
-      "category": "documentation",
-      "status": "open",
-      "location": "scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts",
-      "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:26364-26364",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:26411-26411",
       "evidenceSnippet": "- **ISSUE-005 – Mixed orgId Storage in Souq Payouts/Withdrawals** (Major, Pending Migration - Ops): run `npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts` (dry-run then execute).",
       "description": "- **ISSUE-005 – Mixed orgId Storage in Souq Payouts/Withdrawals** (Major, Pending Migration - Ops): run `npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts` (dry-run then execute)."
     },
@@ -1585,7 +1200,7 @@
       "status": "open",
       "location": "docs/PENDING_MASTER.md",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21238-21238",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21285-21285",
       "evidenceSnippet": "| GH-ENV | Create GitHub environments (staging, production-approval, production) | 🟡 HIGH | 15min | DevOps |",
       "description": "| GH-ENV | Create GitHub environments (staging, production-approval, production) | 🟡 HIGH | 15min | DevOps |"
     },
@@ -1596,7 +1211,7 @@
       "status": "open",
       "location": "pr_agent.yml",
       "sourcePath": "docs/PENDING_MASTER.md",
-      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21198-21198",
+      "sourceRef": "pending-master:docs/PENDING_MASTER.md:21245-21245",
       "evidenceSnippet": "| GH-006 | pr_agent.yml:26-27 | `${{ secrets.OPENAI_KEY }}` warning | ℹ️ Info | **FALSE POSITIVE** | Standard secret injection pattern |",
       "description": "| GH-006 | pr_agent.yml:26-27 | `${{ secrets.OPENAI_KEY }}` warning | ℹ️ Info | **FALSE POSITIVE** | Standard secret injection pattern |"
     }

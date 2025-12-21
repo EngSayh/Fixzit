@@ -51,7 +51,7 @@ export async function GET(
     const user = await getSessionUser(req);
     const { id } = await props.params;
     await connectToDatabase();
-    const wo = await WorkOrder.findOne({ _id: id, orgId: user.orgId });
+    const wo = await WorkOrder.findOne({ _id: id, orgId: user.orgId }).lean();
     const communication = (
       wo as { communication?: { comments?: unknown[] } } | null
     )?.communication;

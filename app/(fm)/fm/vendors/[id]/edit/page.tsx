@@ -395,7 +395,7 @@ export default function EditVendorPage() {
             {/* Email & Phone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="contactEmail">Email</Label>
+                <Label htmlFor="contactEmail">{auto("Email", "form.labels.email")}</Label>
                 <Input
                   id="contactEmail"
                   name="contactEmail"

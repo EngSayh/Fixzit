@@ -54,6 +54,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 // ============================================================================
 // TYPES
@@ -159,6 +160,7 @@ export default function AdminIssueDetailPage({
   const params = use(paramsPromise);
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   // State
   const [issue, setIssue] = useState<Issue | null>(null);
@@ -430,41 +432,41 @@ export default function AdminIssueDetailPage({
             <div className="lg:col-span-2 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Issue Details</CardTitle>
+                  <CardTitle>{t("issues.details.title", "Issue Details")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label>Title</Label>
+                    <Label>{t("issues.fields.title", "Title")}</Label>
                     <Input
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder="Issue title"
+                      placeholder={t("issues.placeholders.title", "Issue title")}
                     />
                   </div>
                   <div>
-                    <Label>Description</Label>
+                    <Label>{t("issues.fields.description", "Description")}</Label>
                     <Textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Describe the issue..."
+                      placeholder={t("issues.placeholders.description", "Describe the issue...")}
                       rows={4}
                     />
                   </div>
                   <div>
-                    <Label>Root Cause Analysis</Label>
+                    <Label>{t("issues.fields.rootCause", "Root Cause Analysis")}</Label>
                     <Textarea
                       value={rootCause}
                       onChange={(e) => setRootCause(e.target.value)}
-                      placeholder="What is causing this issue?"
+                      placeholder={t("issues.placeholders.rootCause", "What is causing this issue?")}
                       rows={3}
                     />
                   </div>
                   <div>
-                    <Label>Proposed Fix</Label>
+                    <Label>{t("issues.fields.proposedFix", "Proposed Fix")}</Label>
                     <Textarea
                       value={proposedFix}
                       onChange={(e) => setProposedFix(e.target.value)}
-                      placeholder="How should this be fixed?"
+                      placeholder={t("issues.placeholders.proposedFix", "How should this be fixed?")}
                       rows={3}
                     />
                   </div>

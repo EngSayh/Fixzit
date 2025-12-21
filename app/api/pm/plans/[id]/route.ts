@@ -51,7 +51,7 @@ export async function GET(
   try {
     const { id } = await params;
     // 🔒 TENANT-SCOPED: Use findOne with orgId filter instead of findById
-    const plan = await FMPMPlan.findOne({ _id: id, orgId });
+    const plan = await FMPMPlan.findOne({ _id: id, orgId }).lean();
 
     if (!plan) {
       return NextResponse.json(

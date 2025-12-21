@@ -346,6 +346,232 @@ gh pr list --author @me              # Verify PR created
 
 ---
 
+## SSOT Backlog Sync Protocol (AFTER EVERY CODE REVIEW)
+
+### Single Source of Truth (NON-NEGOTIABLE)
+- **MongoDB Issue Tracker** is the ONLY SSOT for all issues/tasks
+- `docs/PENDING_MASTER.md` is a derived log/snapshot ONLY
+- **NEVER** record a new issue ONLY in PENDING_MASTER.md — it MUST exist in MongoDB
+
+### When to Execute This Protocol
+Execute after EVERY code review session, fix session, or task completion.
+
+### Step 1: Discovery
+```bash
+# Confirm Issue Tracker components exist:
+- Issue model: server/models/Issue.ts
+- Import endpoint: POST /api/issues/import
+- Stats endpoint: GET /api/issues/stats
+- CRUD endpoints: /api/issues and /api/issues/[id]
+```
+
+### Step 2: Backlog Audit (Extract from PENDING_MASTER.md)
+Generate/update these artifacts:
+- `docs/BACKLOG_AUDIT.json` (machine-ready)
+- `docs/BACKLOG_AUDIT.md` (human checklist)
+
+**Extraction Rules:**
+- Only OPEN/PENDING/UNRESOLVED items
+- Exclude ✅ 🟢 Done/Fixed/Resolved/Completed
+- Every item MUST include: `sourceRef` + `evidenceSnippet`
+- Key format: `externalId` if exists, else `normalize(title|category|location)`
+
+### Step 3: DB Sync (Idempotent)
+```bash
+# Import into MongoDB:
+POST /api/issues/import { issues: [...] }
+
+# Capture results:
+{ created: N, updated: N, skipped: N, errors: N }
+```
+
+### Step 4: Apply Today's Review Outcomes to DB
+
+| Outcome | DB Action | Event Type |
+|---------|-----------|------------|
+| Issue FIXED | status → `resolved` | STATUS_CHANGED |
+| Work started | status → `in_progress` | STATUS_CHANGED |
+| Blocked | status → `blocked` + blocker reason | UPDATED |
+
+**Every status change MUST include:**
+- Timestamp (KSA timezone: Asia/Riyadh)
+- Agent ID who made the change
+- Reference to commit/PR if applicable
+
+### Step 5: Create DB Issues for NEW Findings (EVIDENCE REQUIRED)
+For new issues discovered during code review:
+
+```json
+{
+  "title": "<descriptive title>",
+  "category": "bug | logic | tests | security | refactor | ops",
+  "priority": "P0 | P1 | P2 | P3",
+  "location": "<file path>",
+  "sourcePath": "code-review",
+  "sourceRef": "code-review:<file>:<lineStart>-<lineEnd>",
+  "evidenceSnippet": "<max 25 words exact code>",
+  "createdBy": "[AGENT-XXX-Y]",
+  "createdAt": "<ISO timestamp>"
+}
+```
+
+**DEDUPE RULE:** Search DB for similar title/location BEFORE creating. Update existing if found.
+
+### Step 6: Update docs/PENDING_MASTER.md (Derived Log)
+Append changelog entry (do NOT rewrite entire file):
+
+```markdown
+### YYYY-MM-DD HH:mm (Asia/Riyadh) — Code Review Update
+**Context:** <branch> | <commit> | <PR #>
+**Agent:** [AGENT-XXX-Y]
+**DB Sync:** created=N, updated=N, skipped=N, errors=N
+
+**✅ Resolved Today (DB SSOT):**
+- KEY1 — <title> (files: ...)
+
+**🟠 In Progress:**
+- KEY2 — <title>
+
+**🔴 Blocked:**
+- KEY3 — <title> — blocker: <reason>
+
+**🆕 New Findings Added to DB (with evidence):**
+- KEY4 — <title> — sourceRef: code-review:<file>:<lines>
+
+**Next Steps (ONLY from DB items above):**
+- KEY... — <action>
+```
+
+### Step 7: Verification
+```bash
+pnpm lint                    # Must pass
+pnpm test                    # Must pass
+curl /api/issues/stats       # Confirm 200 OK
+# Confirm no duplicates in import result
+```
+
+---
+
+## Improvement Analysis Protocol (PERIODIC REVIEW)
+
+### When to Execute
+- After completing a major feature or fix cycle
+- Weekly during active development
+- Before any major release
+
+### Analysis Categories (All findings go to MongoDB Issue Tracker)
+
+#### 1. Areas for Improvement
+| Check | Action |
+|-------|--------|
+| UX friction points | Log as `category: refactor`, `priority: P2-P3` |
+| Missing features (user-requested) | Log as `category: feature`, with evidence of request |
+| Industry trend alignment | Log as `category: enhancement`, `priority: P3` |
+
+#### 2. Process Efficiency
+| Check | Action |
+|-------|--------|
+| Workflow bottlenecks | Log as `category: ops`, include time impact |
+| Manual steps to automate | Log as `category: automation`, include effort estimate |
+| Slow CI/CD steps | Log as `category: ops`, include benchmark data |
+
+#### 3. Bugs and Errors
+| Check | Action |
+|-------|--------|
+| Known bugs | Log as `category: bug`, with severity + user impact |
+| Error rates | Log as `category: bug`, include error counts/metrics |
+| Debugging gaps | Log as `category: tests`, suggest debugging strategy |
+
+#### 4. Logic Errors
+| Check | Action |
+|-------|--------|
+| Algorithm flaws | Log as `category: logic`, with code evidence |
+| Decision accuracy issues | Log as `category: logic`, include test case that fails |
+| Edge cases not handled | Log as `category: logic`, with reproduction steps |
+
+#### 5. Testing Recommendations
+| Check | Action |
+|-------|--------|
+| Coverage gaps | Log as `category: tests`, list specific files/functions |
+| Missing test types | Log as `category: tests`, specify unit/integration/e2e |
+| Flaky tests | Log as `category: tests`, with failure frequency |
+
+#### 6. Optional Enhancements
+| Check | Action |
+|-------|--------|
+| Nice-to-have features | Log as `category: enhancement`, `priority: P3` |
+| Performance optimizations | Log as `category: performance`, with benchmark |
+| Code quality improvements | Log as `category: refactor`, `priority: P3` |
+
+### DB Issue Format for All Findings
+```json
+{
+  "title": "<clear descriptive title>",
+  "category": "<bug|logic|tests|security|refactor|ops|enhancement|feature|automation|performance>",
+  "priority": "<P0|P1|P2|P3>",
+  "status": "open",
+  "location": "<file:line or module>",
+  "description": "<detailed description>",
+  "evidenceSnippet": "<code or data evidence>",
+  "sourceRef": "<analysis-type>:<date>:<agent-id>",
+  "impact": "<user/system impact description>",
+  "effort": "<low|medium|high>",
+  "createdBy": "[AGENT-XXX-Y]",
+  "createdAt": "<ISO timestamp>",
+  "events": [
+    { "type": "CREATED", "timestamp": "<ISO>", "by": "[AGENT-XXX-Y]" }
+  ]
+}
+```
+
+### Issue Lifecycle Tracking (ALL STATUS CHANGES LOGGED)
+```
+┌──────────┐    ┌─────────────┐    ┌──────────┐    ┌──────────┐
+│  OPEN    │ →  │ IN_PROGRESS │ →  │ RESOLVED │ →  │ VERIFIED │
+└──────────┘    └─────────────┘    └──────────┘    └──────────┘
+     │                │                  │
+     └────────────────┴──────────────────┘
+                      ↓
+               ┌──────────┐
+               │ BLOCKED  │ (with blocker reason)
+               └──────────┘
+```
+
+**Every transition MUST include:**
+- `timestamp`: ISO format with KSA timezone
+- `by`: Agent ID `[AGENT-XXX-Y]`
+- `from`: Previous status
+- `to`: New status
+- `note`: Reason for change (commit, PR, blocker, etc.)
+
+### Improvement Report Format (Append to PENDING_MASTER.md)
+```markdown
+### YYYY-MM-DD HH:mm (Asia/Riyadh) — Improvement Analysis
+**Agent:** [AGENT-XXX-Y]
+**Scope:** <module/feature analyzed>
+**DB Issues Created/Updated:** N
+
+**📊 Summary by Category:**
+| Category | New | Updated | Total Open |
+|----------|-----|---------|------------|
+| Bugs | N | N | N |
+| Logic | N | N | N |
+| Tests | N | N | N |
+| Refactor | N | N | N |
+| Enhancement | N | N | N |
+
+**🔴 P0/P1 Items (Immediate Action):**
+- KEY — <title> — <action required>
+
+**🟡 P2 Items (This Sprint):**
+- KEY — <title>
+
+**🟢 P3 Items (Backlog):**
+- KEY — <title>
+```
+
+---
+
 ## Manual chat prompt (when not using /fixzit-audit)
 Audit the selected/open files and Problems panel items using the Fixzit Evidence Protocol:
 1) Build an Issues Ledger (source + verbatim message + file+lines).
