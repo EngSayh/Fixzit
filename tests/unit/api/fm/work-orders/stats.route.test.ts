@@ -28,11 +28,16 @@ vi.mock('@/app/api/fm/utils/fm-auth', () => ({
   requireFmAbility: vi.fn(),
 }));
 
+vi.mock('@/lib/middleware/rate-limit', () => ({
+  enforceRateLimit: vi.fn(() => null),
+}));
+
 import { GET } from '@/app/api/fm/work-orders/stats/route';
 import { makeGetRequest } from '@/tests/helpers/request';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { resolveTenantId } from '@/app/api/fm/utils/tenant';
 import { requireFmAbility } from '@/app/api/fm/utils/fm-auth';
+import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 import { FMErrors } from '@/app/api/fm/errors';
 
 describe('api/fm/work-orders/stats route', () => {
@@ -41,6 +46,24 @@ describe('api/fm/work-orders/stats route', () => {
     (getDatabase as unknown as vi.Mock).mockReset();
     (resolveTenantId as vi.Mock).mockReset();
     (requireFmAbility as vi.Mock).mockReset();
+    (enforceRateLimit as vi.Mock).mockReset();
+    // Default: rate limit not triggered
+    (enforceRateLimit as vi.Mock).mockReturnValue(null);
+  });
+
+  it('returns 429 when rate limit is exceeded', async () => {
+    const rateLimitResponse = NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429 },
+    );
+    (enforceRateLimit as vi.Mock).mockReturnValue(rateLimitResponse);
+    const req = createRequest();
+    const res = await GET(req);
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.error).toBe('Too many requests');
+    expect(requireFmAbility).not.toHaveBeenCalled();
+    expect(getDatabase).not.toHaveBeenCalled();
   });
 
   it('returns guard response when ability denies access', async () => {
