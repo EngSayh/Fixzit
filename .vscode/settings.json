@@ -24,7 +24,11 @@
     "Update docs/PENDING_MASTER.md after every session",
     "Run SSOT Sync Protocol before closing any task",
     "Notify Eng. Sultan with Final Output box",
-    "Never claim fixed without evidence"
+    "Never claim fixed without evidence",
+    "Before blaming missing env var - verify in BOTH GitHub Secrets AND Vercel",
+    "If env var is truly missing - report which platform(s) need it",
+    "Always use error codes [FIXZIT-MODULE-NNN] for traceability",
+    "Never swallow errors - always log with context and error code"
   ],
 
   "eslint.enable": true,

@@ -342,6 +342,7 @@ If any SoT is missing/unreadable → STOP and report CRITICAL.
 - Do NOT close tasks/PRs/issues. Only Eng. Sultan approves closure.
 - Do NOT take shortcuts or workarounds — ALWAYS fix the root cause.
 - Do NOT ignore issues — every finding MUST be reported to MongoDB SSOT.
+- Do NOT blame "missing env vars" without verifying in BOTH GitHub AND Vercel.
 
 ### ⛔ NO SHORTCUTS / NO WORKAROUNDS POLICY (STRICTLY ENFORCED)
 ```
@@ -358,6 +359,7 @@ If any SoT is missing/unreadable → STOP and report CRITICAL.
 │  ❌ Saying "works on my machine" without evidence                       │
 │  ❌ Deferring issues without logging them to MongoDB                    │
 │  ❌ Claiming "out of scope" without creating a tracked issue            │
+│  ❌ Blaming "env var missing" without checking GitHub + Vercel          │
 └─────────────────────────────────────────────────────────────────────────┘
 
 REQUIRED INSTEAD:
@@ -370,6 +372,150 @@ REQUIRED INSTEAD:
   - Proposed solution
 - Update docs/PENDING_MASTER.md with the issue reference
 - Notify Eng. Sultan if P0/P1 blocker found
+```
+
+---
+
+### 🔑 Environment Variable Verification Protocol (MANDATORY)
+
+**BEFORE blaming "missing env var", agents MUST verify in BOTH platforms:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ENV VAR VERIFICATION CHECKLIST                                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. □ Check GitHub Repository Secrets:                                  │
+│       Settings → Secrets and variables → Actions                        │
+│       - Repository secrets                                              │
+│       - Environment secrets (production, preview, development)          │
+│                                                                         │
+│  2. □ Check Vercel Environment Variables:                               │
+│       Project Settings → Environment Variables                          │
+│       - Production                                                       │
+│       - Preview                                                          │
+│       - Development                                                      │
+│                                                                         │
+│  3. □ Check local .env files (for development):                         │
+│       - .env.local                                                       │
+│       - .env.development.local                                           │
+│       - .env (committed defaults only)                                   │
+│                                                                         │
+│  4. □ Verify .env.example is up to date with ALL required keys          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**If env var is ACTUALLY missing, notify Eng. Sultan with:**
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  🔴 MISSING ENV VAR NOTIFICATION                                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Variable Name: <ENV_VAR_NAME>                                          │
+│  Required By: <file:line or module>                                     │
+│  Purpose: <what this variable is used for>                              │
+│                                                                         │
+│  Status by Platform:                                                    │
+│  ├─ GitHub Actions: ❌ MISSING / ✅ Present                             │
+│  ├─ Vercel Production: ❌ MISSING / ✅ Present                          │
+│  ├─ Vercel Preview: ❌ MISSING / ✅ Present                             │
+│  ├─ Vercel Development: ❌ MISSING / ✅ Present                         │
+│  └─ .env.example: ❌ NOT DOCUMENTED / ✅ Documented                     │
+│                                                                         │
+│  Action Required: Add to <platform(s)> with value from <source>         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Commands to Check (use these before blaming):**
+```bash
+# Check what env vars code expects
+grep -rn "process.env\." app lib services --include="*.ts" | grep -v node_modules | sort -u
+
+# Check .env.example for documented vars
+cat .env.example | grep -v "^#" | grep "="
+
+# List all unique env var names used in codebase
+grep -roh "process\.env\.[A-Z_0-9]*" app lib services --include="*.ts" | sort -u
+```
+
+---
+
+### 📋 Error Handling Standards (MANDATORY)
+
+**All error handling MUST include clear, traceable error codes:**
+
+```typescript
+// ❌ BAD - No context, hard to trace
+throw new Error('Something went wrong');
+catch (e) { console.log(e); }
+
+// ✅ GOOD - Clear error code, context, and traceability
+throw new Error('[FIXZIT-AUTH-001] Failed to validate session: ' + reason);
+throw new Error('[FIXZIT-DB-002] MongoDB connection failed: ' + error.message);
+throw new Error('[FIXZIT-API-003] Rate limit exceeded for org: ' + orgId);
+```
+
+**Error Code Format:**
+```
+[FIXZIT-<MODULE>-<NUMBER>] <Human-readable message>: <technical details>
+
+Modules:
+- AUTH: Authentication/Authorization
+- DB: Database operations
+- API: API route handlers
+- TENANT: Multi-tenancy violations
+- PAY: Payment/Billing
+- SOUQ: Marketplace
+- AQAR: Real Estate
+- HR: Human Resources
+- FM: Facility Management
+- ENV: Environment/Config
+- I18N: Internationalization
+- FILE: File operations
+```
+
+**Required Error Response Structure:**
+```typescript
+// API error responses MUST include:
+return NextResponse.json({
+  error: {
+    code: 'FIXZIT-API-001',           // Unique traceable code
+    message: 'Unauthorized access',    // User-friendly message
+    details: 'Session expired',        // Technical details (dev only)
+    path: '/api/finance/accounts',     // Which endpoint
+    timestamp: new Date().toISOString(),
+    requestId: crypto.randomUUID(),    // For log correlation
+  }
+}, { status: 401 });
+```
+
+**Env Var Error Pattern:**
+```typescript
+// ❌ BAD - Silent failure or generic error
+const apiKey = process.env.STRIPE_KEY || '';
+if (!apiKey) throw new Error('Missing key');
+
+// ✅ GOOD - Clear identification of what's missing
+const apiKey = process.env.STRIPE_SECRET_KEY;
+if (!apiKey) {
+  throw new Error(
+    '[FIXZIT-ENV-001] Missing required environment variable: STRIPE_SECRET_KEY. ' +
+    'Check Vercel (Production/Preview) and GitHub Secrets. ' +
+    'See .env.example for documentation.'
+  );
+}
+```
+
+**Logging with Error Codes:**
+```typescript
+import { logger } from '@/lib/logger';
+
+// Always include error code in logs
+logger.error('[FIXZIT-DB-005] Failed to fetch user', {
+  errorCode: 'FIXZIT-DB-005',
+  userId,
+  orgId,
+  error: err.message,
+  stack: err.stack,
+});
 ```
 
 ---
