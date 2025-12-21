@@ -404,7 +404,21 @@ export async function updateRefundRecord(
   await transaction.save();
 
   if (transaction.paymentId) {
-    const payment = await Payment.findById(transaction.paymentId);
+    // SECURITY: Org-scoped filter prevents cross-tenant payment access
+    const orgId = transaction.orgId?.toString();
+    if (!orgId) {
+      logger.warn("[Webhook] Missing orgId on Tap transaction for payment refund update", {
+        correlationId,
+        paymentId: transaction.paymentId.toString(),
+        chargeId: refund.charge,
+      });
+    }
+    const payment = orgId
+      ? await Payment.findOne({
+          _id: transaction.paymentId,
+          $or: [{ orgId }, { org_id: orgId }],
+        })
+      : null;
     if (payment) {
       if (status === "SUCCEEDED") {
         payment.status = "REFUNDED";
