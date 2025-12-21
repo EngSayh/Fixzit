@@ -54,6 +54,10 @@ try {
   process.stderr.write('⚠️  .env.test not found. Copy .env.test.example to .env.test and add your credentials.\n');
 }
 
+// Force ALLOW_OFFLINE_MONGODB for Playwright tests - overrides .env.test value
+// This enables Playwright tests to run without a real MongoDB instance
+process.env.ALLOW_OFFLINE_MONGODB = 'true';
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
