@@ -14,9 +14,15 @@ vi.mock('@/lib/logger', () => ({
   },
 }));
 
-vi.mock('@/app/api/fm/utils/tenant', () => ({
-  resolveTenantId: vi.fn(() => ({ tenantId: 'tenant-1', source: 'session' })),
-}));
+vi.mock('@/app/api/fm/utils/tenant', async () => {
+  const actual = await vi.importActual<typeof import('@/app/api/fm/utils/tenant')>(
+    '@/app/api/fm/utils/tenant',
+  );
+  return {
+    ...actual,
+    resolveTenantId: vi.fn(() => ({ tenantId: 'tenant-1', source: 'session' })),
+  };
+});
 
 vi.mock('@/app/api/fm/utils/fm-auth', () => ({
   requireFmAbility: vi.fn(),

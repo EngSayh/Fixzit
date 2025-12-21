@@ -207,18 +207,17 @@ const nextConfig = {
   // Clean build artifacts on each build to prevent accumulation
   cleanDistDir: true,
 
-  // TypeScript and ESLint - CI QUALITY GATES
-  // Build-time checks are handled by GitHub Actions CI (lint:ci, typecheck)
-  // Skipping during Vercel build to prevent 45+ minute timeouts on large codebase
-  // The main tsconfig excludes tests, so typecheck is fast when run separately
+  // TypeScript and ESLint - STRICT MODE (no bypass)
+  // tsconfig.build.json scopes to runtime sources only (excludes tests, docs, scripts)
+  // eslint.dirs limits lint scope to Next.js runtime folders
   typescript: {
-    // Skip during Vercel builds - CI runs `pnpm typecheck` before deploy
-    ignoreBuildErrors: !!process.env.VERCEL,
-    tsconfigPath: './tsconfig.json'
+    ignoreBuildErrors: false,
+    tsconfigPath: './tsconfig.build.json',
   },
   eslint: {
-    // Skip during Vercel builds - CI runs `pnpm lint` before deploy
-    ignoreDuringBuilds: !!process.env.VERCEL,
+    ignoreDuringBuilds: false,
+    // Scope lint to runtime folders only (reduces build time without bypassing)
+    dirs: ['app', 'components', 'lib', 'services', 'server', 'hooks', 'providers', 'contexts'],
   },
 
   serverExternalPackages: [
