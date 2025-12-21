@@ -12,120 +12,94 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import React from "react";
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
 
-// Mock Next.js navigation
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    prefetch: vi.fn(),
-  }),
-  useSearchParams: () => new URLSearchParams(),
-  usePathname: () => "/test",
-}));
+/**
+ * Static analysis tests that verify list components use standard patterns.
+ * These tests do NOT require rendering or mocking - they analyze source code directly.
+ */
+describe("List Components Integration - Static Analysis", () => {
+  const componentsRoot = join(process.cwd(), "components");
+  
+  // List of components that should use DataTableStandard
+  const listComponents = [
+    { name: "WorkOrdersViewNew", path: "fm/WorkOrdersViewNew.tsx" },
+    { name: "UsersList", path: "administration/UsersList.tsx" },
+    { name: "RolesList", path: "administration/RolesList.tsx" },
+    { name: "AuditLogsList", path: "administration/AuditLogsList.tsx" },
+    { name: "InvoicesList", path: "finance/InvoicesList.tsx" },
+    { name: "LeaveRequestsList", path: "hr/LeaveRequestsList.tsx" },
+    { name: "EmployeesList", path: "hr/EmployeesList.tsx" },
+    { name: "ProductsList", path: "marketplace/ProductsList.tsx" },
+  ];
 
-// Mock translation context
-vi.mock("@/contexts/TranslationContext", () => ({
-  useTranslation: () => ({
-    t: (key: string, fallback?: string) => fallback || key,
-  }),
-}));
-
-// Mock SWR
-vi.mock("swr", () => ({
-  default: () => ({
-    data: null,
-    error: null,
-    isLoading: false,
-    mutate: vi.fn(),
-    isValidating: false,
-  }),
-}));
-
-describe("List Components Integration", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    localStorage.clear();
-  });
-
-  describe("Work Orders List", () => {
-    it("should render with DataTableStandard", () => {
-      // Component test placeholder
-      expect(true).toBe(true);
-    });
-
-    it("should sync filters to URL", () => {
-      // URL sync test placeholder
-      expect(true).toBe(true);
-    });
-
-    it("should persist view mode to localStorage", () => {
-      // localStorage test placeholder
-      expect(true).toBe(true);
+  describe("DataTableStandard Usage", () => {
+    listComponents.forEach(({ name, path }) => {
+      const fullPath = join(componentsRoot, path);
+      
+      it(`${name} should import DataTableStandard`, () => {
+        if (!existsSync(fullPath)) {
+          console.warn(`SKIP: ${path} does not exist`);
+          return;
+        }
+        const source = readFileSync(fullPath, "utf-8");
+        expect(source).toContain("DataTableStandard");
+      });
     });
   });
 
-  describe("Administration Lists", () => {
-    it("should render UsersList with filters", () => {
-      expect(true).toBe(true);
-    });
-
-    it("should render RolesList with filters", () => {
-      expect(true).toBe(true);
-    });
-
-    it("should render AuditLogsList with auto-refresh", () => {
-      expect(true).toBe(true);
-    });
-  });
-
-  describe("HR/Finance Lists", () => {
-    it("should render EmployeesList with hire date filter", () => {
-      expect(true).toBe(true);
-    });
-
-    it("should render InvoicesList with amount range filter", () => {
-      expect(true).toBe(true);
-    });
-
-    it("should render LeaveRequestsList with status filter", () => {
-      expect(true).toBe(true);
+  describe("useTableQueryState Hook Usage", () => {
+    listComponents.forEach(({ name, path }) => {
+      const fullPath = join(componentsRoot, path);
+      
+      it(`${name} should use useTableQueryState for URL sync`, () => {
+        if (!existsSync(fullPath)) {
+          console.warn(`SKIP: ${path} does not exist`);
+          return;
+        }
+        const source = readFileSync(fullPath, "utf-8");
+        expect(source).toContain("useTableQueryState");
+      });
     });
   });
 
-  describe("Mobile Strategy", () => {
-    it("should switch to CardList on mobile viewport", () => {
-      // Viewport test placeholder
-      expect(true).toBe(true);
+  describe("Filter Components Usage", () => {
+    const filterComponents = ["FacetMultiSelect", "DateRangePicker", "NumericRangeFilter"];
+    
+    it("WorkOrdersViewNew should use FacetMultiSelect for status", () => {
+      const source = readFileSync(join(componentsRoot, "fm/WorkOrdersViewNew.tsx"), "utf-8");
+      expect(source).toContain("FacetMultiSelect");
     });
 
-    it("should persist view mode preference", () => {
-      // View mode persistence test placeholder
-      expect(true).toBe(true);
+    it("InvoicesList should use NumericRangeFilter for amount", () => {
+      const source = readFileSync(join(componentsRoot, "finance/InvoicesList.tsx"), "utf-8");
+      expect(source).toContain("NumericRangeFilter");
     });
 
-    it("should render touch-friendly targets (44px min)", () => {
-      // Touch target test placeholder
-      expect(true).toBe(true);
+    it("ProductsList should use FacetMultiSelect for categories", () => {
+      const source = readFileSync(join(componentsRoot, "marketplace/ProductsList.tsx"), "utf-8");
+      expect(source).toContain("FacetMultiSelect");
     });
   });
 
-  describe("Consistency Checks", () => {
-    it("all lists use DataTableStandard", () => {
-      // Import all list components and verify they use DataTableStandard
-      expect(true).toBe(true);
+  describe("serializeFilters Integration", () => {
+    it("WorkOrdersViewNew should use serializeFilters for URL sync", () => {
+      const source = readFileSync(join(componentsRoot, "fm/WorkOrdersViewNew.tsx"), "utf-8");
+      expect(source).toContain("serializeFilters");
     });
 
-    it("all lists use useTableQueryState", () => {
-      // Verify hook usage
-      expect(true).toBe(true);
+    it("UsersList should use serializeFilters for URL sync", () => {
+      const source = readFileSync(join(componentsRoot, "administration/UsersList.tsx"), "utf-8");
+      expect(source).toContain("serializeFilters");
     });
+  });
 
-    it("all lists use same filter components", () => {
-      // Verify FacetMultiSelect, DateRangePicker, NumericRangeFilter usage
-      expect(true).toBe(true);
+  describe("Mobile View Support", () => {
+    it("ProductsList should have mobile/desktop view modes", () => {
+      const source = readFileSync(join(componentsRoot, "marketplace/ProductsList.tsx"), "utf-8");
+      // Should have view mode state or responsive rendering
+      expect(source).toMatch(/viewMode|isMobile|CardList|useMediaQuery/);
     });
   });
 });

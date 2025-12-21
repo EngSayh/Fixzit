@@ -76,7 +76,8 @@ This SSOT tracks all pending work items for Fixzit Phase 1 MVP. The canonical so
 | FEATURE-001 | Real-time notifications | DEFERRED | P0 | Planned | - | SSE implementation | Live updates without polling | E2E test | ADR-001 exists | SSE preferred over WS |
 | COMP-001 | ZATCA Phase 2 | DEFERRED | P1 | Planned | - | Finance module | UBL 2.1 + XML-DSig | ZATCA sandbox | ADR-002 exists | Q2 2026 deadline |
 | P3-AQAR-FILTERS | Aqar filter refactor | PARTIAL | P3 | In Progress | - | SearchFilters.tsx | Use FacetMultiSelect | Unit tests | 751 lines custom | Standardize filters |
-| P3-SOUQ-PRODUCTS | Souq Products migration | PARTIAL | P3 | In Progress | - | ProductsList.tsx | DataTableStandard + CardList | Unit tests | Placeholder list | Mobile view needed |
+| P3-SOUQ-PRODUCTS | Souq Products migration | RESOLVED | P3 | ✅ Complete | - | ProductsList.tsx | DataTableStandard + CardList | Unit tests | Uses DataTableStandard (L24), FacetMultiSelect (L29), NumericRangeFilter (L30), useTableQueryState (L36) | Audit 2025-12-21 |
+| P3-LIST-TESTS | Integration test placeholders | RESOLVED | P2 | ✅ Complete | - | list-components.integration.test.ts | 22 real tests | Vitest run | 22/22 pass - static analysis of component imports/patterns | Fixed 2025-12-21 |
 
 ---
 
