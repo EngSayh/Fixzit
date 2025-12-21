@@ -142,12 +142,25 @@ describe("Issues Import API Route", () => {
   let POST: typeof import("@/app/api/issues/import/route").POST;
 
   beforeEach(async () => {
-    // Test hygiene: clear call history, then re-apply defaults.
+    // Test hygiene: clear mocks and reset to defaults (no resetModules - preserves static vi.mock())
     vi.clearAllMocks();
+    
+    // Reset default session state - use the hoisted mock state pattern
     mockState.sessionResult = mockSession;
+    getSessionOrNullMock.mockReset();
     getSessionOrNullMock.mockImplementation(() => Promise.resolve(mockState.sessionResult));
+    
+    // Reset rate limit mock to allow requests
     const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
+    vi.mocked(enforceRateLimit).mockReset();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
+    
+    // Reset superadmin session mock
+    const { getSuperadminSession } = await import("@/lib/superadmin/auth");
+    vi.mocked(getSuperadminSession).mockReset();
+    vi.mocked(getSuperadminSession).mockResolvedValue(null);
+    
+    // Import route (static import since mocks are stable)
     const routeModule = await import("@/app/api/issues/import/route");
     POST = routeModule.POST;
   });

@@ -28,7 +28,8 @@ import { getWorkOrderStats, getPropertyCounters, getRevenueStats } from "@/lib/q
 import { setTenantContext, clearTenantContext } from "@/server/plugins/tenantIsolation";
 import { setAuditContext, clearAuditContext } from "@/server/plugins/auditPlugin";
 import { verifyToken } from "@/lib/auth";
-import { getSessionUser, UnauthorizedError, type SessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionUser, type SessionUser } from "@/server/middleware/withAuthRbac";
+import { isUnauthorizedError } from "@/server/utils/isUnauthorizedError";
 import { NextRequest } from "next/server";
 import { Types } from "mongoose";
 import { COLLECTIONS } from "@/lib/db/collections";
@@ -548,7 +549,7 @@ async function buildGraphQLContext(request: Request): Promise<GraphQLContext> {
     const nextReq = new NextRequest(request);
     sessionUser = await getSessionUser(nextReq);
   } catch (error) {
-    if (!(error instanceof UnauthorizedError)) {
+    if (!isUnauthorizedError(error)) {
       logger.debug("[GraphQL] Failed to read session user", { error });
     }
   }
