@@ -1,6 +1,31 @@
 {
+  // ══════════════════════════════════════════════════════════════════════════════
+  // AGENT INSTRUCTIONS ENFORCEMENT (NON-NEGOTIABLE)
+  // All AI agents MUST follow AGENTS.md and .github/copilot-instructions.md
+  // ══════════════════════════════════════════════════════════════════════════════
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,
   "chat.useAgentsMdFile": true,
+  "github.copilot.chat.agent.followRules": true,
+  "github.copilot.chat.agent.thinkingProcess": "extended",
+  "github.copilot.chat.localeOverride": "en",
+  
+  // Agent instruction files (explicit paths)
+  "github.copilot.chat.codeGeneration.instructionFiles": [
+    "AGENTS.md",
+    ".github/copilot-instructions.md",
+    ".github/instructions/*.instructions.md"
+  ],
+
+  // Agent behavior enforcement
+  "github.copilot.chat.agent.rules": [
+    "Always read and follow AGENTS.md before any task",
+    "Never take shortcuts or workarounds - fix root cause",
+    "Report ALL findings to MongoDB SSOT",
+    "Update docs/PENDING_MASTER.md after every session",
+    "Run SSOT Sync Protocol before closing any task",
+    "Notify Eng. Sultan with Final Output box",
+    "Never claim fixed without evidence"
+  ],
 
   "eslint.enable": true,
   "eslint.workingDirectories": [{ "mode": "location" }],

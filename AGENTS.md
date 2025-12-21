@@ -340,6 +340,37 @@ If any SoT is missing/unreadable → STOP and report CRITICAL.
 - Do NOT edit build outputs (.next, dist, manifests) to hide problems.
 - Do NOT claim "fixed" unless you provide evidence (commands + raw outputs, tests, screenshots where applicable).
 - Do NOT close tasks/PRs/issues. Only Eng. Sultan approves closure.
+- Do NOT take shortcuts or workarounds — ALWAYS fix the root cause.
+- Do NOT ignore issues — every finding MUST be reported to MongoDB SSOT.
+
+### ⛔ NO SHORTCUTS / NO WORKAROUNDS POLICY (STRICTLY ENFORCED)
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  FORBIDDEN ACTIONS (AUTO-FAIL)                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│  ❌ Commenting out failing tests instead of fixing them                 │
+│  ❌ Adding // @ts-ignore or // eslint-disable without justification     │
+│  ❌ Wrapping errors in try-catch that swallows them silently            │
+│  ❌ Using `as any` to bypass type errors                                │
+│  ❌ Hardcoding values instead of fixing the real data source            │
+│  ❌ Deleting code to "fix" a bug instead of understanding root cause   │
+│  ❌ Skipping SSOT update when issues are found                          │
+│  ❌ Saying "works on my machine" without evidence                       │
+│  ❌ Deferring issues without logging them to MongoDB                    │
+│  ❌ Claiming "out of scope" without creating a tracked issue            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+REQUIRED INSTEAD:
+- Investigate and identify the ROOT CAUSE of every issue
+- Fix the root cause, not the symptom
+- If fix is complex/blocked, create issue in MongoDB SSOT with:
+  - Full evidence (file + lines + snippet)
+  - Root cause analysis
+  - Blocker reason if applicable
+  - Proposed solution
+- Update docs/PENDING_MASTER.md with the issue reference
+- Notify Eng. Sultan if P0/P1 blocker found
+```
 
 ---
 
