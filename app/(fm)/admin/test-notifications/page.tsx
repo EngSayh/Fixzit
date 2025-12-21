@@ -313,7 +313,7 @@ export default function NotificationTestPage() {
                   className="w-4 h-4 text-primary"
                 />
                 <Phone className="h-4 w-4" />
-                <span>SMS</span>
+                <span>{t("admin.notifications.sms", "SMS")}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -325,7 +325,7 @@ export default function NotificationTestPage() {
                   className="w-4 h-4 text-primary"
                 />
                 <MessageSquare className="h-4 w-4" />
-                <span>WhatsApp</span>
+                <span>{t("admin.notifications.whatsapp", "WhatsApp")}</span>
               </label>
             </div>
           </div>

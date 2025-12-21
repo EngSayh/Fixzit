@@ -402,15 +402,15 @@ export default function AdminIssueDetailPage({
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Delete Issue?</DialogTitle>
+                <DialogTitle>{t("issues.actions.deleteConfirm", "Delete Issue?")}</DialogTitle>
                 <DialogDescription>
-                  This action cannot be undone. The issue and all associated data will be permanently deleted.
+                  {t("issues.actions.deleteWarning", "This action cannot be undone. The issue and all associated data will be permanently deleted.")}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+                <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>{t("common.cancel", "Cancel")}</Button>
                 <Button onClick={handleDelete} variant="destructive">
-                  Delete
+                  {t("common.delete", "Delete")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -420,9 +420,9 @@ export default function AdminIssueDetailPage({
 
       <Tabs defaultValue="details" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="activity">Activity ({issue.auditEntries?.length || 0})</TabsTrigger>
-          <TabsTrigger value="comments">Comments ({issue.comments?.length || 0})</TabsTrigger>
+          <TabsTrigger value="details">{t("issues.tabs.details", "Details")}</TabsTrigger>
+          <TabsTrigger value="activity">{t("issues.tabs.activity", "Activity")} ({issue.auditEntries?.length || 0})</TabsTrigger>
+          <TabsTrigger value="comments">{t("issues.tabs.comments", "Comments")} ({issue.comments?.length || 0})</TabsTrigger>
         </TabsList>
 
         {/* Details Tab */}
