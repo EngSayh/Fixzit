@@ -1,0 +1,138 @@
+---
+# yamllint disable rule:line-length rule:truthy
+name: Nightly Shuffle Tests
+
+on:
+  schedule:
+    # Run at 3:30 AM UTC daily (after eslint-quality at 3 AM)
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+    inputs:
+      seeds:
+        description: "Comma-separated seeds to test (default: 1000,1001,1002,1003,1004)"
+        required: false
+        default: "1000,1001,1002,1003,1004"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shuffle-tests:
+    name: Multi-Seed Shuffle Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run multi-seed shuffle tests
+        env:
+          CI: "true"
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        run: |
+          mkdir -p reports
+          
+          # Parse seeds from input or use defaults
+          SEEDS="${{ github.event.inputs.seeds || '1000,1001,1002,1003,1004' }}"
+          IFS=',' read -ra SEED_ARRAY <<< "$SEEDS"
+          
+          FAILED_SEEDS=""
+          PASSED_COUNT=0
+          TOTAL_COUNT=0
+          
+          for SEED in "${SEED_ARRAY[@]}"; do
+            SEED=$(echo "$SEED" | xargs) # trim whitespace
+            TOTAL_COUNT=$((TOTAL_COUNT + 1))
+            echo ""
+            echo "========================================"
+            echo "🎲 Testing with seed: $SEED"
+            echo "========================================"
+            
+            if pnpm vitest run --sequence.shuffle --sequence.seed="$SEED" --reporter=dot 2>&1 | tee "reports/shuffle-seed-$SEED.log"; then
+              echo "✅ Seed $SEED: PASSED"
+              PASSED_COUNT=$((PASSED_COUNT + 1))
+            else
+              echo "❌ Seed $SEED: FAILED"
+              FAILED_SEEDS="$FAILED_SEEDS $SEED"
+            fi
+          done
+          
+          echo ""
+          echo "========================================"
+          echo "📊 Shuffle Test Summary"
+          echo "========================================"
+          echo "Seeds tested: $TOTAL_COUNT"
+          echo "Passed: $PASSED_COUNT"
+          echo "Failed: $((TOTAL_COUNT - PASSED_COUNT))"
+          
+          if [ -n "$FAILED_SEEDS" ]; then
+            echo ""
+            echo "❌ Failed seeds:$FAILED_SEEDS"
+            echo ""
+            echo "To reproduce locally:"
+            echo "  CI=true pnpm vitest run --sequence.shuffle --sequence.seed=<SEED> --reporter=verbose"
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ All shuffle tests passed!"
+
+      - name: Upload shuffle logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shuffle-test-logs
+          path: reports/shuffle-seed-*.log
+          retention-days: 14
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🎲 Nightly Shuffle Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ **All shuffle tests passed!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Test isolation is stable across multiple random orderings." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Some shuffle tests failed!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "This indicates test isolation issues - tests may depend on execution order." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Check the artifacts for detailed logs with failing seeds." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Seeds Tested" >> $GITHUB_STEP_SUMMARY
+          echo "\`${{ github.event.inputs.seeds || '1000,1001,1002,1003,1004' }}\`" >> $GITHUB_STEP_SUMMARY

@@ -548,10 +548,17 @@ jobs:
 
       # ---------- Summary ----------
       - name: Summary
+        if: always()
         run: |
           echo "## 🎯 Fixzit Quality Gates Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Quality gates completed successfully!**" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ **Quality gates completed successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Quality gates completed with warnings or failures.**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Check the job logs above for details on which steps failed." >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📦 Generated Artifacts:" >> $GITHUB_STEP_SUMMARY
           echo "- **OpenAPI Specification** (if found or generated)" >> $GITHUB_STEP_SUMMARY
