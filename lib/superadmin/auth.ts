@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { timingSafeEqual } from "crypto";
@@ -182,7 +182,7 @@ export async function getSuperadminSessionFromCookies(): Promise<SuperadminSessi
 }
 
 export function applySuperadminCookies(
-  response: Response,
+  response: NextResponse,
   token: string,
   maxAgeSeconds: number
 ): void {
@@ -190,35 +190,30 @@ export function applySuperadminCookies(
   const sameSite: "lax" | "strict" = "lax";
 
   // Single root-scoped cookie so UI (/superadmin) and API (/api/superadmin, /api/issues) both receive it
-  const respWithCookies = response as Response & { cookies?: { set: (name: string, value: string, opts: Record<string, unknown>) => void } };
-  if (respWithCookies.cookies && typeof respWithCookies.cookies.set === "function") {
-    respWithCookies.cookies.set(SUPERADMIN_COOKIE_NAME, token, {
-      httpOnly: true,
-      secure,
-      sameSite,
-      path: SUPERADMIN_COOKIE_PATH,
-      maxAge: maxAgeSeconds,
-      priority: "high",
-    });
-  }
+  // NextResponse.cookies.set() is the proper way to set cookies in Next.js 13+ App Router
+  response.cookies.set(SUPERADMIN_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure,
+    sameSite,
+    path: SUPERADMIN_COOKIE_PATH,
+    maxAge: maxAgeSeconds,
+    priority: "high",
+  });
 }
 
-export function clearSuperadminCookies(response: Response): void {
-  const respWithCookies = response as Response & { cookies?: { set: (name: string, value: string, opts: Record<string, unknown>) => void } };
-  if (respWithCookies.cookies && typeof respWithCookies.cookies.set === "function") {
-    const cookieNames = [SUPERADMIN_COOKIE_NAME, `${SUPERADMIN_COOKIE_NAME}.legacy`];
-    const cookiePaths = Array.from(new Set([SUPERADMIN_COOKIE_PATH, ...LEGACY_COOKIE_PATHS]));
+export function clearSuperadminCookies(response: NextResponse): void {
+  const cookieNames = [SUPERADMIN_COOKIE_NAME, `${SUPERADMIN_COOKIE_NAME}.legacy`];
+  const cookiePaths = Array.from(new Set([SUPERADMIN_COOKIE_PATH, ...LEGACY_COOKIE_PATHS]));
 
-    for (const name of cookieNames) {
-      for (const path of cookiePaths) {
-        respWithCookies.cookies.set(name, "", {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path,
-          maxAge: 0,
-        });
-      }
+  for (const name of cookieNames) {
+    for (const path of cookiePaths) {
+      response.cookies.set(name, "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path,
+        maxAge: 0,
+      });
     }
   }
 }
