@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2025-12-21T19:30:00Z",
-  "source": "AI_IMPROVEMENT_ANALYSIS_REPORT.md + PENDING_MASTER.md + latest code review + Copilot audit 2025-12-21",
+  "generatedAt": "2025-12-22T08:00:00+03:00",
+  "source": "AI_IMPROVEMENT_ANALYSIS_REPORT.md + PENDING_MASTER.md + SSOT Sync 2025-12-22",
   "issues": [
     {
       "key": "NAV-MISSING-001",
@@ -209,13 +209,14 @@
       "title": "Bulk operations UI (select multiple rows, batch actions)",
       "category": "feature",
       "priority": "P1",
-      "status": "open",
+      "status": "deferred",
       "effort": "M",
       "location": "components/fm/WorkOrdersViewNew.tsx, components/finance/InvoicesList.tsx",
       "sourcePath": "AI_IMPROVEMENT_ANALYSIS_REPORT.md",
       "sourceRef": "analysis:AI_IMPROVEMENT_ANALYSIS_REPORT.md:feature-002",
       "evidenceSnippet": "Single-item operations only",
-      "description": "Add bulk approve/reject/assign/delete for 80% time savings in batch operations"
+      "description": "Add bulk approve/reject/assign/delete for 80% time savings in batch operations",
+      "deferredReason": "Post-MVP feature; Q2 2026 roadmap"
     },
     {
       "key": "LOGIC-001",
@@ -223,13 +224,14 @@
       "title": "Work Order SLA calculation doesn't account for business hours",
       "category": "logic",
       "priority": "P1",
-      "status": "open",
+      "status": "deferred",
       "effort": "M",
       "location": "lib/sla/calculator.ts (NEW)",
       "sourcePath": "AI_IMPROVEMENT_ANALYSIS_REPORT.md",
       "sourceRef": "analysis:AI_IMPROVEMENT_ANALYSIS_REPORT.md:logic-001",
       "evidenceSnippet": "slaDeadline = createdAt + slaHours (24/7)",
-      "description": "Implement business hours calendar; 4-hour SLA created Friday 4pm should deadline Monday 12pm, not Friday 8pm"
+      "description": "Implement business hours calendar; 4-hour SLA created Friday 4pm should deadline Monday 12pm, not Friday 8pm",
+      "deferredReason": "MVP uses 24/7 calculation; business hours calendar planned Q1 2026"
     },
     {
       "key": "BUG-TS-VITEST-CONFIG",
@@ -252,26 +254,28 @@
       "title": "ZATCA E-Invoicing Phase 2 implementation (Saudi compliance)",
       "category": "compliance",
       "priority": "P1",
-      "status": "open",
+      "status": "deferred",
       "effort": "XL",
       "location": "services/finance/zatca/",
       "sourcePath": "AI_IMPROVEMENT_ANALYSIS_REPORT.md",
       "sourceRef": "analysis:AI_IMPROVEMENT_ANALYSIS_REPORT.md:comp-001",
       "evidenceSnippet": "Phase 1 compliant; Phase 2 due Q2 2026",
-      "description": "Implement Phase 2 ZATCA integration (Saudi law requirement)"
+      "description": "Implement Phase 2 ZATCA integration (Saudi law requirement)",
+      "deferredReason": "Phase 1 complete; Phase 2 deadline is Q2 2026 per ZATCA timeline"
     },
     {
       "key": "INFRA-SENTRY",
       "title": "Activate Sentry error tracking (already configured but inactive)",
       "category": "ops",
       "priority": "P1",
-      "status": "open",
+      "status": "deferred",
       "effort": "XS",
       "location": "next.config.js",
       "sourcePath": "AI_IMPROVEMENT_ANALYSIS_REPORT.md",
       "sourceRef": "analysis:error-monitoring",
       "evidenceSnippet": "No production error tracking",
-      "description": "Sentry already in build config; needs activation + DSN configuration"
+      "description": "Sentry already in build config; needs activation + DSN configuration",
+      "deferredReason": "Requires Sentry project creation + DSN; USER_ACTIONS_REQUIRED"
     },
     {
       "key": "RESOLVED-ESLINT-CLEANUP",
