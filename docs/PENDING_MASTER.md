@@ -1,5 +1,38 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-22 01:30 (Asia/Riyadh) — Batch 7 Type Safety Improvements
+**Context:** main | Commit: e38a15544 | Remove 'as any' casts
+**Agent:** [AGENT-001-A] GitHub Copilot (VS Code) - Core/Auth/Middleware
+**AGENTS.md Version:** v6.0
+
+**🔍 Deep-Dive Scan Results:**
+- `as any` occurrences: 15+ found across issues, superadmin routes
+- `@ts-expect-error`: 2 found (justified - 3rd party libs)
+- `console.log` in prod: 1 found (JSDoc example, not actual code)
+
+**✅ Batch 7 Completed:**
+- FIX-TYPES-001: Removed 15 `as any` casts with proper type assertions
+  - app/api/issues/import/route.ts: Use request.json() directly, add IssueLeanDoc type
+  - app/api/issues/route.ts: Import IIssue, cast duplicates properly
+  - app/api/issues/[id]/route.ts: Add IssueLeanDoc type, use issueWithKey pattern
+  - app/api/superadmin/login/route.ts: Use request.json() directly
+  - app/api/superadmin/branding/route.ts: Add PlatformSettingsWithAudit type for audit plugin fields
+
+**Build Verification:**
+- TypeScript: 0 errors
+- ESLint: 0 errors, 1 warning (expected vitest comment)
+
+**Session Total (Batches 1-7):**
+| Category | Count |
+|----------|-------|
+| .lean() additions | 11 routes/services |
+| i18n strings | 28+ strings |
+| Logger migrations | 1 file |
+| Any types fixed | 17 instances |
+| TODOs documented | 17 items |
+
+---
+
 ### 2025-12-21 23:30 (Asia/Riyadh) — Batch 5 Performance Optimization (Final)
 **Context:** main | Commit: 99e589655 | Final .lean() Audit
 **Agent:** GitHub Copilot (VS Code) - Performance & Quality Implementation
