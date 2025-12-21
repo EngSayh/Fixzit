@@ -208,35 +208,35 @@ function PropertyDetailsContent({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Type</p>
+                  <p className="text-sm text-muted-foreground">{t("property.labels.type", "Type")}</p>
                   <p className="font-medium">{property.type}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Subtype</p>
-                  <p className="font-medium">{property.subtype || "N/A"}</p>
+                  <p className="text-sm text-muted-foreground">{t("property.labels.subtype", "Subtype")}</p>
+                  <p className="font-medium">{property.subtype || t("common.na", "N/A")}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Area</p>
+                  <p className="text-sm text-muted-foreground">{t("property.labels.totalArea", "Total Area")}</p>
                   <p className="font-medium">
-                    {property.details?.totalArea || "N/A"} sqm
+                    {property.details?.totalArea || t("common.na", "N/A")} sqm
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Built Area</p>
+                  <p className="text-sm text-muted-foreground">{t("property.labels.builtArea", "Built Area")}</p>
                   <p className="font-medium">
-                    {property.details?.builtArea || "N/A"} sqm
+                    {property.details?.builtArea || t("common.na", "N/A")} sqm
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Year Built</p>
+                  <p className="text-sm text-muted-foreground">{t("property.labels.yearBuilt", "Year Built")}</p>
                   <p className="font-medium">
-                    {property.details?.yearBuilt || "N/A"}
+                    {property.details?.yearBuilt || t("common.na", "N/A")}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Floors</p>
+                  <p className="text-sm text-muted-foreground">{t("property.labels.floors", "Floors")}</p>
                   <p className="font-medium">
-                    {property.details?.floors || "N/A"}
+                    {property.details?.floors || t("common.na", "N/A")}
                   </p>
                 </div>
               </div>
