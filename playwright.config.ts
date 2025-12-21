@@ -172,6 +172,8 @@ export default defineConfig({
     stderr: 'pipe',
     env: {
       PLAYWRIGHT: 'true',
+      NEXT_PUBLIC_PLAYWRIGHT_TESTS: 'true', // Enable client-side Playwright detection
+      PLAYWRIGHT_TESTS: 'true', // Legacy/server-side detection
       NODE_ENV: useBuild ? 'production' : 'test',
       PORT: process.env.PW_PORT || DEFAULT_PORT,
       HOSTNAME: process.env.PW_HOSTNAME || DEFAULT_HOST,
