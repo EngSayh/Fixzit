@@ -195,6 +195,27 @@ When multiple agents work simultaneously, each creates worktrees/processes that 
 | AGENT-005 | Windsurf | HR/Payroll |
 | AGENT-006 | Reserved | Tests/Scripts |
 
+### Multiple VS Code Copilot Instances
+When running multiple VS Code Copilot agents, each MUST claim a unique sub-ID:
+
+| Sub-ID | Claim Method |
+|--------|--------------|
+| AGENT-001-A | First Copilot instance |
+| AGENT-001-B | Second Copilot instance |
+| AGENT-001-C | Third Copilot instance |
+
+**On session start, each Copilot agent MUST:**
+1. Read `/tmp/agent-assignments.json`
+2. Find the next available sub-ID (A, B, C...)
+3. Register with assigned files
+4. Start response with: `[AGENT-001-X] Claimed. Working on: <paths>`
+
+**Example claim:**
+```
+[AGENT-001-B] Claimed. Working on: app/api/hr/**, services/hr/**
+Files locked. Other agents: skip these paths.
+```
+
 ### Rules:
 1. **NO WORKTREES** — All agents work on main branch only
 2. **CHECK LOCKS FIRST** — If path is locked by another agent, SKIP or WAIT
