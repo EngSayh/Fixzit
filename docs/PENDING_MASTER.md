@@ -1,5 +1,32 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-21 10:15 (Asia/Riyadh) — LOGIC-001 Completed + INFRA-SENTRY Ready
+**Context:** main | Commit: 1ec67a46d | Direct to main
+**Agent:** GitHub Copilot (VS Code) - Feature Implementation
+**Duration:** 20 minutes | **Files:** 5 changed
+
+**✅ COMPLETED:**
+- **LOGIC-001**: Business hours SLA calculation implemented
+  - Added `BusinessHoursCalendar` (Sun-Thu 8am-6pm configurable)
+  - Updated `lib/sla.ts` with `calculateSlaDeadlineWithBusinessHours()`
+  - 56 unit tests added (all passing)
+  - Example: 4h SLA created Friday 4pm → deadline Monday 12pm (not Friday 8pm)
+  
+- **INFRA-SENTRY**: Code ready for activation
+  - ESLint compliance (removed console statements)
+  - Strict typing (Record<string, unknown>)
+  - Tenant context support (org_id injection)
+  - **User action required**: Add SENTRY_DSN to production env
+
+**Quality Gates:**
+- TypeScript: 0 errors ✅
+- ESLint: 0 warnings ✅
+- SLA Tests: 56/56 passed ✅
+
+**Next:** FEATURE-002 (Bulk operations UI)
+
+---
+
 ### 2025-12-21 23:55 (Asia/Riyadh) — SSOT Backlog Sync Complete
 **Context:** main | Commit: 7a0c0f9cf | Direct to main
 **Agent:** GitHub Copilot (VS Code) - SSOT Sync + Code Review Update
