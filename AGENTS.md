@@ -1,10 +1,40 @@
-# Fixzit - Agent Working Agreement v5.4 (Codex + VS Code + Claude Code)
+# Fixzit - Agent Working Agreement v5.5 (Codex + VS Code + Claude Code)
 
 Owner: Eng. Sultan Al Hassni  
 System: Fixzit Facility-Management + Marketplace (Fixzit Souq) + Real Estate (Aqar)  
 Stack: Next.js App Router + TypeScript + MongoDB Atlas/Mongoose + Tailwind/shadcn + Vitest (+ Playwright if enabled)
 
 NON-NEGOTIABLE. Violations = AUTO-FAIL.
+
+---
+
+## 📚 Table of Contents
+
+1. [Agent Claim Protocol](#-mandatory-agent-claim-protocol-enforced-by-default)
+2. [Auto-Review Protocol](#-auto-review-protocol-mandatory-after-every-task)
+3. [Deep-Dive & Fix-Once Protocol](#-deep-dive--fix-once-protocol-mandatory)
+4. [System Stability](#system-stability-auto-triggered)
+5. [Sources of Truth (SoT)](#0-sources-of-truth-sot--no-guessing)
+6. [Absolute Global Rules](#1-absolute-global-rules-auto-fail)
+7. [Environment Variable Verification](#-environment-variable-verification-protocol-mandatory)
+8. [Error Handling Standards](#-error-handling-standards-mandatory)
+9. [Layout & UI Rules](#2-layout-freeze-universal-shell)
+10. [Multi-Tenancy](#4-multi-tenancy-zero-tolerance-auto-fail)
+11. [Testing Protocol](#5-testing-protocol-vitest)
+12. [HFV Execution Loop](#6-haltfixverify-hfv-execution-loop-strict-v4)
+13. [Anti-False-Positive Protocol](#7-anti-false-positive-protocol)
+14. [Fixzit Domain Invariants](#8-fixzit-domain-invariants)
+15. [Multi-Agent Coordination](#multi-agent-coordination-protocol-critical)
+16. [PR & Cleanup Protocol](#pr--cleanup-protocol-mandatory)
+17. [PR Review Protocol](#-pr-review-protocol-mandatory--zero-force-merge-tolerance)
+18. [Code Quality Standards](#-code-quality-standards-system-aware--mandatory)
+19. [CI/CD Build Protocol](#-cicd-build-protocol-zero-error-tolerance)
+20. [Autonomous PR Review](#-autonomous-pr-review--fix-protocol-vs-code-copilot)
+21. [SSOT Chat History + Backlog Sync](#-ssot-chat-history-analysis--backlog-sync-protocol-v20)
+22. [Improvement Analysis Protocol](#improvement-analysis-protocol-periodic-review)
+23. [Agent Task Handoff Protocol](#-agent-task-handoff-protocol-mandatory-for-cross-agent-work)
+24. [Pending Backlog Extractor v2.5](#-pending-backlog-extractor-protocol-v25-ssot-integrated)
+25. [Quick Reference: Agent Token Format](#-quick-reference-agent-token-format)
 
 ---
 
@@ -1627,6 +1657,375 @@ After completing all phases, output this summary:
 
 ---
 
+## 🔀 Agent Task Handoff Protocol (MANDATORY FOR CROSS-AGENT WORK)
+
+### Purpose
+When an agent discovers work that belongs to another agent's domain or finds issues that require delegation, the task MUST be formally handed off using this protocol.
+
+### When to Handoff (REQUIRED)
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  HANDOFF TRIGGERS (Agent MUST delegate)                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. Issue is in another agent's locked file path                       │
+│  2. Task requires domain expertise outside your assignment             │
+│  3. Fix would impact multiple modules (needs coordination)             │
+│  4. Issue is a P0/P1 security finding in critical path                │
+│  5. Task is blocked by another agent's in-progress work                │
+│  6. Deep-dive reveals issues in paths you don't own                    │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Handoff Process (STEP BY STEP)
+
+**Step 1: Create Handoff Record in MongoDB SSOT**
+```json
+{
+  "type": "handoff",
+  "title": "<descriptive title>",
+  "category": "bug|logic|tests|security|refactor|ops",
+  "priority": "P0|P1|P2|P3",
+  "status": "pending_handoff",
+  "fromAgent": "[AGENT-XXX-Y]",
+  "toAgent": "[AGENT-NNN-Z] | unassigned",
+  "targetDomain": "<module/path>",
+  "location": "<file:line>",
+  "evidenceSnippet": "<≤25 words>",
+  "sourceRef": "<handoff-source>",
+  "reason": "<why this needs handoff>",
+  "deadline": "<if P0/P1, specify urgency>",
+  "dependencies": ["<list any blocking issues>"],
+  "createdAt": "<ISO timestamp>",
+  "events": [
+    { "type": "HANDOFF_CREATED", "timestamp": "<ISO>", "by": "[AGENT-XXX-Y]" }
+  ]
+}
+```
+
+**Step 2: Update Assignment File**
+```bash
+# Add to /tmp/agent-assignments.json under "handoffs":
+{
+  "handoffs": {
+    "HANDOFF-001": {
+      "from": "AGENT-001-A",
+      "to": "AGENT-002-A",
+      "issue": "BUG-123",
+      "status": "pending",
+      "created": "2025-12-21T10:30:00Z"
+    }
+  }
+}
+```
+
+**Step 3: Notify Target Agent (Format)**
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  🔀 TASK HANDOFF NOTIFICATION                                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│  From: [AGENT-XXX-Y]                                                    │
+│  To: [AGENT-NNN-Z]                                                      │
+│  Handoff ID: HANDOFF-###                                                │
+│                                                                         │
+│  Issue: <ISSUE-ID> — <title>                                            │
+│  Priority: P# — <urgency level>                                         │
+│  Location: <file:line>                                                  │
+│                                                                         │
+│  Reason for Handoff:                                                    │
+│  <why this belongs to target agent>                                     │
+│                                                                         │
+│  Context Provided:                                                      │
+│  - Evidence: <snippet>                                                  │
+│  - Related files: <list>                                                │
+│  - Attempted fixes: <if any>                                            │
+│                                                                         │
+│  Expected Action:                                                       │
+│  <what the receiving agent should do>                                   │
+│                                                                         │
+│  Deadline: <if P0/P1>                                                   │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Step 4: Update PENDING_MASTER.md**
+```markdown
+### YYYY-MM-DD HH:mm (Asia/Riyadh) — Handoff Created
+**From:** [AGENT-XXX-Y]
+**To:** [AGENT-NNN-Z]
+**Issue:** <ISSUE-ID> — <title>
+**Status:** Pending Pickup
+```
+
+### Receiving Agent Protocol (MANDATORY)
+When an agent receives a handoff:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  HANDOFF ACCEPTANCE CHECKLIST                                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. □ Acknowledge receipt: Update MongoDB status → "accepted"           │
+│  2. □ Claim the task: Add to your agent assignment                      │
+│  3. □ Verify evidence: Check if sufficient context provided             │
+│  4. □ If missing info: Request from source agent (don't block)          │
+│  5. □ Start work: Follow standard Pre-Start Checklist                   │
+│  6. □ On completion: Update handoff status → "completed"                │
+│  7. □ Notify source agent: Send completion confirmation                 │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Handoff Status Lifecycle
+```
+PENDING_HANDOFF → ACCEPTED → IN_PROGRESS → COMPLETED
+       │              │           │
+       └──────────────┴───────────┘
+                      ↓
+                 REJECTED (with reason)
+                      ↓
+                 ESCALATED (to Eng. Sultan)
+```
+
+### Agent Domain Mapping (Reference for Handoffs)
+
+| Agent ID | Primary Domain | Handoff TO for: |
+|----------|----------------|-----------------|
+| AGENT-001 | Core/Auth/Middleware | Auth bugs, session issues, middleware |
+| AGENT-002 | Finance/Billing | Payment bugs, ZATCA, invoicing |
+| AGENT-003 | Souq/Marketplace | Product catalog, orders, vendors |
+| AGENT-004 | Aqar/Real Estate | Listings, packages, valuations |
+| AGENT-005 | HR/Payroll | Employee data, attendance, payroll |
+| AGENT-006 | Tests/Scripts | Test infrastructure, tooling |
+
+---
+
+## 🎯 Pending Backlog Extractor Protocol v2.5 (SSOT-Integrated)
+
+### Purpose
+This protocol enables any agent to parse `PENDING_MASTER.md` and produce a deduplicated backlog of unresolved items, ready for sprint planning and MongoDB SSOT import.
+
+### HARD CONSTRAINTS (VIOLATION = FAILURE)
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  EXTRACTOR RULES (NON-NEGOTIABLE)                                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. ❌ NO INVENTION — Extract ONLY what exists in source text           │
+│  2. ❌ NO COMPLETED — Exclude ✅/🟢 or Fixed/Done/Resolved/Closed       │
+│  3. ❌ NO NEW WORK — Triage only; no proposing new tasks                │
+│  4. ✅ SOURCE TRACEABILITY — Every item needs:                          │
+│       - Source Ref (section/date heading)                               │
+│       - file:lines OR Doc-only                                          │
+│       - Evidence Snippet (≤25 words exact from source)                  │
+│  5. ✅ AGENT ID REQUIRED — Every extraction tagged with [AGENT-XXX-Y]   │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### INPUT REQUIREMENT
+If `PENDING_MASTER.md` content is not present:
+```
+"Please paste the full contents of PENDING_MASTER.md so I can extract pending items."
+```
+Then STOP. Do not proceed without source content.
+
+### OPTIONAL FLAGS (Apply AFTER extraction + dedupe)
+```
+--format=markdown|json|both       (default: both)
+--priority=P0,P1,P2,P3           (filter by priority)
+--category=bugs,logic,tests,efficiency,next_steps
+--quick-wins-only                (Effort ≤ S AND Priority P0–P2)
+--stale-only=7                   (only if dates exist)
+--limit=50                       (limits DISPLAY only; JSON has ALL)
+--query="file:<text> priority:P0 tag:SECURITY text:'orgId'"
+--sync                           (if import endpoint documented)
+--agent=[AGENT-XXX-Y]            (tag extraction with agent ID)
+```
+
+### WHAT TO EXTRACT (INCLUDE)
+Extract items that are:
+- Marked: 🔲, 🟡, ⏳, ⚠️, 🟠, 🔴
+- Keywords: TODO, Pending, Open, Investigate, In Progress, Needs, Missing, Gap
+- Unchecked tasks: `- [ ] ...`
+- Items under: "Next Steps", "Planned Next Steps" (if not marked done)
+
+### WHAT TO SKIP (EXCLUDE)
+Skip items marked/stated: ✅, 🟢, Fixed, Done, Completed, Resolved, Landed, Added, Closed
+**Exception:** Include if later explicitly reopened ("reopened", "still failing", "regressed")
+
+### REQUIRED FIELDS PER ITEM
+
+| Field | Description |
+|-------|-------------|
+| `key` | Stable identifier (externalId OR normalized hash) |
+| `externalId` | BUG-XXX, LOGIC-XXX, SEC-XXX if exists; else null |
+| `displayRef` | externalId OR generated REF-### |
+| `title` | From source |
+| `issue` | Issue description from source |
+| `action` | Action from source OR "Not specified in source" |
+| `location` | file:lines OR "Doc-only" |
+| `sourceRef` | Section/date heading |
+| `evidenceSnippet` | ≤25 words exact from source |
+| `status` | pending, in_progress, blocked, unknown |
+| `category` | Bugs, Logic Errors, Missing Tests, Efficiency, Next Steps |
+| `priority` | P0, P1, P2, P3 (using rules below) |
+| `riskTags` | SECURITY, MULTI-TENANT, FINANCIAL, TEST-GAP, PERF, INTEGRATION, DATA |
+| `effort` | XS, S, M, L, XL, or ? |
+| `impact` | 1-10 (computed) |
+| `impactBasis` | Why impact was computed |
+| `sprintBucket` | This Sprint, Next Sprint, Backlog |
+| `extractedBy` | [AGENT-XXX-Y] |
+
+### DEDUPLICATION RULES (DETERMINISTIC)
+Merge order:
+1. Same explicit ID (BUG-XXXX, LOGIC-XXX, SEC-XXX, etc.)
+2. Same `file + line range`
+3. Same `file + normalized issue text`
+
+For merged items track:
+- `firstSeen` (earliest date header or "First seen unknown")
+- `lastSeen` (latest date header or "Last seen unknown")
+- `mentions` (count merged)
+
+### KEY + REF GENERATION
+```
+IF externalId exists:
+  key = externalId
+  displayRef = externalId
+ELSE:
+  externalId = null
+  key = sha256(normalize(title + "|" + category + "|" + location))[:12]
+  displayRef = "REF-###" (sequential by first appearance)
+```
+
+### PRIORITY RULES (DETERMINISTIC)
+Use explicit P0/P1/P2/P3 if present; else infer from keywords:
+- **P0 (🔴):** security, data leak, cross-tenant, RBAC bypass, privilege escalation, fail-open
+- **P1 (🟠):** authorization/ownership correctness, compliance, logic errors affecting correctness
+- **P2 (🟡):** missing tests, performance, validation gaps
+- **P3 (🟢):** refactor, cleanup, docs, nice-to-have
+
+### IMPACT SCORE (1-10, Deterministic)
+```
+Base by priority: P0=9, P1=7, P2=5, P3=3
+Modifiers:
+  +2 if SECURITY
+  +2 if MULTI-TENANT
+  +1 if FINANCIAL
+  +1 if DATA
+  +2 if "production down" / "outage" / "cannot login"
+Cap at 10.
+```
+
+### EFFORT ESTIMATION
+```
+XS: one-liner/config
+S:  single-file change
+M:  multi-file OR add new test file
+L:  cross-module
+XL: architectural/migration
+?:  scope unclear (add to Open Questions)
+```
+
+### SPRINT BUCKETS
+```
+This Sprint: P0–P1 AND Effort ≤ M (or Effort unknown but Priority P0)
+Next Sprint: P2 AND Effort ≤ L
+Backlog:     P3 OR Effort > L OR status=blocked OR unknown
+```
+
+### OUTPUT FORMAT
+
+**A) BACKLOG_AUDIT.json (Machine-readable)**
+```json
+{
+  "extracted_at": "YYYY-MM-DD HH:mm (Asia/Riyadh)",
+  "extracted_by": "[AGENT-XXX-Y]",
+  "source_file": "PENDING_MASTER.md",
+  "applied_flags": {},
+  "counts": {
+    "total": 0,
+    "by_priority": {"P0": 0, "P1": 0, "P2": 0, "P3": 0},
+    "by_category": {},
+    "quick_wins": 0,
+    "anomalies": 0
+  },
+  "anomalies": [],
+  "file_heat_map": [],
+  "issues": [],
+  "open_questions": []
+}
+```
+
+**B) BACKLOG_AUDIT.md (Human Report)**
+```markdown
+# Backlog Audit Report
+
+**Extracted At:** YYYY-MM-DD HH:mm (Asia/Riyadh)
+**Extracted By:** [AGENT-XXX-Y]
+**Source:** PENDING_MASTER.md
+
+## 1) Executive Summary
+- Total Pending Items: N
+- By Priority: P0: X / P1: Y / P2: Z / P3: W
+- Avg Impact: X.X
+- Quick Wins Count: N
+- Anomalies Count: N
+
+## 2) Category Breakdown
+| Category | P0 | P1 | P2 | P3 | Total | Avg Impact |
+|----------|----|----|----|----|-------|------------|
+
+## 3) File Heat Map (Top 10)
+| Rank | File Path | Bugs | Logic | Tests | Total | Anomaly? |
+|------|-----------|------|-------|-------|-------|----------|
+
+## 4) Sprint Buckets
+- This Sprint: N
+- Next Sprint: N
+- Backlog: N
+
+## 5) Tables by Category
+
+### Bugs
+| ID/Ref | Key | Location | Issue | Priority | Effort | Risk Tags | Impact | Status |
+
+### Logic Errors
+(same columns)
+
+### Missing Tests
+| ID/Ref | Key | Area | Gap | Location | Priority | Effort | Risk Tags | Impact |
+
+### Efficiency
+| ID/Ref | Key | Location | Issue | Priority | Effort | Risk Tags | Impact |
+
+### Next Steps
+| # | ID/Ref | Key | Task | Priority | Effort | Dependencies | Status | DoD |
+
+## 6) Quick Wins
+| ID/Ref | Key | Task | Effort | Priority | Impact | Immediate Action |
+
+## 7) Open Questions
+| Key | Missing Fields | Information Needed |
+```
+
+### POST-EXTRACTION: SYNC TO MONGODB SSOT
+
+After generating BACKLOG_AUDIT.json:
+```
+1. Call: POST /api/issues/import
+   Body: { issues: [...], extractedBy: "[AGENT-XXX-Y]" }
+
+2. Capture results:
+   { created: N, updated: N, skipped: N, errors: N }
+
+3. Update PENDING_MASTER.md with sync status
+
+4. Output sync report in final summary
+```
+
+### ANOMALY DETECTION (ANNOTATE ONLY)
+Flag patterns but do NOT create new tasks:
+- `Anomaly: Repeated file` — ≥3 pending items share same file path
+- `Anomaly: Repeated theme` — ≥3 items share normalized keyword (e.g., "org scoping", "fail-open")
+
+---
+
 ## Manual chat prompt (when not using /fixzit-audit)
 Audit the selected/open files and Problems panel items using the Fixzit Evidence Protocol:
 1) Build an Issues Ledger (source + verbatim message + file+lines).
@@ -1634,3 +2033,33 @@ Audit the selected/open files and Problems panel items using the Fixzit Evidence
 3) Patch CONFIRMED items only using best-practice root fixes (config -> code -> narrow suppression with justification).
 4) Output ONE Markdown report with unified diffs, full updated files (only changed), and validation commands (do not assume results).
 End with "Merge-ready for Fixzit Phase 1 MVP."
+
+---
+
+## 📌 Quick Reference: Agent Token Format
+
+Throughout this document, the agent token format is:
+```
+[AGENT-XXX-Y]
+
+Where:
+  XXX = Agent type number (001-006)
+  Y   = Instance letter (A, B, C, ...)
+
+Examples:
+  [AGENT-001-A] = VS Code Copilot, instance A
+  [AGENT-002-B] = Claude Code, instance B
+  [AGENT-003-A] = Codex, instance A
+```
+
+**Always use this format in:**
+- SSOT records (MongoDB + PENDING_MASTER.md)
+- Commit messages
+- PR descriptions
+- Handoff notifications
+- Extraction reports
+- Any agent output or log
+
+---
+
+END OF AGENTS.md v5.5
