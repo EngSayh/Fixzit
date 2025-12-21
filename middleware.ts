@@ -52,6 +52,7 @@ const CSRF_EXEMPT_ROUTES = [
   '/api/qa/log',     // QA logging endpoints are test utilities
   '/api/qa/reconnect', // QA heartbeat endpoint used by Playwright harness
   '/api/projects',   // Projects mock API used by Playwright tests
+  '/api/superadmin/login', // Superadmin login cannot send CSRF (no session yet); uses its own rate limiting
 ];
 
 /**

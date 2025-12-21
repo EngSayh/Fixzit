@@ -76,11 +76,15 @@ jobs:
         continue-on-error: false
 
       - name: 🔒 Assert non-production MongoDB
-        if: ${{ secrets.MONGODB_URI != '' }}
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           CI: "true"
-        run: pnpm tsx scripts/assert-nonprod-mongo.ts
+        run: |
+          if [ -z "$MONGODB_URI" ]; then
+            echo "⏭️ Skipping - MONGODB_URI not configured"
+            exit 0
+          fi
+          pnpm tsx scripts/assert-nonprod-mongo.ts
 
       - name: Ensure Mongo Indexes (idempotent)
         env:

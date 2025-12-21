@@ -26,6 +26,7 @@ Use these as authoritative:
 - STRICT v4 (HFV loop, proof packs, language/currency/footer, no bypass, no build-output edits)
 - Fixzit Blueprint/SDD: Multi-tenancy (org_id/property_owner_id), RBAC, Golden workflows
 - Verification log patterns: missing language selector/flags, missing currency, missing universal sidebar/footer, logo regressions, social login buttons missing
+- CI/Quality Gates: `.github/workflows/fixzit-quality-gates.yml` and `.github/workflows/build-sourcemaps.yml` must be reviewed when any task touches builds, tests, or release workflows.
 
 If any SoT is missing/unreadable → STOP and report CRITICAL.
 

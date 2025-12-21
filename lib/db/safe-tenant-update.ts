@@ -22,7 +22,7 @@ interface TenantFilter {
 
 /**
  * Asserts that a filter contains at least one tenant key.
- * Throws in development/test; logs warning in production.
+ * Always throws to prevent unscoped cross-tenant writes.
  */
 function assertTenantScope<T extends Document>(
   filter: Filter<T>,
@@ -35,15 +35,8 @@ function assertTenantScope<T extends Document>(
 
   if (!hasTenantKey) {
     const message = `[TENANT_SAFETY] ${operation}: Filter missing tenant key (orgId, org_id, property_owner_id, or propertyOwnerId). Filter: ${JSON.stringify(filter)}`;
-
-    if (process.env.NODE_ENV === 'production') {
-      // In production, log but don't crash (to avoid breaking live traffic)
-      // eslint-disable-next-line no-console -- Intentional: production safety logging for tenant scope violations
-      console.error(message);
-    } else {
-      // In dev/test, fail hard to catch issues early
-      throw new Error(message);
-    }
+    // Always fail hard; missing tenant scope is a security bug.
+    throw new Error(message);
   }
 }
 

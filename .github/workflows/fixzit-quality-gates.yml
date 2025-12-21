@@ -158,12 +158,15 @@ jobs:
           esac
 
       - name: 🔒 Assert non-production MongoDB
-        if: ${{ secrets.MONGODB_URI != '' }}
         shell: bash
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           CI: "true"
         run: |
+          if [ -z "$MONGODB_URI" ]; then
+            echo "⏭️ Skipping - MONGODB_URI not configured"
+            exit 0
+          fi
           case "${{ steps.pm.outputs.manager }}" in
             pnpm) pnpm tsx scripts/assert-nonprod-mongo.ts ;;
             yarn) yarn tsx scripts/assert-nonprod-mongo.ts ;;

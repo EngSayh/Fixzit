@@ -58,6 +58,7 @@ const importRoute = async () => {
 
 describe("API /api/souq/sellers", () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
     sessionUser = null;
     // Reset rate limit mock - must use mockReset to clear implementation, then set default
