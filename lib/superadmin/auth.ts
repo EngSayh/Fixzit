@@ -13,11 +13,30 @@ export interface SuperadminSession {
   expiresAt: number;
 }
 
-const SECRET_FALLBACK =
-  process.env.SUPERADMIN_JWT_SECRET ||
-  process.env.NEXTAUTH_SECRET ||
-  process.env.AUTH_SECRET ||
-  "change-me-superadmin-secret";
+// P0 FIX: JWT secret MUST be deterministic across all serverless instances.
+// In production, require an explicit secret to prevent session verification failures
+// when requests hit different Vercel instances with different random secrets.
+function getSuperadminJwtSecret(): string {
+  const secret = process.env.SUPERADMIN_JWT_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    process.env.AUTH_SECRET;
+
+  if (!secret && process.env.NODE_ENV === "production") {
+    // CRITICAL: Fail fast in production if no secret is configured
+    // This prevents the "login works but redirect fails" issue caused by
+    // different serverless instances using different random secrets
+    logger.error("[SUPERADMIN] CRITICAL: Missing JWT secret in production. Set SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET.");
+    throw new Error("SUPERADMIN_JWT_SECRET is required in production");
+  }
+
+  // Development fallback only (logs warning)
+  if (!secret) {
+    logger.warn("[SUPERADMIN] Using fallback secret in development. Set SUPERADMIN_JWT_SECRET for production.");
+    return "dev-only-superadmin-secret-not-for-production";
+  }
+
+  return secret;
+}
 
 export const SUPERADMIN_COOKIE_NAME = "superadmin_session";
 const SUPERADMIN_COOKIE_PATH = "/";
@@ -32,7 +51,14 @@ type RateEntry = { count: number; expiresAt: number };
 const rateLimiter = new Map<string, RateEntry>();
 
 const encoder = new TextEncoder();
-const jwtSecret = encoder.encode(SECRET_FALLBACK);
+// Use deterministic secret getter instead of module-level constant
+let _jwtSecretCached: Uint8Array | null = null;
+function getJwtSecretBytes(): Uint8Array {
+  if (!_jwtSecretCached) {
+    _jwtSecretCached = encoder.encode(getSuperadminJwtSecret());
+  }
+  return _jwtSecretCached;
+}
 
 function timingSafeEquals(value: string, expected: string): boolean {
   const valueBuffer = Buffer.from(value);
@@ -134,13 +160,13 @@ export async function signSuperadminToken(username: string): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt(issuedAt)
     .setExpirationTime(expiresAt)
-    .sign(jwtSecret);
+    .sign(getJwtSecretBytes());
 }
 
 export async function decodeSuperadminToken(token?: string | null): Promise<SuperadminSession | null> {
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, jwtSecret);
+    const { payload } = await jwtVerify(token, getJwtSecretBytes());
     if (payload.role !== "super_admin" || !payload.sub || !payload.orgId) {
       return null;
     }
