@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     let orgIdForLead: string | undefined;
 
     if (listingId) {
-      const listing = await AqarListing.findById(listingId);
+      const listing = await AqarListing.findById(listingId).lean();
       if (!listing) {
         return NextResponse.json(
           { error: "Listing not found" },
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
       // See post-save analytics section below
     } else if (projectId) {
       const { AqarProject } = await import("@/server/models/aqar");
-      const project = await AqarProject.findById(projectId);
+      const project = await AqarProject.findById(projectId).lean();
       if (!project) {
         return NextResponse.json(
           { error: "Project not found" },

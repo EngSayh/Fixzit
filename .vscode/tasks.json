@@ -8,6 +8,20 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "Cleanup: Git Worktrees (Check)",
+			"type": "shell",
+			"command": "bash scripts/cleanup-worktrees.sh",
+			"problemMatcher": [],
+			"detail": "Show worktree status - prevent OOM/Exit Code 5 crashes"
+		},
+		{
+			"label": "Cleanup: Git Worktrees (Auto Remove Clean)",
+			"type": "shell",
+			"command": "bash scripts/cleanup-worktrees.sh --auto",
+			"problemMatcher": [],
+			"detail": "Auto-remove worktrees with no uncommitted changes"
+		},
+		{
 			"label": "AI Memory: Chunk Repository",
 			"type": "shell",
 			"command": "node tools/smart-chunker.js",

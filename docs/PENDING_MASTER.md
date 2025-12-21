@@ -1,5 +1,69 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-21 21:30 (Asia/Riyadh) — System Improvement Analysis & Implementation
+**Context:** main | Commit: pending | System-Wide Audit
+**Agent:** GitHub Copilot (VS Code) - Performance & Quality Pass
+**DB Sync:** 7 new items added, implementation in progress
+
+---
+
+## 🔍 SYSTEM IMPROVEMENT ANALYSIS (2025-12-21)
+
+### Executive Summary
+| Metric | Value | Status |
+|--------|-------|--------|
+| TypeScript Errors | 0 | ✅ Clean |
+| ESLint Errors | 0 | ✅ Clean |
+| Test Files | 952 | ✅ Excellent |
+| API Routes | 381 | ✅ Covered |
+| Backlog | 25/25 resolved | ✅ MVP Ready |
+
+### 🔴 P0 - Critical Performance Issues
+
+| ID | Issue | Count | Impact | Status |
+|----|-------|-------|--------|--------|
+| PERF-LEAN-001 | Queries without `.lean()` | 622/705 | 15-30% memory overhead | 🔲 In Progress |
+| PERF-N1-001 | N+1 sequential await patterns | 14 | Response latency | 🔲 In Progress |
+
+### 🟠 P1 - High Priority Quality Issues
+
+| ID | Issue | Count | Impact | Status |
+|----|-------|-------|--------|--------|
+| HYGIENE-CONSOLE-001 | Console.log in production | 46 | Debug noise, security risk | 🔲 Pending |
+| A11Y-ALT-001 | Images missing alt text | 38 | WCAG non-compliance | 🔲 Pending |
+
+### 🟡 P2 - Medium Priority Type Safety
+
+| ID | Issue | Count | Impact | Status |
+|----|-------|-------|--------|--------|
+| TYPE-ANY-001 | Explicit `any` types | 20 | Type safety gaps | 🔲 Pending |
+| I18N-HARDCODED-001 | Hardcoded strings in FM | ~10+ | Arabic UX incomplete | 🔲 Pending |
+
+### 🟢 P3 - Low Priority Documentation
+
+| ID | Issue | Count | Impact | Status |
+|----|-------|-------|--------|--------|
+| DOCS-TODO-001 | TODO/FIXME comments | 18 | Untracked tech debt | 🔲 Pending |
+
+### Implementation Phases
+
+**Phase 1: Performance (P0)** — Target: 2 hours
+- [ ] PERF-LEAN-001: Add `.lean()` to read-only queries
+- [ ] PERF-N1-001: Batch sequential awaits with Promise.all
+
+**Phase 2: Quality (P1)** — Target: 1 hour
+- [ ] HYGIENE-CONSOLE-001: Replace console with logger
+- [ ] A11Y-ALT-001: Add alt text to images
+
+**Phase 3: Type Safety (P2)** — Target: 1 hour
+- [ ] TYPE-ANY-001: Replace any types
+- [ ] I18N-HARDCODED-001: Extract to translations
+
+**Phase 4: Documentation (P3)** — Target: 30 min
+- [ ] DOCS-TODO-001: Document TODOs as tracked issues
+
+---
+
 ### 2025-12-21 13:15 (Asia/Riyadh) — SEC-001 & TEST-001 Verification + Prod Fixes
 **Context:** main | Commit: c9b71de5f | Direct to main
 **Agent:** GitHub Copilot (VS Code) - Security & QA Pass

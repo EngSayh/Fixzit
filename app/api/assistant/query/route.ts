@@ -303,14 +303,16 @@ export async function POST(req: NextRequest) {
     docs =
       (await HelpArticle.find({ ...kbFilter, $text: { $search: q } })
         .sort?.({ updatedAt: -1 })
-        .limit?.(5)) || [];
+        .limit?.(5)
+        .lean()) || [];
   } catch {
     // Fallback: simple title match in mock mode
     try {
       docs =
         (await HelpArticle.find(kbFilter)
           .sort?.({ updatedAt: -1 })
-          .limit?.(20)) || [];
+          .limit?.(20)
+          .lean()) || [];
       const s = q.toLowerCase();
       docs = docs
         .filter(

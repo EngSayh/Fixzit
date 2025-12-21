@@ -21,14 +21,15 @@
  * @see https://vercel.com/docs/cron-jobs
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
+
 export async function GET(request: NextRequest) {
   // Verify cron secret to prevent unauthorized access
   const authHeader = request.headers.get('Authorization');
   const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
 
   if (!process.env.CRON_SECRET) {
-    // eslint-disable-next-line no-console
-    console.error('[Cron] CRON_SECRET not configured');
+    logger.error('CRON_SECRET not configured', { component: 'cron', action: 'auth' });
     return NextResponse.json(
       { error: 'Server configuration error' },
       { status: 500 }
@@ -36,8 +37,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (authHeader !== expectedAuth) {
-    // eslint-disable-next-line no-console
-    console.warn('[Cron] Unauthorized access attempt');
+    logger.warn('Unauthorized access attempt', { component: 'cron', action: 'auth' });
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
@@ -53,8 +53,7 @@ export async function GET(request: NextRequest) {
     // - Notification dispatch
     // - Data synchronization
 
-    // eslint-disable-next-line no-console
-    console.log('[Cron] Job executed successfully');
+    logger.info('Cron job executed successfully', { component: 'cron', action: 'execute' });
 
     return NextResponse.json({
       ok: true,
@@ -62,8 +61,7 @@ export async function GET(request: NextRequest) {
       message: 'Cron job executed successfully'
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('[Cron] Job execution failed:', error);
+    logger.error('Cron job execution failed', { component: 'cron', action: 'execute', error });
     return NextResponse.json(
       { 
         error: 'Internal server error',
