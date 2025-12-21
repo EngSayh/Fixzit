@@ -47,16 +47,29 @@ jobs:
 
       - name: Vitest (API shard + JUnit)
         run: |
+          set -o pipefail
           mkdir -p reports
           NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/api \
             --project=server --reporter=junit --outputFile=reports/junit-api.xml \
-            --maxWorkers=2
+            --maxWorkers=2 2>&1 | tee reports/vitest-api.log
+          echo "api_exit=$?"
 
       - name: Vitest (Unit shard + JUnit)
         run: |
+          set -o pipefail
           NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run tests/unit \
             --reporter=junit --outputFile=reports/junit-unit.xml \
-            --maxWorkers=2
+            --maxWorkers=2 2>&1 | tee reports/vitest-unit.log
+          echo "unit_exit=$?"
+
+      - name: Vitest (Full Run - Evidence Grade)
+        timeout-minutes: 30
+        run: |
+          set -o pipefail
+          NODE_OPTIONS="--max-old-space-size=4096" CI=true pnpm vitest run \
+            --reporter=dot --maxWorkers=2 2>&1 | tee reports/vitest-full.log
+          echo "full_exit=$?"
+          grep -E "Test Files|Tests|Duration|passed|failed" reports/vitest-full.log | tail -10
 
       - name: Coverage (API scope)
         run: |
