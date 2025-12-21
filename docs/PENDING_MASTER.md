@@ -1,5 +1,30 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-21 22:30 (Asia/Riyadh) — Batch 3 Performance & i18n Improvements
+**Context:** main | Commits: 6381c7892, 7b5456934 | Continued Optimization Pass
+**Agent:** GitHub Copilot (VS Code) - Performance & Quality Implementation
+**DB Sync:** 6 items completed (3 .lean(), 8 i18n strings)
+
+**✅ Batch 3 Completed:**
+- PERF-LEAN-002: Added `.lean()` to 3 more GET routes
+  - app/api/projects/[id]/route.ts
+  - app/api/tenants/[id]/route.ts
+  - app/api/assets/[id]/route.ts
+- I18N-BATCH3-001: Extended i18n coverage (8 new strings)
+  - app/(fm)/admin/issues/[id]/page.tsx: Delete dialog + tabs
+  - app/(fm)/admin/test-notifications/page.tsx: SMS/WhatsApp labels
+
+**Session Total (Batches 1-3):**
+| Category | Count |
+|----------|-------|
+| .lean() additions | 7 routes |
+| i18n strings | 28+ strings |
+| Logger migrations | 1 file |
+| Any types fixed | 2 types |
+| TODOs documented | 17 items |
+
+---
+
 ### 2025-12-21 21:45 (Asia/Riyadh) — System Improvement Implementation Complete
 **Context:** main | Commit: feeae2d8b | System-Wide Performance & Quality Pass
 **Agent:** GitHub Copilot (VS Code) - Performance & Quality Implementation
@@ -22,11 +47,11 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 | ID | Issue | Count | Impact | Status |
 |----|-------|-------|--------|--------|
-| PERF-LEAN-001 | Queries without `.lean()` | 4 fixed | 15-30% memory overhead | ✅ Done |
+| PERF-LEAN-001 | Queries without `.lean()` | 7 fixed | 15-30% memory overhead | ✅ Done |
 | PERF-N1-001 | N+1 sequential await patterns | 14 | Response latency | ✅ Not Needed |
 
 **Notes:**
-- PERF-LEAN-001: Added `.lean()` to vendors, assistant/query (2×), aqar/leads (2×) routes
+- PERF-LEAN-001: Added `.lean()` to vendors, assistant/query (2×), aqar/leads (2×), projects, tenants, assets routes
 - PERF-N1-001: All 14 candidates already use `Promise.all()` - codebase is well-optimized
 
 ### 🟠 P1 - High Priority Quality Issues
@@ -46,7 +71,7 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | ID | Issue | Count | Impact | Status |
 |----|-------|-------|--------|--------|
 | TYPE-ANY-001 | Explicit `any` types | 2 fixed | Type safety gaps | ✅ Done |
-| I18N-HARDCODED-001 | Hardcoded strings in FM | 20+ fixed | Arabic UX incomplete | ✅ Done |
+| I18N-HARDCODED-001 | Hardcoded strings in FM | 28+ fixed | Arabic UX incomplete | ✅ Done |
 
 **Notes:**
 - TYPE-ANY-001: Fixed files/resumes/[file] (error: any → unknown), superadmin/search (org: any → typed)
