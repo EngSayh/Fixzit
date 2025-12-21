@@ -1,5 +1,51 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-21 13:15 (Asia/Riyadh) — SEC-001 & TEST-001 Verification + Prod Fixes
+**Context:** main | Commit: c9b71de5f | Direct to main
+**Agent:** GitHub Copilot (VS Code) - Security & QA Pass
+**DB Sync:** 2 verified fixed, 0 new, 0 deferred
+
+---
+
+## 📊 Session Findings Table
+
+| Timestamp | Type | File | Description | Status | Key/ID |
+|-----------|------|------|-------------|--------|--------|
+| 12:16 | Security | lib/finance/tap-webhook/persistence.ts:407 | Payment.findById without org scope | ✅ Fixed | SEC-001 |
+| 12:16 | Test | tests/api/souq/claims.test.ts:44 | beforeEach missing vi.clearAllMocks() | ✅ Fixed | TEST-001 |
+| 13:00 | Ops | lib/superadmin/auth.ts | Vercel Preview not detected as prod-like | ✅ Fixed | OPS-VERCEL-PREVIEW |
+
+## ✅ Resolved This Session
+
+| Key | Title | Commit | Evidence |
+|-----|-------|--------|----------|
+| SEC-001 | Org-scope Payment lookup in Tap refund | 1dedba131 | Payment.findOne with $or: [{orgId}, {org_id}] |
+| TEST-001 | Mock hygiene in claims.test.ts | 1dedba131 | vi.clearAllMocks() at line 45 |
+| OPS-VERCEL-PREVIEW | Extend prod-like detection to Vercel Preview | c9b71de5f | VERCEL_ENV === 'preview' added |
+
+## 📁 Files Modified
+- `lib/finance/tap-webhook/persistence.ts` — Added org-scoped Payment.findOne()
+- `tests/api/souq/claims.test.ts` — Added vi import + vi.clearAllMocks()
+- `lib/superadmin/auth.ts` — Extended isProdLike() for Vercel Preview
+
+## ⚡ Verification Commands
+```bash
+pnpm typecheck    # ✅ 0 errors
+pnpm lint         # ✅ 0 errors (1 expected warning)
+claims.test.ts    # ✅ 29 tests passed
+```
+
+## 🎯 Backlog Status
+| Status | Count |
+|--------|-------|
+| ✅ Resolved | **25** (+3 this session) |
+| 🟠 Deferred | **0** |
+| 🔴 Open | **0** |
+
+**MVP STATUS: ✅ READY**
+
+---
+
 ### 2025-12-21 20:15 (Asia/Riyadh) — PR #599 Review Findings & Fixes
 **Context:** main | Commit: 90720d381 | PR #599 Architectural Review
 **Agent:** GitHub Copilot (VS Code) - Security Hardening Pass
