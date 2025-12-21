@@ -45,21 +45,93 @@ Every agent MUST complete these steps BEFORE marking task complete:
 │  6. □ Clean up: remove any temp files, debug logs           │
 │  7. □ Release lock: update /tmp/agent-assignments.json      │
 │  8. □ Announce: "[AGENT-XXX-Y] Complete. PR: #XXX"          │
-│  9. □ DO NOT close task - only Eng. Sultan approves closure │
+│  9. □ TRIGGER AUTO-REVIEW (see below) — WAIT for feedback   │
+│ 10. □ DO NOT close task - only Eng. Sultan approves closure │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 🔄 Auto-Review Protocol (MANDATORY AFTER EVERY TASK)
+
+### Trigger Condition
+After completing ANY task (code changes, fixes, features), the agent MUST trigger an automatic review request to Codex using the HIGH REASONING model.
+
+### Review Request Format
+Submit the following to Codex for review:
+
+```
+# FIXIZIT — TARGETED CODE REVIEW & VERIFICATION
+## Role: Senior Code Reviewer + QA Gatekeeper
+
+Review the following TARGET CODE SET and provide:
+1. Correctness verification (logic, types, edge cases)
+2. Multi-tenancy compliance (org_id scope on all DB queries)
+3. Security review (input validation, auth checks, XSS/injection)
+4. Similar issue scan (find same pattern across entire codebase)
+5. Test coverage assessment
+6. Conflict-safe action plan
+
+## MULTI-AGENT COORDINATION CHECK
+Before any recommendations, verify:
+- git status --porcelain (clean?)
+- git diff --name-only origin/main..HEAD
+- Check /tmp/agent-assignments.json for conflicts
+
+## TARGET CODE SET
+Agent: [AGENT-XXX-Y]
+Task: <task summary>
+PR: #<number>
+Files Modified:
+- <file1.ts>
+- <file2.ts>
+
+## CODE CHANGES (paste diffs or key snippets)
+<paste relevant code here>
+
+## REVIEW CHECKLIST
+- [ ] Types correct (no `any`, proper generics)
+- [ ] Tenant isolation enforced (org_id on all queries)
+- [ ] Error handling complete (try-catch, error boundaries)
+- [ ] Input validation present (Zod schemas)
+- [ ] Auth/RBAC enforced (session checks, role guards)
+- [ ] No console.log in production code
+- [ ] i18n used for all user-facing strings
+- [ ] Tests cover happy path + error cases
+- [ ] Similar patterns fixed across codebase (Deep-Dive)
+
+## OUTPUT REQUIRED
+1. ✅ APPROVED — Ready to merge
+2. 🔴 BLOCKED — List specific issues with file:line references
+3. 🟡 SUGGESTIONS — Non-blocking improvements
+4. 📋 SIMILAR ISSUES — Other files needing same fix
+```
+
+### Review Response Handling
+
+| Review Result | Agent Action |
+|---------------|--------------|
+| ✅ APPROVED | Proceed to close announcement |
+| 🔴 BLOCKED | Fix ALL blockers, re-run post-task checklist, re-trigger review |
+| 🟡 SUGGESTIONS | Log to PENDING_MASTER.md as P3, proceed to close |
+| 📋 SIMILAR ISSUES | Create issues in MongoDB + PENDING_MASTER.md, proceed to close |
+
+### Wait for Review
+- Agent MUST wait for Codex review response before announcing completion
+- If review not received within 5 minutes, proceed with warning note
+- All review feedback logged to PR comments
 
 ### Agent Lifecycle (ENFORCED)
 
 ```
-┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐
-│  1. CLAIM  │ ──▶ │  2. WORK   │ ──▶ │  3. VERIFY │ ──▶ │ 4. CLEANUP │
-│            │     │            │     │            │     │            │
-│ Read JSON  │     │ Edit files │     │ typecheck  │     │ Commit all │
-│ Pick slot  │     │ Small cmts │     │ lint       │     │ Create PR  │
-│ Lock files │     │ Test often │     │ tests      │     │ Release    │
-│ Announce   │     │ No mess    │     │ git status │     │ Announce   │
-└────────────┘     └────────────┘     └────────────┘     └────────────┘
+┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐
+│  1. CLAIM  │ ──▶ │  2. WORK   │ ──▶ │  3. VERIFY │ ──▶ │ 4. REVIEW  │ ──▶ │ 5. CLEANUP │
+│            │     │            │     │            │     │            │     │            │
+│ Read JSON  │     │ Edit files │     │ typecheck  │     │ Trigger    │     │ Commit all │
+│ Pick slot  │     │ Small cmts │     │ lint       │     │ Codex      │     │ Create PR  │
+│ Lock files │     │ Test often │     │ tests      │     │ Wait resp  │     │ Release    │
+│ Announce   │     │ No mess    │     │ git status │     │ Handle FB  │     │ Announce   │
+└────────────┘     └────────────┘     └────────────┘     └────────────┘     └────────────┘
 ```
 
 ---
