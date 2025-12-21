@@ -1,5 +1,27 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-21 23:00 (Asia/Riyadh) — Batch 4 Performance Optimization
+**Context:** main | Commit: 5b2af2045 | Continued .lean() Optimization
+**Agent:** GitHub Copilot (VS Code) - Performance & Quality Implementation
+**DB Sync:** 3 items completed (3 .lean() routes)
+
+**✅ Batch 4 Completed:**
+- PERF-LEAN-003: Added `.lean()` to 3 more GET routes
+  - app/api/referrals/my-code/route.ts + cleanup toObject()
+  - app/api/rfqs/[id]/bids/route.ts
+  - app/api/user/preferences/route.ts
+
+**Session Total (Batches 1-4):**
+| Category | Count |
+|----------|-------|
+| .lean() additions | 10 routes |
+| i18n strings | 28+ strings |
+| Logger migrations | 1 file |
+| Any types fixed | 2 types |
+| TODOs documented | 17 items |
+
+---
+
 ### 2025-12-21 22:30 (Asia/Riyadh) — Batch 3 Performance & i18n Improvements
 **Context:** main | Commits: 6381c7892, 7b5456934 | Continued Optimization Pass
 **Agent:** GitHub Copilot (VS Code) - Performance & Quality Implementation
