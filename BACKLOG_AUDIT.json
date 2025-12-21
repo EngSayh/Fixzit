@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2025-12-21T23:50:00+03:00",
-  "source": "AI_IMPROVEMENT_ANALYSIS_REPORT.md + PENDING_MASTER.md + Session 2025-12-21 Final + Code Review Update",
+  "generatedAt": "2025-12-21T23:55:00+03:00",
+  "source": "AI_IMPROVEMENT_ANALYSIS_REPORT.md + PENDING_MASTER.md + Session 2025-12-21 Complete + Notification Routes Fixed",
   "issues": [
     {
       "key": "NAV-MISSING-001",
@@ -304,6 +304,20 @@
       "evidenceSnippet": "175 lines, auto-scopes orgId",
       "description": "Created aggregateWithTenantScope utility with maxTimeMS enforcement and superadmin bypass",
       "resolution": "Committed 283eaeb56 - moved to lib/db/, added unit tests"
+    },
+    {
+      "key": "BUG-NOTIFICATIONS-ROUTES",
+      "title": "Superadmin notification routes TypeScript errors - missing request param",
+      "category": "bug",
+      "priority": "P1",
+      "status": "resolved",
+      "effort": "XS",
+      "location": "app/api/superadmin/notifications/",
+      "sourcePath": "code-review",
+      "sourceRef": "code-review:app/api/superadmin/notifications/config/route.ts:14",
+      "evidenceSnippet": "getSuperadminSession() missing request param; COLLECTIONS.notifications",
+      "description": "4 notification routes had TypeScript errors: config/history/send/test routes called getSuperadminSession() without passing request parameter, and used lowercase COLLECTIONS.notifications instead of COLLECTIONS.NOTIFICATIONS",
+      "resolution": "Fixed 2025-12-21: All routes now pass req to getSuperadminSession(req) and use COLLECTIONS.NOTIFICATIONS (commit 7a0c0f9cf)"
     }
   ]
 }
