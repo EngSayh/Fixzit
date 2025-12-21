@@ -38,7 +38,8 @@ type InvoicePayment = CanonicalInvoicePayment & {
 export function extractOrgId(
   metadata?: Record<string, unknown>,
 ): Types.ObjectId | null {
-  const orgValue = metadata?.organizationId || metadata?.orgId;
+  const orgValue =
+    metadata?.organizationId || metadata?.orgId || metadata?.tenantId;
   if (typeof orgValue === "string" && Types.ObjectId.isValid(orgValue)) {
     return new Types.ObjectId(orgValue);
   }
@@ -70,22 +71,18 @@ export async function upsertTransactionFromCharge(
   payload: Record<string, unknown>,
 ): Promise<TapTransactionDoc | null> {
   const orgIdFromCharge = extractOrgId(charge.metadata);
-  const transactionFilter = orgIdFromCharge
-    ? { chargeId: charge.id, orgId: orgIdFromCharge }
-    : { chargeId: charge.id };
-  // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Tap chargeId is globally unique when orgId metadata is missing.
+  if (!orgIdFromCharge) {
+    logger.error("[Webhook] Missing organizationId metadata on Tap charge", {
+      correlationId,
+      chargeId: charge.id,
+    });
+    return null;
+  }
+  const transactionFilter = { chargeId: charge.id, orgId: orgIdFromCharge };
   // eslint-disable-next-line local/require-lean -- NO_LEAN: needs Mongoose document for updates.
   let transaction = await TapTransaction.findOne(transactionFilter);
 
   if (!transaction) {
-    if (!orgIdFromCharge) {
-      logger.error("[Webhook] Missing organizationId metadata on Tap charge", {
-        correlationId,
-        chargeId: charge.id,
-      });
-      return null;
-    }
-
     transaction = new TapTransaction({
       orgId: orgIdFromCharge,
       userId:
@@ -355,8 +352,16 @@ export async function updateRefundRecord(
   status: "PENDING" | "SUCCEEDED" | "FAILED",
   correlationId: string,
 ): Promise<void> {
-  const refundFilter = { chargeId: refund.charge };
-  // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Tap chargeId is globally unique for refunds.
+  const orgIdFromRefund = extractOrgId(refund.metadata);
+  if (!orgIdFromRefund) {
+    logger.warn("[Webhook] Missing organizationId metadata on Tap refund", {
+      correlationId,
+      refundId: refund.id,
+      chargeId: refund.charge,
+    });
+    return;
+  }
+  const refundFilter = { chargeId: refund.charge, orgId: orgIdFromRefund };
   // eslint-disable-next-line local/require-lean -- NO_LEAN: needs Mongoose document for updates.
   const transaction = await TapTransaction.findOne(refundFilter);
   if (!transaction) {
