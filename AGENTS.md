@@ -1,4 +1,4 @@
-# Fixzit - Agent Working Agreement v5.3 (Codex + VS Code + Claude Code)
+# Fixzit - Agent Working Agreement v5.4 (Codex + VS Code + Claude Code)
 
 Owner: Eng. Sultan Al Hassni  
 System: Fixzit Facility-Management + Marketplace (Fixzit Souq) + Real Estate (Aqar)  
@@ -34,20 +34,23 @@ Every agent MUST complete these steps BEFORE touching any code:
 Every agent MUST complete these steps BEFORE marking task complete:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  AGENT POST-TASK PROTOCOL (Required for ALL agents)        │
-├─────────────────────────────────────────────────────────────┤
-│  1. □ Run: pnpm typecheck (must pass - 0 errors)            │
-│  2. □ Run: pnpm lint (must pass - 0 warnings)               │
-│  3. □ Run: pnpm vitest run --reporter=dot (tests green)     │
-│  4. □ Check git status - commit all changes                 │
-│  5. □ Create PR if not exists (or push to existing PR)      │
-│  6. □ Clean up: remove any temp files, debug logs           │
-│  7. □ Release lock: update /tmp/agent-assignments.json      │
-│  8. □ Announce: "[AGENT-XXX-Y] Complete. PR: #XXX"          │
-│  9. □ TRIGGER AUTO-REVIEW (see below) — WAIT for feedback   │
-│ 10. □ DO NOT close task - only Eng. Sultan approves closure │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│  AGENT POST-TASK PROTOCOL (Required for ALL agents)                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. □ Run: pnpm typecheck (must pass - 0 errors)                        │
+│  2. □ Run: pnpm lint (must pass - 0 warnings)                           │
+│  3. □ Run: pnpm vitest run --reporter=dot (tests green)                 │
+│  4. □ Check git status - commit all changes                             │
+│  5. □ Create PR if not exists (or push to existing PR)                  │
+│  6. □ Clean up: remove any temp files, debug logs                       │
+│  7. □ Release lock: update /tmp/agent-assignments.json                  │
+│  8. □ TRIGGER AUTO-REVIEW (see below) — WAIT for Codex feedback         │
+│  9. □ RUN SSOT SYNC PROTOCOL — Extract findings, sync to MongoDB        │
+│ 10. □ UPDATE docs/PENDING_MASTER.md with session changelog              │
+│ 11. □ Announce: "[AGENT-XXX-Y] Complete. PR: #XXX"                      │
+│ 12. □ NOTIFY Eng. Sultan with FINAL OUTPUT box                          │
+│ 13. □ DO NOT close task - only Eng. Sultan approves closure             │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -178,14 +181,14 @@ After Codex review, agent MUST provide final summary:
 ### Agent Lifecycle (ENFORCED)
 
 ```
-┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐
-│  1. CLAIM  │ ──▶ │  2. WORK   │ ──▶ │  3. VERIFY │ ──▶ │ 4. REVIEW  │ ──▶ │ 5. CLEANUP │
-│            │     │            │     │            │     │            │     │            │
-│ Read JSON  │     │ Edit files │     │ typecheck  │     │ Trigger    │     │ Commit all │
-│ Pick slot  │     │ Small cmts │     │ lint       │     │ Codex      │     │ Create PR  │
-│ Lock files │     │ Test often │     │ tests      │     │ Wait resp  │     │ Release    │
-│ Announce   │     │ No mess    │     │ git status │     │ Handle FB  │     │ Announce   │
-└────────────┘     └────────────┘     └────────────┘     └────────────┘     └────────────┘
+┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐
+│  1. CLAIM  │ ──▶ │  2. WORK   │ ──▶ │  3. VERIFY │ ──▶ │ 4. REVIEW  │ ──▶ │ 5. SSOT    │ ──▶ │ 6. CLEANUP │
+│            │     │            │     │            │     │            │     │            │     │            │
+│ Read JSON  │     │ Edit files │     │ typecheck  │     │ Trigger    │     │ Extract    │     │ Commit all │
+│ Pick slot  │     │ Small cmts │     │ lint       │     │ Codex      │     │ findings   │     │ Create PR  │
+│ Lock files │     │ Test often │     │ tests      │     │ Wait resp  │     │ Sync to DB │     │ Release    │
+│ Announce   │     │ No mess    │     │ git status │     │ Handle FB  │     │ Update MD  │     │ Announce   │
+└────────────┘     └────────────┘     └────────────┘     └────────────┘     └────────────┘     └────────────┘
 ```
 
 ---
@@ -589,109 +592,289 @@ gh pr list --author @me              # Verify PR created
 
 ---
 
-## SSOT Backlog Sync Protocol (AFTER EVERY CODE REVIEW)
+## 📋 SSOT Chat History Analysis + Backlog Sync Protocol (v2.0)
 
-### Single Source of Truth (NON-NEGOTIABLE)
-- **MongoDB Issue Tracker** is the ONLY SSOT for all issues/tasks
-- `docs/PENDING_MASTER.md` is a derived log/snapshot ONLY
-- **NEVER** record a new issue ONLY in PENDING_MASTER.md — it MUST exist in MongoDB
+### SSOT RULE (NON-NEGOTIABLE)
+- **MongoDB Issue Tracker** = ONLY Single Source of Truth (SSOT)
+- `docs/PENDING_MASTER.md` = derived log/snapshot ONLY
+- **NEVER** record a new issue ONLY in PENDING_MASTER.md — it MUST exist in MongoDB first
+- If it's real → MUST be created/updated in MongoDB first
 
 ### When to Execute This Protocol
-Execute after EVERY code review session, fix session, or task completion.
+Execute after EVERY:
+- Code review session
+- Fix session or task completion
+- VSCode Copilot chat session with findings
 
-### Step 1: Discovery
-```bash
-# Confirm Issue Tracker components exist:
-- Issue model: server/models/Issue.ts
-- Import endpoint: POST /api/issues/import
-- Stats endpoint: GET /api/issues/stats
-- CRUD endpoints: /api/issues and /api/issues/[id]
+---
+
+### PHASE 0: CHAT HISTORY EXTRACTION (Required for each session)
+
+**A) Extract Chat Session Metadata:**
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  SESSION METADATA (Required at session start)                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│  **Session Timestamp:** YYYY-MM-DD HH:mm:ss (Asia/Riyadh)              │
+│  **Session Duration:** <start> to <end>                                 │
+│  **Session Summary:** <1-2 sentence overview of what was discussed>    │
+│  **Agent ID:** [AGENT-XXX-Y]                                            │
+│  **Branch:** <current branch>                                           │
+│  **Commit:** <latest commit hash>                                       │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Step 2: Backlog Audit (Extract from PENDING_MASTER.md)
-Generate/update these artifacts:
-- `docs/BACKLOG_AUDIT.json` (machine-ready)
-- `docs/BACKLOG_AUDIT.md` (human checklist)
+**B) Build Findings Table from Chat History:**
+
+| Timestamp | Finding Type | File Path | Issue Description | Status | Evidence/Snippet | Key/ID |
+|-----------|--------------|-----------|-------------------|--------|------------------|--------|
+| HH:mm:ss | Bug/Logic/Test/Refactor/Security/Ops | path/to/file.ts:L10-15 | Brief description | Fixed/In Progress/Blocked/New | `code snippet ≤25 words` | BUG-XXX or generated key |
+
+**Finding Types:**
+- `Bug` — Runtime errors, crashes, incorrect behavior
+- `Logic` — Flawed algorithms, incorrect business logic
+- `Test` — Missing/failing tests
+- `Refactor` — Code quality, tech debt
+- `Security` — Vulnerabilities, unsafe practices
+- `Ops` — Infrastructure, deployment, config issues
+
+**C) For Each Finding, Extract:**
+- **Timestamp:** HH:mm:ss when discussed
+- **File(s) modified:** Exact paths with line numbers
+- **What changed:** Before/after logic summary
+- **Commands executed:** Terminal commands run
+- **Status outcome:** Fixed/In Progress/Blocked/New
+- **Evidence:** Code snippet (≤25 words) or exact line reference
+
+---
+
+### PHASE 1: DISCOVERY (Run First)
+
+**A) Locate Canonical Files:**
+```bash
+# Search for PENDING_MASTER.md → confirm canonical path: docs/PENDING_MASTER.md
+find . -name "PENDING_MASTER.md" -type f 2>/dev/null
+
+# If duplicates exist:
+# - Choose ONE canonical (prefer /docs)
+# - Mark others: "DEPRECATED: SSOT is MongoDB; see docs/PENDING_MASTER.md"
+```
+
+**B) Verify Issue Tracker Components:**
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ISSUE TRACKER HEALTH CHECK                                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│  □ Issue model: server/models/Issue.ts                                  │
+│  □ Import endpoint: POST /api/issues/import                             │
+│  □ Stats endpoint: GET /api/issues/stats                                │
+│  □ CRUD endpoints: /api/issues and /api/issues/[id]                     │
+│  If missing → log as BLOCKED issue in MongoDB with evidence             │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### PHASE 2: BACKLOG AUDIT (PENDING_MASTER → JSON)
+
+**Generate Artifacts:**
+1. `BACKLOG_AUDIT.json` (machine-readable)
+2. `BACKLOG_AUDIT.md` (human checklist)
 
 **Extraction Rules:**
-- Only OPEN/PENDING/UNRESOLVED items
-- Exclude ✅ 🟢 Done/Fixed/Resolved/Completed
+- Only: OPEN/PENDING/UNRESOLVED items
+- Exclude: ✅ 🟢 Done/Fixed/Resolved/Completed
+- Dedupe: Latest wins
 - Every item MUST include: `sourceRef` + `evidenceSnippet`
-- Key format: `externalId` if exists, else `normalize(title|category|location)`
 
-### Step 3: DB Sync (Idempotent)
+**Key Generation:**
+- If `externalId` exists (BUG-xxx/LOGIC-xxx) → `key = externalId`
+- Else → `key = normalize(title + "|" + category + "|" + location)`
+
+---
+
+### PHASE 3: DB SYNC (Idempotent)
+
+**Import BACKLOG_AUDIT.json to MongoDB:**
 ```bash
-# Import into MongoDB:
-POST /api/issues/import { issues: [...] }
+# Endpoint:
+POST /api/issues/import
+Body: { issues: [...] }
 
 # Capture results:
 { created: N, updated: N, skipped: N, errors: N }
+
+# For each issue: Write audit event SYNCED with timestamp
 ```
 
-### Step 4: Apply Today's Review Outcomes to DB
+---
 
-| Outcome | DB Action | Event Type |
-|---------|-----------|------------|
-| Issue FIXED | status → `resolved` | STATUS_CHANGED |
-| Work started | status → `in_progress` | STATUS_CHANGED |
-| Blocked | status → `blocked` + blocker reason | UPDATED |
+### PHASE 4: APPLY CHAT HISTORY FINDINGS TO DB
 
-**Every status change MUST include:**
-- Timestamp (KSA timezone: Asia/Riyadh)
-- Agent ID who made the change
-- Reference to commit/PR if applicable
+From chat history findings table, update MongoDB:
 
-### Step 5: Create DB Issues for NEW Findings (EVIDENCE REQUIRED)
-For new issues discovered during code review:
+| Finding Status | DB Action | Event Type |
+|----------------|-----------|------------|
+| **Fixed** | status → `resolved`, add resolution note (commit/PR + files + timestamp) | STATUS_CHANGED |
+| **In Progress** | status → `in_progress` | STATUS_CHANGED |
+| **Blocked** | status → `blocked`, add blocker reason + unblock requirements | UPDATED |
+| **New** | CREATE with full evidence (see below) | CREATED |
 
+**For NEW Findings (EVIDENCE REQUIRED):**
 ```json
 {
   "title": "<descriptive title>",
   "category": "bug | logic | tests | security | refactor | ops",
-  "priority": "P0 | P1 | P2 | P3",
-  "location": "<file path>",
-  "sourcePath": "code-review",
-  "sourceRef": "code-review:<file>:<lineStart>-<lineEnd>",
-  "evidenceSnippet": "<max 25 words exact code>",
+  "priority": "P0 | P1 | P2 | P3 | unspecified",
+  "status": "open",
+  "location": "<file path from chat>",
+  "sourcePath": "vscode-copilot-chat",
+  "sourceRef": "vscode-copilot-chat:<file>:<lineStart>-<lineEnd>",
+  "evidenceSnippet": "<≤25 words exact from chat>",
+  "chatTimestamp": "<when discovered in chat session>",
   "createdBy": "[AGENT-XXX-Y]",
-  "createdAt": "<ISO timestamp>"
+  "createdAt": "<ISO timestamp>",
+  "events": [
+    { "type": "CREATED", "timestamp": "<ISO>", "by": "[AGENT-XXX-Y]" }
+  ]
 }
 ```
 
-**DEDUPE RULE:** Search DB for similar title/location BEFORE creating. Update existing if found.
+**DEDUPE BEFORE CREATING (MANDATORY):**
+1. Search DB by `externalId`/`key` + similarity check of `title`/`location`
+2. If exists → UPDATE + increment `mentionCount` + add UPDATED event
+3. If new → CREATE with all evidence
 
-### Step 6: Update docs/PENDING_MASTER.md (Derived Log)
-Append changelog entry (do NOT rewrite entire file):
+---
+
+### PHASE 5: UPDATE docs/PENDING_MASTER.md (Derived Log)
+
+**A) Add Header if Missing:**
+```markdown
+> **NOTE:** SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot.
+> Do not create tasks here without also creating/updating DB issues.
+```
+
+**B) Append Changelog Entry (DO NOT rewrite entire file):**
 
 ```markdown
-### YYYY-MM-DD HH:mm (Asia/Riyadh) — Code Review Update
-**Context:** <branch> | <commit> | <PR #>
+---
+## 📅 YYYY-MM-DD HH:mm:ss (Asia/Riyadh) — VSCode Copilot Session Update
+
+**Session Summary:** <1-2 sentence summary from chat>
+**Context:** <branch> | <commit> | <PR link if exists>
 **Agent:** [AGENT-XXX-Y]
-**DB Sync:** created=N, updated=N, skipped=N, errors=N
+**DB Sync:** created=<n>, updated=<n>, skipped=<n>, errors=<n>
 
-**✅ Resolved Today (DB SSOT):**
-- KEY1 — <title> (files: ...)
+### 📊 Chat History Findings Table
 
-**🟠 In Progress:**
-- KEY2 — <title>
+| Timestamp | Type | File | Description | Status | Key/ID |
+|-----------|------|------|-------------|--------|--------|
+| HH:mm:ss | Bug | path/to/file.ts:10-15 | Issue desc | Fixed | BUG-001 |
+| HH:mm:ss | Logic | path/to/other.ts:45 | Logic flaw | In Progress | LOGIC-002 |
 
-**🔴 Blocked:**
-- KEY3 — <title> — blocker: <reason>
+### ✅ Resolved Today (DB SSOT)
+- **BUG-001** — <title> (files: path/to/file.ts) — Fixed at HH:mm:ss
+- **BUG-002** — <title> ...
 
-**🆕 New Findings Added to DB (with evidence):**
-- KEY4 — <title> — sourceRef: code-review:<file>:<lines>
+### 🟠 In Progress
+- **LOGIC-003** — <title> — Work started at HH:mm:ss
 
-**Next Steps (ONLY from DB items above):**
-- KEY... — <action>
+### 🔴 Blocked
+- **TEST-004** — <title> — Blocker: <reason>
+
+### 🆕 New Findings Added to DB (with evidence)
+- **BUG-005** — <title> — sourceRef: vscode-copilot-chat:<file>:<lines> — Found at HH:mm:ss
+
+### 📁 Files Modified in Session
+- `path/to/file1.ts` — <what changed>
+- `path/to/file2.ts` — <what changed>
+
+### ⚡ Commands Executed
+\`\`\`bash
+pnpm lint
+pnpm test
+git commit -m "fix: resolved BUG-001"
+\`\`\`
+
+### 🎯 Next Steps (ONLY from DB items above)
+- [ ] BUG-005 — Complete implementation and add tests
+- [ ] LOGIC-003 — Refactor algorithm in utils.ts
 ```
 
-### Step 7: Verification
+**C) If Active Checklist/Table Exists:**
+- Mark resolved items with ✅
+- Move to "✅ Resolved (Archive)" section at bottom
+
+---
+
+### PHASE 6: VERIFICATION
+
+**Run and Report:**
 ```bash
-pnpm lint                    # Must pass
-pnpm test                    # Must pass
-curl /api/issues/stats       # Confirm 200 OK
-# Confirm no duplicates in import result
+pnpm lint                              # Must pass
+pnpm test                              # Must pass
+curl http://localhost:3000/api/issues/stats   # Confirm 200 OK + correct counts
+# Confirm no duplicate issues created
 ```
+
+---
+
+### FINAL OUTPUT FORMAT (In Chat)
+
+After completing all phases, output this summary:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  🔧 Fixzit SSOT Update Report                                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│  📅 Session Info                                                        │
+│  Timestamp: YYYY-MM-DD HH:mm:ss (Asia/Riyadh)                           │
+│  Duration: HH:mm - HH:mm                                                │
+│  Summary: <1-2 sentences>                                               │
+│  Agent: [AGENT-XXX-Y]                                                   │
+│                                                                         │
+│  📊 DB Summary                                                          │
+│  - Imported: <n> created, <n> updated, <n> skipped, <n> errors          │
+│  - Status Changes: <n> resolved, <n> in-progress, <n> blocked           │
+│                                                                         │
+│  🎯 Key Updates                                                         │
+│  ✅ Resolved: KEY1, KEY2, KEY3                                          │
+│  🟠 In Progress: KEY4, KEY5                                             │
+│  🔴 Blocked: KEY6                                                       │
+│  🆕 New: KEY7, KEY8                                                     │
+│                                                                         │
+│  📁 Files Changed                                                       │
+│  - path/to/file1.ts                                                     │
+│  - path/to/file2.ts                                                     │
+│                                                                         │
+│  ⚡ Commands Run                                                        │
+│  pnpm lint ✅ Passed                                                    │
+│  pnpm test ✅ 15/15 passed                                              │
+│  curl /api/issues/stats ✅ 200 OK                                       │
+│                                                                         │
+│  ⚠️ Failures (if any)                                                   │
+│  <exact error + location>                                               │
+│                                                                         │
+│  📄 Updated Files                                                       │
+│  ✅ docs/PENDING_MASTER.md                                              │
+│  ✅ BACKLOG_AUDIT.json                                                  │
+│  ✅ BACKLOG_AUDIT.md                                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### HARD CONSTRAINTS (CRITICAL — AUTO-FAIL IF VIOLATED)
+
+| Constraint | Rule |
+|------------|------|
+| ❌ NO INVENTION | Only add items from PENDING_MASTER.md OR NEW findings from chat WITH code evidence |
+| ✅ EVIDENCE REQUIRED | Every new finding needs: file path + line range, `evidenceSnippet` (≤25 words), `sourceRef` format, chat timestamp |
+| 🔍 DEDUPE MANDATORY | Search by `externalId`/`key` + similarity before creating. If exists → UPDATE instead of duplicate |
+| 📏 OUTPUT BREVITY | No large code blocks in chat. Apply changes in repo. Provide: changed files + commands + results only |
+| 🕐 TIMEZONE | All timestamps in Asia/Riyadh (KSA) |
+| 🎯 FOCUS | Focus exclusively on actual chat history — do not speculate or add information beyond what was actually discussed |
 
 ---
 
