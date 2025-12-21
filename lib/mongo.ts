@@ -203,6 +203,14 @@ function assertAtlasUriInProd(uri: string): void {
 
 export const isMockDB = false; // Always use real MongoDB
 
+/**
+ * Check if MongoDB is in offline mode (ALLOW_OFFLINE_MONGODB=true)
+ * Used by other modules to skip DB operations when no connection is available
+ */
+export function isMongoOffline(): boolean {
+  return getAllowOfflineMongo();
+}
+
 // Extend globalThis for MongoDB connection caching
 declare global {
   var _mongoose: Promise<DatabaseHandle> | undefined;
