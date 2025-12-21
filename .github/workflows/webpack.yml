@@ -88,8 +88,14 @@ jobs:
 
       - name: Ensure Mongo Indexes (idempotent)
         env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/fixzit-test' }}
-        run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          CI: "true"
+        run: |
+          if [ -z "$MONGODB_URI" ]; then
+            echo "⏭️ Skipping - MONGODB_URI not configured"
+            exit 0
+          fi
+          pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
 
       - name: Run Tests
         run: |
