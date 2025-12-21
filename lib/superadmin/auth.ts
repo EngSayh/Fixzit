@@ -13,13 +13,30 @@ export interface SuperadminSession {
   expiresAt: number;
 }
 
-// P0 FIX: JWT secret MUST be deterministic across all serverless instances.
-// In production, require an explicit secret to prevent session verification failures
-// when requests hit different Vercel instances with different random secrets.
+/**
+ * P0 FIX: JWT secret MUST be deterministic across all serverless instances.
+ * 
+ * Resolution for "signature verification failed" error:
+ * 1. Ensure SUPERADMIN_JWT_SECRET (or NEXTAUTH_SECRET/AUTH_SECRET) is set in Vercel
+ *    for BOTH Production AND Preview environments
+ * 2. The value MUST be identical across all deployments
+ * 3. Clear browser cookies if you've changed the secret (old tokens are invalid)
+ * 
+ * Priority order: SUPERADMIN_JWT_SECRET > NEXTAUTH_SECRET > AUTH_SECRET
+ */
+let _secretSourceName: string | null = null;
+
 function getSuperadminJwtSecret(): string {
-  const secret = process.env.SUPERADMIN_JWT_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
-    process.env.AUTH_SECRET;
+  // Track which source provides the secret for debugging
+  const sources = [
+    { name: 'SUPERADMIN_JWT_SECRET', value: process.env.SUPERADMIN_JWT_SECRET },
+    { name: 'NEXTAUTH_SECRET', value: process.env.NEXTAUTH_SECRET },
+    { name: 'AUTH_SECRET', value: process.env.AUTH_SECRET },
+  ];
+  const selected = sources.find(s => s.value);
+  _secretSourceName = selected?.name || 'FALLBACK';
+  
+  const secret = selected?.value;
 
   if (!secret && process.env.NODE_ENV === "production") {
     // CRITICAL: Fail fast in production if no secret is configured
@@ -183,8 +200,15 @@ export async function decodeSuperadminToken(token?: string | null): Promise<Supe
       expiresAt: payload.exp * 1000,
     };
   } catch (error) {
+    // P0 FIX: Enhanced logging to help diagnose signature verification failures
+    // Common causes:
+    // 1. Token signed with different secret (env var changed, different deployment)
+    // 2. Stale cookie from previous deployment
+    // Resolution: Clear browser cookies or ensure consistent env vars
     logger.warn("[SUPERADMIN] Token verification failed", {
       error: error instanceof Error ? error.message : String(error),
+      secretSource: _secretSourceName || "unknown",
+      hint: "Clear browser cookies if secret was changed, or verify SUPERADMIN_JWT_SECRET/NEXTAUTH_SECRET/AUTH_SECRET is consistent across deployments",
     });
     return null;
   }
