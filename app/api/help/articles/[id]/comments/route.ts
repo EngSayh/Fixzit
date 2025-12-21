@@ -127,3 +127,63 @@ export async function POST(
     return createSecureResponse({ error: "Internal Server Error" }, 500, req);
   }
 }
+
+/**
+ * GET /api/help/articles/:id/comments
+ * Returns paginated comments for a help article
+ */
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  try {
+    const params = await props.params;
+    const user = await getSessionUser(req);
+    if (!user) {
+      return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    }
+
+    const db = await getDatabase();
+    const articles = db.collection(COLLECTIONS.HELP_ARTICLES);
+    const comments = db.collection(COLLECTIONS.HELP_COMMENTS);
+
+    const articleFilter = buildArticleFilter(params.id, user.orgId);
+    const article = await articles.findOne(articleFilter, {
+      projection: { slug: 1, status: 1 },
+    });
+    if (!article) {
+      return createSecureResponse({ error: "Article not found" }, 404, req);
+    }
+
+    // Pagination
+    const url = new URL(req.url);
+    const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
+    const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)));
+    const skip = (page - 1) * limit;
+
+    // Fetch comments for this article (tenant-scoped via article filter)
+    const [items, total] = await Promise.all([
+      comments
+        .find({ articleSlug: article.slug })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .project({ _id: 1, userId: 1, comment: 1, createdAt: 1 })
+        .toArray(),
+      comments.countDocuments({ articleSlug: article.slug }),
+    ]);
+
+    return createSecureResponse(
+      {
+        ok: true,
+        data: items,
+        pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      },
+      200,
+      req,
+    );
+  } catch (err: unknown) {
+    logger.error("GET /api/help/articles/[id]/comments failed", err);
+    return createSecureResponse({ error: "Internal Server Error" }, 500, req);
+  }
+}

@@ -105,7 +105,8 @@ export async function POST(req: NextRequest) {
       $and: [
         {
           $or: [
-            // SEC-001: Use orgId consistently (not tenantId) for tenant isolation
+            // SEC-001: KB embeddings use tenantId field (set to user.orgId value during ingest)
+            // This matches tenant-specific articles OR global articles (null/undefined tenantId)
             ...(user?.orgId ? [{ tenantId: user.orgId }] : []),
             { tenantId: { $exists: false } },
             { tenantId: null },
