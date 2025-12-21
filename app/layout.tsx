@@ -137,7 +137,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
         <ConditionalProviders initialLocale={locale}>
           <TooltipProvider delayDuration={200}>
-            <OfflineIndicator position="top" />
+            <OfflineIndicator />
             {children}
             {/* Custom cursor with trailing particles */}
             <CustomCursor />

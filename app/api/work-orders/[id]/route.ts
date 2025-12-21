@@ -211,7 +211,7 @@ export async function PATCH(
     const { slaMinutes, dueAt } = resolveSlaTarget(
       updates.priority as WorkOrderPriority,
       new Date(),
-      { useBusinessHours: true } // P2: Enable business-hours-aware SLA calculation
+      true // P2: Enable business-hours-aware SLA calculation
     );
     updatePayload.slaMinutes = slaMinutes;
     if (!updates.dueAt) {

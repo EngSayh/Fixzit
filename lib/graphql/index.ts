@@ -1051,7 +1051,7 @@ export const resolvers = {
 
       const now = new Date();
       const priority = mapPriorityToModel(args.input?.priority as string | undefined);
-      const { slaMinutes, dueAt } = resolveSlaTarget(priority, now, { useBusinessHours: true });
+      const { slaMinutes, dueAt } = resolveSlaTarget(priority, now, true);
       const responseMinutes = 120;
 
       const location =

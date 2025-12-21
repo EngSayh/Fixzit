@@ -279,7 +279,7 @@ export const { GET, POST } = createCrudHandlers({
     const { slaMinutes, dueAt } = resolveSlaTarget(
       data.priority as WorkOrderPriority,
       createdAt,
-      { useBusinessHours: true } // P2: Enable business-hours-aware SLA calculation
+      true // P2: Enable business-hours-aware SLA calculation
     );
     const responseMinutes = 120;
 
