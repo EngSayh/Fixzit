@@ -419,8 +419,21 @@ export async function updateRefundRecord(
   await transaction.save();
 
   if (transaction.paymentId) {
+    const orgId = transaction.orgId?.toString();
+    if (!orgId) {
+      logger.warn("[Webhook] Missing orgId on Tap transaction for payment refund update", {
+        correlationId,
+        paymentId: transaction.paymentId.toString(),
+        chargeId: refund.charge,
+      });
+    }
     // eslint-disable-next-line local/require-lean -- NO_LEAN: payment is updated and saved.
-    const payment = await Payment.findById(transaction.paymentId);
+    const payment = orgId
+      ? await Payment.findOne({
+          _id: transaction.paymentId,
+          $or: [{ orgId }, { org_id: orgId }],
+        })
+      : null;
     if (payment) {
       if (status === "SUCCEEDED") {
         payment.status = "REFUNDED";
