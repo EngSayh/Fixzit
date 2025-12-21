@@ -64,6 +64,123 @@ Every agent MUST complete these steps BEFORE marking task complete:
 
 ---
 
+## 🔍 Deep-Dive & Fix-Once Protocol (MANDATORY)
+
+### Problem: Same issue appears in multiple files, agents fix one and miss others
+This wastes time and creates technical debt. **FIX ONCE, FIX EVERYWHERE.**
+
+### Before Fixing ANY Issue, Agent MUST:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  DEEP-DIVE SCAN PROTOCOL (Required before ANY fix)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. □ Check SSOT first: Read docs/PENDING_MASTER.md + query MongoDB    │
+│  2. □ Is another agent already working on this? → SKIP, pick next task │
+│  3. □ Scan for SIMILAR issues across entire codebase:                  │
+│       grep -rn "<pattern>" app lib services components tests           │
+│  4. □ List ALL occurrences (file + line number)                        │
+│  5. □ Fix ALL occurrences in ONE session (not just the first one)      │
+│  6. □ Update SSOT immediately so other agents see it's being handled   │
+│  7. □ Commit with full list of files fixed                             │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Deep-Dive Scan Commands (Run BEFORE fixing)
+
+```bash
+# Example: Found a missing tenant scope issue
+grep -rn "findById\|findOne" app/api --include="*.ts" | grep -v "org_id\|orgId" | wc -l
+
+# Example: Found a console.log that should be removed
+grep -rn "console\.log" app lib services --include="*.ts" --include="*.tsx" | wc -l
+
+# Example: Found a hardcoded string that should be i18n
+grep -rn "\"Error:\|\"Success:\|\"Loading" app components --include="*.tsx" | wc -l
+
+# Example: Found unsafe JSON.parse
+grep -rn "JSON\.parse" app lib services --include="*.ts" | grep -v "try" | wc -l
+```
+
+### Issue Classification for Deep-Dive
+
+| Issue Type | Scan Pattern | Fix Scope |
+|------------|--------------|-----------|
+| Missing tenant scope | `findById\|findOne` without `org_id` | All API routes |
+| Unsafe JSON parse | `JSON.parse` without try-catch | All files using JSON.parse |
+| Console logs in prod | `console.log` in app/lib/services | Remove or replace with logger |
+| Hardcoded strings | String literals in JSX | Replace with t() i18n |
+| Missing .lean() | Mongoose queries without .lean() | All read-only queries |
+| Missing error handling | await without try-catch | All async operations |
+| Type safety | `as any` or `// @ts-ignore` | Replace with proper types |
+
+### SSOT Check Protocol (Prevent Duplicate Work)
+
+**BEFORE starting any fix:**
+```bash
+# 1. Check if issue exists in SSOT
+grep -i "<issue-keyword>" docs/PENDING_MASTER.md
+
+# 2. Check if another agent claimed it
+cat /tmp/agent-assignments.json | grep -i "<issue-keyword>"
+
+# 3. If not claimed, register immediately:
+# Update PENDING_MASTER.md with:
+# - Issue ID
+# - Your agent ID [AGENT-XXX-Y]
+# - Status: IN_PROGRESS
+# - Files being fixed (full list)
+```
+
+### Fix-Once Commit Template
+
+```bash
+git commit -m "fix(<scope>): <issue-description> across <N> files
+
+[AGENT-XXX-Y] Deep-dive fix for <ISSUE-ID>
+
+Files fixed (<N> total):
+- app/api/finance/accounts/route.ts
+- app/api/souq/orders/route.ts
+- app/api/hr/employees/route.ts
+... (list all)
+
+Pattern fixed: <description of what was wrong>
+Solution applied: <description of fix>
+
+Scanned: grep -rn '<pattern>' <paths>
+Total occurrences before: N
+Total occurrences after: 0"
+```
+
+### Deep-Dive Summary in PENDING_MASTER.md
+
+After completing a deep-dive fix, append:
+
+```markdown
+### YYYY-MM-DD HH:mm (Asia/Riyadh) — Deep-Dive Fix
+**Agent:** [AGENT-XXX-Y]
+**Issue:** <ISSUE-ID> — <title>
+**Pattern:** <what was scanned>
+**Scope:** <N> files across <modules>
+
+**Files Fixed:**
+1. path/to/file1.ts (line X)
+2. path/to/file2.ts (line Y)
+... 
+
+**Verification:**
+- Before: `grep -rn '<pattern>' → N matches`
+- After: `grep -rn '<pattern>' → 0 matches`
+- Tests: ✅ All passing
+
+**Similar Issues to Watch:**
+- <related pattern 1>
+- <related pattern 2>
+```
+
+---
+
 ## System Stability (AUTO-TRIGGERED)
 A background daemon runs every 2 minutes to prevent VS Code Code 5 crashes:
 - LaunchAgent: `com.fixzit.agent-preflight`
