@@ -34,6 +34,7 @@ const nodeOnlyTests = [
   "tests/unit/server/**/*.test.{ts,tsx}",
   "tests/server/**/*.test.{ts,tsx}",
   "tests/unit/lib/mongo.test.ts",
+  "tests/unit/lib/**/*.test.{ts,tsx}",
   "tests/unit/server/services/**/*.test.{ts,tsx}",
   "tests/unit/server/config/**/*.test.{ts,tsx}",
   "tests/debug/**/*.test.{ts,tsx}",
