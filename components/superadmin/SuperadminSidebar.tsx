@@ -25,6 +25,7 @@ import {
   BarChart3,
   Lock,
   Bell,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +41,11 @@ const SUPERADMIN_NAV_ITEMS: NavItem[] = [
     href: "/superadmin/issues",
     icon: Bug,
     labelKey: "superadmin.nav.issues",
+  },
+  {
+    href: "/superadmin/ssot",
+    icon: ScrollText,
+    labelKey: "superadmin.nav.ssot",
   },
   {
     href: "/superadmin/tenants",

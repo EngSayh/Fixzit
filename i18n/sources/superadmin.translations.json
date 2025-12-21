@@ -9,6 +9,7 @@
     "superadmin.loggingOut": "Logging out...",
     "superadmin.verifyingAccess": "Verifying access...",
     "superadmin.nav.issues": "Issues Tracker",
+    "superadmin.nav.ssot": "SSOT Viewer",
     "superadmin.nav.tenants": "Tenants / Orgs",
     "superadmin.nav.users": "Users Management",
     "superadmin.nav.roles": "Roles & Permissions",
@@ -103,7 +104,9 @@
     "superadmin.issues.toast.exportFailed": "Could not export issues",
     "superadmin.issues.pagination.previous": "Previous",
     "superadmin.issues.pagination.next": "Next",
-    "superadmin.issues.pagination.pageOf": "Page {page} of {total}"
+    "superadmin.issues.pagination.pageOf": "Page {page} of {total}",
+    "superadmin.ssot.title": "SSOT Viewer",
+    "superadmin.ssot.description": "Read-only view of the canonical PENDING_MASTER.md file"
   },
   "ar": {
     "superadmin.title": "المسؤول الأعلى",
@@ -115,6 +118,7 @@
     "superadmin.loggingOut": "جارٍ تسجيل الخروج...",
     "superadmin.verifyingAccess": "جارٍ التحقق من الوصول...",
     "superadmin.nav.issues": "متتبع المشاكل",
+    "superadmin.nav.ssot": "عارض SSOT",
     "superadmin.nav.tenants": "المستأجرون / المؤسسات",
     "superadmin.nav.users": "إدارة المستخدمين",
     "superadmin.nav.roles": "الأدوار والصلاحيات",
@@ -209,6 +213,8 @@
     "superadmin.issues.toast.exportFailed": "تعذر تصدير المشاكل",
     "superadmin.issues.pagination.previous": "السابق",
     "superadmin.issues.pagination.next": "التالي",
-    "superadmin.issues.pagination.pageOf": "الصفحة {page} من {total}"
+    "superadmin.issues.pagination.pageOf": "الصفحة {page} من {total}",
+    "superadmin.ssot.title": "عارض SSOT",
+    "superadmin.ssot.description": "عرض للقراءة فقط لملف PENDING_MASTER.md الأساسي"
   }
 }
