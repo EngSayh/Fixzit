@@ -431,6 +431,21 @@
 			"label": "Full Validation",
 			"type": "shell",
 			"command": "CI=true pnpm vitest run --project=server --reporter=basic 2>&1 | tail -30"
+		},
+		{
+			"label": "Packages Test",
+			"type": "shell",
+			"command": "CI=true pnpm vitest run tests/api/aqar/packages.route.test.ts --project=server --reporter=verbose 2>&1 | tail -30"
+		},
+		{
+			"label": "Packages Error",
+			"type": "shell",
+			"command": "CI=true pnpm vitest run tests/api/aqar/packages.route.test.ts --project=server 2>&1 | grep -A 20 'FAIL\\|Error\\|failed'"
+		},
+		{
+			"label": "Packages Full",
+			"type": "shell",
+			"command": "CI=true pnpm vitest run tests/api/aqar/packages.route.test.ts --project=server 2>&1"
 		}
 	]
 }

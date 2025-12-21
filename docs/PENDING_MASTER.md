@@ -36,7 +36,7 @@ This SSOT tracks all pending work items for Fixzit Phase 1 MVP. The canonical so
 | API Routes | 374 | ✅ |
 | Test Files | 950 | ✅ |
 | API Test Coverage | 253% (950/374) | ✅ |
-| Superadmin Pages | 25 total (16 in nav, 9 hidden) | 🟡 |
+| Superadmin Pages | 25 total (22 in nav, 3 special) | ✅ |
 | SSOT Viewer | Live | ✅ |
 | Production Readiness | 98/100 | 🟢 |
 
@@ -50,7 +50,7 @@ This SSOT tracks all pending work items for Fixzit Phase 1 MVP. The canonical so
 ### PARTIAL (P1) - Exists but incomplete
 | ID | Area | Evidence | Gap |
 |----|------|----------|-----|
-| NAV-MISSING-001 | Superadmin nav | 6 pages not in SuperadminSidebar | catalog, impersonate, import-export, reports, support, vendors |
+| NAV-MISSING-001 | Superadmin nav | ✅ FIXED 2025-12-21 | Added 6 pages to nav |
 | PERF-001 | db.collection() | 23 files use raw collection access | Tenant scoping VERIFIED ✅ (see line 77) |
 | PERF-002 | Cache headers | 18/374 routes have Cache-Control | ✅ VERIFIED - by design (see line 77) |
 
@@ -72,7 +72,7 @@ This SSOT tracks all pending work items for Fixzit Phase 1 MVP. The canonical so
 
 | Order | ID | Action | Effort | Blocked |
 |-------|----|----|--------|---------|
-| 1 | NAV-MISSING-001 | Add 6 pages to SuperadminSidebar nav | 30m | No |
+| 1 | NAV-MISSING-001 | ~~Add 6 pages to SuperadminSidebar nav~~ | 30m | ✅ DONE |
 | 2 | PERF-001 | ~~Audit db.collection() tenant scoping~~ | 16h | ✅ DONE (verified) |
 | 3 | PERF-002 | ~~Add Cache-Control to public/static routes~~ | 4h | ✅ DONE (by design) |
 | 4 | P3-AQAR-FILTERS | ~~Refactor Aqar SearchFilters~~ | M | ✅ DONE |
@@ -86,7 +86,7 @@ This SSOT tracks all pending work items for Fixzit Phase 1 MVP. The canonical so
 
 | ID | Title | Type | Priority | Status | Owner | Files/Areas | Acceptance Criteria | Verification | Evidence | Notes |
 |----|-------|------|----------|--------|-------|-------------|---------------------|--------------|----------|-------|
-| NAV-MISSING-001 | Add missing pages to Superadmin nav | PARTIAL | P2 | Not Started | Copilot | SuperadminSidebar.tsx | 6 pages visible in nav | Visual check | catalog, impersonate, import-export, reports, support, vendors missing | login intentionally excluded |
+| NAV-MISSING-001 | Add missing pages to Superadmin nav | PARTIAL | P2 | ✅ Complete | Copilot | SuperadminSidebar.tsx | 6 pages visible in nav | Visual check + grep count (22 items) | catalog, impersonate, import-export, reports, support, vendors added | login intentionally excluded |
 | PERF-001 | db.collection() tenant audit | PARTIAL | P0 | ✅ VERIFIED | Copilot | 23 API files | All calls have orgId/tenantId filter | `rg "orgId\|tenantId" app/api` | Line 77: "All 33 usages verified" | Was 33, now 23 files |
 | PERF-002 | Cache headers review | PARTIAL | P1 | ✅ VERIFIED | Copilot | 18 routes | Public/static routes have Cache-Control | `rg "Cache-Control" app/api` | 18 routes (correct by design) | 227 GET routes uncached = correct (user-specific/real-time data should NOT cache) |
 | FEATURE-001 | Real-time notifications | DEFERRED | P0 | Planned | - | SSE implementation | Live updates without polling | E2E test | ADR-001 exists | SSE preferred over WS |
