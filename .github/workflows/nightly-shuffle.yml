@@ -1,4 +1,3 @@
----
 # yamllint disable rule:line-length rule:truthy
 name: Nightly Shuffle Tests
 

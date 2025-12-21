@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ObjectId } from 'mongodb';
 
 // Mock the collection before importing the module
 const mockUpdateOne = vi.fn().mockResolvedValue({ acknowledged: true, modifiedCount: 1 });
@@ -23,21 +24,22 @@ describe('safe-tenant-update', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset NODE_ENV to test mode
-    process.env.NODE_ENV = 'test';
+    vi.stubEnv('NODE_ENV', 'test');
   });
 
   describe('safeTenantUpdateOne', () => {
     it('allows updateOne with orgId in filter', async () => {
       const { safeTenantUpdateOne } = await import('@/lib/db/safe-tenant-update');
+      const docId = new ObjectId();
 
       await safeTenantUpdateOne(
         mockCollection as any,
-        { _id: 'doc-123', orgId: 'org-456' },
+        { _id: docId, orgId: 'org-456' },
         { $set: { status: 'updated' } }
       );
 
       expect(mockUpdateOne).toHaveBeenCalledWith(
-        { _id: 'doc-123', orgId: 'org-456' },
+        { _id: docId, orgId: 'org-456' },
         { $set: { status: 'updated' } },
         undefined
       );
@@ -45,10 +47,11 @@ describe('safe-tenant-update', () => {
 
     it('allows updateOne with property_owner_id in filter', async () => {
       const { safeTenantUpdateOne } = await import('@/lib/db/safe-tenant-update');
+      const docId = new ObjectId();
 
       await safeTenantUpdateOne(
         mockCollection as any,
-        { _id: 'doc-123', property_owner_id: 'owner-789' },
+        { _id: docId, property_owner_id: 'owner-789' },
         { $set: { status: 'updated' } }
       );
 
@@ -57,11 +60,12 @@ describe('safe-tenant-update', () => {
 
     it('throws in test mode when filter lacks tenant key', async () => {
       const { safeTenantUpdateOne } = await import('@/lib/db/safe-tenant-update');
+      const docId = new ObjectId();
 
       await expect(
         safeTenantUpdateOne(
           mockCollection as any,
-          { _id: 'doc-123' }, // Missing tenant key!
+          { _id: docId }, // Missing tenant key!
           { $set: { status: 'updated' } }
         )
       ).rejects.toThrow('[TENANT_SAFETY]');
@@ -105,9 +109,10 @@ describe('safe-tenant-update', () => {
   describe('safeTenantBulkWrite', () => {
     it('allows bulkWrite when all operations have tenant key', async () => {
       const { safeTenantBulkWrite } = await import('@/lib/db/safe-tenant-update');
+      const docId = new ObjectId();
 
       await safeTenantBulkWrite(mockCollection as any, [
-        { updateOne: { filter: { _id: 'doc-1', orgId: 'org-1' }, update: { $set: { x: 1 } } } },
+        { updateOne: { filter: { _id: docId, orgId: 'org-1' }, update: { $set: { x: 1 } } } },
         { updateMany: { filter: { orgId: 'org-1', status: 'pending' }, update: { $set: { x: 2 } } } },
       ]);
 
@@ -116,10 +121,11 @@ describe('safe-tenant-update', () => {
 
     it('throws when any operation lacks tenant key', async () => {
       const { safeTenantBulkWrite } = await import('@/lib/db/safe-tenant-update');
+      const docId = new ObjectId();
 
       await expect(
         safeTenantBulkWrite(mockCollection as any, [
-          { updateOne: { filter: { _id: 'doc-1', orgId: 'org-1' }, update: { $set: { x: 1 } } } },
+          { updateOne: { filter: { _id: docId, orgId: 'org-1' }, update: { $set: { x: 1 } } } },
           { updateMany: { filter: { status: 'pending' }, update: { $set: { x: 2 } } } }, // Missing!
         ])
       ).rejects.toThrow('[TENANT_SAFETY]');
@@ -131,10 +137,11 @@ describe('safe-tenant-update', () => {
   describe('withTenantScope', () => {
     it('merges tenant scope into filter', async () => {
       const { withTenantScope } = await import('@/lib/db/safe-tenant-update');
+      const docId = new ObjectId();
 
-      const filter = withTenantScope({ _id: 'doc-123' }, { orgId: 'org-456' });
+      const filter = withTenantScope({ _id: docId }, { orgId: 'org-456' });
 
-      expect(filter).toEqual({ _id: 'doc-123', orgId: 'org-456' });
+      expect(filter).toEqual({ _id: docId, orgId: 'org-456' });
     });
 
     it('merges property_owner_id scope into filter', async () => {
