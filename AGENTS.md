@@ -1,4 +1,4 @@
-# Fixzit - Agent Working Agreement v5.5 (Codex + VS Code + Claude Code)
+# Fixzit - Agent Working Agreement v5.6 (Codex + VS Code + Claude Code)
 
 Owner: Eng. Sultan Al Hassni  
 System: Fixzit Facility-Management + Marketplace (Fixzit Souq) + Real Estate (Aqar)  
@@ -25,16 +25,20 @@ NON-NEGOTIABLE. Violations = AUTO-FAIL.
 13. [Anti-False-Positive Protocol](#7-anti-false-positive-protocol)
 14. [Fixzit Domain Invariants](#8-fixzit-domain-invariants)
 15. [Multi-Agent Coordination](#multi-agent-coordination-protocol-critical)
-16. [PR & Cleanup Protocol](#pr--cleanup-protocol-mandatory)
-17. [PR Review Protocol](#-pr-review-protocol-mandatory--zero-force-merge-tolerance)
-18. [Code Quality Standards](#-code-quality-standards-system-aware--mandatory)
-19. [CI/CD Build Protocol](#-cicd-build-protocol-zero-error-tolerance)
-20. [Autonomous PR Review](#-autonomous-pr-review--fix-protocol-vs-code-copilot)
-21. [SSOT Chat History + Backlog Sync](#-ssot-chat-history-analysis--backlog-sync-protocol-v20)
-22. [Improvement Analysis Protocol](#improvement-analysis-protocol-periodic-review)
-23. [Agent Task Handoff Protocol](#-agent-task-handoff-protocol-mandatory-for-cross-agent-work)
-24. [Pending Backlog Extractor v2.5](#-pending-backlog-extractor-protocol-v25-ssot-integrated)
-25. [Quick Reference: Agent Token Format](#-quick-reference-agent-token-format)
+16. [Agent File Path Routing](#-agent-file-path-routing-table-mandatory)
+17. [Pre-Claim Validation Rules](#-pre-claim-validation-rules-5-phase-mandatory)
+18. [PR & Cleanup Protocol](#pr--cleanup-protocol-mandatory)
+19. [PR Review Protocol](#-pr-review-protocol-mandatory--zero-force-merge-tolerance)
+20. [Code Quality Standards](#-code-quality-standards-system-aware--mandatory)
+21. [CI/CD Build Protocol](#-cicd-build-protocol-zero-error-tolerance)
+22. [Autonomous PR Review](#-autonomous-pr-review--fix-protocol-vs-code-copilot)
+23. [SSOT Chat History + Backlog Sync](#-ssot-chat-history-analysis--backlog-sync-protocol-v20)
+24. [MongoDB Issue Tracker SSOT Schema](#-mongodb-issue-tracker-ssot-schema)
+25. [Improvement Analysis Protocol](#improvement-analysis-protocol-periodic-review)
+26. [Agent Task Handoff Protocol](#-agent-task-handoff-protocol-mandatory-for-cross-agent-work)
+27. [Pending Backlog Extractor v2.6](#-pending-backlog-extractor-protocol-v26-ssot-integrated)
+28. [Crash Prevention & Conflict Mitigation](#-crash-prevention--conflict-mitigation)
+29. [Quick Reference: Agent Token Format](#-quick-reference-agent-token-format)
 
 ---
 
@@ -746,6 +750,271 @@ When running multiple instances of ANY agent type, each MUST claim a unique sub-
 - First agent to lock wins
 - If conflict detected: agent with LOWER ID keeps lock
 - Disputed files → escalate to Eng. Sultan
+
+---
+
+## 📂 Agent File Path Routing Table (MANDATORY)
+
+### Why Routing Matters
+Exit Code 5 crashes occur when multiple agents modify the same files. This routing table ensures **domain isolation** — each agent works ONLY in their assigned paths.
+
+### Primary File Path Routing Rules
+
+| **Agent ID** | **Agent Type** | **Domain** | **File Path Patterns** |
+|-------------|---------------|-----------|----------------------|
+| AGENT-001 | VS Code Copilot | Core/Auth/Middleware | `app/api/core/**`, `middleware/**`, `lib/auth/**`, `lib/session/**`, `lib/jwt/**`, `app/api/auth/**`, `lib/middleware/**`, `lib/logging/**`, `lib/errors/**`, `app/layout.tsx`, `app/providers.tsx` |
+| AGENT-002 | Claude Code | Finance/Billing | `app/api/finance/**`, `app/api/billing/**`, `lib/payments/**`, `lib/invoices/**`, `lib/tax/**`, `lib/currency/**`, `lib/stripe/**`, `lib/accounting/**`, `app/api/subscriptions/**` |
+| AGENT-003 | Codex | Souq/Marketplace | `app/api/souq/**`, `app/api/marketplace/**`, `lib/products/**`, `lib/orders/**`, `lib/cart/**`, `lib/inventory/**`, `lib/shipping/**`, `lib/vendors/**`, `app/api/merchants/**` |
+| AGENT-004 | Cursor | Aqar/Real Estate | `app/api/aqar/**`, `app/api/properties/**`, `app/api/real-estate/**`, `lib/listings/**`, `lib/bookings/**`, `lib/tenants/**`, `lib/landlords/**`, `lib/contracts/**`, `lib/geo/**` |
+| AGENT-005 | Windsurf | HR/Payroll | `app/api/hr/**`, `app/api/payroll/**`, `app/api/employees/**`, `lib/attendance/**`, `lib/leaves/**`, `lib/salaries/**`, `lib/benefits/**`, `app/api/recruitment/**` |
+| AGENT-006 | Reserved | Tests/Scripts | `tests/**`, `__tests__/**`, `scripts/**`, `cypress/**`, `playwright/**`, `.github/workflows/**`, `jest.config.*`, `vitest.config.*`, `*.test.ts`, `*.spec.ts` |
+
+### Domain-Based Issue Key Prefixes
+
+| Domain Match | Prefix | Example |
+|-------------|--------|---------|
+| `app/api/core/**`, `middleware/**`, `lib/auth/**` | CORE | CORE-00042 |
+| `app/api/finance/**`, `billing/**` | FM | FM-00123 |
+| `app/api/souq/**`, `marketplace/**` | SOUQ | SOUQ-00089 |
+| `app/api/aqar/**`, `real-estate/**` | AQAR | AQAR-00015 |
+| `app/api/hr/**`, `payroll/**` | HR | HR-00007 |
+| `tests/**`, `scripts/**`, `__tests__/**` | CORE | CORE-00099 |
+
+### Issue Category Routing Lookup
+
+| **Issue Category** | **Primary Agent** | **Secondary Agent** |
+|-------------------|------------------|-------------------|
+| Authentication failures | AGENT-001 | — |
+| Payment processing errors | AGENT-002 | AGENT-001 |
+| Product catalog bugs | AGENT-003 | — |
+| Property listing issues | AGENT-004 | — |
+| Payroll calculation errors | AGENT-005 | AGENT-002 |
+| Test failures | AGENT-006 | (domain agent) |
+| API rate limiting | AGENT-001 | — |
+| Database query performance | AGENT-001 | (domain agent) |
+| Multi-tenant isolation | AGENT-001 | — |
+| Cross-domain issues | AGENT-001 (coordinator) | (all affected) |
+
+### Routing Configuration (JSON Reference)
+```json
+{
+  "routingVersion": "2.6.0",
+  "defaultAgent": "AGENT-001",
+  "routingRules": [
+    {
+      "agent": "AGENT-001",
+      "priority": 100,
+      "patterns": ["app/api/core/**", "middleware/**", "lib/auth/**", "lib/session/**", "lib/middleware/**", "lib/errors/**", "lib/logging/**", "lib/config/**"],
+      "issueCategories": ["authentication", "authorization", "middleware", "cors", "rate-limiting", "error-handling", "logging"],
+      "capabilities": ["typescript", "nextjs", "middleware", "jwt", "oauth"]
+    },
+    {
+      "agent": "AGENT-002",
+      "priority": 90,
+      "patterns": ["app/api/finance/**", "app/api/billing/**", "lib/payments/**", "lib/invoices/**", "lib/tax/**", "lib/currency/**", "lib/stripe/**"],
+      "issueCategories": ["payments", "invoicing", "tax-calculation", "subscriptions", "refunds", "financial-reports"],
+      "capabilities": ["stripe-api", "tax-engines", "pdf-generation", "financial-calculations"]
+    },
+    {
+      "agent": "AGENT-003",
+      "priority": 90,
+      "patterns": ["app/api/souq/**", "app/api/marketplace/**", "lib/products/**", "lib/orders/**", "lib/cart/**", "lib/inventory/**", "lib/shipping/**"],
+      "issueCategories": ["product-catalog", "order-management", "inventory", "shipping", "vendor-management"],
+      "capabilities": ["e-commerce", "inventory-systems", "shipping-apis", "search-optimization"]
+    },
+    {
+      "agent": "AGENT-004",
+      "priority": 90,
+      "patterns": ["app/api/aqar/**", "app/api/properties/**", "lib/listings/**", "lib/bookings/**", "lib/contracts/**", "lib/geo/**"],
+      "issueCategories": ["property-listings", "bookings", "contracts", "tenant-management", "geolocation"],
+      "capabilities": ["real-estate-domain", "contract-generation", "map-apis", "booking-systems"]
+    },
+    {
+      "agent": "AGENT-005",
+      "priority": 90,
+      "patterns": ["app/api/hr/**", "app/api/payroll/**", "app/api/employees/**", "lib/attendance/**", "lib/leaves/**", "lib/salaries/**"],
+      "issueCategories": ["employee-management", "payroll", "attendance", "leave-management", "benefits"],
+      "capabilities": ["hr-systems", "payroll-calculations", "labor-law-compliance", "wps-integration"]
+    },
+    {
+      "agent": "AGENT-006",
+      "priority": 80,
+      "patterns": ["tests/**", "__tests__/**", "scripts/**", "cypress/**", "playwright/**", "*.test.ts", "*.spec.ts"],
+      "issueCategories": ["test-failures", "test-coverage", "e2e-tests", "ci-cd", "automation"],
+      "capabilities": ["jest", "vitest", "cypress", "playwright", "github-actions"]
+    }
+  ],
+  "conflictResolution": {
+    "strategy": "highest_priority_wins",
+    "tiebreaker": "first_pattern_match",
+    "multiDomainThreshold": 3
+  }
+}
+```
+
+### How to Apply Routing
+
+**Before claiming ANY issue:**
+1. Extract all `filePaths` from the issue
+2. For each file, apply routing rules (first pattern match wins)
+3. If ALL files route to same agent → that agent can claim
+4. If files route to MULTIPLE agents → requires AGENT-001 coordination
+5. If file matches NO pattern → defaults to AGENT-001
+
+---
+
+## ✅ Pre-Claim Validation Rules (5-Phase MANDATORY)
+
+Every agent MUST execute this checklist before claiming any work. **Skipping = AUTO-FAIL.**
+
+### PHASE 1: SSOT QUERY (Required)
+Execute before ANY claim attempt:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PHASE 1: SSOT QUERY                                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│  □ 1.1 Check existing assignment:                                       │
+│     db.issues.findOne({                                                 │
+│       issueKey: "<target_issue>",                                       │
+│       status: { $in: ["claimed", "in_progress"] },                      │
+│       "assignment.claimExpiresAt": { $gt: new Date() }                  │
+│     })                                                                  │
+│     → If result exists: ABORT, issue already claimed                    │
+│                                                                         │
+│  □ 1.2 Verify issue still open:                                         │
+│     db.issues.findOne({                                                 │
+│       issueKey: "<target_issue>",                                       │
+│       status: { $in: ["open", "triaged", "abandoned"] }                 │
+│     })                                                                  │
+│     → If no result: ABORT, issue no longer available                    │
+│                                                                         │
+│  □ 1.3 Check file overlap:                                              │
+│     db.issues.find({                                                    │
+│       filePaths: { $in: ["<files_in_target_issue>"] },                  │
+│       status: { $in: ["claimed", "in_progress"] },                      │
+│       issueKey: { $ne: "<target_issue>" }                               │
+│     })                                                                  │
+│     → If results exist: WARN, potential conflict with issues: [list]    │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### PHASE 2: DOMAIN VALIDATION (Required)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PHASE 2: DOMAIN VALIDATION                                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│  □ 2.1 File path authorization:                                         │
+│     For each file in issue.filePaths:                                   │
+│       - Apply routing rules from Agent Routing Table                    │
+│       - Verify MY_AGENT_ID matches suggestedAgent OR secondaryAgent     │
+│     → If mismatch: ABORT or request handoff to correct agent            │
+│                                                                         │
+│  □ 2.2 Capability verification:                                         │
+│     - Extract required capabilities from issue.type and issue.domain    │
+│     - Compare against MY_AGENT_CAPABILITIES                             │
+│     → If gap exists: Log capability gap, consider handoff               │
+│                                                                         │
+│  □ 2.3 Domain boundary check:                                           │
+│     - Count unique domains across all filePaths                         │
+│     → If > 1 domain AND I am not AGENT-001: Request coordinator         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### PHASE 3: RESOURCE VALIDATION (Required)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PHASE 3: RESOURCE VALIDATION                                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│  □ 3.1 Workload check:                                                  │
+│     db.issues.countDocuments({                                          │
+│       "assignment.agentId": MY_AGENT_ID,                                │
+│       status: { $in: ["claimed", "in_progress"] }                       │
+│     })                                                                  │
+│     → If count >= 3 (MAX_CONCURRENT_TASKS): ABORT, at capacity          │
+│                                                                         │
+│  □ 3.2 Rate limit check:                                                │
+│     - Verify API quota headroom for anticipated operations              │
+│     → If < 20% quota remaining: WARN, proceed with caution              │
+│                                                                         │
+│  □ 3.3 Session health check:                                            │
+│     - Verify VS Code extension host is responsive                       │
+│     - Verify no pending file locks from previous sessions               │
+│     → If unhealthy: ABORT and log diagnostics                           │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### PHASE 4: CONFLICT PREVENTION (Required)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PHASE 4: CONFLICT PREVENTION                                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│  □ 4.1 Content hash verification:                                       │
+│     db.issues.findOne({                                                 │
+│       contentHash: "<computed_hash>",                                   │
+│       issueKey: { $ne: "<target_issue>" }                               │
+│     })                                                                  │
+│     → If exists: ABORT, duplicate issue found: [issueKey]               │
+│                                                                         │
+│  □ 4.2 Branch name collision check:                                     │
+│     - Check if branch `fix/<issueKey>-*` already exists                 │
+│     → If exists: Use existing branch or generate unique suffix          │
+│                                                                         │
+│  □ 4.3 Stale state detection:                                           │
+│     - Compare local version with SSOT version                           │
+│     → If mismatch: Refresh local state before proceeding                │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### PHASE 5: ATOMIC CLAIM EXECUTION (Only after ALL phases pass)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PHASE 5: ATOMIC CLAIM EXECUTION                                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│  □ 5.1 Execute atomic claim (findOneAndUpdate with OCC):                │
+│     db.issues.findOneAndUpdate(                                         │
+│       {                                                                 │
+│         issueKey: "<target_issue>",                                     │
+│         status: { $in: ["open", "triaged", "abandoned"] },              │
+│         $or: [                                                          │
+│           { "assignment.claimToken": null },                            │
+│           { "assignment.claimExpiresAt": { $lt: new Date() } }          │
+│         ],                                                              │
+│         version: <expected_version>  // OCC check                       │
+│       },                                                                │
+│       {                                                                 │
+│         $set: {                                                         │
+│           status: "claimed",                                            │
+│           "assignment.agentId": MY_AGENT_ID,                            │
+│           "assignment.agentType": MY_AGENT_TYPE,                        │
+│           "assignment.claimedAt": new Date(),                           │
+│           "assignment.claimExpiresAt": new Date(+60min),                │
+│           "assignment.claimToken": crypto.randomUUID()                  │
+│         },                                                              │
+│         $inc: { version: 1 }                                            │
+│       },                                                                │
+│       { returnDocument: "after" }                                       │
+│     )                                                                   │
+│     → If null returned: Another agent claimed first, RETRY from Phase 1 │
+│                                                                         │
+│  □ 5.2 Log successful claim:                                            │
+│     - Record claim in agent's local log                                 │
+│     - Start heartbeat timer for claim renewal (every 30 min)            │
+│     - Begin work on issue                                               │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### FAILURE RECOVERY
+
+If claim fails at any phase:
+1. Log failure reason with full context
+2. Back off: Wait `random(1000, 5000)ms`
+3. Retry from Phase 1 (max 3 attempts)
+4. If all retries fail: Move to next issue in queue
 
 ---
 
@@ -1796,7 +2065,7 @@ PENDING_HANDOFF → ACCEPTED → IN_PROGRESS → COMPLETED
 
 ---
 
-## 🎯 Pending Backlog Extractor Protocol v2.5 (SSOT-Integrated)
+## 🎯 Pending Backlog Extractor Protocol v2.6 (SSOT-Integrated)
 
 ### Purpose
 This protocol enables any agent to parse `PENDING_MASTER.md` and produce a deduplicated backlog of unresolved items, ready for sprint planning and MongoDB SSOT import.
@@ -2026,6 +2295,320 @@ Flag patterns but do NOT create new tasks:
 
 ---
 
+## 🛡️ Crash Prevention & Conflict Mitigation
+
+### Purpose
+Prevent VS Code Exit Code 5 crashes and multi-agent conflicts through proactive resource management and coordination.
+
+### Resource Limits (ENFORCED)
+
+| Resource | Limit | Action on Breach |
+|----------|-------|------------------|
+| Git worktrees | 1 (main only) | Abort new worktree creation |
+| Active agents per workspace | 2 | Queue additional agents |
+| Memory per agent | 500MB | Pause and wait for cleanup |
+| Concurrent file edits | 1 per file | Lock conflict → lower ID wins |
+| Claim TTL | 60 minutes | Auto-release on expiry |
+| Heartbeat interval | 30 minutes | Missed → claim expires |
+
+### Pre-Session Health Check (EVERY Agent Start)
+
+```bash
+# Run before claiming any work:
+echo "=== Agent Pre-Session Health Check ===" && \
+git worktree list | wc -l && \
+cat /tmp/agent-assignments.json 2>/dev/null | jq '.agents | length' && \
+git status --porcelain | wc -l && \
+free -m 2>/dev/null || vm_stat | grep "Pages free" && \
+echo "=== Health Check Complete ==="
+```
+
+### Crash Recovery Protocol
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  CRASH RECOVERY (Execute on VS Code restart after Exit Code 5)         │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. □ Clean up orphaned worktrees:                                      │
+│       git worktree list | grep -v "main" | xargs git worktree remove    │
+│                                                                         │
+│  2. □ Clear stale locks:                                                │
+│       rm -f /tmp/agent-assignments.json                                 │
+│       # or update with expired entries removed                          │
+│                                                                         │
+│  3. □ Check for uncommitted changes:                                    │
+│       git status --porcelain                                            │
+│       → If changes exist: Stash or commit immediately                   │
+│                                                                         │
+│  4. □ Verify MongoDB SSOT:                                              │
+│       db.issues.updateMany(                                             │
+│         { "assignment.claimExpiresAt": { $lt: new Date() } },           │
+│         { $set: { status: "abandoned", "assignment.claimToken": null }} │
+│       )                                                                 │
+│                                                                         │
+│  5. □ Restart with single agent only                                    │
+│       → Wait 5 minutes before adding second agent                       │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### File Locking Strategy
+
+**Optimistic Concurrency Control (OCC):**
+```javascript
+// Before editing any file:
+const fileVersion = await db.fileLocks.findOne({ path: filePath });
+const expectedVersion = fileVersion?.version || 0;
+
+// After editing, atomic update:
+const result = await db.fileLocks.findOneAndUpdate(
+  { path: filePath, version: expectedVersion },
+  { 
+    $set: { 
+      lockedBy: MY_AGENT_ID,
+      lockedAt: new Date(),
+      version: expectedVersion + 1 
+    }
+  },
+  { upsert: true, returnDocument: 'after' }
+);
+
+if (!result) {
+  // Conflict detected - another agent modified the file
+  // ABORT and re-read file before retry
+}
+```
+
+### Agent Session Cleanup (On Exit)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  AGENT EXIT CLEANUP (MANDATORY before closing session)                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. □ Commit or stash all changes                                       │
+│  2. □ Push to remote (if PR exists)                                     │
+│  3. □ Release all file locks in MongoDB                                 │
+│  4. □ Update /tmp/agent-assignments.json → status: "inactive"           │
+│  5. □ Update SSOT: status → "abandoned" for unfinished claims           │
+│  6. □ Log exit summary to PENDING_MASTER.md                             │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Conflict Resolution Matrix
+
+| Conflict Type | Detection | Resolution |
+|---------------|-----------|------------|
+| Same file, same line | Git merge conflict | Lower agent ID wins; other agent re-reads |
+| Same file, different lines | Git can auto-merge | Proceed with warning |
+| Same issue claimed | MongoDB version mismatch | First claim wins (OCC) |
+| Memory exhaustion | System monitor | Oldest agent pauses first |
+| Deadlock (mutual wait) | Timeout (5 min) | Both agents abort, escalate |
+
+### Real-Time Coordination Signals
+
+**Use these signals in agent announcements:**
+
+| Signal | Meaning | Action Required |
+|--------|---------|-----------------|
+| `[CLAIMING]` | About to claim issue | Other agents: check overlap |
+| `[EDITING:file.ts]` | Modifying specific file | Other agents: skip this file |
+| `[BLOCKED:ISSUE-ID]` | Waiting for another issue | May need handoff |
+| `[RELEASING]` | Finishing work, releasing locks | Other agents: can now claim |
+| `[CRASHED]` | Unexpected termination | Run crash recovery protocol |
+
+---
+
+## 📊 MongoDB Issue Tracker SSOT Schema
+
+### Purpose
+This schema defines the authoritative structure for all issues in the Fixzit Issue Tracker. All agents MUST conform to this schema when creating or updating issues.
+
+### Issue Document Schema
+
+```typescript
+interface IssueDocument {
+  // Identity
+  _id: ObjectId;
+  tenantId: ObjectId;                    // Multi-tenant isolation
+  issueKey: string;                      // Format: ^(FM|SOUQ|AQAR|HR|CORE)-[0-9]{5}$
+  version: number;                       // OCC version, starts at 1
+  
+  // Core Fields
+  title: string;                         // Required, max 200 chars
+  description: string;                   // Detailed description
+  category: IssueCategory;               // See enum below
+  priority: Priority;                    // P0 | P1 | P2 | P3
+  status: IssueStatus;                   // See enum below
+  
+  // Location & Evidence
+  filePaths: string[];                   // Affected files
+  location: string;                      // Primary file:line
+  evidenceSnippet: string;               // ≤25 words
+  sourceRef: string;                     // Where discovered
+  contentHash: string;                   // SHA256 for deduplication
+  
+  // Classification
+  riskTags: RiskTag[];                   // SECURITY, MULTI-TENANT, etc.
+  domain: Domain;                        // FM, SOUQ, AQAR, HR, CORE
+  effort: EffortSize;                    // XS, S, M, L, XL, ?
+  impact: number;                        // 1-10 computed score
+  impactBasis: string;                   // Why this impact score
+  sprintBucket: SprintBucket;            // This Sprint, Next Sprint, Backlog
+  
+  // Agent Coordination
+  assignment: {
+    agentId: string | null;              // [AGENT-XXX-Y]
+    agentType: AgentType | null;         // VSCode, Claude, Codex, etc.
+    suggestedAgent: string;              // From routing rules
+    claimedAt: Date | null;
+    claimExpiresAt: Date | null;         // TTL: 60 minutes
+    claimToken: string | null;           // UUID for OCC
+    heartbeatAt: Date | null;            // Last heartbeat
+  };
+  
+  // Resolution
+  resolution: {
+    resolvedAt: Date | null;
+    resolvedBy: string | null;           // [AGENT-XXX-Y]
+    prNumber: number | null;
+    commitHash: string | null;
+    verifiedAt: Date | null;
+    verifiedBy: string | null;
+  };
+  
+  // Relationships
+  dependencies: string[];                // Other issueKeys this blocks on
+  blockedBy: string[];                   // Issues blocking this one
+  relatedIssues: string[];               // Related but not blocking
+  duplicateOf: string | null;            // If marked as duplicate
+  
+  // Metadata
+  mentionCount: number;                  // Times mentioned in extraction
+  firstSeen: Date;
+  lastSeen: Date;
+  createdAt: Date;
+  createdBy: string;                     // [AGENT-XXX-Y]
+  updatedAt: Date;
+  updatedBy: string;
+  
+  // Audit Trail
+  events: IssueEvent[];
+}
+
+// Enums
+type IssueCategory = 
+  | 'bug' | 'logic' | 'tests' | 'security' 
+  | 'refactor' | 'ops' | 'enhancement' 
+  | 'feature' | 'automation' | 'performance';
+
+type Priority = 'P0' | 'P1' | 'P2' | 'P3';
+
+type IssueStatus = 
+  | 'open' | 'triaged' | 'claimed' | 'in_progress'
+  | 'blocked' | 'resolved' | 'verified' 
+  | 'closed' | 'abandoned' | 'duplicate';
+
+type RiskTag = 
+  | 'SECURITY' | 'MULTI-TENANT' | 'FINANCIAL' 
+  | 'TEST-GAP' | 'PERF' | 'INTEGRATION' | 'DATA';
+
+type Domain = 'FM' | 'SOUQ' | 'AQAR' | 'HR' | 'CORE';
+
+type EffortSize = 'XS' | 'S' | 'M' | 'L' | 'XL' | '?';
+
+type SprintBucket = 'This Sprint' | 'Next Sprint' | 'Backlog';
+
+type AgentType = 
+  | 'vscode-copilot' | 'claude-code' | 'codex' 
+  | 'cursor' | 'windsurf' | 'reserved';
+
+interface IssueEvent {
+  type: EventType;
+  timestamp: Date;
+  by: string;                            // [AGENT-XXX-Y]
+  from?: string;                         // Previous value
+  to?: string;                           // New value
+  note?: string;                         // Additional context
+}
+
+type EventType = 
+  | 'CREATED' | 'UPDATED' | 'STATUS_CHANGED' 
+  | 'CLAIMED' | 'RELEASED' | 'HANDOFF_CREATED'
+  | 'HANDOFF_ACCEPTED' | 'RESOLVED' | 'VERIFIED' 
+  | 'COMMENTED' | 'LINKED' | 'SYNCED';
+```
+
+### Required Indexes
+
+```javascript
+// Create these indexes for optimal query performance:
+db.issues.createIndex({ tenantId: 1, issueKey: 1 }, { unique: true });
+db.issues.createIndex({ tenantId: 1, status: 1 });
+db.issues.createIndex({ tenantId: 1, "assignment.agentId": 1, status: 1 });
+db.issues.createIndex({ tenantId: 1, "assignment.claimExpiresAt": 1 });
+db.issues.createIndex({ tenantId: 1, contentHash: 1 });
+db.issues.createIndex({ tenantId: 1, filePaths: 1 });
+db.issues.createIndex({ tenantId: 1, priority: 1, status: 1 });
+db.issues.createIndex({ tenantId: 1, domain: 1, status: 1 });
+
+// TTL index for automatic claim expiration
+db.issues.createIndex(
+  { "assignment.claimExpiresAt": 1 },
+  { expireAfterSeconds: 0, partialFilterExpression: { status: "claimed" } }
+);
+```
+
+### Issue Key Generation
+
+```javascript
+async function generateIssueKey(domain: Domain, tenantId: ObjectId): Promise<string> {
+  const prefix = domain; // FM, SOUQ, AQAR, HR, CORE
+  
+  // Atomic counter increment
+  const counter = await db.counters.findOneAndUpdate(
+    { _id: `${tenantId}_${prefix}` },
+    { $inc: { seq: 1 } },
+    { upsert: true, returnDocument: 'after' }
+  );
+  
+  const num = counter.seq.toString().padStart(5, '0');
+  return `${prefix}-${num}`; // e.g., FM-00123
+}
+```
+
+### Validation Rules
+
+```javascript
+const issueValidation = {
+  $jsonSchema: {
+    bsonType: "object",
+    required: ["tenantId", "issueKey", "title", "category", "priority", "status", "version"],
+    properties: {
+      issueKey: {
+        bsonType: "string",
+        pattern: "^(FM|SOUQ|AQAR|HR|CORE)-[0-9]{5}$"
+      },
+      title: {
+        bsonType: "string",
+        maxLength: 200
+      },
+      evidenceSnippet: {
+        bsonType: "string",
+        maxLength: 150  // ~25 words
+      },
+      version: {
+        bsonType: "int",
+        minimum: 1
+      },
+      "assignment.claimExpiresAt": {
+        bsonType: ["date", "null"]
+      }
+    }
+  }
+};
+```
+
+---
+
 ## Manual chat prompt (when not using /fixzit-audit)
 Audit the selected/open files and Problems panel items using the Fixzit Evidence Protocol:
 1) Build an Issues Ledger (source + verbatim message + file+lines).
@@ -2062,4 +2645,4 @@ Examples:
 
 ---
 
-END OF AGENTS.md v5.5
+END OF AGENTS.md v5.6
