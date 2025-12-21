@@ -28,7 +28,11 @@
     "Before blaming missing env var - verify in BOTH GitHub Secrets AND Vercel",
     "If env var is truly missing - report which platform(s) need it",
     "Always use error codes [FIXZIT-MODULE-NNN] for traceability",
-    "Never swallow errors - always log with context and error code"
+    "Never swallow errors - always log with context and error code",
+    "NEVER force merge PRs - address ALL comments first",
+    "ALL PR comments must be resolved before merge",
+    "If GitHub CI fails due to billing - run ALL tests locally first",
+    "Zero error tolerance - 100% tests pass, 0 skips, 0 errors"
   ],
 
   "eslint.enable": true,

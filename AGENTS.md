@@ -769,7 +769,153 @@ gh pr list --author @me              # Verify PR created
 
 ---
 
-## 📋 SSOT Chat History Analysis + Backlog Sync Protocol (v2.0)
+## � PR Review Protocol (MANDATORY — ZERO FORCE MERGE TOLERANCE)
+
+### ⛔ NEVER Force Merge (AUTO-FAIL)
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  FORBIDDEN PR ACTIONS (AUTO-FAIL — IMMEDIATE ESCALATION)               │
+├─────────────────────────────────────────────────────────────────────────┤
+│  ❌ Force merging with unresolved comments                              │
+│  ❌ Dismissing review comments without addressing them                  │
+│  ❌ Merging with failing CI checks                                      │
+│  ❌ Merging with "skip" or "fixme" comments unresolved                  │
+│  ❌ Merging without waiting for required reviewers                      │
+│  ❌ Bypassing branch protection rules                                   │
+│  ❌ Using admin override to merge blocked PRs                           │
+│  ❌ Closing and reopening PR to clear review state                      │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### PR Review Checklist (BEFORE Merge)
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PR MERGE GATE CHECKLIST (ALL items MUST be ✅)                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. □ ALL review comments addressed (replied or resolved)               │
+│  2. □ ALL conversations marked as resolved                              │
+│  3. □ ALL requested changes implemented                                 │
+│  4. □ CI/CD pipeline passes (ALL checks green)                          │
+│  5. □ No "Changes requested" reviews pending                            │
+│  6. □ Required approvals received                                       │
+│  7. □ No merge conflicts                                                │
+│  8. □ Branch is up to date with main                                    │
+│  9. □ All linked issues updated                                         │
+│ 10. □ SSOT sync completed (MongoDB + PENDING_MASTER.md)                 │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Comment Resolution Protocol
+**For EVERY PR comment, agent MUST:**
+1. **READ** the comment carefully
+2. **UNDERSTAND** what is being requested
+3. **IMPLEMENT** the requested change (or provide justification why not)
+4. **REPLY** to the comment explaining what was done
+5. **MARK** as resolved only after reviewer confirms
+
+**If you disagree with a comment:**
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  DO NOT ignore or dismiss — instead:                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. Reply with your reasoning                                           │
+│  2. Cite documentation, standards, or evidence                          │
+│  3. Propose alternative solution if applicable                          │
+│  4. Wait for reviewer response                                          │
+│  5. Escalate to Eng. Sultan if no consensus after 2 exchanges           │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔧 CI/CD Build Protocol (ZERO ERROR TOLERANCE)
+
+### ⛔ CI Failure Handling (MANDATORY)
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  CI BUILD RULES (NON-NEGOTIABLE)                                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│  ✅ ALL tests must pass — 100% green, no exceptions                    │
+│  ✅ Zero skipped tests — every skip MUST be removed or justified       │
+│  ✅ Zero TypeScript errors — not even 1 is acceptable                  │
+│  ✅ Zero ESLint warnings — warnings are treated as errors              │
+│  ✅ Build must complete successfully                                    │
+│  ❌ NO merging with failing CI — not even "flaky" tests                │
+│  ❌ NO skipping tests to make CI pass                                  │
+│  ❌ NO ignoring "billing" or quota errors — they MUST be fixed         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### GitHub Billing/Quota Issues Protocol
+**If GitHub Actions fails due to billing or quota issues:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  🔴 GITHUB BILLING/QUOTA FAILURE PROTOCOL                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│  DO NOT:                                                                │
+│  ❌ Skip CI and merge anyway                                            │
+│  ❌ Assume tests pass without running them                              │
+│  ❌ Claim "CI was green before"                                         │
+│                                                                         │
+│  MUST DO INSTEAD:                                                       │
+│  1. □ Run ALL tests locally: pnpm vitest run --reporter=verbose         │
+│  2. □ Run typecheck locally: pnpm typecheck                             │
+│  3. □ Run lint locally: pnpm lint                                       │
+│  4. □ Run build locally: pnpm build                                     │
+│  5. □ Capture FULL output as evidence                                   │
+│  6. □ Only proceed if 100% pass locally (0 errors, 0 skips)             │
+│  7. □ Add evidence to PR description:                                   │
+│       "Local CI verification (GitHub quota exceeded):                   │
+│        - vitest: ✅ X/X passed, 0 skipped                               │
+│        - typecheck: ✅ 0 errors                                         │
+│        - lint: ✅ 0 warnings                                            │
+│        - build: ✅ success"                                             │
+│  8. □ Notify Eng. Sultan about GitHub billing status                    │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Local CI Verification Commands
+```bash
+# Run BEFORE merging if GitHub CI is unavailable:
+echo "=== VITEST ===" && pnpm vitest run --reporter=verbose 2>&1 | tee /tmp/ci-vitest.log
+echo "=== TYPECHECK ===" && pnpm typecheck 2>&1 | tee /tmp/ci-typecheck.log
+echo "=== LINT ===" && pnpm lint 2>&1 | tee /tmp/ci-lint.log
+echo "=== BUILD ===" && pnpm build 2>&1 | tee /tmp/ci-build.log
+
+# Verify all passed:
+grep -E "FAIL|ERROR|error|failed" /tmp/ci-*.log && echo "❌ FAILURES FOUND" || echo "✅ ALL PASSED"
+
+# Count test results:
+grep -E "Tests:" /tmp/ci-vitest.log
+```
+
+### Test Failure Recovery Protocol
+**If ANY test fails:**
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  TEST FAILURE PROTOCOL (MANDATORY)                                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. □ STOP — Do not proceed with merge                                  │
+│  2. □ ANALYZE — Read the full error message and stack trace             │
+│  3. □ IDENTIFY — Find root cause in code (not test)                     │
+│  4. □ FIX — Fix the actual code bug (not the test assertion)            │
+│  5. □ RUN — Re-run ALL tests (not just the fixed one)                   │
+│  6. □ VERIFY — Confirm 100% pass rate                                   │
+│  7. □ COMMIT — Include fix in PR with explanation                       │
+│                                                                         │
+│  DO NOT:                                                                │
+│  ❌ Skip the failing test                                               │
+│  ❌ Add .skip() to make it pass                                         │
+│  ❌ Modify test assertion to match wrong behavior                       │
+│  ❌ Delete the test                                                     │
+│  ❌ Claim "test is flaky" without evidence                              │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## �📋 SSOT Chat History Analysis + Backlog Sync Protocol (v2.0)
 
 ### SSOT RULE (NON-NEGOTIABLE)
 - **MongoDB Issue Tracker** = ONLY Single Source of Truth (SSOT)
