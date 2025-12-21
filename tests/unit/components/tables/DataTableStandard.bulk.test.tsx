@@ -4,7 +4,7 @@
  */
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { DataTableStandard, BulkAction } from "@/components/tables/DataTableStandard";
 
 interface TestRow {
@@ -154,7 +154,6 @@ describe("DataTableStandard Bulk Selection", () => {
 
   it("clears selection after bulk action", async () => {
     const onDelete = vi.fn();
-    const onSelectionChange = vi.fn();
     const bulkActions: BulkAction<TestRow>[] = [
       { id: "delete", label: "Delete", onAction: onDelete },
     ];
@@ -165,7 +164,6 @@ describe("DataTableStandard Bulk Selection", () => {
         data={mockData}
         selectable
         bulkActions={bulkActions}
-        onSelectionChange={onSelectionChange}
       />
     );
 
@@ -173,11 +171,19 @@ describe("DataTableStandard Bulk Selection", () => {
     const checkboxes = screen.getAllByRole("checkbox");
     fireEvent.click(checkboxes[1]);
 
+    // Verify toolbar is showing
+    expect(screen.getByText("1 selected")).toBeInTheDocument();
+
     // Execute action
     fireEvent.click(screen.getByText("Delete"));
 
-    // Selection should be cleared
-    expect(onSelectionChange).toHaveBeenLastCalledWith([]);
+    // Action should have been called with selected rows
+    expect(onDelete).toHaveBeenCalledWith([mockData[0]]);
+    
+    // Toolbar should disappear (selection cleared) - need to wait for async
+    await waitFor(() => {
+      expect(screen.queryByText("1 selected")).toBeNull();
+    });
   });
 
   it("clears selection when Clear button is clicked", () => {
