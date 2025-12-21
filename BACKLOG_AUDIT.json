@@ -191,16 +191,17 @@
     {
       "key": "FEATURE-001",
       "externalId": "FEATURE-001",
-      "title": "Real-time notifications system (WebSocket/SSE)",
+      "title": "Real-time notifications system (SSE)",
       "category": "feature",
       "priority": "P0",
-      "status": "open",
+      "status": "deferred",
       "effort": "L",
-      "location": "lib/websocket/server.ts (NEW)",
+      "location": "lib/sse/server.ts (NEW)",
       "sourcePath": "AI_IMPROVEMENT_ANALYSIS_REPORT.md",
       "sourceRef": "analysis:AI_IMPROVEMENT_ANALYSIS_REPORT.md:feature-001",
-      "evidenceSnippet": "Polling-based updates cause high load",
-      "description": "Implement WebSocket for instant work order assignments, real-time chat, live dashboards; 90% reduction in polling traffic"
+      "evidenceSnippet": "ADR-001 recommends SSE over WebSocket",
+      "description": "Implement SSE for instant work order assignments, real-time chat, live dashboards; 90% reduction in polling traffic",
+      "deferredReason": "Waiting on ADR-001 decision; target Q1 2026"
     },
     {
       "key": "FEATURE-002",
