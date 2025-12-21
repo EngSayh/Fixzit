@@ -35,14 +35,27 @@ jobs:
           CI: "true"
         run: pnpm tsx scripts/assert-nonprod-mongo.ts
 
-      - name: 🧪 Skip governance (.only hard-fail)
+      - name: 🧪 Skip governance (.only hard-fail + skip baseline cap)
         run: |
-          echo "Checking for .only() that would skip other tests..."
+          echo "=== Checking for .only() ==="
           if rg -n "\.(only)\(" tests app server lib 2>/dev/null; then
             echo "❌ Found .only() - this would skip other tests!"
             exit 1
           fi
           echo "✅ No .only() found"
+
+          echo ""
+          echo "=== Skip baseline cap check ==="
+          SKIP_BASELINE=470
+          SKIP_COUNT=$(rg -c "describe\.skip\(|it\.skip\(|test\.skip\(" tests 2>/dev/null | awk -F: '{sum+=$2} END {print sum}')
+          echo "Current skip count: ${SKIP_COUNT:-0}"
+          echo "Baseline: $SKIP_BASELINE"
+          if [ "${SKIP_COUNT:-0}" -gt "$SKIP_BASELINE" ]; then
+            echo "❌ Skip count ($SKIP_COUNT) exceeds baseline ($SKIP_BASELINE)!"
+            echo "If you need to add skips, increase the baseline in qa.yml with justification."
+            exit 1
+          fi
+          echo "✅ Skip count within baseline"
 
       - name: Critical env guard
         run: pnpm run guard:ci:critical
