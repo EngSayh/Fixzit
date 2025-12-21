@@ -9,12 +9,13 @@
       "title": "Refactor Aqar SearchFilters to standard filter components",
       "category": "refactor",
       "priority": "P3",
-      "status": "in_progress",
+      "status": "resolved",
+      "resolution": "Created SearchFiltersNew.tsx using FacetMultiSelect, NumericRangeFilter, useTableQueryState - 2025-12-21",
       "effort": "M",
-      "location": "components/aqar/SearchFilters.tsx",
+      "location": "components/aqar/SearchFiltersNew.tsx",
       "sourcePath": "docs/PENDING_MASTER.md",
       "sourceRef": "pending-master:docs/PENDING_MASTER.md:10-13",
-      "evidenceSnippet": "751 lines custom filters",
+      "evidenceSnippet": "Uses FacetMultiSelect, NumericRangeFilter, useTableQueryState, URL sync",
       "description": "Standardize Aqar filters using shared FacetMultiSelect components"
     },
     {

@@ -34,6 +34,11 @@ describe("List Components Integration - Static Analysis", () => {
     { name: "ProductsList", path: "marketplace/ProductsList.tsx" },
   ];
 
+  // Components that should use standard filter components
+  const filterComponents = [
+    { name: "SearchFiltersNew", path: "aqar/SearchFiltersNew.tsx" },
+  ];
+
   describe("DataTableStandard Usage", () => {
     listComponents.forEach(({ name, path }) => {
       const fullPath = join(componentsRoot, path);
@@ -100,6 +105,25 @@ describe("List Components Integration - Static Analysis", () => {
       const source = readFileSync(join(componentsRoot, "marketplace/ProductsList.tsx"), "utf-8");
       // Should have view mode state or responsive rendering
       expect(source).toMatch(/viewMode|isMobile|CardList|useMediaQuery/);
+    });
+  });
+
+  describe("Aqar SearchFiltersNew - Standard Components", () => {
+    const filterPath = join(componentsRoot, "aqar/SearchFiltersNew.tsx");
+
+    it("should use FacetMultiSelect for multi-select filters", () => {
+      const source = readFileSync(filterPath, "utf-8");
+      expect(source).toContain("FacetMultiSelect");
+    });
+
+    it("should use NumericRangeFilter for price/area ranges", () => {
+      const source = readFileSync(filterPath, "utf-8");
+      expect(source).toContain("NumericRangeFilter");
+    });
+
+    it("should use useTableQueryState for URL sync", () => {
+      const source = readFileSync(filterPath, "utf-8");
+      expect(source).toContain("useTableQueryState");
     });
   });
 });

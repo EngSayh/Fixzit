@@ -426,6 +426,11 @@
 			"label": "Find Large Files v3",
 			"type": "shell",
 			"command": "node scripts/find-large-files.js"
+		},
+		{
+			"label": "Full Validation",
+			"type": "shell",
+			"command": "CI=true pnpm vitest run --project=server --reporter=basic 2>&1 | tail -30"
 		}
 	]
 }

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2025-12-17T20:30:00Z",
-  "source": "AI_IMPROVEMENT_ANALYSIS_REPORT.md + PENDING_MASTER.md + latest code review",
+  "generatedAt": "2025-12-21T09:30:00Z",
+  "source": "AI_IMPROVEMENT_ANALYSIS_REPORT.md + PENDING_MASTER.md + latest code review + Copilot audit 2025-12-21",
   "issues": [
     {
       "key": "P3-AQAR-FILTERS",
@@ -20,91 +20,98 @@
       "title": "Migrate Souq Products list to DataTableStandard with filters",
       "category": "refactor",
       "priority": "P3",
-      "status": "in_progress",
+      "status": "resolved",
       "effort": "M",
       "location": "components/marketplace/ProductsList.tsx",
       "sourcePath": "docs/PENDING_MASTER.md",
       "sourceRef": "pending-master:docs/PENDING_MASTER.md:10-13",
-      "evidenceSnippet": "placeholder list needs migration",
-      "description": "Replace with DataTableStandard + filters + CardList mobile view"
+      "evidenceSnippet": "Uses DataTableStandard (L24), FacetMultiSelect (L29), useTableQueryState (L36)",
+      "description": "Replace with DataTableStandard + filters + CardList mobile view",
+      "resolution": "Verified 2025-12-21: Component uses DataTableStandard, FacetMultiSelect, NumericRangeFilter, useTableQueryState"
     },
     {
       "key": "P3-LIST-INTEGRATION-TESTS",
       "title": "Add integration tests for 12 list components across roles",
       "category": "missing_test",
       "priority": "P3",
-      "status": "in_progress",
+      "status": "resolved",
       "effort": "L",
       "location": "tests/integration/list-components.integration.test.ts",
       "sourcePath": "docs/PENDING_MASTER.md",
       "sourceRef": "pending-master:docs/PENDING_MASTER.md:10-13",
-      "evidenceSnippet": "12 list components need role-based tests",
-      "description": "Cover WorkOrders, Users, Roles, AuditLogs, Employees, LeaveRequests, Invoices, Products, Properties with integration tests"
+      "evidenceSnippet": "22 tests passing",
+      "description": "Cover WorkOrders, Users, Roles, AuditLogs, Employees, LeaveRequests, Invoices, Products, Properties with integration tests",
+      "resolution": "Verified 2025-12-21: 22/22 tests pass (vitest run tests/integration/list-components.integration.test.ts)"
     },
     {
       "key": "BUG-WO-FILTERS-MISSING",
       "title": "WorkOrdersViewNew filters not wired to query params",
       "category": "bug",
       "priority": "P2",
-      "status": "open",
+      "status": "resolved",
       "effort": "S",
       "location": "components/fm/WorkOrdersViewNew.tsx",
       "sourcePath": "code-review",
       "sourceRef": "code-review:components/fm/WorkOrdersViewNew.tsx:149-153",
-      "evidenceSnippet": "const { status, ...rest } destructured but not applied",
-      "description": "Filter values (status, overdue, assignedTo) destructured but never added to query params; filters appear to work but don't filter results"
+      "evidenceSnippet": "serializeFilters() on line 189",
+      "description": "Filter values (status, overdue, assignedTo) destructured but never added to query params; filters appear to work but don't filter results",
+      "resolution": "Verified 2025-12-21: serializeFilters(state.filters, WORK_ORDER_FILTER_SCHEMA, params) on line 189"
     },
     {
       "key": "BUG-USERS-FILTERS-MISSING",
       "title": "UsersList filters not wired to query params",
       "category": "bug",
       "priority": "P2",
-      "status": "open",
+      "status": "resolved",
       "effort": "S",
       "location": "components/administration/UsersList.tsx",
       "sourcePath": "code-review",
       "sourceRef": "code-review:components/administration/UsersList.tsx:107-113",
-      "evidenceSnippet": "inactiveDays, lastLogin filters destructured but unused",
-      "description": "Filter state exists but not applied to API query"
+      "evidenceSnippet": "serializeFilters() on line 127",
+      "description": "Filter state exists but not applied to API query",
+      "resolution": "Verified 2025-12-21: serializeFilters(state.filters, USER_FILTER_SCHEMA, params) on line 127"
     },
     {
       "key": "BUG-EMPLOYEES-FILTERS-MISSING",
       "title": "EmployeesList filters not wired to query params",
       "category": "bug",
       "priority": "P2",
-      "status": "open",
+      "status": "resolved",
       "effort": "S",
       "location": "components/hr/EmployeesList.tsx",
       "sourcePath": "code-review",
       "sourceRef": "code-review:components/hr/EmployeesList.tsx:112-116",
-      "evidenceSnippet": "joiningDate, reviewDue filters destructured but unused",
-      "description": "Date filters in UI but not applied to backend query"
+      "evidenceSnippet": "serializeFilters() on line 137",
+      "description": "Date filters in UI but not applied to backend query",
+      "resolution": "Verified 2025-12-21: serializeFilters(state.filters, EMPLOYEE_FILTER_SCHEMA, params) on line 137"
     },
     {
       "key": "BUG-INVOICES-FILTERS-MISSING",
       "title": "InvoicesList filters not wired to query params",
       "category": "bug",
       "priority": "P2",
-      "status": "open",
+      "status": "resolved",
       "effort": "S",
       "location": "components/finance/InvoicesList.tsx",
       "sourcePath": "code-review",
       "sourceRef": "code-review:components/finance/InvoicesList.tsx:111-116",
-      "evidenceSnippet": "dateRange, customer filters destructured but unused",
-      "description": "Filter chips show but query ignores them"
+      "evidenceSnippet": "serializeFilters() on line 170",
+      "description": "Filter chips show but query ignores them",
+      "resolution": "Verified 2025-12-21: serializeFilters(state.filters, INVOICE_FILTER_SCHEMA, params) on line 170"
     },
     {
       "key": "BUG-AUDITLOGS-FILTERS-MISSING",
       "title": "AuditLogsList filters not wired to query params",
       "category": "bug",
       "priority": "P2",
-      "status": "open",
+      "status": "resolved",
       "effort": "S",
       "location": "components/administration/AuditLogsList.tsx",
       "sourcePath": "code-review",
       "sourceRef": "code-review:components/administration/AuditLogsList.tsx:108-114",
-      "evidenceSnippet": "dateRange, action filters destructured but unused",
-      "description": "Audit log filtering not functional"
+      "evidenceSnippet": "serializeFilters() on line 130",
+      "description": "Audit log filtering not functional",
+      "resolution": "Verified 2025-12-21: serializeFilters(state.filters, AUDIT_FILTER_SCHEMA, params) on line 130"
     },
     {
       "key": "PERF-001",
