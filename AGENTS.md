@@ -828,6 +828,160 @@ gh pr list --author @me              # Verify PR created
 
 ---
 
+## 🎯 Code Quality Standards (SYSTEM-AWARE — MANDATORY)
+
+### Fixzit System Context (AGENTS MUST KNOW THIS)
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  🏢 FIXZIT ECOSYSTEM — AGENT MUST BE AWARE                             │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Modules:                                                               │
+│  ├─ Fixzit FM (Facility Management) — Work orders, properties, teams   │
+│  ├─ Fixzit Souq (Marketplace) — Products, orders, vendors              │
+│  ├─ Aqar (Real Estate) — Listings, packages, valuations                │
+│  ├─ Finance — Invoices, billing, ZATCA compliance                      │
+│  ├─ HR/Payroll — Employees, attendance, payroll                        │
+│  └─ System — Auth, orgs, users, settings                               │
+│                                                                         │
+│  Tech Stack:                                                            │
+│  ├─ Next.js 14+ App Router (NOT pages router)                          │
+│  ├─ TypeScript (strict mode)                                           │
+│  ├─ MongoDB Atlas + Mongoose                                           │
+│  ├─ Tailwind CSS + shadcn/ui                                           │
+│  ├─ next-intl (i18n) — RTL-first                                       │
+│  └─ Vitest + Playwright (testing)                                      │
+│                                                                         │
+│  Brand Tokens (ONLY these colors):                                      │
+│  ├─ Blue: #0061A8 (primary)                                            │
+│  ├─ Green: #00A859 (success)                                           │
+│  └─ Yellow: #FFB400 (warning)                                          │
+│                                                                         │
+│  Saudi Compliance:                                                      │
+│  ├─ ZATCA Phase 2 (e-invoicing)                                        │
+│  ├─ VAT 15% (standard rate)                                            │
+│  └─ Decimal128 for all money fields                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Code Quality Gates (CHECK BEFORE EVERY COMMIT)
+
+| Gate | Rule | Check Command |
+|------|------|---------------|
+| **Null Safety** | Every `?.` chain must have fallback or guard | `rg '\?\.' --type ts \| grep -v '?? \||| \|if ('` |
+| **RTL Support** | No hardcoded `left/right/ml-/mr-/pl-/pr-` | See RTL Class Mapping below |
+| **Theme Tokens** | No hardcoded hex colors outside token files | `rg '#[0-9a-fA-F]{6}' --type tsx \| grep -v 'tailwind\|tokens'` |
+| **Multi-Tenancy** | All queries scoped by `org_id` | `rg 'find\|findOne\|aggregate' app/api \| grep -v 'org_id\|orgId'` |
+| **Client Directive** | Hooks (useState/useEffect) need `'use client'` | `rg 'useState\|useEffect' app \| xargs grep -L "'use client'"` |
+| **Error Boundaries** | Try-catch for all async operations | `rg 'await ' --type ts \| grep -v 'try\|catch'` |
+
+### RTL Class Mapping (BANNED → REQUIRED)
+
+| ❌ BANNED (LTR-only) | ✅ REQUIRED (Logical) | Why |
+|---------------------|----------------------|-----|
+| `left-*` | `start-*` | RTL flips |
+| `right-*` | `end-*` | RTL flips |
+| `ml-*` | `ms-*` | Margin start |
+| `mr-*` | `me-*` | Margin end |
+| `pl-*` | `ps-*` | Padding start |
+| `pr-*` | `pe-*` | Padding end |
+| `text-left` | `text-start` | Text alignment |
+| `text-right` | `text-end` | Text alignment |
+| `float-left` | `float-start` | Float direction |
+| `float-right` | `float-end` | Float direction |
+| `border-l-*` | `border-s-*` | Border start |
+| `border-r-*` | `border-e-*` | Border end |
+| `rounded-l-*` | `rounded-s-*` | Rounded start |
+| `rounded-r-*` | `rounded-e-*` | Rounded end |
+
+**Scan for RTL violations:**
+```bash
+rg 'ml-|mr-|pl-|pr-|left-|right-|text-left|text-right|float-left|float-right' \
+   --type tsx --type ts -g '!*.test.*' -g '!node_modules' | wc -l
+```
+
+### System-Wide Pattern Scan (RUN BEFORE PR)
+
+```bash
+# 1. RTL violations (must be 0)
+echo "=== RTL Violations ===" && \
+rg '(ml|mr|pl|pr)-[0-9]|left-[0-9]|right-[0-9]|text-left|text-right' \
+   app components --type tsx -c 2>/dev/null | grep -v ':0$'
+
+# 2. Missing org_id scope (must be 0 for app/api)
+echo "=== Missing Tenant Scope ===" && \
+rg 'find\(|findOne\(|findById\(' app/api --type ts | grep -v 'org_id\|orgId' | head -10
+
+# 3. Hardcoded colors (must be 0 outside token files)
+echo "=== Hardcoded Colors ===" && \
+rg '#[0-9a-fA-F]{6}' app components --type tsx | grep -v 'tokens\|tailwind\.config' | head -10
+
+# 4. Missing 'use client' with hooks
+echo "=== Missing use client ===" && \
+for f in $(rg -l 'useState|useEffect|useContext' app components --type tsx); do
+  grep -L "'use client'" "$f" 2>/dev/null
+done | head -10
+
+# 5. Console.log in production code
+echo "=== Console.log ===" && \
+rg 'console\.log' app lib services --type ts -c 2>/dev/null | grep -v ':0$' | head -10
+```
+
+### PR Scorecard (100 Points — Minimum 85 to Merge)
+
+| Category | Points | Criteria |
+|----------|--------|----------|
+| **TypeScript** | 15 | 0 errors, 0 `any`, 0 `@ts-ignore` |
+| **ESLint** | 10 | 0 errors, 0 warnings |
+| **Tests** | 15 | All pass, coverage maintained |
+| **Tenant Scope** | 15 | All queries have `org_id` |
+| **RTL Support** | 10 | No banned classes |
+| **Theme Tokens** | 5 | No hardcoded colors |
+| **Error Handling** | 10 | Try-catch on all async, error codes |
+| **i18n** | 5 | No hardcoded user-facing strings |
+| **Security** | 10 | Input validation, XSS prevention |
+| **Documentation** | 5 | Comments for complex logic, JSDoc |
+| **TOTAL** | **100** | **≥85 required** |
+
+### Governance Invariants (MUST PRESERVE)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  🔒 UI GOVERNANCE (NEVER CHANGE WITHOUT APPROVAL)                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Header:                                                                │
+│  ├─ Logo MUST be Fixzit logo (not placeholder)                         │
+│  ├─ Language selector: ONE dropdown with flags                         │
+│  ├─ Currency selector: Present on ALL pages                            │
+│  └─ Theme toggle: Light/Dark mode                                      │
+│                                                                         │
+│  Sidebar:                                                               │
+│  ├─ Universal across ALL modules                                        │
+│  ├─ Collapsed mode MUST show hover tooltips                            │
+│  └─ Role-based menu filtering                                          │
+│                                                                         │
+│  Footer:                                                                │
+│  ├─ Universal across ALL pages                                         │
+│  ├─ Company logo + copyright                                           │
+│  └─ Matches Landing footer structure                                   │
+│                                                                         │
+│  Auth:                                                                  │
+│  ├─ Login page: Email + Password + Google + Apple buttons              │
+│  └─ Session: Always check orgId before any operation                   │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Saudi Compliance Checks (MANDATORY FOR FINANCE)
+
+| Check | Rule | Evidence Required |
+|-------|------|-------------------|
+| **ZATCA QR** | All invoices have ZATCA QR code | Screenshot of invoice with QR |
+| **VAT 15%** | Tax calculated at 15% | Test case showing calculation |
+| **Decimal128** | Money fields use Decimal128 | Schema inspection |
+| **Arabic Date** | Hijri calendar support | RTL date picker screenshot |
+| **SAR Currency** | Default currency is SAR | Settings verification |
+
+---
+
 ## 🔧 CI/CD Build Protocol (ZERO ERROR TOLERANCE)
 
 ### ⛔ CI Failure Handling (MANDATORY)
@@ -915,7 +1069,159 @@ grep -E "Tests:" /tmp/ci-vitest.log
 
 ---
 
-## �📋 SSOT Chat History Analysis + Backlog Sync Protocol (v2.0)
+## 🤖 Autonomous PR Review & Fix Protocol (VS Code Copilot)
+
+### Purpose
+When reviewing PRs or performing code quality checks, VS Code Copilot MUST autonomously execute a comprehensive review process without human intervention.
+
+### Execution Trigger
+This protocol runs automatically when:
+- Agent receives a PR review task
+- Agent completes code changes before creating PR
+- Agent is explicitly asked to review code quality
+
+### Phase 1: Initial Scan (AUTOMATED)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  AUTONOMOUS SCAN SEQUENCE                                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. □ Run: pnpm typecheck 2>&1 | tee /tmp/typecheck.log                │
+│  2. □ Run: pnpm lint 2>&1 | tee /tmp/lint.log                          │
+│  3. □ Run: pnpm vitest run --reporter=verbose 2>&1 | tee /tmp/test.log │
+│  4. □ Parse all outputs for errors/warnings                            │
+│  5. □ Collect file:line references for each issue                      │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Phase 2: Deep Code Review (PER FILE)
+
+For each modified file, agent MUST check:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  FILE-LEVEL REVIEW CHECKLIST                                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Security:                                                              │
+│  □ No XSS vulnerabilities (innerHTML without sanitization)             │
+│  □ No SQL/NoSQL injection (unsanitized user input in queries)          │
+│  □ No hardcoded secrets or API keys                                    │
+│  □ Input validation on all user-provided data                          │
+│                                                                         │
+│  Multi-Tenancy (API routes):                                           │
+│  □ All find/findOne/aggregate queries include org_id                   │
+│  □ Session check before any data access                                │
+│  □ RBAC enforcement where required                                     │
+│                                                                         │
+│  Error Handling:                                                        │
+│  □ All await calls wrapped in try-catch                                │
+│  □ Error responses include [FIXZIT-XXX-NNN] codes                      │
+│  □ No silent failures (catch blocks that swallow errors)               │
+│                                                                         │
+│  TypeScript:                                                            │
+│  □ No `any` types (use proper generics)                                │
+│  □ No `@ts-ignore` without justification comment                       │
+│  □ Proper null safety (?.  with fallbacks)                             │
+│                                                                         │
+│  UI/UX (Components):                                                    │
+│  □ RTL-safe classes (ms/me/ps/pe instead of ml/mr/pl/pr)               │
+│  □ Brand tokens only (no hardcoded colors)                             │
+│  □ i18n for all user-facing strings (no hardcoded text)                │
+│  □ 'use client' directive if using hooks                               │
+│                                                                         │
+│  Performance:                                                           │
+│  □ .lean() on read-only Mongoose queries                               │
+│  □ Proper indexing on frequently queried fields                        │
+│  □ No N+1 query patterns                                               │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Phase 3: Auto-Fix (WHEN POSSIBLE)
+
+Agent MUST attempt to fix these issues automatically:
+
+| Issue Type | Auto-Fix Action |
+|------------|-----------------|
+| Missing try-catch | Wrap await in try-catch with proper error code |
+| Missing org_id | Add `org_id: session.user.orgId` to query |
+| RTL violations | Replace ml/mr/pl/pr with ms/me/ps/pe |
+| Missing 'use client' | Add directive to file with hooks |
+| console.log in prod | Remove or replace with logger |
+| Hardcoded strings | Wrap in `t()` i18n function |
+
+### Phase 4: Generate Report
+
+After review, agent MUST output:
+
+```markdown
+## 🔍 Autonomous PR Review Report
+
+**Agent:** [AGENT-XXX-Y]
+**Files Reviewed:** N
+**Timestamp:** YYYY-MM-DD HH:mm:ss (Asia/Riyadh)
+
+### ✅ Verification Results
+- TypeScript: X errors → Y errors (fixed: Z)
+- ESLint: X warnings → Y warnings (fixed: Z)
+- Tests: X/Y passing
+
+### 🔧 Auto-Fixed Issues
+| File | Line | Issue | Fix Applied |
+|------|------|-------|-------------|
+| path/file.ts | 42 | Missing try-catch | Added error boundary |
+
+### ⚠️ Manual Attention Required
+| File | Line | Issue | Recommendation |
+|------|------|-------|----------------|
+| path/file.ts | 100 | Complex logic | Needs refactoring |
+
+### 📊 PR Scorecard
+| Category | Score | Notes |
+|----------|-------|-------|
+| TypeScript | 15/15 | ✅ |
+| Tenant Scope | 15/15 | ✅ |
+| ... | ... | ... |
+| **TOTAL** | **XX/100** | ≥85 required |
+
+### 🎯 Verdict
+- [ ] ✅ APPROVED — Ready to merge
+- [ ] 🔴 BLOCKED — X critical issues must be fixed
+- [ ] 🟡 NEEDS WORK — Non-critical improvements suggested
+```
+
+### Phase 5: Iterate Until Clean
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ITERATION LOOP (MANDATORY)                                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│  WHILE (score < 85 OR critical_issues > 0):                            │
+│    1. Apply fixes for highest-priority issues                          │
+│    2. Re-run: pnpm typecheck && pnpm lint && pnpm vitest run           │
+│    3. Update scorecard                                                  │
+│    4. IF (5 iterations without progress) → escalate to Eng. Sultan     │
+│  END WHILE                                                              │
+│                                                                         │
+│  ON SUCCESS:                                                            │
+│    □ Commit all fixes with proper message                               │
+│    □ Push to PR branch                                                  │
+│    □ Add review report as PR comment                                    │
+│    □ Request Codex final review                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Forbidden During Review
+```
+❌ NEVER skip a file because it's "too complex"
+❌ NEVER claim "looks good" without running checks
+❌ NEVER approve with score < 85
+❌ NEVER approve with ANY security issues
+❌ NEVER approve without tenant scope verification on API routes
+```
+
+---
+
+## 📋 SSOT Chat History Analysis + Backlog Sync Protocol (v2.0)
 
 ### SSOT RULE (NON-NEGOTIABLE)
 - **MongoDB Issue Tracker** = ONLY Single Source of Truth (SSOT)
