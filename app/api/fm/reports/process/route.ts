@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
 
         if (clean === null) {
           await collection.updateOne(
-            { _id: jobDoc._id },
+            { _id: jobDoc._id, orgId: tenantId },
             {
               $set: {
                 status: "failed",
@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
         }
 
         await collection.updateOne(
-          { _id: jobDoc._id },
+          { _id: jobDoc._id, orgId: tenantId },
           {
             $set: {
               status: clean ? "ready" : "failed",
@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
           jobId: id,
         });
         await collection.updateOne(
-          { _id: jobDoc._id },
+          { _id: jobDoc._id, orgId: tenantId },
           {
             $set: {
               status: "failed",

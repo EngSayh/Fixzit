@@ -126,7 +126,15 @@ export async function POST(
       updateOps.$set = { status: "Open", updatedAt: new Date() };
     }
 
-    await SupportTicket.updateOne({ _id: id }, updateOps);
+    const ticketOrgId = ticketTyped.orgId ?? user.orgId;
+    if (!ticketOrgId) {
+      return createSecureResponse(
+        { error: "Ticket tenant scope missing" },
+        500,
+        req,
+      );
+    }
+    await SupportTicket.updateOne({ _id: id, orgId: ticketOrgId }, updateOps);
     return createSecureResponse({ ok: true }, 200, req);
   } catch (_error) {
     return createSecureResponse({ error: "Internal server error" }, 500, req);

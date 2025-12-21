@@ -3,20 +3,48 @@
  * Returns configuration status WITHOUT exposing secrets
  * 
  * Used to diagnose login failures in production.
+ * This endpoint is accessible pre-auth but protected by:
+ * - IP allowlist (if configured, enforced by middleware)
+ * - Optional access key header (x-superadmin-access-key)
  * 
  * @module app/api/superadmin/health/route
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 
-const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
+const NO_CACHE_HEADERS = {
+  "X-Robots-Tag": "noindex, nofollow",
+  "Cache-Control": "no-store, no-cache, must-revalidate",
+  "Pragma": "no-cache",
+};
 
-export async function GET() {
+/**
+ * Timing-safe string comparison to prevent timing attacks
+ */
+function timingSafeEquals(a: string, b: string): boolean {
+  const aBuffer = Buffer.from(a);
+  const bBuffer = Buffer.from(b);
+  if (aBuffer.length !== bBuffer.length) return false;
+  return timingSafeEqual(aBuffer, bBuffer);
+}
+
+export async function GET(request: NextRequest) {
+  // Optional access key protection (if SUPERADMIN_SECRET_KEY is set)
+  const secretKey = process.env.SUPERADMIN_SECRET_KEY;
+  if (secretKey) {
+    const providedKey = request.headers.get('x-superadmin-access-key');
+    if (!providedKey || !timingSafeEquals(providedKey, secretKey)) {
+      return NextResponse.json(
+        { error: "Access key required", code: "ACCESS_KEY_REQUIRED" },
+        { status: 403, headers: NO_CACHE_HEADERS }
+      );
+    }
+  }
   // Check each required configuration
   const hasUsername = !!process.env.SUPERADMIN_USERNAME;
   const hasPasswordHash = !!process.env.SUPERADMIN_PASSWORD_HASH;
   const hasPlainPassword = !!process.env.SUPERADMIN_PASSWORD;
-  const hasSecretKey = !!process.env.SUPERADMIN_SECRET_KEY;
   
   // Check org ID chain
   const hasSuperadminOrgId = !!process.env.SUPERADMIN_ORG_ID?.trim();
@@ -79,11 +107,11 @@ export async function GET() {
             : hasAuthSecret
               ? "auth_secret"
               : "INSECURE_FALLBACK",
-        secondFactor: hasSecretKey ? "required" : "disabled",
+        secondFactor: secretKey ? "required" : "disabled",
         ipRestriction: hasIpRestriction ? "enabled" : "disabled",
       },
       issues: issues.length > 0 ? issues : undefined,
     },
-    { headers: ROBOTS_HEADER }
+    { headers: NO_CACHE_HEADERS }
   );
 }

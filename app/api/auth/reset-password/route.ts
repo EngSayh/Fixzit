@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
 
     // Update user's password and reset security flags
     await User.updateOne(
-      { _id: user._id },
+      { _id: user._id, orgId: resolvedOrgId },
       {
         $set: {
           password: hashedPassword,

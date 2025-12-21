@@ -23,7 +23,7 @@ import { logger } from "@/lib/logger";
 import { WOStatus, WOPriority, type WorkOrderStats } from "@/types/fm";
 import { FMErrors } from "../../errors";
 import { requireFmAbility } from "../../utils/fm-auth";
-import { resolveTenantId } from "../../utils/tenant";
+import { buildTenantFilter, resolveTenantId } from "../../utils/tenant";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const FINAL_STATUSES = new Set<WOStatus>([
@@ -53,7 +53,8 @@ export async function GET(req: NextRequest) {
     const db = await getDatabase();
     const collection = db.collection(COLLECTIONS.WORK_ORDERS);
 
-    const match = { tenantId };
+    // SEC-001: Use buildTenantFilter for proper orgId field name
+    const match = buildTenantFilter(tenantId);
 
     const [total, statusAgg, priorityAgg, completionAgg] = await Promise.all([
       collection.countDocuments(match),
@@ -84,7 +85,7 @@ export async function GET(req: NextRequest) {
         }>([
           {
             $match: {
-              tenantId,
+              ...match,
               completedAt: { $ne: null },
               createdAt: { $ne: null },
             },
@@ -146,7 +147,7 @@ export async function GET(req: NextRequest) {
 
     const now = new Date();
     const overdueCount = await collection.countDocuments({
-      tenantId,
+      ...match,
       completedAt: { $exists: false },
       slaHours: { $gt: 0 },
       createdAt: { $ne: null },

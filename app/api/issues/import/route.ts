@@ -278,7 +278,7 @@ export async function POST(request: NextRequest) {
 
         if (!dryRun) {
           await Issue.updateOne(
-            { _id: existing._id },
+            { _id: existing._id, orgId },
             {
               $set: {
                 title: raw.title.trim(),

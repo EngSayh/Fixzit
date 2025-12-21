@@ -299,9 +299,12 @@ export async function middleware(request: NextRequest) {
     }
 
     const isLogin = pathname.startsWith('/superadmin/login') || pathname.startsWith('/api/superadmin/login');
-    if (isLogin) {
+    const isHealth = pathname === '/api/superadmin/health';
+    // Allow login and health endpoints pre-auth (health has its own access key protection)
+    if (isLogin || isHealth) {
       const res = NextResponse.next();
       res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+      res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       return res;
     }
 
