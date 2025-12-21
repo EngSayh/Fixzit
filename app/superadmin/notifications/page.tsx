@@ -2,7 +2,7 @@
 
 /**
  * Superadmin Notifications Management
- * Real notification history and configuration using /api/admin/notifications/*
+ * Real notification history and configuration using /api/superadmin/notifications/*
  * 
  * @module app/superadmin/notifications/page
  */
