@@ -1,5 +1,35 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-21 23:45 (Asia/Riyadh) — Deferred Items Scaffolding Created
+**Context:** main | Commit: TBD | Direct to main
+**Agent:** GitHub Copilot (VS Code) - Implementation Scaffolding
+**Duration:** 20 minutes | **Files:** 9 changed
+
+**Scaffolding Created:**
+| Key | File | Status |
+|-----|------|--------|
+| FEATURE-001 | lib/sse/index.ts | ✅ Types + placeholders |
+| FEATURE-002 | components/bulk/BulkActionsToolbar.tsx | ✅ Working component |
+| LOGIC-001 | lib/sla/business-hours.ts | ✅ Types + Saudi defaults |
+| COMP-001 | services/finance/zatca/index.ts | ✅ Full type system |
+| INFRA-SENTRY | docs/USER_ACTIONS_SENTRY.md | ✅ Setup guide |
+
+**Bug Fixes (during scaffolding):**
+- Fixed getSuperadminSession() calls in notifications routes (missing req argument)
+- Fixed COLLECTIONS.notifications → COLLECTIONS.NOTIFICATIONS
+
+**ADRs Updated:**
+- ADR-001: Status → "Scaffolding Ready"
+- ADR-002: Status → "Scaffolding Ready"
+
+**Quality Gates:**
+| Gate | Result |
+|------|--------|
+| TypeScript | 0 errors |
+| ESLint | 0 warnings |
+
+---
+
 ### 2025-12-21 13:30 (Asia/Riyadh) — Chat Session Pending Items Audit
 **Context:** main | Commit: ecb58751c | Direct to main
 **Agent:** GitHub Copilot (VS Code) - Pending Items Review

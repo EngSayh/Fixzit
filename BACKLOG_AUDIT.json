@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2025-12-22T08:00:00+03:00",
-  "source": "AI_IMPROVEMENT_ANALYSIS_REPORT.md + PENDING_MASTER.md + SSOT Sync 2025-12-22",
+  "generatedAt": "2025-12-21T23:50:00+03:00",
+  "source": "AI_IMPROVEMENT_ANALYSIS_REPORT.md + PENDING_MASTER.md + Session 2025-12-21 Final + Code Review Update",
   "issues": [
     {
       "key": "NAV-MISSING-001",
@@ -224,14 +224,14 @@
       "title": "Work Order SLA calculation doesn't account for business hours",
       "category": "logic",
       "priority": "P1",
-      "status": "deferred",
+      "status": "resolved",
       "effort": "M",
-      "location": "lib/sla/calculator.ts (NEW)",
+      "location": "lib/sla.ts",
       "sourcePath": "AI_IMPROVEMENT_ANALYSIS_REPORT.md",
       "sourceRef": "analysis:AI_IMPROVEMENT_ANALYSIS_REPORT.md:logic-001",
-      "evidenceSnippet": "slaDeadline = createdAt + slaHours (24/7)",
+      "evidenceSnippet": "computeDueAtBusinessHours() + 56 tests pass",
       "description": "Implement business hours calendar; 4-hour SLA created Friday 4pm should deadline Monday 12pm, not Friday 8pm",
-      "deferredReason": "MVP uses 24/7 calculation; business hours calendar planned Q1 2026"
+      "resolution": "Resolved 2025-12-21: Added computeDueAtBusinessHours(), isBusinessHour(), getNextBusinessHourStart() to lib/sla.ts with Saudi business calendar (Sun-Thu 08:00-17:00). 56 tests pass."
     },
     {
       "key": "BUG-TS-VITEST-CONFIG",

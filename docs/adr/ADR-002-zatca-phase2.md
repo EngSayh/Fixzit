@@ -1,10 +1,11 @@
 # ADR-002: ZATCA E-Invoicing Phase 2 Compliance
 
-**Status:** Proposed  
-**Date:** 2025-12-20  
+**Status:** Proposed → Scaffolding Ready  
+**Date:** 2025-12-20 (Updated: 2025-12-21)  
 **Decision Makers:** Eng. Sultan Al Hassni  
 **Context:** COMP-001 from Production Readiness backlog  
 **Regulatory Deadline:** Q2 2026 (April-June 2026)
+**Implementation:** services/finance/zatca/index.ts (scaffolding)
 
 ## Context
 

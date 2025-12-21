@@ -1,9 +1,10 @@
 # ADR-001: Real-Time Notifications Architecture
 
-**Status:** Proposed  
-**Date:** 2025-12-20  
+**Status:** Proposed → Scaffolding Ready  
+**Date:** 2025-12-20 (Updated: 2025-12-21)  
 **Decision Makers:** Eng. Sultan Al Hassni  
 **Context:** FEATURE-001 from Production Readiness backlog
+**Implementation:** lib/sse/index.ts (scaffolding)
 
 ## Context
 
