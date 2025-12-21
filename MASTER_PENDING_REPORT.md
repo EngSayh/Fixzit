@@ -5,14 +5,14 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-19T13:41:19+03:00 (Asia/Riyadh)
+**Last Updated:** 2025-12-19T15:46:28+03:00 (Asia/Riyadh)
 **Scanner Version:** v3.0 (Comprehensive Workspace Audit)  
-**Branch:** feat/mobile-cardlist-phase1  
-**Commit:** local (uncommitted) | Origin: pending push
-**Last Work:** P188 - Preflight scan + memory optimization verification
+**Branch:** phase/ba6abf62-worktree  
+**Commit:** local (uncommitted) | Base: ba6abf62a
+**Last Work:** P192 - Superadmin pending import fallback + require-lean exemptions (Tap persistence)
 **MongoDB Status:** 34 issues (10 open, 0 in_progress, 24 resolved)  
 **Working Tree:** DIRTY (local changes in progress)  
-**Test Count:** ⚠️ Full vitest run attempted (timeout ~360s). Last known full pass: 4068/4068 at 2025-12-19 13:00
+**Test Count:** ✅ Full vitest run 4098/4098 at 2025-12-19 15:46
 
 ---
 
@@ -23,7 +23,7 @@
 | **Health Score** | 95/100 |
 | **Files Scanned** | 1,548 (app/ + lib/ + services/ + domain/ + tests/) |
 | **Total Issues** | 34 (10 open / 24 resolved) |
-| **Test Coverage** | ⚠️ Full vitest run attempted (timeout ~360s); last known full pass 4068/4068 at 2025-12-19 13:00 |
+| **Test Coverage** | ✅ Full vitest run 4098/4098 at 2025-12-19 15:24 |
 | **Build Status** | ⚠️ Build not re-run in this session |
 
 ### 🎯 Top 5 Priority Actions
@@ -33,7 +33,7 @@
 4. [x] **[BUG-002]** ✅ VERIFIED - All 5 @ts-expect-error suppressions documented with reasons
 5. [x] **[PERF-002]** ✅ RESOLVED - Added .lean() to 8+ read-only Mongoose queries (P146)
 
-### ✅ Current Session (P153-P188)
+### ✅ Current Session (P153-P192)
 1. **[P153]** ✅ HR Leaves Hardening - Added rate limiting to PUT /api/hr/leaves, Zod validation for updateStatus payload, and tests covering auth/role/validation paths.
 2. **[P154]** ✅ Superadmin UI Polish - Added getRowId for correct bulk selection; command palette updated with RTL logical spacing; skeleton table widths made deterministic to avoid hydration mismatches.
 3. **[P155]** ✅ I18n Regen - Ran `pnpm i18n:build`; regenerated flat dictionaries and bundles (31,421 keys per locale).
@@ -69,10 +69,18 @@
 33. **[P186]** 🔄 Full Vitest Long-Run - Attempted `pnpm vitest run` with 360s timeout; timed out before completion, no new failures observed in logs.
 34. **[P187]** ✅ Marketplace Categories Test Fix - Switched env handling in test to direct `process.env` and aligned disabled-state assertion; `pnpm vitest run tests/api/marketplace/categories.route.test.ts` passing.
 35. **[P188]** ✅ Preflight Scan + Memory Optimization Verification - Confirmed VSCode watcher exclusions + TS server caps; verified outstanding tasks list before fixes.
+36. **[P189]** ✅ Tap Webhook Tenant Scope Enforcement - Require orgId metadata for Tap charge/refund updates, added organizationId to refund metadata, aligned extractOrgId to support tenantId fallback.
+37. **[P190]** ✅ Test Mock Hygiene Sweep - Added beforeEach mock resets (vi.clearAllMocks + rate-limit defaults) across API test suite; full vitest run 4098/4098 at 15:24.
+38. **[P191]** ✅ Superadmin Issues Import Fallback - `/api/superadmin/issues/import` now falls back to docs/PENDING_MASTER.md when root PENDING_MASTER.md is missing.
+39. **[P192]** ✅ Tap Persistence Lean Exemptions - Documented NO_LEAN exceptions with explicit eslint disables; full vitest run 4098/4098 at 15:46.
 
 ### ⏳ Pending – New Session Items
 - Continue .lean() audit on remaining read-only queries to hit 100% coverage across services (Aqar + Finance + FM + Support + CRM + Admin complete).
 - P3-AQAR-FILTERS — Refactor Aqar SearchFilters to standard filter components (post-MVP).
+- LINT-203 — 203 ESLint warnings (tenant-scope + require-lean) still open; requires per-route tenant scope review and lean justification.
+- I18N-MISS-3375 — Missing AR/EN keys (3375 each); translation completion pending.
+- AGG-MAXTIMEMS — 18 files with aggregate usage and no maxTimeMS found in file (needs pipeline audit and limits).
+- DB-SYNC — Import updated pending report to issue tracker (`/api/issues/import` + `/api/superadmin/issues/import`) and refresh dashboard counters.
 
 ### ✅ Newly Verified (DB sync required)
 - P3-SOUQ-PRODUCTS — Migrate Souq Products list to DataTableStandard with filters (completed in components/marketplace/ProductsList.tsx).
