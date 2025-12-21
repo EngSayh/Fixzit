@@ -249,7 +249,13 @@ if (conn && typeof conn.then === 'function') {
 
 if (shouldConnect) {
   try {
-    if (getDisableMongoForBuild()) {
+    // Check offline mode FIRST - before any connection attempt
+    if (getAllowOfflineMongo()) {
+      logger.warn(
+        "[Mongo] ALLOW_OFFLINE_MONGODB enabled – returning offline handle (no connection attempt)",
+      );
+      conn = globalObj._mongoose = Promise.resolve(createOfflineHandle());
+    } else if (getDisableMongoForBuild()) {
       logger.warn(
         "[Mongo] DISABLE_MONGODB_FOR_BUILD enabled – returning stub database handle",
       );

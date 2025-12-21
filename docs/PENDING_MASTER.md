@@ -1,5 +1,31 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-21 23:30 (Asia/Riyadh) — Batch 5 Performance Optimization (Final)
+**Context:** main | Commit: 99e589655 | Final .lean() Audit
+**Agent:** GitHub Copilot (VS Code) - Performance & Quality Implementation
+**DB Sync:** 1 item completed (1 .lean() in middleware)
+
+**✅ Batch 5 Completed:**
+- PERF-LEAN-004: Added `.lean()` to subscription check middleware
+  - server/middleware/subscriptionCheck.ts
+
+**🔍 Audit Complete:**
+- Remaining 460 findOne/findById calls analyzed
+- Most are: MongoDB native driver (no .lean()), followed by mutations, or using .populate()
+- All critical GET paths now optimized with .lean()
+
+**Final Session Total (Batches 1-5):**
+| Category | Count |
+|----------|-------|
+| .lean() additions | 11 routes/services |
+| i18n strings | 28+ strings |
+| Logger migrations | 1 file |
+| Any types fixed | 2 types |
+| TODOs documented | 17 items |
+| AGENTS.md protocols | 5 new sections |
+
+---
+
 ### 2025-12-21 23:00 (Asia/Riyadh) — Batch 4 Performance Optimization
 **Context:** main | Commit: 5b2af2045 | Continued .lean() Optimization
 **Agent:** GitHub Copilot (VS Code) - Performance & Quality Implementation
