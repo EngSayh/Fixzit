@@ -39,7 +39,6 @@ const mockVerifyPassword = vi.fn();
 const mockSignToken = vi.fn().mockResolvedValue("mock-jwt-token");
 const mockIsRateLimited = vi.fn().mockReturnValue(false);
 const mockIsIpAllowed = vi.fn().mockReturnValue(true);
-const mockGetClientIp = vi.fn().mockReturnValue("127.0.0.1");
 const mockValidateSecondFactor = vi.fn().mockReturnValue(true);
 
 vi.mock("@/lib/superadmin/auth", () => ({
@@ -47,7 +46,6 @@ vi.mock("@/lib/superadmin/auth", () => ({
   signSuperadminToken: mockSignToken,
   isRateLimited: mockIsRateLimited,
   isIpAllowed: mockIsIpAllowed,
-  getClientIp: mockGetClientIp,
   validateSecondFactor: mockValidateSecondFactor,
   applySuperadminCookies: vi.fn(),
   SUPERADMIN_COOKIE_NAME: "superadmin_token",
@@ -62,13 +60,14 @@ vi.mock("@/server/security/headers", () => ({
   getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
 }));
 
+const mockGetClientIP = vi.fn().mockReturnValue("127.0.0.1");
+
 describe("POST /api/superadmin/login", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
-    mockIsRateLimited.mockReturnValue(false);
     mockIsIpAllowed.mockReturnValue(true);
-    mockGetClientIp.mockReturnValue("127.0.0.1");
+    mockGetClientIP.mockReturnValue("127.0.0.1");
   });
 
   it("should return 400 for missing credentials", async () => {

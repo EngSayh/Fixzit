@@ -27,6 +27,10 @@ describe('safe-tenant-update', () => {
     vi.stubEnv('NODE_ENV', 'test');
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   describe('safeTenantUpdateOne', () => {
     it('allows updateOne with orgId in filter', async () => {
       const { safeTenantUpdateOne } = await import('@/lib/db/safe-tenant-update');
