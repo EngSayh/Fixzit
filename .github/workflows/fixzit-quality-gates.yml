@@ -157,6 +157,19 @@ jobs:
             *) npm run typecheck || npm run tsc --noEmit ;;
           esac
 
+      - name: 🔒 Assert non-production MongoDB
+        if: ${{ secrets.MONGODB_URI != '' }}
+        shell: bash
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          CI: "true"
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm tsx scripts/assert-nonprod-mongo.ts ;;
+            yarn) yarn tsx scripts/assert-nonprod-mongo.ts ;;
+            *) npx tsx scripts/assert-nonprod-mongo.ts ;;
+          esac
+
       - name: Ensure Mongo Indexes (idempotent)
         shell: bash
         env:
