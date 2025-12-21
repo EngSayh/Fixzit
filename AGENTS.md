@@ -421,99 +421,10 @@ Step 4: PROCEED with fixes ONLY in your expanded locked paths
 
 ## 9. Task Handoff & Delegation Protocol
 
-### 9.1 Purpose
+This protocol is SSOT-governed and operationally dependent on the SSOT Sync flow.
 
-Prevent agents from "fighting" over tasks or working inefficiently on domains outside their specialization. Ensure smooth handover via SSOT.
-
-### 9.2 Domain Recognition (Know Your Lane)
-
-| Agent Type | Primary Domain | Handoff Trigger |
-|------------|----------------|-----------------|
-| Copilot | Core/Auth/API | Finance/Billing logic found → Hand off to Claude |
-| Claude Code | Finance/Billing | Marketplace/Product logic found → Hand off to Codex |
-| Codex | Souq/Marketplace | Real Estate logic found → Hand off to Cursor |
-| Cursor | Aqar/Real Estate | HR/Payroll logic found → Hand off to Windsurf |
-| Windsurf | HR/Payroll | Core Auth logic found → Hand off to Copilot |
-
-### 9.3 Handoff Triggers
-
-```typescript
-const HANDOFF_TRIGGERS = {
-  // Issue touches files from multiple domains
-  MULTI_DOMAIN_FILES: (filePaths) => {
-    const agents = filePaths.map(f => getAgentForPath(f));
-    return new Set(agents).size > 1;
-  },
-  
-  // Agent explicitly requests handoff
-  EXPLICIT_REQUEST: (status) => status === 'handoff_requested',
-  
-  // Capability mismatch detected
-  CAPABILITY_GAP: (required, agentCaps) => {
-    return required.some(r => !agentCaps.includes(r));
-  },
-  
-  // Agent blocked for > 30 minutes
-  BLOCKED_TIMEOUT: (blockedAt) => {
-    return Date.now() - blockedAt.getTime() > 30 * 60 * 1000;
-  }
-};
-```
-
-### 9.4 Handoff Execution Protocol
-
-**Step 1:** If you identify an issue OUTSIDE your assigned domain:
-- DO NOT FIX IT (unless P0/Critical blocker)
-
-**Step 2:** LOG to MongoDB SSOT:
-```json
-{
-  "status": "handoff_pending",
-  "handoffHistory": [{
-    "from": "[AGENT-XXX-Y]",
-    "to": "[AGENT-YYY-Z]",
-    "timestamp": "2025-12-21T14:30:00+03:00",
-    "reason": "Issue requires middleware authentication changes"
-  }]
-}
-```
-
-**Step 3:** UPDATE `docs/PENDING_MASTER.md`:
-```
-- [ ] KEY-123 — <title> — ⚠️ DELEGATED TO [AGENT-002] (Claude Code) for finance logic
-```
-
-**Step 4:** STOP working on that specific item
-
-### 9.5 Receiving a Delegation
-
-Before starting work, every agent must:
-1. Check `docs/PENDING_MASTER.md` for items marked `DELEGATED TO [MY-AGENT-ID]`
-2. Check MongoDB for issues with `status: handoff_pending` and `handoffHistory.to: MY_AGENT_ID`
-3. PRIORITIZE these delegated tasks above general backlog items
-4. Execute Pre-Claim SSOT Validation (Section 6) before claiming
-
-### 9.6 Multi-Domain Issue Coordination
-
-For issues touching 3+ agent domains, implement coordinator pattern:
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                  AGENT-001 (Coordinator)                                 │
-│  - Receives multi-domain issue                                          │
-│  - Breaks into domain-specific subtasks                                 │
-│  - Assigns subtasks to domain agents                                    │
-│  - Aggregates results                                                   │
-│  - Performs final integration                                           │
-└─────────────────────────────────────────────────────────────────────────┘
-         │              │              │
-         ▼              ▼              ▼
-   ┌─────────┐    ┌─────────┐    ┌─────────┐
-   │AGENT-002│    │AGENT-003│    │AGENT-006│
-   │ Finance │    │  Souq   │    │  Tests  │
-   │ subtask │    │ subtask │    │ subtask │
-   └─────────┘    └─────────┘    └─────────┘
-```
+- Canonical handoff workflow: **Section 13.4 — Agent Task Handoff Protocol (SSOT Coordination)**
+- Canonical backlog extraction workflow: **Section 13.3 — Pending Backlog Extractor v2.5 (MANDATORY)**
 
 ---
 
@@ -551,7 +462,7 @@ For issues touching 3+ agent domains, implement coordinator pattern:
 
 ### 10.3 PR Description Template
 
-```markdown
+````markdown
 ## Summary
 [Brief description]
 
@@ -581,7 +492,7 @@ pnpm vitest run # ✅ X tests passed
 - [ ] Agent Token in all commits
 - [ ] SSOT updated with findings
 - [ ] PENDING_MASTER updated
-```
+````
 
 ### 10.4 CI/CD Build Rules (ZERO ERROR TOLERANCE)
 
@@ -747,7 +658,392 @@ After EVERY:
 |-----------|------|------|-------------|--------|----------|-------------|
 | HH:mm:ss | Bug | path/file.ts:L10-15 | ... | Fixed | BUG-123 | [AGENT-001-A] |
 
-### 13.3 Phase 1: Discovery
+### 13.3 Pending Backlog Extractor v2.5 — Extraction Protocol (MANDATORY)
+
+#### Purpose
+Extract unresolved items from `docs/PENDING_MASTER.md`, deduplicate them deterministically, and generate an import payload suitable for SSOT ingestion (MongoDB Issue Tracker) and sprint planning.
+
+#### SSOT Relationship (Non‑Negotiable)
+- MongoDB Issue Tracker = SSOT
+- `docs/PENDING_MASTER.md` is a derived log / staging snapshot only.
+- This protocol reconciles staged notes into SSOT and eliminates duplicates.
+
+#### Agent Responsibility
+Any agent who completes a code review with new findings OR discovers new issues during implementation MUST ensure those findings are represented in SSOT.
+If findings were captured in `docs/PENDING_MASTER.md`, run this extractor to reconcile and deduplicate.
+
+#### Execution Trigger
+- After completing SSOT Chat History Extraction / SSOT Sync
+- Before closing any task that produced new findings
+- On explicit request: “extract pending backlog”
+
+#### HARD CONSTRAINTS (VIOLATION = AUTO‑FAIL)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  EXTRACTION RULES (NON‑NEGOTIABLE)                                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│  ❌ NO INVENTION — Extract ONLY what exists in the source               │
+│  ❌ NO COMPLETED ITEMS — Exclude ✅/🟢/Fixed/Done/Completed/Resolved    │
+│  ✅ TRIAGE ONLY — Classify/score/sort using deterministic rules         │
+│  ✅ ENGLISH ONLY — All output in English                                │
+│  ✅ TRACEABILITY — Every item MUST include:                             │
+│     - sourceRef (section/date heading)                                  │
+│     - location (path:lines OR Doc-only)                                 │
+│     - evidenceSnippet (≤25 words, copied exactly)                       │
+│  ✅ AGENT TOKEN — Every item MUST include extractedBy: [AGENT-XXX-Y]    │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### INPUT REQUIREMENT
+If the full content of `docs/PENDING_MASTER.md` is not available in the current context, respond with exactly:
+
+**`[AGENT-XXX-Y] Please provide the full contents of docs/PENDING_MASTER.md so I can extract pending items.`**
+
+Then STOP.
+
+#### EXTRACTION SCOPE
+
+**Include** (explicitly unresolved):
+- Markers: 🔲, 🟡, ⏳, ⚠️, 🟠, 🔴
+- Keywords: TODO, Pending, Open, Investigate, In Progress, Needs, Missing, Gap
+- Unchecked tasks: `- [ ] ...`
+- Unmarked bullets under “Next Steps” / “Planned Next Steps” only if clearly actionable tasks
+
+Scan all sections, including:
+- Current Progress, Next Steps, Efficiency, Bugs, Logic Errors, Missing Tests, Deep‑Dive
+
+**Exclude** items marked/stated:
+✅, 🟢, Fixed, Done, Completed, Resolved, Landed, Added, Closed
+
+Exception: if a later entry explicitly reopens it (“reopened”, “still failing”, “regressed”, “still pending”, “not fixed”) → INCLUDE.
+
+#### REQUIRED FIELDS PER ITEM (STRICT)
+
+| Field | Rule |
+|---|---|
+| extractedBy | The executing agent token `[AGENT-XXX-Y]` |
+| title | From source (exact) |
+| issue | From source (if different from title; else repeat title) |
+| action | From source (if explicit; else `"Not specified in source"`) |
+| location | `path:lines` if present; else `Doc-only` |
+| sourceRef | Section/date heading (exact) |
+| evidenceSnippet | ≤25 words copied exactly |
+| status | `pending \| in_progress \| blocked \| unknown` |
+| category | Exactly one: `Bugs \| Logic Errors \| Missing Tests \| Efficiency \| Next Steps` |
+| priorityLabel | `P0 \| P1 \| P2 \| P3` (deterministic rules below) |
+| priorityRank | Numeric mapping: P0=1, P1=2, P2=3, P3=4 |
+| riskTags | 0..n: `SECURITY, MULTI-TENANT, FINANCIAL, TEST-GAP, PERF, INTEGRATION, DATA` |
+| effort | `XS \| S \| M \| L \| XL \| ?` |
+| impact | 1–10 (deterministic rules below) |
+| impactBasis | Short explanation of what triggered scoring |
+
+#### DEDUPLICATION (DETERMINISTIC)
+
+Merge duplicates in this order:
+1) Same explicit ID (`BUG-XXXX`, `LOGIC-XXX`, `SEC-XXX`)
+2) Same location (same file + line range)
+3) Same file + normalized issue text (case‑insensitive; punctuation stripped)
+
+For merged items, track:
+- firstSeen (earliest dated heading if present; else `"First seen unknown"`)
+- lastSeen (latest dated heading if present; else `"Last seen unknown"`)
+- mentions (count of merged occurrences)
+- statusEvolved only if explicitly shown in source
+
+**Key + Ref System**
+- If item has explicit ID → `externalId = that ID`, `key = externalId`
+- Else: `externalId = null`, `key = normalize(title + "|" + category + "|" + location)` and assign display-only `REF-###`
+
+**Source Hash (for dedupe/import tracing)**
+- `sourceHash = sha256(evidenceSnippet + "|" + location + "|" + sourceRef)`
+- `sourceHash12 = first 12 hex chars`
+
+Compute inside a repo workspace with one of:
+
+```bash
+printf "%s" "<evidenceSnippet>|<location>|<sourceRef>" | shasum -a 256 | cut -c1-12
+```
+
+```bash
+node -e "const crypto=require('crypto'); const s=process.argv[1]; console.log(crypto.createHash('sha256').update(s).digest('hex').slice(0,12));" "<evidenceSnippet>|<location>|<sourceRef>"
+```
+
+#### CLASSIFICATION (EXACTLY ONE)
+
+| Category | Keywords |
+|---|---|
+| Bugs | crash, error, fails, broken, incorrect behavior |
+| Logic Errors | wrong condition, missing filter, scoping, incorrect fallback |
+| Missing Tests | missing tests, coverage, no negative paths |
+| Efficiency | refactor, perf, split file, optimize, validation framework |
+| Next Steps | explicitly listed plan/task item |
+
+#### PRIORITY (P0–P3) — DETERMINISTIC KEYWORD RULES
+
+Use explicit P0/P1/P2/P3 if present; else infer:
+
+| PriorityLabel | Keywords |
+|---|---|
+| P0 (🔴) | security, data leak, cross‑tenant exposure, RBAC/auth bypass, privilege escalation, fail‑open |
+| P1 (🟠) | authorization/ownership correctness, compliance correctness, logic errors affecting correctness |
+| P2 (🟡) | missing tests, performance/efficiency issues, validation gaps |
+| P3 (🟢) | refactor/cleanup/docs/nice‑to‑have |
+
+Priority mapping (governance → numeric):
+
+| PriorityLabel | Meaning | priorityRank |
+|---|---:|---:|
+| P0 | Critical | 1 |
+| P1 | High | 2 |
+| P2 | Medium | 3 |
+| P3 | Low | 4 |
+
+#### EFFORT (XS–XL) — HEURISTIC
+
+| Effort | Scope |
+|---|---|
+| XS | One‑liner/config |
+| S | Single-file change |
+| M | Multi-file OR add new test file |
+| L | Cross-module |
+| XL | Architectural/migration |
+| ? | Scope unclear (log in openQuestions) |
+
+#### IMPACT SCORE (1–10) — DETERMINISTIC
+
+Compute impact (cap 10):
+- Base by priority: P0=9, P1=7, P2=5, P3=3
+- Modifiers:
+  - +2 if SECURITY
+  - +2 if MULTI‑TENANT
+  - +1 if FINANCIAL
+  - +1 if DATA
+  - +2 if source explicitly says “production down” / “outage” / “cannot login”
+  - +0 for TEST‑GAP / PERF / INTEGRATION unless outage is explicit (+2)
+
+Also output impactBasis listing which tags/phrases triggered scoring.
+
+#### OUTPUT (DEFAULT = BOTH)
+
+**A) BACKLOG_AUDIT.json (SSOT Import Payload)**
+
+Return ONE JSON object (camelCase fields):
+
+```json
+{
+  "extractedAt": "YYYY-MM-DD HH:mm (Asia/Riyadh)",
+  "extractedBy": "[AGENT-XXX-Y]",
+  "sourceFile": "docs/PENDING_MASTER.md",
+  "appliedFlags": {},
+  "counts": {
+    "total": 0,
+    "byPriorityLabel": {},
+    "byCategory": {},
+    "quickWins": 0,
+    "anomalies": 0
+  },
+  "anomalies": [],
+  "fileHeatMap": [],
+  "issues": [],
+  "openQuestions": []
+}
+```
+
+**B) BACKLOG_AUDIT.md (Human Report)**
+- Executive Summary
+- Category breakdown
+- File heat map (top 10)
+- Sprint buckets
+- Tables by category sorted by: impact desc → priorityLabel → effort
+- Open questions (only where required fields are “?” / “Not specified in source”)
+
+#### POST‑EXTRACTION PROTOCOL (MANDATORY)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  POST‑EXTRACTION CHECKLIST                                             │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. □ Save BACKLOG_AUDIT.json (repo root)                               │
+│  2. □ Save BACKLOG_AUDIT.md (repo root)                                 │
+│  3. □ If SSOT import endpoint exists, import:                           │
+│       POST /api/issues/import                                           │
+│       (Capture created/updated/skipped/errors)                          │
+│  4. □ Append summary to docs/PENDING_MASTER.md:                         │
+│       "## YYYY-MM-DD HH:mm — Backlog Extraction by [AGENT-XXX-Y]"       │
+│       "Extracted: N | Imported: created=X, updated=Y, skipped=Z"        │
+│       If import NOT executed, write: "Import: PENDING (reason)"         │
+│  5. □ Commit artifacts:                                                 │
+│       git add BACKLOG_AUDIT.* docs/PENDING_MASTER.md                    │
+│       git commit -m "chore: backlog extraction (N items) [AGENT-XXX-Y]" │
+│  6. □ Announce completion:                                              │
+│       "[AGENT-XXX-Y] Backlog extraction complete: N items"              │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 13.4 Agent Task Handoff Protocol (SSOT Coordination) — MANDATORY
+
+#### Purpose
+Prevent duplicate work and enable deterministic handoff between agents using MongoDB Issue Tracker as SSOT.
+
+#### Core Principle (Non‑Negotiable)
+- MongoDB Issue Tracker = Single Source of Truth
+- `docs/PENDING_MASTER.md` mirrors SSOT changes but is never authoritative
+- MongoDB first, then update `docs/PENDING_MASTER.md`
+
+#### Canonical SSOT Fields (Use These Names Consistently)
+Use these SSOT record fields (avoid mixing aliases):
+- `issueKey` (or `externalId` if you use a secondary identifier)
+- `status` (e.g., `open`, `claimed`, `in_progress`, `blocked`, `handoff_pending`, `resolved`)
+- `assignment.agentId` = `[AGENT-XXX-Y]` or null
+- `assignment.claimedAt`, `assignment.claimExpiresAt`, `assignment.claimToken` (if TTL/claim tokens exist)
+- `handoffHistory[]` (handoff audit trail)
+
+If your implementation currently uses `assignedTo`, treat it as an alias of `assignment.agentId` and migrate later.
+
+#### HANDOFF SCENARIOS
+
+**Scenario 1: Task Already Claimed (Do Not Collide)**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  TASK ALREADY CLAIMED PROTOCOL                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. □ Query SSOT by issueKey/externalId/key                             │
+│  2. □ If status ∈ {claimed,in_progress} AND assignment.agentId != me:   │
+│       → SKIP immediately                                                │
+│       → Log note (SSOT comment or local log):                           │
+│         "[AGENT-XXX-Y] Skipped <KEY> — owned by <OTHER_AGENT>"          │
+│  3. □ If claim TTL exists AND claimExpiresAt < now:                      │
+│       → Treat as stale claim (eligible for reclaim via atomic claim)     │
+│  4. □ Move to next eligible task                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Scenario 2: You Must Hand Off (Out-of-Domain / Capability Gap)**
+
+Trigger handoff if ANY of the following is true:
+- File paths fall outside your domain routing rules
+- Fix requires specialized expertise (finance, payroll, etc.)
+- Issue touches multiple domains and you are not the coordinator agent
+- You are blocked and cannot progress without another domain owner
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  TASK HANDOFF PROTOCOL (SSOT FIRST)                                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. □ Update SSOT issue atomically:                                     │
+│       - status → "handoff_pending"                                      │
+│       - assignment.agentId → null (release ownership)                   │
+│       - append handoffHistory event with:                               │
+│         from, to, timestamp, reason, nextAction, filesTouched           │
+│  2. □ Update docs/PENDING_MASTER.md with a derived note referencing SSOT│
+│  3. □ Release file locks in /tmp/agent-assignments.json                 │
+│  4. □ For P0/P1: Notify Eng. Sultan with the handoff notification box   │
+│  5. □ STOP work on that item immediately                                │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Scenario 3: Claim a Task From SSOT (No Guessing)**
+
+All task claiming MUST be SSOT-driven:
+1) Query SSOT for eligible tasks (unassigned, correct domain, priority order)
+2) Execute an atomic claim (or follow Pre-Claim SSOT Validation in Section 6)
+3) Lock file paths locally (`/tmp/agent-assignments.json`)
+4) Announce claim with exact files
+
+#### Delegation Rules by Agent Type (Routing)
+
+| Agent Base | Tool / Type | Domain | Delegate To This Agent When… |
+|---|---|---|---|
+| AGENT-001-* | VS Code Copilot | Core/Auth/Middleware | Auth, middleware, platform-wide coordination |
+| AGENT-002-* | Claude Code | Finance/Billing | Payments, invoicing, ZATCA/VAT, financial correctness |
+| AGENT-003-* | Codex | Souq/Marketplace | Products, orders, vendors, marketplace workflows |
+| AGENT-004-* | Cursor | Aqar/Real Estate | Property listings, contracts, valuation flows |
+| AGENT-005-* | Windsurf | HR/Payroll | Employee, attendance, payroll correctness |
+| AGENT-006-* | Reserved | Tests/Scripts | CI/CD, automation, test coverage, scripts |
+
+Use the full token when known (e.g., `[AGENT-002-A]`). If unknown, delegate to the base (AGENT-002-*) and let the receiving pool decide the instance.
+
+#### SSOT Query Patterns (Examples)
+
+**Check if Task is Already Owned**
+
+```javascript
+db.issues.findOne({
+  issueKey: "FM-00123",
+  status: { $in: ["claimed", "in_progress", "blocked", "handoff_pending"] },
+  "assignment.agentId": { $ne: null }
+})
+```
+
+**Find Available High-Priority Tasks**
+
+```javascript
+db.issues.find({
+  status: { $in: ["open", "triaged", "pending"] },
+  "assignment.agentId": null,
+  priorityLabel: { $in: ["P0", "P1"] }
+}).sort({ priorityLabel: 1, impact: -1 }).limit(10)
+```
+
+**Find Available Tasks by Domain (Finance Example)**
+
+```javascript
+db.issues.find({
+  status: { $in: ["open", "triaged", "pending"] },
+  "assignment.agentId": null,
+  $or: [
+    { domain: "finance" },
+    { riskTags: "FINANCIAL" },
+    { filePaths: { $elemMatch: { $regex: /^app\/api\/finance\// } } }
+  ]
+}).sort({ priorityLabel: 1, impact: -1 }).limit(10)
+```
+
+#### Conflict Resolution (Last-Resort Only)
+
+If atomic claim is implemented correctly, “two agents claimed the same task” should be extremely rare.
+
+If it happens:
+1) The SSOT record with the valid `assignment.claimToken` and earliest `assignment.claimedAt` retains ownership.
+2) The losing agent MUST release local locks and move to the next available task.
+
+#### Handoff Notification Format (Use Exactly)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  🔄 TASK HANDOFF NOTIFICATION                                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│  From: [AGENT-XXX-Y]                                                    │
+│  To:   [AGENT-YYY-Z] or AGENT-YYY-*                                     │
+│  Task: <issueKey> — <title>                                             │
+│  Priority: P0 | P1 | P2 | P3                                            │
+│  Status Set: handoff_pending                                            │
+│  Reason: <why handoff is required>                                      │
+│  Files Touched: <list (or NONE)>                                        │
+│  What’s Done: <concise>                                                 │
+│  Next Action: <single concrete next step>                               │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Best Practices ✅ / Don’ts ❌
+
+✅ DO:
+- Query SSOT before starting work
+- Update MongoDB first, then `docs/PENDING_MASTER.md`
+- Release file locks immediately on handoff
+- Provide concrete “Next Action” to prevent back-and-forth
+- Notify Eng. Sultan for P0/P1 handoffs
+
+❌ DON’T:
+- Start work without SSOT verification
+- Create duplicate SSOT issues (dedupe first)
+- Handoff without context
+- Keep locks after handing off
+- Assume availability without querying SSOT
+
+### 13.5 Phase 1: Discovery
 
 ```bash
 # Locate canonical file
@@ -758,19 +1054,15 @@ find . -name "PENDING_MASTER.md" -type f
 curl -s http://localhost:3000/api/issues/stats | jq .
 ```
 
-### 13.4 Phase 2: Backlog Audit
+### 13.6 Phase 2: Backlog Audit
+
+Run **Pending Backlog Extractor v2.5** (Section 13.3).
 
 Generate:
 1. `BACKLOG_AUDIT.json` (machine-readable, SSOT import-ready)
 2. `BACKLOG_AUDIT.md` (human checklist)
 
-**Extraction Rules:**
-- Only: OPEN/PENDING/UNRESOLVED
-- Exclude: ✅ 🟢 Done/Fixed/Resolved/Completed
-- Dedupe: Latest wins
-- Every item: sourceRef + evidenceSnippet + agentToken
-
-### 13.5 Phase 3: DB Sync (Idempotent)
+### 13.7 Phase 3: DB Sync (Idempotent)
 
 ```bash
 POST /api/issues/import
@@ -778,7 +1070,7 @@ Body: { issues: [...] }
 # Capture: { created: N, updated: N, skipped: N, errors: N }
 ```
 
-### 13.6 Phase 4: Apply Chat History Findings
+### 13.8 Phase 4: Apply Chat History Findings
 
 | Finding Status | DB Action | Event Type |
 |----------------|-----------|------------|
@@ -788,11 +1080,11 @@ Body: { issues: [...] }
 | New | CREATE with full evidence | CREATED |
 | Delegated | status → handoff_pending | DELEGATED |
 
-### 13.7 Phase 5: Update PENDING_MASTER.md
+### 13.9 Phase 5: Update PENDING_MASTER.md
 
 **Append changelog entry (DO NOT rewrite entire file):**
 
-```markdown
+````markdown
 ---
 
 ## 📅 YYYY-MM-DD HH:mm:ss (Asia/Riyadh) — VSCode Session Update
@@ -835,9 +1127,9 @@ git commit -m "fix: resolved BUG-001 [AGENT-001-A]"
 
 ### 🎯 Next Steps
 - [ ] BUG-005 — Complete implementation
-```
+````
 
-### 13.8 Phase 6: Verification
+### 13.10 Phase 6: Verification
 
 ```bash
 pnpm lint                                    # Must pass
@@ -922,171 +1214,13 @@ After completing ANY task:
 
 ## 15. Prompts Library
 
-### 15.1 Pending Backlog Extractor v2.6
+### 15.1 Pending Backlog Extractor (Canonical)
 
-**Purpose:** Parse PENDING_MASTER.md and produce deduplicated backlog for sprint planning and MongoDB import.
+The canonical backlog extraction protocol is **Section 13.3 — Pending Backlog Extractor v2.5 (MANDATORY)**.
 
-**When to Use:** After any session update to PENDING_MASTER.md
-
-**Agent Token Integration:** Every extracted item includes `agentToken` field for attribution.
-
-```markdown
-# PENDING BACKLOG EXTRACTOR v2.6
-## Fixzit Multi-Agent Governance Integration
-
-### ROLE
-You are a **Backlog Extraction & Triage Agent**. Your Agent ID MUST be identified in output.
-
-### 🔑 AGENT IDENTIFICATION (MANDATORY)
-- **Agent ID:** `[AGENT-XXX-Y]` (e.g., `[AGENT-001-A]`)
-- **Session ID:** `EXTRACT-<TIMESTAMP>-<AGENT-ID>`
-- Output: Include `agentToken` in JSON root and Markdown header
-
-### HARD CONSTRAINTS (VIOLATION = FAILURE)
-1) **NO INVENTION:** Extract ONLY what exists in source text
-2) **NO COMPLETED ITEMS:** Exclude ✅/🟢/Done/Fixed/Resolved/Completed
-3) **TRIAGE ONLY:** Classify and sort, do not propose new work
-4) **ENGLISH ONLY**
-5) **SOURCE TRACEABILITY:** Every item must include:
-   - `sourceRef` (section/date heading)
-   - `location` (file:lines OR Doc-only)
-   - `evidenceSnippet` (≤25 words exact from source)
-   - `agentToken` (if present in source, else "Not specified")
-
-### OUTPUT SCHEMA (MongoDB-aligned)
-
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "required": ["issueKey", "title", "type", "priority", "domain", "filePaths", "extractedAt"],
-  "properties": {
-    "issueKey": {
-      "type": "string",
-      "pattern": "^(FM|SOUQ|AQAR|HR|CORE)-[0-9]{5}$"
-    },
-    "title": { "type": "string", "minLength": 10, "maxLength": 200 },
-    "description": { "type": "string", "maxLength": 4000 },
-    "type": { "enum": ["bug", "task", "feature", "security", "performance", "tech_debt"] },
-    "priority": { "type": "integer", "minimum": 1, "maximum": 5 },
-    "domain": { "enum": ["core", "auth", "middleware", "finance", "billing", "souq", "marketplace", "aqar", "real_estate", "hr", "payroll", "tests", "scripts"] },
-    "filePaths": { "type": "array", "items": {"type": "string"}, "minItems": 1 },
-    "assignedTo": {
-      "type": ["string", "null"],
-      "pattern": "^AGENT-00[1-6](-[A-Z])?$",
-      "description": "Agent ID in AGENT-XXX-Y format, null if unassigned"
-    },
-    "claimedAt": {
-      "type": ["string", "null"],
-      "format": "date-time",
-      "description": "ISO 8601 timestamp when claimed (Asia/Riyadh)"
-    },
-    "claimExpiresAt": {
-      "type": ["string", "null"],
-      "format": "date-time",
-      "description": "TTL expiration (default: claimedAt + 60 minutes)"
-    },
-    "claimToken": {
-      "type": ["string", "null"],
-      "description": "UUID for claim ownership verification"
-    },
-    "status": {
-      "enum": ["open", "claimed", "in_progress", "blocked", "handoff_pending", "completed", "abandoned"],
-      "default": "open"
-    },
-    "agentType": {
-      "enum": [null, "Copilot", "Claude Code", "Codex", "Cursor", "Windsurf"]
-    },
-    "agentToken": {
-      "type": "string",
-      "description": "Source agent token [AGENT-XXX-Y] or 'Not specified in source'"
-    },
-    "extractedAt": { "type": "string", "format": "date-time" },
-    "extractionSource": { "type": "string" },
-    "contentHash": { "type": "string", "pattern": "^[a-f0-9]{16}$" },
-    "suggestedAgent": { "type": "string", "pattern": "^AGENT-00[1-6]$" },
-    "recommendedAgentToken": {
-      "type": ["string", "null"],
-      "description": "For delegated items, the recommended handler"
-    },
-    "delegatedBy": {
-      "type": ["string", "null"],
-      "description": "Agent token that delegated this item"
-    },
-    "version": { "type": "integer", "minimum": 1, "default": 1 }
-  }
-}
-```
-
-### SSOT COORDINATION HOOKS
-
-Before finalizing any extracted item:
-
-1. **DEDUPLICATION CHECK**
-   ```
-   Query: db.issues.findOne({ contentHash: "<computed_hash>" })
-   Action: If exists, SKIP extraction and log duplicate
-   ```
-
-2. **ASSIGNMENT CHECK**
-   ```
-   Query: db.issues.findOne({ 
-     filePaths: { $in: ["<any_file>"] },
-     status: { $in: ["claimed", "in_progress"] }
-   })
-   Action: If exists, add reference instead of creating new
-   ```
-
-3. **AGENT ROUTING**
-   Apply file path rules to set `suggestedAgent` automatically.
-
-### DOMAIN-BASED ISSUE KEY GENERATION
-
-| Domain Match | Prefix | Example |
-|-------------|--------|---------|
-| app/api/core/**, middleware/**, lib/auth/** | CORE | CORE-00042 |
-| app/api/finance/**, billing/** | FM | FM-00123 |
-| app/api/souq/**, marketplace/** | SOUQ | SOUQ-00089 |
-| app/api/aqar/**, real-estate/** | AQAR | AQAR-00015 |
-| app/api/hr/**, payroll/** | HR | HR-00007 |
-| tests/**, scripts/** | CORE | CORE-00099 |
-
-### AGENT TOKEN EXTRACTION (DETERMINISTIC)
-
-- If section/date heading contains `Agent Token:` use it for all items under that block
-- If multiple Agent Tokens in same block, use nearest one above item
-- If none exist, set "Not specified in source"
-
-### PRIORITY RULES (P1-P5)
-
-| Priority | Keywords | Score |
-|----------|----------|-------|
-| P1 (Critical) | security, data leak, cross-tenant, RBAC bypass | 1 |
-| P2 (High) | auth, ownership, compliance, logic error | 2 |
-| P3 (Medium) | missing tests, performance, validation gap | 3 |
-| P4 (Low) | refactor, cleanup, docs | 4 |
-| P5 (Trivial) | nice-to-have | 5 |
-
-### OUTPUT FORMAT
-
-**A) BACKLOG_AUDIT.json** (SSOT Import-ready)
-```json
-{
-  "agentToken": "[AGENT-XXX-Y]",
-  "extractedAt": "YYYY-MM-DD HH:mm (Asia/Riyadh)",
-  "sourceFile": "PENDING_MASTER.md",
-  "counts": { "total": N, "byPriority": {...}, "delegated": N },
-  "issues": [...]
-}
-```
-
-**B) BACKLOG_AUDIT.md** (Human Report)
-- Executive Summary with Agent Token
-- Category Breakdown
-- File Heat Map
-- Sprint Buckets
-- Delegation Summary
-```
+Use it to produce:
+- `BACKLOG_AUDIT.json` (SSOT import payload)
+- `BACKLOG_AUDIT.md` (human audit report)
 
 ### 15.2 Codex Targeted Review Prompt
 
@@ -1356,7 +1490,9 @@ db.issues.createIndex({ "assignment.claimExpiresAt": 1 }, {
 - Added Agent Token Protocol as mandatory (Section 3)
 - Added Pre-Claim SSOT Validation (Section 6) — agents MUST query SSOT before claiming
 - Added Scope Expansion Protocol (Section 8) — resolves deep-dive vs locks conflict
-- Added Task Handoff Protocol (Section 9) — formal delegation via SSOT
+- Added SSOT coordination protocols inside SSOT Sync (Section 13):
+  - Pending Backlog Extractor v2.5 (Section 13.3)
+  - Agent Task Handoff Protocol (Section 13.4)
 - **REMOVED** 5-minute Codex timeout bypass — replaced with `REVIEW_PENDING` state
 - Added Prompts Library (Section 15) — consolidated all prompts in one place
 - Added Appendix A: Complete MongoDB Schema with agent coordination fields
@@ -1375,10 +1511,9 @@ db.issues.createIndex({ "assignment.claimExpiresAt": 1 }, {
 - Multiple checklists with duplicate steps → Now: Cross-referenced, single source per protocol
 
 **Extractor Changes:**
-- Upgraded to v2.6 with agent token fields (`assignedTo`, `claimedAt`, `status`, `agentType`)
-- Added SSOT coordination hooks (dedup check, assignment check, agent routing)
-- Added `recommendedAgentToken` and `delegatedBy` fields for handoff tracking
-- Priority scale changed from P0-P3 to P1-P5 for alignment with external systems
+- Canonicalized extractor as **Pending Backlog Extractor v2.5** (Section 13.3)
+- Removed duplicate/backdrifting extractor variants from Prompts Library
+- Standardized governance priority model to **P0–P3**, with deterministic `priorityRank` mapping (P0=1..P3=4)
 
 **Removed Redundancies:**
 - Duplicate forbidden actions lists → Single authoritative box in Section 1.2

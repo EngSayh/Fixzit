@@ -13,6 +13,7 @@ import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   Issue,
+  IIssue,
   IssueCategory,
   IssuePriority,
   IssueStatus,
@@ -385,10 +386,10 @@ export async function POST(request: NextRequest) {
     
     if (duplicates.length > 0) {
       // Update existing issue instead of creating duplicate
-      const existing = duplicates[0];
+      const existing = duplicates[0] as IIssue;
       const duplicateKey = deriveIssueKey(
         body,
-        String((existing as any)?.issueId || body.legacyId || 'issue')
+        String(existing.issueId || body.legacyId || 'issue')
       );
       const evidenceSnippet = (body.description || body.title).split(/\s+/).slice(0, 40).join(" ");
       const sourceHash = computeSourceHash(evidenceSnippet, body.location.filePath);
@@ -398,7 +399,7 @@ export async function POST(request: NextRequest) {
         $inc: { mentionCount: 1 },
         $set: { 
           lastSeenAt: now,
-          key: (existing as any).key || duplicateKey,
+          key: existing.key || duplicateKey,
           sourcePath: body.location.filePath,
           sourceRef: body.module,
           evidenceSnippet,

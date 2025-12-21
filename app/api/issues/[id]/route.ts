@@ -13,16 +13,28 @@ import { logger } from '@/lib/logger';
 import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 import { 
   Issue,
+  IIssue,
   IssueStatus, 
   IssuePriority, 
   IssueEffort,
   IssueStatusType,
+  IFileLocation,
+  IRelatedIssue,
 } from '@/server/models/Issue';
 import IssueEvent from '@/server/models/IssueEvent';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { getSessionOrNull } from '@/lib/auth/safe-session';
 import { parseBodySafe } from '@/lib/api/parse-body';
 import { getSuperadminSession } from '@/lib/superadmin/auth';
+
+/** Lean document type for Issue.findOne().lean() results */
+type IssueLeanDoc = {
+  _id: mongoose.Types.ObjectId;
+  key?: string;
+  issueId?: string;
+  location?: IFileLocation;
+  relatedIssues?: IRelatedIssue[];
+} & Record<string, unknown>;
 
 async function resolveIssueSession(request: NextRequest) {
   const superadmin = await getSuperadminSession(request);
@@ -76,7 +88,7 @@ export async function GET(
         { _id: mongoose.isValidObjectId(id) ? id : null },
         { legacyId: id },
       ],
-    }).lean();
+    }).lean() as IssueLeanDoc | null;
     
     if (!issue) {
       return NextResponse.json(
@@ -84,9 +96,11 @@ export async function GET(
         { status: 404 }
       );
     }
-    if (!(issue as any).key) {
-      (issue as any).key = issue.issueId || (await params).id;
-    }
+    // Ensure key is populated for response
+    const issueWithKey = {
+      ...issue,
+      key: issue.key || issue.issueId || (await params).id,
+    };
     
     // Get related issues
     const relatedIssues = issue.relatedIssues?.length
@@ -102,7 +116,7 @@ export async function GET(
       success: true,
       data: {
         issue: {
-          ...issue,
+          ...issueWithKey,
           relatedIssuesDetails: relatedIssues,
         },
       },
@@ -286,7 +300,7 @@ export async function PATCH(
     if (statusChanged && previousStatus && nextStatus) {
       await IssueEvent.create({
         issueId: issue._id,
-        key: (issue as any).key,
+        key: (issue as IIssue).key,
         type: nextStatus === IssueStatus.RESOLVED ? "RESOLVED" : "STATUS_CHANGED",
         sourceRef: "manual-update",
         sourceHash: issue.sourceHash,
