@@ -144,6 +144,22 @@ export async function registerNode(): Promise<void> {
       hasTaqnyatSMS: Boolean(process.env.TAQNYAT_BEARER_TOKEN && process.env.TAQNYAT_SENDER_NAME),
       hasEncryption: Boolean(process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY),
     });
+
+    // Initialize Sentry error tracking (if DSN configured)
+    try {
+      const { initSentryServer, isSentryEnabled } = await import("@/lib/sentry");
+      if (isSentryEnabled()) {
+        initSentryServer();
+        logger.info("[Instrumentation] Sentry error tracking initialized");
+      } else {
+        logger.info("[Instrumentation] Sentry not enabled (no DSN or not production)");
+      }
+    } catch (sentryError) {
+      logger.warn("[Instrumentation] Sentry initialization failed", {
+        error: sentryError instanceof Error ? sentryError.message : String(sentryError),
+      });
+      // Don't throw - app should continue without Sentry
+    }
   } catch (error) {
     logger.error("[Instrumentation] Initialization error", {
       error: error instanceof Error ? error.message : String(error),
