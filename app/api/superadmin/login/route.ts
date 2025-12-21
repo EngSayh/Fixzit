@@ -53,31 +53,34 @@ export async function POST(request: NextRequest) {
       ? await (request as any).json().catch(() => null)
       : null;
     const { username, password, secretKey } = body || {};
+    const usernameValue = typeof username === "string" ? username : "";
+    const passwordValue = typeof password === "string" ? password : "";
+    const secretValue = typeof secretKey === "string" ? secretKey : undefined;
 
     // Validate input with field-specific errors
-    if (!username || !username.trim()) {
+    if (!usernameValue || !usernameValue.trim()) {
       return NextResponse.json(
         { error: "Username is required", field: "username", code: "MISSING_USERNAME" },
         { status: 400, headers: ROBOTS_HEADER }
       );
     }
 
-    if (!password) {
+    if (!passwordValue) {
       return NextResponse.json(
         { error: "Password is required", field: "password", code: "MISSING_PASSWORD" },
         { status: 400, headers: ROBOTS_HEADER }
       );
     }
 
-    if (username !== SUPERADMIN_USERNAME) {
-      logger.warn("[SUPERADMIN] Failed login attempt - invalid username", { username });
+    if (usernameValue !== SUPERADMIN_USERNAME) {
+      logger.warn("[SUPERADMIN] Failed login attempt - invalid username", { username: usernameValue });
       return NextResponse.json(
         { error: "Username is incorrect", field: "username", code: "INVALID_USERNAME" },
         { status: 401, headers: ROBOTS_HEADER }
       );
     }
 
-    const passwordResult = await verifySuperadminPassword(password);
+    const passwordResult = await verifySuperadminPassword(passwordValue);
     if (!passwordResult.ok) {
       if (passwordResult.reason === 'not_configured') {
         logger.error("[SUPERADMIN] Server misconfigured - no password set", { ip });
@@ -95,24 +98,24 @@ export async function POST(request: NextRequest) {
           { status: 500, headers: ROBOTS_HEADER }
         );
       }
-      logger.warn("[SUPERADMIN] Failed password attempt", { username, ip });
+      logger.warn("[SUPERADMIN] Failed password attempt", { username: usernameValue, ip });
       return NextResponse.json(
         { error: "Password is incorrect", field: "password", code: "INVALID_PASSWORD" },
         { status: 401, headers: ROBOTS_HEADER }
       );
     }
 
-    const secondFactorResult = validateSecondFactor(secretKey);
+    const secondFactorResult = validateSecondFactor(secretValue);
     if (!secondFactorResult) {
       const envSecret = process.env.SUPERADMIN_SECRET_KEY;
-      if (envSecret && !secretKey) {
-        logger.warn("[SUPERADMIN] Missing required access key", { username, ip });
+      if (envSecret && !secretValue) {
+        logger.warn("[SUPERADMIN] Missing required access key", { username: usernameValue, ip });
         return NextResponse.json(
           { error: "Access key is required by server policy", field: "secretKey", code: "ACCESS_KEY_REQUIRED" },
           { status: 401, headers: ROBOTS_HEADER }
         );
       }
-      logger.warn("[SUPERADMIN] Invalid access key", { username, ip });
+      logger.warn("[SUPERADMIN] Invalid access key", { username: usernameValue, ip });
       return NextResponse.json(
         { error: "Access key is incorrect", field: "secretKey", code: "INVALID_ACCESS_KEY" },
         { status: 401, headers: ROBOTS_HEADER }
@@ -121,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     let token: string;
     try {
-      token = await signSuperadminToken(username);
+      token = await signSuperadminToken(usernameValue);
     } catch (tokenError) {
       // Handle missing org id configuration
       logger.error("[SUPERADMIN] Token signing failed", tokenError instanceof Error ? tokenError : new Error(String(tokenError)));
@@ -150,7 +153,7 @@ export async function POST(request: NextRequest) {
 
     applySuperadminCookies(response, token, 8 * 60 * 60);
 
-    logger.info("[SUPERADMIN] Successful login", { username });
+    logger.info("[SUPERADMIN] Successful login", { username: usernameValue });
 
     return response;
   } catch (error) {
