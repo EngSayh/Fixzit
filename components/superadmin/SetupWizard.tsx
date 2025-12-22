@@ -70,8 +70,8 @@ export function SetupWizard() {
   const [branding, setBranding] = useState<BrandingData>({
     companyName: "",
     logoUrl: "",
-    primaryColor: "#0061A8",
-    secondaryColor: "#00A859",
+    primaryColor: "#118158", // var(--color-brand-primary)
+    secondaryColor: "#C7B27C", // var(--color-brand-secondary)
   });
 
   const [defaults, setDefaults] = useState<DefaultsData>({
@@ -308,7 +308,7 @@ export function SetupWizard() {
                       onChange={(e) =>
                         setBranding({ ...branding, primaryColor: e.target.value })
                       }
-                      placeholder="#0061A8"
+                      placeholder="#118158"
                     />
                   </div>
                 </div>
@@ -329,7 +329,7 @@ export function SetupWizard() {
                       onChange={(e) =>
                         setBranding({ ...branding, secondaryColor: e.target.value })
                       }
-                      placeholder="#00A859"
+                      placeholder="#C7B27C"
                     />
                   </div>
                 </div>

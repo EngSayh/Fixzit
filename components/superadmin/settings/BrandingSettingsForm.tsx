@@ -36,7 +36,7 @@ export function BrandingSettingsForm() {
   const [formData, setFormData] = useState<BrandingData>({
     logoUrl: "/img/fixzit-logo.png",
     brandName: "Fixzit Enterprise",
-    brandColor: "#0061A8",
+    brandColor: "#118158", // var(--color-brand-primary)
   });
   const [lastAudit, setLastAudit] = useState<{ updatedAt?: string; updatedBy?: string } | null>(null);
 
@@ -54,7 +54,7 @@ export function BrandingSettingsForm() {
         const data: BrandingData = {
           logoUrl: result.data.logoUrl || "/img/fixzit-logo.png",
           brandName: result.data.brandName || "Fixzit Enterprise",
-          brandColor: result.data.brandColor || "#0061A8",
+          brandColor: result.data.brandColor || "#118158", // var(--color-brand-primary)
           faviconUrl: result.data.faviconUrl,
           updatedAt: result.data.updatedAt,
           updatedBy: result.data.updatedBy,
@@ -80,7 +80,7 @@ export function BrandingSettingsForm() {
     try {
       // Validate hex color
       if (!/^#[0-9A-Fa-f]{6}$/.test(formData.brandColor)) {
-        setError("Brand color must be a valid hex code (e.g., #0061A8)");
+        setError("Brand color must be a valid hex code (e.g., #118158)");
         setSaving(false);
         return;
       }
@@ -287,7 +287,7 @@ export function BrandingSettingsForm() {
                 type="text"
                 value={formData.brandColor}
                 onChange={(e) => setFormData({ ...formData, brandColor: e.target.value })}
-                placeholder="#0061A8"
+                placeholder="#118158"
                 className="bg-slate-800 border-slate-700 text-white"
                 pattern="^#[0-9A-Fa-f]{6}$"
               />
@@ -298,7 +298,7 @@ export function BrandingSettingsForm() {
               />
             </div>
             <p className="text-xs text-slate-500">
-              Hex color code (e.g., #0061A8)
+              Hex color code (e.g., #118158)
             </p>
           </div>
 
