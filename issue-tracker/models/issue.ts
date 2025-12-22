@@ -131,6 +131,35 @@ export interface IAuditEntry {
   findings: string;
 }
 
+// ============================================================================
+// AGENT COORDINATION INTERFACES (AGENTS.md v6.0 SSOT)
+// ============================================================================
+
+export interface IAssignmentHistory {
+  agentId: string;
+  action: 'claimed' | 'released' | 'transferred' | 'expired';
+  timestamp: Date;
+  reason?: string;
+}
+
+export interface IAssignment {
+  agentId?: string;           // [AGENT-XXX-Y] format
+  agentType?: 'Copilot' | 'Claude Code' | 'Codex' | 'Cursor' | 'Windsurf' | null;
+  claimedAt?: Date;
+  claimExpiresAt?: Date;      // TTL: claimedAt + 60 minutes
+  claimToken?: string;        // UUID for claim ownership verification
+  history: IAssignmentHistory[];
+}
+
+export interface IHandoffEvent {
+  from: string;               // [AGENT-XXX-Y]
+  to: string;                 // [AGENT-YYY-Z]
+  timestamp: Date;
+  reason: string;
+  nextAction?: string;
+  filesTouched?: string[];
+}
+
 export interface IIssue extends Document {
   // Identifiers
   issueId: string;           // Human-readable ID: BUG-0001, LOGIC-0001, etc.
@@ -170,8 +199,14 @@ export interface IIssue extends Document {
   
   // Ownership
   reportedBy: string;
-  assignedTo?: string;
+  assignedTo?: string;       // Legacy field - prefer assignment.agentId
   reviewedBy?: string;
+  
+  // Agent Coordination (AGENTS.md v6.0 SSOT)
+  assignment?: IAssignment;   // Nested agent assignment with TTL/token
+  handoffHistory: IHandoffEvent[];  // Delegation audit trail
+  contentHash?: string;       // sha256 for deduplication (16 hex chars)
+  version: number;            // Optimistic Concurrency Control
   
   // Tracking
   source: IssueSourceType;
@@ -263,6 +298,45 @@ const AuditEntrySchema = new Schema<IAuditEntry>({
   findings: { type: String, required: true },
 }, { _id: false });
 
+// ============================================================================
+// AGENT COORDINATION SCHEMAS (AGENTS.md v6.0 SSOT)
+// ============================================================================
+
+const AssignmentHistorySchema = new Schema<IAssignmentHistory>({
+  agentId: { type: String, required: true },
+  action: { 
+    type: String, 
+    enum: ['claimed', 'released', 'transferred', 'expired'],
+    required: true 
+  },
+  timestamp: { type: Date, default: Date.now },
+  reason: { type: String },
+}, { _id: false });
+
+const AssignmentSchema = new Schema<IAssignment>({
+  agentId: { 
+    type: String, 
+    match: /^AGENT-00[1-6](-[A-Z])?$/,  // [AGENT-XXX-Y] format
+  },
+  agentType: { 
+    type: String, 
+    enum: [null, 'Copilot', 'Claude Code', 'Codex', 'Cursor', 'Windsurf'],
+  },
+  claimedAt: { type: Date },
+  claimExpiresAt: { type: Date },  // TTL: claimedAt + 60 minutes
+  claimToken: { type: String },    // UUID for claim ownership verification
+  history: [AssignmentHistorySchema],
+}, { _id: false });
+
+const HandoffEventSchema = new Schema<IHandoffEvent>({
+  from: { type: String, required: true },  // [AGENT-XXX-Y]
+  to: { type: String, required: true },    // [AGENT-YYY-Z]
+  timestamp: { type: Date, default: Date.now },
+  reason: { type: String, required: true },
+  nextAction: { type: String },
+  filesTouched: [{ type: String }],
+}, { _id: false });
+
 const IssueSchema = new Schema<IIssue>({
   // Identifiers
   issueId: { 
@@ -329,8 +403,19 @@ const IssueSchema = new Schema<IIssue>({
   
   // Ownership
   reportedBy: { type: String, required: true },
-  assignedTo: { type: String, index: true },
+  assignedTo: { type: String, index: true },  // Legacy - prefer assignment.agentId
   reviewedBy: { type: String },
+  
+  // Agent Coordination (AGENTS.md v6.0 SSOT)
+  assignment: { type: AssignmentSchema },
+  handoffHistory: [HandoffEventSchema],
+  contentHash: { 
+    type: String, 
+    match: /^[a-f0-9]{16}$/,  // 16 hex chars for deduplication
+    sparse: true,
+    index: true,
+  },
+  version: { type: Number, default: 1 },  // Optimistic Concurrency Control
   
   // Tracking
   source: { 
@@ -388,6 +473,15 @@ IssueSchema.index({ orgId: 1, sprintId: 1 });
 IssueSchema.index({ 'location.filePath': 1, status: 1 });
 IssueSchema.index({ firstSeenAt: 1 });
 IssueSchema.index({ updatedAt: -1 });
+
+// Agent coordination indexes (AGENTS.md v6.0 SSOT)
+IssueSchema.index({ 'assignment.agentId': 1, status: 1 });
+IssueSchema.index({ 'assignment.claimExpiresAt': 1 }, { 
+  partialFilterExpression: { status: { $in: ['claimed', 'in_progress'] } }
+});
+
+// Deduplication index (AGENTS.md v6.0 SSOT)
+IssueSchema.index({ contentHash: 1 }, { unique: true, sparse: true });
 
 // Text index for search
 IssueSchema.index({ 

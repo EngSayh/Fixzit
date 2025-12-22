@@ -6,11 +6,11 @@ import clsx from "clsx";
 type Status = "success" | "warning" | "danger" | "info" | "neutral";
 
 const MAP: Record<Status, string> = {
-  success: "bg-[#D4EDDA] text-[#28A745]",
-  warning: "bg-[#FFF3CD] text-[#856404]",
-  danger: "bg-[#F8D7DA] text-[#DC3545]",
-  info: "bg-[#D1ECF1] text-[#0C5460]",
-  neutral: "bg-[#E2E3E5] text-[#383D41]",
+  success: "bg-[var(--color-success-bg)] text-[var(--color-success-text)]",
+  warning: "bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]",
+  danger: "bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]",
+  info: "bg-[var(--color-info-bg)] text-[var(--color-info-text)]",
+  neutral: "bg-[var(--color-neutral-bg)] text-[var(--color-neutral-text)]",
 };
 
 interface StatusPillProps {

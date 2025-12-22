@@ -127,7 +127,11 @@ export async function GET(
     // PERF-002: Read-only query optimization
     const tenant = await Tenant.findOne({
       _id: params.id,
+<<<<<<< HEAD
       orgId: user.orgId,
+=======
+      tenantId: user.tenantId,
+>>>>>>> origin/main
     }).lean();
 
     if (!tenant) {

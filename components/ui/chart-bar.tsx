@@ -22,15 +22,15 @@ interface ChartBarProps {
   barColor?: string;
 }
 
-const DEFAULT_BAR = "#118158";
+const DEFAULT_BAR = "var(--color-brand-primary, #1A9D6C)";
 
 export function ChartBar({ data, barColor = DEFAULT_BAR }: ChartBarProps) {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} barSize={28}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#EAEAEA" />
-        <XAxis dataKey="name" tick={{ fill: "#6C757D", fontSize: 12 }} />
-        <YAxis tick={{ fill: "#6C757D", fontSize: 12 }} />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-soft, #EAEAEA)" />
+        <XAxis dataKey="name" tick={{ fill: "var(--color-text-secondary, #6C757D)", fontSize: 12 }} />
+        <YAxis tick={{ fill: "var(--color-text-secondary, #6C757D)", fontSize: 12 }} />
         <Tooltip />
         <Bar dataKey="value" fill={barColor} radius={[6, 6, 0, 0]} />
       </BarChart>

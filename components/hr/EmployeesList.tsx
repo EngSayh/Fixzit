@@ -64,8 +64,8 @@ const EMPLOYMENT_TYPE_OPTIONS = ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"]
 const DEPARTMENT_OPTIONS = ["Engineering", "Operations", "Finance", "HR", "Sales", "Marketing", "Support"];
 
 const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/20",
-  ON_LEAVE: "bg-[#FFB400]/10 text-[#FFB400] border border-[#FFB400]/30",
+  ACTIVE: "bg-[var(--color-status-active-bg)] text-[var(--color-status-active)] border border-[var(--color-status-active)]/20",
+  ON_LEAVE: "bg-[var(--color-status-pending-bg)] text-[var(--color-status-pending)] border border-[var(--color-status-pending)]/30",
   INACTIVE: "bg-muted text-foreground border border-border",
   TERMINATED: "bg-destructive/10 text-destructive border border-destructive/20",
 };

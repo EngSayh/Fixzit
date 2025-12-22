@@ -47,7 +47,7 @@ export const FloatingBulkActions: React.FC<FloatingBulkActionsProps> = ({
               onClick={onMarkResolved}
               className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
             >
-              <CheckCircle className="w-4 h-4 mr-2" />
+              <CheckCircle className="w-4 h-4 me-2" />
               Mark Resolved
             </Button>
           )}
@@ -59,7 +59,7 @@ export const FloatingBulkActions: React.FC<FloatingBulkActionsProps> = ({
               onClick={onArchive}
               className="text-gray-600 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
-              <Archive className="w-4 h-4 mr-2" />
+              <Archive className="w-4 h-4 me-2" />
               Archive
             </Button>
           )}
@@ -71,7 +71,7 @@ export const FloatingBulkActions: React.FC<FloatingBulkActionsProps> = ({
               onClick={onDelete}
               className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="w-4 h-4 me-2" />
               Delete
             </Button>
           )}

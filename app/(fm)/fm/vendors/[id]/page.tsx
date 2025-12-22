@@ -239,18 +239,18 @@ function VendorDetailsContent({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Vendor Type</p>
-                  <p className="font-medium">{vendor.type || "N/A"}</p>
+                  <p className="text-sm text-muted-foreground">{t("vendor.labels.type", "Vendor Type")}</p>
+                  <p className="font-medium">{vendor.type || t("common.na", "N/A")}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
+                  <p className="text-sm text-muted-foreground">{t("vendor.labels.status", "Status")}</p>
                   <Badge className={statusColors[vendor.status] || "bg-muted"}>
                     {vendor.status}
                   </Badge>
                 </div>
                 {vendor.rating && (
                   <div>
-                    <p className="text-sm text-muted-foreground">Rating</p>
+                    <p className="text-sm text-muted-foreground">{t("vendor.labels.rating", "Rating")}</p>
                     <div className="flex items-center">
                       <Star className="w-4 h-4 text-warning me-1" />
                       <p className="font-medium">
@@ -294,21 +294,21 @@ function VendorDetailsContent({
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <FileText className="w-5 h-5 me-2" />
-                  Business Information
+                  {t("vendor.sections.businessInfo", "Business Information")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   {vendor.business.crNumber && (
                     <div>
-                      <p className="text-sm text-muted-foreground">CR Number</p>
+                      <p className="text-sm text-muted-foreground">{t("vendor.labels.crNumber", "CR Number")}</p>
                       <p className="font-medium">{vendor.business.crNumber}</p>
                     </div>
                   )}
                   {vendor.business.taxNumber && (
                     <div>
                       <p className="text-sm text-muted-foreground">
-                        Tax Number
+                        {t("vendor.labels.taxNumber", "Tax Number")}
                       </p>
                       <p className="font-medium">{vendor.business.taxNumber}</p>
                     </div>
@@ -316,7 +316,7 @@ function VendorDetailsContent({
                   {vendor.business.licenseNumber && (
                     <div>
                       <p className="text-sm text-muted-foreground">
-                        License Number
+                        {t("vendor.labels.licenseNumber", "License Number")}
                       </p>
                       <p className="font-medium">
                         {vendor.business.licenseNumber}
@@ -402,7 +402,7 @@ function VendorDetailsContent({
                     <div className="flex items-center">
                       <Mail className="w-4 h-4 text-muted-foreground me-2" />
                       <div>
-                        <p className="text-sm text-muted-foreground">Email</p>
+                        <p className="text-sm text-muted-foreground">{t("vendor.labels.email", "Email")}</p>
                         <a
                           href={`mailto:${vendor.contact.primary.email}`}
                           className="font-medium text-primary hover:underline"
@@ -416,7 +416,7 @@ function VendorDetailsContent({
                     <div className="flex items-center">
                       <Phone className="w-4 h-4 text-muted-foreground me-2" />
                       <div>
-                        <p className="text-sm text-muted-foreground">Phone</p>
+                        <p className="text-sm text-muted-foreground">{t("vendor.labels.phone", "Phone")}</p>
                         <a
                           href={`tel:${vendor.contact.primary.phone}`}
                           className="font-medium text-primary hover:underline"
@@ -430,7 +430,7 @@ function VendorDetailsContent({
                     <div className="flex items-center">
                       <Phone className="w-4 h-4 text-muted-foreground me-2" />
                       <div>
-                        <p className="text-sm text-muted-foreground">Mobile</p>
+                        <p className="text-sm text-muted-foreground">{t("vendor.labels.mobile", "Mobile")}</p>
                         <a
                           href={`tel:${vendor.contact.primary.mobile}`}
                           className="font-medium text-primary hover:underline"
@@ -448,7 +448,7 @@ function VendorDetailsContent({
                     <div className="flex items-start">
                       <MapPin className="w-4 h-4 text-muted-foreground me-2 mt-1" />
                       <div>
-                        <p className="text-sm text-muted-foreground">Address</p>
+                        <p className="text-sm text-muted-foreground">{t("vendor.labels.address", "Address")}</p>
                         <p className="font-medium">
                           {[
                             vendor.contact.address.street,
@@ -457,7 +457,7 @@ function VendorDetailsContent({
                             vendor.contact.address.postalCode,
                           ]
                             .filter(Boolean)
-                            .join(", ") || "N/A"}
+                            .join(", ") || t("common.na", "N/A")}
                         </p>
                       </div>
                     </div>
@@ -473,12 +473,12 @@ function VendorDetailsContent({
           {/* Quick Stats */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Quick Stats</CardTitle>
+              <CardTitle className="text-base">{t("vendor.sections.quickStats", "Quick Stats")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {vendor.rating && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Rating</span>
+                  <span className="text-sm text-muted-foreground">{t("vendor.labels.rating", "Rating")}</span>
                   <div className="flex items-center">
                     <Star className="w-4 h-4 text-warning me-1" />
                     <span className="font-medium">
@@ -490,7 +490,7 @@ function VendorDetailsContent({
               {vendor.responseTime && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    Avg. Response
+                    {t("vendor.labels.avgResponse", "Avg. Response")}
                   </span>
                   <div className="flex items-center">
                     <Clock className="w-4 h-4 text-primary me-1" />
@@ -500,7 +500,7 @@ function VendorDetailsContent({
               )}
               <Separator />
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Status</span>
+                <span className="text-sm text-muted-foreground">{t("vendor.labels.status", "Status")}</span>
                 <Badge className={statusColors[vendor.status] || "bg-muted"}>
                   {vendor.status}
                 </Badge>
@@ -513,7 +513,7 @@ function VendorDetailsContent({
             <CardHeader>
               <CardTitle className="text-base flex items-center">
                 <Shield className="w-4 h-4 me-2" />
-                Verification Status
+                {t("vendor.sections.verification", "Verification Status")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -557,12 +557,12 @@ function VendorDetailsContent({
           {/* Timestamps */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Record Info</CardTitle>
+              <CardTitle className="text-base">{t("vendor.sections.recordInfo", "Record Info")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {vendor.createdAt && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Created</p>
+                  <p className="text-sm text-muted-foreground">{t("common.created", "Created")}</p>
                   <p className="text-sm font-medium">
                     <ClientDate date={vendor.createdAt} format="date-only" />
                   </p>
@@ -570,7 +570,7 @@ function VendorDetailsContent({
               )}
               {vendor.updatedAt && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Last Updated</p>
+                  <p className="text-sm text-muted-foreground">{t("common.lastUpdated", "Last Updated")}</p>
                   <p className="text-sm font-medium">
                     <ClientDate date={vendor.updatedAt} format="date-only" />
                   </p>

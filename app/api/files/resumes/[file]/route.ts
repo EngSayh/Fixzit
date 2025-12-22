@@ -87,8 +87,8 @@ export async function GET(
     let data: Buffer;
     try {
       data = await fs.readFile(filePath);
-    } catch (error: any) {
-      if (error && error.code === "ENOENT") {
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === "ENOENT") {
         return createSecureResponse({ error: "Not found" }, 404, req);
       }
       logger.error("[resumes] File read failed", { error, filePath });

@@ -1,4 +1,4 @@
-# Fixzit VS Code Agent — Master Instruction v5.1 (STRICT v4 + Technical Regression Guards)
+# Fixzit VS Code Agent — Master Instruction v5.2 (STRICT v4 + AGENTS.md v6.0 Alignment)
 
 Owner: Eng. Sultan Al Hassni  
 System: Fixzit Facility-Management + Marketplace (Fixzit Souq) + Real Estate (Aqar)  
@@ -8,6 +8,7 @@ NON-NEGOTIABLE. Violations = AUTO-FAIL.
 
 ---
 
+<<<<<<< HEAD
 ## 📚 See Also: AGENTS.md v5.5
 For complete agent governance protocols, see [AGENTS.md](../AGENTS.md) which includes:
 - Agent Claim Protocol with Pre-Start/Post-Task checklists
@@ -15,6 +16,20 @@ For complete agent governance protocols, see [AGENTS.md](../AGENTS.md) which inc
 - Pending Backlog Extractor v2.5 (SSOT-integrated)
 - SSOT Chat History + Backlog Sync Protocol
 - Code Quality Standards and PR Scorecard
+=======
+## 📚 See Also: AGENTS.md v6.0
+For complete agent governance protocols, see [AGENTS.md](../AGENTS.md) which includes:
+- **Section 3**: Agent Token Protocol (MANDATORY attribution)
+- **Section 6**: Pre-Claim SSOT Validation (MANDATORY before claiming any work)
+- **Section 8**: Scope Expansion & Delegation Protocol
+- **Section 13.3**: Pending Backlog Extractor v2.5 (SSOT-integrated)
+- **Section 13.4**: Agent Task Handoff Protocol (SSOT Coordination)
+- **Appendix A**: MongoDB Issue Schema with agent coordination fields
+- **Appendix B**: Agent Routing Configuration
+
+Priority Model: P0-P3 (priorityRank: P0=1, P1=2, P2=3, P3=4)
+SSOT Fields: `assignment.agentId`, `assignment.claimedAt`, `assignment.claimExpiresAt`, `handoffHistory[]`, `contentHash`, `version`
+>>>>>>> origin/main
 
 ---
 
@@ -189,7 +204,7 @@ Goal: eliminate false positives. Treat every comment/diagnostic as untrusted unt
 
 ---
 
-END OF MASTER INSTRUCTION v5.1
+END OF MASTER INSTRUCTION v5.2
 
 Output format (single report only):
 1) Audit Summary

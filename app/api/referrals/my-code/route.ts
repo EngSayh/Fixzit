@@ -51,8 +51,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
+<<<<<<< HEAD
     // lean() already returns plain object, no toObject needed
     const referralDoc = referralCode as { referrals?: unknown[] } & typeof referralCode;
+=======
+    // With .lean(), referralCode is already a plain object
+    const referralDoc = referralCode as { referrals?: unknown[] };
+>>>>>>> origin/main
 
     // Paginate referrals array
     const total = Array.isArray(referralDoc.referrals)

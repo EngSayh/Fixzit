@@ -80,6 +80,17 @@ interface ImportSummary {
   errors: Array<{ index: number; error: string; key?: string }>;
 }
 
+/** Lean document type for Issue.findOne().lean() results */
+interface IssueLeanDoc {
+  _id: mongoose.Types.ObjectId;
+  key?: string;
+  issueId?: string;
+  externalId?: string;
+  status?: string;
+  location?: { filePath?: string };
+  action?: string;
+}
+
 const REQUIRED_FIELDS = ["key", "title", "sourceRef", "evidenceSnippet", "sourcePath"] as const;
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
@@ -225,9 +236,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: ROBOTS_HEADER });
     }
 
-    const body = typeof (request as any).json === "function"
-      ? ((await (request as any).json().catch(() => null)) as ImportBody | null)
-      : null;
+    let body: ImportBody | null = null;
+    try {
+      body = await request.json();
+    } catch {
+      body = null;
+    }
     if (!body || !Array.isArray(body.issues)) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400, headers: ROBOTS_HEADER });
     }
@@ -240,7 +254,7 @@ export async function POST(request: NextRequest) {
 
     for (let i = 0; i < body.issues.length; i++) {
       const raw = body.issues[i];
-      const missing = REQUIRED_FIELDS.filter((field) => !(raw as any)?.[field]);
+      const missing = REQUIRED_FIELDS.filter((field) => !raw[field]);
       if (missing.length > 0) {
         summary.errors.push({ index: i, error: `Missing required fields: ${missing.join(", ")}`, key: raw.key });
         summary.skipped += 1;
@@ -264,7 +278,7 @@ export async function POST(request: NextRequest) {
       const issueModule = extractModule(location);
       const now = new Date();
 
-      const existing = await Issue.findOne({ orgId, key }).lean();
+      const existing = await Issue.findOne({ orgId, key }).lean() as IssueLeanDoc | null;
       if (existing) {
         const resolvedStates = new Set<IssueStatusType>([
           IssueStatus.RESOLVED,
@@ -291,9 +305,9 @@ export async function POST(request: NextRequest) {
                 sourceRef: raw.sourceRef,
                 evidenceSnippet,
                 sourceHash,
-                location: { ...(existing as any).location, filePath: location },
+                location: { ...existing.location, filePath: location },
                 module: issueModule,
-                action: (existing as any).action || `Fix: ${raw.title}`,
+                action: existing.action || `Fix: ${raw.title}`,
                 lastSeenAt: now,
               },
               $inc: { mentionCount: 1 },

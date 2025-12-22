@@ -60,8 +60,8 @@ const TYPE_OPTIONS = ["SYSTEM", "CUSTOM"];
 const STATUS_OPTIONS = ["ACTIVE", "INACTIVE"];
 
 const typeStyles: Record<string, string> = {
-  SYSTEM: "bg-[#0061A8]/10 text-[#0061A8] border border-[#0061A8]/20",
-  CUSTOM: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/20",
+  SYSTEM: "bg-[var(--color-status-info-bg)] text-[var(--color-status-info)] border border-[var(--color-status-info)]/20",
+  CUSTOM: "bg-[var(--color-status-active-bg)] text-[var(--color-status-active)] border border-[var(--color-status-active)]/20",
 };
 
 type RoleFilters = {

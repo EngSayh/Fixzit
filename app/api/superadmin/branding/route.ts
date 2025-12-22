@@ -41,6 +41,21 @@ const BrandingUpdateSchema = z.object({
 
 type BrandingUpdatePayload = z.infer<typeof BrandingUpdateSchema>;
 
+/** Extended type including audit plugin fields */
+type PlatformSettingsWithAudit = {
+  logoUrl?: string;
+  logoStorageKey?: string;
+  logoFileName?: string;
+  logoMimeType?: string;
+  logoFileSize?: number;
+  faviconUrl?: string;
+  brandName?: string;
+  brandColor?: string;
+  updatedAt?: Date;
+  updatedBy?: string;
+  createdBy?: string;
+};
+
 /**
  * GET /api/superadmin/branding
  * Retrieve current platform branding settings
@@ -79,6 +94,7 @@ export async function GET(request: NextRequest) {
       logger.info("Created default platform settings", { username: session.username });
     }
 
+    const settingsWithAudit = settings as unknown as PlatformSettingsWithAudit;
     return NextResponse.json({
       success: true,
       data: {
@@ -91,7 +107,7 @@ export async function GET(request: NextRequest) {
         brandName: settings.brandName,
         brandColor: settings.brandColor,
         updatedAt: settings.updatedAt,
-        updatedBy: (settings as any).updatedBy || "system",
+        updatedBy: settingsWithAudit.updatedBy || "system",
       },
     });
   } catch (error) {
@@ -223,6 +239,7 @@ export async function PATCH(request: NextRequest) {
       revalidatePath("/api/organization/settings");
     }
 
+    const settingsWithAudit = settings as unknown as PlatformSettingsWithAudit;
     return NextResponse.json({
       success: true,
       data: {
@@ -235,7 +252,7 @@ export async function PATCH(request: NextRequest) {
         brandName: settings.brandName,
         brandColor: settings.brandColor,
         updatedAt: settings.updatedAt,
-        updatedBy: (settings as any).updatedBy || session.username,
+        updatedBy: settingsWithAudit.updatedBy || session.username,
       },
       message: "Branding settings updated successfully",
     });

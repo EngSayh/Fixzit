@@ -70,10 +70,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      organizations: organizations.map((org: any) => ({
+      organizations: organizations.map((org) => ({
         id: org._id,
         name: org.name,
-        slug: org.slug || null,
+        slug: (org as { slug?: string }).slug || null,
       })),
     });
   } catch (error) {

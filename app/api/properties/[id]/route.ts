@@ -119,7 +119,7 @@ export async function GET(
     const property = await Property.findOne({
       _id: params.id,
       orgId: user.orgId,
-    });
+    }).lean();
 
     if (!property) {
       return createSecureResponse({ error: "Property not found" }, 404, req);

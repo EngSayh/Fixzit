@@ -322,7 +322,7 @@ export function BrandingSettingsForm() {
             <Button
               onClick={handleSave}
               disabled={!isDirty || saving}
-              className="bg-[#0061A8] hover:bg-[#004d8a] text-white"
+              className="bg-[var(--color-status-info)] hover:bg-[var(--color-status-info)]/90 text-white"
             >
               {saving ? (
                 <>Saving...</>

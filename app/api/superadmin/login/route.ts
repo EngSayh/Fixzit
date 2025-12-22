@@ -49,9 +49,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = typeof (request as any).json === "function"
-      ? await (request as any).json().catch(() => null)
-      : null;
+    let body: Record<string, unknown> | null = null;
+    try {
+      body = await request.json();
+    } catch {
+      body = null;
+    }
     const { username, password, secretKey } = body || {};
     const usernameValue = typeof username === "string" ? username : "";
     const passwordValue = typeof password === "string" ? password : "";

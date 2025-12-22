@@ -1,11 +1,117 @@
-# Backlog Audit (2025-12-17 23:01 Asia/Riyadh)
+# BACKLOG_AUDIT (Derived from docs/PENDING_MASTER.md)
+**Generated**: 2025-12-21T13:55:33+03:00 (Asia/Riyadh)
+**Source**: docs/PENDING_MASTER.md
 
-- P3-AQAR-FILTERS — in_progress — sourceRef pending-master:docs/PENDING_MASTER.md:10-13
-- P3-SOUQ-PRODUCTS — in_progress — sourceRef pending-master:docs/PENDING_MASTER.md:10-13
-- P3-LIST-INTEGRATION-TESTS — in_progress — sourceRef pending-master:docs/PENDING_MASTER.md:10-13
-- BLOCKER-ISSUE-IMPORT-401 — blocked — sourceRef pending-master:docs/PENDING_MASTER.md:15-16
-- BUG-WO-FILTERS-MISSING — open — sourceRef code-review:components/fm/WorkOrdersViewNew.tsx:124-153
-- BUG-USERS-FILTERS-MISSING — open — sourceRef code-review:components/administration/UsersList.tsx:107-113
-- BUG-EMPLOYEES-FILTERS-MISSING — open — sourceRef code-review:components/hr/EmployeesList.tsx:112-116
-- BUG-INVOICES-FILTERS-MISSING — open — sourceRef code-review:components/finance/InvoicesList.tsx:111-116
-- BUG-AUDITLOGS-FILTERS-MISSING — open — sourceRef code-review:components/administration/AuditLogsList.tsx:108-114
+## Summary
+- Total Issues: 108
+- Statuses: open=84, in_progress=24
+
+## Issues
+- INFRA-SENTRY | open | Activate Sentry error tracking | pending-master:docs/PENDING_MASTER.md:561-561
+- FEATURE-001 | open | Real-time SSE notifications | pending-master:docs/PENDING_MASTER.md:557-557
+- P3-SOUQ-PRODUCTS | in_progress | Souq Products migration | pending-master:docs/PENDING_MASTER.md:857-857
+- DOCS-TODO-001 | open | [x] DOCS-TODO-001: Documented 17 TODOs with categories and priorities | pending-master:docs/PENDING_MASTER.md:96-96
+- BLOCKER-001 | open | **BLOCKER-001:** Vercel build failing (webpack "Module not found") - Needs investigation | pending-master:docs/PENDING_MASTER.md:1217-1217
+- DOC-101 | open | DOC-101 through DOC-110: Documentation gaps (JSDoc, OpenAPI, READMEs) | pending-master:docs/PENDING_MASTER.md:3588-3588
+- DOC-110 | open | DOC-101 through DOC-110: Documentation gaps (JSDoc, OpenAPI, READMEs) | pending-master:docs/PENDING_MASTER.md:3588-3588
+- TEST-001 | in_progress | **Remaining P3:** PERF-002, TEST-001, TEST-005 (in progress) | pending-master:docs/PENDING_MASTER.md:3774-3774
+- REF-001 | open | **REF-001** — Create CRM route handler unit tests (P2, effort:M, sourceRef:PENDING_MASTER) | pending-master:docs/PENDING_MASTER.md:3271-3271
+- TEST-002 | open | TEST-002, TEST-003, REF-001 — HR/Finance/CRM test suites pending | pending-master:docs/PENDING_MASTER.md:4082-4082
+- TEST-003 | open | TEST-002, TEST-003, REF-001 — HR/Finance/CRM test suites pending | pending-master:docs/PENDING_MASTER.md:4082-4082
+- DOC-108 | open | **API contract (P2):** DOC-108 (update OpenAPI spec) | pending-master:docs/PENDING_MASTER.md:4401-4401
+- TEST-004 | open | **Open (7):** SEC-002 (P1), BUG-001 (P1), PERF-001 (P2), TEST-004 (P2), TEST-002 (P2), TEST-003 (P2), PERF-002 (P3) | pending-master:docs/PENDING_MASTER.md:4442-4442
+- TYPE-003 | open | 🟡 Medium | pending-master:docs/PENDING_MASTER.md:8096-8096
+- RTL-002 | open | 🟡 Medium | pending-master:docs/PENDING_MASTER.md:8074-8074
+- RTL-001 | open | 🟡 Medium | pending-master:docs/PENDING_MASTER.md:8073-8073
+- ERR-003 | open | 🟡 Medium | pending-master:docs/PENDING_MASTER.md:8065-8065
+- SEC-004 | open | 🟡 Medium | pending-master:docs/PENDING_MASTER.md:8043-8043
+- TEN-004 | open | 🟡 Medium | pending-master:docs/PENDING_MASTER.md:8021-8021
+- TEN-003 | open | 🟡 Medium | pending-master:docs/PENDING_MASTER.md:8020-8020
+- TEST-AQAR | open | Aqar Module | pending-master:docs/PENDING_MASTER.md:7257-7257
+- BUG-PAY-001 | in_progress | `payments/tap/checkout/route.ts:251` | pending-master:docs/PENDING_MASTER.md:7239-7239
+- BUG-KYC-001 | in_progress | `seller-central/kyc/submit` | pending-master:docs/PENDING_MASTER.md:7238-7238
+- OTP-001 | in_progress | auth OTP flow | pending-master:docs/PENDING_MASTER.md:7235-7235
+- LOGIC-005 | open | 20+ upload/help/onboarding routes | pending-master:docs/PENDING_MASTER.md:9156-9156
+- BUG-006 | in_progress | 🟠 High | pending-master:docs/PENDING_MASTER.md:9150-9150
+- BUG-1715 | open | tests/unit/api/souq/seller-central/kyc-submit.test.ts (mocks) | pending-master:docs/PENDING_MASTER.md:27714-27714
+- BUG-1714 | open | tests/unit/api/fm/finance/budgets.test.ts (fixtures) | pending-master:docs/PENDING_MASTER.md:27713-27713
+- P2-005 | open | Testing | pending-master:docs/PENDING_MASTER.md:9838-9838
+- P2-004 | open | Testing | pending-master:docs/PENDING_MASTER.md:9837-9837
+- P2-003 | open | Testing | pending-master:docs/PENDING_MASTER.md:9836-9836
+- P2-002 | open | Validation | pending-master:docs/PENDING_MASTER.md:9835-9835
+- P2-001 | open | Architecture | pending-master:docs/PENDING_MASTER.md:9834-9834
+- P1-003 | open | Reliability | pending-master:docs/PENDING_MASTER.md:9827-9827
+- P1-002 | open | Reliability | pending-master:docs/PENDING_MASTER.md:9826-9826
+- P1-001 | open | Reliability | pending-master:docs/PENDING_MASTER.md:9825-9825
+- P0-003 | open | Security | pending-master:docs/PENDING_MASTER.md:9819-9819
+- P0-002 | open | Security | pending-master:docs/PENDING_MASTER.md:9818-9818
+- P0-001 | open | Security | pending-master:docs/PENDING_MASTER.md:9817-9817
+- SENTRY-001 | open | Add Sentry context to FM/Souq modules | pending-master:docs/PENDING_MASTER.md:19898-19898
+- BUG-1711 | open | domain/aqar (late fee calc patterns) | pending-master:docs/PENDING_MASTER.md:27667-27667
+- LOGIC-123 | open | Aqar writes | pending-master:docs/PENDING_MASTER.md:8945-8945
+- LOGIC-122 | open | Souq review flow | pending-master:docs/PENDING_MASTER.md:8944-8944
+- LOGIC-121 | open | GraphQL read resolvers | pending-master:docs/PENDING_MASTER.md:8943-8943
+- BUG-1707 | open | app/api/aqar/favorites/route.ts:61-138 | pending-master:docs/PENDING_MASTER.md:8938-8938
+- BUG-1706 | open | app/api/aqar/packages/route.ts:102-124 | pending-master:docs/PENDING_MASTER.md:8937-8937
+- BUG-1705 | open | app/api/aqar/listings/route.ts:99-138 | pending-master:docs/PENDING_MASTER.md:8936-8936
+- BUG-1704 | open | app/api/souq/reviews/route.ts:61-108 | pending-master:docs/PENDING_MASTER.md:8935-8935
+- BUG-1703 | open | lib/graphql/index.ts:936-1052 | pending-master:docs/PENDING_MASTER.md:8934-8934
+- BUG-1702 | open | lib/graphql/index.ts:803-887 | pending-master:docs/PENDING_MASTER.md:8933-8933
+- BUG-1701 | open | lib/graphql/index.ts:769-801 | pending-master:docs/PENDING_MASTER.md:8932-8932
+- LOGIC-021 | open | Secrets guard scope | pending-master:docs/PENDING_MASTER.md:9080-9080
+- LOGIC-020 | open | Souq rule consumption | pending-master:docs/PENDING_MASTER.md:9079-9079
+- BUG-1528 | open | 🟡 Medium | pending-master:docs/PENDING_MASTER.md:9074-9074
+- BUG-1527 | in_progress | 🟠 High | pending-master:docs/PENDING_MASTER.md:9073-9073
+- BUG-1526 | in_progress | 🟠 High | pending-master:docs/PENDING_MASTER.md:9072-9072
+- BUG-1525 | in_progress | 🟠 High | pending-master:docs/PENDING_MASTER.md:9071-9071
+- SILENT-HELP-JSON-001 | open | Correctness | pending-master:docs/PENDING_MASTER.md:9982-9982
+- P3-004 | open | Unused exports | pending-master:docs/PENDING_MASTER.md:17837-17837
+- DOC-003 | open | 🔄 DEFERRED | pending-master:docs/PENDING_MASTER.md:24294-24294
+- BUG-005 | open | 🟡 Medium | pending-master:docs/PENDING_MASTER.md:9526-9526
+- BUG-004 | in_progress | 🟠 High | pending-master:docs/PENDING_MASTER.md:9525-9525
+- TEST-008 | open | Withdrawal manual payout flow | pending-master:docs/PENDING_MASTER.md:23118-23118
+- GQL-002 | open | Incomplete | pending-master:docs/PENDING_MASTER.md:13727-13727
+- JSON-001 | open | Crash Risk | pending-master:docs/PENDING_MASTER.md:13718-13718
+- AUTH-TEST-002 | open | Add unit/integration coverage for `resolveAuthSecret()` + `/api/health/auth` healthy state when either secret present. | pending-master:docs/PENDING_MASTER.md:21658-21658
+- AUTH-LOGIC-001 | in_progress | Align auth routes/services to consume `Config.auth.secret` where possible to avoid divergent env access. | pending-master:docs/PENDING_MASTER.md:21657-21657
+- AUTH-OPS-002 | in_progress | Enforce identical secrets across Vercel/preview/local; add secret checks in CI/CD; rotate placeholders. | pending-master:docs/PENDING_MASTER.md:21656-21656
+- AUTH-BUG-001 | in_progress | Runtime/console crash if neither secret is set (observed in SW logs). Mitigate by setting real secret everywhere. | pending-master:docs/PENDING_MASTER.md:21655-21655
+- PERF-004 | in_progress | Sequential notifications | pending-master:docs/PENDING_MASTER.md:21787-21787
+- TEST-API-GAP | in_progress | 127 API routes without dedicated tests | pending-master:docs/PENDING_MASTER.md:20961-20961
+- TEST-TAQNYAT | in_progress | `lib/sms-providers/taqnyat.ts` | pending-master:docs/PENDING_MASTER.md:20960-20960
+- TEST-IP | in_progress | `lib/security/ip-reputation.ts` | pending-master:docs/PENDING_MASTER.md:20959-20959
+- INTERVAL-002 | in_progress | setInterval cleanup in mongo.ts | pending-master:docs/PENDING_MASTER.md:20954-20954
+- TODO-001 | in_progress | Cleanup | pending-master:docs/PENDING_MASTER.md:20334-20334
+- PATTERN-001 | in_progress | Reliability | pending-master:docs/PENDING_MASTER.md:20333-20333
+- TYPE-001 | open | ITapInfo missing `chargeId` on checkout payload | pending-master:docs/PENDING_MASTER.md:21207-21207
+- GH-003 | open | release-gate.yml:196 | pending-master:docs/PENDING_MASTER.md:21242-21242
+- GH-002 | open | release-gate.yml:180 | pending-master:docs/PENDING_MASTER.md:21241-21241
+- GH-001 | open | release-gate.yml:87 | pending-master:docs/PENDING_MASTER.md:21240-21240
+- AUTH-TEST-001 | open | Add regression test for Config.auth.secret covering AUTH_SECRET fallback and production throw when both secrets are missing. | pending-master:docs/PENDING_MASTER.md:24140-24140
+- AUTH-SEC-002 | in_progress | Set 32+ char NEXTAUTH_SECRET (or AUTH_SECRET) in all environments to remove runtime warnings and keep session signing consistent. | pending-master:docs/PENDING_MASTER.md:24139-24139
+- ERR-007 | open | Document SWR fetcher | pending-master:docs/PENDING_MASTER.md:24832-24832
+- TQ-003 | open | ErrorBoundary Coverage | pending-master:docs/PENDING_MASTER.md:13856-13856
+- ISSUE-CI-001 | open | **ISSUE-CI-001 – GitHub Actions Workflows Failing** (High, Pending Investigation): check runners, secrets per `docs/GITHUB_SECRETS_SETUP.md` | pending-master:docs/PENDING_MASTER.md:26410-26410
+- PF-004 | open | Image optimization (WebP) | pending-master:docs/PENDING_MASTER.md:27314-27314
+- PF-003 | open | Enable Redis caching in prod | pending-master:docs/PENDING_MASTER.md:27313-27313
+- PF-002 | open | Bundle size optimization | pending-master:docs/PENDING_MASTER.md:27312-27312
+- TG-006 | open | Webhook delivery tests | pending-master:docs/PENDING_MASTER.md:27293-27293
+- TG-005 | open | Marketplace vendor tests | pending-master:docs/PENDING_MASTER.md:27292-27292
+- TG-004 | open | Integration tests for Souq flows | pending-master:docs/PENDING_MASTER.md:27291-27291
+- TG-003 | open | E2E for finance PII encryption | pending-master:docs/PENDING_MASTER.md:27290-27290
+- TG-002 | open | Auth middleware edge cases | pending-master:docs/PENDING_MASTER.md:27289-27289
+- TG-001 | open | RBAC role-based filtering tests | pending-master:docs/PENDING_MASTER.md:27288-27288
+- CQ-003 | open | Magic numbers in business rules | pending-master:docs/PENDING_MASTER.md:27275-27275
+- CQ-002 | open | Remaining `any` types | pending-master:docs/PENDING_MASTER.md:27274-27274
+- CQ-001 | open | Mixed async/await patterns | pending-master:docs/PENDING_MASTER.md:27273-27273
+- HIGH-004 | in_progress | Payment Config (Tap secrets) | pending-master:docs/PENDING_MASTER.md:27265-27265
+- UX-005 | open | Color contrast fixes | pending-master:docs/PENDING_MASTER.md:27357-27357
+- CH-004 | open | Long function refactoring | pending-master:docs/PENDING_MASTER.md:27337-27337
+- TEST-CMP | open | Compliance route tests | pending-master:docs/PENDING_MASTER.md:24270-24270
+- TEST-ADM | open | Admin operation tests | pending-master:docs/PENDING_MASTER.md:24269-24269
+- TEST-ONB | in_progress | Onboarding flow tests | pending-master:docs/PENDING_MASTER.md:24268-24268
+- TEST-HR | in_progress | HR/payroll route tests | pending-master:docs/PENDING_MASTER.md:24267-24267
+- CQ-008 | open | Mixed async/await and Promise chains | pending-master:docs/PENDING_MASTER.md:26604-26604
+- ISSUE-005 | open | **ISSUE-005 – Mixed orgId Storage in Souq Payouts/Withdrawals** (Major, Pending Migration - Ops): run `npx tsx scripts/migrations/2025-12-07 | pending-master:docs/PENDING_MASTER.md:26411-26411
+- GH-ENV | open | Create GitHub environments (staging, production-approval, production) | pending-master:docs/PENDING_MASTER.md:21285-21285
+- GH-006 | open | pr_agent.yml:26-27 | pending-master:docs/PENDING_MASTER.md:21245-21245

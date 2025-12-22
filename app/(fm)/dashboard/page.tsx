@@ -37,9 +37,9 @@ export default function DashboardPage() {
   ];
 
   const workOrderData = [
-    { name: t("dashboard.statusCompleted", "Completed"), value: 72, color: "#118158" },
-    { name: t("dashboard.statusInProgress", "In Progress"), value: 18, color: "#C7B27C" },
-    { name: t("dashboard.statusPending", "Pending"), value: 10, color: "#17A2B8" },
+    { name: t("dashboard.statusCompleted", "Completed"), value: 72, color: "var(--color-brand-primary)" },
+    { name: t("dashboard.statusInProgress", "In Progress"), value: 18, color: "var(--color-brand-secondary)" },
+    { name: t("dashboard.statusPending", "Pending"), value: 10, color: "var(--color-info)" },
   ];
 
   return (
@@ -138,7 +138,7 @@ export default function DashboardPage() {
                     {t("dashboard.tenant", "Tenant")}: Acme Corp
                   </p>
                 </div>
-                <p className="font-semibold text-[#118158]">
+                <p className="font-semibold text-[var(--color-brand-primary)]">
                   +SAR {(15000 + i * 1000).toLocaleString()}
                 </p>
               </div>

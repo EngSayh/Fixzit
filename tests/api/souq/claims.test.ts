@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { MongoClient, ObjectId } from "mongodb";
 import type { Db } from "mongodb";
 
@@ -42,6 +42,7 @@ describe("Claims API - Core Functionality", () => {
   });
 
   beforeEach(async () => {
+    vi.clearAllMocks();
     // Clean up test data
     await db.collection("claims").deleteMany({ testData: true });
     await db.collection("orders").deleteMany({ testData: true });
