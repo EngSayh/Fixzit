@@ -190,8 +190,19 @@ const config = {
         "3xl": "64px",
       },
       transitionDuration: {
+        "150": "150ms",
+        "200": "200ms",
+        "300": "300ms",
         "400": "400ms",
+        "500": "500ms",
         "600": "600ms",
+      },
+      transitionTimingFunction: {
+        /* DGA Standard Timing Functions */
+        "standard": "cubic-bezier(0.2, 0, 0.38, 0.9)",
+        "entrance": "cubic-bezier(0, 0, 0.38, 0.9)",
+        "exit": "cubic-bezier(0.2, 0, 1, 0.9)",
+        "expressive": "cubic-bezier(0.4, 0.14, 0.3, 1)",
       },
       backgroundImage: {
         "aurora-gradient":
