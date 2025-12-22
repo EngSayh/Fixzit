@@ -191,7 +191,7 @@ export function GuidedTour({ tourKey, run = false, onComplete, onSkip }: GuidedT
       callback={handleJoyrideCallback}
       styles={{
         options: {
-          primaryColor: "#0061A8", // Fixzit Blue
+          primaryColor: "var(--color-tour-primary, #0061A8)",
           zIndex: 10000,
         },
         tooltip: {
@@ -199,14 +199,14 @@ export function GuidedTour({ tourKey, run = false, onComplete, onSkip }: GuidedT
           fontSize: 14,
         },
         buttonNext: {
-          backgroundColor: "#0061A8",
+          backgroundColor: "var(--color-tour-primary, #0061A8)",
           borderRadius: 6,
         },
         buttonBack: {
-          color: "#64748b",
+          color: "var(--color-tour-back, #64748b)",
         },
         buttonSkip: {
-          color: "#94a3b8",
+          color: "var(--color-tour-skip, #94a3b8)",
         },
       }}
       locale={{

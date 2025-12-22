@@ -481,7 +481,7 @@ export function CustomerInsightsCard({
                       `${name} ${((percent || 0) * 100).toFixed(0)}%`
                     }
                     outerRadius={80}
-                    fill="#8884d8"
+                    fill="var(--color-chart-primary, #8884d8)"
                     dataKey="value"
                   >
                     {geographyData.map((entry, index) => (
@@ -539,7 +539,7 @@ export function CustomerInsightsCard({
                     `${name} ${((percent || 0) * 100).toFixed(0)}%`
                   }
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill="var(--color-chart-primary, #8884d8)"
                   dataKey="value"
                 >
                   {demographicsData.map((entry, index) => (

@@ -44,6 +44,14 @@
     --color-sparkline-green: #10B981;
     --color-sparkline-sky: #3B82F6;
 
+    /* Sidebar */
+    --color-sidebar-bg: #1D2B36;
+    
+    /* Tour/Joyride */
+    --color-tour-primary: #0061A8;
+    --color-tour-back: #64748b;
+    --color-tour-skip: #94a3b8;
+
     /* Neutral surfaces */
     --color-app-background: #F4F6F9;
     --color-card-surface: #FFFFFF;
