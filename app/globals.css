@@ -5,9 +5,48 @@
 /* Fonts are loaded via next/font in app/layout.tsx for optimal performance */
 
 /* ============================================
-   FIXZIT DESIGN SYSTEM v3.0
-   Modern, Distinctive, Production-Ready
+   EJAR.SA DESIGN SYSTEM (DGA STANDARD)
+   Saudi Platforms Code Compliant
    ============================================ */
+
+/* DGA Standard Root Variables */
+:root {
+  /* Core Brand */
+  --color-primary: #25935F;
+  --color-primary-hover: #188352;
+  
+  /* Text (High Contrast) */
+  --color-text-main: #0D121C;
+  --color-text-secondary: #6C737F;
+  --color-text-disabled: #8A919C;
+  
+  /* Backgrounds */
+  --color-bg-page: #F9FAFB;
+  --color-bg-card: #FFFFFF;
+  
+  /* Borders */
+  --color-border: #E5E7EB;
+  --color-border-input: #CFD4DB;
+}
+
+/* DGA Standard Scrollbar Style */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F3F4F6;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CFD4DB;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A8AEB8;
+}
 
 @layer base {
   :root {
