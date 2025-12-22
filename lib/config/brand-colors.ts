@@ -2,11 +2,48 @@
  * Centralized Brand Color Configuration
  *
  * This file contains all brand colors for the Ejar.sa design system.
+ * Based on Saudi Arabia's official "Platforms Code" (كود المنصات) national design system.
  * Use these constants instead of hardcoding hex values throughout the codebase.
  *
  * @module lib/config/brand-colors
  * @see docs/BRANDING.md for usage guidelines
  */
+
+/**
+ * Ejar.sa Primary Color Scale (Official Platforms Code)
+ *
+ * Primary green derived from Saudi national colors with platform-specific variations.
+ */
+export const PRIMARY_SCALE = {
+  50: "#E8F7EE",
+  100: "#C7EAD8",
+  200: "#8FD4B1",
+  300: "#5FBD8E",
+  400: "#3BA874",
+  500: "#25935F", // Main brand color
+  600: "#188352", // Hover state
+  700: "#166A45", // Active/pressed state
+  800: "#0F5535",
+  900: "#0A3D26",
+  950: "#052918",
+} as const;
+
+/**
+ * Neutral/Gray Scale (Official Platforms Code)
+ */
+export const NEUTRAL_SCALE = {
+  50: "#F9FAFB",
+  100: "#F3F4F6",
+  200: "#E5E7EB",
+  300: "#CFD4DB",
+  400: "#A8AEB8",
+  500: "#8A919C",
+  600: "#6C737F",
+  700: "#434B5A",
+  800: "#2D3340",
+  900: "#1A1F2B",
+  950: "#0D121C",
+} as const;
 
 /**
  * Ejar.sa Primary Brand Colors
@@ -18,55 +55,79 @@
  * - Brand identity elements
  */
 export const BRAND_COLORS = {
-  /** Primary Saudi Green - main brand color */
-  primary: "#118158",
+  /** Primary Ejar Green - main brand color (primary-500) */
+  primary: "#25935F",
 
-  /** Dark green - headers, sidebar, footer */
-  primaryDark: "#0D6645",
+  /** Hover state (primary-600) */
+  primaryHover: "#188352",
 
-  /** Light green surface - hover states, backgrounds */
-  primaryLight: "#E7F2EE",
+  /** Active/pressed state (primary-700) */
+  primaryDark: "#166A45",
 
-  /** Secondary gold - supporting elements */
-  secondary: "#C7B27C",
+  /** Light green surface - backgrounds (primary-50) */
+  primaryLight: "#E8F7EE",
+
+  /** Secondary gold - highlights, badges */
+  secondary: "#F5BD02",
 
   /** Secondary gold hover */
-  secondaryHover: "#B09B66",
+  secondaryHover: "#D4A302",
+
+  /** Lavender accent */
+  lavender: "#80519F",
+
+  /** Saudi National Green (for official government contexts) */
+  saudiGreen: "#006C35",
 
   /** Success green */
-  success: "#28A745",
+  success: "#17B26A",
 
   /** Warning amber */
-  warning: "#FFC107",
+  warning: "#F79009",
 
   /** Error/Destructive red */
-  error: "#DC3545",
+  error: "#F04438",
 
   /** Info blue */
-  info: "#17A2B8",
+  info: "#2E90FA",
 } as const;
 
 /**
  * Neutral Colors for text and backgrounds
  */
 export const NEUTRAL_COLORS = {
-  /** Primary text color */
-  textPrimary: "#1a1a1a",
+  /** Primary text color (neutral-950) */
+  textPrimary: "#0D121C",
 
-  /** Secondary text color */
-  textSecondary: "#666666",
+  /** Headings (neutral-900) */
+  textHeading: "#1A1F2B",
 
-  /** Muted/tertiary text */
-  textMuted: "#999999",
+  /** Secondary text color (neutral-700) */
+  textSecondary: "#434B5A",
 
-  /** Light background */
-  backgroundLight: "#f9f9f9",
+  /** Muted/tertiary text (neutral-600) */
+  textMuted: "#6C737F",
+
+  /** Placeholder text (neutral-500) */
+  textPlaceholder: "#8A919C",
+
+  /** Page background (neutral-50) */
+  backgroundPage: "#F9FAFB",
+
+  /** Card background (neutral-100) */
+  backgroundCard: "#F3F4F6",
 
   /** White */
-  white: "#ffffff",
+  white: "#FFFFFF",
 
-  /** Dark background (for dark mode) */
-  backgroundDark: "#0f172a",
+  /** Dark background - footer, sidebar (neutral-950) */
+  backgroundDark: "#0D121C",
+
+  /** Borders (neutral-200) */
+  border: "#E5E7EB",
+
+  /** Light borders (neutral-300) */
+  borderLight: "#CFD4DB",
 } as const;
 
 /**
@@ -86,7 +147,7 @@ export const EMAIL_COLORS = {
   headerBackground: BRAND_COLORS.primary,
 
   /** Email body background */
-  bodyBackground: NEUTRAL_COLORS.backgroundLight,
+  bodyBackground: NEUTRAL_COLORS.backgroundPage,
 
   /** Primary text in emails */
   textPrimary: NEUTRAL_COLORS.textPrimary,
@@ -123,7 +184,7 @@ export const PDF_COLORS = {
   tableHeader: BRAND_COLORS.primaryDark,
 
   /** Table row alternate */
-  tableRowAlt: NEUTRAL_COLORS.backgroundLight,
+  tableRowAlt: NEUTRAL_COLORS.backgroundCard,
 } as const;
 
 /**

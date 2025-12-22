@@ -70,8 +70,8 @@ export function SetupWizard() {
   const [branding, setBranding] = useState<BrandingData>({
     companyName: "",
     logoUrl: "",
-    primaryColor: "#118158", // var(--color-brand-primary)
-    secondaryColor: "#C7B27C", // var(--color-brand-secondary)
+    primaryColor: "#25935F", // Ejar primary-500
+    secondaryColor: "#F5BD02", // Ejar gold accent
   });
 
   const [defaults, setDefaults] = useState<DefaultsData>({
@@ -308,7 +308,7 @@ export function SetupWizard() {
                       onChange={(e) =>
                         setBranding({ ...branding, primaryColor: e.target.value })
                       }
-                      placeholder="#118158"
+                      placeholder="#25935F"
                     />
                   </div>
                 </div>
@@ -329,7 +329,7 @@ export function SetupWizard() {
                       onChange={(e) =>
                         setBranding({ ...branding, secondaryColor: e.target.value })
                       }
-                      placeholder="#C7B27C"
+                      placeholder="#F5BD02"
                     />
                   </div>
                 </div>

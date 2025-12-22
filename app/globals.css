@@ -11,52 +11,82 @@
 
 @layer base {
   :root {
-    /* ===== Ejar Brand Core ===== */
-    --color-brand-primary: #118158;
-    --color-brand-primary-hover: #0D6645;
-    --color-brand-primary-active: #094D34;
-    --color-brand-primary-surface: #E7F2EE;
+    /* ===== Ejar Design System - Official Saudi Platforms Code Colors ===== */
+    
+    /* Primary Green Scale (from Ejar.sa / Saudi Platforms Code) */
+    --color-primary-50: #E8F7EE;
+    --color-primary-100: #C7EAD8;
+    --color-primary-200: #8FD4B1;
+    --color-primary-300: #5FBD8E;
+    --color-primary-400: #3BA874;
+    --color-primary-500: #25935F;
+    --color-primary-600: #188352;
+    --color-primary-700: #166A45;
+    --color-primary-800: #0F5535;
+    --color-primary-900: #0A3D26;
+    --color-primary-950: #052918;
 
-    --color-brand-secondary: #C7B27C;
-    --color-brand-secondary-hover: #B09B66;
+    /* Brand mappings (for backwards compatibility) */
+    --color-brand-primary: #25935F;
+    --color-brand-primary-hover: #188352;
+    --color-brand-primary-active: #166A45;
+    --color-brand-primary-surface: #E8F7EE;
 
-    /* Semantic traffic light */
-    --color-success: #28A745;
-    --color-success-bg: #D4EDDA;
-    --color-warning: #FFC107;
-    --color-warning-bg: #FFF3CD;
-    --color-danger: #DC3545;
-    --color-danger-bg: #F8D7DA;
-    --color-info: #17A2B8;
-    --color-info-bg: #D1ECF1;
+    /* Secondary/Accent - Gold */
+    --color-brand-secondary: #F5BD02;
+    --color-brand-secondary-hover: #D4A302;
+    --color-lavender: #80519F;
+
+    /* Neutral Scale (Official Ejar) */
+    --color-neutral-50: #F9FAFB;
+    --color-neutral-100: #F3F4F6;
+    --color-neutral-200: #E5E7EB;
+    --color-neutral-300: #CFD4DB;
+    --color-neutral-400: #A8AEB8;
+    --color-neutral-500: #8A919C;
+    --color-neutral-600: #6C737F;
+    --color-neutral-700: #434B5A;
+    --color-neutral-800: #2D3340;
+    --color-neutral-900: #1A1F2B;
+    --color-neutral-950: #0D121C;
+
+    /* Semantic Colors (Official Ejar) */
+    --color-success: #17B26A;
+    --color-success-bg: #D4F4E5;
+    --color-warning: #F79009;
+    --color-warning-bg: #FEF3E7;
+    --color-danger: #F04438;
+    --color-danger-bg: #FEEAE9;
+    --color-info: #2E90FA;
+    --color-info-bg: #E7F3FF;
 
     /* Chart colors */
-    --color-chart-primary: #8884d8;
-    --color-chart-blue: #0088FE;
-    --color-chart-teal: #00C49F;
-    --color-chart-yellow: #FFBB28;
-    --color-chart-orange: #FF8042;
-    --color-chart-purple: #8884D8;
+    --color-chart-primary: #25935F;
+    --color-chart-blue: #2E90FA;
+    --color-chart-teal: #17B26A;
+    --color-chart-yellow: #F5BD02;
+    --color-chart-orange: #F79009;
+    --color-chart-purple: #80519F;
     
     /* Sparkline / Stats colors */
-    --color-sparkline-blue: #0061A8;
-    --color-sparkline-orange: #F97316;
-    --color-sparkline-green: #10B981;
-    --color-sparkline-sky: #3B82F6;
+    --color-sparkline-blue: #2E90FA;
+    --color-sparkline-orange: #F79009;
+    --color-sparkline-green: #17B26A;
+    --color-sparkline-sky: #2E90FA;
 
     /* Sidebar */
-    --color-sidebar-bg: #1D2B36;
+    --color-sidebar-bg: #0D121C;
     
     /* Tour/Joyride */
-    --color-tour-primary: #0061A8;
-    --color-tour-back: #64748b;
-    --color-tour-skip: #94a3b8;
+    --color-tour-primary: #25935F;
+    --color-tour-back: #6C737F;
+    --color-tour-skip: #8A919C;
 
     /* Neutral surfaces */
-    --color-app-background: #F4F6F9;
+    --color-app-background: #F9FAFB;
     --color-card-surface: #FFFFFF;
-    --color-border-subtle: #DEE2E6;
-    --color-border-soft: #EAEAEA;
+    --color-border-subtle: #E5E7EB;
+    --color-border-soft: #CFD4DB;
 
     /* Typography */
     --font-family-base: var(--font-tajawal), var(--font-sans), "Segoe UI", sans-serif;
@@ -92,20 +122,20 @@
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
     --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.12);
     --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.14);
-    --shadow-glow: 0 0 0 3px rgba(17, 129, 88, 0.2);
+    --shadow-glow: 0 0 0 3px rgba(37, 147, 95, 0.15);
     --shadow-inset: inset 0 1px 0 rgba(0, 0, 0, 0.02);
     --card-shadow: var(--shadow-card);
     --card-shadow-lg: var(--shadow-elevated);
 
-    /* Sidebar (classic Ejar dark rail) */
-    --sidebar-background: 206 30% 16%;
+    /* Sidebar (Ejar dark rail - neutral-950 based) */
+    --sidebar-background: 216 37% 8%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 158 77% 29%;
+    --sidebar-primary: 151 60% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 205 31% 12%;
+    --sidebar-accent: 216 37% 6%;
     --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 206 22% 24%;
-    --sidebar-ring: 158 77% 29%;
+    --sidebar-border: 216 24% 15%;
+    --sidebar-ring: 151 60% 36%;
     --sidebar-muted: 0 0% 85%;
 
     /* Section backgrounds */
@@ -122,37 +152,37 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 20%;
 
-    --primary: 158 77% 29%;
+    --primary: 151 60% 36%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 43 40% 63%;
+    --secondary: 48 97% 48%;
     --secondary-foreground: 0 0% 20%;
 
     --muted: 210 14% 89%;
     --muted-foreground: 208 7% 46%;
 
     --accent: 158 30% 93%;
-    --accent-foreground: 158 77% 29%;
+    --accent-foreground: 151 60% 36%;
 
-    --destructive: 354 71% 54%;
+    --destructive: 4 76% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 14% 89%;
-    --input: 210 14% 89%;
-    --ring: 158 77% 29%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 151 60% 36%;
 
-    --success: 133 61% 41%;
+    --success: 152 69% 40%;
     --success-foreground: 0 0% 100%;
-    --warning: 45 100% 51%;
-    --warning-foreground: 45 100% 25%;
-    --info: 188 78% 41%;
+    --warning: 32 95% 49%;
+    --warning-foreground: 32 95% 25%;
+    --info: 213 94% 58%;
     --info-foreground: 0 0% 100%;
 
-    --gradient-subtle: linear-gradient(135deg, #f4f6f9 0%, #ffffff 100%);
-    --gradient-hero: linear-gradient(135deg, #118158 0%, #0D6645 100%);
-    --gradient-card: linear-gradient(145deg, #ffffff 0%, #f7f9fb 100%);
-    --gradient-sidebar: linear-gradient(180deg, #1D2B36 0%, #152028 100%);
-    --gradient-topbar: linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(244,246,249,0.98) 100%);
+    --gradient-subtle: linear-gradient(135deg, #F9FAFB 0%, #ffffff 100%);
+    --gradient-hero: linear-gradient(135deg, #25935F 0%, #188352 100%);
+    --gradient-card: linear-gradient(145deg, #ffffff 0%, #F9FAFB 100%);
+    --gradient-sidebar: linear-gradient(180deg, #0D121C 0%, #1A1F2B 100%);
+    --gradient-topbar: linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(249,250,251,0.98) 100%);
   }
 
   .dark {
@@ -165,48 +195,48 @@
     --popover: 210 12% 12%;
     --popover-foreground: 0 0% 96%;
 
-    --primary: 158 77% 40%;
+    --primary: 151 60% 42%;
     --primary-foreground: 0 0% 10%;
 
-    --secondary: 43 40% 50%;
+    --secondary: 48 97% 44%;
     --secondary-foreground: 0 0% 10%;
 
     --muted: 210 12% 18%;
-    --muted-foreground: 210 12% 70%;
+    --muted-foreground: 220 13% 70%;
 
-    --accent: 158 30% 25%;
+    --accent: 151 30% 25%;
     --accent-foreground: 0 0% 96%;
 
-    --destructive: 354 71% 50%;
+    --destructive: 4 76% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 12% 22%;
-    --input: 210 12% 22%;
-    --ring: 158 77% 40%;
+    --border: 220 13% 22%;
+    --input: 220 13% 22%;
+    --ring: 151 60% 42%;
 
-    --success: 133 61% 50%;
-    --warning: 45 100% 55%;
-    --info: 188 78% 50%;
+    --success: 152 69% 48%;
+    --warning: 32 95% 52%;
+    --info: 213 94% 62%;
 
-    --gradient-subtle: linear-gradient(135deg, hsl(210 12% 12%) 0%, hsl(210 10% 9%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(158 77% 35%) 0%, hsl(158 77% 30%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(210 12% 12%) 0%, hsl(210 12% 10%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(206 30% 12%) 0%, hsl(206 30% 10%) 100%);
-    --gradient-topbar: linear-gradient(90deg, hsl(210 12% 12% / 0.95) 0%, hsl(210 12% 10% / 0.98) 100%);
+    --gradient-subtle: linear-gradient(135deg, hsl(216 37% 12%) 0%, hsl(216 37% 9%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(151 60% 40%) 0%, hsl(151 60% 35%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(216 37% 12%) 0%, hsl(216 37% 10%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(216 37% 8%) 0%, hsl(216 37% 6%) 100%);
+    --gradient-topbar: linear-gradient(90deg, hsl(216 37% 12% / 0.95) 0%, hsl(216 37% 10% / 0.98) 100%);
 
     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.5);
-    --shadow-glow: 0 0 0 3px rgba(17, 129, 88, 0.35);
+    --shadow-glow: 0 0 0 3px rgba(37, 147, 95, 0.35);
 
-    --sidebar-background: 206 30% 12%;
+    --sidebar-background: 216 37% 8%;
     --sidebar-foreground: 0 0% 96%;
-    --sidebar-primary: 158 77% 40%;
+    --sidebar-primary: 151 60% 42%;
     --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: 206 30% 10%;
+    --sidebar-accent: 216 37% 6%;
     --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 206 22% 18%;
+    --sidebar-border: 216 24% 15%;
     --sidebar-muted: 0 0% 80%;
   }
 
@@ -593,12 +623,12 @@
    Custom Cursor Styles
    ============================================ */
 
-/* Cursor brand colors (actual Fixzit brand, not theme tokens) */
+/* Cursor brand colors (Ejar Design System) */
 :root {
-  --cursor-primary: #118158;    /* Ejar primary emerald */
-  --cursor-secondary: #C7B27C;  /* Vision gold accent */
-  --cursor-accent: #0D6645;     /* Darker emerald */
-  --cursor-glow: #118158;       /* Emerald glow */
+  --cursor-primary: #25935F;    /* Ejar primary-500 */
+  --cursor-secondary: #F5BD02;  /* Ejar gold accent */
+  --cursor-accent: #188352;     /* Ejar primary-600 */
+  --cursor-glow: #25935F;       /* Primary glow */
 }
 
 /* ============================================

@@ -145,7 +145,7 @@ export default function GlobalError({
                 gap: "8px",
                 width: "100%",
                 padding: "12px 24px",
-                backgroundColor: "#118158", /* var(--color-brand-primary) */
+                backgroundColor: "#25935F", /* Ejar primary-500 */
                 color: "white",
                 border: "none",
                 borderRadius: "8px",
@@ -192,7 +192,7 @@ export default function GlobalError({
             If this problem persists,{" "}
             <a
               href={`mailto:${EMAIL_DOMAINS.support}`}
-              style={{ color: "#118158", textDecoration: "none" }} /* var(--color-brand-primary) */
+              style={{ color: "#25935F", textDecoration: "none" }} /* Ejar primary-500 */
             >
               contact support
             </a>

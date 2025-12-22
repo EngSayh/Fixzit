@@ -376,7 +376,7 @@ function buildEmailHTML(
   recipient: NotificationRecipient,
 ): string {
   const actionButton = notification.deepLink
-    ? `<a href="${DOMAINS.primary}${notification.deepLink.replace("fixzit://", "/")}" style="display: inline-block; padding: 12px 24px; background: #118158; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0;">View Details</a>`
+    ? `<a href="${DOMAINS.primary}${notification.deepLink.replace("fixzit://", "/")}" style="display: inline-block; padding: 12px 24px; background: #25935F; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0;">View Details</a>`
     : "";
 
   return `
@@ -387,17 +387,17 @@ function buildEmailHTML(
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${notification.title}</title>
     </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: #f9f9f9; padding: 20px; border-radius: 8px;">
-        <h1 style="color: #118158; margin-top: 0;">${notification.title}</h1>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #0D121C; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: #F9FAFB; padding: 20px; border-radius: 8px;">
+        <h1 style="color: #25935F; margin-top: 0;">${notification.title}</h1>
         <p style="font-size: 16px;">${notification.body}</p>
         ${actionButton}
-        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-        <p style="font-size: 12px; color: #666666;">
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;">
+        <p style="font-size: 12px; color: #6C737F;">
           This email was sent to ${recipient.email} as part of your Fixzit notifications.
           <br>
           If you no longer wish to receive these emails, you can 
-          <a href="${DOMAINS.primary}/settings/notifications" style="color: #118158;">manage your notification preferences</a>.
+          <a href="${DOMAINS.primary}/settings/notifications" style="color: #25935F;">manage your notification preferences</a>.
         </p>
       </div>
     </body>
