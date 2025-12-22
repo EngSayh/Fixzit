@@ -89,5 +89,9 @@
   "npm.autoDetect": "off",
   "gulp.autoDetect": "off",
   "grunt.autoDetect": "off",
-  "jake.autoDetect": "off"
+  "jake.autoDetect": "off",
+
+  // Terminal rendering fixes (prevents white blocks)
+  "terminal.integrated.fontFamily": "Consolas, 'Courier New', monospace",
+  "terminal.integrated.gpuAcceleration": "canvas"
 }
