@@ -7,9 +7,8 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import { 
   Bricolage_Grotesque, 
   Space_Mono, 
-  Noto_Sans_Arabic,
+  IBM_Plex_Sans_Arabic,
   DM_Sans,
-  Tajawal
 } from 'next/font/google';
 import CustomCursor from '@/components/CustomCursor';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -52,20 +51,13 @@ const dmSans = DM_Sans({
   weight: ['300', '400', '500', '600', '700'],
 });
 
-// Arabic typography support
-const notoSansArabic = Noto_Sans_Arabic({
-  subsets: ['arabic'],
-  weight: ['400', '500', '700'],
-  display: 'swap',
-  variable: '--font-arabic',
-});
-
-// Tajawal - Business.sa preferred Arabic font (matches DIN Next LT Arabic style)
-const tajawal = Tajawal({
+// IBM Plex Sans Arabic - geometric Arabic font (similar to DIN Next LT Arabic)
+// Used for both English (weight 400) and Arabic (weight 500)
+const ibmPlexArabic = IBM_Plex_Sans_Arabic({
   subsets: ['arabic', 'latin'],
-  weight: ['300', '400', '500', '700', '800'],
+  weight: ['300', '400', '500', '600', '700'],
   display: 'swap',
-  variable: '--font-tajawal',
+  variable: '--font-ibm-plex-arabic',
 });
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -77,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning data-locale={locale}>
       <body
-        className={`min-h-screen bg-background text-foreground antialiased ${bricolage.variable} ${dmSans.variable} ${spaceMono.variable} ${notoSansArabic.variable} ${tajawal.variable}`}
+        className={`min-h-screen bg-background text-foreground antialiased ${bricolage.variable} ${dmSans.variable} ${spaceMono.variable} ${ibmPlexArabic.variable}`}
         style={{ direction: dir }}
       >
         {/* E2E-visible fallback controls to keep language/currency selectors discoverable */}

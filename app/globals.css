@@ -2,7 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fonts are loaded via next/font in app/layout.tsx for optimal performance */
+/* DIN Next LT Arabic - Self-hosted font */
+@font-face {
+  font-family: 'DIN Next LT Arabic';
+  src: url('/fonts/DINNextLTArabic-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Use font-weight 500 for Arabic text styling */
+@font-face {
+  font-family: 'DIN Next LT Arabic';
+  src: url('/fonts/DINNextLTArabic-Regular.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* ============================================
    FIXZIT DESIGN SYSTEM v3.0
@@ -12,10 +28,10 @@
 @layer base {
   :root {
     /* ===== Ejar Brand Core ===== */
-    --color-brand-primary: #118158;
-    --color-brand-primary-hover: #0D6645;
-    --color-brand-primary-active: #094D34;
-    --color-brand-primary-surface: #E7F2EE;
+    --color-brand-primary: #1A9D6C;
+    --color-brand-primary-hover: #118158;
+    --color-brand-primary-active: #0D6645;
+    --color-brand-primary-surface: #E8F5F0;
 
     --color-brand-secondary: #C7B27C;
     --color-brand-secondary-hover: #B09B66;
@@ -37,7 +53,7 @@
     --color-border-soft: #EAEAEA;
 
     /* Typography */
-    --font-family-base: var(--font-tajawal), var(--font-sans), "Segoe UI", sans-serif;
+    --font-family-base: 'DIN Next LT Arabic', var(--font-ibm-plex-arabic), var(--font-sans), "Segoe UI", sans-serif;
     --font-weight-light: 300;
     --font-weight-regular: 400;
     --font-weight-medium: 500;
@@ -92,7 +108,7 @@
 
     /* Tailwind token mapping */
     --background: 216 29% 97%;
-    --foreground: 0 0% 20%;
+    --foreground: 180 2% 18%;
 
     --card: 0 0% 100%;
     --card-foreground: 0 0% 20%;
@@ -100,14 +116,14 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 20%;
 
-    --primary: 158 77% 29%;
+    --primary: 158 77% 35%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 43 40% 63%;
-    --secondary-foreground: 0 0% 20%;
+    --secondary: 43 45% 60%;
+    --secondary-foreground: 0 0% 15%;
 
-    --muted: 210 14% 89%;
-    --muted-foreground: 208 7% 46%;
+    --muted: 210 14% 92%;
+    --muted-foreground: 210 10% 40%;
 
     --accent: 158 30% 93%;
     --accent-foreground: 158 77% 29%;
