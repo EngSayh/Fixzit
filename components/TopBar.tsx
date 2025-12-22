@@ -619,8 +619,8 @@ function TopBarContent() {
           )}
         </div>
 
-        {/* Center Section: Global Search */}
-        {!isMobile && (
+        {/* Center Section: Global Search (hidden on marketing pages) */}
+        {!isMobile && !isMarketingPage && (
           <div className="flex-1 max-w-2xl mx-2 sm:mx-4 min-w-0">
             <GlobalSearch />
           </div>
