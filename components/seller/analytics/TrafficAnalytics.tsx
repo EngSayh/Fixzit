@@ -56,7 +56,13 @@ type PageViewDatum = {
   views: number;
 };
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+const COLORS = [
+  "var(--color-status-info, #0088FE)",
+  "var(--color-status-active, #00C49F)",
+  "var(--color-status-pending, #FFBB28)",
+  "var(--color-danger, #FF8042)",
+  "var(--color-brand-secondary, #8884D8)"
+];
 
 export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
   const auto = useAutoTranslator("seller.analytics.traffic");

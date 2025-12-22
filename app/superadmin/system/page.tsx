@@ -18,7 +18,7 @@ export default function SuperadminSystemPage() {
     <div className="p-6">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <Palette className="h-8 w-8 text-[#0061A8]" />
+          <Palette className="h-8 w-8 text-[var(--color-status-info)]" />
           <h1 className="text-3xl font-bold text-white">
             Platform Branding
           </h1>

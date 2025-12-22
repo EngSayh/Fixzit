@@ -187,17 +187,17 @@ export default async function MarketplaceHome() {
                 </p>
                 <p className="text-2xl font-bold text-primary">3</p>
               </div>
-              <div className="rounded-2xl bg-[#FFF3CD] p-4">
-                <p className="text-xs uppercase tracking-wider text-[#856404]">
+              <div className="rounded-2xl bg-[var(--color-warning-bg)] p-4">
+                <p className="text-xs uppercase tracking-wider text-[var(--color-warning-text)]">
                   {t(
                     "marketplace.home.kpis.pendingDeliveries",
                     "Pending deliveries",
                   )}
                 </p>
-                <p className="text-2xl font-bold text-[#856404]">7</p>
+                <p className="text-2xl font-bold text-[var(--color-warning-text)]">7</p>
               </div>
-              <div className="rounded-2xl bg-[#D4EDDA] p-4">
-                <p className="text-xs uppercase tracking-wider text-[#28A745]">
+              <div className="rounded-2xl bg-[var(--color-success-bg)] p-4">
+                <p className="text-xs uppercase tracking-wider text-[var(--color-success-text)]">
                   {t("marketplace.home.kpis.financeReady", "Finance ready")}
                 </p>
                 <p className="text-2xl font-bold text-success">5</p>

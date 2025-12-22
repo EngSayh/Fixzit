@@ -77,18 +77,40 @@
     /* Semantic traffic light */
     --color-success: #28A745;
     --color-success-bg: #D4EDDA;
+    --color-success-text: #28A745;
     --color-warning: #FFC107;
     --color-warning-bg: #FFF3CD;
+    --color-warning-text: #856404;
     --color-danger: #DC3545;
     --color-danger-bg: #F8D7DA;
+    --color-danger-text: #DC3545;
     --color-info: #17A2B8;
     --color-info-bg: #D1ECF1;
+    --color-info-text: #0C5460;
+    --color-neutral-bg: #E2E3E5;
+    --color-neutral-text: #383D41;
+
+    /* Status Colors - for badges, pills, status indicators */
+    --color-status-active: #00A859;
+    --color-status-active-bg: rgba(0, 168, 89, 0.1);
+    --color-status-pending: #FFB400;
+    --color-status-pending-bg: rgba(255, 180, 0, 0.1);
+    --color-status-info: #0061A8;
+    --color-status-info-bg: rgba(0, 97, 168, 0.1);
+
+    /* Sidebar / Dark UI */
+    --color-sidebar-bg: #1D2B36;
+    --color-sidebar-hover: #152028;
 
     /* Neutral surfaces */
     --color-app-background: #F4F6F9;
     --color-card-surface: #FFFFFF;
     --color-border-subtle: #DEE2E6;
     --color-border-soft: #EAEAEA;
+
+    /* Text colors */
+    --color-text-primary: #2D2E2E;
+    --color-text-secondary: #6C757D;
 
     /* Typography */
     --font-family-base: 'DIN Next', 'DIN Next LT Arabic', var(--font-ibm-plex-arabic), var(--font-sans), "Segoe UI", sans-serif;

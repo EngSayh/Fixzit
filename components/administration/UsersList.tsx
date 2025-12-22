@@ -61,9 +61,9 @@ const STATUS_OPTIONS = ["ACTIVE", "INACTIVE", "LOCKED"];
 const DEPARTMENT_OPTIONS = ["Engineering", "Operations", "Finance", "HR", "Sales", "Marketing"];
 
 const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/20",
+  ACTIVE: "bg-[var(--color-status-active-bg)] text-[var(--color-status-active)] border border-[var(--color-status-active)]/20",
   INACTIVE: "bg-muted text-foreground border border-border",
-  LOCKED: "bg-[#FFB400]/10 text-[#FFB400] border border-[#FFB400]/30",
+  LOCKED: "bg-[var(--color-status-pending-bg)] text-[var(--color-status-pending)] border border-[var(--color-status-pending)]/30",
 };
 
 type UserFilters = {

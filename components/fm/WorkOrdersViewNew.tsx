@@ -80,20 +80,20 @@ const STATUS_OPTIONS = ["SUBMITTED", "DISPATCHED", "IN_PROGRESS", "ON_HOLD", "CO
 const PRIORITY_OPTIONS: WorkOrderPriority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 const statusStyles: Record<string, string> = {
-  SUBMITTED: "bg-[#FFB400]/10 text-[#FFB400] border border-[#FFB400]/30",
-  DISPATCHED: "bg-[#0061A8]/10 text-[#0061A8] border border-[#0061A8]/30",
-  IN_PROGRESS: "bg-[#0061A8]/10 text-[#0061A8] border border-[#0061A8]/30",
+  SUBMITTED: "bg-[var(--color-status-pending-bg)] text-[var(--color-status-pending)] border border-[var(--color-status-pending)]/30",
+  DISPATCHED: "bg-[var(--color-status-info-bg)] text-[var(--color-status-info)] border border-[var(--color-status-info)]/30",
+  IN_PROGRESS: "bg-[var(--color-status-info-bg)] text-[var(--color-status-info)] border border-[var(--color-status-info)]/30",
   ON_HOLD: "bg-muted text-foreground border border-border",
-  COMPLETED: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/30",
-  VERIFIED: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/30",
-  CLOSED: "bg-[#00A859]/10 text-[#00A859] border border-[#00A859]/30",
+  COMPLETED: "bg-[var(--color-status-active-bg)] text-[var(--color-status-active)] border border-[var(--color-status-active)]/30",
+  VERIFIED: "bg-[var(--color-status-active-bg)] text-[var(--color-status-active)] border border-[var(--color-status-active)]/30",
+  CLOSED: "bg-[var(--color-status-active-bg)] text-[var(--color-status-active)] border border-[var(--color-status-active)]/30",
   CANCELLED: "bg-destructive/10 text-destructive border border-destructive/20",
 };
 
 const priorityStyles: Record<string, string> = {
   LOW: "bg-muted text-foreground border border-border",
-  MEDIUM: "bg-[#0061A8]/10 text-[#0061A8] border border-[#0061A8]/30",
-  HIGH: "bg-[#FFB400]/10 text-[#FFB400] border border-[#FFB400]/30",
+  MEDIUM: "bg-[var(--color-status-info-bg)] text-[var(--color-status-info)] border border-[var(--color-status-info)]/30",
+  HIGH: "bg-[var(--color-status-pending-bg)] text-[var(--color-status-pending)] border border-[var(--color-status-pending)]/30",
   CRITICAL: "bg-destructive/10 text-destructive border border-destructive/20",
 };
 

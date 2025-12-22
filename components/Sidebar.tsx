@@ -288,7 +288,7 @@ export default function Sidebar({
     <aside
       className={cn(
         asideBase,
-        "fxz-sidebar overflow-y-auto flex flex-col bg-[#1D2B36] text-white",
+        "fxz-sidebar overflow-y-auto flex flex-col bg-[var(--color-sidebar-bg)] text-white",
         className,
       )}
       role="navigation"
