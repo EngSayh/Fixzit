@@ -148,10 +148,10 @@ export async function generatePDF<T extends ExportRow>(
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; }
           h1 { font-size: 24px; margin-bottom: 5px; }
-          h2 { font-size: 14px; color: #666; margin-bottom: 10px; font-weight: normal; }
-          .date { font-size: 12px; color: #999; margin-bottom: 20px; }
+          h2 { font-size: 14px; color: #666666; margin-bottom: 10px; font-weight: normal; }
+          .date { font-size: 12px; color: #999999; margin-bottom: 20px; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background: #428bca; color: white; padding: 8px; text-align: left; font-weight: bold; }
+          th { background: #118158; color: white; padding: 8px; text-align: left; font-weight: bold; }
           td { border: 1px solid #ddd; padding: 8px; }
           tr:nth-child(even) { background: #f9f9f9; }
           @media print {

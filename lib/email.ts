@@ -145,14 +145,14 @@ export async function sendEmail(
         options?.html ||
         `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #333; border-bottom: 2px solid #0070f3; padding-bottom: 10px;">
+          <h2 style="color: #1a1a1a; border-bottom: 2px solid #118158; padding-bottom: 10px;">
             ${sanitizeForHtml(subject)}
           </h2>
-          <div style="margin: 20px 0; line-height: 1.6; color: #666;">
+          <div style="margin: 20px 0; line-height: 1.6; color: #666666;">
             ${sanitizeForHtml(body).replace(/\n/g, "<br>")}
           </div>
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
-          <p style="color: #999; font-size: 12px; text-align: center;">
+          <p style="color: #999999; font-size: 12px; text-align: center;">
             This is an automated notification from Fixzit.<br>
             For support, contact ${EMAIL_DOMAINS.support}
           </p>
