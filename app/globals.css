@@ -30,6 +30,20 @@
     --color-info: #17A2B8;
     --color-info-bg: #D1ECF1;
 
+    /* Chart colors */
+    --color-chart-primary: #8884d8;
+    --color-chart-blue: #0088FE;
+    --color-chart-teal: #00C49F;
+    --color-chart-yellow: #FFBB28;
+    --color-chart-orange: #FF8042;
+    --color-chart-purple: #8884D8;
+    
+    /* Sparkline / Stats colors */
+    --color-sparkline-blue: #0061A8;
+    --color-sparkline-orange: #F97316;
+    --color-sparkline-green: #10B981;
+    --color-sparkline-sky: #3B82F6;
+
     /* Neutral surfaces */
     --color-app-background: #F4F6F9;
     --color-card-surface: #FFFFFF;

@@ -56,7 +56,14 @@ type PageViewDatum = {
   views: number;
 };
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+// Chart colors - using CSS variables with fallbacks
+const COLORS = [
+  "var(--color-chart-blue, #0088FE)",
+  "var(--color-chart-teal, #00C49F)",
+  "var(--color-chart-yellow, #FFBB28)",
+  "var(--color-chart-orange, #FF8042)",
+  "var(--color-chart-purple, #8884D8)",
+];
 
 export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
   const auto = useAutoTranslator("seller.analytics.traffic");
@@ -225,7 +232,7 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
               <Tooltip content={renderPageViewsTooltip} />
               <Bar
                 dataKey="views"
-                fill="#8884d8"
+                fill="var(--color-chart-primary, #8884d8)"
                 name={auto("Page Views", "charts.pageViews")}
               />
             </BarChart>
@@ -251,7 +258,7 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
                     `${name} ${((percent || 0) * 100).toFixed(0)}%`
                   }
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill="var(--color-chart-primary, #8884d8)"
                   dataKey="value"
                 >
                   {sourcesData.map((entry, index) => (
@@ -284,7 +291,7 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
                     `${name} ${((percent || 0) * 100).toFixed(0)}%`
                   }
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill="var(--color-chart-primary, #8884d8)"
                   dataKey="value"
                 >
                   {devicesData.map((entry, index) => (
