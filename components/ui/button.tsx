@@ -9,20 +9,20 @@ function cn(...inputs: (string | undefined | null | false)[]): string {
 
 // Ejar-styled button system: 40px height, 6px radius, bold labels
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-[6px] text-[14px] font-bold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#118158]/40 focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center rounded-[6px] text-[14px] font-bold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-[#118158] text-white hover:bg-[#0D6645] active:bg-[#094D34]",
+        default: "bg-primary text-white hover:bg-[var(--color-brand-primary-hover)] active:bg-[var(--color-brand-primary-active)]",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        success: "bg-[#28A745] text-white hover:bg-[#1F7A3A]",
+        success: "bg-success text-white hover:bg-success-dark",
         outline:
-          "border border-[#DEE2E6] bg-transparent text-[#333333] hover:bg-[#E7F2EE]",
+          "border border-[var(--color-border-subtle)] bg-transparent text-foreground hover:bg-[var(--color-brand-primary-surface)]",
         secondary:
-          "border border-[#D1D1D1] bg-transparent text-[#333333] hover:bg-[#F8F9FA]",
-        ghost: "bg-transparent text-[#118158] hover:bg-[#E7F2EE]",
-        link: "text-[#118158] underline-offset-4 hover:underline",
+          "border border-[var(--color-border-soft)] bg-transparent text-foreground hover:bg-muted",
+        ghost: "bg-transparent text-primary hover:bg-[var(--color-brand-primary-surface)]",
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-6",

@@ -22,7 +22,7 @@ interface ChartBarProps {
   barColor?: string;
 }
 
-const DEFAULT_BAR = "#118158";
+const DEFAULT_BAR = "var(--color-brand-primary, #1A9D6C)";
 
 export function ChartBar({ data, barColor = DEFAULT_BAR }: ChartBarProps) {
   return (

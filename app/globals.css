@@ -2,7 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
-/* DIN Next LT Arabic - Self-hosted font */
+/* ============================================
+   DIN NEXT FONT FAMILY - Self-hosted
+   English: DIN Next W1G (weight 400)
+   Arabic: DIN Next LT Arabic (weight 500)
+   ============================================ */
+
+/* DIN Next W1G - English/Latin font */
+@font-face {
+  font-family: 'DIN Next';
+  src: url('/fonts/DINNextW1G-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DIN Next';
+  src: url('/fonts/DINNextW1G-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DIN Next';
+  src: url('/fonts/DINNextW1G-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DIN Next';
+  src: url('/fonts/DINNextW1G-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* DIN Next LT Arabic - Arabic font */
 @font-face {
   font-family: 'DIN Next LT Arabic';
   src: url('/fonts/DINNextLTArabic-Regular.ttf') format('truetype');
@@ -11,7 +50,6 @@
   font-display: swap;
 }
 
-/* Use font-weight 500 for Arabic text styling */
 @font-face {
   font-family: 'DIN Next LT Arabic';
   src: url('/fonts/DINNextLTArabic-Regular.ttf') format('truetype');
@@ -53,7 +91,7 @@
     --color-border-soft: #EAEAEA;
 
     /* Typography */
-    --font-family-base: 'DIN Next LT Arabic', var(--font-ibm-plex-arabic), var(--font-sans), "Segoe UI", sans-serif;
+    --font-family-base: 'DIN Next', 'DIN Next LT Arabic', var(--font-ibm-plex-arabic), var(--font-sans), "Segoe UI", sans-serif;
     --font-weight-light: 300;
     --font-weight-regular: 400;
     --font-weight-medium: 500;
@@ -143,7 +181,7 @@
     --info-foreground: 0 0% 100%;
 
     --gradient-subtle: linear-gradient(135deg, #f4f6f9 0%, #ffffff 100%);
-    --gradient-hero: linear-gradient(135deg, #118158 0%, #0D6645 100%);
+    --gradient-hero: linear-gradient(135deg, #1A9D6C 0%, #118158 100%);
     --gradient-card: linear-gradient(145deg, #ffffff 0%, #f7f9fb 100%);
     --gradient-sidebar: linear-gradient(180deg, #1D2B36 0%, #152028 100%);
     --gradient-topbar: linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(244,246,249,0.98) 100%);
@@ -589,10 +627,10 @@
 
 /* Cursor brand colors (actual Fixzit brand, not theme tokens) */
 :root {
-  --cursor-primary: #118158;    /* Ejar primary emerald */
+  --cursor-primary: #1A9D6C;    /* Ejar primary emerald */
   --cursor-secondary: #C7B27C;  /* Vision gold accent */
-  --cursor-accent: #0D6645;     /* Darker emerald */
-  --cursor-glow: #118158;       /* Emerald glow */
+  --cursor-accent: #118158;     /* Darker emerald */
+  --cursor-glow: #1A9D6C;       /* Emerald glow */
 }
 
 /* ============================================

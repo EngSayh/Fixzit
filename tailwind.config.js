@@ -104,8 +104,8 @@ const config = {
         "fixzit-orange": "hsl(var(--accent))",
       },
       fontFamily: {
-        sans: ["'DIN Next LT Arabic'", "var(--font-ibm-plex-arabic)", "var(--font-sans)", "Segoe UI", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
-        arabic: ["'DIN Next LT Arabic'", "var(--font-ibm-plex-arabic)", "Tahoma", "Arial", "sans-serif"],
+        sans: ["'DIN Next'", "'DIN Next LT Arabic'", "var(--font-ibm-plex-arabic)", "var(--font-sans)", "Segoe UI", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        arabic: ["'DIN Next LT Arabic'", "'DIN Next'", "var(--font-ibm-plex-arabic)", "Tahoma", "Arial", "sans-serif"],
         display: ["var(--font-bricolage)", "Bricolage Grotesque", "system-ui", "sans-serif"],
         mono: ["var(--font-space-mono)", "Space Mono", "monospace"],
       },
@@ -391,7 +391,7 @@ const config = {
         },
         /* Gradient text effect */
         ".gradient-text": {
-          backgroundImage: "linear-gradient(135deg, #118158 0%, #0D6645 100%)",
+          backgroundImage: "linear-gradient(135deg, #1A9D6C 0%, #118158 100%)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
           backgroundClip: "text",

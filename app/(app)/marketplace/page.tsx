@@ -149,7 +149,7 @@ export default async function MarketplaceHome() {
     <div className="space-y-6">
       <main className="mx-auto max-w-7xl px-4 py-4">
         <section className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-[#118158] via-[#0D6645] to-[#094D34] p-10 text-white shadow-xl">
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-primary via-[var(--color-brand-primary-hover)] to-[var(--color-brand-primary-active)] p-10 text-white shadow-xl">
             <p className="text-sm uppercase tracking-[0.18em] text-white/80">
               {t("marketplace.home.hero.pill", "Fixzit Souq")}
             </p>
@@ -182,10 +182,10 @@ export default async function MarketplaceHome() {
             </h2>
             <div className="grid gap-3 text-sm text-[var(--color-text-primary)]">
               <div className="rounded-2xl bg-[var(--color-brand-primary-surface)] p-4">
-                <p className="text-xs uppercase tracking-wider text-[#118158]">
+                <p className="text-xs uppercase tracking-wider text-primary">
                   {t("marketplace.home.kpis.openApprovals", "Open approvals")}
                 </p>
-                <p className="text-2xl font-bold text-[#118158]">3</p>
+                <p className="text-2xl font-bold text-primary">3</p>
               </div>
               <div className="rounded-2xl bg-[#FFF3CD] p-4">
                 <p className="text-xs uppercase tracking-wider text-[#856404]">
