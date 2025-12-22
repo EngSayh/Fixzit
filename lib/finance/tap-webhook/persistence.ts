@@ -419,10 +419,7 @@ export async function updateRefundRecord(
   await transaction.save();
 
   if (transaction.paymentId) {
-<<<<<<< HEAD
-=======
     // SECURITY: Org-scoped filter prevents cross-tenant payment access
->>>>>>> origin/main
     const orgId = transaction.orgId?.toString();
     if (!orgId) {
       logger.warn("[Webhook] Missing orgId on Tap transaction for payment refund update", {
@@ -431,10 +428,7 @@ export async function updateRefundRecord(
         chargeId: refund.charge,
       });
     }
-<<<<<<< HEAD
     // eslint-disable-next-line local/require-lean -- NO_LEAN: payment is updated and saved.
-=======
->>>>>>> origin/main
     const payment = orgId
       ? await Payment.findOne({
           _id: transaction.paymentId,
