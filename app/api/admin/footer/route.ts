@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert footer content (create if not exists, update if exists)
+    // eslint-disable-next-line local/require-tenant-scope -- Footer content is platform-wide (about, privacy, terms)
     const footerContent = await FooterContent.findOneAndUpdate(
       { page },
       {
@@ -157,6 +158,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      // eslint-disable-next-line local/require-tenant-scope -- Footer content is platform-wide (about, privacy, terms)
       const footerContent = await FooterContent.findOne({ page }).lean();
 
       if (!footerContent) {
@@ -174,6 +176,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all footer pages
+    // eslint-disable-next-line local/require-tenant-scope -- Footer content is platform-wide (about, privacy, terms)
     const allContent = (await FooterContent.find(
       {},
     ).lean()) as unknown as FooterDocument[];

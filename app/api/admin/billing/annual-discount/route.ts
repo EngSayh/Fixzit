@@ -55,6 +55,7 @@ export async function PATCH(req: NextRequest) {
     
     const { percentage } = parsed.data;
 
+    // eslint-disable-next-line local/require-tenant-scope -- Platform-wide discount rule by key, not tenant-scoped
     const doc = await DiscountRule.findOneAndUpdate(
       { key: "ANNUAL_PREPAY" },
       { percentage },

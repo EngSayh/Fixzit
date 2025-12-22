@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
 
   await connectToDatabase();
   // Scope benchmarks to tenant to avoid cross-tenant leakage
+  // eslint-disable-next-line local/require-tenant-scope -- Tenant-scoped via tenantId field
   const docs = await Benchmark.find({ tenantId: orgId }).lean();
   return createSecureResponse(docs, 200, req);
 }
