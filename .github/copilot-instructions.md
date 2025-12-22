@@ -8,15 +8,6 @@ NON-NEGOTIABLE. Violations = AUTO-FAIL.
 
 ---
 
-<<<<<<< HEAD
-## 📚 See Also: AGENTS.md v5.5
-For complete agent governance protocols, see [AGENTS.md](../AGENTS.md) which includes:
-- Agent Claim Protocol with Pre-Start/Post-Task checklists
-- Agent Task Handoff Protocol for cross-agent work
-- Pending Backlog Extractor v2.5 (SSOT-integrated)
-- SSOT Chat History + Backlog Sync Protocol
-- Code Quality Standards and PR Scorecard
-=======
 ## 📚 See Also: AGENTS.md v6.0
 For complete agent governance protocols, see [AGENTS.md](../AGENTS.md) which includes:
 - **Section 3**: Agent Token Protocol (MANDATORY attribution)
@@ -29,7 +20,6 @@ For complete agent governance protocols, see [AGENTS.md](../AGENTS.md) which inc
 
 Priority Model: P0-P3 (priorityRank: P0=1, P1=2, P2=3, P3=4)
 SSOT Fields: `assignment.agentId`, `assignment.claimedAt`, `assignment.claimExpiresAt`, `handoffHistory[]`, `contentHash`, `version`
->>>>>>> origin/main
 
 ---
 
