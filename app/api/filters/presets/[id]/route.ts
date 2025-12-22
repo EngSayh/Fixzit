@@ -17,7 +17,7 @@ import { logger } from "@/lib/logger";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id?: string } },
+  { params }: { params: Promise<{ id?: string }> },
 ) {
   const rateLimitResponse = enforceRateLimit(request, {
     keyPrefix: "filter-presets:delete",
@@ -42,7 +42,7 @@ export async function DELETE(
 
   const orgId = session.orgId;
   const userId = session.id;
-  const presetId = params?.id;
+  const { id: presetId } = await params;
 
   if (!orgId) {
     return NextResponse.json({ error: "Organization context required" }, { status: 403 });

@@ -17,8 +17,13 @@
   
   /* Text (High Contrast) */
   --color-text-main: #0D121C;
+  --color-text-primary: #0D121C;
   --color-text-secondary: #6C737F;
   --color-text-disabled: #8A919C;
+  
+  /* Font Fallbacks (loaded via next/font in layout.tsx) */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   
   /* Backgrounds */
   --color-bg-page: #F9FAFB;
