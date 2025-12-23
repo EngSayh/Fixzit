@@ -100,7 +100,10 @@ export default defineConfig({
           ...sharedProjectConfig,
           name: "server",
           environment: "node",
-          pool: "threads",
+          // Use forks instead of threads for complete process isolation (fixes mock contamination)
+          pool: "forks",
+          // Enable module isolation to prevent mock contamination between test files
+          isolate: true,
           include: [
             "**/server/**/*.test.{ts,tsx}",
             "**/server/**/*.spec.{ts,tsx}",

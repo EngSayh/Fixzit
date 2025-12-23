@@ -59,6 +59,10 @@ describe("API /api/webhooks/taqnyat", () => {
         return;
       }
 
+      // Skip webhook signature verification for rate limit test
+      const originalSkipVerify = process.env.SKIP_TAQNYAT_WEBHOOK_VERIFICATION;
+      process.env.SKIP_TAQNYAT_WEBHOOK_VERIFICATION = "true";
+
       vi.mocked(enforceRateLimit).mockReturnValue(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,
@@ -70,6 +74,9 @@ describe("API /api/webhooks/taqnyat", () => {
         body: JSON.stringify({}),
       });
       const response = await route.POST(req);
+
+      // Restore original env
+      process.env.SKIP_TAQNYAT_WEBHOOK_VERIFICATION = originalSkipVerify;
 
       expect(response.status).toBe(429);
     });

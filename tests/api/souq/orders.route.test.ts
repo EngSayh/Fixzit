@@ -89,6 +89,8 @@ describe("API /api/souq/orders", () => {
   });
 
   it("returns 429 with Retry-After when rate limited (GET)", async () => {
+    // Need valid session so auth passes before rate limit check
+    sessionUser = { id: "user-123", orgId: "507f1f77bcf86cd799439011" };
     vi.mocked(enforceRateLimit).mockReturnValueOnce(
       new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
         status: 429,
@@ -113,6 +115,8 @@ describe("API /api/souq/orders", () => {
     });
 
     it("returns 429 when rate limit exceeded", async () => {
+      // Need valid session so auth passes before rate limit check
+      sessionUser = { id: "user-123", orgId: "507f1f77bcf86cd799439011" };
       vi.mocked(enforceRateLimit).mockReturnValue(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,
@@ -213,6 +217,8 @@ describe("API /api/souq/orders", () => {
     });
 
     it("returns 429 when rate limit exceeded", async () => {
+      // Need valid session so auth passes before rate limit check
+      sessionUser = { id: "user-123", orgId: "507f1f77bcf86cd799439011" };
       vi.mocked(enforceRateLimit).mockReturnValue(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,

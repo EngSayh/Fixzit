@@ -5,9 +5,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock marketplace context
+// Mock marketplace context - use module-scoped variable for stable mock reference
+const mockResolveMarketplaceContext = vi.fn();
 vi.mock("@/lib/marketplace/context", () => ({
-  resolveMarketplaceContext: vi.fn(),
+  resolveMarketplaceContext: (...args: unknown[]) => mockResolveMarketplaceContext(...args),
 }));
 
 // Mock database connection
@@ -15,20 +16,24 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock product model
+// Mock product model - use module-scoped variables for stable mock reference
+const mockProductFind = vi.fn().mockReturnValue({
+  lean: vi.fn().mockResolvedValue([]),
+});
+const mockProductFindOne = vi.fn().mockResolvedValue(null);
 vi.mock("@/server/models/marketplace/Product", () => ({
   default: {
-    find: vi.fn().mockReturnValue({
-      lean: vi.fn().mockResolvedValue([]),
-    }),
-    findOne: vi.fn().mockResolvedValue(null),
+    find: (...args: unknown[]) => mockProductFind(...args),
+    findOne: (...args: unknown[]) => mockProductFindOne(...args),
   },
 }));
 
-// Mock cart utilities
+// Mock cart utilities - use module-scoped variables for stable mock reference
+const mockGetOrCreateCart = vi.fn();
+const mockRecalcCartTotals = vi.fn();
 vi.mock("@/lib/marketplace/cart", () => ({
-  getOrCreateCart: vi.fn(),
-  recalcCartTotals: vi.fn(),
+  getOrCreateCart: (...args: unknown[]) => mockGetOrCreateCart(...args),
+  recalcCartTotals: (...args: unknown[]) => mockRecalcCartTotals(...args),
 }));
 
 // Mock rate limiting
@@ -36,9 +41,6 @@ vi.mock("@/server/security/rateLimit", () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
 }));
 
-import { resolveMarketplaceContext } from "@/lib/marketplace/context";
-import { getOrCreateCart } from "@/lib/marketplace/cart";
-import Product from "@/server/models/marketplace/Product";
 import { GET, POST } from "@/app/api/marketplace/cart/route";
 
 describe("API /api/marketplace/cart", () => {
@@ -53,7 +55,7 @@ describe("API /api/marketplace/cart", () => {
       process.env.NODE_ENV = "production";
       process.env.MARKETPLACE_ALLOW_ANON_CART = "false";
       
-      vi.mocked(resolveMarketplaceContext).mockResolvedValue({
+      mockResolveMarketplaceContext.mockResolvedValue({
         userId: null,
         orgId: { toString: () => "org-123" } as never,
         role: "GUEST",
@@ -69,13 +71,13 @@ describe("API /api/marketplace/cart", () => {
     });
 
     it("returns empty cart for authenticated user with no items", async () => {
-      vi.mocked(resolveMarketplaceContext).mockResolvedValue({
+      mockResolveMarketplaceContext.mockResolvedValue({
         userId: "user-123",
         orgId: { toString: () => "org-123" } as never,
         role: "BUYER",
       });
 
-      vi.mocked(getOrCreateCart).mockResolvedValue({
+      mockGetOrCreateCart.mockResolvedValue({
         _id: "cart-123",
         lines: [],
         totals: { subtotal: 0, vat: 0, grand: 0 },
@@ -97,20 +99,20 @@ describe("API /api/marketplace/cart", () => {
         buy: { price: 100, currency: "SAR", uom: "PCS" },
       };
 
-      vi.mocked(resolveMarketplaceContext).mockResolvedValue({
+      mockResolveMarketplaceContext.mockResolvedValue({
         userId: "user-123",
         orgId: { toString: () => "org-123" } as never,
         role: "BUYER",
       });
 
-      vi.mocked(getOrCreateCart).mockResolvedValue({
+      mockGetOrCreateCart.mockResolvedValue({
         _id: "cart-123",
         lines: [{ productId: { toString: () => "prod-123" }, qty: 2, price: 100, total: 200 }],
         totals: { subtotal: 200, vat: 30, grand: 230 },
         save: vi.fn(),
       } as never);
 
-      vi.mocked(Product.find).mockReturnValue({
+      mockProductFind.mockReturnValue({
         lean: vi.fn().mockResolvedValue([mockProduct]),
       } as never);
 
@@ -125,7 +127,7 @@ describe("API /api/marketplace/cart", () => {
 
   describe("POST - Add to Cart", () => {
     it("returns 401 when user is not authenticated", async () => {
-      vi.mocked(resolveMarketplaceContext).mockResolvedValue({
+      mockResolveMarketplaceContext.mockResolvedValue({
         userId: null,
         orgId: { toString: () => "org-123" } as never,
         role: "GUEST",
@@ -141,13 +143,13 @@ describe("API /api/marketplace/cart", () => {
     });
 
     it("returns 404 when product not found", async () => {
-      vi.mocked(resolveMarketplaceContext).mockResolvedValue({
+      mockResolveMarketplaceContext.mockResolvedValue({
         userId: "user-123",
         orgId: { toString: () => "org-123" } as never,
         role: "BUYER",
       });
 
-      vi.mocked(Product.findOne).mockResolvedValue(null);
+      mockProductFindOne.mockResolvedValue(null);
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/cart", {
         method: "POST",
@@ -159,7 +161,7 @@ describe("API /api/marketplace/cart", () => {
     });
 
     it("validates request body with Zod schema", async () => {
-      vi.mocked(resolveMarketplaceContext).mockResolvedValue({
+      mockResolveMarketplaceContext.mockResolvedValue({
         userId: "user-123",
         orgId: { toString: () => "org-123" } as never,
         role: "BUYER",
@@ -180,14 +182,14 @@ describe("API /api/marketplace/cart", () => {
         buy: { price: 100, currency: "SAR", uom: "PCS" },
       };
 
-      vi.mocked(resolveMarketplaceContext).mockResolvedValue({
+      mockResolveMarketplaceContext.mockResolvedValue({
         userId: "user-123",
         orgId: { toString: () => "org-123" } as never,
         role: "BUYER",
       });
 
-      vi.mocked(Product.findOne).mockResolvedValue(mockProduct);
-      vi.mocked(getOrCreateCart).mockResolvedValue({
+      mockProductFindOne.mockResolvedValue(mockProduct);
+      mockGetOrCreateCart.mockResolvedValue({
         _id: "cart-123",
         lines: [],
         totals: { subtotal: 0, vat: 0, grand: 0 },
@@ -211,14 +213,14 @@ describe("API /api/marketplace/cart", () => {
         buy: { price: 100, currency: "SAR", uom: "PCS" },
       };
 
-      vi.mocked(resolveMarketplaceContext).mockResolvedValue({
+      mockResolveMarketplaceContext.mockResolvedValue({
         userId: "user-123",
         orgId: { toString: () => "org-123" } as never,
         role: "BUYER",
       });
 
-      vi.mocked(Product.findOne).mockResolvedValue(mockProduct);
-      vi.mocked(getOrCreateCart).mockResolvedValue({
+      mockProductFindOne.mockResolvedValue(mockProduct);
+      mockGetOrCreateCart.mockResolvedValue({
         _id: "cart-123",
         lines: [{ productId: { toString: () => "prod-123" }, qty: 1, price: 100, total: 100 }],
         totals: { subtotal: 100, vat: 15, grand: 115 },
