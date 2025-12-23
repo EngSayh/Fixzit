@@ -167,6 +167,7 @@ export async function POST(request: NextRequest) {
     await connectToDatabase();
 
     const productId = objectIdFrom(payload.productId);
+    // NO_LEAN: Product needed for cart line update
     const product = await Product.findOne({
       _id: productId,
       orgId: context.orgId,

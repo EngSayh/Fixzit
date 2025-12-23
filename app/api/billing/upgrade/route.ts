@@ -170,6 +170,7 @@ export async function POST(req: NextRequest) {
 
     // Find current subscription
     const orgObjectId = new Types.ObjectId(user.orgId);
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by tenant_id/owner_user_id from session
     const currentSub = await Subscription.findOne({
       $or: [
         { tenant_id: orgObjectId, status: { $in: ["ACTIVE", "TRIAL"] } },
@@ -287,6 +288,7 @@ export async function POST(req: NextRequest) {
     // Validate price book selection (must exist, be active, and match currency)
     let priceBookId: string | undefined;
     if (body.priceBookId) {
+      // PLATFORM-WIDE: Price books are global catalog, not tenant-scoped
       const priceBook = await PriceBook.findOne({
         _id: body.priceBookId,
         active: true,
@@ -454,6 +456,7 @@ export async function GET(req: NextRequest) {
 
     // Find current subscription
     const orgObjectId = new Types.ObjectId(user.orgId);
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by tenant_id/owner_user_id from session
     const currentSub = await Subscription.findOne({
       $or: [
         { tenant_id: orgObjectId, status: { $in: ["ACTIVE", "TRIAL"] } },

@@ -239,6 +239,7 @@ export async function GET(
       ...buildTenantFilter(tenantId, "orgId", { unitIds: unitScope.unitIds }),
     };
     
+    // Query uses native MongoDB driver (already returns lean POJO)
     const budget = await collection.findOne(query);
     
     if (!budget) {

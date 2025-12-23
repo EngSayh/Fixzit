@@ -304,6 +304,7 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const propertyCode = body.code || generatePropertyCode();
 
+    // Query uses native MongoDB driver (already returns lean POJO)
     const existingCode = await collection.findOne({
       orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
       code: propertyCode,
@@ -387,6 +388,7 @@ export async function PATCH(req: NextRequest) {
     const collection = db.collection<PropertyDocument>(COLLECTION_NAME);
 
     if (payload.code) {
+      // Query uses native MongoDB driver (already returns lean POJO)
       const duplicate = await collection.findOne({
         orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
         code: payload.code,

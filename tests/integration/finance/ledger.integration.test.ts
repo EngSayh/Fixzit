@@ -1,3 +1,4 @@
+/* eslint-disable no-warning-comments -- @vitest-environment required for MongoDB integration tests */
 /**
  * Finance Ledger Integration Tests
  *

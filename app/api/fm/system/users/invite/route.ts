@@ -164,6 +164,7 @@ export async function POST(req: NextRequest) {
     const db = await getDatabase();
     const collection = db.collection<InviteDocument>(COLLECTION);
 
+    // Query uses native MongoDB driver (already returns lean POJO)
     const existing = await collection.findOne({
       orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
       email: doc.email,

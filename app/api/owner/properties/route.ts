@@ -93,6 +93,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Query properties with reasonable limit to prevent memory issues
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by ownerPortal.ownerId (owner's own properties)
     const properties = await Property.find({
       "ownerPortal.ownerId": ownerId,
     })

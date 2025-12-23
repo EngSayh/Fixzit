@@ -126,6 +126,7 @@ export async function GET(
     );
 
     // Find property and unit using Mongoose
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by ownerPortal.ownerId (owner's own properties)
     const property = await Property.findOne({
       "ownerPortal.ownerId": ownerId,
       "units.unitNumber": params.unitId,

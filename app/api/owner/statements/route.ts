@@ -182,6 +182,7 @@ export async function GET(req: NextRequest) {
     const statementLines: StatementLine[] = [];
 
     // 1. INCOME - Rent Payments (using Mongoose model)
+    // eslint-disable-next-line local/require-tenant-scope -- Scoped by propertyId (owner's properties from above)
     const payments = await Payment.find({
       propertyId: { $in: propertyIds },
       paymentDate: { $gte: startDate, $lte: endDate },
@@ -204,6 +205,7 @@ export async function GET(req: NextRequest) {
     });
 
     // 2. EXPENSES - Maintenance (Work Orders using Mongoose model)
+    // eslint-disable-next-line local/require-tenant-scope -- Scoped by propertyId (owner's properties from above)
     const workOrders = await WorkOrder.find({
       "property.propertyId": { $in: propertyIds },
       status: "COMPLETED",
@@ -237,6 +239,7 @@ export async function GET(req: NextRequest) {
     });
 
     // 3. EXPENSES - Utilities (using Mongoose model)
+    // eslint-disable-next-line local/require-tenant-scope -- Scoped by propertyId + ownerId (owner's own bills)
     const utilityBills = await UtilityBill.find({
       propertyId: { $in: propertyIds },
       "responsibility.ownerId": ownerId,

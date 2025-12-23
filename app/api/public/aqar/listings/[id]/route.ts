@@ -55,6 +55,7 @@ export async function GET(
 
     await connectDb();
 
+    // PLATFORM-WIDE: Public API shows all active listings from marketplace
     // Only return ACTIVE listings
     const listing = await listingModel
       .findOne({
@@ -118,6 +119,7 @@ export async function GET(
     }
 
     // Increment views (async, don't wait)
+    // PLATFORM-WIDE: Public API analytics update
     listingModel
       .findByIdAndUpdate(id, {
         $inc: { "analytics.views": 1 },

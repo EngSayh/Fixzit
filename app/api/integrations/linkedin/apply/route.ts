@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
       orgId,
       jobId,
       candidateId: candidate._id,
-    });
+    }).lean();
     if (dup)
       return NextResponse.json({
         success: true,

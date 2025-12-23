@@ -53,7 +53,7 @@ interface UserDocument {
   orgId?: { toString: () => string } | string; // Organization ID for tenant isolation
   email: string;
   username?: string;
-  employeeId?: string;
+  employeeId?: string | null; // Allow null for .lean() return type compatibility
   password?: string;
   isActive?: boolean;
   status?: string;
@@ -653,9 +653,11 @@ export async function POST(request: NextRequest) {
 
       if (loginType === "personal") {
         // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
+        // NO_LEAN: Removed .lean() to maintain UserDocument type compatibility with local interface
         user = await User.findOne({ orgId: orgScopeId, email: loginIdentifier });
       } else {
         // Scope user lookup by both orgId AND company code for defense in depth
+        // NO_LEAN: Removed .lean() to maintain UserDocument type compatibility with local interface
         user = await User.findOne({
           orgId: orgScopeId,
           username: loginIdentifier,

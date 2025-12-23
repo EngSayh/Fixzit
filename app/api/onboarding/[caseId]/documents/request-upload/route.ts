@@ -72,6 +72,8 @@ export async function POST(
   try {
     await connectMongo();
     // Defense-in-depth: Query scoped to user's org from the start
+    // NO_LEAN: Document accessed for country/role data
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by user id/orgId in $or
     const onboarding = await OnboardingCase.findOne({
       _id: params.caseId,
       $or: [
@@ -85,11 +87,13 @@ export async function POST(
     }
 
     const profileCountry = onboarding.country || country || DEFAULT_COUNTRY;
+    // PLATFORM-WIDE: DocumentProfile is global config by role/country
     const profile = await DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean();
     if (!profile || !profile.required_doc_codes.includes(document_type_code)) {
       return NextResponse.json({ error: 'Document type not required for this role' }, { status: 400 });
     }
 
+    // PLATFORM-WIDE: DocumentType is global config by code
     const docType = await DocumentType.findOne({ code: document_type_code }).lean();
     if (!docType) {
       return NextResponse.json({ error: 'Unknown document type' }, { status: 400 });

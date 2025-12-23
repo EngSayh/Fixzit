@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         active: true,
         expiresAt: { $gt: new Date() },
         $expr: { $lt: ["$listingsUsed", "$listingsAllowed"] },
-      });
+      }).lean();
 
       if (!activePackage) {
         return forbidden(

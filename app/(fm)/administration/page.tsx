@@ -48,6 +48,7 @@ import AdminNotificationsTab from "@/components/admin/AdminNotificationsTab";
 import CommunicationDashboard from "@/components/admin/CommunicationDashboard";
 import RoleBadge from "@/components/admin/RoleBadge";
 import UserModal, { type UserFormData } from "@/components/admin/UserModal";
+import { UsersList } from "@/components/administration/UsersList";
 import { logger } from "@/lib/logger";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useAuthRbac } from "@/hooks/useAuthRbac";
@@ -590,9 +591,62 @@ const AdminModule: React.FC = () => {
     return null; // Router will redirect
   }
 
+  // Convert UsersList's UserRecord to local User type for modal
+  const handleEditUserFromList = (userRecord: { id: string; email: string; firstName?: string; lastName?: string; role: string; status: string; department?: string }) => {
+    const user: User = {
+      id: userRecord.id,
+      name: `${userRecord.firstName || ""} ${userRecord.lastName || ""}`.trim() || userRecord.email,
+      email: userRecord.email,
+      role: userRecord.role,
+      status: userRecord.status as "Active" | "Inactive" | "Locked",
+      lastLogin: "",
+      department: userRecord.department || "",
+      createdAt: "",
+      org_id: activeOrgId,
+    };
+    handleEditUser(user);
+  };
+
   const renderUsers = () => (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Add User button */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {t("admin.users.title", "User Management")}
+          </h2>
+          <p className="text-gray-600 mt-1">
+            {t("admin.users.subtitle", "Manage organization users and access")}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button type="button"
+            onClick={handleAddUser}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark flex items-center gap-2"
+            aria-label={t("admin.users.actions.addAria", "Add new user")}
+          >
+            <UserPlus size={20} />
+            {t("admin.users.actions.add", "Add User")}
+          </button>
+        </div>
+      </div>
+
+      {/* Centralized UsersList component */}
+      <UsersList
+        orgId={activeOrgId}
+        embedded={true}
+        onAddUser={handleAddUser}
+        onEditUser={handleEditUserFromList}
+        _onToggleStatus={handleToggleUserStatus}
+        _onDeleteUser={handleDeleteUser}
+      />
+    </div>
+  );
+
+  // Legacy code for reference - keeping renderRoles as-is
+  const _legacyRenderUsersDisabled = () => (
+    <div className="space-y-6">
+      {/* OLD IMPLEMENTATION - replaced by UsersList above */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">

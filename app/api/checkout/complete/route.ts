@@ -81,6 +81,7 @@ export async function POST(req: NextRequest) {
           { owner_user_id: session.id },
         ],
       };
+  // NO_LEAN: Document needed for payment completion updates
   const subscription = await Subscription.findOne(query);
 
   if (!subscription) {

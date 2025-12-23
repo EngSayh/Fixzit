@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
     // Generate unique ticket code with timestamp + random suffix to prevent collisions
     const code = `HELP-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
+    // PLATFORM-WIDE: Escalation routing uses user.orgId when present
     const ticket = await SupportTicket.create({
       code,
       subject: `Access request: ${attempted_action || 'Unknown action'}`,

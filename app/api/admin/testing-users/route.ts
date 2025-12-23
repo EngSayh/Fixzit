@@ -173,6 +173,7 @@ export async function POST(request: NextRequest) {
     const data = parsed.data;
 
     // Check if email or username already exists
+    // PLATFORM-WIDE: Testing users are managed at platform level, not tenant-scoped
     const existing = await TestingUser.findOne({
       $or: [
         { email: data.email.toLowerCase() },

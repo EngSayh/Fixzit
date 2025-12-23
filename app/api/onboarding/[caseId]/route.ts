@@ -43,6 +43,7 @@ export async function GET(
 
   try {
     // Defense-in-depth: Query scoped to user's org from the start
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by user id/orgId in $or
     const onboarding = await OnboardingCase.findOne({
       _id: params.caseId,
       $or: [
@@ -90,6 +91,8 @@ export async function PATCH(
       setTenantContext({ orgId: user.orgId });
     }
     // Defense-in-depth: Query scoped to user's org from the start
+    // NO_LEAN: Document needed for update and .save()
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by user id/orgId in $or
     const onboarding = await OnboardingCase.findOne({
       _id: params.caseId,
       $or: [

@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
     // NOTE: System-wide query is intentional - cron job processes ALL tenants
     // Each PM plan has its own orgId which is inherited by generated WOs
     // This is secured by CRON_SECRET authentication above
+    // PLATFORM-WIDE: CRON job processes all tenants, each WO inherits plan's orgId
     const plans = await FMPMPlan.find({
       status: "ACTIVE",
       nextScheduledDate: { $exists: true },

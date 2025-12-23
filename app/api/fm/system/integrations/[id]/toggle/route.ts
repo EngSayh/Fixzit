@@ -81,6 +81,7 @@ export async function POST(
     const now = new Date();
 
     // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    // Query uses native MongoDB driver (already returns lean POJO)
     const existing = await collection.findOne({
       orgId: tenantId,
       integrationId,

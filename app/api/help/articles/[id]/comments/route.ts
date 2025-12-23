@@ -81,6 +81,7 @@ export async function POST(
   const comments = db.collection(COLLECTIONS.HELP_COMMENTS);
 
     const articleFilter = buildArticleFilter(params.id, user.orgId);
+    // Query uses native MongoDB driver (already returns lean POJO)
     const article = await articles.findOne(articleFilter, {
       projection: { slug: 1, status: 1, orgId: 1 },
     });
@@ -148,6 +149,7 @@ export async function GET(
     const comments = db.collection(COLLECTIONS.HELP_COMMENTS);
 
     const articleFilter = buildArticleFilter(params.id, user.orgId);
+    // Query uses native MongoDB driver (already returns lean POJO)
     const article = await articles.findOne(articleFilter, {
       projection: { slug: 1, status: 1 },
     });
@@ -162,6 +164,7 @@ export async function GET(
     const skip = (page - 1) * limit;
 
     // Fetch comments for this article (tenant-scoped via article filter)
+    // PLATFORM-WIDE: Comments are fetched by articleSlug (article already tenant-scoped)
     const [items, total] = await Promise.all([
       comments
         .find({ articleSlug: article.slug })

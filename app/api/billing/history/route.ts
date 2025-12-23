@@ -77,6 +77,7 @@ export async function GET(req: NextRequest) {
     const userObjectId = new Types.ObjectId(userId);
 
     // Find all subscriptions belonging to this tenant or owner
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by tenant_id/owner_user_id from session
     const subscriptions = await Subscription.find({
       $or: [
         { tenant_id: orgObjectId },

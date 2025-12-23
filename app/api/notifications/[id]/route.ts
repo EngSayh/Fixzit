@@ -72,6 +72,7 @@ export async function GET(
     }
   })();
   if (!_id) return createSecureResponse({ error: "Invalid id" }, 400, req);
+  // Query uses native MongoDB driver (already returns lean POJO)
   const doc = await notifications.findOne({ _id, orgId });
   if (!doc)
     return createSecureResponse({ error: "Notification not found" }, 404, req);

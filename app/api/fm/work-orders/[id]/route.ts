@@ -118,6 +118,7 @@ export async function GET(
     }
     // ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER see all org work orders
     
+    // Query uses native MongoDB driver (already returns lean POJO)
     const workOrder = await collection.findOne(baseFilter);
 
     if (!workOrder) {
@@ -257,6 +258,7 @@ export async function PATCH(
     const collection = db.collection<WorkOrderDocument>("workorders");
     
     // Use role-based filter for finding and updating (RBAC-006)
+    // Query uses native MongoDB driver (already returns lean POJO)
     const existingWorkOrder = await collection.findOne(baseFilter);
 
     if (!existingWorkOrder) {

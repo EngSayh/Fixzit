@@ -90,6 +90,7 @@ export async function PATCH(
     }
 
     // Re-fetch as a document for updates now that org scope is verified
+    // NO_LEAN: Document needed for status update and .save()
     const doc = await VerificationDocument.findById(params.id);
     if (!doc) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
@@ -124,6 +125,7 @@ export async function PATCH(
 
     if (decision === 'VERIFIED') {
       const profileCountry = onboarding.country || 'SA';
+      // PLATFORM-WIDE: DocumentProfile and VerificationDocument queries for verification status
       const [profile, docs] = await Promise.all([
         DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean(),
         VerificationDocument.find({ onboarding_case_id: onboarding._id }).lean(),

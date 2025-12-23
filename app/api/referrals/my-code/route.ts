@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Find user's referral code - lean() returns plain object
-    // NO_TENANT_SCOPE: Scoped by userId
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by referrerId from session (user's own codes)
     const referralCode = await ReferralCodeModel.findOne({
       referrerId: session.user.id,
       status: "ACTIVE",

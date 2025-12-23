@@ -35,7 +35,6 @@ import {
   type FilterSchema,
 } from "@/components/tables/utils/filterSchema";
 import { useTableQueryState } from "@/hooks/useTableQueryState";
-import { toast } from "sonner";
 
 type UserRecord = {
   id: string;
@@ -116,6 +115,14 @@ const fetcher = async (url: string) => {
 
 export type UsersListProps = {
   orgId: string;
+  onAddUser?: () => void;
+  onEditUser?: (user: UserRecord) => void;
+  /** Delete user callback - not yet implemented in table */
+  _onDeleteUser?: (userId: string) => void;
+  /** Toggle status callback - not yet implemented in table */
+  _onToggleStatus?: (userId: string, currentStatus: string) => void;
+  /** Hide the page header when embedded in another page */
+  embedded?: boolean;
 };
 
 export function buildUsersQuery(state: ReturnType<typeof useTableQueryState>["state"], orgId: string) {
@@ -128,7 +135,14 @@ export function buildUsersQuery(state: ReturnType<typeof useTableQueryState>["st
   return params.toString();
 }
 
-export function UsersList({ orgId }: UsersListProps) {
+export function UsersList({ 
+  orgId, 
+  onAddUser, 
+  onEditUser, 
+  _onDeleteUser, 
+  _onToggleStatus,
+  embedded = false,
+}: UsersListProps) {
   const { state, updateState, resetState } = useTableQueryState("users", {
     page: 1,
     pageSize: 20,
@@ -242,7 +256,7 @@ export function UsersList({ orgId }: UsersListProps) {
             Clear all filters
           </Button>
         ) : (
-          <Button onClick={() => toast.info("Invite user flow")}>
+          <Button onClick={onAddUser}>
             <Plus className="w-4 h-4 me-2" />
             Invite User
           </Button>
@@ -263,8 +277,9 @@ export function UsersList({ orgId }: UsersListProps) {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      {/* PageHeader */}
+    <div className={`space-y-6 ${embedded ? '' : 'p-6'}`}>
+      {/* PageHeader - hidden when embedded */}
+      {!embedded && (
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
@@ -280,12 +295,13 @@ export function UsersList({ orgId }: UsersListProps) {
             <RefreshCcw className={`w-4 h-4 me-2 ${isValidating ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={onAddUser}>
             <Plus className="w-4 h-4 me-2" />
             Invite User
           </Button>
         </div>
       </div>
+      )}
 
       {/* Toolbar */}
       <TableToolbar
@@ -348,7 +364,7 @@ export function UsersList({ orgId }: UsersListProps) {
           metadataAccessor={(user) => 
             `${user.role} • Last login: ${user.lastLoginAt ? formatDistanceToNowStrict(new Date(user.lastLoginAt), { addSuffix: true }) : "Never"}`
           }
-          onRowClick={(user) => toast.info(`Open user ${user.id}`)}
+          onRowClick={(user) => onEditUser?.(user)}
           loading={isLoading}
           emptyMessage="No users found"
         />
@@ -362,7 +378,7 @@ export function UsersList({ orgId }: UsersListProps) {
           loading={isLoading}
           emptyState={emptyState}
           density={density}
-          onRowClick={(row) => toast.info(`Open user ${row.id}`)}
+          onRowClick={(row) => onEditUser?.(row)}
         />
       </div>
 

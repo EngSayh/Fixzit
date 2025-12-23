@@ -34,6 +34,8 @@ export async function PUT(
   try {
     await connectMongo();
     // Defense-in-depth: Query scoped to user's org from the start
+    // NO_LEAN: Document needed for tutorial_completed update and .save()
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by user id/orgId in $or
     const onboarding = await OnboardingCase.findOne({
       _id: params.caseId,
       $or: [

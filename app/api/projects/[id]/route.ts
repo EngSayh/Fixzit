@@ -132,6 +132,7 @@ export async function PATCH(
 
     const data = updateProjectSchema.parse(await req.json());
 
+    // NO_LEAN: findOneAndUpdate returns new document for response
     const project = await Project.findOneAndUpdate(
       { _id: id, tenantId: user.tenantId },
       {
@@ -167,6 +168,7 @@ export async function DELETE(
     }
     await connectToDatabase();
 
+    // NO_LEAN: findOneAndUpdate returns updated document for response
     const project = await Project.findOneAndUpdate(
       { _id: id, tenantId: user.tenantId },
       { $set: { status: "CANCELLED", updatedBy: user.id } },

@@ -178,6 +178,7 @@ export async function PUT(
         timestamp: new Date(),
       },
       async () => {
+        // NO_LEAN: Document needed for update and .save()
         const expense = await Expense.findOne({
           _id: _params.id,
           orgId: user.orgId,
@@ -272,6 +273,7 @@ export async function DELETE(
         timestamp: new Date(),
       },
       async () => {
+        // NO_LEAN: Document needed for status update and cancellation
         const expense = await Expense.findOne({
           _id: _params.id,
           orgId: user.orgId,

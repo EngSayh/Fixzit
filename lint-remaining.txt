@@ -1,0 +1,488 @@
+﻿
+> fixzit-frontend@2.0.27 lint C:\Dev\Fixzit
+> eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 300 --ignore-pattern .next --ignore-pattern node_modules --ignore-pattern public --ignore-pattern _artifacts --ignore-pattern deployment --ignore-pattern playwright-report --ignore-pattern e2e-test-results --ignore-pattern qa --ignore-pattern scripts --ignore-pattern tools --ignore-pattern issue-tracker --ignore-pattern test-results --ignore-pattern Incoming --ignore-pattern Fixzit --ignore-pattern Fixzit-fresh --ignore-pattern Fixzit-tenant
+
+
+C:\Dev\Fixzit\app\api\admin\price-tiers\route.ts
+  162:23  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\admin\testing-users\route.ts
+  177:28  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\aqar\listings\[id]\route.ts
+  160:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  336:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  346:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\ats\applications\[id]\route.ts
+  112:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\ats\jobs\[id]\publish\route.ts
+  65:23  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\ats\moderation\route.ts
+  71:23  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\auth\otp\send\route.ts
+  657:22  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  661:22  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\auth\reset-password\route.ts
+  129:24  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\billing\upgrade\route.ts
+  292:31  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\checkout\complete\route.ts
+  85:30  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\cms\pages\[slug]\route.ts
+  37:24  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  73:24  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\finance\accounts\[id]\route.ts
+  227:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  354:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\finance\expenses\[id]\[action]\route.ts
+  103:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\finance\expenses\[id]\route.ts
+  182:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  277:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\finance\journals\[id]\post\route.ts
+  97:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\finance\journals\[id]\void\route.ts
+  117:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\finance\payments\[id]\[action]\route.ts
+  118:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\finance\payments\[id]\complete\route.ts
+  63:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\fm\finance\budgets\[id]\route.ts
+  243:26  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\fm\properties\route.ts
+  308:32  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  392:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\fm\reports\route.ts
+  127:24  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\fm\reports\schedules\route.ts
+  122:29  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\fm\system\integrations\[id]\toggle\route.ts
+  85:28  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\fm\system\roles\route.ts
+  168:28  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\fm\system\users\invite\route.ts
+  168:28  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\fm\work-orders\[id]\route.ts
+  122:29  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  262:37  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\fm\work-orders\[id]\transition\route.ts
+  134:29  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\fm\work-orders\stats\route.ts
+  149:32  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\fm\work-orders\utils.ts
+  227:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\help\articles\[id]\comments\route.ts
+   85:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  153:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  169:7   warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  176:7   warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\help\articles\[id]\route.ts
+  84:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\help\ask\route.ts
+  268:22  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\help\escalate\route.ts
+  80:26  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\invoices\[id]\route.ts
+   95:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  145:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  306:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\issues\[id]\route.ts
+  213:25  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\marketplace\cart\route.ts
+  171:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\marketplace\products\[slug]\route.ts
+  85:26  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\notifications\[id]\route.ts
+  76:21  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\onboarding\[caseId]\complete-tutorial\route.ts
+  39:30  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\onboarding\[caseId]\documents\confirm-upload\route.ts
+  68:30  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  82:27  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  88:23  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  99:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\onboarding\[caseId]\documents\request-upload\route.ts
+  77:30  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  91:27  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  97:27  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\onboarding\[caseId]\route.ts
+  96:30  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\onboarding\documents\[id]\review\route.ts
+   95:23  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  120:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  131:9   warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  132:9   warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\payments\create\route.ts
+  126:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\payments\tap\webhook\route.ts
+  441:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  711:29  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\pm\generate-wos\route.ts
+   69:25  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  190:25  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\projects\[id]\route.ts
+  101:27  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  136:27  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  172:27  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\public\aqar\listings\[id]\route.ts
+  60:27  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\public\footer\[page]\route.ts
+  40:34  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\referrals\generate\route.ts
+  51:28  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\souq\brands\route.ts
+  100:32  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\souq\catalog\products\route.ts
+  125:28  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  146:28  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  166:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  182:30  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  205:35  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\souq\categories\route.ts
+  102:32  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\souq\claims\admin\bulk\route.ts
+  191:26  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\souq\claims\route.ts
+  127:33  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\souq\fulfillment\generate-label\route.ts
+  71:25  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  86:26  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\souq\fulfillment\sla\[orderId]\route.ts
+  63:25  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\souq\inventory\adjust\route.ts
+  118:35  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\souq\inventory\convert\route.ts
+  102:35  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\souq\inventory\return\route.ts
+  108:35  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\souq\inventory\route.ts
+  209:27  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\souq\listings\route.ts
+  132:35  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\souq\orders\_lib\order-lifecycle.ts
+  205:13  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\souq\orders\route.ts
+  440:19  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\souq\returns\route.ts
+  122:29  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\souq\sellers\[id]\dashboard\route.ts
+   87:26  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  183:7   warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  186:7   warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\souq\sellers\route.ts
+  81:34  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\souq\settlements\[id]\route.ts
+  41:29  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  41:29  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\souq\settlements\route.ts
+  214:30  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\superadmin\branding\route.ts
+  84:26  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  88:24  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\superadmin\customer-requests\events\route.ts
+  30:24  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\superadmin\customer-requests\route.ts
+  151:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  184:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  184:27  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  267:13  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  272:13  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  282:27  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\superadmin\issues\report\route.ts
+  63:24  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\superadmin\issues\route.ts
+  167:23  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  167:23  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  174:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  184:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\superadmin\issues\stats\route.ts
+  54:5  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  72:5  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  78:5  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  84:5  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\superadmin\notifications\send\route.ts
+  66:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\superadmin\organizations\search\route.ts
+  55:33  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\superadmin\tenants\route.ts
+  164:28  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  179:23  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\superadmin\users\route.ts
+  114:28  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\support\impersonation\route.ts
+  144:21  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\support\tickets\[id]\route.ts
+  86:21  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\support\welcome-email\route.ts
+  323:32  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\upload\scan-status\route.ts
+  71:21  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\user\preferences\route.ts
+  348:24  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\webhooks\sendgrid\route.ts
+  203:17  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  208:17  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\webhooks\taqnyat\route.ts
+  183:34  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\work-orders\[id]\assign\route.ts
+  82:22  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\work-orders\[id]\checklists\route.ts
+  73:23  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  73:23  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\work-orders\[id]\checklists\toggle\route.ts
+  63:23  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  63:23  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\work-orders\[id]\comments\route.ts
+  74:22  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\work-orders\[id]\materials\route.ts
+  82:23  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  82:23  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\work-orders\[id]\status\route.ts
+  80:20  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\app\api\work-orders\import\route.ts
+  98:13  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\app\api\work-orders\sla-check\route.ts
+   61:30  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+   67:22  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  161:33  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\lib\aqar\package-activation.ts
+  41:29  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  83:25  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\lib\auth.ts
+  355:18  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  362:18  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  362:18  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  458:22  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+
+C:\Dev\Fixzit\lib\auth\otp\helpers.ts
+  57:23  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\lib\backlog\importPendingMaster.ts
+   65:28  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+   74:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  101:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\lib\finance\checkout.ts
+   78:13  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+   79:13  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+   79:13  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  101:30  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  194:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\lib\finance\pricing.ts
+  92:5  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  97:9  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\lib\finance\provision.ts
+  4:30  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  4:30  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\lib\finance\tap-webhook\persistence.ts
+  433:15  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\lib\fm-approval-engine.ts
+  645:33  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  725:28  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  808:36  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+
+C:\Dev\Fixzit\lib\fm-auth-middleware.ts
+  245:23  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  444:17  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\lib\fm-notifications.ts
+  107:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  161:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\lib\integrations\notifications.ts
+  224:25  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  242:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\lib\jobs\sms-sla-monitor.ts
+  44:35  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\lib\marketplace\cart.ts
+  8:20  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\lib\mongoUtils.server.ts
+  43:27  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  64:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  64:31  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\lib\queries.ts
+  349:5  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\lib\queues\sms-queue.ts
+  435:25  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\server\copilot\retrieval.ts
+   93:22  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  137:9   warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\server\copilot\tools\owner-statements.ts
+  34:29  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\server\copilot\tools\work-orders.ts
+  267:25  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  424:25  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\server\cron\usageSyncCron.ts
+  14:28  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  14:28  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\server\finance\budget.service.ts
+  34:11  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\server\middleware\requireVerifiedDocs.ts
+  41:30  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\server\middleware\withAuthRbac.ts
+  195:36  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\server\models\aqar\MarketingRequest.ts
+  199:25  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\server\services\ats\application-intake.ts
+  201:37  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+C:\Dev\Fixzit\server\services\finance\postingService.ts
+  131:28  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  131:28  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  207:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  383:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  443:35  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+
+C:\Dev\Fixzit\server\services\hr\payroll-finance.integration.ts
+   27:25  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  218:13  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\server\services\onboardingKpi.service.ts
+  18:29  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+
+C:\Dev\Fixzit\server\services\owner\financeIntegration.ts
+   60:28  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+   60:28  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  187:45  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  193:42  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  342:41  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  348:31  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+
+C:\Dev\Fixzit\server\services\subscriptionBillingService.ts
+  144:27  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  147:26  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  172:21  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  213:25  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  213:25  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  293:21  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+
+C:\Dev\Fixzit\server\services\subscriptionSeatService.ts
+   72:10  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+   72:10  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+   86:10  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+   86:10  warning  Database query may be missing tenant scope filter (org_id or property_owner_id). Add tenant filter or document why it's platform-wide  local/require-tenant-scope
+  118:30  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  192:30  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  235:30  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  255:30  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  326:21  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  341:21  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+  362:21  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)       local/require-lean
+
+C:\Dev\Fixzit\server\work-orders\wo.service.ts
+  158:18  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+  165:26  warning  Read-only query should call .lean() to avoid hydration overhead. Add .lean() or document why documents are required (// NO_LEAN)  local/require-lean
+
+Γ£û 227 problems (0 errors, 227 warnings)
+
