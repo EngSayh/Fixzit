@@ -147,6 +147,8 @@ describe("API /api/hr/payroll/runs", () => {
       }
 
       sessionUser = { orgId: mockOrgId, role: "EMPLOYEE" };
+      // Override the mock to return false for non-HR roles
+      vi.mocked(hasAllowedRole).mockReturnValue(false);
 
       const req = new NextRequest("http://localhost:3000/api/hr/payroll/runs");
       const response = await route.GET(req);
