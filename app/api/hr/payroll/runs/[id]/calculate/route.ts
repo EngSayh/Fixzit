@@ -4,7 +4,7 @@
  * applying Saudi Arabia KSA labor law compliance (GOSI, housing, transport allowances).
  * 
  * @module api/hr/payroll/runs/[id]/calculate
- * @requires HR, HR_OFFICER, FINANCE, FINANCE_OFFICER, SUPER_ADMIN, or CORPORATE_ADMIN role
+ * @requires HR, HR_OFFICER, SUPER_ADMIN, or CORPORATE_ADMIN role
  * 
  * @endpoints
  * - POST /api/hr/payroll/runs/:id/calculate - Calculate payroll for a DRAFT run
@@ -21,7 +21,7 @@
  * - Net pay calculation using KSA payroll service
  * 
  * @security
- * - RBAC: HR and Finance roles have access
+ * - RBAC: HR roles have access
  * - Only DRAFT runs can be calculated
  * - PII: Handles sensitive salary and banking data
  * - Tenant-scoped: Payroll calculations are isolated by organization
@@ -40,8 +40,8 @@ import { calculateNetPay } from "@/services/hr/ksaPayrollService";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { hasAllowedRole } from "@/lib/auth/role-guards";
 
-// 🔒 STRICT v4.1: Payroll calculation requires HR Officer, Finance Officer, or Admin role
-const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER', 'FINANCE', 'FINANCE_OFFICER'];
+// 🔒 STRICT v4.1: Payroll calculation requires HR roles (no Finance role access)
+const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
 
 type RouteParams = { id: string };
 
@@ -56,10 +56,10 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 🔒 STRICT v4.1: Payroll requires HR/Finance roles - supports subRole pattern
+    // 🔒 STRICT v4.1: Payroll requires HR roles - supports subRole pattern
     const user = session.user as { role?: string; subRole?: string | null; orgId?: string };
     if (!hasAllowedRole(user.role, user.subRole, PAYROLL_ALLOWED_ROLES)) {
-      return NextResponse.json({ error: "Forbidden: HR/Finance access required" }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 
     await connectToDatabase();

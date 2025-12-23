@@ -80,14 +80,23 @@ export async function getWorkOrderStats(orgId: string) {
 
   const [total, open, inProgress, overdue, completed] = await Promise.all([
     collection.countDocuments(base),
-    collection.countDocuments({ ...base, status: { $in: ["SUBMITTED", "ASSIGNED"] } }),
-    collection.countDocuments({ ...base, status: "IN_PROGRESS" }),
     collection.countDocuments({
-      ...base,
+      orgId: nOrgId,
+      ...softDeleteGuard,
+      status: { $in: ["SUBMITTED", "ASSIGNED"] },
+    }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "IN_PROGRESS" }),
+    collection.countDocuments({
+      orgId: nOrgId,
+      ...softDeleteGuard,
       status: { $in: ["ASSIGNED", "IN_PROGRESS", "PENDING_APPROVAL"] },
       "sla.resolutionDeadline": { $lt: new Date() },
     }),
-    collection.countDocuments({ ...base, status: { $in: ["COMPLETED", "VERIFIED", "CLOSED"] } }),
+    collection.countDocuments({
+      orgId: nOrgId,
+      ...softDeleteGuard,
+      status: { $in: ["COMPLETED", "VERIFIED", "CLOSED"] },
+    }),
   ]);
 
   return {
@@ -114,13 +123,18 @@ export async function getInvoiceCounters(orgId: string) {
   const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [unpaid, overdue, paid, total] = await Promise.all([
-    collection.countDocuments({ ...base, status: { $in: ["ISSUED", "OVERDUE"] } }),
     collection.countDocuments({
-      ...base,
+      orgId: nOrgId,
+      ...softDeleteGuard,
+      status: { $in: ["ISSUED", "OVERDUE"] },
+    }),
+    collection.countDocuments({
+      orgId: nOrgId,
+      ...softDeleteGuard,
       status: { $in: ["ISSUED", "OVERDUE"] },
       dueDate: { $lt: new Date() },
     }),
-    collection.countDocuments({ ...base, status: "PAID" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "PAID" }),
     collection.countDocuments(base),
   ]);
 
@@ -179,9 +193,9 @@ export async function getEmployeeCounters(orgId: string) {
 
   const [total, active, onLeave, probation] = await Promise.all([
     collection.countDocuments(base),
-    collection.countDocuments({ ...base, status: "Active" }),
-    collection.countDocuments({ ...base, status: "On Leave" }),
-    collection.countDocuments({ ...base, status: "Probation" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "Active" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "On Leave" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "Probation" }),
   ]);
 
   return { total, active, onLeave, probation };
@@ -250,9 +264,13 @@ export async function getPropertyCounters(orgId: string) {
 
   const [total, active, maintenance, leased] = await Promise.all([
     collection.countDocuments(base),
-    collection.countDocuments({ ...base, status: "Active" }),
-    collection.countDocuments({ ...base, status: "Under Maintenance" }),
-    collection.countDocuments({ ...base, lease_status: "Leased" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "Active" }),
+    collection.countDocuments({
+      orgId: nOrgId,
+      ...softDeleteGuard,
+      status: "Under Maintenance",
+    }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, lease_status: "Leased" }),
   ]);
 
   const occupancyRate = total > 0 ? ((leased / total) * 100).toFixed(1) : "0";
@@ -275,9 +293,11 @@ export async function getCustomerCounters(orgId: string) {
 
   const [total, active, leads, contracts] = await Promise.all([
     collection.countDocuments(base),
-    collection.countDocuments({ ...base, status: "Active" }),
-    collection.countDocuments({ ...base, type: "Lead" }),
-    db.collection(COLLECTIONS.CONTRACTS).countDocuments({ ...base, status: "Active" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "Active" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, type: "Lead" }),
+    db
+      .collection(COLLECTIONS.CONTRACTS)
+      .countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "Active" }),
   ]);
 
   return { total, active, leads, contracts };
@@ -298,9 +318,9 @@ export async function getSupportCounters(orgId: string) {
 
   const [total, open, pending, resolved] = await Promise.all([
     collection.countDocuments(base),
-    collection.countDocuments({ ...base, status: "Open" }),
-    collection.countDocuments({ ...base, status: "Pending" }),
-    collection.countDocuments({ ...base, status: "Resolved" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "Open" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "Pending" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "Resolved" }),
   ]);
 
   return { total, open, pending, resolved };
@@ -325,7 +345,7 @@ export async function getApprovalCounters(orgId: string) {
 
   const [total, pending, overdue] = await Promise.all([
     collection.countDocuments(base),
-    collection.countDocuments({ ...base, status: "PENDING" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "PENDING" }),
     collection.countDocuments({
       ...base,
       status: "PENDING",
@@ -350,17 +370,24 @@ export async function getMarketplaceCounters(orgId: string, sellerId: string) {
   const base = { orgId: nOrgId, ...softDeleteGuard };
 
   const [listings, orders, reviews, activeListings] = await Promise.all([
-    db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments({ ...base, sellerId: seller }),
+    db
+      .collection(COLLECTIONS.SOUQ_LISTINGS)
+      .countDocuments({ orgId: nOrgId, ...softDeleteGuard, sellerId: seller }),
     db
       .collection(COLLECTIONS.SOUQ_ORDERS)
-      .countDocuments({ ...base, "items.sellerId": seller }),
+      .countDocuments({ orgId: nOrgId, ...softDeleteGuard, "items.sellerId": seller }),
     db.collection(COLLECTIONS.SOUQ_REVIEWS).countDocuments({
       ...base,
       productId: { $in: await getSellerProductIds(nOrgId, seller, db) },
     }),
     db
       .collection(COLLECTIONS.SOUQ_LISTINGS)
-      .countDocuments({ ...base, sellerId: seller, status: "active" }),
+      .countDocuments({
+        orgId: nOrgId,
+        ...softDeleteGuard,
+        sellerId: seller,
+        status: "active",
+      }),
   ]);
 
   return { listings, activeListings, orders, reviews };
@@ -395,9 +422,9 @@ export async function getRfqCounters(orgId: string) {
 
   const [total, open, awarded, closed] = await Promise.all([
     collection.countDocuments(base),
-    collection.countDocuments({ ...base, status: "OPEN" }),
-    collection.countDocuments({ ...base, status: "AWARDED" }),
-    collection.countDocuments({ ...base, status: "CLOSED" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "OPEN" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "AWARDED" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "CLOSED" }),
   ]);
 
   return { total, open, awarded, closed };
@@ -432,7 +459,9 @@ export async function getSystemCounters(orgId: string) {
     db.collection(COLLECTIONS.USERS).countDocuments(base),
     db.collection(COLLECTIONS.ROLES).countDocuments(base),
     db.collection(COLLECTIONS.TENANTS).countDocuments(base),
-    db.collection(COLLECTIONS.API_KEYS).countDocuments({ ...base, status: "Active" }),
+    db
+      .collection(COLLECTIONS.API_KEYS)
+      .countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "Active" }),
   ]);
 
   return { users, roles, tenants, apiKeys };
@@ -506,9 +535,9 @@ export async function getApplicationCounters(orgId: string) {
 
   const [total, applied, screening, interview] = await Promise.all([
     collection.countDocuments(base),
-    collection.countDocuments({ ...base, stage: "applied" }),
-    collection.countDocuments({ ...base, stage: "screening" }),
-    collection.countDocuments({ ...base, stage: "interview" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, stage: "applied" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, stage: "screening" }),
+    collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, stage: "interview" }),
   ]);
 
   // pending = early pipeline stages (applied + screening + interview)

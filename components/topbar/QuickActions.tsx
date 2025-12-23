@@ -110,7 +110,7 @@ export default function QuickActions() {
 
   return (
     <div ref={dropdownRef} className="relative">
-      <button
+      <button type="button"
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 px-3 py-2 bg-success text-success-foreground rounded-md hover:bg-success/90 transition-colors"
         aria-label={t("topbar.quickActions", "Quick actions")}

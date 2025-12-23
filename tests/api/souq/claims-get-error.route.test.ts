@@ -48,6 +48,8 @@ function buildRequest() {
 describe("GET /api/souq/claims/[id] error handling", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.clearAllMocks();
+
     enforceRateLimitMock.mockReturnValue(null);
     resolveRequestSessionMock.mockResolvedValue({
       user: { id: "buyer-1", orgId: "507f1f77bcf86cd799439011" },

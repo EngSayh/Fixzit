@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from "vitest";
+import { mockFetch, restoreFetch } from "@/tests/helpers/domMocks";
 
 // Mock dependencies
 vi.mock("@/lib/logger", () => ({
@@ -21,25 +22,23 @@ vi.mock("@/lib/security/log-sanitizer", () => ({
   sanitizeValue: vi.fn((value: string) => "[REDACTED]"),
 }));
 
-// Mock fetch for webhook tests
-const mockFetch = vi.fn();
-global.fetch = mockFetch as unknown as typeof fetch;
-
 describe("Security Monitoring", () => {
   let trackRateLimitHit: (identifier: string, endpoint: string) => void;
   let trackCorsViolation: (origin: string, endpoint: string) => void;
   let trackAuthFailure: (identifier: string, reason: string) => void;
   let getSecurityMetrics: () => Record<string, number>;
   let logger: { info: Mock; warn: Mock; error: Mock };
+  let fetchSpy: ReturnType<typeof mockFetch>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
+    fetchSpy = mockFetch();
     
     // Clear environment variable
     delete process.env.SECURITY_ALERT_WEBHOOK;
     
-    mockFetch.mockResolvedValue(new Response(null, { status: 200 }));
+    fetchSpy.mockResolvedValue(new Response(null, { status: 200 }));
 
     // Import fresh modules
     const monitoringModule = await import("@/lib/security/monitoring");
@@ -55,6 +54,7 @@ describe("Security Monitoring", () => {
   afterEach(() => {
     vi.resetModules();
     delete process.env.SECURITY_ALERT_WEBHOOK;
+    restoreFetch();
   });
 
   describe("trackRateLimitHit", () => {
@@ -171,7 +171,7 @@ describe("Security Monitoring", () => {
       }
 
       // Webhook should be called when threshold is hit
-      expect(mockFetch).toHaveBeenCalled();
+      expect(fetchSpy).toHaveBeenCalled();
     });
   });
 });

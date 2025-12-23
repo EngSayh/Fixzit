@@ -266,6 +266,7 @@ export async function GET(req: NextRequest) {
         propertyName: property?.name,
       });
     }); // 4. EXPENSES - Agent Commissions (using Mongoose model aggregate)
+    // AUDIT-2025-12-19: Added maxTimeMS for safety
     const agentPayments = await AgentContract.aggregate([
       {
         $match: {
@@ -290,7 +291,7 @@ export async function GET(req: NextRequest) {
           "commissionPayments.type": "COMMISSION",
         },
       },
-    ]);
+    ], { maxTimeMS: 10_000 });
 
     agentPayments.forEach((contract: unknown) => {
       const c = contract as AgentContractResponse;

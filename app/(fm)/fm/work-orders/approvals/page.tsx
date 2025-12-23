@@ -129,10 +129,10 @@ export default function WorkOrderApprovalsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">
+          <button type="button" className="btn-secondary">
             {t("workOrders.approvals.rules", "Approval Rules")}
           </button>
-          <button className="btn-primary">
+          <button type="button" className="btn-primary">
             📋 {t("workOrders.approvals.bulkApprove", "Bulk Approve")}
           </button>
         </div>
@@ -263,13 +263,13 @@ export default function WorkOrderApprovalsPage() {
                 </div>
 
                 <div className="flex gap-2 ms-4">
-                  <button className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success/90 transition-colors">
+                  <button type="button" className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success/90 transition-colors">
                     {t("common.approve", "Approve")}
                   </button>
-                  <button className="px-4 py-2 bg-[hsl(var(--destructive))] text-white rounded-2xl hover:bg-[hsl(var(--destructive)) / 0.9] transition-colors">
+                  <button type="button" className="px-4 py-2 bg-[hsl(var(--destructive))] text-white rounded-2xl hover:bg-[hsl(var(--destructive)) / 0.9] transition-colors">
                     {t("common.reject", "Reject")}
                   </button>
-                  <button className="px-4 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted/80 transition-colors">
+                  <button type="button" className="px-4 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted/80 transition-colors">
                     {t("common.review", "Review")}
                   </button>
                 </div>
@@ -285,7 +285,7 @@ export default function WorkOrderApprovalsPage() {
           <h3 className="text-lg font-semibold">
             {t("workOrders.approvals.recent", "Recent Approvals")}
           </h3>
-          <button className="btn-ghost">
+          <button type="button" className="btn-ghost">
             {t("workOrders.approvals.viewAll", "View All")}
           </button>
         </div>
@@ -364,37 +364,37 @@ export default function WorkOrderApprovalsPage() {
           {t("workOrders.quickActions", "Quick Actions")}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">✅</div>
             <div className="text-sm font-medium">
               {t("workOrders.approvals.bulkApprove", "Bulk Approve")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">📋</div>
             <div className="text-sm font-medium">
               {t("workOrders.approvals.rules", "Approval Rules")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-medium">
               {t("workOrders.reports", "Reports")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">🔄</div>
             <div className="text-sm font-medium">
               {t("workOrders.approvals.workflow", "Workflow")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">⚙️</div>
             <div className="text-sm font-medium">
               {t("workOrders.settings", "Settings")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">📤</div>
             <div className="text-sm font-medium">
               {t("workOrders.export", "Export")}

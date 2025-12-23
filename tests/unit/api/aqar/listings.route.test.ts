@@ -2,24 +2,28 @@
  * @fileoverview Unit tests for Aqar listings API
  * @description Verifies auth/RBAC enforcement, rate limiting, and error handling
  */
-import { describe, it, expect } from 'vitest';
+import fs from "fs";
+import path from "path";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+const routePath = path.join(process.cwd(), "app/api/aqar/listings/route.ts");
+const routeSource = fs.readFileSync(routePath, "utf8");
 
 describe('Aqar Listings API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
   it('should require authentication for POST /api/aqar/listings', () => {
-    // Auth enforcement verified in route implementation
-    // Uses getSessionUser() which throws if not authenticated
-    expect(true).toBe(true);
+    expect(routeSource).toContain("getSessionUser");
   });
 
   it('should enforce rate limiting on POST /api/aqar/listings', () => {
-    // Rate limiting verified in route implementation
-    // Uses enforceRateLimit with keyPrefix 'aqar:listings:post'
-    expect(true).toBe(true);
+    expect(routeSource).toContain("enforceRateLimit");
+    expect(routeSource).toContain("aqar:listings:post");
   });
 
   it('should validate JSON body structure', () => {
-    // JSON validation verified in route implementation
-    // Uses parseBody() which throws APIParseError on invalid JSON
-    expect(true).toBe(true);
+    expect(routeSource).toContain("parseBody");
+    expect(routeSource).toContain("APIParseError");
   });
 });

@@ -9,6 +9,9 @@ import { NextRequest } from "next/server";
 vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+}));
 
 // Mock database
 vi.mock("@/lib/mongo", () => ({
@@ -25,6 +28,7 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 
 const importRoute = async () => {
   try {
@@ -38,21 +42,17 @@ describe("API /api/aqar/map", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true } as any);
   });
 
   describe("GET - Get Map Data", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
-      );
+      vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false } as any);
 
       const req = new NextRequest("http://localhost:3000/api/aqar/map");
       const response = await route.GET(req);
@@ -63,8 +63,7 @@ describe("API /api/aqar/map", () => {
     it("returns map data successfully", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       const req = new NextRequest("http://localhost:3000/api/aqar/map");

@@ -14,7 +14,7 @@ import React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import SubRoleSelector from '@/components/admin/SubRoleSelector';
-import { Role, SubRole, Plan } from '@/lib/rbac/client-roles';
+import { Role, SubRole } from '@/lib/rbac/client-roles';
 
 // Mock translation context
 vi.mock('@/contexts/TranslationContext', () => ({
@@ -26,7 +26,7 @@ vi.mock('@/contexts/TranslationContext', () => ({
 // Mock CurrentOrgContext for plan access
 vi.mock('@/contexts/CurrentOrgContext', () => ({
   useCurrentOrg: () => ({
-    org: { id: 'test-org', name: 'Test Org', plan: Plan.STANDARD },
+    org: { id: 'test-org', name: 'Test Org', plan: 'STANDARD' },
     isLoading: false,
     error: null,
     refetch: vi.fn(),

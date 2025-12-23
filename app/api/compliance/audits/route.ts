@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
 
   setTenantContext({ orgId: user.orgId });
   try {
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = { orgId: user.orgId };
 
     if (statusFilter && AuditStatuses.includes(statusFilter as AuditStatus)) {
       filter.status = statusFilter;
@@ -158,11 +158,11 @@ export async function GET(req: NextRequest) {
           .sort({ startDate: -1 })
           .limit(limit)
           .lean(),
-        ComplianceAudit.countDocuments(),
-        ComplianceAudit.countDocuments({ status: "IN_PROGRESS" }),
-        ComplianceAudit.countDocuments({ status: "PLANNED" }),
-        ComplianceAudit.countDocuments({ status: "COMPLETED" }),
-        ComplianceAudit.countDocuments({ riskLevel: "HIGH" }),
+        ComplianceAudit.countDocuments({ orgId: user.orgId }),
+        ComplianceAudit.countDocuments({ orgId: user.orgId, status: "IN_PROGRESS" }),
+        ComplianceAudit.countDocuments({ orgId: user.orgId, status: "PLANNED" }),
+        ComplianceAudit.countDocuments({ orgId: user.orgId, status: "COMPLETED" }),
+        ComplianceAudit.countDocuments({ orgId: user.orgId, riskLevel: "HIGH" }),
       ]);
 
     return NextResponse.json({
@@ -231,6 +231,7 @@ export async function POST(req: NextRequest) {
   try {
     const audit = await ComplianceAudit.create({
       ...payload,
+      orgId: user.orgId,
       checklist: payload.checklist ?? [],
       tags: payload.tags ?? [],
       supportingTeams: payload.supportingTeams ?? [],

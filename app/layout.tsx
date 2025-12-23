@@ -8,11 +8,15 @@ import {
   Bricolage_Grotesque, 
   Space_Mono, 
   IBM_Plex_Sans_Arabic,
+  Alexandria,
   DM_Sans,
+  Tajawal
 } from 'next/font/google';
 import CustomCursor from '@/components/CustomCursor';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { getServerI18n } from '@/lib/i18n/server';
+import { Config } from '@/lib/config/constants';
+import { OfflineIndicator } from '@/components/common/OfflineIndicator';
 
 export const metadata: Metadata = {
   title: 'Fixzit Enterprise Platform',
@@ -51,8 +55,7 @@ const dmSans = DM_Sans({
   weight: ['300', '400', '500', '600', '700'],
 });
 
-// IBM Plex Sans Arabic - geometric Arabic font (similar to DIN Next LT Arabic)
-// Used for both English (weight 400) and Arabic (weight 500)
+// DGA Standard: IBM Plex Sans Arabic - Primary body font for Arabic
 const ibmPlexArabic = IBM_Plex_Sans_Arabic({
   subsets: ['arabic', 'latin'],
   weight: ['300', '400', '500', '600', '700'],
@@ -60,16 +63,32 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({
   variable: '--font-ibm-plex-arabic',
 });
 
+// DGA Standard: Alexandria - Geometric heading font
+const alexandria = Alexandria({
+  subsets: ['arabic', 'latin'],
+  weight: ['400', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-alexandria',
+});
+
+// Tajawal - Business.sa preferred Arabic font (matches DIN Next LT Arabic style)
+const tajawal = Tajawal({
+  subsets: ['arabic', 'latin'],
+  weight: ['300', '400', '500', '700', '800'],
+  display: 'swap',
+  variable: '--font-tajawal',
+});
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale, isRTL, t } = await getServerI18n();
   const dir = isRTL ? 'rtl' : 'ltr';
-  // BUG-001 FIX: Standardized flag naming (was PLAYWRIGHT_TESTS, now NEXT_PUBLIC_PLAYWRIGHT_TESTS)
-  const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === 'true';
+  // BUG-001 FIX: Standardized via Config.client.isPlaywrightTest
+  const isPlaywright = Config.client.isPlaywrightTest;
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning data-locale={locale}>
       <body
-        className={`min-h-screen bg-background text-foreground antialiased ${bricolage.variable} ${dmSans.variable} ${spaceMono.variable} ${ibmPlexArabic.variable}`}
+        className={`min-h-screen bg-background text-foreground antialiased font-sans ${bricolage.variable} ${dmSans.variable} ${spaceMono.variable} ${ibmPlexArabic.variable} ${alexandria.variable} ${tajawal.variable}`}
         style={{ direction: dir }}
       >
         {/* E2E-visible fallback controls to keep language/currency selectors discoverable */}
@@ -127,6 +146,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
         <ConditionalProviders initialLocale={locale}>
           <TooltipProvider delayDuration={200}>
+            <OfflineIndicator />
             {children}
             {/* Custom cursor with trailing particles */}
             <CustomCursor />

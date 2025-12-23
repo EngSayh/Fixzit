@@ -5,6 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mock dependencies
 const mockSubmitKYC = vi.fn();
@@ -61,6 +62,7 @@ describe("/api/souq/seller-central/kyc/submit", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     currentSession = null;
     mockSubmitKYC.mockResolvedValue({ success: true });
 

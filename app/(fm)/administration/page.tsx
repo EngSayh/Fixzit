@@ -603,7 +603,7 @@ const AdminModule: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-3">
-          <button
+          <button type="button"
             onClick={() => {
               /* Export functionality */
             }}
@@ -615,7 +615,7 @@ const AdminModule: React.FC = () => {
               {t("admin.common.export", "Export")}
             </span>
           </button>
-          <button
+          <button type="button"
             onClick={handleAddUser}
             className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark flex items-center gap-2"
             aria-label={t("admin.users.actions.addAria", "Add new user")}
@@ -642,7 +642,7 @@ const AdminModule: React.FC = () => {
             aria-label={t("admin.users.searchAria", "Search users")}
           />
         </div>
-        <button
+        <button type="button"
           className="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2"
           aria-label={t("admin.users.actions.filterAria", "Filter users")}
         >
@@ -726,7 +726,7 @@ const AdminModule: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-end">
                       <div className="flex items-center justify-end gap-2">
-                        <button
+                        <button type="button"
                           onClick={() => handleEditUser(user)}
                           className="p-2 hover:bg-gray-100 rounded"
                           title={t("admin.users.actions.edit", "Edit user")}
@@ -734,7 +734,7 @@ const AdminModule: React.FC = () => {
                         >
                           <Edit size={18} />
                         </button>
-                        <button
+                        <button type="button"
                           onClick={() =>
                             handleToggleUserStatus(user.id, user.status)
                           }
@@ -768,7 +768,7 @@ const AdminModule: React.FC = () => {
                             <Unlock size={18} />
                           )}
                         </button>
-                        <button
+                        <button type="button"
                           onClick={() => handleDeleteUser(user.id)}
                           className="p-2 hover:bg-gray-100 rounded text-destructive"
                           title={t("admin.users.actions.delete", "Delete user")}
@@ -798,7 +798,7 @@ const AdminModule: React.FC = () => {
             {t("admin.roles.subtitle", "Define roles and permissions")}
           </p>
         </div>
-        <button
+        <button type="button"
           className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark flex items-center gap-2"
           aria-label={t("admin.roles.actions.addAria", "Add new role")}
         >
@@ -833,7 +833,7 @@ const AdminModule: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <button
+                <button type="button"
                   className="p-1 hover:bg-gray-100 rounded"
                   aria-label={t("admin.roles.actions.more", "More options")}
                 >
@@ -986,7 +986,7 @@ const AdminModule: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 text-end">
                     {log.details && (
-                      <button
+                      <button type="button"
                         className="p-2 hover:bg-gray-100 rounded"
                         title={t(
                           "admin.audit.actions.viewDetails",
@@ -1027,7 +1027,7 @@ const AdminModule: React.FC = () => {
           </div>
           {hasChanges && (
             <div className="flex gap-3">
-              <button
+              <button type="button"
                 onClick={() => setEditedSettings(new Map())}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
                 aria-label={t(
@@ -1038,7 +1038,7 @@ const AdminModule: React.FC = () => {
                 <X size={20} />
                 {t("admin.settings.buttons.cancel", "Cancel")}
               </button>
-              <button
+              <button type="button"
                 onClick={handleSaveSettings}
                 className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark flex items-center gap-2"
                 aria-label={t(
@@ -1232,7 +1232,7 @@ const AdminModule: React.FC = () => {
           {/* Tabs */}
           <div className="flex gap-1 mt-6 border-b overflow-x-auto">
             {tabs.map((tab) => (
-              <button
+              <button type="button"
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition-colors whitespace-nowrap ${

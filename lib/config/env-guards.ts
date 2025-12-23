@@ -19,8 +19,7 @@
  * Security Note: This module never logs env var values, only validation results.
  */
 
-/* eslint-disable no-console */
-// Justification: This is a CLI/diagnostic tool where console output is the intended interface
+import { logger } from "@/lib/logger";
 
 type Environment = 'production' | 'preview' | 'development' | 'test';
 
@@ -207,22 +206,34 @@ export function validateProductionEnv(options: { throwOnError?: boolean } = {}):
 
   // Log results (non-blocking)
   if (!passed) {
-    console.error('🚨 Environment Validation Failed:');
+    logger.error("Environment validation failed", undefined, {
+      environment: env,
+      errorCount: errors.length,
+    });
     errors.forEach(err => {
-      console.error(`   [${err.code}] ${err.message}`);
-      console.error(`   → Fix: ${err.remediation}`);
+      logger.error(
+        "Environment validation error",
+        undefined,
+        { code: err.code, message: err.message, remediation: err.remediation },
+      );
     });
   }
 
   if (warnings.length > 0) {
-    console.warn('⚠️  Environment Warnings:');
+    logger.warn("Environment warnings detected", {
+      environment: env,
+      warningCount: warnings.length,
+    });
     warnings.forEach(warn => {
-      console.warn(`   [${warn.code}] ${warn.message}`);
+      logger.warn("Environment validation warning", {
+        code: warn.code,
+        message: warn.message,
+      });
     });
   }
 
   if (passed && errors.length === 0 && warnings.length === 0) {
-    console.log(`✅ Environment validation passed (${env})`);
+    logger.info("Environment validation passed", { environment: env });
   }
 
   // Optionally throw on errors (for startup enforcement)
@@ -246,19 +257,23 @@ export function validateProductionEnvCli(): number {
     const result = validateProductionEnv({ throwOnError: false });
 
     if (!result.passed) {
-      console.error(`\n❌ Environment validation failed with ${result.errors.length} error(s)\n`);
+      logger.error("Environment validation failed", undefined, {
+        errorCount: result.errors.length,
+      });
       return 1;
     }
 
     if (result.warnings.length > 0) {
-      console.warn(`\n⚠️  Environment validation passed with ${result.warnings.length} warning(s)\n`);
+      logger.warn("Environment validation passed with warnings", {
+        warningCount: result.warnings.length,
+      });
       return 0; // Warnings don't fail CI
     }
 
-    console.log('\n✅ Environment validation passed\n');
+    logger.info("Environment validation passed");
     return 0;
   } catch (error) {
-    console.error('❌ Unexpected error during validation:', error);
+    logger.error("Unexpected error during validation", error);
     return 1;
   }
 }

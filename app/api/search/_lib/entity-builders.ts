@@ -32,7 +32,7 @@ export const TEXT_INDEXED_ENTITIES = new Set<ExtendedSearchEntity>([
 // Entity -> collection name map for text search; keeps coverage and testability aligned with COLLECTIONS.
 export const ENTITY_COLLECTION_MAP: Record<string, string | undefined> = {
   workOrders: COLLECTIONS.WORK_ORDERS,
-  work_orders: COLLECTIONS.WORK_ORDERS, // legacy alias for API backward compatibility
+  [WORK_ORDERS_ENTITY_LEGACY]: COLLECTIONS.WORK_ORDERS, // legacy alias for API backward compatibility
   properties: COLLECTIONS.PROPERTIES,
   units: COLLECTIONS.UNITS,
   tenants: COLLECTIONS.TENANTS,

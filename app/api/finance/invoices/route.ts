@@ -22,6 +22,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import {
   zodValidationError,
   rateLimitError,
@@ -142,7 +143,53 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q") || undefined;
     const status = searchParams.get("status") || undefined;
-    const data = await svc.list(user.orgId, q, status);
+    const amountMin = Number.parseFloat(searchParams.get("amountMin") || "");
+    const amountMax = Number.parseFloat(searchParams.get("amountMax") || "");
+    const issueFrom = searchParams.get("issueFrom");
+    const issueTo = searchParams.get("issueTo");
+    const dueFrom = searchParams.get("dueFrom");
+    const dueTo = searchParams.get("dueTo");
+    const dateRange = searchParams.get("dateRange");
+
+    let issueFromDate: Date | undefined;
+    let issueToDate: Date | undefined;
+    let dueFromDate: Date | undefined;
+    let dueToDate: Date | undefined;
+
+    const now = new Date();
+    if (dateRange === "month") {
+      issueFromDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      issueToDate = now;
+    }
+
+    if (issueFrom) {
+      const parsed = new Date(issueFrom);
+      if (!Number.isNaN(parsed.getTime())) issueFromDate = parsed;
+    }
+    if (issueTo) {
+      const parsed = new Date(issueTo);
+      if (!Number.isNaN(parsed.getTime())) issueToDate = parsed;
+    }
+    if (dueFrom) {
+      const parsed = new Date(dueFrom);
+      if (!Number.isNaN(parsed.getTime())) dueFromDate = parsed;
+    }
+    if (dueTo) {
+      const parsed = new Date(dueTo);
+      if (!Number.isNaN(parsed.getTime())) dueToDate = parsed;
+    }
+
+    const data = await svc.list({
+      orgId: user.orgId,
+      q,
+      status,
+      amountMin: Number.isFinite(amountMin) ? amountMin : undefined,
+      amountMax: Number.isFinite(amountMax) ? amountMax : undefined,
+      issueFrom: issueFromDate,
+      issueTo: issueToDate,
+      dueFrom: dueFromDate,
+      dueTo: dueToDate,
+    });
     return createSecureResponse({ data }, 200, req);
   } catch (error: unknown) {
     const correlationId = randomUUID();
@@ -206,7 +253,13 @@ export async function POST(req: NextRequest) {
     if (!rl.allowed)
       return createSecureResponse({ error: "Rate limit exceeded" }, 429, req);
 
-    const body = invoiceCreateSchema.parse(await req.json());
+    const { data: rawBody, error: parseError } = await parseBodySafe(req, {
+      logPrefix: "[POST /api/finance/invoices]",
+    });
+    if (parseError) {
+      return createSecureResponse({ error: parseError }, 400, req);
+    }
+    const body = invoiceCreateSchema.parse(rawBody);
 
     const data = await svc.create(
       { ...body, orgId: user.orgId },

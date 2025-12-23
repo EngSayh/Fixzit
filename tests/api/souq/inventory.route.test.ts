@@ -29,7 +29,7 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 // Mock inventory service
 vi.mock("@/services/souq/inventory-service", () => ({
   inventoryService: {
-    getInventory: vi.fn(),
+    getSellerInventory: vi.fn().mockResolvedValue([]),
     adjustStock: vi.fn(),
     reserveStock: vi.fn(),
     releaseReservation: vi.fn(),
@@ -67,11 +67,17 @@ describe("API /api/souq/inventory", () => {
     vi.clearAllMocks();
     // Reset rate limit mock to allow requests through
     vi.mocked(enforceRateLimit).mockReturnValue(null);
+    // Reset default sessionUser for auth tests
+    sessionUser = {
+      id: "test-user-id",
+      orgId: "test-org-id",
+      role: "VENDOR",
+    };
   });
 
   describe("GET - List Inventory", () => {
     it("returns 429 when rate limit exceeded", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(
+      vi.mocked(enforceRateLimit).mockReturnValueOnce(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,
         }) as never
@@ -111,7 +117,7 @@ describe("API /api/souq/inventory", () => {
       const req = new NextRequest("http://localhost:3000/api/souq/inventory");
       const response = await GET(req);
 
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
 
     it("supports pagination parameters", async () => {
@@ -122,7 +128,7 @@ describe("API /api/souq/inventory", () => {
       );
       const response = await GET(req);
 
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
 
     it("supports status filter", async () => {
@@ -133,7 +139,7 @@ describe("API /api/souq/inventory", () => {
       );
       const response = await GET(req);
 
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
 
     it("supports lowStockOnly filter", async () => {
@@ -144,7 +150,7 @@ describe("API /api/souq/inventory", () => {
       );
       const response = await GET(req);
 
-      expect([200, 500]).toContain(response.status);
+      expect(response.status).toBe(200);
     });
   });
 });

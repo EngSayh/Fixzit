@@ -375,6 +375,7 @@ export async function PUT(request: NextRequest) {
       ...merged,
       timezone: merged.timezone ?? APP_DEFAULTS.timezone,
       language: merged.language ?? APP_DEFAULTS.language,
+      currency: merged.currency ?? APP_DEFAULTS.currency,
       theme: themeValue,
       notifications: merged.notifications ?? { ...DEFAULT_NOTIFICATIONS }
     };

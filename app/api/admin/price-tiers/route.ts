@@ -155,7 +155,8 @@ export async function POST(req: NextRequest) {
     const isGlobal = isSuperAdmin && isGlobalRequested;
 
     // body: { moduleCode, seatsMin, seatsMax, pricePerSeatMonthly, flatMonthly, currency, region }
-    const mod = await Module.findOne({ code: body.moduleCode });
+    // eslint-disable-next-line local/require-tenant-scope -- Modules are platform-wide, not tenant-scoped
+    const mod = await Module.findOne({ code: body.moduleCode }).lean();
     if (!mod) return createErrorResponse("MODULE_NOT_FOUND", 400, req);
 
     const doc = await PriceTier.findOneAndUpdate(

@@ -59,8 +59,7 @@ describe("API /api/fm/system/roles", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 }) as never);
@@ -74,8 +73,7 @@ describe("API /api/fm/system/roles", () => {
     it("returns roles for authenticated user", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       const req = new NextRequest("http://localhost:3000/api/fm/system/roles");

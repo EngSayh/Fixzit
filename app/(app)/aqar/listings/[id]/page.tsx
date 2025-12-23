@@ -137,7 +137,7 @@ export default function ListingDetailPage({
             fill
             className="object-cover"
           />
-          <button className="absolute top-4 end-4 bg-white/90 rounded-full px-4 py-1 text-sm text-foreground flex items-center gap-2">
+          <button type="button" className="absolute top-4 end-4 bg-white/90 rounded-full px-4 py-1 text-sm text-foreground flex items-center gap-2">
             <Share2 className="w-4 h-4" />
             {t("common.share", "Share")}
           </button>
@@ -183,7 +183,7 @@ export default function ListingDetailPage({
               </span>
             )}
           </div>
-          <button
+          <button type="button"
             onClick={handleGenerateOffline}
             disabled={offlineLoading}
             className="w-full md:w-auto px-4 py-2 rounded-2xl bg-primary text-primary-foreground text-sm"

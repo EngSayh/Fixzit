@@ -2736,7 +2736,7 @@
     "forgotPassword": "Forgot Password?",
     "signUp": "Sign Up",
     "online": "Online",
-    "offline": "Offline",
+    "offlineStatus": "Offline",
     "logout": "Logout",
     "popularPages": "Popular Pages",
     "totals": "Totals",
@@ -2752,6 +2752,10 @@
       "finance": "Finance",
       "hr": "Hr",
       "login": "Login"
+    },
+    "offline": {
+      "backOnline": "You're back online!",
+      "offline": "You're offline. Some features may be unavailable."
     }
   },
   "accessibility": {
@@ -3390,7 +3394,17 @@
         "title": "Preventive Maintenance"
       },
       "sla": {
-        "title": "SLA Monitoring"
+        "title": "SLA Monitoring",
+        "onTime": "On Time",
+        "atRisk": "At Risk",
+        "breached": "Breached",
+        "paused": "Paused",
+        "notSet": "Not Set",
+        "overdue": "Overdue",
+        "timeRemaining": "{hours}h {minutes}m",
+        "timeRemainingMinutes": "{minutes}m",
+        "overdueTime": "Overdue {hours}h {minutes}m",
+        "overdueMinutes": "Overdue {minutes}m"
       }
     },
     "assets": {
@@ -4717,41 +4731,11 @@
       "balance": "Balance"
     }
   },
-  "Loading": {
-    "": {
-      "": {
-        "": ""
-      }
-    }
-  },
-  "Optional payment notes": {
-    "": {
-      "": {
-        "": ""
-      }
-    }
-  },
-  "Loading invoices": {
-    "": {
-      "": {
-        "": ""
-      }
-    }
-  },
-  "Creating": {
-    "": {
-      "": {
-        "": ""
-      }
-    }
-  },
-  "Loading account activity": {
-    "": {
-      "": {
-        "": ""
-      }
-    }
-  },
+  "Loading": "Loading...",
+  "Optional payment notes": "Optional payment notes...",
+  "Loading invoices": "Loading invoices...",
+  "Creating": "Creating...",
+  "Loading account activity": "Loading account activity...",
   "auto": {
     "fm": {
       "hr": {

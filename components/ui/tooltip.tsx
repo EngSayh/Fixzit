@@ -38,7 +38,7 @@ TooltipContent.displayName = TooltipPrimitive.Content.displayName;
  * @example
  * ```tsx
  * <SimpleTooltip content="Click to save">
- *   <button>Save</button>
+ *   <button type="button">Save</button>
  * </SimpleTooltip>
  * ```
  */

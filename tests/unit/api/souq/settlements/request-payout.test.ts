@@ -5,6 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mock MongoDB connection and collections
 const mockDb = vi.hoisted(() => ({
@@ -90,6 +91,7 @@ describe("/api/souq/settlements/request-payout", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     currentSession = null;
     mockSettlementsFindOne.mockResolvedValue(null);
     mockPayoutsFindOne.mockResolvedValue(null);

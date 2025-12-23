@@ -108,7 +108,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
             <h3 className="text-sm font-semibold text-primary-dark">
               {auto("Active Filters", "activeFiltersHeading")}
             </h3>
-            <button
+            <button type="button"
               onClick={clearAllFilters}
               className="text-xs text-primary hover:text-primary-dark font-medium"
             >
@@ -165,7 +165,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
         <div className="space-y-2">
           {facets?.categories &&
             Object.entries(facets.categories).map(([category, count]) => (
-              <button
+              <button type="button"
                 key={category}
                 onClick={() =>
                   applyFilter(
@@ -206,7 +206,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
                 currentMinPrice === min && currentMaxPrice === max;
 
               return (
-                <button
+                <button type="button"
                   key={range}
                   onClick={() => {
                     if (isActive) {
@@ -245,7 +245,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
       >
         <div className="space-y-2">
           {[4, 3, 2, 1].map((rating) => (
-            <button
+            <button type="button"
               key={rating}
               onClick={() =>
                 applyFilter(
@@ -325,7 +325,7 @@ function FilterSection({
 }) {
   return (
     <div className="bg-white rounded-lg border border-gray-200">
-      <button
+      <button type="button"
         onClick={onToggle}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
       >
@@ -354,7 +354,7 @@ function FilterChip({
   return (
     <span className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-primary/20 rounded-full text-sm text-primary-dark">
       {label}
-      <button
+      <button type="button"
         onClick={onRemove}
         className="hover:bg-primary/10 rounded-full p-0.5"
         aria-label={removeLabel}

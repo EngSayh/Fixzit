@@ -158,7 +158,7 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
   };
 
   return (
-    <button
+    <button type="button"
       id={triggerId}
       role="tab"
       aria-selected={isActive}

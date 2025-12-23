@@ -6,6 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mock dependencies
 const mockGetDatabase = vi.fn();
@@ -90,6 +91,7 @@ describe("/api/fm/finance/expenses", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     mockPermissionResult = null;
     mockPermissionUser = {
       id: USER_ID,

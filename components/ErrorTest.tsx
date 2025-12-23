@@ -86,7 +86,7 @@ export default function ErrorTest() {
 
   if (!showTest) {
     return (
-      <button
+      <button type="button"
         onClick={() => setShowTest(true)}
         className="fixed bottom-20 end-6 bg-destructive text-destructive-foreground px-4 py-2 rounded-2xl shadow-lg hover:bg-destructive/90 z-50"
       >
@@ -99,7 +99,7 @@ export default function ErrorTest() {
     <div className="fixed bottom-20 end-6 bg-card border border-border rounded-2xl shadow-lg p-4 z-50 max-w-sm">
       <div className="flex justify-between items-center mb-3">
         <h3 className="font-semibold text-foreground">🧪 Error Testing</h3>
-        <button
+        <button type="button"
           onClick={() => setShowTest(false)}
           className="text-muted-foreground hover:text-muted-foreground"
         >
@@ -108,28 +108,28 @@ export default function ErrorTest() {
       </div>
 
       <div className="space-y-2">
-        <button
+        <button type="button"
           onClick={triggerError}
           className="w-full bg-destructive text-destructive-foreground px-3 py-2 rounded text-sm hover:bg-destructive/90"
         >
           🔴 Runtime Error
         </button>
 
-        <button
+        <button type="button"
           onClick={triggerAsyncError}
           className="w-full bg-warning text-warning-foreground px-3 py-2 rounded text-sm hover:bg-warning/90"
         >
           🟠 Async Error
         </button>
 
-        <button
+        <button type="button"
           onClick={triggerJSONError}
           className="w-full bg-secondary text-secondary-foreground px-3 py-2 rounded text-sm hover:bg-secondary/90"
         >
           🟡 JSON Parse Error
         </button>
 
-        <button
+        <button type="button"
           onClick={triggerNetworkError}
           className="w-full bg-primary text-primary-foreground px-3 py-2 rounded text-sm hover:bg-primary/90"
         >

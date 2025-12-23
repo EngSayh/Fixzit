@@ -567,7 +567,7 @@ Continue to learn about tenant relations!
               </h3>
               <div className="space-y-2">
                 {localizedTutorial.steps.map((step, index) => (
-                  <button
+                  <button type="button"
                     key={step.id}
                     onClick={() => setCurrentStep(index)}
                     className={`w-full text-start p-3 rounded-2xl border transition-colors ${
@@ -648,7 +648,7 @@ Continue to learn about tenant relations!
 
               {/* Navigation */}
               <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
-                <button
+                <button type="button"
                   onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
                   disabled={currentStep === 0}
                   className="flex items-center gap-2 px-4 py-2 text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
@@ -656,7 +656,7 @@ Continue to learn about tenant relations!
                   ← {auto("Previous", "actions.previous")}
                 </button>
 
-                <button
+                <button type="button"
                   onClick={() => markStepComplete(currentStep)}
                   className="flex items-center gap-2 px-4 py-2 bg-success text-white rounded-2xl hover:bg-success transition-colors"
                 >
@@ -664,7 +664,7 @@ Continue to learn about tenant relations!
                   {auto("Mark Complete", "actions.markComplete")}
                 </button>
 
-                <button
+                <button type="button"
                   onClick={() =>
                     setCurrentStep(
                       Math.min(

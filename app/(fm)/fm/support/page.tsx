@@ -46,7 +46,7 @@ export default function SupportPage() {
               </p>
             </Link>
 
-            <button
+            <button type="button"
               className="w-full text-start border border-border rounded p-4 hover:bg-muted"
               onClick={() => {
                 const footer = document.querySelector("footer");

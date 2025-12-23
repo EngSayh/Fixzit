@@ -600,7 +600,7 @@ export default function NotificationsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button
+          <button type="button"
             className="btn-secondary"
             onClick={markAllAsRead}
             disabled={unreadCount === 0}
@@ -609,7 +609,7 @@ export default function NotificationsPage() {
             {t("notifications.actions.markAllRead", "Mark All Read")} (
             {unreadCount})
           </button>
-          <button className="btn-primary" onClick={handleSettings}>
+          <button type="button" className="btn-primary" onClick={handleSettings}>
             <Filter size={16} className="me-2" />
             {t("notifications.actions.openSettings", "Settings")}
           </button>
@@ -730,7 +730,7 @@ export default function NotificationsPage() {
         </div>
 
         <div className="flex border-b border-border mt-4">
-          <button
+          <button type="button"
             onClick={() => setSelectedTab("all")}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
               selectedTab === "all"
@@ -740,7 +740,7 @@ export default function NotificationsPage() {
           >
             {t("notifications.tabs.all", "All")} ({tabCounts.all})
           </button>
-          <button
+          <button type="button"
             onClick={() => setSelectedTab("unread")}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
               selectedTab === "unread"
@@ -750,7 +750,7 @@ export default function NotificationsPage() {
           >
             {t("notifications.tabs.unread", "Unread")} ({tabCounts.unread})
           </button>
-          <button
+          <button type="button"
             onClick={() => setSelectedTab("urgent")}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors relative ${
               selectedTab === "urgent"
@@ -852,7 +852,7 @@ export default function NotificationsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {!notif.read && (
-                      <button
+                      <button type="button"
                         onClick={() => markAsRead(String(notif.id || ""))}
                         className="p-1 text-primary hover:text-primary hover:bg-primary/10 rounded"
                         title={t(
@@ -867,7 +867,7 @@ export default function NotificationsPage() {
                         <Check size={16} />
                       </button>
                     )}
-                    <button
+                    <button type="button"
                       className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded"
                       aria-label={t(
                         "notifications.item.moreActions",
@@ -892,7 +892,7 @@ export default function NotificationsPage() {
                 {formatSelectionSummary()}
               </span>
               {selectedNotifications.size === 0 && (
-                <button
+                <button type="button"
                   onClick={handleSelectAll}
                   className="px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded-2xl hover:bg-secondary/90 transition-colors"
                 >
@@ -901,35 +901,35 @@ export default function NotificationsPage() {
               )}
               {selectedNotifications.size > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  <button
+                  <button type="button"
                     onClick={bulkMarkAsRead}
                     className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
                   >
                     {t("notifications.bulk.markRead", "Mark as Read")} (
                     {selectedNotifications.size})
                   </button>
-                  <button
+                  <button type="button"
                     onClick={markAsImportant}
                     className="px-3 py-1 text-sm bg-warning text-white rounded hover:bg-warning transition-colors"
                   >
                     {t("notifications.bulk.markImportant", "Mark Important")} (
                     {selectedNotifications.size})
                   </button>
-                  <button
+                  <button type="button"
                     onClick={exportNotifications}
                     className="px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 transition-colors"
                   >
                     {t("notifications.bulk.export", "Export")} (
                     {selectedNotifications.size})
                   </button>
-                  <button
+                  <button type="button"
                     onClick={archiveNotifications}
                     className="px-3 py-1 text-sm bg-success text-white rounded hover:bg-success transition-colors"
                   >
                     {t("notifications.bulk.archive", "Archive")} (
                     {selectedNotifications.size})
                   </button>
-                  <button
+                  <button type="button"
                     onClick={deleteNotifications}
                     className="px-3 py-1 text-sm bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 transition-colors"
                   >
@@ -948,7 +948,7 @@ export default function NotificationsPage() {
           {t("notifications.quickActions.title", "Quick Actions")}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <button
+          <button type="button"
             onClick={handleEmailSettings}
             className="btn-ghost text-center hover:bg-primary/10 transition-colors"
           >
@@ -957,7 +957,7 @@ export default function NotificationsPage() {
               {t("notifications.quickActions.email", "Email Settings")}
             </div>
           </button>
-          <button
+          <button type="button"
             onClick={handlePushNotifications}
             className="btn-ghost text-center hover:bg-success/10 transition-colors"
           >
@@ -966,7 +966,7 @@ export default function NotificationsPage() {
               {t("notifications.quickActions.push", "Push Notifications")}
             </div>
           </button>
-          <button
+          <button type="button"
             onClick={handleMuteCategories}
             className="btn-ghost text-center hover:bg-accent/10 transition-colors"
           >
@@ -975,7 +975,7 @@ export default function NotificationsPage() {
               {t("notifications.quickActions.mute", "Mute Categories")}
             </div>
           </button>
-          <button
+          <button type="button"
             onClick={handleNotificationReport}
             className="btn-ghost text-center hover:bg-secondary/10 transition-colors"
           >
@@ -984,7 +984,7 @@ export default function NotificationsPage() {
               {t("notifications.quickActions.report", "Notification Report")}
             </div>
           </button>
-          <button
+          <button type="button"
             onClick={handleSettings}
             className="btn-ghost text-center hover:bg-muted transition-colors"
           >
@@ -993,7 +993,7 @@ export default function NotificationsPage() {
               {t("notifications.quickActions.settings", "Settings")}
             </div>
           </button>
-          <button
+          <button type="button"
             onClick={handleClearAll}
             className="btn-ghost text-center hover:bg-destructive/10 transition-colors"
           >

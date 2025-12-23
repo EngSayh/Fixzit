@@ -3,11 +3,6 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm build",
   "outputDirectory": ".next",
-  "build": {
-    "env": {
-      "NODE_OPTIONS": "--max-old-space-size=8192"
-    }
-  },
   "github": {
     "enabled": true,
     "autoAlias": true,

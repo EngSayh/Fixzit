@@ -230,6 +230,7 @@ const UserSchema = new Schema(
         reports: Boolean,
       },
       language: { type: String, default: "ar" },
+      currency: { type: String, default: "SAR" },
       timezone: { type: String, default: "Asia/Riyadh" },
       theme: {
         type: String,

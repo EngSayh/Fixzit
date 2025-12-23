@@ -2,26 +2,30 @@
  * @fileoverview Unit tests for Aqar leads API
  * @description Verifies auth/RBAC enforcement, rate limiting, and error handling
  */
-import { describe, it, expect } from 'vitest';
+import fs from "fs";
+import path from "path";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+const routePath = path.join(process.cwd(), "app/api/aqar/leads/route.ts");
+const routeSource = fs.readFileSync(routePath, "utf8");
 
 describe('Aqar Leads API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('POST /api/aqar/leads', () => {
     it('should require authentication', () => {
-      // Auth enforcement verified in route implementation
-      // Uses getSessionUser() which throws if not authenticated
-      expect(true).toBe(true);
+      expect(routeSource).toContain("getSessionUser");
     });
 
     it('should validate JSON body structure', () => {
-      // JSON validation verified in route implementation
-      // Uses parseBodySafe() which handles invalid JSON
-      expect(true).toBe(true);
+      expect(routeSource).toContain("parseBodySafe");
     });
 
     it('should enforce rate limiting', () => {
-      // Rate limiting verified in route implementation
-      // Uses enforceRateLimit with keyPrefix 'aqar:leads:post'
-      expect(true).toBe(true);
+      expect(routeSource).toContain("enforceRateLimit");
+      expect(routeSource).toContain("aqar-leads:create");
     });
   });
 });

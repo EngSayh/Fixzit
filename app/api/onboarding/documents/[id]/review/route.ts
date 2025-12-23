@@ -84,7 +84,7 @@ export async function PATCH(
       pipeline.push({ $match: { 'case.orgId': user.orgId } });
     }
 
-    const [docWithCase] = await VerificationDocument.aggregate(pipeline);
+    const [docWithCase] = await VerificationDocument.aggregate(pipeline, { maxTimeMS: 5_000 });
     if (!docWithCase) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }

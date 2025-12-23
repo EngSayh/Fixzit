@@ -28,18 +28,22 @@ export function CardGridSkeleton({ count = 6 }: { count?: number }) {
   );
 }
 
+/** Column definition for TableSkeleton - stable reference */
+const TABLE_SKELETON_COLUMNS = [
+  { width: "w-32" }, // Column 1
+  { width: "w-24" }, // Column 2
+  { width: "w-20" }, // Column 3
+  { width: "w-28" }, // Column 4
+] as const;
+
 /**
  * Skeleton loader for table layouts (invoices, tickets, etc.)
  * ✅ FIXED: Rows match header column structure for consistent layout
+ * ✅ OPTIMIZED: Columns memoized for render stability
  */
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
-  // ✅ FIXED: Define columns array for consistent header/row structure
-  const columns = [
-    { width: "w-32" }, // Column 1
-    { width: "w-24" }, // Column 2
-    { width: "w-20" }, // Column 3
-    { width: "w-28" }, // Column 4
-  ];
+  // Use module-level constant for zero-cost memoization
+  const columns = TABLE_SKELETON_COLUMNS;
 
   return (
     <div className="border border-border rounded-2xl overflow-hidden">

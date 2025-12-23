@@ -65,7 +65,7 @@ export default function AIChat({ onClose }: { onClose: () => void }) {
               </p>
             </div>
           </div>
-          <button
+          <button type="button"
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-accent transition-colors"
             aria-label={auto("Close chat", "closeButton")}
@@ -149,7 +149,7 @@ export default function AIChat({ onClose }: { onClose: () => void }) {
               className="flex-1 px-4 py-3 border border-input rounded-lg text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               disabled={isLoading}
             />
-            <button
+            <button type="button"
               onClick={handleSendMessage}
               disabled={!input.trim() || isLoading}
               className="px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"

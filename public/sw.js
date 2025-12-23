@@ -43,6 +43,7 @@ const STATIC_ASSETS = [
   "/landing.html",
   "/index.html",
   "/marketplace",
+  "/fm/offline",
   "/manifest.json",
   "/img/fixzit-logo.png",
   "/assets/logo.svg",
@@ -83,6 +84,7 @@ const CACHE_STRATEGIES = {
   // Pages - Stale while revalidate with Arabic support
   pages: [
     /\/dashboard/,
+    /\/fm/,
     /\/properties/,
     /\/work-orders/,
     /\/finance/,
@@ -372,6 +374,12 @@ async function getOfflineFallback(request) {
 
   // Return appropriate offline page
   if (request.mode === "navigate") {
+    if (url.pathname.startsWith("/fm")) {
+      const offlineShell = await caches.match("/fm/offline");
+      if (offlineShell) {
+        return offlineShell;
+      }
+    }
     const offlinePage = shouldShowArabic
       ? getArabicOfflinePage()
       : getBilingualOfflinePage();

@@ -160,6 +160,7 @@ export async function POST(req: NextRequest) {
       },
       metadata: {
         invoiceId: invoice._id.toString(),
+        organizationId: user.orgId,
         tenantId: user.orgId,
       },
     });

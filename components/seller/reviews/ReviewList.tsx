@@ -189,7 +189,7 @@ export function ReviewList({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
-          <button
+          <button type="button"
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1 || loading}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
@@ -201,7 +201,7 @@ export function ReviewList({
               .replace("{{page}}", String(page))
               .replace("{{total}}", String(totalPages))}
           </span>
-          <button
+          <button type="button"
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages || loading}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"

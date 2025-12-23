@@ -115,15 +115,19 @@ export async function GET(
 ) {
   try {
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return createSecureResponse({ error: "Unauthorized", message: "Missing orgId in session" }, 401, req);
+    }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
     await connectToDatabase();
 
+    // PERF-002: Read-only query optimization
     const tenant = await Tenant.findOne({
       _id: params.id,
-      tenantId: user.tenantId,
+      orgId: user.orgId,
     }).lean();
 
     if (!tenant) {
@@ -142,12 +146,19 @@ export async function PATCH(
 ) {
   try {
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return createSecureResponse({ error: "Unauthorized", message: "Missing orgId in session" }, 401, req);
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     await connectToDatabase();
 
     const data = updateTenantSchema.parse(await req.json());
 
     const tenant = await Tenant.findOneAndUpdate(
-      { _id: params.id, tenantId: user.tenantId },
+      { _id: params.id, orgId: user.orgId },
       { $set: { ...data, updatedBy: user.id } },
       { new: true },
     );
@@ -168,6 +179,9 @@ export async function DELETE(
 ) {
   try {
     const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return createSecureResponse({ error: "Unauthorized", message: "Missing orgId in session" }, 401, req);
+    }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
@@ -175,7 +189,7 @@ export async function DELETE(
     await connectToDatabase();
 
     const tenant = await Tenant.findOneAndUpdate(
-      { _id: params.id, tenantId: user.tenantId },
+      { _id: params.id, orgId: user.orgId },
       { $set: { status: "INACTIVE", updatedBy: user.id } },
       { new: true },
     );

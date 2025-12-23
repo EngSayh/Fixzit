@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
         ...(orgUserFilter ? [orgUserFilter] : []),
       ],
     };
-    const claims = await SouqClaim.find(claimQuery);
+    const claims = await SouqClaim.find(claimQuery).lean();
 
     if (claims.length === 0) {
       return NextResponse.json(

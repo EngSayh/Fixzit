@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Mocks
 vi.mock("@/auth", () => ({
@@ -34,6 +35,8 @@ describe("GET /api/counters", () => {
 
   beforeEach(async () => {
     vi.resetAllMocks();
+
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     vi.resetModules();
     process.env.ALLOW_OFFLINE_MONGODB = "false";
     ({ auth } = await import("@/auth"));

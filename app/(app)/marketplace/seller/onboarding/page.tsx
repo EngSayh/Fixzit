@@ -724,7 +724,7 @@ export default function SellerOnboarding() {
 
             {/* Navigation Buttons */}
             <div className="flex justify-between mt-8">
-              <button
+              <button type="button"
                 onClick={handlePrevious}
                 disabled={step === 1 || submitting}
                 className="px-6 py-2 border border-border rounded-lg hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
@@ -732,7 +732,7 @@ export default function SellerOnboarding() {
                 {t("marketplace.sellerOnboarding.buttons.previous", "Previous")}
               </button>
               {step < 4 ? (
-                <button
+                <button type="button"
                   onClick={handleNext}
                   disabled={submitting}
                   className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -740,7 +740,7 @@ export default function SellerOnboarding() {
                   {t("marketplace.sellerOnboarding.buttons.next", "Next")}
                 </button>
               ) : (
-                <button
+                <button type="button"
                   onClick={handleSubmit}
                   disabled={submitting}
                   className="px-6 py-2 bg-success text-white rounded-lg hover:bg-success-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"

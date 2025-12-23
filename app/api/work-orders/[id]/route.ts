@@ -208,7 +208,11 @@ export async function PATCH(
 
   // Recalculate SLA on priority change
   if (updates.priority) {
-    const { slaMinutes, dueAt } = resolveSlaTarget(updates.priority as WorkOrderPriority);
+    const { slaMinutes, dueAt } = resolveSlaTarget(
+      updates.priority as WorkOrderPriority,
+      new Date(),
+      true // P2: Enable business-hours-aware SLA calculation
+    );
     updatePayload.slaMinutes = slaMinutes;
     if (!updates.dueAt) {
       updatePayload.dueAt = dueAt;

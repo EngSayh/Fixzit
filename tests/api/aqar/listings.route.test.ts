@@ -83,6 +83,7 @@ const importRoute = async () => {
 describe("API /api/aqar/listings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
     // Reset rate limit mock to allow requests through
     vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
@@ -91,8 +92,7 @@ describe("API /api/aqar/listings", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -114,8 +114,7 @@ describe("API /api/aqar/listings", () => {
     it("returns 401 when user is not authenticated", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue(null as never);
@@ -134,8 +133,7 @@ describe("API /api/aqar/listings", () => {
     it("returns 400 when body is invalid JSON", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       const { parseBody, APIParseError } = await import("@/lib/api/parse-body");

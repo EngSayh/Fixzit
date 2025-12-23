@@ -22,15 +22,16 @@ import dynamic from 'next/dynamic';
 import { logger } from '@/lib/logger';
 import { extractFieldErrors, focusField } from '@/lib/errors/field-errors';
 import { FormField } from '@/components/ui/form-field';
+import { Config } from '@/lib/config/constants';
 
 // Check if OTP is required (matches auth.config.ts logic)
-const REQUIRE_SMS_OTP = process.env.NEXT_PUBLIC_REQUIRE_SMS_OTP === 'true';
+const REQUIRE_SMS_OTP = Config.client.requireSmsOtp;
 // BUG-001 FIX: NEXTAUTH_SKIP_CSRF_CHECK is server-only - removed from client bundle
 // CSRF validation happens server-side in auth.config.ts
 
 // Client-side feature flags: do NOT read secrets here
-const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === 'true';
-const APPLE_ENABLED = process.env.NEXT_PUBLIC_APPLE_ENABLED === 'true';
+const GOOGLE_ENABLED = Config.client.googleEnabled;
+const APPLE_ENABLED = Config.client.appleEnabled;
 
 const GoogleSignInButton = dynamic(
   () => import('@/components/auth/GoogleSignInButton'),
@@ -123,8 +124,8 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const { t, isRTL, setLanguage, setLocale } = useTranslation();
   const { status } = useSession();
-  // BUG-001 FIX: Use NEXT_PUBLIC_ prefix consistently to prevent hydration mismatch
-  const isE2E = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === 'true';
+  // BUG-001 FIX: Use centralized Config to prevent hydration mismatch
+  const isE2E = Config.client.isPlaywrightTest;
 
   const identifierLabel = isE2E ? 'Email or Employee Number' : t('login.identifierLabel', 'Email or Employee Number');
 
@@ -144,7 +145,7 @@ export default function LoginPage() {
 
   const redirectTarget = searchParams?.get('next') || searchParams?.get('callbackUrl') || null;
   // Only show demo credentials in development, never in production
-  const showDemoCredentials = process.env.NODE_ENV === 'development';
+  const showDemoCredentials = Config.env.isDevelopment;
   const submitDisabled =
     loading ||
     (phoneMode

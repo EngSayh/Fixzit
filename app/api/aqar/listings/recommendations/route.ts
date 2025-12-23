@@ -92,6 +92,7 @@ export async function GET(request: NextRequest) {
       : undefined;
     if (!favorites && user) {
       const favoriteModel = AqarFavorite as unknown as Model<IFavorite>;
+      // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by userId (user's own favorites)
       const ids = await favoriteModel
         .find({
           userId: new Types.ObjectId(user.id),

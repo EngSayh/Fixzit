@@ -73,7 +73,7 @@ const statusStyles: Record<string, string> = {
   RESERVED: "bg-warning/10 text-warning border border-warning/20",
 };
 
-type PropertyFilters = {
+export type PropertyFilters = {
   type?: string;
   listingType?: string;
   city?: string;
@@ -86,7 +86,7 @@ type PropertyFilters = {
   bathroomsMax?: number;
 };
 
-const PROPERTY_FILTER_SCHEMA: FilterSchema<PropertyFilters>[] = [
+export const PROPERTY_FILTER_SCHEMA: FilterSchema<PropertyFilters>[] = [
   { key: "type", param: "type", label: (f) => `Type: ${f.type}` },
   { key: "listingType", param: "listingType", label: (f) => `Listing: ${f.listingType}` },
   { key: "city", param: "city", label: (f) => `City: ${f.city}` },

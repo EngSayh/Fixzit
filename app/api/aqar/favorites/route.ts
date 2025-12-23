@@ -266,7 +266,7 @@ export async function POST(request: NextRequest) {
       orgId: tenantOrgId,
       targetId: new mongoose.Types.ObjectId(targetId),
       targetType,
-    });
+    }).lean();
 
     if (existing) {
       return NextResponse.json(

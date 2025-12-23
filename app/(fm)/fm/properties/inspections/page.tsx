@@ -17,6 +17,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useProperties } from "@/hooks/fm/useProperties";
 import { toast } from "sonner";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
+import { Config } from "@/lib/config/constants";
 
 export default function PropertyInspectionWorkspace() {
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
@@ -24,11 +25,9 @@ export default function PropertyInspectionWorkspace() {
   });
   const auto = useAutoTranslator("fm.properties.inspections");
   const { properties, isLoading, error, refresh } = useProperties("?limit=50");
-  const vendorAssignmentsApiEnabled =
-    process.env.NEXT_PUBLIC_VENDOR_ASSIGNMENTS_API_ENABLED === "true";
+  const vendorAssignmentsApiEnabled = Config.client.vendorAssignmentsApiEnabled;
   const vendorAssignmentsMocksEnabled =
-    process.env.NEXT_PUBLIC_VENDOR_ASSIGNMENTS_API_MOCKS === "true" ||
-    process.env.NODE_ENV !== "production";
+    Config.client.vendorAssignmentsMocksEnabled || !Config.env.isProduction;
   const shouldQueryVendorAssignments =
     vendorAssignmentsApiEnabled || vendorAssignmentsMocksEnabled;
 

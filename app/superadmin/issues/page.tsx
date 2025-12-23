@@ -629,7 +629,7 @@ export default function SuperadminIssuesPage() {
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground">{t("superadmin.issues.stats.total")}</p>
                 <div className="mt-2 h-10">
-                  <Sparkline data={[45, 52, 48, 61, 58, 55, stats?.total || 0]} color="#0061A8" />
+                  <Sparkline data={[45, 52, 48, 61, 58, 55, stats?.total || 0]} color="var(--color-sparkline-blue, #0061A8)" />
                 </div>
                 <TrendIndicator value={8.3} className="mt-1" />
               </CardContent>
@@ -641,7 +641,7 @@ export default function SuperadminIssuesPage() {
                   {stats?.totalOpen || 0}
                 </p>
                 <div className="mt-2 h-10">
-                  <Sparkline data={[12, 18, 15, 22, 19, 17, stats?.totalOpen || 0]} color="#F97316" />
+                  <Sparkline data={[12, 18, 15, 22, 19, 17, stats?.totalOpen || 0]} color="var(--color-sparkline-orange, #F97316)" />
                 </div>
                 <TrendIndicator value={-5.2} className="mt-1" />
               </CardContent>
@@ -653,7 +653,7 @@ export default function SuperadminIssuesPage() {
                   {stats?.totalClosed || 0}
                 </p>
                 <div className="mt-2 h-10">
-                  <Sparkline data={[8, 12, 15, 18, 22, 25, stats?.totalClosed || 0]} color="#00A859" />
+                  <Sparkline data={[8, 12, 15, 18, 22, 25, stats?.totalClosed || 0]} color="var(--color-success, #00A859)" />
                 </div>
                 <TrendIndicator value={12.4} className="mt-1" />
               </CardContent>
@@ -665,7 +665,7 @@ export default function SuperadminIssuesPage() {
                   {stats?.quickWins || 0}
                 </p>
                 <div className="mt-2 h-10">
-                  <Sparkline data={[5, 7, 6, 8, 7, 6, stats?.quickWins || 0]} color="#10B981" />
+                  <Sparkline data={[5, 7, 6, 8, 7, 6, stats?.quickWins || 0]} color="var(--color-sparkline-green, #10B981)" />
                 </div>
                 <TrendIndicator value={3.1} className="mt-1" />
               </CardContent>
@@ -677,7 +677,7 @@ export default function SuperadminIssuesPage() {
                   {stats?.stale || 0}
                 </p>
                 <div className="mt-2 h-10">
-                  <Sparkline data={[3, 4, 5, 6, 5, 7, stats?.stale || 0]} color="#FFB400" />
+                  <Sparkline data={[3, 4, 5, 6, 5, 7, stats?.stale || 0]} color="var(--color-warning, #FFB400)" />
                 </div>
                 <TrendIndicator value={-1.8} className="mt-1" />
               </CardContent>
@@ -689,7 +689,7 @@ export default function SuperadminIssuesPage() {
                   {stats?.blocked || 0}
                 </p>
                 <div className="mt-2 h-10">
-                  <Sparkline data={[2, 3, 2, 4, 3, 2, stats?.blocked || 0]} color="#EF4444" />
+                  <Sparkline data={[2, 3, 2, 4, 3, 2, stats?.blocked || 0]} color="var(--color-danger, #EF4444)" />
                 </div>
                 <TrendIndicator value={-0.5} className="mt-1" />
               </CardContent>
@@ -701,7 +701,7 @@ export default function SuperadminIssuesPage() {
                   {stats?.recentlyResolved || 0}
                 </p>
                 <div className="mt-2 h-10">
-                  <Sparkline data={[1, 2, 3, 4, 5, 6, stats?.recentlyResolved || 0]} color="#3B82F6" />
+                  <Sparkline data={[1, 2, 3, 4, 5, 6, stats?.recentlyResolved || 0]} color="var(--color-sparkline-sky, #3B82F6)" />
                 </div>
                 <TrendIndicator value={18.7} className="mt-1" />
               </CardContent>
@@ -718,7 +718,7 @@ export default function SuperadminIssuesPage() {
                 <div className="mt-2 h-10">
                   <Sparkline 
                     data={[65, 68, 72, 70, 75, 73, stats?.healthScore || 0]} 
-                    color={(stats?.healthScore || 0) >= 70 ? "#00A859" : (stats?.healthScore || 0) >= 40 ? "#FFB400" : "#EF4444"} 
+                    color={(stats?.healthScore || 0) >= 70 ? "var(--color-success, #00A859)" : (stats?.healthScore || 0) >= 40 ? "var(--color-warning, #FFB400)" : "var(--color-danger, #EF4444)"} 
                   />
                 </div>
                 <TrendIndicator value={4.2} className="mt-1" />
@@ -850,7 +850,7 @@ export default function SuperadminIssuesPage() {
 
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px] bg-muted border-input text-white">
-                <SelectValue placeholder="Filter by Status" />
+                <SelectValue placeholder={t("superadmin.issues.filters.status")} />
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((option) => (
@@ -863,7 +863,7 @@ export default function SuperadminIssuesPage() {
 
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
               <SelectTrigger className="w-[180px] bg-muted border-input text-white">
-                <SelectValue placeholder="Filter by Priority" />
+                <SelectValue placeholder={t("superadmin.issues.filters.priority")} />
               </SelectTrigger>
               <SelectContent>
                 {priorityOptions.map((option) => (
@@ -876,7 +876,7 @@ export default function SuperadminIssuesPage() {
 
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-[180px] bg-muted border-input text-white">
-                <SelectValue placeholder="Filter by Module" />
+                <SelectValue placeholder={t("superadmin.issues.filters.category")} />
               </SelectTrigger>
               <SelectContent>
                 {categoryOptions.map((option) => (

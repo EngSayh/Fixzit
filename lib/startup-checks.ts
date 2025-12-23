@@ -1,4 +1,5 @@
 import { requireEnv, TEST_JWT_SECRET } from "./env";
+import { logger } from "@/lib/logger";
 
 /**
  * Startup Validation - Fail Fast on Missing/Invalid Configuration
@@ -56,10 +57,10 @@ export function validateStartup(): void {
   }
 
   if (warnings.length > 0) {
-    for (const w of warnings) {
-      // eslint-disable-next-line no-console -- startup warnings are intentional for operators
-      console.warn(
-        `[Startup Warning] ${w}. Configure these secrets to enable payment callbacks.`,
+    for (const warning of warnings) {
+      logger.warn(
+        `[Startup Warning] ${warning}. Configure these secrets to enable payment callbacks.`,
+        { component: "startup-checks", action: "validateStartup" },
       );
     }
   }

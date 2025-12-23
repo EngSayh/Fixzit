@@ -386,7 +386,7 @@ export default function FeatureSettingsPage() {
                 {auto("Error loading feature flags", "featureFlags.error")}
               </p>
               <p className="text-sm">{error}</p>
-              <button
+              <button type="button"
                 onClick={() => refreshFlags()}
                 className="text-sm font-medium underline"
               >

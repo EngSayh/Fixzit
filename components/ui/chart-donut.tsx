@@ -23,7 +23,7 @@ interface ChartDonutProps {
   outerRadius?: number;
 }
 
-const DEFAULT_COLORS = ["var(--color-brand-primary, #1A9D6C)", "var(--color-brand-secondary, #C7B27C)", "var(--color-info, #17A2B8)", "var(--color-warning, #FFC107)", "var(--color-danger, #DC3545)"];
+const DEFAULT_COLORS = ["var(--color-primary-500, #25935F)", "var(--color-brand-secondary, #F5BD02)", "var(--color-info, #2E90FA)", "var(--color-warning, #F79009)", "var(--color-danger, #F04438)"];
 
 export function ChartDonut({
   data,

@@ -71,7 +71,7 @@ const statusStyles: Record<string, string> = {
   DISCONTINUED: "bg-destructive/10 text-destructive border border-destructive/20",
 };
 
-type ProductFilters = {
+export type ProductFilters = {
   category?: string;
   status?: string;
   sellerType?: string;
@@ -80,7 +80,7 @@ type ProductFilters = {
   ratingMin?: number;
 };
 
-const PRODUCT_FILTER_SCHEMA: FilterSchema<ProductFilters>[] = [
+export const PRODUCT_FILTER_SCHEMA: FilterSchema<ProductFilters>[] = [
   { key: "category", param: "category", label: (f) => `Category: ${f.category}` },
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   { key: "sellerType", param: "sellerType", label: (f) => `Seller: ${f.sellerType}` },

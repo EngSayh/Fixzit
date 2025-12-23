@@ -67,7 +67,11 @@ export default function ProductCard({
     setAdding(true);
     try {
       const quantity = Math.max(product.buy.minQty ?? 1, 1);
-      await addProductToCart(product.id, quantity);
+      await addProductToCart(product.id, quantity, {
+        title: product.title.en,
+        price: product.buy.price,
+        currency: product.buy.currency || currency,
+      });
       onAddToCart?.(product.id);
       toast.success(
         t("marketplace.productCard.toast.success", "Added to cart"),

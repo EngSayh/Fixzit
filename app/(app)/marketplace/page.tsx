@@ -5,6 +5,7 @@ import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
 import { MARKETPLACE_OFFLINE_DATA } from "@/data/marketplace-offline";
 import { getServerI18n } from "@/lib/i18n/server";
 import { isTruthy } from "@/lib/utils/env";
+import { Config } from "@/lib/config/constants";
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +46,7 @@ interface MarketplaceProductCard {
 }
 
 const offlineMarketplaceEnabled = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
-const isPlaywright = process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true";
+const isPlaywright = Config.client.isPlaywrightTest;
 
 async function loadHomepageData() {
   if (offlineMarketplaceEnabled) {
@@ -103,7 +104,7 @@ export default async function MarketplaceHome() {
             placeholder="Search materials, SKUs, ASTM, BS EN…"
             className="border rounded-md px-3 py-2"
           />
-          <button className="btn btn-primary px-4 py-2 bg-primary text-white rounded-md">
+          <button type="button" className="btn btn-primary px-4 py-2 bg-primary text-white rounded-md">
             Search
           </button>
         </div>
@@ -121,7 +122,7 @@ export default async function MarketplaceHome() {
                 Playwright Demo Product {i}
               </a>
               <p className="text-sm text-muted-foreground">SAR {i * 100}.00</p>
-              <button className="mt-2 rounded-md bg-primary text-white px-3 py-1">
+              <button type="button" className="mt-2 rounded-md bg-primary text-white px-3 py-1">
                 Add to Cart
               </button>
             </div>
@@ -149,7 +150,7 @@ export default async function MarketplaceHome() {
     <div className="space-y-6">
       <main className="mx-auto max-w-7xl px-4 py-4">
         <section className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-primary via-[var(--color-brand-primary-hover)] to-[var(--color-brand-primary-active)] p-10 text-white shadow-xl">
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-[var(--color-brand-primary)] via-[var(--color-brand-primary-hover)] to-[var(--color-brand-primary-active)] p-10 text-white shadow-xl">
             <p className="text-sm uppercase tracking-[0.18em] text-white/80">
               {t("marketplace.home.hero.pill", "Fixzit Souq")}
             </p>
@@ -182,10 +183,10 @@ export default async function MarketplaceHome() {
             </h2>
             <div className="grid gap-3 text-sm text-[var(--color-text-primary)]">
               <div className="rounded-2xl bg-[var(--color-brand-primary-surface)] p-4">
-                <p className="text-xs uppercase tracking-wider text-primary">
+                <p className="text-xs uppercase tracking-wider text-[var(--color-brand-primary)]">
                   {t("marketplace.home.kpis.openApprovals", "Open approvals")}
                 </p>
-                <p className="text-2xl font-bold text-primary">3</p>
+                <p className="text-2xl font-bold text-[var(--color-brand-primary)]">3</p>
               </div>
               <div className="rounded-2xl bg-[var(--color-warning-bg)] p-4">
                 <p className="text-xs uppercase tracking-wider text-[var(--color-warning-text)]">
@@ -197,10 +198,10 @@ export default async function MarketplaceHome() {
                 <p className="text-2xl font-bold text-[var(--color-warning-text)]">7</p>
               </div>
               <div className="rounded-2xl bg-[var(--color-success-bg)] p-4">
-                <p className="text-xs uppercase tracking-wider text-[var(--color-success-text)]">
+                <p className="text-xs uppercase tracking-wider text-[var(--color-success)]">
                   {t("marketplace.home.kpis.financeReady", "Finance ready")}
                 </p>
-                <p className="text-2xl font-bold text-success">5</p>
+                <p className="text-2xl font-bold text-[var(--color-success)]">5</p>
               </div>
             </div>
           </div>

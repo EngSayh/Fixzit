@@ -6,6 +6,7 @@ import Sidebar from "@/components/Sidebar";
 import type { BadgeCounts } from "@/config/navigation";
 import { useOrgCounters } from "@/hooks/useOrgCounters";
 import { logger } from "@/lib/logger";
+import { Config } from "@/lib/config/constants";
 
 type NumericDict = Record<string, number | undefined>;
 
@@ -116,7 +117,7 @@ export default function ClientSidebar() {
 
   // Authenticated, org-scoped WebSocket for real-time counters
   useEffect(() => {
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+    const wsUrl = Config.client.wsUrl;
     if (!isAuthenticated || !orgId || !wsUrl) return;
 
     const url = new URL(wsUrl);

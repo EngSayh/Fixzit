@@ -300,7 +300,7 @@ export default function MortgageCalculator({
 
       {/* Amortization Schedule */}
       <div>
-        <button
+        <button type="button"
           onClick={() => setShowAmortization(!showAmortization)}
           aria-expanded={showAmortization}
           aria-controls="amortization-schedule"

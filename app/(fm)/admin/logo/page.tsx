@@ -309,7 +309,7 @@ export default function LogoUpload() {
                 {selectedFile && `${(selectedFile.size / 1024).toFixed(2)} KB`}
               </p>
               <div className="flex gap-3 justify-center">
-                <button
+                <button type="button"
                   onClick={handleUpload}
                   disabled={uploading}
                   className="px-6 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
@@ -318,7 +318,7 @@ export default function LogoUpload() {
                     ? t("admin.logo.uploading", "Uploading...")
                     : t("admin.logo.uploadButton", "Upload")}
                 </button>
-                <button
+                <button type="button"
                   onClick={handleCancel}
                   disabled={uploading}
                   className="px-6 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed font-medium"

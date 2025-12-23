@@ -192,6 +192,8 @@ export async function GET(req: NextRequest) {
           },
         },
       });
+      // Cache search results for 1 minute
+      response.headers.set("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
       response.headers.set("X-Correlation-Id", testContext?.correlationId ?? "");
       response.headers.set("X-RateLimit-Limit", "120");
       response.headers.set("X-RateLimit-Remaining", "119");

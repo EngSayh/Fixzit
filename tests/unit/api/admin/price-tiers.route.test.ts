@@ -63,7 +63,9 @@ describe("admin/price-tiers route", () => {
   });
 
   it("POST upserts with orgId", async () => {
-    vi.mocked(Module.findOne).mockResolvedValue({ _id: "mod1" } as any);
+    vi.mocked(Module.findOne).mockReturnValue({
+      lean: vi.fn().mockResolvedValue({ _id: "mod1" }),
+    } as any);
     vi.mocked(PriceTier.findOneAndUpdate).mockResolvedValue({ _id: "tier1", orgId: "org1" } as any);
 
     const res = await POST(
@@ -106,7 +108,9 @@ describe("admin/price-tiers route", () => {
   });
 
   it("POST allows isGlobal for super admin and tags record", async () => {
-    vi.mocked(Module.findOne).mockResolvedValue({ _id: "mod1" } as any);
+    vi.mocked(Module.findOne).mockReturnValue({
+      lean: vi.fn().mockResolvedValue({ _id: "mod1" }),
+    } as any);
     vi.mocked(PriceTier.findOneAndUpdate).mockResolvedValue({ _id: "tier1", isGlobal: true } as any);
 
     const res = await POST(

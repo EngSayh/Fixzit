@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { AlertOctagon, RefreshCw, Home } from "lucide-react";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
+import { Config } from "@/lib/config/constants";
+import { logger } from "@/lib/logger";
 
 /**
  * Global Error Boundary Component
@@ -25,12 +27,9 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log to console since our logger may have failed
-    // eslint-disable-next-line no-console
-    console.error("[GlobalError] Critical application error:", {
-      message: error.message,
+    logger.error("[GlobalError] Critical application error", error, {
+      component: "GlobalError",
       digest: error.digest,
-      stack: error.stack,
     });
   }, [error]);
 
@@ -99,7 +98,7 @@ export default function GlobalError({
           </p>
 
           {/* Development Error Details */}
-          {process.env.NODE_ENV === "development" && (
+          {Config.env.isDevelopment && (
             <div
               style={{
                 backgroundColor: "rgba(220, 38, 38, 0.05)",
@@ -137,7 +136,7 @@ export default function GlobalError({
 
           {/* Recovery Actions */}
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <button
+            <button type="button"
               onClick={reset}
               style={{
                 display: "flex",
@@ -146,7 +145,7 @@ export default function GlobalError({
                 gap: "8px",
                 width: "100%",
                 padding: "12px 24px",
-                backgroundColor: "#0061A8",
+                backgroundColor: "#25935F", /* Ejar primary-500 */
                 color: "white",
                 border: "none",
                 borderRadius: "8px",
@@ -159,7 +158,7 @@ export default function GlobalError({
               Try Again
             </button>
 
-            <button
+            <button type="button"
               onClick={() => (window.location.href = "/")}
               style={{
                 display: "flex",
@@ -193,7 +192,7 @@ export default function GlobalError({
             If this problem persists,{" "}
             <a
               href={`mailto:${EMAIL_DOMAINS.support}`}
-              style={{ color: "#0061A8", textDecoration: "none" }}
+              style={{ color: "#25935F", textDecoration: "none" }} /* Ejar primary-500 */
             >
               contact support
             </a>

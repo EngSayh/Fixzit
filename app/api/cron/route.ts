@@ -13,6 +13,7 @@
  * - Authorization: Bearer <CRON_SECRET> header required
  * - Only accessible via Vercel Cron system
  * - Returns 401 if secret missing or invalid
+ * - Uses constant-time comparison to prevent timing attacks
  * 
  * @response
  * - success: boolean
@@ -20,54 +21,70 @@
  * 
  * @see https://vercel.com/docs/cron-jobs
  */
-import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
+import crypto from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { JobQueue } from "@/lib/jobs/queue";
+import { connectToDatabase } from "@/lib/mongodb-unified";
 
 export async function GET(request: NextRequest) {
   // Verify cron secret to prevent unauthorized access
-  const authHeader = request.headers.get('Authorization');
-  const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
+  const authHeader = request.headers.get("Authorization");
+  const cronSecret = process.env.CRON_SECRET;
 
-  if (!process.env.CRON_SECRET) {
-    logger.error('CRON_SECRET not configured', { component: 'cron', action: 'auth' });
+  if (!cronSecret) {
+    logger.error("[Cron] CRON_SECRET not configured");
     return NextResponse.json(
-      { error: 'Server configuration error' },
-      { status: 500 }
+      { error: "Server configuration error" },
+      { status: 500 },
     );
   }
 
-  if (authHeader !== expectedAuth) {
-    logger.warn('Unauthorized access attempt', { component: 'cron', action: 'auth' });
+  const expectedAuth = `Bearer ${cronSecret}`;
+
+  // Use constant-time comparison to prevent timing attacks
+  if (
+    !authHeader ||
+    authHeader.length !== expectedAuth.length ||
+    !crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedAuth))
+  ) {
+    logger.warn("[Cron] Unauthorized access attempt");
     return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
+      { error: "Unauthorized" },
+      { status: 401 },
     );
   }
 
   try {
-    // TODO: Add your scheduled tasks here
-    // Examples:
-    // - Database cleanup
-    // - Cache warming
-    // - Report generation
-    // - Notification dispatch
-    // - Data synchronization
+    await connectToDatabase();
 
-    logger.info('Cron job executed successfully', { component: 'cron', action: 'execute' });
+    const [retried, cleaned] = await Promise.all([
+      JobQueue.retryStuckJobs(),
+      JobQueue.cleanupOldJobs(30),
+    ]);
+
+    logger.info("[Cron] Job executed successfully", {
+      retried,
+      cleaned,
+    });
 
     return NextResponse.json({
       ok: true,
       timestamp: new Date().toISOString(),
-      message: 'Cron job executed successfully'
+      message: "Cron job executed successfully",
+      jobs: { retried, cleaned },
     });
   } catch (error) {
-    logger.error('Cron job execution failed', { component: 'cron', action: 'execute', error });
+    logger.error("[Cron] Job execution failed", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        ok: false 
+      {
+        error: "Internal server error",
+        ok: false,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

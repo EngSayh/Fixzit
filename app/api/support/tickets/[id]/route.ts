@@ -59,7 +59,7 @@ export async function GET(
       ];
     }
     
-    const t = await SupportTicket.findOne(query);
+    const t = await SupportTicket.findOne(query).lean();
     if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
     return createSecureResponse(t, 200, req);
   } catch (_error) {

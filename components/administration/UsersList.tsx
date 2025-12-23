@@ -66,7 +66,7 @@ const statusStyles: Record<string, string> = {
   LOCKED: "bg-[var(--color-status-pending-bg)] text-[var(--color-status-pending)] border border-[var(--color-status-pending)]/30",
 };
 
-type UserFilters = {
+export type UserFilters = {
   role?: string;
   status?: string;
   department?: string;
@@ -75,7 +75,7 @@ type UserFilters = {
   lastLoginTo?: string;
 };
 
-const USER_FILTER_SCHEMA: FilterSchema<UserFilters>[] = [
+export const USER_FILTER_SCHEMA: FilterSchema<UserFilters>[] = [
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   { key: "role", param: "role", label: (f) => `Role: ${f.role}` },
   { key: "department", param: "department", label: (f) => `Department: ${f.department}` },

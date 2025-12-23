@@ -483,6 +483,42 @@ export const Config = {
     verboseLogs: getBoolean("VERBOSE_LOGS", false),
     bypassAuth: getBoolean("BYPASS_AUTH", false), // NEVER enable in production
   },
+
+  /**
+   * Client-side Configuration (NEXT_PUBLIC_* variables)
+   * Safe to bundle into client code
+   */
+  client: {
+    // WebSocket URL for real-time features
+    wsUrl: getOptional("NEXT_PUBLIC_WS_URL"),
+
+    // OAuth provider feature flags
+    googleEnabled: getBoolean("NEXT_PUBLIC_GOOGLE_ENABLED", false),
+    appleEnabled: getBoolean("NEXT_PUBLIC_APPLE_ENABLED", false),
+
+    // SMS OTP requirement flag
+    requireSmsOtp: getBoolean("NEXT_PUBLIC_REQUIRE_SMS_OTP", false),
+
+    // Playwright/E2E test mode flag
+    isPlaywrightTest: getBoolean("NEXT_PUBLIC_PLAYWRIGHT_TESTS", false) ||
+      getBoolean("PLAYWRIGHT_TESTS", false),
+
+    // API Docs (Swagger UI) toggle - defaults to enabled
+    swaggerUiEnabled: getBoolean(
+      "NEXT_PUBLIC_SWAGGER_UI_ENABLED",
+      getBoolean("SWAGGER_UI_ENABLED", true),
+    ),
+
+    // Vendor assignments workspace feature flags
+    vendorAssignmentsApiEnabled: getBoolean(
+      "NEXT_PUBLIC_VENDOR_ASSIGNMENTS_API_ENABLED",
+      false,
+    ),
+    vendorAssignmentsMocksEnabled: getBoolean(
+      "NEXT_PUBLIC_VENDOR_ASSIGNMENTS_API_MOCKS",
+      false,
+    ),
+  },
 } as const;
 
 // =============================================================================

@@ -288,7 +288,7 @@ export default function MarketplaceNewVendorPage() {
                     {index + 1}
                   </span>
                   {contacts.length > 1 && (
-                    <button
+                    <button type="button"
                       className="text-destructive text-xs font-medium"
                       onClick={() => removeContact(contact.id)}
                     >

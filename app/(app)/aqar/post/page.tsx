@@ -78,7 +78,7 @@ export default function PostListingPage() {
             {index < activeStep ? (
               <CheckCircle2 className="w-5 h-5 text-success" />
             ) : (
-              <button
+              <button type="button"
                 onClick={() => setActiveStep(index)}
                 className="px-3 py-1 rounded-full bg-card text-sm border border-border"
               >

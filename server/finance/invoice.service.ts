@@ -100,8 +100,22 @@ export async function create(input: unknown, actorId?: string, _ip?: string) {
   return invoice.toObject();
 }
 
-export async function list(orgId: string, q?: string, status?: string) {
+export type InvoiceListFilters = {
+  orgId: string;
+  q?: string;
+  status?: string;
+  amountMin?: number;
+  amountMax?: number;
+  issueFrom?: Date;
+  issueTo?: Date;
+  dueFrom?: Date;
+  dueTo?: Date;
+};
+
+export async function list(filtersInput: InvoiceListFilters) {
   await connectToDatabase();
+
+  const { orgId, q, status, amountMin, amountMax, issueFrom, issueTo, dueFrom, dueTo } = filtersInput;
 
   const filters: Record<string, unknown> = { orgId }; // AUDIT-2025-11-30: Changed from tenantId
 
@@ -118,6 +132,27 @@ export async function list(orgId: string, q?: string, status?: string) {
       { customerRef: regex },
       { "items.description": regex },
     ];
+  }
+
+  if (amountMin !== undefined || amountMax !== undefined) {
+    const range: Record<string, number> = {};
+    if (typeof amountMin === "number") range.$gte = amountMin;
+    if (typeof amountMax === "number") range.$lte = amountMax;
+    filters.total = range;
+  }
+
+  if (issueFrom || issueTo) {
+    const issueDateRange: Record<string, Date> = {};
+    if (issueFrom) issueDateRange.$gte = issueFrom;
+    if (issueTo) issueDateRange.$lte = issueTo;
+    filters.issueDate = issueDateRange;
+  }
+
+  if (dueFrom || dueTo) {
+    const dueDateRange: Record<string, Date> = {};
+    if (dueFrom) dueDateRange.$gte = dueFrom;
+    if (dueTo) dueDateRange.$lte = dueTo;
+    filters.dueDate = dueDateRange;
   }
 
   const invoices = await Invoice.find(filters)

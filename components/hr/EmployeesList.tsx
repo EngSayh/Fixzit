@@ -70,7 +70,7 @@ const statusStyles: Record<string, string> = {
   TERMINATED: "bg-destructive/10 text-destructive border border-destructive/20",
 };
 
-type EmployeeFilters = {
+export type EmployeeFilters = {
   status?: string;
   department?: string;
   employmentType?: string;
@@ -80,7 +80,7 @@ type EmployeeFilters = {
   joiningTo?: string;
 };
 
-const EMPLOYEE_FILTER_SCHEMA: FilterSchema<EmployeeFilters>[] = [
+export const EMPLOYEE_FILTER_SCHEMA: FilterSchema<EmployeeFilters>[] = [
   { key: "status", param: "status", label: (f) => `Status: ${f.status?.toString().replace(/_/g, " ")}` },
   { key: "department", param: "department", label: (f) => `Department: ${f.department}` },
   { key: "employmentType", param: "employmentType", label: (f) => `Type: ${f.employmentType?.toString().replace(/_/g, " ")}` },

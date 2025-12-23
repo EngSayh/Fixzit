@@ -129,14 +129,27 @@ describe("offer-pdf service", () => {
         notes: "Please respond within 7 days.",
       };
 
+      const PDFDocument = (await import("pdfkit")).default;
+
       await generateOfferLetterPDF(input);
 
-      expect(true).toBe(true);
+      const mockDoc = vi.mocked(PDFDocument).mock.results[0]?.value;
+      expect(mockDoc.text).toHaveBeenCalledWith(input.notes);
     });
 
     it("should handle PDF generation errors", async () => {
-      // Error handling is done via promise rejection
-      expect(true).toBe(true);
+      const PDFDocument = (await import("pdfkit")).default;
+      vi.mocked(PDFDocument).mockImplementationOnce(() => {
+        throw new Error("PDF generation failed");
+      });
+
+      await expect(
+        generateOfferLetterPDF({
+          candidateName: "Jane Smith",
+          jobTitle: "Software Engineer",
+          orgName: "Fixzit Inc.",
+        })
+      ).rejects.toThrow("PDF generation failed");
     });
   });
 });

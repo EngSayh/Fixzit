@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user has active package (for agents/developers)
     if (body.source === "AGENT" || body.source === "DEVELOPER") {
+      // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by userId (user's own packages)
       const activePackage = await AqarPackage.findOne({
         userId: user.id,
         active: true,

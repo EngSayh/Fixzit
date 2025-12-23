@@ -15,7 +15,7 @@ interface SparklineProps {
 
 export const Sparkline: React.FC<SparklineProps> = ({ 
   data, 
-  color = 'var(--color-status-info, #0061A8)', 
+  color = 'var(--color-sparkline-blue, #0061A8)', 
   height = 40 
 }) => {
   const chartData = data.map((value, index) => ({ value, index }));

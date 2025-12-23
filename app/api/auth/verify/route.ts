@@ -86,6 +86,7 @@ export async function GET(req: NextRequest) {
         )
           .select("email emailVerifiedAt status")
           .lean()
+      // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Email verification flow (pre-org assignment)
       : await User.findOneAndUpdate(
           { email: result.email.toLowerCase() },
           { $set: updateFields },

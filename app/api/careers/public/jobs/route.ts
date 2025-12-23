@@ -30,19 +30,53 @@
  * - Location regex is escaped to prevent ReDoS attacks
  */
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const DEFAULT_LIMIT = 12;
 
+const PublicJobsQuerySchema = z.object({
+  orgId: z.string().max(100).optional(),
+  q: z.string().max(200).optional(),
+  department: z.string().max(100).optional(),
+  location: z.string().max(100).optional(),
+  jobType: z.string().max(50).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(DEFAULT_LIMIT),
+});
+
 export async function GET(req: NextRequest) {
-  enforceRateLimit(req, { requests: 120, windowMs: 60_000, keyPrefix: "careers:public:jobs" });
+  const rateLimitResponse = enforceRateLimit(req, {
+    requests: 120,
+    windowMs: 60_000,
+    keyPrefix: "careers:public:jobs",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
   try {
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
-    const orgIdParam = searchParams.get("orgId");
+    
+    // Parse and validate query parameters with Zod
+    const queryResult = PublicJobsQuerySchema.safeParse(
+      Object.fromEntries(searchParams.entries())
+    );
+
+    if (!queryResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid query parameters",
+          details: queryResult.error.flatten().fieldErrors,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { orgId: orgIdParam, q, department, location, jobType, page, limit } = queryResult.data;
+
     const orgId =
       orgIdParam ||
       process.env.PUBLIC_JOBS_ORG_ID ||
@@ -55,16 +89,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const q = (searchParams.get("q") || "").trim();
-    const department = (searchParams.get("department") || "").trim();
-    const location = (searchParams.get("location") || "").trim();
-    const jobType = (searchParams.get("jobType") || "").trim();
-
-    const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1);
-    const limit = Math.min(
-      parseInt(searchParams.get("limit") || String(DEFAULT_LIMIT), 10),
-      50,
-    );
     const skip = (page - 1) * limit;
 
     const filter: Record<string, unknown> = {
@@ -101,7 +125,7 @@ export async function GET(req: NextRequest) {
       Job.countDocuments(filter),
     ]);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       jobs,
       pagination: {
@@ -111,6 +135,9 @@ export async function GET(req: NextRequest) {
         pages: Math.ceil(total / limit) || 1,
       },
     });
+    // Cache public job listings for 5 minutes
+    response.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+    return response;
   } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

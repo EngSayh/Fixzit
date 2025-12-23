@@ -749,7 +749,7 @@ export default function NewPaymentPage() {
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">{t("New Payment")}</h1>
-          <button
+          <button type="button"
             onClick={() => router.back()}
             className="px-4 py-2 text-muted-foreground hover:text-foreground"
             disabled={isSubmitting}

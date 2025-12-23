@@ -392,7 +392,7 @@ ${t("support.errorDetails", "Error Details")}:
 
 ${t("support.systemInfo", "System Information")}:
 - ${t("support.language", "Language")}: ${errorDetails.system?.language || t("common.unknown", "Unknown")}
-- ${t("support.onlineStatus", "Online Status")}: ${errorDetails.system?.onLine ? t("common.online", "Online") : t("common.offline", "Offline")}
+- ${t("support.onlineStatus", "Online Status")}: ${errorDetails.system?.onLine ? t("common.online", "Online") : t("common.offlineStatus", "Offline")}
 ${errorDetails.system?.memory ? `- ${t("support.memoryUsage", "Memory Usage")}: ${memoryUsed}MB ${t("support.used", "used")}` : ""}
 
 ${t("support.appState", "Application State")}:

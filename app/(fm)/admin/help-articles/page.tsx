@@ -114,7 +114,7 @@ export default function AdminHelpArticlesPage() {
             Help Articles
           </h1>
         </div>
-        <button
+        <button type="button"
           onClick={load}
           disabled={loading}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card hover:bg-muted text-sm font-medium disabled:opacity-50"

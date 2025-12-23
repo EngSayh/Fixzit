@@ -584,5 +584,100 @@ pnpm playwright test --ui
 
 ---
 
+## Testing
+
+### Test Structure
+
+- **tests/api/** - API route tests (uses MongoDB Memory Server)
+- **tests/unit/** - Unit tests for utilities, hooks, components
+- **tests/integration/** - Integration tests for workflows
+- **tests/helpers/** - Shared test utilities
+
+### Test Helpers
+
+**Available Helpers:**
+- `tests/helpers/mongoMemory.ts` - MongoMemoryServer setup/teardown
+- `tests/helpers/domMocks.ts` - DOM API mocks (localStorage, fetch, IntersectionObserver)
+- `tests/helpers/fixtures.ts` - Test data factories
+- `tests/helpers/auth.ts` - Authentication/session mocks
+
+**Usage Example:**
+
+```typescript
+import { setupTestMongo, teardownTestMongo } from "@/tests/helpers/mongoMemory";
+import { createTestWorkOrder } from "@/tests/helpers/fixtures";
+
+beforeAll(async () => {
+  await setupTestMongo();
+});
+
+afterAll(async () => {
+  await teardownTestMongo();
+});
+
+test("creates work order", async () => {
+  const workOrder = createTestWorkOrder({ title: "Fix AC" });
+  // ... test logic
+});
+```
+
+### Running Tests
+
+```bash
+# All tests
+pnpm test
+
+# Server-side tests only
+pnpm test:server
+
+# Client-side tests only
+pnpm test:client
+
+# Changed files only (fast)
+pnpm test:changed
+
+# Watch mode
+pnpm test:watch
+
+# API tests
+pnpm test:api
+
+# Models tests
+pnpm test:models
+```
+
+### Test Best Practices
+
+1. **Use beforeEach for mock cleanup:**
+   ```typescript
+   beforeEach(() => {
+     vi.clearAllMocks();
+   });
+   ```
+
+2. **Avoid inline mocks** - use helpers:
+   ```typescript
+   // ❌ Bad
+   global.fetch = vi.fn();
+   
+   // ✅ Good
+   import { mockFetch } from "@/tests/helpers/domMocks";
+   mockFetch();
+   ```
+
+3. **Test tenant isolation** - always include org_id:
+   ```typescript
+   const workOrder = await WorkOrder.findOne({ org_id: "test-org" });
+   ```
+
+4. **Clean up after tests:**
+   ```typescript
+   afterEach(async () => {
+     await WorkOrder.deleteMany({});
+   });
+   ```
+
+---
+
 **Last Updated**: 2025-12-01  
 **Maintained By**: Engineering Team

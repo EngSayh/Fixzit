@@ -346,13 +346,13 @@ export default function AnalyticsPage() {
           </select>
 
           {/* Export Buttons */}
-          <button
+          <button type="button"
             onClick={handleExportCSV}
             className="px-4 py-2 border rounded-lg hover:bg-accent"
           >
             {auto("Export CSV", "actions.exportCsv")}
           </button>
-          <button
+          <button type="button"
             onClick={handleExportPDF}
             className="px-4 py-2 border rounded-lg hover:bg-accent"
           >
@@ -365,7 +365,7 @@ export default function AnalyticsPage() {
       <div className="border-b">
         <nav className="flex gap-4">
           {tabs.map((tab) => (
-            <button
+            <button type="button"
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
               className={`px-4 py-2 border-b-2 transition-colors ${
@@ -390,7 +390,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-destructive-dark">{error}</p>
-            <button
+            <button type="button"
               onClick={() => window.location.reload()}
               className="mt-4 px-4 py-2 bg-destructive text-white rounded-lg hover:bg-destructive-dark"
             >

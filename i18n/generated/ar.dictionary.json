@@ -5239,7 +5239,7 @@
   "common.no": "لا",
   "common.noNotifications": "لا توجد إشعارات جديدة",
   "common.notAvailable": "غير متاح",
-  "common.offline": "غير متصل",
+  "common.offlineStatus": "غير متصل",
   "common.online": "متصل",
   "common.optional": "اختياري",
   "common.or": "أو",

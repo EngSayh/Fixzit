@@ -13,6 +13,7 @@ vi.mock("@/lib/logger", () => ({
 
 import {
   ApplicationSubmissionError,
+  submitApplicationFromForm,
 } from "@/server/services/ats/application-intake";
 
 describe("application-intake service", () => {
@@ -43,42 +44,70 @@ describe("application-intake service", () => {
   });
 
   describe("submitApplicationFromForm validation", () => {
-    it("should validate job visibility for careers source", () => {
+    it("should validate job visibility for careers source", async () => {
       // Jobs with visibility: "internal" should reject careers applications
       const job = { visibility: "internal", status: "published" };
       const source = "careers";
       
-      if (source === "careers" && job.visibility === "internal") {
-        expect(true).toBe(true); // Would throw ApplicationSubmissionError
-      }
+      await expect(
+        submitApplicationFromForm({
+          job: { _id: jobId, orgId, status: job.status, visibility: job.visibility },
+          fields: {},
+          source,
+        })
+      ).rejects.toMatchObject({
+        status: 403,
+        message: "This job is not open to public applications",
+      });
     });
 
-    it("should validate job status for careers source", () => {
+    it("should validate job status for careers source", async () => {
       // Jobs with status: "draft" should reject applications
       const job = { visibility: "public", status: "draft" };
       const source = "careers";
       
-      if (source === "careers" && job.status !== "published") {
-        expect(true).toBe(true); // Would throw ApplicationSubmissionError
-      }
+      await expect(
+        submitApplicationFromForm({
+          job: { _id: jobId, orgId, status: job.status, visibility: job.visibility },
+          fields: {},
+          source,
+        })
+      ).rejects.toMatchObject({
+        status: 400,
+        message: "Job is not accepting applications at this time",
+      });
     });
 
-    it("should require orgId on job", () => {
+    it("should require orgId on job", async () => {
       // Jobs without orgId should throw 404
       const job = { _id: jobId, orgId: null };
       
-      if (!job.orgId) {
-        expect(true).toBe(true); // Would throw "Job not found"
-      }
+      await expect(
+        submitApplicationFromForm({
+          job,
+          fields: {},
+          source: "careers",
+        })
+      ).rejects.toMatchObject({
+        status: 404,
+        message: "Job not found",
+      });
     });
 
-    it("should require job._id", () => {
+    it("should require job._id", async () => {
       // Jobs without _id should throw 404
       const job = { _id: null, orgId };
       
-      if (!job._id) {
-        expect(true).toBe(true); // Would throw "Job not found"
-      }
+      await expect(
+        submitApplicationFromForm({
+          job,
+          fields: {},
+          source: "careers",
+        })
+      ).rejects.toMatchObject({
+        status: 404,
+        message: "Job not found",
+      });
     });
   });
 

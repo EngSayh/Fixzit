@@ -375,7 +375,7 @@ export default function ReferralProgramPage() {
               <p className="text-destructive mb-4" data-testid="error-message">
                 {error}
               </p>
-              <button
+              <button type="button"
                 onClick={() => {
                   setError(null);
                   fetchReferralData();
@@ -436,7 +436,7 @@ export default function ReferralProgramPage() {
           <div className="flex-1">
             <p className="text-destructive-foreground">{error}</p>
           </div>
-          <button
+          <button type="button"
             onClick={() => setError(null)}
             className="text-destructive hover:text-destructive-foreground"
             aria-label="Dismiss error"
@@ -488,7 +488,7 @@ export default function ReferralProgramPage() {
               "cta.description",
             )}
           </p>
-          <button
+          <button type="button"
             onClick={generateCode}
             disabled={generating}
             className="bg-card text-primary px-8 py-3 rounded-2xl font-semibold hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
@@ -562,7 +562,7 @@ export default function ReferralProgramPage() {
                     </div>
                   )}
                   <div className="flex gap-2">
-                    <button
+                    <button type="button"
                       onClick={() => copyToClipboard(referralCode.code)}
                       className="flex-1 bg-card text-primary px-4 py-2 rounded-2xl font-medium hover:bg-muted transition-colors"
                       data-testid="copy-code-button"
@@ -571,7 +571,7 @@ export default function ReferralProgramPage() {
                         ? auto("✓ Copied!", "code.copySuccess")
                         : auto("Copy Code", "code.copyButton")}
                     </button>
-                    <button
+                    <button type="button"
                       onClick={() => copyToClipboard(referralCode.shortUrl)}
                       className="flex-1 bg-card text-primary px-4 py-2 rounded-2xl font-medium hover:bg-muted transition-colors"
                       data-testid="copy-link-button"
@@ -580,7 +580,7 @@ export default function ReferralProgramPage() {
                     </button>
                   </div>
                   {isCodeExpiredOrDepleted() && (
-                    <button
+                    <button type="button"
                       onClick={regenerateCode}
                       disabled={generating}
                       className="w-full mt-3 bg-warning/100 text-white px-4 py-2 rounded-2xl font-medium hover:bg-warning transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -638,7 +638,7 @@ export default function ReferralProgramPage() {
                 {auto("Share via", "share.heading")}
               </h3>
               <div className="flex gap-3">
-                <button
+                <button type="button"
                   onClick={shareViaWhatsApp}
                   className="flex-1 bg-success/100 hover:bg-success px-4 py-2 rounded-2xl font-medium transition-colors flex items-center justify-center gap-2"
                   data-testid="share-whatsapp"
@@ -653,7 +653,7 @@ export default function ReferralProgramPage() {
                   </svg>
                   {auto("WhatsApp", "share.whatsapp")}
                 </button>
-                <button
+                <button type="button"
                   onClick={shareViaEmail}
                   className="flex-1 bg-primary/100 hover:bg-primary px-4 py-2 rounded-2xl font-medium transition-colors flex items-center justify-center gap-2"
                   data-testid="share-email"

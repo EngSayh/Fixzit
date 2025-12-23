@@ -286,6 +286,7 @@ async function resolveOrgIdFromCompanyCode(
 ): Promise<{ orgId: string | null; error?: string }> {
   const { Organization } = await import("@/server/models/Organization");
   try {
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Resolve orgId from company code (pre-auth)
     const org = await Organization.findOne({ code: companyCode })
       .select({ _id: 1, orgId: 1 })
       .lean<{
@@ -406,6 +407,7 @@ export async function POST(request: NextRequest) {
     if (shouldBypassOtp) {
       await connectToDatabase();
       const { User } = await import("@/server/models/User");
+      // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: OTP bypass validation (pre-auth)
       bypassUser = await User.findOne({ email: normalizedIdForCheck })
         .select("_id status orgId")
         .lean() as BypassUserData | null;

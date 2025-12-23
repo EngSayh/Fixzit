@@ -26,7 +26,7 @@ type KYCDocumentKey =
 
 type KYCDocumentPayload = {
   fileUrl: string;
-  fileType: "pdf" | "jpg" | "png";
+  fileType: "pdf" | "jpg" | "png" | "heic" | "heif";
   uploadedAt?: string;
   verified: boolean;
   fileKey?: string;
@@ -66,7 +66,7 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
   const [error, setError] = useState<string | null>(null);
   const auto = useAutoTranslator("seller.kyc.documents");
   const fileTypeError = auto(
-    "Only PDF, JPG, and PNG files are allowed",
+    "Only PDF, JPG, PNG, HEIC, and HEIF files are allowed",
     "errors.fileType",
   );
   const fileSizeError = auto(
@@ -86,6 +86,8 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
   const normalizeFileType = (mime: string): KYCDocumentPayload["fileType"] => {
     if (mime === "application/pdf") return "pdf";
     if (mime === "image/png") return "png";
+    if (mime === "image/heic") return "heic";
+    if (mime === "image/heif") return "heif";
     return "jpg";
   };
 
@@ -96,7 +98,13 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
     }
 
     // Validate file type
-    const validTypes = ["application/pdf", "image/jpeg", "image/png"];
+    const validTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/heic",
+      "image/heif",
+    ];
     if (!validTypes.includes(file.type)) {
       setError(fileTypeError);
       return;
@@ -226,7 +234,7 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
         </h2>
         <p className="text-gray-600 mb-6">
           {auto(
-            "Please upload clear, legible copies of the required documents. Accepted formats: PDF, JPG, PNG (max 10MB each).",
+            "Please upload clear, legible copies of the required documents. Accepted formats: PDF, JPG, PNG, HEIC, HEIF (max 10MB each).",
             "header.description",
           )}
         </p>
@@ -276,13 +284,13 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
                       )}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {auto("PDF, JPG, PNG (max 10MB)", "upload.formats")}
+                      {auto("PDF, JPG, PNG, HEIC, HEIF (max 10MB)", "upload.formats")}
                     </p>
                   </div>
                   <input
                     type="file"
                     className="hidden"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"
                     onChange={(e) =>
                       handleFileChange(doc.key, e.target.files?.[0] || null)
                     }

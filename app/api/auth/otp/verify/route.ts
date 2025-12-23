@@ -163,6 +163,7 @@ export async function POST(request: NextRequest) {
       const { Organization } = await import("@/server/models/Organization");
       let org: { _id?: { toString: () => string }; orgId?: string } | null = null;
       try {
+        // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Resolve orgId from company code (login flow)
         org = await Organization.findOne({ code: normalizedCompanyCode })
           .select({ _id: 1, orgId: 1 })
           .lean<{ _id?: { toString: () => string }; orgId?: string }>();
@@ -232,6 +233,7 @@ export async function POST(request: NextRequest) {
     if (isRegularBypass || isDirectSuperadminBypass) {
       // SECURITY: Validate user exists and is ACTIVE before issuing bypass session (CodeRabbit critical fix)
       await connectToDatabase();
+      // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: OTP bypass validation (pre-auth)
       const bypassUser = await User.findOne({ email: loginIdentifier.toLowerCase() })
         .select("_id status orgId")
         .lean() as { _id: { toString(): string }; status: string; orgId?: string } | null;

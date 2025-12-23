@@ -19,11 +19,12 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 
 // Mock Brand model
 vi.mock("@/server/models/souq/Brand", () => ({
-  SouqBrand: {
+  default: {
     find: vi.fn().mockReturnValue({
       skip: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       sort: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
       lean: vi.fn().mockResolvedValue([]),
     }),
     countDocuments: vi.fn().mockResolvedValue(0),
@@ -69,8 +70,7 @@ describe("API /api/souq/brands", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       rateLimitResponse = new Response(
@@ -87,8 +87,7 @@ describe("API /api/souq/brands", () => {
     it("returns brands list for authenticated users", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = { id: "user-123", orgId: "org-123" };
@@ -102,8 +101,7 @@ describe("API /api/souq/brands", () => {
     it("supports search query", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = { id: "user-123", orgId: "org-123" };
@@ -121,8 +119,7 @@ describe("API /api/souq/brands", () => {
     it("returns 401 for unauthenticated requests", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       // sessionUser is null by default
@@ -139,8 +136,7 @@ describe("API /api/souq/brands", () => {
     it("validates required fields", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       sessionUser = { id: "user-123", orgId: "org-123", role: "ADMIN" };
@@ -152,6 +148,32 @@ describe("API /api/souq/brands", () => {
       const response = await route.POST(req);
 
       expect([400, 401, 403, 500]).toContain(response.status);
+    });
+  });
+
+  describe("Cache Headers", () => {
+    it("sets Cache-Control header on GET requests", async () => {
+      const route = await importRoute();
+      if (!route?.GET) {
+        throw new Error("Route handler missing: GET");
+      }
+
+      // Mock Brand to ensure it returns data
+      const Brand = (await import("@/server/models/souq/Brand")).default;
+      vi.mocked(Brand.find).mockReturnValue({
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        sort: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockResolvedValue([{ _id: "brand-1", name: "TestBrand" }]),
+      } as any);
+
+      const req = new NextRequest("http://localhost:3000/api/souq/brands");
+      const response = await route.GET(req);
+
+      // Verify response is successful and has cache header
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Cache-Control")).toBe("public, max-age=300, stale-while-revalidate=600");
     });
   });
 });

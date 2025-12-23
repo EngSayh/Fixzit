@@ -135,7 +135,7 @@ export default function HRDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button className="p-4 border border-border rounded-2xl hover:bg-muted text-start transition-colors">
+            <button type="button" className="p-4 border border-border rounded-2xl hover:bg-muted text-start transition-colors">
               <div className="text-2xl mb-2">👤</div>
               <div className="font-semibold">
                 {t("hr.actions.addEmployee", "Add Employee")}
@@ -144,7 +144,7 @@ export default function HRDashboard() {
                 {t("hr.actions.addEmployeeDesc", "Register a new employee")}
               </div>
             </button>
-            <button className="p-4 border border-border rounded-2xl hover:bg-muted text-start transition-colors">
+            <button type="button" className="p-4 border border-border rounded-2xl hover:bg-muted text-start transition-colors">
               <div className="text-2xl mb-2">💰</div>
               <div className="font-semibold">
                 {t("hr.actions.processPayroll", "Process Payroll")}
@@ -153,7 +153,7 @@ export default function HRDashboard() {
                 {t("hr.actions.processPayrollDesc", "Run monthly payroll")}
               </div>
             </button>
-            <button className="p-4 border border-border rounded-2xl hover:bg-muted text-start transition-colors">
+            <button type="button" className="p-4 border border-border rounded-2xl hover:bg-muted text-start transition-colors">
               <div className="text-2xl mb-2">📅</div>
               <div className="font-semibold">
                 {t("hr.actions.approveLeave", "Approve Leave")}

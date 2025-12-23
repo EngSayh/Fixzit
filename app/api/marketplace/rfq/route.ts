@@ -98,7 +98,8 @@ export async function GET(request: NextRequest) {
     // Query with tenant isolation
     const rfqs = await RFQ.find({ orgId: context.orgId })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(50)
+      .lean();
 
     // Secure response
     return createSecureResponse(

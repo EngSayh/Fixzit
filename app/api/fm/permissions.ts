@@ -68,7 +68,7 @@ const resolveOrgContext = async (
 ): Promise<{ plan: Plan; isOrgMember: boolean }> => {
   try {
     await connectDb();
-    const org = await Organization.findOne({ orgId });
+    const org = await Organization.findOne({ orgId }).lean();
     if (!org) {
       return { plan: DEFAULT_PLAN, isOrgMember: false };
     }

@@ -156,13 +156,11 @@ describe("RFQ create/list route guards", () => {
   it("GET lists RFQs scoped by orgId", async () => {
     getSessionUser.mockResolvedValue({ id: "user-1", orgId: "org-1" });
     const items = [{ _id: "rfq-1", orgId: "org-1" }];
-    rfqModelMock.find.mockReturnValue({
-      sort: () => ({
-        skip: () => ({
-          limit: () => items,
-        }),
-      }),
-    });
+    const lean = vi.fn().mockResolvedValue(items);
+    const limit = vi.fn().mockReturnValue({ lean });
+    const skip = vi.fn().mockReturnValue({ limit, lean });
+    const sort = vi.fn().mockReturnValue({ skip, limit, lean });
+    rfqModelMock.find.mockReturnValue({ sort, skip, limit, lean });
     rfqModelMock.countDocuments.mockResolvedValue(1);
     const { GET } = await import("@/app/api/rfqs/route");
     const req = new NextRequest("http://localhost/api/rfqs?page=1&limit=10", { method: "GET" });

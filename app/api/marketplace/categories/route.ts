@@ -16,8 +16,16 @@ import { serializeCategory } from "@/lib/marketplace/serializers";
 
 import { createSecureResponse } from "@/server/security/headers";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import {
+  applyCacheHeaders,
+  createCacheKey,
+  CACHE_DURATIONS,
+} from "@/lib/api/cache-headers";
+import { getCache, setCache } from "@/lib/redis";
+import { isMarketplaceEnabled, isPlaywrightTests } from "@/lib/marketplace/flags";
 
 export const dynamic = "force-dynamic";
+
 /**
  * @openapi
  * /api/marketplace/categories:
@@ -40,7 +48,15 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
-    if (process.env.PLAYWRIGHT_TESTS === "true") {
+    if (!isMarketplaceEnabled()) {
+      return createSecureResponse(
+        { error: "Marketplace is disabled" },
+        501,
+        request,
+      );
+    }
+
+    if (isPlaywrightTests()) {
       const seeded = [
         { _id: "cat-tools", name: "Tools", parentId: undefined },
         { _id: "cat-safety", name: "Safety", parentId: undefined },
@@ -57,6 +73,29 @@ export async function GET(request: NextRequest) {
     }
 
     const context = await resolveMarketplaceContext(request);
+
+    // P125: Check cache first for HIT/MISS observability
+    const cacheKey = createCacheKey('marketplace:categories', { orgId: context.orgId?.toString() });
+    const cached = await getCache<{
+      serialized: unknown[];
+      tree: unknown[];
+    }>(cacheKey);
+
+    if (cached) {
+      // Cache HIT - return cached data with proper status
+      const response = NextResponse.json({
+        ok: true,
+        data: cached.serialized,
+        tree: cached.tree,
+      });
+      return applyCacheHeaders(response, {
+        cacheStatus: 'HIT',
+        maxAge: CACHE_DURATIONS.CATEGORIES,
+        staleWhileRevalidate: 600,
+      });
+    }
+
+    // Cache MISS - fetch from database
     await connectToDatabase();
     const categories = await Category.find({ orgId: context.orgId })
       .sort({ createdAt: 1 })
@@ -96,10 +135,19 @@ export async function GET(request: NextRequest) {
 
     const tree = buildTree(undefined);
 
-    return NextResponse.json({
+    // Store in cache for next request
+    await setCache(cacheKey, { serialized, tree }, CACHE_DURATIONS.CATEGORIES);
+
+    // Return with MISS status (fresh data from DB)
+    const response = NextResponse.json({
       ok: true,
       data: serialized,
       tree,
+    });
+    return applyCacheHeaders(response, {
+      cacheStatus: 'MISS',
+      maxAge: CACHE_DURATIONS.CATEGORIES,
+      staleWhileRevalidate: 600,
     });
   } catch (error) {
     logger.error(

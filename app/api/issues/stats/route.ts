@@ -89,29 +89,29 @@ export async function GET(request: NextRequest) {
       recentlyResolved,
       timeline,
     ] = await Promise.all([
-      // Status breakdown
+      // Status breakdown (AUDIT-2025-12-18: Added maxTimeMS)
       Issue.aggregate([
         { $match: { orgId } },
         { $group: { _id: '$status', count: { $sum: 1 } } },
-      ]),
+      ], { maxTimeMS: 10_000 }),
       
       // Priority breakdown
       Issue.aggregate([
         { $match: { orgId } },
         { $group: { _id: '$priority', count: { $sum: 1 } } },
-      ]),
+      ], { maxTimeMS: 10_000 }),
       
       // Category breakdown
       Issue.aggregate([
         { $match: { orgId } },
         { $group: { _id: '$category', count: { $sum: 1 } } },
-      ]),
+      ], { maxTimeMS: 10_000 }),
       
       // Effort breakdown
       Issue.aggregate([
         { $match: { orgId } },
         { $group: { _id: '$effort', count: { $sum: 1 } } },
-      ]),
+      ], { maxTimeMS: 10_000 }),
       
       // Module breakdown (top 10)
       Issue.aggregate([
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
         { $group: { _id: '$module', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 },
-      ]),
+      ], { maxTimeMS: 10_000 }),
       
       // Top files with open issues
       Issue.aggregate([
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
         { $group: { _id: '$location.filePath', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 },
-      ]),
+      ], { maxTimeMS: 10_000 }),
       
       // Quick wins (XS/S effort, P1/P2 priority, open, not blocked)
       Issue.countDocuments({
@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
           },
         },
         { $sort: { _id: 1 } },
-      ]),
+      ], { maxTimeMS: 10_000 }),
     ]);
     
     // Transform aggregation results to objects

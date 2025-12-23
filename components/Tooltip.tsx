@@ -17,7 +17,7 @@
  * import Tooltip from '@/components/Tooltip';
  * 
  * <Tooltip content="Click to submit">
- *   <button>Submit</button>
+ *   <button type="button">Submit</button>
  * </Tooltip>
  * ```
  */

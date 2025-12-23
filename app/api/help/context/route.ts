@@ -48,7 +48,10 @@ export async function GET(req: NextRequest) {
 
     // ROADMAP: Integrate KnowledgeBase collection for contextual articles
     // Currently returns empty articles array with escalation contact only
-    return NextResponse.json({ articles: [], escalation }, { status: 200 });
+    const response = NextResponse.json({ articles: [], escalation }, { status: 200 });
+    // Cache for 5 minutes - escalation contacts are semi-static
+    response.headers.set("Cache-Control", "private, max-age=300");
+    return response;
   } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

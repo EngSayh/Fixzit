@@ -31,6 +31,8 @@ import { logger } from "@/lib/logger";
 import { EmployeeService } from "@/server/services/hr/employee.service";
 import { hasAllowedRole } from "@/lib/auth/role-guards";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
+import type { EmployeeDoc, EmployeeCompensation, TechnicianProfile } from "@/server/models/hr.models";
 
 // Define session user type with subRole support
 interface SessionUser {
@@ -77,7 +79,14 @@ export async function GET(req: NextRequest) {
     );
     const status = searchParams.get("status");
     const department = searchParams.get("department");
-    const search = searchParams.get("search");
+    const employmentType = searchParams.get("employmentType");
+    const search = searchParams.get("search") || searchParams.get("q");
+    const joiningDateDays = Number.parseInt(
+      searchParams.get("joiningDateDays") || "",
+      10,
+    );
+    const joiningFrom = searchParams.get("joiningFrom");
+    const joiningTo = searchParams.get("joiningTo");
     const includePiiRequested = searchParams.get("includePii") === "true";
 
     if (department && !Types.ObjectId.isValid(department)) {
@@ -96,6 +105,24 @@ export async function GET(req: NextRequest) {
       includePiiRequested &&
       hasAllowedRole(user.role, user.subRole, piiAllowedRoles);
     
+    const allowedEmploymentTypes = new Set<EmployeeDoc["employmentType"]>([
+      "FULL_TIME",
+      "PART_TIME",
+      "CONTRACTOR",
+      "TEMPORARY",
+    ]);
+
+    const toEmploymentType = (
+      value: string | null,
+    ): EmployeeDoc["employmentType"] | undefined => {
+      if (!value) return undefined;
+      return allowedEmploymentTypes.has(
+        value as EmployeeDoc["employmentType"],
+      )
+        ? (value as EmployeeDoc["employmentType"])
+        : undefined;
+    };
+
     const {
       items,
       total,
@@ -115,8 +142,32 @@ export async function GET(req: NextRequest) {
             ? (status as "ACTIVE" | "INACTIVE" | "ON_LEAVE" | "TERMINATED")
             : undefined;
         })(),
+        employmentType: toEmploymentType(employmentType),
         departmentId: department || undefined,
         text: search || undefined,
+        hireDateFrom: (() => {
+          const now = new Date();
+          if (!Number.isNaN(joiningDateDays) && joiningDateDays > 0) {
+            const from = new Date(now);
+            from.setDate(from.getDate() - joiningDateDays);
+            return from;
+          }
+          if (joiningFrom) {
+            const parsed = new Date(joiningFrom);
+            if (!Number.isNaN(parsed.getTime())) return parsed;
+          }
+          return undefined;
+        })(),
+        hireDateTo: (() => {
+          if (!Number.isNaN(joiningDateDays) && joiningDateDays > 0) {
+            return new Date(); // up to now
+          }
+          if (joiningTo) {
+            const parsed = new Date(joiningTo);
+            if (!Number.isNaN(parsed.getTime())) return parsed;
+          }
+          return undefined;
+        })(),
       },
       { page, limit, includePii },
     );
@@ -178,7 +229,27 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    const body = await req.json();
+    const { data: body, error: parseError } = await parseBodySafe<{
+      employeeCode?: string;
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phone?: string;
+      jobTitle?: string;
+      departmentId?: string;
+      managerId?: string;
+      employmentType?: string;
+      employmentStatus?: string;
+      hireDate?: string;
+      technicianProfile?: TechnicianProfile;
+      compensation?: EmployeeCompensation;
+      bankDetails?: Record<string, unknown>;
+    }>(req, {
+      logPrefix: "[HR Employees]",
+    });
+    if (parseError || !body) {
+      return NextResponse.json({ error: parseError || "Invalid body" }, { status: 400 });
+    }
 
     // Validate required fields
     if (
@@ -225,21 +296,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // body is guaranteed non-null after validation checks above
     const employee = await EmployeeService.upsert({
       orgId: session.user.orgId,
-      employeeCode: body.employeeCode,
-      firstName: body.firstName,
-      lastName: body.lastName,
-      email: body.email,
+      employeeCode: body.employeeCode as string,
+      firstName: body.firstName as string,
+      lastName: body.lastName as string,
+      email: body.email as string,
       phone: body.phone,
-      jobTitle: body.jobTitle,
+      jobTitle: body.jobTitle as string,
       departmentId: body.departmentId,
       managerId: body.managerId,
-      employmentType: body.employmentType || "FULL_TIME",
-      employmentStatus: body.employmentStatus || "ACTIVE",
-      hireDate: new Date(body.hireDate),
-      technicianProfile: body.technicianProfile,
-      compensation: body.compensation,
+      employmentType: (body.employmentType || "FULL_TIME") as "FULL_TIME" | "PART_TIME" | "CONTRACTOR" | "TEMPORARY",
+      employmentStatus: (body.employmentStatus || "ACTIVE") as "ACTIVE" | "ON_LEAVE" | "INACTIVE" | "TERMINATED",
+      hireDate: new Date(body.hireDate as string),
+      technicianProfile: body.technicianProfile as Parameters<typeof EmployeeService.upsert>[0]["technicianProfile"],
+      compensation: body.compensation as Parameters<typeof EmployeeService.upsert>[0]["compensation"],
       bankDetails: body.bankDetails,
     });
 

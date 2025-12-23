@@ -36,6 +36,7 @@ import { AttendanceService } from "@/server/services/hr/attendance.service";
 import type { AttendanceStatus } from "@/server/models/hr.models";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { hasAllowedRole } from "@/lib/auth/role-guards";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 // 🔒 STRICT v4.1: Attendance requires HR, HR Officer, or Admin role
 const HR_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
@@ -114,8 +115,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const required = ["employeeId", "date", "status"];
+    const { data: body, error: parseError } = await parseBodySafe<{
+      employeeId: string;
+      date: string;
+      status: string;
+      shiftTemplateId?: string;
+      clockIn?: string;
+      clockOut?: string;
+      source?: string;
+      notes?: string;
+    }>(req, {
+      logPrefix: "[HR Attendance]",
+    });
+    if (parseError || !body) {
+      return NextResponse.json({ error: parseError || "Invalid body" }, { status: 400 });
+    }
+    const required = ["employeeId", "date", "status"] as const;
     const missing = required.filter((field) => !body[field]);
     if (missing.length) {
       return NextResponse.json(
@@ -134,7 +149,7 @@ export async function POST(req: NextRequest) {
       shiftTemplateId: body.shiftTemplateId,
       clockIn: body.clockIn ? new Date(body.clockIn) : undefined,
       clockOut: body.clockOut ? new Date(body.clockOut) : undefined,
-      source: body.source,
+      source: body.source as "MANUAL" | "IMPORT" | "BIOMETRIC" | undefined,
       notes: body.notes,
     });
 

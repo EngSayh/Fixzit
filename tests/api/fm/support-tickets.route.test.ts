@@ -10,12 +10,28 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
 
-// Mock FM auth
-vi.mock("@/app/api/fm/utils/fm-auth", () => ({
-  requireFmAbility: vi.fn().mockResolvedValue({
-    user: { id: "user-123", orgId: "org-123" },
-    allowed: true,
+// Mock FM auth/permissions
+vi.mock("@/app/api/fm/permissions", () => ({
+  requireFmPermission: vi.fn().mockResolvedValue({
+    userId: "user-123",
+    orgId: "org-123",
+    tenantId: "org-123",
+    isSuperAdmin: false,
   }),
+}));
+
+const mockBuildTenantFilter = vi.fn();
+
+vi.mock("@/app/api/fm/utils/tenant", () => ({
+  resolveTenantId: vi.fn((_req: unknown, tenantId: string) => ({ tenantId })),
+  buildTenantFilter: (...args: unknown[]) => mockBuildTenantFilter(...args),
+  isCrossTenantMode: vi.fn().mockReturnValue(false),
+}));
+
+vi.mock("@/app/api/fm/errors", () => ({
+  FMErrors: {
+    internalError: () => new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 }),
+  },
 }));
 
 // Mock database
@@ -56,15 +72,16 @@ const importRoute = async () => {
 describe("API /api/fm/support/tickets", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
+    mockBuildTenantFilter.mockReturnValue({ orgId: "org-123" });
   });
 
   describe("GET - List Support Tickets", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 }) as never);
@@ -78,8 +95,7 @@ describe("API /api/fm/support/tickets", () => {
     it("returns tickets for authenticated user", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       const req = new NextRequest("http://localhost:3000/api/fm/support/tickets");
@@ -93,8 +109,7 @@ describe("API /api/fm/support/tickets", () => {
     it("creates ticket for authenticated user", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       const req = new NextRequest("http://localhost:3000/api/fm/support/tickets", {

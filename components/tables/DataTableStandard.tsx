@@ -27,6 +27,11 @@ export interface BulkAction<T> {
   onAction: (selectedRows: T[]) => void | Promise<void>;
 }
 
+export interface SummaryCell {
+  columnId: string;
+  value: React.ReactNode;
+}
+
 export interface DataTableStandardProps<T> {
   columns: DataTableColumn<T>[];
   data: T[];
@@ -39,10 +44,22 @@ export interface DataTableStandardProps<T> {
   selectable?: boolean;
   /** Bulk actions to show when rows are selected */
   bulkActions?: BulkAction<T>[];
-  /** Callback when selection changes */
-  onSelectionChange?: (selectedRows: T[]) => void;
+  /** Controlled selection state (Set of row IDs) */
+  selectedRows?: Set<string>;
+  /** Callback when selection changes - receives Set<string> in controlled mode */
+  onSelectionChange?: (selectedKeys: Set<string>) => void;
   /** Key extractor for unique row identification (defaults to 'id') */
   rowKey?: keyof T | ((row: T) => string);
+  /** Alternative key extractor function */
+  getRowId?: (row: T) => string;
+  /** Group rows by a key function */
+  groupBy?: (row: T) => string;
+  /** Render group header row */
+  renderGroupHeader?: (groupKey: string, rows: T[]) => React.ReactNode;
+  /** Render group summary row */
+  renderGroupSummaryRow?: (groupKey: string, rows: T[]) => SummaryCell[];
+  /** Render overall summary row at the bottom */
+  renderSummaryRow?: (allRows: T[]) => SummaryCell[];
 }
 
 /**
@@ -60,30 +77,50 @@ export function DataTableStandard<T extends Record<string, unknown>>({
   density = "comfortable",
   selectable = false,
   bulkActions = [],
+  selectedRows: controlledSelectedRows,
   onSelectionChange,
   rowKey = "id" as keyof T,
+  getRowId,
+  groupBy,
+  renderGroupHeader,
+  renderGroupSummaryRow,
+  renderSummaryRow,
 }: DataTableStandardProps<T>) {
-  const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(new Set());
+  // Internal state for uncontrolled mode
+  const [uncontrolledSelectedKeys, setUncontrolledSelectedKeys] = React.useState<Set<string>>(new Set());
+  
+  // Use controlled or uncontrolled selection
+  const isControlled = controlledSelectedRows !== undefined;
+  const selectedKeys = isControlled ? controlledSelectedRows : uncontrolledSelectedKeys;
 
-  // Extract unique key from row
+  // Extract unique key from row - prefer getRowId over rowKey
   const getRowKey = React.useCallback((row: T): string => {
+    if (getRowId) return getRowId(row);
     if (typeof rowKey === "function") return rowKey(row);
     return String(row[rowKey] ?? "");
-  }, [rowKey]);
+  }, [getRowId, rowKey]);
 
-  // Get selected rows
-  const selectedRows = React.useMemo(() => {
+  // Get selected rows as objects
+  const selectedRowObjects = React.useMemo(() => {
     return data.filter((row) => selectedKeys.has(getRowKey(row)));
   }, [data, selectedKeys, getRowKey]);
 
   // Handle selection change
   const handleSelectionChange = React.useCallback((keys: Set<string>) => {
-    setSelectedKeys(keys);
-    if (onSelectionChange) {
-      const rows = data.filter((row) => keys.has(getRowKey(row)));
-      onSelectionChange(rows);
+    if (!isControlled) {
+      setUncontrolledSelectedKeys(keys);
     }
-  }, [data, getRowKey, onSelectionChange]);
+    if (onSelectionChange) {
+      // In controlled mode (selectedRows prop provided), callback receives Set<string>
+      // In uncontrolled mode, callback receives T[] for backwards compatibility
+      if (isControlled) {
+        onSelectionChange(keys as unknown as Set<string>);
+      } else {
+        const rows = data.filter((row) => keys.has(getRowKey(row)));
+        onSelectionChange(rows as unknown as Set<string>);
+      }
+    }
+  }, [isControlled, onSelectionChange, data, getRowKey]);
 
   // Toggle single row
   const toggleRow = React.useCallback((row: T) => {
@@ -111,6 +148,29 @@ export function DataTableStandard<T extends Record<string, unknown>>({
     handleSelectionChange(new Set());
   }, [handleSelectionChange]);
 
+  // Group data if groupBy is provided
+  const groupedData = React.useMemo(() => {
+    if (!groupBy) return null;
+    const groups = new Map<string, T[]>();
+    for (const row of data) {
+      const key = groupBy(row);
+      const existing = groups.get(key) || [];
+      existing.push(row);
+      groups.set(key, existing);
+    }
+    return groups;
+  }, [data, groupBy]);
+
+  // Helper to render a summary row
+  const renderSummaryCells = (cells: SummaryCell[]) => {
+    const cellMap = new Map(cells.map(c => [c.columnId, c.value]));
+    return columns.map((column) => (
+      <TableCell key={column.id} className={`${column.className || ""} font-semibold bg-gray-50`}>
+        {cellMap.get(column.id) ?? ""}
+      </TableCell>
+    ));
+  };
+
   if (loading) {
     return <TableSkeleton rows={6} />;
   }
@@ -125,10 +185,10 @@ export function DataTableStandard<T extends Record<string, unknown>>({
   return (
     <div className="space-y-2">
       {/* Bulk Actions Toolbar */}
-      {selectable && selectedRows.length > 0 && bulkActions.length > 0 && (
+      {selectable && selectedRowObjects.length > 0 && bulkActions.length > 0 && (
         <div className="flex items-center gap-2 rounded-md bg-muted p-2">
           <span className="text-sm text-muted-foreground">
-            {selectedRows.length} selected
+            {selectedRowObjects.length} selected
           </span>
           <div className="flex gap-1">
             {bulkActions.map((action) => (
@@ -141,7 +201,7 @@ export function DataTableStandard<T extends Record<string, unknown>>({
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
                 }`}
                 onClick={async () => {
-                  await action.onAction(selectedRows);
+                  await action.onAction(selectedRowObjects);
                   clearSelection();
                 }}
               >
@@ -170,7 +230,7 @@ export function DataTableStandard<T extends Record<string, unknown>>({
                   checked={allSelected}
                   indeterminate={someSelected}
                   onCheckedChange={toggleAll}
-                  aria-label="Select all rows"
+                  aria-label={allSelected ? "Deselect all rows" : "Select all rows"}
                 />
               </TableHead>
             )}
@@ -182,37 +242,102 @@ export function DataTableStandard<T extends Record<string, unknown>>({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((row, idx) => {
-            const key = getRowKey(row) || String(idx);
-            const isSelected = selectedKeys.has(key);
-            return (
-              <TableRow
-                key={key}
-                className={`${onRowClick ? "cursor-pointer" : ""} ${density === "compact" ? "[&>td]:py-2 [&>th]:py-2" : "[&>td]:py-3 [&>th]:py-3"} ${isSelected ? "bg-muted/50" : ""}`}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-              >
-                {selectable && (
-                  <TableCell className="w-12" onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleRow(row)}
-                      aria-label={`Select row ${key}`}
-                    />
-                  </TableCell>
-                )}
-                {columns.map((column) => {
-                  const value =
-                    column.cell?.(row) ??
-                    (column.accessor ? (row[column.accessor] as React.ReactNode) : null);
-                  return (
-                    <TableCell key={column.id} className={column.className}>
-                      {value}
+          {groupedData ? (
+            // Render grouped data
+            Array.from(groupedData.entries()).map(([groupKey, groupRows]) => (
+              <React.Fragment key={groupKey}>
+                {/* Group Header Row */}
+                {renderGroupHeader && (
+                  <TableRow className="bg-gray-100 font-semibold">
+                    <TableCell colSpan={columns.length + (selectable ? 1 : 0)}>
+                      {renderGroupHeader(groupKey, groupRows)}
                     </TableCell>
+                  </TableRow>
+                )}
+                {/* Group Rows */}
+                {groupRows.map((row, idx) => {
+                  const key = getRowKey(row) || `${groupKey}-${idx}`;
+                  const isSelected = selectedKeys.has(key);
+                  return (
+                    <TableRow
+                      key={key}
+                      data-selected={isSelected ? "true" : undefined}
+                      className={`${onRowClick ? "cursor-pointer" : ""} ${density === "compact" ? "[&>td]:py-2 [&>th]:py-2" : "[&>td]:py-3 [&>th]:py-3"} ${isSelected ? "bg-accent/50" : ""}`}
+                      onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    >
+                      {selectable && (
+                        <TableCell className="w-12" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleRow(row)}
+                            aria-label={`Select row ${key}`}
+                          />
+                        </TableCell>
+                      )}
+                      {columns.map((column) => {
+                        const value =
+                          column.cell?.(row) ??
+                          (column.accessor ? (row[column.accessor] as React.ReactNode) : null);
+                        return (
+                          <TableCell key={column.id} className={column.className}>
+                            {value}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
                   );
                 })}
-              </TableRow>
-            );
-          })}
+                {/* Group Summary Row */}
+                {renderGroupSummaryRow && (
+                  <TableRow className="bg-gray-50">
+                    {selectable && <TableCell className="w-12" />}
+                    {renderSummaryCells(renderGroupSummaryRow(groupKey, groupRows))}
+                  </TableRow>
+                )}
+              </React.Fragment>
+            ))
+          ) : (
+            // Render flat data
+            data.map((row, idx) => {
+              const key = getRowKey(row) || String(idx);
+              const isSelected = selectedKeys.has(key);
+              return (
+                <TableRow
+                  key={key}
+                  data-selected={isSelected ? "true" : undefined}
+                  className={`${onRowClick ? "cursor-pointer" : ""} ${density === "compact" ? "[&>td]:py-2 [&>th]:py-2" : "[&>td]:py-3 [&>th]:py-3"} ${isSelected ? "bg-accent/50" : ""}`}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                >
+                  {selectable && (
+                    <TableCell className="w-12" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleRow(row)}
+                        aria-label={`Select row ${key}`}
+                      />
+                    </TableCell>
+                  )}
+                  {columns.map((column) => {
+                    const value =
+                      column.cell?.(row) ??
+                      (column.accessor ? (row[column.accessor] as React.ReactNode) : null);
+                    return (
+                      <TableCell key={column.id} className={column.className}>
+                        {value}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              );
+            })
+          )}
+          {/* Overall Summary Row */}
+          {renderSummaryRow && (
+            <TableRow className="bg-gray-100 font-bold">
+              {selectable && <TableCell className="w-12" />}
+              {renderSummaryCells(renderSummaryRow(data))}
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>

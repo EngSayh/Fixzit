@@ -34,12 +34,13 @@ interface CustomerInsightsCardProps {
   isLoading?: boolean;
 }
 
+// Chart colors - using CSS variables with fallbacks
 const COLORS = [
-  "var(--color-status-info, #0088FE)",
-  "var(--color-status-active, #00C49F)",
-  "var(--color-status-pending, #FFBB28)",
-  "var(--color-danger, #FF8042)",
-  "var(--color-brand-secondary, #8884D8)"
+  "var(--color-chart-blue, #0088FE)",
+  "var(--color-chart-teal, #00C49F)",
+  "var(--color-chart-yellow, #FFBB28)",
+  "var(--color-chart-orange, #FF8042)",
+  "var(--color-chart-purple, #8884D8)",
 ];
 
 export function CustomerInsightsCard({
@@ -199,7 +200,7 @@ export function CustomerInsightsCard({
                       `${name} ${((percent || 0) * 100).toFixed(0)}%`
                     }
                     outerRadius={80}
-                    fill="#8884d8"
+                    fill="var(--color-chart-primary, #8884d8)"
                     dataKey="value"
                   >
                     {geographyData.map((entry, index) => (
@@ -257,7 +258,7 @@ export function CustomerInsightsCard({
                     `${name} ${((percent || 0) * 100).toFixed(0)}%`
                   }
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill="var(--color-chart-primary, #8884d8)"
                   dataKey="value"
                 >
                   {demographicsData.map((entry, index) => (

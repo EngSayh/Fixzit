@@ -64,7 +64,8 @@ vi.mock("next/server", () => {
 
 describe("POST /api/aqar/packages", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+
+    vi.clearAllMocks();
     enforceRateLimitMock.mockReturnValue(null);
     connectDbMock.mockResolvedValue(undefined);
     getSessionUserMock.mockResolvedValue({ id: "user1", orgId: "org1" });

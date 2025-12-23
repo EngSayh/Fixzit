@@ -138,7 +138,7 @@ export default function DashboardPage() {
                     {t("dashboard.tenant", "Tenant")}: Acme Corp
                   </p>
                 </div>
-                <p className="font-semibold text-primary">
+                <p className="font-semibold text-[var(--color-brand-primary)]">
                   +SAR {(15000 + i * 1000).toLocaleString()}
                 </p>
               </div>

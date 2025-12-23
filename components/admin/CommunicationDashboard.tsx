@@ -548,7 +548,7 @@ export default function CommunicationDashboard({
               <h3 className="text-xl font-bold text-foreground">
                 {t("communications.details.title", "Communication Details")}
               </h3>
-              <button
+              <button type="button"
                 onClick={() => setSelectedLog(null)}
                 className="text-muted-foreground hover:text-foreground"
               >

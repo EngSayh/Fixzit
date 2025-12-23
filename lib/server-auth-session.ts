@@ -2,6 +2,10 @@
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import type { AuthSession, ExtendedUser } from "@/types/auth-session";
+import {
+  setSuperAdminTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
 
 /**
  * @module lib/server-auth-session
@@ -55,6 +59,14 @@ export async function getServerAuthSession(): Promise<AuthSession | null> {
   }
   if (!user.tenantId && user.role !== "SUPER_ADMIN") {
     logger.warn(`[Auth] User ${user.id} missing tenantId (role: ${user.role})`);
+  }
+
+  if (user.orgId) {
+    if (user.isSuperAdmin) {
+      setSuperAdminTenantContext(String(user.orgId), user.id);
+    } else {
+      setTenantContext({ orgId: user.orgId, userId: user.id });
+    }
   }
 
   return {

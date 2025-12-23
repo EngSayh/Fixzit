@@ -5,12 +5,14 @@ import { MapPin, Home, Users, Wrench } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { Config } from "@/lib/config/constants";
 
 export default function PropertyDetailPage() {
   const params = useParams();
   const propertyId = params?.id?.toString() ?? "";
   const { isRTL } = useTranslation();
   const auto = useAutoTranslator("properties.detail");
+  const googleMapsApiKey = Config.external.googleMapsApiKey;
 
   const [property] = useState({
     id: propertyId,
@@ -46,9 +48,9 @@ export default function PropertyDetailPage() {
 
   useEffect(() => {
     // Load Google Maps
-    if (!window.google) {
+    if (!window.google && googleMapsApiKey) {
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&callback=initMap`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&callback=initMap`;
       script.async = true;
       window.initMap = initializeMap;
       document.head.appendChild(script);
@@ -62,10 +64,10 @@ export default function PropertyDetailPage() {
         // Clean up the global callback
         delete (window as { initMap?: unknown }).initMap;
       };
-    } else {
+    } else if (window.google) {
       initializeMap();
     }
-  }, [initializeMap]);
+  }, [googleMapsApiKey, initializeMap]);
 
   return (
     <div className={`min-h-screen bg-muted ${isRTL ? "rtl" : "ltr"}`}>
@@ -159,13 +161,13 @@ export default function PropertyDetailPage() {
           <div
             className={`p-6 border-t bg-muted flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
           >
-            <button className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors">
+            <button type="button" className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors">
               {auto("View Units", "actions.viewUnits")}
             </button>
-            <button className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success-dark transition-colors">
+            <button type="button" className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success-dark transition-colors">
               {auto("Create Work Order", "actions.createWorkOrder")}
             </button>
-            <button className="px-4 py-2 border border-border rounded-2xl hover:bg-muted transition-colors">
+            <button type="button" className="px-4 py-2 border border-border rounded-2xl hover:bg-muted transition-colors">
               {auto("View Reports", "actions.viewReports")}
             </button>
           </div>

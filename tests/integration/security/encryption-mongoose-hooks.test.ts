@@ -14,7 +14,7 @@
  * @module tests/integration/security/encryption-mongoose-hooks.test.ts
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import mongoose, { Schema, Document, Model, Connection } from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { encryptionPlugin } from "@/server/plugins/encryptionPlugin";
@@ -94,6 +94,7 @@ describe("Encryption Plugin Mongoose Hooks (TEST-003)", () => {
   });
 
   beforeEach(async () => {
+    vi.clearAllMocks();
     // Clear collection before each test
     await TestPerson.deleteMany({});
   });

@@ -499,7 +499,7 @@ In `.vscode/snippets/issue.code-snippets`:
   "Log Bug Comment": {
     "prefix": "//bug",
     "body": [
-      "// TODO: BUG - $1",
+      "// ISSUE-BUG-000: $1",
       "// File: ${TM_FILENAME}:${TM_LINE_NUMBER}",
       "// Action: $2"
     ]
@@ -515,7 +515,7 @@ In `.vscode/snippets/issue.code-snippets`:
 - [ ] Jira integration
 - [ ] Slack notifications
 - [ ] VSCode extension
-- [ ] Auto-detection from TODO comments
+- [ ] Auto-detection from ISSUE-tagged comments
 - [ ] Sprint planning view
 - [ ] Burndown charts
 - [ ] Export to CSV/Excel

@@ -58,6 +58,7 @@ export interface ReviewFilters {
   page?: number;
   limit?: number;
   status?: "pending" | "published" | "rejected" | "flagged";
+  customerId?: string;
 }
 
 export interface PaginatedReviews {
@@ -66,6 +67,16 @@ export interface PaginatedReviews {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+export interface ReviewListResult {
+  reviews: IReview[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }
 
 // 🚀 PERF: Lean review type for read-only queries (better performance)
@@ -464,6 +475,59 @@ class ReviewService {
 
     await review.save();
     return review;
+  }
+
+  /**
+   * List reviews for a customer (their own reviews)
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  async listReviews(
+    orgId: string,
+    filters: ReviewFilters = {},
+  ): Promise<ReviewListResult> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error("orgId is required for listReviews (STRICT v4.1 tenant isolation)");
+    }
+    const orgFilter = getOrgFilter(orgId);
+
+    const {
+      customerId,
+      rating,
+      verifiedOnly,
+      status,
+      page = 1,
+      limit = 20,
+    } = filters;
+
+    // Build query - 🔐 STRICT v4.1: Include org filter for tenant isolation
+    const query: FilterQuery<IReview> = {
+      ...orgFilter,
+    };
+
+    if (customerId) query.customerId = this.ensureObjectId(customerId, "customerId");
+    if (rating) query.rating = rating;
+    if (verifiedOnly) query.isVerifiedPurchase = true;
+    if (status) query.status = status;
+
+    // Execute query with pagination
+    const safeLimit = Math.min(limit ?? 20, MAX_PAGE_LIMIT);
+    const currentPage = Math.max(page ?? 1, 1);
+    const skip = (currentPage - 1) * safeLimit;
+    const [reviews, total] = await Promise.all([
+      SouqReview.find(query).sort({ createdAt: -1 }).skip(skip).limit(safeLimit).lean(),
+      SouqReview.countDocuments(query),
+    ]);
+
+    return {
+      reviews: reviews as unknown as IReview[],
+      pagination: {
+        total,
+        page: currentPage,
+        limit: safeLimit,
+        pages: Math.ceil(total / safeLimit),
+      },
+    };
   }
 
   /**

@@ -156,7 +156,7 @@ export default function FinanceDashboard() {
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b">
         {tabs.map((tab) => (
-          <button
+          <button type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(

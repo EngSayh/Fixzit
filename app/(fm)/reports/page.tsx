@@ -186,7 +186,7 @@ export default function Reports() {
                           )}
                           <Link
                             href="#"
-                            className="text-[13px] text-primary hover:underline"
+                            className="text-[13px] text-[var(--color-brand-primary)] hover:underline"
                           >
                             {t("reports.actions.view", "View")}
                           </Link>

@@ -343,7 +343,7 @@ function FilterBar({ filters, onFilterChange }: {
         className="rounded border-gray-300 text-sm flex-1 min-w-[200px]"
       />
       
-      <button
+      <button type="button"
         onClick={() => onFilterChange('quickWins', filters.quickWins === 'true' ? '' : 'true')}
         className={`px-3 py-1 rounded text-sm ${
           filters.quickWins === 'true' 
@@ -354,7 +354,7 @@ function FilterBar({ filters, onFilterChange }: {
         🎯 Quick Wins
       </button>
       
-      <button
+      <button type="button"
         onClick={() => onFilterChange('stale', filters.stale === 'true' ? '' : 'true')}
         className={`px-3 py-1 rounded text-sm ${
           filters.stale === 'true' 
@@ -457,13 +457,13 @@ export default function IssueTrackerDashboard() {
             <p className="text-gray-600">Monitor and manage development issues</p>
           </div>
           <div className="flex gap-2">
-            <button
+            <button type="button"
               onClick={() => setShowImportModal(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
             >
               📥 Import Issues
             </button>
-            <button
+            <button type="button"
               onClick={() => router.push('/dashboard/issues/new')}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
             >
@@ -593,7 +593,7 @@ export default function IssueTrackerDashboard() {
             Showing {issues.length} of {pagination.total} issues
           </div>
           <div className="flex gap-2">
-            <button
+            <button type="button"
               onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}
               disabled={pagination.page === 1}
               className="px-3 py-1 rounded border disabled:opacity-50"
@@ -603,7 +603,7 @@ export default function IssueTrackerDashboard() {
             <span className="px-3 py-1">
               Page {pagination.page} of {pagination.totalPages}
             </span>
-            <button
+            <button type="button"
               onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
               disabled={pagination.page >= pagination.totalPages}
               className="px-3 py-1 rounded border disabled:opacity-50"
@@ -697,7 +697,7 @@ function ImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-4 border-b flex items-center justify-between">
           <h2 className="text-lg font-semibold">📥 Import from PENDING_MASTER.md</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+          <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
         </div>
         
         <div className="p-4 flex-1 overflow-auto">
@@ -740,13 +740,13 @@ function ImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
         </div>
         
         <div className="p-4 border-t bg-gray-50 flex justify-end gap-2">
-          <button
+          <button type="button"
             onClick={onClose}
             className="px-4 py-2 border rounded-lg hover:bg-gray-100"
           >
             Cancel
           </button>
-          <button
+          <button type="button"
             onClick={handlePreview}
             disabled={loading || !content.trim()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
@@ -754,7 +754,7 @@ function ImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
             {loading ? 'Processing...' : 'Preview'}
           </button>
           {preview && (
-            <button
+            <button type="button"
               onClick={handleImport}
               disabled={loading}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"

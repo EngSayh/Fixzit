@@ -558,6 +558,7 @@ export class RefundProcessor {
       currency: 'SAR',
       reason: refund.reason,
       metadata: {
+        organizationId: refund.orgId,
         claimId: refund.claimId,
         orderId: refund.orderId,
         buyerId: refund.buyerId,
@@ -1257,4 +1258,3 @@ export class RefundProcessor {
     );
   }
 }
-

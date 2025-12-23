@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { NextRequest } from "next/server";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 const jsonMock = vi.fn();
 const searchProductsMock = vi.fn();
@@ -80,7 +81,9 @@ vi.mock("@/server/utils/errorResponses", () => ({
 
 describe("GET /api/marketplace/search", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+
+    vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     resolveMarketplaceContextMock.mockResolvedValue({
       orgId: "org-1",
       tenantKey: "tenant-1",

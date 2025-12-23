@@ -38,13 +38,13 @@ export function SaveConfirmation({
         <p className="text-gray-600 dark:text-gray-400 mb-6">{message}</p>
         <div className="flex gap-3">
           {/* 🟩 FIXED: Use theme-agnostic class names */}
-          <button
+          <button type="button"
             onClick={onConfirm}
             className="flex-1 bg-success text-success-foreground px-4 py-2 rounded-md hover:bg-success/90 transition-colors"
           >
             {confirmText}
           </button>
-          <button
+          <button type="button"
             onClick={onCancel}
             className="flex-1 bg-muted text-muted-foreground px-4 py-2 rounded-md hover:bg-muted/80 transition-colors"
           >

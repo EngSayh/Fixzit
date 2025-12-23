@@ -21,6 +21,7 @@ import Journal from "@/server/models/finance/Journal";
 import postingService from "@/server/services/finance/postingService";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 import { Types } from "mongoose";
 import { z } from "zod";
@@ -132,8 +133,13 @@ export async function POST(req: NextRequest) {
     requirePermission(user.role, "finance.journals.create");
 
     // Parse and validate request body
-    const body = await req.json();
-    const validated = CreateJournalSchema.parse(body);
+    const { data: rawBody, error: parseError } = await parseBodySafe(req, {
+      logPrefix: "[POST /api/finance/journals]",
+    });
+    if (parseError) {
+      return NextResponse.json({ error: parseError }, { status: 400 });
+    }
+    const validated = CreateJournalSchema.parse(rawBody);
 
     // Execute with proper context
     return await runWithContext(

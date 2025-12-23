@@ -32,6 +32,7 @@ import { logger } from "@/lib/logger";
 import { LeaveTypeService } from "@/server/services/hr/leave-type.service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { hasAllowedRole } from "@/lib/auth/role-guards";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
 const HR_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
@@ -99,7 +100,18 @@ export async function POST(req: NextRequest) {
     }
 
     await connectToDatabase();
-    const body = await req.json();
+    const { data: body, error: parseError } = await parseBodySafe<{
+      code?: string;
+      name?: string;
+      description?: string;
+      isPaid?: boolean;
+      annualEntitlementDays?: number;
+    }>(req, {
+      logPrefix: "[HR LeaveTypes]",
+    });
+    if (parseError) {
+      return NextResponse.json({ error: parseError }, { status: 400 });
+    }
     if (!body?.code || !body?.name) {
       return NextResponse.json(
         { error: "code and name are required" },

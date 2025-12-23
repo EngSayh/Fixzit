@@ -12,8 +12,11 @@ export interface EmployeeSearchFilters {
   orgId: string;
   departmentId?: string;
   employmentStatus?: EmployeeDoc["employmentStatus"];
+  employmentType?: EmployeeDoc["employmentType"];
   skills?: string[];
   text?: string;
+  hireDateFrom?: Date;
+  hireDateTo?: Date;
 }
 
 export interface EmployeeSearchOptions {
@@ -66,6 +69,9 @@ export class EmployeeService {
         query.departmentId = new Types.ObjectId(filters.departmentId);
       }
     }
+    if (filters.employmentType) {
+      query.employmentType = filters.employmentType;
+    }
     if (filters.employmentStatus)
       query.employmentStatus = filters.employmentStatus;
     if (filters.skills?.length) {
@@ -80,6 +86,11 @@ export class EmployeeService {
         { email: new RegExp(escapedText, "i") },
         { employeeCode: new RegExp(escapedText, "i") },
       ];
+    }
+    if (filters.hireDateFrom || filters.hireDateTo) {
+      query.hireDate = {};
+      if (filters.hireDateFrom) query.hireDate.$gte = filters.hireDateFrom;
+      if (filters.hireDateTo) query.hireDate.$lte = filters.hireDateTo;
     }
     return query;
   }

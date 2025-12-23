@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       // Stale issues (> 7 days)
       Issue.getStaleIssues(orgId, 7),
       
-      // Category breakdown
+      // Category breakdown (AUDIT-2025-12-18: Added maxTimeMS)
       Issue.aggregate([
         { $match: { orgId, status: { $ne: 'closed' } } },
         {
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
           },
         },
         { $sort: { count: -1 } },
-      ]),
+      ], { maxTimeMS: 10_000 }),
       
       // Module breakdown
       Issue.aggregate([
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
           },
         },
         { $sort: { count: -1 } },
-      ]),
+      ], { maxTimeMS: 10_000 }),
       
       // Recent activity (last 7 days)
       Issue.aggregate([
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
           },
         },
         { $sort: { _id: 1 } },
-      ]),
+      ], { maxTimeMS: 10_000 }),
       
       // Resolution trend (last 30 days)
       Issue.aggregate([
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
           },
         },
         { $sort: { _id: 1 } },
-      ]),
+      ], { maxTimeMS: 10_000 }),
     ]);
     
     // Calculate derived metrics
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-    ]);
+    ], { maxTimeMS: 10_000 });
     
     // Blocked items count
     const blockedCount = await Issue.countDocuments({
@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
         },
       },
       { $sort: { count: -1 } },
-    ]);
+    ], { maxTimeMS: 10_000 });
     
     // Assignee workload
     const assigneeWorkload = await Issue.aggregate([
@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
       },
       { $sort: { total: -1 } },
       { $limit: 10 },
-    ]);
+    ], { maxTimeMS: 10_000 });
     
     return NextResponse.json({
       success: true,

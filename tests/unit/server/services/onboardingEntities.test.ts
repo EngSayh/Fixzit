@@ -119,6 +119,8 @@ describe('onboardingEntities', () => {
 
     it('should handle VENDOR role correctly', async () => {
       const { createEntitiesFromCase } = await import('@/server/services/onboardingEntities');
+      const { SupportTicket } = await import('@/server/models/SupportTicket');
+      const { setTenantContext } = await import('@/server/plugins/tenantIsolation');
 
       const mockCase = {
         _id: { toString: () => 'case123' },
@@ -131,18 +133,15 @@ describe('onboardingEntities', () => {
         created_by_id: { toString: () => 'user123' },
       };
 
-      try {
-        await createEntitiesFromCase(mockCase as any);
-      } catch (e) {
-        // Expected
-      }
-
-      // Verify no errors thrown for valid input
-      expect(true).toBe(true);
+      await expect(createEntitiesFromCase(mockCase as any)).resolves.toBeUndefined();
+      expect(setTenantContext).toHaveBeenCalledWith({ orgId: mockCase.orgId });
+      expect(SupportTicket.create).toHaveBeenCalled();
     });
 
     it('should handle AGENT role correctly', async () => {
       const { createEntitiesFromCase } = await import('@/server/services/onboardingEntities');
+      const { SupportTicket } = await import('@/server/models/SupportTicket');
+      const { setTenantContext } = await import('@/server/plugins/tenantIsolation');
 
       const mockCase = {
         _id: { toString: () => 'case123' },
@@ -155,13 +154,9 @@ describe('onboardingEntities', () => {
         created_by_id: { toString: () => 'user123' },
       };
 
-      try {
-        await createEntitiesFromCase(mockCase as any);
-      } catch (e) {
-        // Expected
-      }
-
-      expect(true).toBe(true);
+      await expect(createEntitiesFromCase(mockCase as any)).resolves.toBeUndefined();
+      expect(setTenantContext).toHaveBeenCalledWith({ orgId: mockCase.orgId });
+      expect(SupportTicket.create).toHaveBeenCalled();
     });
 
     it('should handle legacy snake_case org_id fallback', async () => {

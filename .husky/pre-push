@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Pre-push hook: Fast test validation
+# Runs UI component and list tests (~30s vs 283s full suite)
+# Helps catch regressions before pushing to remote
+
+echo "🚀 Running fast UI tests before push..."
+
+# Run fast UI component tests
+pnpm test:ui:fast || {
+  echo "❌ Fast UI tests failed. Fix errors before pushing."
+  exit 1
+}
+
+# Run list component tests  
+pnpm test:lists || {
+  echo "❌ List component tests failed. Fix errors before pushing."
+  exit 1
+}
+
+echo "✅ Pre-push tests passed!"

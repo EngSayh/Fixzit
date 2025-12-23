@@ -50,8 +50,7 @@ describe("API /api/aqar/properties", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -69,8 +68,7 @@ describe("API /api/aqar/properties", () => {
     it("returns 401 when user is not authenticated", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(getSessionUser).mockResolvedValue(null as never);

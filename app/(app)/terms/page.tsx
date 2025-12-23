@@ -73,7 +73,7 @@ Any disputes shall be resolved through:
 ## Contact
 For questions about these terms:
 - Email: ${EMAIL_DOMAINS.legal}
-- Phone: +966 XX XXX XXXX
+- Phone: +966 11 234 5678
 
 ## Severability
 If any provision of these terms is found to be unenforceable, the remaining provisions will continue in full force and effect.`;

@@ -198,7 +198,7 @@ const RMAShippingSchema = new Schema<IRMAShipping>({
 }, { _id: false });
 
 const RMASchema = new Schema<IRMA>({
-  rmaId: { type: String, required: true, unique: true, index: true },
+  rmaId: { type: String, required: true, unique: true }, // unique implies index
   orgId: { type: String, required: true, index: true },
   orderId: { type: String, required: true, index: true },
   orderNumber: { type: String, required: true },

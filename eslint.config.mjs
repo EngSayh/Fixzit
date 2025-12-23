@@ -8,6 +8,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import importPlugin from "eslint-plugin-import";
 import nextPlugin from "@next/eslint-plugin-next";
 import path from "node:path";
+import localRules from "./eslint-local-rules/index.js";
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
@@ -31,6 +32,9 @@ export default [
       "**/e2e-test-results/**",
       "**/test-results/**",
       "tests/playwright-report/**",
+
+      // Staging/incoming files (not production code)
+      "Incoming/**",
 
       // Assets and static files
       "public/**",
@@ -93,6 +97,7 @@ export default [
       import: importPlugin,
       "@next/next": nextPlugin,
       "@typescript-eslint": tseslint.plugin,
+      "local": localRules,
     },
     rules: {
       ...eslint.configs.recommended.rules,
@@ -264,6 +269,20 @@ export default [
     },
   },
 
+  // Tenant Scope Enforcement (Custom Rule) - API routes and data access layers
+  {
+    files: [
+      "app/api/**/*.{ts,tsx}",
+      "lib/**/*.{ts,tsx}",
+      "server/**/*.{ts,tsx}",
+      "domain/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "local/require-tenant-scope": "warn", // Start with warn to avoid blocking builds
+      "local/require-lean": "warn",
+    },
+  },
+
   // Test files - More permissive with test framework globals
   {
     files: [
@@ -299,6 +318,7 @@ export default [
       "no-console": "off",
       "no-undef": "off", // Disable for test files since we define globals
       "@typescript-eslint/no-require-imports": "off",
+      "local/require-lean": "off",
     },
   },
 

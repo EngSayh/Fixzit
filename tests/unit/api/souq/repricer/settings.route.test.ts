@@ -45,6 +45,7 @@ vi.mock("@/lib/logger", () => ({
 
 // ----- Import Route After Mocks -----
 import { GET, POST, DELETE } from "@/app/api/souq/repricer/settings/route";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // ----- Helpers -----
 function createGetRequest(): NextRequest {
@@ -71,6 +72,7 @@ function createDeleteRequest(): NextRequest {
 describe("GET /api/souq/repricer/settings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     mockSession = { user: { id: USER_ID, orgId: ORG_ID } };
     mockSeller = { _id: new ObjectId(SELLER_ID), userId: USER_ID, orgId: ORG_ID };
     mockSettings = {

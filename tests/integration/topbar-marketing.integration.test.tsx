@@ -1,5 +1,5 @@
 import React from "react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import TopBar from "@/components/TopBar";
 import PublicProviders from "@/providers/PublicProviders";
@@ -47,6 +47,10 @@ vi.mock("@/components/topbar/GlobalSearch", () => ({
   __esModule: true,
   default: () => <div data-testid="global-search-stub" />,
 }));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe("TopBar (marketing/public view)", () => {
   it("shows language toggle and hides app/module pills and app switcher", async () => {

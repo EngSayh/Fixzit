@@ -10,6 +10,7 @@ import {
   Star,
 } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { Config } from "@/lib/config/constants";
 
 declare global {
   interface Window {
@@ -22,7 +23,7 @@ export default function SouqPage() {
   const isPlaywright =
     typeof window !== "undefined" &&
     (window?.__PLAYWRIGHT_TESTS__ === true ||
-      process.env.NEXT_PUBLIC_PLAYWRIGHT_TESTS === "true");
+      Config.client.isPlaywrightTest);
 
   // Translate feature items
   const SOUQ_FEATURES_TRANSLATED = [

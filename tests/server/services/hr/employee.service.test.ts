@@ -18,15 +18,17 @@ vi.mock("@/server/models/hr.models", () => ({
     find: vi.fn(),
     create: vi.fn(),
     findByIdAndUpdate: vi.fn(),
+    findOneAndUpdate: vi.fn(),
     countDocuments: vi.fn(),
   },
   AttendanceRecord: {
     find: vi.fn(),
+    findOneAndUpdate: vi.fn(),
   },
 }));
 
 import { EmployeeService } from "@/server/services/hr/employee.service";
-import { Employee } from "@/server/models/hr.models";
+import { AttendanceRecord, Employee } from "@/server/models/hr.models";
 
 describe("EmployeeService", () => {
   const orgId = new Types.ObjectId().toString();
@@ -34,6 +36,12 @@ describe("EmployeeService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(Employee.findOneAndUpdate).mockReturnValue({
+      exec: vi.fn().mockResolvedValue(null),
+    } as unknown as ReturnType<typeof Employee.findOneAndUpdate>);
+    vi.mocked(AttendanceRecord.findOneAndUpdate).mockReturnValue({
+      exec: vi.fn().mockResolvedValue(null),
+    } as unknown as ReturnType<typeof AttendanceRecord.findOneAndUpdate>);
   });
 
   describe("getById", () => {
@@ -198,44 +206,95 @@ describe("EmployeeService", () => {
     });
   });
 
-  describe("updateSalary", () => {
-    it("should update employee compensation", async () => {
-      const newCompensation = {
-        baseSalary: 5000,
-        currency: "OMR",
-        payFrequency: "MONTHLY" as const,
-      };
+  describe("upsert", () => {
+    it("should upsert employee with compensation totals", async () => {
+      vi.mocked(Employee.findOneAndUpdate).mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          _id: employeeId,
+          employeeCode: "EMP002",
+        }),
+      } as unknown as ReturnType<typeof Employee.findOneAndUpdate>);
 
-      vi.mocked(Employee.findByIdAndUpdate).mockResolvedValue({
-        _id: employeeId,
-        compensation: newCompensation,
+      await EmployeeService.upsert({
+        orgId,
+        employeeCode: "EMP002",
+        firstName: "Sam",
+        lastName: "Lee",
+        jobTitle: "Technician",
+        employmentType: "FULL_TIME",
+        hireDate: new Date(),
+        compensation: {
+          baseSalary: 5000,
+          currency: "OMR",
+          payFrequency: "MONTHLY",
+          housingAllowance: 300,
+          transportAllowance: 200,
+        },
       });
 
-      // Test salary update (if method exists)
-      expect(true).toBe(true);
-    });
-
-    it("should require positive salary amount", async () => {
-      // Negative salary should be rejected
-      expect(true).toBe(true);
+      expect(Employee.findOneAndUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orgId,
+          employeeCode: "EMP002",
+          isDeleted: false,
+        }),
+        expect.objectContaining({
+          $set: expect.objectContaining({
+            baseSalary: 5000,
+            allowanceTotal: 500,
+            currency: "OMR",
+          }),
+        }),
+        expect.any(Object),
+      );
     });
   });
 
-  describe("terminate", () => {
-    it("should set employmentStatus to TERMINATED", async () => {
-      vi.mocked(Employee.findByIdAndUpdate).mockResolvedValue({
-        _id: employeeId,
-        employmentStatus: "TERMINATED",
-        terminationDate: new Date(),
+  describe("updateTechnicianProfile", () => {
+    it("should scope update to org and employee id", async () => {
+      vi.mocked(Employee.findOneAndUpdate).mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          _id: employeeId,
+          orgId,
+        }),
+      } as unknown as ReturnType<typeof Employee.findOneAndUpdate>);
+
+      await EmployeeService.updateTechnicianProfile(orgId, employeeId, {
+        skills: ["HVAC"],
+        certifications: [],
+        availability: "AVAILABLE",
       });
 
-      // Test termination sets correct status
-      expect(true).toBe(true);
+      expect(Employee.findOneAndUpdate).toHaveBeenCalledWith(
+        { orgId, _id: employeeId, isDeleted: false },
+        { technicianProfile: expect.any(Object) },
+        { new: true },
+      );
     });
+  });
 
-    it("should record termination date and reason", async () => {
-      // Test termination metadata is captured
-      expect(true).toBe(true);
+  describe("recordAttendance", () => {
+    it("should upsert attendance by org, employee, and date", async () => {
+      const entry = {
+        orgId,
+        employeeId,
+        date: new Date("2025-01-01"),
+        status: "PRESENT" as const,
+      };
+
+      vi.mocked(AttendanceRecord.findOneAndUpdate).mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          _id: "att_123",
+        }),
+      } as unknown as ReturnType<typeof AttendanceRecord.findOneAndUpdate>);
+
+      await EmployeeService.recordAttendance(entry);
+
+      expect(AttendanceRecord.findOneAndUpdate).toHaveBeenCalledWith(
+        { orgId, employeeId, date: entry.date },
+        entry,
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
     });
   });
 });

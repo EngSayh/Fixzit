@@ -23,6 +23,7 @@ import TopBar from "@/components/TopBar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { TranslationProvider } from "@/contexts/TranslationContext";
+import { mockFetch, restoreFetch } from "@/tests/helpers/domMocks";
 // Stub TranslationProvider/useTranslation to avoid i18n context errors in unit tests
 vi.mock("@/contexts/TranslationContext", () => {
   const React = require("react");
@@ -279,6 +280,7 @@ afterAll(() => {
 describe("TopBar Component", () => {
   let mockRouter: any;
   let mockPush: any;
+  let fetchMock: ReturnType<typeof mockFetch>;
 
   beforeEach(() => {
     mockPush = vi.fn();
@@ -291,7 +293,8 @@ describe("TopBar Component", () => {
     (usePathname as Mock).mockReturnValue("/dashboard");
 
     // Mock fetch API with proper responses
-    global.fetch = vi.fn((url: string) => {
+    fetchMock = mockFetch();
+    fetchMock.mockImplementation((url: string) => {
       if (url.includes("/api/organization/settings")) {
         return Promise.resolve({
           ok: true,
@@ -310,7 +313,7 @@ describe("TopBar Component", () => {
         status: 404,
         json: () => Promise.resolve({ error: "Not found" }),
       });
-    }) as unknown as typeof fetch;
+    });
 
     // Reset localStorage
     localStorage.clear();
@@ -318,6 +321,7 @@ describe("TopBar Component", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    restoreFetch();
   });
 
   describe("Basic Rendering", () => {
@@ -380,7 +384,7 @@ describe("TopBar Component", () => {
       await renderWithProviders(<TopBar />);
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
+        expect(fetchMock).toHaveBeenCalledWith(
           "/api/organization/settings",
           expect.objectContaining({
             credentials: "include",
@@ -403,7 +407,7 @@ describe("TopBar Component", () => {
     });
 
     it("should toggle notification dropdown when bell is clicked", async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      fetchMock.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ authenticated: true }),
       });
@@ -421,7 +425,7 @@ describe("TopBar Component", () => {
     });
 
     it("should fetch notifications when dropdown opens for authenticated users", async () => {
-      (global.fetch as any)
+      fetchMock
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ authenticated: true }),
@@ -452,7 +456,7 @@ describe("TopBar Component", () => {
 
       // Wait for notifications fetch
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
+        expect(fetchMock).toHaveBeenCalledWith(
           "/api/notifications?limit=5&read=false",
           expect.objectContaining({
             credentials: "include",
@@ -462,7 +466,7 @@ describe("TopBar Component", () => {
     });
 
     it("should show loading state while fetching notifications", async () => {
-      (global.fetch as any)
+      fetchMock
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ authenticated: true }),
@@ -488,7 +492,7 @@ describe("TopBar Component", () => {
     });
 
     it("should show empty state when no notifications", async () => {
-      (global.fetch as any)
+      fetchMock
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ authenticated: true }),
@@ -703,7 +707,7 @@ describe("TopBar Component", () => {
 
   describe("Error Handling", () => {
     it("should handle notification fetch errors gracefully", async () => {
-      (global.fetch as any)
+      fetchMock
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ authenticated: true }),

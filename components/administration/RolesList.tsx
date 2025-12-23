@@ -64,7 +64,7 @@ const typeStyles: Record<string, string> = {
   CUSTOM: "bg-[var(--color-status-active-bg)] text-[var(--color-status-active)] border border-[var(--color-status-active)]/20",
 };
 
-type RoleFilters = {
+export type RoleFilters = {
   type?: string;
   status?: string;
   membersMin?: number;
@@ -73,7 +73,7 @@ type RoleFilters = {
   createdTo?: string;
 };
 
-const ROLE_FILTER_SCHEMA: FilterSchema<RoleFilters>[] = [
+export const ROLE_FILTER_SCHEMA: FilterSchema<RoleFilters>[] = [
   { key: "type", param: "type", label: (f) => `Type: ${f.type}` },
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   {

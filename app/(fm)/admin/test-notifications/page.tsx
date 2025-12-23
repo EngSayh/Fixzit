@@ -192,7 +192,7 @@ export default function NotificationTestPage() {
             <Settings className="h-5 w-5" />
             {t("admin.notifications.configStatus", "Configuration Status")}
           </h2>
-          <button
+          <button type="button"
             onClick={() => window.location.reload()}
             className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
           >

@@ -83,6 +83,14 @@ export async function GET(req: NextRequest) {
     const propertyId = searchParams.get("propertyId");
     const assigneeId = searchParams.get("assigneeId");
     const search = searchParams.get("search");
+    const parseBool = (value: string | null) =>
+      value === "true" || value === "1";
+    const overdue = parseBool(searchParams.get("overdue"));
+    const assignedToMe = parseBool(searchParams.get("assignedToMe"));
+    const unassigned = parseBool(searchParams.get("unassigned"));
+    const slaRisk = parseBool(searchParams.get("slaRisk"));
+    const dueDateFrom = searchParams.get("dueDateFrom");
+    const dueDateTo = searchParams.get("dueDateTo");
 
     // Build query - RBAC-001: Use orgId per STRICT v4.1 (migrated from tenantId)
     // SEC-001 FIX: Use tenantId scope variable (with fallback) instead of raw abilityCheck.orgId
@@ -158,6 +166,68 @@ export async function GET(req: NextRequest) {
           { assignedTo: actorId }, // Legacy support
         ]
       });
+    }
+
+    if (assignedToMe && actorId) {
+      andFilters.push({
+        $or: [
+          { "assignment.assignedTo.userId": actorId },
+          { assigneeId: actorId },
+          { assignedTo: actorId },
+          { technicianId: actorId },
+        ]
+      });
+    }
+
+    if (unassigned) {
+      andFilters.push({
+        $or: [
+          { "assignment.assignedTo": { $exists: false } },
+          { "assignment.assignedTo.userId": { $exists: false } },
+          { "assignment.assignedTo.userId": null },
+          { assigneeId: { $in: [null, ""] } },
+          { assignedTo: { $in: [null, ""] } },
+          { technicianId: { $in: [null, ""] } },
+        ]
+      });
+    }
+
+    if (overdue) {
+      const now = new Date();
+      andFilters.push({
+        $or: [
+          { "sla.resolutionDeadline": { $lt: now } },
+          { dueDate: { $lt: now.toISOString() } },
+          { dueAt: { $lt: now } },
+        ]
+      });
+    }
+
+    const dueRange: Record<string, Date> = {};
+    if (dueDateFrom) {
+      const fromDate = new Date(dueDateFrom);
+      if (!Number.isNaN(fromDate.getTime())) {
+        dueRange.$gte = fromDate;
+      }
+    }
+    if (dueDateTo) {
+      const toDate = new Date(dueDateTo);
+      if (!Number.isNaN(toDate.getTime())) {
+        dueRange.$lte = toDate;
+      }
+    }
+    if (Object.keys(dueRange).length > 0) {
+      andFilters.push({
+        $or: [
+          { "sla.resolutionDeadline": dueRange },
+          { dueDate: dueRange },
+          { dueAt: dueRange },
+        ]
+      });
+    }
+
+    if (slaRisk) {
+      andFilters.push({ "sla.status": { $in: ["BREACHED", "OVERDUE", "AT_RISK"] } });
     }
 
     // FIX: Add search to $and filters instead of overwriting $or

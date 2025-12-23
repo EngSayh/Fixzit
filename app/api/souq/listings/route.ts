@@ -265,7 +265,7 @@ export async function GET(request: NextRequest) {
       SouqListing.countDocuments(query),
     ]);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: listings,
       pagination: {
@@ -275,6 +275,12 @@ export async function GET(request: NextRequest) {
         pages: Math.ceil(total / limit),
       },
     });
+    // Private cache for user-scoped listings
+    response.headers.set(
+      "Cache-Control",
+      "private, max-age=30, stale-while-revalidate=60"
+    );
+    return response;
   } catch (error) {
     logger.error("Listing fetch error:", error as Error);
     return NextResponse.json(

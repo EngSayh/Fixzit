@@ -182,6 +182,16 @@ describe("tap webhook route", () => {
     process.env.TAP_WEBHOOK_MAX_BYTES = "64000";
   });
 
+  it("returns 429 when rate limit exceeded", async () => {
+    const { POST } = await loadRoute();
+    mockSmartRateLimit.mockResolvedValueOnce({ allowed: false });
+
+    const req = createRequest({ id: "evt_rate_limit" }, { "x-tap-signature": "sig" });
+
+    const res = await POST(req);
+    expect(res.status).toBe(429);
+  });
+
   it("rejects webhooks when signature verification fails", async () => {
     const { POST } = await loadRoute();
     mockParseWebhookEvent.mockImplementationOnce(() => {
@@ -293,6 +303,7 @@ describe("tap webhook route", () => {
           charge: "chg_refund",
           amount: 5000,
           currency: "SAR",
+          metadata: { organizationId: orgId },
           reason: "customer_request",
           response: { code: "200", message: "ok" },
         },

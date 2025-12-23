@@ -153,7 +153,7 @@ export default function VendorDashboard() {
                     <td className="px-6 py-4">{DEFAULT_CURRENCY} {product.price}</td>
                     <td className="px-6 py-4">{product.sold}</td>
                     <td className="px-6 py-4">
-                      <button className="text-primary hover:underline">
+                      <button type="button" className="text-primary hover:underline">
                         {t("common.edit", "Edit")}
                       </button>
                     </td>

@@ -73,7 +73,7 @@ export function Tabs({ tabs, defaultTab, onChange, className }: TabsProps) {
         {tabs.map((tab, i) => {
           const isActive = active === tab.id;
           return (
-            <button
+            <button type="button"
               key={tab.id}
               ref={(el) => {
                 if (el) tabRefs.current[i] = el;
@@ -151,7 +151,7 @@ export function SimpleTabs({ tabs, defaultTab, onChange }: TabsProps) {
         {tabs.map((tab) => {
           const isActive = active === tab.id;
           return (
-            <button
+            <button type="button"
               key={tab.id}
               onClick={() => handleTabClick(tab)}
               disabled={tab.disabled}

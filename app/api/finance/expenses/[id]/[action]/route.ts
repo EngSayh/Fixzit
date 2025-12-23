@@ -25,6 +25,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError, validationError, notFoundError } from "@/server/utils/errorResponses";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);
@@ -136,8 +137,13 @@ export async function POST(
             );
           }
 
-          const body = await req.json();
-          const { comments } = ApprovalSchema.parse(body);
+          const { data: rawBody, error: parseError } = await parseBodySafe(req, {
+            logPrefix: "[POST /api/finance/expenses/:id/approve]",
+          });
+          if (parseError) {
+            return NextResponse.json({ error: parseError }, { status: 400 });
+          }
+          const { comments } = ApprovalSchema.parse(rawBody);
 
           await expense.approve(new Types.ObjectId(user.userId), comments);
           await expense.save();
@@ -160,8 +166,13 @@ export async function POST(
             );
           }
 
-          const body = await req.json();
-          const { comments } = ApprovalSchema.parse(body);
+          const { data: rawBody, error: parseError } = await parseBodySafe(req, {
+            logPrefix: "[POST /api/finance/expenses/:id/reject]",
+          });
+          if (parseError) {
+            return NextResponse.json({ error: parseError }, { status: 400 });
+          }
+          const { comments } = ApprovalSchema.parse(rawBody);
 
           if (!comments) {
             return NextResponse.json(

@@ -50,7 +50,7 @@ export const ENTITY_PERMISSION_CONFIG: Record<ExtendedSearchEntity, EntityPermis
       UserRole.SUPPORT_AGENT,
     ],
   },
-  work_orders: {
+  [WORK_ORDERS_ENTITY_LEGACY]: {
     permission: "workorders:read", // legacy alias for backwards compatibility
     allowedRoles: [
       UserRole.SUPER_ADMIN,

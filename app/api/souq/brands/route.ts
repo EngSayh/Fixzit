@@ -49,11 +49,14 @@ export async function GET(request: NextRequest) {
       .sort({ name: 1 })
       .lean();
 
-    return NextResponse.json({
+    // Cache for 5 minutes, stale-while-revalidate for 10 minutes
+    const response = NextResponse.json({
       success: true,
       data: brands,
       total: brands.length,
     });
+    response.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+    return response;
   } catch (error) {
     logger.error("GET /api/souq/brands error:", error as Error);
     return NextResponse.json(

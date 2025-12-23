@@ -205,7 +205,7 @@ export default function RateLimitingDashboard() {
                 {auto("Unable to load rate limits", "rateLimit.errors.load")}
               </p>
               <p className="text-sm">{error}</p>
-              <button
+              <button type="button"
                 onClick={() => refreshMetrics()}
                 className="text-sm font-medium underline"
               >

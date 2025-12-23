@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const message = await SMSMessage.findById(messageId);
+        const message = await SMSMessage.findById(messageId).lean();
         if (!message) {
           return NextResponse.json(
             { error: "Message not found" },
@@ -329,7 +329,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const message = await SMSMessage.findById(messageId);
+        const message = await SMSMessage.findById(messageId).lean();
         if (!message) {
           return NextResponse.json(
             { error: "Message not found" },

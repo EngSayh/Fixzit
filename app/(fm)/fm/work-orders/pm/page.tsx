@@ -9,6 +9,7 @@ import ClientDate from "@/components/ClientDate";
 import { logger } from "@/lib/logger";
 import { getWorkOrderStatusLabel } from "@/lib/work-orders/status";
 import { WORK_ORDERS_MODULE_ID } from "@/config/navigation/constants";
+import { DataRefreshTimestamp } from "@/components/common/DataRefreshTimestamp";
 
 const fetcher = (url: string) =>
   fetch(url)
@@ -63,7 +64,7 @@ export default function PreventiveMaintenancePage() {
   ];
 
   // Fetch PM plans from API
-  const { data: response } = useSWR("/api/pm/plans?status=ACTIVE", fetcher, {
+  const { data: response, isValidating, mutate } = useSWR("/api/pm/plans?status=ACTIVE", fetcher, {
     refreshInterval: 30000, // Refresh every 30 seconds
   });
 
@@ -122,12 +123,19 @@ export default function PreventiveMaintenancePage() {
               "Schedule and track preventive maintenance activities",
             )}
           </p>
+          <DataRefreshTimestamp
+            lastRefresh={response?.timestamp || new Date().toISOString()}
+            onRefresh={() => mutate()}
+            isRefreshing={isValidating}
+            autoRefreshSeconds={30}
+            className="mt-1"
+          />
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">
+          <button type="button" className="btn-secondary">
             {t("workOrders.pm.importSchedule", "Import Schedule")}
           </button>
-          <button className="btn-primary">
+          <button type="button" className="btn-primary">
             + {t("workOrders.pm.newPM", "New PM Schedule")}
           </button>
         </div>
@@ -311,10 +319,10 @@ export default function PreventiveMaintenancePage() {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
-                          <button className="text-primary hover:text-primary">
+                          <button type="button" className="text-primary hover:text-primary">
                             {t("common.edit", "Edit")}
                           </button>
-                          <button className="text-success hover:text-success-foreground">
+                          <button type="button" className="text-success hover:text-success-foreground">
                             {t("workOrders.pm.generate", "Generate")}
                           </button>
                         </div>
@@ -334,37 +342,37 @@ export default function PreventiveMaintenancePage() {
           {t("workOrders.quickActions", "Quick Actions")}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">📅</div>
             <div className="text-sm font-medium">
               {t("workOrders.pm.quickActions.schedule", "Schedule PM")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">📋</div>
             <div className="text-sm font-medium">
               {t("workOrders.pm.quickActions.templates", "Templates")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-medium">
               {t("workOrders.pm.quickActions.reports", "Reports")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">🔧</div>
             <div className="text-sm font-medium">
               {t("workOrders.pm.quickActions.checklists", "Checklists")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">⚙️</div>
             <div className="text-sm font-medium">
               {t("workOrders.pm.quickActions.settings", "Settings")}
             </div>
           </button>
-          <button className="btn-ghost text-center">
+          <button type="button" className="btn-ghost text-center">
             <div className="text-2xl mb-2">📤</div>
             <div className="text-sm font-medium">
               {t("workOrders.pm.quickActions.export", "Export")}

@@ -96,8 +96,7 @@ describe("API /api/souq/deals", () => {
     it("returns 429 when rate limit exceeded", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       vi.mocked(enforceRateLimit).mockReturnValue(
@@ -115,8 +114,7 @@ describe("API /api/souq/deals", () => {
     it("returns deals list", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = { id: "user-123", orgId: "org-123" };
@@ -130,8 +128,7 @@ describe("API /api/souq/deals", () => {
     it("supports active filter", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = { id: "user-123", orgId: "org-123" };
@@ -147,8 +144,7 @@ describe("API /api/souq/deals", () => {
     it("supports category filter", async () => {
       const route = await importRoute();
       if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: GET");
       }
 
       sessionUser = { id: "user-123", orgId: "org-123" };
@@ -166,8 +162,7 @@ describe("API /api/souq/deals", () => {
     it("returns 401 for unauthenticated requests", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       vi.mocked(getSessionUser).mockRejectedValue(
@@ -186,8 +181,7 @@ describe("API /api/souq/deals", () => {
     it("validates required fields", async () => {
       const route = await importRoute();
       if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
+        throw new Error("Route handler missing: POST");
       }
 
       sessionUser = { id: "user-123", orgId: "org-123", role: "SELLER" };

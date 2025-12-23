@@ -57,10 +57,14 @@ export const CURRENCY_OPTIONS: readonly CurrencyOption[] = CURRENCY_ORDER.map(
 
 const DEFAULT_CURRENCY: CurrencyCode = "SAR";
 
+export type PreferenceSource = "profile" | "cookie" | "localStorage" | "default";
+
 interface CurrencyContextType {
   currency: CurrencyCode;
   setCurrency: (currency: CurrencyCode) => void;
   options: readonly CurrencyOption[];
+  /** P117: Source of the current currency preference */
+  preferenceSource: PreferenceSource;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(
@@ -78,6 +82,7 @@ const CurrencyContext = createContext<CurrencyContextType | undefined>(
  */
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<CurrencyCode>(DEFAULT_CURRENCY);
+  const [preferenceSource, setPreferenceSource] = useState<PreferenceSource>("default");
   const hydratedRef = useRef(false);
   const skipNextPersistRef = useRef(false);
 
@@ -90,6 +95,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       if (fromAttr && CURRENCY_OPTIONS.some((o) => o.code === fromAttr)) {
         skipNextPersistRef.current = true;
         setCurrencyState((prev) => (prev !== fromAttr ? fromAttr : prev));
+        setPreferenceSource("profile"); // Attribute typically set from server/profile
       } else {
         const fromLS = window.localStorage.getItem(
           "fixzit-currency",
@@ -97,6 +103,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         if (fromLS && CURRENCY_OPTIONS.some((o) => o.code === fromLS)) {
           skipNextPersistRef.current = true;
           setCurrencyState((prev) => (prev !== fromLS ? fromLS : prev));
+          setPreferenceSource("localStorage");
         } else {
           const match = document.cookie.match(
             /(?:^|;\s*)fxz\.currency=([^;]+)/,
@@ -110,6 +117,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
             setCurrencyState((prev) =>
               prev !== fromCookie ? fromCookie : prev,
             );
+            setPreferenceSource("cookie");
+          } else {
+            setPreferenceSource("default");
           }
         }
       }
@@ -158,6 +168,15 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
           detail: { currency },
         }),
       );
+      
+      // Persist to user preferences in database
+      fetch("/api/user/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currency }),
+      }).catch((error) => {
+        logger.warn("Could not persist currency to database", { error });
+      });
     } catch (error) {
       logger.warn("Could not persist currency preference", { error });
     }
@@ -166,6 +185,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const setCurrency = (next: CurrencyCode) => {
     if (!CURRENCY_OPTIONS.some((item) => item.code === next)) return;
     setCurrencyState(next);
+    // P117: Update preference source to localStorage when user changes currency
+    setPreferenceSource("localStorage");
   };
 
   const value = useMemo(
@@ -173,8 +194,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       currency,
       setCurrency,
       options: CURRENCY_OPTIONS,
+      preferenceSource,
     }),
-    [currency],
+    [currency, preferenceSource],
   );
 
   return (
@@ -210,6 +232,7 @@ export function useCurrency() {
         }
       },
       options: CURRENCY_OPTIONS,
+      preferenceSource: "default" as PreferenceSource,
     } as CurrencyContextType;
   }
   return context;

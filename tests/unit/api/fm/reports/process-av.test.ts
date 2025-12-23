@@ -85,6 +85,7 @@ vi.mock("next/server", () => {
 describe("POST /api/fm/reports/process - AV scan handling", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.clearAllMocks();
     enforceRateLimitMock.mockReturnValue(null);
     requireFmPermissionMock.mockResolvedValue({
       isSuperAdmin: false,

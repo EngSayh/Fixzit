@@ -131,8 +131,7 @@ export default function IssuesDashboardPage() {
   const [search, setSearch] = useState(searchParams?.get("search") || "");
   const [statusFilter, setStatusFilter] = useState(searchParams?.get("status") || "open");
   const [priorityFilter, setPriorityFilter] = useState(searchParams?.get("priority") || "");
-  // TODO: Add category filter dropdown to UI
-  const [categoryFilter, _setCategoryFilter] = useState(searchParams?.get("category") || "");
+  const [categoryFilter, setCategoryFilter] = useState(searchParams?.get("category") || "");
   const [viewMode, setViewMode] = useState<"all" | "quickWins" | "stale">("all");
 
   // Pagination
@@ -373,6 +372,24 @@ export default function IssuesDashboardPage() {
                 <SelectItem value="P1">P1 High</SelectItem>
                 <SelectItem value="P2">P2 Medium</SelectItem>
                 <SelectItem value="P3">P3 Low</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={categoryFilter || "all"}
+              onValueChange={(value) =>
+                setCategoryFilter(value === "all" ? "" : value)
+              }
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="bug">Bug</SelectItem>
+                <SelectItem value="security">Security</SelectItem>
+                <SelectItem value="efficiency">Efficiency</SelectItem>
+                <SelectItem value="missing_test">Missing Tests</SelectItem>
               </SelectContent>
             </Select>
 

@@ -437,7 +437,7 @@ export default function SignupPage() {
                 error={fieldErrors.phone}
                 placeholder={t(
                   "signup.placeholders.phone",
-                  "+966 XX XXX XXXX"
+                  "+966 11 234 5678"
                 )}
                 autoComplete="tel"
                 icon={Phone}

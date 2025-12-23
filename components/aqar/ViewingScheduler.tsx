@@ -202,7 +202,7 @@ export default function ViewingScheduler({
             </div>
           </div>
         </div>
-        <button
+        <button type="button"
           onClick={() => window.location.reload()}
           className="px-6 py-2 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow"
         >
@@ -279,7 +279,7 @@ export default function ViewingScheduler({
             )}
           </h3>
 
-          <button
+          <button type="button"
             onClick={() => setViewingType("IN_PERSON")}
             className={`w-full p-4 rounded-lg border-2 transition-colors ${isRTL ? "text-end" : "text-start"} ${
               viewingType === "IN_PERSON"
@@ -305,7 +305,7 @@ export default function ViewingScheduler({
             </div>
           </button>
 
-          <button
+          <button type="button"
             onClick={() => setViewingType("VIDEO_CALL")}
             className={`w-full p-4 rounded-lg border-2 transition-colors ${isRTL ? "text-end" : "text-start"} ${
               viewingType === "VIDEO_CALL"
@@ -331,7 +331,7 @@ export default function ViewingScheduler({
             </div>
           </button>
 
-          <button
+          <button type="button"
             onClick={() => setViewingType("VIRTUAL")}
             className={`w-full p-4 rounded-lg border-2 transition-colors ${isRTL ? "text-end" : "text-start"} ${
               viewingType === "VIRTUAL"
@@ -357,7 +357,7 @@ export default function ViewingScheduler({
             </div>
           </button>
 
-          <button
+          <button type="button"
             onClick={() => setStep("datetime")}
             className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
           >
@@ -376,7 +376,7 @@ export default function ViewingScheduler({
             </h3>
             <div className="grid grid-cols-7 gap-2">
               {availableDates.map((date) => (
-                <button
+                <button type="button"
                   key={date.toISOString()}
                   onClick={() => setSelectedDate(date)}
                   className={`p-2 rounded-lg border text-center transition-colors ${
@@ -413,7 +413,7 @@ export default function ViewingScheduler({
                   <p className="text-sm text-muted-foreground mb-2">Morning</p>
                   <div className="grid grid-cols-3 gap-2">
                     {morningSlots.map((time) => (
-                      <button
+                      <button type="button"
                         key={time}
                         onClick={() => setSelectedTime(time)}
                         className={`py-2 rounded-lg border text-sm transition-colors ${
@@ -435,7 +435,7 @@ export default function ViewingScheduler({
                   </p>
                   <div className="grid grid-cols-3 gap-2">
                     {afternoonSlots.map((time) => (
-                      <button
+                      <button type="button"
                         key={time}
                         onClick={() => setSelectedTime(time)}
                         className={`py-2 rounded-lg border text-sm transition-colors ${
@@ -455,7 +455,7 @@ export default function ViewingScheduler({
                   <p className="text-sm text-muted-foreground mb-2">Evening</p>
                   <div className="grid grid-cols-3 gap-2">
                     {eveningSlots.map((time) => (
-                      <button
+                      <button type="button"
                         key={time}
                         onClick={() => setSelectedTime(time)}
                         className={`py-2 rounded-lg border text-sm transition-colors ${
@@ -474,13 +474,13 @@ export default function ViewingScheduler({
           )}
 
           <div className="flex gap-3">
-            <button
+            <button type="button"
               onClick={() => setStep("type")}
               className="flex-1 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold"
             >
               Back
             </button>
-            <button
+            <button type="button"
               onClick={() => setStep("details")}
               disabled={!selectedDate || !selectedTime}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
@@ -529,7 +529,7 @@ export default function ViewingScheduler({
                     className="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                   />
                   {idx > 0 && (
-                    <button
+                    <button type="button"
                       onClick={() => removeParticipant(idx)}
                       className="px-3 py-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                     >
@@ -538,7 +538,7 @@ export default function ViewingScheduler({
                   )}
                 </div>
               ))}
-              <button
+              <button type="button"
                 onClick={addParticipant}
                 className="text-sm text-accent-dark hover:text-accent font-medium"
               >
@@ -562,13 +562,13 @@ export default function ViewingScheduler({
           </div>
 
           <div className="flex gap-3">
-            <button
+            <button type="button"
               onClick={() => setStep("datetime")}
               className="flex-1 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold"
             >
               Back
             </button>
-            <button
+            <button type="button"
               onClick={() => setStep("confirm")}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
             >
@@ -636,13 +636,13 @@ export default function ViewingScheduler({
           </div>
 
           <div className="flex gap-3">
-            <button
+            <button type="button"
               onClick={() => setStep("details")}
               className="flex-1 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold"
             >
               Back
             </button>
-            <button
+            <button type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold disabled:opacity-50 disabled:cursor-not-allowed"

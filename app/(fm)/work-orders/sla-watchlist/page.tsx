@@ -7,6 +7,7 @@ import SLATimer from "@/components/SLATimer";
 import Link from "next/link";
 import { logger } from "@/lib/logger";
 import { getWorkOrderStatusLabel } from "@/lib/work-orders/status";
+import { DataRefreshTimestamp } from "@/components/common/DataRefreshTimestamp";
 
 const fetcher = (url: string) =>
   fetch(url)
@@ -30,7 +31,7 @@ export default function SLAWatchlistPage() {
   const { t } = useTranslation();
 
   // Fetch SLA status from API (refreshes every 1 minute)
-  const { data: response } = useSWR("/api/work-orders/sla-check", fetcher, {
+  const { data: response, isValidating, mutate } = useSWR("/api/work-orders/sla-check", fetcher, {
     refreshInterval: 60000, // Refresh every 1 minute for live updates
   });
 
@@ -57,14 +58,13 @@ export default function SLAWatchlistPage() {
               "Monitor work orders approaching or breaching SLA deadlines",
             )}
           </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            className="btn-secondary"
-            onClick={() => window.location.reload()}
-          >
-            🔄 {t("common.refresh", "Refresh")}
-          </button>
+          <DataRefreshTimestamp
+            lastRefresh={data?.timestamp || new Date().toISOString()}
+            onRefresh={() => mutate()}
+            isRefreshing={isValidating}
+            autoRefreshSeconds={60}
+            className="mt-1"
+          />
         </div>
       </div>
 

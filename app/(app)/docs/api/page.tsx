@@ -1,12 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { Config } from "@/lib/config/constants";
 
 const SwaggerUI = dynamic(() => import("swagger-ui-react"), { ssr: false });
 import "swagger-ui-react/swagger-ui.css";
 
-const swaggerEnabled =
-  (process.env.NEXT_PUBLIC_SWAGGER_UI_ENABLED ?? "true") !== "false";
+const swaggerEnabled = Config.client.swaggerUiEnabled;
 
 export default function ApiDocsPage() {
   if (!swaggerEnabled) {

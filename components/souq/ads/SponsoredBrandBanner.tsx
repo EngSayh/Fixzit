@@ -205,7 +205,7 @@ export function SponsoredBrandBanner({
         <div className="relative">
           {/* Scroll Left Button */}
           {canScrollLeft && (
-            <button
+            <button type="button"
               onClick={() => scroll("left")}
               className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
               aria-label="Scroll left"
@@ -266,7 +266,7 @@ export function SponsoredBrandBanner({
 
           {/* Scroll Right Button */}
           {canScrollRight && (
-            <button
+            <button type="button"
               onClick={() => scroll("right")}
               className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
               aria-label="Scroll right"

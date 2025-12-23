@@ -58,7 +58,8 @@ export async function GET(req: NextRequest) {
       createdBy: creatorId,
     })
       .sort({ createdAt: -1 })
-      .limit(200);
+      .limit(200)
+      .lean();
     return createSecureResponse({ items }, 200, req);
   } catch (error) {
     logger.error(

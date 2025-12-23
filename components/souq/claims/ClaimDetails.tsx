@@ -532,7 +532,7 @@ export default function ClaimDetails({
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {claim.evidence.map((evidence, index) => (
-                    <button
+                    <button type="button"
                       key={index}
                       onClick={() => setSelectedMedia(evidence)}
                       className="relative group aspect-square rounded-lg overflow-hidden border hover:border-primary transition-colors"

@@ -6,15 +6,29 @@ process.env.NEXTAUTH_SECRET = 'test-secret';
 process.env.PUBLIC_JOBS_ORG_ID = 'test-org-123';
 
 type JsonBody = { error?: string; success?: boolean; data?: unknown[]; pagination?: object } | Record<string, string | number | boolean | null | object>;
-type JsonResponse = { status: number; body: JsonBody };
+
+// Mock headers class for NextResponse
+class MockHeaders {
+  private map = new Map<string, string>();
+  set(key: string, value: string) { this.map.set(key, value); }
+  get(key: string) { return this.map.get(key); }
+}
+
+type JsonResponse = { status: number; body: JsonBody; headers: MockHeaders };
 
 vi.mock('next/server', () => {
+  class MockHeadersInner {
+    private map = new Map<string, string>();
+    set(key: string, value: string) { this.map.set(key, value); }
+    get(key: string) { return this.map.get(key); }
+  }
   return {
     NextRequest: class {},
     NextResponse: {
-      json: (body: JsonBody, init?: ResponseInit): JsonResponse => ({
+      json: (body: unknown, init?: ResponseInit) => ({
         status: init?.status ?? 200,
-        body
+        body,
+        headers: new MockHeadersInner()
       })
     }
   };
@@ -505,5 +519,12 @@ describe('API /api/ats/jobs/public - Cache Key Normalization', () => {
     
     // Verify the cache key contains the clamped 64-char version
     expect(searchSegment).toBe('a'.repeat(64));
+  });
+
+  it('sets Cache-Control header for public jobs endpoint', async () => {
+    const response = await callGET('?page=1&limit=10');
+    
+    // Verify cache header is set correctly
+    expect(response.headers.get('Cache-Control')).toBe('public, max-age=300, stale-while-revalidate=600');
   });
 });

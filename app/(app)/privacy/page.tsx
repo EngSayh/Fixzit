@@ -6,9 +6,9 @@ import { Shield, Lock, Eye, FileText, Mail, Phone } from "lucide-react";
 import { renderMarkdownSanitized } from "@/lib/markdown";
 import { EMAIL_DOMAINS as EMAILS } from "@/lib/config/domains";
 import { SafeHtml } from "@/components/SafeHtml";
-// NOTE: Do NOT import Config from '@/lib/config/constants' in client components
-// It contains server-only validation that throws on client-side
-// Use NEXT_PUBLIC_ environment variables directly instead
+import { Config } from "@/lib/config/constants";
+import { logger } from "@/lib/logger";
+// Use centralized client-safe config instead of direct env access
 
 /**
  * Default privacy policy content shown when CMS content is not available or not published.
@@ -37,7 +37,7 @@ Industry-standard security: encryption, access controls, regular audits, 24/7 mo
 Access, correct, delete, export your data, and opt-out of marketing communications.
 
 ## Contact
-For privacy inquiries: ${EMAILS.privacy} | Phone: ${process.env.NEXT_PUBLIC_SUPPORT_PHONE || "+966 XX XXX XXXX"}`;
+For privacy inquiries: ${EMAILS.privacy} | Phone: ${Config.company.supportPhone || "+966 11 234 5678"}`;
 
 /**
  * Privacy Policy Page (Public View)
@@ -73,8 +73,10 @@ export default function PrivacyPage() {
         setContent(DEFAULT_PRIVACY_CONTENT);
       }
     } catch (err) {
-      // eslint-disable-next-line no-console -- client-side error logging
-      console.error("[Privacy] Error fetching privacy policy:", err);
+      logger.error("[Privacy] Error fetching privacy policy", err, {
+        component: "PrivacyPage",
+        action: "fetchPolicy",
+      });
       setTitle(t("privacy.title", "Privacy Policy"));
       setContent(DEFAULT_PRIVACY_CONTENT);
     } finally {
@@ -94,8 +96,10 @@ export default function PrivacyPage() {
           setRenderedContent(html);
         })
         .catch((err) => {
-          // eslint-disable-next-line no-console -- client-side error logging
-          console.error("[Privacy] Error rendering markdown:", err);
+          logger.error("[Privacy] Error rendering markdown", err, {
+            component: "PrivacyPage",
+            action: "renderMarkdown",
+          });
           // Fallback to plain text wrapped in paragraphs
           setRenderedContent(
             `<div class="prose max-w-none"><p>${content.replace(/\n/g, "</p><p>")}</p></div>`,

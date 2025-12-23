@@ -9,12 +9,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongo";
 import { AqarListing } from "@/server/models/aqar";
 import {
-  ListingIntent,
-  PropertyType,
   ListingStatus,
   type IListing,
 } from "@/server/models/aqar/Listing";
@@ -36,38 +35,17 @@ export const runtime = "nodejs";
 
 const listingModel = AqarListing as unknown as Model<IListing>;
 
-const sanitizeEnum = <T extends string>(
-  value: string | null,
-  allowed: readonly T[],
-): T | undefined =>
-  value && (allowed as readonly string[]).includes(value)
-    ? (value as T)
-    : undefined;
-
-const parseIntegerParam = (
-  value: string | null,
-  fallback: number,
-  bounds: { min?: number; max?: number } = {},
-) => {
-  if (!value) {
-    return fallback;
-  }
-
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-
-  let normalized = Math.floor(parsed);
-  if (typeof bounds.min === "number" && normalized < bounds.min) {
-    normalized = bounds.min;
-  }
-  if (typeof bounds.max === "number" && normalized > bounds.max) {
-    normalized = bounds.max;
-  }
-
-  return normalized;
-};
+const AqarListingsQuerySchema = z.object({
+  city: z.string().max(100).optional(),
+  intent: z.enum(["BUY", "RENT", "DAILY"]).optional(),
+  propertyType: z.enum(["APARTMENT", "VILLA", "TOWNHOUSE", "LAND", "COMMERCIAL"]).optional(),
+  minPrice: z.coerce.number().nonnegative().optional(),
+  maxPrice: z.coerce.number().nonnegative().optional(),
+  beds: z.coerce.number().int().nonnegative().optional(),
+  baths: z.coerce.number().int().nonnegative().optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  offset: z.coerce.number().int().nonnegative().default(0),
+});
 
 /**
  * GET /api/public/aqar/listings
@@ -100,34 +78,24 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
 
-    // Parse and validate query parameters
-    const city = searchParams.get("city") || undefined;
-    const intent = sanitizeEnum<ListingIntent>(
-      searchParams.get("intent"),
-      Object.values(ListingIntent),
-    );
-    const propertyType = sanitizeEnum<PropertyType>(
-      searchParams.get("propertyType"),
-      Object.values(PropertyType),
+    // Parse and validate query parameters with Zod
+    const queryResult = AqarListingsQuerySchema.safeParse(
+      Object.fromEntries(searchParams.entries())
     );
 
-    // Parse numeric parameters with validation to prevent NaN propagation
-    const parseNumericParam = (value: string | null): number | undefined => {
-      if (!value) return undefined;
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : undefined;
-    };
+    if (!queryResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid query parameters",
+          details: queryResult.error.flatten().fieldErrors,
+        },
+        { status: 400 }
+      );
+    }
 
-    const minPrice = parseNumericParam(searchParams.get("minPrice"));
-    const maxPrice = parseNumericParam(searchParams.get("maxPrice"));
-    const beds = parseIntegerParam(searchParams.get("beds"), NaN, { min: 0 });
-    const baths = parseIntegerParam(searchParams.get("baths"), NaN, { min: 0 });
-
-    const limit = parseIntegerParam(searchParams.get("limit"), 20, {
-      min: 1,
-      max: 50,
-    });
-    const offset = parseIntegerParam(searchParams.get("offset"), 0, { min: 0 });
+    const { city, intent, propertyType, minPrice, maxPrice, beds, baths, limit, offset } =
+      queryResult.data;
 
     // Build query - only active listings
     const query: ListingQuery = {
@@ -160,12 +128,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Only add beds/baths filters if valid integers were parsed
-    if (!Number.isNaN(beds) && beds >= 0) {
+    // Only add beds/baths filters if provided
+    if (beds !== undefined && beds >= 0) {
       query.beds = beds;
     }
 
-    if (!Number.isNaN(baths) && baths >= 0) {
+    if (baths !== undefined && baths >= 0) {
       query.baths = baths;
     }
 

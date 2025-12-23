@@ -1,22 +1,23 @@
 import React from "react";
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import arDict from "@/i18n/dictionaries/ar";
 import enDict from "@/i18n/dictionaries/en";
 import LandingPage from "@/app/page";
-
-const ORIGINAL_FETCH = global.fetch;
+import { mockFetch, restoreFetch } from "@/tests/helpers/domMocks";
 
 beforeAll(() => {
-  global.fetch = vi
-    .fn()
-    .mockResolvedValue({ ok: true, json: async () => ({}) }) as typeof fetch;
+  mockFetch().mockResolvedValue({ ok: true, json: async () => ({}) });
 });
 
 afterAll(() => {
-  global.fetch = ORIGINAL_FETCH;
+  restoreFetch();
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
 });
 
 describe("LandingPage translations", () => {

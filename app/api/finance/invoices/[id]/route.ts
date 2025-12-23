@@ -19,6 +19,7 @@ import * as svc from "@/server/finance/invoice.service";
 import { getUserFromToken } from "@/lib/auth";
 import { z } from "zod";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 import { zodValidationError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
@@ -75,7 +76,13 @@ export async function PATCH(
       );
     }
 
-    const body = invoiceUpdateSchema.parse(await req.json());
+    const { data: rawBody, error: parseError } = await parseBodySafe(req, {
+      logPrefix: "[PATCH /api/finance/invoices/:id]",
+    });
+    if (parseError) {
+      return createSecureResponse({ error: parseError }, 400, req);
+    }
+    const body = invoiceUpdateSchema.parse(rawBody);
 
     const inv = await svc.post(
       user.orgId,

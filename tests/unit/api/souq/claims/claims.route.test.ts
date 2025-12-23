@@ -59,6 +59,7 @@ vi.mock("@/lib/db/collections", () => ({
 
 // ----- Import Route After Mocks -----
 import { POST, GET } from "@/app/api/souq/claims/route";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // ----- Helpers -----
 function createPostRequest(body: Record<string, unknown>): NextRequest {
@@ -79,6 +80,7 @@ function createGetRequest(params: Record<string, string> = {}): NextRequest {
 describe("POST /api/souq/claims", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
     mockSession = { user: { id: USER_ID, orgId: ORG_ID, role: "USER" } };
     mockOrder = {
       _id: new ObjectId(ORDER_ID),

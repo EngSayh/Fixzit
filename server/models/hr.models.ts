@@ -232,7 +232,7 @@ export interface TechnicianProfile {
   certifications?: ObjectId[];
 }
 
-interface EmployeeBankDetails {
+export interface EmployeeBankDetails {
   iban?: string;
   bankName?: string;
   bankCode?: string;

@@ -60,7 +60,7 @@ type ApiResponse = {
   total: number;
 };
 
-type AuditFilters = {
+export type AuditFilters = {
   eventType?: string;
   status?: string;
   userId?: string;
@@ -71,7 +71,7 @@ type AuditFilters = {
   timestampTo?: string;
 };
 
-const AUDIT_FILTER_SCHEMA: FilterSchema<AuditFilters>[] = [
+export const AUDIT_FILTER_SCHEMA: FilterSchema<AuditFilters>[] = [
   { key: "eventType", param: "eventType", label: (f) => `Event: ${f.eventType}` },
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   { key: "userId", param: "userId", label: (f) => `User: ${f.userId}` },

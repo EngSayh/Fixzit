@@ -300,7 +300,7 @@ export default function RecruitmentPage() {
           </div>
 
           {canManageJobs && (
-            <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+            <button type="button" className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
               {auto("+ New Job", "actions.newJob")}
             </button>
           )}
@@ -419,7 +419,7 @@ export default function RecruitmentPage() {
                 )}
               </p>
               {canManageJobs && (
-                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                <button type="button" className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
                   {auto("+ Create First Job", "jobs.createFirst")}
                 </button>
               )}
@@ -522,11 +522,11 @@ export default function RecruitmentPage() {
                         </div>
                       </div>
                       <div className="flex gap-2 ms-4">
-                        <button className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
+                        <button type="button" className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
                           {auto("View", "jobs.actions.view")}
                         </button>
                         {canManageJobs && (
-                          <button className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
+                          <button type="button" className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
                             {auto("Edit", "jobs.actions.edit")}
                           </button>
                         )}
@@ -592,7 +592,7 @@ export default function RecruitmentPage() {
                   <div className="flex gap-2">
                     {/* View Toggle */}
                     <div className="flex border rounded-md overflow-hidden">
-                      <button
+                      <button type="button"
                         onClick={() => setApplicationsView("list")}
                         className={`px-3 py-2 text-sm transition-colors ${
                           applicationsView === "list"
@@ -602,7 +602,7 @@ export default function RecruitmentPage() {
                       >
                         {auto("📋 List", "applications.viewList")}
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => setApplicationsView("kanban")}
                         className={`px-3 py-2 text-sm transition-colors ${
                           applicationsView === "kanban"
@@ -728,10 +728,10 @@ export default function RecruitmentPage() {
                             </div>
                           </div>
                           <div className="flex gap-2 ms-4">
-                            <button className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
+                            <button type="button" className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
                               View
                             </button>
-                            <button className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                            <button type="button" className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
                               Review
                             </button>
                           </div>
@@ -780,7 +780,7 @@ export default function RecruitmentPage() {
                   )}
                 </p>
                 {canScheduleInterviews && (
-                  <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                  <button type="button" className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
                     {auto("+ Schedule Interview", "interviews.scheduleCta")}
                   </button>
                 )}
@@ -1012,22 +1012,22 @@ export default function RecruitmentPage() {
                             )}
                           </div>
                           <div className="flex gap-2 ms-4">
-                            <button className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
+                            <button type="button" className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
                               View
                             </button>
                             {interview.status === "scheduled" && !isPast && (
                               <>
-                                <button className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                                <button type="button" className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
                                   Reschedule
                                 </button>
-                                <button className="px-3 py-1 text-sm border border-destructive text-destructive rounded-md hover:bg-destructive/10 transition-colors">
+                                <button type="button" className="px-3 py-1 text-sm border border-destructive text-destructive rounded-md hover:bg-destructive/10 transition-colors">
                                   Cancel
                                 </button>
                               </>
                             )}
                             {interview.status === "completed" &&
                               !interview.feedback?.overall && (
-                                <button className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                                <button type="button" className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
                                   {auto(
                                     "Add Feedback",
                                     "interviews.addFeedback",
@@ -1115,10 +1115,10 @@ export default function RecruitmentPage() {
                         </td>
                         <td className="px-4 py-3 text-sm">
                           <div className="flex gap-2">
-                            <button className="px-3 py-1 border rounded-md text-xs">
+                            <button type="button" className="px-3 py-1 border rounded-md text-xs">
                               {auto("Profile", "candidates.actions.profile")}
                             </button>
-                            <button className="px-3 py-1 border rounded-md text-xs">
+                            <button type="button" className="px-3 py-1 border rounded-md text-xs">
                               {auto("Notes", "candidates.actions.notes")}
                             </button>
                           </div>

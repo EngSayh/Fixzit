@@ -38,7 +38,8 @@ type InvoicePayment = CanonicalInvoicePayment & {
 export function extractOrgId(
   metadata?: Record<string, unknown>,
 ): Types.ObjectId | null {
-  const orgValue = metadata?.organizationId || metadata?.orgId;
+  const orgValue =
+    metadata?.organizationId || metadata?.orgId || metadata?.tenantId;
   if (typeof orgValue === "string" && Types.ObjectId.isValid(orgValue)) {
     return new Types.ObjectId(orgValue);
   }
@@ -69,20 +70,21 @@ export async function upsertTransactionFromCharge(
   correlationId: string,
   payload: Record<string, unknown>,
 ): Promise<TapTransactionDoc | null> {
-  let transaction = await TapTransaction.findOne({ chargeId: charge.id });
+  const orgIdFromCharge = extractOrgId(charge.metadata);
+  if (!orgIdFromCharge) {
+    logger.error("[Webhook] Missing organizationId metadata on Tap charge", {
+      correlationId,
+      chargeId: charge.id,
+    });
+    return null;
+  }
+  const transactionFilter = { chargeId: charge.id, orgId: orgIdFromCharge };
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs Mongoose document for updates.
+  let transaction = await TapTransaction.findOne(transactionFilter);
 
   if (!transaction) {
-    const orgId = extractOrgId(charge.metadata);
-    if (!orgId) {
-      logger.error("[Webhook] Missing organizationId metadata on Tap charge", {
-        correlationId,
-        chargeId: charge.id,
-      });
-      return null;
-    }
-
     transaction = new TapTransaction({
-      orgId,
+      orgId: orgIdFromCharge,
       userId:
         typeof charge.metadata?.userId === "string"
           ? charge.metadata?.userId
@@ -231,6 +233,7 @@ async function allocateInvoicePayment(
     _id: transaction.invoiceId,
     $or: [{ orgId }, { org_id: orgId }],
   };
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: invoice is updated and saved.
   const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
   if (!invoice) {
     logger.warn("[Webhook] Invoice not found for Tap payment allocation (org-scoped)", {
@@ -312,6 +315,7 @@ export async function markInvoicePaymentStatus(
     _id: transaction.invoiceId,
     $or: [{ orgId }, { org_id: orgId }],
   };
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: invoice is updated and saved.
   const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
   if (!invoice) {
     return;
@@ -348,7 +352,18 @@ export async function updateRefundRecord(
   status: "PENDING" | "SUCCEEDED" | "FAILED",
   correlationId: string,
 ): Promise<void> {
-  const transaction = await TapTransaction.findOne({ chargeId: refund.charge });
+  const orgIdFromRefund = extractOrgId(refund.metadata);
+  if (!orgIdFromRefund) {
+    logger.warn("[Webhook] Missing organizationId metadata on Tap refund", {
+      correlationId,
+      refundId: refund.id,
+      chargeId: refund.charge,
+    });
+    return;
+  }
+  const refundFilter = { chargeId: refund.charge, orgId: orgIdFromRefund };
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs Mongoose document for updates.
+  const transaction = await TapTransaction.findOne(refundFilter);
   if (!transaction) {
     logger.warn("[Webhook] Refund received for unknown Tap transaction", {
       correlationId,
@@ -413,6 +428,7 @@ export async function updateRefundRecord(
         chargeId: refund.charge,
       });
     }
+    // NO_LEAN: payment is updated and saved.
     const payment = orgId
       ? await Payment.findOne({
           _id: transaction.paymentId,
@@ -440,6 +456,7 @@ export async function updateRefundRecord(
         _id: transaction.invoiceId,
         $or: [{ orgId }, { org_id: orgId }],
       };
+      // eslint-disable-next-line local/require-lean -- NO_LEAN: invoice is updated and saved.
       const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
       if (invoice) {
         const paymentsTyped = invoice.payments as unknown as

@@ -37,7 +37,8 @@ export async function GET(request: NextRequest) {
     );
     const offset = (page - 1) * limit;
 
-    // Find user's referral code
+    // Find user's referral code - lean() returns plain object
+    // NO_TENANT_SCOPE: Scoped by userId
     const referralCode = await ReferralCodeModel.findOne({
       referrerId: session.user.id,
       status: "ACTIVE",
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // With .lean(), referralCode is already a plain object
+    // lean() already returns plain object, no toObject needed
     const referralDoc = referralCode as { referrals?: unknown[] };
 
     // Paginate referrals array

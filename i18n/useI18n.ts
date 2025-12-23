@@ -17,6 +17,8 @@ const drill = (path: string, dict: Dict): unknown => {
   }, dict);
 };
 
+type TranslationValues = Record<string, string | number | boolean | Date | null>;
+
 export function useI18n() {
   const ctx = useContext(I18nContext);
   if (!ctx) {
@@ -29,13 +31,17 @@ export function useI18n() {
   // but updates when dict changes
   const { dict, locale } = ctx;
   const t = useCallback(
-    (
-      key: string,
-      vars?: Record<string, string | number | boolean | Date | null>,
-    ) => {
-      const raw = drill(key, dict) ?? key;
+    (key: string, varsOrFallback?: TranslationValues | string | null) => {
+      const isFallbackString = typeof varsOrFallback === "string";
+      const fallback = isFallbackString ? varsOrFallback : undefined;
+      const vars =
+        varsOrFallback && typeof varsOrFallback === "object" && !Array.isArray(varsOrFallback)
+          ? (varsOrFallback as TranslationValues)
+          : undefined;
+
+      const raw = drill(key, dict) ?? fallback ?? key;
       if (typeof raw !== "string") {
-        return key;
+        return fallback ?? key;
       }
 
       return formatIcuMessage(key, raw, locale, vars);

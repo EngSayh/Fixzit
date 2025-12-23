@@ -122,8 +122,19 @@ describe("LeaveTypeService", () => {
     });
 
     it("should require unique code per org", async () => {
-      // Duplicate code should throw error
-      expect(true).toBe(true);
+      vi.mocked(LeaveType.create).mockRejectedValueOnce(
+        new Error("Duplicate code")
+      );
+
+      await expect(
+        LeaveTypeService.create(orgId, {
+          code: "AL",
+          name: "Annual Leave",
+          description: "Annual leave",
+          isPaid: true,
+          annualEntitlementDays: 30,
+        })
+      ).rejects.toThrow("Duplicate code");
     });
   });
 

@@ -1,12 +1,39 @@
 # Issues Register - Fixzit Index Management System
 
-**Last Updated**: 2025-12-12T03:00+03  
+**Last Updated**: 2025-12-19T12:32:54+03:00  
 **Version**: 2.5  
 **Scope**: Database index management, security audits, observability, SMS infrastructure, test infrastructure, i18n  
 **Status**: ✅ ALL ISSUES VERIFIED - See PENDING_MASTER.md for current status
 
 > **Note**: This register contains historical issues for reference. For current project status, 
 > see `docs/PENDING_MASTER.md` (v15.25) which is the single source of truth.
+
+---
+
+## Recent Additions (2025-12-19)
+
+### ISSUE-SEC-IPv6-001: Public HTTPS URL validator does not reject IPv6 private ranges
+
+**Severity**: 🟨 Medium  
+**Category**: Security, Validation  
+**Status**: 🔄 IN PROGRESS (Fix applied, pending verification)
+
+**Description**: `validatePublicHttpsUrl` accepted IPv6 link-local (fe80::/10) and unique-local (fc00::/7) addresses. A fix has been applied to reject these ranges, and tests now assert rejection.
+
+**Evidence**: `lib/security/validate-public-https-url.ts` (IPv6 range checks), `tests/server/lib/validate-public-https-url.test.ts` (new rejection assertions).  
+**Next Steps**: Run `pnpm vitest run tests/server/lib/validate-public-https-url.test.ts` to verify.
+
+---
+
+### ISSUE-TRACKER-001: Auto-detection from ISSUE-tagged comments
+
+**Severity**: 🟩 Informational  
+**Category**: Tooling, DX  
+**Status**: ⏳ PENDING
+
+**Description**: Issue tracker roadmap calls for auto-detection of ISSUE-tagged comments in code to seed backlog entries (supersedes TODO-style notes).
+
+**Next Steps**: Extend issue import/scan tooling to parse `ISSUE-*` tags and create entries automatically.
 
 ---
 

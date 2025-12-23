@@ -302,7 +302,7 @@ export default function Sidebar({
             content={isCollapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
             side={isRTL ? "left" : "right"}
           >
-            <button
+            <button type="button"
               onClick={toggleCollapse}
               className="mb-4 p-2 rounded-full border border-sidebar-border hover:bg-sidebar-accent transition-all duration-200 ms-auto text-sidebar-foreground"
               aria-label={

@@ -4,6 +4,8 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { HoverTooltip } from "@/components/common/HoverTooltip";
 
 interface CheckoutFormProps {
   cartId: string;
@@ -20,6 +22,7 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const auto = useAutoTranslator("marketplace.checkoutForm");
+  const { preferenceSource } = useCurrency();
   const checkoutError = auto("Checkout failed", "errors.checkout");
   const networkError = auto(
     "Network error. Please try again.",
@@ -124,7 +127,22 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
           </span>
         </div>
         <div className="mt-2 flex justify-between text-base font-semibold text-primary">
-          <span>{auto("Total", "summary.total")}</span>
+          <span className="inline-flex items-center gap-1">
+            {auto("Total", "summary.total")}
+            <HoverTooltip
+              content={
+                preferenceSource === "profile"
+                  ? auto("Currency from your profile settings", "currency.profile")
+                  : preferenceSource === "cookie"
+                    ? auto("Currency from previous session", "currency.cookie")
+                    : preferenceSource === "localStorage"
+                      ? auto("Currency saved in browser", "currency.localStorage")
+                      : auto("Default currency (SAR)", "currency.default")
+              }
+              variant="info"
+              size="xs"
+            />
+          </span>
           <span>
             {totals.grand.toFixed(2)} {currency}
           </span>

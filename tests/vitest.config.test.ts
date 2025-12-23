@@ -163,7 +163,7 @@ describe("vitest.config.models.ts (model-only)", () => {
       aliases.some(
         (a) =>
           a.find === "next/server" &&
-          a.replacement.endsWith("tests/vitest-stubs/next-server.ts"),
+          a.replacement.replace(/\\/g, "/").endsWith("tests/vitest-stubs/next-server.ts"),
       ),
     ).toBe(true);
   });

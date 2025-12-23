@@ -18,6 +18,7 @@ import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/config/rbac.config";
 import { forbiddenError, handleApiError, isForbidden, unauthorizedError } from "@/server/utils/errorResponses";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { parseBodySafe } from "@/lib/api/parse-body";
 
 import { dbConnect } from "@/lib/mongodb-unified";
 import Journal from "@/server/models/finance/Journal";
@@ -94,8 +95,13 @@ export async function POST(
     }
 
     // Parse and validate request body
-    const body = await req.json();
-    const validated = VoidJournalSchema.parse(body);
+    const { data: rawBody, error: parseError } = await parseBodySafe(req, {
+      logPrefix: "[POST /api/finance/journals/:id/void]",
+    });
+    if (parseError) {
+      return NextResponse.json({ error: parseError }, { status: 400 });
+    }
+    const validated = VoidJournalSchema.parse(rawBody);
 
     // Execute with proper context
     return await runWithContext(

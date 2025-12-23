@@ -709,7 +709,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
           <div className="mb-2 text-xs font-semibold text-muted-foreground">{t.quickActions}</div>
           <div className="flex flex-wrap gap-2">
             {quickActions.map(action => (
-              <button
+              <button type="button"
                 key={action.name}
                 onClick={() => setActiveTool(prev => prev === action.name ? null : action.name)}
                 className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${activeTool === action.name ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-foreground hover:border-primary hover:text-primary'}`}
@@ -777,7 +777,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
             className="flex-1 rounded-full border border-border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             disabled={loading}
           />
-          <button
+          <button type="button"
             onClick={sendMessage}
             disabled={!input.trim() || loading || !isOnline}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-success text-white shadow transition hover:bg-success-dark disabled:cursor-not-allowed disabled:opacity-50"

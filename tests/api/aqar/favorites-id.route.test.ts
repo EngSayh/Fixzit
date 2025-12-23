@@ -57,8 +57,7 @@ describe("DELETE /api/aqar/favorites/[id]", () => {
   it("returns 429 when rate limit exceeded", async () => {
     const route = await importRoute();
     if (!route?.DELETE) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: DELETE");
     }
 
     vi.mocked(enforceRateLimit).mockReturnValue(
@@ -79,8 +78,7 @@ describe("DELETE /api/aqar/favorites/[id]", () => {
   it("returns 401 when user is not authenticated", async () => {
     const route = await importRoute();
     if (!route?.DELETE) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: DELETE");
     }
 
     vi.mocked(getSessionUser).mockRejectedValue(new Error("Not authenticated"));
@@ -97,8 +95,7 @@ describe("DELETE /api/aqar/favorites/[id]", () => {
   it("returns 400 for invalid ObjectId", async () => {
     const route = await importRoute();
     if (!route?.DELETE) {
-      expect(true).toBe(true);
-      return;
+      throw new Error("Route handler missing: DELETE");
     }
 
     vi.mocked(getSessionUser).mockResolvedValue({

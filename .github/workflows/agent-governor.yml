@@ -14,7 +14,7 @@ concurrency:
 
 permissions:
   contents: read
-  actions: read
+  actions: write
   checks: write
 
 jobs:
@@ -35,8 +35,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
-        with:
-          version: 9
 
       - name: Get pnpm store directory
         id: pnpm-store
@@ -74,10 +72,11 @@ jobs:
         run: pnpm run lint
 
       - name: 🔒 Assert non-production MongoDB
-        if: ${{ secrets.MONGODB_URI != '' }}
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           CI: "true"
+        # Run only if MONGODB_URI is available (skip on forks)
+        if: ${{ env.MONGODB_URI != '' }}
         run: pnpm tsx scripts/assert-nonprod-mongo.ts
 
       - name: Ensure Mongo Indexes (idempotent)

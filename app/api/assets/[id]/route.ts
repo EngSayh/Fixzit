@@ -128,6 +128,7 @@ export async function GET(
     }
     const orgCandidates =
       Types.ObjectId.isValid(user.orgId) ? [user.orgId, new Types.ObjectId(user.orgId)] : [user.orgId];
+    // PERF-002: Read-only query optimization
     const asset = await Asset.findOne({
       _id: params.id,
       orgId: { $in: orgCandidates },

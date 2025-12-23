@@ -26,6 +26,8 @@ declare module "next-auth" {
       roles: string[];
       tenantId?: string;
       userId?: string;
+      language?: string; // Added for Phase 2 preferences
+      currency?: string; // Added for Phase 2 preferences
     };
   }
 
@@ -40,6 +42,8 @@ declare module "next-auth" {
     permissions?: string[];
     roles?: string[];
     tenantId?: string;
+    language?: string; // Added for Phase 2 preferences
+    currency?: string; // Added for Phase 2 preferences
   }
 }
 
@@ -54,5 +58,7 @@ declare module "next-auth/jwt" {
     permissions?: string[];
     roles?: string[];
     tenantId?: string;
+    language?: string; // Added for Phase 2 preferences
+    currency?: string; // Added for Phase 2 preferences
   }
 }

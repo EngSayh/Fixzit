@@ -2736,7 +2736,7 @@
     "forgotPassword": "نسيت كلمة المرور؟",
     "signUp": "إنشاء حساب",
     "online": "متصل",
-    "offline": "غير متصل",
+    "offlineStatus": "غير متصل",
     "logout": "تسجيل الخروج",
     "popularPages": "الصفحات الشائعة",
     "totals": "الإجماليات",
@@ -2752,6 +2752,10 @@
       "finance": "المالية",
       "hr": "الموارد البشرية",
       "login": "تسجيل الدخول"
+    },
+    "offline": {
+      "backOnline": "عدت متصلاً بالإنترنت!",
+      "offline": "أنت غير متصل بالإنترنت. قد تكون بعض الميزات غير متاحة."
     }
   },
   "accessibility": {
@@ -3390,7 +3394,17 @@
         "title": "الصيانة الوقائية"
       },
       "sla": {
-        "title": "مراقبة اتفاقية مستوى الخدمة"
+        "title": "مراقبة اتفاقية مستوى الخدمة",
+        "onTime": "في الوقت المحدد",
+        "atRisk": "في خطر",
+        "breached": "تم الانتهاك",
+        "paused": "متوقف",
+        "notSet": "غير محدد",
+        "overdue": "متأخر",
+        "timeRemaining": "{hours}س {minutes}د",
+        "timeRemainingMinutes": "{minutes}د",
+        "overdueTime": "متأخر {hours}س {minutes}د",
+        "overdueMinutes": "متأخر {minutes}د"
       }
     },
     "assets": {
@@ -4717,11 +4731,11 @@
       "balance": "الرصيد"
     }
   },
-  "Loading": "جارٍ التحميل",
-  "Optional payment notes": "ملاحظات الدفع (اختياري)",
-  "Loading invoices": "جارٍ تحميل الفواتير",
-  "Creating": "جارٍ الإنشاء",
-  "Loading account activity": "جارٍ تحميل نشاط الحساب",
+  "Loading": "جارٍ التحميل...",
+  "Optional payment notes": "ملاحظات اختيارية للدفع...",
+  "Loading invoices": "جارٍ تحميل الفواتير...",
+  "Creating": "جارٍ الإنشاء...",
+  "Loading account activity": "جارٍ تحميل نشاط الحساب...",
   "auto": {
     "fm": {
       "hr": {

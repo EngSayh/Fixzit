@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Calendar, DollarSign, Package } from "lucide-react";
 import ClientDate from "@/components/ClientDate";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { FormOfflineBanner } from "@/components/common/FormOfflineBanner";
 
 interface RFQCategory {
   slug: string;
@@ -104,7 +105,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
             )}
           </p>
         </div>
-        <button
+        <button type="button"
           onClick={() => setShowForm(!showForm)}
           className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary/90"
         >
@@ -116,6 +117,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
 
       {showForm && (
         <div className="rounded-3xl bg-card p-6 shadow">
+          <FormOfflineBanner formType="rfq" className="mb-4" />
           <h2 className="text-lg font-semibold text-foreground">
             {auto("New RFQ", "form.title")}
           </h2>
@@ -197,7 +199,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
           </div>
           {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
           <div className="mt-4 flex gap-2">
-            <button
+            <button type="button"
               onClick={createRFQ}
               disabled={submitting}
               className="rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"
@@ -206,7 +208,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
                 ? auto("Submitting…", "form.submitting")
                 : auto("Submit RFQ", "form.submit")}
             </button>
-            <button
+            <button type="button"
               onClick={() => setShowForm(false)}
               className="rounded-full border border-border px-5 py-2 text-sm font-semibold text-foreground hover:bg-muted"
             >

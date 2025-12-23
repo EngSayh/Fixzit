@@ -63,6 +63,10 @@ Maintain the Fixzit multi-tenant SaaS platform with zero tolerance for shortcuts
 
 ## 2. Definitions
 
+Owner Override (Session): If SDD is missing/unreadable, proceed using available SoT files
+(`docs/FIXZIT_ONBOARDING_VERIFICATION_BLUEPRINT_V7.md`, `docs/UI_UX_ENHANCEMENT_BLUEPRINT_V1.md`,
+`docs/guides/GOVERNANCE.md`) and log the gap in the report. Do not halt solely for missing SDD.
+
 | Term | Definition |
 |------|------------|
 | **SSOT** | Single Source of Truth — MongoDB Issue Tracker ONLY |

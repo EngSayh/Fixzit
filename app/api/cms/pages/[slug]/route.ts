@@ -35,7 +35,10 @@ export async function GET(
     const { slug } = await props.params;
     const page = await CmsPage.findOne({ slug }).lean();
     if (!page) return createSecureResponse({ error: "Not found" }, 404, _req);
-    return createSecureResponse(page, 200, _req);
+    const response = createSecureResponse(page, 200, _req);
+    // Cache CMS pages for 5 minutes - static content
+    response.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+    return response;
   } catch (_error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

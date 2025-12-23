@@ -29,6 +29,12 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { zodValidationError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import {
+  applyCacheHeaders,
+  createCacheKey,
+  CACHE_DURATIONS,
+} from "@/lib/api/cache-headers";
+import { getCache, setCache } from "@/lib/redis";
 
 const QuerySchema = z.object({
   q: z.string().optional(),
@@ -67,6 +73,54 @@ export async function GET(request: NextRequest) {
     const params = Object.fromEntries(request.nextUrl.searchParams.entries());
     const query = QuerySchema.parse(params);
     const context = await resolveMarketplaceContext(request);
+
+    // P125: Check cache first for search results
+    const cacheKey = createCacheKey('marketplace:search', {
+      orgId: context.orgId?.toString(),
+      q: query.q,
+      cat: query.cat,
+      brand: query.brand,
+      std: query.std,
+      min: query.min?.toString(),
+      max: query.max?.toString(),
+      page: query.page.toString(),
+      limit: query.limit.toString(),
+    });
+    const cached = await getCache<{
+      items: unknown[];
+      pagination: { total: number };
+      facetCategories: unknown[];
+      brands: string[];
+      standards: string[];
+    }>(cacheKey);
+
+    if (cached) {
+      // Cache HIT - return cached search results
+      const response = NextResponse.json({
+        ok: true,
+        data: {
+          items: cached.items,
+          pagination: {
+            page: query.page,
+            limit: query.limit,
+            total: cached.pagination.total,
+            pages: Math.ceil(cached.pagination.total / query.limit),
+          },
+          facets: {
+            brands: cached.brands,
+            standards: cached.standards,
+            categories: cached.facetCategories,
+          },
+        },
+      });
+      return applyCacheHeaders(response, {
+        cacheStatus: 'HIT',
+        maxAge: CACHE_DURATIONS.SEARCH,
+        staleWhileRevalidate: 120,
+      });
+    }
+
+    // Cache MISS - perform search
     await connectToDatabase();
 
     const categoryDoc = query.cat
@@ -101,7 +155,27 @@ export async function GET(request: NextRequest) {
       facetCategories = [];
     }
 
-    return NextResponse.json({
+    const formattedCategories = facetCategories.map((category) => {
+      const cat = category as {
+        slug?: string;
+        name?: { en?: string; ar?: string };
+      };
+      return {
+        slug: cat.slug || "",
+        name: cat.name?.en ?? cat.name?.ar ?? cat.slug ?? "",
+      };
+    });
+
+    // Store in cache for next request
+    await setCache(cacheKey, {
+      items,
+      pagination,
+      facetCategories: formattedCategories,
+      brands: facets.brands,
+      standards: facets.standards,
+    }, CACHE_DURATIONS.SEARCH);
+
+    const response = NextResponse.json({
       ok: true,
       data: {
         items,
@@ -114,18 +188,15 @@ export async function GET(request: NextRequest) {
         facets: {
           brands: facets.brands,
           standards: facets.standards,
-          categories: facetCategories.map((category) => {
-            const cat = category as {
-              slug?: string;
-              name?: { en?: string; ar?: string };
-            };
-            return {
-              slug: cat.slug || "",
-              name: cat.name?.en ?? cat.name?.ar ?? cat.slug ?? "",
-            };
-          }),
+          categories: formattedCategories,
         },
       },
+    });
+    // Return with MISS status (fresh search from DB)
+    return applyCacheHeaders(response, {
+      cacheStatus: 'MISS',
+      maxAge: CACHE_DURATIONS.SEARCH,
+      staleWhileRevalidate: 120,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

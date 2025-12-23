@@ -108,7 +108,8 @@ export async function GET(req: NextRequest) {
     
     // CRM-001 FIX: All queries MUST be org-scoped per STRICT v4 multi-tenant isolation
     // Without orgId filter, aggregations expose cross-org CRM data
-    const orgFilter = { orgId: user.orgId };
+    const orgId = user.orgId;
+    const orgFilter = { orgId };
 
     const [
       totalLeads,
@@ -121,27 +122,28 @@ export async function GET(req: NextRequest) {
       recentEmails,
     ] = await Promise.all([
       // CRM-001 FIX: Add orgId to all countDocuments and aggregations
-      CrmLead.countDocuments({ ...orgFilter, kind: "LEAD" }),
+      CrmLead.countDocuments({ orgId, kind: "LEAD" }),
+      // AUDIT-2025-12-19: Added maxTimeMS to aggregates
       CrmLead.aggregate([
         { $match: { ...orgFilter, kind: "LEAD", status: "OPEN" } },
         {
           $group: { _id: null, total: { $sum: "$value" }, count: { $sum: 1 } },
         },
-      ]),
-      CrmLead.countDocuments({ ...orgFilter, status: "WON" }),
+      ], { maxTimeMS: 10_000 }),
+      CrmLead.countDocuments({ orgId, status: "WON" }),
       CrmLead.aggregate([
         { $match: orgFilter }, // CRM-001 FIX: Scope stage aggregation to org
         { $group: { _id: "$stage", total: { $sum: 1 } } },
-      ]),
-      CrmLead.find({ ...orgFilter, kind: "ACCOUNT" }).sort({ revenue: -1 }).limit(5).lean(),
+      ], { maxTimeMS: 10_000 }),
+      CrmLead.find({ orgId, kind: "ACCOUNT" }).sort({ revenue: -1 }).limit(5).lean(),
       CrmActivity.find(orgFilter).sort({ performedAt: -1 }).limit(6).lean(),
       CrmActivity.countDocuments({
-        ...orgFilter,
+        orgId,
         type: "CALL",
         performedAt: { $gte: sevenDaysAgo },
       }),
       CrmActivity.countDocuments({
-        ...orgFilter,
+        orgId,
         type: "EMAIL",
         performedAt: { $gte: sevenDaysAgo },
       }),

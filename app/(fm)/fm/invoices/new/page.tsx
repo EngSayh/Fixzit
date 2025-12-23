@@ -12,6 +12,7 @@ import { ClipboardCheck, Mail, Users } from "lucide-react";
 import { BaseSyntheticEvent, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { FormOfflineBanner } from "@/components/common/FormOfflineBanner";
 
 const stakeholders = [
   {
@@ -136,6 +137,9 @@ export default function InvoiceCreationForOpsPage() {
     <div className="space-y-6">
       <ModuleViewTabs moduleId="finance" />
       {supportBanner}
+
+      {/* P118: Offline banner for invoice creation form */}
+      <FormOfflineBanner formType="invoice" />
 
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">

@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
         orgId: user.orgId,
         company: payload.company.trim(),
         kind: "ACCOUNT",
-      })) ??
+      }).lean()) ??
       (await CrmLead.create({
         orgId: user.orgId,
         kind: "ACCOUNT",

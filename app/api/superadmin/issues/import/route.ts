@@ -18,7 +18,8 @@ import { importPendingMaster } from '@/lib/backlog/importPendingMaster';
 /**
  * POST /api/superadmin/issues/import - Import issues from PENDING_MASTER.md
  *
- * Reads PENDING_MASTER.md from project root and imports all backlog issues into MongoDB.
+ * Reads PENDING_MASTER.md from project root (fallback to docs/PENDING_MASTER.md)
+ * and imports all backlog issues into MongoDB.
  * Creates/updates BacklogIssue records and generates BacklogEvent audit entries.
  *
  * @param {NextRequest} req - Next.js request object (no body required)
@@ -26,7 +27,7 @@ import { importPendingMaster } from '@/lib/backlog/importPendingMaster';
  * @returns {Promise<NextResponse>} JSON response with import results
  * @returns {200} Success - { success: true, created: number, updated: number, skipped: number }
  * @returns {401} Unauthorized - Superadmin session required
- * @returns {404} Not Found - PENDING_MASTER.md file missing from project root
+ * @returns {404} Not Found - PENDING_MASTER.md file missing from expected locations
  *
  * @example
  * POST /api/superadmin/issues/import
@@ -48,12 +49,28 @@ export async function POST(req: NextRequest) {
 
   await connectMongo();
 
-  const pendingPath = path.join(process.cwd(), 'PENDING_MASTER.md');
+  const pendingPaths = [
+    path.join(process.cwd(), 'PENDING_MASTER.md'),
+    path.join(process.cwd(), 'docs', 'PENDING_MASTER.md'),
+  ];
 
-  let md: string;
-  try {
-    md = await fs.readFile(pendingPath, 'utf-8');
-  } catch (_err) {
+  const readPendingMaster = async (pendingPath: string) => {
+    try {
+      return await fs.readFile(pendingPath, 'utf-8');
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      if (err?.code === 'ENOENT') return null;
+      throw error;
+    }
+  };
+
+  let md: string | null = null;
+  for (const pendingPath of pendingPaths) {
+    md = await readPendingMaster(pendingPath);
+    if (md) break;
+  }
+
+  if (!md) {
     return NextResponse.json({ error: 'PENDING_MASTER.md not found' }, { status: 404 });
   }
 

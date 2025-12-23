@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import { BrandLogo } from "@/components/brand";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
+import { Config } from "@/lib/config/constants";
 
 /**
  * Root Error Boundary Component
@@ -22,8 +23,7 @@ import { EMAIL_DOMAINS } from "@/lib/config/domains";
  * @see https://nextjs.org/docs/app/building-your-application/routing/error-handling
  */
 // Configurable support contact for different environments (prod/staging/sandbox)
-const supportEmail =
-  process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? EMAIL_DOMAINS.support;
+const supportEmail = Config.company.supportEmail || EMAIL_DOMAINS.support;
 
 /**
  * ErrorPage - Root App Router Error Boundary
@@ -97,7 +97,7 @@ export default function ErrorPage({
           </p>
 
           {/* Error Details (Development Only) */}
-          {process.env.NODE_ENV === "development" && (
+          {Config.env.isDevelopment && (
             <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4 text-start mb-4">
               <p className="text-sm font-mono text-destructive break-all">
                 {error.message}

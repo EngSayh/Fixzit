@@ -234,7 +234,7 @@ export default function SearchFilters({
 
       {/* Quick Filters */}
       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
-        <button
+        <button type="button"
           onClick={() => updateFilters({ listingType: "ALL" })}
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
             filters.listingType === "ALL"
@@ -244,7 +244,7 @@ export default function SearchFilters({
         >
           {t("aqar.filters.all", "All")}
         </button>
-        <button
+        <button type="button"
           onClick={() => updateFilters({ listingType: "SALE" })}
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
             filters.listingType === "SALE"
@@ -254,7 +254,7 @@ export default function SearchFilters({
         >
           {t("aqar.filters.forSale", "For Sale")}
         </button>
-        <button
+        <button type="button"
           onClick={() => updateFilters({ listingType: "RENT" })}
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
             filters.listingType === "RENT"
@@ -264,7 +264,7 @@ export default function SearchFilters({
         >
           {t("aqar.filters.forRent", "For Rent")}
         </button>
-        <button
+        <button type="button"
           onClick={() => updateFilters({ listingType: "LEASE" })}
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
             filters.listingType === "LEASE"
@@ -275,7 +275,7 @@ export default function SearchFilters({
           {t("aqar.filters.forLease", "For Lease")}
         </button>
         <div className="flex-1" />
-        <button
+        <button type="button"
           ref={filtersButtonRef}
           onClick={() => setShowAdvanced(!showAdvanced)}
           aria-expanded={showAdvanced}
@@ -326,7 +326,7 @@ export default function SearchFilters({
               className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2"
             >
               {propertyTypes.map((type) => (
-                <button
+                <button type="button"
                   key={type.value}
                   onClick={() => togglePropertyType(type.value)}
                   role="checkbox"
@@ -424,7 +424,7 @@ export default function SearchFilters({
               className="flex gap-2"
             >
               {[1, 2, 3, 4, 5].map((count) => (
-                <button
+                <button type="button"
                   key={count}
                   onClick={() => toggleBedrooms(count)}
                   role="checkbox"
@@ -457,7 +457,7 @@ export default function SearchFilters({
               className="flex gap-2"
             >
               {[1, 2, 3, 4].map((count) => (
-                <button
+                <button type="button"
                   key={count}
                   onClick={() => toggleBathrooms(count)}
                   role="checkbox"
@@ -696,13 +696,13 @@ export default function SearchFilters({
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4 border-t border-border">
-            <button
+            <button type="button"
               onClick={clearFilters}
               className="flex-1 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold"
             >
               {t("aqar.filters.clearAll", "Clear All")}
             </button>
-            <button
+            <button type="button"
               onClick={() => setShowAdvanced(false)}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-warning to-warning-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
             >
@@ -722,7 +722,7 @@ export default function SearchFilters({
             {filters.listingType && filters.listingType !== "ALL" && (
               <span className="inline-flex items-center gap-1 px-3 py-1 bg-warning text-white text-sm rounded-full">
                 {filters.listingType}
-                <button onClick={() => updateFilters({ listingType: "ALL" })}>
+                <button type="button" onClick={() => updateFilters({ listingType: "ALL" })}>
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -731,12 +731,12 @@ export default function SearchFilters({
               <span className="inline-flex items-center gap-1 px-3 py-1 bg-warning text-white text-sm rounded-full">
                 {filters.propertyTypes!.length}{" "}
                 {t("aqar.filters.typesSelected", "types")}
-                <button onClick={() => updateFilters({ propertyTypes: [] })}>
+                <button type="button" onClick={() => updateFilters({ propertyTypes: [] })}>
                   <X className="w-3 h-3" />
                 </button>
               </span>
             )}
-            <button
+            <button type="button"
               onClick={clearFilters}
               className="ms-auto text-sm text-warning hover:text-warning font-medium"
             >
