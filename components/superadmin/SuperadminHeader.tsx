@@ -7,12 +7,12 @@
  * @module components/superadmin/SuperadminHeader
  */
 
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/useI18n";
 import { LogOut, Settings, User, Search, Sun, Moon, Bell, Command, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
 import { logger } from "@/lib/logger";
 import dynamic from "next/dynamic";
 import { Select, SelectItem } from "@/components/ui/select";
@@ -77,10 +77,28 @@ export function SuperadminHeader() {
   const session = useSuperadminSession();
   const [loggingOut, setLoggingOut] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const username = session?.user?.username?.trim() || null;
   const displayName = username || t("superadmin.account");
-  const switchTenantLabel =
-    t("superadmin.switchTenant") || "Switch tenant";
+
+  // Keyboard shortcut: Cmd/Ctrl+K to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Handle search submit
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && globalSearch.trim()) {
+      router.push(`/superadmin/search?q=${encodeURIComponent(globalSearch.trim())}`);
+    }
+  };
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -113,9 +131,9 @@ export function SuperadminHeader() {
       {/* Title */}
       <div className="flex items-center gap-3">
         <button
-          onClick={() => router.push("/superadmin/tenants")}
+          onClick={() => router.push("/")}
           className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-700 hover:bg-slate-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-600"
-          aria-label={switchTenantLabel}
+          aria-label={t("superadmin.goToLanding", "Go to landing")}
           type="button"
         >
           <BrandLogo
@@ -133,16 +151,27 @@ export function SuperadminHeader() {
             {t("superadmin.fullAccess")}
           </p>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push("/superadmin/tenants")}
+          className="text-slate-300 hover:text-white ms-2"
+        >
+          {t("superadmin.switchTenant", "Switch tenant")}
+        </Button>
       </div>
 
       {/* AcGlobal Search with Cmd+K hint */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
+            ref={searchInputRef}
             type="text"
             placeholder="Search..."
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            aria-label={t("superadmin.searchSuperadmin", "Search superadmin")}
             className="ps-10 pe-16 w-64 h-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
           />
           <kbd className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded border border-slate-600">

@@ -71,7 +71,7 @@ const statusStyles: Record<string, string> = {
   CANCELLED: "bg-muted text-muted-foreground border border-border",
 };
 
-type InvoiceFilters = {
+export type InvoiceFilters = {
   status?: string;
   amountMin?: number;
   amountMax?: number;
@@ -82,7 +82,7 @@ type InvoiceFilters = {
   dueTo?: string;
 };
 
-const INVOICE_FILTER_SCHEMA: FilterSchema<InvoiceFilters>[] = [
+export const INVOICE_FILTER_SCHEMA: FilterSchema<InvoiceFilters>[] = [
   { key: "status", param: "status", label: (f) => `Status: ${f.status}` },
   {
     key: "amountMin",

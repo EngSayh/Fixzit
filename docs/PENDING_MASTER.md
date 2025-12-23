@@ -1,5 +1,50 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
+### 2025-12-23 12:00 (Asia/Riyadh) — File Migration Verification & TypeScript Fixes
+**Context:** fix/tenant-scope-and-test-hygiene | Commit: pending
+**Agent:** [AGENT-001-A] GitHub Copilot (VS Code) - Core/Auth/Middleware
+**AGENTS.md Version:** v6.0
+
+**🔍 Session Evidence Gathering:**
+- Verified file migration from `G:\...\Fixzit-tenant` to `C:\Dev\Fixzit`
+- All 6,066+ source files confirmed present (app: 754, lib: 243, server: 220, components: 272)
+- VS Code Problems panel showed stale errors - actual typecheck passes
+
+**✅ Session Completed:**
+- FIX-TYPES-002: Created `types/xmlbuilder2.d.ts` type declarations
+- Verified ATS routes already fixed (descriptionHtml → description)
+- Verified populated field type assertions already in place
+- Verified WorkOrderAttachment mappers have correct types
+
+**Build Verification:**
+```
+pnpm typecheck: ✅ 0 errors
+pnpm lint: ⚠️ 553 errors (code quality - no-unused-vars, no-explicit-any)
+pnpm vitest run: 37 failed / 4398 passed (14 test files failing)
+```
+
+**Session Fixes Applied:**
+- Created `types/xmlbuilder2.d.ts` - type declarations for XML builder
+- Fixed `components/common/OfflineIndicator.tsx` - added React import for test env
+
+**Test Improvement:** 43 → 37 failed tests (6 tests fixed)
+
+**🔴 Open Issues (P1 - Require Attention):**
+
+| Category | Count | Top Files | Root Cause |
+|----------|-------|-----------|------------|
+| Rate Limit Tests | ~5 | attendance, sellers, listings-search | Tests expect 429 but route returns 401 (auth before rate limit) |
+| Client Component Tests | ~25 | OfflineIndicator, DataTable, SuperadminHeader | React import issues, mock setup |
+| Integration Tests | ~10 | bulk-actions, filters | Component mocking issues |
+
+**📋 Recommended Next Steps (Priority Order):**
+1. **P0**: Fix rate limit test assertions (check if routes actually implement rate limiting)
+2. **P1**: Fix React import in client component tests
+3. **P2**: Address ESLint no-unused-vars across copied files
+4. **P3**: Clean up nested project folders (Fixzit/, Fixzit-fresh/, Fixzit-tenant/)
+
+---
+
 ### 2025-12-22 01:30 (Asia/Riyadh) — Batch 7 Type Safety Improvements
 **Context:** main | Commit: e38a15544 | Remove 'as any' casts
 **Agent:** [AGENT-001-A] GitHub Copilot (VS Code) - Core/Auth/Middleware

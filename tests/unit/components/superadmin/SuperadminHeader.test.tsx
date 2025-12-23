@@ -40,7 +40,7 @@ vi.mock("@/components/ui/button", () => ({
 }));
 
 vi.mock("@/components/ui/input", () => ({
-  Input: (props: any) => <input {...props} />,
+  Input: React.forwardRef((props: any, ref: any) => <input ref={ref} {...props} />),
 }));
 
 vi.mock("@/components/ui/select", () => ({
@@ -128,7 +128,7 @@ describe("SuperadminHeader", () => {
 
   it("renders a single language dropdown with flags", () => {
     render(<SuperadminHeader />);
-    const select = screen.getByTestId("language-select");
+    const select = screen.getByTestId("superadmin-language-dropdown");
     expect(select).toBeInTheDocument();
     expect(select.querySelectorAll("option").length).toBeGreaterThanOrEqual(2);
   });

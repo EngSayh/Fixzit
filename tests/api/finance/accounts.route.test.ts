@@ -57,7 +57,9 @@ vi.mock("@/server/models/finance/ChartAccount", () => ({
     create: vi.fn(),
     countDocuments: vi.fn(),
     aggregate: vi.fn(),
-    findOne: vi.fn(),
+    findOne: vi.fn().mockReturnValue({
+      lean: vi.fn().mockResolvedValue(null),
+    }),
   },
 }));
 
@@ -94,7 +96,9 @@ describe("API /api/finance/accounts", () => {
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     vi.mocked(getSessionUser).mockResolvedValue(mockUser as never);
     vi.mocked(requirePermission).mockReturnValue(undefined);
-    vi.mocked(ChartAccount.findOne).mockResolvedValue(null as never);
+    vi.mocked(ChartAccount.findOne).mockReturnValue({
+      lean: vi.fn().mockResolvedValue(null),
+    } as never);
     vi.mocked(parseBodyOrNull).mockResolvedValue(null as never);
   });
 

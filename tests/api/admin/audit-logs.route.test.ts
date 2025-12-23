@@ -165,7 +165,9 @@ describe("API /api/admin/audit-logs", () => {
       const mockFind = vi.fn().mockReturnValue({
         sort: vi.fn().mockReturnValue({
           limit: vi.fn().mockReturnValue({
-            skip: vi.fn().mockResolvedValue(mockAuditLogs),
+            skip: vi.fn().mockReturnValue({
+              lean: vi.fn().mockResolvedValue(mockAuditLogs),
+            }),
           }),
         }),
       });
@@ -197,7 +199,9 @@ describe("API /api/admin/audit-logs", () => {
       const mockFind = vi.fn().mockReturnValue({
         sort: vi.fn().mockReturnValue({
           limit: vi.fn().mockReturnValue({
-            skip: vi.fn().mockResolvedValue([mockAuditLogs[0]]),
+            skip: vi.fn().mockReturnValue({
+              lean: vi.fn().mockResolvedValue([mockAuditLogs[0]]),
+            }),
           }),
         }),
       });
@@ -228,7 +232,9 @@ describe("API /api/admin/audit-logs", () => {
       const mockFind = vi.fn().mockReturnValue({
         sort: vi.fn().mockReturnValue({
           limit: vi.fn().mockReturnValue({
-            skip: vi.fn().mockResolvedValue([mockAuditLogs[0]]),
+            skip: vi.fn().mockReturnValue({
+              lean: vi.fn().mockResolvedValue([mockAuditLogs[0]]),
+            }),
           }),
         }),
       });

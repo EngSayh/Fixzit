@@ -149,6 +149,10 @@ export async function PATCH(
     if (!user?.orgId) {
       return createSecureResponse({ error: "Unauthorized", message: "Missing orgId in session" }, 401, req);
     }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     await connectToDatabase();
 
     const data = updateTenantSchema.parse(await req.json());
