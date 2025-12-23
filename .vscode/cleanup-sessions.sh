@@ -1,19 +1,47 @@
 #!/bin/bash
 # Auto-cleanup script for VS Code Copilot/Codex sessions
 # Clears stale data and kills orphaned processes
+#
+# ⚠️ WARNING: This script is for local development only.
+# The pkill commands use SIGKILL (-9) which terminates immediately without cleanup.
+# Process patterns are scoped to this workspace to minimize false matches.
+# Do NOT run this in production or CI environments.
 
 WORKSPACE_STORAGE="$HOME/Library/Application Support/Code/User/workspaceStorage"
+WORKSPACE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 echo "🧹 Fixzit Session Cleanup - $(date)"
+echo "📂 Workspace: $WORKSPACE_DIR"
 
 # 0. Kill orphaned build/test processes (main memory hog)
+# Uses SIGTERM first, then SIGKILL after 2 seconds if still running
 echo "Killing orphaned processes..."
-pkill -9 -f "next build" 2>/dev/null
-pkill -9 -f "next dev" 2>/dev/null  
-pkill -9 -f "vitest" 2>/dev/null
+
+# Helper function for graceful kill
+kill_gracefully() {
+  local pattern="$1"
+  local pids=$(pgrep -f "$pattern" 2>/dev/null | grep -v "$$")
+  if [ -n "$pids" ]; then
+    # Try SIGTERM first (graceful)
+    echo "$pids" | xargs kill -15 2>/dev/null
+    sleep 1
+    # SIGKILL remaining
+    echo "$pids" | xargs kill -9 2>/dev/null
+  fi
+}
+
+# Scope process killing to workspace directory when possible
+pgrep -f "node.*$WORKSPACE_DIR.*next" | xargs kill -15 2>/dev/null
+sleep 1
+pgrep -f "node.*$WORKSPACE_DIR.*next" | xargs kill -9 2>/dev/null
+
+pgrep -f "node.*$WORKSPACE_DIR.*vitest" | xargs kill -15 2>/dev/null
+sleep 1  
+pgrep -f "node.*$WORKSPACE_DIR.*vitest" | xargs kill -9 2>/dev/null
+
+# mongo_killer is a custom script, safe to kill broadly
 pkill -9 -f "mongo_killer" 2>/dev/null
-pkill -9 -f "mongod.*27017" 2>/dev/null
-echo "✓ Killed orphaned next/vitest/mongo processes"
+echo "✓ Killed orphaned next/vitest processes (workspace-scoped)"
 
 # 1. Clean Copilot chat sessions older than 1 day
 find "$WORKSPACE_STORAGE"/*/chatSessions -type f -mtime +1 -delete 2>/dev/null

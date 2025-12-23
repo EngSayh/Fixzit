@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       dueDate: { $exists: true, $ne: null },
     })
       .select(
-        "_id number type status issueDate dueDate total currency recipient issuer payments reminderHistory"
+        "_id number type status issueDate dueDate total currency orgId recipient issuer payments reminderHistory"
       )
       .lean();
 
@@ -129,7 +129,8 @@ export async function POST(request: NextRequest) {
       dueDate: inv.dueDate || new Date(),
       total: inv.total || 0,
       currency: inv.currency || "SAR",
-      orgId: inv.orgId || new Types.ObjectId(),
+      // Use session orgId (guaranteed by auth check) - invoice already filtered by this orgId
+      orgId: inv.orgId || new Types.ObjectId(user.orgId),
       recipient: (inv.recipient || {}) as InvoiceForReminder["recipient"],
       issuer: inv.issuer as InvoiceForReminder["issuer"],
       payments: inv.payments as InvoiceForReminder["payments"],
@@ -264,7 +265,7 @@ export async function GET(request: NextRequest) {
       status: { $nin: ["PAID", "CANCELLED", "DRAFT"] },
       dueDate: { $exists: true, $ne: null },
     })
-      .select("_id number type status issueDate dueDate total currency recipient payments")
+      .select("_id number type status issueDate dueDate total currency orgId recipient payments")
       .lean();
 
     // Type-cast for service - lean() returns plain objects
@@ -285,7 +286,8 @@ export async function GET(request: NextRequest) {
       dueDate: inv.dueDate || new Date(),
       total: inv.total || 0,
       currency: inv.currency || "SAR",
-      orgId: inv.orgId || new Types.ObjectId(),
+      // Use session orgId (guaranteed by auth check) - invoice already filtered by this orgId
+      orgId: inv.orgId || new Types.ObjectId(user.orgId),
       recipient: (inv.recipient || {}) as InvoiceForReminder["recipient"],
       payments: inv.payments as InvoiceForReminder["payments"],
     }));

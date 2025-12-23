@@ -135,9 +135,11 @@ export function buildWorkOrderFilter(
     });
   } else if (userRole === "TENANT") {
     // MAJOR FIX: Tenants with empty units get 403, not org-wide access
+    // Setting _id: { $exists: false } creates an impossible condition = no results
     if (!units || units.length === 0) {
       filter._id = { $exists: false }; // Impossible condition = no results
-      filter.__tenantNoUnits = true; // Signal to caller
+      // Note: Previously had __tenantNoUnits signal field here, but it leaked into
+      // MongoDB queries. The impossible _id condition already prevents results.
     } else {
       andFilters.push({
         $or: [
@@ -201,7 +203,7 @@ export function buildWorkOrderFilter(
     andFilters.push({
       $or: [
         { "sla.resolutionDeadline": { $lt: now } },
-        { dueDate: { $lt: now.toISOString() } },
+        { dueDate: { $lt: now } }, // Fixed: Use Date object consistently (MongoDB handles both Date and ISO string, but Date is preferred)
         { dueAt: { $lt: now } },
       ],
     });
