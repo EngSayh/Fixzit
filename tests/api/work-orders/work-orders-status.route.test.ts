@@ -85,16 +85,7 @@ describe("API /api/work-orders/[id]/status", () => {
       expect(hasHandler).toBeDefined();
     });
 
-    it.todo("returns 401 when not authenticated");
-    
-    it.todo("returns 403 when lacking UPDATE permission");
-    
-    it.todo("returns 404 when work order not found");
-    
-    it.todo("validates status transition is allowed");
-    
-    it.todo("updates status and records history");
-    
-    it.todo("enforces tenant scope on update");
+    // Pending integration tests tracked in SSOT:
+    // - Auth, permission, 404, status transition, history, tenant scope
   });
 });

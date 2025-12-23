@@ -1,0 +1,308 @@
+{
+  // ============================================
+  // FIXZIT DESIGN SYSTEM - VSCODE SETTINGS
+  // Based on Ejar.sa Color Palette
+  // ============================================
+
+  // Editor Colors
+  "workbench.colorCustomizations": {
+    // Activity Bar (left sidebar icons)
+    "activityBar.background": "#0D121C",
+    "activityBar.foreground": "#25935F",
+    "activityBar.activeBorder": "#25935F",
+    "activityBarBadge.background": "#25935F",
+    "activityBarBadge.foreground": "#FFFFFF",
+
+    // Side Bar
+    "sideBar.background": "#1A1F2B",
+    "sideBar.foreground": "#CFD4DB",
+    "sideBarTitle.foreground": "#FFFFFF",
+    "sideBarSectionHeader.background": "#0D121C",
+    "sideBarSectionHeader.foreground": "#25935F",
+
+    // Editor
+    "editor.background": "#0D121C",
+    "editor.foreground": "#E5E7EB",
+    "editor.selectionBackground": "#25935F40",
+    "editor.lineHighlightBackground": "#1A1F2B",
+    "editor.lineHighlightBorder": "#2D3340",
+    "editorCursor.foreground": "#25935F",
+    "editorWhitespace.foreground": "#434B5A",
+
+    // Editor Gutter
+    "editorGutter.background": "#0D121C",
+    "editorLineNumber.foreground": "#6C737F",
+    "editorLineNumber.activeForeground": "#25935F",
+
+    // Editor Widgets
+    "editorWidget.background": "#1A1F2B",
+    "editorWidget.border": "#2D3340",
+    "editorSuggestWidget.background": "#1A1F2B",
+    "editorSuggestWidget.selectedBackground": "#25935F30",
+    "editorSuggestWidget.highlightForeground": "#25935F",
+
+    // Status Bar
+    "statusBar.background": "#25935F",
+    "statusBar.foreground": "#FFFFFF",
+    "statusBar.noFolderBackground": "#80519F",
+    "statusBar.debuggingBackground": "#F79009",
+    "statusBarItem.hoverBackground": "#188352",
+    "statusBarItem.activeBackground": "#166A45",
+
+    // Title Bar
+    "titleBar.activeBackground": "#0D121C",
+    "titleBar.activeForeground": "#FFFFFF",
+    "titleBar.inactiveBackground": "#1A1F2B",
+    "titleBar.inactiveForeground": "#8A919C",
+
+    // Tabs
+    "tab.activeBackground": "#0D121C",
+    "tab.activeForeground": "#FFFFFF",
+    "tab.activeBorder": "#25935F",
+    "tab.inactiveBackground": "#1A1F2B",
+    "tab.inactiveForeground": "#8A919C",
+    "tab.hoverBackground": "#2D3340",
+
+    // Terminal
+    "terminal.background": "#0D121C",
+    "terminal.foreground": "#E5E7EB",
+    "terminal.ansiGreen": "#17B26A",
+    "terminal.ansiRed": "#F04438",
+    "terminal.ansiYellow": "#F79009",
+    "terminal.ansiBlue": "#2E90FA",
+    "terminal.ansiMagenta": "#80519F",
+    "terminal.ansiCyan": "#25935F",
+    "terminalCursor.foreground": "#25935F",
+
+    // Panels
+    "panel.background": "#0D121C",
+    "panel.border": "#2D3340",
+    "panelTitle.activeBorder": "#25935F",
+    "panelTitle.activeForeground": "#FFFFFF",
+    "panelTitle.inactiveForeground": "#8A919C",
+
+    // Input
+    "input.background": "#1A1F2B",
+    "input.foreground": "#E5E7EB",
+    "input.border": "#434B5A",
+    "input.placeholderForeground": "#6C737F",
+    "inputOption.activeBackground": "#25935F30",
+    "inputOption.activeBorder": "#25935F",
+
+    // Button
+    "button.background": "#25935F",
+    "button.foreground": "#FFFFFF",
+    "button.hoverBackground": "#188352",
+    "button.secondaryBackground": "#2D3340",
+    "button.secondaryForeground": "#E5E7EB",
+    "button.secondaryHoverBackground": "#434B5A",
+
+    // Dropdown
+    "dropdown.background": "#1A1F2B",
+    "dropdown.foreground": "#E5E7EB",
+    "dropdown.border": "#434B5A",
+
+    // List/Tree
+    "list.activeSelectionBackground": "#25935F40",
+    "list.activeSelectionForeground": "#FFFFFF",
+    "list.hoverBackground": "#2D3340",
+    "list.focusBackground": "#25935F30",
+    "list.highlightForeground": "#25935F",
+
+    // Git Decorations
+    "gitDecoration.addedResourceForeground": "#17B26A",
+    "gitDecoration.modifiedResourceForeground": "#F79009",
+    "gitDecoration.deletedResourceForeground": "#F04438",
+    "gitDecoration.untrackedResourceForeground": "#2E90FA",
+    "gitDecoration.conflictingResourceForeground": "#F04438",
+
+    // Breadcrumbs
+    "breadcrumb.foreground": "#8A919C",
+    "breadcrumb.focusForeground": "#FFFFFF",
+    "breadcrumb.activeSelectionForeground": "#25935F",
+
+    // Peek View
+    "peekView.border": "#25935F",
+    "peekViewEditor.background": "#1A1F2B",
+    "peekViewResult.background": "#0D121C",
+    "peekViewTitle.background": "#1A1F2B",
+
+    // Notifications
+    "notifications.background": "#1A1F2B",
+    "notifications.foreground": "#E5E7EB",
+    "notificationsInfoIcon.foreground": "#2E90FA",
+    "notificationsWarningIcon.foreground": "#F79009",
+    "notificationsErrorIcon.foreground": "#F04438",
+
+    // Scrollbar
+    "scrollbar.shadow": "#00000050",
+    "scrollbarSlider.background": "#434B5A80",
+    "scrollbarSlider.hoverBackground": "#6C737F80",
+    "scrollbarSlider.activeBackground": "#25935F80",
+
+    // Minimap
+    "minimap.background": "#0D121C",
+    "minimap.selectionHighlight": "#25935F80",
+
+    // Focus Border
+    "focusBorder": "#25935F"
+  },
+
+  // Syntax Highlighting (Token Colors)
+  "editor.tokenColorCustomizations": {
+    "textMateRules": [
+      {
+        "scope": ["comment", "punctuation.definition.comment"],
+        "settings": {
+          "foreground": "#6C737F",
+          "fontStyle": "italic"
+        }
+      },
+      {
+        "scope": ["string", "string.quoted"],
+        "settings": {
+          "foreground": "#17B26A"
+        }
+      },
+      {
+        "scope": ["constant.numeric", "constant.language"],
+        "settings": {
+          "foreground": "#F79009"
+        }
+      },
+      {
+        "scope": ["keyword", "storage.type", "storage.modifier"],
+        "settings": {
+          "foreground": "#80519F"
+        }
+      },
+      {
+        "scope": ["entity.name.function", "support.function"],
+        "settings": {
+          "foreground": "#2E90FA"
+        }
+      },
+      {
+        "scope": ["entity.name.class", "entity.name.type", "support.class"],
+        "settings": {
+          "foreground": "#F5BD02"
+        }
+      },
+      {
+        "scope": ["variable", "variable.other"],
+        "settings": {
+          "foreground": "#E5E7EB"
+        }
+      },
+      {
+        "scope": ["variable.parameter"],
+        "settings": {
+          "foreground": "#F79009",
+          "fontStyle": "italic"
+        }
+      },
+      {
+        "scope": ["entity.name.tag"],
+        "settings": {
+          "foreground": "#25935F"
+        }
+      },
+      {
+        "scope": ["entity.other.attribute-name"],
+        "settings": {
+          "foreground": "#80519F"
+        }
+      },
+      {
+        "scope": ["punctuation"],
+        "settings": {
+          "foreground": "#8A919C"
+        }
+      },
+      {
+        "scope": ["constant.language.boolean"],
+        "settings": {
+          "foreground": "#F04438"
+        }
+      },
+      {
+        "scope": ["support.type.property-name.css"],
+        "settings": {
+          "foreground": "#2E90FA"
+        }
+      },
+      {
+        "scope": ["support.constant.property-value.css"],
+        "settings": {
+          "foreground": "#17B26A"
+        }
+      },
+      {
+        "scope": ["meta.object-literal.key"],
+        "settings": {
+          "foreground": "#25935F"
+        }
+      }
+    ]
+  },
+
+  // ============================================
+  // TAILWIND CSS INTELLISENSE
+  // ============================================
+  "tailwindCSS.experimental.classRegex": [
+    ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+    ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+  ],
+  "tailwindCSS.classAttributes": [
+    "class",
+    "className",
+    "ngClass",
+    "containerClassName",
+    "wrapperClassName",
+    "inputClassName",
+    "labelClassName"
+  ],
+  "tailwindCSS.emmetCompletions": true,
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+
+  // ============================================
+  // EDITOR SETTINGS
+  // ============================================
+  "editor.fontFamily": "'IBM Plex Mono', 'Fira Code', monospace",
+  "editor.fontSize": 14,
+  "editor.lineHeight": 1.6,
+  "editor.tabSize": 2,
+  "editor.wordWrap": "on",
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.linkedEditing": true,
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "editor.renderWhitespace": "boundary",
+  "editor.smoothScrolling": true,
+  "editor.cursorBlinking": "smooth",
+  "editor.cursorSmoothCaretAnimation": "on",
+
+  // ============================================
+  // FILE ASSOCIATIONS
+  // ============================================
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+
+  // ============================================
+  // RECOMMENDED EXTENSIONS
+  // ============================================
+  // Install these extensions for best experience:
+  // - bradlc.vscode-tailwindcss (Tailwind CSS IntelliSense)
+  // - esbenp.prettier-vscode (Prettier)
+  // - dbaeumer.vscode-eslint (ESLint)
+  // - formulahendry.auto-rename-tag (Auto Rename Tag)
+  // - christian-kohler.path-intellisense (Path Intellisense)
+  // - Prisma.prisma (Prisma - if using)
+  // - mongodb.mongodb-vscode (MongoDB - if using)
+}

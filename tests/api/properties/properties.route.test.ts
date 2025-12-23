@@ -99,15 +99,8 @@ describe("API /api/properties", () => {
       expect(typeof routeModule.GET).toBe("function");
     });
 
-    it.todo("returns 401 when not authenticated (tested via crud-factory)");
-    
-    it.todo("returns 403 when lacking VIEW permission (tested via crud-factory)");
-    
-    it.todo("returns properties list with pagination (requires integration)");
-    
-    it.todo("filters by type (requires integration)");
-    
-    it.todo("enforces tenant scope (requires integration)");
+    // Pending integration tests tracked in SSOT:
+    // - Auth, permission, pagination, type filter, tenant scope
   });
 
   describe("POST /api/properties", () => {
@@ -121,12 +114,7 @@ describe("API /api/properties", () => {
       expect(typeof routeModule.POST).toBe("function");
     });
 
-    it.todo("returns 401 when not authenticated (tested via crud-factory)");
-    
-    it.todo("returns 403 when lacking CREATE permission (tested via crud-factory)");
-    
-    it.todo("creates property with required fields (requires integration)");
-    
-    it.todo("validates property schema (requires integration)");
+    // Pending integration tests tracked in SSOT:
+    // - Auth, permission, required fields, schema validation
   });
 });

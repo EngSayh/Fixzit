@@ -136,14 +136,7 @@ describe("API /api/finance/ledger", () => {
       expect(res.status).toBe(429);
     });
 
-    it.todo(
-      "returns 403 when lacking FINANCE permission (requires permission mock)",
-    );
-
-    it.todo("returns ledger entries with pagination (requires DB integration)");
-
-    it.todo("filters by accountId (requires DB integration)");
-
-    it.todo("filters by date range (requires DB integration)");
+    // Pending integration tests tracked in SSOT:
+    // - FINANCE permission, pagination, accountId filter, date range filter
   });
 });

@@ -159,8 +159,8 @@ describe("API /api/admin/discounts", () => {
       expect(data.error).toContain("Organization");
     });
 
-    // Note: DB integration tests require MongoMemoryServer setup
-    it.todo("returns discount rules for SUPER_ADMIN with orgId (requires DB integration)");
+    // Pending DB integration test tracked in SSOT:
+    // - returns discount rules for SUPER_ADMIN with orgId
   });
 
   describe("PUT /api/admin/discounts", () => {
@@ -196,6 +196,7 @@ describe("API /api/admin/discounts", () => {
       expect(res.status).toBe(400);
     });
 
-    it.todo("validates discount value is within range (requires DB integration)");
+    // Pending DB integration test tracked in SSOT:
+    // - validates discount value is within range
   });
 });

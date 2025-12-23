@@ -88,11 +88,8 @@ describe("API /api/properties/[id]", () => {
       expect(typeof routeModule.GET).toBe("function");
     });
 
-    it.todo("returns 401 when not authenticated");
-    
-    it.todo("returns 404 when property not found");
-    
-    it.todo("returns property details with tenant scope check");
+    // Pending integration tests tracked in SSOT:
+    // - Auth, 404, tenant scope check
   });
 
   describe("PATCH /api/properties/[id]", () => {
@@ -106,13 +103,8 @@ describe("API /api/properties/[id]", () => {
       expect(typeof routeModule.PATCH).toBe("function");
     });
 
-    it.todo("returns 401 when not authenticated");
-    
-    it.todo("returns 403 when lacking UPDATE permission");
-    
-    it.todo("returns 404 when property not found");
-    
-    it.todo("updates property with tenant scope check");
+    // Pending integration tests tracked in SSOT:
+    // - Auth, UPDATE permission, 404, tenant scope check
   });
 
   describe("DELETE /api/properties/[id]", () => {
@@ -126,12 +118,7 @@ describe("API /api/properties/[id]", () => {
       expect(typeof routeModule.DELETE).toBe("function");
     });
 
-    it.todo("returns 401 when not authenticated");
-    
-    it.todo("returns 403 when lacking DELETE permission");
-    
-    it.todo("returns 404 when property not found");
-    
-    it.todo("deletes property with tenant scope check");
+    // Pending integration tests tracked in SSOT:
+    // - Auth, DELETE permission, 404, tenant scope check
   });
 });

@@ -151,12 +151,7 @@ describe("API /api/admin/notifications/send", () => {
       expect(res.status).toBe(429);
     });
 
-    it.todo("returns 400 when recipients type is invalid");
-
-    it.todo("returns 400 when channels are not specified");
-
-    it.todo(
-      "successfully sends notifications to all users (requires DB/email integration)",
-    );
+    // Pending integration tests tracked in SSOT:
+    // - invalid recipients type, missing channels, send to all users
   });
 });

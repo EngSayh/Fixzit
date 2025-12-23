@@ -145,13 +145,8 @@ describe("API /api/admin/users", () => {
       expect(data.error).toContain("Forbidden");
     });
 
-    // Note: DB integration tests require MongoMemoryServer setup
-    // These are marked .todo for future integration test expansion
-    it.todo("returns users list for SUPER_ADMIN (requires DB integration)");
-
-    it.todo("accepts pagination parameters (requires DB integration)");
-
-    it.todo("caps limit to 1000 (requires DB integration)");
+    // Pending DB integration tests tracked in SSOT:
+    // - users list for SUPER_ADMIN, pagination, limit cap
 
     it("enforces rate limiting", async () => {
       mockAuth.mockResolvedValueOnce({
