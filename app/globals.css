@@ -983,5 +983,13 @@
   text-align: right;
 }
 
-/* Import Design Tokens */
+/* ============================================
+   DESIGN SYSTEM IMPORTS (SSOT)
+   ============================================ */
+
+/* Core Design Tokens - Single Source of Truth */
+@import "../styles/tokens.css";
 @import "../styles/design-tokens.css";
+
+/* Animation System */
+@import "../styles/animations.css";
