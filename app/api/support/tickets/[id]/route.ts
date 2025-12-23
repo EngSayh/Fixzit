@@ -83,6 +83,7 @@ export async function PATCH(
     if (!Types.ObjectId.isValid(id)) {
       return createSecureResponse({ error: "Invalid id" }, 400, req);
     }
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for updates and .save()
     const t = await SupportTicket.findOne({
       _id: id,
       $or: [

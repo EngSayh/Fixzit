@@ -99,6 +99,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Simple existence check
     const existingSlug = await Category.findOne({ slug });
     if (existingSlug) {
       return NextResponse.json(

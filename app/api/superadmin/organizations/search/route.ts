@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Search organizations by name (case-insensitive)
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-org search
     const organizations = await Organization.find(
       {
         name: { $regex: query, $options: "i" },

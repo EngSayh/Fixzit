@@ -320,6 +320,7 @@ export async function GET(req: NextRequest) {
     const db = await getDatabase();
     const emailsCollection = db.collection(COLLECTIONS.EMAIL_LOGS);
 
+    // eslint-disable-next-line local/require-tenant-scope -- SUPPORT: Email log lookup by recipient
     const emailRecords = await emailsCollection
       .find({ recipient: email, type: "welcome_email" })
       .sort({ sentAt: -1, failedAt: -1 })

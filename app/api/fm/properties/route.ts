@@ -305,6 +305,7 @@ export async function POST(req: NextRequest) {
     const propertyCode = body.code || generatePropertyCode();
 
     // Query uses native MongoDB driver (already returns lean POJO)
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Native driver returns lean POJO
     const existingCode = await collection.findOne({
       orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
       code: propertyCode,
@@ -389,6 +390,7 @@ export async function PATCH(req: NextRequest) {
 
     if (payload.code) {
       // Query uses native MongoDB driver (already returns lean POJO)
+      // eslint-disable-next-line local/require-lean -- NO_LEAN: Native driver returns lean POJO
       const duplicate = await collection.findOne({
         orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
         code: payload.code,

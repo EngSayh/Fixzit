@@ -242,6 +242,7 @@ export async function requireFMAuth(
   try {
     await connectDb();
     // Always use ctx.orgId - don't allow callers to query other orgs
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: checking membership via org object
     const org = await Organization.findOne({ orgId: ctx.orgId });
 
     if (org) {
@@ -440,7 +441,9 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
       );
       type WorkOrderOrgProjection = { orgId?: unknown; propertyOwnerId?: unknown };
       const workOrderModel = FMWorkOrderModule?.FMWorkOrder;
+       
       const workOrder = workOrderModel
+        // eslint-disable-next-line local/require-tenant-scope -- CROSS-TENANT: Looking up property org ownership
         ? await workOrderModel
             .findOne({ propertyId: _propertyId })
             .select("propertyOwnerId orgId")

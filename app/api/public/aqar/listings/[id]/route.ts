@@ -57,6 +57,7 @@ export async function GET(
 
     // PLATFORM-WIDE: Public API shows all active listings from marketplace
     // Only return ACTIVE listings
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Public marketplace listing
     const listing = await listingModel
       .findOne({
         _id: id,

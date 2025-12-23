@@ -62,6 +62,7 @@ export async function importPendingMaster(md: string, actor = 'system:importer')
     const now = new Date();
 
     type ExistingIssue = { firstSeen?: Date; mentionCount?: number; sourceEntries?: string[]; status?: string };
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Backlog issues are system-wide, not tenant-scoped
     const existing = await BacklogIssue.findOne({ key }).lean() as ExistingIssue | null;
 
     const firstSeen = existing?.firstSeen ? new Date(existing.firstSeen) : now;
@@ -71,6 +72,7 @@ export async function importPendingMaster(md: string, actor = 'system:importer')
     const nextStatus =
       existing?.status === 'resolved' ? 'pending' : (existing?.status || 'pending');
 
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Backlog issues are system-wide
     await BacklogIssue.updateOne(
       { key },
       {
@@ -98,6 +100,7 @@ export async function importPendingMaster(md: string, actor = 'system:importer')
       { upsert: true }
     );
 
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Backlog events are system-wide
     await BacklogEvent.create({
       issueKey: key,
       type: 'import',

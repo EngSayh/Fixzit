@@ -69,6 +69,7 @@ duplicate-detection-report.json
 # Temp directories (prevent tracking temporary files)
 /tmp/
 /.tmp/
+/.fixzit/
 
 # Local artifacts we'll keep but not commit
 /_archive/

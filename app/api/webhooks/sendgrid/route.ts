@@ -200,11 +200,13 @@ export async function POST(req: NextRequest) {
 
         // Update email log
         if (emailId) {
+          // eslint-disable-next-line local/require-tenant-scope -- WEBHOOK: Email logs keyed by emailId
           await emailsCollection.updateOne({ emailId }, updateDoc, {
             upsert: false,
           });
         } else {
           // Fallback: find by recipient email and sg_message_id
+          // eslint-disable-next-line local/require-tenant-scope -- WEBHOOK: Email logs keyed by recipient + sg_message_id
           await emailsCollection.updateOne(
             {
               recipient: event.email,

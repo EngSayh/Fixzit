@@ -5,6 +5,7 @@ export async function getOrCreateCart(
   orgId: Types.ObjectId,
   buyerUserId: Types.ObjectId,
 ) {
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document methods
   let cart = await Order.findOne({ orgId, buyerUserId, status: "CART" });
   if (!cart) {
     cart = await Order.create({

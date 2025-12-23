@@ -15,6 +15,7 @@ export async function getOnboardingKPIs(orgId: string) {
     OnboardingCase.countDocuments({ org_id: orgObjectId }),
   ]);
 
+  // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: counting all expired documents
   const expiredDocs = await VerificationDocument.countDocuments({ status: 'EXPIRED' });
 
   return {

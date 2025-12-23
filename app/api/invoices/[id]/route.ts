@@ -91,7 +91,7 @@ export async function GET(
     }
     await connectToDatabase();
 
-    // NO_LEAN: Document needed for history update and .save()
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for history update and .save()
     const invoice = await Invoice.findOne({
       _id: params.id,
       orgId: user.orgId,
@@ -141,7 +141,7 @@ export async function PATCH(
 
     const data = updateInvoiceSchema.parse(await req.json());
 
-    // NO_LEAN: Document needed for status update and .save()
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for status update and .save()
     const invoice = await Invoice.findOne({
       _id: params.id,
       orgId: user.orgId,
@@ -302,7 +302,7 @@ export async function DELETE(
     }
     await connectToDatabase();
 
-    // NO_LEAN: Document needed for .deleteOne()
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for .deleteOne()
     const invoice = await Invoice.findOne({
       _id: params.id,
       orgId: user.orgId,

@@ -54,6 +54,7 @@ export async function resolveOrgIdFromCompanyCode(
 ): Promise<{ orgId: string | null; error?: string }> {
   const { Organization } = await import("@/server/models/Organization");
   try {
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Organization lookup by code for login
     const org = await Organization.findOne({ code: companyCode })
       .select({ _id: 1, orgId: 1 })
       .lean<{

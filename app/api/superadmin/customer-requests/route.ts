@@ -148,6 +148,7 @@ export async function POST(req: NextRequest) {
     await request.save();
 
     // Create audit event
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Creates event for request tracking
     await CustomerRequestEvent.create({
       tenantId,
       requestId: request.requestId,
@@ -181,6 +182,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required field: requestId' }, { status: 400 });
     }
 
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: Document needed for updates; SUPER_ADMIN: Cross-tenant access
     const request = await CustomerRequest.findOne({ requestId });
     if (!request) {
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
@@ -264,11 +266,13 @@ export async function PATCH(req: NextRequest) {
 
     // Apply updates
     if (Object.keys(updates).length > 0) {
+      // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant access
       await CustomerRequest.updateOne({ requestId }, { $set: updates });
     }
 
     // Create audit events
     for (const event of events) {
+      // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Creates event for request tracking
       await CustomerRequestEvent.create({
         tenantId: request.tenantId,
         requestId,
@@ -279,6 +283,7 @@ export async function PATCH(req: NextRequest) {
       });
     }
 
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant access
     const updated = await CustomerRequest.findOne({ requestId }).lean();
     return NextResponse.json({ success: true, request: updated });
   } catch (error) {

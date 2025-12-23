@@ -108,9 +108,11 @@ export async function GET(request: NextRequest) {
       User.countDocuments(filter).exec(),
       // Get unique org IDs and fetch org names
       (async () => {
+         
         const allUsers = await User.find(filter).select("orgId").lean().exec() as Array<{ orgId?: mongoose.Types.ObjectId }>;
         const orgIds = [...new Set(allUsers.map(u => u.orgId?.toString()).filter(Boolean))];
         if (orgIds.length === 0) return new Map<string, string>();
+        // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-org lookup
         const orgs = await Organization.find({ _id: { $in: orgIds } }).select("name").lean().exec() as Array<{ _id: mongoose.Types.ObjectId; name: string }>;
         return new Map(orgs.map((o: { _id: mongoose.Types.ObjectId; name: string }) => [o._id.toString(), o.name]));
       })(),

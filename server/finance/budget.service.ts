@@ -31,6 +31,7 @@ export async function createBudget(
     });
   } catch (error) {
     logger.error("Failed to submit budget for DoA approval");
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped by budget._id which has orgId
     await Budget.deleteOne({ _id: budget._id });
     throw error;
   }

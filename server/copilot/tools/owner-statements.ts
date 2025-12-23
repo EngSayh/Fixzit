@@ -30,7 +30,7 @@ export async function ownerStatements(
       reference?: string;
     }>;
   }
-
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs full document for data mapping
   const statements = (await OwnerStatement.find({
     orgId: session.tenantId,
     ownerId,

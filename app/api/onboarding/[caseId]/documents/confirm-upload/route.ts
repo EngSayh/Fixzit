@@ -64,7 +64,7 @@ export async function POST(
     await connectMongo();
     // Defense-in-depth: Query scoped to user's org from the start
     // NO_LEAN: Document needed for status update and .save()
-    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by user id/orgId in $or
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: needs .save(); FALSE POSITIVE: Scoped by user id/orgId
     const onboarding = await OnboardingCase.findOne({
       _id: params.caseId,
       $or: [
@@ -79,12 +79,14 @@ export async function POST(
 
     const profileCountry = onboarding.country || 'SA';
     // PLATFORM-WIDE: DocumentProfile is global config by role/country
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: DocumentProfile is global config
     const profile = await DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean();
     if (!profile || !profile.required_doc_codes.includes(document_type_code)) {
       return NextResponse.json({ error: 'Document type not required for this role' }, { status: 400 });
     }
 
     // PLATFORM-WIDE: VerificationDocument created with onboarding_case_id reference
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Document scoped via onboarding_case_id
     const doc = await VerificationDocument.create({
       onboarding_case_id: onboarding._id,
       document_type_code,
@@ -96,6 +98,7 @@ export async function POST(
       uploaded_by_id: new Types.ObjectId(user.id),
     });
 
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped via document_id which links to onboarding case
     await VerificationLog.create({
       document_id: doc._id,
       action: 'UPLOADED',

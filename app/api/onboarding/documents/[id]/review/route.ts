@@ -91,6 +91,7 @@ export async function PATCH(
 
     // Re-fetch as a document for updates now that org scope is verified
     // NO_LEAN: Document needed for status update and .save()
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: needs .save(); FALSE POSITIVE: ID from org-scoped aggregate
     const doc = await VerificationDocument.findById(params.id);
     if (!doc) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
@@ -116,6 +117,7 @@ export async function PATCH(
     doc.verified_by_id = new Types.ObjectId(user.id);
     await doc.save();
 
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped via document_id which links to onboarding case
     await VerificationLog.create({
       document_id: doc._id,
       action: 'STATUS_CHANGE',
@@ -126,8 +128,11 @@ export async function PATCH(
     if (decision === 'VERIFIED') {
       const profileCountry = onboarding.country || 'SA';
       // PLATFORM-WIDE: DocumentProfile and VerificationDocument queries for verification status
+       
       const [profile, docs] = await Promise.all([
+         
         DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean(),
+        // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped via onboarding_case_id
         VerificationDocument.find({ onboarding_case_id: onboarding._id }).lean(),
       ]);
 

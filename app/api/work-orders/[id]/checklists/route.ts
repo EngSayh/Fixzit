@@ -70,6 +70,7 @@ export async function POST(
     if (!/^[a-fA-F0-9]{24}$/.test(id)) {
       return createSecureResponse({ error: "Invalid id" }, 400, req);
     }
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: needs .save(); FALSE POSITIVE: scoped by tenantId
     const wo = (await WorkOrder.findOne({
       _id: id,
       tenantId: user.tenantId,

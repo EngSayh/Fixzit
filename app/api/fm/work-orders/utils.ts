@@ -216,7 +216,7 @@ async function trimTimelineEntries(
     return;
   }
 
-  const oldest = await WorkOrderTimeline.find({ orgId, workOrderId })
+  const oldest = await WorkOrderTimeline.find({ orgId, workOrderId })  
     .sort({ performedAt: 1, _id: 1 })
     .limit(excess)
     .select({ _id: 1 })

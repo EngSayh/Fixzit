@@ -24,6 +24,7 @@ function toObjectId(value?: string | Types.ObjectId | null) {
 }
 
 async function getAccount(orgId: Types.ObjectId, code: string, label: string) {
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document object
   const account = await ChartAccountModel.findOne({ orgId, accountCode: code });
   if (!account) {
     throw new Error(
@@ -215,6 +216,7 @@ export class PayrollFinanceIntegration {
 
       await postingService.postJournal(journal._id);
 
+      // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped by run._id which belongs to org
       await PayrollRun.updateOne(
         { _id: run._id },
         {

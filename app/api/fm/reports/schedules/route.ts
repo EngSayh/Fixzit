@@ -119,6 +119,7 @@ export async function GET(req: NextRequest) {
     const db = await getDatabase();
     const collection = db.collection<ScheduleDocument>(COLLECTION);
     // AUDIT-2025-11-29: Use buildTenantFilter for cross-tenant support
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by buildTenantFilter(tenantId)
     const schedules = await collection.find({ ...buildTenantFilter(tenantId) }).sort({ createdAt: -1 }).limit(50).toArray();
 
     return NextResponse.json({ success: true, data: schedules.map(mapSchedule) });

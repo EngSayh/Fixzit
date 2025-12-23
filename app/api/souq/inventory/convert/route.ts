@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: buildOrgFilter contains org filter
     const inventoryRecord = await SouqInventory.findOne({
       listingId,
       ...buildOrgFilter(orgId),

@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
     // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
-    // NO_LEAN: Document needed for password update
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for password update
     const user = await User.findOne({ orgId: resolvedOrgId, email });
 
     if (!user) {

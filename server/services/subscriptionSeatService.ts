@@ -69,6 +69,7 @@ export async function getSubscriptionForTenant(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: returns document; FALSE POSITIVE: scoped by tenant_id
   return Subscription.findOne({
     tenant_id: tenantId,
     status: { $in: ["ACTIVE", "PAST_DUE"] },
@@ -83,6 +84,7 @@ export async function getSubscriptionForOwner(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: returns document; FALSE POSITIVE: scoped by owner_user_id
   return Subscription.findOne({
     owner_user_id: ownerUserId,
     status: { $in: ["ACTIVE", "PAST_DUE"] },
@@ -115,6 +117,7 @@ export async function allocateSeat(
 ): Promise<SubscriptionInstance> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for seat allocation
   const subscription = await Subscription.findById(subscriptionId);
   if (!subscription) {
     throw new Error(`Subscription not found: ${subscriptionId}`);
@@ -189,6 +192,7 @@ export async function deallocateSeat(
 ): Promise<SubscriptionInstance> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for seat deallocation
   const subscription = await Subscription.findById(subscriptionId);
   if (!subscription) {
     throw new Error(`Subscription not found: ${subscriptionId}`);
@@ -232,6 +236,7 @@ export async function getAvailableSeats(
 ): Promise<number> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for seat calculation
   const subscription = await Subscription.findById(subscriptionId);
   if (!subscription) {
     throw new Error(`Subscription not found: ${subscriptionId}`);
@@ -252,6 +257,7 @@ export async function getSeatUsageReport(
 ): Promise<SeatUsageReport> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for report
   const subscription = await Subscription.findById(subscriptionId);
   if (!subscription) {
     throw new Error(`Subscription not found: ${subscriptionId}`);
@@ -323,6 +329,7 @@ export async function recordUserActivation(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document
   const sub = await Subscription.findById(subscriptionId);
   if (!sub) return null;
 
@@ -338,6 +345,7 @@ export async function recordUserDeactivation(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document
   const sub = await Subscription.findById(subscriptionId);
   if (!sub) return null;
 
@@ -359,6 +367,7 @@ export async function updateUsageSnapshot(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for .save()
   const sub = await Subscription.findById(subscriptionId);
   if (!sub) return null;
 

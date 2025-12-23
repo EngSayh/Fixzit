@@ -81,10 +81,12 @@ export async function GET(request: NextRequest) {
     await connectDb();
 
     // Get default platform settings (no orgId = global)
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document; SUPER_ADMIN: global platform settings
     let settings = await PlatformSettings.findOne({ orgId: { $exists: false } });
 
     // If no settings exist, create default
     if (!settings) {
+      // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: global platform settings
       settings = await PlatformSettings.create({
         logoUrl: "/img/fixzit-logo.png",
         brandName: "Fixzit Enterprise",

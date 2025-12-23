@@ -81,7 +81,7 @@ export async function GET(_request: NextRequest, route: RouteParams) {
   const tenantId = process.env.NEXT_PUBLIC_MARKETPLACE_TENANT || DEFAULT_TENANT;
 
   try {
-    // PLATFORM-WIDE: Marketplace products use tenantId from env config, not user session
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Marketplace products use tenantId from env config, not user session
     const productQuery = MarketplaceProduct.findOne({
       tenantId,
       slug: decodedSlug,

@@ -61,7 +61,7 @@ export async function POST(
 
     // SEC-002 FIX: Scope Job query by orgId upfront (super admins bypass)
     const query = isSuperAdmin ? { _id: (await params).id } : { _id: (await params).id, orgId };
-    // NO_LEAN: Document needed for .publish() method
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for .publish() method
     const job = await Job.findOne(query);
     if (!job) return notFoundError("Job");
     if (job.status === "published")

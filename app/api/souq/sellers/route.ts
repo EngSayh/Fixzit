@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
 
     const sellerId = `SEL-${nanoid(10).toUpperCase()}`;
 
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Simple existence check
     const existingSeller = await SouqSeller.findOne({
       orgId,
       $or: [

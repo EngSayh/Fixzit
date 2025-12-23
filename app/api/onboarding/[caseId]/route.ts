@@ -92,7 +92,7 @@ export async function PATCH(
     }
     // Defense-in-depth: Query scoped to user's org from the start
     // NO_LEAN: Document needed for update and .save()
-    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by user id/orgId in $or
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: needs .save(); FALSE POSITIVE: Scoped by user id/orgId
     const onboarding = await OnboardingCase.findOne({
       _id: params.caseId,
       $or: [

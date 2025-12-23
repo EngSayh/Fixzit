@@ -345,6 +345,7 @@ export async function PUT(request: NextRequest) {
 
     await connectDb();
 
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for property access and save
     const user = await User.findById(session.user.id);
     
     if (!user) {

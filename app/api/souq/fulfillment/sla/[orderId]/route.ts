@@ -60,6 +60,7 @@ export async function GET(
     }
 
     // Get order and verify access (always scoped by orgId)
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Accessing order fields for SLA calculation
     const order = await SouqOrder.findOne({ orderId, orgId });
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });

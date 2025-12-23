@@ -240,6 +240,7 @@ export async function GET(
     };
     
     // Query uses native MongoDB driver (already returns lean POJO)
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Native driver returns lean POJO
     const budget = await collection.findOne(query);
     
     if (!budget) {

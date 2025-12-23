@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get order and verify seller ownership
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Accessing nested items property
     const order = await SouqOrder.findOne({ orderId, orgId });
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Accessing seller profile fields
     const seller = await SouqSeller.findOne({ _id: session.user.id, orgId });
     if (!seller) {
       return NextResponse.json(

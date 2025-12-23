@@ -90,6 +90,7 @@ export async function retrieveKnowledge(
           { orgId: GLOBAL_KNOWLEDGE_ORG },
         ];
 
+  // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: orgId is in orgFilters
   const docs = await CopilotKnowledge.find({
     $and: [{ $or: orgFilters }, { locale: { $in: [session.locale, "en"] } }],
   }).lean<KnowledgeDoc[]>();
@@ -134,6 +135,7 @@ export async function upsertKnowledgeDocument(
     doc.orgId && Types.ObjectId.isValid(doc.orgId)
       ? new Types.ObjectId(doc.orgId)
       : GLOBAL_KNOWLEDGE_ORG;
+  // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Knowledge base has global entries
   await CopilotKnowledge.findOneAndUpdate(
     { slug: doc.slug },
     {

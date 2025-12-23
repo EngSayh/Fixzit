@@ -38,6 +38,7 @@ export async function GET(
     const statementsCollection = db.collection(COLLECTIONS.SOUQ_SETTLEMENTS);
 
     // Fetch statement
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: Native driver; Seller access check follows
     const statement = await statementsCollection.findOne({ statementId });
 
     if (!statement) {

@@ -38,6 +38,7 @@ export async function ensureVerifiedDocs(
     }
 
     await connectMongo();
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped by subject_user_id who belongs to org
     const caseRecord = await OnboardingCase.findOne({
       subject_user_id: new Types.ObjectId(user.id),
       role: requiredRole,

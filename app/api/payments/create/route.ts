@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
     // NO_LEAN: Invoice needed for payment processing updates
-    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by tenantId from user session
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: needs document; FALSE POSITIVE: Scoped by tenantId
     const invoice = await Invoice.findOne({
       _id: invoiceId,
       tenantId: user.orgId,

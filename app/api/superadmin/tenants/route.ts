@@ -161,6 +161,7 @@ export async function POST(request: NextRequest) {
     const data = parsed.data;
 
     // Check for duplicate name
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-org duplicate check
     const existing = await Organization.findOne({
       $or: [
         { name: data.name },
@@ -176,6 +177,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create organization
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Creating new tenant org
     const org = await Organization.create({
       ...data,
       subscriptionStatus: "TRIAL",

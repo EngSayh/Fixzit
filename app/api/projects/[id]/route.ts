@@ -98,6 +98,7 @@ export async function GET(
     }
     await connectToDatabase();
 
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by tenantId field
     const project = await Project.findOne({
       _id: id,
       tenantId: user.tenantId,
@@ -133,6 +134,7 @@ export async function PATCH(
     const data = updateProjectSchema.parse(await req.json());
 
     // NO_LEAN: findOneAndUpdate returns new document for response
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by tenantId field
     const project = await Project.findOneAndUpdate(
       { _id: id, tenantId: user.tenantId },
       {
@@ -169,6 +171,7 @@ export async function DELETE(
     await connectToDatabase();
 
     // NO_LEAN: findOneAndUpdate returns updated document for response
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by tenantId field
     const project = await Project.findOneAndUpdate(
       { _id: id, tenantId: user.tenantId },
       { $set: { status: "CANCELLED", updatedBy: user.id } },

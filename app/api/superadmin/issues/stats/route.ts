@@ -51,36 +51,43 @@ export async function GET(req: NextRequest) {
     recentlyResolvedCount,
   ] = await Promise.all([
     // Total count
+     
     BacklogIssue.countDocuments({}),
 
     // By status (AUDIT-2025-12-19: Added maxTimeMS)
+     
     BacklogIssue.aggregate([
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ], { maxTimeMS: 10_000 }),
 
     // By priority
+     
     BacklogIssue.aggregate([
       { $group: { _id: '$priority', count: { $sum: 1 } } },
     ], { maxTimeMS: 10_000 }),
 
     // By category
+     
     BacklogIssue.aggregate([
       { $group: { _id: '$category', count: { $sum: 1 } } },
     ], { maxTimeMS: 10_000 }),
 
     // Quick wins: XS/S effort, not resolved
+     
     BacklogIssue.countDocuments({
       effort: { $in: ['XS', 'S'] },
       status: { $nin: ['resolved', 'wont_fix'] },
     }),
 
     // Stale: not updated in 30 days, still pending
+     
     BacklogIssue.countDocuments({
       status: 'pending',
       updatedAt: { $lt: thirtyDaysAgo },
     }),
 
     // Recently resolved: resolved in last 7 days
+     
     BacklogIssue.countDocuments({
       status: 'resolved',
       updatedAt: { $gte: sevenDaysAgo },

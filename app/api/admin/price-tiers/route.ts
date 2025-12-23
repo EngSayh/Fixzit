@@ -159,6 +159,7 @@ export async function POST(req: NextRequest) {
     const mod = await Module.findOne({ code: body.moduleCode }).lean();
     if (!mod) return createErrorResponse("MODULE_NOT_FOUND", 400, req);
 
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: orgId is conditionally added via spread (isGlobal || orgId)
     const doc = await PriceTier.findOneAndUpdate(
       {
         moduleId: mod._id,

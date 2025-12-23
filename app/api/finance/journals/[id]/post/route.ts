@@ -93,7 +93,7 @@ export async function POST(
       },
       async () => {
         // Check journal exists and belongs to org
-        // NO_LEAN: Document needed for status update and .save()
+        // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for status update and .save()
         const journal = await Journal.findOne({
           _id: new Types.ObjectId(_params.id),
           orgId: new Types.ObjectId(user.orgId),

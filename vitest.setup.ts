@@ -629,6 +629,9 @@ beforeAll(async () => {
  * Clean up after each test to prevent data leakage between tests
  */
 afterEach(async () => {
+  // Reset all mock state to prevent bleeding between tests
+  vi.clearAllMocks();
+
   const canCleanDb =
     shouldUseInMemoryMongo && mongoose.connection.readyState === 1;
 

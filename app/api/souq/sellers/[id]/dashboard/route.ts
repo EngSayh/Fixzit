@@ -84,6 +84,7 @@ export async function GET(
       sellerQuery.orgId = orgId;
     }
 
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Accessing seller fields for access control
     const seller = await SouqSeller.findOne(sellerQuery);
 
     if (!seller) {
@@ -124,8 +125,11 @@ export async function GET(
       recentRevenue,
       averageRating,
     ] = await Promise.all([
+       
       SouqListing.countDocuments({ sellerId, orgId: seller.orgId }),
+       
       SouqListing.countDocuments({ sellerId, orgId: seller.orgId, status: "active" }),
+       
       SouqOrder.countDocuments({ "items.sellerId": sellerId, orgId: seller.orgId }),
       SouqOrder.countDocuments({
         "items.sellerId": sellerId,
@@ -179,10 +183,13 @@ export async function GET(
       orgId: seller.orgId,
     });
 
+     
     const [totalReviews, pendingReviews] = await Promise.all([
+      // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped via productIds
       SouqReview.countDocuments({
         productId: { $in: productIds },
       }),
+      // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped via productIds
       SouqReview.countDocuments({
         productId: { $in: productIds },
         sellerResponse: { $exists: false },

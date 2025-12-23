@@ -72,7 +72,7 @@ Owner Override (Session): If SDD is missing/unreadable, proceed using available 
 | **SSOT** | Single Source of Truth — MongoDB Issue Tracker ONLY |
 | **Derived Log** | `docs/PENDING_MASTER.md` — snapshot of SSOT, never authoritative |
 | **Agent Token** | Unique identifier `[AGENT-XXX-Y]` for attribution (e.g., `[AGENT-001-A]`) |
-| **Lock** | Exclusive file path claim in `/tmp/agent-assignments.json` |
+| **Lock** | Exclusive file path claim in `.fixzit/agent-assignments.json` |
 | **Claim** | Atomic MongoDB operation reserving an issue for an agent |
 | **Handoff** | Formal transfer of issue ownership between agents via SSOT |
 | **Deep-Dive** | Repo-wide scan for similar issues before fixing |
@@ -98,7 +98,7 @@ Where:
 
 | Agent ID | Agent Type | Primary Domain | File Path Patterns |
 |----------|------------|----------------|-------------------|
-| AGENT-001-A/B/C | VS Code Copilot | Core/Auth/Middleware | `app/api/core/**`, `middleware/**`, `lib/auth/**`, `lib/session/**`, `lib/jwt/**`, `lib/errors/**`, `lib/logging/**` |
+| AGENT-001-A/B/C | VS Code Copilot | Core/Auth/Middleware | `app/api/core/**`, `middleware/**`, `lib/auth/**`, `lib/session/**`, `lib/jwt/**`, `lib/errors/**`, `lib/logging/**`, `components/**` |
 | AGENT-002-A/B/C | Claude Code | Finance/Billing | `app/api/finance/**`, `app/api/billing/**`, `lib/payments/**`, `lib/invoices/**`, `lib/tax/**`, `lib/currency/**` |
 | AGENT-003-A/B/C | Codex | Souq/Marketplace | `app/api/souq/**`, `app/api/marketplace/**`, `lib/products/**`, `lib/orders/**`, `lib/cart/**`, `lib/shipping/**` |
 | AGENT-004-A/B/C | Cursor | Aqar/Real Estate | `app/api/aqar/**`, `app/api/properties/**`, `lib/listings/**`, `lib/bookings/**`, `lib/contracts/**` |
@@ -138,19 +138,20 @@ test(finance): add invoice validation tests [AGENT-002-A] [FM-089]
 CLAIM → WORK → VERIFY → REVIEW → SSOT → CLEANUP
 ```
 
-### 4.2 Pre-Start Checklist (8 items — MANDATORY)
+### 4.2 Pre-Start Checklist (9 items — MANDATORY)
 
 Before starting ANY task:
 
 ```
-□ 1. Read /tmp/agent-assignments.json — check for conflicts
-□ 2. Execute Pre-Claim SSOT Validation (Section 6)
-□ 3. Claim slot with Agent Token: [AGENT-XXX-Y]
-□ 4. List EXACT files to modify (no wildcards)
-□ 5. Verify git status is clean
-□ 6. Verify worktrees: `git worktree list` (must be only main)
-□ 7. Run: `pnpm typecheck` (must pass)
-□ 8. Run: `pnpm lint` (must pass)
+□ 1. Run git preflight (Section 5.4) - repo up to date with origin/main
+□ 2. Read .fixzit/agent-assignments.json - check for conflicts
+□ 3. Execute Pre-Claim SSOT Validation (Section 6)
+□ 4. Claim slot with Agent Token: [AGENT-XXX-Y]
+□ 5. List EXACT files to modify (no wildcards)
+□ 6. Verify git status is clean
+□ 7. Verify worktrees: `git worktree list` (must be single worktree only)
+□ 8. Run: `pnpm typecheck` (must pass)
+□ 9. Run: `pnpm lint` (must pass)
 ```
 
 **Announce:** `[AGENT-XXX-Y] Claimed. Files: <list>`
@@ -166,7 +167,7 @@ After completing ANY task:
 □ 4.  git status — commit all changes with Agent Token
 □ 5.  Create PR or push to existing
 □ 6.  Clean up temp files, debug logs
-□ 7.  Release lock in agent-assignments.json
+□ 7.  Release lock in .fixzit/agent-assignments.json
 □ 8.  TRIGGER AUTO-REVIEW — Wait for Codex feedback (NO TIMEOUT BYPASS)
 □ 9.  RUN SSOT SYNC PROTOCOL — Extract findings, sync to MongoDB
 □ 10. UPDATE docs/PENDING_MASTER.md with session changelog
@@ -184,13 +185,13 @@ After completing ANY task:
 | Resource | Limit | Rationale |
 |----------|-------|-----------|
 | Max concurrent agents per workspace | 2 | Prevents VS Code Exit Code 5 crashes |
-| Max worktrees | 1 (main only) | Memory overhead reduction |
+| Max worktrees | 1 (single worktree only) | Memory overhead reduction |
 | Max concurrent issues per agent | 3 | Workload management |
 | Claim TTL | 60 minutes | Auto-release for crashed agents |
 
 ### 5.2 Assignment File Structure
 
-Location: `/tmp/agent-assignments.json`
+Location: `.fixzit/agent-assignments.json` (gitignored)
 
 ```json
 {
@@ -224,11 +225,96 @@ Location: `/tmp/agent-assignments.json`
 3. **Expired claims auto-release** — Heartbeat monitor every 30 seconds
 4. **Multi-domain issues** → AGENT-001 acts as coordinator
 
+### 5.4 Cross-Device Git Sync Protocol (MANDATORY)
+
+**Goal:** Prevent stale work when switching devices (macOS + Windows).
+**Rule:** No agent may claim or modify files until the local repo is fresh vs `origin/main`.
+
+#### Pre-Work Git Freshness Gate (Required)
+
+Run BEFORE any SSOT claim:
+
+```bash
+git fetch --prune origin
+git status -sb
+git rev-list --left-right --count origin/main...HEAD
+```
+
+Interpretation:
+- If behind > 0: STOP. Run `git pull --rebase origin main`, then re-run.
+- If ahead > 0: OK only on a feature branch; push before switching devices.
+
+#### Mandatory Branch Discipline (2-device safe)
+
+- Never work directly on `main`.
+- Branch format: `agent/<AGENT-TOKEN>/<ISSUE-KEY>/<short-slug>`.
+- One active branch per device per issue (avoid parallel edits of same files).
+
+#### Conflict Rule (Non-negotiable)
+
+1. Resolve conflicts properly; no shortcuts.
+2. Run full verification; update SSOT with the conflict note.
+3. If conflict touches out-of-domain files: handoff via SSOT.
+
+#### Automation (Preferred)
+
+If available:
+```bash
+node scripts/git-preflight.mjs --require-clean --base origin/main
+```
+
+Failing this script = failing pre-claim validation.
+
+### 5.5 Repo Portability Protocol (MANDATORY)
+
+**Goal:** Keep the repo usable on macOS, Windows, and Linux CI.
+
+#### Naming Rules
+
+- Use ASCII only for file/folder names.
+- Use kebab-case for filenames.
+- Avoid reserved characters: < > : " / \\ | ? * and control chars.
+- Avoid reserved names: CON, PRN, AUX, NUL, COM1..COM9, LPT1..LPT9.
+- Avoid trailing spaces or trailing periods in names.
+- Keep path length under 240 characters (safety margin across tooling).
+- Never introduce case-collision paths (File.ts vs file.ts).
+
+#### Verification Gate
+
+Run before PR / merge:
+```bash
+node scripts/check-repo-portability.mjs
+```
+
+Fail = must fix file naming/path issues before merge.
+
+### 5.6 Capacity Escalation Rule
+
+If all eligible agents are at the 3-issue cap and urgent work arrives:
+1. Log the capacity block in SSOT with impacted issue keys.
+2. Notify Eng. Sultan to reassign or approve a temporary cap increase.
+3. Do not self-claim beyond the cap without explicit SSOT override.
+
+### 5.7 Emergency Override (Break-Glass)
+
+- Only Eng. Sultan may authorize an emergency override.
+- Authorization must be recorded in SSOT with timestamp and reason.
+- No static override codes or secrets may be stored in the repo.
+
+
+
 ---
 
 ## 6. Pre-Claim SSOT Validation (MANDATORY)
 
 **Every agent MUST execute this checklist before claiming ANY work.**
+Prefer using SSOT tooling (CLI/script/API) when available; the Mongo shell snippets below define the required logic.
+
+### Phase 0: Git Preflight
+
+- Run the Section 5.4 gate before any SSOT claim.
+- If available, run `node scripts/git-preflight.mjs --require-clean --base origin/main`.
+- If behind origin/main: ABORT, update, then re-run preflight.
 
 ### Phase 1: SSOT Query
 
@@ -384,7 +470,7 @@ An agent MAY NOT edit files outside its locked paths without following this prot
 Step 1: LIST all occurrences (file + line) in working notes
 
 Step 2: ATTEMPT SCOPE EXPANSION
-        - Update /tmp/agent-assignments.json with additional file locks
+        - Update .fixzit/agent-assignments.json with additional file locks
         - Announce expanded file list with Agent Token
         - Wait 30 seconds for conflict detection
 
@@ -426,6 +512,7 @@ Step 4: PROCEED with fixes ONLY in your expanded locked paths
 ## 9. Task Handoff & Delegation Protocol
 
 This protocol is SSOT-governed and operationally dependent on the SSOT Sync flow.
+This section is an overview only; follow the canonical handoff steps in Section 13.4.
 
 - Canonical handoff workflow: **Section 13.4 — Agent Task Handoff Protocol (SSOT Coordination)**
 - Canonical backlog extraction workflow: **Section 13.3 — Pending Backlog Extractor v2.5 (MANDATORY)**
@@ -620,12 +707,14 @@ return NextResponse.json({
 
 ### 12.3 Environment Variable Verification Protocol
 
-BEFORE blaming "missing env var", verify in ALL locations:
+BEFORE blaming "missing env var", verify in ALL available sources:
 
-1. GitHub Repository Secrets (Settings → Secrets and variables → Actions)
-2. Vercel Environment Variables (Production/Preview/Development)
-3. Local .env files (.env.local, .env.development.local)
-4. .env.example is up to date
+1. Code references (file:line) and any schema validation (Zod/env schema).
+2. .env.example and relevant workflow YAMLs (CI/CD secrets usage).
+3. Local .env files (.env.local, .env.development.local).
+
+If UI access is required (GitHub/Vercel) and not available to the agent:
+- Ask Eng. Sultan to confirm the setting and record the request in SSOT.
 
 If ACTUALLY missing, notify Eng. Sultan with:
 - Variable name
@@ -942,7 +1031,7 @@ Trigger handoff if ANY of the following is true:
 │       - append handoffHistory event with:                               │
 │         from, to, timestamp, reason, nextAction, filesTouched           │
 │  2. □ Update docs/PENDING_MASTER.md with a derived note referencing SSOT│
-│  3. □ Release file locks in /tmp/agent-assignments.json                 │
+│  3. □ Release file locks in .fixzit/agent-assignments.json                 │
 │  4. □ For P0/P1: Notify Eng. Sultan with the handoff notification box   │
 │  5. □ STOP work on that item immediately                                │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -953,7 +1042,7 @@ Trigger handoff if ANY of the following is true:
 All task claiming MUST be SSOT-driven:
 1) Query SSOT for eligible tasks (unassigned, correct domain, priority order)
 2) Execute an atomic claim (or follow Pre-Claim SSOT Validation in Section 6)
-3) Lock file paths locally (`/tmp/agent-assignments.json`)
+3) Lock file paths locally (`.fixzit/agent-assignments.json`)
 4) Announce claim with exact files
 
 #### Delegation Rules by Agent Type (Routing)
@@ -1140,6 +1229,27 @@ pnpm lint                                    # Must pass
 pnpm test                                    # Must pass
 curl http://localhost:3000/api/issues/stats  # 200 OK
 ```
+
+### 13.11 MongoDB SSOT Schema Alignment (Toolkit)
+
+Use the SSOT toolkit scripts when aligning Atlas with Appendix A:
+
+```bash
+# Required env vars
+export MONGODB_URI="mongodb+srv://..."
+export MONGODB_DB="fixzit"
+
+# Migrate data to v6 fields (idempotent)
+node scripts/ssot-migrate-v6.mjs
+
+# Apply validator + indexes
+node scripts/ssot-apply-schema-v6.mjs --level strict
+
+# Verify schema + indexes
+node scripts/ssot-verify.mjs
+```
+
+If any step fails: stop and log the failure in SSOT.
 
 ---
 
@@ -1334,14 +1444,16 @@ db.createCollection("issues", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["tenantId", "issueKey", "title", "type", "status", "priority", "domain", "createdAt", "version"],
+      required: ["tenantId", "issueKey", "title", "type", "status", "priorityLabel", "priorityRank", "domain", "createdAt", "version"],
       properties: {
         tenantId: { bsonType: "string" },
         issueKey: { bsonType: "string", pattern: "^(FM|SOUQ|AQAR|HR|CORE)-[0-9]{5}$" },
         title: { bsonType: "string", minLength: 10, maxLength: 200 },
         description: { bsonType: "string", maxLength: 4000 },
         type: { enum: ["bug", "task", "feature", "security", "performance", "tech_debt"] },
-        priority: { bsonType: "int", minimum: 1, maximum: 5 },
+        priorityLabel: { enum: ["P0", "P1", "P2", "P3"] },
+        priorityRank: { bsonType: "int", minimum: 1, maximum: 4 },
+        priority: { bsonType: ["int", "null"], minimum: 1, maximum: 5 }, // legacy optional
         domain: { enum: ["core", "auth", "middleware", "finance", "billing", "souq", "marketplace", "aqar", "real_estate", "hr", "payroll", "tests", "scripts"] },
         status: { enum: ["open", "triaged", "claimed", "in_progress", "blocked", "handoff_pending", "resolved", "verified", "closed", "abandoned"] },
         filePaths: { bsonType: "array", items: { bsonType: "string" } },
@@ -1402,7 +1514,7 @@ db.createCollection("issues", {
 });
 
 // Required Indexes
-db.issues.createIndex({ tenantId: 1, status: 1, priority: -1 }, { name: "idx_tenant_status_priority" });
+db.issues.createIndex({ tenantId: 1, status: 1, priorityRank: 1 }, { name: "idx_tenant_status_priority" });
 db.issues.createIndex({ tenantId: 1, issueKey: 1 }, { unique: true, name: "idx_unique_issue_key" });
 db.issues.createIndex({ tenantId: 1, "assignment.agentId": 1, status: 1 }, { name: "idx_agent_assignments" });
 db.issues.createIndex({ contentHash: 1 }, { unique: true, sparse: true, name: "idx_dedup_hash" });
@@ -1428,7 +1540,7 @@ db.issues.createIndex({ "assignment.claimExpiresAt": 1 }, {
       "agent": "AGENT-001",
       "type": "Copilot",
       "priority": 100,
-      "patterns": ["app/api/core/**", "middleware/**", "lib/auth/**", "lib/session/**", "lib/jwt/**", "lib/errors/**", "lib/logging/**", "lib/config/**"],
+      "patterns": ["app/api/core/**", "middleware/**", "lib/auth/**", "lib/session/**", "lib/jwt/**", "lib/errors/**", "lib/logging/**", "lib/config/**", "components/**"],
       "issueCategories": ["authentication", "authorization", "middleware", "cors", "rate-limiting", "error-handling"],
       "capabilities": ["typescript", "nextjs", "middleware", "jwt", "oauth"]
     },
@@ -1484,6 +1596,22 @@ db.issues.createIndex({ "assignment.claimExpiresAt": 1 }, {
 ---
 
 ## Changelog
+
+### v6.0.1 (2025-12-23)
+
+**Protocol Additions:**
+- Added Cross-Device Git Sync Protocol (Section 5.4) and Repo Portability Protocol (Section 5.5).
+- Added Capacity Escalation and Emergency Override rules (Sections 5.6, 5.7).
+- Added Git preflight phase and tooling preference for SSOT validation (Section 6).
+- Added MongoDB SSOT schema alignment toolkit steps (Section 13.11).
+- Updated lockfile path to `.fixzit/agent-assignments.json` (gitignored).
+
+**Schema Updates:**
+- Added `priorityLabel`/`priorityRank` and made `priority` legacy optional; index updated to `priorityRank`.
+
+**Routing Updates:**
+- Added `components/**` to AGENT-001 routing (Table + Appendix B).
+
 
 ### v6.0.0 (2025-12-21)
 

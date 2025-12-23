@@ -79,6 +79,7 @@ export async function POST(
       };
       save: () => Promise<void>;
     }
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: needs .save(); FALSE POSITIVE: scoped by tenantId
     const wo = (await WorkOrder.findOne({
       _id: params.id,
       tenantId: user.tenantId,

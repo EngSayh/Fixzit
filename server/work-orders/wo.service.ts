@@ -155,6 +155,7 @@ export async function update(
     throw new Error("Work order ID required");
   }
   if (!patch || Object.keys(patch).length === 0) {
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: returns document
     return await WorkOrder.findById(id);
   }
 
@@ -162,6 +163,7 @@ export async function update(
   const validated = WoUpdate.parse(patch);
 
   // ⚡ FIXED: Fetch existing work order to check state transitions
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for state validation
   const existing = await WorkOrder.findById(id);
   if (!existing) {
     throw new Error(`Work order not found: ${id}`);

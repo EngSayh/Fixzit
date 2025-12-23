@@ -40,6 +40,7 @@ export async function getNextAtomicUserCode(
   // Use MongoDB's atomic findOneAndUpdate with $inc
   // This guarantees uniqueness even if multiple requests happen simultaneously
   const collection = conn.db.collection<CounterDoc>("counters");
+  // eslint-disable-next-line local/require-tenant-scope -- NO_LEAN: Native driver returns lean POJO; PLATFORM-WIDE: Shared counter collection
   const rawResult = await collection.findOneAndUpdate(
     { _id: "userCode" },
     {
@@ -61,6 +62,7 @@ export async function getNextAtomicUserCode(
   let seqValue = seqFromResult;
   if (typeof seqValue !== "number" || Number.isNaN(seqValue)) {
     // Fallback to direct read (rare but safe when result is missing)
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: Native driver returns lean POJO; PLATFORM-WIDE: Shared counter
     const fallbackDoc = await collection.findOne({ _id: "userCode" });
     seqValue = fallbackDoc?.seq;
   }

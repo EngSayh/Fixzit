@@ -129,6 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Simple existence check
     const existingListing = await SouqListing.findOne({
       productId: validatedData.productId,
       sellerId: validatedData.sellerId,

@@ -121,7 +121,7 @@ describe("API /api/finance/ledger", () => {
     });
 
     it("enforces rate limiting", async () => {
-      mockRateLimit.mockReturnValueOnce(
+      mockRateLimit.mockReturnValue(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,
           headers: { "Content-Type": "application/json" },

@@ -432,6 +432,7 @@ export async function enqueueExistingSMS(
 async function processSMSJob(messageId: string): Promise<void> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for status updates
   const message = await SMSMessage.findById(messageId);
   if (!message) {
     logger.error("[SMS Queue] Message not found", { messageId });

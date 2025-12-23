@@ -124,6 +124,7 @@ export async function POST(request: NextRequest) {
     }
 
     const claimsCollection = db.collection(COLLECTIONS.CLAIMS);
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Native driver returns lean POJO
     const existingClaim = await claimsCollection.findOne({
       orderId: { $in: [orderObjectId, orderObjectId.toString()] },
       $or: [buildOrgScope(orgId), { orgId: { $exists: false } }],

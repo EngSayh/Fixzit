@@ -438,6 +438,7 @@ async function upsertTransactionFromCharge(
   }
   const transactionFilter = { chargeId: charge.id, orgId: orgIdFromCharge };
   // NO_LEAN: needs Mongoose document for updates.
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for .save()
   let transaction = await TapTransaction.findOne(transactionFilter);
 
   if (!transaction) {
@@ -708,6 +709,7 @@ async function updateRefundRecord(
   }
   const refundFilter = { chargeId: refund.charge, orgId: orgIdFromRefund };
   // NO_LEAN: needs Mongoose document for updates.
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for .save()
   const transaction = await TapTransaction.findOne(refundFilter);
   if (!transaction) {
     logger.warn("[Webhook] Refund received for unknown Tap transaction", {

@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     // NOTE: System-wide query is intentional - cron job processes ALL tenants
     // Each PM plan has its own orgId which is inherited by generated WOs
     // This is secured by CRON_SECRET authentication above
-    // PLATFORM-WIDE: CRON job processes all tenants, each WO inherits plan's orgId
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: CRON job processes all tenants, secured by CRON_SECRET
     const plans = await FMPMPlan.find({
       status: "ACTIVE",
       nextScheduledDate: { $exists: true },
@@ -187,6 +187,7 @@ export async function GET(req: NextRequest) {
   try {
     // NOTE: System-wide query is intentional - cron preview for ALL tenants
     // Secured by CRON_SECRET authentication above
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: CRON preview for all tenants, secured by CRON_SECRET
     const plans = await FMPMPlan.find({
       status: "ACTIVE",
       nextScheduledDate: { $exists: true },

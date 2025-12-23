@@ -196,6 +196,7 @@ MarketingRequestSchema.methods.linkListing = async function (
 ) {
   // Validate listing exists
   const Listing = mongoose.model("AqarListing");
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: validation check only
   const listing = await Listing.findById(listingId);
   if (!listing) {
     throw new Error("Listing not found");

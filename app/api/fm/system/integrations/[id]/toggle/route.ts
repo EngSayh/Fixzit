@@ -82,6 +82,7 @@ export async function POST(
 
     // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     // Query uses native MongoDB driver (already returns lean POJO)
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Native driver returns lean POJO
     const existing = await collection.findOne({
       orgId: tenantId,
       integrationId,

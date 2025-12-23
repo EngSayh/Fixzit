@@ -89,11 +89,12 @@ export async function quotePrice(opts: {
 
   // Parallel query optimization: fetch price book and discount rule simultaneously
   const [pb, rule] = await Promise.all([
-    PriceBook.findOne({
+    PriceBook.findOne({ // eslint-disable-line local/require-tenant-scope -- PLATFORM-WIDE: Shared price book
       currency: priceBookCurrency,
       active: true,
     }).lean<PriceBookDoc>(),
     billingCycle === "ANNUAL"
+      // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Shared discount rules
       ? DiscountRule.findOne({ key: "ANNUAL_PREPAY" }).lean<DiscountRuleDoc>()
       : Promise.resolve(null),
   ]);

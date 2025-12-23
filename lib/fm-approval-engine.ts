@@ -642,6 +642,7 @@ export async function saveApprovalWorkflow(
 
     const baseDoc = workflowToDocBase(workflow, request);
 
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: orgId is set via request.orgId in baseDoc
     const savedApproval = await FMApproval.create({
       ...baseDoc,
       history: [
@@ -690,6 +691,7 @@ export async function getWorkflowById(
   orgId: string,
 ): Promise<ApprovalWorkflow | null> {
   try {
+     
     const approval = await FMApproval.findOne({
       workflowId,
       orgId: orgId,
@@ -722,6 +724,7 @@ export async function updateApprovalDecision(
   delegateTo?: unknown,
 ): Promise<void> {
   try {
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: needs .save() method
     const approval = await FMApproval.findOne({ workflowId, orgId: orgId });
     if (!approval) throw new Error(`Approval workflow ${workflowId} not found`);
 
@@ -780,6 +783,7 @@ export async function getPendingApprovalsForUser(
   orgId: string,
 ): Promise<ApprovalWorkflow[]> {
   try {
+     
     const approvals =
       ((await FMApproval.find({
         orgId: orgId,
@@ -805,6 +809,7 @@ export async function getPendingApprovalsForUser(
  */
 export async function checkApprovalTimeouts(orgId: string): Promise<void> {
   try {
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: needs .save() method for status update
     const overdueApprovals = await FMApproval.find({
       orgId: orgId,
       status: "PENDING",

@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required parameter: requestId' }, { status: 400 });
   }
 
+  // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant customer request events
   const events = await CustomerRequestEvent.find({ requestId })
     .sort({ createdAt: -1 })
     .limit(100)

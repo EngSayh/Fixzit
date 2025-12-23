@@ -264,6 +264,7 @@ export async function dispatchWorkOrder(
     throw new Error("workOrderId is required");
   }
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for status check
   const current = await WorkOrder.findOne({
     _id: workOrderId,
     orgId: session.tenantId,
@@ -421,6 +422,7 @@ export async function scheduleVisit(
     );
   }
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for status check
   const current = await WorkOrder.findOne({
     _id: workOrderId,
     orgId: session.tenantId,

@@ -67,7 +67,7 @@ export async function PUT(req: NextRequest) {
 
     // SECURITY: Use orgId scoping for tenant isolation
     // Ensures users can only moderate jobs within their organization
-    // NO_LEAN: Document needed for .save() after status update
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for .save() after status update
     const job = await Job.findOne({ _id: jobId, orgId: user.orgId });
     if (!job) return notFoundError("Job");
 

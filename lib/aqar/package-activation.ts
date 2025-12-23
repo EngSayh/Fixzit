@@ -38,6 +38,7 @@ export async function activatePackageAfterPayment(
   return withTenantContext(orgId, async () => {
     try {
       // Find the payment with org-scoped query (SECURITY: prevents cross-tenant reads)
+      // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for property access
       const payment = await AqarPayment.findOne(buildOrgScopedFilter(paymentId, orgId));
 
       if (!payment) {
@@ -80,6 +81,7 @@ export async function activatePackageAfterPayment(
       }
 
       // Find and activate the package with org-scoped query (SECURITY: prevents cross-tenant reads)
+      // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for .save()
       const pkg = await AqarPackage.findOne(buildOrgScopedFilter(payment.relatedId, orgId));
 
       if (!pkg) {

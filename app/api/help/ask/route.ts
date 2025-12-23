@@ -264,7 +264,7 @@ export async function POST(req: NextRequest) {
 
     if (!docs || docs.length === 0) {
       try {
-        // PLATFORM-WIDE: Help articles are platform content accessible to all authenticated users
+        // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Help articles are platform content accessible to all authenticated users
         docs = await coll
           .find(
             { ...filter, $text: { $search: question } },

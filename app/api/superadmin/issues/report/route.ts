@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const format = url.searchParams.get('format') || 'json';
 
+  // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide backlog issues
   const issues = await BacklogIssue.find().sort({ priority: 1, impact: -1 }).lean();
   type Issue = (typeof issues)[number];
 

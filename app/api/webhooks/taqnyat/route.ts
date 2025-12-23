@@ -180,6 +180,7 @@ export async function POST(request: NextRequest) {
     try {
       await connectToDatabase();
       
+      // eslint-disable-next-line local/require-tenant-scope -- WEBHOOK: SMS messages keyed by messageSid/providerMessageId
       const updateResult = await SMSMessage.findOneAndUpdate(
         { 
           $or: [

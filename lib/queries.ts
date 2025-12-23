@@ -343,9 +343,13 @@ export async function getApprovalCounters(orgId: string) {
   const base = { orgId: nOrgId, ...softDeleteGuard };
   const now = new Date();
 
+   
   const [total, pending, overdue] = await Promise.all([
+     
     collection.countDocuments(base),
+     
     collection.countDocuments({ orgId: nOrgId, ...softDeleteGuard, status: "PENDING" }),
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: orgId in base
     collection.countDocuments({
       ...base,
       status: "PENDING",

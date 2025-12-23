@@ -188,6 +188,7 @@ export async function POST(request: NextRequest) {
       .filter((id) => Types.ObjectId.isValid(id))
       .map((id) => new Types.ObjectId(id));
     
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: baseOrgScope contains org filter
     const orders = await SouqOrder.find({
       ...baseOrgScope,
       $or: [

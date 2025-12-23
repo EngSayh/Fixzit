@@ -221,6 +221,7 @@ async function getUserFCMTokens(userId: string): Promise<string[]> {
   // This would come from a UserDevices collection
   try {
     const { User } = await import("@/server/models/User");
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: FCM token lookup by userId
     const user = (await User.findOne({ userId })
       .select("fcmTokens")
       .lean()) as { fcmTokens?: string[] } | null;
@@ -239,6 +240,7 @@ async function removeInvalidFCMTokens(
 ): Promise<void> {
   try {
     const { User } = await import("@/server/models/User");
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: FCM token removal by userId
     await User.updateOne({ userId }, { $pull: { fcmTokens: { $in: tokens } } });
     logger.info("[FCM] Removed invalid tokens", {
       userId,

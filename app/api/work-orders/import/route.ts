@@ -95,6 +95,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const r = rows[i];
     try {
       const code = `WO-${new Date().getFullYear()}-${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+      // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: tenantId set from user.orgId
       await WorkOrder.create({
         tenantId: user.orgId,
         code,

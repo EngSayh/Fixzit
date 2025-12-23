@@ -37,6 +37,7 @@ export async function GET(
     // Find footer content for this page
     const { FooterContent } = await import("@/server/models/FooterContent");
     // PLATFORM-WIDE: Public content shared across all tenants
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Public content shared across all tenants
     const footerContent = (await FooterContent.findOne({ page })
       .lean()
       .exec()) as {

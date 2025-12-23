@@ -164,6 +164,7 @@ export async function POST(req: NextRequest) {
 
   if (!key) return NextResponse.json({ error: 'Missing key' }, { status: 400 });
 
+  // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: Document needed for .save(); SUPER_ADMIN: Platform-wide issues
   const issue = await BacklogIssue.findOne({ key });
   if (!issue) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
@@ -171,6 +172,7 @@ export async function POST(req: NextRequest) {
 
   if (status) {
     issue.status = status;
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide backlog events
     await BacklogEvent.create({
       issueKey: key,
       type: 'status_change',
@@ -181,6 +183,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (comment) {
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide backlog events
     await BacklogEvent.create({
       issueKey: key,
       type: 'comment',

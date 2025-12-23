@@ -41,6 +41,7 @@ export async function processSLABreaches(): Promise<SLABreachReport> {
     // Find messages that haven't been checked for SLA breach yet
     // and are past their target delivery time
     const now = new Date();
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: SLA monitoring checks all orgs
     const pendingMessages = await SMSMessage.find({
       status: { $in: ["PENDING", "QUEUED", "SENT"] },
       slaBreached: false,

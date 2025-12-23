@@ -114,7 +114,7 @@ export async function POST(
         timestamp: new Date(),
       },
       async () => {
-        // NO_LEAN: Document needed for reconcile/reverse actions
+        // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for reconcile/reverse actions
         const payment = await Payment.findOne({
           _id: _params.id,
           orgId: user.orgId,

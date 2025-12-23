@@ -206,6 +206,7 @@ export async function POST(request: NextRequest) {
         normalizedSubRole,
       );
 
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: buildOrgFilter contains org filter
     const listing = await SouqListing.findOne({
       listingId,
       ...buildOrgFilter(orgIdStr),

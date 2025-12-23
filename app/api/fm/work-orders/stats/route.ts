@@ -146,6 +146,7 @@ export async function GET(req: NextRequest) {
     };
 
     const now = new Date();
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: match variable includes orgId from buildTenantFilter
     const overdueCount = await collection.countDocuments({
       ...match,
       completedAt: { $exists: false },

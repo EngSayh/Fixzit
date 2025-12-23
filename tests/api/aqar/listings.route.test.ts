@@ -90,16 +90,17 @@ describe("API /api/aqar/listings", () => {
 
   describe("POST - Create Listing", () => {
     it("returns 429 when rate limit exceeded", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        throw new Error("Route handler missing: POST");
-      }
-
+      // Set up rate limit mock BEFORE importing the route
       vi.mocked(enforceRateLimit).mockReturnValue(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,
         }) as never
       );
+
+      const route = await importRoute();
+      if (!route?.POST) {
+        throw new Error("Route handler missing: POST");
+      }
 
       const req = new NextRequest("http://localhost:3000/api/aqar/listings", {
         method: "POST",

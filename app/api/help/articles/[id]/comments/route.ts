@@ -82,6 +82,7 @@ export async function POST(
 
     const articleFilter = buildArticleFilter(params.id, user.orgId);
     // Query uses native MongoDB driver (already returns lean POJO)
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Native driver returns lean POJO
     const article = await articles.findOne(articleFilter, {
       projection: { slug: 1, status: 1, orgId: 1 },
     });
@@ -150,6 +151,7 @@ export async function GET(
 
     const articleFilter = buildArticleFilter(params.id, user.orgId);
     // Query uses native MongoDB driver (already returns lean POJO)
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Native driver returns lean POJO
     const article = await articles.findOne(articleFilter, {
       projection: { slug: 1, status: 1 },
     });
@@ -165,7 +167,9 @@ export async function GET(
 
     // Fetch comments for this article (tenant-scoped via article filter)
     // PLATFORM-WIDE: Comments are fetched by articleSlug (article already tenant-scoped)
+     
     const [items, total] = await Promise.all([
+      // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped via articleSlug
       comments
         .find({ articleSlug: article.slug })
         .sort({ createdAt: -1 })
@@ -173,6 +177,7 @@ export async function GET(
         .limit(limit)
         .project({ _id: 1, userId: 1, comment: 1, createdAt: 1 })
         .toArray(),
+      // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped via articleSlug
       comments.countDocuments({ articleSlug: article.slug }),
     ]);
 

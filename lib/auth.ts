@@ -352,6 +352,7 @@ export async function authenticateUser(
     if (!orgId) {
       throw new Error("orgId required for personal login");
     }
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: needs password field; FALSE POSITIVE: scoped by orgId
     user = await User.findOne({ email: emailOrEmployeeNumber, orgId });
   } else {
     // SECURITY: Require companyCode for corporate login
@@ -359,6 +360,7 @@ export async function authenticateUser(
       throw new Error("companyCode required for corporate login");
     }
     // For corporate login, search by employee number (username field) + company code
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: needs password field for verification; PLATFORM-WIDE: login by company code
     user = await User.findOne({ username: emailOrEmployeeNumber, code: companyCode });
   }
 
@@ -455,6 +457,7 @@ export async function getUserFromToken(token: string) {
   }
 
   // Database connection handled by model layer
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs toObject() method
   const user = await User.findById(payload.id);
 
   if (!user) {

@@ -59,10 +59,12 @@ export async function POST(req: NextRequest) {
       },
     };
 
+     
     const result = await collection.insertOne(notification);
 
     // In production, this would trigger actual notification sending
     // For now, mark as sent for demo purposes
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide notification update
     await collection.updateOne(
       { _id: result.insertedId },
       {

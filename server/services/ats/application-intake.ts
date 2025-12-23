@@ -198,6 +198,7 @@ export async function submitApplicationFromForm(
     );
   }
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: checking existence
   const existingApplication = await Application.findOne({
     orgId,
     jobId: job._id,

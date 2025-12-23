@@ -128,6 +128,7 @@ class PostingService {
     // Fetch account details for denormalization
     const accountIds = lines.map((line) => line.accountId);
     const expectedOrgId = orgId.toString();
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: needs document mapping; FALSE POSITIVE: scoped by orgId check
     const accounts = await ChartAccountModel.find({
       _id: { $in: accountIds },
       isActive: true,
@@ -204,6 +205,7 @@ class PostingService {
    * - Runs in database transaction (no partial failures)
    */
   async postJournal(journalId: Types.ObjectId): Promise<PostJournalResult> {
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for .save()
     const journal = await JournalModel.findById(journalId);
 
     if (!journal) {
@@ -380,6 +382,7 @@ class PostingService {
       // NOTE: In production with real MongoDB, use $inc for atomic updates.
       // For test compatibility, we use findByIdAndUpdate which the test mocks support.
       for (const [accountIdStr, delta] of balanceDeltas.entries()) {
+        // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for .save()
         const account = await ChartAccountModel.findById(
           new Types.ObjectId(accountIdStr),
         );
@@ -440,6 +443,7 @@ class PostingService {
     userId: Types.ObjectId,
     reason: string,
   ): Promise<{ originalJournal: IJournal; reversingJournal: IJournal }> {
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for .save()
     const originalJournal = await JournalModel.findById(journalId);
 
     if (!originalJournal) {

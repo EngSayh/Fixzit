@@ -131,6 +131,7 @@ export async function POST(
     const collection = db.collection<WorkOrderDocument>(COLLECTIONS.WORK_ORDERS);
     // LEGACY-003 FIX: Use orgId for STRICT v4 tenant isolation
     // Query uses native MongoDB driver (already returns lean POJO)
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Native driver returns lean POJO
     const workOrder = await collection.findOne({
       _id: new ObjectId(id),
       orgId: user.orgId, // Fixed: use orgId (not tenantId)

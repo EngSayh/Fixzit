@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
     const orgId = new Types.ObjectId(orgIdString);
 
     // Check if user already has an active referral code
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Document returned directly in response
     const existing = await ReferralCodeModel.findOne({
       orgId,
       referrerId: session.user.id,

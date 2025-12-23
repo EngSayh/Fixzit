@@ -141,9 +141,11 @@ export async function createSubscriptionFromCheckout(
 ): Promise<SubscriptionNonNull> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for validation
   const priceBook = await PriceBook.findById(input.priceBookId);
   if (!priceBook) throw new Error("Invalid price_book_id");
 
+  // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: tenant_id set conditionally
   const created = (await Subscription.create({
     subscriber_type: input.subscriberType,
     tenant_id:
@@ -169,6 +171,7 @@ export async function markSubscriptionPaid(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs .save()
   const sub = await Subscription.findById(subscriptionId);
   if (!sub) return null;
 
@@ -210,6 +213,7 @@ export async function runRecurringBillingJob(
 ): Promise<{ processed: number; succeeded: number; failed: number }> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: needs .save(); PLATFORM-WIDE: Billing job processes all subscriptions
   const dueSubs = await Subscription.find({
     status: "ACTIVE",
     next_billing_date: { $lte: now },
@@ -290,6 +294,7 @@ export async function cancelSubscription(
 ): Promise<SubscriptionDocument> {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean -- NO_LEAN: needs .save()
   const sub = await Subscription.findById(subscriptionId);
   if (!sub) return null;
 

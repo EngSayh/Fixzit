@@ -11,6 +11,7 @@ import { WORK_ORDERS_ENTITY_LEGACY } from "@/config/topbar-modules";
 async function syncUsageForAllSubscriptions() {
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: needs document methods; PLATFORM-WIDE: Cron job syncs all subscriptions
   const activeSubs = await Subscription.find({
     status: { $in: ["ACTIVE", "PAST_DUE"] },
   });

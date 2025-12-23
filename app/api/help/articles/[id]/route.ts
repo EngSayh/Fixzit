@@ -81,6 +81,7 @@ export async function PATCH(
     const filter = { ...baseFilter, ...tenantScope };
 
     // Query uses native MongoDB driver (already returns lean POJO)
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Native driver returns lean POJO
     const article = await coll.findOne(filter);
     if (!article) return createSecureResponse({ error: "Not found" }, 404, req);
 

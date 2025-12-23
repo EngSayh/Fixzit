@@ -192,6 +192,7 @@ async function loadRBACData(
     }
 
     if (roleSlugs.size > 0) {
+      // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Role slugs are system-defined
       const rolesFromSlugs = await RoleModel.find({
         slug: { $in: Array.from(roleSlugs) },
       })

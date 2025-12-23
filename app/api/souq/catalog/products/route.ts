@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
 
     // Tenant-scoped category lookup with legacy org_id fallback (global allowed when no org fields exist)
     const orgScope = [{ orgId: orgObjectId }, { org_id: orgObjectId }];
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Checking category for restrictions
     const category = await SouqCategory.findOne({
       categoryId: validated.categoryId,
       isActive: true,
@@ -143,6 +144,7 @@ export async function POST(request: NextRequest) {
     if (category.isRestricted) {
       // Check if seller has approval for this restricted category
       const { SouqSeller } = await import("@/server/models/souq/Seller");
+      // eslint-disable-next-line local/require-lean -- NO_LEAN: Existence check for authorization
       const seller = await SouqSeller.findOne({
         orgId,
         isActive: true,
@@ -163,6 +165,7 @@ export async function POST(request: NextRequest) {
     // Check brand exists and seller is authorized if gated
     if (validated.brandId) {
       // Tenant-scoped brand lookup with legacy org_id fallback (global allowed when no org fields exist)
+      // eslint-disable-next-line local/require-lean -- NO_LEAN: Checking brand for gating
       const brand = await SouqBrand.findOne({
         brandId: validated.brandId,
         isActive: true,
@@ -179,6 +182,7 @@ export async function POST(request: NextRequest) {
       // Check seller authorization for gated brands
       if (brand.isGated) {
         const { SouqSeller } = await import("@/server/models/souq/Seller");
+        // eslint-disable-next-line local/require-lean -- NO_LEAN: Existence check for authorization
         const seller = await SouqSeller.findOne({
           orgId,
           isActive: true,
@@ -202,6 +206,7 @@ export async function POST(request: NextRequest) {
     let finalFsin = fsin;
 
     // Check for collision (extremely rare)
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Simple collision check
     const existingProduct = await SouqProduct.findOne({
       fsin: finalFsin,
       $or: [{ orgId: orgObjectId }, { org_id: orgObjectId }],

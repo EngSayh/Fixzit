@@ -74,8 +74,11 @@ export async function createSubscriptionCheckout(
     throw new Error("APP_URL environment variable is not configured");
   }
 
+   
   const priceBook = input.priceBookId
+     
     ? await PriceBook.findById(input.priceBookId)
+    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: needs document; PLATFORM-WIDE
     : await PriceBook.findOne({ currency, active: true });
 
   if (!priceBook) {
@@ -98,6 +101,7 @@ export async function createSubscriptionCheckout(
   const periodEnd = new Date(now.getTime() + periodLengthDays * 24 * 60 * 60 * 1000);
 
   // Create subscription with TAP payment info
+  // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: tenant_id is set via input.tenantId
   const subscription = await Subscription.create({
     tenant_id:
       input.subscriberType === "CORPORATE" ? input.tenantId : undefined,
@@ -191,6 +195,7 @@ export async function createSubscriptionCheckout(
     };
   } catch (error) {
     // Clean up subscription on failure
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: deleting own subscription document
     await subscription.deleteOne();
     logger.error("[Checkout] Failed to create TAP charge", {
       error: error instanceof Error ? error.message : String(error),

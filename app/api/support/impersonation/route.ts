@@ -141,6 +141,7 @@ export async function POST(req: NextRequest) {
 
   await connectToDatabase();
 
+  // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN/SUPPORT: Cross-org impersonation lookup
   const org = await Organization.findOne({
     $or: [
       { orgId: identifier },

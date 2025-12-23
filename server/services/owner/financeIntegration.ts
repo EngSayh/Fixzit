@@ -57,6 +57,7 @@ async function validateAfterPhotos(
   workOrderId: Types.ObjectId,
 ): Promise<boolean> {
   // Check if this work order is linked to a move-out inspection
+  // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: needs document for inspection check; FALSE POSITIVE: scoped via workOrderId
   const inspection = await MoveInOutInspectionModel.findOne({
     "references.workOrderId": workOrderId,
     type: { $in: ["MOVE_OUT", "POST_HANDOVER"] },
@@ -184,12 +185,14 @@ export async function postFinanceOnClose(
       await import("../../models/finance/ChartAccount")
     ).default;
 
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for _id
     const maintenanceExpenseAccount = await ChartAccountModel.findOne({
       orgId: input.orgId,
       code: "5100", // Standard maintenance expense account
       session,
     });
 
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for _id
     const accountsPayableAccount = await ChartAccountModel.findOne({
       orgId: input.orgId,
       code: "2100", // Standard accounts payable account
@@ -339,12 +342,14 @@ export async function postUtilityBillPayment(
     ).default;
 
     // Get utility expense and cash/bank accounts
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for _id
     const utilityExpenseAccount = await ChartAccountModel.findOne({
       orgId,
       code: "5200", // Utility expense account
       session,
     });
 
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document for _id
     const cashAccount = await ChartAccountModel.findOne({
       orgId,
       code: "1100", // Cash/Bank account

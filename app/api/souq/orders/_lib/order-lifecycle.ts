@@ -202,6 +202,7 @@ export async function handleEscrowFailure(
           : String(compensationError),
     });
     try {
+      // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Cleanup for already-scoped order._id
       await SouqOrder.deleteOne({ _id: order._id });
       await releaseReservations(reservations);
       logger.warn("[Escrow] Order hard-deleted after escrow failure", { orderId });

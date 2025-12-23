@@ -119,6 +119,7 @@ export async function GET(request: NextRequest) {
     } else if (type === "seller") {
       // Get seller's returns
       const { SouqRMA } = await import("@/server/models/souq/RMA");
+      // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: buildOrgFilter contains org filter
       const returns = await SouqRMA.find({
         sellerId: session.user.id,
         ...buildOrgFilter(tenantOrgId),

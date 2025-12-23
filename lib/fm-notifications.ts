@@ -104,6 +104,7 @@ async function persistNotificationDraft(
 ): Promise<void> {
   try {
     await connectToDatabase();
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Notification log keyed by notificationId
     await NotificationLogModel.findOneAndUpdate(
       { notificationId: notification.id },
       {
@@ -158,6 +159,7 @@ async function persistNotificationOutcome(
       errors: metric.errors,
     }));
 
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Notification log keyed by notificationId
     await NotificationLogModel.findOneAndUpdate(
       { notificationId: notification.id },
       {

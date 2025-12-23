@@ -99,7 +99,7 @@ export async function POST(
         timestamp: new Date(),
       },
       async () => {
-        // NO_LEAN: Document needed for status update and .save()
+        // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for status update and .save()
         const expense = await Expense.findOne({
           _id: _params.id,
           orgId: user.orgId,

@@ -288,7 +288,7 @@ export async function POST(req: NextRequest) {
     // Validate price book selection (must exist, be active, and match currency)
     let priceBookId: string | undefined;
     if (body.priceBookId) {
-      // PLATFORM-WIDE: Price books are global catalog, not tenant-scoped
+      // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Price books are global catalog, not tenant-scoped
       const priceBook = await PriceBook.findOne({
         _id: body.priceBookId,
         active: true,

@@ -4,12 +4,10 @@ import { render, screen } from "@testing-library/react";
 
 import VendorsPage from "@/app/(fm)/fm/vendors/page";
 
-const mockUseSession = vi.fn();
-const mockUseFmOrgGuard = vi.fn();
-const mockUseSWR = vi.fn();
+const mockFmGuardedPage = vi.fn();
 
 vi.mock("next-auth/react", () => ({
-  useSession: () => mockUseSession(),
+  useSession: () => ({ data: { user: {} } }),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -18,17 +16,31 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("swr", () => ({
   __esModule: true,
-  default: (...args: Parameters<typeof mockUseSWR>) => mockUseSWR(...args),
+  default: () => ({
+    data: { items: [], pages: 1 },
+    isLoading: false,
+    mutate: vi.fn(),
+    error: null,
+  }),
 }));
 
-vi.mock("@/hooks/fm/useFmOrgGuard", () => ({
-  useFmOrgGuard: () => mockUseFmOrgGuard(),
+vi.mock("@/components/fm/FmGuardedPage", () => ({
+  FmGuardedPage: (props: { moduleId: string; children: (ctx: unknown) => React.ReactNode }) => mockFmGuardedPage(props),
 }));
 
 vi.mock("@/components/fm/ModuleViewTabs", () => ({
   __esModule: true,
   default: ({ moduleId }: { moduleId: string }) => (
     <div data-testid="module-tabs">{moduleId}</div>
+  ),
+}));
+
+vi.mock("@/components/fm/vendors", () => ({
+  FmVendorsList: ({ orgId, supportBanner }: { orgId: string; supportBanner?: React.ReactNode }) => (
+    <div data-testid="vendor-list">
+      Vendors for {orgId}
+      {supportBanner}
+    </div>
   ),
 }));
 
@@ -42,29 +54,13 @@ vi.mock("sonner", () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockUseSession.mockReturnValue({ data: { user: {} } });
-  mockUseFmOrgGuard.mockReturnValue({
-    hasOrgContext: true,
-    orgId: "org-test",
-    guard: null,
-    supportBanner: null,
-  });
-  mockUseSWR.mockReturnValue({
-    data: { items: [], pages: 1 },
-    isLoading: false,
-    mutate: vi.fn(),
-    error: null,
-  });
 });
 
 describe("VendorsPage org guard behavior", () => {
   test("renders guard when org context missing", () => {
-    mockUseFmOrgGuard.mockReturnValue({
-      hasOrgContext: false,
-      orgId: null,
-      guard: <div data-testid="org-guard" />,
-      supportBanner: null,
-    });
+    mockFmGuardedPage.mockImplementation(() => (
+      <div data-testid="org-guard" />
+    ));
 
     render(<VendorsPage />);
 
@@ -73,18 +69,16 @@ describe("VendorsPage org guard behavior", () => {
   });
 
   test("renders vendor list when org context available", () => {
-    mockUseFmOrgGuard.mockReturnValue({
-      hasOrgContext: true,
-      orgId: "org-456",
-      guard: null,
-      supportBanner: <div data-testid="support-banner" />,
-    });
-    mockUseSWR.mockReturnValue({
-      data: { items: [], pages: 1 },
-      isLoading: false,
-      mutate: vi.fn(),
-      error: null,
-    });
+    mockFmGuardedPage.mockImplementation(({ children }: { children: (ctx: unknown) => React.ReactNode }) => (
+      <>
+        {children({
+          orgId: "org-456",
+          supportBanner: <div data-testid="support-banner" />,
+          hasOrgContext: true,
+          guard: null,
+        })}
+      </>
+    ));
 
     render(<VendorsPage />);
 

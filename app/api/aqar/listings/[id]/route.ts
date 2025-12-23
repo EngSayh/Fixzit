@@ -157,6 +157,7 @@ export async function PATCH(
 
     // SEC-002: Enforce tenant + ownership scope in the query itself
     // NO_LEAN: Document needed for update operations
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: Document needed for update
     const listing = await AqarListing.findOne({
       _id: id,
       listerId: user.id,
@@ -333,6 +334,7 @@ export async function DELETE(
 
     // SEC-002: Enforce tenant + ownership scope in the query itself
     // NO_LEAN: Document needed for .deleteOne() method
+    // eslint-disable-next-line local/require-lean -- NO_LEAN: needs .deleteOne()
     const listing = await AqarListing.findOne({
       _id: id,
       listerId: user.id,
@@ -343,6 +345,7 @@ export async function DELETE(
     }
 
     // SAFE: deleteOne on already-scoped listing (line 338)
+    // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Already scoped via findOne query above
     await listing.deleteOne();
 
     return NextResponse.json({ success: true });
