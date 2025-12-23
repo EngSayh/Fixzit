@@ -16,9 +16,11 @@
  * - Uses constant-time comparison to prevent timing attacks
  * 
  * @response
- * - success: boolean
- * - executedAt: ISO timestamp
- * 
+ * - ok: boolean
+ * - timestamp: ISO timestamp
+ * - message: string
+ * - jobs: { retried: number, cleaned: number }
+ *
  * @see https://vercel.com/docs/cron-jobs
  */
 import crypto from "crypto";

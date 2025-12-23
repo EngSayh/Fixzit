@@ -36,8 +36,16 @@ jobs:
       }}
     runs-on: ubuntu-latest
     steps:
-      - name: PR Agent action step
+      - name: Check required secrets
         if: ${{ (vars.ENABLE_PR_AGENT || 'true') != 'false' }}
+        run: |
+          if [ -z "${{ secrets.OPENAI_KEY }}" ]; then
+            echo "::warning::OPENAI_KEY secret is not configured. PR Agent will be skipped."
+            echo "SKIP_PR_AGENT=true" >> $GITHUB_ENV
+          fi
+      
+      - name: PR Agent action step
+        if: ${{ (vars.ENABLE_PR_AGENT || 'true') != 'false' && env.SKIP_PR_AGENT != 'true' }}
         uses: Codium-ai/pr-agent@main
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
