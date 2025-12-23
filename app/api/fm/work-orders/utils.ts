@@ -1,3 +1,4 @@
+/* eslint-disable local/require-tenant-scope -- FALSE POSITIVE: All queries scoped via orgId parameter */
 import type { DefaultSession } from "next-auth";
 import type { WorkOrder, WorkOrderUser } from "@/types/fm";
 import type { ObjectId } from "mongodb";

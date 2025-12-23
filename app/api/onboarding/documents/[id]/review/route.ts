@@ -127,14 +127,12 @@ export async function PATCH(
 
     if (decision === 'VERIFIED') {
       const profileCountry = onboarding.country || 'SA';
-      // PLATFORM-WIDE: DocumentProfile and VerificationDocument queries for verification status
-       
+      /* eslint-disable local/require-tenant-scope -- DocumentProfile is platform-wide catalog; VerificationDocument is scoped via onboarding._id */
       const [profile, docs] = await Promise.all([
-         
         DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean(),
-        // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped via onboarding_case_id
         VerificationDocument.find({ onboarding_case_id: onboarding._id }).lean(),
       ]);
+      /* eslint-enable local/require-tenant-scope */
 
       // Guard against auto-approval with missing profile/required_doc_codes
       if (!profile || !profile.required_doc_codes?.length) {

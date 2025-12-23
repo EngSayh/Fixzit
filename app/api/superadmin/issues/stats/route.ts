@@ -7,6 +7,8 @@
  * @see {@link /server/models/BacklogIssue.ts} for issue schema
  */
 
+/* eslint-disable local/require-tenant-scope -- PLATFORM-WIDE: Superadmin route for backlog stats */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSuperadminSession } from '@/lib/superadmin/auth';
 import { connectMongo } from '@/lib/db/mongoose';
