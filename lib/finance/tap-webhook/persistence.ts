@@ -428,7 +428,7 @@ export async function updateRefundRecord(
         chargeId: refund.charge,
       });
     }
-    // eslint-disable-next-line local/require-lean -- NO_LEAN: payment is updated and saved.
+    // NO_LEAN: payment is updated and saved.
     const payment = orgId
       ? await Payment.findOne({
           _id: transaction.paymentId,

@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: PR Agent action step
-        if: ${{ (vars.ENABLE_PR_AGENT || 'true') != 'false' && secrets.OPENAI_KEY != '' }}
+        if: ${{ (vars.ENABLE_PR_AGENT || 'true') != 'false' }}
         uses: Codium-ai/pr-agent@main
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
