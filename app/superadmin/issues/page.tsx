@@ -850,7 +850,7 @@ export default function SuperadminIssuesPage() {
 
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px] bg-muted border-input text-white">
-                <SelectValue placeholder="Filter by Status" />
+                <SelectValue placeholder={t("superadmin.issues.filters.status")} />
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((option) => (
@@ -863,7 +863,7 @@ export default function SuperadminIssuesPage() {
 
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
               <SelectTrigger className="w-[180px] bg-muted border-input text-white">
-                <SelectValue placeholder="Filter by Priority" />
+                <SelectValue placeholder={t("superadmin.issues.filters.priority")} />
               </SelectTrigger>
               <SelectContent>
                 {priorityOptions.map((option) => (
@@ -876,7 +876,7 @@ export default function SuperadminIssuesPage() {
 
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-[180px] bg-muted border-input text-white">
-                <SelectValue placeholder="Filter by Module" />
+                <SelectValue placeholder={t("superadmin.issues.filters.category")} />
               </SelectTrigger>
               <SelectContent>
                 {categoryOptions.map((option) => (
