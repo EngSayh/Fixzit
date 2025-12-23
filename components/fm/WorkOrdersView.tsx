@@ -32,7 +32,7 @@ import {
   ShieldAlert,
   Filter,
   WifiOff,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { WorkOrderPriority } from "@/lib/sla";
 import ClientDate from "@/components/ClientDate";
 import { getWorkOrderStatusLabel } from "@/lib/work-orders/status";

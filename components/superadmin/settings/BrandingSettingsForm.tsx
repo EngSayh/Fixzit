@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BrandLogo } from "@/components/brand";
-import { Upload, Save, RotateCcw, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Upload, Save, RotateCcw, AlertCircle, CheckCircle2 } from "@/components/ui/icons";
 import { logger } from "@/lib/logger";
 
 interface BrandingData {

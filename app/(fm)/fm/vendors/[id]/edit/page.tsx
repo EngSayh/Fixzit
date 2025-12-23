@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem } from "@/components/ui/select";
 import { CardGridSkeleton } from "@/components/skeletons";
-import { ChevronLeft, Save } from "lucide-react";
+import { ChevronLeft, Save } from "@/components/ui/icons";
 import Link from "next/link";
 import {
   UpdateVendorSchema,

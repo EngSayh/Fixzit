@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
-import { CheckCircle2, DownloadCloud, Cpu } from "lucide-react";
+import { CheckCircle2, DownloadCloud, Cpu } from "@/components/ui/icons";
 
 const STEPS = [
   {

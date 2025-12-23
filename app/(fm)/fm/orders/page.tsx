@@ -31,7 +31,7 @@ import {
   DollarSign,
   Calendar,
   Package,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { logger } from "@/lib/logger";
 
 interface Order {

@@ -26,7 +26,7 @@ const ERRORS = [];
 /**
  * Extract filter schema keys from component file
  */
-function extractFilterSchemaKeys(content, filePath) {
+function extractFilterSchemaKeys(content, _filePath) {
   const schemaMatch = content.match(/const\s+\w+_FILTER_SCHEMA:\s*FilterSchema<\w+>\[\]\s*=\s*\[([\s\S]*?)\];/);
   
   if (!schemaMatch) {

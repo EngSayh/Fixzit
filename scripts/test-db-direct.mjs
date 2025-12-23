@@ -5,7 +5,6 @@
  */
 
 import mongoose from 'mongoose';
-import { setTimeout } from 'node:timers/promises';
 import { config } from 'dotenv';
 import { resolve } from 'node:path';
 

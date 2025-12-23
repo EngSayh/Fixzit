@@ -41,7 +41,7 @@ import {
   Hammer,
   PaintBucket,
   Building,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
 

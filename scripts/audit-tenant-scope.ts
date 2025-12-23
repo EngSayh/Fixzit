@@ -121,7 +121,7 @@ function isInComment(lines: string[], lineIndex: number): boolean {
 function hasTenantScopeInContext(
   lines: string[],
   lineIndex: number,
-  operation: string,
+  _operation: string,
 ): boolean {
   // Check 5 lines before and 3 lines after
   const contextStart = Math.max(0, lineIndex - 5);

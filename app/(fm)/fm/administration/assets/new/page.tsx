@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { BarChart, HardDriveDownload, Layers, Workflow } from "lucide-react";
+import { BarChart, HardDriveDownload, Layers, Workflow } from "@/components/ui/icons";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";

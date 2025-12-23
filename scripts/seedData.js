@@ -177,7 +177,7 @@ const seedDatabase = async () => {
 
     // Create Property Owners
     for (let orgIndex = 0; orgIndex < organizations.length; orgIndex++) {
-      const { org, tenant } = organizations[orgIndex];
+      const { org, tenant: _tenant } = organizations[orgIndex];
       const ownerUser = users.find(
         (u) => u.org._id.equals(org._id) && u.user.role === "OWNER",
       );

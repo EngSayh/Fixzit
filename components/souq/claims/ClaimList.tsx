@@ -32,7 +32,7 @@ import {
   Package,
   Search,
   XCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 interface Claim {
   claimId: string;
   claimNumber: string;

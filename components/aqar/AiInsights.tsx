@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, TrendingUp, Cpu, ShieldCheck } from "lucide-react";
+import { Sparkles, TrendingUp, Cpu, ShieldCheck } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import type {
   ListingPricingInsights,

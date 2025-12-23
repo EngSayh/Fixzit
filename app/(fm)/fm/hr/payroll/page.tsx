@@ -18,7 +18,7 @@ import {
   Gauge,
   TrendingUp,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { format } from "date-fns";
 
 const PAYROLL_STATUS_LABELS: Record<string, { fallback: string; id: string }> =

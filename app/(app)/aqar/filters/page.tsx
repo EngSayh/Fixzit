@@ -11,7 +11,7 @@ import {
   Bath,
   Calendar,
   Filter,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 type FilterState = {

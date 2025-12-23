@@ -12,7 +12,7 @@
 
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import { ChevronRight, type LucideIcon } from "@/components/ui/icons";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 

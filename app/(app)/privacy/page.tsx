@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
-import { Shield, Lock, Eye, FileText, Mail, Phone } from "lucide-react";
+import { Shield, Lock, Eye, FileText, Mail, Phone } from "@/components/ui/icons";
 import { renderMarkdownSanitized } from "@/lib/markdown";
 import { EMAIL_DOMAINS as EMAILS } from "@/lib/config/domains";
 import { SafeHtml } from "@/components/SafeHtml";

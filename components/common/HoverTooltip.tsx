@@ -7,7 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HelpCircle, Info, AlertCircle, AlertTriangle } from "lucide-react";
+import { HelpCircle, Info, AlertCircle, AlertTriangle } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/TranslationContext";
 

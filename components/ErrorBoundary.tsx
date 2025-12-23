@@ -2,7 +2,7 @@
 
 import React, { type ReactNode } from "react";
 import Link from "next/link";
-import { AlertTriangle, Home, RefreshCw } from "lucide-react";
+import { AlertTriangle, Home, RefreshCw } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import {
   Card,

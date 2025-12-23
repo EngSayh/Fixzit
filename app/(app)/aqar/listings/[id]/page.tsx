@@ -10,7 +10,7 @@ import {
   Maximize,
   Share2,
   Clock,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import AiInsights from "@/components/aqar/AiInsights";
 import ProptechBadges from "@/components/aqar/ProptechBadges";
 import RecommendationRail from "@/components/aqar/RecommendationRail";

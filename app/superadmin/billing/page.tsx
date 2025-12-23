@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { 
   CreditCard, RefreshCw, Search, Eye,
   DollarSign, TrendingUp, Package, CheckCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface PriceBook {
   _id: string;

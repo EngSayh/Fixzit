@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-prototype-builtins, no-unused-vars */
 // Prayer Times Mobile Component for Saudi Users
 // Fixzit Souq - Saudi Cultural Integration
 

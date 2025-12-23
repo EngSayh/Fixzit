@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-prototype-builtins, no-unused-vars, no-undef */
 // Service Worker for Mobile Performance Optimization with Arabic RTL Support
 // Fixzit Souq Enterprise Platform - Saudi Market Optimized
 

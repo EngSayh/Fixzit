@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { RefreshCw, Home, Shield } from "lucide-react";
+import { RefreshCw, Home, Shield } from "@/components/ui/icons";
 import Link from "next/link";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Button } from "@/components/ui/button";

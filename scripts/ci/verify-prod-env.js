@@ -12,7 +12,7 @@ const isProdDeploy = env.VERCEL_ENV === 'production' || env.VERCEL_ENV === 'prev
 
 // Tap: Use standardized env var names with environment-aware key selection
 const tapEnvIsLive = env.TAP_ENVIRONMENT === 'live' || env.VERCEL_ENV === 'production';
-const tapSecretKey = tapEnvIsLive ? env.TAP_LIVE_SECRET_KEY : env.TAP_TEST_SECRET_KEY;
+const _tapSecretKey = tapEnvIsLive ? env.TAP_LIVE_SECRET_KEY : env.TAP_TEST_SECRET_KEY;
 const tapPublicKey = tapEnvIsLive ? env.NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY : env.NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY;
 const tapConfigured = Boolean(tapPublicKey) && Boolean(env.TAP_WEBHOOK_SECRET);
 

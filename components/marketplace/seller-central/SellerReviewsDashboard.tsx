@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessageSquare, Star, TrendingUp } from "lucide-react";
+import { MessageSquare, Star, TrendingUp } from "@/components/ui/icons";
 import type { SellerReview } from "@/lib/souq/review-types";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { ReviewCard } from "@/components/seller/reviews/ReviewCard";

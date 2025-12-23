@@ -23,7 +23,7 @@ import {
   Users, Search, Shield, AlertTriangle, RefreshCw,
   LogIn, Mail, Phone, Building2,
   CheckCircle, XCircle, Ticket, History,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface User {
   _id: string;

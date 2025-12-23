@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { RefreshCw, Clock } from "lucide-react";
+import { RefreshCw, Clock } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/TranslationContext";
 

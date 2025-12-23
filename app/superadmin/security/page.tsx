@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { 
   Shield, RefreshCw, AlertTriangle, CheckCircle, XCircle,
   Activity, Lock, Clock, Server, Zap, AlertCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface RateLimitMetrics {
   windowMs: number;

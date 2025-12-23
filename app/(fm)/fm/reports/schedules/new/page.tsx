@@ -18,7 +18,7 @@ import {
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
-import { Clock, Calendar, Mail } from "lucide-react";
+import { Clock, Calendar, Mail } from "@/components/ui/icons";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 const REPORT_TYPES = [

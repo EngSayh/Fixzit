@@ -2,7 +2,7 @@
 import { logger } from "@/lib/logger";
 
 import { useState } from "react";
-import { Calendar, DollarSign, Package } from "lucide-react";
+import { Calendar, DollarSign, Package } from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { FormOfflineBanner } from "@/components/common/FormOfflineBanner";

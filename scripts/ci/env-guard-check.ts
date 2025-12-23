@@ -20,7 +20,7 @@ async function loadEnv() {
   try {
     const { loadEnvConfig } = await import('@next/env');
     loadEnvConfig(process.cwd());
-  } catch (error) {
+  } catch (_error) {
     console.warn('⚠️  Could not load @next/env (this is OK in CI/Vercel)');
   }
 }

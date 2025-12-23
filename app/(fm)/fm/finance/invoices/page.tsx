@@ -39,7 +39,7 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
 import ClientDate from "@/components/ClientDate";

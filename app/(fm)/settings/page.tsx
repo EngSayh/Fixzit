@@ -14,7 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Bell, Lock, User, Palette } from "lucide-react";
+import { Bell, Lock, User, Palette } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import { useCurrency, type CurrencyCode } from "@/contexts/CurrencyContext";

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { 
   Eye, EyeOff, LogIn, Mail, Lock, AlertCircle, Check, AlertTriangle,
   User, Shield, Apple
-} from 'lucide-react';
+} from "@/components/ui/icons";
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, getCsrfToken, useSession } from 'next-auth/react';

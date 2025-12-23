@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileQuestion } from "lucide-react";
+import { FileQuestion } from "@/components/ui/icons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 /**

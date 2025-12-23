@@ -12,7 +12,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { X, ExternalLink, FileText, Activity, Folder, Clock } from "lucide-react";
+import { X, ExternalLink, FileText, Activity, Folder, Clock } from "@/components/ui/icons";
 
 type Tab = "overview" | "activity" | "documents" | "history";
 

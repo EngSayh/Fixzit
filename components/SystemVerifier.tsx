@@ -12,7 +12,7 @@ import {
   Network,
   Shield,
   Zap,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 
 // ✅ FIXED: Use standard components

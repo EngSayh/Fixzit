@@ -10,7 +10,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/useI18n";
-import { LogOut, Settings, User, Search, Sun, Moon, Bell, Command, Monitor } from "lucide-react";
+import { LogOut, Settings, User, Search, Sun, Moon, Bell, Command, Monitor } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { logger } from "@/lib/logger";

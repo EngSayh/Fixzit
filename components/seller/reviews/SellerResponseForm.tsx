@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from "react";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare } from "@/components/ui/icons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 interface SellerResponseFormProps {

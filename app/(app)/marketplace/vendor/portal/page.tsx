@@ -9,7 +9,7 @@ import {
   Settings,
   AlertCircle,
   CheckCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useSession } from "next-auth/react";
 import { useTranslation } from "@/contexts/TranslationContext";
 

@@ -21,7 +21,7 @@ import {
   Phone,
   Mail,
   Globe,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

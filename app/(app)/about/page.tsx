@@ -7,7 +7,7 @@ import {
   MapPin,
   Phone,
   Mail,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { renderMarkdownSanitized } from "@/lib/markdown";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import { SafeHtml } from "@/components/SafeHtml";

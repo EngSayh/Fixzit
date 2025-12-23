@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Home, ArrowLeft, Search } from "lucide-react";
+import { Home, ArrowLeft, Search } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { BrandLogo } from "@/components/brand";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";

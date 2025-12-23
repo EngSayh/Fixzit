@@ -92,11 +92,11 @@ const INDEXES_TO_UPDATE = [
 ];
 
 function buildCreateIndexOptions(
-  existingIndex: Record<string, any> | undefined,
-  indexOptions: Record<string, any> = {},
+  existingIndex: Record<string, unknown> | undefined,
+  indexOptions: Record<string, unknown> = {},
 ) {
   if (!existingIndex) return { ...indexOptions };
-  const { key, name, ns, v, ...rest } = existingIndex;
+  const { key: _key, name: _name, ns: _ns, v: _v, ...rest } = existingIndex;
   return { ...rest, ...indexOptions };
 }
 

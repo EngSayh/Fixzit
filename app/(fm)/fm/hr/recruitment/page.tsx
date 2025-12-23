@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2 } from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 import { logger } from "@/lib/logger";
 

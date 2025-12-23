@@ -36,7 +36,7 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 
 import { logger } from "@/lib/logger";

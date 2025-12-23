@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { 
   Zap, RefreshCw, Search, AlertCircle, CheckCircle, XCircle, 
   Settings, Globe, Lock, Beaker,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface FeatureFlag {
   id: string;

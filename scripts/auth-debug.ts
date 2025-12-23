@@ -98,13 +98,13 @@ async function main() {
 type CredentialsProviderLike = {
   id?: string;
   authorize?: (
-    credentials: Record<string, unknown>,
-    req: unknown,
+    _credentials: Record<string, unknown>,
+    _req: unknown,
   ) => Promise<unknown>;
   options?: {
     authorize?: (
-      credentials: Record<string, unknown>,
-      req: unknown,
+      _credentials: Record<string, unknown>,
+      _req: unknown,
     ) => Promise<unknown>;
   };
 };

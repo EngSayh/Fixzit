@@ -11,7 +11,7 @@ import {
   Briefcase,
   PhoneCall,
   Mail,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

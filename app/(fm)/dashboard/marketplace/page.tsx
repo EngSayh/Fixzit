@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ShoppingBag, Package, Star, Store, FileQuestion, ShoppingCart } from "lucide-react";
+import { ShoppingBag, Package, Star, Store, FileQuestion, ShoppingCart } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { fetchOrgCounters } from "@/lib/counters";

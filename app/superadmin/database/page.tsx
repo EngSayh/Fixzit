@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { 
   Database, RefreshCw, HardDrive, CheckCircle, XCircle,
   Clock, FileText, Download, AlertTriangle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface CollectionStats {
   name: string;

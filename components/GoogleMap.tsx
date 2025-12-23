@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger";
 /// <reference types="google.maps" />
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader as Spinner } from "lucide-react";
+import { Loader as Spinner } from "@/components/ui/icons";
 
 type LatLng = { lat: number; lng: number };
 type MarkerInput = {

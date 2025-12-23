@@ -3,7 +3,7 @@
 import Link from "next/link";
 import React from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { User, Settings, Shield, Bell } from "lucide-react";
+import { User, Settings, Shield, Bell } from "@/components/ui/icons";
 import toast, { Toaster } from "react-hot-toast";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Button } from "@/components/ui/button";

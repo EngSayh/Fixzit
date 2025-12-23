@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, ChevronRight, X } from "lucide-react";
+import { ChevronDown, ChevronRight, X } from "@/components/ui/icons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 interface Facets {

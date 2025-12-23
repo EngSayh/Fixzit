@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Card, CardContent } from "@/components/ui/card";
 import {

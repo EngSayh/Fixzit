@@ -40,7 +40,7 @@ import {
   Package,
   Wrench,
   Building2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
 import { FormOfflineBanner } from "@/components/common/FormOfflineBanner";

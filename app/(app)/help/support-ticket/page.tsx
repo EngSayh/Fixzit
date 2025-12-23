@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/ui/icons";
 import { useSession } from "next-auth/react";
 import { FormWithNavigation } from "@/components/ui/navigation-buttons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";

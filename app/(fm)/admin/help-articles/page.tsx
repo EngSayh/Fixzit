@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { RefreshCw, Globe2, Lock, Shield, FileText } from "lucide-react";
+import { RefreshCw, Globe2, Lock, Shield, FileText } from "@/components/ui/icons";
 
 type Article = {
   slug: string;

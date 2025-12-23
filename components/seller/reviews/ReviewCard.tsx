@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from "react";
-import { Star, ThumbsUp, Flag, MessageSquare } from "lucide-react";
+import { Star, ThumbsUp, Flag, MessageSquare } from "@/components/ui/icons";
 import type { SellerReview } from "@/lib/souq/review-types";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 

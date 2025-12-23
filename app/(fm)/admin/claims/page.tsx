@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import ClaimReviewPanel from "@/components/admin/claims/ClaimReviewPanel";
-import { Shield, ShieldAlert, Loader2 } from "lucide-react";
+import { Shield, ShieldAlert, Loader2 } from "@/components/ui/icons";
 import { useI18n } from "@/i18n/useI18n";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

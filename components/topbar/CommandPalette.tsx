@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { X, Search } from "lucide-react";
+import { X, Search } from "@/components/ui/icons";
 import Portal from "@/components/Portal";
 import { useTranslation } from "@/contexts/TranslationContext";
 import type { GlobalSearchResult } from "./types";

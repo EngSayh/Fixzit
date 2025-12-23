@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, MapPin, Bed, Bath, Square } from "lucide-react";
+import { Search, MapPin, Bed, Bath, Square } from "@/components/ui/icons";
 import Image from "next/image";
 import { useTranslation } from "@/contexts/TranslationContext";
 import RecommendationRail from "@/components/aqar/RecommendationRail";

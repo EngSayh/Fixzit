@@ -15,7 +15,7 @@
  */
 
 import React, { useEffect, useState, useRef } from "react";
-import { Loader2, Clock } from "lucide-react";
+import { Loader2, Clock } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";

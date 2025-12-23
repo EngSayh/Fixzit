@@ -4,7 +4,7 @@ import useSWR from "swr";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { FileText, Loader2, RefreshCw } from "lucide-react";
+import { FileText, Loader2, RefreshCw } from "@/components/ui/icons";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

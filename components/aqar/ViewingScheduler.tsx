@@ -8,7 +8,7 @@ import {
   Video,
   MapPin,
   CheckCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { logger } from "@/lib/logger";
 

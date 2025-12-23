@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState, useId } from "react";
-import { Globe, Search, Check } from "lucide-react";
+import { Globe, Search, Check } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import {
   LANGUAGE_OPTIONS,

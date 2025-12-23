@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { Filter, Plus, AlertCircle } from "lucide-react";
+import { Filter, Plus, AlertCircle } from "@/components/ui/icons";
 import { useMemo } from "react";
 import { useProperties } from "@/hooks/fm/useProperties";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";

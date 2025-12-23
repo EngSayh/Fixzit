@@ -7,7 +7,7 @@ import {
   Calendar,
   TrendingUp,
   FileText,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 export interface MortgageCalculatorProps {

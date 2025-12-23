@@ -8,7 +8,7 @@
  */
 
 import { useI18n } from "@/i18n/useI18n";
-import { Shield, CheckCircle, Users, Building2, Wrench } from "lucide-react";
+import { Shield, CheckCircle, Users, Building2, Wrench } from "@/components/ui/icons";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {

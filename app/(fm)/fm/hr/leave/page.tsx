@@ -17,7 +17,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useMemo } from "react";
 import { useHrLeaveRequests } from "@/hooks/fm/useHrData";
 

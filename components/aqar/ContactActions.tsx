@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Phone, MessageSquare } from "lucide-react";
+import { Phone, MessageSquare } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { sanitizePhoneNumber } from "@/lib/utils/format";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LogIn, UserPlus } from "lucide-react";
+import { LogIn, UserPlus } from "@/components/ui/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 

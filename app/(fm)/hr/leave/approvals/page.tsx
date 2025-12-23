@@ -10,7 +10,7 @@ import {
   AlertTriangle,
   Check,
   X,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

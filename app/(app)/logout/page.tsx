@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle } from "@/components/ui/icons";
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';

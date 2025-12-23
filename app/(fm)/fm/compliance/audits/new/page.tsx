@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { CalendarCheck2, ClipboardSignature } from "lucide-react";
+import { CalendarCheck2, ClipboardSignature } from "@/components/ui/icons";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";

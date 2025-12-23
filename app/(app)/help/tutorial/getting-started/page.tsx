@@ -10,7 +10,7 @@ import {
   Play,
   BookOpen,
   Clock,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { renderMarkdownSanitized } from "@/lib/markdown";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { SafeHtml } from "@/components/SafeHtml";

@@ -12,7 +12,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Sparkles } from "lucide-react";
+import { Calendar, Sparkles } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 export interface RoadmapBannerProps {

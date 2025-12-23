@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
-import { Plug, Check, X, Settings } from "lucide-react";
+import { Plug, Check, X, Settings } from "@/components/ui/icons";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";

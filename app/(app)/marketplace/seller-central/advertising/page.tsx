@@ -16,7 +16,7 @@ import {
   Trash2,
   Edit,
   BarChart3,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import Link from "next/link";
 import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";

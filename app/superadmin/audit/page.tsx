@@ -31,7 +31,7 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface AuditLog {
   _id: string;

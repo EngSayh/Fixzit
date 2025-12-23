@@ -38,7 +38,7 @@ import {
   User,
   Building,
   Shield,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { CreateTenantForm } from "@/components/fm/tenants/CreateTenantForm";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";

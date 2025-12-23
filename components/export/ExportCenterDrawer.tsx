@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import useSWR from "swr";
 import { formatDistanceToNowStrict } from "date-fns";
-import { FileText, Download, RefreshCcw, Clock4, AlertTriangle } from "lucide-react";
+import { FileText, Download, RefreshCcw, Clock4, AlertTriangle } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

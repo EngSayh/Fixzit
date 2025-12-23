@@ -29,7 +29,7 @@ import {
   Filter,
   FileText,
   AlertCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 // Foundation Components
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";

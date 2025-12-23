@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { Info } from "lucide-react";
+import { Info } from "@/components/ui/icons";
 import {
   Tooltip,
   TooltipContent,

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { Banknote, CheckCircle2, Loader2, Shield, Upload } from "lucide-react";
+import { Banknote, CheckCircle2, Loader2, Shield, Upload } from "@/components/ui/icons";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 

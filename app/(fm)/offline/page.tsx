@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { WifiOff, RefreshCw } from "lucide-react";
+import { WifiOff, RefreshCw } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/contexts/TranslationContext";

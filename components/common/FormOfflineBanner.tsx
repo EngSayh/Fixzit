@@ -1,6 +1,6 @@
 "use client";
 
-import { WifiOff } from "lucide-react";
+import { WifiOff } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useOnlineStatus } from "@/components/common/OfflineIndicator";

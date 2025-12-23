@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Star, ShoppingCart } from "lucide-react";
+import { Star, ShoppingCart } from "@/components/ui/icons";
 import { AuctionWinner } from "@/services/souq/ads/auction-engine";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { logger } from "@/lib/logger";

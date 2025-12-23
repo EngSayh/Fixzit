@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Wallet, AlertCircle, CheckCircle, Receipt, CreditCard, PiggyBank, BarChart3 } from "lucide-react";
+import { Wallet, AlertCircle, CheckCircle, Receipt, CreditCard, PiggyBank, BarChart3 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useOrgCounters } from "@/hooks/useOrgCounters";

@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Check, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Upload } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 

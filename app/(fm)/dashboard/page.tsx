@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, TrendingUp, Users, DollarSign } from "lucide-react";
+import { BarChart3, TrendingUp, Users, DollarSign } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import StatusPill from "@/components/ui/status-pill";

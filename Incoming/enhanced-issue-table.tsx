@@ -27,11 +27,8 @@ import {
   ExternalLink,
   MessageSquare,
   Clock,
-  User,
   Settings2,
-  ArrowUpDown,
-  Check,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -52,7 +49,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { BulkActionsBar, useBulkSelection } from './bulk-actions-bar';
+import { BulkActionsBar } from './bulk-actions-bar';
 import { SkeletonTable } from './skeleton-table';
 
 // ============================================
@@ -89,7 +86,7 @@ interface EnhancedIssueTableProps {
   onIssueEdit?: (issue: Issue) => void;
   onIssueDelete?: (issueId: string) => void;
   onIssueDuplicate?: (issue: Issue) => void;
-  onBulkAction?: (action: string, issueIds: string[], data?: any) => Promise<void>;
+  onBulkAction?: (action: string, issueIds: string[], data?: unknown) => Promise<void>;
 }
 
 // ============================================
@@ -399,12 +396,12 @@ export function EnhancedIssueTable({
 
   // Selected IDs
   const selectedIds = Object.keys(rowSelection).filter((key) => rowSelection[key]);
-  const selectedIssues = selectedIds.map((id) => 
+  const _selectedIssues = selectedIds.map((id) => 
     issues.find((issue) => issue.id === id)
   ).filter(Boolean) as Issue[];
 
   // Bulk action handlers
-  const handleBulkAction = async (action: string, data?: any) => {
+  const handleBulkAction = async (action: string, data?: unknown) => {
     if (!onBulkAction) return;
     setIsProcessing(true);
     try {
@@ -586,7 +583,7 @@ interface RowActionsProps {
   onDuplicate?: () => void;
 }
 
-function RowActions({ issue, isHovered, onView, onEdit, onDelete, onDuplicate }: RowActionsProps) {
+function RowActions({ issue: _issue, isHovered, onView, onEdit, onDelete, onDuplicate }: RowActionsProps) {
   return (
     <div className="flex items-center justify-end gap-1">
       {/* Quick actions on hover */}

@@ -12,7 +12,7 @@ import {
   Loader2,
   ShieldAlert,
   X,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 type ScanStatus = "pending" | "clean" | "infected" | "error";
 

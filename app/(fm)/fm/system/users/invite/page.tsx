@@ -17,7 +17,7 @@ import {
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
-import { Mail, UserPlus, Shield } from "lucide-react";
+import { Mail, UserPlus, Shield } from "@/components/ui/icons";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 export default function InviteUserPage() {

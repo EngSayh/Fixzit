@@ -18,7 +18,7 @@ import {
   RefreshCw, Users, 
   Building2, Activity, AlertCircle,
   ArrowUp, ArrowDown, Minus,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface TenantStats {
   total: number;

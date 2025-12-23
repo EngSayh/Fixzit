@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe } from "lucide-react";
+import { Globe } from "@/components/ui/icons";
 import { useTranslation, type Language } from "@/contexts/TranslationContext";
 import { logger } from "@/lib/logger";
 

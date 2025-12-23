@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, Circle, AlertCircle } from "lucide-react";
+import { CheckCircle, Circle, AlertCircle } from "@/components/ui/icons";
 import CompanyInfoForm from "@/components/seller/kyc/CompanyInfoForm";
 import DocumentUploadForm from "@/components/seller/kyc/DocumentUploadForm";
 import BankDetailsForm from "@/components/seller/kyc/BankDetailsForm";

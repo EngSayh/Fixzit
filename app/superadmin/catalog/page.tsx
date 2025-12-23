@@ -19,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { 
   Package, RefreshCw, Search, Eye, DollarSign,
   CheckCircle, XCircle, AlertTriangle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface Product {
   _id: string;

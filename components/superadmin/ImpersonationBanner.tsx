@@ -6,7 +6,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, AlertCircle } from "lucide-react";
+import { X, AlertCircle } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 
 export function ImpersonationBanner() {

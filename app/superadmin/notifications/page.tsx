@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { 
   Bell, RefreshCw, Send, Eye, ChevronLeft, ChevronRight,
   Mail, MessageSquare, Smartphone, Clock, AlertCircle, CheckCircle, XCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface NotificationLog {
   _id: string;

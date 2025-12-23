@@ -5,7 +5,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Activity, Database, Info } from 'lucide-react';
+import { Activity, Database, Info } from '@/components/ui/icons';
 
 export const SystemStatusBar: React.FC = () => {
   const [apiLatency, setApiLatency] = useState(24);

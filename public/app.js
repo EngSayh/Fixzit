@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-prototype-builtins, no-unused-vars */
 // Fixzit Souq Enterprise Platform - Frontend Application
 // 🔐 Email domain comes from window for rebranding; falls back to generic demo domain.
 const EMAIL_DOMAIN = window.EMAIL_DOMAIN || window.__EMAIL_DOMAIN__ || "example.com";

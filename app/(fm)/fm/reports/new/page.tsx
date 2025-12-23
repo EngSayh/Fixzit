@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
-import { FileText, Calendar, Download } from "lucide-react";
+import { FileText, Calendar, Download } from "@/components/ui/icons";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
 
 const REPORT_TYPES = [

@@ -111,7 +111,7 @@ function getGitTrackedFiles() {
   try {
     const output = execSync('git ls-files', { encoding: 'utf-8' });
     return output.trim().split('\n').filter(Boolean);
-  } catch (error) {
+  } catch (_error) {
     console.warn('git ls-files failed, falling back to recursive scan');
     return [];
   }
@@ -220,7 +220,7 @@ function writeBatches(batches) {
     }
   });
 
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const _timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const manifest = {
     created: new Date().toISOString(),
     totalBatches: batches.length,

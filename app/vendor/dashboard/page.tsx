@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Package, TrendingUp, Clock, Star } from "lucide-react";
+import { Package, TrendingUp, Clock, Star } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { DEFAULT_CURRENCY } from "@/config/currencies";
 

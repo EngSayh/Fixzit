@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   BarChart3,
   Cog,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import type { Role } from "@/config/rbac.config";
 
 // Nav gating uses the canonical STRICT v4.1 Role from config/rbac.config.

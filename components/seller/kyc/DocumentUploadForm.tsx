@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, FileText, CheckCircle, X } from "lucide-react";
+import { Upload, FileText, CheckCircle, X } from "@/components/ui/icons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 interface DocumentFile {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Zap, Wifi, Lock, Shield, Wind, Sun } from "lucide-react";
+import { Zap, Wifi, Lock, Shield, Wind, Sun } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import type {
   ListingProptech,

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Bell, User, ChevronDown, Search, X } from "lucide-react";
+import { Bell, User, ChevronDown, Search, X } from "@/components/ui/icons";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";

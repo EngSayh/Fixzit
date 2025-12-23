@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { logger } from "@/lib/logger";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Users, Shield, Building, Plug, UserPlus } from "lucide-react";
+import { Users, Shield, Building, Plug, UserPlus } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { fetchOrgCounters } from "@/lib/counters";

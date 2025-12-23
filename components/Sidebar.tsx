@@ -8,7 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Headphones as HeadphonesIcon,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useResponsiveLayout } from "@/contexts/ResponsiveContext";

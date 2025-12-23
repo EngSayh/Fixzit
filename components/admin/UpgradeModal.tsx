@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 // Lucide icons
-import { Lock, CheckCircle } from 'lucide-react';
+import { Lock, CheckCircle } from '@/components/ui/icons';
 
 interface UpgradeModalProps {
   isOpen: boolean;

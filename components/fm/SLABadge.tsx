@@ -14,7 +14,7 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { Clock, AlertTriangle, XCircle, Pause } from "lucide-react";
+import { Clock, AlertTriangle, XCircle, Pause } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/TranslationContext";
 

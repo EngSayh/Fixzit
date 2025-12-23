@@ -42,13 +42,13 @@ const vendorTargets: EncryptTarget[] = [
   { path: "financial.bankDetails.iban", label: "IBAN" },
 ];
 
-function setNested(doc: any, path: string, value: string) {
-  const parts = path.split(".");
-  let current = doc;
+function setNested(doc: Record<string, unknown>, path: string, value: string) {
+  const parts = path.split(\".\");
+  let current = doc as Record<string, unknown>;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
     if (current[part] === undefined) current[part] = {};
-    current = current[part];
+    current = current[part] as Record<string, unknown>;
   }
   current[parts[parts.length - 1]] = value;
 }

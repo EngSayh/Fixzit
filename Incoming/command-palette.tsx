@@ -3,19 +3,13 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Calculator,
-  Calendar,
-  CreditCard,
   Settings,
-  Smile,
-  User,
   Search,
   Plus,
   FileText,
   Home,
   Users,
   Building2,
-  Wrench,
   AlertCircle,
   CheckCircle,
   Clock,
@@ -25,9 +19,8 @@ import {
   HelpCircle,
   LogOut,
   Moon,
-  Sun,
   Languages,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 import {
   CommandDialog,

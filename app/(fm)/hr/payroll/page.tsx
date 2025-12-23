@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calculator, Download, Eye, Plus, FileText } from "lucide-react";
+import { Calculator, Download, Eye, Plus, FileText } from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 import { logger } from "@/lib/logger";
 

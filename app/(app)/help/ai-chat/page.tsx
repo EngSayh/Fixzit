@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bot, User, X, Send } from "lucide-react";
+import { Bot, User, X, Send } from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 
 import { logger } from "@/lib/logger";

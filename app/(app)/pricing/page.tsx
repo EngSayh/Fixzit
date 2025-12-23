@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ArrowRight, Send, Phone, Mail, Building2 } from "lucide-react";
+import { Check, ArrowRight, Send, Phone, Mail, Building2 } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

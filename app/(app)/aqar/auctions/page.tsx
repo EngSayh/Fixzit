@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
-import { Gavel, Shield } from "lucide-react";
+import { Gavel, Shield } from "@/components/ui/icons";
 
 interface AuctionListing {
   listingId: string;

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Check, X, CalendarPlus } from "lucide-react";
+import { Loader2, Check, X, CalendarPlus } from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";

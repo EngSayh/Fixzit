@@ -6,7 +6,7 @@ import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { ShieldCheck, ClipboardCheck, FileText } from "lucide-react";
+import { ShieldCheck, ClipboardCheck, FileText } from "@/components/ui/icons";
 
 export default function CompliancePage() {
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({

@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { 
   Building2, RefreshCw, Search, Eye, Star, Phone, Mail, MapPin, 
   Users, CheckCircle, XCircle, TrendingUp,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface Vendor {
   _id: string;

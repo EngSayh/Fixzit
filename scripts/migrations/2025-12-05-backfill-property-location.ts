@@ -33,14 +33,15 @@ function isValidNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function isValidLocation(loc: any): boolean {
+function isValidLocation(loc: unknown): boolean {
+  const location = loc as { type?: string; coordinates?: unknown[] };
   return (
-    loc &&
-    loc.type === "Point" &&
-    Array.isArray(loc.coordinates) &&
-    loc.coordinates.length === 2 &&
-    isValidNumber(loc.coordinates[0]) &&
-    isValidNumber(loc.coordinates[1])
+    location &&
+    location.type === "Point" &&
+    Array.isArray(location.coordinates) &&
+    location.coordinates.length === 2 &&
+    isValidNumber(location.coordinates[0]) &&
+    isValidNumber(location.coordinates[1])
   );
 }
 

@@ -12,7 +12,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, Trash2, Download, X } from 'lucide-react';
+import { CheckSquare, Trash2, Download, X } from '@/components/ui/icons';
 
 export interface BulkAction<T> {
   id: string;

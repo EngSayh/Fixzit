@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 import { useSession } from "next-auth/react";
-import { Loader2, RefreshCw, Search, Shield } from "lucide-react";
+import { Loader2, RefreshCw, Search, Shield } from "@/components/ui/icons";
 import { FeatureToggle, FeatureToggleGroup } from "@/components/ui/feature-toggle";
 import { FeatureToggleGroupSkeleton } from "@/components/ui/feature-toggle-skeleton";
 import { UpgradeModal } from "@/components/admin/UpgradeModal";

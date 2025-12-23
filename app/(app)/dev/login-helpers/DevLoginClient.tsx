@@ -12,7 +12,7 @@ import {
   Users,
   Copy,
   Check,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 type ListedCred = {

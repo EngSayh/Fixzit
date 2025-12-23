@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { HubNavigationCard } from "@/components/dashboard/HubNavigationCard";
 import { RoadmapBanner } from "@/components/dashboard/RoadmapBanner";
-import { ClipboardCheck, FileSignature, ScrollText } from "lucide-react";
+import { ClipboardCheck, FileSignature, ScrollText } from "@/components/ui/icons";
 
 export default function ComplianceDashboard() {
   const auto = useAutoTranslator("dashboard.compliance");

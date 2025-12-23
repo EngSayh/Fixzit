@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Loader2, ShieldCheck, Timer, Truck } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck, Timer, Truck } from "@/components/ui/icons";
 import clsx from "clsx";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { addProductToCart } from "@/lib/marketplace/cartClient";

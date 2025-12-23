@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useId, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Command } from "lucide-react";
+import { Search, Command } from "@/components/ui/icons";
 import { useSession } from "next-auth/react";
 import { useTopBar } from "@/contexts/TopBarContext";
 import { useTranslation } from "@/contexts/TranslationContext";

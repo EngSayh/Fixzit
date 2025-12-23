@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { 
   BarChart3, RefreshCw, Download, FileText, Calendar,
   Clock, CheckCircle, XCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface ReportDefinition {
   id: string;

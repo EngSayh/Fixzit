@@ -26,7 +26,7 @@ describe('check-tenant-role-drift', () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].message).toContain('Non-canonical roles');
     // Ensure allowed set is referenced for context
-    for (const role of ALLOWED_ROLES) {
+    for (const _role of ALLOWED_ROLES) {
       expect(findings[0].message).toContain('Allowed');
       break;
     }

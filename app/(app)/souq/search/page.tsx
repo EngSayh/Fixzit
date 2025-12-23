@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import SearchBar from "@/components/souq/SearchBar";
 import SearchFilters from "@/components/souq/SearchFilters";
-import { Grid, List, ChevronLeft, ChevronRight } from "lucide-react";
+import { Grid, List, ChevronLeft, ChevronRight } from "@/components/ui/icons";
 import Link from "next/link";
 import Image from "next/image";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";

@@ -15,7 +15,7 @@ import {
   DollarSign,
   Wrench,
   FileText,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { logger } from "@/lib/logger";
 

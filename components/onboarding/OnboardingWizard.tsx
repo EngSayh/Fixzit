@@ -34,7 +34,7 @@ import {
   Building2,
   FileText,
   CheckCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { toast } from "sonner";
 
 export type OnboardingRole = "TENANT" | "PROPERTY_OWNER" | "OWNER" | "VENDOR" | "AGENT";

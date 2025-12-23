@@ -21,7 +21,7 @@ import {
   Home,
   Bed,
   Bath,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { FacetMultiSelect, FacetOption } from "@/components/tables/filters/FacetMultiSelect";
 import { NumericRangeFilter, NumericRange } from "@/components/tables/filters/NumericRangeFilter";

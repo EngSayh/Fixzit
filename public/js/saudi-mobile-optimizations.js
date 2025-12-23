@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-prototype-builtins, no-unused-vars */
 /**
  * Saudi Mobile Optimizations for Fixzit Souq
  * Network performance, cultural adaptations, and mobile-specific features

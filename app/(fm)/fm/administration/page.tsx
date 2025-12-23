@@ -18,7 +18,7 @@ import {
   Lock,
   Activity,
   Zap,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 export default function AdministrationPage() {
   const { guard, orgId, supportBanner } = useFmOrgGuard({

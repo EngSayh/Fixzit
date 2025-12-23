@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
-import { Check, CheckCheck, Filter, Search, MoreVertical } from "lucide-react";
+import { Check, CheckCheck, Filter, Search, MoreVertical } from "@/components/ui/icons";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import useSWR from "swr";

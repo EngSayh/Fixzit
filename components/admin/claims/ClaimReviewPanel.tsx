@@ -46,7 +46,7 @@ import {
   Search,
   Shield,
   TrendingUp,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";

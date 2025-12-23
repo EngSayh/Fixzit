@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { Trash2 } from "lucide-react";
+import { Trash2 } from "@/components/ui/icons";
 
 interface OrderItem {
   id: string;

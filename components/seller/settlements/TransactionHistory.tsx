@@ -16,7 +16,7 @@ import {
   Filter,
   Download,
   Calendar,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface Transaction {
   transactionId: string;

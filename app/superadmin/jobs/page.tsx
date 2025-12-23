@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { 
   Cog, RefreshCw, Play, CheckCircle, XCircle, Clock,
   Mail, Trash2, FileText, Bell,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface JobStats {
   pending: number;

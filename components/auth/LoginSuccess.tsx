@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 export default function LoginSuccess() {

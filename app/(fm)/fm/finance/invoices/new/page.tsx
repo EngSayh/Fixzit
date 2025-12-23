@@ -15,7 +15,7 @@ import {
   Inbox,
   Send,
   ShieldCheck,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";

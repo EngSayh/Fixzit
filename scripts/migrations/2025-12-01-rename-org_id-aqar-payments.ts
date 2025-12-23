@@ -22,7 +22,7 @@
  *   fields are reported for manual review.
  */
 
-import { MongoClient, Document, IndexDescription } from "mongodb";
+import { MongoClient, IndexDescription } from "mongodb";
 import { config } from "dotenv";
 
 config({ path: ".env.local" });

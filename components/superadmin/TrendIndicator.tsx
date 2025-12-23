@@ -5,7 +5,7 @@
 "use client";
 
 import React from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 
 interface TrendIndicatorProps {

@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Chip } from "@/components/ui/chip";
-import { FileText, RefreshCcw, Search, Filter, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { FileText, RefreshCcw, Search, Filter, CheckCircle, XCircle, AlertCircle } from "@/components/ui/icons";
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
 import { CardList } from "@/components/tables/CardList";

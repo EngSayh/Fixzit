@@ -26,7 +26,7 @@ import {
   Upload,
   Star,
   AlertTriangle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";

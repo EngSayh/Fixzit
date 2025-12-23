@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-prototype-builtins, no-unused-vars */
 /**
  * Hijri Calendar Integration for Mobile - Saudi Market Optimization
  * Fixzit Souq Enterprise Platform

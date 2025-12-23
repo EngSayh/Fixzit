@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, ShoppingCart, Star } from "lucide-react";
+import { Loader2, ShoppingCart, Star } from "@/components/ui/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "@/contexts/TranslationContext";

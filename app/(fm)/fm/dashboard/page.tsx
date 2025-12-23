@@ -22,7 +22,7 @@ import {
   ChevronRight,
   Plus,
   Bell,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import type { WorkOrder } from "@/types/fm";
 import { WOStatus } from "@/types/fm";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";

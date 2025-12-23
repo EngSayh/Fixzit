@@ -7,7 +7,7 @@
  */
 
 import Link from "next/link";
-import { Database, MessageSquare } from "lucide-react";
+import { Database, MessageSquare } from "@/components/ui/icons";
 
 interface TrackerSourceSwitchProps {
   activeSource: "system-issues" | "customer-requests";

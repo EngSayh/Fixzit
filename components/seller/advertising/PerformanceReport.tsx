@@ -7,7 +7,7 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowUpDown,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { logger } from "@/lib/logger";
 

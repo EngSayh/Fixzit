@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, Check, Smartphone, ArrowLeft } from "lucide-react";
+import { AlertCircle, Check, Smartphone, ArrowLeft } from "@/components/ui/icons";
 import { logger } from "@/lib/logger";
 
 interface OTPVerificationProps {

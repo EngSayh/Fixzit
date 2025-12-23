@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-prototype-builtins, no-unused-vars */
 // Secure App.js with XSS prevention and secure token storage
 
 // Sanitize HTML to prevent XSS

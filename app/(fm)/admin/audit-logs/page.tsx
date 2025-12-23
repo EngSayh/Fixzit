@@ -9,7 +9,7 @@ import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldAlert, Loader2 } from "lucide-react";
+import { ShieldAlert, Loader2 } from "@/components/ui/icons";
 import { DataRefreshTimestamp } from "@/components/common/DataRefreshTimestamp";
 import { HoverTooltip } from "@/components/common/HoverTooltip";
 

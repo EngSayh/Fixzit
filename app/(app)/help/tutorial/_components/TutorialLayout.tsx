@@ -5,7 +5,7 @@ import {
   CheckCircle2,
   Clock,
   ListChecks,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 type Step = {
   title: string;

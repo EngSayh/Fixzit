@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar } from '@/components/ui/icons';
 
 export interface DateRange {
   from?: string; // ISO date string

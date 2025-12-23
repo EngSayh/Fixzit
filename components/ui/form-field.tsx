@@ -6,7 +6,7 @@
  */
 
 import React from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "@/components/ui/icons";
 import { Input } from "./input";
 import { Label } from "./label";
 import { getFieldClassName } from "@/lib/errors/field-errors";

@@ -276,7 +276,7 @@ const TRANSLATION_DICTIONARY = {
   "Low": "منخفضة",
   "Urgent": "عاجل",
   "Status": "الحالة",
-  "Open": "مفتوح",
+  "Open Status": "مفتوح",
   "In Progress": "قيد التنفيذ",
   "Completed": "مكتمل",
   "Closed": "مغلق",

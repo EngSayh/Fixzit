@@ -8,7 +8,7 @@ import { useTranslation } from "@/contexts/TranslationContext";
 import { SavedCartBanner } from "./SavedCartBanner";
 import { RecentlyViewed } from "./RecentlyViewed";
 import { Button } from "@/components/ui/button";
-import { Tag, TrendingUp, Gift, Lock } from "lucide-react";
+import { Tag, TrendingUp, Gift, Lock } from "@/components/ui/icons";
 
 export function DealsPage() {
   const { data: session, status } = useSession();

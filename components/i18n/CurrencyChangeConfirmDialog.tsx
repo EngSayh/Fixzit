@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { AlertCircle, Check, X } from "lucide-react";
+import { AlertCircle, Check, X } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import type { CurrencyOption } from "@/contexts/CurrencyContext";
 

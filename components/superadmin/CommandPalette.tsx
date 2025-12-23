@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
-import { Search, Users, Building2, Settings, FileText, Clock } from 'lucide-react';
+import { Search, Users, Building2, Settings, FileText, Clock } from '@/components/ui/icons';
 import {
   Dialog,
   DialogContent,

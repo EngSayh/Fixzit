@@ -30,7 +30,7 @@ import {
   Phone,
   Mail,
   MapPin,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
 
 interface Vendor {

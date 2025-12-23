@@ -19,7 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Save, RotateCcw, Shield, Eye, Plus, Pencil, Trash2 } from "lucide-react";
+import { Save, RotateCcw, Shield, Eye, Plus, Pencil, Trash2 } from "@/components/ui/icons";
 import {
   RBAC_MODULES,
   RBAC_ROLE_PERMISSIONS,

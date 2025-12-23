@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { Metadata } from "next";
-import { AlertCircle, CheckCircle2, Circle, Clock, TrendingUp } from "lucide-react";
+import { AlertCircle, CheckCircle2, Circle, Clock, TrendingUp } from "@/components/ui/icons";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";

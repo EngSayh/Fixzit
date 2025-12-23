@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-prototype-builtins, no-unused-vars, no-undef */
 // UI Bootstrap - Fixes Missing Components
 (function () {
   // Prevent duplicate initialization

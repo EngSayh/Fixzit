@@ -19,7 +19,6 @@ const COLLECTIONS = {
   ADMIN_NOTIFICATIONS: base.ADMIN_NOTIFICATIONS || "admin_notifications",
   COMMUNICATION_LOGS: base.COMMUNICATION_LOGS || "communication_logs",
   EMAIL_LOGS: base.EMAIL_LOGS || "email_logs",
-  PAYMENTS: base.PAYMENTS || "payments",
   ATS_JOBS: base.ATS_JOBS || base.JOBS || "jobs",
   ATS_APPLICATIONS: base.ATS_APPLICATIONS || "applications",
   ATS_INTERVIEWS: base.ATS_INTERVIEWS || "interviews",

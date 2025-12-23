@@ -4,7 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Home, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Home, Save, Loader2 } from "@/components/ui/icons";
 
 interface NavigationButtonsProps {
   /**

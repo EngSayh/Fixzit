@@ -17,7 +17,7 @@ import {
   Sparkles,
   Bot,
   Cloud,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import VRTour from "@/components/aqar/VRTour";
 

@@ -14,7 +14,7 @@
 
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "@/components/ui/icons";
 
 interface RateLimitInfo {
   limit: number;

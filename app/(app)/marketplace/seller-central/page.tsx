@@ -9,7 +9,7 @@ import {
   Receipt,
   Activity,
   ShieldCheck,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 type ToolConfig = {

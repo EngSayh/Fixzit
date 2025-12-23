@@ -54,7 +54,7 @@ describe("SuperadminHeader shell elements", () => {
     render(<SuperadminHeader />);
 
     expect(screen.getByTestId("brand-logo")).toBeInTheDocument();
-    expect(screen.getByTestId("language-select")).toBeInTheDocument();
+    expect(screen.getByTestId("superadmin-language-dropdown")).toBeInTheDocument();
     expect(screen.getByTestId("currency-selector")).toBeInTheDocument();
   });
 });

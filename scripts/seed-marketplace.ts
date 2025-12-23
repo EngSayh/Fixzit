@@ -41,11 +41,7 @@ let createUpsert: (_db: MockDbInstance) => UpsertFn = (db) => {
   return (collection: string, predicate: (_entry: MockDocument) => boolean, doc: MockDocument) => {
     const existing = db.getCollection(collection);
     const foundIndex = existing.findIndex((entry) => {
-      try {
-        return predicate(entry);
-      } catch (err) {
-        throw err;
-      }
+      return predicate(entry);
     });
     const now = new Date();
     if (foundIndex >= 0) {

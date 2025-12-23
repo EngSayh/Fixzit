@@ -43,7 +43,7 @@ import {
   DollarSign,
   Bell,
   MessageSquare,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import AdminNotificationsTab from "@/components/admin/AdminNotificationsTab";
 import CommunicationDashboard from "@/components/admin/CommunicationDashboard";
 import RoleBadge from "@/components/admin/RoleBadge";

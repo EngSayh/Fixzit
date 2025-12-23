@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { ClipboardCheck, Compass, Upload } from "lucide-react";
+import { ClipboardCheck, Compass, Upload } from "@/components/ui/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";

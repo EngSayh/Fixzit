@@ -33,6 +33,10 @@ export default [
       "**/test-results/**",
       "tests/playwright-report/**",
 
+      // QA artifacts (generated Playwright traces and reports)
+      "qa/qa/artifacts/**",
+      "qa/artifacts/**",
+
       // Staging/incoming files (not production code)
       "Incoming/**",
 

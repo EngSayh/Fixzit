@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from "react";
-import { Star } from "lucide-react";
+import { Star } from "@/components/ui/icons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 export interface ReviewFormData {

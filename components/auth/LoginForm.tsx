@@ -11,7 +11,7 @@ import {
   Lock,
   AlertCircle,
   Loader2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/contexts/TranslationContext";

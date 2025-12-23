@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { 
   Upload, Download, FileText, RefreshCw, CheckCircle, AlertTriangle,
   Database, Building2, Users, Wrench, FileJson, FileSpreadsheet,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 const EXPORTABLE_COLLECTIONS = [
   { id: "workorders", name: "Work Orders", icon: Wrench, count: 12450 },

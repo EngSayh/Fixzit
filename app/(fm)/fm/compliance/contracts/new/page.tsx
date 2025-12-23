@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { FileText, Stamp } from "lucide-react";
+import { FileText, Stamp } from "@/components/ui/icons";
 import { FormEvent, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 

@@ -32,7 +32,7 @@ import {
   Building,
   Factory,
   Map,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 

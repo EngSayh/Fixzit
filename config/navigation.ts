@@ -4,7 +4,7 @@
 // Comprehensive navigation system with RBAC, subscription filtering,
 // and multi-level menu support for Fixzit platform
 
-import type { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from '@/components/ui/icons';
 import {
   LayoutDashboard,
   Wrench,
@@ -22,7 +22,7 @@ import {
   CreditCard,
   Shield,
   Bell
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { UserRole as UserRoleEnum, type UserRoleType } from '@/types/user';
 import { logger } from '@/lib/logger';
 import {

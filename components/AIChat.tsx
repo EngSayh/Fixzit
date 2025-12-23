@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, X, Loader2 } from "lucide-react";
+import { Send, Bot, User, X, Loader2 } from "@/components/ui/icons";
 import { useAIChatStore } from "@/stores/useAIChatStore";
 import ClientDate from "@/components/ClientDate";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";

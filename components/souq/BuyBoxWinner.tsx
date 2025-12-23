@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star, Truck, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Star, Truck, ShieldCheck, CheckCircle2 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";

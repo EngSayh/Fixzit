@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Chip } from "@/components/ui/chip";
-import { Package, Plus, RefreshCcw, Search, Filter, Star } from "lucide-react";
+import { Package, Plus, RefreshCcw, Search, Filter, Star } from "@/components/ui/icons";
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
 import { TableToolbar } from "@/components/tables/TableToolbar";

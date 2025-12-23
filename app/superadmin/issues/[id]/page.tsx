@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Calendar, User, Tag, MessageSquare } from "lucide-react";
+import { ArrowLeft, Calendar, User, Tag, MessageSquare } from "@/components/ui/icons";
 import { useToast } from "@/hooks/use-toast";
 
 type IssueStatus =

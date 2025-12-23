@@ -12,7 +12,7 @@
 import { db } from "../lib/mongo";
 import { User } from "../server/models/User";
 import { hashPassword } from "../lib/auth";
-import { getDemoEmail, DEMO_USER_DEFINITIONS } from "../lib/config/demo-users";
+import { getDemoEmail } from "../lib/config/demo-users";
 
 // SEC-051: Require environment variables (no hardcoded fallbacks)
 const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;

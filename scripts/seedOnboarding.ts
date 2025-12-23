@@ -92,12 +92,12 @@ async function seedOnboarding() {
       },
     ],
     { ordered: false },
-  ).catch((error: any) => {
+  ).catch((error: { code?: number; writeErrors?: Array<{ code?: number }> }) => {
     // Ignore duplicate key errors but surface anything else
     const isDup =
       error?.code === 11000 ||
       (Array.isArray(error?.writeErrors) &&
-        error.writeErrors.every((e: any) => e?.code === 11000));
+        error.writeErrors.every((e) => e?.code === 11000));
     if (!isDup) {
       throw error;
     }

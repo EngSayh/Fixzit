@@ -8,7 +8,7 @@ import { useProperties } from "@/hooks/fm/useProperties";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, FileText, Upload, RefreshCw, FolderOpen } from "lucide-react";
+import { AlertCircle, FileText, Upload, RefreshCw, FolderOpen } from "@/components/ui/icons";
 import { useSession } from "next-auth/react";
 import { useFMPermissions } from "@/hooks/fm/useFMPermissions";
 import { SubmoduleKey } from "@/domain/fm/fm-lite";

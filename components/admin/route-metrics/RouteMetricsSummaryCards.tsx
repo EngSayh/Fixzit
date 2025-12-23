@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Target, Activity, TrendingUp, RefreshCw } from "lucide-react";
+import { Target, Activity, TrendingUp, RefreshCw } from "@/components/ui/icons";
 import type { RouteMetrics } from "./types";
 
 type RouteMetricsSummaryCardsProps = {

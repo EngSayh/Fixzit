@@ -3,7 +3,7 @@
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePathname, useRouter } from "next/navigation";
-import { Users, DollarSign, Calendar, Clock } from "lucide-react";
+import { Users, DollarSign, Calendar, Clock } from "@/components/ui/icons";
 
 export default function HRLayout({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();

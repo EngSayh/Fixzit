@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Search, Plus, ShoppingCart } from "lucide-react";
+import { Search, Plus, ShoppingCart } from "@/components/ui/icons";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 

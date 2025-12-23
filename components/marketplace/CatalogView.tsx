@@ -12,7 +12,7 @@ import {
   Loader2,
   ShieldCheck,
   BadgeCheck,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { STORAGE_KEYS } from "@/config/constants";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem } from "@/components/ui/select";

@@ -161,7 +161,7 @@ for (const [domain, keys] of Object.entries(keysByDomain)) {
     try {
       const fileContent = await fs.readFile(sourceFile, 'utf-8');
       content = JSON.parse(fileContent);
-    } catch (err) {
+    } catch (_err) {
       // File doesn't exist, create new structure
       console.log(`📝 Creating new file: ${domain}.translations.json`);
       content = { en: {}, ar: {} };

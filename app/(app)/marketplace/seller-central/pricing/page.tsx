@@ -12,7 +12,7 @@ import {
   Award,
   DollarSign,
   RefreshCw,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import PricingRuleCard from "@/components/seller/pricing/PricingRuleCard";
 import CompetitorAnalysis from "@/components/seller/pricing/CompetitorAnalysis";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";

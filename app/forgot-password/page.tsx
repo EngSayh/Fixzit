@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail, ArrowLeft, CheckCircle, AlertCircle } from '@/components/ui/icons';
 import Link from 'next/link';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { logger } from '@/lib/logger';

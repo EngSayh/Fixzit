@@ -17,7 +17,7 @@ import {
   TrendingDown,
   Activity,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { logger } from "@/lib/logger";
 
 interface CommunicationLog {

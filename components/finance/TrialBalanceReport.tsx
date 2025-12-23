@@ -23,7 +23,7 @@ import {
   XCircle,
   ChevronDown,
   ChevronRight,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { logger } from "@/lib/logger";
 
 // ============================================================================

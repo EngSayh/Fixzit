@@ -27,7 +27,7 @@ import {
   Loader2,
   Settings,
   RefreshCw,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { toast } from "sonner";
 import { useTranslation } from "@/contexts/TranslationContext";
 

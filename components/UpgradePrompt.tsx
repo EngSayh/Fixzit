@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Lock, ArrowRight, Sparkles } from "lucide-react";
+import { Lock, ArrowRight, Sparkles } from "@/components/ui/icons";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/contexts/TranslationContext";

@@ -117,7 +117,7 @@ async function backfillCollection<T extends Record<string, unknown>>(
   opts: {
     collection: string;
     projector: Record<string, unknown>;
-    resolver: (doc: T) => Promise<string | null>;
+    resolver: (_doc: T) => Promise<string | null>;
     name: string;
   },
 ) {

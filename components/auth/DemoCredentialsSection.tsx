@@ -3,7 +3,7 @@
 // Reduces initial login page bundle by ~5-10KB
 // 🔒 SECURITY: Gated by NEXT_PUBLIC_SHOW_DEMO_CREDS environment variable
 
-import { ArrowRight, Shield, User, Building2, Users } from "lucide-react";
+import { ArrowRight, Shield, User, Building2, Users } from "@/components/ui/icons";
 import {
   DEMO_CREDENTIALS_PERSONAL,
   DEMO_CREDENTIALS_CORPORATE,

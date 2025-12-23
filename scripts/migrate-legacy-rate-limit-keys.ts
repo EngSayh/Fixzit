@@ -164,11 +164,11 @@ function migrateFile(filePath: string): MigrationResult {
       },
     ];
 
-    let replacementMade = false;
+    let _replacementMade = false;
     for (const { pattern, replacement } of replacementMap) {
       if (pattern.test(content)) {
         content = content.replace(pattern, replacement);
-        replacementMade = true;
+        _replacementMade = true;
         result.changes.push(`Migrated: ${pattern.source.substring(0, 40)}...`);
       }
     }

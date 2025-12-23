@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   BarChart3,
   Cog,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import type { Role } from "@/config/rbac.config";
 
 export type { Role };

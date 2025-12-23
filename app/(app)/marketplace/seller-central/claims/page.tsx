@@ -5,7 +5,7 @@ import ClaimList from "@/components/souq/claims/ClaimList";
 import ClaimDetails from "@/components/souq/claims/ClaimDetails";
 import ResponseForm from "@/components/souq/claims/ResponseForm";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, AlertCircle } from "lucide-react";
+import { ArrowLeft, AlertCircle } from "@/components/ui/icons";
 import { useI18n } from "@/i18n/useI18n";
 import {
   Dialog,

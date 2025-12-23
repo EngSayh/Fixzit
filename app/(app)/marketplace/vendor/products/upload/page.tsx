@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { X, Image as ImageIcon } from "lucide-react";
+import { X, Image as ImageIcon } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import toast, { Toaster } from "react-hot-toast";
 import { FormWithNavigation } from "@/components/ui/navigation-buttons";

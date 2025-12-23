@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Star, Award, TrendingUp, CheckCircle } from "lucide-react";
+import { Star, Award, TrendingUp, CheckCircle } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { ContactActions } from "./ContactActions";
 

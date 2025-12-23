@@ -39,7 +39,7 @@ async function runMigration(dryRun: boolean) {
     const collections = await db.listCollections().toArray();
     
     let totalUpdated = 0;
-    let totalSkipped = 0;
+    let _totalSkipped = 0;
     
     for (const col of collections) {
       const collection = db.collection(col.name);

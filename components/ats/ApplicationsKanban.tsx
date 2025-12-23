@@ -12,7 +12,7 @@ import {
   DraggableProvided,
   DraggableStateSnapshot,
 } from "@hello-pangea/dnd";
-import { Mail, Phone, Star, Calendar, ChevronRight } from "lucide-react";
+import { Mail, Phone, Star, Calendar, ChevronRight } from "@/components/ui/icons";
 import { toast } from "sonner";
 import ClientDate from "@/components/ClientDate";
 import { logger } from "@/lib/logger";

@@ -12,7 +12,7 @@ import {
   Shield,
   Wrench,
   AlertCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useMemo, useState, useEffect } from "react";
 import { useProperties } from "@/hooks/fm/useProperties";
 import { toast } from "sonner";

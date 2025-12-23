@@ -1,7 +1,7 @@
 "use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, Lightbulb } from "lucide-react";
+import { CheckCircle, Lightbulb } from "@/components/ui/icons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 interface Props {

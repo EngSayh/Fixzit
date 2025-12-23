@@ -8,7 +8,7 @@
  */
 
 import { useI18n } from "@/i18n/useI18n";
-import { Palette } from "lucide-react";
+import { Palette } from "@/components/ui/icons";
 import { BrandingSettingsForm } from "@/components/superadmin/settings/BrandingSettingsForm";
 
 export default function SuperadminSystemPage() {

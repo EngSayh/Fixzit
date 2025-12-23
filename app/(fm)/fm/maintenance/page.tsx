@@ -25,7 +25,7 @@ import {
   AlertTriangle,
   CheckCircle,
   Loader2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { CardGridSkeleton } from "@/components/skeletons";

@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, RefreshCw, Home, ArrowLeft } from "lucide-react";
+import { AlertTriangle, RefreshCw, Home, ArrowLeft } from "@/components/ui/icons";
 import Link from "next/link";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Button } from "@/components/ui/button";

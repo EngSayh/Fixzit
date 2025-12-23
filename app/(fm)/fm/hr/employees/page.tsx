@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Eye } from "lucide-react";
+import { Search, Plus, Eye } from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 import { logger } from "@/lib/logger";
 

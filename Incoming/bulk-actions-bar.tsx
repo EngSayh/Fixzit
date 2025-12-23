@@ -13,7 +13,7 @@ import {
   Copy,
   MoreHorizontal,
   ChevronDown,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -101,7 +101,7 @@ const statusConfig: Record<Status, { label: string; icon: typeof CheckCircle; co
 
 export function BulkActionsBar({
   selectedCount,
-  selectedIds,
+  selectedIds: _selectedIds,
   totalCount,
   onClearSelection,
   onSelectAll,

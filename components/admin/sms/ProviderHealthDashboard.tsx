@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, CheckCircle2, AlertTriangle, XCircle, Activity } from "lucide-react";
+import { RefreshCw, CheckCircle2, AlertTriangle, XCircle, Activity } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 interface ProviderHealth {

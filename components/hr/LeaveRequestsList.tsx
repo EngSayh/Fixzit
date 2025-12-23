@@ -17,7 +17,7 @@ import { formatDistanceToNowStrict, format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Calendar, Plus, RefreshCcw, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Calendar, Plus, RefreshCcw, CheckCircle, XCircle, Clock } from "@/components/ui/icons";
 
 import { DataTableStandard, DataTableColumn } from "@/components/tables/DataTableStandard";
 import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";

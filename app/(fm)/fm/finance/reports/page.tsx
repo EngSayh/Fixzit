@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ExternalLink, Loader2, Plus } from "lucide-react";
+import { ExternalLink, Loader2, Plus } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";

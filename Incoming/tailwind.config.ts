@@ -258,9 +258,12 @@ const config: Config = {
     },
   },
   plugins: [
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('tailwindcss-animate'),
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('@tailwindcss/typography'),
     // RTL plugin for logical properties
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
     function({ addUtilities, theme }: any) {
       const newUtilities = {
         // Custom utilities for RTL-safe animations

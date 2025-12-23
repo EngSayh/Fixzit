@@ -19,7 +19,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Check, Search } from 'lucide-react';
+import { Check, Search } from '@/components/ui/icons';
 
 export interface FacetOption {
   value: string;

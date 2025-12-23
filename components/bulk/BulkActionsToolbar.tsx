@@ -22,7 +22,7 @@ import {
   UserPlus, 
   Trash2, 
   Loader2,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 // ============================================================================
 // TYPES

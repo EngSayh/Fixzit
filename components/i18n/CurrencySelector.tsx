@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState, useId, useCallback } from "react";
-import { CircleDollarSign, Search } from "lucide-react";
+import { CircleDollarSign, Search } from "@/components/ui/icons";
 import { useCurrency, type CurrencyOption } from "@/contexts/CurrencyContext";
 import { useTranslation } from "@/contexts/TranslationContext";
 import CurrencyChangeConfirmDialog, {

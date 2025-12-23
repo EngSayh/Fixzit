@@ -14,7 +14,7 @@
 'use client';
 
 import { ReactNode, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X } from '@/components/ui/icons';
 import { Button } from '@/components/ui/button';
 
 export interface AccessibleModalProps {

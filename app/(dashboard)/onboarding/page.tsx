@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import OnboardingWizard, { type OnboardingRole } from "@/components/onboarding/OnboardingWizard";
 import { useTranslation } from "@/contexts/TranslationContext";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/ui/icons";
 
 function OnboardingContent() {
   const searchParams = useSearchParams();

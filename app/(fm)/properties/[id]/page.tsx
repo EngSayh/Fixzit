@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { MapPin, Home, Users, Wrench } from "lucide-react";
+import { MapPin, Home, Users, Wrench } from "@/components/ui/icons";
 import { useParams } from "next/navigation";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";

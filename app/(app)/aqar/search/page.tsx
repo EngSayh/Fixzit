@@ -14,7 +14,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import SearchFiltersNew, { PropertyFilters } from "@/components/aqar/SearchFiltersNew";
-import { MapPin, Bed, Bath, Square, Building2 } from "lucide-react";
+import { MapPin, Bed, Bath, Square, Building2 } from "@/components/ui/icons";
 import Image from "next/image";
 
 type ApiProperty = {

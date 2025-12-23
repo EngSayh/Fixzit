@@ -166,7 +166,7 @@ function checkBundles() {
   let files;
   try {
     files = readdirSync(chunksDir, { recursive: true });
-  } catch (error) {
+  } catch (_error) {
     console.error('❌ No .next/static/chunks directory found.');
     console.error('   Run `pnpm build` first to generate production bundles.');
     process.exit(1);

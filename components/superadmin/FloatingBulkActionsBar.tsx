@@ -13,7 +13,7 @@ import {
   Copy,
   MoreHorizontal,
   ChevronDown,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 import { Button } from '@/components/ui/button';
 import {

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { BookCheck, Share2, Shield } from "lucide-react";
+import { BookCheck, Share2, Shield } from "@/components/ui/icons";
 
 export default function CreatePolicyPage() {
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({

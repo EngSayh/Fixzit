@@ -3,7 +3,7 @@
 import { useTopBar } from "@/contexts/TopBarContext";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown } from "lucide-react";
+import { Plus, ChevronDown } from "@/components/ui/icons";
 import { useRouter } from "next/navigation";
 import { logger } from "@/lib/logger";
 import { usePermittedQuickActions } from "@/hooks/topbar/usePermittedQuickActions";

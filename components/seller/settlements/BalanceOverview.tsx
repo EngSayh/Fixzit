@@ -10,7 +10,7 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Clock, Lock, TrendingUp } from "lucide-react";
+import { DollarSign, Clock, Lock, TrendingUp } from "@/components/ui/icons";
 
 interface BalanceOverviewProps {
   balance: {

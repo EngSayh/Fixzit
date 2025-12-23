@@ -11,7 +11,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { LayoutGrid, LayoutList } from "lucide-react";
+import { LayoutGrid, LayoutList } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 export type ViewMode = "table" | "cards";

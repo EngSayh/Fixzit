@@ -8,7 +8,7 @@ import {
   FileText,
   CreditCard,
   Loader2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { logger } from "@/lib/logger";

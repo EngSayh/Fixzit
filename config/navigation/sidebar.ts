@@ -11,7 +11,7 @@ import {
   BarChart3,
   Cog,
   Factory,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 /**
  * FM App Sidebar Navigation

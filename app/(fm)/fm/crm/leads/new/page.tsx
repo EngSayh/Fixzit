@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { PhoneOutgoing, Send } from "lucide-react";
+import { PhoneOutgoing, Send } from "@/components/ui/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 

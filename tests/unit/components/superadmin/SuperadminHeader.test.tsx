@@ -51,7 +51,7 @@ vi.mock("@/components/ui/select", () => ({
     ...props
   }: any) => (
     <select
-      data-testid="language-select"
+      data-testid="superadmin-language-dropdown"
       value={value}
       onChange={(e) => onValueChange?.(e.target.value)}
       {...props}

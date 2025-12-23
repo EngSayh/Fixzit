@@ -26,7 +26,7 @@ import {
   Clock,
   Shield,
   Award,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import Link from "next/link";
 import ClientDate from "@/components/ClientDate";
 import { useTranslation } from "@/contexts/TranslationContext";

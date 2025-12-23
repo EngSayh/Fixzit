@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
-import { Shield, Plus } from "lucide-react";
+import { Shield, Plus } from "@/components/ui/icons";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 
 const PERMISSIONS = [

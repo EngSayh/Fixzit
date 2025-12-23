@@ -5,7 +5,7 @@
 "use client";
 
 import React from 'react';
-import { Trash2, Archive, CheckCircle, X } from 'lucide-react';
+import { Trash2, Archive, CheckCircle, X } from '@/components/ui/icons';
 import { Button } from '@/components/ui/button';
 
 interface FloatingBulkActionsProps {

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
-import { WifiOff } from "lucide-react";
+import { WifiOff } from "@/components/ui/icons";
 
 /**
  * Hook to track online/offline status

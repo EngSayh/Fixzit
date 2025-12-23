@@ -11,7 +11,7 @@ import {
   Bath,
   DollarSign,
   Grid3x3,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 export interface SearchFiltersProps {

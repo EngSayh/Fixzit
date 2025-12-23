@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { HubNavigationCard } from "@/components/dashboard/HubNavigationCard";
 import { RoadmapBanner } from "@/components/dashboard/RoadmapBanner";
-import { FileText, Box } from "lucide-react";
+import { FileText, Box } from "@/components/ui/icons";
 
 export default function AdminDashboard() {
   const auto = useAutoTranslator("dashboard.admin");

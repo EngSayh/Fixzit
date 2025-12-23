@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { ClipboardCheck, Mail, Users } from "lucide-react";
+import { ClipboardCheck, Mail, Users } from "@/components/ui/icons";
 import { BaseSyntheticEvent, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";

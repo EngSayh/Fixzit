@@ -15,7 +15,7 @@ import {
   ListChecks,
   UserCheck,
   X,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useEffect, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { useHrLeaveRequests } from "@/hooks/fm/useHrData";

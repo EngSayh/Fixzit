@@ -14,7 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, X, FileText, Image as ImageIcon, Video } from "lucide-react";
+import { Upload, X, FileText, Image as ImageIcon, Video } from "@/components/ui/icons";
 import { useToast } from "@/hooks/use-toast";
 
 interface ClaimFormProps {

@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Eye, Users } from "lucide-react";
+import { Search, Plus, Eye, Users } from "@/components/ui/icons";
 import ClientDate from "@/components/ClientDate";
 import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";

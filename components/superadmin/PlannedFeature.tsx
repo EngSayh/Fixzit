@@ -11,7 +11,7 @@
 import { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, AlertCircle } from "lucide-react";
+import { Clock, Calendar, AlertCircle } from "@/components/ui/icons";
 
 interface PlannedFeatureProps {
   /** Feature title */

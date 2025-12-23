@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { 
   Plug, RefreshCw, CheckCircle, XCircle, Settings, ExternalLink,
   CreditCard, Mail, MessageSquare, FileText, Cloud, Shield,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface Integration {
   id: string;

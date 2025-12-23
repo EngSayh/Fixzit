@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '@/components/ui/icons';
 import { useTopBar } from '@/contexts/TopBarContext';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { MODULES } from '@/config/navigation';

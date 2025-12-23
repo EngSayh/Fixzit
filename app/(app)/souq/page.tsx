@@ -8,7 +8,7 @@ import {
   ClipboardList,
   Truck,
   Star,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Config } from "@/lib/config/constants";
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, DollarSign, Calendar, Clock } from "lucide-react";
+import { Users, DollarSign, Calendar, Clock } from "@/components/ui/icons";
 import { logger } from "@/lib/logger";
 
 interface HrStats {

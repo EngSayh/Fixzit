@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { DollarSign } from "lucide-react";
+import { DollarSign } from "@/components/ui/icons";
 import { useCurrency, type CurrencyCode } from "@/contexts/CurrencyContext";
 
 interface CompactCurrencySelectorProps {

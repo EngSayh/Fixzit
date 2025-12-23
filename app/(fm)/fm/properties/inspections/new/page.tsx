@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
-import { ClipboardCheck, MapPinned, Users } from "lucide-react";
+import { ClipboardCheck, MapPinned, Users } from "@/components/ui/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";

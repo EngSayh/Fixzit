@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertOctagon, RefreshCw, Home } from "lucide-react";
+import { AlertOctagon, RefreshCw, Home } from "@/components/ui/icons";
 import { EMAIL_DOMAINS } from "@/lib/config/domains";
 import { Config } from "@/lib/config/constants";
 import { logger } from "@/lib/logger";

@@ -29,7 +29,7 @@ import {
   Package,
   Video,
   XCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 
@@ -96,7 +96,7 @@ interface ClaimDetailsProps {
   onActionRequired?: () => void;
 }
 
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/ui/icons";
 
 type BadgeVariant = NonNullable<BadgeProps["variant"]>;
 

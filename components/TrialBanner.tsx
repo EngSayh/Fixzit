@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, ArrowRight } from "lucide-react";
+import { X, ArrowRight } from "@/components/ui/icons";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/TranslationContext";

@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { 
   RefreshCw, Search, CheckCircle, AlertTriangle, Languages,
   Download, Edit, Save,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface LocaleStats {
   locale: string;

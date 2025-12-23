@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Bed, Bath, Maximize, MapPin, Heart, Eye } from "lucide-react";
+import { Bed, Bath, Maximize, MapPin, Heart, Eye } from "@/components/ui/icons";
 import { useState } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { ContactActions } from "./ContactActions";

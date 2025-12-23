@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import { CheckCircle, Clock, XCircle } from "lucide-react";
+import { CheckCircle, Clock, XCircle } from "@/components/ui/icons";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHead, TableHeader, TableRow, TableBody, TableCell } from "@/components/ui/table";
 import { useTranslation } from "@/contexts/TranslationContext";

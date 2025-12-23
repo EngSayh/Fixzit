@@ -16,7 +16,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, X } from "lucide-react";
+import { Eye, X } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 

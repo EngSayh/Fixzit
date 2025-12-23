@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { Monitor, Moon, SunMedium } from "lucide-react";
+import { Monitor, Moon, SunMedium } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useThemeCtx } from "@/contexts/ThemeContext";
 import { useTranslation } from "@/contexts/TranslationContext";

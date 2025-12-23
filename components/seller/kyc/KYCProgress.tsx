@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle } from "lucide-react";
+import { CheckCircle } from "@/components/ui/icons";
 
 type Step = "company_info" | "documents" | "bank_details" | "verification";
 

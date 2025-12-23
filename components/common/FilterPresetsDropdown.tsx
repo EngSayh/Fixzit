@@ -10,7 +10,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
-import { Star, StarOff, Trash2, Plus, ChevronDown, Edit2 } from "lucide-react";
+import { Star, StarOff, Trash2, Plus, ChevronDown, Edit2 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import Link from "next/link";
-import { ChevronDown, Home } from "lucide-react";
+import { ChevronDown, Home } from "@/components/ui/icons";
 import SupportPopup from "@/components/SupportPopup";
 import { useTranslation } from "@/contexts/TranslationContext";
 import LanguageSelector from "@/components/i18n/LanguageSelector";

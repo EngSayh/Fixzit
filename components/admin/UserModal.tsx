@@ -15,7 +15,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { Save, X, AlertCircle } from 'lucide-react';
+import { Save, X, AlertCircle } from '@/components/ui/icons';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import AccessibleModal from '@/components/admin/AccessibleModal';
