@@ -3,7 +3,16 @@
  * @module tests/unit/api/superadmin/login.route.test
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+
+// Hoist all mocks to prevent reference errors
+const mocks = vi.hoisted(() => ({
+  mockVerifyPassword: vi.fn(),
+  mockSignToken: vi.fn().mockResolvedValue("mock-jwt-token"),
+  mockIsRateLimited: vi.fn().mockReturnValue(false),
+  mockIsIpAllowed: vi.fn().mockReturnValue(true),
+  mockValidateSecondFactor: vi.fn().mockReturnValue(true),
+  mockEnforceRateLimit: vi.fn().mockReturnValue(null),
+}));
 
 // Mock NextResponse
 vi.mock("next/server", () => ({
@@ -36,40 +45,35 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 // Mock superadmin auth
-const mockVerifyPassword = vi.fn();
-const mockSignToken = vi.fn().mockResolvedValue("mock-jwt-token");
-const mockIsRateLimited = vi.fn().mockReturnValue(false);
-const mockIsIpAllowed = vi.fn().mockReturnValue(true);
-const mockValidateSecondFactor = vi.fn().mockReturnValue(true);
-
 vi.mock("@/lib/superadmin/auth", () => ({
-  verifySuperadminPassword: mockVerifyPassword,
-  signSuperadminToken: mockSignToken,
-  isRateLimited: mockIsRateLimited,
-  isIpAllowed: mockIsIpAllowed,
-  validateSecondFactor: mockValidateSecondFactor,
+  verifySuperadminPassword: mocks.mockVerifyPassword,
+  signSuperadminToken: mocks.mockSignToken,
+  isRateLimited: mocks.mockIsRateLimited,
+  isIpAllowed: mocks.mockIsIpAllowed,
+  validateSecondFactor: mocks.mockValidateSecondFactor,
   applySuperadminCookies: vi.fn(),
   SUPERADMIN_COOKIE_NAME: "superadmin_token",
 }));
 
 // Mock rate-limit middleware
-const mockEnforceRateLimit = vi.fn().mockReturnValue(null);
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: mockEnforceRateLimit,
+  enforceRateLimit: mocks.mockEnforceRateLimit,
 }));
 
 vi.mock("@/server/security/headers", () => ({
   getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
 }));
 
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+
 describe("POST /api/superadmin/login", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     vi.resetModules();
-    mockIsRateLimited.mockReturnValue(false);
-    mockIsIpAllowed.mockReturnValue(true);
-    mockEnforceRateLimit.mockReturnValue(null);
+    mocks.mockIsRateLimited.mockReturnValue(false);
+    mocks.mockIsIpAllowed.mockReturnValue(true);
+    mocks.mockEnforceRateLimit.mockReturnValue(null);
   });
 
   it("should return 400 for missing credentials", async () => {
@@ -86,7 +90,7 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should return 401 for invalid password", async () => {
-    mockVerifyPassword.mockResolvedValue({ ok: false, reason: 'invalid' });
+    mocks.mockVerifyPassword.mockResolvedValue({ ok: false, reason: 'invalid' });
     
     const { POST } = await import("@/app/api/superadmin/login/route");
     
@@ -105,7 +109,7 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should return 429 when rate limited", async () => {
-    mockIsRateLimited.mockReturnValue(true);
+    mocks.mockIsRateLimited.mockReturnValue(true);
     
     const { POST } = await import("@/app/api/superadmin/login/route");
     
@@ -124,7 +128,7 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should return 403 when IP not allowed", async () => {
-    mockIsIpAllowed.mockReturnValue(false);
+    mocks.mockIsIpAllowed.mockReturnValue(false);
     
     const { POST } = await import("@/app/api/superadmin/login/route");
     
@@ -144,10 +148,10 @@ describe("POST /api/superadmin/login", () => {
 
   it("should return 200 with valid credentials", async () => {
     vi.resetModules();
-    mockIsRateLimited.mockReturnValue(false);
-    mockIsIpAllowed.mockReturnValue(true);
-    mockVerifyPassword.mockResolvedValue({ ok: true });
-    mockValidateSecondFactor.mockReturnValue(true);
+    mocks.mockIsRateLimited.mockReturnValue(false);
+    mocks.mockIsIpAllowed.mockReturnValue(true);
+    mocks.mockVerifyPassword.mockResolvedValue({ ok: true });
+    mocks.mockValidateSecondFactor.mockReturnValue(true);
     
     const { POST } = await import("@/app/api/superadmin/login/route");
     
@@ -167,7 +171,7 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should set noindex header", async () => {
-    mockVerifyPassword.mockResolvedValue({ ok: false, reason: 'invalid' });
+    mocks.mockVerifyPassword.mockResolvedValue({ ok: false, reason: 'invalid' });
     
     const { POST } = await import("@/app/api/superadmin/login/route");
     
@@ -190,8 +194,8 @@ describe("POST /api/superadmin/login", () => {
     beforeEach(() => {
       vi.clearAllMocks();
       vi.resetModules();
-      mockIsRateLimited.mockReturnValue(false);
-      mockIsIpAllowed.mockReturnValue(true);
+      mocks.mockIsRateLimited.mockReturnValue(false);
+      mocks.mockIsIpAllowed.mockReturnValue(true);
     });
 
     it("should return 400 for non-string username", async () => {
@@ -267,8 +271,8 @@ describe("POST /api/superadmin/login", () => {
     });
 
     it("should handle non-string secretKey gracefully", async () => {
-      mockVerifyPassword.mockResolvedValue({ ok: true });
-      mockValidateSecondFactor.mockReturnValue(true);
+      mocks.mockVerifyPassword.mockResolvedValue({ ok: true });
+      mocks.mockValidateSecondFactor.mockReturnValue(true);
       
       const { POST } = await import("@/app/api/superadmin/login/route");
       

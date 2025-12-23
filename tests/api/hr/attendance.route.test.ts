@@ -12,13 +12,6 @@ type SessionUser = {
 };
 let sessionUser: SessionUser | null = null;
 
-type SessionUser = {
-  id?: string;
-  orgId?: string;
-  role?: string;
-};
-let sessionUser: SessionUser | null = null;
-
 // Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
