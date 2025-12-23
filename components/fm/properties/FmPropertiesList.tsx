@@ -6,6 +6,8 @@ import useSWR from "swr";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +25,8 @@ import {
   Building,
   Factory,
   Map,
+  Search,
+  Filter,
 } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { logger } from "@/lib/logger";
@@ -30,8 +34,8 @@ import { logger } from "@/lib/logger";
 // Centralized table components
 import { DataTableStandard, type DataTableColumn } from "@/components/tables/DataTableStandard";
 import { TableToolbar } from "@/components/tables/TableToolbar";
-import { TableFilterDrawer, type FilterField } from "@/components/tables/TableFilterDrawer";
-import { ActiveFiltersChips } from "@/components/tables/ActiveFiltersChips";
+import { TableFilterDrawer } from "@/components/tables/TableFilterDrawer";
+import { ActiveFiltersChips, type ActiveFilter } from "@/components/tables/ActiveFiltersChips";
 import { TableSkeleton } from "@/components/tables/TableSkeleton";
 
 // Form component - extracted from page
@@ -60,6 +64,7 @@ export interface PropertyItem {
     monthlyRent?: number;
   };
   units?: PropertyUnit[];
+  [key: string]: unknown; // Index signature for DataTableStandard compatibility
 }
 
 export interface FmPropertiesListProps {
@@ -127,34 +132,32 @@ export function FmPropertiesList({
 
   const properties: PropertyItem[] = data?.items || [];
 
-  // Active filters for chips
-  const activeFilters = useMemo(() => {
-    const filters: Array<{ key: string; label: string; value: string }> = [];
+  // Active filters for chips - using correct ActiveFilter interface
+  const activeFiltersChips: ActiveFilter[] = useMemo(() => {
+    const filters: ActiveFilter[] = [];
     if (typeFilter) {
       const typeLabel = TYPE_OPTIONS.find((o) => o.value === typeFilter)?.label || typeFilter;
-      filters.push({ key: "type", label: "Type", value: typeLabel });
+      filters.push({ 
+        key: "type", 
+        label: `Type: ${typeLabel}`, 
+        onRemove: () => setTypeFilter("") 
+      });
     }
     if (statusFilter) {
       const statusLabel = STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label || statusFilter;
-      filters.push({ key: "status", label: "Status", value: statusLabel });
+      filters.push({ 
+        key: "status", 
+        label: `Status: ${statusLabel}`, 
+        onRemove: () => setStatusFilter("") 
+      });
     }
     return filters;
   }, [typeFilter, statusFilter]);
-
-  const handleRemoveFilter = (key: string) => {
-    if (key === "type") setTypeFilter("");
-    if (key === "status") setStatusFilter("");
-  };
 
   const handleClearAllFilters = () => {
     setTypeFilter("");
     setStatusFilter("");
     setSearch("");
-  };
-
-  const handleApplyFilters = (filters: Record<string, string>) => {
-    setTypeFilter(filters.type || "");
-    setStatusFilter(filters.status || "");
   };
 
   const handleDelete = async (property: PropertyItem) => {
@@ -383,22 +386,6 @@ export function FmPropertiesList({
     },
   ];
 
-  // Filter fields for drawer
-  const filterFields: FilterField[] = [
-    {
-      key: "type",
-      label: t("fm.properties.propertyType", "Property Type"),
-      type: "select",
-      options: TYPE_OPTIONS.map((o) => ({ value: o.value, label: t(`fm.properties.${o.value.toLowerCase() || "allTypes"}`, o.label) })),
-    },
-    {
-      key: "status",
-      label: t("fm.properties.status", "Status"),
-      type: "select",
-      options: STATUS_OPTIONS.map((o) => ({ value: o.value, label: t(`fm.properties.status.${o.value.toLowerCase() || "all"}`, o.label) })),
-    },
-  ];
-
   return (
     <div className="space-y-4">
       {/* Page header (if not embedded) */}
@@ -441,25 +428,45 @@ export function FmPropertiesList({
 
       {/* Toolbar with search and filter toggle */}
       <TableToolbar
-        searchValue={search}
-        onSearchChange={setSearch}
-        searchPlaceholder={t("fm.properties.searchProperties", "Search properties...")}
-        onFilterClick={() => setFilterDrawerOpen(true)}
-        filterCount={activeFilters.length}
+        start={
+          <div className="relative flex-1 min-w-64">
+            <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder={t("fm.properties.searchProperties", "Search properties...")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="ps-10"
+            />
+          </div>
+        }
+        end={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFilterDrawerOpen(true)}
+          >
+            <Filter className="w-4 h-4 me-2" />
+            {t("common.filters", "Filters")}
+            {activeFiltersChips.length > 0 && (
+              <Badge variant="secondary" className="ms-2">
+                {activeFiltersChips.length}
+              </Badge>
+            )}
+          </Button>
+        }
       />
 
       {/* Active filter chips */}
-      {activeFilters.length > 0 && (
+      {activeFiltersChips.length > 0 && (
         <ActiveFiltersChips
-          filters={activeFilters}
-          onRemove={handleRemoveFilter}
+          filters={activeFiltersChips}
           onClearAll={handleClearAllFilters}
         />
       )}
 
       {/* Data table */}
       {isLoading ? (
-        <TableSkeleton columns={8} rows={6} />
+        <TableSkeleton rows={6} />
       ) : properties.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Building2 className="w-12 h-12 text-muted-foreground mb-4" />
@@ -475,7 +482,7 @@ export function FmPropertiesList({
           </Button>
         </div>
       ) : (
-        <DataTableStandard
+        <DataTableStandard<PropertyItem>
           columns={columns}
           data={properties}
           onRowClick={handleRowClick}
@@ -488,11 +495,53 @@ export function FmPropertiesList({
       <TableFilterDrawer
         open={filterDrawerOpen}
         onOpenChange={setFilterDrawerOpen}
-        fields={filterFields}
-        values={{ type: typeFilter, status: statusFilter }}
-        onApply={handleApplyFilters}
-        onReset={handleClearAllFilters}
-      />
+        title={t("common.filters", "Filters")}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              {t("fm.properties.propertyType", "Property Type")}
+            </label>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder={t("fm.properties.allTypes", "All Types")} />
+              </SelectTrigger>
+              <SelectContent>
+                {TYPE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
+                    {t(`fm.properties.${opt.value.toLowerCase() || "allTypes"}`, opt.label)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              {t("fm.properties.status", "Status")}
+            </label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder={t("fm.properties.allStatus", "All Status")} />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
+                    {t(`fm.properties.status.${opt.value.toLowerCase() || "all"}`, opt.label)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-2 pt-4">
+            <Button variant="outline" onClick={handleClearAllFilters} className="flex-1">
+              {t("common.clearFilters", "Clear Filters")}
+            </Button>
+            <Button onClick={() => setFilterDrawerOpen(false)} className="flex-1">
+              {t("common.apply", "Apply")}
+            </Button>
+          </div>
+        </div>
+      </TableFilterDrawer>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CardGridSkeleton } from "@/components/skeletons";
 import { useTranslation } from "@/contexts/TranslationContext";
-import { CreatePropertyForm } from "../page";
+import { CreatePropertyForm } from "@/components/fm/properties";
 import { useFmOrgGuard } from "@/hooks/fm/useFmOrgGuard";
 import { FormOfflineBanner } from "@/components/common/FormOfflineBanner";
 
