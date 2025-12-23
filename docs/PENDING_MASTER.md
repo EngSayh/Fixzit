@@ -49,6 +49,20 @@ pnpm vitest run # ✅ 2965 tests passed, 402 test files (100%)
 | Tenant Role Drift | Seed scripts use non-canonical roles (ADMIN, VENDOR, etc.) | Update to SUPER_ADMIN, CORPORATE_ADMIN, etc. |
 | Missing i18n Keys | 218 translation keys missing in en.json/ar.json | Add translations |
 | Hardcoded Org IDs | 68dc8955a1ba6ed80ff372dc in seed scripts | Use env vars |
+| MongoDB Safety Check | CI MONGODB_URI points to non-staging DB | Update CI secrets with staging DB |
+| Redis Not Configured | Missing REDIS_URL/REDIS_KEY in CI | Add CI secrets for Redis |
+
+### 📝 CI Investigation (2025-12-24 02:20)
+
+**Root Cause Analysis:**
+- **Build Failure**: `scripts/assert-nonprod-mongo.ts` blocks CI when MONGODB_URI doesn't contain staging/dev/test in DB name
+- **Client Test (2/2) Failure**: `export-worker.process.test.ts` requires Redis config (REDIS_URL/REDIS_KEY)
+- **Test Runner Failure**: Drift Guard detects non-canonical roles in seed scripts
+
+**Review Comments Assessment:**
+- Gemini `Promise.resolve()` comment: **FALSE POSITIVE** (Next.js 15 uses async params, tests pass)
+- CodeRabbit JSONC formatting: **Nitpick** (non-blocking)
+- CodeRabbit Toast docs: **Nitpick** (non-blocking)
 
 ### 📁 Files Modified/Created
 
