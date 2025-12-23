@@ -156,6 +156,111 @@ pnpm test:smoke
 pnpm test:production
 ```
 
+## Vitest Configuration & Mock Patterns
+
+### Pool Configuration (IMPORTANT)
+
+Server tests **MUST** use `pool: "forks"` with `isolate: true` to prevent mock contamination between test files.
+
+```typescript
+// vitest.config.ts
+export default defineConfig({
+  test: {
+    projects: [
+      {
+        name: 'server',
+        pool: 'forks',      // Use process isolation
+        poolOptions: {
+          forks: {
+            isolate: true,  // Each file in its own process
+          },
+        },
+      },
+    ],
+  },
+});
+```
+
+**Why?** Using `pool: "threads"` causes mock state to be shared between test files because they run in the same process. This leads to flaky tests where mocks from one file affect other files.
+
+### Module-Scoped Mock Pattern (REQUIRED)
+
+When using `vi.mock()`, always use the module-scoped variable pattern:
+
+```typescript
+// ✅ CORRECT: Module-scoped mock variable
+const mockResolveContext = vi.fn();
+
+vi.mock("@/lib/marketplace/context", () => ({
+  resolveMarketplaceContext: (...args: unknown[]) => mockResolveContext(...args),
+}));
+
+beforeEach(() => {
+  mockResolveContext.mockClear();
+  mockResolveContext.mockResolvedValue({ success: true });
+});
+
+it("should handle error case", () => {
+  mockResolveContext.mockResolvedValue({ success: false });
+  // Test error handling
+});
+```
+
+```typescript
+// ❌ WRONG: Mock defined inside vi.mock callback (can't be referenced/reset)
+vi.mock("@/lib/marketplace/context", () => ({
+  resolveMarketplaceContext: vi.fn().mockResolvedValue({ success: true }),
+}));
+// Can't easily override this mock in individual tests!
+```
+
+### Middleware Execution Order
+
+When testing API routes, understand the middleware order:
+
+```
+Request → Rate Limit → Auth → RBAC → Handler → Response
+```
+
+**Implications for testing:**
+- Rate limit tests need a valid session to reach rate limiting (otherwise auth returns 401 first)
+- RBAC tests need to mock the role check, not just set the session role
+- Handler tests should mock all preceding middleware
+
+```typescript
+// Rate limit test - needs valid session
+it("returns 429 when rate limited", async () => {
+  sessionUser = { orgId: "org_123", role: "ADMIN" }; // Valid session
+  vi.mocked(enforceRateLimit).mockReturnValue(
+    new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 })
+  );
+  
+  const response = await route.GET(req);
+  expect(response.status).toBe(429);
+});
+
+// RBAC test - must mock the role check function
+it("returns 403 when user lacks required role", async () => {
+  sessionUser = { orgId: "org_123", role: "EMPLOYEE" };
+  vi.mocked(hasAllowedRole).mockReturnValue(false); // Override the mock!
+  
+  const response = await route.GET(req);
+  expect(response.status).toBe(403);
+});
+```
+
+### Test Comment Guidelines
+
+**Avoid** using `@vitest-environment` prefix in regular comments as it can be parsed as a directive:
+
+```typescript
+// ❌ WRONG: Can be parsed as directive
+// @vitest-environment required for this test
+
+// ✅ CORRECT: Safe comment wording  
+// vitest-environment directive needed for this test
+```
+
 ## Quality Standards
 
 ### ✅ Production-Ready Test Checklist
