@@ -1,9 +1,10 @@
 /**
  * Unit tests for package-activation.ts (P1 - HIGH PRIORITY)
  * Tests: activatePackageAfterPayment function for Aqar package activation
- * 
- * @vitest-environment node
  */
+
+// eslint-disable-next-line no-warning-comments -- vitest directive required
+// @vitest-environment node
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
