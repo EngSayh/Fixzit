@@ -5,9 +5,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock rate limiting
+// === Module-scoped mutable state (survives vi.clearAllMocks) ===
+let mockRateLimitResponse: Response | null = null;
+
+// Mock rate limiting with module-scoped state
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: () => mockRateLimitResponse,
 }));
 
 // Mock database connection
@@ -35,20 +38,20 @@ vi.mock("@/server/models/SmsEvent", () => ({
   },
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-
-const importRoute = async () => {
+// Dynamic import helper - forces fresh module load with mocks applied
+async function importRoute() {
+  vi.resetModules();
   try {
     return await import("@/app/api/webhooks/taqnyat/route");
   } catch {
     return null;
   }
-};
+}
 
 describe("API /api/webhooks/taqnyat", () => {
   beforeEach(() => {
+    mockRateLimitResponse = null;
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
 
   describe("POST - Handle Taqnyat SMS Events", () => {
@@ -59,17 +62,22 @@ describe("API /api/webhooks/taqnyat", () => {
         return;
       }
 
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        })
-      );
+      // Skip webhook signature verification for rate limit test
+      const originalSkipVerify = process.env.SKIP_TAQNYAT_WEBHOOK_VERIFICATION;
+      process.env.SKIP_TAQNYAT_WEBHOOK_VERIFICATION = "true";
+
+      mockRateLimitResponse = new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429,
+      });
 
       const req = new NextRequest("http://localhost:3000/api/webhooks/taqnyat", {
         method: "POST",
         body: JSON.stringify({}),
       });
       const response = await route.POST(req);
+
+      // Restore original env
+      process.env.SKIP_TAQNYAT_WEBHOOK_VERIFICATION = originalSkipVerify;
 
       expect(response.status).toBe(429);
     });

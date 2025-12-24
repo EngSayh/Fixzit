@@ -39,10 +39,10 @@ export type IconSize = keyof typeof iconSizeMap;
 // Semantic color variants aligned with Fixzit brand tokens
 export const iconColorMap = {
   default: "text-current",
-  primary: "text-[#0061A8]",
-  success: "text-[#00A859]",
-  warning: "text-[#FFB400]",
-  error: "text-red-600",
+  primary: "text-primary",
+  success: "text-success",
+  warning: "text-warning",
+  error: "text-error",
   muted: "text-muted-foreground",
 } as const;
 

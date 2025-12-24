@@ -240,6 +240,8 @@ jobs:
       - name: RTL smoke tests (layout + dashboards + souq)
         env:
           ALLOW_DASHBOARD_TEST_AUTH: 'true'
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
         run: |
           npx playwright test \
             tests/smoke/rtl-layout.smoke.spec.ts \

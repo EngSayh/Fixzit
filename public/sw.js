@@ -44,7 +44,7 @@ const STATIC_ASSETS = [
   "/landing.html",
   "/index.html",
   "/marketplace",
-  "/fm/offline",
+  "/offline",
   "/manifest.json",
   "/img/fixzit-logo.png",
   "/assets/logo.svg",
@@ -376,7 +376,7 @@ async function getOfflineFallback(request) {
   // Return appropriate offline page
   if (request.mode === "navigate") {
     if (url.pathname.startsWith("/fm")) {
-      const offlineShell = await caches.match("/fm/offline");
+      const offlineShell = await caches.match("/offline");
       if (offlineShell) {
         return offlineShell;
       }

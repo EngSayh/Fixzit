@@ -18,10 +18,17 @@ import { getDemoEmail } from "../lib/config/demo-users";
 const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;
 const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD;
 const SHOW_DEMO_CREDS_IN_LOGS = process.env.SHOW_DEMO_CREDS === "true";
+const DEFAULT_ORG_ID = process.env.DEFAULT_ORG_ID || process.env.TEST_ORG_ID;
 
 if (!DEMO_SUPERADMIN_PASSWORD || !DEMO_DEFAULT_PASSWORD) {
   throw new Error(
     "DEMO_SUPERADMIN_PASSWORD and DEMO_DEFAULT_PASSWORD must be set before seeding demo users.",
+  );
+}
+
+if (!DEFAULT_ORG_ID) {
+  throw new Error(
+    "DEFAULT_ORG_ID or TEST_ORG_ID must be set before seeding demo users.",
   );
 }
 
@@ -57,7 +64,7 @@ const demoUsers = [
     email: getDemoEmail("superadmin"),
     password: DEMO_SUPERADMIN_PASSWORD,
     phone: demoPhones.superadmin,
-    orgId: "68dc8955a1ba6ed80ff372dc",
+    orgId: DEFAULT_ORG_ID,
     personal: {
       firstName: "Super",
       lastName: "Admin",
@@ -98,7 +105,7 @@ const demoUsers = [
     email: getDemoEmail("manager"),
     password: DEMO_DEFAULT_PASSWORD,
     phone: demoPhones.manager,
-    orgId: "68dc8955a1ba6ed80ff372dc",
+    orgId: DEFAULT_ORG_ID,
     personal: {
       firstName: "Property",
       lastName: "Manager",
@@ -131,7 +138,7 @@ const demoUsers = [
     email: getDemoEmail("tenant"),
     password: DEMO_DEFAULT_PASSWORD,
     phone: demoPhones.tenant,
-    orgId: "68dc8955a1ba6ed80ff372dc",
+    orgId: DEFAULT_ORG_ID,
     personal: {
       firstName: "Demo",
       lastName: "Tenant",
@@ -164,7 +171,7 @@ const demoUsers = [
     email: getDemoEmail("vendor"),
     password: DEMO_DEFAULT_PASSWORD,
     phone: demoPhones.vendor,
-    orgId: "68dc8955a1ba6ed80ff372dc",
+    orgId: DEFAULT_ORG_ID,
     personal: {
       firstName: "Demo",
       lastName: "Vendor",
@@ -197,7 +204,7 @@ const demoUsers = [
     email: getDemoEmail("emp001"),
     password: DEMO_DEFAULT_PASSWORD,
     phone: demoPhones.emp001,
-    orgId: "68dc8955a1ba6ed80ff372dc",
+    orgId: DEFAULT_ORG_ID,
     personal: {
       firstName: "Employee",
       lastName: "One",
@@ -230,7 +237,7 @@ const demoUsers = [
     email: getDemoEmail("emp002"),
     password: DEMO_DEFAULT_PASSWORD,
     phone: demoPhones.emp002,
-    orgId: "68dc8955a1ba6ed80ff372dc",
+    orgId: DEFAULT_ORG_ID,
     personal: {
       firstName: "Employee",
       lastName: "Two",

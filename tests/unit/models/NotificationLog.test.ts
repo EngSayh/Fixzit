@@ -7,14 +7,28 @@ let NotificationDeadLetterModel: mongoose.Model<unknown>;
 const LOG_TTL_DAYS = '7';
 const DLQ_TTL_DAYS = '3';
 
+/**
+ * Wait for mongoose connection to be ready (max 30s).
+ */
+async function waitForMongoConnection(maxWaitMs = 30000): Promise<void> {
+  const start = Date.now();
+  while (mongoose.connection.readyState !== 1) {
+    if (Date.now() - start > maxWaitMs) {
+      throw new Error(
+        `Mongoose not connected after ${maxWaitMs}ms - readyState: ${mongoose.connection.readyState}`
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
+
 beforeAll(async () => {
+  // Wait for mongoose connection from vitest.setup.ts beforeAll
+  await waitForMongoConnection();
+  
   // Ensure deterministic TTLs for index assertions
   process.env.NOTIFICATION_LOG_TTL_DAYS = LOG_TTL_DAYS;
   process.env.NOTIFICATION_DLQ_TTL_DAYS = DLQ_TTL_DAYS;
-
-  if (mongoose.connection.readyState !== 1) {
-    throw new Error('Mongoose not connected - tests require active connection');
-  }
 
   // Remove cached models so schema definitions (including indexes) are reapplied
   if (mongoose.connection.models.NotificationLog) {

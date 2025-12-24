@@ -1,14 +1,21 @@
 /**
  * @fileoverview Tests for /api/admin/notifications/send route
  * @description SUPER_ADMIN only access to broadcast notifications
+ * 
+ * Pattern: Static imports with mutable context variables (per TESTING_STRATEGY.md)
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock dependencies before import
+// === Mutable state for mocks ===
+type AuthSession = { user: { id: string; role: string; orgId: string; email?: string }; expires: string } | null;
+let mockAuthSession: AuthSession = null;
+let mockRateLimitAllowed = true;
+
+// Mock dependencies with mutable state
 vi.mock("@/auth", () => ({
-  auth: vi.fn(),
+  auth: vi.fn(async () => mockAuthSession),
 }));
 
 vi.mock("@/lib/mongodb-unified", () => ({
@@ -38,7 +45,7 @@ vi.mock("@/lib/audit", () => ({
 }));
 
 vi.mock("@/server/security/rateLimit", () => ({
-  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  smartRateLimit: vi.fn(async () => ({ allowed: mockRateLimitAllowed })),
   buildOrgAwareRateLimitKey: vi.fn(() => "rate-limit-key"),
 }));
 
@@ -60,14 +67,8 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { auth } from "@/auth";
-import { smartRateLimit } from "@/server/security/rateLimit";
-
-const mockAuth = vi.mocked(auth);
-const mockRateLimit = vi.mocked(smartRateLimit);
-
-const importRoute = async () =>
-  import("@/app/api/admin/notifications/send/route");
+// Dynamic import to ensure fresh module per test run (prevents CI shard mock contamination)
+const importRoute = async () => import("@/app/api/admin/notifications/send/route");
 
 function createRequest(body: object): NextRequest {
   const url = "http://localhost:3000/api/admin/notifications/send";
@@ -83,8 +84,9 @@ describe("API /api/admin/notifications/send", () => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
     vi.stubEnv("NODE_ENV", "test");
-    mockRateLimit.mockResolvedValue({ allowed: true });
-    mockAuth.mockResolvedValue(null);
+    // Reset mutable state
+    mockAuthSession = null;
+    mockRateLimitAllowed = true;
   });
 
   afterEach(() => {
@@ -93,10 +95,9 @@ describe("API /api/admin/notifications/send", () => {
 
   describe("POST /api/admin/notifications/send", () => {
     it("returns 401 when not authenticated", async () => {
-      mockAuth.mockResolvedValueOnce(null);
+      mockAuthSession = null;
 
-      const routeModule = await importRoute();
-
+      const { POST } = await importRoute();
       const req = createRequest({
         recipients: { type: "all" },
         channels: ["email"],
@@ -104,19 +105,18 @@ describe("API /api/admin/notifications/send", () => {
         message: "Test message",
         priority: "normal",
       });
-      const res = await routeModule.POST(req);
+      const res = await POST(req);
 
       expect(res.status).toBe(401);
     });
 
     it("returns 403 when not SUPER_ADMIN", async () => {
-      mockAuth.mockResolvedValueOnce({
+      mockAuthSession = {
         user: { id: "user1", role: "ADMIN", orgId: "org1", email: "admin@test.com" },
         expires: new Date(Date.now() + 86400000).toISOString(),
-      } as any);
+      };
 
-      const routeModule = await importRoute();
-
+      const { POST } = await importRoute();
       const req = createRequest({
         recipients: { type: "all" },
         channels: ["email"],
@@ -124,21 +124,20 @@ describe("API /api/admin/notifications/send", () => {
         message: "Test message",
         priority: "normal",
       });
-      const res = await routeModule.POST(req);
+      const res = await POST(req);
 
       // May return 401 if auth check fails before role check
       expect([401, 403]).toContain(res.status);
     });
 
     it("enforces rate limiting", async () => {
-      mockAuth.mockResolvedValueOnce({
+      mockAuthSession = {
         user: { id: "admin1", role: "SUPER_ADMIN", orgId: "org1" },
         expires: new Date(Date.now() + 86400000).toISOString(),
-      });
-      mockRateLimit.mockResolvedValueOnce({ allowed: false });
+      };
+      mockRateLimitAllowed = false;
 
-      const routeModule = await importRoute();
-
+      const { POST } = await importRoute();
       const req = createRequest({
         recipients: { type: "all" },
         channels: ["email"],
@@ -146,17 +145,12 @@ describe("API /api/admin/notifications/send", () => {
         message: "Test message",
         priority: "normal",
       });
-      const res = await routeModule.POST(req);
+      const res = await POST(req);
 
       expect(res.status).toBe(429);
     });
 
-    it.todo("returns 400 when recipients type is invalid");
-
-    it.todo("returns 400 when channels are not specified");
-
-    it.todo(
-      "successfully sends notifications to all users (requires DB/email integration)",
-    );
+    // Pending integration tests tracked in SSOT:
+    // - invalid recipients type, missing channels, send to all users
   });
 });

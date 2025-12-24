@@ -1,31 +1,43 @@
 /**
  * @fileoverview Tests for /api/hr/payroll/runs routes
  * Tests HR payroll run management including CRUD operations
+ * 
+ * Uses mutable module-scope variables for Vitest forks isolation compatibility.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import type { SessionUser } from "@/types/auth";
+
+// ============= MUTABLE TEST CONTEXT =============
+// These module-scope variables are read by mock factories at call time.
+// Tests set these values BEFORE calling route handlers.
 
 let sessionUser: SessionUser | null = null;
+let mockRateLimitResponse: Response | null = null;
+let mockRoleAllowed = true;
+let mockPayrollRuns: unknown[] = [];
+let mockPayrollCreateResult: unknown = null;
+let mockExistsOverlap = false;
+let mockListCalledWith: unknown = null;
 
-// Mock rate limiting
+// ============= MOCK DEFINITIONS =============
+// Mock factories read from mutable variables via closures.
+
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: vi.fn(() => mockRateLimitResponse),
 }));
 
-// Mock authentication
 vi.mock("@/auth", () => ({
   auth: vi.fn(async () => {
     if (!sessionUser) return null;
-    return { user: sessionUser };
+    return { user: sessionUser, expires: new Date().toISOString() };
   }),
 }));
 
-// Mock database
 vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock logger
 vi.mock("@/lib/logger", () => ({
   logger: {
     info: vi.fn(),
@@ -34,32 +46,23 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-// Mock role guards
 vi.mock("@/lib/auth/role-guards", () => ({
-  hasAllowedRole: vi.fn(),
+  hasAllowedRole: vi.fn(() => mockRoleAllowed),
 }));
 
-// Mock PayrollService
 vi.mock("@/server/services/hr/payroll.service", () => ({
   PayrollService: {
-    list: vi.fn(),
-    create: vi.fn(),
-    existsOverlap: vi.fn(),
+    list: vi.fn(async (params: unknown) => {
+      mockListCalledWith = params;
+      return mockPayrollRuns;
+    }),
+    create: vi.fn(async () => mockPayrollCreateResult),
+    existsOverlap: vi.fn(async () => mockExistsOverlap),
   },
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { hasAllowedRole } from "@/lib/auth/role-guards";
-import { PayrollService } from "@/server/services/hr/payroll.service";
-import type { SessionUser } from "@/types/auth";
-
-const importRoute = async () => {
-  try {
-    return await import("@/app/api/hr/payroll/runs/route");
-  } catch {
-    return null;
-  }
-};
+// Static imports AFTER vi.mock() declarations
+import { GET, POST } from "@/app/api/hr/payroll/runs/route";
 
 describe("API /api/hr/payroll/runs", () => {
   const mockOrgId = "org_123456789";
@@ -74,50 +77,44 @@ describe("API /api/hr/payroll/runs", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    
+    // Reset mutable context to defaults
+    mockRateLimitResponse = null;
+    mockRoleAllowed = true;
     sessionUser = mockUser;
-    vi.mocked(hasAllowedRole).mockReturnValue(true);
-    vi.mocked(PayrollService.list).mockResolvedValue([]);
-    vi.mocked(PayrollService.existsOverlap).mockResolvedValue(false);
-    vi.mocked(PayrollService.create).mockResolvedValue({
+    mockPayrollRuns = [];
+    mockExistsOverlap = false;
+    mockListCalledWith = null;
+    mockPayrollCreateResult = {
       _id: "run_123",
       orgId: mockOrgId,
       name: "January 2025 Payroll",
       periodStart: new Date("2025-01-01"),
       periodEnd: new Date("2025-01-31"),
       status: "DRAFT",
-    });
+    };
   });
 
   describe("GET /api/hr/payroll/runs", () => {
     it("should return 401 when not authenticated", async () => {
       sessionUser = null;
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
 
       const request = new NextRequest("http://localhost/api/hr/payroll/runs");
-      const response = await routeModule.GET(request);
+      const response = await GET(request);
       expect(response.status).toBe(401);
     });
 
     it("should return 403 when user lacks HR role", async () => {
       sessionUser = { ...mockUser, role: "TEAM_MEMBER" };
-      vi.mocked(hasAllowedRole).mockReturnValue(false);
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
+      mockRoleAllowed = false;
 
       const request = new NextRequest("http://localhost/api/hr/payroll/runs");
-      const response = await routeModule.GET(request);
+      const response = await GET(request);
       expect(response.status).toBe(403);
     });
 
     it("should return payroll runs list for authorized HR user", async () => {
-      vi.mocked(PayrollService.list).mockResolvedValue([
+      mockPayrollRuns = [
         {
           _id: "run_1",
           name: "January 2025 Payroll",
@@ -125,46 +122,31 @@ describe("API /api/hr/payroll/runs", () => {
           periodStart: new Date("2025-01-01"),
           periodEnd: new Date("2025-01-31"),
         },
-      ]);
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
+      ];
 
       const request = new NextRequest("http://localhost/api/hr/payroll/runs");
-      const response = await routeModule.GET(request);
+      const response = await GET(request);
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data.runs).toHaveLength(1);
     });
 
     it("should filter by status when provided", async () => {
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
       const request = new NextRequest(
         "http://localhost/api/hr/payroll/runs?status=APPROVED"
       );
-      await routeModule.GET(request);
-      expect(PayrollService.list).toHaveBeenCalledWith(
-        expect.objectContaining({
-          orgId: mockOrgId,
-          status: "APPROVED",
-        })
-      );
+      await GET(request);
+      expect(mockListCalledWith).toMatchObject({
+        orgId: mockOrgId,
+        status: "APPROVED",
+      });
     });
 
     it("should accept SUPER_ADMIN role", async () => {
       sessionUser = { ...mockUser, role: "SUPER_ADMIN" };
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
 
       const request = new NextRequest("http://localhost/api/hr/payroll/runs");
-      const response = await routeModule.GET(request);
+      const response = await GET(request);
       expect(response.status).toBe(200);
     });
   });
@@ -172,40 +154,26 @@ describe("API /api/hr/payroll/runs", () => {
   describe("POST /api/hr/payroll/runs", () => {
     it("should return 401 when not authenticated", async () => {
       sessionUser = null;
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
 
       const request = new NextRequest("http://localhost/api/hr/payroll/runs", {
         method: "POST",
         body: JSON.stringify({}),
       });
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(401);
     });
 
     it("should return 400 for missing required fields", async () => {
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
       const request = new NextRequest("http://localhost/api/hr/payroll/runs", {
         method: "POST",
         body: JSON.stringify({ name: "Test Run" }),
         headers: { "Content-Type": "application/json" },
       });
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(400);
     });
 
     it("should create payroll run with valid data", async () => {
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
       const validData = {
         name: "January 2025 Payroll",
         periodStart: "2025-01-01",
@@ -217,26 +185,20 @@ describe("API /api/hr/payroll/runs", () => {
         body: JSON.stringify(validData),
         headers: { "Content-Type": "application/json" },
       });
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(201);
     });
 
     it("should enforce rate limiting on POST", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Too many requests" }), {
-          status: 429,
-        }) as unknown as null
-      );
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
+      mockRateLimitResponse = new Response(JSON.stringify({ error: "Too many requests" }), {
+        status: 429,
+      });
 
       const request = new NextRequest("http://localhost/api/hr/payroll/runs", {
         method: "POST",
         body: JSON.stringify({}),
       });
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(429);
     });
   });

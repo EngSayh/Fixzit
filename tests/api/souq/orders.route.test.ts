@@ -1,18 +1,22 @@
 /**
  * @fileoverview Tests for /api/souq/orders route
  * Tests order operations including auth, validation, and rate limiting
+ * 
+ * Pattern: Module-scoped mutable state for mocks (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+// === Module-scoped mutable state (survives vi.clearAllMocks) ===
 type SessionUser = {
   id?: string;
   orgId?: string;
   role?: string;
 };
 let sessionUser: SessionUser | null = null;
+let mockRateLimitResponse: Response | null = null;
 
-// Mock authentication
+// Mock authentication with module-scoped state
 vi.mock("@/auth", () => ({
   auth: vi.fn(async () => {
     if (!sessionUser) return null;
@@ -30,9 +34,9 @@ vi.mock("@/server/lib/db", () => ({
   ensureMongoConnection: vi.fn(),
 }));
 
-// Mock rate limiting
+// Mock rate limiting with module-scoped state
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: () => mockRateLimitResponse,
 }));
 
 // Mock Order model
@@ -79,22 +83,28 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { GET, POST } from "@/app/api/souq/orders/route";
+// Dynamic import helper - forces fresh module load with mocks applied
+async function importRoute() {
+  vi.resetModules();
+  const mod = await import("@/app/api/souq/orders/route");
+  return { GET: mod.GET, POST: mod.POST };
+}
 
 describe("API /api/souq/orders", () => {
   beforeEach(() => {
     sessionUser = null;
+    mockRateLimitResponse = null;
     vi.clearAllMocks();
   });
 
   it("returns 429 with Retry-After when rate limited (GET)", async () => {
-    vi.mocked(enforceRateLimit).mockReturnValueOnce(
-      new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-        status: 429,
-        headers: { "Retry-After": "60" },
-      }) as never,
-    );
+    // Need valid session so auth passes before rate limit check
+    sessionUser = { id: "user-123", orgId: "507f1f77bcf86cd799439011" };
+    mockRateLimitResponse = new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+      status: 429,
+      headers: { "Retry-After": "60" },
+    });
+    const { GET } = await importRoute();
     const req = new NextRequest("http://localhost:3000/api/souq/orders");
     const res = await GET(req);
     expect(res.status).toBe(429);
@@ -103,9 +113,9 @@ describe("API /api/souq/orders", () => {
 
   describe("GET - List Orders", () => {
     it("returns 401 when user is not authenticated", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = null;
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
@@ -113,12 +123,13 @@ describe("API /api/souq/orders", () => {
     });
 
     it("returns 429 when rate limit exceeded", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
-      );
+      // Need valid session so auth passes before rate limit check
+      sessionUser = { id: "user-123", orgId: "507f1f77bcf86cd799439011" };
+      mockRateLimitResponse = new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429,
+      });
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
@@ -126,9 +137,9 @@ describe("API /api/souq/orders", () => {
     });
 
     it("returns 403 when orgId is missing", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = { id: "user-123" };
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
@@ -136,13 +147,13 @@ describe("API /api/souq/orders", () => {
     });
 
     it("returns orders for authenticated user with orgId", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
         role: "ADMIN",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
@@ -151,12 +162,12 @@ describe("API /api/souq/orders", () => {
     });
 
     it("supports status filter", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/orders?status=PENDING"
       );
@@ -166,12 +177,12 @@ describe("API /api/souq/orders", () => {
     });
 
     it("supports customerId filter", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/orders?customerId=507f1f77bcf86cd799439011"
       );
@@ -181,12 +192,12 @@ describe("API /api/souq/orders", () => {
     });
 
     it("supports pagination parameters", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/orders?page=2&limit=10"
       );
@@ -198,9 +209,9 @@ describe("API /api/souq/orders", () => {
 
   describe("POST - Create Order", () => {
     it("returns 401 when user is not authenticated", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       // sessionUser is null by default
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({}),
@@ -213,12 +224,13 @@ describe("API /api/souq/orders", () => {
     });
 
     it("returns 429 when rate limit exceeded", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
-      );
+      // Need valid session so auth passes before rate limit check
+      sessionUser = { id: "user-123", orgId: "507f1f77bcf86cd799439011" };
+      mockRateLimitResponse = new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429,
+      });
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({}),
@@ -231,12 +243,12 @@ describe("API /api/souq/orders", () => {
     });
 
     it("validates required fields with Zod", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({
@@ -252,12 +264,12 @@ describe("API /api/souq/orders", () => {
     });
 
     it("validates items array is not empty", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({
@@ -284,12 +296,12 @@ describe("API /api/souq/orders", () => {
     });
 
     it("validates email format", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({

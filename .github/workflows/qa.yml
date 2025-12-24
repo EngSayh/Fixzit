@@ -70,7 +70,7 @@ jobs:
         run: pnpm lint
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: NODE_OPTIONS="--max-old-space-size=6144" pnpm typecheck
 
       - name: Vitest (API shard + JUnit)
         run: |

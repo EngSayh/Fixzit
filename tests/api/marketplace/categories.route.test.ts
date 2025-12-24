@@ -1,9 +1,14 @@
 /**
  * @fileoverview Tests for /api/marketplace/categories route
  * Tests product category listing operations
+ * 
+ * Pattern: Mutable state pattern for mock isolation (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+
+// Mutable state variables - controlled by beforeEach
+let mockRateLimitResponse: Response | null = null;
 
 // Mock marketplace context
 vi.mock("@/lib/marketplace/context", () => ({
@@ -26,9 +31,9 @@ vi.mock("@/server/models/marketplace/Category", () => ({
   },
 }));
 
-// Mock rate limiting
+// Mock rate limiting - uses mutable state
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: vi.fn(() => mockRateLimitResponse),
 }));
 
 // Mock serializers
@@ -36,16 +41,14 @@ vi.mock("@/lib/marketplace/serializers", () => ({
   serializeCategory: vi.fn((cat) => cat),
 }));
 
-import { resolveMarketplaceContext } from "@/lib/marketplace/context";
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import Category from "@/server/models/marketplace/Category";
-import { GET } from "@/app/api/marketplace/categories/route";
+// Dynamic import to ensure mocks are applied fresh each test
+const importRoute = async () => import("@/app/api/marketplace/categories/route");
 
 describe("API /api/marketplace/categories", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset mock return values to defaults
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    // Reset mutable state to defaults
+    mockRateLimitResponse = null;
     // Reset environment
     process.env.MARKETPLACE_ENABLED = "true";
   });
@@ -54,6 +57,7 @@ describe("API /api/marketplace/categories", () => {
     it("returns error when marketplace is disabled", async () => {
       process.env.MARKETPLACE_ENABLED = "false";
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/categories");
       const res = await GET(req);
 
@@ -62,11 +66,11 @@ describe("API /api/marketplace/categories", () => {
     });
 
     it("returns 429 when rate limit exceeded", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue({
+      mockRateLimitResponse = new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
         status: 429,
-        json: async () => ({ error: "Rate limit exceeded" }),
-      } as never);
+      });
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/categories");
       const res = await GET(req);
 
@@ -74,8 +78,7 @@ describe("API /api/marketplace/categories", () => {
     });
 
     it("returns categories when marketplace is enabled", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
-
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/categories");
       const res = await GET(req);
 
@@ -84,8 +87,7 @@ describe("API /api/marketplace/categories", () => {
     });
 
     it("returns list of categories successfully", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
-      
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/categories");
       const res = await GET(req);
 
@@ -94,11 +96,12 @@ describe("API /api/marketplace/categories", () => {
     });
 
     it("uses rate limiting middleware", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
-      
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/categories");
       await GET(req);
 
+      // Import the mock to verify it was called
+      const { enforceRateLimit } = await import("@/lib/middleware/rate-limit");
       expect(enforceRateLimit).toHaveBeenCalled();
     });
   });

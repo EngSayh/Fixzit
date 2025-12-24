@@ -590,12 +590,27 @@ beforeAll(async () => {
     }
 
     const mongoUri = mongoServer.getUri();
+    
+    // Skip if already connected to the correct URI
+    // This handles the case when beforeAll runs for multiple test files
+    if (mongoose.connection.readyState === 1) {
+      // Already connected - check if it's the same URI
+      if (mongoUriRef && mongoUri.startsWith(mongoUriRef.split('?')[0].split('/').slice(0, -1).join('/'))) {
+        logger.debug("[MongoMemory] Already connected, skipping reconnection");
+        return;
+      }
+      // Different URI - need to disconnect and reconnect
+      logger.debug("[MongoMemory] Connected to different URI, disconnecting first");
+      await realDisconnect();
+    }
+    
     mongoUriRef = mongoUri;
     process.env.MONGODB_URI = mongoUri;
     process.env.MONGODB_DB = "fixzit-test";
     // Ensure previous connections are closed before connecting
+    // Use realDisconnect to bypass the suppression wrapper (since this IS the setup)
     if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
+      await realDisconnect();
     }
     await mongoose.connect(mongoUri, {
       autoCreate: true,

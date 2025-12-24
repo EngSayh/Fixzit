@@ -42,7 +42,11 @@ if (process.env.ALLOW_SEED !== '1') {
   process.exit(1);
 }
 
-const TEST_ORG_ID = process.env.TEST_ORG_ID || '68dc8955a1ba6ed80ff372dc';
+const TEST_ORG_ID = process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID;
+if (!TEST_ORG_ID) {
+  console.error('❌ TEST_ORG_ID or DEFAULT_ORG_ID must be set');
+  process.exit(1);
+}
 const SEED_USER_ID = new Types.ObjectId('000000000000000000000001');
 const DEFAULT_PHONE = process.env.TEST_USER_PHONE || '+966552233456';
 

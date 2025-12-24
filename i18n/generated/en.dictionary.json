@@ -23808,6 +23808,7 @@
   "reports.tabs.title": "Report Workspace",
   "reports.tabs.viewer": "Report Viewer",
   "reports.title": "Reports",
+  "reports.toast.featureInProgress": "New report feature coming soon",
   "reports.toast.newReportComingSoon": "New report feature coming soon",
   "reports.types.compliance": "Compliance",
   "reports.types.financial": "Financial",

@@ -25,8 +25,9 @@ test.describe("RTL dashboard HR smoke", () => {
     await page.reload();
     await page.waitForLoadState("domcontentloaded");
 
+    // Use exact: true to match only the main h1 heading, not the section h2 "إدارة الموارد البشرية"
     await expect(
-      page.getByRole("heading", { name: "الموارد البشرية" }),
+      page.getByRole("heading", { name: "الموارد البشرية", exact: true }),
     ).toBeVisible({ timeout: 45000 });
     await expect(page.locator("text=إجمالي الموظفين")).toBeVisible();
 

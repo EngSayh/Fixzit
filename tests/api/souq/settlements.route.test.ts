@@ -1,10 +1,16 @@
 /**
  * @fileoverview Tests for /api/souq/settlements route
  * Tests seller settlement operations with auth, RBAC, and rate limiting
+ * 
+ * Pattern: Static imports with mutable context variables (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+// ============================================================================
+// MUTABLE MOCK STATE (read by mock factories via closures)
+// Pattern: Vitest pool:forks requires mutable state for mock configuration
+// ============================================================================
 type SessionUser = {
   id?: string;
   orgId?: string;
@@ -13,6 +19,7 @@ type SessionUser = {
   isSuperAdmin?: boolean;
 };
 let sessionUser: SessionUser | null = null;
+let mockRateLimitResponse: Response | null = null;
 
 // Mock authentication
 vi.mock("@/auth", () => ({
@@ -27,9 +34,9 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock rate limiting
+// Mock rate limiting - reads mockRateLimitResponse via closure
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: vi.fn(() => mockRateLimitResponse),
 }));
 
 // Mock Settlement model
@@ -62,19 +69,21 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+// Static import AFTER vi.mock declarations (Vitest hoists mocks)
 import { GET } from "@/app/api/souq/settlements/route";
 
 describe("API /api/souq/settlements", () => {
   beforeEach(() => {
-    sessionUser = null;
     vi.clearAllMocks();
+    // Reset mutable state to defaults
+    sessionUser = null;
+    mockRateLimitResponse = null;
   });
 
   describe("GET - List Settlements", () => {
     it("returns 401 when user is not authenticated", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = null;
+      mockRateLimitResponse = null;
 
       const req = new NextRequest("http://localhost:3000/api/souq/settlements");
       const res = await GET(req);
@@ -83,10 +92,16 @@ describe("API /api/souq/settlements", () => {
     });
 
     it("returns 429 when rate limit exceeded", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
+      // Set authenticated user - rate limit check happens after auth
+      sessionUser = {
+        id: "user-123",
+        orgId: "507f1f77bcf86cd799439011",
+        role: "SELLER",
+      };
+      
+      mockRateLimitResponse = new Response(
+        JSON.stringify({ error: "Rate limit exceeded" }),
+        { status: 429 }
       );
 
       const req = new NextRequest("http://localhost:3000/api/souq/settlements");
@@ -96,7 +111,7 @@ describe("API /api/souq/settlements", () => {
     });
 
     it("returns 403 when orgId is missing", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
+      mockRateLimitResponse = null;
       sessionUser = { id: "user-123", role: "SELLER" };
 
       const req = new NextRequest("http://localhost:3000/api/souq/settlements");
@@ -106,7 +121,7 @@ describe("API /api/souq/settlements", () => {
     });
 
     it("returns settlements for authenticated seller", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
+      mockRateLimitResponse = null;
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
@@ -124,7 +139,7 @@ describe("API /api/souq/settlements", () => {
     });
 
     it("requires targetOrgId for super admin without session org", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
+      mockRateLimitResponse = null;
       sessionUser = {
         id: "admin-123",
         role: "SUPER_ADMIN",
@@ -140,7 +155,7 @@ describe("API /api/souq/settlements", () => {
     });
 
     it("supports pagination parameters", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
+      mockRateLimitResponse = null;
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
@@ -156,7 +171,7 @@ describe("API /api/souq/settlements", () => {
     });
 
     it("supports status filter", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
+      mockRateLimitResponse = null;
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",

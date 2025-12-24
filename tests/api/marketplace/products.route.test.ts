@@ -8,6 +8,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+// Module-scoped mock state (survives vi.clearAllMocks)
+let mockIsMarketplaceEnabled = true;
+
 // Mock marketplace context
 const mockResolveMarketplaceContext = vi.fn();
 vi.mock("@/lib/marketplace/context", () => ({
@@ -53,17 +56,19 @@ vi.mock("@/lib/marketplace/objectIds", () => ({
   objectIdFrom: vi.fn((id) => id),
 }));
 
+// Mock marketplace flags using module-scoped variable
 vi.mock("@/lib/marketplace/flags", () => ({
-  isMarketplaceEnabled: vi.fn(),
+  isMarketplaceEnabled: () => mockIsMarketplaceEnabled,
 }));
 
-import { isMarketplaceEnabled } from "@/lib/marketplace/flags";
-import { GET, POST } from "@/app/api/marketplace/products/route";
+// Dynamic import to ensure mocks are applied
+const importRoute = async () => import("@/app/api/marketplace/products/route");
 
 describe("API /api/marketplace/products", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(isMarketplaceEnabled).mockReturnValue(true);
+    // Reset module-scoped mock state
+    mockIsMarketplaceEnabled = true;
     // Reset mocks to default behavior
     mockEnforceRateLimit.mockReturnValue(null);
     mockResolveMarketplaceContext.mockResolvedValue({
@@ -82,7 +87,8 @@ describe("API /api/marketplace/products", () => {
 
   describe("GET - List Products", () => {
     it("returns 501 when marketplace is disabled", async () => {
-      vi.mocked(isMarketplaceEnabled).mockReturnValue(false);
+      mockIsMarketplaceEnabled = false;
+      const { GET } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/products");
       const res = await GET(req);
@@ -95,6 +101,7 @@ describe("API /api/marketplace/products", () => {
         status: 429,
         json: async () => ({ error: "Rate limit exceeded" }),
       });
+      const { GET } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/products");
       const res = await GET(req);
@@ -103,6 +110,8 @@ describe("API /api/marketplace/products", () => {
     });
 
     it("returns products list when marketplace is enabled", async () => {
+      const { GET } = await importRoute();
+
       const req = new NextRequest("http://localhost:3000/api/marketplace/products");
       const res = await GET(req);
       const data = await res.json();
@@ -114,7 +123,8 @@ describe("API /api/marketplace/products", () => {
 
   describe("POST - Create Product", () => {
     it("returns 501 when marketplace is disabled", async () => {
-      vi.mocked(isMarketplaceEnabled).mockReturnValue(false);
+      mockIsMarketplaceEnabled = false;
+      const { POST } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/products", {
         method: "POST",
@@ -137,6 +147,7 @@ describe("API /api/marketplace/products", () => {
         orgId: { toString: () => "org-123" },
         role: "GUEST",
       });
+      const { POST } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/products", {
         method: "POST",
@@ -159,6 +170,7 @@ describe("API /api/marketplace/products", () => {
         orgId: { toString: () => "org-123" },
         role: "BUYER",
       });
+      const { POST } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/products", {
         method: "POST",
@@ -181,6 +193,7 @@ describe("API /api/marketplace/products", () => {
         orgId: { toString: () => "org-123" },
         role: "SUPER_ADMIN",
       });
+      const { POST } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/products", {
         method: "POST",
@@ -200,6 +213,7 @@ describe("API /api/marketplace/products", () => {
         orgId: { toString: () => "org-123" },
         role: "SUPER_ADMIN",
       });
+      const { POST } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/products", {
         method: "POST",
@@ -229,6 +243,7 @@ describe("API /api/marketplace/products", () => {
         slug: "test-product",
         title: { en: "Test Product" },
       });
+      const { POST } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/marketplace/products", {
         method: "POST",

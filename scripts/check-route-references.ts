@@ -33,6 +33,19 @@ const IGNORE_GLOBS = [
   "scripts/fixtures/**",
 ];
 
+// Routes that are allowed but don't have direct page implementations
+// These are typically Next.js redirect/rewrite destination patterns
+// or special routes that are handled differently
+const ALLOWED_REDIRECT_PATTERNS = [
+  /^\/fm\/:path\*$/,           // Catch-all redirect destination pattern
+  /^\/marketplace\/:path\*$/,  // Catch-all redirect destination pattern
+  /^\/aqar\/:path\*$/,         // Catch-all redirect destination pattern
+];
+
+function isAllowedRedirectPattern(route: string): boolean {
+  return ALLOWED_REDIRECT_PATTERNS.some((pattern) => pattern.test(route));
+}
+
 function isRouteGroup(name: string) {
   return name.startsWith("(") && name.endsWith(")");
 }
@@ -247,6 +260,10 @@ function main() {
 
   grouped.forEach((value, route) => {
     const normalized = normalizeRoute(route);
+    // Skip allowed redirect patterns (e.g., /fm/:path*)
+    if (isAllowedRedirectPattern(normalized)) {
+      return;
+    }
     const hadTrailingSlash = value.some((ref) => ref.hadTrailingSlash);
     if (!routeExists(route, hadTrailingSlash, templates)) {
       missing.push({ normalized, refs: value });

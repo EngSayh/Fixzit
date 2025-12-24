@@ -1,13 +1,15 @@
 /**
  * @fileoverview Tests for SuperAdmin Organizations Search API
  * @module tests/api/superadmin/organizations.route.test
+ * 
+ * NOTE: This test uses vi.mock("mongoose") because the route defines
+ * the Organization model inline using mongoose.model(). This is safe
+ * because this test file runs in isolation.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import { NextRequest } from "next/server";
-import { GET } from "@/app/api/superadmin/organizations/search/route";
 
-// Mock dependencies
 vi.mock("@/lib/logger", () => ({
   logger: {
     info: vi.fn(),
@@ -20,42 +22,50 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 
-const mockGetSuperadminSession = vi.fn();
+// Use vi.hoisted() to make mocks available in vi.mock() factory
+const { mockGetSuperadminSession, mockFind, mockObjectId, mockOrgs } = vi.hoisted(() => {
+  const orgs = [
+    { _id: "org_1", name: "Acme Corp", slug: "acme" },
+    { _id: "org_2", name: "Beta Inc", slug: "beta" },
+  ];
+  
+  const findMock = vi.fn().mockReturnValue({
+    limit: vi.fn().mockReturnValue({
+      lean: vi.fn().mockResolvedValue(orgs),
+    }),
+  });
+  
+  const objectIdMock = Object.assign(
+    vi.fn((id?: string) => ({ toString: () => id ?? "mock-id" })),
+    { isValid: vi.fn((value?: string) => typeof value === "string" && /^[a-fA-F0-9]{24}$/.test(value)) },
+  );
+  
+  return {
+    mockGetSuperadminSession: vi.fn(),
+    mockFind: findMock,
+    mockObjectId: objectIdMock,
+    mockOrgs: orgs,
+  };
+});
 
 vi.mock("@/lib/superadmin/auth", () => ({
   getSuperadminSession: (...args: unknown[]) => mockGetSuperadminSession(...args),
 }));
 
-// Mock mongoose
-vi.mock("mongoose", () => {
-  const mockOrgs = [
-    { _id: "org_1", name: "Acme Corp", slug: "acme" },
-    { _id: "org_2", name: "Beta Inc", slug: "beta" },
-  ];
-  
-  const mockFind = vi.fn().mockReturnValue({
-    limit: vi.fn().mockReturnValue({
-      lean: vi.fn().mockResolvedValue(mockOrgs),
+vi.mock("mongoose", () => ({
+  default: {
+    Schema: vi.fn(),
+    model: vi.fn().mockReturnValue({
+      find: mockFind,
     }),
-  });
-
-  const mockObjectId = Object.assign(
-    vi.fn((id?: string) => ({ toString: () => id ?? "mock-id" })),
-    { isValid: vi.fn((value?: string) => typeof value === "string" && /^[a-fA-F0-9]{24}$/.test(value)) },
-  );
-
-  return {
-    default: {
-      Schema: vi.fn(),
-      model: vi.fn().mockReturnValue({
-        find: mockFind,
-      }),
-      models: {},
-      Types: { ObjectId: mockObjectId },
-    },
+    models: {},
     Types: { ObjectId: mockObjectId },
-  };
-});
+  },
+  Types: { ObjectId: mockObjectId },
+}));
+
+// Import route after all mocks are set up
+import { GET } from "@/app/api/superadmin/organizations/search/route";
 
 function createRequest(query?: string): NextRequest {
   const url = new URL("http://localhost:3000/api/superadmin/organizations/search");
@@ -67,6 +77,12 @@ describe("SuperAdmin Organizations Search API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetSuperadminSession.mockReset();
+  });
+  
+  // Restore mongoose mock after tests to prevent contamination
+  afterAll(() => {
+    vi.doUnmock("mongoose");
+    vi.resetModules();
   });
 
   describe("GET /api/superadmin/organizations/search", () => {

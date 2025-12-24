@@ -1,6 +1,8 @@
 /**
  * @fileoverview Tests for /api/webhooks/sendgrid routes
  * Tests SendGrid email webhook handling
+ * 
+ * Pattern: Static imports for mock isolation (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
@@ -35,15 +37,9 @@ vi.mock("@/server/models/EmailEvent", () => ({
   },
 }));
 
+// Static imports AFTER vi.mock() declarations (mocks are hoisted)
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-
-const importRoute = async () => {
-  try {
-    return await import("@/app/api/webhooks/sendgrid/route");
-  } catch {
-    return null;
-  }
-};
+import { POST } from "@/app/api/webhooks/sendgrid/route";
 
 describe("API /api/webhooks/sendgrid", () => {
   beforeEach(() => {
@@ -53,34 +49,22 @@ describe("API /api/webhooks/sendgrid", () => {
 
   describe("POST - Handle SendGrid Events", () => {
     it("returns 429 when rate limit is exceeded", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
-      }
-
       vi.mocked(enforceRateLimit).mockReturnValue(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,
-        })
+        }) as never
       );
 
       const req = new NextRequest("http://localhost:3000/api/webhooks/sendgrid", {
         method: "POST",
         body: JSON.stringify([]),
       });
-      const response = await route.POST(req);
+      const response = await POST(req);
 
       expect(response.status).toBe(429);
     });
 
     it("returns 200 for valid webhook event", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
-      }
-
       const webhookEvent = [
         {
           email: "test@example.com",
@@ -94,24 +78,18 @@ describe("API /api/webhooks/sendgrid", () => {
         method: "POST",
         body: JSON.stringify(webhookEvent),
       });
-      const response = await route.POST(req);
+      const response = await POST(req);
 
       // Accept 200, 201, or 202 for webhook processing
       expect([200, 201, 202, 400]).toContain(response.status);
     });
 
     it("handles empty event array gracefully", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        expect(true).toBe(true);
-        return;
-      }
-
       const req = new NextRequest("http://localhost:3000/api/webhooks/sendgrid", {
         method: "POST",
         body: JSON.stringify([]),
       });
-      const response = await route.POST(req);
+      const response = await POST(req);
 
       // Empty events should be accepted or rejected with validation error
       expect([200, 201, 202, 400, 422]).toContain(response.status);

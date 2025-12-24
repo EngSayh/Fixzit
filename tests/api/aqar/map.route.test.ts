@@ -5,12 +5,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock rate limiting
+// Module-scoped mock state (survives vi.clearAllMocks)
+let mockRateLimitResponse: Response | null = null;
+let mockSmartRateLimitAllowed = true;
+
+// Mock rate limiting with module-scoped variables
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: () => mockRateLimitResponse,
 }));
 vi.mock("@/server/security/rateLimit", () => ({
-  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  smartRateLimit: vi.fn(async () => ({ allowed: mockSmartRateLimitAllowed })),
 }));
 
 // Mock database
@@ -27,9 +31,6 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { smartRateLimit } from "@/server/security/rateLimit";
-
 const importRoute = async () => {
   try {
     return await import("@/app/api/aqar/map/route");
@@ -41,8 +42,8 @@ const importRoute = async () => {
 describe("API /api/aqar/map", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
-    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true } as any);
+    mockRateLimitResponse = null;
+    mockSmartRateLimitAllowed = true;
   });
 
   describe("GET - Get Map Data", () => {
@@ -52,7 +53,7 @@ describe("API /api/aqar/map", () => {
         throw new Error("Route handler missing: GET");
       }
 
-      vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false } as any);
+      mockSmartRateLimitAllowed = false;
 
       const req = new NextRequest("http://localhost:3000/api/aqar/map");
       const response = await route.GET(req);

@@ -47,7 +47,7 @@ export default function CurrencyChangeConfirmDialog({
       aria-describedby="currency-change-desc"
     >
       <div
-        className={`relative mx-4 max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 ${isRTL ? "text-right" : "text-left"}`}
+        className={`relative mx-4 max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 ${isRTL ? "text-end" : "text-start"}`}
       >
         {/* Close button */}
         <button

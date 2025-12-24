@@ -15,22 +15,41 @@ import { pathToFileURL } from 'node:url';
 
 export const HARD_CODED_ORG = '68dc8955a1ba6ed80ff372dc';
 
-// STRICT v4.1 canonical roles (base + staff sub-roles we allow in seeds)
+// STRICT v4.1 canonical roles - synced with CANONICAL_ROLES from types/user.ts
+// Includes all 22 canonical roles (14 base + sub-roles + property/external)
 export const ALLOWED_ROLES = new Set([
+  // Administrative Roles (4)
   'SUPER_ADMIN',
   'CORPORATE_ADMIN',
-  'MANAGEMENT',
-  'FINANCE',
-  'FINANCE_OFFICER',
-  'HR',
-  'HR_OFFICER',
-  'SUPPORT',
-  'OPS',
-  'CORPORATE_EMPLOYEE',
-  'PROPERTY_OWNER',
+  'ADMIN',
+  'MANAGER',
+  // Facility Management Roles (3)
+  'FM_MANAGER',
+  'PROPERTY_MANAGER',
   'TECHNICIAN',
+  // Business Function Roles (3)
+  'FINANCE',
+  'HR',
+  'PROCUREMENT',
+  // Team Member base role
+  'TEAM_MEMBER',
+  // Specialized Sub-Roles (4)
+  'FINANCE_OFFICER',
+  'HR_OFFICER',
+  'SUPPORT_AGENT',
+  'OPERATIONS_MANAGER',
+  // Souq Marketplace Roles (2)
+  'SOUQ_ADMIN',
+  'MARKETPLACE_MODERATOR',
+  // Property & External Roles (5)
+  'OWNER',
   'TENANT',
-  'END_USER',
+  'VENDOR',
+  'AUDITOR',
+  'CORPORATE_OWNER',
+  // Legacy roles allowed during migration
+  'SUPPORT',
+  'PROPERTY_OWNER', // Alias for OWNER in some contexts
 ]);
 
 // Files to police

@@ -1,18 +1,33 @@
 /**
  * @fileoverview Tests for /api/souq/fulfillment/rates routes
  * Tests shipping rate comparison functionality
+ * 
+ * Uses mutable module-scope variables for Vitest forks isolation compatibility.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import type { SessionUser } from "@/types/auth";
+
+// ============= MUTABLE TEST CONTEXT =============
+// These module-scope variables are read by mock factories at call time.
+// Tests set these values BEFORE calling route handlers.
 
 let sessionUser: SessionUser | null = null;
+let mockRateLimitResponse: Response | null = null;
+let mockRatesResult: Array<{
+  carrier: string;
+  serviceType: string;
+  cost: number;
+  estimatedDays: number;
+}> = [];
 
-// Mock rate limiting
+// ============= MOCK DEFINITIONS =============
+// Mock factories read from mutable variables via closures.
+
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: vi.fn(() => mockRateLimitResponse),
 }));
 
-// Mock authentication
 vi.mock("@/lib/auth/getServerSession", () => ({
   getServerSession: vi.fn(async () => {
     if (!sessionUser) return null;
@@ -20,7 +35,6 @@ vi.mock("@/lib/auth/getServerSession", () => ({
   }),
 }));
 
-// Mock logger
 vi.mock("@/lib/logger", () => ({
   logger: {
     info: vi.fn(),
@@ -29,25 +43,15 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-// Mock fulfillment service
 vi.mock("@/services/souq/fulfillment-service", () => ({
   fulfillmentService: {
-    getRates: vi.fn(),
+    getRates: vi.fn(async () => mockRatesResult),
     generateLabel: vi.fn(),
   },
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { fulfillmentService } from "@/services/souq/fulfillment-service";
-import type { SessionUser } from "@/types/auth";
-
-const importRoute = async () => {
-  try {
-    return await import("@/app/api/souq/fulfillment/rates/route");
-  } catch {
-    return null;
-  }
-};
+// Dynamic import to ensure mocks are applied fresh per test
+const importRoute = async () => import("@/app/api/souq/fulfillment/rates/route");
 
 describe("API /api/souq/fulfillment/rates", () => {
   const mockOrgId = "org_123456789";
@@ -62,34 +66,31 @@ describe("API /api/souq/fulfillment/rates", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    
+    // Reset mutable context to defaults
+    mockRateLimitResponse = null; // null = rate limit passes
     sessionUser = mockUser;
-    vi.mocked(fulfillmentService.getRates).mockResolvedValue([
+    mockRatesResult = [
       {
         carrier: "SMSA",
-        service: "standard",
-        rate: 25.0,
-        currency: "SAR",
+        serviceType: "standard",
+        cost: 25.0,
         estimatedDays: 3,
       },
       {
         carrier: "Aramex",
-        service: "express",
-        rate: 45.0,
-        currency: "SAR",
+        serviceType: "express",
+        cost: 45.0,
         estimatedDays: 1,
       },
-    ]);
+    ];
   });
 
   describe("POST /api/souq/fulfillment/rates", () => {
     it("should return 401 when not authenticated", async () => {
       sessionUser = null;
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
 
+      const { POST } = await importRoute();
       const request = new NextRequest(
         "http://localhost/api/souq/fulfillment/rates",
         {
@@ -97,16 +98,13 @@ describe("API /api/souq/fulfillment/rates", () => {
           body: JSON.stringify({}),
         }
       );
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(401);
     });
 
     it("should return 400 for missing required fields", async () => {
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
 
+      const { POST } = await importRoute();
       const request = new NextRequest(
         "http://localhost/api/souq/fulfillment/rates",
         {
@@ -115,16 +113,11 @@ describe("API /api/souq/fulfillment/rates", () => {
           headers: { "Content-Type": "application/json" },
         }
       );
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(400);
     });
 
     it("should return shipping rates with valid data", async () => {
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
       const validData = {
         origin: "Riyadh",
         destination: "Jeddah",
@@ -132,6 +125,7 @@ describe("API /api/souq/fulfillment/rates", () => {
         serviceType: "standard",
       };
 
+      const { POST } = await importRoute();
       const request = new NextRequest(
         "http://localhost/api/souq/fulfillment/rates",
         {
@@ -140,7 +134,7 @@ describe("API /api/souq/fulfillment/rates", () => {
           headers: { "Content-Type": "application/json" },
         }
       );
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(200);
       if (response.status === 200) {
         const data = await response.json();
@@ -149,11 +143,6 @@ describe("API /api/souq/fulfillment/rates", () => {
     });
 
     it("should support dimensions parameter", async () => {
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
       const validData = {
         origin: "Riyadh",
         destination: "Dammam",
@@ -162,6 +151,7 @@ describe("API /api/souq/fulfillment/rates", () => {
         serviceType: "express",
       };
 
+      const { POST } = await importRoute();
       const request = new NextRequest(
         "http://localhost/api/souq/fulfillment/rates",
         {
@@ -170,21 +160,18 @@ describe("API /api/souq/fulfillment/rates", () => {
           headers: { "Content-Type": "application/json" },
         }
       );
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(200);
     });
 
     it("should enforce rate limiting", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Too many requests" }), {
-          status: 429,
-        }) as unknown as null
+      // Set mutable context to return rate limit response
+      mockRateLimitResponse = new Response(
+        JSON.stringify({ error: "Too many requests" }),
+        { status: 429 }
       );
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
 
+      const { POST } = await importRoute();
       const request = new NextRequest(
         "http://localhost/api/souq/fulfillment/rates",
         {
@@ -192,7 +179,7 @@ describe("API /api/souq/fulfillment/rates", () => {
           body: JSON.stringify({}),
         }
       );
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(429);
     });
   });

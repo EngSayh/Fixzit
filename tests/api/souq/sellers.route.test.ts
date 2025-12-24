@@ -1,19 +1,26 @@
 /**
  * @fileoverview Tests for /api/souq/sellers routes
  * Tests seller management operations including listing and registration
+ * 
+ * Pattern: Static imports with mutable context variables (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock authentication with runtime state
-let sessionUser: any = null;
+// ============================================================================
+// MUTABLE MOCK STATE (read by mock factories via closures)
+// Pattern: Vitest pool:forks requires mutable state for mock configuration
+// ============================================================================
+type SessionUser = { id: string; orgId: string; role: string } | null;
+let sessionUser: SessionUser = null;
+let mockRateLimitResponse: Response | null = null;
+
 vi.mock("@/auth", () => ({
   auth: vi.fn(async () => (sessionUser ? { user: sessionUser, expires: new Date().toISOString() } : null)),
 }));
 
-// Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: vi.fn(() => mockRateLimitResponse),
 }));
 
 // Mock Seller model
@@ -45,39 +52,22 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-
-// Dynamic import to handle module resolution
-const importRoute = async () => {
-  try {
-    return await import("@/app/api/souq/sellers/route");
-  } catch {
-    return null;
-  }
-};
+// Static imports AFTER vi.mock declarations (Vitest hoists mocks)
+import { GET, POST } from "@/app/api/souq/sellers/route";
 
 describe("API /api/souq/sellers", () => {
   beforeEach(() => {
-    vi.resetModules();
     vi.clearAllMocks();
+    // Reset mutable state to defaults
     sessionUser = null;
-    // Reset rate limit mock - must use mockReset to clear implementation, then set default
-    vi.mocked(enforceRateLimit).mockReset();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    mockRateLimitResponse = null;
   });
 
   describe("Authentication & Authorization", () => {
     it("returns 429 when rate limit exceeded on POST", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        expect(true).toBe(true); // Skip if route doesn't exist
-        return;
-      }
-
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
+      mockRateLimitResponse = new Response(
+        JSON.stringify({ error: "Rate limit exceeded" }),
+        { status: 429 }
       );
 
       const req = new NextRequest("http://localhost:3000/api/souq/sellers", {
@@ -85,37 +75,25 @@ describe("API /api/souq/sellers", () => {
         body: JSON.stringify({}),
         headers: { "Content-Type": "application/json" },
       });
-      const response = await route.POST(req);
+      const response = await POST(req);
 
       expect(response.status).toBe(429);
     });
 
     it("returns 401 when user is not authenticated", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
-      }
-
       // sessionUser is null by default (no need to set)
 
       const req = new NextRequest("http://localhost:3000/api/souq/sellers");
-      const response = await route.GET(req);
+      const response = await GET(req);
 
       expect([401, 403]).toContain(response.status);
     });
 
     it("allows authenticated users to access seller list", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
-      }
-
       sessionUser = { id: "user-123", orgId: "org-123", role: "ADMIN" };
 
       const req = new NextRequest("http://localhost:3000/api/souq/sellers");
-      const response = await route.GET(req);
+      const response = await GET(req);
 
       expect([200, 500]).toContain(response.status);
     });
@@ -123,35 +101,23 @@ describe("API /api/souq/sellers", () => {
 
   describe("GET - List Sellers", () => {
     it("supports pagination", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
-      }
-
       sessionUser = { id: "user-123", orgId: "org-123", role: "ADMIN" };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/sellers?page=1&limit=10"
       );
-      const response = await route.GET(req);
+      const response = await GET(req);
 
       expect([200, 500]).toContain(response.status);
     });
 
     it("supports status filter", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
-        expect(true).toBe(true);
-        return;
-      }
-
       sessionUser = { id: "user-123", orgId: "org-123", role: "ADMIN" };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/sellers?status=ACTIVE"
       );
-      const response = await route.GET(req);
+      const response = await GET(req);
 
       expect([200, 500]).toContain(response.status);
     });

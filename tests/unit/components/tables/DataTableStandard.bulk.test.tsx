@@ -1,4 +1,4 @@
-/* eslint-disable no-warning-comments -- @vitest-environment required for React component testing */
+/* eslint-disable no-warning-comments -- vitest-environment directive needed for React component testing */
 // @vitest-environment jsdom
 /**
  * Tests for DataTableStandard bulk selection feature (FEATURE-002)

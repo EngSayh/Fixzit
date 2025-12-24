@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
 # Simple guardrail: fail CI if hard-coded database URIs with credentials are checked into code.
 # Scans source directories and ignores known test fixtures.
+# Falls back to Node.js implementation when ripgrep is not available (Windows support)
 
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
+
+# Check if ripgrep is available, fallback to Node.js implementation
+if ! command -v rg &> /dev/null; then
+  echo "⚠️  ripgrep (rg) not found, using Node.js fallback..."
+  node scripts/security/check-hardcoded-uris.mjs
+  exit $?
+fi
 
 echo "🔍 Scanning for hard-coded secrets/URIs..."
 

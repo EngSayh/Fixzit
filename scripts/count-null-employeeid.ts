@@ -2,18 +2,24 @@
 import { db } from "../lib/mongo";
 import { User } from "../server/models/User";
 
+const TEST_ORG_ID = process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID;
+
 async function count() {
   try {
+    if (!TEST_ORG_ID) {
+      console.error("❌ TEST_ORG_ID or DEFAULT_ORG_ID must be set");
+      process.exit(1);
+    }
     await db;
     const users = await User.find({
-      orgId: "68dc8955a1ba6ed80ff372dc",
+      orgId: TEST_ORG_ID,
       employeeId: null,
     })
       .select("email username code employeeId")
       .lean();
 
     console.log(
-      `Found ${users.length} users with orgId=68dc8955a1ba6ed80ff372dc and employeeId=null:`,
+      `Found ${users.length} users with orgId=${TEST_ORG_ID} and employeeId=null:`,
     );
     users.forEach((u) => {
       console.log(

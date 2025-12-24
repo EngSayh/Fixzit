@@ -1,4 +1,3 @@
-/* eslint-disable no-warning-comments -- @vitest-environment required for MongoDB integration tests */
 /**
  * Finance Ledger Integration Tests
  *
@@ -7,8 +6,10 @@
  * the full model which has many required fields and plugin dependencies.
  *
  * @module tests/integration/finance/ledger.integration.test.ts
- * @vitest-environment node
  */
+
+// eslint-disable-next-line no-warning-comments -- vitest directive required
+// @vitest-environment node
 
 import {
   describe,

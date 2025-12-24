@@ -1,18 +1,23 @@
 /**
  * @fileoverview Tests for /api/aqar/listings routes
  * Tests property listing CRUD operations for Aqar marketplace
+ * 
+ * Pattern: Mutable state pattern for mock isolation (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+
+// Mutable state variables - controlled by beforeEach
+let mockRateLimitResponse: Response | null = null;
 
 // Mock authentication
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
 }));
 
-// Mock rate limiting
+// Mock rate limiting - uses mutable state
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: vi.fn(() => mockRateLimitResponse),
 }));
 
 // Mock session user
@@ -69,7 +74,6 @@ vi.mock("@/lib/api/parse-body", () => ({
   APIParseError: class APIParseError extends Error {},
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 const importRoute = async () => {
@@ -83,18 +87,16 @@ const importRoute = async () => {
 describe("API /api/aqar/listings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
-    // Reset rate limit mock to allow requests through
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    // Reset mutable state to defaults - do NOT call vi.resetModules()
+    mockRateLimitResponse = null;
   });
 
   describe("POST - Create Listing", () => {
     it("returns 429 when rate limit exceeded", async () => {
-      // Set up rate limit mock BEFORE importing the route
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
+      // Set mutable state to trigger rate limit response
+      mockRateLimitResponse = new Response(
+        JSON.stringify({ error: "Rate limit exceeded" }),
+        { status: 429 }
       );
 
       const route = await importRoute();

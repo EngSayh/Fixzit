@@ -109,17 +109,8 @@ describe("API /api/work-orders", () => {
       expect(typeof routeModule.GET).toBe("function");
     });
 
-    it.todo("returns 401 when not authenticated (tested via crud-factory)");
-    
-    it.todo("returns 403 when lacking VIEW permission (tested via crud-factory)");
-    
-    it.todo("returns work orders list with pagination (requires integration)");
-    
-    it.todo("filters by status (requires integration)");
-    
-    it.todo("filters by priority (requires integration)");
-    
-    it.todo("enforces tenant scope (requires integration)");
+    // Pending integration tests tracked in SSOT:
+    // - Auth, permission, pagination, status filter, priority filter, tenant scope
   });
 
   describe("POST /api/work-orders", () => {
@@ -133,12 +124,7 @@ describe("API /api/work-orders", () => {
       expect(typeof routeModule.POST).toBe("function");
     });
 
-    it.todo("returns 401 when not authenticated (tested via crud-factory)");
-    
-    it.todo("returns 403 when lacking CREATE permission (tested via crud-factory)");
-    
-    it.todo("creates work order with SLA target (requires integration)");
-    
-    it.todo("validates required fields (requires integration)");
+    // Pending integration tests tracked in SSOT:
+    // - Auth, permission, SLA target, field validation
   });
 });

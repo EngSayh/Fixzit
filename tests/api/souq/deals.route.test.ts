@@ -1,6 +1,8 @@
 /**
  * @fileoverview Tests for /api/souq/deals routes
  * Tests deal/promotion management operations
+ * 
+ * Pattern: Mutable state pattern for mock isolation (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
@@ -14,9 +16,12 @@ type SessionUser = {
   subRole?: string;
   [key: string]: unknown;
 };
-let sessionUser: SessionUser | null = null;
 
-// Mock authentication
+// Mutable state variables - controlled by beforeEach
+let sessionUser: SessionUser | null = null;
+let mockRateLimitResponse: Response | null = null;
+
+// Mock authentication - uses mutable state
 vi.mock("@/auth", () => ({
   auth: vi.fn(async () => {
     if (!sessionUser) return null;
@@ -24,16 +29,19 @@ vi.mock("@/auth", () => ({
   }),
 }));
 
-// Mock rate limiting
+// Mock rate limiting - uses mutable state
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: vi.fn(() => mockRateLimitResponse),
 }));
 
-// Mock auth+RBAC middleware
+// Mock auth+RBAC middleware - uses mutable state
 vi.mock("@/server/middleware/withAuthRbac", () => {
   class MockUnauthorizedError extends Error {}
   return {
-    getSessionUser: vi.fn(),
+    getSessionUser: vi.fn(async () => {
+      if (!sessionUser) throw new MockUnauthorizedError("Unauthenticated");
+      return sessionUser;
+    }),
     UnauthorizedError: MockUnauthorizedError,
   };
 });
@@ -65,94 +73,68 @@ vi.mock("@/lib/logger", () => ({
 // Mock database
 vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
+  connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
-
-const importRoute = async () => {
-  try {
-    return await import("@/app/api/souq/deals/route");
-  } catch {
-    return null;
-  }
-};
+// Dynamic import to ensure mocks are applied fresh per test
+const importRoute = async () => import("@/app/api/souq/deals/route");
 
 describe("API /api/souq/deals", () => {
   beforeEach(() => {
-    sessionUser = null;
     vi.clearAllMocks();
-    // Reset rate limit mock to allow requests through
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
-    // Default: authenticated session
-    vi.mocked(getSessionUser).mockResolvedValue({
+    // Reset mutable state to defaults
+    mockRateLimitResponse = null;
+    sessionUser = {
       id: "user-123",
       orgId: "org-123",
       role: "ADMIN",
-    } as never);
+    };
   });
 
   describe("GET - List Deals", () => {
     it("returns 429 when rate limit exceeded", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
-        throw new Error("Route handler missing: GET");
-      }
-
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
+      mockRateLimitResponse = new Response(
+        JSON.stringify({ error: "Rate limit exceeded" }),
+        { status: 429 }
       );
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/deals");
-      const response = await route.GET(req);
+      const response = await GET(req);
 
       expect(response.status).toBe(429);
     });
 
     it("returns deals list", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
-        throw new Error("Route handler missing: GET");
-      }
+      // sessionUser already set in beforeEach
 
-      sessionUser = { id: "user-123", orgId: "org-123" };
-
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/deals");
-      const response = await route.GET(req);
+      const response = await GET(req);
 
       expect([200, 401, 500]).toContain(response.status);
     });
 
     it("supports active filter", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
-        throw new Error("Route handler missing: GET");
-      }
+      // sessionUser already set in beforeEach
 
-      sessionUser = { id: "user-123", orgId: "org-123" };
-
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/deals?active=true"
       );
-      const response = await route.GET(req);
+      const response = await GET(req);
 
       expect([200, 401, 500]).toContain(response.status);
     });
 
     it("supports category filter", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
-        throw new Error("Route handler missing: GET");
-      }
+      // sessionUser already set in beforeEach
 
-      sessionUser = { id: "user-123", orgId: "org-123" };
-
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/deals?categoryId=cat-123"
       );
-      const response = await route.GET(req);
+      const response = await GET(req);
 
       expect([200, 401, 500]).toContain(response.status);
     });
@@ -160,37 +142,27 @@ describe("API /api/souq/deals", () => {
 
   describe("POST - Create Deal", () => {
     it("returns 401 for unauthenticated requests", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        throw new Error("Route handler missing: POST");
-      }
+      sessionUser = null; // Unauthenticated
 
-      vi.mocked(getSessionUser).mockRejectedValue(
-        new UnauthorizedError("Unauthenticated"),
-      );
-
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/deals", {
         method: "POST",
         body: JSON.stringify({ title: "Summer Sale" }),
       });
-      const response = await route.POST(req);
+      const response = await POST(req);
 
       expect([401, 403]).toContain(response.status);
     });
 
     it("validates required fields", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        throw new Error("Route handler missing: POST");
-      }
-
       sessionUser = { id: "user-123", orgId: "org-123", role: "SELLER" };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/deals", {
         method: "POST",
         body: JSON.stringify({}),
       });
-      const response = await route.POST(req);
+      const response = await POST(req);
 
       expect([400, 401, 403, 500]).toContain(response.status);
     });

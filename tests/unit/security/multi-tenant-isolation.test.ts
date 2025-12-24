@@ -9,15 +9,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock mongoose for testing
-vi.mock('mongoose', () => ({
-  Types: {
-    ObjectId: {
-      isValid: (id: string) => /^[a-f\d]{24}$/i.test(id),
-    },
-  },
-}));
-
 // Mock org-scope module
 const mockBuildOrgFilter = vi.fn();
 const mockValidateOrgAccess = vi.fn();

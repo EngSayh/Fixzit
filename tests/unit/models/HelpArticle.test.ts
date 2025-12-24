@@ -19,7 +19,27 @@ import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIso
 // Model will be imported AFTER mongoose connection is ready
 let HelpArticle: mongoose.Model<any>;
 
+/**
+ * Wait for mongoose connection to be ready (max 30s).
+ * This handles timing issues when vitest.setup.ts beforeAll
+ * connects mongoose but the test's beforeEach runs before it completes.
+ */
+async function waitForMongoConnection(maxWaitMs = 30000): Promise<void> {
+  const start = Date.now();
+  while (mongoose.connection.readyState !== 1) {
+    if (Date.now() - start > maxWaitMs) {
+      throw new Error(
+        `Mongoose not connected after ${maxWaitMs}ms - readyState: ${mongoose.connection.readyState}`
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
+
 beforeEach(async () => {
+  // Wait for mongoose connection from vitest.setup.ts beforeAll
+  await waitForMongoConnection();
+  
   // Clear tenant context
   await mongoose.connection.dropDatabase();
   
@@ -30,11 +50,6 @@ beforeEach(async () => {
   
   // Clear Vitest module cache
   vi.resetModules();
-  
-  // Verify mongoose is connected
-  if (mongoose.connection.readyState !== 1) {
-    throw new Error('Mongoose not connected - HelpArticle tests require active connection');
-  }
   
   // Import model AFTER connection is ready
   const helpArticleModule = await import('@/server/models/HelpArticle');

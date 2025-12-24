@@ -34,7 +34,7 @@ const sharedProjectConfig = {
   },
   server: {
     deps: {
-      inline: ["next-auth", "next"],
+      inline: ["next-auth", "next", "ai"],
     },
   },
 };
@@ -100,7 +100,18 @@ export default defineConfig({
           ...sharedProjectConfig,
           name: "server",
           environment: "node",
-          pool: "threads",
+          // Use forks instead of threads for complete process isolation (fixes mock contamination)
+          pool: "forks",
+          // Enable module isolation to prevent mock contamination between test files
+          isolate: true,
+          // Use single fork to prevent flaky tests from module cache contamination
+          // TODO: Convert all test files to static imports (TESTING_STRATEGY.md pattern)
+          // then enable parallel forks for faster CI runs
+          poolOptions: {
+            forks: {
+              singleFork: true,
+            },
+          },
           include: [
             "**/server/**/*.test.{ts,tsx}",
             "**/server/**/*.spec.{ts,tsx}",

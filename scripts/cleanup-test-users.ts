@@ -5,6 +5,8 @@
 import { db } from "../lib/mongo";
 import { User } from "../server/models/User";
 
+const TEST_ORG_ID = process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID;
+
 async function cleanup() {
   try {
     await db;
@@ -16,10 +18,13 @@ async function cleanup() {
     });
 
     // Delete by orgId with null employeeId (old test users)
-    const result2 = await User.deleteMany({
-      orgId: "68dc8955a1ba6ed80ff372dc",
-      employeeId: null,
-    });
+    let result2 = { deletedCount: 0 };
+    if (TEST_ORG_ID) {
+      result2 = await User.deleteMany({
+        orgId: TEST_ORG_ID,
+        employeeId: null,
+      });
+    }
 
     console.log(
       `✅ Deleted ${result1.deletedCount + result2.deletedCount} test users`,

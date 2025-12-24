@@ -1,6 +1,6 @@
 import "dotenv/config";
 import "tsx/esm";
-import { embedText } from "@/ai/embeddings";
+import { embedText } from "@/lib/ai-embeddings/embeddings";
 import { chunkText } from "@/kb/chunk";
 import { getDatabase, disconnectFromDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";

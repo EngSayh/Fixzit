@@ -16,17 +16,27 @@ import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIso
 // Model will be imported AFTER mongoose connection is ready
 let Asset: mongoose.Model<any>;
 
+/**
+ * Wait for mongoose connection to be ready (max 30s).
+ */
+async function waitForMongoConnection(maxWaitMs = 30000): Promise<void> {
+  const start = Date.now();
+  while (mongoose.connection.readyState !== 1) {
+    if (Date.now() - start > maxWaitMs) {
+      throw new Error(
+        `Mongoose not connected after ${maxWaitMs}ms - readyState: ${mongoose.connection.readyState}`
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
+
 beforeEach(async () => {
+  // Wait for mongoose connection from vitest.setup.ts beforeAll
+  await waitForMongoConnection();
+  
   // Clear tenant context first
   clearTenantContext();
-  
-  // CRITICAL: Mongoose models must be cleared AND reimported for each test
-  // to ensure fresh schema compilation with plugins applied to connected instance
-  
-  // 1. Verify mongoose is connected (from vitest.setup.ts beforeAll)
-  if (mongoose.connection.readyState !== 1) {
-    throw new Error('Mongoose not connected - tests/unit/models require active connection');
-  }
   
   await mongoose.connection.dropDatabase();
   

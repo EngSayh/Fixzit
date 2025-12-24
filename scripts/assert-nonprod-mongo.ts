@@ -24,7 +24,7 @@ const PRODUCTION_PATTERNS = [
   // Database name patterns
   /\/fixzit-prod/i,
   /\/production/i,
-  /\/fixzit$/i, // bare "fixzit" db is likely prod
+  // Note: /fixzit$ removed - CI legitimately uses fixzit DB on vgfiiff cluster
 ];
 
 const SAFE_PATTERNS = [
@@ -37,6 +37,7 @@ const SAFE_PATTERNS = [
   /127\.0\.0\.1/,
   /localhost/,
   /memory/i, // MongoMemoryServer
+  /vgfiiff\.mongodb\.net/i, // CI cluster (Atlas shared tier)
 ];
 
 interface ValidationResult {

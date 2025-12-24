@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from "vitest";
 
-// Mock dependencies before importing the module
-vi.mock("@/lib/db", () => ({
-  connectDB: vi.fn().mockResolvedValue(undefined),
+// Do NOT mock mongoose globally - it conflicts with MongoMemoryServer in vitest.setup.ts
+// Only mock specific services and utilities
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -18,22 +20,6 @@ vi.mock("@/services/souq/settlements/escrow-service", () => ({
     createEscrowAccount: vi.fn(),
   },
 }));
-
-// We need to mock mongoose to avoid actual DB connections
-vi.mock("mongoose", async () => {
-  const actual = await vi.importActual("mongoose");
-  return {
-    ...actual,
-    // We'll use actual mongoose types but mock connections
-    default: {
-      ...(actual as { default: object }).default,
-      connect: vi.fn(),
-      connection: {
-        readyState: 1,
-      },
-    },
-  };
-});
 
 describe("AqarBooking Model - Availability & Escrow Tests", () => {
   // Store references to mocked modules

@@ -11,9 +11,19 @@
  * 
  * Framework: Vitest (NOT Jest)
  * API Alignment: Matches lib/audit.ts exports and signatures
+ * 
+ * Uses mutable module-scope variables for Vitest forks isolation compatibility.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// ============= MUTABLE TEST CONTEXT =============
+// Track mock calls via module-scope arrays (survives vi.clearAllMocks)
+let loggerErrorCalls: unknown[][] = [];
+let loggerWarnCalls: unknown[][] = [];
+let loggerInfoCalls: unknown[][] = [];
+let auditLogModelLogCalls: unknown[][] = [];
+let auditLogModelLogResult: unknown = undefined;
 
 // Mock Sentry to prevent real error reporting during tests
 vi.mock('@sentry/nextjs', () => ({
@@ -21,19 +31,22 @@ vi.mock('@sentry/nextjs', () => ({
   captureMessage: vi.fn(),
 }));
 
-// Mock logger - define inline to avoid hoisting issues
+// Mock logger with call tracking
 vi.mock('@/lib/logger', () => ({
   logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: vi.fn(),
+    error: vi.fn((...args: unknown[]) => { loggerErrorCalls.push(args); }),
+    warn: vi.fn((...args: unknown[]) => { loggerWarnCalls.push(args); }),
+    info: vi.fn((...args: unknown[]) => { loggerInfoCalls.push(args); }),
   },
 }));
 
-// Mock AuditLogModel - define inline to avoid hoisting issues
+// Mock AuditLogModel with call tracking
 vi.mock('@/server/models/AuditLog', () => ({
   AuditLogModel: {
-    log: vi.fn().mockResolvedValue(undefined),
+    log: vi.fn(async (...args: unknown[]) => { 
+      auditLogModelLogCalls.push(args);
+      return auditLogModelLogResult;
+    }),
   },
 }));
 
@@ -43,13 +56,73 @@ import type { AuditEvent } from '@/lib/audit';
 import { logger } from '@/lib/logger';
 import { AuditLogModel } from '@/server/models/AuditLog';
 
-// Get mock references
+// ============= MOCK REFERENCES FOR ASSERTIONS =============
+// vi.mocked() creates references that work with Vitest's spy assertions
 const mockLogger = vi.mocked(logger);
 const mockAuditLogModel = vi.mocked(AuditLogModel);
+
+// ============= HELPER FUNCTIONS FOR ASSERTIONS =============
+// These provide readable assertions using the call tracking arrays
+
+function expectLoggerErrorCalledWith(containsString: string) {
+  const found = loggerErrorCalls.some(call => 
+    typeof call[0] === 'string' && call[0].includes(containsString)
+  );
+  expect(found).toBe(true);
+}
+
+function expectLoggerErrorNotCalledWith(containsString: string) {
+  const found = loggerErrorCalls.some(call => 
+    typeof call[0] === 'string' && call[0].includes(containsString)
+  );
+  expect(found).toBe(false);
+}
+
+function expectLoggerErrorNotCalled() {
+  expect(loggerErrorCalls.length).toBe(0);
+}
+
+function expectLoggerInfoCalled() {
+  expect(loggerInfoCalls.length).toBeGreaterThan(0);
+}
+
+function expectLoggerInfoCalledWith(matcher: (args: unknown[]) => boolean) {
+  const found = loggerInfoCalls.some(matcher);
+  expect(found).toBe(true);
+}
+
+function expectAuditLogModelLogCalled() {
+  expect(auditLogModelLogCalls.length).toBeGreaterThan(0);
+}
+
+function expectAuditLogModelLogNotCalled() {
+  expect(auditLogModelLogCalls.length).toBe(0);
+}
+
+function expectAuditLogModelLogCalledWith(matcher: (arg: unknown) => boolean) {
+  const found = auditLogModelLogCalls.some(call => matcher(call[0]));
+  expect(found).toBe(true);
+}
+
+function getAuditLogModelLogCalls() {
+  return auditLogModelLogCalls.map(call => call[0]);
+}
 
 describe('lib/audit.ts - AUDIT-001: orgId Enforcement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset call tracking arrays
+    loggerErrorCalls = [];
+    loggerWarnCalls = [];
+    loggerInfoCalls = [];
+    auditLogModelLogCalls = [];
+    auditLogModelLogResult = undefined;
+    // Reset call tracking arrays
+    loggerErrorCalls = [];
+    loggerWarnCalls = [];
+    loggerInfoCalls = [];
+    auditLogModelLogCalls = [];
+    auditLogModelLogResult = undefined;
   });
 
   it('should reject audit event with missing orgId', async () => {
@@ -65,13 +138,13 @@ describe('lib/audit.ts - AUDIT-001: orgId Enforcement', () => {
     await audit(event);
 
     // Should log critical error and skip audit
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
-      expect.any(Object)
-    );
+    expect(loggerErrorCalls.length).toBeGreaterThan(0);
+    expect(loggerErrorCalls.some(call => 
+      typeof call[0] === 'string' && call[0].includes('[AUDIT] CRITICAL: orgId missing')
+    )).toBe(true);
     
     // Should NOT call database
-    expect(mockAuditLogModel.log).not.toHaveBeenCalled();
+    expect(auditLogModelLogCalls.length).toBe(0);
   });
 
   it('should reject audit event with empty string orgId', async () => {
@@ -86,11 +159,11 @@ describe('lib/audit.ts - AUDIT-001: orgId Enforcement', () => {
 
     await audit(event);
 
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
-      expect.any(Object)
-    );
-    expect(mockAuditLogModel.log).not.toHaveBeenCalled();
+    expect(loggerErrorCalls.length).toBeGreaterThan(0);
+    expect(loggerErrorCalls.some(call => 
+      typeof call[0] === 'string' && call[0].includes('[AUDIT] CRITICAL: orgId missing')
+    )).toBe(true);
+    expect(auditLogModelLogCalls.length).toBe(0);
   });
 
   it('should reject audit event with whitespace-only orgId', async () => {
@@ -105,11 +178,11 @@ describe('lib/audit.ts - AUDIT-001: orgId Enforcement', () => {
 
     await audit(event);
 
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
-      expect.any(Object)
-    );
-    expect(mockAuditLogModel.log).not.toHaveBeenCalled();
+    expect(loggerErrorCalls.length).toBeGreaterThan(0);
+    expect(loggerErrorCalls.some(call => 
+      typeof call[0] === 'string' && call[0].includes('[AUDIT] CRITICAL: orgId missing')
+    )).toBe(true);
+    expect(auditLogModelLogCalls.length).toBe(0);
   });
 
   it('should accept audit event with valid orgId', async () => {
@@ -131,13 +204,20 @@ describe('lib/audit.ts - AUDIT-001: orgId Enforcement', () => {
     );
     
     // Should call database with valid event
-    expect(mockAuditLogModel.log).toHaveBeenCalled();
+    expectAuditLogModelLogCalled();
   });
 });
 
 describe('lib/audit.ts - AUDIT-002: Action Mapping', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset call tracking arrays
+    loggerErrorCalls = [];
+    loggerWarnCalls = [];
+    loggerInfoCalls = [];
+    auditLogModelLogCalls = [];
+    auditLogModelLogResult = undefined;
+    // vi.resetModules(); // Disabled for forks compatibility
   });
 
   it('should map user.create to CREATE action', async () => {
@@ -277,6 +357,13 @@ describe('lib/audit.ts - AUDIT-002: Action Mapping', () => {
 describe('lib/audit.ts - AUDIT-003: Entity Type Mapping', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset call tracking arrays
+    loggerErrorCalls = [];
+    loggerWarnCalls = [];
+    loggerInfoCalls = [];
+    auditLogModelLogCalls = [];
+    auditLogModelLogResult = undefined;
+    // vi.resetModules(); // Disabled for forks compatibility
   });
 
   it('should map user targetType to USER enum', async () => {
@@ -341,6 +428,13 @@ describe('lib/audit.ts - AUDIT-003: Entity Type Mapping', () => {
 describe('lib/audit.ts - AUDIT-004: PII Redaction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset call tracking arrays
+    loggerErrorCalls = [];
+    loggerWarnCalls = [];
+    loggerInfoCalls = [];
+    auditLogModelLogCalls = [];
+    auditLogModelLogResult = undefined;
+    // vi.resetModules(); // Disabled for forks compatibility
   });
 
   it('should redact email addresses in metadata', async () => {
@@ -461,6 +555,13 @@ describe('lib/audit.ts - AUDIT-004: PII Redaction', () => {
 describe('lib/audit.ts - AUDIT-005: Success Default', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset call tracking arrays
+    loggerErrorCalls = [];
+    loggerWarnCalls = [];
+    loggerInfoCalls = [];
+    auditLogModelLogCalls = [];
+    auditLogModelLogResult = undefined;
+    // vi.resetModules(); // Disabled for forks compatibility
   });
 
   it('should default success to true when not provided and no error/failure indicator', async () => {
@@ -552,6 +653,13 @@ describe('lib/audit.ts - AUDIT-005: Success Default', () => {
 describe('lib/audit.ts - AUDIT-004: PII redaction in logger output', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset call tracking arrays
+    loggerErrorCalls = [];
+    loggerWarnCalls = [];
+    loggerInfoCalls = [];
+    auditLogModelLogCalls = [];
+    auditLogModelLogResult = undefined;
+    // vi.resetModules(); // Disabled for forks compatibility
   });
 
   it('should log redacted actorEmail/target and redacted meta to logger.info', async () => {
@@ -588,6 +696,13 @@ describe('lib/audit.ts - AUDIT-004: PII redaction in logger output', () => {
 describe('lib/audit.ts - AUDIT-006: Helper Function orgId Enforcement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset call tracking arrays
+    loggerErrorCalls = [];
+    loggerWarnCalls = [];
+    loggerInfoCalls = [];
+    auditLogModelLogCalls = [];
+    auditLogModelLogResult = undefined;
+    // vi.resetModules(); // Disabled for forks compatibility
   });
 
   it('should reject auditSuperAdminAction with missing orgId', async () => {
@@ -604,7 +719,7 @@ describe('lib/audit.ts - AUDIT-006: Helper Function orgId Enforcement', () => {
       expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
       expect.any(Object)
     );
-    expect(mockAuditLogModel.log).not.toHaveBeenCalled();
+    expectAuditLogModelLogNotCalled();
   });
 
   it('should accept auditSuperAdminAction with valid orgId', async () => {
@@ -622,7 +737,7 @@ describe('lib/audit.ts - AUDIT-006: Helper Function orgId Enforcement', () => {
       expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
       expect.any(Object)
     );
-    expect(mockAuditLogModel.log).toHaveBeenCalled();
+    expectAuditLogModelLogCalled();
   });
 
   it('should reject auditImpersonation with missing orgId', async () => {
@@ -639,7 +754,7 @@ describe('lib/audit.ts - AUDIT-006: Helper Function orgId Enforcement', () => {
       expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
       expect.any(Object)
     );
-    expect(mockAuditLogModel.log).not.toHaveBeenCalled();
+    expectAuditLogModelLogNotCalled();
   });
 
   it('should accept auditImpersonation with valid orgId', async () => {
@@ -657,13 +772,20 @@ describe('lib/audit.ts - AUDIT-006: Helper Function orgId Enforcement', () => {
       expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
       expect.any(Object)
     );
-    expect(mockAuditLogModel.log).toHaveBeenCalled();
+    expectAuditLogModelLogCalled();
   });
 });
 
 describe('lib/audit.ts - Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset call tracking arrays
+    loggerErrorCalls = [];
+    loggerWarnCalls = [];
+    loggerInfoCalls = [];
+    auditLogModelLogCalls = [];
+    auditLogModelLogResult = undefined;
+    // vi.resetModules(); // Disabled for forks compatibility
   });
 
   it('should handle complete audit flow with all fixes applied', async () => {
@@ -684,7 +806,7 @@ describe('lib/audit.ts - Integration Tests', () => {
     await audit(event);
 
     // All validations passed
-    expect(mockLogger.error).not.toHaveBeenCalled();
+    expectLoggerErrorNotCalled();
     expect(mockAuditLogModel.log).toHaveBeenCalledWith(
       expect.objectContaining({
         orgId: 'org-abc-123',
@@ -717,6 +839,6 @@ describe('lib/audit.ts - Integration Tests', () => {
       expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
       expect.any(Object)
     );
-    expect(mockAuditLogModel.log).not.toHaveBeenCalled();
+    expectAuditLogModelLogNotCalled();
   });
 });

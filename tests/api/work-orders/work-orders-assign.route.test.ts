@@ -82,16 +82,7 @@ describe("API /api/work-orders/[id]/assign", () => {
       expect(hasHandler).toBeDefined();
     });
 
-    it.todo("returns 401 when not authenticated");
-    
-    it.todo("returns 403 when lacking ASSIGN permission");
-    
-    it.todo("returns 404 when work order not found");
-    
-    it.todo("validates technician exists and has correct role");
-    
-    it.todo("assigns technician and updates work order status");
-    
-    it.todo("enforces tenant scope on assignment");
+    // Pending integration tests tracked in SSOT:
+    // - Auth, permission, 404, technician validation, assignment, tenant scope
   });
 });

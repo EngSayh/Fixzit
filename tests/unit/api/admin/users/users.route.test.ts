@@ -1,8 +1,12 @@
 /**
  * @fileoverview Tests for GET/POST /api/admin/users
  * @description SUPER_ADMIN user management - list and create users
+ * 
+ * NOTE: This test uses vi.mock("mongoose") because the route defines
+ * the User model inline using mongoose.model(). This is safe in unit/
+ * tests as they don't interact with MongoMemoryServer from vitest.setup.ts.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from "vitest";
 import { NextRequest } from "next/server";
 import { ObjectId } from "mongodb";
 
@@ -23,8 +27,18 @@ vi.mock("@/lib/mongo", () => ({
   connectDb: vi.fn(async () => undefined),
 }));
 
-// Mock mongoose models
-const mockFind = vi.fn(() => ({
+// Mock mongoose - required because route uses mongoose.model() inline
+const mockFind = vi.fn();
+const mockCountDocuments = vi.fn(async () => mockUsers.length);
+const mockFindOneLean = vi.fn(async () => mockExistingUser);
+const mockFindOne = vi.fn(() => ({ lean: mockFindOneLean }));
+const mockCreate = vi.fn(async (data: Record<string, unknown>) => ({
+  ...data,
+  _id: new ObjectId(),
+}));
+
+// Set up chainable find mock
+mockFind.mockImplementation(() => ({
   select: vi.fn(() => ({
     sort: vi.fn(() => ({
       limit: vi.fn(() => ({
@@ -34,13 +48,6 @@ const mockFind = vi.fn(() => ({
       })),
     })),
   })),
-}));
-const mockCountDocuments = vi.fn(async () => mockUsers.length);
-const mockFindOneLean = vi.fn(async () => mockExistingUser);
-const mockFindOne = vi.fn(() => ({ lean: mockFindOneLean }));
-const mockCreate = vi.fn(async (data: Record<string, unknown>) => ({
-  ...data,
-  _id: new ObjectId(),
 }));
 
 vi.mock("mongoose", () => ({
@@ -340,5 +347,11 @@ describe("POST /api/admin/users", () => {
       const createArg = mockCreate.mock.calls[0][0];
       expect(createArg.orgId).toBe(ORG_ID);
     });
+  });
+  
+  // Restore mongoose mock after tests to prevent contamination
+  afterAll(() => {
+    vi.doUnmock("mongoose");
+    vi.resetModules();
   });
 });

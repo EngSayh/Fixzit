@@ -243,7 +243,12 @@ const sourceFiles = glob.sync(SRC_GLOB, {
     'e2e-test-results/**',
     'playwright-report/**',
     '**/*.test.*',
-    '**/*.spec.*'
+    '**/*.spec.*',
+    // Error boundaries use inline text intentionally - translation context may have crashed
+    '**/error.tsx',
+    '**/global-error.tsx',
+    '**/*ErrorBoundary.tsx',
+    '**/*ErrorBoundary.jsx'
   ]
 });
 

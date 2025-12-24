@@ -38,7 +38,11 @@ if (process.env.ALLOW_SEED !== '1') {
 
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 
-const TEST_ORG_ID = process.env.TEST_ORG_ID || '68dc8955a1ba6ed80ff372dc';
+const TEST_ORG_ID = process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID;
+if (!TEST_ORG_ID) {
+  console.error('❌ TEST_ORG_ID or DEFAULT_ORG_ID must be set');
+  process.exit(1);
+}
 const SEED_USER_ID = new Types.ObjectId('000000000000000000000001');
 const orgObjectId = Types.ObjectId.isValid(TEST_ORG_ID)
   ? new Types.ObjectId(TEST_ORG_ID)
