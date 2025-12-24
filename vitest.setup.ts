@@ -594,8 +594,9 @@ beforeAll(async () => {
     process.env.MONGODB_URI = mongoUri;
     process.env.MONGODB_DB = "fixzit-test";
     // Ensure previous connections are closed before connecting
+    // Use realDisconnect to bypass the suppression wrapper (since this IS the setup)
     if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
+      await realDisconnect();
     }
     await mongoose.connect(mongoUri, {
       autoCreate: true,
