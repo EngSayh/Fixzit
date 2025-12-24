@@ -1,6 +1,18 @@
+/**
+ * @fileoverview Tests for /api/filters/presets/[id] route
+ * 
+ * Pattern: Static imports with mutable context variables (per TESTING_STRATEGY.md)
+ */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
+// === Mutable state for mocks ===
+type MockSession = { id: string; orgId: string | undefined; role: string } | null;
+let mockSession: MockSession = null;
+let mockSessionThrows = false;
+let mockFilterPresetResult: unknown = null;
+
+// Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
@@ -9,31 +21,33 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock with inline class definition (vi.mock is hoisted)
+// Mock auth with mutable state
 vi.mock("@/server/middleware/withAuthRbac", () => {
   class UnauthorizedError extends Error {
     name = "UnauthorizedError";
   }
   return {
-    getSessionUser: vi.fn(),
+    getSessionUser: vi.fn(async () => {
+      if (mockSessionThrows) throw new UnauthorizedError("unauth");
+      return mockSession;
+    }),
     UnauthorizedError,
   };
 });
 
+// Mock FilterPreset with mutable state
 vi.mock("@/server/models/common/FilterPreset", () => ({
   FilterPreset: {
-    findOneAndDelete: vi.fn(),
+    findOneAndDelete: vi.fn(async () => mockFilterPresetResult),
   },
 }));
 
-// Static imports AFTER mocks are defined (mocks hoist automatically)
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
+// Static imports AFTER mocks are defined
 import { FilterPreset } from "@/server/models/common/FilterPreset";
 import { DELETE } from "@/app/api/filters/presets/[id]/route";
 
 describe("API /api/filters/presets/:id", () => {
-  const mockSession = {
+  const defaultSession = {
     id: "user_123",
     orgId: "org_abc",
     role: "ADMIN",
@@ -41,13 +55,15 @@ describe("API /api/filters/presets/:id", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
-    vi.mocked(getSessionUser).mockResolvedValue(mockSession as never);
+    // Reset mutable state
+    mockSession = defaultSession;
+    mockSessionThrows = false;
+    mockFilterPresetResult = null;
   });
 
   describe("DELETE", () => {
     it("returns 401 when unauthenticated", async () => {
-      vi.mocked(getSessionUser).mockRejectedValue(new UnauthorizedError("unauth"));
+      mockSessionThrows = true;
 
       const req = new NextRequest("http://localhost:3000/api/filters/presets/1", {
         method: "DELETE",
@@ -58,10 +74,7 @@ describe("API /api/filters/presets/:id", () => {
     });
 
     it("returns 403 when orgId is missing", async () => {
-      vi.mocked(getSessionUser).mockResolvedValue({
-        id: "user_123",
-        orgId: undefined,
-      } as never);
+      mockSession = { id: "user_123", orgId: undefined, role: "ADMIN" };
 
       const req = new NextRequest("http://localhost:3000/api/filters/presets/1", {
         method: "DELETE",
@@ -72,7 +85,7 @@ describe("API /api/filters/presets/:id", () => {
     });
 
     it("returns 404 when preset not found", async () => {
-      vi.mocked(FilterPreset.findOneAndDelete).mockResolvedValue(null as never);
+      mockFilterPresetResult = null;
 
       const req = new NextRequest("http://localhost:3000/api/filters/presets/1", {
         method: "DELETE",
@@ -88,9 +101,7 @@ describe("API /api/filters/presets/:id", () => {
     });
 
     it("deletes preset with tenant + user scope", async () => {
-      vi.mocked(FilterPreset.findOneAndDelete).mockResolvedValue({
-        entity_type: "work_orders",
-      } as never);
+      mockFilterPresetResult = { entity_type: "work_orders" };
 
       const req = new NextRequest("http://localhost:3000/api/filters/presets/1", {
         method: "DELETE",
