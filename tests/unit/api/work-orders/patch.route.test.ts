@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
 import { NextResponse } from 'next/server';
 
-// Mock dependencies
+// Mock dependencies BEFORE any imports
 vi.mock('@/lib/mongodb-unified', () => ({
   connectToDatabase: vi.fn(),
   getDatabase: vi.fn(),
@@ -39,12 +39,17 @@ vi.mock('@/lib/logger', () => ({
   },
 }));
 
-import { PATCH } from '@/app/api/work-orders/[id]/route';
 import { WorkOrder } from '@/server/models/WorkOrder';
 import { requireAbility } from '@/server/middleware/withAuthRbac';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { deleteObject } from '@/lib/storage/s3';
 import { logger } from '@/lib/logger';
+
+// Dynamic import for route to ensure mocks are applied correctly in CI shards
+async function importRoute() {
+  const mod = await import('@/app/api/work-orders/[id]/route');
+  return { PATCH: mod.PATCH };
+}
 
 describe('PATCH /api/work-orders/[id]', () => {
   const mockUser = {
@@ -93,6 +98,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         propertyId: '507f1f77bcf86cd799439012',
       });
 
+      const { PATCH } = await importRoute();
       const res = await PATCH(req, {
         params: { id: '' },
       });
@@ -116,6 +122,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         propertyId: '507f1f77bcf86cd799439012',
       });
 
+      const { PATCH } = await importRoute();
       const res = await PATCH(req, {
         params: { id: '' },
       });
@@ -141,6 +148,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         unitNumber: '3B',
       });
 
+      const { PATCH } = await importRoute();
       const res = await PATCH(req, {
         params: { id: '' },
       });
@@ -169,6 +177,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         },
       });
 
+      const { PATCH } = await importRoute();
       const res = await PATCH(req, {
         params: { id: '' },
       });
@@ -193,6 +202,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         },
       });
 
+      const { PATCH } = await importRoute();
       const res = await PATCH(req, {
         params: { id: '' },
       });
@@ -212,6 +222,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         priority: 'CRITICAL',
       });
 
+      const { PATCH } = await importRoute();
       const res = await PATCH(req, {
         params: { id: '' },
       });
@@ -229,6 +240,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         dueAt: customDue.toISOString(),
       });
 
+      const { PATCH } = await importRoute();
       const res = await PATCH(req, {
         params: { id: '' },
       });
@@ -258,6 +270,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         attachments: [{ key: 'new-1.jpg', url: 'https://s3/new-1.jpg' }],
       });
 
+      const { PATCH } = await importRoute();
       const res = await PATCH(req, {
         params: { id: '' },
       });
@@ -300,6 +313,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         attachments: [{ key: 'keep-me.jpg', url: 'https://s3/keep.jpg' }],
       });
 
+      const { PATCH } = await importRoute();
       const res = await PATCH(req, {
         params: { id: '' },
       });
@@ -332,6 +346,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         },
       });
 
+      const { PATCH } = await importRoute();
       const res = await PATCH(req, {
         params: { id: '' },
       });
