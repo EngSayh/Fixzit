@@ -77,7 +77,11 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 const mockGetSessionUser = vi.mocked(getSessionUser);
 const mockRateLimit = vi.mocked(enforceRateLimit);
 
-const importRoute = async () => import("@/app/api/finance/ledger/route");
+// Dynamic import with resetModules to ensure fresh module per test run (prevents CI shard mock contamination)
+const importRoute = async () => {
+  vi.resetModules();
+  return import("@/app/api/finance/ledger/route");
+};
 
 function createRequest(
   method: string,
