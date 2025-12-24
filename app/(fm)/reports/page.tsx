@@ -68,14 +68,14 @@ export default function Reports() {
 
   const downloadReport = () => {
     toast.info(
-      t("reports.toast.newReportComingSoon", "New Report feature coming soon"),
+      t("reports.toast.featureInProgress", "New Report feature coming soon"),
     );
   };
 
   const handleRowAction = (row: ReportRow) => {
     if (row.disableActions) return;
     toast.info(
-      t("reports.toast.newReportComingSoon", "New Report feature coming soon"),
+      t("reports.toast.featureInProgress", "New Report feature coming soon"),
     );
   };
 
