@@ -1,18 +1,33 @@
 /**
  * @fileoverview Tests for /api/souq/fulfillment/rates routes
  * Tests shipping rate comparison functionality
+ * 
+ * Uses mutable module-scope variables for Vitest forks isolation compatibility.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import type { SessionUser } from "@/types/auth";
+
+// ============= MUTABLE TEST CONTEXT =============
+// These module-scope variables are read by mock factories at call time.
+// Tests set these values BEFORE calling route handlers.
 
 let sessionUser: SessionUser | null = null;
+let mockRateLimitResponse: Response | null = null;
+let mockRatesResult: Array<{
+  carrier: string;
+  serviceType: string;
+  cost: number;
+  estimatedDays: number;
+}> = [];
 
-// Mock rate limiting
+// ============= MOCK DEFINITIONS =============
+// Mock factories read from mutable variables via closures.
+
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: vi.fn(() => mockRateLimitResponse),
 }));
 
-// Mock authentication
 vi.mock("@/lib/auth/getServerSession", () => ({
   getServerSession: vi.fn(async () => {
     if (!sessionUser) return null;
@@ -20,7 +35,6 @@ vi.mock("@/lib/auth/getServerSession", () => ({
   }),
 }));
 
-// Mock logger
 vi.mock("@/lib/logger", () => ({
   logger: {
     info: vi.fn(),
@@ -29,18 +43,15 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-// Mock fulfillment service
 vi.mock("@/services/souq/fulfillment-service", () => ({
   fulfillmentService: {
-    getRates: vi.fn(),
+    getRates: vi.fn(async () => mockRatesResult),
     generateLabel: vi.fn(),
   },
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { fulfillmentService } from "@/services/souq/fulfillment-service";
+// Static imports AFTER vi.mock() declarations
 import { POST } from "@/app/api/souq/fulfillment/rates/route";
-import type { SessionUser } from "@/types/auth";
 
 describe("API /api/souq/fulfillment/rates", () => {
   const mockOrgId = "org_123456789";
@@ -55,10 +66,11 @@ describe("API /api/souq/fulfillment/rates", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    
+    // Reset mutable context to defaults
+    mockRateLimitResponse = null; // null = rate limit passes
     sessionUser = mockUser;
-    // Mock must match IRate interface: { carrier, serviceType, cost, estimatedDays }
-    vi.mocked(fulfillmentService.getRates).mockResolvedValue([
+    mockRatesResult = [
       {
         carrier: "SMSA",
         serviceType: "standard",
@@ -71,7 +83,7 @@ describe("API /api/souq/fulfillment/rates", () => {
         cost: 45.0,
         estimatedDays: 1,
       },
-    ]);
+    ];
   });
 
   describe("POST /api/souq/fulfillment/rates", () => {
@@ -149,10 +161,10 @@ describe("API /api/souq/fulfillment/rates", () => {
     });
 
     it("should enforce rate limiting", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Too many requests" }), {
-          status: 429,
-        }) as unknown as null
+      // Set mutable context to return rate limit response
+      mockRateLimitResponse = new Response(
+        JSON.stringify({ error: "Too many requests" }),
+        { status: 429 }
       );
 
       const request = new NextRequest(
