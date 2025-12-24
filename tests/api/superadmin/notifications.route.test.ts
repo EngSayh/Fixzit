@@ -39,6 +39,7 @@ const mockGetDatabase = vi.mocked(getDatabase);
 describe('GET /api/superadmin/notifications/history', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it('returns 401 when not authenticated', async () => {
@@ -95,6 +96,7 @@ describe('GET /api/superadmin/notifications/history', () => {
 describe('GET /api/superadmin/notifications/config', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it('returns 401 when not authenticated', async () => {
@@ -134,6 +136,7 @@ describe('GET /api/superadmin/notifications/config', () => {
 describe('POST /api/superadmin/notifications/send', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it('returns 401 when not authenticated', async () => {
@@ -174,6 +177,7 @@ describe('POST /api/superadmin/notifications/send', () => {
 describe('POST /api/superadmin/notifications/test', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it('returns 401 when not authenticated', async () => {

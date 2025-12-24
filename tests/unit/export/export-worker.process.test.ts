@@ -1,7 +1,19 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 import { processExportJob } from "@/jobs/export-worker";
 
 const saveMock = vi.fn();
+
+// Store original env and set mock REDIS_URL for CI check
+const originalEnv = { ...process.env };
+
+beforeAll(() => {
+  // Set mock REDIS_URL to bypass CI Redis check in export-worker
+  process.env.REDIS_URL = "redis://mock-redis:6379";
+});
+
+afterAll(() => {
+  process.env = originalEnv;
+});
 
 vi.mock("@/lib/storage/s3-config", () => ({
   assertS3Configured: vi.fn(() => ({ bucket: "test-bucket" })),

@@ -129,6 +129,8 @@ jobs:
   # TypeScript Check
   typecheck:
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - name: 📦 Checkout
         uses: actions/checkout@v4
@@ -151,6 +153,8 @@ jobs:
   # ESLint Check
   lint:
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - name: 📦 Checkout
         uses: actions/checkout@v4
@@ -172,6 +176,8 @@ jobs:
 
   qa-bundle:
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - name: 📦 Checkout
         uses: actions/checkout@v4

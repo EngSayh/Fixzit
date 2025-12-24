@@ -50,6 +50,7 @@ const mockAuditLogModel = vi.mocked(AuditLogModel);
 describe('lib/audit.ts - AUDIT-001: orgId Enforcement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it('should reject audit event with missing orgId', async () => {
@@ -138,6 +139,7 @@ describe('lib/audit.ts - AUDIT-001: orgId Enforcement', () => {
 describe('lib/audit.ts - AUDIT-002: Action Mapping', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it('should map user.create to CREATE action', async () => {
@@ -277,6 +279,7 @@ describe('lib/audit.ts - AUDIT-002: Action Mapping', () => {
 describe('lib/audit.ts - AUDIT-003: Entity Type Mapping', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it('should map user targetType to USER enum', async () => {
@@ -341,6 +344,7 @@ describe('lib/audit.ts - AUDIT-003: Entity Type Mapping', () => {
 describe('lib/audit.ts - AUDIT-004: PII Redaction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it('should redact email addresses in metadata', async () => {
@@ -461,6 +465,7 @@ describe('lib/audit.ts - AUDIT-004: PII Redaction', () => {
 describe('lib/audit.ts - AUDIT-005: Success Default', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it('should default success to true when not provided and no error/failure indicator', async () => {
@@ -552,6 +557,7 @@ describe('lib/audit.ts - AUDIT-005: Success Default', () => {
 describe('lib/audit.ts - AUDIT-004: PII redaction in logger output', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it('should log redacted actorEmail/target and redacted meta to logger.info', async () => {
@@ -588,6 +594,7 @@ describe('lib/audit.ts - AUDIT-004: PII redaction in logger output', () => {
 describe('lib/audit.ts - AUDIT-006: Helper Function orgId Enforcement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it('should reject auditSuperAdminAction with missing orgId', async () => {
@@ -664,6 +671,7 @@ describe('lib/audit.ts - AUDIT-006: Helper Function orgId Enforcement', () => {
 describe('lib/audit.ts - Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it('should handle complete audit flow with all fixes applied', async () => {
