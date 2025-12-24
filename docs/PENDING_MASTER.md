@@ -2,6 +2,42 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-27 18:55 (Asia/Riyadh) — Defensive orgId Validation Fix
+
+**Agent Token:** [AGENT-001-A]
+**Context:** main | ff66b16ba
+**Session Summary:** Added defensive orgId validation to all Issues API routes to prevent server crashes from invalid session.orgId values.
+**DB Sync:** created=0, updated=0, skipped=0, errors=0 (code hardening only)
+
+### ✅ FIXES APPLIED
+
+| Commit | Fix | Files | Details |
+|--------|-----|-------|---------|
+| ff66b16ba | orgId validation | `app/api/issues/**` | Added mongoose.isValidObjectId() check before ObjectId conversion |
+
+### 📊 Routes Protected
+
+| Error Code | Route | Method |
+|------------|-------|--------|
+| FIXZIT-API-001 | /api/issues | GET |
+| FIXZIT-API-002 | /api/issues | POST |
+| FIXZIT-API-003 | /api/issues/stats | GET |
+| FIXZIT-API-004 | /api/issues/[id] | GET |
+| FIXZIT-API-005 | /api/issues/[id] | PATCH |
+| FIXZIT-API-006 | /api/issues/[id] | DELETE |
+| FIXZIT-API-007 | /api/issues/import | POST |
+
+### 📋 Verification Results
+
+| Gate | Result |
+|------|--------|
+| pnpm typecheck | ✅ 0 errors |
+| pnpm lint | ✅ 0 errors |
+| tests/api/issues | ✅ 4/4 pass |
+| git push | ✅ Synced |
+
+---
+
 ## 📅 2025-12-24 16:10 (Asia/Riyadh) — PR #601 Final Verification Session
 
 **Agent Token:** [AGENT-001-A]
