@@ -7,8 +7,34 @@
  * Import after tokens.css in globals.css
  * 
  * @author Sultan Al Hassni
- * @version 2.0.0
+ * @version 2.1.0
  */
+
+/* ============================================
+   RTL-AWARE CSS CUSTOM PROPERTIES
+   Direction-sensitive values that auto-flip in RTL
+   ============================================ */
+:root {
+  /* Direction multiplier: 1 for LTR, -1 for RTL */
+  --direction-multiplier: 1;
+  
+  /* Small offset for fade animations */
+  --offset-inline-start: -20px;
+  --offset-inline-end: 20px;
+  
+  /* Full offset for slide animations */
+  --slide-inline-start: -100%;
+  --slide-inline-end: 100%;
+}
+
+[dir="rtl"] {
+  /* Flip direction for RTL */
+  --direction-multiplier: -1;
+  --offset-inline-start: 20px;
+  --offset-inline-end: -20px;
+  --slide-inline-start: 100%;
+  --slide-inline-end: -100%;
+}
 
 /* ============================================
    KEYFRAME DEFINITIONS
@@ -43,6 +69,27 @@
 @keyframes fadeInRight {
   from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+/* --- RTL-AWARE FADE ANIMATIONS (use these for RTL compatibility) --- */
+@keyframes fadeInStart {
+  from { opacity: 0; transform: translateX(var(--offset-inline-start)); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeInEnd {
+  from { opacity: 0; transform: translateX(var(--offset-inline-end)); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeOutStart {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(var(--offset-inline-start)); }
+}
+
+@keyframes fadeOutEnd {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(var(--offset-inline-end)); }
 }
 
 @keyframes fadeOutUp {
@@ -81,6 +128,17 @@
   to { transform: translateX(0); opacity: 1; }
 }
 
+/* --- RTL-AWARE SLIDE ANIMATIONS (use these for RTL compatibility) --- */
+@keyframes slideInStart {
+  from { transform: translateX(var(--slide-inline-start)); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInEnd {
+  from { transform: translateX(var(--slide-inline-end)); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 @keyframes slideOutUp {
   from { transform: translateY(0); opacity: 1; }
   to { transform: translateY(-100%); opacity: 0; }
@@ -99,6 +157,17 @@
 @keyframes slideOutRight {
   from { transform: translateX(0); opacity: 1; }
   to { transform: translateX(100%); opacity: 0; }
+}
+
+/* --- RTL-AWARE SLIDE OUT ANIMATIONS --- */
+@keyframes slideOutStart {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(var(--slide-inline-start)); opacity: 0; }
+}
+
+@keyframes slideOutEnd {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(var(--slide-inline-end)); opacity: 0; }
 }
 
 /* --- SCALE ANIMATIONS --- */
@@ -608,6 +677,18 @@
 .animate-slide-out-down { animation: slideOutDown 200ms var(--ease-in) forwards; }
 .animate-slide-out-left { animation: slideOutLeft 200ms var(--ease-in) forwards; }
 .animate-slide-out-right { animation: slideOutRight 200ms var(--ease-in) forwards; }
+
+/* --- RTL-Aware Fade (auto-flips in RTL) --- */
+.animate-fade-in-start { animation: fadeInStart 400ms var(--ease-out) forwards; }
+.animate-fade-in-end { animation: fadeInEnd 400ms var(--ease-out) forwards; }
+.animate-fade-out-start { animation: fadeOutStart 300ms var(--ease-in) forwards; }
+.animate-fade-out-end { animation: fadeOutEnd 300ms var(--ease-in) forwards; }
+
+/* --- RTL-Aware Slide (auto-flips in RTL) --- */
+.animate-slide-in-start { animation: slideInStart 300ms var(--ease-out) forwards; }
+.animate-slide-in-end { animation: slideInEnd 300ms var(--ease-out) forwards; }
+.animate-slide-out-start { animation: slideOutStart 200ms var(--ease-in) forwards; }
+.animate-slide-out-end { animation: slideOutEnd 200ms var(--ease-in) forwards; }
 
 /* --- Scale --- */
 .animate-scale-in { animation: scaleIn 200ms var(--ease-out) forwards; }

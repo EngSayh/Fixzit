@@ -510,6 +510,8 @@
       "pending": "Pending",
       "success": "Operation successful",
       "subtitle": "Manage your notifications",
+      "sms": "SMS",
+      "whatsapp": "WhatsApp",
       "hideHistory": "Hide History",
       "showHistory": "Show History",
       "recipientType": "Recipient Type",
@@ -669,7 +671,18 @@
     "reports": {
       "title": "Dashboard Reports",
       "subtitle": "Manage your reports",
-      "comingSoon": "Coming Soon"
+      "comingSoon": "Coming Soon",
+      "modules": {
+        "standard": "Standard Reports",
+        "standardDesc": "Pre-built reports for common use cases"
+      },
+      "roadmap": {
+        "title": "Roadmap"
+      },
+      "tabs": {
+        "modules": "Modules",
+        "roadmap": "Roadmap"
+      }
     },
     "workOrderHealth": "Work Order Health",
     "finance": {
@@ -679,7 +692,24 @@
         "expenses": "Expenses",
         "budgets": "Budgets",
         "reports": "Reports",
-        "placeholder": "Enter Tabs"
+        "placeholder": "Enter Tabs",
+        "metrics": "Metrics",
+        "modules": "Modules"
+      },
+      "metrics": {
+        "total": "Total"
+      },
+      "modules": {
+        "budgets": "Budgets",
+        "budgetsDesc": "Track and manage budgets",
+        "expenses": "Expenses",
+        "expensesDesc": "Monitor and record expenses",
+        "invoices": "Invoices",
+        "invoicesDesc": "Create and manage invoices",
+        "payments": "Payments",
+        "paymentsDesc": "Process and track payments",
+        "reports": "Reports",
+        "reportsDesc": "Generate financial reports"
       },
       "header": {
         "title": "Dashboard Finance Header",
@@ -736,7 +766,9 @@
       "propertyLocation": "Property Location",
       "locationPlaceholder": "Enter Location",
       "descriptionPlaceholder": "Enter Description",
-      "assignmentScheduling": "Assignment Scheduling"
+      "assignmentScheduling": "Assignment Scheduling",
+      "offlineHint": "You are offline. Work order will be created when connected.",
+      "offlineQueued": "Queued for submission when online"
     },
     "status": {
       "open": "Open",
@@ -766,7 +798,8 @@
       "priority": "Priority"
     },
     "attachments": {
-      "missingUrl": "Attachment URL is missing"
+      "missingUrl": "Attachment URL is missing",
+      "offline": "Attachments unavailable offline"
     },
     "quickActions": "Quick Actions",
     "property": "Property",
@@ -787,6 +820,24 @@
     "recentActivity": "Recent Activity",
     "formAutoSaved": "Form Auto Saved",
     "propertySelected": "Property Selected",
+    "offline": {
+      "banner": "You are working offline",
+      "bannerOnline": "Back online - syncing changes",
+      "error": "Failed to sync offline changes",
+      "lastUpdated": "Last updated {{time}}",
+      "queueDesc": "Changes will sync when online",
+      "queueSummary": "{{count}} items pending",
+      "queued": "Queued",
+      "statusFailed": "Failed",
+      "statusQueued": "Queued",
+      "statusSyncing": "Syncing",
+      "syncCount": "{{count}} synced",
+      "syncFailed": "Sync failed",
+      "syncFailedCount": "{{count}} failed",
+      "syncNow": "Sync Now",
+      "syncSuccess": "Sync complete",
+      "syncing": "Syncing..."
+    },
     "approvals": {
       "title": "Work Orders Approvals",
       "subtitle": "Manage your approvals",
@@ -917,7 +968,15 @@
         "statusAll": "Status All",
         "priority": "Priority",
         "priorityAll": "Priority All",
-        "refresh": "Refresh"
+        "refresh": "Refresh",
+        "description": "Filter by status, priority, and more",
+        "title": "Filters"
+      },
+      "quick": {
+        "completed": "Completed",
+        "highPriority": "High Priority",
+        "inProgress": "In Progress",
+        "submitted": "Submitted"
       },
       "labels": {
         "property": "Property",
@@ -955,6 +1014,16 @@
       "status": "Status"
     },
     "description": "Enter description"
+  },
+  "property": {
+    "labels": {
+      "builtArea": "Built Area",
+      "floors": "Floors",
+      "subtype": "Subtype",
+      "totalArea": "Total Area",
+      "type": "Type",
+      "yearBuilt": "Year Built"
+    }
   },
   "finance": {
     "title": "Finance",
@@ -1218,6 +1287,14 @@
       "utilities": "Utilities",
       "insurance": "Insurance",
       "tracking": "Tracking",
+      "budget": "Budget",
+      "budgetImpact": "Budget Impact",
+      "budgetWarning": "This expense exceeds budget allocation",
+      "receiptFormats": "Supported: PDF, PNG, JPG",
+      "receipts": "Receipts",
+      "spent": "Spent",
+      "uploadReceipts": "Upload Receipts",
+      "used": "Used",
       "dateRequired": "Date Required",
       "vendorRequired": "Vendor Required",
       "descriptionRequired": "Description Required",
@@ -1413,11 +1490,52 @@
     "leave": {
       "title": "Hr Leave",
       "subtitle": "Manage your leave",
+      "heading": "Leave Management",
+      "description": "Manage employee leave requests and approvals",
+      "newRequest": "New Request",
+      "searchPlaceholder": "Search by employee name...",
+      "viewDetails": "View Details",
+      "day": "day",
       "empty": "Empty",
       "start": "Start",
       "end": "End",
       "days": "Days",
       "reason": "Reason",
+      "chips": {
+        "annual": "Annual Leave",
+        "pending": "Pending",
+        "thisMonth": "This Month",
+        "upcoming": "Upcoming"
+      },
+      "columns": {
+        "duration": "Duration",
+        "employee": "Employee",
+        "period": "Period",
+        "requested": "Requested",
+        "status": "Status",
+        "to": "To",
+        "type": "Type"
+      },
+      "empty": {
+        "default": "No leave requests found",
+        "filtered": "No matching requests",
+        "title": "No Leave Requests"
+      },
+      "error": {
+        "title": "Error Loading Leave Requests"
+      },
+      "filters": {
+        "dateRange": "Date Range",
+        "period": "Period",
+        "status": "Status",
+        "title": "Filters",
+        "type": "Type"
+      },
+      "stats": {
+        "approved": "Approved",
+        "pending": "Pending",
+        "totalDays": "Total Days"
+      },
       "approvals": {
         "loadError": "Load failed",
         "approved": "Approved",
@@ -1631,6 +1749,32 @@
       }
     }
   },
+  "issues": {
+    "actions": {
+      "deleteConfirm": "Are you sure you want to delete this issue?",
+      "deleteWarning": "This action cannot be undone. The issue and all associated data will be permanently deleted."
+    },
+    "details": {
+      "title": "Issue Details"
+    },
+    "fields": {
+      "description": "Description",
+      "proposedFix": "Proposed Fix",
+      "rootCause": "Root Cause Analysis",
+      "title": "Title"
+    },
+    "placeholders": {
+      "description": "Describe the issue...",
+      "proposedFix": "How should this be fixed?",
+      "rootCause": "What is causing this issue?",
+      "title": "Issue title"
+    },
+    "tabs": {
+      "activity": "Activity",
+      "comments": "Comments",
+      "details": "Details"
+    }
+  },
   "crm": {
     "title": "Customer Relationship Management",
     "contacts": "Contacts",
@@ -1712,6 +1856,14 @@
       "leadTime": "Lead Time",
       "days": "Days",
       "minOrder": "Min Order",
+      "auth": {
+        "required": {
+          "body": "Please sign in to view your cart",
+          "browse": "Browse Products",
+          "login": "Sign In",
+          "title": "Sign In Required"
+        }
+      },
       "empty": {
         "title": "Marketplace Cart Empty",
         "subtitle": "Manage your cart",
@@ -1722,7 +1874,8 @@
         "subtotal": "Subtotal",
         "vat": "Vat",
         "total": "Total",
-        "checkoutCta": "Checkout Cta"
+        "checkoutCta": "Checkout Cta",
+        "authRequired": "Sign in to checkout"
       },
       "policy": {
         "title": "Marketplace Cart Policy",
@@ -1732,6 +1885,13 @@
     "checkout": {
       "title": "Marketplace Checkout",
       "description": "Enter description",
+      "auth": {
+        "required": {
+          "body": "Please sign in to complete checkout",
+          "login": "Sign In",
+          "title": "Sign In Required"
+        }
+      },
       "breadcrumb": {
         "cart": "Cart",
         "checkout": "Checkout"
@@ -1747,7 +1907,9 @@
       },
       "error": {
         "message": "Message",
-        "cta": "Cta"
+        "cta": "Cta",
+        "body": "An error occurred during checkout",
+        "browse": "Continue Shopping"
       }
     },
     "orders": {
@@ -1904,6 +2066,37 @@
         "submitting": "Submitting",
         "submit": "Submit"
       }
+    },
+    "deals": {
+      "benefit1Description": "Exclusive discounts on facility management supplies",
+      "benefit1Title": "Exclusive Discounts",
+      "benefit2Description": "Access special wholesale pricing",
+      "benefit2Title": "Wholesale Pricing",
+      "benefit3Description": "Priority support for deal inquiries",
+      "benefit3Title": "Priority Support",
+      "benefitsTitle": "Member Benefits",
+      "categories": {
+        "all": "All",
+        "cleaning": "Cleaning",
+        "electrical": "Electrical",
+        "hvac": "HVAC",
+        "security": "Security"
+      },
+      "expiry": "Expires {{date}}",
+      "signIn": "Sign In",
+      "signInSubtitle": "Sign in to access exclusive deals",
+      "signInTitle": "Member Deals",
+      "signInToView": "Sign in to view deals",
+      "signUp": "Sign Up",
+      "subtitle": "Exclusive deals for members",
+      "title": "Deals",
+      "viewDeal": "View Deal"
+    },
+    "recentlyViewed": {
+      "itemFallback": "Product",
+      "signInCta": "Sign in to see your history",
+      "subtitle": "Products you've recently viewed",
+      "title": "Recently Viewed"
     }
   },
   "vendors": {
@@ -1915,6 +2108,7 @@
     "performance": "Performance",
     "payments": "Payments",
     "confirmDelete": "Confirm Delete",
+    "totalVendors": "Total Vendors",
     "toast": {
       "deleting": "Deleting",
       "deleteSuccess": "Delete successful",
@@ -1929,6 +2123,7 @@
       "success": "Operation successful"
     },
     "empty": {
+      "title": "No Vendors Found",
       "description": "Enter description",
       "cta": "Cta"
     }
@@ -2290,8 +2485,15 @@
   },
   "aqar": {
     "search": {
-      "placeholder": "Search properties, projects, agents..."
+      "placeholder": "Search properties, projects, agents...",
+      "loading": "Searching...",
+      "noResults": "No results found",
+      "noResultsDesc": "Try adjusting your search criteria",
+      "results": "Results",
+      "subtitle": "Find your perfect property",
+      "title": "Property Search"
     },
+    "unknown": "Unknown",
     "postProperty": "Post Property",
     "newValuation": "New Valuation",
     "packages": {
@@ -2367,6 +2569,7 @@
     "filters": {
       "title": "Aqar Filters",
       "subtitle": "Manage your filters",
+      "citiesSelected": "{{count}} cities selected",
       "keywords": "Keywords",
       "keywordsPlaceholder": "Enter Keywords",
       "propertyType": "Property Type",
@@ -2632,6 +2835,15 @@
     "search": "Search...",
     "all": "All Status",
     "export": "Export",
+    "clearFilters": "Clear Filters",
+    "comingSoon": "Coming Soon",
+    "created": "Created",
+    "filters": "Filters",
+    "goHome": "Go Home",
+    "lastUpdated": "Last Updated",
+    "pageOf": "Page {{page}} of {{total}}",
+    "soon": "Soon",
+    "tryAgain": "Try Again",
     "view": "View",
     "edit": "Edit",
     "delete": "Delete",
@@ -2666,7 +2878,22 @@
       "tryAgain": "Try Again",
       "goToDashboard": "Go to Dashboard",
       "goToHomepage": "Go to Homepage",
-      "goBack": "Go Back"
+      "goBack": "Go Back",
+      "refresh": "Refresh"
+    },
+    "pagination": {
+      "next": "Next",
+      "page": "Page",
+      "previous": "Previous",
+      "showing": "Showing {{from}} to {{to}} of {{total}}"
+    },
+    "time": {
+      "hoursAgo": "{{count}} hours ago",
+      "justNow": "Just now",
+      "minutesAgo": "{{count}} minutes ago",
+      "never": "Never",
+      "nextRefresh": "Next refresh in {{time}}",
+      "secondsAgo": "{{count}} seconds ago"
     },
     "unknown": "Unknown",
     "yes": "Yes",
@@ -2845,6 +3072,15 @@
   },
   "settings": {
     "subtitle": "Manage your account settings and preferences",
+    "currency": {
+      "changeNote": "Currency changes will take effect on your next session",
+      "changeTitle": "Change Currency",
+      "currentSource": "Current Source",
+      "sourceCookie": "Browser Cookie",
+      "sourceDefault": "System Default",
+      "sourceLocal": "Local Storage",
+      "sourceProfile": "User Profile"
+    },
     "notifications": {
       "title": "Notification Preferences",
       "save": "Save Preferences",
@@ -3108,7 +3344,18 @@
     "saved": "Saved successfully",
     "saveFailed": "Failed to save",
     "required": "Required fields",
-    "optional": "Optional fields"
+    "optional": "Optional fields",
+    "draftSaved": {
+      "description": "Your progress has been automatically saved",
+      "title": "Draft Saved"
+    },
+    "generic": "Form",
+    "offline": {
+      "description": "You are currently offline",
+      "submitWarning": "Form will be submitted when online",
+      "title": "Offline Mode",
+      "unsaved": "Changes will be saved when online"
+    }
   },
   "test": {
     "a": "Test value A",
@@ -3194,6 +3441,8 @@
     },
     "properties": {
       "allTypes": "All Types",
+      "allStatus": "All Status",
+      "location": "Location",
       "type": "Type",
       "selectType": "Select type",
       "title": "Properties",
@@ -3639,6 +3888,29 @@
     "code": "Code",
     "category": "Category",
     "responseTime": "Response Time",
+    "contact": "Contact Vendor",
+    "location": "Location",
+    "name": "Vendor Name",
+    "status": "Status",
+    "labels": {
+      "address": "Address",
+      "avgResponse": "Average Response Time",
+      "crNumber": "CR Number",
+      "email": "Email",
+      "licenseNumber": "License Number",
+      "mobile": "Mobile",
+      "phone": "Phone",
+      "rating": "Rating",
+      "status": "Status",
+      "taxNumber": "Tax Number",
+      "type": "Type"
+    },
+    "sections": {
+      "businessInfo": "Business Information",
+      "quickStats": "Quick Stats",
+      "recordInfo": "Record Information",
+      "verification": "Verification"
+    },
     "apply": {
       "backHome": "Back Home",
       "tagline": "Tagline",
@@ -3776,6 +4048,16 @@
     "resendIn": "Resend in",
     "resend": "Resend Code",
     "backToLogin": "Back to Login"
+  },
+  "offline": {
+    "back": "Go Back",
+    "currency": "Currency",
+    "hint": "Some features may be unavailable",
+    "language": "Language",
+    "retry": "Retry Connection",
+    "source": "Data Source",
+    "subtitle": "You are currently offline",
+    "title": "Offline Mode"
   },
   "communications": {
     "title": "Communication Dashboard",
@@ -4392,6 +4674,7 @@
   "signup": {
     "backToLogin": "Back To Login",
     "newsletter": "Newsletter",
+    "passwordHelp": "Must be at least 8 characters with a number and special character",
     "validation": {
       "firstNameRequired": "First Name Required",
       "lastNameRequired": "Last Name Required",
@@ -4541,7 +4824,8 @@
       "title": "System Verification",
       "description": "Enter description",
       "checking": "Checking",
-      "verify": "Verify"
+      "verify": "Verify",
+      "permission": "Permission denied"
     },
     "monitoring": {
       "active": "Active",
@@ -4710,7 +4994,9 @@
       "desc": "Desc",
       "ref": "Ref",
       "refresh": "Refresh"
-    }
+    },
+    "somethingWentWrong": "Something went wrong",
+    "unexpectedError": "An unexpected error occurred"
   },
   "trial": {
     "banner": {
@@ -4830,6 +5116,9 @@
     "settings": "Settings",
     "logout": "Logout",
     "verifyingAccess": "Verifying access...",
+    "goToLanding": "Go to Landing Page",
+    "searchSuperadmin": "Search superadmin...",
+    "switchTenant": "Switch Tenant",
     "nav": {
       "issues": "Issues",
       "ssot": "SSOT Viewer",
@@ -4850,6 +5139,7 @@
       "catalog": "Catalog",
       "impersonate": "Impersonate",
       "importExport": "Import/Export",
+      "import-export": "Import/Export",
       "reports": "Reports",
       "support": "Support",
       "vendors": "Vendors"
@@ -4868,6 +5158,30 @@
       "importing": "Importing...",
       "add": "Add Issue",
       "search": "Search issues...",
+      "actions": {
+        "deleteConfirm": "Are you sure you want to delete this issue?",
+        "deleteWarning": "This action cannot be undone"
+      },
+      "details": {
+        "title": "Issue Details"
+      },
+      "fields": {
+        "description": "Description",
+        "proposedFix": "Proposed Fix",
+        "rootCause": "Root Cause",
+        "title": "Title"
+      },
+      "placeholders": {
+        "description": "Enter issue description",
+        "proposedFix": "Enter proposed fix",
+        "rootCause": "Enter root cause",
+        "title": "Enter issue title"
+      },
+      "tabs": {
+        "activity": "Activity",
+        "comments": "Comments",
+        "details": "Details"
+      },
       "filters": {
         "status": "Status",
         "priority": "Priority",

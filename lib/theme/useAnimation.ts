@@ -16,7 +16,9 @@ import { useState, useEffect, useRef, useCallback, CSSProperties } from 'react';
 
 export type AnimationName =
   | 'fadeIn' | 'fadeOut' | 'fadeInUp' | 'fadeInDown' | 'fadeInLeft' | 'fadeInRight'
+  | 'fadeInStart' | 'fadeInEnd' | 'fadeOutStart' | 'fadeOutEnd'  // RTL-aware
   | 'slideInUp' | 'slideInDown' | 'slideInLeft' | 'slideInRight'
+  | 'slideInStart' | 'slideInEnd' | 'slideOutStart' | 'slideOutEnd'  // RTL-aware
   | 'scaleIn' | 'scaleOut' | 'zoomIn' | 'zoomOut' | 'popIn' | 'popOut'
   | 'bounceIn' | 'bounceOut' | 'bounceInUp' | 'bounceInDown'
   | 'pulse' | 'heartbeat' | 'ping'
@@ -81,10 +83,18 @@ const ANIMATION_CLASS_MAP: Record<AnimationName, string> = {
   fadeInDown: 'animate-fade-in-down',
   fadeInLeft: 'animate-fade-in-left',
   fadeInRight: 'animate-fade-in-right',
+  fadeInStart: 'animate-fade-in-start',
+  fadeInEnd: 'animate-fade-in-end',
+  fadeOutStart: 'animate-fade-out-start',
+  fadeOutEnd: 'animate-fade-out-end',
   slideInUp: 'animate-slide-in-up',
   slideInDown: 'animate-slide-in-down',
   slideInLeft: 'animate-slide-in-left',
   slideInRight: 'animate-slide-in-right',
+  slideInStart: 'animate-slide-in-start',
+  slideInEnd: 'animate-slide-in-end',
+  slideOutStart: 'animate-slide-out-start',
+  slideOutEnd: 'animate-slide-out-end',
   scaleIn: 'animate-scale-in',
   scaleOut: 'animate-scale-out',
   zoomIn: 'animate-zoom-in',
@@ -448,9 +458,21 @@ export const animationPresets = {
   buttonSuccess: { animation: 'bounceIn' as AnimationName, duration: 400, easing: 'spring' as EasingFunction },
   buttonError: { animation: 'shake' as AnimationName, duration: 500, easing: 'ease-in-out' as EasingFunction },
 
-  // List items
-  listItemEnter: { animation: 'slideInLeft' as AnimationName, duration: 300, easing: 'smooth' as EasingFunction },
+  // List items (RTL-aware: use slideInStart for proper RTL flipping)
+  listItemEnter: { animation: 'slideInStart' as AnimationName, duration: 300, easing: 'smooth' as EasingFunction },
   listItemExit: { animation: 'fadeOut' as AnimationName, duration: 200, easing: 'ease-in' as EasingFunction },
+
+  // RTL-aware panel/drawer presets
+  panelEnterStart: { animation: 'slideInStart' as AnimationName, duration: 300, easing: 'smooth' as EasingFunction },
+  panelEnterEnd: { animation: 'slideInEnd' as AnimationName, duration: 300, easing: 'smooth' as EasingFunction },
+  panelExitStart: { animation: 'slideOutStart' as AnimationName, duration: 200, easing: 'ease-in' as EasingFunction },
+  panelExitEnd: { animation: 'slideOutEnd' as AnimationName, duration: 200, easing: 'ease-in' as EasingFunction },
+
+  // RTL-aware fade presets
+  fadeEnterStart: { animation: 'fadeInStart' as AnimationName, duration: 300, easing: 'smooth' as EasingFunction },
+  fadeEnterEnd: { animation: 'fadeInEnd' as AnimationName, duration: 300, easing: 'smooth' as EasingFunction },
+  fadeExitStart: { animation: 'fadeOutStart' as AnimationName, duration: 200, easing: 'ease-in' as EasingFunction },
+  fadeExitEnd: { animation: 'fadeOutEnd' as AnimationName, duration: 200, easing: 'ease-in' as EasingFunction },
 
   // Attention
   attention: { animation: 'tada' as AnimationName, duration: 1000, easing: 'ease-in-out' as EasingFunction },
