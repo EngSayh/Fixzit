@@ -2,10 +2,11 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FM_DIR="$REPO_ROOT/app/fm"
+# FM pages are under the (fm) route group
+FM_DIR="$REPO_ROOT/app/(fm)/fm"
 
 if [[ ! -d "$FM_DIR" ]]; then
-  echo "Could not find app/fm directory at $FM_DIR" >&2
+  echo "Could not find app/(fm)/fm directory at $FM_DIR" >&2
   exit 2
 fi
 
