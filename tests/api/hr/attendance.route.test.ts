@@ -43,7 +43,11 @@ vi.mock("@/lib/logger", () => ({
 
 // Static imports AFTER vi.mock() declarations (mocks are hoisted)
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { GET, POST } from "@/app/api/hr/attendance/route";
+
+// Dynamic import helper to ensure fresh module state per test
+async function importRoute() {
+  return await import("@/app/api/hr/attendance/route");
+}
 
 describe("API /api/hr/attendance", () => {
   const mockOrgId = "org_123456789";
@@ -67,6 +71,7 @@ describe("API /api/hr/attendance", () => {
         }) as never
       );
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/hr/attendance");
       const response = await GET(req);
 
@@ -77,6 +82,7 @@ describe("API /api/hr/attendance", () => {
     it("returns 401 when user is not authenticated", async () => {
       sessionUser = null;
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/hr/attendance");
       const response = await GET(req);
 
@@ -86,6 +92,7 @@ describe("API /api/hr/attendance", () => {
     it("returns 401 when user has no orgId (tenant scope missing)", async () => {
       sessionUser = { role: "HR", orgId: undefined };
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/hr/attendance");
       const response = await GET(req);
 
@@ -101,6 +108,7 @@ describe("API /api/hr/attendance", () => {
         }) as never
       );
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/hr/attendance", {
         method: "POST",
         body: JSON.stringify({ employeeId: "emp_123", checkIn: new Date() }),
@@ -114,6 +122,7 @@ describe("API /api/hr/attendance", () => {
     it("returns 401 when user is not authenticated", async () => {
       sessionUser = null;
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/hr/attendance", {
         method: "POST",
         body: JSON.stringify({ employeeId: "emp_123", checkIn: new Date() }),
