@@ -44,7 +44,7 @@ const mockSession = {
   session: {
     id: "user-1",
     role: "super_admin",
-    orgId: "org-123",
+    orgId: "507f1f77bcf86cd799439011", // Valid MongoDB ObjectId
   },
   ok: true,
 };
@@ -179,7 +179,7 @@ describe("Issues Import API Route", () => {
       // Override session state for this test
       mockState.sessionResult = {
         ok: true,
-        session: { id: "user-1", role: "viewer", orgId: "org-123" },
+        session: { id: "user-1", role: "viewer", orgId: "507f1f77bcf86cd799439011" },
       };
 
       const req = makeRequest();
