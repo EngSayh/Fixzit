@@ -83,8 +83,12 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-// Static import (route will use module-scoped mocks)
-import { GET, POST } from "@/app/api/souq/orders/route";
+// Dynamic import helper - forces fresh module load with mocks applied
+async function importRoute() {
+  vi.resetModules();
+  const mod = await import("@/app/api/souq/orders/route");
+  return { GET: mod.GET, POST: mod.POST };
+}
 
 describe("API /api/souq/orders", () => {
   beforeEach(() => {
@@ -100,6 +104,7 @@ describe("API /api/souq/orders", () => {
       status: 429,
       headers: { "Retry-After": "60" },
     });
+    const { GET } = await importRoute();
     const req = new NextRequest("http://localhost:3000/api/souq/orders");
     const res = await GET(req);
     expect(res.status).toBe(429);
@@ -110,6 +115,7 @@ describe("API /api/souq/orders", () => {
     it("returns 401 when user is not authenticated", async () => {
       sessionUser = null;
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
@@ -123,6 +129,7 @@ describe("API /api/souq/orders", () => {
         status: 429,
       });
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
@@ -132,6 +139,7 @@ describe("API /api/souq/orders", () => {
     it("returns 403 when orgId is missing", async () => {
       sessionUser = { id: "user-123" };
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
@@ -145,6 +153,7 @@ describe("API /api/souq/orders", () => {
         role: "ADMIN",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
@@ -158,6 +167,7 @@ describe("API /api/souq/orders", () => {
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/orders?status=PENDING"
       );
@@ -172,6 +182,7 @@ describe("API /api/souq/orders", () => {
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/orders?customerId=507f1f77bcf86cd799439011"
       );
@@ -186,6 +197,7 @@ describe("API /api/souq/orders", () => {
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/orders?page=2&limit=10"
       );
@@ -199,6 +211,7 @@ describe("API /api/souq/orders", () => {
     it("returns 401 when user is not authenticated", async () => {
       // sessionUser is null by default
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({}),
@@ -217,6 +230,7 @@ describe("API /api/souq/orders", () => {
         status: 429,
       });
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({}),
@@ -234,6 +248,7 @@ describe("API /api/souq/orders", () => {
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({
@@ -254,6 +269,7 @@ describe("API /api/souq/orders", () => {
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({
@@ -285,6 +301,7 @@ describe("API /api/souq/orders", () => {
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({
