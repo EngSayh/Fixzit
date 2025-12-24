@@ -2,6 +2,49 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-24 10:10 (Asia/Riyadh) — Tenant Role Drift + Hardcoded Org ID Fix
+
+**Agent Token:** [AGENT-001-A]
+**Context:** agent/AGENT-001-A/test-isolation-fix/vitest-forks | PR: #601 | Commit: 043710216
+**Session Summary:** Fixed tenant role drift and hardcoded org IDs in seed scripts
+**DB Sync:** N/A (infrastructure fix, seed script cleanup)
+
+### ✅ Completed Work
+
+| Task | Status | Evidence |
+|------|--------|----------|
+| Fix ALLOWED_ROLES sync | ✅ DONE | Expanded from 14 → 26 roles to match CANONICAL_ROLES |
+| Replace hardcoded org IDs | ✅ DONE | 6 files now use DEFAULT_ORG_ID/TEST_ORG_ID env vars |
+| Fix demo-users.ts | ✅ DONE | CORPORATE credentials use canonical roles + displayRole |
+| Verify drift check | ✅ DONE | "✅ No hard-coded org IDs or role drift found" |
+
+### 📊 Verification Results
+
+```bash
+pnpm tsx scripts/check-tenant-role-drift.ts  # ✅ No violations
+pnpm typecheck   # ✅ 0 errors
+pnpm lint        # ✅ 0 warnings
+pnpm vitest run  # ✅ 548 files, 4432 tests passed
+```
+
+### 📁 Files Modified (8 files)
+
+- `scripts/check-tenant-role-drift.ts` — ALLOWED_ROLES synced with CANONICAL_ROLES
+- `scripts/seed-demo-users.ts` — DEFAULT_ORG_ID env var, replaced 6 hardcoded IDs
+- `scripts/create-demo-users.ts` — DEFAULT_ORG_ID with validation
+- `scripts/seed-test-users.ts` — TEST_ORG_ID || DEFAULT_ORG_ID pattern
+- `scripts/seed-e2e-test-users.ts` — Same pattern
+- `scripts/cleanup-test-users.ts` — TEST_ORG_ID env var support
+- `scripts/count-null-employeeid.ts` — TEST_ORG_ID with validation
+- `lib/config/demo-users.ts` — CORPORATE roles → canonical + displayRole
+
+### 🎯 Impact
+
+- **Before:** Drift check failing with 6 violations (non-canonical roles + hardcoded org ID)
+- **After:** Drift check passes, all seed scripts use env vars, roles match CANONICAL_ROLES
+
+---
+
 ## 📅 2025-12-24 09:15 (Asia/Riyadh) — i18n Completeness Fix + CI Gate Resolution
 
 **Agent Token:** [AGENT-001-A]
@@ -34,10 +77,10 @@ pnpm scan:i18n  # ✅ 0 missing EN, 0 missing AR (was 218)
 
 ### 🔴 Remaining P1 Issues (Not Blocking CI)
 
-| Issue | Root Cause | Priority |
-|-------|------------|----------|
-| Tenant Role Drift | Seed scripts use non-canonical roles | P1 |
-| Hardcoded Org IDs | 68dc8955a1ba6ed80ff372dc in seeds | P2 |
+| Issue | Status | Notes |
+|-------|--------|-------|
+| Tenant Role Drift | ✅ FIXED | Commit 043710216 |
+| Hardcoded Org IDs | ✅ FIXED | Now uses env vars |
 
 ---
 
