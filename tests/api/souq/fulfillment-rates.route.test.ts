@@ -50,8 +50,8 @@ vi.mock("@/services/souq/fulfillment-service", () => ({
   },
 }));
 
-// Static imports AFTER vi.mock() declarations
-import { POST } from "@/app/api/souq/fulfillment/rates/route";
+// Dynamic import to ensure mocks are applied fresh per test
+const importRoute = async () => import("@/app/api/souq/fulfillment/rates/route");
 
 describe("API /api/souq/fulfillment/rates", () => {
   const mockOrgId = "org_123456789";
@@ -90,6 +90,7 @@ describe("API /api/souq/fulfillment/rates", () => {
     it("should return 401 when not authenticated", async () => {
       sessionUser = null;
 
+      const { POST } = await importRoute();
       const request = new NextRequest(
         "http://localhost/api/souq/fulfillment/rates",
         {
@@ -103,6 +104,7 @@ describe("API /api/souq/fulfillment/rates", () => {
 
     it("should return 400 for missing required fields", async () => {
 
+      const { POST } = await importRoute();
       const request = new NextRequest(
         "http://localhost/api/souq/fulfillment/rates",
         {
@@ -123,6 +125,7 @@ describe("API /api/souq/fulfillment/rates", () => {
         serviceType: "standard",
       };
 
+      const { POST } = await importRoute();
       const request = new NextRequest(
         "http://localhost/api/souq/fulfillment/rates",
         {
@@ -148,6 +151,7 @@ describe("API /api/souq/fulfillment/rates", () => {
         serviceType: "express",
       };
 
+      const { POST } = await importRoute();
       const request = new NextRequest(
         "http://localhost/api/souq/fulfillment/rates",
         {
@@ -167,6 +171,7 @@ describe("API /api/souq/fulfillment/rates", () => {
         { status: 429 }
       );
 
+      const { POST } = await importRoute();
       const request = new NextRequest(
         "http://localhost/api/souq/fulfillment/rates",
         {

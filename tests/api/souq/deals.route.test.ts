@@ -67,17 +67,25 @@ vi.mock("@/lib/logger", () => ({
 // Mock database
 vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
+  connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Static imports AFTER vi.mock() declarations (mocks are hoisted)
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
-import { GET, POST } from "@/app/api/souq/deals/route";
+
+// Dynamic import to ensure mocks are applied fresh per test
+const importRoute = async () => import("@/app/api/souq/deals/route");
 
 describe("API /api/souq/deals", () => {
   beforeEach(() => {
-    sessionUser = null;
     vi.clearAllMocks();
+    // Reset mutable state to defaults
+    sessionUser = {
+      id: "user-123",
+      orgId: "org-123",
+      role: "ADMIN",
+    };
     // Reset rate limit mock to allow requests through
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     // Default: authenticated session
@@ -96,6 +104,7 @@ describe("API /api/souq/deals", () => {
         }) as never
       );
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/deals");
       const response = await GET(req);
 
@@ -105,6 +114,7 @@ describe("API /api/souq/deals", () => {
     it("returns deals list", async () => {
       sessionUser = { id: "user-123", orgId: "org-123" };
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/deals");
       const response = await GET(req);
 
@@ -114,6 +124,7 @@ describe("API /api/souq/deals", () => {
     it("supports active filter", async () => {
       sessionUser = { id: "user-123", orgId: "org-123" };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/deals?active=true"
       );
@@ -125,6 +136,7 @@ describe("API /api/souq/deals", () => {
     it("supports category filter", async () => {
       sessionUser = { id: "user-123", orgId: "org-123" };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/deals?categoryId=cat-123"
       );
@@ -140,6 +152,7 @@ describe("API /api/souq/deals", () => {
         new UnauthorizedError("Unauthenticated"),
       );
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/deals", {
         method: "POST",
         body: JSON.stringify({ title: "Summer Sale" }),
@@ -152,6 +165,7 @@ describe("API /api/souq/deals", () => {
     it("validates required fields", async () => {
       sessionUser = { id: "user-123", orgId: "org-123", role: "SELLER" };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/deals", {
         method: "POST",
         body: JSON.stringify({}),

@@ -56,6 +56,9 @@ vi.mock("@/server/services/hr/payroll.service", () => ({
 
 // Static imports AFTER vi.mock() declarations (mocks are hoisted)
 import { PayrollService } from "@/server/services/hr/payroll.service";
+import { auth } from "@/auth";
+import { hasAllowedRole } from "@/lib/auth/role-guards";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // Dynamic import to ensure mocks are applied
 const importRoute = async () => import("@/app/api/hr/payroll/runs/route");
@@ -77,6 +80,15 @@ describe("API /api/hr/payroll/runs", () => {
     mockRateLimitResponse = null;
     mockRoleAllowed = true;
     sessionUser = mockUser;
+    
+    // Re-apply mock implementations after clearAllMocks
+    vi.mocked(auth).mockImplementation(async () => {
+      if (!sessionUser) return null;
+      return { user: sessionUser, expires: new Date().toISOString() };
+    });
+    vi.mocked(hasAllowedRole).mockImplementation(() => mockRoleAllowed);
+    vi.mocked(enforceRateLimit).mockImplementation(() => mockRateLimitResponse);
+    
     // Setup PayrollService mocks
     vi.mocked(PayrollService.list).mockResolvedValue([]);
     vi.mocked(PayrollService.existsOverlap).mockResolvedValue(false);
