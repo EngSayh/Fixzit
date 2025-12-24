@@ -64,6 +64,20 @@ pnpm vitest run # ✅ 2965 tests passed, 402 test files (100%)
 - CodeRabbit JSONC formatting: **Nitpick** (non-blocking)
 - CodeRabbit Toast docs: **Nitpick** (non-blocking)
 
+### 📝 Review Comments Addressed (2025-12-24 06:20)
+
+| Comment | Fix Applied |
+|---------|-------------|
+| CSS imports after @tailwind (critical) | Moved imports BEFORE @tailwind directives |
+| listItemExit uses entrance animation | Changed to fadeOut |
+| useAnimateOnMount infinite loop | Added hasPlayed ref with proper deps |
+| Markdown code block missing language | Added 'text' specifier |
+
+**Commits:**
+- `d19550da6` - fix: address CodeRabbit review comments [AGENT-001-A]
+
+**Status:** REVIEW_PENDING - Awaiting new CodeRabbit review after fixes
+
 ### 📁 Files Modified/Created
 
 **Test Infrastructure:**
