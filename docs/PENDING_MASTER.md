@@ -2,6 +2,65 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-25 18:55 (Asia/Riyadh) — PR #601 CI Fix Session: Vendor Products Test Isolation
+
+**Agent Token:** [AGENT-001-A]
+**Context:** agent/AGENT-001-A/test-isolation-fix/vitest-forks | e7c3c5d9c | PR: #601
+**Session Summary:** Fixed CI test failures in Tests (Server) 4/4 shard. Root cause: vendor-products.route.test.ts returning 500 errors due to mock contamination from other test files in the sharded run. Also improved mongoose mock patterns across 7 additional test files.
+**DB Sync:** created=0, updated=0, skipped=0, errors=0 (test isolation fixes only)
+
+### ✅ FIXES APPLIED
+
+| Commit | Fix | File | Details |
+|--------|-----|------|---------|
+| e7c3c5d9c | Mock reset | `tests/api/marketplace/vendor-products.route.test.ts` | Added vi.useRealTimers() and reset mock implementations in beforeEach |
+| e7c3c5d9c | Mongoose mock | `tests/unit/server/services/onboardingEntities.test.ts` | Replaced global mongoose mock with mongoose-compat mock |
+| e7c3c5d9c | Mongoose mock | `tests/unit/api/issues/issues.route.test.ts` | Replaced global mongoose mock with mongoose-compat mock |
+| e7c3c5d9c | Hoisted mocks | `tests/unit/api/admin/users.route.test.ts` | Used vi.hoisted() for proper mock variable hoisting |
+| e7c3c5d9c | Hoisted mocks | `tests/unit/api/admin/users/users.route.test.ts` | Fixed mongoose mock with proper hoisting |
+| e7c3c5d9c | Session spy | `tests/server/services/owner/financeIntegration.test.ts` | Replaced mongoose mock with vi.spyOn for startSession |
+| e7c3c5d9c | Cleanup | `tests/models/aqarBooking.test.ts` | Removed global mongoose mock |
+| e7c3c5d9c | Hoisted mocks | `tests/api/superadmin/organizations.route.test.ts` | Used vi.hoisted() with afterAll cleanup |
+
+### 📊 Verification Results
+
+| Gate | Result | Notes |
+|------|--------|-------|
+| pnpm typecheck | ✅ 0 errors | |
+| All 8 fixed test files | ✅ Pass individually | 67-68 tests pass |
+| vendor-products.route.test.ts | ✅ 12/12 pass | 1.27s local, was 7 failures in CI |
+
+### 🔍 Root Cause Analysis
+
+**Problem:** Tests in CI shard 4/4 (vendor-products.route.test.ts) returned 500 instead of expected status codes (401, 403, 400, 201, 200).
+
+**Diagnosis:** 
+1. Tests pass locally (12/12 in 1.27s) but fail in CI
+2. CI runs multiple test files in sequence in singleFork mode
+3. Previous test files' mocks/timers contaminated subsequent files
+4. The 500 errors meant the route threw unhandled exceptions because mocks weren't properly applied
+
+**Solution:**
+1. Added `vi.useRealTimers()` to prevent fake timer contamination
+2. Reset default mock implementations in `beforeEach` for clean state
+3. Used `vi.hoisted()` for proper mock variable hoisting
+4. Added `afterAll` cleanup with `vi.doUnmock("mongoose")` where applicable
+
+### 📋 Known Remaining Issue
+
+Some test files that mock mongoose globally still have isolation issues when run together in the server project (MongoMemoryServer conflict). This is a P2 backlog item requiring vitest project separation for unit tests.
+
+### 🎯 Next Steps
+
+- [x] Fix vendor-products.route.test.ts mock isolation ✅
+- [x] Fix 7 mongoose mock test files ✅
+- [x] Push fixes (e7c3c5d9c) ✅
+- [ ] Wait for CI to complete and verify Tests (Server) 4/4 passes
+- [ ] Address remaining PR #601 review comments
+- [ ] Merge PR #601 after all CI checks pass
+
+---
+
 ## 📅 2025-12-25 14:45 (Asia/Riyadh) — PR #601 Review Session: Test Isolation & Token Fixes
 
 **Agent Token:** [AGENT-001-A]
