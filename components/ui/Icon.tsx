@@ -42,7 +42,7 @@ export const iconColorMap = {
   primary: "text-primary",
   success: "text-success",
   warning: "text-warning",
-  error: "text-destructive",
+  error: "text-error",
   muted: "text-muted-foreground",
 } as const;
 
