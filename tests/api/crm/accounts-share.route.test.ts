@@ -49,16 +49,22 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-// Mock tenant context
+// Module-scoped mock functions for tenant/audit context
+const mockSetTenantContext = vi.fn();
+const mockClearTenantContext = vi.fn();
+const mockSetAuditContext = vi.fn();
+const mockClearAuditContext = vi.fn();
+
+// Mock tenant context with module-scoped functions
 vi.mock("@/server/plugins/tenantIsolation", () => ({
-  setTenantContext: vi.fn(),
-  clearTenantContext: vi.fn(),
+  setTenantContext: (...args: unknown[]) => mockSetTenantContext(...args),
+  clearTenantContext: (...args: unknown[]) => mockClearTenantContext(...args),
 }));
 
-// Mock audit context
+// Mock audit context with module-scoped functions
 vi.mock("@/server/plugins/auditPlugin", () => ({
-  setAuditContext: vi.fn(),
-  clearAuditContext: vi.fn(),
+  setAuditContext: (...args: unknown[]) => mockSetAuditContext(...args),
+  clearAuditContext: (...args: unknown[]) => mockClearAuditContext(...args),
 }));
 
 // Mock CRM models with mutable state
@@ -80,9 +86,7 @@ vi.mock("@/server/security/headers", () => ({
   getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
 }));
 
-// Static imports AFTER vi.mock() calls
-import { setTenantContext, clearTenantContext } from "@/server/plugins/tenantIsolation";
-import { setAuditContext, clearAuditContext } from "@/server/plugins/auditPlugin";
+// Static imports AFTER vi.mock() calls - POST uses mocked dependencies
 import { POST } from "@/app/api/crm/accounts/share/route";
 
 describe("API /api/crm/accounts/share", () => {
@@ -150,8 +154,8 @@ describe("API /api/crm/accounts/share", () => {
           type: "HANDOFF",
         })
       );
-      expect(setTenantContext).toHaveBeenCalledWith({ orgId: mockOrgId });
-      expect(clearTenantContext).toHaveBeenCalled();
+      expect(mockSetTenantContext).toHaveBeenCalledWith({ orgId: mockOrgId });
+      expect(mockClearTenantContext).toHaveBeenCalled();
     });
 
     it("should share existing account without recreation", async () => {
@@ -271,15 +275,15 @@ describe("API /api/crm/accounts/share", () => {
 
       await POST(req);
 
-      expect(setTenantContext).toHaveBeenCalledWith({ orgId: mockOrgId });
-      expect(setAuditContext).toHaveBeenCalledWith(
+      expect(mockSetTenantContext).toHaveBeenCalledWith({ orgId: mockOrgId });
+      expect(mockSetAuditContext).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: mockUser.id,
           ipAddress: "127.0.0.1",
         })
       );
-      expect(clearTenantContext).toHaveBeenCalled();
-      expect(clearAuditContext).toHaveBeenCalled();
+      expect(mockClearTenantContext).toHaveBeenCalled();
+      expect(mockClearAuditContext).toHaveBeenCalled();
     });
   });
 });

@@ -75,7 +75,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (usernameValue !== SUPERADMIN_USERNAME) {
+    // Case-insensitive username comparison for better UX
+    if (usernameValue.toLowerCase() !== SUPERADMIN_USERNAME.toLowerCase()) {
       logger.warn("[SUPERADMIN] Failed login attempt - invalid username", { username: usernameValue });
       return NextResponse.json(
         { error: "Username is incorrect", field: "username", code: "INVALID_USERNAME" },
