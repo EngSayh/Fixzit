@@ -212,10 +212,12 @@ jobs:
     steps:
       - name: ✅ CI Summary
         run: |
-          echo "## CI Results" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Service Tests: ${{ needs.test-services.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "✅ API Tests: ${{ needs.test-api.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Unit Tests: ${{ needs.test-unit.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "✅ TypeScript: ${{ needs.typecheck.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "✅ ESLint: ${{ needs.lint.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "✅ QA Bundle: ${{ needs.qa-bundle.result }}" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## CI Results"
+            echo "✅ Service Tests: ${{ needs.test-services.result }}"
+            echo "✅ API Tests: ${{ needs.test-api.result }}"
+            echo "✅ Unit Tests: ${{ needs.test-unit.result }}"
+            echo "✅ TypeScript: ${{ needs.typecheck.result }}"
+            echo "✅ ESLint: ${{ needs.lint.result }}"
+            echo "✅ QA Bundle: ${{ needs.qa-bundle.result }}"
+          } >> "$GITHUB_STEP_SUMMARY"
