@@ -661,7 +661,7 @@ export async function createIndexes() {
         unique: true,
         background: true,
         name: "souq_orders_org_id_orderId_unique",
-        sparse: true,
+        // Note: sparse is incompatible with partialFilterExpression
         partialFilterExpression: { org_id: { $exists: true }, orderId: { $exists: true } },
       },
     );
@@ -1173,7 +1173,7 @@ export async function createIndexes() {
       {
         background: true,
         name: "communication_logs_metadata_taqnyatId",
-        sparse: true,
+        // Note: sparse is incompatible with partialFilterExpression
         partialFilterExpression: { "metadata.taqnyatId": { $exists: true } },
       },
     );

@@ -13,7 +13,7 @@ const PREFIXES = ["/fm", "/marketplace", "/aqar"];
 const SOURCES: SourceConfig[] = [
   { file: "nav/registry.ts", description: "FM navigation registry" },
   { file: "config/topbar-modules.ts", description: "TopBar quick actions" },
-  { file: "app/fm/dashboard/page.tsx", description: "Dashboard quick actions" },
+  { file: "app/(fm)/fm/dashboard/page.tsx", description: "Dashboard quick actions" },
 ];
 
 function collectRoutes() {
