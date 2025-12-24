@@ -64,7 +64,7 @@ jobs:
         run: pnpm lint
 
       - name: Unit tests
-        run: pnpm test:unit --run
+        run: NODE_OPTIONS="--max-old-space-size=4096" pnpm vitest run --project=server --maxWorkers=2
 
       - name: Build
         id: build
