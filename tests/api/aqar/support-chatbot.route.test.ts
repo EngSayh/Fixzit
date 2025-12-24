@@ -1,6 +1,8 @@
 /**
  * @fileoverview Tests for /api/aqar/support/chatbot route
  * Tests Aqar chatbot support functionality
+ * 
+ * Pattern: Static imports for mock isolation (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
@@ -29,15 +31,9 @@ vi.mock("@/lib/analytics/incrementWithRetry", () => ({
   incrementAnalyticsWithRetry: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Static imports AFTER vi.mock() declarations (mocks are hoisted)
 import { smartRateLimit } from "@/server/security/rateLimit";
-
-const importRoute = async () => {
-  try {
-    return await import("@/app/api/aqar/support/chatbot/route");
-  } catch {
-    return null;
-  }
-};
+import { POST } from "@/app/api/aqar/support/chatbot/route";
 
 describe("POST /api/aqar/support/chatbot", () => {
   beforeEach(() => {
@@ -46,28 +42,18 @@ describe("POST /api/aqar/support/chatbot", () => {
   });
 
   it("returns 429 when smartRateLimit denies the request", async () => {
-    const route = await importRoute();
-    if (!route?.POST) {
-      throw new Error("Route handler missing: POST");
-    }
-
     vi.mocked(smartRateLimit).mockResolvedValueOnce({ allowed: false, remaining: 0 });
 
     const req = new NextRequest("http://localhost:3000/api/aqar/support/chatbot", {
       method: "POST",
       body: JSON.stringify({ message: "rate limit test" }),
     });
-    const response = await route.POST(req);
+    const response = await POST(req);
 
     expect(response.status).toBe(429);
   });
 
   it("returns 429 when rate limit exceeded", async () => {
-    const route = await importRoute();
-    if (!route?.POST) {
-      throw new Error("Route handler missing: POST");
-    }
-
     vi.mocked(smartRateLimit).mockReturnValue(
       new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
         status: 429,
@@ -78,22 +64,17 @@ describe("POST /api/aqar/support/chatbot", () => {
       method: "POST",
       body: JSON.stringify({ message: "Hello" }),
     });
-    const response = await route.POST(req);
+    const response = await POST(req);
 
     expect([200, 400, 429, 500]).toContain(response.status);
   });
 
   it("handles chatbot message", async () => {
-    const route = await importRoute();
-    if (!route?.POST) {
-      throw new Error("Route handler missing: POST");
-    }
-
     const req = new NextRequest("http://localhost:3000/api/aqar/support/chatbot", {
       method: "POST",
       body: JSON.stringify({ message: "I need help with my property" }),
     });
-    const response = await route.POST(req);
+    const response = await POST(req);
 
     expect([200, 400, 500]).toContain(response.status);
   });

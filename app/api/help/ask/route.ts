@@ -235,7 +235,7 @@ export async function POST(req: NextRequest) {
     // Prefer vector search if available
     let docs: Doc[] = [];
     try {
-      const { embedText } = await import("@/ai/embeddings");
+      const { embedText } = await import("@/lib/ai-embeddings/embeddings");
       const { performKbSearch } = await import("@/kb/search");
       const qVec = await embedText(question);
       const chunks = await performKbSearch({

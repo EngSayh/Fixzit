@@ -1,6 +1,8 @@
 /**
  * @fileoverview Tests for /api/souq/deals routes
  * Tests deal/promotion management operations
+ * 
+ * Pattern: Static imports for mock isolation (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
@@ -67,16 +69,10 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Static imports AFTER vi.mock() declarations (mocks are hoisted)
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
-
-const importRoute = async () => {
-  try {
-    return await import("@/app/api/souq/deals/route");
-  } catch {
-    return null;
-  }
-};
+import { GET, POST } from "@/app/api/souq/deals/route";
 
 describe("API /api/souq/deals", () => {
   beforeEach(() => {
@@ -94,11 +90,6 @@ describe("API /api/souq/deals", () => {
 
   describe("GET - List Deals", () => {
     it("returns 429 when rate limit exceeded", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
-        throw new Error("Route handler missing: GET");
-      }
-
       vi.mocked(enforceRateLimit).mockReturnValue(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,
@@ -106,53 +97,38 @@ describe("API /api/souq/deals", () => {
       );
 
       const req = new NextRequest("http://localhost:3000/api/souq/deals");
-      const response = await route.GET(req);
+      const response = await GET(req);
 
       expect(response.status).toBe(429);
     });
 
     it("returns deals list", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
-        throw new Error("Route handler missing: GET");
-      }
-
       sessionUser = { id: "user-123", orgId: "org-123" };
 
       const req = new NextRequest("http://localhost:3000/api/souq/deals");
-      const response = await route.GET(req);
+      const response = await GET(req);
 
       expect([200, 401, 500]).toContain(response.status);
     });
 
     it("supports active filter", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
-        throw new Error("Route handler missing: GET");
-      }
-
       sessionUser = { id: "user-123", orgId: "org-123" };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/deals?active=true"
       );
-      const response = await route.GET(req);
+      const response = await GET(req);
 
       expect([200, 401, 500]).toContain(response.status);
     });
 
     it("supports category filter", async () => {
-      const route = await importRoute();
-      if (!route?.GET) {
-        throw new Error("Route handler missing: GET");
-      }
-
       sessionUser = { id: "user-123", orgId: "org-123" };
 
       const req = new NextRequest(
         "http://localhost:3000/api/souq/deals?categoryId=cat-123"
       );
-      const response = await route.GET(req);
+      const response = await GET(req);
 
       expect([200, 401, 500]).toContain(response.status);
     });
@@ -160,11 +136,6 @@ describe("API /api/souq/deals", () => {
 
   describe("POST - Create Deal", () => {
     it("returns 401 for unauthenticated requests", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        throw new Error("Route handler missing: POST");
-      }
-
       vi.mocked(getSessionUser).mockRejectedValue(
         new UnauthorizedError("Unauthenticated"),
       );
@@ -173,24 +144,19 @@ describe("API /api/souq/deals", () => {
         method: "POST",
         body: JSON.stringify({ title: "Summer Sale" }),
       });
-      const response = await route.POST(req);
+      const response = await POST(req);
 
       expect([401, 403]).toContain(response.status);
     });
 
     it("validates required fields", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        throw new Error("Route handler missing: POST");
-      }
-
       sessionUser = { id: "user-123", orgId: "org-123", role: "SELLER" };
 
       const req = new NextRequest("http://localhost:3000/api/souq/deals", {
         method: "POST",
         body: JSON.stringify({}),
       });
-      const response = await route.POST(req);
+      const response = await POST(req);
 
       expect([400, 401, 403, 500]).toContain(response.status);
     });

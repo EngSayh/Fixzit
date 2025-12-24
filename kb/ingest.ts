@@ -1,5 +1,5 @@
 import { getDatabase } from "@/lib/mongodb-unified";
-import { embedText } from "@/ai/embeddings";
+import { embedText } from "@/lib/ai-embeddings/embeddings";
 import { chunkText } from "./chunk";
 
 type UpsertArgs = {

@@ -280,25 +280,9 @@ if (shouldConnect) {
       
       // Second enforcement point: Run env guards before DB connection
       // (Primary enforcement is in instrumentation-node.ts)
-      if (process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview') {
-        try {
-          const { validateProductionEnv } = await import('@/lib/config/env-guards');
-          const guardResult = validateProductionEnv({ throwOnError: false });
-          if (!guardResult.passed) {
-            logger.error('[Mongo] Environment guards failed before DB connection', {
-              errors: guardResult.errors,
-              environment: guardResult.environment,
-            });
-            throw new Error('Environment validation failed: Cannot connect to database with unsafe configuration');
-          }
-        } catch (guardError) {
-          logger.error('[Mongo] Env guard check failed', {
-            error: guardError instanceof Error ? guardError.message : String(guardError),
-          });
-          throw guardError;
-        }
-      }
-
+      // NOTE: Env-guard validation moved into the promise chain below to avoid
+      // top-level await, which breaks tsx/esbuild CJS compilation
+      
       const isSrvUri = connectionUri.includes("mongodb+srv://");
       const hasExplicitTlsParam =
         connectionUri.includes("tls=true") || connectionUri.includes("ssl=true");
@@ -340,6 +324,33 @@ if (shouldConnect) {
       conn = globalObj._mongoose = mongoose
         .connect(connectionUri, connectionOptions)
         .then(async (m) => {
+          // Run env guards AFTER connection but BEFORE returning the handle
+          // (Moved from module-level to avoid top-level await for tsx/esbuild CJS compat)
+          if (process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview') {
+            try {
+              const { validateProductionEnv } = await import('@/lib/config/env-guards');
+              const guardResult = validateProductionEnv({ throwOnError: false });
+              if (!guardResult.passed) {
+                logger.error('[Mongo] Environment guards failed after DB connection', {
+                  errors: guardResult.errors,
+                  environment: guardResult.environment,
+                });
+                // Close the connection we just made
+                await m.disconnect();
+                throw new Error('Environment validation failed: Cannot use database with unsafe configuration');
+              }
+            } catch (guardError) {
+              // If it's our own thrown error, rethrow it
+              if (guardError instanceof Error && guardError.message.includes('Environment validation failed')) {
+                throw guardError;
+              }
+              logger.error('[Mongo] Env guard check failed', {
+                error: guardError instanceof Error ? guardError.message : String(guardError),
+              });
+              throw guardError;
+            }
+          }
+
           // Attach database pool for Vercel Functions optimization
           // This ensures proper cleanup when functions suspend and resume
           const pool = await loadAttachDatabasePool();

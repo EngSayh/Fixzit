@@ -128,7 +128,7 @@ jobs:
           # Replace colons with hyphens for artifact names (GitHub rejects colons)
           SANITIZED="${{ matrix.project }}"
           SANITIZED="${SANITIZED//:/-}"
-          echo "project_name=${SANITIZED}" >> $GITHUB_OUTPUT
+          echo "project_name=${SANITIZED}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -151,7 +151,7 @@ jobs:
 
       - name: Get Playwright version
         id: playwright-version
-        run: echo "version=$(pnpm list @playwright/test --depth=0 --json | jq -r '.[0].devDependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+        run: echo "version=$(pnpm list @playwright/test --depth=0 --json | jq -r '.[0].devDependencies["@playwright/test"].version')" >> "$GITHUB_OUTPUT"
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
