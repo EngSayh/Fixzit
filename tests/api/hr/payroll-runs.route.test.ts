@@ -18,6 +18,7 @@ let mockRoleAllowed = true;
 let mockPayrollRuns: unknown[] = [];
 let mockPayrollCreateResult: unknown = null;
 let mockExistsOverlap = false;
+let mockListCalledWith: unknown = null;
 
 // ============= MOCK DEFINITIONS =============
 // Mock factories read from mutable variables via closures.
@@ -51,14 +52,16 @@ vi.mock("@/lib/auth/role-guards", () => ({
 
 vi.mock("@/server/services/hr/payroll.service", () => ({
   PayrollService: {
-    list: vi.fn(async () => mockPayrollRuns),
-    create: vi.fn(async () => mockPayrollCreateResult),
-    existsOverlap: vi.fn(async () => mockExistsOverlap),
+    list: async (params: unknown) => {
+      mockListCalledWith = params;
+      return mockPayrollRuns;
+    },
+    create: async () => mockPayrollCreateResult,
+    existsOverlap: async () => mockExistsOverlap,
   },
 }));
 
 // Static imports AFTER vi.mock() declarations
-import { PayrollService } from "@/server/services/hr/payroll.service";
 import { GET, POST } from "@/app/api/hr/payroll/runs/route";
 
 describe("API /api/hr/payroll/runs", () => {
@@ -81,6 +84,7 @@ describe("API /api/hr/payroll/runs", () => {
     sessionUser = mockUser;
     mockPayrollRuns = [];
     mockExistsOverlap = false;
+    mockListCalledWith = null;
     mockPayrollCreateResult = {
       _id: "run_123",
       orgId: mockOrgId,
@@ -132,12 +136,10 @@ describe("API /api/hr/payroll/runs", () => {
         "http://localhost/api/hr/payroll/runs?status=APPROVED"
       );
       await GET(request);
-      expect(PayrollService.list).toHaveBeenCalledWith(
-        expect.objectContaining({
-          orgId: mockOrgId,
-          status: "APPROVED",
-        })
-      );
+      expect(mockListCalledWith).toMatchObject({
+        orgId: mockOrgId,
+        status: "APPROVED",
+      });
     });
 
     it("should accept SUPER_ADMIN role", async () => {

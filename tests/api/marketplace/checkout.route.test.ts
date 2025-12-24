@@ -49,8 +49,8 @@ vi.mock("@/lib/marketplace/serializers", () => ({
   serializeOrder: vi.fn((order) => order),
 }));
 
-// Static imports AFTER vi.mock() declarations
-import { POST } from "@/app/api/marketplace/checkout/route";
+// Dynamic import to ensure mocks are applied fresh
+const importRoute = async () => import("@/app/api/marketplace/checkout/route");
 
 describe("API /api/marketplace/checkout", () => {
   beforeEach(() => {
@@ -74,6 +74,7 @@ describe("API /api/marketplace/checkout", () => {
         role: "GUEST",
       };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/checkout", {
         method: "POST",
         body: JSON.stringify({}),
@@ -91,6 +92,7 @@ describe("API /api/marketplace/checkout", () => {
       };
       mockRateLimitAllowed = false;
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/checkout", {
         method: "POST",
         body: JSON.stringify({}),
@@ -114,6 +116,7 @@ describe("API /api/marketplace/checkout", () => {
         save: vi.fn(),
       };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/checkout", {
         method: "POST",
         body: JSON.stringify({}),
@@ -142,6 +145,7 @@ describe("API /api/marketplace/checkout", () => {
         save: vi.fn().mockResolvedValue(undefined),
       };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/checkout", {
         method: "POST",
         body: JSON.stringify({
@@ -180,6 +184,7 @@ describe("API /api/marketplace/checkout", () => {
         save: vi.fn().mockResolvedValue(undefined),
       };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/checkout", {
         method: "POST",
         body: JSON.stringify({
@@ -210,6 +215,7 @@ describe("API /api/marketplace/checkout", () => {
         save: vi.fn(),
       };
 
+      const { POST } = await importRoute();
       // Empty address should fail validation
       const req = new NextRequest("http://localhost:3000/api/marketplace/checkout", {
         method: "POST",

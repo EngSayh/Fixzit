@@ -19,35 +19,42 @@ let sessionUser: SessionUser | null = {
 
 // Mutable state for mocks
 let mockParseBodyResult: { data: unknown; error: string | null } = { data: {}, error: null };
+let mockFindOneAndUpdateResult: unknown = null;
+let mockFindOneAndUpdateCalled = false;
+let mockFindOneAndUpdateArgs: unknown[] = [];
 
 vi.mock("@/auth", () => ({
-  auth: vi.fn(async () => {
+  auth: async () => {
     if (!sessionUser) return null;
     return { user: sessionUser };
-  }),
+  },
 }));
-vi.mock("@/lib/mongodb-unified", () => ({ connectToDatabase: vi.fn() }));
+vi.mock("@/lib/mongodb-unified", () => ({ connectToDatabase: async () => undefined }));
 vi.mock("@/server/models/SMSSettings", () => ({
   SMSSettings: {
-    findOneAndUpdate: vi.fn(),
+    findOneAndUpdate: (...args: unknown[]) => {
+      mockFindOneAndUpdateCalled = true;
+      mockFindOneAndUpdateArgs = args;
+      return Promise.resolve(mockFindOneAndUpdateResult);
+    },
   },
 }));
 vi.mock("@/lib/api/parse-body", () => ({
-  parseBodySafe: vi.fn(async () => mockParseBodyResult),
+  parseBodySafe: async () => mockParseBodyResult,
 }));
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(undefined),
+  enforceRateLimit: () => undefined,
 }));
 vi.mock("@/lib/logger", () => ({
   logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
+    info: () => {},
+    warn: () => {},
+    error: () => {},
   },
 }));
 // Mock SSRF validator to allow valid HTTPS URLs
 vi.mock("@/lib/security/validate-public-https-url", () => ({
-  validatePublicHttpsUrl: vi.fn().mockImplementation((url: string) => {
+  validatePublicHttpsUrl: (url: string) => {
     // Reject HTTP
     if (url.startsWith("http://")) {
       return Promise.reject(new Error("Only HTTPS URLs are allowed"));
@@ -58,12 +65,10 @@ vi.mock("@/lib/security/validate-public-https-url", () => ({
     }
     // Accept valid HTTPS
     return Promise.resolve(new URL(url));
-  }),
+  },
 }));
 
 // Static imports AFTER vi.mock() calls
-import { connectToDatabase } from "@/lib/mongodb-unified";
-import { SMSSettings } from "@/server/models/SMSSettings";
 import { PUT } from "@/app/api/admin/sms/settings/route";
 
 describe("Admin SMS Settings API - SSRF protection", () => {
@@ -71,7 +76,9 @@ describe("Admin SMS Settings API - SSRF protection", () => {
     vi.clearAllMocks();
     sessionUser = { role: "SUPER_ADMIN", email: "admin@fixzit.co" };
     mockParseBodyResult = { data: {}, error: null };
-    vi.mocked(connectToDatabase).mockResolvedValue(undefined as any);
+    mockFindOneAndUpdateResult = null;
+    mockFindOneAndUpdateCalled = false;
+    mockFindOneAndUpdateArgs = [];
   });
 
   const buildRequest = (body?: string) =>
@@ -91,7 +98,7 @@ describe("Admin SMS Settings API - SSRF protection", () => {
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json.error).toContain("HTTPS");
-    expect(SMSSettings.findOneAndUpdate).not.toHaveBeenCalled();
+    expect(mockFindOneAndUpdateCalled).toBe(false);
   });
 
   it("allows valid public HTTPS webhook URLs", async () => {
@@ -99,19 +106,14 @@ describe("Admin SMS Settings API - SSRF protection", () => {
       data: { slaBreachNotifyWebhook: "https://hooks.example.com/notify" },
       error: null,
     };
-    vi.mocked(SMSSettings.findOneAndUpdate).mockResolvedValue({} as any);
+    mockFindOneAndUpdateResult = {};
 
     const res = await PUT(buildRequest());
 
     expect(res.status).toBe(200);
-    expect(SMSSettings.findOneAndUpdate).toHaveBeenCalledWith(
-      expect.any(Object),
-      expect.objectContaining({
-        $set: expect.objectContaining({
-          slaBreachNotifyWebhook: "https://hooks.example.com/notify",
-        }),
-      }),
-      expect.any(Object)
-    );
+    expect(mockFindOneAndUpdateCalled).toBe(true);
+    // Verify the second argument (update object) contains the webhook URL
+    const updateArg = mockFindOneAndUpdateArgs[1] as { $set?: { slaBreachNotifyWebhook?: string } };
+    expect(updateArg?.$set?.slaBreachNotifyWebhook).toBe("https://hooks.example.com/notify");
   });
 });
