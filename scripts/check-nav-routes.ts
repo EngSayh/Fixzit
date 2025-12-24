@@ -10,6 +10,13 @@ const PROJECT_ROOT = process.cwd();
 const ROUTE_PATTERN = /(['"])(\/[a-zA-Z0-9/_-]+)\1/g;
 const PREFIXES = ["/fm", "/marketplace", "/aqar"];
 
+// Route group mappings: URL prefix -> actual folder structure in app/
+const ROUTE_GROUP_MAPPINGS: Record<string, string> = {
+  "/fm": "(fm)/fm",
+  "/aqar": "(app)/aqar", // Aqar is under (app) route group
+  "/marketplace": "(app)/marketplace", // Marketplace is under (app) route group
+};
+
 const SOURCES: SourceConfig[] = [
   { file: "nav/registry.ts", description: "FM navigation registry" },
   { file: "config/topbar-modules.ts", description: "TopBar quick actions" },
@@ -38,6 +45,20 @@ function collectRoutes() {
 
 function ensureRouteHasPage(route: string) {
   const parts = route.replace(/^\/+/, "").split("/");
+  
+  // Find the matching route group for this route prefix
+  const prefix = "/" + parts[0];
+  const routeGroupPath = ROUTE_GROUP_MAPPINGS[prefix];
+  
+  if (routeGroupPath) {
+    // Use route group path: /fm/dashboard -> app/(fm)/fm/dashboard/page.tsx
+    const routeGroupParts = routeGroupPath.split("/");
+    const remainingParts = parts.slice(1); // Skip the first part (fm, aqar, etc.)
+    const fileLocation = join(PROJECT_ROOT, "app", ...routeGroupParts, ...remainingParts, "page.tsx");
+    return existsSync(fileLocation);
+  }
+  
+  // Fallback to direct path
   const fileLocation = join(PROJECT_ROOT, "app", ...parts, "page.tsx");
   return existsSync(fileLocation);
 }
