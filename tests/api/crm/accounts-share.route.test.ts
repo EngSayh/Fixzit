@@ -89,10 +89,10 @@ describe("API /api/crm/accounts/share", () => {
   };
 
   beforeEach(() => {
-    vi.resetModules();
     vi.clearAllMocks();
+    vi.resetModules();
     
-    // Default mocks
+    // Default mocks - set AFTER resetModules
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     vi.mocked(getSessionUser).mockResolvedValue(mockUser);
   });

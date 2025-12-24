@@ -53,8 +53,8 @@ const importRoute = async () => import("@/app/api/marketplace/vendor/products/ro
 
 describe("API /api/marketplace/vendor/products", () => {
   beforeEach(() => {
-    vi.resetModules();
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   describe("GET - List Vendor Products", () => {

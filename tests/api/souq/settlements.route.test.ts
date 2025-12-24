@@ -69,9 +69,9 @@ const importRoute = async () => import("@/app/api/souq/settlements/route");
 
 describe("API /api/souq/settlements", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.resetModules();
     sessionUser = null;
-    vi.clearAllMocks();
   });
 
   describe("GET - List Settlements", () => {
@@ -87,6 +87,13 @@ describe("API /api/souq/settlements", () => {
     });
 
     it("returns 429 when rate limit exceeded", async () => {
+      // Set authenticated user - rate limit check happens after auth
+      sessionUser = {
+        id: "user-123",
+        orgId: "507f1f77bcf86cd799439011",
+        role: "SELLER",
+      };
+      
       vi.mocked(enforceRateLimit).mockReturnValue(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,

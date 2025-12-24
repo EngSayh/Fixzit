@@ -85,8 +85,8 @@ describe("API /api/crm/leads/log-call", () => {
   };
 
   beforeEach(() => {
-    vi.resetModules();
     vi.clearAllMocks();
+    vi.resetModules();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     vi.mocked(getSessionUser).mockResolvedValue(mockUser as never);
   });

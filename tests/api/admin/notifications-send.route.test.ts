@@ -80,8 +80,8 @@ function createRequest(body: object): NextRequest {
 
 describe("API /api/admin/notifications/send", () => {
   beforeEach(() => {
-    vi.resetModules();
     vi.clearAllMocks();
+    vi.resetModules();
     vi.unstubAllEnvs();
     vi.stubEnv("NODE_ENV", "test");
     mockRateLimit.mockResolvedValue({ allowed: true });
