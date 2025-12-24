@@ -61,15 +61,17 @@ jobs:
           echo "E2E RBAC tests will run when a maintainer merges to main"
           echo "or when the PR is from an internal branch with secrets access."
           echo ""
-          echo "### ⏭️ E2E Tests Skipped (Forked PR)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Secrets are unavailable for forked PRs. E2E tests will run after merge." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Your PR still receives:**" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ TypeScript type checking" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ ESLint linting" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Build verification" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Unit tests" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### ⏭️ E2E Tests Skipped (Forked PR)"
+            echo ""
+            echo "Secrets are unavailable for forked PRs. E2E tests will run after merge."
+            echo ""
+            echo "**Your PR still receives:**"
+            echo "- ✅ TypeScript type checking"
+            echo "- ✅ ESLint linting"
+            echo "- ✅ Build verification"
+            echo "- ✅ Unit tests"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   e2e-tests:
     runs-on: ubuntu-latest
@@ -255,11 +257,13 @@ jobs:
             echo "::error::Missing NEXTAUTH_SECRET secret. Configure in GitHub Settings > Secrets."
             exit 1
           fi
-          echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
-          echo "AUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
-          # Google OAuth is optional - set to empty string if not configured
-          echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}" >> "$GITHUB_ENV"
-          echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}" >> "$GITHUB_ENV"
+          {
+            echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}"
+            echo "AUTH_SECRET=${NEXTAUTH_SECRET}"
+            # Google OAuth is optional - set to empty string if not configured
+            echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}"
+            echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}"
+          } >> "$GITHUB_ENV"
 
       # AUDIT-2025-11-30: Fixed secrets validation
       # - Added env: block to wire secrets into the step (was missing, causing false negatives)
@@ -507,18 +511,22 @@ jobs:
           mkdir -p test-results
           echo "${status}" > "test-results/${project//[:\/]/-}-status.txt"
 
-          echo "PROJECT_NAME=${project}" >> $GITHUB_ENV
-          echo "PROJECT_STATUS=${status}" >> $GITHUB_ENV
+          {
+            echo "PROJECT_NAME=${project}"
+            echo "PROJECT_STATUS=${status}"
+          } >> "$GITHUB_ENV"
 
           # Create project-specific summary
-          echo "### 🎭 ${project}" >> $GITHUB_STEP_SUMMARY
-          if [ "${status}" = "success" ]; then
-            echo "✅ All tests passed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Tests failed - [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "[📊 Download report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### 🎭 ${project}"
+            if [ "${status}" = "success" ]; then
+              echo "✅ All tests passed"
+            else
+              echo "❌ Tests failed - [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            fi
+            echo "[📊 Download report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload test status
         uses: actions/upload-artifact@v4

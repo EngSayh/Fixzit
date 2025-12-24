@@ -34,7 +34,7 @@ const sharedProjectConfig = {
   },
   server: {
     deps: {
-      inline: ["next-auth", "next"],
+      inline: ["next-auth", "next", "ai"],
     },
   },
 };
