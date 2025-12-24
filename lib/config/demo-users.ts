@@ -317,13 +317,15 @@ export const DEMO_CREDENTIALS_PERSONAL = DEMO_USER_DEFINITIONS.filter((u) =>
  */
 export const DEMO_CREDENTIALS_CORPORATE = [
   {
-    role: "Property Manager (Corporate)",
+    role: "PROPERTY_MANAGER",
+    displayRole: "Property Manager (Corporate)",
     employeeNumber: "EMP001",
     password: SAFE_DEFAULT_PASSWORD,
     description: "Corporate account access",
   },
   {
-    role: "Admin (Corporate)",
+    role: "ADMIN",
+    displayRole: "Admin (Corporate)",
     employeeNumber: "EMP002",
     password: SAFE_DEFAULT_PASSWORD,
     description: "Corporate administrative access",

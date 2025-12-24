@@ -7,6 +7,7 @@ import { User } from "../server/models/User";
 import { hashPassword } from "../lib/auth";
 
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+const DEFAULT_ORG_ID = process.env.DEFAULT_ORG_ID || process.env.TEST_ORG_ID;
 
 // Safety: block accidental production/CI execution and require explicit opt-in
 const isProdLike =
@@ -17,6 +18,10 @@ if (isProdLike) {
 }
 if (process.env.ALLOW_SEED !== "1") {
   console.error("❌ ALLOW_SEED=1 is required to run create-demo-users.ts (prevents accidental prod writes)");
+  process.exit(1);
+}
+if (!DEFAULT_ORG_ID) {
+  console.error("❌ DEFAULT_ORG_ID or TEST_ORG_ID must be set");
   process.exit(1);
 }
 
@@ -40,7 +45,7 @@ const newUsers = [
 
     employeeId: "SUPER-001",
     phone: demoPhones.superadmin,
-    orgId: "68dc8955a1ba6ed80ff372dc",
+    orgId: DEFAULT_ORG_ID,
     personal: {
       firstName: "Super",
       lastName: "Admin",
@@ -60,7 +65,7 @@ const newUsers = [
     email: `manager@${EMAIL_DOMAIN}`,
     employeeId: "MGR-001",
     phone: demoPhones.manager,
-    orgId: "68dc8955a1ba6ed80ff372dc",
+    orgId: DEFAULT_ORG_ID,
     personal: {
       firstName: "Property",
       lastName: "Manager",
@@ -80,7 +85,7 @@ const newUsers = [
     email: `tenant@${EMAIL_DOMAIN}`,
     employeeId: "TENANT-001",
     phone: demoPhones.tenant,
-    orgId: "68dc8955a1ba6ed80ff372dc",
+    orgId: DEFAULT_ORG_ID,
     personal: {
       firstName: "Demo",
       lastName: "Tenant",
@@ -100,7 +105,7 @@ const newUsers = [
     email: `vendor@${EMAIL_DOMAIN}`,
     employeeId: "VENDOR-001",
     phone: demoPhones.vendor,
-    orgId: "68dc8955a1ba6ed80ff372dc",
+    orgId: DEFAULT_ORG_ID,
     personal: {
       firstName: "Demo",
       lastName: "Vendor",
@@ -120,7 +125,7 @@ const newUsers = [
     email: `emp001@${EMAIL_DOMAIN}`,
     employeeId: "EMP001",
     phone: demoPhones.emp001,
-    orgId: "68dc8955a1ba6ed80ff372dc",
+    orgId: DEFAULT_ORG_ID,
     personal: {
       firstName: "Employee",
       lastName: "One",
@@ -140,7 +145,7 @@ const newUsers = [
     email: `emp002@${EMAIL_DOMAIN}`,
     employeeId: "EMP002",
     phone: demoPhones.emp002,
-    orgId: "68dc8955a1ba6ed80ff372dc",
+    orgId: DEFAULT_ORG_ID,
     personal: {
       firstName: "Employee",
       lastName: "Two",
