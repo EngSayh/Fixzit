@@ -29,6 +29,7 @@ describe('Work Order Status Race Conditions', () => {
   const ORG_ID = '6579a1b2c3d4e5f6a7b8c9d1';
 
   beforeEach(() => {
+    vi.useRealTimers(); // Reset any fake timers from other tests
     vi.clearAllMocks();
   });
 

@@ -5,13 +5,14 @@
  * Validates isOpen(), getState(), and provider selection logic.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { CircuitBreaker } from "@/lib/resilience/circuit-breaker";
 
 describe("CircuitBreaker", () => {
   let breaker: CircuitBreaker;
 
   beforeEach(() => {
+    vi.useRealTimers(); // Reset any fake timers from other tests
     breaker = new CircuitBreaker({
       name: "test-breaker",
       failureThreshold: 3,
