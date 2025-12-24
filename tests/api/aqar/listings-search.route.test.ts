@@ -77,6 +77,7 @@ describe("GET /api/aqar/listings/search", () => {
     });
     const response = await route.GET(req);
 
-    expect([200, 400, 500]).toContain(response.status);
+    // Route returns 200 with results array (possibly empty) on success
+    expect(response.status).toBe(200);
   });
 });

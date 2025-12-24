@@ -129,8 +129,9 @@ describe("API /api/aqar/listings", () => {
       });
       const response = await route.POST(req);
 
-      // Should return 401 or handle unauthenticated
-      expect([400, 401, 403, 500]).toContain(response.status);
+      // Route calls getSessionUser which returns null; this triggers an error path
+      // The route catches the error and returns 500 (no explicit 401 handling)
+      expect(response.status).toBe(500);
     });
 
     it("returns 400 when body is invalid JSON", async () => {
@@ -155,7 +156,8 @@ describe("API /api/aqar/listings", () => {
       });
       const response = await route.POST(req);
 
-      expect([400, 500]).toContain(response.status);
+      // Route catches APIParseError and returns 400 "Invalid JSON body"
+      expect(response.status).toBe(400);
     });
   });
 });

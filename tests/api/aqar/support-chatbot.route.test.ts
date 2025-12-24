@@ -75,7 +75,8 @@ describe("POST /api/aqar/support/chatbot", () => {
     });
     const response = await POST(req);
 
-    expect([200, 400, 429, 500]).toContain(response.status);
+    // Route checks if rate limit result has 'status' property and returns it directly
+    expect(response.status).toBe(429);
   });
 
   it("handles chatbot message", async () => {
@@ -86,6 +87,7 @@ describe("POST /api/aqar/support/chatbot", () => {
     });
     const response = await POST(req);
 
-    expect([200, 400, 500]).toContain(response.status);
+    // Valid message with allowed rate limit returns 200 with reply
+    expect(response.status).toBe(200);
   });
 });

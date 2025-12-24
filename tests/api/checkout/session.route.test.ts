@@ -106,5 +106,26 @@ describe("API /api/checkout/session", () => {
 
       expect(response.status).toBe(400);
     });
+
+    it("returns 200 with session ID on successful checkout creation", async () => {
+      // Ensure rate limit is allowed and mock returns success
+      mockSmartRateLimitAllowed = true;
+      mockCheckoutResult = { sessionId: "cs_test_session_123", url: "https://checkout.stripe.com/..." };
+
+      const req = new NextRequest("http://localhost:3000/api/checkout/session", {
+        method: "POST",
+        body: JSON.stringify({
+          subscriberType: "CORPORATE",
+          modules: ["FM"],
+          customer: { email: "valid@example.com", name: "Test Corp" },
+          seats: 10,
+        }),
+      });
+      const response = await POST(req);
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.sessionId).toBe("cs_test_session_123");
+    });
   });
 });
