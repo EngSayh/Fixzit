@@ -2,6 +2,56 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-24 13:30 (Asia/Riyadh) — CI Fixes Batch 2: Redis Removal + Route Quality + MongoDB Index
+
+**Agent Token:** [AGENT-001-A]
+**Context:** agent/AGENT-001-A/test-isolation-fix/vitest-forks | PR: #601 | Commits: 6d3db0a90, eb3521059, 74078b886
+**Session Summary:** Fixed remaining CI failures per user instructions
+**DB Sync:** N/A (CI infrastructure fixes)
+
+### ✅ Fixes Applied
+
+| Fix | File | Details |
+|-----|------|---------|
+| Remove Redis check | `scripts/ci/check-critical-env.ts` | Redis was removed from project - check should not exist |
+| Route nav path | `scripts/check-nav-routes.ts` | Fixed `app/fm/dashboard` → `app/(fm)/fm/dashboard` |
+| MongoDB index | `lib/db/collections.ts` | Removed `sparse` from indexes with `partialFilterExpression` (MongoDB rejects mixing) |
+| Workflow lint | `.github/workflows/e2e-tests.yml` | Quoted `$GITHUB_OUTPUT` at lines 131, 154 |
+| Redirect pattern | `scripts/check-route-references.ts` | Added `ALLOWED_REDIRECT_PATTERNS` for `/fm/:path*` |
+| Offline route | `public/sw.js` | Changed `/fm/offline` → `/offline` (actual page location) |
+| AI folder conflict | `ai/` → `lib/ai-embeddings/` | Renamed to avoid conflict with `ai` npm package |
+| Top-level await | `lib/mongo.ts` | Moved env-guard check into `.then()` chain for tsx CJS compat |
+
+### 📊 User Instructions Addressed
+
+1. ✅ **Redis** - Removed entirely from check-critical-env.ts (not just skipped)
+2. ✅ **Tap Payments** - Kept strict (payment infrastructure)
+3. ✅ **MongoDB sparse+partial** - Fixed index conflict
+4. ✅ **Route Quality** - Fixed nav check path + redirect patterns
+5. ✅ **AI folder conflict** - Renamed to lib/ai-embeddings
+
+### 📁 Files Modified (12 files)
+
+- `scripts/ci/check-critical-env.ts` — Removed Redis checks entirely
+- `scripts/check-nav-routes.ts` — Fixed dashboard path
+- `lib/db/collections.ts` — Fixed 2 indexes (sparse+partialFilterExpression)
+- `.github/workflows/e2e-tests.yml` — Quoted $GITHUB_OUTPUT
+- `scripts/check-route-references.ts` — Added redirect pattern allowlist
+- `public/sw.js` — Fixed offline route reference
+- `lib/ai-embeddings/embeddings.ts` — Renamed from ai/
+- `lib/mongo.ts` — Fixed top-level await for CJS
+- `kb/ingest.ts` — Updated import path
+- `scripts/kb-change-stream.ts` — Updated import path
+- `app/api/help/ask/route.ts` — Updated import path
+
+### ⏳ Pending Verification
+
+- QA workflow - should pass after Redis removal
+- Route Quality - should pass after nav path fix
+- Test Runner - should pass after index fix
+
+---
+
 ## 📅 2025-12-24 10:45 (Asia/Riyadh) — CI Failures Investigation + Fixes
 
 **Agent Token:** [AGENT-001-A]
