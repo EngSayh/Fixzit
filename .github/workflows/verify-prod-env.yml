@@ -76,7 +76,7 @@ jobs:
         # set ALLOW_PROD_MONGO=false in workflow_dispatch inputs.
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
-        if: ${{ secrets.MONGODB_URI != '' }}
+        if: ${{ env.MONGODB_URI != '' }}
         run: |
           echo "⚠️  Running against PRODUCTION database (verify-prod-env workflow)"
           echo "   This is intentional for production validation."
@@ -129,18 +129,20 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "### Production Environment Validation" >> "$GITHUB_STEP_SUMMARY"
-          echo >> "$GITHUB_STEP_SUMMARY"
-          if [ "${{ steps.validate.outcome }}" = "success" ]; then
-            echo "Status: PASSED" >> "$GITHUB_STEP_SUMMARY"
-            echo >> "$GITHUB_STEP_SUMMARY"
-            echo "All required production secrets are configured." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Status: FAILED" >> "$GITHUB_STEP_SUMMARY"
-            echo >> "$GITHUB_STEP_SUMMARY"
-          echo "Missing required secrets. Configure in GitHub Actions Secrets:" >> "$GITHUB_STEP_SUMMARY"
-          echo "- NEXTAUTH_SECRET / AUTH_SECRET" >> "$GITHUB_STEP_SUMMARY"
-          echo "- PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY" >> "$GITHUB_STEP_SUMMARY"
-          echo "- ZATCA_API_KEY, ZATCA_SELLER_NAME, ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS" >> "$GITHUB_STEP_SUMMARY"
-          echo "- (Optional, required when ENABLE_SADAD_PAYOUTS=true): SADAD_API_KEY, SADAD_API_SECRET, SADAD_API_ENDPOINT, SADAD_SPAN_MODE" >> "$GITHUB_STEP_SUMMARY"
-          fi
+          {
+            echo "### Production Environment Validation"
+            echo
+            if [ "${{ steps.validate.outcome }}" = "success" ]; then
+              echo "Status: PASSED"
+              echo
+              echo "All required production secrets are configured."
+            else
+              echo "Status: FAILED"
+              echo
+              echo "Missing required secrets. Configure in GitHub Actions Secrets:"
+              echo "- NEXTAUTH_SECRET / AUTH_SECRET"
+              echo "- PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY"
+              echo "- ZATCA_API_KEY, ZATCA_SELLER_NAME, ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS"
+              echo "- (Optional, required when ENABLE_SADAD_PAYOUTS=true): SADAD_API_KEY, SADAD_API_SECRET, SADAD_API_ENDPOINT, SADAD_SPAN_MODE"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

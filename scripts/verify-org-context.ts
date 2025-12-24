@@ -56,10 +56,10 @@ function readJson<T>(filePath: string): T {
 const GUARD_SCOPES: GuardScopeConfig[] = [
   {
     id: "fm-template",
-    description: "FM routes use app/fm/template.tsx to enforce OrgContextGate",
-    match: /^app\/fm\//,
+    description: "FM routes use app/(fm)/fm/template.tsx to enforce OrgContextGate",
+    match: /^app\/\(fm\)\/fm\//,
     guardType: "template",
-    templatePath: "app/fm/template.tsx",
+    templatePath: "app/(fm)/fm/template.tsx",
     mustContain: "OrgContextGate",
   },
 ];
