@@ -249,6 +249,22 @@ export async function POST(request: NextRequest) {
     const dryRun = Boolean(body.dryRun);
     await connectToDatabase();
 
+    // Validate orgId before ObjectId conversion to prevent server crashes
+    if (!session.orgId || !mongoose.isValidObjectId(session.orgId)) {
+      logger.error("[FIXZIT-API-007] Invalid or missing orgId in session (import)", {
+        hasOrgId: !!session.orgId,
+      });
+      return NextResponse.json(
+        {
+          error: {
+            code: "FIXZIT-API-007",
+            message: "Invalid organization ID",
+            details: "Session contains an invalid or missing organization identifier.",
+          },
+        },
+        { status: 400, headers: ROBOTS_HEADER }
+      );
+    }
     const orgId = new mongoose.Types.ObjectId(session.orgId);
     const summary: ImportSummary = { created: 0, updated: 0, skipped: 0, errors: [] };
 

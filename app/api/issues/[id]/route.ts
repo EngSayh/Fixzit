@@ -78,6 +78,24 @@ export async function GET(
     await connectToDatabase();
     
     const { id } = await params;
+    
+    // Validate orgId before ObjectId conversion to prevent server crashes
+    if (!session.orgId || !mongoose.isValidObjectId(session.orgId)) {
+      logger.error("[FIXZIT-API-004] Invalid or missing orgId in session (GET issue)", {
+        hasOrgId: !!session.orgId,
+        issueId: id,
+      });
+      return NextResponse.json(
+        {
+          error: {
+            code: "FIXZIT-API-004",
+            message: "Invalid organization ID",
+            details: "Session contains an invalid or missing organization identifier.",
+          },
+        },
+        { status: 400 }
+      );
+    }
     const orgId = new mongoose.Types.ObjectId(session.orgId);
     
     // Find by issueId (e.g., BUG-0001) or MongoDB _id
@@ -203,6 +221,24 @@ export async function PATCH(
       return NextResponse.json({ error: bodyResult.error }, { status: 400 });
     }
     const body = bodyResult.data!;
+    
+    // Validate orgId before ObjectId conversion to prevent server crashes
+    if (!session.orgId || !mongoose.isValidObjectId(session.orgId)) {
+      logger.error("[FIXZIT-API-005] Invalid or missing orgId in session (PATCH issue)", {
+        hasOrgId: !!session.orgId,
+        issueId: id,
+      });
+      return NextResponse.json(
+        {
+          error: {
+            code: "FIXZIT-API-005",
+            message: "Invalid organization ID",
+            details: "Session contains an invalid or missing organization identifier.",
+          },
+        },
+        { status: 400 }
+      );
+    }
     const orgId = new mongoose.Types.ObjectId(session.orgId);
     let statusChanged = false;
     let previousStatus: IssueStatusType | null = null;
@@ -361,6 +397,24 @@ export async function DELETE(
     await connectToDatabase();
     
     const { id } = await params;
+    
+    // Validate orgId before ObjectId conversion to prevent server crashes
+    if (!session.orgId || !mongoose.isValidObjectId(session.orgId)) {
+      logger.error("[FIXZIT-API-006] Invalid or missing orgId in session (DELETE issue)", {
+        hasOrgId: !!session.orgId,
+        issueId: id,
+      });
+      return NextResponse.json(
+        {
+          error: {
+            code: "FIXZIT-API-006",
+            message: "Invalid organization ID",
+            details: "Session contains an invalid or missing organization identifier.",
+          },
+        },
+        { status: 400 }
+      );
+    }
     const orgId = new mongoose.Types.ObjectId(session.orgId);
     
     const issue = await Issue.findOneAndDelete({

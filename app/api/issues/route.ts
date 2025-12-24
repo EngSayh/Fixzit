@@ -249,6 +249,24 @@ export async function GET(request: NextRequest) {
       file: searchParams.get('file') || undefined,
     };
     
+    // Validate orgId before ObjectId conversion to prevent server crashes
+    if (!session.orgId || !mongoose.isValidObjectId(session.orgId)) {
+      logger.error("[FIXZIT-API-001] Invalid or missing orgId in session", {
+        hasOrgId: !!session.orgId,
+        orgIdValue: session.orgId ? "[REDACTED]" : "null",
+      });
+      return NextResponse.json(
+        {
+          error: {
+            code: "FIXZIT-API-001",
+            message: "Invalid organization ID",
+            details: "Session contains an invalid or missing organization identifier. Please ensure SUPERADMIN_ORG_ID or PUBLIC_ORG_ID is properly configured.",
+          },
+        },
+        { status: 400 }
+      );
+    }
+    
     const orgId = new mongoose.Types.ObjectId(session.orgId);
     const filter = buildFilterQuery(query, orgId);
     const sort = buildSortQuery(query);
@@ -372,6 +390,23 @@ export async function POST(request: NextRequest) {
     if (!Object.values(IssueEffort).includes(body.effort as typeof IssueEffort[keyof typeof IssueEffort])) {
       return NextResponse.json(
         { error: `Invalid effort. Must be one of: ${Object.values(IssueEffort).join(', ')}` },
+        { status: 400 }
+      );
+    }
+    
+    // Validate orgId before ObjectId conversion to prevent server crashes
+    if (!session.orgId || !mongoose.isValidObjectId(session.orgId)) {
+      logger.error("[FIXZIT-API-002] Invalid or missing orgId in session (POST)", {
+        hasOrgId: !!session.orgId,
+      });
+      return NextResponse.json(
+        {
+          error: {
+            code: "FIXZIT-API-002",
+            message: "Invalid organization ID",
+            details: "Session contains an invalid or missing organization identifier.",
+          },
+        },
         { status: 400 }
       );
     }
