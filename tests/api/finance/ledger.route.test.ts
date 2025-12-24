@@ -6,9 +6,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
+// ============================================================================
+// MUTABLE MOCK STATE (read by mock factories via closures)
+// Pattern: Vitest pool:forks requires mutable state for mock configuration
+// ============================================================================
+type SessionUser = { id: string; org_id: string; role: string } | null;
+let mockSessionUser: SessionUser = null;
+let mockRateLimitResponse: Response | null = null;
+
 // Mock dependencies before import
 vi.mock("@/server/middleware/withAuthRbac", () => ({
-  getSessionUser: vi.fn(),
+  getSessionUser: vi.fn(async () => mockSessionUser),
 }));
 
 vi.mock("@/server/lib/authContext", () => ({
@@ -20,7 +28,7 @@ vi.mock("@/config/rbac.config", () => ({
 }));
 
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn(() => null),
+  enforceRateLimit: vi.fn(() => mockRateLimitResponse),
 }));
 
 vi.mock("@/lib/mongodb-unified", () => ({
@@ -71,17 +79,8 @@ vi.mock("@/server/utils/errorResponses", () => ({
   isForbidden: vi.fn(() => false),
 }));
 
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-
-const mockGetSessionUser = vi.mocked(getSessionUser);
-const mockRateLimit = vi.mocked(enforceRateLimit);
-
-// Dynamic import with resetModules to ensure fresh module per test run (prevents CI shard mock contamination)
-const importRoute = async () => {
-  vi.resetModules();
-  return import("@/app/api/finance/ledger/route");
-};
+// Static import AFTER vi.mock declarations (Vitest hoists mocks)
+import { GET } from "@/app/api/finance/ledger/route";
 
 function createRequest(
   method: string,
@@ -104,8 +103,9 @@ describe("API /api/finance/ledger", () => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
     vi.stubEnv("NODE_ENV", "test");
-    mockRateLimit.mockReturnValue(null);
-    mockGetSessionUser.mockResolvedValue(null);
+    // Reset mutable state to defaults
+    mockSessionUser = null;
+    mockRateLimitResponse = null;
   });
 
   afterEach(() => {
@@ -114,28 +114,22 @@ describe("API /api/finance/ledger", () => {
 
   describe("GET /api/finance/ledger", () => {
     it("returns 401 when not authenticated", async () => {
-      mockGetSessionUser.mockResolvedValueOnce(null);
-
-      const routeModule = await importRoute();
+      mockSessionUser = null;
 
       const req = createRequest("GET");
-      const res = await routeModule.GET(req);
+      const res = await GET(req);
 
       expect(res.status).toBe(401);
     });
 
     it("enforces rate limiting", async () => {
-      mockRateLimit.mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-          headers: { "Content-Type": "application/json" },
-        })
+      mockRateLimitResponse = new Response(
+        JSON.stringify({ error: "Rate limit exceeded" }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
       );
 
-      const routeModule = await importRoute();
-
       const req = createRequest("GET");
-      const res = await routeModule.GET(req);
+      const res = await GET(req);
 
       expect(res.status).toBe(429);
     });
