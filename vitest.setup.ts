@@ -601,6 +601,10 @@ beforeAll(async () => {
       }
       // Different URI - need to disconnect and reconnect
       logger.debug("[MongoMemory] Connected to different URI, disconnecting first");
+      // Clear all models to prevent stale model cache with old connection
+      for (const modelName of Object.keys(mongoose.connection.models)) {
+        mongoose.connection.deleteModel(modelName);
+      }
       await realDisconnect();
     }
     
@@ -610,6 +614,10 @@ beforeAll(async () => {
     // Ensure previous connections are closed before connecting
     // Use realDisconnect to bypass the suppression wrapper (since this IS the setup)
     if (mongoose.connection.readyState !== 0) {
+      // Clear all models to prevent stale model cache with old connection
+      for (const modelName of Object.keys(mongoose.connection.models)) {
+        mongoose.connection.deleteModel(modelName);
+      }
       await realDisconnect();
     }
     await mongoose.connect(mongoUri, {
