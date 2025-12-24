@@ -62,6 +62,7 @@ describe('PATCH /api/work-orders/[id]', () => {
   };
 
   beforeEach(() => {
+    vi.useRealTimers(); // Reset any fake timers from other tests
     vi.clearAllMocks();
     (requireAbility as vi.Mock).mockImplementation(() => async () => mockUser);
     

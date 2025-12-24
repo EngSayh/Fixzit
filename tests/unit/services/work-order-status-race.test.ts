@@ -9,21 +9,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock mongoose for testing
-vi.mock('mongoose', () => ({
-  Types: {
-    ObjectId: {
-      isValid: (id: string) => /^[a-f\d]{24}$/i.test(id),
-    },
-  },
-  startSession: vi.fn().mockResolvedValue({
-    startTransaction: vi.fn(),
-    commitTransaction: vi.fn(),
-    abortTransaction: vi.fn(),
-    endSession: vi.fn(),
-  }),
-}));
-
 describe('Work Order Status Race Conditions', () => {
   const WO_ID = '6579a1b2c3d4e5f6a7b8c9d0';
   const ORG_ID = '6579a1b2c3d4e5f6a7b8c9d1';

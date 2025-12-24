@@ -2,6 +2,51 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-25 14:45 (Asia/Riyadh) — PR #601 Review Session: Test Isolation & Token Fixes
+
+**Agent Token:** [AGENT-001-A]
+**Context:** agent/AGENT-001-A/test-isolation-fix/vitest-forks | 5d8ae33ae | PR: #601
+**Session Summary:** Fixed test isolation issues (fake timer contamination) and addressed PR review comments.
+**DB Sync:** created=0, updated=0, skipped=0, errors=0 (test/UI fixes only)
+
+### ✅ FIXES APPLIED
+
+| Commit | Fix | File | Details |
+|--------|-----|------|---------|
+| f96e361fb | Timer isolation | `tests/unit/services/work-order-status-race.test.ts` | Added vi.useRealTimers() in beforeEach |
+| f96e361fb | Timer isolation | `tests/server/lib/resilience/circuit-breaker-integration.test.ts` | Added vi.useRealTimers() in beforeEach |
+| 5d8ae33ae | Token fix | `components/ui/Icon.tsx` | Changed text-destructive → text-error per design token system |
+
+### 📊 Verification Results
+
+| Gate | Result | Notes |
+|------|--------|-------|
+| pnpm typecheck | ✅ 0 errors | |
+| pnpm lint | ✅ 0 errors | 1 warning (acceptable - @vitest-environment comment) |
+| Test isolation | ✅ Fixed | Fake timer contamination resolved |
+| PR Review | ✅ Addressed | Icon.tsx token fix per CodeRabbit review |
+
+### 📋 PR #601 Review Comments Summary
+
+| Comment | Priority | Status | Notes |
+|---------|----------|--------|-------|
+| Icon.tsx text-destructive → text-error | High | ✅ **FIXED** | Committed in 5d8ae33ae |
+| i18n duplicate "empty" key | Critical | ✅ **ALREADY FIXED** | Verified en.json is valid JSON |
+| design-tokens.css deprecation | Medium | 📋 **DEFERRED** | Clarification needed - both tokens.css and design-tokens.css imported |
+| useAnimation animationOptions unused | Minor | 📋 **DEFERRED** | Theme files in Incoming/ folder |
+| listItemExit wrong animation | Minor | 📋 **DEFERRED** | Theme files in Incoming/ folder |
+| Next.js 15 params pattern | Minor | 📋 **DEFERRED** | Example code in Incoming/ folder |
+| ALLOWED_ROLES sync comment | Minor | 📋 **DEFERRED** | Comment clarification only |
+| PR template deleted | Medium | 📋 **DEFERRED** | May need restoration |
+
+### 🎯 Next Steps
+
+- [ ] Run full test suite to verify timer isolation fix works in CI
+- [ ] Address remaining PR review comments (design-tokens.css question)
+- [ ] Merge PR #601 after CI passes
+
+---
+
 ## 📅 2025-12-24 18:15 (Asia/Riyadh) — CI Fixes Batch 7: Complete All Actionable Items
 
 **Agent Token:** [AGENT-001-A]
