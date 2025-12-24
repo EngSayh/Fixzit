@@ -2,18 +2,34 @@
  * @fileoverview Tests for /api/crm/accounts/share route
  * Tests CRM account sharing functionality, RBAC, tenant isolation
  * @module tests/api/crm/accounts-share.route.test
+ * 
+ * Pattern: Static imports with mutable context variables (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock rate limiting
+// === Mutable state for mocks (survives vi.clearAllMocks) ===
+type MockUser = {
+  id: string;
+  orgId: string;
+  tenantId: string;
+  role: string;
+} | null;
+
+let mockSessionUser: MockUser = null;
+let mockRateLimitResponse: Response | null = null;
+let mockCrmLeadFindOne: ReturnType<typeof vi.fn> = vi.fn();
+let mockCrmLeadCreate: ReturnType<typeof vi.fn> = vi.fn();
+let mockCrmActivityCreate: ReturnType<typeof vi.fn> = vi.fn();
+
+// Mock rate limiting with mutable state
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: () => mockRateLimitResponse,
 }));
 
-// Mock authentication
+// Mock authentication with mutable state
 vi.mock("@/server/middleware/withAuthRbac", () => ({
-  getSessionUser: vi.fn(),
+  getSessionUser: vi.fn(async () => mockSessionUser),
   UnauthorizedError: class UnauthorizedError extends Error {
     name = "UnauthorizedError";
   },
@@ -45,17 +61,17 @@ vi.mock("@/server/plugins/auditPlugin", () => ({
   clearAuditContext: vi.fn(),
 }));
 
-// Mock CRM models
+// Mock CRM models with mutable state
 vi.mock("@/server/models/CrmLead", () => ({
   default: {
-    findOne: vi.fn(),
-    create: vi.fn(),
+    findOne: (...args: unknown[]) => mockCrmLeadFindOne(...args),
+    create: (...args: unknown[]) => mockCrmLeadCreate(...args),
   },
 }));
 
 vi.mock("@/server/models/CrmActivity", () => ({
   default: {
-    create: vi.fn(),
+    create: (...args: unknown[]) => mockCrmActivityCreate(...args),
   },
 }));
 
@@ -64,20 +80,10 @@ vi.mock("@/server/security/headers", () => ({
   getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import CrmLead from "@/server/models/CrmLead";
-import CrmActivity from "@/server/models/CrmActivity";
+// Static imports AFTER vi.mock() calls
 import { setTenantContext, clearTenantContext } from "@/server/plugins/tenantIsolation";
 import { setAuditContext, clearAuditContext } from "@/server/plugins/auditPlugin";
-
-const importRoute = async () => {
-  try {
-    return await import("@/app/api/crm/accounts/share/route");
-  } catch {
-    return null;
-  }
-};
+import { POST } from "@/app/api/crm/accounts/share/route";
 
 describe("API /api/crm/accounts/share", () => {
   const mockOrgId = "org_123456789";
@@ -90,35 +96,27 @@ describe("API /api/crm/accounts/share", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // NOTE: vi.resetModules() intentionally omitted here because this test
-    // relies on hoisted vi.mock() calls (especially for mongodb-unified).
-    // Calling resetModules() would clear those mocks and cause mongoose
-    // reconnection errors in vitest.setup.ts.
-    
-    // Default mocks - configure after clearAllMocks
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
-    vi.mocked(getSessionUser).mockResolvedValue(mockUser);
+    // Reset mutable mock state
+    mockSessionUser = mockUser;
+    mockRateLimitResponse = null;
+    mockCrmLeadFindOne = vi.fn();
+    mockCrmLeadCreate = vi.fn();
+    mockCrmActivityCreate = vi.fn();
   });
 
   describe("POST /api/crm/accounts/share", () => {
     it("should create new account when company does not exist", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        expect.fail("Route handler not found");
-        return;
-      }
-
       const mockCreatedAccount = {
         _id: "lead_new_123",
         company: "New Corp",
         kind: "ACCOUNT",
       };
 
-      vi.mocked(CrmLead.findOne).mockReturnValueOnce({
+      mockCrmLeadFindOne.mockReturnValueOnce({
         lean: vi.fn().mockResolvedValue(null),
-      } as unknown as ReturnType<typeof CrmLead.findOne>);
-      vi.mocked(CrmLead.create).mockResolvedValueOnce(mockCreatedAccount as any);
-      vi.mocked(CrmActivity.create).mockResolvedValueOnce({} as any);
+      });
+      mockCrmLeadCreate.mockResolvedValueOnce(mockCreatedAccount);
+      mockCrmActivityCreate.mockResolvedValueOnce({});
 
       const req = new NextRequest("http://localhost:3000/api/crm/accounts/share", {
         method: "POST",
@@ -128,24 +126,24 @@ describe("API /api/crm/accounts/share", () => {
         }),
       });
 
-      const res = await route.POST(req);
+      const res = await POST(req);
       
       expect(res.status).toBe(200);
-      expect(CrmLead.findOne).toHaveBeenCalledWith(
+      expect(mockCrmLeadFindOne).toHaveBeenCalledWith(
         expect.objectContaining({
           orgId: mockOrgId,
           company: "New Corp",
           kind: "ACCOUNT",
         })
       );
-      expect(CrmLead.create).toHaveBeenCalledWith(
+      expect(mockCrmLeadCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           orgId: mockOrgId,
           company: "New Corp",
           kind: "ACCOUNT",
         })
       );
-      expect(CrmActivity.create).toHaveBeenCalledWith(
+      expect(mockCrmActivityCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           orgId: mockOrgId,
           leadId: mockCreatedAccount._id,
@@ -157,22 +155,16 @@ describe("API /api/crm/accounts/share", () => {
     });
 
     it("should share existing account without recreation", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        expect.fail("Route handler not found");
-        return;
-      }
-
       const mockExistingAccount = {
         _id: "lead_existing_456",
         company: "Existing Corp",
         kind: "ACCOUNT",
       };
 
-      vi.mocked(CrmLead.findOne).mockReturnValueOnce({
-        lean: vi.fn().mockResolvedValue(mockExistingAccount as any),
-      } as unknown as ReturnType<typeof CrmLead.findOne>);
-      vi.mocked(CrmActivity.create).mockResolvedValueOnce({} as any);
+      mockCrmLeadFindOne.mockReturnValueOnce({
+        lean: vi.fn().mockResolvedValue(mockExistingAccount),
+      });
+      mockCrmActivityCreate.mockResolvedValueOnce({});
 
       const req = new NextRequest("http://localhost:3000/api/crm/accounts/share", {
         method: "POST",
@@ -181,18 +173,18 @@ describe("API /api/crm/accounts/share", () => {
         }),
       });
 
-      const res = await route.POST(req);
+      const res = await POST(req);
       
       expect(res.status).toBe(200);
-      expect(CrmLead.findOne).toHaveBeenCalledWith(
+      expect(mockCrmLeadFindOne).toHaveBeenCalledWith(
         expect.objectContaining({
           orgId: mockOrgId,
           company: "Existing Corp",
           kind: "ACCOUNT",
         })
       );
-      expect(CrmLead.create).not.toHaveBeenCalled();
-      expect(CrmActivity.create).toHaveBeenCalledWith(
+      expect(mockCrmLeadCreate).not.toHaveBeenCalled();
+      expect(mockCrmActivityCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           orgId: mockOrgId,
           leadId: mockExistingAccount._id,
@@ -202,13 +194,7 @@ describe("API /api/crm/accounts/share", () => {
     });
 
     it("should reject request without authentication", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        expect.fail("Route handler not found");
-        return;
-      }
-
-      vi.mocked(getSessionUser).mockResolvedValueOnce(null as any);
+      mockSessionUser = null;
 
       const req = new NextRequest("http://localhost:3000/api/crm/accounts/share", {
         method: "POST",
@@ -217,18 +203,12 @@ describe("API /api/crm/accounts/share", () => {
         }),
       });
 
-      const res = await route.POST(req);
+      const res = await POST(req);
       
       expect(res.status).toBe(401);
     });
 
     it("should validate required company field", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        expect.fail("Route handler not found");
-        return;
-      }
-
       const req = new NextRequest("http://localhost:3000/api/crm/accounts/share", {
         method: "POST",
         body: JSON.stringify({
@@ -237,23 +217,16 @@ describe("API /api/crm/accounts/share", () => {
         }),
       });
 
-      const res = await route.POST(req);
+      const res = await POST(req);
       
       expect(res.status).toBe(422);
     });
 
     it("should enforce rate limiting", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        expect.fail("Route handler not found");
-        return;
-      }
-
-      const rateLimitResponse = Response.json(
+      mockRateLimitResponse = Response.json(
         { error: "Rate limit exceeded" }, 
         { status: 429 }
-      ) as any; // Cast to satisfy NextResponse type
-      vi.mocked(enforceRateLimit).mockReturnValueOnce(rateLimitResponse);
+      ) as Response;
 
       const req = new NextRequest("http://localhost:3000/api/crm/accounts/share", {
         method: "POST",
@@ -262,19 +235,13 @@ describe("API /api/crm/accounts/share", () => {
         }),
       });
 
-      const res = await route.POST(req);
+      const res = await POST(req);
       
       expect(res.status).toBe(429);
     });
 
     it("should handle database errors gracefully", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        expect.fail("Route handler not found");
-        return;
-      }
-
-      vi.mocked(CrmLead.findOne).mockRejectedValueOnce(new Error("DB error"));
+      mockCrmLeadFindOne.mockRejectedValueOnce(new Error("DB error"));
 
       const req = new NextRequest("http://localhost:3000/api/crm/accounts/share", {
         method: "POST",
@@ -283,21 +250,17 @@ describe("API /api/crm/accounts/share", () => {
         }),
       });
 
-      const res = await route.POST(req);
+      const res = await POST(req);
       
       expect(res.status).toBe(500);
     });
 
     it("should set tenant and audit context", async () => {
-      const route = await importRoute();
-      if (!route?.POST) {
-        expect.fail("Route handler not found");
-        return;
-      }
-
-      vi.mocked(CrmLead.findOne).mockResolvedValueOnce(null);
-      vi.mocked(CrmLead.create).mockResolvedValueOnce({ _id: "lead_123", kind: "ACCOUNT" } as any);
-      vi.mocked(CrmActivity.create).mockResolvedValueOnce({} as any);
+      mockCrmLeadFindOne.mockReturnValueOnce({
+        lean: vi.fn().mockResolvedValue(null),
+      });
+      mockCrmLeadCreate.mockResolvedValueOnce({ _id: "lead_123", kind: "ACCOUNT" });
+      mockCrmActivityCreate.mockResolvedValueOnce({});
 
       const req = new NextRequest("http://localhost:3000/api/crm/accounts/share", {
         method: "POST",
@@ -306,7 +269,7 @@ describe("API /api/crm/accounts/share", () => {
         }),
       });
 
-      await route.POST(req);
+      await POST(req);
 
       expect(setTenantContext).toHaveBeenCalledWith({ orgId: mockOrgId });
       expect(setAuditContext).toHaveBeenCalledWith(
