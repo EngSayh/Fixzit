@@ -1,3 +1,15 @@
+/* ============================================
+   DESIGN SYSTEM IMPORTS (SSOT)
+   Must be imported BEFORE @tailwind directives
+   ============================================ */
+
+/* Core Design Tokens - Single Source of Truth */
+@import "../styles/tokens.css";
+@import "../styles/design-tokens.css";
+
+/* Animation System */
+@import "../styles/animations.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -982,14 +994,3 @@
 [dir='rtl'] .tooltip-content {
   text-align: right;
 }
-
-/* ============================================
-   DESIGN SYSTEM IMPORTS (SSOT)
-   ============================================ */
-
-/* Core Design Tokens - Single Source of Truth */
-@import "../styles/tokens.css";
-@import "../styles/design-tokens.css";
-
-/* Animation System */
-@import "../styles/animations.css";

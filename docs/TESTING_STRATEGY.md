@@ -218,7 +218,7 @@ vi.mock("@/lib/marketplace/context", () => ({
 
 When testing API routes, understand the middleware order:
 
-```
+```text
 Request → Rate Limit → Auth → RBAC → Handler → Response
 ```
 

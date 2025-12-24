@@ -233,9 +233,13 @@ export function useAnimateOnMount(
   options?: AnimationOptions
 ) {
   const { ref, style, isAnimating, play } = useAnimation(animation, options);
+  const hasPlayed = useRef(false);
 
   useEffect(() => {
-    play();
+    if (!hasPlayed.current) {
+      play();
+      hasPlayed.current = true;
+    }
   }, [play]);
 
   return { ref, style, isAnimating };
@@ -446,7 +450,7 @@ export const animationPresets = {
 
   // List items
   listItemEnter: { animation: 'slideInLeft' as AnimationName, duration: 300, easing: 'smooth' as EasingFunction },
-  listItemExit: { animation: 'slideInRight' as AnimationName, duration: 200, easing: 'ease-in' as EasingFunction },
+  listItemExit: { animation: 'fadeOut' as AnimationName, duration: 200, easing: 'ease-in' as EasingFunction },
 
   // Attention
   attention: { animation: 'tada' as AnimationName, duration: 1000, easing: 'ease-in-out' as EasingFunction },
