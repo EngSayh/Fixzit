@@ -1,26 +1,14 @@
 /**
  * Unit tests for package-activation.ts (P1 - HIGH PRIORITY)
  * Tests: activatePackageAfterPayment function for Aqar package activation
+ * 
+ * @vitest-environment node
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-// Mock mongoose before imports
-vi.mock("mongoose", () => {
-  const mockObjectId = Object.assign(
-    vi.fn((id?: string) => ({
-      toString: () => id || "mock-id-123",
-    })),
-    { isValid: vi.fn(() => true) }
-  );
-  
-  return {
-    default: {
-      Types: { ObjectId: mockObjectId },
-    },
-    Types: { ObjectId: mockObjectId },
-  };
-});
+// Do NOT mock mongoose globally - it conflicts with MongoMemoryServer in vitest.setup.ts
+// Instead, mock the specific models and utils that this test needs
 
 // Mock logger
 vi.mock("@/lib/logger", () => ({
