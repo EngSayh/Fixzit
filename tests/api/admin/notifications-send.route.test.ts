@@ -68,10 +68,7 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 // Dynamic import to ensure fresh module per test run (prevents CI shard mock contamination)
-const importRoute = async () => {
-  vi.resetModules();
-  return import("@/app/api/admin/notifications/send/route");
-};
+const importRoute = async () => import("@/app/api/admin/notifications/send/route");
 
 function createRequest(body: object): NextRequest {
   const url = "http://localhost:3000/api/admin/notifications/send";

@@ -35,9 +35,8 @@ vi.mock("@/lib/analytics/incrementWithRetry", () => ({
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 
-// Dynamic import with resetModules to ensure fresh module per test (prevents CI shard mock contamination)
+// Dynamic import to ensure fresh module per test (prevents CI shard mock contamination)
 const importRoute = async () => {
-  vi.resetModules();
   try {
     return await import("@/app/api/aqar/listings/search/route");
   } catch {
