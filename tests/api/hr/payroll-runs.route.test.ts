@@ -2,20 +2,23 @@
  * @fileoverview Tests for /api/hr/payroll/runs routes
  * Tests HR payroll run management including CRUD operations
  * 
- * Pattern: Static imports for mock isolation (per TESTING_STRATEGY.md)
+ * Pattern: Mutable state pattern for mock isolation (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import type { SessionUser } from "@/types/auth";
 
+// Mutable state variables - controlled by beforeEach
 let sessionUser: SessionUser | null = null;
+let mockRateLimitResponse: Response | null = null;
+let mockRoleAllowed = true;
 
-// Mock rate limiting
+// Mock rate limiting - uses mutable state
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: vi.fn(() => mockRateLimitResponse),
 }));
 
-// Mock authentication
+// Mock authentication - uses mutable state
 vi.mock("@/auth", () => ({
   auth: vi.fn(async () => {
     if (!sessionUser) return null;
@@ -37,9 +40,9 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-// Mock role guards
+// Mock role guards - uses mutable state
 vi.mock("@/lib/auth/role-guards", () => ({
-  hasAllowedRole: vi.fn(),
+  hasAllowedRole: vi.fn(() => mockRoleAllowed),
 }));
 
 // Mock PayrollService
@@ -52,8 +55,6 @@ vi.mock("@/server/services/hr/payroll.service", () => ({
 }));
 
 // Static imports AFTER vi.mock() declarations (mocks are hoisted)
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { hasAllowedRole } from "@/lib/auth/role-guards";
 import { PayrollService } from "@/server/services/hr/payroll.service";
 
 // Dynamic import to ensure mocks are applied
@@ -72,9 +73,11 @@ describe("API /api/hr/payroll/runs", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
+    // Reset mutable state to defaults
+    mockRateLimitResponse = null;
+    mockRoleAllowed = true;
     sessionUser = mockUser;
-    vi.mocked(hasAllowedRole).mockReturnValue(true);
+    // Setup PayrollService mocks
     vi.mocked(PayrollService.list).mockResolvedValue([]);
     vi.mocked(PayrollService.existsOverlap).mockResolvedValue(false);
     vi.mocked(PayrollService.create).mockResolvedValue({
@@ -99,7 +102,7 @@ describe("API /api/hr/payroll/runs", () => {
 
     it("should return 403 when user lacks HR role", async () => {
       sessionUser = { ...mockUser, role: "TEAM_MEMBER" };
-      vi.mocked(hasAllowedRole).mockReturnValue(false);
+      mockRoleAllowed = false;
 
       const { GET } = await importRoute();
       const request = new NextRequest("http://localhost/api/hr/payroll/runs");
@@ -192,11 +195,9 @@ describe("API /api/hr/payroll/runs", () => {
     });
 
     it("should enforce rate limiting on POST", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Too many requests" }), {
-          status: 429,
-        }) as never
-      );
+      mockRateLimitResponse = new Response(JSON.stringify({ error: "Too many requests" }), {
+        status: 429,
+      });
 
       const { POST } = await importRoute();
       const request = new NextRequest("http://localhost/api/hr/payroll/runs", {
