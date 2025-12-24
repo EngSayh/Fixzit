@@ -1,16 +1,19 @@
 /**
  * @fileoverview Tests for /api/filters/presets/[id] route
  * 
- * Pattern: Static imports with mutable context variables (per TESTING_STRATEGY.md)
+ * Pattern: Module-scoped mutable state for mocks (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-// === Mutable state for mocks ===
+// === Module-scoped mutable state (survives vi.clearAllMocks) ===
 type MockSession = { id: string; orgId: string | undefined; role: string } | null;
 let mockSession: MockSession = null;
 let mockSessionThrows = false;
 let mockFilterPresetResult: unknown = null;
+
+// Module-scoped mock function (preserves spy across tests)
+const mockFindOneAndDelete = vi.fn();
 
 // Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
@@ -35,16 +38,18 @@ vi.mock("@/server/middleware/withAuthRbac", () => {
   };
 });
 
-// Mock FilterPreset with mutable state
+// Mock FilterPreset with module-scoped function
 vi.mock("@/server/models/common/FilterPreset", () => ({
   FilterPreset: {
-    findOneAndDelete: vi.fn(async () => mockFilterPresetResult),
+    findOneAndDelete: (...args: unknown[]) => mockFindOneAndDelete(...args),
   },
 }));
 
-// Static imports AFTER mocks are defined
-import { FilterPreset } from "@/server/models/common/FilterPreset";
-import { DELETE } from "@/app/api/filters/presets/[id]/route";
+// Dynamic import for route to ensure mocks are applied correctly in CI shards
+async function importRoute() {
+  const mod = await import("@/app/api/filters/presets/[id]/route");
+  return { DELETE: mod.DELETE };
+}
 
 describe("API /api/filters/presets/:id", () => {
   const defaultSession = {
@@ -59,6 +64,8 @@ describe("API /api/filters/presets/:id", () => {
     mockSession = defaultSession;
     mockSessionThrows = false;
     mockFilterPresetResult = null;
+    // Reset mock implementation
+    mockFindOneAndDelete.mockImplementation(async () => mockFilterPresetResult);
   });
 
   describe("DELETE", () => {
@@ -68,6 +75,7 @@ describe("API /api/filters/presets/:id", () => {
       const req = new NextRequest("http://localhost:3000/api/filters/presets/1", {
         method: "DELETE",
       });
+      const { DELETE } = await importRoute();
       const res = await DELETE(req, { params: Promise.resolve({ id: "1" }) });
 
       expect(res.status).toBe(401);
@@ -79,6 +87,7 @@ describe("API /api/filters/presets/:id", () => {
       const req = new NextRequest("http://localhost:3000/api/filters/presets/1", {
         method: "DELETE",
       });
+      const { DELETE } = await importRoute();
       const res = await DELETE(req, { params: Promise.resolve({ id: "1" }) });
 
       expect(res.status).toBe(403);
@@ -90,9 +99,10 @@ describe("API /api/filters/presets/:id", () => {
       const req = new NextRequest("http://localhost:3000/api/filters/presets/1", {
         method: "DELETE",
       });
+      const { DELETE } = await importRoute();
       const res = await DELETE(req, { params: Promise.resolve({ id: "1" }) });
 
-      expect(FilterPreset.findOneAndDelete).toHaveBeenCalledWith({
+      expect(mockFindOneAndDelete).toHaveBeenCalledWith({
         _id: "1",
         org_id: "org_abc",
         user_id: "user_123",
@@ -106,10 +116,11 @@ describe("API /api/filters/presets/:id", () => {
       const req = new NextRequest("http://localhost:3000/api/filters/presets/1", {
         method: "DELETE",
       });
+      const { DELETE } = await importRoute();
       const res = await DELETE(req, { params: Promise.resolve({ id: "1" }) });
 
       expect(res.status).toBe(200);
-      expect(FilterPreset.findOneAndDelete).toHaveBeenCalledWith({
+      expect(mockFindOneAndDelete).toHaveBeenCalledWith({
         _id: "1",
         org_id: "org_abc",
         user_id: "user_123",
