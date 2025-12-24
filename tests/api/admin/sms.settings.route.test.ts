@@ -1,4 +1,7 @@
 /**
+ * @fileoverview Tests for /api/admin/sms/settings route
+ * 
+ * Pattern: Static imports with mutable context variables (per TESTING_STRATEGY.md)
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -14,6 +17,9 @@ let sessionUser: SessionUser | null = {
   role: "SUPER_ADMIN",
 };
 
+// Mutable state for mocks
+let mockParseBodyResult: { data: unknown; error: string | null } = { data: {}, error: null };
+
 vi.mock("@/auth", () => ({
   auth: vi.fn(async () => {
     if (!sessionUser) return null;
@@ -26,7 +32,9 @@ vi.mock("@/server/models/SMSSettings", () => ({
     findOneAndUpdate: vi.fn(),
   },
 }));
-vi.mock("@/lib/api/parse-body", () => ({ parseBodySafe: vi.fn() }));
+vi.mock("@/lib/api/parse-body", () => ({
+  parseBodySafe: vi.fn(async () => mockParseBodyResult),
+}));
 vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(undefined),
 }));
@@ -53,14 +61,16 @@ vi.mock("@/lib/security/validate-public-https-url", () => ({
   }),
 }));
 
-const { connectToDatabase } = await import("@/lib/mongodb-unified");
-const { SMSSettings } = await import("@/server/models/SMSSettings");
-const { parseBodySafe } = await import("@/lib/api/parse-body");
+// Static imports AFTER vi.mock() calls
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { SMSSettings } from "@/server/models/SMSSettings";
+import { PUT } from "@/app/api/admin/sms/settings/route";
 
 describe("Admin SMS Settings API - SSRF protection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionUser = { role: "SUPER_ADMIN", email: "admin@fixzit.co" };
+    mockParseBodyResult = { data: {}, error: null };
     vi.mocked(connectToDatabase).mockResolvedValue(undefined as any);
   });
 
@@ -71,12 +81,11 @@ describe("Admin SMS Settings API - SSRF protection", () => {
     });
 
   it("rejects non-HTTPS webhook URLs", async () => {
-    vi.mocked(parseBodySafe).mockResolvedValue({
+    mockParseBodyResult = {
       data: { slaBreachNotifyWebhook: "http://localhost:3000/webhook" },
       error: null,
-    });
+    };
 
-    const { PUT } = await import("@/app/api/admin/sms/settings/route");
     const res = await PUT(buildRequest());
 
     expect(res.status).toBe(400);
@@ -86,13 +95,12 @@ describe("Admin SMS Settings API - SSRF protection", () => {
   });
 
   it("allows valid public HTTPS webhook URLs", async () => {
-    vi.mocked(parseBodySafe).mockResolvedValue({
+    mockParseBodyResult = {
       data: { slaBreachNotifyWebhook: "https://hooks.example.com/notify" },
       error: null,
-    });
+    };
     vi.mocked(SMSSettings.findOneAndUpdate).mockResolvedValue({} as any);
 
-    const { PUT } = await import("@/app/api/admin/sms/settings/route");
     const res = await PUT(buildRequest());
 
     expect(res.status).toBe(200);

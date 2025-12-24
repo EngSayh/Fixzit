@@ -39,15 +39,8 @@ vi.mock("@/services/souq/fulfillment-service", () => ({
 
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { fulfillmentService } from "@/services/souq/fulfillment-service";
+import { POST } from "@/app/api/souq/fulfillment/rates/route";
 import type { SessionUser } from "@/types/auth";
-
-const importRoute = async () => {
-  try {
-    return await import("@/app/api/souq/fulfillment/rates/route");
-  } catch {
-    return null;
-  }
-};
 
 describe("API /api/souq/fulfillment/rates", () => {
   const mockOrgId = "org_123456789";
@@ -84,10 +77,6 @@ describe("API /api/souq/fulfillment/rates", () => {
   describe("POST /api/souq/fulfillment/rates", () => {
     it("should return 401 when not authenticated", async () => {
       sessionUser = null;
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
 
       const request = new NextRequest(
         "http://localhost/api/souq/fulfillment/rates",
@@ -96,15 +85,11 @@ describe("API /api/souq/fulfillment/rates", () => {
           body: JSON.stringify({}),
         }
       );
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(401);
     });
 
     it("should return 400 for missing required fields", async () => {
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
 
       const request = new NextRequest(
         "http://localhost/api/souq/fulfillment/rates",
@@ -114,16 +99,11 @@ describe("API /api/souq/fulfillment/rates", () => {
           headers: { "Content-Type": "application/json" },
         }
       );
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(400);
     });
 
     it("should return shipping rates with valid data", async () => {
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
       const validData = {
         origin: "Riyadh",
         destination: "Jeddah",
@@ -139,7 +119,7 @@ describe("API /api/souq/fulfillment/rates", () => {
           headers: { "Content-Type": "application/json" },
         }
       );
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(200);
       if (response.status === 200) {
         const data = await response.json();
@@ -148,11 +128,6 @@ describe("API /api/souq/fulfillment/rates", () => {
     });
 
     it("should support dimensions parameter", async () => {
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
-
       const validData = {
         origin: "Riyadh",
         destination: "Dammam",
@@ -169,7 +144,7 @@ describe("API /api/souq/fulfillment/rates", () => {
           headers: { "Content-Type": "application/json" },
         }
       );
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(200);
     });
 
@@ -179,10 +154,6 @@ describe("API /api/souq/fulfillment/rates", () => {
           status: 429,
         }) as unknown as null
       );
-      const routeModule = await importRoute();
-      if (!routeModule) {
-        throw new Error("Route module missing");
-      }
 
       const request = new NextRequest(
         "http://localhost/api/souq/fulfillment/rates",
@@ -191,7 +162,7 @@ describe("API /api/souq/fulfillment/rates", () => {
           body: JSON.stringify({}),
         }
       );
-      const response = await routeModule.POST(request);
+      const response = await POST(request);
       expect(response.status).toBe(429);
     });
   });
