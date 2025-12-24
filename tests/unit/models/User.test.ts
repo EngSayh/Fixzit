@@ -23,13 +23,26 @@ import { Role } from '@/domain/fm/fm.behavior';
 // Model imported AFTER mongoose connection
 let User: mongoose.Model<any>;
 
-beforeEach(async () => {
-  clearTenantContext();
-  
-  // Verify mongoose is connected
-  if (mongoose.connection.readyState !== 1) {
-    throw new Error('Mongoose not connected - tests require active connection');
+/**
+ * Wait for mongoose connection to be ready (max 30s).
+ */
+async function waitForMongoConnection(maxWaitMs = 30000): Promise<void> {
+  const start = Date.now();
+  while (mongoose.connection.readyState !== 1) {
+    if (Date.now() - start > maxWaitMs) {
+      throw new Error(
+        `Mongoose not connected after ${maxWaitMs}ms - readyState: ${mongoose.connection.readyState}`
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
+}
+
+beforeEach(async () => {
+  // Wait for mongoose connection from vitest.setup.ts beforeAll
+  await waitForMongoConnection();
+  
+  clearTenantContext();
   
   // Clear module cache to force fresh import
   vi.resetModules();
