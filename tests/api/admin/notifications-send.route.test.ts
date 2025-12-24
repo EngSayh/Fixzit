@@ -81,7 +81,10 @@ function createRequest(body: object): NextRequest {
 describe("API /api/admin/notifications/send", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
+    // NOTE: vi.resetModules() intentionally omitted here because this test
+    // relies on hoisted vi.mock() calls (especially for mongodb-unified).
+    // Calling resetModules() would clear those mocks and cause mongoose
+    // reconnection errors in vitest.setup.ts.
     vi.unstubAllEnvs();
     vi.stubEnv("NODE_ENV", "test");
     mockRateLimit.mockResolvedValue({ allowed: true });

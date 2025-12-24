@@ -90,9 +90,12 @@ describe("API /api/crm/accounts/share", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
+    // NOTE: vi.resetModules() intentionally omitted here because this test
+    // relies on hoisted vi.mock() calls (especially for mongodb-unified).
+    // Calling resetModules() would clear those mocks and cause mongoose
+    // reconnection errors in vitest.setup.ts.
     
-    // Default mocks - set AFTER resetModules
+    // Default mocks - configure after clearAllMocks
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     vi.mocked(getSessionUser).mockResolvedValue(mockUser);
   });

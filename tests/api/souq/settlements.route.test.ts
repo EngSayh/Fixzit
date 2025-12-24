@@ -70,7 +70,10 @@ const importRoute = async () => import("@/app/api/souq/settlements/route");
 describe("API /api/souq/settlements", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
+    // NOTE: vi.resetModules() intentionally omitted here because this test
+    // relies on hoisted vi.mock() calls (especially for mongodb-unified).
+    // Calling resetModules() would clear those mocks and cause mongoose
+    // reconnection errors in vitest.setup.ts.
     sessionUser = null;
   });
 
