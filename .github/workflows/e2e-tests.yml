@@ -120,6 +120,14 @@ jobs:
       TEST_ORG_ID: "${{ secrets.TEST_ORG_ID || 'test-org-id' }}"
 
     steps:
+      - name: Set sanitized project name
+        id: sanitize
+        run: |
+          # Replace colons with hyphens for artifact names (GitHub rejects colons)
+          SANITIZED="${{ matrix.project }}"
+          SANITIZED="${SANITIZED//:/-}"
+          echo "project_name=${SANITIZED}" >> $GITHUB_OUTPUT
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -469,7 +477,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report-${{ matrix.project }}
+          name: playwright-report-${{ steps.sanitize.outputs.project_name }}
           path: |
             tests/playwright-report/
             playwright-report/
@@ -481,7 +489,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: error-context-${{ matrix.project }}
+          name: error-context-${{ steps.sanitize.outputs.project_name }}
           path: |
             tests/playwright-artifacts/**
             tests/playwright-artifacts/**/error-context.md
@@ -516,7 +524,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-status-${{ matrix.project }}
+          name: test-status-${{ steps.sanitize.outputs.project_name }}
           path: test-results/
           retention-days: 1
 

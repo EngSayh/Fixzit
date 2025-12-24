@@ -52,12 +52,26 @@ pnpm vitest run # ✅ 2965 tests passed, 402 test files (100%)
 | MongoDB Safety Check | CI MONGODB_URI points to non-staging DB | Update CI secrets with staging DB |
 | Redis Not Configured | Missing REDIS_URL/REDIS_KEY in CI | Add CI secrets for Redis |
 
+### ⛔ Blocking Items Requiring Immediate Action
+
+| Item | Owner | Status | Next Steps |
+|------|-------|--------|------------|
+| **RTL Animation Incompatibility** | [AGENT-001-A] | ✅ FIXED | Implemented dir-aware animations with CSS vars (`--offset-inline-start`, `--direction-multiplier`) that auto-flip in RTL. Added `fadeInStart/End`, `slideInStart/End` presets. |
+| **CI Artifact Naming** | DevOps | ✅ FIXED | Replaced colons with hyphens via `steps.sanitize.outputs.project_name` in `.github/workflows/e2e-tests.yml`. |
+
+**Evidence:**
+- RTL: `styles/animations.css` L17-35 defines CSS vars; L86-109 defines RTL-aware keyframes; L682-693 defines utility classes
+- Animation Presets: `lib/theme/useAnimation.ts` L19-21 adds types; L453-464 adds presets
+- Artifact: `.github/workflows/e2e-tests.yml` L123-130 sanitizes project names
+
 ### 📝 CI Investigation (2025-12-24 02:20)
 
 **Root Cause Analysis:**
 - **Build Failure**: `scripts/assert-nonprod-mongo.ts` blocks CI when MONGODB_URI doesn't contain staging/dev/test in DB name
 - **Client Test (2/2) Failure**: `export-worker.process.test.ts` requires Redis config (REDIS_URL/REDIS_KEY)
 - **Test Runner Failure**: Drift Guard detects non-canonical roles in seed scripts
+- **RTL Animation**: Fixed translateX values don't auto-flip in RTL mode
+- **Artifact Naming**: Colons in artifact names rejected by GitHub Actions
 
 **Review Comments Assessment:**
 - Gemini `Promise.resolve()` comment: **FALSE POSITIVE** (Next.js 15 uses async params, tests pass)
