@@ -64,19 +64,18 @@ describe("API /api/souq/fulfillment/rates", () => {
     vi.clearAllMocks();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     sessionUser = mockUser;
+    // Mock must match IRate interface: { carrier, serviceType, cost, estimatedDays }
     vi.mocked(fulfillmentService.getRates).mockResolvedValue([
       {
         carrier: "SMSA",
-        service: "standard",
-        rate: 25.0,
-        currency: "SAR",
+        serviceType: "standard",
+        cost: 25.0,
         estimatedDays: 3,
       },
       {
         carrier: "Aramex",
-        service: "express",
-        rate: 45.0,
-        currency: "SAR",
+        serviceType: "express",
+        cost: 45.0,
         estimatedDays: 1,
       },
     ]);
