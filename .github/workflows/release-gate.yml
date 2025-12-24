@@ -58,7 +58,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: TypeScript check
-        run: pnpm typecheck
+        run: NODE_OPTIONS="--max-old-space-size=6144" pnpm typecheck
 
       - name: Lint
         run: pnpm lint
@@ -69,7 +69,7 @@ jobs:
       - name: Build
         id: build
         run: |
-          pnpm build
+          NODE_OPTIONS="--max-old-space-size=6144" pnpm build
           echo "build_id=${{ github.sha }}-$(date +%s)" >> $GITHUB_OUTPUT
 
       - name: Bundle budget check
