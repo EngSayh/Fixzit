@@ -51,9 +51,6 @@ jobs:
       ZATCA_SELLER_NAME: ${{ secrets.ZATCA_SELLER_NAME }}
       ZATCA_VAT_NUMBER: ${{ secrets.ZATCA_VAT_NUMBER }}
       ZATCA_SELLER_ADDRESS: ${{ secrets.ZATCA_SELLER_ADDRESS }}
-      # Redis (required for queues)
-      REDIS_URL: ${{ secrets.REDIS_URL }}
-      BULLMQ_REDIS_URL: ${{ secrets.BULLMQ_REDIS_URL }}
 
     steps:
       - name: Checkout code
@@ -112,9 +109,6 @@ jobs:
           echo "  - ZATCA_VAT_NUMBER"
           echo "  - ZATCA_SELLER_ADDRESS"
           echo ""
-          echo "Redis (REQUIRED for queues):"
-          echo "  - REDIS_URL or BULLMQ_REDIS_URL"
-          echo ""
           echo "Set these in:"
           echo "  - GitHub: Repository Settings → Secrets and Variables → Actions"
           echo "  - Vercel: Project Settings → Environment Variables"
@@ -129,7 +123,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ **Production Environment Validation Passed**\\n\\nAll required secrets (Auth, PayTabs, ZATCA, Redis) are configured.'
+              body: '✅ **Production Environment Validation Passed**\n\nAll required secrets (Auth, PayTabs, ZATCA) are configured.'
             })
 
       - name: Summary
@@ -148,6 +142,5 @@ jobs:
           echo "- NEXTAUTH_SECRET / AUTH_SECRET" >> "$GITHUB_STEP_SUMMARY"
           echo "- PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY" >> "$GITHUB_STEP_SUMMARY"
           echo "- ZATCA_API_KEY, ZATCA_SELLER_NAME, ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS" >> "$GITHUB_STEP_SUMMARY"
-          echo "- REDIS_URL / BULLMQ_REDIS_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "- (Optional, required when ENABLE_SADAD_PAYOUTS=true): SADAD_API_KEY, SADAD_API_SECRET, SADAD_API_ENDPOINT, SADAD_SPAN_MODE" >> "$GITHUB_STEP_SUMMARY"
           fi
