@@ -47,10 +47,13 @@ vi.mock("@/lib/marketplace/objectIds", () => ({
 import { resolveMarketplaceContext } from "@/lib/marketplace/context";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import Product from "@/server/models/marketplace/Product";
-import { GET, POST } from "@/app/api/marketplace/vendor/products/route";
+
+// Dynamic import to ensure mocks are applied
+const importRoute = async () => import("@/app/api/marketplace/vendor/products/route");
 
 describe("API /api/marketplace/vendor/products", () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
   });
 
@@ -62,6 +65,7 @@ describe("API /api/marketplace/vendor/products", () => {
         role: "GUEST",
       });
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products");
       const res = await GET(req);
 
@@ -77,6 +81,7 @@ describe("API /api/marketplace/vendor/products", () => {
 
       vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false });
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products");
       const res = await GET(req);
 
@@ -92,6 +97,7 @@ describe("API /api/marketplace/vendor/products", () => {
 
       vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products");
       const res = await GET(req);
       const data = await res.json();
@@ -119,6 +125,7 @@ describe("API /api/marketplace/vendor/products", () => {
         lean: vi.fn().mockResolvedValue(mockProducts),
       } as never);
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products");
       const res = await GET(req);
       const data = await res.json();
@@ -141,6 +148,7 @@ describe("API /api/marketplace/vendor/products", () => {
         lean: vi.fn().mockResolvedValue([]),
       } as never);
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products");
       await GET(req);
 
@@ -157,6 +165,7 @@ describe("API /api/marketplace/vendor/products", () => {
         role: "GUEST",
       });
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({
@@ -181,6 +190,7 @@ describe("API /api/marketplace/vendor/products", () => {
 
       vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({
@@ -205,6 +215,7 @@ describe("API /api/marketplace/vendor/products", () => {
 
       vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({
@@ -226,6 +237,7 @@ describe("API /api/marketplace/vendor/products", () => {
 
       vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({
@@ -250,6 +262,7 @@ describe("API /api/marketplace/vendor/products", () => {
 
       vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({
@@ -280,6 +293,7 @@ describe("API /api/marketplace/vendor/products", () => {
         title: { en: "Test Product" },
       } as never);
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({
@@ -309,6 +323,7 @@ describe("API /api/marketplace/vendor/products", () => {
         title: { en: "Updated Product" },
       } as never);
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({

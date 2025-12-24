@@ -80,6 +80,7 @@ function createRequest(body: object): NextRequest {
 
 describe("API /api/admin/notifications/send", () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
     vi.unstubAllEnvs();
     vi.stubEnv("NODE_ENV", "test");

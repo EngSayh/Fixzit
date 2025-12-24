@@ -63,10 +63,13 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { GET } from "@/app/api/souq/settlements/route";
+
+// Dynamic import to ensure mocks are applied
+const importRoute = async () => import("@/app/api/souq/settlements/route");
 
 describe("API /api/souq/settlements", () => {
   beforeEach(() => {
+    vi.resetModules();
     sessionUser = null;
     vi.clearAllMocks();
   });
@@ -76,6 +79,7 @@ describe("API /api/souq/settlements", () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = null;
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/settlements");
       const res = await GET(req);
 
@@ -89,6 +93,7 @@ describe("API /api/souq/settlements", () => {
         }) as never
       );
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/settlements");
       const res = await GET(req);
 
@@ -99,6 +104,7 @@ describe("API /api/souq/settlements", () => {
       vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = { id: "user-123", role: "SELLER" };
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/settlements");
       const res = await GET(req);
 
@@ -114,6 +120,7 @@ describe("API /api/souq/settlements", () => {
         subRole: "SELLER",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/settlements?sellerId=seller-123"
       );
@@ -131,6 +138,7 @@ describe("API /api/souq/settlements", () => {
         isSuperAdmin: true,
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/settlements");
       const res = await GET(req);
 
@@ -147,6 +155,7 @@ describe("API /api/souq/settlements", () => {
         role: "SELLER",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/settlements?sellerId=s1&page=2&limit=20"
       );
@@ -163,6 +172,7 @@ describe("API /api/souq/settlements", () => {
         role: "ADMIN",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/settlements?status=COMPLETED&sellerId=s1"
       );

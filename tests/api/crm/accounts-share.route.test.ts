@@ -89,6 +89,7 @@ describe("API /api/crm/accounts/share", () => {
   };
 
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
     
     // Default mocks
