@@ -61,8 +61,11 @@ vi.mock("@/server/services/hr/payroll.service", () => ({
   },
 }));
 
-// Static imports AFTER vi.mock() declarations
-import { GET, POST } from "@/app/api/hr/payroll/runs/route";
+// Dynamic import helper - forces fresh module load with mocks applied
+async function importRoute() {
+  vi.resetModules();
+  return await import("@/app/api/hr/payroll/runs/route");
+}
 
 describe("API /api/hr/payroll/runs", () => {
   const mockOrgId = "org_123456789";
@@ -99,6 +102,7 @@ describe("API /api/hr/payroll/runs", () => {
     it("should return 401 when not authenticated", async () => {
       sessionUser = null;
 
+      const { GET } = await importRoute();
       const request = new NextRequest("http://localhost/api/hr/payroll/runs");
       const response = await GET(request);
       expect(response.status).toBe(401);
@@ -108,6 +112,7 @@ describe("API /api/hr/payroll/runs", () => {
       sessionUser = { ...mockUser, role: "TEAM_MEMBER" };
       mockRoleAllowed = false;
 
+      const { GET } = await importRoute();
       const request = new NextRequest("http://localhost/api/hr/payroll/runs");
       const response = await GET(request);
       expect(response.status).toBe(403);
@@ -124,6 +129,7 @@ describe("API /api/hr/payroll/runs", () => {
         },
       ];
 
+      const { GET } = await importRoute();
       const request = new NextRequest("http://localhost/api/hr/payroll/runs");
       const response = await GET(request);
       expect(response.status).toBe(200);
@@ -132,6 +138,7 @@ describe("API /api/hr/payroll/runs", () => {
     });
 
     it("should filter by status when provided", async () => {
+      const { GET } = await importRoute();
       const request = new NextRequest(
         "http://localhost/api/hr/payroll/runs?status=APPROVED"
       );
@@ -145,6 +152,7 @@ describe("API /api/hr/payroll/runs", () => {
     it("should accept SUPER_ADMIN role", async () => {
       sessionUser = { ...mockUser, role: "SUPER_ADMIN" };
 
+      const { GET } = await importRoute();
       const request = new NextRequest("http://localhost/api/hr/payroll/runs");
       const response = await GET(request);
       expect(response.status).toBe(200);
@@ -155,6 +163,7 @@ describe("API /api/hr/payroll/runs", () => {
     it("should return 401 when not authenticated", async () => {
       sessionUser = null;
 
+      const { POST } = await importRoute();
       const request = new NextRequest("http://localhost/api/hr/payroll/runs", {
         method: "POST",
         body: JSON.stringify({}),
@@ -164,6 +173,7 @@ describe("API /api/hr/payroll/runs", () => {
     });
 
     it("should return 400 for missing required fields", async () => {
+      const { POST } = await importRoute();
       const request = new NextRequest("http://localhost/api/hr/payroll/runs", {
         method: "POST",
         body: JSON.stringify({ name: "Test Run" }),
@@ -180,6 +190,7 @@ describe("API /api/hr/payroll/runs", () => {
         periodEnd: "2025-01-31",
       };
 
+      const { POST } = await importRoute();
       const request = new NextRequest("http://localhost/api/hr/payroll/runs", {
         method: "POST",
         body: JSON.stringify(validData),
@@ -194,6 +205,7 @@ describe("API /api/hr/payroll/runs", () => {
         status: 429,
       });
 
+      const { POST } = await importRoute();
       const request = new NextRequest("http://localhost/api/hr/payroll/runs", {
         method: "POST",
         body: JSON.stringify({}),
