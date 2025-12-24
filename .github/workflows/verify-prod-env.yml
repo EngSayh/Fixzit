@@ -87,7 +87,7 @@ jobs:
         run: |
           echo "🔍 Running production environment validation..."
           pnpm guard:prod-env
-          echo "validation_status=success" >> $GITHUB_OUTPUT
+          echo "validation_status=success" >> "$GITHUB_OUTPUT"
 
       - name: Check validation result
         if: failure()
