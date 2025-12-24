@@ -61,14 +61,11 @@ vi.mock("@/lib/marketplace/serializers", () => ({
 }));
 
 vi.mock("@/lib/marketplace/objectIds", () => ({
-  objectIdFrom: vi.fn((id) => id),
+  objectIdFrom: (id: unknown) => id,
 }));
 
 // Static imports AFTER vi.mock() declarations
-import Product from "@/server/models/marketplace/Product";
-
-// Dynamic import to ensure mocks are applied fresh
-const importRoute = async () => import("@/app/api/marketplace/vendor/products/route");
+import { GET, POST } from "@/app/api/marketplace/vendor/products/route";
 
 describe("API /api/marketplace/vendor/products", () => {
   beforeEach(() => {
@@ -96,7 +93,6 @@ describe("API /api/marketplace/vendor/products", () => {
         role: "GUEST",
       };
 
-      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products");
       const res = await GET(req);
 
@@ -111,7 +107,6 @@ describe("API /api/marketplace/vendor/products", () => {
       };
       mockRateLimitAllowed = false;
 
-      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products");
       const res = await GET(req);
 
@@ -127,7 +122,6 @@ describe("API /api/marketplace/vendor/products", () => {
       mockRateLimitAllowed = true;
       mockProducts = [];
 
-      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products");
       const res = await GET(req);
       const data = await res.json();
@@ -148,7 +142,6 @@ describe("API /api/marketplace/vendor/products", () => {
         { _id: "prod-2", title: { en: "Product 2" }, buy: { price: 200, currency: "SAR" } },
       ];
 
-      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products");
       const res = await GET(req);
       const data = await res.json();
@@ -166,7 +159,6 @@ describe("API /api/marketplace/vendor/products", () => {
       mockRateLimitAllowed = true;
       mockProducts = [];
 
-      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products");
       const res = await GET(req);
 
@@ -185,8 +177,7 @@ describe("API /api/marketplace/vendor/products", () => {
         role: "GUEST",
       };
 
-      const { POST } = await importRoute();
-      const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
+            const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({
           categoryId: "cat-1",
@@ -209,8 +200,7 @@ describe("API /api/marketplace/vendor/products", () => {
       };
       mockRateLimitAllowed = true;
 
-      const { POST } = await importRoute();
-      const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
+            const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({
           categoryId: "cat-1",
@@ -233,8 +223,7 @@ describe("API /api/marketplace/vendor/products", () => {
       };
       mockRateLimitAllowed = true;
 
-      const { POST } = await importRoute();
-      const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
+            const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({
           // Missing required fields
@@ -254,8 +243,7 @@ describe("API /api/marketplace/vendor/products", () => {
       };
       mockRateLimitAllowed = true;
 
-      const { POST } = await importRoute();
-      const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
+            const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({
           categoryId: "cat-1",
@@ -278,8 +266,7 @@ describe("API /api/marketplace/vendor/products", () => {
       };
       mockRateLimitAllowed = true;
 
-      const { POST } = await importRoute();
-      const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
+            const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({
           categoryId: "cat-1",
@@ -308,8 +295,7 @@ describe("API /api/marketplace/vendor/products", () => {
         title: { en: "Test Product" },
       };
 
-      const { POST } = await importRoute();
-      const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
+            const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({
           categoryId: "cat-1",
@@ -337,8 +323,7 @@ describe("API /api/marketplace/vendor/products", () => {
         title: { en: "Updated Product" },
       };
 
-      const { POST } = await importRoute();
-      const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
+            const req = new NextRequest("http://localhost:3000/api/marketplace/vendor/products", {
         method: "POST",
         body: JSON.stringify({
           id: "prod-1",
@@ -355,3 +340,4 @@ describe("API /api/marketplace/vendor/products", () => {
     });
   });
 });
+
