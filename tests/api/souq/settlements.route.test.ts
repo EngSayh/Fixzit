@@ -64,8 +64,10 @@ vi.mock("@/lib/logger", () => ({
 
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
-// Dynamic import to ensure mocks are applied
-const importRoute = async () => import("@/app/api/souq/settlements/route");
+// Dynamic import to ensure mocks are applied in CI shards
+async function importRoute() {
+  return import("@/app/api/souq/settlements/route");
+}
 
 describe("API /api/souq/settlements", () => {
   beforeEach(() => {

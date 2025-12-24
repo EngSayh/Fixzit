@@ -34,7 +34,12 @@ vi.mock("@/lib/marketplace/serializers", () => ({
 import { resolveMarketplaceContext } from "@/lib/marketplace/context";
 import { getOrCreateCart, recalcCartTotals } from "@/lib/marketplace/cart";
 import { smartRateLimit } from "@/server/security/rateLimit";
-import { POST } from "@/app/api/marketplace/checkout/route";
+
+// Dynamic import for route to ensure mocks are applied correctly in CI shards
+async function importRoute() {
+  const mod = await import("@/app/api/marketplace/checkout/route");
+  return { POST: mod.POST };
+}
 
 describe("API /api/marketplace/checkout", () => {
   beforeEach(() => {
@@ -53,6 +58,7 @@ describe("API /api/marketplace/checkout", () => {
         method: "POST",
         body: JSON.stringify({}),
       });
+      const { POST } = await importRoute();
       const res = await POST(req);
 
       expect(res.status).toBe(401);
@@ -71,6 +77,7 @@ describe("API /api/marketplace/checkout", () => {
         method: "POST",
         body: JSON.stringify({}),
       });
+      const { POST } = await importRoute();
       const res = await POST(req);
 
       expect(res.status).toBe(429);
@@ -95,6 +102,7 @@ describe("API /api/marketplace/checkout", () => {
         method: "POST",
         body: JSON.stringify({}),
       });
+      const { POST } = await importRoute();
       const res = await POST(req);
 
       expect(res.status).toBe(400);
@@ -130,6 +138,7 @@ describe("API /api/marketplace/checkout", () => {
           },
         }),
       });
+      const { POST } = await importRoute();
       const res = await POST(req);
       const data = await res.json();
 
@@ -168,6 +177,7 @@ describe("API /api/marketplace/checkout", () => {
           },
         }),
       });
+      const { POST } = await importRoute();
       const res = await POST(req);
 
       expect(res.status).toBe(200);
@@ -200,6 +210,7 @@ describe("API /api/marketplace/checkout", () => {
           },
         }),
       });
+      const { POST } = await importRoute();
       const res = await POST(req);
 
       expect(res.status).toBe(400);
