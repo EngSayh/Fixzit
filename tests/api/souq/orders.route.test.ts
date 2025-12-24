@@ -80,12 +80,18 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { GET, POST } from "@/app/api/souq/orders/route";
+
+// Dynamic import to ensure mocks are applied fresh each time
+const importRoute = async () => {
+  return import("@/app/api/souq/orders/route");
+};
 
 describe("API /api/souq/orders", () => {
   beforeEach(() => {
     sessionUser = null;
     vi.clearAllMocks();
+    // Reset rate limit mock to allow by default
+    vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
 
   it("returns 429 with Retry-After when rate limited (GET)", async () => {
@@ -97,6 +103,7 @@ describe("API /api/souq/orders", () => {
         headers: { "Retry-After": "60" },
       }) as never,
     );
+    const { GET } = await importRoute();
     const req = new NextRequest("http://localhost:3000/api/souq/orders");
     const res = await GET(req);
     expect(res.status).toBe(429);
@@ -105,9 +112,9 @@ describe("API /api/souq/orders", () => {
 
   describe("GET - List Orders", () => {
     it("returns 401 when user is not authenticated", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = null;
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
@@ -123,6 +130,7 @@ describe("API /api/souq/orders", () => {
         }) as never
       );
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
@@ -130,9 +138,9 @@ describe("API /api/souq/orders", () => {
     });
 
     it("returns 403 when orgId is missing", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = { id: "user-123" };
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
@@ -140,13 +148,13 @@ describe("API /api/souq/orders", () => {
     });
 
     it("returns orders for authenticated user with orgId", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
         role: "ADMIN",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
@@ -155,12 +163,12 @@ describe("API /api/souq/orders", () => {
     });
 
     it("supports status filter", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/orders?status=PENDING"
       );
@@ -170,12 +178,12 @@ describe("API /api/souq/orders", () => {
     });
 
     it("supports customerId filter", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/orders?customerId=507f1f77bcf86cd799439011"
       );
@@ -185,12 +193,12 @@ describe("API /api/souq/orders", () => {
     });
 
     it("supports pagination parameters", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { GET } = await importRoute();
       const req = new NextRequest(
         "http://localhost:3000/api/souq/orders?page=2&limit=10"
       );
@@ -202,9 +210,9 @@ describe("API /api/souq/orders", () => {
 
   describe("POST - Create Order", () => {
     it("returns 401 when user is not authenticated", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       // sessionUser is null by default
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({}),
@@ -225,6 +233,7 @@ describe("API /api/souq/orders", () => {
         }) as never
       );
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({}),
@@ -237,12 +246,12 @@ describe("API /api/souq/orders", () => {
     });
 
     it("validates required fields with Zod", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({
@@ -258,12 +267,12 @@ describe("API /api/souq/orders", () => {
     });
 
     it("validates items array is not empty", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({
@@ -290,12 +299,12 @@ describe("API /api/souq/orders", () => {
     });
 
     it("validates email format", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(null);
       sessionUser = {
         id: "user-123",
         orgId: "507f1f77bcf86cd799439011",
       };
 
+      const { POST } = await importRoute();
       const req = new NextRequest("http://localhost:3000/api/souq/orders", {
         method: "POST",
         body: JSON.stringify({
