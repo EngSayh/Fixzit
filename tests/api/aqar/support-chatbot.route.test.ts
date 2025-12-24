@@ -2,14 +2,22 @@
  * @fileoverview Tests for /api/aqar/support/chatbot route
  * Tests Aqar chatbot support functionality
  * 
- * Pattern: Static imports for mock isolation (per TESTING_STRATEGY.md)
+ * Pattern: Mutable state pattern for mock isolation (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock smart rate limiting (chatbot uses smartRateLimit)
+// Mutable state variables - controlled by beforeEach
+let mockSmartRateLimitResult: { allowed: boolean; remaining: number } | Response = { allowed: true, remaining: 10 };
+
+// Mock smart rate limiting - uses mutable state
 vi.mock("@/server/security/rateLimit", () => ({
-  smartRateLimit: vi.fn().mockReturnValue(null),
+  smartRateLimit: vi.fn(() => {
+    if (mockSmartRateLimitResult instanceof Response) {
+      return mockSmartRateLimitResult;
+    }
+    return Promise.resolve(mockSmartRateLimitResult);
+  }),
 }));
 
 // Mock database
@@ -31,19 +39,20 @@ vi.mock("@/lib/analytics/incrementWithRetry", () => ({
   incrementAnalyticsWithRetry: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Static imports AFTER vi.mock() declarations (mocks are hoisted)
-import { smartRateLimit } from "@/server/security/rateLimit";
-import { POST } from "@/app/api/aqar/support/chatbot/route";
+// Dynamic import to ensure mocks are applied
+const importRoute = async () => import("@/app/api/aqar/support/chatbot/route");
 
 describe("POST /api/aqar/support/chatbot", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true, remaining: 10 });
+    // Reset mutable state to defaults
+    mockSmartRateLimitResult = { allowed: true, remaining: 10 };
   });
 
   it("returns 429 when smartRateLimit denies the request", async () => {
-    vi.mocked(smartRateLimit).mockResolvedValueOnce({ allowed: false, remaining: 0 });
+    mockSmartRateLimitResult = { allowed: false, remaining: 0 };
 
+    const { POST } = await importRoute();
     const req = new NextRequest("http://localhost:3000/api/aqar/support/chatbot", {
       method: "POST",
       body: JSON.stringify({ message: "rate limit test" }),
@@ -53,13 +62,13 @@ describe("POST /api/aqar/support/chatbot", () => {
     expect(response.status).toBe(429);
   });
 
-  it("returns 429 when rate limit exceeded", async () => {
-    vi.mocked(smartRateLimit).mockReturnValue(
-      new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-        status: 429,
-      }) as never
+  it("returns 429 when rate limit exceeded (Response variant)", async () => {
+    mockSmartRateLimitResult = new Response(
+      JSON.stringify({ error: "Rate limit exceeded" }),
+      { status: 429 }
     );
 
+    const { POST } = await importRoute();
     const req = new NextRequest("http://localhost:3000/api/aqar/support/chatbot", {
       method: "POST",
       body: JSON.stringify({ message: "Hello" }),
@@ -70,6 +79,7 @@ describe("POST /api/aqar/support/chatbot", () => {
   });
 
   it("handles chatbot message", async () => {
+    const { POST } = await importRoute();
     const req = new NextRequest("http://localhost:3000/api/aqar/support/chatbot", {
       method: "POST",
       body: JSON.stringify({ message: "I need help with my property" }),
