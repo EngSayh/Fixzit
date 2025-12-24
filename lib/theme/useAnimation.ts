@@ -209,19 +209,25 @@ export function useAnimation(
     setAnimationStyle({});
   }, [currentAnimation]);
 
-  // Handle animation end
+  // Stable ref for onEnd callback to avoid listener churn
+  const onEndRef = useRef(options?.onEnd);
+  useEffect(() => {
+    onEndRef.current = options?.onEnd;
+  }, [options?.onEnd]);
+
+  // Handle animation end with stable listener (doesn't recreate on every render)
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
 
     const handleAnimationEnd = () => {
       setIsAnimating(false);
-      options?.onEnd?.();
+      onEndRef.current?.();
     };
 
     element.addEventListener('animationend', handleAnimationEnd);
     return () => element.removeEventListener('animationend', handleAnimationEnd);
-  }, [options]);
+  }, []);
 
   return {
     ref: ref as React.RefObject<HTMLElement>,
