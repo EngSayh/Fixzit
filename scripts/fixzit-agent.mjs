@@ -156,6 +156,20 @@ async function detectPackageManager() {
 }
 
 async function installTooling(pm) {
+  // In CI environments, packages are already installed by the workflow's pnpm install step.
+  // Skip dynamic installation to avoid 5+ minute timeout.
+  const isCI = process.env.CI === "true" || process.env.CI === "1";
+
+  if (isCI) {
+    console.log(
+      chalk.green("✅ CI environment detected - skipping dynamic package installation"),
+    );
+    console.log(
+      chalk.gray("   (packages should be in devDependencies, installed by pnpm install)"),
+    );
+    return;
+  }
+
   const spinner = ora(
     "Installing necessary tooling (devDependencies)...",
   ).start();
