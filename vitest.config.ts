@@ -24,7 +24,7 @@ const sharedProjectConfig = {
   maxWorkers: 4,
   minWorkers: 1,
   testTimeout: 600000, // 10 minutes - MongoMemoryServer initialization takes time
-  hookTimeout: 120000, // 2 minutes - beforeAll/afterAll with MongoDB setup
+  hookTimeout: 180000, // 3 minutes - beforeAll/afterAll with MongoDB setup (increased for CI flakiness)
   teardownTimeout: 30000, // 30 seconds - cleanup
   env: {
     NEXTAUTH_SECRET: "test-secret",
