@@ -5,20 +5,13 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock dependencies before importing
-vi.mock('mongoose', () => ({
-  Types: {
-    ObjectId: class ObjectId {
-      constructor(public id: string = '507f1f77bcf86cd799439011') {}
-      toString() { return this.id; }
-    },
-  },
-  startSession: vi.fn(() => ({
-    startTransaction: vi.fn(),
-    commitTransaction: vi.fn(),
-    abortTransaction: vi.fn(),
-    endSession: vi.fn(),
-  })),
+// Do NOT mock mongoose globally - it conflicts with MongoMemoryServer in vitest.setup.ts
+// Instead, mock specific models and utilities as needed
+
+// Mock mongoose-compat types to provide ObjectId without full mongoose mock
+vi.mock("@/types/mongoose-compat", () => ({
+  toObjectId: vi.fn((id: string) => ({ toString: () => id ?? "mock-id" })),
+  isValidObjectId: vi.fn(() => true),
 }));
 
 vi.mock('@/server/plugins/tenantIsolation', () => ({

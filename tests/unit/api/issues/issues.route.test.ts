@@ -5,7 +5,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
-// Mock mongoose before everything else
+// Do NOT mock mongoose globally - it conflicts with MongoMemoryServer in vitest.setup.ts
+// Mock specific models and utilities as needed
+
+// Mock ObjectId utility class for test-only use
 class MockObjectId {
   value: string;
 
@@ -22,16 +25,10 @@ class MockObjectId {
   }
 }
 
-vi.mock("mongoose", () => ({
-  default: {
-    Types: {
-      ObjectId: MockObjectId,
-    },
-    connect: vi.fn(),
-  },
-  Types: {
-    ObjectId: MockObjectId,
-  },
+// Mock mongoose-compat types to provide ObjectId without full mongoose mock
+vi.mock("@/types/mongoose-compat", () => ({
+  toObjectId: vi.fn((id: string) => new MockObjectId(id)),
+  isValidObjectId: vi.fn(MockObjectId.isValid),
 }));
 
 // Mock NextResponse

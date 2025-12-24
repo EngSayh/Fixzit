@@ -48,12 +48,29 @@ import { resolveMarketplaceContext } from "@/lib/marketplace/context";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import Product from "@/server/models/marketplace/Product";
 
-// Dynamic import to ensure mocks are applied
-const importRoute = async () => import("@/app/api/marketplace/vendor/products/route");
+// Dynamic import to ensure mocks are applied fresh each time
+const importRoute = async () => {
+  // Re-import the route module to ensure mocks are properly applied
+  return import("@/app/api/marketplace/vendor/products/route");
+};
 
 describe("API /api/marketplace/vendor/products", () => {
   beforeEach(() => {
+    // Reset timers first to prevent fake timer contamination from other tests
+    vi.useRealTimers();
     vi.clearAllMocks();
+    
+    // Reset default mock implementations to ensure clean state
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
+    vi.mocked(Product.find).mockReturnValue({
+      sort: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockResolvedValue([]),
+    } as never);
+    vi.mocked(Product.findOne).mockResolvedValue(null);
+    vi.mocked(Product.create).mockImplementation((data) => Promise.resolve(data));
+    vi.mocked(Product.findOneAndUpdate).mockImplementation((filter, update) => Promise.resolve(update));
+    
     // NOTE: vi.resetModules() intentionally omitted here because this test
     // relies on hoisted vi.mock() calls (especially for mongodb-unified).
     // Calling resetModules() would clear those mocks and cause mongoose

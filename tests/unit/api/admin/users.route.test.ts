@@ -1,7 +1,17 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+/**
+ * @fileoverview Tests for GET /api/admin/users filter parameters
+ * 
+ * NOTE: This test uses vi.mock("mongoose") because the route defines
+ * the User model inline using mongoose.model(). This is safe in unit/
+ * tests as they don't interact with MongoMemoryServer from vitest.setup.ts.
+ */
+import { describe, it, expect, beforeEach, vi, afterAll } from "vitest";
 import { NextRequest } from "next/server";
 
-const findMock = vi.fn();
+// Use vi.hoisted() to make findMock available in vi.mock() factory
+const { findMock } = vi.hoisted(() => ({
+  findMock: vi.fn(),
+}));
 
 vi.mock("mongoose", () => {
   const chain = {
@@ -11,6 +21,8 @@ vi.mock("mongoose", () => {
     skip: vi.fn(() => chain),
     lean: vi.fn(() => []),
   };
+  findMock.mockReturnValue(chain);
+  
   const mockObjectId = Object.assign(
     vi.fn((id?: string) => ({
       toString: () => id ?? "mock-id",
@@ -50,6 +62,12 @@ import { GET } from "@/app/api/admin/users/route";
 describe("GET /api/admin/users filters", () => {
   beforeEach(() => {
     findMock.mockClear();
+  });
+  
+  // Restore all mocks after tests to prevent contamination of other test files
+  afterAll(() => {
+    vi.doUnmock("mongoose");
+    vi.resetModules();
   });
 
   it("passes UI filters to query", async () => {

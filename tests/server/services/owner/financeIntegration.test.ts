@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import mongoose from "mongoose";
+
+// Do NOT mock mongoose globally - it conflicts with MongoMemoryServer in vitest.setup.ts
+// Instead, spy on mongoose.startSession for transaction testing
 
 // Mock logger
 vi.mock("@/lib/logger", () => ({
@@ -10,22 +14,14 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-// Mock mongoose
-vi.mock("mongoose", async () => {
-  const actual = await vi.importActual("mongoose");
-  return {
-    ...actual,
-    default: {
-      ...(actual as Record<string, unknown>).default,
-      startSession: vi.fn().mockResolvedValue({
-        startTransaction: vi.fn(),
-        commitTransaction: vi.fn(),
-        abortTransaction: vi.fn(),
-        endSession: vi.fn(),
-      }),
-    },
-  };
-});
+// Spy on startSession instead of full mongoose mock
+const mockSession = {
+  startTransaction: vi.fn(),
+  commitTransaction: vi.fn(),
+  abortTransaction: vi.fn(),
+  endSession: vi.fn(),
+};
+vi.spyOn(mongoose, "startSession").mockResolvedValue(mockSession as never);
 
 // Mock models
 vi.mock("@/server/models/WorkOrder", () => ({
