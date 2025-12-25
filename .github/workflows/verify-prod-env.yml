@@ -37,9 +37,13 @@ jobs:
       # Auth secrets (required)
       NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-      # PayTabs secrets (required for payment processing)
-      PAYTABS_PROFILE_ID: ${{ secrets.PAYTABS_PROFILE_ID }}
-      PAYTABS_SERVER_KEY: ${{ secrets.PAYTABS_SERVER_KEY }}
+      # Tap payment secrets (required for payment processing)
+      TAP_ENVIRONMENT: ${{ secrets.TAP_ENVIRONMENT }}
+      TAP_LIVE_SECRET_KEY: ${{ secrets.TAP_LIVE_SECRET_KEY }}
+      TAP_TEST_SECRET_KEY: ${{ secrets.TAP_TEST_SECRET_KEY }}
+      TAP_WEBHOOK_SECRET: ${{ secrets.TAP_WEBHOOK_SECRET }}
+      NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY }}
+      NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY }}
       # SADAD/SPAN (optional; validated when ENABLE_SADAD_PAYOUTS=true)
       ENABLE_SADAD_PAYOUTS: ${{ secrets.ENABLE_SADAD_PAYOUTS || vars.ENABLE_SADAD_PAYOUTS }}
       SADAD_SPAN_MODE: ${{ secrets.SADAD_SPAN_MODE || vars.SADAD_SPAN_MODE }}
@@ -101,9 +105,10 @@ jobs:
           echo "  - NEXTAUTH_SECRET (or AUTH_SECRET) - for session signing"
           echo ""
           echo "Payments (REQUIRED for marketplace):"
-          echo "  - PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY"
+          echo "  - TAP_LIVE_SECRET_KEY (or TAP_TEST_SECRET_KEY), TAP_WEBHOOK_SECRET"
+          echo "  - NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY (or NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY)"
           echo ""
-          echo "ZATCA Saudi e-invoicing (REQUIRED for PayTabs callbacks):"
+          echo "ZATCA Saudi e-invoicing (REQUIRED for compliance):"
           echo "  - ZATCA_API_KEY"
           echo "  - ZATCA_SELLER_NAME"
           echo "  - ZATCA_VAT_NUMBER"
@@ -123,7 +128,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ **Production Environment Validation Passed**\n\nAll required secrets (Auth, PayTabs, ZATCA) are configured.'
+              body: '✅ **Production Environment Validation Passed**\n\nAll required secrets (Auth, Tap, ZATCA) are configured.'
             })
 
       - name: Summary
@@ -141,7 +146,7 @@ jobs:
               echo
               echo "Missing required secrets. Configure in GitHub Actions Secrets:"
               echo "- NEXTAUTH_SECRET / AUTH_SECRET"
-              echo "- PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY"
+              echo "- TAP_*_SECRET_KEY, TAP_WEBHOOK_SECRET, NEXT_PUBLIC_TAP_*_PUBLIC_KEY"
               echo "- ZATCA_API_KEY, ZATCA_SELLER_NAME, ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS"
               echo "- (Optional, required when ENABLE_SADAD_PAYOUTS=true): SADAD_API_KEY, SADAD_API_SECRET, SADAD_API_ENDPOINT, SADAD_SPAN_MODE"
             fi

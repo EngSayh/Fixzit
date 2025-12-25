@@ -17,8 +17,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";
-import { getDatabase } from "@/lib/mongodb-unified";
-import { COLLECTIONS } from "@/lib/db/collections";
+import { connectDb } from "@/lib/mongodb-unified";
+import { ClaimsOrder } from "@/server/models/souq/ClaimsOrder";
+import { SouqClaim } from "@/server/models/souq/Claim";
+import { User } from "@/server/models/User";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import { buildOrgScopeFilter } from "@/services/souq/org-scope";
@@ -52,18 +54,17 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const db = await getDatabase();
+    await connectDb();
     // 🔐 STRICT v4.1: Include orgId in admin record lookup for tenant isolation
     const adminRecord = ObjectId.isValid(session.user.id)
-      ? await db
-          .collection(COLLECTIONS.USERS)
-          .findOne({ _id: new ObjectId(session.user.id), orgId: userOrgId })
-      : await db.collection(COLLECTIONS.USERS).findOne({ id: session.user.id, orgId: userOrgId });
+      ? await User.findOne({ _id: new ObjectId(session.user.id), orgId: userOrgId }).lean()
+      : await User.findOne({ id: session.user.id, orgId: userOrgId }).lean();
 
-    const role = (adminRecord?.role || session.user.role || "").toUpperCase();
-    // 🔒 SECURITY FIX: Use standard role names from UserRole enum
+    // Check for admin privileges: isSuperAdmin flag or session role
+    const isSuperAdmin = adminRecord?.isSuperAdmin === true;
+    const sessionRole = (session.user.role || "").toUpperCase();
     const allowedRoles = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "CLAIMS_ADMIN"];
-    if (!allowedRoles.includes(role)) {
+    if (!isSuperAdmin && !allowedRoles.includes(sessionRole)) {
       // 🔐 STRICT v4.1: Return 404 (not 403) to prevent info leakage about admin endpoints
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
@@ -94,9 +95,7 @@ export async function POST(
     const claimOrgFilter = ObjectId.isValid(claim.orderId)
       ? { orgId: new ObjectId(userOrgId), _id: new ObjectId(claim.orderId) }
       : { orgId: new ObjectId(userOrgId), orderId: claim.orderId };
-    const orderForScope = await db
-      .collection(COLLECTIONS.ORDERS)
-      .findOne(claimOrgFilter);
+    const orderForScope = await ClaimsOrder.findOne(claimOrgFilter).lean();
     if (!orderForScope) {
       // 🔐 STRICT v4.1: Return 404 (not 403) to prevent info leakage
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
@@ -175,7 +174,7 @@ export async function POST(
       decidedBy: session.user.id,
     };
 
-    await db.collection(COLLECTIONS.CLAIMS).updateOne(filter, {
+    await SouqClaim.updateOne(filter, {
       $set: {
         status,
         refundAmount: refundAmountNumber,

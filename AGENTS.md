@@ -25,7 +25,8 @@
 15. [Prompts Library](#15-prompts-library)
 16. [Appendix A: MongoDB Issue Schema](#appendix-a-mongodb-issue-schema)
 17. [Appendix B: Agent Routing Configuration](#appendix-b-agent-routing-configuration)
-18. [Changelog](#changelog)
+18. [Appendix C: Environment Variables Reference](#appendix-c-environment-variables-reference)
+19. [Changelog](#changelog)
 
 ---
 
@@ -1592,6 +1593,47 @@ db.issues.createIndex({ "assignment.claimExpiresAt": 1 }, {
   }
 }
 ```
+
+---
+
+## Appendix C: Environment Variables Reference
+
+### Live Query Commands
+
+**Do NOT hardcode env var lists in documentation.** Query live sources instead:
+
+```bash
+# Vercel Project-level env vars (runtime secrets)
+vercel env ls
+
+# GitHub Actions secrets (CI/CD)
+gh secret list
+
+# Check specific variable exists
+vercel env ls 2>&1 | Select-String "SENTRY"
+gh secret list 2>&1 | Select-String "SENTRY"
+```
+
+### Key Environment Variable Categories
+
+| Category | Variables | Platform |
+|----------|-----------|----------|
+| **Auth** | `AUTH_SECRET`, `NEXTAUTH_SECRET`, `JWT_SECRET` | Vercel |
+| **Database** | `MONGODB_URI` | Vercel + GitHub |
+| **Payments** | `TAP_*`, `PAYTABS_*` | Vercel |
+| **ZATCA** | `ZATCA_API_KEY`, `ZATCA_SELLER_*`, `ZATCA_VAT_NUMBER` | Vercel |
+| **SMS** | `TAQNYAT_*`, `TWILIO_*`, `SMS_PROVIDER` | Vercel |
+| **Monitoring** | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Vercel + GitHub |
+| **Storage** | `AWS_S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Vercel |
+| **Search** | `MEILI_HOST`, `MEILI_MASTER_KEY` | Vercel |
+| **Multi-Tenant** | `DEFAULT_ORG_ID`, `PUBLIC_ORG_ID`, `TEST_ORG_ID` | Vercel |
+
+### Before Claiming ENV-Related Issues
+
+1. Query live sources using commands above
+2. Verify variable exists before reporting "missing"
+3. Check BOTH Vercel (runtime) AND GitHub (CI/CD)
+4. Follow Section 12.3 Environment Variable Verification Protocol
 
 ---
 

@@ -2,6 +2,65 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-26 11:30 (Asia/Riyadh) — PayTabs Removal & Tap Migration
+
+**Agent Token:** [AGENT-001-A]
+**Context:** main | workflow-tap-migration
+**Session Summary:** Removed PayTabs references from workflows/docs (PayTabs deprecated, Tap is active payment provider). Fixed pre-existing TypeScript errors in Claims routes. Updated documentation to reflect current payment setup.
+**DB Sync:** created=0, updated=0, skipped=0, errors=0 (documentation/config only)
+
+### ✅ PAYMENT PROVIDER UPDATE
+
+| Change | Details |
+|--------|---------|
+| **PayTabs** | ❌ REMOVED from system (deprecated) |
+| **Tap** | ✅ Active payment provider (11 secrets configured) |
+| **OPENAI_KEY** | ✅ Added to GitHub secrets (2025-12-25T10:29:09Z) |
+| **ZATCA** | ⏳ Pending user configuration |
+
+### 📁 FILES MODIFIED
+
+| File | Change |
+|------|--------|
+| `.github/workflows/verify-prod-env.yml` | Replaced PayTabs refs with Tap secrets |
+| `USER_ACTIONS_REQUIRED.md` | Updated payment gateway reference |
+| `app/api/souq/claims/[id]/decision/route.ts` | Added missing SouqClaim import (TypeScript fix) |
+| `app/api/souq/claims/[id]/route.ts` | Migrated to Mongoose ClaimsOrder model |
+| `app/api/souq/claims/route.ts` | Migrated to Mongoose ClaimsOrder/SouqClaim models |
+| `server/models/souq/ClaimsOrder.ts` | NEW: Compatibility model for Claims routes |
+
+### ✅ SECRETS STATUS (GitHub Actions)
+
+| Category | Secret | Status |
+|----------|--------|--------|
+| **Tap Payment** | TAP_ENVIRONMENT | ✅ Configured |
+| | TAP_LIVE_SECRET_KEY | ✅ Configured |
+| | TAP_TEST_SECRET_KEY | ✅ Configured |
+| | TAP_WEBHOOK_SECRET | ✅ Configured |
+| | NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY | ✅ Configured |
+| | NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY | ✅ Configured |
+| **AI** | OPENAI_KEY | ✅ Added 2025-12-25 |
+| **ZATCA** | ZATCA_API_KEY | ⏳ Pending (user action) |
+| | ZATCA_SELLER_NAME | ⏳ Pending (user action) |
+| | ZATCA_VAT_NUMBER | ⏳ Pending (user action) |
+| | ZATCA_SELLER_ADDRESS | ⏳ Pending (user action) |
+
+### 📋 VERIFICATION
+
+```bash
+pnpm typecheck  # ✅ 0 errors
+pnpm lint       # ✅ 0 errors (5 warnings - tenant scope, pre-existing)
+```
+
+### 🔄 USER ACTION REQUIRED
+
+| Item | Action | Priority |
+|------|--------|----------|
+| ZATCA Secrets | Configure ZATCA_API_KEY, ZATCA_SELLER_NAME, ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS in GitHub Secrets | When ready |
+| TEST_ADMIN | Set via superadmin panel (not GitHub secrets) | N/A |
+
+---
+
 ## 📅 2025-12-25 12:15 (Asia/Riyadh) — E2E Test Expansion & Documentation
 
 **Agent Token:** [AGENT-001-A]

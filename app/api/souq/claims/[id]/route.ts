@@ -15,8 +15,9 @@ import mongoose from "mongoose";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";
-import { getDatabase } from "@/lib/mongodb-unified";
-import { COLLECTIONS } from "@/lib/db/collections";
+import { connectDb } from "@/lib/mongodb-unified";
+import { ClaimsOrder } from "@/server/models/souq/ClaimsOrder";
+import { User } from "@/server/models/User";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import { buildOrgScopeFilter } from "@/services/souq/org-scope";
@@ -68,33 +69,25 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const db = await getDatabase();
+    await connectDb();
     const orgFilter = buildOrgScopeFilter(userOrgId.toString());
     const orderIdValue = String(claim.orderId);
     let order = null;
     if (ObjectId.isValid(orderIdValue)) {
-      order = await db
-        .collection(COLLECTIONS.ORDERS)
-        .findOne({ _id: new ObjectId(orderIdValue), ...orgFilter });
+      order = await ClaimsOrder.findOne({ _id: new ObjectId(orderIdValue), ...orgFilter }).lean();
     }
     if (!order) {
-      order = await db
-        .collection(COLLECTIONS.ORDERS)
-        .findOne({ orderId: orderIdValue, ...orgFilter });
+      order = await ClaimsOrder.findOne({ orderId: orderIdValue, ...orgFilter }).lean();
     }
     if (!order) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
 
     const buyerDoc = ObjectId.isValid(String(claim.buyerId))
-      ? await db
-          .collection(COLLECTIONS.USERS)
-          .findOne({ _id: new ObjectId(String(claim.buyerId)), ...orgFilter })
+      ? await User.findOne({ _id: new ObjectId(String(claim.buyerId)), ...orgFilter }).lean()
       : null;
     const sellerDoc = ObjectId.isValid(String(claim.sellerId))
-      ? await db
-          .collection(COLLECTIONS.USERS)
-          .findOne({ _id: new ObjectId(String(claim.sellerId)), ...orgFilter })
+      ? await User.findOne({ _id: new ObjectId(String(claim.sellerId)), ...orgFilter }).lean()
       : null;
 
     return NextResponse.json({
@@ -144,12 +137,12 @@ export async function PUT(
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
     // Ensure claim/order belongs to the same org
-    const db = await getDatabase();
+    await connectDb();
     const orderIdValue = String(claim.orderId);
     const orderFilter = ObjectId.isValid(orderIdValue)
       ? { _id: new ObjectId(orderIdValue), ...orgFilter }
       : { orderId: orderIdValue, ...orgFilter };
-    const order = await db.collection(COLLECTIONS.ORDERS).findOne(orderFilter);
+    const order = await ClaimsOrder.findOne(orderFilter).lean();
     if (!order) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }

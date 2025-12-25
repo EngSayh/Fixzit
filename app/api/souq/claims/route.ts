@@ -23,8 +23,9 @@ import {
 } from "@/services/souq/claims/claim-service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { resolveRequestSession } from "@/lib/auth/request-session";
-import { getDatabase } from "@/lib/mongodb-unified";
-import { COLLECTIONS } from "@/lib/db/collections";
+import { connectDb } from "@/lib/mongodb-unified";
+import { ClaimsOrder } from "@/server/models/souq/ClaimsOrder";
+import { SouqClaim } from "@/server/models/souq/Claim";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import { buildOrgScopeFilter as buildOrgScope } from "@/services/souq/org-scope";
@@ -99,10 +100,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid orderId" }, { status: 400 });
     }
 
-    const db = await getDatabase();
-    const order = await db
-      .collection(COLLECTIONS.ORDERS)
-      .findOne({ _id: orderObjectId, ...buildOrgScope(orgId) });
+    await connectDb();
+    const order = await ClaimsOrder.findOne({ _id: orderObjectId, ...buildOrgScope(orgId) }).lean();
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 400 });
     }
@@ -123,9 +122,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const claimsCollection = db.collection(COLLECTIONS.CLAIMS);
-    // eslint-disable-next-line local/require-lean -- NO_LEAN: Native driver returns lean POJO
-    const existingClaim = await claimsCollection.findOne({
+    const existingClaim = await SouqClaim.findOne({
       orderId: { $in: [orderObjectId, orderObjectId.toString()] },
       $or: [buildOrgScope(orgId), { orgId: { $exists: false } }],
       status: {
@@ -138,7 +135,7 @@ export async function POST(request: NextRequest) {
           "closed",
         ],
       },
-    });
+    }).lean();
     if (existingClaim) {
       return NextResponse.json(
         { error: "An existing claim already covers this order" },
@@ -178,7 +175,7 @@ export async function POST(request: NextRequest) {
       buyerIdFilter.push(new ObjectId(session.user.id));
     }
 
-    const recentClaimsCount = await claimsCollection.countDocuments({
+    const recentClaimsCount = await SouqClaim.countDocuments({
       buyerId: { $in: buyerIdFilter },
       $or: [buildOrgScope(orgId), { orgId: { $exists: false } }],
       createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },

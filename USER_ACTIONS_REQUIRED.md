@@ -221,7 +221,7 @@ Repeat for:
 - TAQNYAT_BEARER_TOKEN
 - TAQNYAT_WEBHOOK_PHRASE
 - SENDGRID_API_KEY (if used)
-- Any payment gateway keys (TAP_SECRET_KEY, PAYTABS_SERVER_KEY)
+- Any payment gateway keys (TAP_LIVE_SECRET_KEY, TAP_WEBHOOK_SECRET)
 ```
 
 **2.3. Add Separate Development Values**
