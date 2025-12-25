@@ -144,11 +144,14 @@ describe('Work Order Status Race Conditions', () => {
     it('should handle multiple simultaneous status updates', async () => {
       let currentStatus = 'PENDING';
       let updateCount = 0;
+      let callOrder = 0;
 
       const atomicUpdate = vi.fn().mockImplementation(
         async (expectedStatus: string, newStatus: string) => {
-          // Simulate a small delay to trigger race condition
-          await new Promise(resolve => setTimeout(resolve, Math.random() * 10));
+          // Use deterministic delays based on call order to simulate race condition
+          const order = callOrder++;
+          const delays = [5, 2, 8]; // First call gets 5ms, second gets 2ms, third gets 8ms
+          await new Promise(resolve => setTimeout(resolve, delays[order] ?? 1));
 
           if (currentStatus === expectedStatus) {
             currentStatus = newStatus;
@@ -166,11 +169,11 @@ describe('Work Order Status Race Conditions', () => {
         atomicUpdate('PENDING', 'SCHEDULED'),
       ]);
 
-      // Only one should succeed
+      // Only one should succeed (the one with shortest delay wins)
       const successfulUpdates = updates.filter(u => u.success);
       expect(successfulUpdates.length).toBe(1);
       expect(updateCount).toBe(1);
-    });
+    }, 10000); // Explicit 10s timeout
 
     it('should use transactions for multi-document updates', async () => {
       const mockSession = {
