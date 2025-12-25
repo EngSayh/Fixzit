@@ -580,32 +580,6 @@ beforeAll(async () => {
   if (!shouldUseInMemoryMongo) {
     return;
   }
-  
-  // Skip MongoDB connection if mongoose is mocked (vi.mock("mongoose"))
-  // This handles test files that mock mongoose for unit testing routes
-  // Detection: check if mongoose.connect is a real function or a mock
-  try {
-    // Real mongoose.connect has a length of 2 (uri, options)
-    // Also check if Schema has the real discriminator method
-    const connectFn = mongoose.connect;
-    const schemaProto = mongoose.Schema?.prototype;
-    const isMongooseMocked = 
-      !connectFn || 
-      typeof connectFn !== 'function' ||
-      !schemaProto ||
-      typeof schemaProto.add !== 'function' ||
-      (connectFn as { _isMockFunction?: boolean })._isMockFunction === true;
-    
-    if (isMongooseMocked) {
-      logger.debug("[MongoMemory] Skipping - mongoose appears to be mocked");
-      return;
-    }
-  } catch {
-    // If checking mongoose fails, it's probably mocked
-    logger.debug("[MongoMemory] Skipping - mongoose check failed (likely mocked)");
-    return;
-  }
-  
   try {
     if (!mongoServer) {
       await startMongoMemoryServer();

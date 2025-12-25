@@ -115,6 +115,7 @@ export default defineConfig({
             "tests/unit/api/admin/users.route.test.ts",
             "tests/unit/api/admin/users/users.route.test.ts",
             "tests/api/superadmin/organizations.route.test.ts",
+            "tests/api/admin/users.route.test.ts",
           ],
         },
       }),
@@ -165,6 +166,7 @@ export default defineConfig({
             "tests/unit/api/admin/users.route.test.ts",
             "tests/unit/api/admin/users/users.route.test.ts",
             "tests/api/superadmin/organizations.route.test.ts",
+            "tests/api/admin/users.route.test.ts",
             // Playwright spec files (run via pnpm playwright test)
             "tests/e2e/**/*.spec.{ts,tsx}",
             "tests/smoke/**/*.spec.{ts,tsx}",
