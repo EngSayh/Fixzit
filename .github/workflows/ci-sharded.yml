@@ -29,22 +29,22 @@ jobs:
       NODE_ENV: "test"
       MONGODB_MEMORY_SERVER_OPTS: "binary:/tmp/mongodb-memory-bin,downloadDir:/tmp/mongodb-download"
     steps:
-      - name: ðŸ“¦ Checkout
+      - name: 📦 Checkout
         uses: actions/checkout@v4
 
-      - name: ðŸ“¦ Setup pnpm
+      - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
 
-      - name: ðŸ”§ Setup Node.js
+      - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "pnpm"
 
-      - name: ðŸ“¥ Install dependencies
+      - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: ðŸ’¾ Cache MongoDB Memory Server Binary
+      - name: 💾 Cache MongoDB Memory Server Binary
         uses: actions/cache@v4
         with:
           path: /tmp/mongodb-memory-bin
@@ -52,7 +52,7 @@ jobs:
           restore-keys: |
             mongodb-memory-${{ runner.os }}-
 
-      - name: ðŸ§ª Run Service Tests
+      - name: 🧪 Run Service Tests
         run: pnpm vitest run tests/services --reporter=dot --maxWorkers=1
         timeout-minutes: 10
 
@@ -64,22 +64,22 @@ jobs:
       NODE_ENV: "test"
       MONGODB_MEMORY_SERVER_OPTS: "binary:/tmp/mongodb-memory-bin,downloadDir:/tmp/mongodb-download"
     steps:
-      - name: ðŸ“¦ Checkout
+      - name: 📦 Checkout
         uses: actions/checkout@v4
 
-      - name: ðŸ“¦ Setup pnpm
+      - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
 
-      - name: ðŸ”§ Setup Node.js
+      - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "pnpm"
 
-      - name: ðŸ“¥ Install dependencies
+      - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: ðŸ’¾ Cache MongoDB Memory Server Binary
+      - name: 💾 Cache MongoDB Memory Server Binary
         uses: actions/cache@v4
         with:
           path: /tmp/mongodb-memory-bin
@@ -87,7 +87,7 @@ jobs:
           restore-keys: |
             mongodb-memory-${{ runner.os }}-
 
-      - name: ðŸ§ª Run API Tests
+      - name: 🧪 Run API Tests
         run: pnpm vitest run tests/api --reporter=dot --maxWorkers=1
         timeout-minutes: 15
 
@@ -99,22 +99,22 @@ jobs:
       NODE_ENV: "test"
       MONGODB_MEMORY_SERVER_OPTS: "binary:/tmp/mongodb-memory-bin,downloadDir:/tmp/mongodb-download"
     steps:
-      - name: ðŸ“¦ Checkout
+      - name: 📦 Checkout
         uses: actions/checkout@v4
 
-      - name: ðŸ“¦ Setup pnpm
+      - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
 
-      - name: ðŸ”§ Setup Node.js
+      - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "pnpm"
 
-      - name: ðŸ“¥ Install dependencies
+      - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: ðŸ’¾ Cache MongoDB Memory Server Binary
+      - name: 💾 Cache MongoDB Memory Server Binary
         uses: actions/cache@v4
         with:
           path: /tmp/mongodb-memory-bin
@@ -122,7 +122,7 @@ jobs:
           restore-keys: |
             mongodb-memory-${{ runner.os }}-
 
-      - name: ðŸ§ª Run Unit Tests
+      - name: 🧪 Run Unit Tests
         run: pnpm vitest run tests/unit --reporter=dot --maxWorkers=1
         timeout-minutes: 10
 
@@ -132,22 +132,22 @@ jobs:
     env:
       NODE_OPTIONS: "--max-old-space-size=6144"
     steps:
-      - name: ðŸ“¦ Checkout
+      - name: 📦 Checkout
         uses: actions/checkout@v4
 
-      - name: ðŸ“¦ Setup pnpm
+      - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
 
-      - name: ðŸ”§ Setup Node.js
+      - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "pnpm"
 
-      - name: ðŸ“¥ Install dependencies
+      - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: ðŸ” TypeScript Check
+      - name: 🔍 TypeScript Check
         run: pnpm typecheck
 
   # ESLint Check
@@ -156,22 +156,22 @@ jobs:
     env:
       NODE_OPTIONS: "--max-old-space-size=6144"
     steps:
-      - name: ðŸ“¦ Checkout
+      - name: 📦 Checkout
         uses: actions/checkout@v4
 
-      - name: ðŸ“¦ Setup pnpm
+      - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
 
-      - name: ðŸ”§ Setup Node.js
+      - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "pnpm"
 
-      - name: ðŸ“¥ Install dependencies
+      - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: ðŸ” ESLint Check
+      - name: 🔍 ESLint Check
         run: pnpm lint:ci
 
   qa-bundle:
@@ -179,25 +179,25 @@ jobs:
     env:
       NODE_OPTIONS: "--max-old-space-size=6144"
     steps:
-      - name: ðŸ“¦ Checkout
+      - name: 📦 Checkout
         uses: actions/checkout@v4
 
-      - name: ðŸ“¦ Setup pnpm
+      - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
 
-      - name: ðŸ”§ Setup Node.js
+      - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "pnpm"
 
-      - name: ðŸ“¥ Install dependencies
+      - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: ðŸ§ª QA Bundle (lint + typecheck + vitest)
+      - name: 🧪 QA Bundle (lint + typecheck + vitest)
         run: pnpm qa
 
-      - name: ðŸ“¤ Upload vitest log
+      - name: 📤 Upload vitest log
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -210,14 +210,14 @@ jobs:
     needs: [test-services, test-api, test-unit, typecheck, lint, qa-bundle]
     if: always()
     steps:
-      - name: âœ… CI Summary
+      - name: ✅ CI Summary
         run: |
           {
             echo "## CI Results"
-            echo "âœ… Service Tests: ${{ needs.test-services.result }}"
-            echo "âœ… API Tests: ${{ needs.test-api.result }}"
-            echo "âœ… Unit Tests: ${{ needs.test-unit.result }}"
-            echo "âœ… TypeScript: ${{ needs.typecheck.result }}"
-            echo "âœ… ESLint: ${{ needs.lint.result }}"
-            echo "âœ… QA Bundle: ${{ needs.qa-bundle.result }}"
+            echo "✅ Service Tests: ${{ needs.test-services.result }}"
+            echo "✅ API Tests: ${{ needs.test-api.result }}"
+            echo "✅ Unit Tests: ${{ needs.test-unit.result }}"
+            echo "✅ TypeScript: ${{ needs.typecheck.result }}"
+            echo "✅ ESLint: ${{ needs.lint.result }}"
+            echo "✅ QA Bundle: ${{ needs.qa-bundle.result }}"
           } >> "$GITHUB_STEP_SUMMARY"

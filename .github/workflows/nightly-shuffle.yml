@@ -74,21 +74,21 @@ jobs:
             TOTAL_COUNT=$((TOTAL_COUNT + 1))
             echo ""
             echo "========================================"
-            echo "ðŸŽ² Testing with seed: $SEED"
+            echo "🎲 Testing with seed: $SEED"
             echo "========================================"
             
             if pnpm vitest run --sequence.shuffle --sequence.seed="$SEED" --reporter=dot 2>&1 | tee "reports/shuffle-seed-$SEED.log"; then
-              echo "âœ… Seed $SEED: PASSED"
+              echo "✅ Seed $SEED: PASSED"
               PASSED_COUNT=$((PASSED_COUNT + 1))
             else
-              echo "âŒ Seed $SEED: FAILED"
+              echo "❌ Seed $SEED: FAILED"
               FAILED_SEEDS="$FAILED_SEEDS $SEED"
             fi
           done
           
           echo ""
           echo "========================================"
-          echo "ðŸ“Š Shuffle Test Summary"
+          echo "📊 Shuffle Test Summary"
           echo "========================================"
           echo "Seeds tested: $TOTAL_COUNT"
           echo "Passed: $PASSED_COUNT"
@@ -96,7 +96,7 @@ jobs:
           
           if [ -n "$FAILED_SEEDS" ]; then
             echo ""
-            echo "âŒ Failed seeds:$FAILED_SEEDS"
+            echo "❌ Failed seeds:$FAILED_SEEDS"
             echo ""
             echo "To reproduce locally:"
             echo "  CI=true pnpm vitest run --sequence.shuffle --sequence.seed=<SEED> --reporter=verbose"
@@ -104,7 +104,7 @@ jobs:
           fi
           
           echo ""
-          echo "âœ… All shuffle tests passed!"
+          echo "✅ All shuffle tests passed!"
 
       - name: Upload shuffle logs
         if: always()
@@ -117,14 +117,14 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "## ðŸŽ² Nightly Shuffle Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎲 Nightly Shuffle Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "${{ job.status }}" = "success" ]; then
-            echo "âœ… **All shuffle tests passed!**" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **All shuffle tests passed!**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Test isolation is stable across multiple random orderings." >> $GITHUB_STEP_SUMMARY
           else
-            echo "âš ï¸ **Some shuffle tests failed!**" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Some shuffle tests failed!**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "This indicates test isolation issues - tests may depend on execution order." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY

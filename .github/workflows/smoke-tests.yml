@@ -52,7 +52,7 @@ jobs:
             exit 1
           fi
           
-          echo "âœ… Login page accessible"
+          echo "✅ Login page accessible"
 
       - name: Check Static Assets
         run: |
@@ -62,7 +62,7 @@ jobs:
           if [ "$HTTP_CODE" != "200" ]; then
             echo "::warning::Favicon returned $HTTP_CODE"
           else
-            echo "âœ… Static assets accessible"
+            echo "✅ Static assets accessible"
           fi
 
       - name: Check API Auth Endpoint
@@ -74,7 +74,7 @@ jobs:
           if [ "$HTTP_CODE" != "200" ]; then
             echo "::warning::Auth session returned $HTTP_CODE (expected 200)"
           else
-            echo "âœ… Auth session endpoint accessible"
+            echo "✅ Auth session endpoint accessible"
           fi
 
       - name: Summary

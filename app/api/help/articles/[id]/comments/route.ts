@@ -30,13 +30,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { getDatabase } from "@/lib/mongodb-unified";
-import { COLLECTIONS } from "@/lib/db/collections";
 import { createSecureResponse } from "@/server/security/headers";
 import { validationError } from "@/server/utils/errorResponses";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { helpArticleService } from "@/services/help/help-article-service";
+import { HelpComment } from "@/server/models/HelpComment";
 
 const commentSchema = z.object({
   comment: z.string().min(1).max(2000),
@@ -75,17 +74,13 @@ export async function POST(
       );
     }
 
-    // Comments collection still uses native driver (no Mongoose model yet)
-    const db = await getDatabase();
-    const comments = db.collection(COLLECTIONS.HELP_COMMENTS);
-
+    // TD-001: Migrated from db.collection() to HelpComment Mongoose model
     const now = new Date();
-    await comments.insertOne({
+    await HelpComment.create({
       articleSlug: articleInfo.slug,
       orgId: articleInfo.orgId ?? user.orgId ?? null,
       userId: user.id,
       comment: data.comment.trim(),
-      createdAt: now,
     });
 
     const response = NextResponse.json({
@@ -139,24 +134,18 @@ export async function GET(
     const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)));
     const skip = (page - 1) * limit;
 
-    // Comments collection still uses native driver (no Mongoose model yet)
-    const db = await getDatabase();
-    const comments = db.collection(COLLECTIONS.HELP_COMMENTS);
-
-    // Fetch comments for this article (tenant-scoped via article filter)
-    // PLATFORM-WIDE: Comments are fetched by articleSlug (article already tenant-scoped)
+    // TD-001: Migrated from db.collection() to HelpComment Mongoose model
+    // Comments are fetched by articleSlug (article already tenant-scoped)
+    const filter = { articleSlug: articleInfo.slug };
      
     const [items, total] = await Promise.all([
-      // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped via articleSlug
-      comments
-        .find({ articleSlug: articleInfo.slug })
+      HelpComment.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .project({ _id: 1, userId: 1, comment: 1, createdAt: 1 })
-        .toArray(),
-      // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped via articleSlug
-      comments.countDocuments({ articleSlug: articleInfo.slug }),
+        .select("_id userId comment createdAt")
+        .lean(),
+      HelpComment.countDocuments(filter),
     ]);
 
     return createSecureResponse(

@@ -70,7 +70,7 @@ jobs:
       - name: Lint check
         run: pnpm run lint
 
-      - name: ðŸ”’ Assert non-production MongoDB
+      - name: 🔒 Assert non-production MongoDB
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           CI: "true"
@@ -89,12 +89,12 @@ jobs:
         env:
           SKIP_GLOBAL_MONGO: "true"
         run: |
-          echo "ðŸ”’ Running STRICT v4.1 RBAC validation tests..."
+          echo "🔒 Running STRICT v4.1 RBAC validation tests..."
           pnpm vitest run tests/domain/fm.behavior.v4.1.test.ts --reporter=dot || {
-            echo "âŒ RBAC tests failed! Blocking build."
+            echo "❌ RBAC tests failed! Blocking build."
             exit 1
           }
-          echo "âœ… RBAC tests passing"
+          echo "✅ RBAC tests passing"
 
       # Note: E2E tests are expensive and run separately in e2e-tests.yml workflow
 
@@ -118,8 +118,8 @@ jobs:
       - name: Check for duplicates
         run: |
           if [ -s docs/inventory/duplicate-names.txt ]; then
-            echo "âš ï¸ Duplicates found:"
+            echo "⚠️ Duplicates found:"
             cat docs/inventory/duplicate-names.txt
           else
-            echo "âœ… No duplicates detected"
+            echo "✅ No duplicates detected"
           fi

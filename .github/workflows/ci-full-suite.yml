@@ -183,9 +183,9 @@ jobs:
              [ "${{ needs.test-server.result }}" == "success" ] && \
              [ "${{ needs.test-client.result }}" == "success" ] && \
              [ "${{ needs.test-models.result }}" == "success" ]; then
-            echo "âœ… All checks passed"
+            echo "✅ All checks passed"
             exit 0
           else
-            echo "âŒ Some checks failed"
+            echo "❌ Some checks failed"
             exit 1
           fi

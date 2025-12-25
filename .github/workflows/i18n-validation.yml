@@ -77,23 +77,23 @@ jobs:
 
       - name: Validate source files (check mode)
         run: |
-          echo "ðŸ” Validating translation source files..."
+          echo "🔍 Validating translation source files..."
           if [ -f "scripts/split-translations.ts" ]; then
             npx tsx scripts/split-translations.ts --check || {
-              echo "âŒ Translation sources validation failed"
+              echo "❌ Translation sources validation failed"
               exit 1
             }
           fi
-          echo "âœ… Source files validated"
+          echo "✅ Source files validated"
 
       - name: Check translation parity
         id: check-parity
         if: ${{ !(github.event_name == 'workflow_dispatch' && fromJSON(github.event.inputs.skip_parity_check || 'false')) }}
         continue-on-error: true
         run: |
-          echo "ðŸ“Š Checking translation parity..."
+          echo "📊 Checking translation parity..."
           npx tsx scripts/check-translation-parity.ts --format=text || {
-            echo "âš ï¸  Parity issues detected - generating report artifact"
+            echo "⚠️  Parity issues detected - generating report artifact"
             npx tsx scripts/check-translation-parity.ts --format=json > parity-report.json
             exit 1
           }
@@ -101,7 +101,7 @@ jobs:
       - name: Fail when parity issues detected
         if: ${{ steps.check-parity.outcome == 'failure' }}
         run: |
-          echo "âŒ Translation parity regression detected. See parity report artifact."
+          echo "❌ Translation parity regression detected. See parity report artifact."
           exit 1
 
       - name: Build translation dictionaries
@@ -110,12 +110,12 @@ jobs:
       - name: Check generated artifacts are up-to-date
         run: |
           if [ -n "$(git status --porcelain i18n/generated/)" ]; then
-            echo "âŒ Generated translation files are out of date!"
+            echo "❌ Generated translation files are out of date!"
             echo ""
             echo "The following files have changes:"
             git status --porcelain i18n/generated/
             echo ""
-            echo "ðŸ“‹ To fix this:"
+            echo "📋 To fix this:"
             echo "  1. Run: pnpm i18n:build"
             echo "  2. Review changes: git diff i18n/generated/"
             echo "  3. Commit: git add i18n/generated/ && git commit"
@@ -123,13 +123,13 @@ jobs:
             git diff i18n/generated/
             exit 1
           fi
-          echo "âœ… Generated artifacts are up-to-date"
+          echo "✅ Generated artifacts are up-to-date"
 
       - name: Check source artifacts drift
         run: |
           # Check if any source files were modified by the build
           if [ -n "$(git status --porcelain i18n/sources/)" ]; then
-            echo "âš ï¸  WARNING: Source files modified during build"
+            echo "⚠️  WARNING: Source files modified during build"
             echo ""
             git status --porcelain i18n/sources/
             echo ""
@@ -142,7 +142,7 @@ jobs:
             git diff i18n/sources/
             exit 1
           fi
-          echo "âœ… Source files unchanged"
+          echo "✅ Source files unchanged"
 
       - name: TypeScript check
         run: pnpm tsc --noEmit
@@ -154,7 +154,7 @@ jobs:
           EN_KEYS=$(jq 'keys | length' i18n/generated/en.dictionary.json)
           AR_KEYS=$(jq 'keys | length' i18n/generated/ar.dictionary.json)
 
-          echo "ðŸ“Š Translation Coverage:"
+          echo "📊 Translation Coverage:"
           echo "   English keys: $EN_KEYS"
           echo "   Arabic keys:  $AR_KEYS"
           echo "   Difference:   $((EN_KEYS - AR_KEYS))"
@@ -165,13 +165,13 @@ jobs:
           BASELINE_AR=29672
 
           if [ "$EN_KEYS" -lt "$BASELINE_EN" ]; then
-            echo "âŒ English key count dropped below baseline ($BASELINE_EN)"
+            echo "❌ English key count dropped below baseline ($BASELINE_EN)"
             echo "   Current: $EN_KEYS, Expected: >= $BASELINE_EN"
             exit 1
           fi
 
           if [ "$AR_KEYS" -lt "$BASELINE_AR" ]; then
-            echo "âŒ Arabic key count dropped below baseline ($BASELINE_AR)"
+            echo "❌ Arabic key count dropped below baseline ($BASELINE_AR)"
             echo "   Current: $AR_KEYS, Expected: >= $BASELINE_AR"
             exit 1
           fi
@@ -181,21 +181,21 @@ jobs:
           MAX_DIFF=50
 
           if [ "$DIFF" -gt "$MAX_DIFF" ]; then
-            echo "âš ï¸  WARNING: Key count difference ($DIFF) exceeds threshold ($MAX_DIFF)"
+            echo "⚠️  WARNING: Key count difference ($DIFF) exceeds threshold ($MAX_DIFF)"
             echo "   This may indicate missing translations"
           fi
 
-          echo "âœ… Coverage baseline check passed"
+          echo "✅ Coverage baseline check passed"
 
       - name: High-Fidelity Coverage Check (EN/AR only)
         run: |
-          echo "ðŸ” Running high-fidelity coverage analysis..."
+          echo "🔍 Running high-fidelity coverage analysis..."
           npx tsx scripts/detect-unlocalized-strings.ts --locales=en,ar || {
-            echo "âŒ High-fidelity coverage check failed"
+            echo "❌ High-fidelity coverage check failed"
             echo "   This means EN or AR dictionaries have quality issues"
             exit 1
           }
-          echo "âœ… EN/AR coverage verified"
+          echo "✅ EN/AR coverage verified"
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4

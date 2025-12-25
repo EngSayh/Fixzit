@@ -48,29 +48,29 @@ jobs:
         run: |
           echo "::notice::E2E tests are skipped for forked PRs (secrets unavailable)."
           echo ""
-          echo "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”"
-          echo "ðŸ”’ Forked PR detected - E2E RBAC tests require secrets"
-          echo "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔒 Forked PR detected - E2E RBAC tests require secrets"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
           echo "Your PR will still receive feedback from:"
-          echo "  â€¢ TypeScript type checking"
-          echo "  â€¢ ESLint linting"
-          echo "  â€¢ Build verification"
-          echo "  â€¢ Unit tests (if configured)"
+          echo "  • TypeScript type checking"
+          echo "  • ESLint linting"
+          echo "  • Build verification"
+          echo "  • Unit tests (if configured)"
           echo ""
           echo "E2E RBAC tests will run when a maintainer merges to main"
           echo "or when the PR is from an internal branch with secrets access."
           echo ""
           {
-            echo "### â­ï¸ E2E Tests Skipped (Forked PR)"
+            echo "### ⏭️ E2E Tests Skipped (Forked PR)"
             echo ""
             echo "Secrets are unavailable for forked PRs. E2E tests will run after merge."
             echo ""
             echo "**Your PR still receives:**"
-            echo "- âœ… TypeScript type checking"
-            echo "- âœ… ESLint linting"
-            echo "- âœ… Build verification"
-            echo "- âœ… Unit tests"
+            echo "- ✅ TypeScript type checking"
+            echo "- ✅ ESLint linting"
+            echo "- ✅ Build verification"
+            echo "- ✅ Unit tests"
           } >> "$GITHUB_STEP_SUMMARY"
 
   e2e-tests:
@@ -112,7 +112,7 @@ jobs:
       PW_WEB_SERVER: pnpm dev -- --hostname 0.0.0.0 --port 3000
       PW_WEB_PORT: 3000
       PLAYWRIGHT_BROWSERS_PATH: 0
-      # ðŸ” Auth secrets and QA credentials required by Playwright helpers and qa/config.js
+      # 🔐 Auth secrets and QA credentials required by Playwright helpers and qa/config.js
       NEXTAUTH_SECRET: "${{ secrets.NEXTAUTH_SECRET }}"
       AUTH_SECRET: "${{ secrets.AUTH_SECRET || secrets.NEXTAUTH_SECRET }}"
       FIXZIT_TEST_ADMIN_EMAIL: "${{ secrets.FIXZIT_TEST_ADMIN_EMAIL || 'superadmin@fixzit.co' }}"
@@ -194,12 +194,12 @@ jobs:
           NODE_ENV: test
           SKIP_GLOBAL_MONGO: "true"
         run: |
-          echo "ðŸ”’ Running RBAC v4.1 validation tests..."
+          echo "🔒 Running RBAC v4.1 validation tests..."
           pnpm vitest run tests/domain/fm.behavior.v4.1.test.ts --reporter=dot || {
-            echo "âŒ RBAC tests failed! E2E tests may produce false positives."
+            echo "❌ RBAC tests failed! E2E tests may produce false positives."
             exit 1
           }
-          echo "âœ… All 41 RBAC tests passing"
+          echo "✅ All 41 RBAC tests passing"
 
       - name: Build app (for E2E tests)
         timeout-minutes: 15
@@ -214,7 +214,7 @@ jobs:
         run: |
           echo "Building Next.js app for E2E tests (MongoDB required)..."
           pnpm build || {
-            echo "âŒ Build failed! Checking for common issues..."
+            echo "❌ Build failed! Checking for common issues..."
             echo "NODE_ENV: $NODE_ENV"
             echo "Disk space:"
             df -h
@@ -228,17 +228,17 @@ jobs:
 
       - name: Verify MongoDB health
         run: |
-          echo "ðŸ” Checking MongoDB service health..."
+          echo "🔍 Checking MongoDB service health..."
           for i in {1..10}; do
             if mongosh --quiet --eval "db.adminCommand('ping')" mongodb://localhost:27017/admin > /dev/null 2>&1; then
-              echo "âœ… MongoDB is healthy and accepting connections"
+              echo "✅ MongoDB is healthy and accepting connections"
               mongosh --quiet --eval "db.version()" mongodb://localhost:27017/admin
               exit 0
             fi
-            echo "â³ Waiting for MongoDB... (attempt $i/10)"
+            echo "⏳ Waiting for MongoDB... (attempt $i/10)"
             sleep 2
           done
-          echo "âŒ MongoDB health check failed after 10 attempts"
+          echo "❌ MongoDB health check failed after 10 attempts"
           exit 1
 
       # AUDIT-2025-11-30: Removed duplicate "Validate E2E test credentials" step
@@ -316,7 +316,7 @@ jobs:
             exit 1
           fi
 
-          echo "âœ… All required E2E secrets are configured"
+          echo "✅ All required E2E secrets are configured"
 
       # AUDIT-2025-11-30: Warn about optional employee secrets that may be needed in the future
       # These are not currently required by tests, but alerting now prevents late failures
@@ -339,7 +339,7 @@ jobs:
           if [ "${#missing[@]}" -gt 0 ]; then
             echo "::notice::Optional employee numbers not configured: ${missing[*]}. Tests will skip employee-number login for these roles."
           else
-            echo "âœ… All optional employee numbers are configured"
+            echo "✅ All optional employee numbers are configured"
           fi
 
       # AUDIT-2025-11-30: Added fork guard to prevent hard-fail on external PRs
@@ -441,21 +441,21 @@ jobs:
             test_path_arg="${{ github.event.inputs.test_path }}"
           fi
 
-          echo "ðŸŽ­ Running Playwright E2E Tests"
-          echo "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”"
+          echo "🎭 Running Playwright E2E Tests"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Project: ${project_arg:-all projects}"
           echo "Test path: ${test_path_arg:-all tests}"
           echo "Config: $PLAYWRIGHT_CONFIG"
           echo "Offline mode: $ALLOW_OFFLINE_MONGODB"
           echo "CSRF bypass: $NEXTAUTH_SKIP_CSRF_CHECK"
-          echo "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
           # Verify auth states were created
           if [ -d "tests/state" ]; then
-            echo "âœ… Auth state directory exists"
-            ls -lh tests/state/ || echo "âš ï¸  Could not list auth states"
+            echo "✅ Auth state directory exists"
+            ls -lh tests/state/ || echo "⚠️  Could not list auth states"
           else
-            echo "âŒ Auth state directory missing!"
+            echo "❌ Auth state directory missing!"
           fi
 
           # Run with retries for flaky tests and reasonable failure threshold
@@ -466,12 +466,12 @@ jobs:
             --reporter=list,html \
             ${project_arg} \
             ${test_path_arg} || {
-              echo "âŒ Tests failed!"
+              echo "❌ Tests failed!"
               echo "Checking for common issues..."
-              echo "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”"
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               echo "Auth states:"
               ls -lh tests/state/ 2>/dev/null || echo "No auth states found"
-              echo "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”"
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               echo "Recent logs from test output:"
               tail -50 playwright-report/*.log 2>/dev/null || echo "No logs available"
               exit 1
@@ -518,13 +518,13 @@ jobs:
 
           # Create project-specific summary
           {
-            echo "### ðŸŽ­ ${project}"
+            echo "### 🎭 ${project}"
             if [ "${status}" = "success" ]; then
-              echo "âœ… All tests passed"
+              echo "✅ All tests passed"
             else
-              echo "âŒ Tests failed - [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+              echo "❌ Tests failed - [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
             fi
-            echo "[ðŸ“Š Download report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)"
+            echo "[📊 Download report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)"
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -546,10 +546,10 @@ jobs:
             const runId = '${{ github.run_id }}';
             const repo = context.repo;
 
-            const statusIcon = jobStatus === 'success' ? 'âœ…' : 'âŒ';
+            const statusIcon = jobStatus === 'success' ? '✅' : '❌';
             const statusText = jobStatus === 'success' ? 'All tests passed' : 'Some tests failed';
 
-            let body = `## ðŸŽ­ E2E Test Results - ${project}\n\n`;
+            let body = `## 🎭 E2E Test Results - ${project}\n\n`;
             body += `${statusIcon} **${statusText}**\n\n`;
             body += `**Details:**\n`;
             body += `- Project: \`${project}\`\n`;
@@ -616,7 +616,7 @@ jobs:
               }
             }
 
-            let summary = '## ðŸŽ­ E2E Tests - Complete Summary\n\n';
+            let summary = '## 🎭 E2E Tests - Complete Summary\n\n';
 
             // Count successes and failures
             const successCount = Object.values(statuses).filter(s => s === 'success').length;
@@ -624,9 +624,9 @@ jobs:
 
             // Overall status
             if (result === 'success') {
-              summary += `âœ… **All ${projects.length} E2E test projects passed successfully!**\n\n`;
+              summary += `✅ **All ${projects.length} E2E test projects passed successfully!**\n\n`;
             } else {
-              summary += `âŒ **${failureCount} of ${projects.length} E2E test projects failed**\n\n`;
+              summary += `❌ **${failureCount} of ${projects.length} E2E test projects failed**\n\n`;
             }
 
             // Project breakdown with individual statuses
@@ -636,7 +636,7 @@ jobs:
 
             for (const project of projects) {
               const status = statuses[project.name] || 'unknown';
-              const icon = status === 'success' ? 'âœ…' : status === 'failure' ? 'âŒ' : 'â“';
+              const icon = status === 'success' ? '✅' : status === 'failure' ? '❌' : '❓';
               summary += `| ${project.name} | ${project.locale} | ${project.persona} | ${icon} ${status} |\n`;
             }
             summary += '\n';

@@ -76,7 +76,7 @@ jobs:
       - name: Run ESLint on production code
         run: |
           mkdir -p _artifacts
-          echo "ðŸ” Linting production code (app, components, lib, services)..."
+          echo "🔍 Linting production code (app, components, lib, services)..."
           pnpm eslint app components lib services --ext .ts,.tsx,.js,.jsx \
             --max-warnings 0 \
             --report-unused-disable-directives \
@@ -85,7 +85,7 @@ jobs:
 
       - name: Run hard-coded URI guardrail
         run: |
-          echo "ðŸ”’ Scanning for hard-coded database URIs with credentials..."
+          echo "🔒 Scanning for hard-coded database URIs with credentials..."
           bash scripts/security/check-hardcoded-uris.sh
 
       - name: Upload ESLint results
@@ -100,7 +100,7 @@ jobs:
         if: always()
         run: |
           if [ -f "_artifacts/eslint-results.json" ]; then
-            echo "ðŸ“Š ESLint Results Summary:"
+            echo "📊 ESLint Results Summary:"
             echo "See uploaded artifacts for detailed report"
           fi
 
@@ -141,12 +141,12 @@ jobs:
       - name: Run ESLint on scripts and tools (informational)
         run: |
           mkdir -p _artifacts
-          echo "ðŸ” Linting scripts and tools (non-blocking)..."
+          echo "🔍 Linting scripts and tools (non-blocking)..."
           pnpm eslint scripts tools --ext .ts,.tsx,.js,.jsx \
             --format json \
             -o _artifacts/eslint-scripts-tools.json || true
 
-          echo "âš ï¸ This job is informational only and does not block CI"
+          echo "⚠️ This job is informational only and does not block CI"
 
       - name: Upload scripts/tools lint results
         if: always()
