@@ -27,13 +27,15 @@ This guide provides step-by-step instructions to configure all required GitHub r
 | `MONGODB_DB`  | Database name                        | ✅ Yes   | `fixzit`                                             |
 | `JWT_SECRET`  | JWT token signing secret (32+ chars) | ✅ Yes   | Generate: `openssl rand -hex 32`                     |
 
-### 2. Payment Gateway (PayTabs - Saudi Arabia)
+### 2. Payment Gateway (Tap Payments - Saudi Arabia)
 
-| Secret Name          | Description                 | Required    | Example Value          |
-| -------------------- | --------------------------- | ----------- | ---------------------- |
-| `PAYTABS_PROFILE_ID` | PayTabs merchant profile ID | ✅ Yes      | `your_profile_id_here` |
-| `PAYTABS_SERVER_KEY` | PayTabs server API key      | ✅ Yes      | `your_server_key_here` |
-| `PAYTABS_CLIENT_KEY` | PayTabs client-side key     | 📋 Optional | `your_client_key_here` |
+| Secret Name          | Description                    | Required    | Example Value          |
+| -------------------- | ------------------------------ | ----------- | ---------------------- |
+| `TAP_LIVE_SECRET_KEY` | Tap live secret key           | ✅ Yes      | `sk_live_...`          |
+| `TAP_TEST_SECRET_KEY` | Tap test secret key           | ✅ Yes      | `sk_test_...`          |
+| `TAP_WEBHOOK_SECRET`  | Tap webhook signing secret    | ✅ Yes      | `whsec_...`            |
+| `NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY` | Tap live public key | ✅ Yes | `pk_live_...`          |
+| `NEXT_PUBLIC_TAP_TEST_PUBLIC_KEY` | Tap test public key | ✅ Yes | `pk_test_...`          |
 
 ### 3. AWS Services
 
@@ -106,9 +108,9 @@ gh secret set MONGODB_DB --body "fixzit"
 
 gh secret set JWT_SECRET --body "$(openssl rand -hex 32)"
 
-gh secret set PAYTABS_PROFILE_ID --body "your_profile_id_here"
+gh secret set TAP_LIVE_SECRET_KEY --body "sk_live_your_key_here"
 
-gh secret set PAYTABS_SERVER_KEY --body "your_server_key_here"
+gh secret set TAP_WEBHOOK_SECRET --body "whsec_your_secret_here"
 
 gh secret set NEXT_PUBLIC_APP_URL --body "https://fixzit.sa"
 
@@ -127,8 +129,8 @@ cat > /tmp/secrets.txt << 'EOF'
 MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
 MONGODB_DB=fixzit
 JWT_SECRET=your_32_plus_character_jwt_secret_here
-PAYTABS_PROFILE_ID=your_profile_id
-PAYTABS_SERVER_KEY=your_server_key
+TAP_LIVE_SECRET_KEY=sk_live_your_key
+TAP_WEBHOOK_SECRET=whsec_your_secret
 NEXT_PUBLIC_APP_URL=https://fixzit.sa
 EOF
 
@@ -332,7 +334,7 @@ jobs:
 - [GitHub Actions Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
 - [MongoDB Atlas Connection Strings](https://www.mongodb.com/docs/atlas/driver-connection/)
 - [Next.js Environment Variables](https://nextjs.org/docs/app/building-your-application/configuring/environment-variables)
-- [PayTabs Integration](https://site.paytabs.com/en/documentation/)
+- [Tap Payments Integration](https://developers.tap.company/)
 
 ---
 

@@ -277,7 +277,7 @@ db.workOrders.aggregate([
 - **Availability**: `/api/health/ready` fails twice in 3 minutes
 - **Queue depth**: >1000 jobs for 10 minutes (notifications/email/OTP)
 - **Resource**: CPU > 80% or memory > 85% for 10 minutes; disk > 90%
-- **Payments**: PayTabs failure rate > 3% or 10 consecutive failures
+- **Payments**: Tap failure rate > 3% or 10 consecutive failures
 - **DB connectivity**: MongoDB connection failures > 0 in a 60s window
 
 ### Alert Response Matrix
@@ -286,7 +286,7 @@ db.workOrders.aggregate([
 |-------|---------------|------------|
 | High Error Rate | Check logs, recent deploys | Rollback if needed |
 | Database Down | Check Atlas status, failover | Contact MongoDB support |
-| Payment Failures | Check PayTabs status | Contact PayTabs support |
+| Payment Failures | Check Tap status | Contact Tap support |
 | High Memory | Restart services | Investigate memory leaks |
 
 ### Alerting Playbook
@@ -443,7 +443,7 @@ vercel redeploy
 |---------|---------|-----|
 | Vercel | support@vercel.com | Business hours |
 | MongoDB Atlas | Cloud Portal | 24/7 (Enterprise) |
-| PayTabs | merchant.support@paytabs.com | Business hours |
+| Tap Payments | support@tap.company | Business hours |
 | Taqnyat | support@taqnyat.sa | Business hours |
 
 ---
