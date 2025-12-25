@@ -2,6 +2,57 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-26 10:30 (Asia/Riyadh) — P0/P1 Security & Performance Fixes
+
+**Agent Token:** [AGENT-001-A]
+**Context:** main | fb468227a | Previous: c864ed4c7
+**Session Summary:** Implemented P0 ObjectId validation across 10 [id] routes to prevent 500 errors from malformed IDs. Added .lean() optimization to 2 Souq RMA routes.
+**DB Sync:** created=0, updated=0, skipped=0, errors=0 (fixes only)
+
+### ✅ P0 OBJECTID VALIDATION (CRITICAL)
+
+| Route | Error Code | Change |
+|-------|------------|--------|
+| `admin/billing/benchmark/[id]` | FIXZIT-API-BENCH-001 | Added mongoose.isValidObjectId check |
+| `admin/billing/pricebooks/[id]` | FIXZIT-API-PBOOK-001 | Added mongoose.isValidObjectId check |
+| `ats/applications/[id]` | FIXZIT-API-ATS-001 | Added mongoose.isValidObjectId check |
+| `filters/presets/[id]` | FIXZIT-API-FILTER-001 | Added mongoose.isValidObjectId check |
+| `invoices/[id]` | FIXZIT-API-INV-001 | Added mongoose.isValidObjectId check |
+| `pm/plans/[id]` | FIXZIT-API-PM-001 | Added mongoose.isValidObjectId check |
+| `souq/ads/campaigns/[id]` | FIXZIT-API-CAMP-001 | Added mongoose.isValidObjectId check |
+| `souq/claims/[id]` | FIXZIT-API-CLAIM-001 | Added mongoose.isValidObjectId check |
+| `souq/reviews/[id]` | FIXZIT-API-REVIEW-001 | Added mongoose.isValidObjectId check |
+| `souq/settlements/[id]` | N/A | Null check only (uses string statementId) |
+
+**Commit:** `c864ed4c7`
+
+### ✅ P1 .lean() OPTIMIZATION (PERFORMANCE)
+
+| Route | Change |
+|-------|--------|
+| `souq/returns/[rmaId]` | Added .lean() after populate chain |
+| `souq/returns` | Added .lean() after populate chain |
+
+**Commit:** `fb468227a`
+
+### 📊 .lean() AUDIT SUMMARY
+
+| Metric | Count |
+|--------|-------|
+| Total read-only Mongoose queries | ~180+ |
+| Already have .lean() | ~150 |
+| Correctly skip (need document methods) | ~25 |
+| Fixed in this session | 2 |
+
+### ⚡ VERIFICATION
+
+```bash
+pnpm typecheck  # ✅ 0 errors
+pnpm lint       # ✅ 0 warnings
+```
+
+---
+
 ## 📅 2025-12-25 23:45 (Asia/Riyadh) — P1/P2 System Improvements Audit
 
 **Agent Token:** [AGENT-001-A]
