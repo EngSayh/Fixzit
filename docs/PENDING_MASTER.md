@@ -2,6 +2,37 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-25 19:00 (Asia/Riyadh) — AGENTS.md Compliance & Full Suite Verification
+
+**Agent Token:** [AGENT-001-A]
+**Context:** agent/AGENT-001-A/souq/settlements-tests | 0dd082714
+**Session Summary:** AGENTS.md full compliance run: git preflight passed, typecheck 0 errors, lint 0 warnings, full Vitest suite 1353/1353 tests passed. All prior Souq settlements test fixes landed in previous commits. Branch pushed to origin.
+**DB Sync:** created=0, updated=0, skipped=0, errors=0 (verification only)
+
+### ✅ VERIFICATION EVIDENCE
+
+| Gate | Result | Command |
+|------|--------|---------|
+| Git Preflight | ✅ Clean, not behind origin/main | `git fetch --prune; git status -sb` |
+| TypeScript | ✅ 0 errors | `pnpm typecheck` |
+| ESLint | ✅ 0 warnings | `pnpm lint` |
+| Vitest | ✅ 1353 tests passed (549 files) | `pnpm vitest run --no-file-parallelism` |
+| Branch Push | ✅ Synced | `git push -u origin agent/AGENT-001-A/souq/settlements-tests` |
+
+### 📁 COMMITS IN THIS BRANCH (ahead 3 from main)
+
+| SHA | Message |
+|-----|---------|
+| 0dd082714 | chore: apply linter fixes to scripts and tests [AGENT-001-A] |
+| c02a6f71d | feat(fm): implement WorkOrderService with full FSM integration [AGENT-001-A] [TODO-003] |
+| a211bbf36 | chore: remove 26 byte-identical duplicate files [AGENT-001-A] [DEDUPE-001] |
+
+### 🎯 Next Steps
+- [ ] Open PR from `agent/AGENT-001-A/souq/settlements-tests` → `main`
+- [ ] Await Codex review gate (AGENTS.md Section 14)
+
+---
+
 ## 📅 2025-12-26 11:30 (Asia/Riyadh) — PayTabs Removal & Tap Migration
 
 **Agent Token:** [AGENT-001-A]
