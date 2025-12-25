@@ -13,6 +13,12 @@
  * These are separate collections with different schemas. Do NOT consolidate
  * without explicit architecture decision and data migration plan.
  *
+ * // BLOCKED: TODO-001 - Souq Orders mismatch (orders vs souq_orders)
+ * // Do not proceed with collection migration. Await explicit directive from Eng. Sultan.
+ * // File: server/models/souq/ClaimsOrder.ts
+ * // Related: server/models/souq/SouqOrder.ts uses "souq_orders" collection
+ * // Status: BLOCKED per STRICT v4.1 Recovery Plan
+ *
  * SCHEMA STRATEGY:
  * - Uses { strict: false } to preserve unknown fields on reads
  * - Only defines fields actively used by Claims routes

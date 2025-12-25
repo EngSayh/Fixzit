@@ -5,6 +5,13 @@
  * @description Represents physical properties managed across FM and Aqar modules.
  * Supports multi-tenancy, geolocation, ownership tracking, and work order linkage.
  * 
+ * // DEFERRED: TODO-002 - FM Properties schema mismatch
+ * // Route expects flat schema (lease_status, area, floors) but model has nested structure.
+ * // Do not refactor at this time. Leave existing implementation as-is.
+ * // File: server/models/Property.ts
+ * // Related routes: app/api/fm/properties/route.ts
+ * // Status: DEFERRED per STRICT v4.1 Recovery Plan
+ * 
  * @features
  * - Multi-tenant isolation (property_owner_id per property)
  * - Geolocation with lat/lng coordinates
