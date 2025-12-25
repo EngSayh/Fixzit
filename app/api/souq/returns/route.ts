@@ -169,7 +169,8 @@ export async function GET(request: NextRequest) {
         .skip(skip)
         .limit(safeLimit)
         .populate("buyerId", "email name")
-        .populate("sellerId", "email businessName");
+        .populate("sellerId", "email businessName")
+        .lean();
 
       return NextResponse.json({
         success: true,

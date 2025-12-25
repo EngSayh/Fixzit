@@ -106,7 +106,8 @@ export async function GET(
     const rma = await SouqRMA.findOne(rmaQuery)
       .populate("orderId")
       .populate("buyerId")
-      .populate("sellerId");
+      .populate("sellerId")
+      .lean();
 
     if (!rma) {
       return NextResponse.json({ error: "RMA not found" }, { status: 404 });
