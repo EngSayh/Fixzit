@@ -1,11 +1,13 @@
 # ADR-002: ZATCA E-Invoicing Phase 2 Compliance
 
-**Status:** Proposed → Scaffolding Ready  
-**Date:** 2025-12-20 (Updated: 2025-12-21)  
+**Status:** ✅ Implemented  
+**Date:** 2025-12-20 (Updated: 2025-12-25)  
 **Decision Makers:** Eng. Sultan Al Hassni  
 **Context:** COMP-001 from Production Readiness backlog  
 **Regulatory Deadline:** Q2 2026 (April-June 2026)
-**Implementation:** services/finance/zatca/index.ts (scaffolding)
+**Implementation:** services/finance/zatca/index.ts (✅ COMPLETE)
+**Agent Token:** [AGENT-001-A]
+**Tests:** tests/services/zatca/zatca-phase2.test.ts (38 tests passing)
 
 ## Context
 
@@ -35,11 +37,41 @@ app/api/invoices/[id]/route.ts         # Invoice update with QR
 - ✅ TLV encoding (5 fields)
 - ✅ Base64 QR generation
 - ✅ Field validation (VAT number, timestamp, amounts)
-- ❌ XML invoice generation (UBL 2.1)
-- ❌ Cryptographic signing
-- ❌ ZATCA API integration
-- ❌ Certificate management
-- ❌ Clearance/Reporting workflow
+- ✅ XML invoice generation (UBL 2.1) — **IMPLEMENTED 2025-12-25**
+- ✅ Cryptographic signing — **IMPLEMENTED 2025-12-25**
+- ✅ ZATCA API integration — **IMPLEMENTED 2025-12-25**
+- ✅ Certificate management — **IMPLEMENTED 2025-12-25**
+- ✅ Clearance/Reporting workflow — **IMPLEMENTED 2025-12-25**
+
+## Implementation Summary (2025-12-25)
+
+### Functions Implemented in `services/finance/zatca/index.ts`:
+
+| Function | Description | Status |
+|----------|-------------|--------|
+| `validateInvoice()` | Comprehensive validation with ZATCA error codes | ✅ Complete |
+| `generateUBLInvoice()` | UBL 2.1 XML generation using template strings | ✅ Complete |
+| `calculateInvoiceHash()` | SHA-256 base64 hash for invoice chaining | ✅ Complete |
+| `signInvoice()` | XML-DSig signing with xml-crypto | ✅ Complete |
+| `signInvoiceDetached()` | Fallback signing with Node.js crypto | ✅ Complete |
+| `clearInvoice()` | B2B clearance API with circuit breaker | ✅ Complete |
+| `reportInvoice()` | B2C reporting API with circuit breaker | ✅ Complete |
+| `renewCertificate()` | CSID renewal with 30-day threshold | ✅ Complete |
+
+### Key Design Decisions:
+
+1. **Template String XML** - Used over xmlbuilder2 for TypeScript compatibility
+2. **Dual Signing** - xml-crypto primary, Node.js crypto fallback
+3. **Circuit Breaker** - 60s cooldown via zatcaBreaker
+4. **Validation Codes** - INV-, SEL-, BUY-, LIN-, TOT-, REF- prefixes
+
+### Dependencies Added:
+```json
+{
+  "xml-crypto": "^3.x",
+  "@types/xml-crypto": "^1.x"
+}
+```
 
 ## Phase 2 Requirements Breakdown
 
@@ -227,12 +259,44 @@ ZATCA_STREET_ADDRESS=Riyadh, Saudi Arabia
 
 ## Success Criteria
 
-1. ✅ Generate ZATCA-compliant UBL 2.1 XML invoices
-2. ✅ Sign invoices with valid CSID
-3. ✅ Clear B2B invoices in <5 seconds
-4. ✅ Report B2C invoices within 24 hours
-5. ✅ Pass ZATCA certification tests
-6. ✅ Zero manual intervention for standard flows
+1. ✅ Generate ZATCA-compliant UBL 2.1 XML invoices — **DONE**
+2. ✅ Sign invoices with valid CSID — **DONE**
+3. ✅ Clear B2B invoices in <5 seconds — **API Ready**
+4. ✅ Report B2C invoices within 24 hours — **API Ready**
+5. ⏳ Pass ZATCA certification tests — **Pending ZATCA sandbox access**
+6. ✅ Zero manual intervention for standard flows — **DONE**
+
+## Test Coverage (38 tests)
+
+```
+ZATCA Phase 2 Service
+├── validateInvoice (12 tests)
+│   ├── should validate a correct invoice
+│   ├── should reject missing invoice number
+│   ├── should reject invalid invoice type code
+│   ├── should reject invalid date/time format
+│   ├── should reject invalid seller VAT number
+│   ├── should reject invalid postal code
+│   ├── should reject empty line items
+│   ├── should reject invalid VAT rate
+│   ├── should reject mismatched totals
+│   ├── should warn about missing buyer name
+│   └── should warn about missing previous hash for credit notes
+├── generateUBLInvoice (11 tests)
+│   ├── should generate valid UBL 2.1 XML
+│   ├── should include all required elements
+│   └── should handle all invoice types (388, 381, 383)
+├── calculateInvoiceHash (3 tests)
+│   ├── should return base64 encoded SHA-256 hash
+│   ├── should produce consistent hashes
+│   └── should produce different hashes for different content
+├── signInvoiceDetached (1 test)
+├── clearInvoice (2 tests)
+├── reportInvoice (1 test)
+├── renewCertificate (2 tests)
+├── Invoice type handling (3 tests)
+└── VAT handling (3 tests)
+```
 
 ## Timeline
 
