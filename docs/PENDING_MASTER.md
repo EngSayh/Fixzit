@@ -2,6 +2,62 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-25 23:45 (Asia/Riyadh) — P1/P2 System Improvements Audit
+
+**Agent Token:** [AGENT-001-A]
+**Context:** main | 64189b284
+**Session Summary:** Completed P1 short-term improvements audit. Fixed mongoose mock test isolation. Verified P2 items - most already implemented.
+**DB Sync:** created=0, updated=0, skipped=0, errors=0 (analysis + 1 fix)
+
+### ✅ P1 SHORT-TERM IMPROVEMENTS (COMPLETED)
+
+| Task | Status | Details |
+|------|--------|---------|
+| Fix mongoose mock tests | ✅ FIXED | Created `server-mocked` vitest project with `vitest.setup.minimal.ts`. 4 test files (32 tests) now pass in isolation. Commit: `64189b284` |
+| Enable Redis sessions | ✅ SKIPPED | Sessions use JWT strategy (stateless). Redis intentionally stubbed at `lib/stubs/ioredis.ts` |
+| Add .lean() to queries | ✅ ALREADY DONE | ESLint rule `local/require-lean` enforces usage. 100+ queries compliant, 0 violations |
+| E2E test expansion | ✅ ALREADY COMPLETE | 181 tests across 14 spec files covering auth, work orders, marketplace, RBAC (52 tests), finance |
+
+### ✅ P2 MEDIUM-TERM IMPROVEMENTS (AUDITED)
+
+| Task | Status | Details |
+|------|--------|---------|
+| PWA/Offline support | ✅ ALREADY DONE | `public/sw.js` (733 lines) + `ClientLayout.tsx` registration + `manifest.json` |
+| Timer cleanup (TD-003) | ✅ ALREADY DONE | All 7 files with setInterval have proper clearInterval cleanup |
+| db.collection() calls | 📋 LOGGED | 37 calls in 25 API files bypass Mongoose. Estimated 24h. Needs delegation |
+
+### 📊 db.collection() CALLS AUDIT (TD-001)
+
+**37 direct collection calls found in production API routes:**
+
+| Collection | Files Using Direct Access |
+|------------|---------------------------|
+| COLLECTIONS.SOUQ_REVIEWS | `app/api/souq/reviews/**` (5 files) |
+| COLLECTIONS.HELP_ARTICLES | `app/api/help/articles/**` (3 files) |
+| COLLECTIONS.NOTIFICATIONS | `app/api/admin,superadmin/notifications/**` |
+| souq_settlements, souq_payouts | `app/api/souq/settlements/**` |
+| trial_requests | `app/api/trial-request/route.ts` |
+| Dynamic collections | `app/api/search/route.ts` |
+
+**Recommended Action:** Create missing Mongoose models or wrap in typed helpers with tenant scoping. Estimated: 24 hours.
+
+### 📋 FILES MODIFIED
+
+| File | Change |
+|------|--------|
+| `vitest.config.ts` | Added `server-mocked` project for mongoose mock tests |
+| `vitest.setup.minimal.ts` | Created minimal setup (no MongoDB) for mock tests |
+
+### 📋 VERIFICATION
+
+| Gate | Result |
+|------|--------|
+| pnpm typecheck | ✅ 0 errors |
+| pnpm lint | ✅ 0 errors |
+| git push | ✅ Synced to origin/main |
+
+---
+
 ## 📅 2025-12-25 22:30 (Asia/Riyadh) — RTL Fixes + Security Audit Session
 
 **Agent Token:** [AGENT-001-A]
