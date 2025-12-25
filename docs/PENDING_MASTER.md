@@ -2,6 +2,41 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-25 23:20 (Asia/Riyadh) — Test Isolation Fixes + Full Suite Validation
+
+**Agent Token:** [AGENT-001-A]
+**Context:** main | bb60c8bf2
+**Session Summary:** Fixed test isolation issues causing suite-level failures. Moved 5 tests with mongoose connection conflicts to server-mocked project. Fixed claims test to use valid ObjectIds after ObjectId validation was added.
+**DB Sync:** created=0, updated=0, skipped=0, errors=0 (test infrastructure fixes)
+
+### ✅ FIXES APPLIED
+
+| Commit | Fix | Files | Details |
+|--------|-----|-------|---------|
+| bb60c8bf2 | Test isolation | `vitest.config.ts` | Added 5 tests to server-mocked project include/exclude |
+| bb60c8bf2 | ObjectId fix | `tests/api/souq/claims-get-error.route.test.ts` | Use valid ObjectIds for claim/order IDs |
+
+### 📊 Tests Moved to server-mocked Project
+
+| Test File | Reason |
+|-----------|--------|
+| `tests/api/crm/contacts.route.test.ts` | Mocks mongodb-unified, conflicts with MongoMemoryServer |
+| `tests/api/filters/presets.route.test.ts` | Mocks mongodb-unified |
+| `tests/api/auth/signup.validation.test.ts` | Mocks mongodb-unified |
+| `tests/unit/lib/auth/tenant-utils.test.ts` | Suite error in sharded runs |
+| `tests/api/souq/claims-get-error.route.test.ts` | Mocks mongodb-unified |
+
+### 📋 Verification Results
+
+| Gate | Result |
+|------|--------|
+| pnpm typecheck | ✅ 0 errors |
+| pnpm lint | ✅ 0 errors |
+| pnpm vitest run | ✅ 548 files, 4434 tests pass |
+| git push | ✅ Synced |
+
+---
+
 ## 📅 2025-12-26 10:30 (Asia/Riyadh) — P0/P1 Security & Performance Fixes
 
 **Agent Token:** [AGENT-001-A]
