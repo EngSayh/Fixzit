@@ -221,11 +221,11 @@ const ClaimFundsHoldSchema = new Schema<IClaimFundsHold>(
 const ClaimSchema = new Schema<IClaim>(
   {
     claimId: { type: String, required: true, unique: true }, // unique implies index
-    orgId: { type: String, required: true, index: true },
-    orderId: { type: String, required: true, index: true },
+    orgId: { type: Schema.Types.Mixed, required: true, index: true },
+    orderId: { type: Schema.Types.Mixed, required: true, index: true },
     orderNumber: { type: String, required: true },
-    buyerId: { type: String, required: true, index: true },
-    sellerId: { type: String, required: true, index: true },
+    buyerId: { type: Schema.Types.Mixed, required: true, index: true },
+    sellerId: { type: Schema.Types.Mixed, required: true, index: true },
 
     claimType: {
       type: String,

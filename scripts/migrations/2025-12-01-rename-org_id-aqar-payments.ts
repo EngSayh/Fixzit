@@ -38,7 +38,7 @@ const COLLECTION = "aqar_payments";
 
 function buildCreateIndexOptions(idx: IndexDescription) {
   // Preserve options except internal fields
-  const { key, name, ns, v, ...rest } = idx as Record<string, unknown>;
+  const { key: _key, name: _name, ns: _ns, v: _v, ...rest } = idx as Record<string, unknown>;
   // Always set background creation for safety
   return { ...rest, background: true };
 }

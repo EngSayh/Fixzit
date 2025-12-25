@@ -1,5 +1,7 @@
 {
-  "recommendations": [],
+  "recommendations": [
+    "github.copilot"
+  ],
   "unwantedRecommendations": [
     "ms-vscode.vscode-typescript-tslint-plugin",
     "eg2.tslint"

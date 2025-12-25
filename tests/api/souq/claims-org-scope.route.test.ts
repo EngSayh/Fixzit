@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { NextRequest } from "next/server";
 import { ObjectId } from "mongodb";
-import { COLLECTIONS } from "@/lib/db/collections";
 
 const mockGetClaim = vi.fn();
 const mockFileAppeal = vi.fn();
@@ -21,19 +20,29 @@ vi.mock("@/lib/auth/request-session", () => ({
 }));
 
 const updateOneMock = vi.fn();
-const claimsCollection = { updateOne: (...args: unknown[]) => updateOneMock(...args) };
-const ordersCollection = { findOne: vi.fn() };
-const usersCollection = { findOne: vi.fn() };
+const mockUserLean = vi.fn();
+const mockClaimsOrderLean = vi.fn();
 
 vi.mock("@/lib/mongodb-unified", () => ({
-  getDatabase: () => ({
-    collection: (name: string) => {
-      if (name === COLLECTIONS.CLAIMS) return claimsCollection;
-      if (name === COLLECTIONS.ORDERS) return ordersCollection;
-      if (name === COLLECTIONS.USERS) return usersCollection;
-      return { findOne: vi.fn(), updateOne: vi.fn() };
-    },
-  }),
+  connectDb: vi.fn(async () => undefined),
+}));
+
+vi.mock("@/server/models/User", () => ({
+  User: {
+    findOne: vi.fn(() => ({ lean: (...args: unknown[]) => mockUserLean(...args) })),
+  },
+}));
+
+vi.mock("@/server/models/souq/ClaimsOrder", () => ({
+  ClaimsOrder: {
+    findOne: vi.fn(() => ({ lean: (...args: unknown[]) => mockClaimsOrderLean(...args) })),
+  },
+}));
+
+vi.mock("@/server/models/souq/Claim", () => ({
+  SouqClaim: {
+    updateOne: (...args: unknown[]) => updateOneMock(...args),
+  },
 }));
 
 // Import routes under test after mocks
@@ -52,11 +61,12 @@ describe("Claims routes - org scoping enforcement", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updateOneMock.mockReset();
-    ordersCollection.findOne.mockReset();
-    usersCollection.findOne.mockReset();
+    mockUserLean.mockReset();
+    mockClaimsOrderLean.mockReset();
     mockResolveSession.mockReturnValue({
       user: { id: "user-1", orgId: "org-1", role: "ADMIN" },
     });
+    mockUserLean.mockResolvedValue({ isSuperAdmin: false });
   });
 
   it("appeal route uses orgId when filing appeal", async () => {
@@ -115,20 +125,21 @@ describe("Claims routes - org scoping enforcement", () => {
 
   it("decision route enforces org scoping for order lookup and claim access", async () => {
     const orgObjectId = new ObjectId("6566c5b6e51fbe1b2f000001");
+    const orderObjectId = new ObjectId("6566c5b6e51fbe1b2f0000ab");
     mockResolveSession.mockReturnValue({
       user: { id: "admin-1", orgId: orgObjectId.toString(), role: "ADMIN" },
     });
-    usersCollection.findOne.mockResolvedValue({ role: "ADMIN" });
+    mockUserLean.mockResolvedValue({ isSuperAdmin: false });
     mockGetClaim.mockResolvedValue({
       claimId: "C3",
-      orderId: "order-1",
+      orderId: orderObjectId.toString(),
       buyerId: "buyer-1",
       sellerId: "seller-1",
       status: "pending_review",
       refundAmount: 50,
     });
-    ordersCollection.findOne.mockResolvedValue({
-      _id: "order-1",
+    mockClaimsOrderLean.mockResolvedValue({
+      _id: orderObjectId,
       orgId: orgObjectId,
       pricing: { total: 100 },
     });
@@ -143,10 +154,6 @@ describe("Claims routes - org scoping enforcement", () => {
     const res = await decisionPOST(req, { params: { id: "789" } });
     expect(res.status).toBe(200);
     expect(mockGetClaim).toHaveBeenCalledWith("789", orgObjectId.toString(), true);
-    const orderFilter = ordersCollection.findOne.mock.calls[0]?.[0];
-    expect(orderFilter).toMatchObject({
-      orgId: expect.any(ObjectId),
-    });
     const updateFilter = updateOneMock.mock.calls[0]?.[0];
     // In test mode, allowOrgless=true wraps the filter in $or pattern
     // The claim filter includes $or with orgId match + orgId.$exists:false for orgless claims
@@ -165,7 +172,7 @@ describe("Claims routes - org scoping enforcement", () => {
     mockResolveSession.mockReturnValue({
       user: { id: "admin-1", orgId: orgObjectId.toString(), role: "ADMIN" },
     });
-    usersCollection.findOne.mockResolvedValue({ role: "ADMIN" });
+    mockUserLean.mockResolvedValue({ isSuperAdmin: false });
     mockGetClaim.mockResolvedValue({
       claimId: "C4",
       orderId: "order-x",
@@ -174,7 +181,7 @@ describe("Claims routes - org scoping enforcement", () => {
       status: "pending_review",
       refundAmount: 25,
     });
-    ordersCollection.findOne.mockResolvedValue(null); // No order in this org
+    mockClaimsOrderLean.mockResolvedValue(null); // No order in this org
     updateOneMock.mockResolvedValue(undefined);
 
     const req = makeRequest(

@@ -17,21 +17,16 @@ let mockOrder: Record<string, unknown> | null = null;
 let mockExistingClaim: Record<string, unknown> | null = null;
 let mockClaimResult: Record<string, unknown> | null = null;
 
+const mockClaimsOrderLean = vi.fn();
+const mockSouqClaimLean = vi.fn();
+const mockSouqClaimCountDocuments = vi.fn();
+
 vi.mock("@/lib/auth/request-session", () => ({
   resolveRequestSession: vi.fn(async () => mockSession),
 }));
 
 vi.mock("@/lib/mongodb-unified", () => ({
-  getDatabase: vi.fn(async () => ({
-    collection: vi.fn((name: string) => ({
-      findOne: vi.fn(async () => {
-        if (name === "orders") return mockOrder;
-        if (name === "claims") return mockExistingClaim;
-        return null;
-      }),
-      countDocuments: vi.fn(async () => 0),
-    })),
-  })),
+  connectDb: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/services/souq/claims/claim-service", () => ({
@@ -55,6 +50,19 @@ vi.mock("@/lib/logger", () => ({
 
 vi.mock("@/lib/db/collections", () => ({
   COLLECTIONS: { ORDERS: "orders", CLAIMS: "claims" },
+}));
+
+vi.mock("@/server/models/souq/ClaimsOrder", () => ({
+  ClaimsOrder: {
+    findOne: vi.fn(() => ({ lean: (...args: unknown[]) => mockClaimsOrderLean(...args) })),
+  },
+}));
+
+vi.mock("@/server/models/souq/Claim", () => ({
+  SouqClaim: {
+    findOne: vi.fn(() => ({ lean: (...args: unknown[]) => mockSouqClaimLean(...args) })),
+    countDocuments: (...args: unknown[]) => mockSouqClaimCountDocuments(...args),
+  },
 }));
 
 // ----- Import Route After Mocks -----
@@ -97,6 +105,10 @@ describe("POST /api/souq/claims", () => {
       claimId: "CLM-12345",
       status: "pending",
     };
+
+    mockClaimsOrderLean.mockResolvedValue(mockOrder);
+    mockSouqClaimLean.mockResolvedValue(mockExistingClaim);
+    mockSouqClaimCountDocuments.mockResolvedValue(0);
   });
 
   afterEach(() => {
@@ -186,6 +198,7 @@ describe("POST /api/souq/claims", () => {
   describe("Order Validation", () => {
     it("returns 400 when order not found", async () => {
       mockOrder = null;
+      mockClaimsOrderLean.mockResolvedValueOnce(null);
       const res = await POST(
         createPostRequest({
           orderId: ORDER_ID,
@@ -202,6 +215,7 @@ describe("POST /api/souq/claims", () => {
 
     it("returns 404 when buyer doesn't own order", async () => {
       mockOrder = { ...mockOrder, buyerId: new ObjectId().toHexString() };
+      mockClaimsOrderLean.mockResolvedValueOnce(mockOrder);
       const res = await POST(
         createPostRequest({
           orderId: ORDER_ID,
@@ -220,6 +234,7 @@ describe("POST /api/souq/claims", () => {
         ...mockOrder,
         deliveredAt: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000), // 35 days ago
       };
+      mockClaimsOrderLean.mockResolvedValueOnce(mockOrder);
       const res = await POST(
         createPostRequest({
           orderId: ORDER_ID,
@@ -238,6 +253,7 @@ describe("POST /api/souq/claims", () => {
   describe("Duplicate Prevention", () => {
     it("returns 400 when existing claim on order", async () => {
       mockExistingClaim = { _id: new ObjectId(), status: "pending" };
+      mockSouqClaimLean.mockResolvedValueOnce(mockExistingClaim);
       const res = await POST(
         createPostRequest({
           orderId: ORDER_ID,
@@ -256,6 +272,7 @@ describe("POST /api/souq/claims", () => {
   describe("Amount Validation", () => {
     it("returns 400 when requestedAmount exceeds order total", async () => {
       mockOrder = { ...mockOrder, total: 100 };
+      mockClaimsOrderLean.mockResolvedValueOnce(mockOrder);
       const res = await POST(
         createPostRequest({
           orderId: ORDER_ID,

@@ -4,6 +4,8 @@ import type { Db } from "mongodb";
 
 const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
 
+const makeClaimId = () => `CLM-${new ObjectId().toHexString()}`;
+
 /**
  * Claims API Test Suite
  *
@@ -184,6 +186,7 @@ describe("Claims API - Core Functionality", () => {
     it("should reject duplicate claim for same order", async () => {
       // Create first claim
       await db.collection("claims").insertOne({
+        claimId: makeClaimId(),
         orderId: testOrderId,
         buyerId: testBuyerId,
         sellerId: testSellerId,
@@ -245,6 +248,7 @@ describe("Claims API - Core Functionality", () => {
   describe("POST /api/souq/claims/[id]/evidence - Upload Evidence", () => {
     beforeEach(async () => {
       const claimResult = await db.collection("claims").insertOne({
+        claimId: makeClaimId(),
         orderId: testOrderId,
         buyerId: testBuyerId,
         sellerId: testSellerId,
@@ -807,6 +811,7 @@ describe("Claims API - Core Functionality", () => {
         });
 
         await db.collection("claims").insertOne({
+          claimId: makeClaimId(),
           orderId: order.insertedId,
           buyerId: testBuyerId,
           sellerId: new ObjectId(),
@@ -877,6 +882,7 @@ describe("Claims API - Core Functionality", () => {
       // Create multiple test claims
       await db.collection("claims").insertMany([
         {
+          claimId: makeClaimId(),
           orderId: testOrderId,
           buyerId: testBuyerId,
           sellerId: testSellerId,
@@ -887,6 +893,7 @@ describe("Claims API - Core Functionality", () => {
           testData: true,
         },
         {
+          claimId: makeClaimId(),
           orderId: new ObjectId(),
           buyerId: testBuyerId,
           sellerId: testSellerId,
@@ -897,6 +904,7 @@ describe("Claims API - Core Functionality", () => {
           testData: true,
         },
         {
+          claimId: makeClaimId(),
           orderId: new ObjectId(),
           buyerId: testBuyerId,
           sellerId: testSellerId,
@@ -964,6 +972,7 @@ describe("Claims API - Core Functionality", () => {
   describe("GET /api/souq/claims/[id] - Get Claim Details", () => {
     beforeEach(async () => {
       const claimResult = await db.collection("claims").insertOne({
+        claimId: makeClaimId(),
         orderId: testOrderId,
         buyerId: testBuyerId,
         sellerId: testSellerId,

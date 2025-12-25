@@ -1787,13 +1787,13 @@ const TRANSLATION_DICTIONARY = {
   "Test Page": "صفحة الاختبار",
   "Thank You": "شكراً لك",
   "Theme Set": "تم تعيين السمة",
-  "This Month": "هذا الشهر",
+  // "This Month" duplicate removed
   "This  Month": "هذا الشهر",
   "This Quarter": "هذا الربع",
   "This  Quarter": "هذا الربع",
-  "This Week": "هذا الأسبوع",
+  // "This Week" duplicate removed
   "This  Week": "هذا الأسبوع",
-  "This Year": "هذه السنة",
+  // "This Year" duplicate removed
   "This  Year": "هذه السنة",
   "Ticket": "تذكرة",
   "Ticket Created": "تم إنشاء التذكرة",
@@ -1899,7 +1899,7 @@ const TRANSLATION_DICTIONARY = {
   "Whatsapp": "واتساب",
   "White Labeling": "العلامة البيضاء",
   "Wo Id": "معرف أمر العمل",
-  "Work Order": "أمر عمل",
+  // "Work Order" duplicate removed
   "Work  Order": "أمر عمل",
   "Work Orders Approvals": "موافقات أوامر العمل",
   "Work Orders Board": "لوحة أوامر العمل",

@@ -32,7 +32,8 @@ const STATUS_MAP = new Map([
   ["fixed", "resolved"],
 ]);
 
-function normalizeStatus(s) {
+// Unused but kept for reference; prefixed to silence lint
+function _normalizeStatus(s) {
   if (!s || typeof s !== "string") return s;
   const key = s.trim().toLowerCase();
   return STATUS_MAP.get(key) ?? s;

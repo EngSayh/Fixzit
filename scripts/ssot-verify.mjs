@@ -44,7 +44,8 @@ const REQUIRED_SCHEMA_KEYS = [
   "version",
 ];
 
-function get(obj, path) {
+// Unused but kept for potential future use; prefixed to silence lint
+function _get(obj, path) {
   return path.split(".").reduce((acc, k) => (acc && acc[k] !== undefined ? acc[k] : undefined), obj);
 }
 
