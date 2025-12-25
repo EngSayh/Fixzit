@@ -16,10 +16,7 @@ import { reviewService } from "@/services/souq/reviews/review-service";
 import { auth } from "@/auth";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { logger } from "@/lib/logger";
-import { connectDb } from "@/lib/mongodb-unified";
-import { COLLECTIONS } from "@/lib/db/collections";
 import { z } from "zod";
-import { ObjectId } from "mongodb";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 type RouteContext = {
@@ -49,7 +46,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const connection = await connectDb();
     const { id: reviewId } = await context.params;
     const requesterOrg = session.user.orgId;
     if (!requesterOrg) {
@@ -58,22 +54,13 @@ export async function POST(req: NextRequest, context: RouteContext) {
         { status: 403 },
       );
     }
-    // Fetch orgId for tenant isolation
-    const db = connection.connection.db!;
-    const orgCandidates = [requesterOrg, new ObjectId(requesterOrg)];
-    const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(
-      { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] },
-      { projection: { orgId: 1, org_id: 1 } },
-    );
-    if (!found) {
+    
+    // TD-001: Migrated from db.collection() to Mongoose model via service
+    const basicInfo = await reviewService.getReviewBasicInfo(reviewId, requesterOrg);
+    if (!basicInfo) {
       return NextResponse.json({ error: "Review not found" }, { status: 404 });
     }
-    const orgId =
-      typeof found.orgId === "string"
-        ? found.orgId
-        : typeof found.org_id === "string"
-          ? found.org_id
-          : found.orgId?.toString?.() ?? found.org_id?.toString?.() ?? "";
+    const orgId = basicInfo.orgId;
 
     const { data: body, error: parseError } = await parseBodySafe(req, { logPrefix: "[souq:reviews:helpful]" });
     if (parseError) {

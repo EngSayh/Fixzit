@@ -672,6 +672,29 @@ class ReviewService {
   }
 
   /**
+   * Check if review exists and get basic info for authorization
+   * @returns Basic review info or null if not found
+   */
+  async getReviewBasicInfo(
+    reviewId: string,
+    orgId: string
+  ): Promise<{ orgId: string; customerId: string; status: string } | null> {
+    const orgFilter = getOrgFilter(orgId);
+    const review = await SouqReview.findOne(
+      { reviewId, ...orgFilter },
+      { orgId: 1, customerId: 1, status: 1 }
+    ).lean();
+    
+    if (!review) return null;
+    
+    return {
+      orgId: review.orgId?.toString() ?? "",
+      customerId: review.customerId?.toString() ?? "",
+      status: review.status ?? "pending",
+    };
+  }
+
+  /**
    * Approve review (moderator)
    * 🔐 STRICT v4.1: Requires moderator role validation
    */

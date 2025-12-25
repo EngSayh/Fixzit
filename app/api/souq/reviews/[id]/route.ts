@@ -17,8 +17,6 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { reviewService } from "@/services/souq/reviews/review-service";
 import { auth } from "@/auth";
-import { connectDb } from "@/lib/mongodb-unified";
-import { COLLECTIONS } from "@/lib/db/collections";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { ObjectId } from "mongodb";
@@ -86,38 +84,20 @@ export async function GET(req: NextRequest, context: RouteContext) {
       // Avoid cross-tenant existence leak
       return NextResponse.json({ error: "Review not found" }, { status: 404 });
     }
-    const orgCandidates = [orgIdParam, new ObjectId(orgIdParam)];
 
-    // Fetch review scoped by org to prevent cross-tenant access or enumeration
-    const { connection } = await connectDb();
-    const db = connection.db!;
-    const baseFilter = { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] };
-    const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(baseFilter, {
-      projection: { orgId: 1, org_id: 1, customerId: 1, status: 1 },
-    });
-    if (!found) {
-      return NextResponse.json({ error: "Review not found" }, { status: 404 });
-    }
-    const orgFromDoc =
-      typeof found.orgId === "string"
-        ? found.orgId
-        : typeof found.org_id === "string"
-          ? found.org_id
-          : found.orgId?.toString?.() ?? found.org_id?.toString?.();
-    if (!orgFromDoc) {
-      return NextResponse.json(
-        { error: "Review missing org context" },
-        { status: 404 },
-      );
-    }
-
-    // If requester has org, enforce match with provided or document orgId
-    const orgId = orgIdParam ?? orgFromDoc;
-    if (requesterOrg && orgId && requesterOrg !== orgId) {
+    // TD-001: Migrated from db.collection() to Mongoose model via service
+    // Use service method for org-scoped existence check
+    const basicInfo = await reviewService.getReviewBasicInfo(reviewId, orgIdParam);
+    if (!basicInfo) {
       return NextResponse.json({ error: "Review not found" }, { status: 404 });
     }
 
-    const review = await reviewService.getReviewById(reviewId, orgId);
+    // Enforce org match with requester
+    if (requesterOrg && basicInfo.orgId && requesterOrg !== basicInfo.orgId) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+
+    const review = await reviewService.getReviewById(reviewId, orgIdParam);
 
     if (!review) {
       return NextResponse.json({ error: "Review not found" }, { status: 404 });
@@ -157,9 +137,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const connection = await connectDb();
     const { id: reviewId } = await context.params;
-    const db = connection.connection.db!;
     const orgIdParam = new URL(req.url).searchParams.get("orgId") ?? session.user.orgId ?? "";
     if (!orgIdParam) {
       return NextResponse.json(
@@ -167,22 +145,13 @@ export async function PUT(req: NextRequest, context: RouteContext) {
         { status: 403 },
       );
     }
-    const orgCandidates = ObjectId.isValid(orgIdParam)
-      ? [orgIdParam, new ObjectId(orgIdParam)]
-      : [orgIdParam];
-    const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(
-      { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] },
-      { projection: { orgId: 1, org_id: 1 } },
-    );
-    if (!found) {
+    
+    // TD-001: Migrated from db.collection() to Mongoose model via service
+    const basicInfo = await reviewService.getReviewBasicInfo(reviewId, orgIdParam);
+    if (!basicInfo) {
       return NextResponse.json({ error: "Review not found" }, { status: 404 });
     }
-    const orgId =
-      typeof found.orgId === "string"
-        ? found.orgId
-        : typeof found.org_id === "string"
-          ? found.org_id
-          : found.orgId?.toString?.() ?? found.org_id?.toString?.() ?? "";
+    const orgId = basicInfo.orgId;
     const requesterOrg = session.user.orgId;
     if (requesterOrg && orgId && requesterOrg !== orgId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -233,9 +202,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const connection = await connectDb();
     const { id: reviewId } = await context.params;
-    const db = connection.connection.db!;
     const orgIdParam = new URL(req.url).searchParams.get("orgId") ?? session.user.orgId ?? "";
     if (!orgIdParam) {
       return NextResponse.json(
@@ -243,22 +210,13 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
         { status: 403 },
       );
     }
-    const orgCandidates = ObjectId.isValid(orgIdParam)
-      ? [orgIdParam, new ObjectId(orgIdParam)]
-      : [orgIdParam];
-    const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(
-      { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] },
-      { projection: { orgId: 1, org_id: 1 } },
-    );
-    if (!found) {
+    
+    // TD-001: Migrated from db.collection() to Mongoose model via service
+    const basicInfo = await reviewService.getReviewBasicInfo(reviewId, orgIdParam);
+    if (!basicInfo) {
       return NextResponse.json({ error: "Review not found" }, { status: 404 });
     }
-    const orgId =
-      typeof found.orgId === "string"
-        ? found.orgId
-        : typeof found.org_id === "string"
-          ? found.org_id
-          : found.orgId?.toString?.() ?? found.org_id?.toString?.() ?? "";
+    const orgId = basicInfo.orgId;
     const requesterOrg = session.user.orgId;
     if (requesterOrg && orgId && requesterOrg !== orgId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
