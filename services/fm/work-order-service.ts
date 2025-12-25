@@ -409,14 +409,31 @@ export class WorkOrderService {
     reason?: string,
     resourceCtx?: Partial<ResourceCtx>,
   ): Promise<TransitionResult> {
+    // Validate workOrderId format (P1 fix per CodeRabbit review)
+    if (!ObjectId.isValid(workOrderId)) {
+      return {
+        success: false,
+        fromStatus: WOStatus.NEW,
+        toStatus,
+        transitionedAt: new Date(),
+        transitionedBy: userId,
+        reason,
+        error: `Invalid workOrderId format: ${workOrderId}`,
+      };
+    }
+
     const db = await getDatabase();
     const collection = db.collection<WorkOrderDoc>(COLLECTIONS.WORK_ORDERS);
 
     // Fetch current work order with tenant isolation
+    // Use $or pattern to handle both string and ObjectId orgId formats
     const workOrder = await collection.findOne({
       _id: new ObjectId(workOrderId),
-      orgId,
-    });
+      $or: [
+        { orgId: orgId },
+        ...(ObjectId.isValid(orgId) ? [{ orgId: new ObjectId(orgId) }] : []),
+      ],
+    } as Parameters<typeof collection.findOne>[0]);
 
     if (!workOrder) {
       return {
@@ -485,7 +502,13 @@ export class WorkOrderService {
 
     // Apply update
     const result = await collection.findOneAndUpdate(
-      { _id: new ObjectId(workOrderId), orgId },
+      {
+        _id: new ObjectId(workOrderId),
+        $or: [
+          { orgId: orgId },
+          ...(ObjectId.isValid(orgId) ? [{ orgId: new ObjectId(orgId) }] : []),
+        ],
+      } as Parameters<typeof collection.findOneAndUpdate>[0],
       {
         $set: update,
         $push: { statusHistory: historyEntry },
@@ -595,14 +618,23 @@ export class WorkOrderService {
     const { workOrderId, assigneeId, assigneeType, assignedBy, orgId, notes } =
       options;
 
+    // Validate workOrderId format (P1 fix per CodeRabbit review)
+    if (!ObjectId.isValid(workOrderId)) {
+      return { success: false, error: `Invalid workOrderId format: ${workOrderId}` };
+    }
+
     const db = await getDatabase();
     const collection = db.collection<WorkOrderDoc>(COLLECTIONS.WORK_ORDERS);
 
     // Verify work order exists with tenant isolation
+    // Use $or pattern to handle both string and ObjectId orgId formats
     const workOrder = await collection.findOne({
       _id: new ObjectId(workOrderId),
-      orgId,
-    });
+      $or: [
+        { orgId: orgId },
+        ...(ObjectId.isValid(orgId) ? [{ orgId: new ObjectId(orgId) }] : []),
+      ],
+    } as Parameters<typeof collection.findOne>[0]);
 
     if (!workOrder) {
       return { success: false, error: "Work order not found or access denied" };
@@ -672,10 +704,14 @@ export class WorkOrderService {
     // statusHistoryEntryForPush is set above if auto-transitioning
 
     // Build the $push operations
+    // Include assignee type for clarity (P2 fix per Gemini review)
     const pushOps: Record<string, unknown> = {
       "assignment.reassignmentHistory": {
         fromUserId: workOrder.assignment?.assignedTo?.userId ?? null,
-        toUserId: assignedTo.userId ?? assignedTo.teamId ?? assignedTo.vendorId,
+        to: {
+          id: assignedTo.userId ?? assignedTo.teamId ?? assignedTo.vendorId,
+          type: assigneeType,
+        },
         reason: notes,
         assignedBy: new ObjectId(assignedBy),
         assignedAt: now,
@@ -688,7 +724,13 @@ export class WorkOrderService {
     }
 
     const result = await collection.findOneAndUpdate(
-      { _id: new ObjectId(workOrderId), orgId },
+      {
+        _id: new ObjectId(workOrderId),
+        $or: [
+          { orgId: orgId },
+          ...(ObjectId.isValid(orgId) ? [{ orgId: new ObjectId(orgId) }] : []),
+        ],
+      } as Parameters<typeof collection.findOneAndUpdate>[0],
       {
         $set: update,
         $push: pushOps,
@@ -726,14 +768,23 @@ export class WorkOrderService {
   ): Promise<{ success: boolean; newPriority?: WOPriority; error?: string }> {
     const { workOrderId, escalatedBy, reason, orgId, newPriority } = options;
 
+    // Validate workOrderId format (P1 fix per CodeRabbit review)
+    if (!ObjectId.isValid(workOrderId)) {
+      return { success: false, error: `Invalid workOrderId format: ${workOrderId}` };
+    }
+
     const db = await getDatabase();
     const collection = db.collection<WorkOrderDoc>(COLLECTIONS.WORK_ORDERS);
 
     // Fetch work order with tenant isolation
+    // Use $or pattern to handle both string and ObjectId orgId formats
     const workOrder = await collection.findOne({
       _id: new ObjectId(workOrderId),
-      orgId,
-    });
+      $or: [
+        { orgId: orgId },
+        ...(ObjectId.isValid(orgId) ? [{ orgId: new ObjectId(orgId) }] : []),
+      ],
+    } as Parameters<typeof collection.findOne>[0]);
 
     if (!workOrder) {
       return { success: false, error: "Work order not found or access denied" };
@@ -782,7 +833,13 @@ export class WorkOrderService {
     );
 
     const result = await collection.findOneAndUpdate(
-      { _id: new ObjectId(workOrderId), orgId },
+      {
+        _id: new ObjectId(workOrderId),
+        $or: [
+          { orgId: orgId },
+          ...(ObjectId.isValid(orgId) ? [{ orgId: new ObjectId(orgId) }] : []),
+        ],
+      } as Parameters<typeof collection.findOneAndUpdate>[0],
       {
         $set: {
           priority: targetPriority,

@@ -36,6 +36,15 @@ if (!MONGO_URI) {
 
 const COLLECTION = "aqar_payments";
 
+/**
+ * Build an index creation options object from an existing index description,
+ * omitting internal metadata and forcing background creation.
+ *
+ * @param idx - The index description object retrieved from the collection's index list
+ *              (may include internal fields like `key`, `name`, `ns`, `v`)
+ * @returns An options object suitable for use with `createIndex`, with internal
+ *          index metadata removed and `background: true` set
+ */
 function buildCreateIndexOptions(idx: IndexDescription) {
   // Preserve options except internal fields
   const { key: _key, name: _name, ns: _ns, v: _v, ...rest } = idx as Record<string, unknown>;
