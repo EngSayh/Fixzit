@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import { getDatabase } from "@/lib/mongodb-unified";
 import { getSessionOrNull } from "@/lib/auth/safe-session";
-import { Filter, Document } from "mongodb";
+import { helpArticleService } from "@/services/help/help-article-service";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
@@ -19,13 +18,6 @@ interface UserWithAuth {
   role?: string;
   subRole?: string | null;
 }
-
-interface MongoTextFilter extends Document {
-  $text: { $search: string };
-}
-
-// Collection name aligned with Mongoose default pluralization for model "HelpArticle"
-const COLLECTION = "helparticles";
 
 /**
  * Handles GET requests to list help articles with filtering, text search, and pagination.
@@ -127,110 +119,29 @@ export async function GET(req: NextRequest) {
     const limit = Number.isFinite(rawLimit)
       ? Math.max(1, Math.min(50, Math.floor(rawLimit)))
       : 20;
-    const skip = (page - 1) * limit;
 
-    const db = await getDatabase();
-    const coll = db.collection(COLLECTION);
+    // TD-001: Migrated from db.collection() to Mongoose service
+    // Validates status, handles tenant scoping, text search with fallback internally
+    const validStatuses = ["DRAFT", "PUBLISHED", "ALL"] as const;
+    type ArticleStatus = (typeof validStatuses)[number];
+    const safeStatus: ArticleStatus = validStatuses.includes(status as ArticleStatus)
+      ? (status as ArticleStatus)
+      : "PUBLISHED";
 
-    // Indexes are created by scripts/add-database-indexes.js
-
-    // Enforce tenant isolation; allow global articles with no orgId
-    const orClauses: Filter<Document>[] = [
-      { orgId: { $exists: false } },
-      { orgId: null },
-    ];
-    if (user.orgId) orClauses.unshift({ orgId: user.orgId });
-    const tenantScope = { $or: orClauses };
-    const filter: Filter<Document> = { ...tenantScope };
-    if (status && status !== "ALL") filter.status = status;
-    if (category) filter.category = category;
-
-    function escapeRegExp(input: string) {
-      return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    }
-
-    let items: unknown[] = [];
-    let total = 0;
-
-    if (q) {
-      // Try $text search first; fallback to regex if text index is missing
-      const textFilter: Filter<Document> & MongoTextFilter = {
-        ...filter,
-        $text: { $search: q },
-      };
-      const textProjection = {
-        _id: 0,
-        score: { $meta: "textScore" },
-        slug: 1,
-        title: 1,
-        category: 1,
-        updatedAt: 1,
-      };
-      try {
-        total = await coll.countDocuments(textFilter);
-        items = await coll
-          .find(textFilter, { projection: textProjection })
-          .maxTimeMS(250)
-          .sort({ score: { $meta: "textScore" } })
-          .skip(skip)
-          .limit(limit)
-          .toArray();
-      } catch (_err: unknown) {
-        const errorWithCode = _err as {
-          codeName?: string;
-          code?: number;
-          message?: string;
-        };
-        const isMissingTextIndex =
-          errorWithCode?.codeName === "IndexNotFound" ||
-          errorWithCode?.code === 27 ||
-          /text index required/i.test(String(errorWithCode?.message || ""));
-        if (!isMissingTextIndex) throw _err;
-        // Fallback when text index is missing (restrict by recent updatedAt to reduce scan)
-        const safe = new RegExp(escapeRegExp(q), "i");
-        const cutoffDate = new Date();
-        cutoffDate.setMonth(cutoffDate.getMonth() - 6);
-        const regexFilter: Filter<Document> = {
-          ...filter,
-          updatedAt: { $gte: cutoffDate },
-          $or: [{ title: safe }, { content: safe }, { tags: safe }],
-        };
-        total = await coll.countDocuments(regexFilter);
-        items = await coll
-          .find(regexFilter, {
-            projection: {
-              _id: 0,
-              slug: 1,
-              title: 1,
-              category: 1,
-              updatedAt: 1,
-            },
-          })
-          .maxTimeMS(250)
-          .sort({ updatedAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .toArray();
-      }
-    } else {
-      total = await coll.countDocuments(filter);
-      items = await coll
-        .find(filter, {
-          projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 },
-        })
-        .maxTimeMS(250)
-        .sort({ updatedAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .toArray();
-    }
-
-    const response = NextResponse.json({
-      items,
+    const result = await helpArticleService.listArticles(user.orgId, {
+      status: safeStatus,
+      category,
+      q,
       page,
       limit,
-      total,
-      hasMore: skip + items.length < total,
+    });
+
+    const response = NextResponse.json({
+      items: result.items,
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+      hasMore: result.hasMore,
     });
     // Small public cache window; underlying query is tenant-scoped
     response.headers.set(
