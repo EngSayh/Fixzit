@@ -163,7 +163,7 @@ export function SuperadminHeader() {
 
       {/* AcGlobal Search with Cmd+K hint */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             ref={searchInputRef}
             type="text"
@@ -174,7 +174,7 @@ export function SuperadminHeader() {
             aria-label={t("superadmin.searchSuperadmin", "Search superadmin")}
             className="ps-10 pe-16 w-64 h-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
           />
-          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded border border-slate-600">
+          <kbd className="absolute end-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded border border-slate-600">
             <Command className="inline h-3 w-3" />K
           </kbd>
         </div>
@@ -201,7 +201,7 @@ export function SuperadminHeader() {
           className="text-slate-300 hover:text-white relative"
         >
           <Bell className="h-4 w-4" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+          <span className="absolute top-1 end-1 w-2 h-2 bg-red-500 rounded-full" />
         </Button>
 
         {/* tions */}

@@ -94,6 +94,30 @@ export default defineConfig({
           ],
         },
       }),
+      // Project for tests that mock mongoose globally (no MongoMemoryServer)
+      // These tests are isolated from the server project to prevent mock contamination
+      defineProject({
+        ...sharedViteConfig,
+        test: {
+          ...sharedProjectConfig,
+          name: "server-mocked",
+          environment: "node",
+          setupFiles: ["./vitest.setup.minimal.ts"], // Minimal setup - no MongoDB
+          pool: "forks",
+          isolate: true,
+          poolOptions: {
+            forks: {
+              singleFork: true,
+            },
+          },
+          // Tests that use vi.mock("mongoose") - these conflict with MongoMemoryServer
+          include: [
+            "tests/unit/api/admin/users.route.test.ts",
+            "tests/unit/api/admin/users/users.route.test.ts",
+            "tests/api/superadmin/organizations.route.test.ts",
+          ],
+        },
+      }),
       defineProject({
         ...sharedViteConfig,
         test: {
@@ -137,6 +161,10 @@ export default defineConfig({
           ],
           exclude: [
             ...baseExcludes,
+            // Tests that mock mongoose globally - run in server-mocked project
+            "tests/unit/api/admin/users.route.test.ts",
+            "tests/unit/api/admin/users/users.route.test.ts",
+            "tests/api/superadmin/organizations.route.test.ts",
             // Playwright spec files (run via pnpm playwright test)
             "tests/e2e/**/*.spec.{ts,tsx}",
             "tests/smoke/**/*.spec.{ts,tsx}",

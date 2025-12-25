@@ -131,7 +131,7 @@ export function DateRangePicker({
               From
             </label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Calendar className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="date"
                 value={value.from || ''}
@@ -146,7 +146,7 @@ export function DateRangePicker({
               To
             </label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Calendar className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="date"
                 value={value.to || ''}

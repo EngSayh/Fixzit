@@ -481,7 +481,7 @@ export function LeaveRequestsList({ orgId, employeeId }: LeaveRequestsListProps)
       {/* Filter Drawer - Placeholder */}
       {filterDrawerOpen && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-          <div className="fixed right-0 top-0 h-full w-80 bg-background border-l p-6 shadow-lg">
+          <div className="fixed inset-inline-end-0 top-0 h-full w-80 bg-background border-s p-6 shadow-lg">
             <h3 className="text-lg font-semibold mb-4">{t("hr.leave.filters.title", "Filter Leave Requests")}</h3>
             <div className="space-y-4">
               <FacetMultiSelect

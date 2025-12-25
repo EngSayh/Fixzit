@@ -15,6 +15,10 @@ import Issue, {
   IssueStatus, 
   IssueEffort,
   IssueSource,
+  isValidIssueCategory,
+  isValidIssuePriority,
+  isValidIssueEffort,
+  type IssueCategoryType,
 } from '@/models/issue';
 import { connectDB } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
@@ -259,27 +263,30 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Validate enums
-    if (!Object.values(IssueCategory).includes(body.category as any)) {
+    // Validate enums using type guards
+    if (!isValidIssueCategory(body.category)) {
       return NextResponse.json(
         { error: `Invalid category. Must be one of: ${Object.values(IssueCategory).join(', ')}` },
         { status: 400 }
       );
     }
     
-    if (!Object.values(IssuePriority).includes(body.priority as any)) {
+    if (!isValidIssuePriority(body.priority)) {
       return NextResponse.json(
         { error: `Invalid priority. Must be one of: ${Object.values(IssuePriority).join(', ')}` },
         { status: 400 }
       );
     }
     
-    if (!Object.values(IssueEffort).includes(body.effort as any)) {
+    if (!isValidIssueEffort(body.effort)) {
       return NextResponse.json(
         { error: `Invalid effort. Must be one of: ${Object.values(IssueEffort).join(', ')}` },
         { status: 400 }
       );
     }
+    
+    // Store validated enum values with proper types (safe cast - validated above)
+    const validatedCategory = body.category as IssueCategoryType;
     
     // Check for duplicates
     const orgId = new mongoose.Types.ObjectId(session.user.orgId);
@@ -315,7 +322,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Generate issue ID
-    const issueId = await Issue.generateIssueId(body.category as any);
+    const issueId = await Issue.generateIssueId(validatedCategory);
     
     // Create new issue
     const issue = new Issue({

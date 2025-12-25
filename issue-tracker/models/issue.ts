@@ -83,6 +83,41 @@ export type RiskTagType = typeof RiskTag[keyof typeof RiskTag];
 export type IssueSourceType = typeof IssueSource[keyof typeof IssueSource];
 
 // ============================================================================
+// TYPE GUARDS
+// ============================================================================
+
+const issueCategoryValues = Object.values(IssueCategory) as string[];
+const issuePriorityValues = Object.values(IssuePriority) as string[];
+const issueStatusValues = Object.values(IssueStatus) as string[];
+const issueEffortValues = Object.values(IssueEffort) as string[];
+const riskTagValues = Object.values(RiskTag) as string[];
+const issueSourceValues = Object.values(IssueSource) as string[];
+
+export function isValidIssueCategory(value: unknown): value is IssueCategoryType {
+  return typeof value === 'string' && issueCategoryValues.includes(value);
+}
+
+export function isValidIssuePriority(value: unknown): value is IssuePriorityType {
+  return typeof value === 'string' && issuePriorityValues.includes(value);
+}
+
+export function isValidIssueStatus(value: unknown): value is IssueStatusType {
+  return typeof value === 'string' && issueStatusValues.includes(value);
+}
+
+export function isValidIssueEffort(value: unknown): value is IssueEffortType {
+  return typeof value === 'string' && issueEffortValues.includes(value);
+}
+
+export function isValidRiskTag(value: unknown): value is RiskTagType {
+  return typeof value === 'string' && riskTagValues.includes(value);
+}
+
+export function isValidIssueSource(value: unknown): value is IssueSourceType {
+  return typeof value === 'string' && issueSourceValues.includes(value);
+}
+
+// ============================================================================
 // INTERFACES
 // ============================================================================
 

@@ -149,7 +149,7 @@ export function DealsPage() {
               <div className="flex h-full items-center justify-center text-muted-foreground">
                 <Gift className="h-12 w-12" />
               </div>
-              <div className="absolute right-3 top-3 rounded-full bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground">
+              <div className="absolute end-3 top-3 rounded-full bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground">
                 {deal.discount}
               </div>
             </div>

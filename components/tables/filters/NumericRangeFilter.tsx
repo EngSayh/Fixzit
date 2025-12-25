@@ -57,7 +57,7 @@ export function NumericRangeFilter({
           </label>
           <div className="relative">
             {prefix && (
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+              <span className="absolute start-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
                 {prefix}
               </span>
             )}
@@ -78,7 +78,7 @@ export function NumericRangeFilter({
               ].join(' ')}
             />
             {suffix && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+              <span className="absolute end-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
                 {suffix}
               </span>
             )}
@@ -91,7 +91,7 @@ export function NumericRangeFilter({
           </label>
           <div className="relative">
             {prefix && (
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+              <span className="absolute start-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
                 {prefix}
               </span>
             )}
@@ -112,7 +112,7 @@ export function NumericRangeFilter({
               ].join(' ')}
             />
             {suffix && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+              <span className="absolute end-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
                 {suffix}
               </span>
             )}

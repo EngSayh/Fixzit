@@ -357,7 +357,7 @@ export default function FeatureSettingsPage() {
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+            <Search className="h-4 w-4 absolute start-3 top-3 text-muted-foreground" />
             <Input
               className="ps-10 w-64"
               placeholder={auto("Search by name or key", "admin.featureFlags.search")}
