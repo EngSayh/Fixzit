@@ -193,7 +193,12 @@ export class WorkOrderService {
     const collection = db.collection<WorkOrderDoc>(COLLECTIONS.WORK_ORDERS);
 
     // Build base match filter with tenant isolation
-    const match: Record<string, unknown> = { orgId: filter.orgId };
+    // Handle both string and ObjectId formats for orgId (P1 fix per reviewer feedback)
+    const orgIdCandidates: (string | ObjectId)[] = [filter.orgId];
+    if (ObjectId.isValid(filter.orgId)) {
+      orgIdCandidates.push(new ObjectId(filter.orgId));
+    }
+    const match: Record<string, unknown> = { orgId: { $in: orgIdCandidates } };
 
     if (filter.status) {
       match.status = Array.isArray(filter.status)
@@ -206,7 +211,15 @@ export class WorkOrderService {
         : filter.priority;
     }
     if (filter.assigneeId) {
-      match["assignment.assignedTo.userId"] = filter.assigneeId;
+      // Check all assignment types: user, team, vendor (P1 fix per Gemini review)
+      const assigneeIdValue = ObjectId.isValid(filter.assigneeId)
+        ? new ObjectId(filter.assigneeId)
+        : filter.assigneeId;
+      match.$or = [
+        { "assignment.assignedTo.userId": assigneeIdValue },
+        { "assignment.assignedTo.teamId": assigneeIdValue },
+        { "assignment.assignedTo.vendorId": assigneeIdValue },
+      ];
     }
     if (filter.propertyId) {
       if (!ObjectId.isValid(filter.propertyId)) {
@@ -265,7 +278,8 @@ export class WorkOrderService {
             $match: {
               ...match,
               completedAt: { $ne: null },
-              createdAt: { $ne: null },
+              // Preserve date filters from match; only require createdAt exists if not already filtered
+              ...(match.createdAt ? {} : { createdAt: { $ne: null } }),
             },
           },
           {
@@ -542,9 +556,12 @@ export class WorkOrderService {
     resolutionTimeMinutes: number;
   } {
     const hours = DEFAULT_SLA_HOURS[priority] ?? 24;
+    const resolutionTimeMinutes = hours * 60;
+    // Response time is 10% of resolution time (e.g., 24h resolution = 144min response)
+    const responseTimeMinutes = Math.floor(resolutionTimeMinutes * 0.1);
     return {
-      responseTimeMinutes: Math.floor(hours * 6), // 10% of resolution time
-      resolutionTimeMinutes: hours * 60,
+      responseTimeMinutes,
+      resolutionTimeMinutes,
     };
   }
 
@@ -720,6 +737,11 @@ export class WorkOrderService {
 
     if (!workOrder) {
       return { success: false, error: "Work order not found or access denied" };
+    }
+
+    // Validate escalatedBy ObjectId format
+    if (!ObjectId.isValid(escalatedBy)) {
+      return { success: false, error: `Invalid escalatedBy format: ${escalatedBy}` };
     }
 
     // Determine new priority
