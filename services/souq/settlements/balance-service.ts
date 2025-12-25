@@ -1413,6 +1413,91 @@ export class SellerBalanceService {
 
     return balances;
   }
+
+  /**
+   * TD-001: Get settlement statement basic info for existence/validation checks
+   * Replaces db.collection().findOne() calls in routes
+   * @param statementId - The statement ID
+   * @param sellerId - The seller ID
+   * @param orgId - Required for tenant isolation
+   */
+  static async getStatementBasicInfo(
+    statementId: string,
+    sellerId: string,
+    orgId: string,
+  ): Promise<{
+    statementId: string;
+    sellerId: string;
+    status: string;
+    netPayout: number;
+  } | null> {
+    if (!orgId) {
+      throw new Error('orgId is required for statement lookup (STRICT v4.1 tenant isolation)');
+    }
+
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const sellerFilter = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+    const orgCandidates = this.buildOrgCandidates(orgId);
+
+    const statement = await db.collection("souq_settlements").findOne(
+      {
+        statementId,
+        sellerId: sellerFilter,
+        orgId: { $in: orgCandidates },
+      },
+      { projection: { statementId: 1, sellerId: 1, status: 1, summary: 1 } },
+    );
+
+    if (!statement) return null;
+
+    return {
+      statementId: statement.statementId as string,
+      sellerId: String(statement.sellerId),
+      status: (statement.status as string) || "pending",
+      netPayout: (statement.summary as { netPayout?: number })?.netPayout ?? 0,
+    };
+  }
+
+  /**
+   * TD-001: Check if payout already exists for a statement
+   * Replaces db.collection().findOne() calls in routes
+   * @param statementId - The statement ID
+   * @param sellerId - The seller ID
+   * @param orgId - Required for tenant isolation
+   */
+  static async getExistingPayout(
+    statementId: string,
+    sellerId: string,
+    orgId: string,
+  ): Promise<{ payoutId: string; status: string } | null> {
+    if (!orgId) {
+      throw new Error('orgId is required for payout lookup (STRICT v4.1 tenant isolation)');
+    }
+
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const sellerFilter = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+    const orgCandidates = this.buildOrgCandidates(orgId);
+
+    const existingPayout = await db.collection("souq_payouts").findOne({
+      statementId,
+      sellerId: sellerFilter,
+      orgId: { $in: orgCandidates },
+      status: { $nin: ["failed", "cancelled"] },
+    });
+
+    if (!existingPayout) return null;
+
+    return {
+      payoutId: existingPayout.payoutId as string,
+      status: existingPayout.status as string,
+    };
+  }
 }
 
 export type {

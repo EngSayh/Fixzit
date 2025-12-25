@@ -32,29 +32,15 @@ import { parseBodySafe } from "@/lib/api/parse-body";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { COLLECTIONS } from "@/lib/db/collections";
-import { ObjectId } from "mongodb";
 import { createSecureResponse } from "@/server/security/headers";
 import { validationError } from "@/server/utils/errorResponses";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { helpArticleService } from "@/services/help/help-article-service";
 
 const commentSchema = z.object({
   comment: z.string().min(1).max(2000),
 });
-
-const buildArticleFilter = (id: string, orgId?: string | null) => {
-  const base = (() => {
-    try {
-      return { _id: new ObjectId(id) };
-    } catch {
-      return { slug: id };
-    }
-  })();
-  const tenantScope = {
-    $or: [{ orgId }, { orgId: { $exists: false } }, { orgId: null }],
-  };
-  return { ...base, ...tenantScope };
-};
 
 export async function POST(
   req: NextRequest,
@@ -76,20 +62,12 @@ export async function POST(
     }
     const data = commentSchema.parse(payload);
 
-    const db = await getDatabase();
-  const articles = db.collection(COLLECTIONS.HELP_ARTICLES);
-  const comments = db.collection(COLLECTIONS.HELP_COMMENTS);
-
-    const articleFilter = buildArticleFilter(params.id, user.orgId);
-    // Query uses native MongoDB driver (already returns lean POJO)
-    // eslint-disable-next-line local/require-lean -- NO_LEAN: Native driver returns lean POJO
-    const article = await articles.findOne(articleFilter, {
-      projection: { slug: 1, status: 1, orgId: 1 },
-    });
-    if (!article) {
+    // TD-001: Migrated from db.collection() to Mongoose service
+    const articleInfo = await helpArticleService.getArticleBasicInfo(params.id, user.orgId);
+    if (!articleInfo) {
       return createSecureResponse({ error: "Article not found" }, 404, req);
     }
-    if (article.status !== "PUBLISHED") {
+    if (articleInfo.status !== "PUBLISHED") {
       return createSecureResponse(
         { error: "Comments are allowed only on published articles" },
         403,
@@ -97,10 +75,14 @@ export async function POST(
       );
     }
 
+    // Comments collection still uses native driver (no Mongoose model yet)
+    const db = await getDatabase();
+    const comments = db.collection(COLLECTIONS.HELP_COMMENTS);
+
     const now = new Date();
     await comments.insertOne({
-      articleSlug: article.slug,
-      orgId: article.orgId ?? user.orgId ?? null,
+      articleSlug: articleInfo.slug,
+      orgId: articleInfo.orgId ?? user.orgId ?? null,
       userId: user.id,
       comment: data.comment.trim(),
       createdAt: now,
@@ -145,17 +127,9 @@ export async function GET(
       return createSecureResponse({ error: "Unauthorized" }, 401, req);
     }
 
-    const db = await getDatabase();
-    const articles = db.collection(COLLECTIONS.HELP_ARTICLES);
-    const comments = db.collection(COLLECTIONS.HELP_COMMENTS);
-
-    const articleFilter = buildArticleFilter(params.id, user.orgId);
-    // Query uses native MongoDB driver (already returns lean POJO)
-    // eslint-disable-next-line local/require-lean -- NO_LEAN: Native driver returns lean POJO
-    const article = await articles.findOne(articleFilter, {
-      projection: { slug: 1, status: 1 },
-    });
-    if (!article) {
+    // TD-001: Migrated from db.collection() to Mongoose service
+    const articleInfo = await helpArticleService.getArticleBasicInfo(params.id, user.orgId);
+    if (!articleInfo) {
       return createSecureResponse({ error: "Article not found" }, 404, req);
     }
 
@@ -165,20 +139,24 @@ export async function GET(
     const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)));
     const skip = (page - 1) * limit;
 
+    // Comments collection still uses native driver (no Mongoose model yet)
+    const db = await getDatabase();
+    const comments = db.collection(COLLECTIONS.HELP_COMMENTS);
+
     // Fetch comments for this article (tenant-scoped via article filter)
     // PLATFORM-WIDE: Comments are fetched by articleSlug (article already tenant-scoped)
      
     const [items, total] = await Promise.all([
       // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped via articleSlug
       comments
-        .find({ articleSlug: article.slug })
+        .find({ articleSlug: articleInfo.slug })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .project({ _id: 1, userId: 1, comment: 1, createdAt: 1 })
         .toArray(),
       // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: scoped via articleSlug
-      comments.countDocuments({ articleSlug: article.slug }),
+      comments.countDocuments({ articleSlug: articleInfo.slug }),
     ]);
 
     return createSecureResponse(

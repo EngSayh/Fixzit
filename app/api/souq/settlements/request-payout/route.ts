@@ -112,27 +112,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Seller not found" }, { status: 404 });
     }
 
-    // Normalize orgId to match both legacy ObjectId and current string storage in souq_settlements/souq_payouts
-    const orgCandidates = ObjectId.isValid(orgId)
-      ? [orgId, new ObjectId(orgId)]
-      : [orgId];
-
-    // 🔐 STRICT v4.1: Fetch statement with orgId for tenant isolation and validate amount
-    const db = (await connectDb()).connection.db!;
-    const sellerFilter = ObjectId.isValid(targetSellerId)
-      ? new ObjectId(targetSellerId)
-      : targetSellerId;
-
-    const statement = await db.collection("souq_settlements").findOne(
-      {
-        statementId,
-        sellerId: sellerFilter,
-        orgId: { $in: orgCandidates },
-      },
-      { projection: { summary: 1, status: 1, sellerId: 1 } },
+    // TD-001: Migrated from db.collection() to SellerBalanceService helpers
+    const statementInfo = await SellerBalanceService.getStatementBasicInfo(
+      statementId,
+      targetSellerId,
+      orgId,
     );
 
-    if (!statement) {
+    if (!statementInfo) {
       return NextResponse.json(
         { error: "Settlement statement not found" },
         { status: 404 },
@@ -141,20 +128,19 @@ export async function POST(request: NextRequest) {
 
     // 🔐 STRICT v4.1: Statement must be approved before payout can be requested
     // This prevents creating orphaned withdrawals for non-approved statements
-    if (statement.status !== "approved") {
+    if (statementInfo.status !== "approved") {
       return NextResponse.json(
-        { error: `Statement must be approved before payout. Current status: ${statement.status || 'unknown'}` },
+        { error: `Statement must be approved before payout. Current status: ${statementInfo.status || 'unknown'}` },
         { status: 400 },
       );
     }
 
-    // 🔐 STRICT v4.1: Check if payout already exists for this statement
-    const existingPayout = await db.collection("souq_payouts").findOne({
+    // TD-001: Check for existing payout using service method
+    const existingPayout = await SellerBalanceService.getExistingPayout(
       statementId,
-      sellerId: sellerFilter,
-      orgId: { $in: orgCandidates },
-      status: { $nin: ["failed", "cancelled"] },
-    });
+      targetSellerId,
+      orgId,
+    );
     if (existingPayout) {
       return NextResponse.json(
         { error: `Payout already exists for this statement (${existingPayout.payoutId})` },
@@ -162,7 +148,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const netPayout = statement.summary?.netPayout;
+    const netPayout = statementInfo.netPayout;
     if (typeof netPayout !== "number" || netPayout <= 0) {
       return NextResponse.json(
         { error: "Invalid statement: no valid netPayout amount" },
@@ -192,6 +178,12 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    // Get DB connection for withdrawal updates (still needed for write operations)
+    const db = (await connectDb()).connection.db!;
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
 
     let withdrawalRequest: { requestId: string; amount: number } | null = null;
 

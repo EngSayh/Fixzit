@@ -695,6 +695,22 @@ class ReviewService {
   }
 
   /**
+   * TD-001: Get product's orgId for tenant-scoped review queries
+   * Replaces db.collection().findOne() calls in routes
+   * @param productId - The product ID (fsin)
+   * @returns orgId or null if product not found
+   */
+  async getProductOrgId(productId: string): Promise<string | null> {
+    // orgId-lint-ignore -- PLATFORM_WIDE: Looking up product to GET its orgId for tenant scoping
+    const product = await SouqProduct.findOne(
+      { $or: [{ productId }, { fsin: productId }] },
+      { orgId: 1 }
+    ).lean();
+    
+    return product?.orgId?.toString() ?? null;
+  }
+
+  /**
    * Approve review (moderator)
    * 🔐 STRICT v4.1: Requires moderator role validation
    */

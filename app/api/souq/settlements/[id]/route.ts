@@ -10,8 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { connectDb } from "@/lib/mongodb-unified";
-import { COLLECTIONS } from "@/lib/db/collections";
+import { SouqSettlement } from "@/server/models/souq/Settlement";
 
 export async function GET(
   request: NextRequest,
@@ -32,6 +31,7 @@ export async function GET(
     }
 
     const { id: statementId } = params;
+    const orgId = (session.user as { orgId?: string }).orgId;
 
     // [FIXZIT-API-SETTLE-001] Validate ID format before database operation
     if (!statementId) {
@@ -41,13 +41,19 @@ export async function GET(
       );
     }
 
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
-    const statementsCollection = db.collection(COLLECTIONS.SOUQ_SETTLEMENTS);
+    // TD-001: Migrated from db.collection() to Mongoose model with proper tenant scoping
+    // Build filter with org scoping for non-admin users
+    const userRole = (session.user as { role?: string }).role;
+    const isAdmin = ["ADMIN", "SUPER_ADMIN", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER"].includes(userRole || "");
+    
+    const filter: Record<string, unknown> = { settlementId: statementId };
+    
+    // 🔐 TD-001 FIX: Add org scoping for tenant isolation
+    if (orgId) {
+      filter.orgId = orgId;
+    }
 
-    // Fetch statement
-    // eslint-disable-next-line local/require-lean, local/require-tenant-scope -- NO_LEAN: Native driver; Seller access check follows
-    const statement = await statementsCollection.findOne({ statementId });
+    const statement = await SouqSettlement.findOne(filter).lean();
 
     if (!statement) {
       return NextResponse.json(
@@ -57,11 +63,9 @@ export async function GET(
     }
 
     // Authorization: Seller can only view own statements, admin can view all
-    const userRole = (session.user as { role?: string }).role;
-    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN and FINANCE roles
     if (
-      !["ADMIN", "SUPER_ADMIN", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER"].includes(userRole || "") &&
-      statement.sellerId !== session.user.id
+      !isAdmin &&
+      String(statement.sellerId) !== session.user.id
     ) {
       // Return 404 to prevent cross-tenant existence leak
       return NextResponse.json({ error: "Settlement statement not found" }, { status: 404 });
