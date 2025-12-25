@@ -151,6 +151,11 @@ function generatePathStub(route: string, methods: string[]): string {
   return yaml;
 }
 
+/**
+ * Orchestrates generation of OpenAPI path stubs for undocumented API routes.
+ *
+ * Scans app/api for route handlers and their exported HTTP methods, compares discovered routes against paths listed in openapi.yaml, and writes YAML stubs for undocumented routes to openapi-stubs.yaml. Prints progress and a categorized summary of undocumented routes.
+ */
 async function main() {
   console.log('🔍 Scanning API routes...');
   

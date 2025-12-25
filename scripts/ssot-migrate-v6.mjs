@@ -32,7 +32,12 @@ const STATUS_MAP = new Map([
   ["fixed", "resolved"],
 ]);
 
-// Unused but kept for reference; prefixed to silence lint
+/**
+ * Normalize a status value to a canonical status string using STATUS_MAP.
+ *
+ * @param {*} s - The status value to normalize; typically a string but may be any value.
+ * @returns {*} The canonical status string if `s` (trimmed and lowercased) matches a known key in `STATUS_MAP`, otherwise returns the original `s`.
+ */
 function _normalizeStatus(s) {
   if (!s || typeof s !== "string") return s;
   const key = s.trim().toLowerCase();
