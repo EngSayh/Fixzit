@@ -91,7 +91,7 @@ export async function POST(
         $set: {
           "assignment.assignedTo.userId": body.assigneeUserId ?? null,
           "assignment.assignedTo.vendorId": body.assigneeVendorId ?? null,
-          "assignment.assignedBy": user.id,
+          "assignment.assignedBy": Types.ObjectId.isValid(user.id) ? new Types.ObjectId(user.id) : user.id,
           "assignment.assignedAt": now,
           status: nextStatus,
         },

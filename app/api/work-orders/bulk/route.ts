@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
                 ...(assigneeVendorId && { vendorId: assigneeVendorId }),
               },
               "assignment.assignedAt": new Date(),
-              "assignment.assignedBy": user.id,
+              "assignment.assignedBy": Types.ObjectId.isValid(user.id) ? new Types.ObjectId(user.id) : user.id,
               status: "ASSIGNED",
               updatedAt: new Date(),
               updatedBy: user.id,
