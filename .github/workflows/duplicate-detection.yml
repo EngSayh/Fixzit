@@ -87,7 +87,7 @@ jobs:
 
             if (groups === 0) return;
 
-            let comment = `## ⚠️ Duplicate Files Detected\n\n`;
+            let comment = `## âš ï¸ Duplicate Files Detected\n\n`;
             comment += `**Summary:**\n`;
             comment += `- Duplicate groups: ${groups}\n`;
             comment += `- Wasted space: ${wastedMB} MB\n\n`;
@@ -115,10 +115,10 @@ jobs:
                   repo: context.repo.repo,
                   body: comment
                 });
-                console.log(`✓ Comment posted successfully on attempt ${attempt}`);
+                console.log(`âœ“ Comment posted successfully on attempt ${attempt}`);
                 break;
               } catch (error) {
-                console.log(`⚠️  Attempt ${attempt}/${maxRetries} failed: ${error.message}`);
+                console.log(`âš ï¸  Attempt ${attempt}/${maxRetries} failed: ${error.message}`);
                 if (attempt === maxRetries) {
                   core.warning('Failed to post PR comment after 3 attempts. Duplicate detection results available in artifacts.');
                 } else {
@@ -130,6 +130,6 @@ jobs:
       - name: Fail if duplicates exceed threshold
         if: steps.detect.outputs.duplicates_found == 'true'
         run: |
-          echo "❌ Duplicate files exceed threshold"
+          echo "âŒ Duplicate files exceed threshold"
           echo "Please clean up duplicate files before merging"
           exit 1

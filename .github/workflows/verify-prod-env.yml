@@ -70,7 +70,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: ⚠️ Ensure Mongo Indexes (PRODUCTION - intentional)
+      - name: âš ï¸ Ensure Mongo Indexes (PRODUCTION - intentional)
         # NOTE: This workflow intentionally validates production environment.
         # Index creation is idempotent and safe. If you need to block prod writes,
         # set ALLOW_PROD_MONGO=false in workflow_dispatch inputs.
@@ -78,21 +78,21 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
         if: ${{ env.MONGODB_URI != '' }}
         run: |
-          echo "⚠️  Running against PRODUCTION database (verify-prod-env workflow)"
+          echo "âš ï¸  Running against PRODUCTION database (verify-prod-env workflow)"
           echo "   This is intentional for production validation."
           pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
 
       - name: Run production environment validation
         id: validate
         run: |
-          echo "🔍 Running production environment validation..."
+          echo "ðŸ” Running production environment validation..."
           pnpm guard:prod-env
           echo "validation_status=success" >> "$GITHUB_OUTPUT"
 
       - name: Check validation result
         if: failure()
         run: |
-          echo "❌ Production environment validation failed!"
+          echo "âŒ Production environment validation failed!"
           echo "The guard:prod-env script detected missing or invalid secrets."
           echo ""
           echo "Please configure the following secrets in GitHub Actions:"
@@ -110,8 +110,8 @@ jobs:
           echo "  - ZATCA_SELLER_ADDRESS"
           echo ""
           echo "Set these in:"
-          echo "  - GitHub: Repository Settings → Secrets and Variables → Actions"
-          echo "  - Vercel: Project Settings → Environment Variables"
+          echo "  - GitHub: Repository Settings â†’ Secrets and Variables â†’ Actions"
+          echo "  - Vercel: Project Settings â†’ Environment Variables"
           exit 1
 
       - name: Post validation success
@@ -123,7 +123,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ **Production Environment Validation Passed**\n\nAll required secrets (Auth, PayTabs, ZATCA) are configured.'
+              body: 'âœ… **Production Environment Validation Passed**\n\nAll required secrets (Auth, PayTabs, ZATCA) are configured.'
             })
 
       - name: Summary

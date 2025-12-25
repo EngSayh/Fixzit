@@ -26,21 +26,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🔒 Assert non-production MongoDB
+      - name: ðŸ”’ Assert non-production MongoDB
         if: ${{ env.MONGODB_URI != '' }}
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           CI: "true"
         run: pnpm tsx scripts/assert-nonprod-mongo.ts
 
-      - name: 🧪 Skip governance (.only hard-fail + skip baseline cap)
+      - name: ðŸ§ª Skip governance (.only hard-fail + skip baseline cap)
         run: |
           echo "=== Checking for .only() ==="
           if rg -n "\.(only)\(" tests app server lib 2>/dev/null; then
-            echo "❌ Found .only() - this would skip other tests!"
+            echo "âŒ Found .only() - this would skip other tests!"
             exit 1
           fi
-          echo "✅ No .only() found"
+          echo "âœ… No .only() found"
 
           echo ""
           echo "=== Skip baseline cap check ==="
@@ -49,11 +49,11 @@ jobs:
           echo "Current skip count: ${SKIP_COUNT:-0}"
           echo "Baseline: $SKIP_BASELINE"
           if [ "${SKIP_COUNT:-0}" -gt "$SKIP_BASELINE" ]; then
-            echo "❌ Skip count ($SKIP_COUNT) exceeds baseline ($SKIP_BASELINE)!"
+            echo "âŒ Skip count ($SKIP_COUNT) exceeds baseline ($SKIP_BASELINE)!"
             echo "If you need to add skips, increase the baseline in qa.yml with justification."
             exit 1
           fi
-          echo "✅ Skip count within baseline"
+          echo "âœ… Skip count within baseline"
 
       - name: Critical env guard
         run: pnpm run guard:ci:critical
@@ -61,10 +61,10 @@ jobs:
       - name: Guard placeholders
         run: |
           if grep -rn "PlannedFeature\|ComingSoon\|UnderConstruction" app --include="*.tsx" 2>/dev/null; then
-            echo "❌ Placeholder components found in app/"
+            echo "âŒ Placeholder components found in app/"
             exit 1
           fi
-          echo "✅ No placeholder components found"
+          echo "âœ… No placeholder components found"
 
       - name: Lint
         run: pnpm lint

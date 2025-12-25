@@ -76,13 +76,13 @@ jobs:
         run: pnpm run lint
         continue-on-error: false
 
-      - name: 🔒 Assert non-production MongoDB
+      - name: ðŸ”’ Assert non-production MongoDB
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           CI: "true"
         run: |
           if [ -z "$MONGODB_URI" ]; then
-            echo "⏭️ Skipping - MONGODB_URI not configured"
+            echo "â­ï¸ Skipping - MONGODB_URI not configured"
             exit 0
           fi
           pnpm tsx scripts/assert-nonprod-mongo.ts
@@ -93,7 +93,7 @@ jobs:
           CI: "true"
         run: |
           if [ -z "$MONGODB_URI" ]; then
-            echo "⏭️ Skipping - MONGODB_URI not configured"
+            echo "â­ï¸ Skipping - MONGODB_URI not configured"
             exit 0
           fi
           pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
@@ -112,7 +112,7 @@ jobs:
             COVERAGE=$(node -p "const summary=require('./coverage/coverage-summary.json'); summary?.total?.lines?.pct ?? 0")
             echo "Code coverage: ${COVERAGE}%"
             if node -e "process.exit(parseFloat(process.argv[1]) >= 80 ? 0 : 1)" "$COVERAGE"; then
-              echo "✅ Code coverage ${COVERAGE}% meets 80% threshold"
+              echo "âœ… Code coverage ${COVERAGE}% meets 80% threshold"
             else
               echo "::warning::Code coverage ${COVERAGE}% is below 80% threshold"
             fi

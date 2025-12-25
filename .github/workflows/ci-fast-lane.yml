@@ -63,6 +63,6 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "✅ Fast lane complete"
+          echo "âœ… Fast lane complete"
           echo "Changed files tested in <10min"
           echo "Full suite runs on PR merge"

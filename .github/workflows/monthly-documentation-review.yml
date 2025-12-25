@@ -35,7 +35,7 @@ jobs:
           }
 
           # Extract key metrics
-          needs_review=$(grep -c "⚠️" doc-review-report.txt || echo "0")
+          needs_review=$(grep -c "âš ï¸" doc-review-report.txt || echo "0")
           echo "needs_review=$needs_review" >> $GITHUB_OUTPUT
 
       - name: Upload review report
@@ -56,7 +56,7 @@ jobs:
             const issue = await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `📋 Monthly Documentation Review - ${new Date().toISOString().split('T')[0]}`,
+              title: `ðŸ“‹ Monthly Documentation Review - ${new Date().toISOString().split('T')[0]}`,
               body: `## Monthly Documentation Review\n\nSome documentation files need review:\n\n\`\`\`\n${report}\n\`\`\`\n\n### Action Items:\n- [ ] Review outdated files in \`docs/current/\`\n- [ ] Update or archive as needed\n- [ ] Close this issue when complete`,
               labels: ['documentation', 'maintenance', 'monthly-review']
             });

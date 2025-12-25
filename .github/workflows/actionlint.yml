@@ -1,4 +1,4 @@
-name: 🔍 Workflow Lint (actionlint)
+name: ðŸ” Workflow Lint (actionlint)
 
 on:
   pull_request:
@@ -23,10 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Checkout code
+      - name: ðŸ“¥ Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔍 Run actionlint
+      - name: ðŸ” Run actionlint
         uses: reviewdog/action-actionlint@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -36,14 +36,14 @@ jobs:
             -ignore 'SC2086:.*'
             -ignore 'SC2016:.*'
 
-      - name: ✅ Lint complete
+      - name: âœ… Lint complete
         if: success()
-        run: echo "✅ All workflow files passed actionlint validation"
+        run: echo "âœ… All workflow files passed actionlint validation"
 
-      - name: ❌ Lint failed
+      - name: âŒ Lint failed
         if: failure()
         run: |
-          echo "❌ Workflow lint failed. Please fix the issues reported above."
+          echo "âŒ Workflow lint failed. Please fix the issues reported above."
           echo "Common issues:"
           echo "  - Invalid workflow syntax"
           echo "  - Missing required fields"

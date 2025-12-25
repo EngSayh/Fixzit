@@ -157,14 +157,14 @@ jobs:
             *) npm run typecheck || npm run tsc --noEmit ;;
           esac
 
-      - name: 🔒 Assert non-production MongoDB
+      - name: ðŸ”’ Assert non-production MongoDB
         shell: bash
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           CI: "true"
         run: |
           if [ -z "$MONGODB_URI" ]; then
-            echo "⏭️ Skipping - MONGODB_URI not configured"
+            echo "â­ï¸ Skipping - MONGODB_URI not configured"
             exit 0
           fi
           case "${{ steps.pm.outputs.manager }}" in
@@ -180,7 +180,7 @@ jobs:
           CI: "true"
         run: |
           if [ -z "$MONGODB_URI" ]; then
-            echo "⏭️ Skipping - MONGODB_URI not configured"
+            echo "â­ï¸ Skipping - MONGODB_URI not configured"
             exit 0
           fi
           case "${{ steps.pm.outputs.manager }}" in
@@ -391,7 +391,7 @@ jobs:
             echo "::error::High or critical security vulnerabilities detected. Review .artifacts/dep-audit.json and fix before merging."
             exit 1
           else
-            echo "✅ No high/critical vulnerabilities detected"
+            echo "âœ… No high/critical vulnerabilities detected"
           fi
 
       # ---------- k6 Smoke (package only) ----------
@@ -433,7 +433,7 @@ jobs:
           # Try multiple possible locations for Lighthouse reports
           for lhci_path in ".artifacts/lhci_reports/manifest.json" "lhci_reports/manifest.json" ".lighthouseci/manifest.json"; do
             if [ -f "$lhci_path" ]; then
-              echo "📊 Found Lighthouse report at: $lhci_path"
+              echo "ðŸ“Š Found Lighthouse report at: $lhci_path"
 
               # Check if jq is available for JSON parsing
               if command -v jq &> /dev/null; then
@@ -444,9 +444,9 @@ jobs:
                 if [ "$raw_score" != "0" ] && [ "$raw_score" != "null" ]; then
                   perf_score=$raw_score
                   lighthouse_parsed="true"
-                  echo "✅ Parsed Lighthouse performance score: ${perf_score}"
+                  echo "âœ… Parsed Lighthouse performance score: ${perf_score}"
                 else
-                  echo "⚠️ Could not parse performance from manifest, checking for lhr files..."
+                  echo "âš ï¸ Could not parse performance from manifest, checking for lhr files..."
 
                   # Fallback: try to parse individual LHR JSON files
                   lhr_dir=$(dirname "$lhci_path")
@@ -457,7 +457,7 @@ jobs:
                         if [ "$lhr_score" != "0" ] && [ "$lhr_score" != "null" ]; then
                           perf_score=$(echo "$lhr_score * 100" | bc -l | cut -d. -f1)
                           lighthouse_parsed="true"
-                          echo "✅ Parsed from LHR file: ${perf_score}"
+                          echo "âœ… Parsed from LHR file: ${perf_score}"
                           break
                         fi
                       fi
@@ -465,14 +465,14 @@ jobs:
                   fi
                 fi
               else
-                echo "⚠️ jq not available, using grep fallback..."
+                echo "âš ï¸ jq not available, using grep fallback..."
                 # Fallback without jq: extract performance value with grep/sed
                 raw_score=$(grep -o '"performance":[0-9.]*' "$lhci_path" | head -1 | grep -o '[0-9.]*' || echo "0")
                 if [ -n "$raw_score" ] && [ "$raw_score" != "0" ]; then
                   perf_score=$(echo "$raw_score * 100" | bc -l 2>/dev/null | cut -d. -f1 || echo "0")
                   if [ "$perf_score" != "0" ]; then
                     lighthouse_parsed="true"
-                    echo "✅ Parsed (grep fallback): ${perf_score}"
+                    echo "âœ… Parsed (grep fallback): ${perf_score}"
                   fi
                 fi
               fi
@@ -485,14 +485,14 @@ jobs:
           if [ "$lighthouse_parsed" = "false" ]; then
             if [ -d "lhci_reports" ] || [ -d ".lighthouseci" ]; then
               echo "::warning::Lighthouse ran but couldn't parse scores - investigate report format"
-              echo "⚠️ Lighthouse ran but couldn't parse scores - defaulting to 50 (investigate)"
+              echo "âš ï¸ Lighthouse ran but couldn't parse scores - defaulting to 50 (investigate)"
               perf_score=50
             else
               # AUDIT-2025-12: Emit GitHub warning when performance data is missing
               # This ensures PRs cannot be merged silently without performance validation
               echo "::warning::No Lighthouse performance data available - PR missing performance validation"
-              echo "⚠️ No Lighthouse reports found - performance score is 0"
-              echo "ℹ️ Consider running 'pnpm lighthouse' locally before merging"
+              echo "âš ï¸ No Lighthouse reports found - performance score is 0"
+              echo "â„¹ï¸ Consider running 'pnpm lighthouse' locally before merging"
               perf_score=0
               # Set output for branch protection rules
               echo "LIGHTHOUSE_MISSING=true" >> $GITHUB_OUTPUT
@@ -552,7 +552,7 @@ jobs:
           }
           EOF
 
-          echo "📊 Security Scorecard generated with total score: ${total_score}"
+          echo "ðŸ“Š Security Scorecard generated with total score: ${total_score}"
           echo "   Code Quality: ${code_quality_score}, Security: ${security_score}, Performance: ${performance_score}"
 
       # ---------- Upload artifacts ----------
@@ -571,17 +571,17 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "## 🎯 Fixzit Quality Gates Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## ðŸŽ¯ Fixzit Quality Gates Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "${{ job.status }}" = "success" ]; then
-            echo "✅ **Quality gates completed successfully!**" >> $GITHUB_STEP_SUMMARY
+            echo "âœ… **Quality gates completed successfully!**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️ **Quality gates completed with warnings or failures.**" >> $GITHUB_STEP_SUMMARY
+            echo "âš ï¸ **Quality gates completed with warnings or failures.**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Check the job logs above for details on which steps failed." >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📦 Generated Artifacts:" >> $GITHUB_STEP_SUMMARY
+          echo "### ðŸ“¦ Generated Artifacts:" >> $GITHUB_STEP_SUMMARY
           echo "- **OpenAPI Specification** (if found or generated)" >> $GITHUB_STEP_SUMMARY
           echo "- **Postman Collection** (exported from OpenAPI)" >> $GITHUB_STEP_SUMMARY
           echo "- **RBAC Matrix CSV** (role-based access control analysis)" >> $GITHUB_STEP_SUMMARY
@@ -728,27 +728,27 @@ jobs:
           TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
 
         run: |
-          echo "🔒 Running RBAC E2E Tests - Sub-Role API Access"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "ðŸ”’ Running RBAC E2E Tests - Sub-Role API Access"
+          echo "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”"
           echo "This validates:"
-          echo "  • Finance Officer access to /api/finance/*"
-          echo "  • HR Officer access to /api/hr/*"
-          echo "  • Support Agent access to /api/support/*"
-          echo "  • Operations Manager access to /api/work-orders/*"
-          echo "  • Cross-boundary access denials"
-          echo "  • Tenant data isolation (org_id scoping)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  â€¢ Finance Officer access to /api/finance/*"
+          echo "  â€¢ HR Officer access to /api/hr/*"
+          echo "  â€¢ Support Agent access to /api/support/*"
+          echo "  â€¢ Operations Manager access to /api/work-orders/*"
+          echo "  â€¢ Cross-boundary access denials"
+          echo "  â€¢ Tenant data isolation (org_id scoping)"
+          echo "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”"
 
           pnpm exec playwright test \
             tests/e2e/subrole-api-access.spec.ts \
             --retries=2 \
             --reporter=list,html || {
-              echo "❌ RBAC E2E tests failed!"
+              echo "âŒ RBAC E2E tests failed!"
               echo "Check the test report for details on which permissions are misconfigured."
               exit 1
             }
 
-          echo "✅ All RBAC E2E tests passed - Sub-role permissions verified"
+          echo "âœ… All RBAC E2E tests passed - Sub-role permissions verified"
 
       - name: Upload RBAC E2E Report
         uses: actions/upload-artifact@v4
@@ -765,7 +765,7 @@ jobs:
         if: github.event_name == 'pull_request' && failure()
         with:
           script: |
-            const body = `## 🔒 RBAC E2E Tests Failed
+            const body = `## ðŸ”’ RBAC E2E Tests Failed
 
             One or more sub-role API access tests failed. This indicates:
             - A role may have too much or too little access
@@ -790,10 +790,10 @@ jobs:
       - name: RBAC E2E Summary
         if: always()
         run: |
-          echo "## 🔒 RBAC E2E Tests - Sub-Role API Access" >> $GITHUB_STEP_SUMMARY
+          echo "## ðŸ”’ RBAC E2E Tests - Sub-Role API Access" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "${{ job.status }}" = "success" ]; then
-            echo "✅ **All RBAC tests passed!**" >> $GITHUB_STEP_SUMMARY
+            echo "âœ… **All RBAC tests passed!**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Verified:" >> $GITHUB_STEP_SUMMARY
             echo "- Finance Officer permissions" >> $GITHUB_STEP_SUMMARY
@@ -804,7 +804,7 @@ jobs:
             echo "- Cross-boundary denials" >> $GITHUB_STEP_SUMMARY
             echo "- Tenant data isolation" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **RBAC tests failed - review permissions**" >> $GITHUB_STEP_SUMMARY
+            echo "âŒ **RBAC tests failed - review permissions**" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "[Download report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY

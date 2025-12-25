@@ -1,6 +1,6 @@
-name: Release Gate (Staging → Production)
+name: Release Gate (Staging â†’ Production)
 
-# PROC-007: Staging→Prod Release Gate
+# PROC-007: Stagingâ†’Prod Release Gate
 # Ensures staging validation before production deployment
 #
 # Flow:
@@ -112,7 +112,7 @@ jobs:
         run: |
           DEPLOYMENT_URL=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
           echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-          echo "✅ Deployed to staging: $DEPLOYMENT_URL"
+          echo "âœ… Deployed to staging: $DEPLOYMENT_URL"
 
   # Stage 3: Run smoke tests against staging
   smoke-tests:
@@ -144,27 +144,27 @@ jobs:
           BASE_URL: ${{ needs.deploy-staging.outputs.staging_url }}
           STAGING_URL: ${{ needs.deploy-staging.outputs.staging_url }}
         run: |
-          echo "🧪 Running smoke tests against: $BASE_URL"
+          echo "ðŸ§ª Running smoke tests against: $BASE_URL"
           pnpm playwright test tests/e2e/smoke/ --reporter=github
 
       - name: Health check
         run: |
-          echo "🏥 Checking health endpoints..."
+          echo "ðŸ¥ Checking health endpoints..."
           STAGING_URL="${{ needs.deploy-staging.outputs.staging_url }}"
           
           # Check liveness
           curl -sf "$STAGING_URL/api/health/live" || {
-            echo "❌ Liveness check failed"
+            echo "âŒ Liveness check failed"
             exit 1
           }
-          echo "✅ Liveness: OK"
+          echo "âœ… Liveness: OK"
           
           # Check readiness
           curl -sf "$STAGING_URL/api/health/ready" || {
-            echo "❌ Readiness check failed"
+            echo "âŒ Readiness check failed"
             exit 1
           }
-          echo "✅ Readiness: OK"
+          echo "âœ… Readiness: OK"
 
   # Stage 4: Manual approval gate
   approval-gate:
@@ -176,9 +176,9 @@ jobs:
     steps:
       - name: Approval checkpoint
         run: |
-          echo "✅ Staging deployment verified"
-          echo "📋 Build ID: ${{ needs.build.outputs.build_id }}"
-          echo "🔗 Staging URL: ${{ needs.deploy-staging.outputs.staging_url }}"
+          echo "âœ… Staging deployment verified"
+          echo "ðŸ“‹ Build ID: ${{ needs.build.outputs.build_id }}"
+          echo "ðŸ”— Staging URL: ${{ needs.deploy-staging.outputs.staging_url }}"
           echo ""
           echo "This deployment has been approved for production."
 
@@ -215,26 +215,26 @@ jobs:
         run: |
           DEPLOYMENT_URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
           echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-          echo "✅ Deployed to production: $DEPLOYMENT_URL"
+          echo "âœ… Deployed to production: $DEPLOYMENT_URL"
 
       - name: Post-deployment health check
         run: |
-          echo "🏥 Verifying production deployment..."
+          echo "ðŸ¥ Verifying production deployment..."
           sleep 30  # Wait for deployment to propagate
           
           # Check liveness
           curl -sf "https://fixzit.app/api/health/live" || {
-            echo "❌ Production liveness check failed"
+            echo "âŒ Production liveness check failed"
             exit 1
           }
-          echo "✅ Production liveness: OK"
+          echo "âœ… Production liveness: OK"
           
           # Check readiness
           curl -sf "https://fixzit.app/api/health/ready" || {
-            echo "❌ Production readiness check failed"  
+            echo "âŒ Production readiness check failed"  
             exit 1
           }
-          echo "✅ Production readiness: OK"
+          echo "âœ… Production readiness: OK"
 
       - name: Create release tag
         if: success()
@@ -244,7 +244,7 @@ jobs:
           TAG="release-$(date +%Y%m%d-%H%M%S)"
           git tag -a "$TAG" -m "Production release: ${{ github.sha }}"
           git push origin "$TAG"
-          echo "🏷️ Created release tag: $TAG"
+          echo "ðŸ·ï¸ Created release tag: $TAG"
 
   # Notify on failure
   notify-failure:
@@ -255,7 +255,7 @@ jobs:
     steps:
       - name: Send failure notification
         run: |
-          echo "❌ Release pipeline failed!"
+          echo "âŒ Release pipeline failed!"
           echo "Commit: ${{ github.sha }}"
           echo "Actor: ${{ github.actor }}"
           # Add Slack/email notification here if configured
