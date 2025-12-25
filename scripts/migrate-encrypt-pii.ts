@@ -43,7 +43,7 @@ const vendorTargets: EncryptTarget[] = [
 ];
 
 function setNested(doc: Record<string, unknown>, path: string, value: string) {
-  const parts = path.split(\".\");
+  const parts = path.split(".");
   let current = doc as Record<string, unknown>;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
@@ -53,30 +53,30 @@ function setNested(doc: Record<string, unknown>, path: string, value: string) {
   current[parts[parts.length - 1]] = value;
 }
 
-function getNested(doc: any, path: string): any {
+function getNested(doc: Record<string, unknown>, path: string): unknown {
   const parts = path.split(".");
-  let current = doc;
+  let current: unknown = doc;
   for (const part of parts) {
-    if (!current) return undefined;
-    current = current[part];
+    if (!current || typeof current !== 'object') return undefined;
+    current = (current as Record<string, unknown>)[part];
   }
   return current;
 }
 
-function encryptDocument(doc: any, targets: EncryptTarget[]): boolean {
+function encryptDocument(doc: Record<string, unknown>, targets: EncryptTarget[]): boolean {
   let mutated = false;
   for (const t of targets) {
     const value = getNested(doc, t.path);
     if (!value) continue;
     // handle arrays for bankAccounts
     if (Array.isArray(value)) {
-      value.forEach((entry, idx) => {
+      value.forEach((entry, _idx) => {
         if (entry && typeof entry === "object") {
           for (const key of Object.keys(entry)) {
             const fullPath = `${t.path}.${key}`;
-            const v = entry[key];
+            const v = (entry as Record<string, unknown>)[key];
             if (v && typeof v === "string" && !isEncrypted(v)) {
-              entry[key] = encryptField(v, fullPath);
+              (entry as Record<string, unknown>)[key] = encryptField(v, fullPath);
               mutated = true;
             }
           }
@@ -97,16 +97,16 @@ function encryptDocument(doc: any, targets: EncryptTarget[]): boolean {
 
 async function migrateCollection(
   name: string,
-  model: mongoose.Model<any>,
+  model: mongoose.Model<Record<string, unknown>>,
   targets: EncryptTarget[],
 ) {
   logger.info(`[PII MIGRATION] Starting ${name}`);
-  let cursor = model.find({}).lean(false).cursor({ batchSize: BATCH_SIZE });
+  const cursor = model.find({}).lean(false).cursor({ batchSize: BATCH_SIZE });
   let processed = 0;
   for await (const doc of cursor) {
-    const mutated = encryptDocument(doc, targets);
+    const mutated = encryptDocument(doc as unknown as Record<string, unknown>, targets);
     if (mutated) {
-      await doc.save();
+      await (doc as mongoose.Document).save();
     }
     processed++;
     if (processed % 500 === 0) {

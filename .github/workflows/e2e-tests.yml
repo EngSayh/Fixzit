@@ -14,6 +14,9 @@ on:
       - 'tests/playwright.config.ts'
       - 'package.json'
       - 'pnpm-lock.yaml'
+  schedule:
+    # Nightly full E2E suite at 4 AM UTC (after quality gates at 2 AM, shuffle at 3:30 AM)
+    - cron: '0 4 * * *'
   workflow_dispatch:
     inputs:
       project:
@@ -24,6 +27,11 @@ on:
         description: 'Specific test file to run (leave empty for all)'
         required: false
         default: ''
+      full_suite:
+        description: 'Run full E2E suite (not just smoke tests)'
+        required: false
+        default: 'false'
+        type: boolean
 
 # Prevent concurrent runs for same PR/ref
 concurrency:
@@ -98,13 +106,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Run critical smoke tests in parallel
-        # Project names MUST match playwright.config.ts exactly
-        project:
-          - 'Desktop:EN:Admin'       # Matches: Desktop:EN:Admin
-          - 'Desktop:AR:Tenant'      # Matches: Desktop:AR:Tenant
-          - 'Mobile:EN:Technician'   # Mobile Android field ops
-          - 'Mobile:AR:Tenant'       # Mobile iOS self-service
+        # Smoke tests for PRs (fast feedback) - 4 critical role-locale combos
+        # Full suite for nightly schedule - all 5 browser projects
+        # Use workflow_dispatch with full_suite=true for manual full runs
+        project: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.full_suite == 'true')) && fromJson('["chromium", "firefox", "webkit", "Mobile Chrome", "Mobile Safari"]') || fromJson('["Desktop:EN:Admin", "Desktop:AR:Tenant", "Mobile:EN:Technician", "Mobile:AR:Tenant"]') }}
 
     env:
       NODE_OPTIONS: --max-old-space-size=8192

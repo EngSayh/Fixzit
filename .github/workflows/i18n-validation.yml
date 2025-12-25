@@ -160,9 +160,9 @@ jobs:
           echo "   Difference:   $((EN_KEYS - AR_KEYS))"
           echo ""
 
-          # Current baseline from actual state (29672 EN, 29672 AR)
-          BASELINE_EN=29672
-          BASELINE_AR=29672
+          # Updated baseline from actual state (31432 EN, 31432 AR) - 2025-01 audit
+          BASELINE_EN=31432
+          BASELINE_AR=31432
 
           if [ "$EN_KEYS" -lt "$BASELINE_EN" ]; then
             echo "❌ English key count dropped below baseline ($BASELINE_EN)"

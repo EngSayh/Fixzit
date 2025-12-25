@@ -111,10 +111,10 @@ jobs:
           if [ -f coverage/coverage-summary.json ]; then
             COVERAGE=$(node -p "const summary=require('./coverage/coverage-summary.json'); summary?.total?.lines?.pct ?? 0")
             echo "Code coverage: ${COVERAGE}%"
-            if node -e "process.exit(parseFloat(process.argv[1]) >= 80 ? 0 : 1)" "$COVERAGE"; then
-              echo "✅ Code coverage ${COVERAGE}% meets 80% threshold"
+            if node -e "process.exit(parseFloat(process.argv[1]) >= 85 ? 0 : 1)" "$COVERAGE"; then
+              echo "✅ Code coverage ${COVERAGE}% meets 85% threshold"
             else
-              echo "::warning::Code coverage ${COVERAGE}% is below 80% threshold"
+              echo "::warning::Code coverage ${COVERAGE}% is below 85% threshold"
             fi
           else
             echo "::warning::Coverage report not found - tests may have failed. Full test coverage verified in E2E workflow."

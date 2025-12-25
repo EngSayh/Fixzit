@@ -17,7 +17,7 @@ const tapPublicKey = tapEnvIsLive ? env.NEXT_PUBLIC_TAP_LIVE_PUBLIC_KEY : env.NE
 const tapConfigured = Boolean(tapPublicKey) && Boolean(env.TAP_WEBHOOK_SECRET);
 
 // ZATCA (Saudi e-invoicing) configuration required for Finance/ZATCA domain
-const zatcaConfigured = Boolean(env.ZATCA_API_KEY) && Boolean(env.ZATCA_SELLER_NAME) &&
+const _zatcaConfigured = Boolean(env.ZATCA_API_KEY) && Boolean(env.ZATCA_SELLER_NAME) &&
                         Boolean(env.ZATCA_VAT_NUMBER) && Boolean(env.ZATCA_SELLER_ADDRESS);
 
 if (!isProdDeploy) {
@@ -30,7 +30,7 @@ function requireFalse(name, msg) {
     violations.push(msg || `${name} must be false in production`);
   }
 }
-function warnIfMissing(name, msg) {
+function _warnIfMissing(name, msg) {
   if (!env[name]) {
     warnings.push(msg || `${name} is missing; related features will be disabled`);
   }

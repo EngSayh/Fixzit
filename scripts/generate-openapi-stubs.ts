@@ -173,11 +173,11 @@ async function main() {
   // Match paths that start with / at 2-space indent (OpenAPI paths format)
   // Pattern: exactly 2 spaces, then /, then path segments until end of identifier
   const existingSpec = fs.readFileSync('openapi.yaml', 'utf8');
-  const pathRegex = /^  (\/[a-zA-Z0-9\-_/{}]+):/gm;
+  const pathRegex = /^( {2})(\/[a-zA-Z0-9\-_/{}]+):/gm;
   const documentedRoutes = new Set<string>();
   let match;
   while ((match = pathRegex.exec(existingSpec)) !== null) {
-    documentedRoutes.add(match[1]);
+    documentedRoutes.add(match[2]);
   }
   console.log(`📝 Currently documented: ${documentedRoutes.size} routes`);
   

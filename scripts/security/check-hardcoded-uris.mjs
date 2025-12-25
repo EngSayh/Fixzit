@@ -37,36 +37,36 @@ const PATTERNS = [
   { regex: /whsec_[A-Za-z0-9]{12,}/gi, name: 'Stripe Webhook Secret' },
   
   // JWT/Bearer tokens
-  { regex: /Authorization:\s*['"]Bearer\s+[A-Za-z0-9\-_\.]{20,}['"]/gi, name: 'Bearer Token' },
+  { regex: /Authorization:\s*['"]Bearer\s+[A-Za-z0-9_.-]{20,}['"]/gi, name: 'Bearer Token' },
   { regex: /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9._-]{10,}\.[A-Za-z0-9._-]{10,}/g, name: 'JWT Token' },
   
   // Email/SMS provider keys
-  { regex: /SENDGRID_API_KEY\s*[:=]\s*['"][A-Za-z0-9\-_]{16,}['"]/gi, name: 'SendGrid API Key' },
-  { regex: /MAILGUN_API_KEY\s*[:=]\s*['"][A-Za-z0-9\-_]{16,}['"]/gi, name: 'Mailgun API Key' },
+  { regex: /SENDGRID_API_KEY\s*[:=]\s*['"][A-Za-z0-9_-]{16,}['"]/gi, name: 'SendGrid API Key' },
+  { regex: /MAILGUN_API_KEY\s*[:=]\s*['"][A-Za-z0-9_-]{16,}['"]/gi, name: 'Mailgun API Key' },
   { regex: /TWILIO_AUTH_TOKEN\s*[:=]\s*['"][A-Za-z0-9]{16,}['"]/gi, name: 'Twilio Auth Token' },
   { regex: /TWILIO_ACCOUNT_SID\s*[:=]\s*['"]AC[A-Za-z0-9]{32}['"]/gi, name: 'Twilio Account SID' },
   
   // Google/GCP
-  { regex: /GOOGLE_API_KEY\s*[:=]\s*['"][A-Za-z0-9\-_]{16,}['"]/gi, name: 'Google API Key' },
-  { regex: /AIza[0-9A-Za-z\-_]{35}/g, name: 'Google API Key (AIza...)' },
+  { regex: /GOOGLE_API_KEY\s*[:=]\s*['"][A-Za-z0-9_-]{16,}['"]/gi, name: 'Google API Key' },
+  { regex: /AIza[0-9A-Za-z_-]{35}/g, name: 'Google API Key (AIza...)' },
   
   // Other providers
   { regex: /SMTP_PASSWORD\s*[:=]\s*['"][^'"]{8,}['"]/gi, name: 'SMTP Password' },
   { regex: /AWS_SESSION_TOKEN\s*[:=]\s*['"][A-Za-z0-9/+=]{16,}['"]/gi, name: 'AWS Session Token' },
   
   // Slack tokens
-  { regex: /xox[baprs]-[A-Za-z0-9\-]{10,}/g, name: 'Slack Token' },
-  { regex: /xoxc-[A-Za-z0-9\-]{10,}/g, name: 'Slack Config Token' },
-  { regex: /xapp-[A-Za-z0-9\-]{10,}/g, name: 'Slack App Token' },
-  { regex: /xoxa-[A-Za-z0-9\-]{10,}/g, name: 'Slack Admin Token' },
+  { regex: /xox[baprs]-[A-Za-z0-9-]{10,}/g, name: 'Slack Token' },
+  { regex: /xoxc-[A-Za-z0-9-]{10,}/g, name: 'Slack Config Token' },
+  { regex: /xapp-[A-Za-z0-9-]{10,}/g, name: 'Slack App Token' },
+  { regex: /xoxa-[A-Za-z0-9-]{10,}/g, name: 'Slack Admin Token' },
   
   // GitHub/GitLab
   { regex: /gh[pousr]_[A-Za-z0-9]{20,}/g, name: 'GitHub Token' },
-  { regex: /glpat-[A-Za-z0-9_\-]{20,}/g, name: 'GitLab Token' },
+  { regex: /glpat-[A-Za-z0-9_-]{20,}/g, name: 'GitLab Token' },
   
   // Heroku/DigitalOcean/Azure
-  { regex: /HEROKU_API_KEY\s*[:=]\s*['"][A-Za-z0-9_\-]{20,}['"]/gi, name: 'Heroku API Key' },
-  { regex: /DO_TOKEN\s*[:=]\s*['"][A-Za-z0-9_\-]{20,}['"]/gi, name: 'DigitalOcean Token' },
+  { regex: /HEROKU_API_KEY\s*[:=]\s*['"][A-Za-z0-9_-]{20,}['"]/gi, name: 'Heroku API Key' },
+  { regex: /DO_TOKEN\s*[:=]\s*['"][A-Za-z0-9_-]{20,}['"]/gi, name: 'DigitalOcean Token' },
   { regex: /AZURE_(CLIENT_SECRET|PASSWORD)\s*[:=]\s*['"][^'"]{12,}['"]/gi, name: 'Azure Secret' },
 ];
 

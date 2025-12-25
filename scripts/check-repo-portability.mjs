@@ -32,6 +32,7 @@ const IGNORE_DIRS = new Set([
   ".pnpm-store",
 ]);
 
+// eslint-disable-next-line no-control-regex -- Intentional: detecting Windows-invalid control chars
 const WINDOWS_INVALID_CHARS = /[<>:"\\|?*\u0000-\u001F]/; // NOTE: "/" handled by path splitting
 const WINDOWS_RESERVED = new Set([
   "CON","PRN","AUX","NUL","CLOCK$",
@@ -53,6 +54,7 @@ function hasTrailingDotOrSpace(segment) {
 }
 
 function isAscii(s) {
+  // eslint-disable-next-line no-control-regex -- Intentional: checking for ASCII range
   return /^[\x00-\x7F]*$/.test(s);
 }
 
@@ -126,12 +128,12 @@ async function main() {
     }
 
     // 3) Case-collision detection (repo-relative)
-    const lower = rel.toLowerCase();
-    if (!lowerMap.has(lower)) lowerMap.set(lower, []);
-    lowerMap.get(lower).push(rel);
+    const _lower = rel.toLowerCase();
+    if (!lowerMap.has(_lower)) lowerMap.set(_lower, []);
+    lowerMap.get(_lower).push(rel);
   }
 
-  for (const [lower, originals] of lowerMap.entries()) {
+  for (const [_lower, originals] of lowerMap.entries()) {
     const uniq = [...new Set(originals)];
     if (uniq.length > 1) {
       errors.push(`[CASE_COLLISION] These paths collide on case-insensitive FS:\n  - ${uniq.join("\n  - ")}`);

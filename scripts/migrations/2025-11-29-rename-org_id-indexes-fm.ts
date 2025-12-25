@@ -39,7 +39,7 @@ async function runMigration(dryRun: boolean) {
     const collections = await db.listCollections().toArray();
     
     let totalUpdated = 0;
-    let _totalSkipped = 0;
+    const _totalSkipped = 0;
     
     for (const col of collections) {
       const collection = db.collection(col.name);
@@ -75,7 +75,7 @@ async function runMigration(dryRun: boolean) {
             console.log(`   ✅ Dropped: ${idx.name}`);
             
             // Create the new index with same options (except internal fields)
-            const { key, name, ns, v, ...options } = idx;
+            const { key: _key, name: _name, ns: _ns, v: _v, ...options } = idx;
             await collection.createIndex(newKeys, { ...options, background: true });
             console.log(`   ✅ Created: ${JSON.stringify(newKeys)}`);
             totalUpdated++;

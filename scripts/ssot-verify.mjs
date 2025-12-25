@@ -44,7 +44,7 @@ const REQUIRED_SCHEMA_KEYS = [
   "version",
 ];
 
-function get(obj, path) {
+function _get(obj, path) {
   return path.split(".").reduce((acc, k) => (acc && acc[k] !== undefined ? acc[k] : undefined), obj);
 }
 
