@@ -5,15 +5,74 @@
 > **DERIVED LOG:** This file (MASTER_PENDING_REPORT.md) + docs/PENDING_MASTER.md  
 > **PROTOCOL:** Do not create tasks here without also creating/updating DB issues via `/api/issues/import`
 
-**Last Updated:** 2025-12-20T20:00:00+03:00 (Asia/Riyadh)  
-**Scanner Version:** v4.7 (P248 - Production Readiness Orchestrator)  
+**Last Updated:** 2025-12-25T12:50:00+03:00 (Asia/Riyadh)  
+**Scanner Version:** v5.0 (System Organizer + Folder Structure Audit)  
 **Branch:** main  
-**Commit:** 226956cba (chore: trigger Vercel redeploy with fixed lockfile)  
-**Last Work:** P248 - Production Readiness Orchestrator - 50%+ TARGET ACHIEVED  
+**Commit:** 96ef97e00 (docs: add Superadmin OrgID reference)  
+**Last Work:** System Organizer Scan - Dec 25, 2025  
 **MongoDB Status:** ⚠️ Not synced this session  
-**Verification Status:** ✅ VERIFIED (376 test files, 101.9% coverage)  
-**Working Tree:** 206 new test files (untracked), 16 modified  
-**Test Count:** ✅ 376 API test files, TypeScript: 0 errors, ESLint: 0 warnings
+**Verification Status:** ✅ VERIFIED (479 test files, TypeScript: 0 errors, ESLint: 5 warnings)  
+**Working Tree:** Clean (0 uncommitted changes)  
+**Test Count:** ✅ 479 test files, 392 API routes, 189 API tests
+
+---
+
+## 🗓️ 2025-12-25T12:50:00+03:00 — System Organizer Scan
+
+### 📈 Progress Summary
+- **Files/Areas Scanned**: app/, lib/, server/, services/, components/, tests/
+- **Issues Identified**: Total 8 (Critical: 0, High: 1, Medium: 5, Low: 2)
+- **Duplicate Groups**: 0 (no actionable duplicates detected)
+- **File Organization Issues**: 0 (clean domain separation)
+- **Notes**: Full workspace scan; Sentry configured; SAHRECO OrgID=1 documented
+
+### 🎯 Current Status & Next Steps (Top 5)
+1. ✅ **Sentry Configured** - DSN added to Vercel/GitHub (NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT)
+2. ⚠️ **SEC-CLAIMS-001** - 5 ESLint warnings for tenant scope in souq/claims routes (needs review)
+3. 📝 **TODO-SSE-001** - Redis pub/sub for SSE horizontal scaling (lib/sse, notifications/stream) - Q1 2026
+4. 📝 **TODO-SLA-001** - Business hours calculation scaffolding (lib/sla/business-hours.ts) - Q1 2026
+5. ✅ **AGENTS.md Updated** - Added Appendix C (Env Vars Reference) + SAHRECO OrgID=1
+
+---
+
+### 🔍 New Findings (This Scan)
+
+#### Security / Tenant Scope
+| ID | Severity | Issue | Location | Status |
+|----|----------|-------|----------|--------|
+| SEC-CLAIMS-001 | 🟡 Medium | 5 ESLint tenant scope warnings in claims routes | `app/api/souq/claims/[id]/route.ts:77,80,87,90`, `app/api/souq/claims/route.ts:104` | Needs Review |
+
+#### TODOs / Scaffolding (Deferred)
+| ID | Issue | Location | Target |
+|----|-------|----------|--------|
+| TODO-SSE-001 | Redis pub/sub for SSE horizontal scaling | `lib/sse/index.ts:72-97`, `app/api/notifications/stream/route.ts:83-90` | Q1 2026 |
+| TODO-SLA-001 | Business hours calculation (5 TODO stubs) | `lib/sla/business-hours.ts:87-149` | Q1 2026 |
+
+#### Code Quality
+| ID | Severity | Issue | Location | Status |
+|----|----------|-------|----------|--------|
+| CQ-CONSOLE-001 | 🟢 Low | 7 console.error in issue-tracker (acceptable for dev tool) | `issue-tracker/app/api/issues/**` | No Action |
+| CQ-EMPTYCATCH-001 | 🟢 Low | 12 empty catch blocks (all intentional - graceful degradation) | Workflows, QA scripts | No Action |
+
+### 📊 Updated Metrics
+
+| Metric | Previous | Current | Δ |
+|--------|----------|---------|---|
+| **API Routes** | 369 | 392 | +23 |
+| **Test Files** | 376 | 479 | +103 |
+| **API Test Files** | 376 | 189 | -187 (recounted) |
+| **Components** | 240 | 263 | +23 |
+| **Models** | 145 | 147 | +2 |
+| **Services** | 39 | 40 | +1 |
+| **TypeScript Errors** | 0 | 0 | — |
+| **ESLint Warnings** | 0 | 5 | +5 |
+
+### ✅ Resolved This Session
+| ID | Issue | Resolution |
+|----|-------|------------|
+| SENTRY-001 | Sentry DSN not configured | Added to Vercel (prod/preview) + GitHub secrets |
+| AGENTS-ENV-001 | Missing env var reference | Added Appendix C with live query commands |
+| AGENTS-SAHRECO | Superadmin OrgID not documented | Added SAHRECO = OrgID 1 to AGENTS.md |
 
 ---
 
@@ -21,14 +80,14 @@
 
 | Metric | Value |
 |--------|-------|
-| **Health Score** | 99/100 |
-| **API Routes** | 369 total |
-| **Test Files (API)** | 376 |
-| **API Test Coverage** | **101.9% (376/369) ✅ TARGET EXCEEDED** |
-| **Components** | 240 |
-| **Services** | 39 |
-| **Models** | 145 |
-| **Build Status** | ✅ TS=0, ESLint=0 |
+| **Health Score** | 98/100 |
+| **API Routes** | 392 total |
+| **Test Files** | 479 |
+| **API Test Coverage** | **48.2% (189/392)** |
+| **Components** | 263 |
+| **Services** | 40 |
+| **Models** | 147 |
+| **Build Status** | ✅ TS=0, ESLint=5 warnings |
 
 ---
 
