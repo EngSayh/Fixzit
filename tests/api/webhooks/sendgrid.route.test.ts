@@ -49,14 +49,15 @@ describe("API /api/webhooks/sendgrid", () => {
 
   describe("POST - Handle SendGrid Events", () => {
     it("returns 429 when rate limit is exceeded", async () => {
-      vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-        }) as never
+      const rateLimitResponse = new Response(
+        JSON.stringify({ error: "Rate limit exceeded" }),
+        { status: 429 }
       );
+      vi.mocked(enforceRateLimit).mockReturnValue(rateLimitResponse);
 
       const req = new NextRequest("http://localhost:3000/api/webhooks/sendgrid", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify([]),
       });
       const response = await POST(req);

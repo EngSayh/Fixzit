@@ -115,10 +115,11 @@ describe("OTP Store Redis", () => {
 
       it("should not return expired OTP even if in memory", async () => {
         const identifier = "will-expire@example.com";
+        const now = Date.now();
         const nearFutureOtp: OTPData = {
           otp: "111111",
           attempts: 0,
-          expiresAt: Date.now() + 100, // Expires in 100ms
+          expiresAt: now + 100, // Expires in 100ms
           userId: "user-123",
           phone: "+96812345678",
         };
@@ -129,12 +130,16 @@ describe("OTP Store Redis", () => {
         const resultBefore = await redisOtpStore.get(identifier);
         expect(resultBefore).toBeDefined();
 
-        // Wait for expiry
-        await new Promise((resolve) => setTimeout(resolve, 150));
+        // Mock Date.now to simulate time passing
+        const originalDateNow = Date.now;
+        vi.spyOn(Date, "now").mockReturnValue(now + 200); // 200ms later
 
         // Should be undefined after expiry
         const resultAfter = await redisOtpStore.get(identifier);
         expect(resultAfter).toBeUndefined();
+
+        // Restore Date.now
+        Date.now = originalDateNow;
       });
     });
 
