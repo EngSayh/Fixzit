@@ -74,9 +74,11 @@ export async function GET(
     const orderIdValue = String(claim.orderId);
     let order = null;
     if (ObjectId.isValid(orderIdValue)) {
+      // eslint-disable-next-line local/require-tenant-scope -- orgFilter spread contains orgId scope
       order = await ClaimsOrder.findOne({ _id: new ObjectId(orderIdValue), ...orgFilter }).lean();
     }
     if (!order) {
+      // eslint-disable-next-line local/require-tenant-scope -- orgFilter spread contains orgId scope
       order = await ClaimsOrder.findOne({ orderId: orderIdValue, ...orgFilter }).lean();
     }
     if (!order) {
@@ -84,9 +86,11 @@ export async function GET(
     }
 
     const buyerDoc = ObjectId.isValid(String(claim.buyerId))
+      // eslint-disable-next-line local/require-tenant-scope -- orgFilter spread contains orgId scope
       ? await User.findOne({ _id: new ObjectId(String(claim.buyerId)), ...orgFilter }).lean()
       : null;
     const sellerDoc = ObjectId.isValid(String(claim.sellerId))
+      // eslint-disable-next-line local/require-tenant-scope -- orgFilter spread contains orgId scope
       ? await User.findOne({ _id: new ObjectId(String(claim.sellerId)), ...orgFilter }).lean()
       : null;
 

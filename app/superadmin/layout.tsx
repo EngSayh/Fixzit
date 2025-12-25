@@ -23,16 +23,25 @@ export default async function SuperadminLayout({
   children: ReactNode;
 }) {
   const hdrs = await headers();
+  // Get the actual URL path from various header sources
+  // Vercel sets x-url or we fall back to referer
   const currentPath =
+    hdrs.get("x-url") ||
+    hdrs.get("x-invoke-path") ||
     hdrs.get("x-matched-path") ||
     hdrs.get("x-pathname") ||
     hdrs.get("next-url") ||
     hdrs.get("referer") ||
     "";
 
+  // Extract just the pathname from full URLs (referer may be full URL)
+  const pathname = currentPath.includes("://")
+    ? new URL(currentPath).pathname
+    : currentPath;
+
   const isLoginPage =
-    typeof currentPath === "string" &&
-    currentPath.toLowerCase().includes("/superadmin/login");
+    typeof pathname === "string" &&
+    pathname.toLowerCase().includes("/superadmin/login");
 
   const { locale: serverLocale } = await getServerI18n();
   const superadminSession = await getSuperadminSessionFromCookies();

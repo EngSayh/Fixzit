@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -29,19 +29,27 @@ export function SuperadminLayoutClient({
   initialSession = null,
 }: Props) {
   const pathname = usePathname();
-  const router = useRouter();
   const isLoginPage = pathname === "/superadmin/login";
   const isAuthenticated = initialSession?.authenticated ?? false;
 
   useEffect(() => {
     if (isLoginPage) return;
     if (!isAuthenticated) {
-      router.replace("/superadmin/login");
+      // Force full page navigation to ensure cookies are sent
+      window.location.href = "/superadmin/login";
     }
-  }, [isAuthenticated, isLoginPage, router]);
+  }, [isAuthenticated, isLoginPage]);
 
+  // Show loading state while redirecting to login
   if (!isLoginPage && !isAuthenticated) {
-    return <div className="min-h-screen bg-background" />;
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4" />
+          <p className="text-slate-400">Verifying session...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     await connectDb();
+    // eslint-disable-next-line local/require-tenant-scope -- buildOrgScope spread contains orgId scope
     const order = await ClaimsOrder.findOne({ _id: orderObjectId, ...buildOrgScope(orgId) }).lean();
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 400 });
