@@ -14,6 +14,7 @@
  * @throws {404} If review not found
  */
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { reviewService } from "@/services/souq/reviews/review-service";
 import { auth } from "@/auth";
 import { connectDb } from "@/lib/mongodb-unified";
@@ -63,6 +64,15 @@ export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const session = await auth();
     const { id: reviewId } = await context.params;
+    
+    // [FIXZIT-API-REVIEW-001] Validate ObjectId before database operation
+    if (!reviewId || !mongoose.isValidObjectId(reviewId)) {
+      return NextResponse.json(
+        { error: "Invalid review ID format" },
+        { status: 400 }
+      );
+    }
+    
     const searchParams = new URL(req.url).searchParams;
     const orgIdParam = searchParams.get("orgId") ?? session?.user?.orgId ?? "";
     if (!orgIdParam) {

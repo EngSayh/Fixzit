@@ -33,6 +33,14 @@ export async function GET(
 
     const { id: statementId } = params;
 
+    // [FIXZIT-API-SETTLE-001] Validate ID format before database operation
+    if (!statementId) {
+      return NextResponse.json(
+        { error: "Settlement ID required" },
+        { status: 400 }
+      );
+    }
+
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const statementsCollection = db.collection(COLLECTIONS.SOUQ_SETTLEMENTS);

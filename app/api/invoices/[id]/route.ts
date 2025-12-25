@@ -8,6 +8,7 @@
  * @module finance
  */
 import { NextRequest } from "next/server";
+import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Invoice } from "@/server/models/Invoice";
@@ -75,6 +76,15 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  // [FIXZIT-API-INV-001] Validate ObjectId before database operation
+  if (!params.id || !mongoose.isValidObjectId(params.id)) {
+    return createSecureResponse(
+      { error: "INVALID_ID", message: "Invalid invoice ID format" },
+      400,
+      req
+    );
+  }
+
   try {
     const user = await getSessionUser(req);
     // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries

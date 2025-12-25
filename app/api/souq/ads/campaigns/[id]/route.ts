@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
@@ -78,6 +79,14 @@ export async function GET(
       return NextResponse.json(
         { success: false, error: "Organization required" },
         { status: 403 },
+      );
+    }
+
+    // [FIXZIT-API-CAMP-001] Validate ObjectId before database operation
+    if (!params.id || !mongoose.isValidObjectId(params.id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid campaign ID format" },
+        { status: 400 },
       );
     }
 

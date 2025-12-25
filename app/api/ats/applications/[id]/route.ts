@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Application } from "@/server/models/Application";
@@ -50,6 +51,16 @@ export async function GET(
   }
 
   try {
+    const appId = (await params).id;
+    
+    // [FIXZIT-API-ATS-001] Validate ObjectId before database operation
+    if (!appId || !mongoose.isValidObjectId(appId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid application ID format" },
+        { status: 400 }
+      );
+    }
+
     await connectToDatabase();
 
     // RBAC: Check permissions
@@ -60,7 +71,7 @@ export async function GET(
     const { orgId, isSuperAdmin } = authResult;
 
     // SEC-002 FIX: Scope Application query by orgId upfront (super admins bypass)
-    const query = isSuperAdmin ? { _id: (await params).id } : { _id: (await params).id, orgId };
+    const query = isSuperAdmin ? { _id: appId } : { _id: appId, orgId };
     const application = await Application.findOne(query)
       .populate("jobId")
       .populate("candidateId")

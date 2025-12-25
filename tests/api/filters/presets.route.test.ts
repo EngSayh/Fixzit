@@ -5,6 +5,10 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { Types } from "mongoose";
+
+// Use valid ObjectIds for tests (route validates with mongoose.isValidObjectId)
+const VALID_PRESET_ID = new Types.ObjectId().toString();
 
 // === Module-scoped mutable state (survives vi.clearAllMocks) ===
 type MockSession = { id: string; orgId: string | undefined; role: string } | null;
@@ -72,11 +76,11 @@ describe("API /api/filters/presets/:id", () => {
     it("returns 401 when unauthenticated", async () => {
       mockSessionThrows = true;
 
-      const req = new NextRequest("http://localhost:3000/api/filters/presets/1", {
+      const req = new NextRequest(`http://localhost:3000/api/filters/presets/${VALID_PRESET_ID}`, {
         method: "DELETE",
       });
       const { DELETE } = await importRoute();
-      const res = await DELETE(req, { params: Promise.resolve({ id: "1" }) });
+      const res = await DELETE(req, { params: Promise.resolve({ id: VALID_PRESET_ID }) });
 
       expect(res.status).toBe(401);
     });
@@ -84,26 +88,38 @@ describe("API /api/filters/presets/:id", () => {
     it("returns 403 when orgId is missing", async () => {
       mockSession = { id: "user_123", orgId: undefined, role: "ADMIN" };
 
-      const req = new NextRequest("http://localhost:3000/api/filters/presets/1", {
+      const req = new NextRequest(`http://localhost:3000/api/filters/presets/${VALID_PRESET_ID}`, {
         method: "DELETE",
       });
       const { DELETE } = await importRoute();
-      const res = await DELETE(req, { params: Promise.resolve({ id: "1" }) });
+      const res = await DELETE(req, { params: Promise.resolve({ id: VALID_PRESET_ID }) });
 
       expect(res.status).toBe(403);
+    });
+
+    it("returns 400 for invalid ObjectId format", async () => {
+      const req = new NextRequest("http://localhost:3000/api/filters/presets/invalid-id", {
+        method: "DELETE",
+      });
+      const { DELETE } = await importRoute();
+      const res = await DELETE(req, { params: Promise.resolve({ id: "invalid-id" }) });
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe("Invalid preset ID format");
     });
 
     it("returns 404 when preset not found", async () => {
       mockFilterPresetResult = null;
 
-      const req = new NextRequest("http://localhost:3000/api/filters/presets/1", {
+      const req = new NextRequest(`http://localhost:3000/api/filters/presets/${VALID_PRESET_ID}`, {
         method: "DELETE",
       });
       const { DELETE } = await importRoute();
-      const res = await DELETE(req, { params: Promise.resolve({ id: "1" }) });
+      const res = await DELETE(req, { params: Promise.resolve({ id: VALID_PRESET_ID }) });
 
       expect(mockFindOneAndDelete).toHaveBeenCalledWith({
-        _id: "1",
+        _id: VALID_PRESET_ID,
         org_id: "org_abc",
         user_id: "user_123",
       });
@@ -113,15 +129,15 @@ describe("API /api/filters/presets/:id", () => {
     it("deletes preset with tenant + user scope", async () => {
       mockFilterPresetResult = { entity_type: "work_orders" };
 
-      const req = new NextRequest("http://localhost:3000/api/filters/presets/1", {
+      const req = new NextRequest(`http://localhost:3000/api/filters/presets/${VALID_PRESET_ID}`, {
         method: "DELETE",
       });
       const { DELETE } = await importRoute();
-      const res = await DELETE(req, { params: Promise.resolve({ id: "1" }) });
+      const res = await DELETE(req, { params: Promise.resolve({ id: VALID_PRESET_ID }) });
 
       expect(res.status).toBe(200);
       expect(mockFindOneAndDelete).toHaveBeenCalledWith({
-        _id: "1",
+        _id: VALID_PRESET_ID,
         org_id: "org_abc",
         user_id: "user_123",
       });

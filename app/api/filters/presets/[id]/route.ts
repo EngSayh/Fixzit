@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
 import { connectDb } from "@/lib/mongodb-unified";
@@ -50,6 +51,14 @@ export async function DELETE(
 
   if (!presetId) {
     return NextResponse.json({ error: "Preset id is required" }, { status: 400 });
+  }
+
+  // [FIXZIT-API-FILTER-001] Validate ObjectId before database operation
+  if (!mongoose.isValidObjectId(presetId)) {
+    return NextResponse.json(
+      { error: "Invalid preset ID format" },
+      { status: 400 }
+    );
   }
 
   try {

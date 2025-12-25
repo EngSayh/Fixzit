@@ -11,6 +11,7 @@
  * @throws {404} If benchmark not found
  */
 import { NextRequest } from "next/server";
+import mongoose from "mongoose";
 import { dbConnect } from "@/db/mongoose";
 import Benchmark from "@/server/models/Benchmark";
 import { requireSuperAdmin } from "@/lib/authz";
@@ -28,6 +29,15 @@ export async function PATCH(
     windowMs: 60_000,
   });
   if (rateLimitResponse) return rateLimitResponse;
+
+  // [FIXZIT-API-BENCH-001] Validate ObjectId before database operation
+  if (!params.id || !mongoose.isValidObjectId(params.id)) {
+    return createSecureResponse(
+      { error: "INVALID_ID", message: "Invalid benchmark ID format" },
+      400,
+      req
+    );
+  }
 
   try {
     await dbConnect();

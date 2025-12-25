@@ -11,6 +11,7 @@
  * @throws {404} If pricebook not found
  */
 import { NextRequest } from "next/server";
+import mongoose from "mongoose";
 import { dbConnect } from "@/db/mongoose";
 import PriceBook from "@/server/models/PriceBook";
 import { requireSuperAdmin } from "@/lib/authz";
@@ -32,6 +33,15 @@ export async function PATCH(
     windowMs: 60_000,
   });
   if (rateLimitResponse) return rateLimitResponse;
+
+  // [FIXZIT-API-PBOOK-001] Validate ObjectId before database operation
+  if (!params.id || !mongoose.isValidObjectId(params.id)) {
+    return createSecureResponse(
+      { error: "INVALID_ID", message: "Invalid pricebook ID format" },
+      400,
+      req
+    );
+  }
 
   try {
     await dbConnect();

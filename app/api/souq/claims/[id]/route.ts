@@ -11,6 +11,7 @@
  * @throws {404} If claim not found
  */
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { parseBodySafe } from "@/lib/api/parse-body";
 import { ClaimService } from "@/services/souq/claims/claim-service";
 import { resolveRequestSession } from "@/lib/auth/request-session";
@@ -42,6 +43,14 @@ export async function GET(
     const userOrgId = session?.user?.orgId;
     if (!session?.user?.id || !userOrgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // [FIXZIT-API-CLAIM-001] Validate ObjectId before database operation
+    if (!params.id || !mongoose.isValidObjectId(params.id)) {
+      return NextResponse.json(
+        { error: "Invalid claim ID format" },
+        { status: 400 }
+      );
     }
 
     const allowOrgless = process.env.NODE_ENV === "test";

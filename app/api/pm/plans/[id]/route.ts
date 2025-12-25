@@ -8,6 +8,7 @@
  * @module pm
  */
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { FMPMPlan } from "@/server/models/FMPMPlan";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
@@ -50,6 +51,15 @@ export async function GET(
 
   try {
     const { id } = await params;
+    
+    // [FIXZIT-API-PM-001] Validate ObjectId before database operation
+    if (!id || !mongoose.isValidObjectId(id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid PM plan ID format" },
+        { status: 400 }
+      );
+    }
+    
     // 🔒 TENANT-SCOPED: Use findOne with orgId filter instead of findById
     const plan = await FMPMPlan.findOne({ _id: id, orgId }).lean();
 
