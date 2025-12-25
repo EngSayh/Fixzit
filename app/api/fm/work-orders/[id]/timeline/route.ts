@@ -20,13 +20,12 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { getDatabase } from "@/lib/mongodb-unified";
-import { COLLECTIONS } from "@/lib/db/collections";
 import { logger } from "@/lib/logger";
 import type { WorkOrderTimeline } from "@/types/fm";
+import { WorkOrderTimeline as WorkOrderTimelineModel } from "@/server/models/workorder/WorkOrderTimeline";
 import { buildWorkOrderUser } from "../../utils";
 import { requireFmAbility } from "../../../utils/fm-auth";
-import { buildTenantFilter, resolveTenantId } from "../../../utils/tenant";
+import { resolveTenantId } from "../../../utils/tenant";
 import { FMErrors } from "../../../errors";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
@@ -74,22 +73,20 @@ export async function GET(
     );
     const skip = (page - 1) * limit;
 
-    const db = await getDatabase();
-    const collection = db.collection(COLLECTIONS.WORKORDER_TIMELINE);
-    // SEC-001: Use buildTenantFilter for proper orgId field name (collection is orgId-indexed)
-    const filter = { ...buildTenantFilter(tenantId), workOrderId };
+    // TD-001: Migrated from db.collection() to WorkOrderTimeline Mongoose model
+    const filter = { orgId: tenantId, workOrderId };
 
     const [entries, total] = await Promise.all([
-      collection
-        .find(filter)
+      WorkOrderTimelineModel.find(filter)
         .sort({ performedAt: -1 })
         .skip(skip)
         .limit(limit)
-        .toArray(),
-      collection.countDocuments(filter),
+        .lean(),
+      WorkOrderTimelineModel.countDocuments(filter),
     ]);
 
-    const data: WorkOrderTimeline[] = entries.map(mapTimelineDocument);
+    // Map with type assertion for lean() result
+    const data: WorkOrderTimeline[] = entries.map((doc) => mapTimelineDocument(doc as unknown as TimelineDocument));
 
     return NextResponse.json({
       success: true,

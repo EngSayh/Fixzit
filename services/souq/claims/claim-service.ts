@@ -1,8 +1,11 @@
 import { ObjectId, type Collection } from "mongodb";
+import mongoose from "mongoose";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 import { logger } from "@/lib/logger";
 import { generateClaimId } from "@/lib/id-generator";
+import { SouqOrder, type IOrder } from "@/server/models/souq/Order";
+import { User } from "@/server/models/User";
 
 // Claim Types
 export type ClaimType =
@@ -876,5 +879,106 @@ export class ClaimService {
       reason: `Auto-resolved after seller agreement: ${investigation.reasoning.join("; ")}`,
       refundAmount: claim.orderAmount,
     });
+  }
+
+  // ============================================================
+  // TD-001: Helper methods for route migrations (order + user lookups)
+  // ============================================================
+
+  /**
+   * Get order by ID with org scoping for claim validation
+   * @param orderId - The order ID (string or ObjectId)
+   * @param orgId - Required for tenant isolation
+   * @returns Order document or null if not found / not in org
+   */
+  static async getOrderForClaim(
+    orderId: string,
+    orgId: string,
+  ): Promise<{
+    _id: mongoose.Types.ObjectId;
+    orderId: string;
+    customerId: mongoose.Types.ObjectId;
+    items: IOrder['items'];
+    pricing: IOrder['pricing'];
+    deliveredAt?: Date;
+    orgId?: mongoose.Types.ObjectId;
+  } | null> {
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
+
+    const orgObjectId = mongoose.Types.ObjectId.isValid(orgId)
+      ? new mongoose.Types.ObjectId(orgId)
+      : undefined;
+
+    // Try ObjectId lookup first
+    if (mongoose.Types.ObjectId.isValid(orderId)) {
+      const filter: Record<string, unknown> = { _id: new mongoose.Types.ObjectId(orderId) };
+      if (orgObjectId) {
+        filter.orgId = orgObjectId;
+      }
+      const order = await SouqOrder.findOne(filter)
+        .select('_id orderId customerId items pricing deliveredAt orgId')
+        .lean();
+      if (order) return order as {
+        _id: mongoose.Types.ObjectId;
+        orderId: string;
+        customerId: mongoose.Types.ObjectId;
+        items: IOrder['items'];
+        pricing: IOrder['pricing'];
+        deliveredAt?: Date;
+        orgId?: mongoose.Types.ObjectId;
+      };
+    }
+
+    // Fallback: orderId string lookup
+    const filter: Record<string, unknown> = { orderId };
+    if (orgObjectId) {
+      filter.orgId = orgObjectId;
+    }
+    const order = await SouqOrder.findOne(filter)
+      .select('_id orderId customerId items pricing deliveredAt orgId')
+      .lean();
+    return order as {
+      _id: mongoose.Types.ObjectId;
+      orderId: string;
+      customerId: mongoose.Types.ObjectId;
+      items: IOrder['items'];
+      pricing: IOrder['pricing'];
+      deliveredAt?: Date;
+      orgId?: mongoose.Types.ObjectId;
+    } | null;
+  }
+
+  /**
+   * Get user's admin role for claims decision authorization
+   * @param userId - The user ID
+   * @param orgId - Required for tenant isolation
+   * @returns User role or null if user not found
+   */
+  static async getAdminRole(
+    userId: string,
+    orgId: string,
+  ): Promise<string | null> {
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
+
+    // Try ObjectId lookup first
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+      const user = await User.findOne({
+        _id: new mongoose.Types.ObjectId(userId),
+        orgId,
+      })
+        .select('role')
+        .lean();
+      if (user) return (user as { role?: string }).role ?? null;
+    }
+
+    // Fallback: string id lookup
+    const user = await User.findOne({ id: userId, orgId })
+      .select('role')
+      .lean();
+    return (user as { role?: string } | null)?.role ?? null;
   }
 }
