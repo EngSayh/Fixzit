@@ -1620,13 +1620,22 @@ gh secret list 2>&1 | Select-String "SENTRY"
 |----------|-----------|----------|
 | **Auth** | `AUTH_SECRET`, `NEXTAUTH_SECRET`, `JWT_SECRET` | Vercel |
 | **Database** | `MONGODB_URI` | Vercel + GitHub |
-| **Payments** | `TAP_*`, `PAYTABS_*` | Vercel |
+| **Payments** | `TAP_*` | Vercel |
 | **ZATCA** | `ZATCA_API_KEY`, `ZATCA_SELLER_*`, `ZATCA_VAT_NUMBER` | Vercel |
 | **SMS** | `TAQNYAT_*`, `TWILIO_*`, `SMS_PROVIDER` | Vercel |
 | **Monitoring** | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Vercel + GitHub |
 | **Storage** | `AWS_S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Vercel |
 | **Search** | `MEILI_HOST`, `MEILI_MASTER_KEY` | Vercel |
 | **Multi-Tenant** | `DEFAULT_ORG_ID`, `PUBLIC_ORG_ID`, `TEST_ORG_ID` | Vercel |
+
+### Superadmin Organization (SAHRECO)
+
+| Key | Value | Description |
+|-----|-------|-------------|
+| **Superadmin OrgID** | `1` | SAHRECO - System owner and platform operator |
+| **DEFAULT_ORG_ID** | `1` | Default org for new users without explicit assignment |
+
+> **IMPORTANT:** OrgID `1` (SAHRECO) is the platform owner. All system-level operations, superadmin accounts, and platform configuration are scoped to this organization.
 
 ### Before Claiming ENV-Related Issues
 
