@@ -25,6 +25,16 @@ if (!MONGO_URI) {
   process.exit(1);
 }
 
+/**
+ * Migrate MongoDB indexes in all FM collections by renaming the index key `org_id` to `orgId`.
+ *
+ * Scans every collection in the database (using `MONGO_URI`), identifies indexes whose key
+ * contains `org_id`, and for each found index replaces that key with `orgId`. When not in
+ * dry-run mode the old index is dropped and a new index is created with the same options
+ * (excluding internal fields); in dry-run mode the script only reports planned changes.
+ *
+ * @param dryRun - If `true`, do not apply any changes and only print what would be updated
+ */
 async function runMigration(dryRun: boolean) {
   const client = new MongoClient(MONGO_URI!);
   
@@ -39,7 +49,6 @@ async function runMigration(dryRun: boolean) {
     const collections = await db.listCollections().toArray();
     
     let totalUpdated = 0;
-    let _totalSkipped = 0;
     
     for (const col of collections) {
       const collection = db.collection(col.name);
@@ -75,7 +84,7 @@ async function runMigration(dryRun: boolean) {
             console.log(`   ✅ Dropped: ${idx.name}`);
             
             // Create the new index with same options (except internal fields)
-            const { key, name, ns, v, ...options } = idx;
+            const { key: _key, name: _name, ns: _ns, v: _v, ...options } = idx;
             await collection.createIndex(newKeys, { ...options, background: true });
             console.log(`   ✅ Created: ${JSON.stringify(newKeys)}`);
             totalUpdated++;

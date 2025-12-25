@@ -7,14 +7,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
-// Mock MongoDB connection and collections
 const mockDb = vi.hoisted(() => ({
   collection: vi.fn(),
 }));
 
-const mockSettlementsFindOne = vi.fn();
-const mockPayoutsFindOne = vi.fn();
-const mockInsertOne = vi.fn();
+const mockWithdrawalUpdateOne = vi.fn();
 
 vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn(async () => ({
@@ -24,14 +21,17 @@ vi.mock("@/lib/mongodb-unified", () => ({
 
 vi.mock("@/services/souq/settlements/balance-service", () => ({
   SellerBalanceService: {
+    getStatementBasicInfo: vi.fn(),
+    getExistingPayout: vi.fn(),
     getBalance: vi.fn(),
-    createWithdrawal: vi.fn(),
+    requestWithdrawal: vi.fn(),
+    recordTransaction: vi.fn(),
   },
 }));
 
 vi.mock("@/services/souq/settlements/payout-processor", () => ({
   PayoutProcessorService: {
-    processPayoutRequest: vi.fn(),
+    requestPayout: vi.fn(),
   },
 }));
 
@@ -81,26 +81,16 @@ function createRequest(body: Record<string, unknown>): NextRequest {
 describe("/api/souq/settlements/request-payout", () => {
   let POST: typeof import("@/app/api/souq/settlements/request-payout/route").POST;
 
-  const mockSettlements = {
-    findOne: mockSettlementsFindOne,
-  };
-  const mockPayouts = {
-    findOne: mockPayoutsFindOne,
-    insertOne: mockInsertOne,
-  };
-
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     currentSession = null;
-    mockSettlementsFindOne.mockResolvedValue(null);
-    mockPayoutsFindOne.mockResolvedValue(null);
-    mockInsertOne.mockResolvedValue({ insertedId: "new_payout" });
-
+    mockWithdrawalUpdateOne.mockResolvedValue({ matchedCount: 1, modifiedCount: 1 });
     mockDb.collection.mockImplementation((name: string) => {
-      if (name === "souq_settlements") return mockSettlements;
-      if (name === "souq_payouts") return mockPayouts;
-      return { findOne: vi.fn(), insertOne: vi.fn() };
+      if (name === "souq_withdrawal_requests") {
+        return { updateOne: (...args: unknown[]) => mockWithdrawalUpdateOne(...args) };
+      }
+      return { updateOne: vi.fn() };
     });
 
     const mod = await import(
@@ -170,14 +160,28 @@ describe("/api/souq/settlements/request-payout", () => {
       currentSession = {
         user: { id: ADMIN_ID, orgId: ORG_ID, role: "ADMIN" },
       };
-      // Mock statement exists and is approved
-      mockSettlementsFindOne.mockResolvedValueOnce({
-        statementId: STATEMENT_ID,
+      const { SellerBalanceService } = await import(
+        "@/services/souq/settlements/balance-service"
+      );
+      const { PayoutProcessorService } = await import(
+        "@/services/souq/settlements/payout-processor"
+      );
+      vi.mocked(SellerBalanceService.getStatementBasicInfo).mockResolvedValueOnce({
         status: "approved",
-        summary: { netPayout: 1000 },
-      });
-      // Mock no existing payout
-      mockPayoutsFindOne.mockResolvedValueOnce(null);
+        netPayout: 1000,
+      } as never);
+      vi.mocked(SellerBalanceService.getExistingPayout).mockResolvedValueOnce(null as never);
+      vi.mocked(SellerBalanceService.getBalance).mockResolvedValueOnce({
+        available: 2000,
+      } as never);
+      vi.mocked(SellerBalanceService.requestWithdrawal).mockResolvedValueOnce({
+        requestId: "wr-1",
+        amount: 1000,
+      } as never);
+      vi.mocked(PayoutProcessorService.requestPayout).mockResolvedValueOnce({
+        payoutId: "po-1",
+        status: "pending",
+      } as never);
 
       const res = await POST(
         createRequest({
@@ -243,7 +247,10 @@ describe("/api/souq/settlements/request-payout", () => {
     });
 
     it("returns 404 when statement is not found", async () => {
-      mockSettlementsFindOne.mockResolvedValueOnce(null);
+      const { SellerBalanceService } = await import(
+        "@/services/souq/settlements/balance-service"
+      );
+      vi.mocked(SellerBalanceService.getStatementBasicInfo).mockResolvedValueOnce(null as never);
 
       const res = await POST(
         createRequest({
@@ -262,11 +269,13 @@ describe("/api/souq/settlements/request-payout", () => {
     });
 
     it("returns 400 when statement is not approved", async () => {
-      mockSettlementsFindOne.mockResolvedValueOnce({
-        statementId: STATEMENT_ID,
+      const { SellerBalanceService } = await import(
+        "@/services/souq/settlements/balance-service"
+      );
+      vi.mocked(SellerBalanceService.getStatementBasicInfo).mockResolvedValueOnce({
         status: "pending",
-        summary: { netPayout: 1000 },
-      });
+        netPayout: 1000,
+      } as never);
 
       const res = await POST(
         createRequest({
@@ -285,17 +294,17 @@ describe("/api/souq/settlements/request-payout", () => {
     });
 
     it("returns 409 when payout already exists for statement", async () => {
-      // Mock statement exists and is approved
-      mockSettlementsFindOne.mockResolvedValueOnce({
-        statementId: STATEMENT_ID,
+      const { SellerBalanceService } = await import(
+        "@/services/souq/settlements/balance-service"
+      );
+      vi.mocked(SellerBalanceService.getStatementBasicInfo).mockResolvedValueOnce({
         status: "approved",
-        summary: { netPayout: 1000 },
-      });
-      // Mock existing payout found
-      mockPayoutsFindOne.mockResolvedValueOnce({
+        netPayout: 1000,
+      } as never);
+      vi.mocked(SellerBalanceService.getExistingPayout).mockResolvedValueOnce({
         payoutId: PAYOUT_ID,
         status: "pending",
-      });
+      } as never);
 
       const res = await POST(
         createRequest({
@@ -319,7 +328,10 @@ describe("/api/souq/settlements/request-payout", () => {
       currentSession = {
         user: { id: SELLER_ID, orgId: ORG_ID, role: "VENDOR" },
       };
-      mockSettlementsFindOne.mockResolvedValueOnce(null);
+      const { SellerBalanceService } = await import(
+        "@/services/souq/settlements/balance-service"
+      );
+      vi.mocked(SellerBalanceService.getStatementBasicInfo).mockResolvedValueOnce(null as never);
 
       const res = await POST(
         createRequest({
@@ -333,13 +345,10 @@ describe("/api/souq/settlements/request-payout", () => {
         }),
       );
 
-      // Verify tenant isolation: orgId is included in the query
-      expect(mockSettlementsFindOne).toHaveBeenCalledWith(
-        expect.objectContaining({
-          statementId: STATEMENT_ID,
-          orgId: expect.objectContaining({ $in: expect.any(Array) }),
-        }),
-        expect.any(Object),
+      expect(SellerBalanceService.getStatementBasicInfo).toHaveBeenCalledWith(
+        STATEMENT_ID,
+        SELLER_ID,
+        ORG_ID,
       );
       // Route should return 404 since mock returns null (statement not found)
       expect(res.status).toBe(404);

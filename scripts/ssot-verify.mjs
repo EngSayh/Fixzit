@@ -44,7 +44,15 @@ const REQUIRED_SCHEMA_KEYS = [
   "version",
 ];
 
-function get(obj, path) {
+/**
+ * Safely retrieves a nested property value from an object using a dot-separated path.
+ *
+ * @param {Object} obj - The object to query.
+ * @param {string} path - Dot-separated path of keys (e.g., "a.b.c").
+ * @returns {*} The value found at the path, or `undefined` if any segment is missing.
+ * @private Unused but kept for potential future use; prefixed with _ to silence lint
+ */
+function _get(obj, path) {
   return path.split(".").reduce((acc, k) => (acc && acc[k] !== undefined ? acc[k] : undefined), obj);
 }
 

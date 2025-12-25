@@ -151,6 +151,14 @@ function generatePathStub(route: string, methods: string[]): string {
   return yaml;
 }
 
+/**
+ * Orchestrates generation of OpenAPI path stubs for undocumented API routes.
+ *
+ * Scans app/api for route handlers and their exported HTTP methods, compares
+ * discovered routes against paths listed in openapi.yaml, and writes YAML stubs
+ * for undocumented routes to openapi-stubs.yaml. Prints progress and a
+ * categorized summary of undocumented routes.
+ */
 async function main() {
   console.log('🔍 Scanning API routes...');
   
@@ -173,7 +181,7 @@ async function main() {
   // Match paths that start with / at 2-space indent (OpenAPI paths format)
   // Pattern: exactly 2 spaces, then /, then path segments until end of identifier
   const existingSpec = fs.readFileSync('openapi.yaml', 'utf8');
-  const pathRegex = /^  (\/[a-zA-Z0-9\-_/{}]+):/gm;
+  const pathRegex = /^ {2}(\/[a-zA-Z0-9\-_/{}]+):/gm;
   const documentedRoutes = new Set<string>();
   let match;
   while ((match = pathRegex.exec(existingSpec)) !== null) {
