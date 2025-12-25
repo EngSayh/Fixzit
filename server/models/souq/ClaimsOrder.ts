@@ -1,23 +1,17 @@
 /**
- * ClaimsOrder - Compatibility Mongoose model for Claims routes
- * Collection: orders (NOT souq_orders)
+ * ClaimsOrder - Mongoose model for Souq Claims routes
+ * Collection: souq_orders (unified marketplace orders)
  *
  * PURPOSE:
- * This model provides Mongoose access to the "orders" collection used by
+ * This model provides Mongoose access to the "souq_orders" collection used by
  * Souq Claims routes. It intentionally uses a minimal schema with only
  * the fields that Claims routes actually read.
  *
- * ARCHITECTURE NOTE:
- * - "orders" collection = legacy/general orders (used by Claims)
- * - "souq_orders" collection = marketplace-specific orders (SouqOrder model)
- * These are separate collections with different schemas. Do NOT consolidate
- * without explicit architecture decision and data migration plan.
- *
- * // BLOCKED: TODO-001 - Souq Orders mismatch (orders vs souq_orders)
- * // Do not proceed with collection migration. Await explicit directive from Eng. Sultan.
- * // File: server/models/souq/ClaimsOrder.ts
- * // Related: server/models/souq/SouqOrder.ts uses "souq_orders" collection
- * // Status: BLOCKED per STRICT v4.1 Recovery Plan
+ * ARCHITECTURE NOTE (RESOLVED per STRICT v4.1):
+ * - "souq_orders" collection = unified marketplace orders (Order model)
+ * - ClaimsOrder is a read-optimized view of the same collection
+ * - Both Order.ts and ClaimsOrder.ts now point to "souq_orders"
+ * - TODO-001 RESOLVED: Collection name mismatch fixed per Eng. Sultan directive
  *
  * SCHEMA STRATEGY:
  * - Uses { strict: false } to preserve unknown fields on reads
@@ -96,7 +90,7 @@ const ClaimsOrderSchema = new Schema<IClaimsOrderDocument>(
   },
   {
     timestamps: true,
-    collection: "orders", // CRITICAL: Must match COLLECTIONS.ORDERS
+    collection: "souq_orders", // RESOLVED: Now aligned with Order.ts per TODO-001
     strict: false, // Preserve unknown fields - do not drop existing data
   },
 );
