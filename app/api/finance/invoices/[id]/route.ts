@@ -20,6 +20,7 @@ import { getUserFromToken } from "@/lib/auth";
 import { z } from "zod";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { parseBodySafe } from "@/lib/api/parse-body";
+import mongoose from "mongoose";
 
 import { zodValidationError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
@@ -74,6 +75,13 @@ export async function PATCH(
         403,
         req,
       );
+    }
+
+    // SEC-002: Validate ObjectId to prevent crashes from malformed IDs
+    if (!params.id || !mongoose.isValidObjectId(params.id)) {
+      return createSecureResponse({
+        error: { code: "FIXZIT-API-FINANCE-001", message: "Invalid invoice ID format" }
+      }, 400, req);
     }
 
     const { data: rawBody, error: parseError } = await parseBodySafe(req, {

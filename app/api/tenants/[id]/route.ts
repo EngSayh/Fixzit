@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Tenant } from "@/server/models/Tenant";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import mongoose from "mongoose";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
@@ -118,6 +119,12 @@ export async function GET(
     if (!user?.orgId) {
       return createSecureResponse({ error: "Unauthorized", message: "Missing orgId in session" }, 401, req);
     }
+    // SEC-002: Validate ObjectId to prevent crashes from malformed IDs
+    if (!params.id || !mongoose.isValidObjectId(params.id)) {
+      return createSecureResponse({
+        error: { code: "FIXZIT-API-TENANT-001", message: "Invalid tenant ID format" }
+      }, 400, req);
+    }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
@@ -148,6 +155,12 @@ export async function PATCH(
     const user = await getSessionUser(req);
     if (!user?.orgId) {
       return createSecureResponse({ error: "Unauthorized", message: "Missing orgId in session" }, 401, req);
+    }
+    // SEC-002: Validate ObjectId to prevent crashes from malformed IDs
+    if (!params.id || !mongoose.isValidObjectId(params.id)) {
+      return createSecureResponse({
+        error: { code: "FIXZIT-API-TENANT-002", message: "Invalid tenant ID format" }
+      }, 400, req);
     }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
@@ -181,6 +194,12 @@ export async function DELETE(
     const user = await getSessionUser(req);
     if (!user?.orgId) {
       return createSecureResponse({ error: "Unauthorized", message: "Missing orgId in session" }, 401, req);
+    }
+    // SEC-002: Validate ObjectId to prevent crashes from malformed IDs
+    if (!params.id || !mongoose.isValidObjectId(params.id)) {
+      return createSecureResponse({
+        error: { code: "FIXZIT-API-TENANT-003", message: "Invalid tenant ID format" }
+      }, 400, req);
     }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {

@@ -348,10 +348,11 @@ describe("POST /api/admin/users", () => {
       expect(createArg.orgId).toBe(ORG_ID);
     });
   });
-  
-  // Restore mongoose mock after tests to prevent contamination
-  afterAll(() => {
-    vi.doUnmock("mongoose");
-    vi.resetModules();
-  });
+});
+
+// Restore mongoose mock after ALL tests in file to prevent contamination
+// NOTE: Must be at module level, not inside describe block
+afterAll(() => {
+  vi.doUnmock("mongoose");
+  vi.resetModules();
 });

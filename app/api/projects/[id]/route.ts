@@ -13,6 +13,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Project } from "@/server/models/Project";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import mongoose from "mongoose";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
@@ -92,6 +93,12 @@ export async function GET(
   try {
     const { id } = await props.params;
     const user = await getSessionUser(req);
+    // SEC-002: Validate ObjectId to prevent crashes from malformed IDs
+    if (!id || !mongoose.isValidObjectId(id)) {
+      return createSecureResponse({
+        error: { code: "FIXZIT-API-PROJECT-001", message: "Invalid project ID format" }
+      }, 400, req);
+    }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
@@ -125,6 +132,12 @@ export async function PATCH(
   try {
     const { id } = await props.params;
     const user = await getSessionUser(req);
+    // SEC-002: Validate ObjectId to prevent crashes from malformed IDs
+    if (!id || !mongoose.isValidObjectId(id)) {
+      return createSecureResponse({
+        error: { code: "FIXZIT-API-PROJECT-002", message: "Invalid project ID format" }
+      }, 400, req);
+    }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 30, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
@@ -164,6 +177,12 @@ export async function DELETE(
   try {
     const { id } = await props.params;
     const user = await getSessionUser(req);
+    // SEC-002: Validate ObjectId to prevent crashes from malformed IDs
+    if (!id || !mongoose.isValidObjectId(id)) {
+      return createSecureResponse({
+        error: { code: "FIXZIT-API-PROJECT-003", message: "Invalid project ID format" }
+      }, 400, req);
+    }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();

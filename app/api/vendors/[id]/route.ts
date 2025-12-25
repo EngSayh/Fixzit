@@ -12,6 +12,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Vendor } from "@/server/models/Vendor";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import mongoose from "mongoose";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
@@ -147,6 +148,12 @@ export async function PATCH(
         req,
       );
     }
+    // SEC-002: Validate ObjectId to prevent crashes from malformed IDs
+    if (!id || !mongoose.isValidObjectId(id)) {
+      return createSecureResponse({
+        error: { code: "FIXZIT-API-VENDOR-002", message: "Invalid vendor ID format" }
+      }, 400, req);
+    }
     await connectToDatabase();
 
     const data = updateVendorSchema.parse(await req.json());
@@ -181,6 +188,12 @@ export async function DELETE(
         401,
         req,
       );
+    }
+    // SEC-002: Validate ObjectId to prevent crashes from malformed IDs
+    if (!id || !mongoose.isValidObjectId(id)) {
+      return createSecureResponse({
+        error: { code: "FIXZIT-API-VENDOR-003", message: "Invalid vendor ID format" }
+      }, 400, req);
     }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {

@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Property } from "@/server/models/Property";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import mongoose from "mongoose";
 
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
@@ -110,6 +111,12 @@ export async function GET(
 ) {
   try {
     const user = await getSessionUser(req);
+    // SEC-002: Validate ObjectId to prevent crashes from malformed IDs
+    if (!params.id || !mongoose.isValidObjectId(params.id)) {
+      return createSecureResponse({
+        error: { code: "FIXZIT-API-PROP-001", message: "Invalid property ID format" }
+      }, 400, req);
+    }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
@@ -137,6 +144,12 @@ export async function PATCH(
 ) {
   try {
     const user = await getSessionUser(req);
+    // SEC-002: Validate ObjectId to prevent crashes from malformed IDs
+    if (!params.id || !mongoose.isValidObjectId(params.id)) {
+      return createSecureResponse({
+        error: { code: "FIXZIT-API-PROP-002", message: "Invalid property ID format" }
+      }, 400, req);
+    }
     await connectToDatabase();
 
     const data = updatePropertySchema.parse(await req.json());
@@ -163,6 +176,12 @@ export async function DELETE(
 ) {
   try {
     const user = await getSessionUser(req);
+    // SEC-002: Validate ObjectId to prevent crashes from malformed IDs
+    if (!params.id || !mongoose.isValidObjectId(params.id)) {
+      return createSecureResponse({
+        error: { code: "FIXZIT-API-PROP-003", message: "Invalid property ID format" }
+      }, 400, req);
+    }
     const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();

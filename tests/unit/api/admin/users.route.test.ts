@@ -89,3 +89,10 @@ describe("GET /api/admin/users filters", () => {
     expect(query.$or).toBeDefined(); // search applied
   });
 });
+
+// Restore mongoose mock after ALL tests in file to prevent contamination
+// NOTE: Must be at module level, not inside describe block
+afterAll(() => {
+  vi.doUnmock("mongoose");
+  vi.resetModules();
+});
