@@ -21,30 +21,15 @@
  * - Tenant-scoped: Schedules are isolated by organization
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
-import { getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
+import { FMReportSchedule } from '@/server/models/FMReportSchedule';
+import { connectDb } from '@/lib/mongodb-unified';
 import { ModuleKey } from '@/domain/fm/fm.behavior';
 import { requireFmPermission } from '@/app/api/fm/permissions';
 import { FMAction } from '@/types/fm/enums';
 import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from '@/app/api/fm/utils/tenant';
 import { FMErrors } from '@/app/api/fm/errors';
 import { enforceRateLimit } from '@/lib/middleware/rate-limit';
-
-type ScheduleDocument = {
-  _id: ObjectId;
-  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
-  name: string;
-  type: string;
-  frequency: string;
-  format: string;
-  recipients: string[];
-  startDate: string;
-  status: 'active' | 'paused';
-  createdBy?: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
 
 type SchedulePayload = {
   title?: string;
@@ -54,8 +39,6 @@ type SchedulePayload = {
   recipients?: string;
   startDate?: string;
 };
-
-const COLLECTION = 'fm_report_schedules';
 
 const sanitizePayload = (payload: SchedulePayload): SchedulePayload => {
   const sanitized: SchedulePayload = {};
@@ -78,8 +61,8 @@ const validatePayload = (payload: SchedulePayload): string | null => {
   return null;
 };
 
-const mapSchedule = (doc: ScheduleDocument) => ({
-  id: doc._id.toString(),
+const mapSchedule = (doc: { _id: unknown; name: string; type: string; frequency: string; format: string; recipients: string[]; startDate: string; status: string; createdAt?: Date; updatedAt?: Date }) => ({
+  id: String(doc._id),
   name: doc.name,
   type: doc.type,
   frequency: doc.frequency,
@@ -116,11 +99,13 @@ export async function GET(req: NextRequest) {
     if ('error' in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
 
-    const db = await getDatabase();
-    const collection = db.collection<ScheduleDocument>(COLLECTION);
+    await connectDb();
     // AUDIT-2025-11-29: Use buildTenantFilter for cross-tenant support
     // eslint-disable-next-line local/require-tenant-scope -- FALSE POSITIVE: Scoped by buildTenantFilter(tenantId)
-    const schedules = await collection.find({ ...buildTenantFilter(tenantId) }).sort({ createdAt: -1 }).limit(50).toArray();
+    const schedules = await FMReportSchedule.find({ ...buildTenantFilter(tenantId) })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
 
     return NextResponse.json({ success: true, data: schedules.map(mapSchedule) });
   } catch (error) {
@@ -166,9 +151,8 @@ export async function POST(req: NextRequest) {
       .map((r) => r.trim())
       .filter(Boolean);
 
-    const now = new Date();
-    const doc: ScheduleDocument = {
-      _id: new ObjectId(),
+    await connectDb();
+    const doc = await FMReportSchedule.create({
       orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
       name: payload.title!,
       type: payload.reportType!,
@@ -178,13 +162,7 @@ export async function POST(req: NextRequest) {
       startDate: payload.startDate!,
       status: 'active',
       createdBy: actor.userId,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    const db = await getDatabase();
-    const collection = db.collection<ScheduleDocument>(COLLECTION);
-    await collection.insertOne(doc);
+    });
 
     return NextResponse.json({ success: true, data: mapSchedule(doc) }, { status: 201 });
   } catch (error) {
