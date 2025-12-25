@@ -209,6 +209,19 @@ export class WorkOrderService {
       match["assignment.assignedTo.userId"] = filter.assigneeId;
     }
     if (filter.propertyId) {
+      if (!ObjectId.isValid(filter.propertyId)) {
+        logger.warn(`[WorkOrderService.getStats] Invalid propertyId: ${filter.propertyId}`);
+        // Return empty stats for invalid ID instead of throwing
+        return {
+          total: 0,
+          byStatus: {},
+          byPriority: {},
+          overdue: 0,
+          completedThisWeek: 0,
+          completedThisMonth: 0,
+          averageResolutionHours: 0,
+        };
+      }
       match["location.propertyId"] = new ObjectId(filter.propertyId);
     }
     if (filter.fromDate || filter.toDate) {
@@ -440,7 +453,7 @@ export class WorkOrderService {
     };
 
     // Set timestamps based on status
-    if (toStatus === WOStatus.IN_PROGRESS && !workOrder.createdAt) {
+    if (toStatus === WOStatus.IN_PROGRESS && !workOrder.startedAt) {
       update.startedAt = now;
     }
     if (toStatus === WOStatus.WORK_COMPLETE) {
@@ -530,7 +543,7 @@ export class WorkOrderService {
   } {
     const hours = DEFAULT_SLA_HOURS[priority] ?? 24;
     return {
-      responseTimeMinutes: Math.floor(hours * 10), // ~10% of resolution time
+      responseTimeMinutes: Math.floor(hours * 6), // 10% of resolution time
       resolutionTimeMinutes: hours * 60,
     };
   }
@@ -578,6 +591,14 @@ export class WorkOrderService {
       return { success: false, error: "Work order not found or access denied" };
     }
 
+    // Validate ObjectIds before conversion
+    if (!ObjectId.isValid(assigneeId)) {
+      return { success: false, error: `Invalid assigneeId format: ${assigneeId}` };
+    }
+    if (!ObjectId.isValid(assignedBy)) {
+      return { success: false, error: `Invalid assignedBy format: ${assignedBy}` };
+    }
+
     // Build assignment object based on type
     const assignedTo: Record<string, ObjectId> = {};
     if (assigneeType === "user") {
@@ -598,24 +619,57 @@ export class WorkOrderService {
       updatedAt: now,
     };
 
-    // If currently NEW, transition to ASSESSMENT
+    // If currently NEW, transition to ASSESSMENT (validate via FSM)
     if (workOrder.status === WOStatus.NEW) {
-      update.status = WOStatus.ASSESSMENT;
+      // Validate transition is allowed per FSM rules
+      const ctx: ResourceCtx = {
+        orgId,
+        role: Role.PROPERTY_MANAGER, // Assignment implies management role
+        userId: assignedBy,
+        plan: Plan.STANDARD,
+        isOrgMember: true,
+        isTechnicianAssigned: false,
+      };
+      if (canTransition(WOStatus.NEW, WOStatus.ASSESSMENT, Role.PROPERTY_MANAGER, ctx)) {
+        update.status = WOStatus.ASSESSMENT;
+        // Add status history entry for audit trail
+        const statusHistoryEntry = {
+          fromStatus: WOStatus.NEW,
+          toStatus: WOStatus.ASSESSMENT,
+          changedBy: assignedBy,
+          changedAt: now,
+          reason: "Auto-transition on assignment",
+        };
+        // Will be pushed separately below
+        (update as Record<string, unknown>)._statusHistoryEntry = statusHistoryEntry;
+      }
+    }
+
+    // Extract status history entry if we're auto-transitioning
+    const statusHistoryEntry = (update as Record<string, unknown>)._statusHistoryEntry;
+    delete (update as Record<string, unknown>)._statusHistoryEntry;
+
+    // Build the $push operations
+    const pushOps: Record<string, unknown> = {
+      "assignment.reassignmentHistory": {
+        fromUserId: workOrder.assignment?.assignedTo?.userId ?? null,
+        toUserId: assignedTo.userId ?? assignedTo.teamId ?? assignedTo.vendorId,
+        reason: notes,
+        assignedBy: new ObjectId(assignedBy),
+        assignedAt: now,
+      },
+    };
+
+    // Add status history entry if we auto-transitioned
+    if (statusHistoryEntry) {
+      pushOps.statusHistory = statusHistoryEntry;
     }
 
     const result = await collection.findOneAndUpdate(
       { _id: new ObjectId(workOrderId), orgId },
       {
         $set: update,
-        $push: {
-          "assignment.reassignmentHistory": {
-            fromUserId: workOrder.assignment?.assignedTo?.userId ?? null,
-            toUserId: assignedTo.userId ?? assignedTo.teamId ?? assignedTo.vendorId,
-            reason: notes,
-            assignedBy: new ObjectId(assignedBy),
-            assignedAt: now,
-          },
-        },
+        $push: pushOps,
       } as Document,
       { returnDocument: "after" },
     );
@@ -715,7 +769,7 @@ export class WorkOrderService {
           "communication.updates": {
             updateType: "ESCALATION",
             description: `Escalated from ${currentPriority} to ${targetPriority}: ${reason}`,
-            updatedBy: escalatedBy,
+            updatedBy: new ObjectId(escalatedBy),
             updatedAt: now,
             isAutomated: false,
           },

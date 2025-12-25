@@ -28,7 +28,8 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | a211bbf36 | chore: remove 26 byte-identical duplicate files [AGENT-001-A] [DEDUPE-001] |
 
 ### 🎯 Next Steps
-- [ ] Open PR from `agent/AGENT-001-A/souq/settlements-tests` → `main`
+
+- [x] Open PR from `agent/AGENT-001-A/souq/settlements-tests` → `main` (#604)
 - [ ] Await Codex review gate (AGENTS.md Section 14)
 
 ---
