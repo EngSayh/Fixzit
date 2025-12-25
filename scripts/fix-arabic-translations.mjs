@@ -1787,14 +1787,10 @@ const TRANSLATION_DICTIONARY = {
   "Test Page": "صفحة الاختبار",
   "Thank You": "شكراً لك",
   "Theme Set": "تم تعيين السمة",
-  // "This Month" duplicate removed
-  "This  Month": "هذا الشهر",
+  "This Month": "هذا الشهر",
   "This Quarter": "هذا الربع",
-  "This  Quarter": "هذا الربع",
-  // "This Week" duplicate removed
-  "This  Week": "هذا الأسبوع",
-  // "This Year" duplicate removed
-  "This  Year": "هذه السنة",
+  "This Week": "هذا الأسبوع",
+  "This Year": "هذا العام",
   "Ticket": "تذكرة",
   "Ticket Created": "تم إنشاء التذكرة",
   "Ticket Id": "معرف التذكرة",
@@ -1802,9 +1798,7 @@ const TRANSLATION_DICTIONARY = {
   "Title Edit": "تعديل العنوان",
   "Toggle Filters": "تبديل الفلاتر",
   "Total Credits": "إجمالي الدائن",
-  "Total  Credits": "إجمالي الدائن",
   "Total Debits": "إجمالي المدين",
-  "Total  Debits": "إجمالي المدين",
   "Total Accounts": "إجمالي الحسابات",
   "Total Approved": "إجمالي الموافق عليه",
   "Total Area": "إجمالي المساحة",
@@ -1899,8 +1893,7 @@ const TRANSLATION_DICTIONARY = {
   "Whatsapp": "واتساب",
   "White Labeling": "العلامة البيضاء",
   "Wo Id": "معرف أمر العمل",
-  // "Work Order" duplicate removed
-  "Work  Order": "أمر عمل",
+  // "Work Order" defined at line ~270 with definite form "أمر العمل"
   "Work Orders Approvals": "موافقات أوامر العمل",
   "Work Orders Board": "لوحة أوامر العمل",
   "Work Orders History": "سجل أوامر العمل",

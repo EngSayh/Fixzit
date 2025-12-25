@@ -619,6 +619,15 @@ export class WorkOrderService {
       updatedAt: now,
     };
 
+    // Local variable to hold status history entry if auto-transitioning
+    let statusHistoryEntryForPush: {
+      fromStatus: string;
+      toStatus: string;
+      changedBy: string;
+      changedAt: Date;
+      reason: string;
+    } | null = null;
+
     // If currently NEW, transition to ASSESSMENT (validate via FSM)
     if (workOrder.status === WOStatus.NEW) {
       // Validate transition is allowed per FSM rules
@@ -633,21 +642,17 @@ export class WorkOrderService {
       if (canTransition(WOStatus.NEW, WOStatus.ASSESSMENT, Role.PROPERTY_MANAGER, ctx)) {
         update.status = WOStatus.ASSESSMENT;
         // Add status history entry for audit trail
-        const statusHistoryEntry = {
+        statusHistoryEntryForPush = {
           fromStatus: WOStatus.NEW,
           toStatus: WOStatus.ASSESSMENT,
           changedBy: assignedBy,
           changedAt: now,
           reason: "Auto-transition on assignment",
         };
-        // Will be pushed separately below
-        (update as Record<string, unknown>)._statusHistoryEntry = statusHistoryEntry;
       }
     }
 
-    // Extract status history entry if we're auto-transitioning
-    const statusHistoryEntry = (update as Record<string, unknown>)._statusHistoryEntry;
-    delete (update as Record<string, unknown>)._statusHistoryEntry;
+    // statusHistoryEntryForPush is set above if auto-transitioning
 
     // Build the $push operations
     const pushOps: Record<string, unknown> = {
@@ -661,8 +666,8 @@ export class WorkOrderService {
     };
 
     // Add status history entry if we auto-transitioned
-    if (statusHistoryEntry) {
-      pushOps.statusHistory = statusHistoryEntry;
+    if (statusHistoryEntryForPush) {
+      pushOps.statusHistory = statusHistoryEntryForPush;
     }
 
     const result = await collection.findOneAndUpdate(

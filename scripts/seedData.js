@@ -242,7 +242,7 @@ const seedDatabase = async () => {
     ];
 
     for (let orgIndex = 0; orgIndex < organizations.length; orgIndex++) {
-      const { org, tenant } = organizations[orgIndex];
+      const { org, tenant: _tenant2 } = organizations[orgIndex];
 
       for (let i = 1; i <= 8; i++) {
         const serviceSet = serviceCategories[i % serviceCategories.length];

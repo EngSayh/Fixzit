@@ -43,7 +43,7 @@ const vendorTargets: EncryptTarget[] = [
 ];
 
 function setNested(doc: Record<string, unknown>, path: string, value: string) {
-  const parts = path.split(\".\");
+  const parts = path.split(".");
   let current = doc as Record<string, unknown>;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
