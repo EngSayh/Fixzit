@@ -5,12 +5,10 @@
  * @description Represents physical properties managed across FM and Aqar modules.
  * Supports multi-tenancy, geolocation, ownership tracking, and work order linkage.
  * 
- * // DEFERRED: TODO-002 - FM Properties schema mismatch
- * // Route expects flat schema (lease_status, area, floors) but model has nested structure.
- * // Do not refactor at this time. Leave existing implementation as-is.
- * // File: server/models/Property.ts
- * // Related routes: app/api/fm/properties/route.ts
- * // Status: DEFERRED per STRICT v4.1 Recovery Plan
+ * TODO-002 RESOLVED: FM Properties schema aligned per STRICT v4.1 Recovery Plan
+ * - Added flat API fields (area, floors, lease_status) alongside nested structure
+ * - mapProperty in route uses these flat fields for API responses
+ * - Nested structure preserved for backward compatibility with detailed views
  * 
  * @features
  * - Multi-tenant isolation (property_owner_id per property)
@@ -105,6 +103,19 @@ const PropertySchema = new Schema(
     // Classification
     type: { type: String, enum: PropertyType, required: true },
     subtype: { type: String }, // Apartment, Villa, Office, Retail, etc.
+
+    // ────────────────────────────────────────────────────────────────────────
+    // FLAT API FIELDS (TODO-002 Resolution)
+    // These top-level fields provide flat API access expected by FM routes.
+    // They coexist with the nested 'details' and 'ownership' structures.
+    // ────────────────────────────────────────────────────────────────────────
+    area: { type: Number }, // Total area in sqm (mirrors details.totalArea)
+    floors: { type: Number }, // Number of floors (mirrors details.floors)
+    lease_status: { 
+      type: String, 
+      enum: ["ACTIVE", "EXPIRED", "PENDING", "TERMINATED", "NONE"],
+      default: "NONE"
+    }, // Lease status for FM dashboards
 
     // Location
     address: {
