@@ -1,4 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Types } from "mongoose";
+
+// Use valid ObjectIds for tests (route validates with mongoose.isValidObjectId)
+const VALID_CLAIM_ID = new Types.ObjectId().toString();
+const VALID_ORDER_ID = new Types.ObjectId().toString();
+const VALID_ORG_ID = new Types.ObjectId().toString();
 
 const enforceRateLimitMock = vi.fn();
 const resolveRequestSessionMock = vi.fn();
@@ -42,7 +48,7 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 function buildRequest() {
-  return { url: "https://example.com/api/souq/claims/claim-1" } as any;
+  return { url: `https://example.com/api/souq/claims/${VALID_CLAIM_ID}` } as any;
 }
 
 describe("GET /api/souq/claims/[id] error handling", () => {
@@ -52,11 +58,11 @@ describe("GET /api/souq/claims/[id] error handling", () => {
 
     enforceRateLimitMock.mockReturnValue(null);
     resolveRequestSessionMock.mockResolvedValue({
-      user: { id: "buyer-1", orgId: "507f1f77bcf86cd799439011" },
+      user: { id: "buyer-1", orgId: VALID_ORG_ID },
     });
     getClaimMock.mockResolvedValue({
-      _id: "claim-1",
-      orderId: "order-1",
+      _id: VALID_CLAIM_ID,
+      orderId: VALID_ORDER_ID,
       buyerId: "buyer-1",
       sellerId: "seller-1",
     });
@@ -69,7 +75,7 @@ describe("GET /api/souq/claims/[id] error handling", () => {
 
   it("returns 500 when order lookup fails instead of 404", async () => {
     const { GET } = await import("@/app/api/souq/claims/[id]/route");
-    const res = await GET(buildRequest(), { params: { id: "claim-1" } });
+    const res = await GET(buildRequest(), { params: { id: VALID_CLAIM_ID } });
 
     expect(res.status).toBe(500);
     expect(loggerErrorMock).toHaveBeenCalledWith(
