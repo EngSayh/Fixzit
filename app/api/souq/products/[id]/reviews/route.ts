@@ -16,7 +16,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { reviewService } from "@/services/souq/reviews/review-service";
 import { ratingAggregationService } from "@/services/souq/reviews/rating-aggregation-service";
-import { connectDb } from "@/lib/mongodb-unified";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
@@ -49,15 +48,9 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
   try {
     const { id: productId } = await context.params;
-    const connection = await connectDb();
-    const db = connection.connection.db!;
     
-    // Fetch product to get orgId for tenant-scoped queries
-    const product = await db.collection("souq_products").findOne(
-      { productId },
-      { projection: { orgId: 1 } }
-    );
-    const orgId = (product as { orgId?: string })?.orgId;
+    // TD-001: Migrated from db.collection() to Mongoose model via service
+    const orgId = await reviewService.getProductOrgId(productId);
     if (!orgId) {
       return NextResponse.json(
         { error: "Product orgId missing; cannot fetch tenant-scoped reviews" },
