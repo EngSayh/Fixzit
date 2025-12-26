@@ -49,6 +49,7 @@ export default function SuperadminLoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, secretKey }),
+        credentials: "include", // Ensure cookies are sent and received
       });
 
       const data = await response.json();
