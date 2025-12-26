@@ -150,25 +150,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Create the response with initial body
     const response = NextResponse.json(
       {
         success: true,
         message: "Authenticated successfully",
         role: "super_admin",
-        // Include debug info for troubleshooting (safe - no secrets)
-        debug: INCLUDE_ERROR_DETAILS ? {
-          tokenLength: token.length,
-          cookiePath: "/",
-        } : undefined,
       },
       { headers: ROBOTS_HEADER }
     );
 
+    // Set the auth cookie on the response
     applySuperadminCookies(response, token, 8 * 60 * 60);
+    
+    // Get cookie info for the response (safe - no secrets, just confirms cookie was set)
+    const cookieInfo = response.cookies.getAll().map(c => ({
+      name: c.name,
+      hasValue: !!c.value,
+      valueLength: c.value?.length || 0,
+    }));
     
     // Log all cookies being set for debugging
     logger.info("[SUPERADMIN] Cookie set on response", {
-      cookieNames: response.cookies.getAll().map(c => c.name),
+      cookieNames: cookieInfo.map(c => c.name),
+      cookieCount: cookieInfo.length,
       username: usernameValue,
     });
 

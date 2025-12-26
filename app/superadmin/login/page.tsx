@@ -74,6 +74,8 @@ export default function SuperadminLoginPage() {
       // router.push() uses client-side navigation which doesn't properly
       // send the newly-set httpOnly cookie to the server on first request.
       // A full page reload ensures the browser includes the cookie.
+      // Small delay to ensure browser has processed Set-Cookie header
+      await new Promise(resolve => setTimeout(resolve, 100));
       window.location.href = "/superadmin/issues";
     } catch (_err) {
       setError("Connection error. Please try again.");
