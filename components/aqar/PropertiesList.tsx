@@ -331,8 +331,14 @@ export function PropertiesList({ orgId }: PropertiesListProps) {
   const CardView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {properties.map((property) => (
-        <div key={property.id} className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer" onClick={() => toast.info(`Open property ${property.id}`)}>
-          {property.imageUrl && (
+        <div
+          key={property.id}
+          className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer"
+          onClick={() => toast.info(`Open property ${property.id}`)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toast.info(`Open property ${property.id}`); } }}
+          role="button"
+          tabIndex={0}
+        >          {property.imageUrl && (
             <img src={property.imageUrl} alt={property.title} className="w-full h-48 object-cover" />
           )}
           <div className="p-4 space-y-3">
