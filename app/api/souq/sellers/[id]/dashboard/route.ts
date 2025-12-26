@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import mongoose from "mongoose";
 import { SouqSeller } from "@/server/models/souq/Seller";
 import { SouqListing } from "@/server/models/souq/Listing";
 import { SouqOrder } from "@/server/models/souq/Order";
@@ -78,6 +79,14 @@ export async function GET(
     await connectDb();
 
     const sellerId = context.params.id;
+
+    // Validate ObjectId format to prevent CastError
+    if (!mongoose.isValidObjectId(sellerId)) {
+      return NextResponse.json(
+        { error: "Invalid seller ID format", code: "FIXZIT-API-SELLER-001" },
+        { status: 400 },
+      );
+    }
 
     const sellerQuery: Record<string, unknown> = { _id: sellerId };
     if (orgId) {
