@@ -83,9 +83,11 @@ export async function GET(request: NextRequest) {
     }
   }
   
-  // Security: Production = Vercel production only
-  // In production, redact cookie values to protect httpOnly cookie integrity
-  const isProduction = process.env.VERCEL_ENV === "production";
+  // Security: Production = Vercel production OR NODE_ENV=production without VERCEL_ENV
+  // This handles both Vercel and non-Vercel production deployments
+  const isProduction = 
+    process.env.VERCEL_ENV === "production" || 
+    (process.env.NODE_ENV === "production" && !process.env.VERCEL_ENV);
   
   return NextResponse.json({
     timestamp: new Date().toISOString(),
