@@ -230,7 +230,9 @@ type SortSpec = Record<string, 1 | -1>;
 
 function buildSortQuery(query: ListQuery): SortSpec {
   const sortBy = query.sortBy || 'priority';
-  const sortOrder = query.sortOrder === 'asc' ? 1 : -1;
+  // For priority, default to ascending (P0 first); for other fields, default to descending
+  const defaultOrder = sortBy === 'priority' ? 1 : -1;
+  const sortOrder = query.sortOrder ? (query.sortOrder === 'asc' ? 1 : -1) : defaultOrder;
   
   const sortMap: Record<string, SortSpec> = {
     priority: { priority: sortOrder, createdAt: -1 },
@@ -588,6 +590,29 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
     
   } catch (error) {
+    // Handle MongoDB duplicate key error (E11000) gracefully
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: number }).code === 11000
+    ) {
+      // Extract the duplicate key from the error message if possible
+      const keyPattern = (error as { keyPattern?: Record<string, number> }).keyPattern;
+      const keyValue = (error as { keyValue?: Record<string, string> }).keyValue;
+      logger.warn("POST /api/issues duplicate key collision", { keyPattern, keyValue });
+      
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Issue with this key already exists",
+          code: "DUPLICATE_ISSUE",
+          details: keyValue,
+        },
+        { status: 409 }
+      );
+    }
+    
     const correlationId =
       error && typeof error === "object" && "correlationId" in error
         ? (error as { correlationId?: string }).correlationId
