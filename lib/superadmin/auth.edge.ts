@@ -27,41 +27,56 @@ export interface SuperadminSession {
  * IMPORTANT: This MUST be evaluated once at module load time to ensure
  * consistency across all requests within a serverless instance.
  * 
- * Priority: SUPERADMIN_JWT_SECRET > NEXTAUTH_SECRET > AUTH_SECRET > fallback
+ * Priority: SUPERADMIN_JWT_SECRET > NEXTAUTH_SECRET > AUTH_SECRET > null (fail closed)
+ * 
+ * SECURITY: Returns null if no secret is configured. This ensures the system
+ * "fails closed" - no token verification is possible without a proper secret.
  */
-const SECRET_FALLBACK = (() => {
+const SECRET_FALLBACK: string | null = (() => {
   const secret = 
     process.env.SUPERADMIN_JWT_SECRET ||
     process.env.NEXTAUTH_SECRET ||
-    process.env.AUTH_SECRET;
+    process.env.AUTH_SECRET ||
+    null;
   
-  if (secret) return secret;
-  
-  // In production/preview, log error but use a consistent fallback to avoid crashes
-  const isProdLike = 
-    process.env.NODE_ENV === "production" || 
-    process.env.VERCEL_ENV === "production" || 
-    process.env.VERCEL_ENV === "preview";
-  
-  if (isProdLike) {
-    // eslint-disable-next-line no-console -- Critical security warning must be visible
-    console.error("[SUPERADMIN] CRITICAL: No JWT secret configured. Set SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET.");
+  if (!secret) {
+    const isProdLike = 
+      process.env.NODE_ENV === "production" || 
+      process.env.VERCEL_ENV === "production" || 
+      process.env.VERCEL_ENV === "preview";
+    
+    if (isProdLike) {
+      // eslint-disable-next-line no-console -- Critical security warning must be visible
+      console.error("[SUPERADMIN] CRITICAL SECURITY: No JWT secret configured. Superadmin auth DISABLED. Set SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET.");
+    }
   }
   
-  return "change-me-superadmin-secret";
+  return secret;
 })();
 
 export const SUPERADMIN_COOKIE_NAME = "superadmin_session";
 
 const encoder = new TextEncoder();
-const jwtSecret = encoder.encode(SECRET_FALLBACK);
+// Only encode if secret exists - jwtSecret will be null if no secret configured
+const jwtSecret = SECRET_FALLBACK ? encoder.encode(SECRET_FALLBACK) : null;
 
 /**
  * Decode and verify a superadmin JWT token
  * Edge Runtime safe - uses jose library (Web Crypto API)
+ * 
+ * SECURITY: Returns null immediately if no JWT secret is configured.
+ * This ensures the system "fails closed" - attackers cannot forge tokens.
  */
 export async function decodeSuperadminToken(token?: string | null): Promise<SuperadminSession | null> {
   if (!token) return null;
+  
+  // SECURITY: Fail closed if no secret configured
+  if (!jwtSecret) {
+    // eslint-disable-next-line no-console -- Critical security error must be visible
+    console.error("[SUPERADMIN] SECURITY: Token verification rejected - no JWT secret configured. Configure SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET.");
+    return null;
+  }
+  
   try {
     const { payload } = await jwtVerify(token, jwtSecret);
     if (payload.role !== "super_admin" || !payload.sub || !payload.orgId) {

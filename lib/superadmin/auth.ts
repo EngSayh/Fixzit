@@ -47,30 +47,35 @@ const rateLimiter = new Map<string, RateEntry>();
 
 /**
  * JWT Secret Resolution (module-level constant for stability)
+ * 
+ * SECURITY: Returns null if no secret is configured. This ensures the system
+ * "fails closed" - no token signing is possible without a proper secret.
  */
-const SECRET_FALLBACK = (() => {
+const SECRET_FALLBACK: string | null = (() => {
   const secret = 
     process.env.SUPERADMIN_JWT_SECRET ||
     process.env.NEXTAUTH_SECRET ||
-    process.env.AUTH_SECRET;
+    process.env.AUTH_SECRET ||
+    null;
   
-  if (secret) return secret;
-  
-  const isProdLike = 
-    process.env.NODE_ENV === "production" || 
-    process.env.VERCEL_ENV === "production" || 
-    process.env.VERCEL_ENV === "preview";
-  
-  if (isProdLike) {
-    // eslint-disable-next-line no-console -- Critical security warning must be visible
-    console.error("[SUPERADMIN] CRITICAL: No JWT secret configured. Set SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET.");
+  if (!secret) {
+    const isProdLike = 
+      process.env.NODE_ENV === "production" || 
+      process.env.VERCEL_ENV === "production" || 
+      process.env.VERCEL_ENV === "preview";
+    
+    if (isProdLike) {
+      // eslint-disable-next-line no-console -- Critical security warning must be visible
+      console.error("[SUPERADMIN] CRITICAL SECURITY: No JWT secret configured. Superadmin auth DISABLED. Set SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET.");
+    }
   }
   
-  return "change-me-superadmin-secret";
+  return secret;
 })();
 
 const encoder = new TextEncoder();
-const jwtSecret = encoder.encode(SECRET_FALLBACK);
+// Only encode if secret exists - jwtSecret will be null if no secret configured
+const jwtSecret = SECRET_FALLBACK ? encoder.encode(SECRET_FALLBACK) : null;
 
 // ============================================================================
 // INTERNAL HELPERS (Node.js only - uses crypto)
@@ -177,8 +182,15 @@ export function validateSecondFactor(secretFromRequest?: string): boolean {
 
 /**
  * Sign a new superadmin JWT token
+ * 
+ * @throws Error if JWT secret is not configured (fail closed)
  */
 export async function signSuperadminToken(username: string): Promise<string> {
+  // SECURITY: Fail closed - cannot sign tokens without proper secret
+  if (!jwtSecret) {
+    throw new Error("[SUPERADMIN] Cannot sign token: No JWT secret configured. Set SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET.");
+  }
+
   const orgId = resolveOrgId();
   if (!orgId) {
     throw new Error("Tenant org id missing");
