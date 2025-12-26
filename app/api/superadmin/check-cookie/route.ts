@@ -18,6 +18,16 @@ export async function GET(request: NextRequest) {
   let sessionValid = false;
   let sessionError: string | null = null;
   let sessionData: { username?: string; role?: string; orgId?: string } | null = null;
+  let jwtDebug: { hasSecret: boolean; secretSource: string | null } | null = null;
+  
+  // Check which secret is being used (without exposing the value)
+  const secretSource = process.env.SUPERADMIN_JWT_SECRET ? 'SUPERADMIN_JWT_SECRET' :
+                       process.env.NEXTAUTH_SECRET ? 'NEXTAUTH_SECRET' :
+                       process.env.AUTH_SECRET ? 'AUTH_SECRET' : null;
+  jwtDebug = {
+    hasSecret: !!secretSource,
+    secretSource,
+  };
   
   if (superadminCookie?.value) {
     try {
@@ -29,10 +39,15 @@ export async function GET(request: NextRequest) {
           role: session.role,
           orgId: session.orgId ? `${session.orgId.slice(0, 4)}...` : undefined,
         };
+      } else {
+        // Session is null but no exception - means validation failed
+        sessionError = 'Token decode returned null (payload validation failed or no secret)';
       }
     } catch (error) {
       sessionError = error instanceof Error ? error.message : String(error);
     }
+  } else {
+    sessionError = 'No cookie present';
   }
   
   // Secret fingerprint: redacted by default for security
@@ -86,6 +101,7 @@ export async function GET(request: NextRequest) {
       error: sessionError,
       data: sessionData,
     },
+    jwt: jwtDebug,
     secrets: {
       fingerprint: secretFingerprint,
     },
