@@ -70,6 +70,14 @@ export default function SuperadminLoginPage() {
         return;
       }
 
+      // Log login response diagnostics (includes signing secret source)
+      // eslint-disable-next-line no-console -- Auth flow debugging
+      console.log("[SUPERADMIN] Login response", {
+        success: data.success,
+        role: data.role,
+        _debug: data._debug, // Shows which secret was used for signing
+      });
+
       // CRITICAL: Use window.location.href for full page reload after login
       // router.push() uses client-side navigation which doesn't properly
       // send the newly-set httpOnly cookie to the server on first request.
@@ -97,6 +105,16 @@ export default function SuperadminLoginPage() {
         } else {
           const cookieData = await cookieCheck.json();
           
+          // Log full diagnostics for comparison
+          // eslint-disable-next-line no-console -- Auth flow debugging
+          console.log("[SUPERADMIN] Check-cookie response", {
+            hasCookie: cookieData.cookies?.hasSuperadminCookie,
+            cookieLength: cookieData.cookies?.superadminCookieLength,
+            sessionValid: cookieData.session?.valid,
+            sessionError: cookieData.session?.error,
+            jwt: cookieData.jwt, // Shows which secret Edge runtime is using
+          });
+          
           if (!cookieData.cookies?.hasSuperadminCookie) {
             // Cookie wasn't set - show error instead of redirect loop
             // eslint-disable-next-line no-console -- Critical auth debugging
@@ -110,14 +128,27 @@ export default function SuperadminLoginPage() {
             // eslint-disable-next-line no-console -- Critical auth debugging
             console.error("[SUPERADMIN] Session verification failed", {
               error: cookieData.session.error,
-              secrets: cookieData.secrets,
+              loginDebug: data._debug, // What the login API used
+              checkCookieJwt: cookieData.jwt, // What the Edge runtime has
             });
-            setError(`Session verification failed: ${cookieData.session.error || 'JWT decode error'}. This may indicate a secret mismatch between server runtimes.`);
+            
+            // Provide specific error message based on mismatch
+            const loginSource = data._debug?.signingSecretSource;
+            const edgeSource = cookieData.jwt?.secretSource;
+            if (loginSource && edgeSource && loginSource !== edgeSource) {
+              setError(`SECRET MISMATCH: Login signed with ${loginSource}, but Edge verifies with ${edgeSource}. Ensure both runtimes use the same secret.`);
+            } else if (!cookieData.jwt?.hasSecret) {
+              setError(`No JWT secret in Edge runtime. Set SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET in Vercel and redeploy.`);
+            } else {
+              setError(`Session verification failed: ${cookieData.session.error || 'JWT decode error'}. Check browser console for details.`);
+            }
             return;
           }
           
           // eslint-disable-next-line no-console -- Auth flow debugging
-          console.log("[SUPERADMIN] Cookie verified, redirecting...", cookieData);
+          console.log("[SUPERADMIN] Cookie verified, redirecting...", {
+            sessionData: cookieData.session?.data,
+          });
         }
       } catch (checkError) {
         // If check fails entirely (network error), proceed anyway - might work

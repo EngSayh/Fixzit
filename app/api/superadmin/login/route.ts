@@ -150,12 +150,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Determine which secret source was used for signing (for debugging)
+    const signingSecretSource = process.env.SUPERADMIN_JWT_SECRET ? 'SUPERADMIN_JWT_SECRET' :
+                                process.env.NEXTAUTH_SECRET ? 'NEXTAUTH_SECRET' :
+                                process.env.AUTH_SECRET ? 'AUTH_SECRET' : null;
+
     // Create the response with initial body
     const response = NextResponse.json(
       {
         success: true,
         message: "Authenticated successfully",
         role: "super_admin",
+        // Include signing diagnostics so client can compare with check-cookie
+        _debug: {
+          runtime: "nodejs",
+          signingSecretSource,
+          hasSigningSecret: !!signingSecretSource,
+        },
       },
       { headers: ROBOTS_HEADER }
     );
