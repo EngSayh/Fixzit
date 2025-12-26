@@ -20,7 +20,11 @@ import { logger } from "@/lib/logger";
 
 const SUPERADMIN_USERNAME = process.env.SUPERADMIN_USERNAME || "superadmin";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
-const INCLUDE_ERROR_DETAILS = process.env.NODE_ENV !== "production";
+// Show debug details in development and preview, not in production
+// Uses VERCEL_ENV when available, falls back to NODE_ENV
+const IS_PRODUCTION = process.env.VERCEL_ENV === "production" || 
+  (process.env.NODE_ENV === "production" && !process.env.VERCEL_ENV);
+const INCLUDE_ERROR_DETAILS = !IS_PRODUCTION;
 
 export async function POST(request: NextRequest) {
   // Primary rate limiting via enforceRateLimit middleware (5 req/min for login)
