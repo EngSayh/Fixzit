@@ -156,7 +156,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               closeButton
               duration={4000}
             />
-            <SpeedInsights />
+            {process.env.VERCEL_ENV === 'production' && <SpeedInsights />}
           </TooltipProvider>
         </ConditionalProviders>
         {isPlaywright && (
