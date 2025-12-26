@@ -94,9 +94,20 @@ export async function decodeSuperadminToken(token?: string | null): Promise<Supe
       issuedAt: (payload.iat || 0) * 1000,
       expiresAt: payload.exp * 1000,
     };
-  } catch {
-    // Token verification failed - likely stale cookie or secret mismatch
-    // Don't log in Edge Runtime to avoid noise
+  } catch (error) {
+    // Token verification failed - log in development/preview for debugging
+    const isProdLike = 
+      process.env.NODE_ENV === "production" && 
+      process.env.VERCEL_ENV === "production";
+    
+    if (!isProdLike) {
+      // eslint-disable-next-line no-console -- Debug logging for auth issues
+      console.warn("[SUPERADMIN] Token verification failed", {
+        error: error instanceof Error ? error.message : String(error),
+        tokenLength: token?.length || 0,
+        hasJwtSecret: !!jwtSecret,
+      });
+    }
     return null;
   }
 }

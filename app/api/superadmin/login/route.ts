@@ -151,11 +151,22 @@ export async function POST(request: NextRequest) {
         success: true,
         message: "Authenticated successfully",
         role: "super_admin",
+        // Include debug info for troubleshooting (safe - no secrets)
+        debug: INCLUDE_ERROR_DETAILS ? {
+          tokenLength: token.length,
+          cookiePath: "/",
+        } : undefined,
       },
       { headers: ROBOTS_HEADER }
     );
 
     applySuperadminCookies(response, token, 8 * 60 * 60);
+    
+    // Log all cookies being set for debugging
+    logger.info("[SUPERADMIN] Cookie set on response", {
+      cookieNames: response.cookies.getAll().map(c => c.name),
+      username: usernameValue,
+    });
 
     logger.info("[SUPERADMIN] Successful login", { username: usernameValue });
 

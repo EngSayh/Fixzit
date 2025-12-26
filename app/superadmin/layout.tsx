@@ -53,6 +53,16 @@ export default async function SuperadminLayout({
   const { locale: serverLocale } = await getServerI18n();
   const superadminSession = await getSuperadminSessionFromCookies();
 
+  // Debug logging for troubleshooting auth issues
+  if (!superadminSession && !isLoginPage) {
+    // eslint-disable-next-line no-console -- Debug logging for auth troubleshooting
+    console.warn("[SUPERADMIN LAYOUT] No session found, will redirect to login", {
+      pathname,
+      isLoginPage,
+      pathDetectionFailed,
+    });
+  }
+
   // BUG-002 FIX: Server-side auth enforcement
   // Redirect to login if not authenticated or expired (prevents client-side polling race conditions)
   if (
