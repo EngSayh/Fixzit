@@ -146,7 +146,7 @@ const IS_VERCEL_PREVIEW =
 const IS_CI = process.env.CI === "true" || process.env.CI === "1";
 const IS_BUILD_COMMAND = process.env.npm_lifecycle_event === "build";
 
-// Automatically provision a deterministic secret for preview/CI/builds so the
+// Automatically provision a deterministic secret for preview/CI/builds/dev so the
 // Next.js build step does not fail when NEXTAUTH_SECRET is intentionally not
 // injected (e.g., Vercel preview deployments). Production runtime still fails
 // fast when the secret is missing.
@@ -156,7 +156,8 @@ const shouldAutoProvisionAuthSecret =
   IS_BUILD_COMMAND ||
   IS_VERCEL_PREVIEW ||
   IS_CI ||
-  SKIP_CONFIG_VALIDATION;
+  SKIP_CONFIG_VALIDATION ||
+  NODE_ENV === "development"; // Allow dev environment to run without AUTH_SECRET
 
 function resolveAuthSecret(): string {
   if (IS_BROWSER) {

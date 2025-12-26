@@ -127,9 +127,11 @@ if (missingNonSecrets.length > 0) {
   );
 }
 
-// Validate secrets only when not in CI and not explicitly skipped
+// Validate secrets only when not in CI, development, or explicitly skipped
+// In development, ephemeral secrets are auto-generated for convenience
 const skipSecretValidation =
   isCI ||
+  process.env.NODE_ENV === 'development' ||
   process.env.SKIP_ENV_VALIDATION === 'true' ||
   process.env.NEXT_PHASE === 'phase-production-build';
 
