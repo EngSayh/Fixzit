@@ -2,6 +2,44 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-01-XX 15:45 (Asia/Riyadh) — Security: ReDoS Prevention
+
+**Agent Token:** [AGENT-001-A]
+**Context:** main | 2f8d8259e
+**Session Summary:** Critical security fix - escaped regex patterns in search endpoints to prevent ReDoS attacks.
+**DB Sync:** created=0, updated=0, skipped=0, errors=0
+
+### ✅ VERIFICATION EVIDENCE
+
+| Gate | Result | Command |
+|------|--------|---------|
+| TypeScript | ✅ 0 errors | `pnpm typecheck` |
+| ESLint | ✅ 0 errors | `pnpm lint` |
+| Vitest (server) | ✅ 2918 tests passed | `pnpm vitest run --project=server` |
+
+### 📁 COMMITS THIS SESSION (1 commit)
+
+| SHA | Message | Files Changed |
+|-----|---------|---------------|
+| 2f8d8259e | fix(security): Escape regex search patterns to prevent ReDoS [SEC-001] | 6 |
+
+### 🔧 SECURITY FIXES APPLIED
+
+**Issue:** User-controlled search input used directly in MongoDB `$regex` without escaping special characters. This allows malicious regex patterns that could cause catastrophic backtracking (ReDoS).
+
+**Fix:** Applied `search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")` to escape regex special characters before use.
+
+| File | Fix |
+|------|-----|
+| `app/api/superadmin/users/route.ts` | Escaped search input before `$regex` |
+| `app/api/superadmin/tenants/route.ts` | Escaped search input before `$regex` |
+| `app/api/superadmin/issues/route.ts` | Escaped search input before `$regex` |
+| `app/api/superadmin/organizations/search/route.ts` | Escaped query before `$regex` |
+| `app/api/admin/sms/route.ts` | Escaped search input before `$regex` |
+| `app/api/admin/testing-users/route.ts` | Escaped search input before `$regex` |
+
+---
+
 ## 📅 2025-01-XX 15:20 (Asia/Riyadh) — Continued Deep Dive: RTL, UX, Form Improvements
 
 **Agent Token:** [AGENT-001-A]
