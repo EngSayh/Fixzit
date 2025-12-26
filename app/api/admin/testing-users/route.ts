@@ -69,10 +69,12 @@ export async function GET(request: NextRequest) {
       query.orgId = orgId;
     }
     if (search) {
+      // SEC-001: Escape regex special characters to prevent ReDoS
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.$or = [
-        { email: { $regex: search, $options: "i" } },
-        { username: { $regex: search, $options: "i" } },
-        { displayName: { $regex: search, $options: "i" } },
+        { email: { $regex: escapedSearch, $options: "i" } },
+        { username: { $regex: escapedSearch, $options: "i" } },
+        { displayName: { $regex: escapedSearch, $options: "i" } },
       ];
     }
 

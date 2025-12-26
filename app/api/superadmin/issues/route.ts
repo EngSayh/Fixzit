@@ -59,10 +59,12 @@ export async function GET(req: NextRequest) {
   if (priority && priority !== 'all') filter.priority = priority;
   if (category && category !== 'all') filter.category = category;
   if (search) {
+    // SEC-001: Escape regex special characters to prevent ReDoS
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     filter.$or = [
-      { title: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { key: { $regex: search, $options: 'i' } },
+      { title: { $regex: escapedSearch, $options: 'i' } },
+      { description: { $regex: escapedSearch, $options: 'i' } },
+      { key: { $regex: escapedSearch, $options: 'i' } },
     ];
   }
 

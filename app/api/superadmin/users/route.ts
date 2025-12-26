@@ -67,11 +67,13 @@ export async function GET(request: NextRequest) {
     const filter: Record<string, unknown> = {};
     
     if (search) {
+      // SEC-001: Escape regex special characters to prevent ReDoS
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       filter.$or = [
-        { email: { $regex: search, $options: "i" } },
-        { "personal.firstName": { $regex: search, $options: "i" } },
-        { "personal.lastName": { $regex: search, $options: "i" } },
-        { "personal.phone": { $regex: search, $options: "i" } },
+        { email: { $regex: escapedSearch, $options: "i" } },
+        { "personal.firstName": { $regex: escapedSearch, $options: "i" } },
+        { "personal.lastName": { $regex: escapedSearch, $options: "i" } },
+        { "personal.phone": { $regex: escapedSearch, $options: "i" } },
       ];
     }
 

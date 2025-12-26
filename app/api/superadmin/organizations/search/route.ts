@@ -51,11 +51,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // SEC-001: Escape regex special characters to prevent ReDoS
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
     // Search organizations by name (case-insensitive)
     // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-org search
     const organizations = await Organization.find(
       {
-        name: { $regex: query, $options: "i" },
+        name: { $regex: escapedQuery, $options: "i" },
         status: { $ne: "deleted" }, // Exclude deleted orgs
       },
       { _id: 1, name: 1, slug: 1 }

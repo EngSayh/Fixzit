@@ -97,7 +97,9 @@ export async function GET(request: NextRequest) {
       query.orgId = orgId;
     }
     if (search) {
-      query.to = { $regex: search, $options: "i" };
+      // SEC-001: Escape regex special characters to prevent ReDoS
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.to = { $regex: escapedSearch, $options: "i" };
     }
     if (from || to) {
       query.createdAt = {};
