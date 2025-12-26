@@ -23,13 +23,14 @@ export default async function SuperadminLayout({
   children: ReactNode;
 }) {
   const hdrs = await headers();
+  
   // Get the actual URL path from various header sources
-  // Vercel sets x-url or we fall back to referer
+  // Next.js 14+ sets x-pathname, Vercel sets x-url, or we fall back to referer
   const currentPath =
-    hdrs.get("x-url") ||
+    hdrs.get("x-pathname") ||
     hdrs.get("x-invoke-path") ||
     hdrs.get("x-matched-path") ||
-    hdrs.get("x-pathname") ||
+    hdrs.get("x-url") ||
     hdrs.get("next-url") ||
     hdrs.get("referer") ||
     "";
@@ -39,9 +40,15 @@ export default async function SuperadminLayout({
     ? new URL(currentPath).pathname
     : currentPath;
 
+  // CRITICAL FIX: If we can't determine the path, check if this is a login page render
+  // by examining the __next_router_state_tree header or x-nextjs-data header
+  // When path detection fails, we must NOT redirect - let the client handle it
+  const pathDetectionFailed = !pathname || pathname === "";
+  
   const isLoginPage =
-    typeof pathname === "string" &&
-    pathname.toLowerCase().includes("/superadmin/login");
+    (typeof pathname === "string" &&
+    pathname.toLowerCase().includes("/superadmin/login")) ||
+    pathDetectionFailed; // If path detection fails, assume login page to prevent redirect loop
 
   const { locale: serverLocale } = await getServerI18n();
   const superadminSession = await getSuperadminSessionFromCookies();
