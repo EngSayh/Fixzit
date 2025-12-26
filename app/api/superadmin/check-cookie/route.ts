@@ -35,13 +35,38 @@ export async function GET(request: NextRequest) {
     }
   }
   
-  // Secret fingerprint for Edge runtime comparison
-  const secret = process.env.SUPERADMIN_JWT_SECRET || 
-                 process.env.NEXTAUTH_SECRET || 
-                 process.env.AUTH_SECRET || '';
-  const secretFingerprint = secret 
-    ? `len${secret.length}_${secret.charCodeAt(0)}_${secret.charCodeAt(secret.length - 1)}`
-    : 'none';
+  // Secret fingerprint: redacted by default for security
+  // Enable with ENABLE_SECRET_FINGERPRINT=true + HMAC_KEY for debugging
+  let secretFingerprint = 'redacted';
+  
+  if (process.env.ENABLE_SECRET_FINGERPRINT === 'true') {
+    const secret = process.env.SUPERADMIN_JWT_SECRET || 
+                   process.env.NEXTAUTH_SECRET || 
+                   process.env.AUTH_SECRET || '';
+    const hmacKey = process.env.HMAC_KEY;
+    
+    if (!secret) {
+      secretFingerprint = 'none';
+    } else if (!hmacKey) {
+      secretFingerprint = 'hmac_key_missing';
+    } else {
+      // HMAC-SHA256 fingerprint using Web Crypto API (Edge-safe)
+      try {
+        const encoder = new TextEncoder();
+        const keyData = encoder.encode(hmacKey);
+        const secretData = encoder.encode(secret);
+        const cryptoKey = await crypto.subtle.importKey(
+          'raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+        );
+        const signature = await crypto.subtle.sign('HMAC', cryptoKey, secretData);
+        const hashArray = Array.from(new Uint8Array(signature));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        secretFingerprint = hashHex.slice(0, 8); // First 8 hex chars only
+      } catch {
+        secretFingerprint = 'hmac_error';
+      }
+    }
+  }
   
   return NextResponse.json({
     timestamp: new Date().toISOString(),
@@ -62,7 +87,6 @@ export async function GET(request: NextRequest) {
       data: sessionData,
     },
     secrets: {
-      hasSecret: !!secret,
       fingerprint: secretFingerprint,
     },
     headers: {

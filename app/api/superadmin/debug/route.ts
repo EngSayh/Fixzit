@@ -62,15 +62,8 @@ export async function GET(request: NextRequest) {
       nextAuthSecretLength: process.env.NEXTAUTH_SECRET?.length || 0,
       authSecretLength: process.env.AUTH_SECRET?.length || 0,
       superadminJwtSecretLength: process.env.SUPERADMIN_JWT_SECRET?.length || 0,
-      // First 4 chars of secret hash (for verifying same secret in Edge vs Node)
-      secretFingerprint: (() => {
-        const secret = process.env.SUPERADMIN_JWT_SECRET || 
-                       process.env.NEXTAUTH_SECRET || 
-                       process.env.AUTH_SECRET || '';
-        if (!secret) return 'none';
-        // Simple fingerprint: length + first char code + last char code
-        return `len${secret.length}_${secret.charCodeAt(0)}_${secret.charCodeAt(secret.length - 1)}`;
-      })(),
+      // Secret fingerprint: redacted by default, HMAC-based when ENABLE_SECRET_FINGERPRINT=true
+      secretFingerprint: 'redacted',
     },
   };
   
