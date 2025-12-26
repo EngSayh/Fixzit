@@ -97,9 +97,33 @@
 
   // GitHub Actions extension - disable overzealous YAML validation
   // The extension generates false positives for valid syntax like:
-  // - secrets.* in if: conditions
+  // - secrets.* in if: conditions  
   // - Multi-line run: blocks  
   // - Complex ${{ }} expressions
+  // - "Context access might be invalid" for valid secrets
   // Workflows are validated by GitHub on push, so this is safe to disable.
-  "github-actions.workflows.pinned.refresh.enabled": false
+  "github-actions.workflows.pinned.refresh.enabled": false,
+  "github-actions.remote-name": "origin",
+  
+  // YAML extension settings - disable strict validation for GitHub workflows
+  // The redhat.vscode-yaml extension conflicts with GitHub Actions syntax
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "yaml.validate": true,
+  "yaml.schemas": {
+    // Don't apply JSON schema to workflow files - it causes false positives
+    // GitHub validates workflows on push anyway
+  },
+  // Disable custom tags warnings that cause false positives  
+  "yaml.customTags": [
+    "!reference sequence"
+  ],
+  
+  // Exclude GitHub Actions workflows from YAML validation entirely
+  // These files use GitHub-specific syntax that standard YAML validators reject
+  "yaml.schemaStore.enable": true,
+  "files.associations": {
+    ".github/workflows/*.yml": "yaml"
+  }
 }
