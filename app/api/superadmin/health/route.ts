@@ -30,13 +30,24 @@ function timingSafeEquals(a: string, b: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  // Optional access key protection (if SUPERADMIN_SECRET_KEY is set)
+  // In production, require access key to prevent config state disclosure
+  const isProduction = process.env.VERCEL_ENV === "production" ||
+    (process.env.NODE_ENV === "production" && !process.env.VERCEL_ENV);
   const secretKey = process.env.SUPERADMIN_SECRET_KEY;
-  if (secretKey) {
+  
+  // Always require access key in production; optional in dev/preview if key is set
+  if (isProduction || secretKey) {
     const providedKey = request.headers.get('x-superadmin-access-key');
-    if (!providedKey || !timingSafeEquals(providedKey, secretKey)) {
+    if (!providedKey) {
       return NextResponse.json(
         { error: "Access key required", code: "ACCESS_KEY_REQUIRED" },
+        { status: 403, headers: NO_CACHE_HEADERS }
+      );
+    }
+    // If secret key is configured, validate it
+    if (secretKey && !timingSafeEquals(providedKey, secretKey)) {
+      return NextResponse.json(
+        { error: "Invalid access key", code: "INVALID_ACCESS_KEY" },
         { status: 403, headers: NO_CACHE_HEADERS }
       );
     }
