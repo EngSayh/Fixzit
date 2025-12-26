@@ -61,13 +61,23 @@ export async function GET(request: NextRequest) {
     },
   };
   
-  // In production, only return limited info
+  // In production, still show diagnostic info (endpoint is IP-restricted by middleware)
+  // but redact sensitive values
   if (isProduction) {
     return NextResponse.json({
       timestamp: diagnostics.timestamp,
-      message: "Debug endpoint limited in production. Check Vercel logs for details.",
-      session: diagnostics.session.hasSession ? "valid" : "missing",
+      environment: diagnostics.environment,
+      session: diagnostics.session,
       cookiePresent: hasSuperadminCookie,
+      cookieCount: cookies.length,
+      envVars: {
+        hasJwtSecret: diagnostics.envVarsConfigured.hasNextAuthSecret || 
+                      diagnostics.envVarsConfigured.hasAuthSecret || 
+                      diagnostics.envVarsConfigured.hasSuperadminJwtSecret,
+        hasOrgId: diagnostics.envVarsConfigured.hasPublicOrgId || 
+                  diagnostics.envVarsConfigured.hasDefaultOrgId ||
+                  diagnostics.envVarsConfigured.hasSuperadminOrgId,
+      },
     }, {
       headers: { "X-Robots-Tag": "noindex, nofollow" },
     });
