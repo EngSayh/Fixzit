@@ -317,6 +317,10 @@ export async function middleware(request: NextRequest) {
       return res;
     }
 
+    // Debug: Check if cookie is present before session decode
+    const hasCookie = !!sanitizedRequest.cookies.get('superadmin_session')?.value;
+    const cookieLength = sanitizedRequest.cookies.get('superadmin_session')?.value?.length || 0;
+    
     const session = await getSuperadminSession(sanitizedRequest);
     const isExpired = session ? session.expiresAt < Date.now() : true;
 
@@ -327,7 +331,12 @@ export async function middleware(request: NextRequest) {
           { status: 401, headers: robotsHeader }
         );
       }
-      return NextResponse.redirect(new URL('/superadmin/login', sanitizedRequest.url));
+      // Add debug headers to redirect for troubleshooting
+      const redirectUrl = new URL('/superadmin/login', sanitizedRequest.url);
+      redirectUrl.searchParams.set('reason', !session ? 'no_session' : 'expired');
+      redirectUrl.searchParams.set('had_cookie', hasCookie ? '1' : '0');
+      redirectUrl.searchParams.set('cookie_len', String(cookieLength));
+      return NextResponse.redirect(redirectUrl);
     }
 
     const res = NextResponse.next();
