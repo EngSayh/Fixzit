@@ -556,14 +556,14 @@ export default function IssueTrackerDashboard() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Issue</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Effort</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Module</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Age</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk</th>
+              <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase">ID</th>
+              <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase">Issue</th>
+              <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase">Priority</th>
+              <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase">Effort</th>
+              <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase">Module</th>
+              <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase">Age</th>
+              <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase">Risk</th>
             </tr>
           </thead>
           <tbody>

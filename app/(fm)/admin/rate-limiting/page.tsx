@@ -304,16 +304,16 @@ export default function RateLimitingDashboard() {
             <table className="min-w-full divide-y divide-border">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     {auto("Endpoint", "rateLimit.table.endpoint")}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     {auto("Hits", "rateLimit.table.hits")}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     {auto("Unique keys", "rateLimit.table.unique")}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     {auto("Orgs", "rateLimit.table.orgs")}
                   </th>
                 </tr>
