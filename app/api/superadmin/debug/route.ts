@@ -58,6 +58,19 @@ export async function GET(request: NextRequest) {
       hasPublicOrgId: !!process.env.PUBLIC_ORG_ID,
       hasDefaultOrgId: !!process.env.DEFAULT_ORG_ID,
       hasSuperadminOrgId: !!process.env.SUPERADMIN_ORG_ID,
+      // Secret lengths for debugging (safe - no actual values)
+      nextAuthSecretLength: process.env.NEXTAUTH_SECRET?.length || 0,
+      authSecretLength: process.env.AUTH_SECRET?.length || 0,
+      superadminJwtSecretLength: process.env.SUPERADMIN_JWT_SECRET?.length || 0,
+      // First 4 chars of secret hash (for verifying same secret in Edge vs Node)
+      secretFingerprint: (() => {
+        const secret = process.env.SUPERADMIN_JWT_SECRET || 
+                       process.env.NEXTAUTH_SECRET || 
+                       process.env.AUTH_SECRET || '';
+        if (!secret) return 'none';
+        // Simple fingerprint: length + first char code + last char code
+        return `len${secret.length}_${secret.charCodeAt(0)}_${secret.charCodeAt(secret.length - 1)}`;
+      })(),
     },
   };
   

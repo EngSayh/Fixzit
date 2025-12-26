@@ -80,10 +80,19 @@ export async function decodeSuperadminToken(token?: string | null): Promise<Supe
   try {
     const { payload } = await jwtVerify(token, jwtSecret);
     if (payload.role !== "super_admin" || !payload.sub || !payload.orgId) {
+      // eslint-disable-next-line no-console -- Debug logging for auth issues
+      console.warn("[SUPERADMIN] Token payload validation failed", {
+        hasRole: !!payload.role,
+        roleValue: payload.role,
+        hasSub: !!payload.sub,
+        hasOrgId: !!payload.orgId,
+      });
       return null;
     }
 
     if (typeof payload.exp !== "number") {
+      // eslint-disable-next-line no-console -- Debug logging for auth issues
+      console.warn("[SUPERADMIN] Token missing expiration");
       return null;
     }
 
