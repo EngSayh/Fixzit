@@ -151,14 +151,91 @@ export function isIpAllowed(ip: string): boolean {
 }
 
 /**
- * Extract client IP from request headers
- * Edge Runtime safe
+ * Check if an IP address is in a private/reserved range
+ * Edge Runtime safe - no external dependencies
+ */
+function isPrivateIP(ip: string): boolean {
+  if (!ip || ip === "unknown") return true;
+
+  // IPv6 handling
+  if (ip.includes(":")) {
+    const normalized = ip.toLowerCase();
+    if (normalized === "::1") return true; // Loopback
+    const stripped = normalized.replace(/^:+/, "");
+    const firstFourHex = stripped.slice(0, 4);
+    if (/^fe[89ab][0-9a-f]$/i.test(firstFourHex)) return true; // Link-local
+    if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true; // ULA
+    if (normalized.startsWith("ff")) return true; // Multicast
+    if (normalized.startsWith("2001:db8:") || normalized.startsWith("2001:0db8:")) return true; // Documentation
+    if (normalized.startsWith("::ffff:")) {
+      const ipv4Match = normalized.match(/::ffff:(\d+\.\d+\.\d+\.\d+)/);
+      if (ipv4Match) return isPrivateIP(ipv4Match[1]);
+      return true;
+    }
+    if (/^[0-9a-f:]+$/i.test(normalized)) return false; // Valid public IPv6
+    return true; // Malformed = private (fail-safe)
+  }
+
+  // IPv4 handling
+  const parts = ip.split(".").map(Number);
+  if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) return true;
+  const [a, b] = parts;
+  if (a === 10) return true; // 10.0.0.0/8
+  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+  if (a === 192 && b === 168) return true; // 192.168.0.0/16
+  if (a === 0 || a === 127) return true; // This network / Loopback
+  if (a === 169 && b === 254) return true; // Link-local
+  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+  if (a === 198 && (b === 18 || b === 19)) return true; // Benchmarking
+  if (a >= 224) return true; // Multicast / Reserved
+  return false;
+}
+
+/**
+ * Extract client IP from request headers - Hardened version
+ * Edge Runtime safe - aligned with lib/ip.ts extractClientIP
+ * 
+ * SECURITY: Uses CF-Connecting-IP, trusted proxy counting, and private IP filtering
+ * to prevent header spoofing attacks for accurate audit logging.
  */
 export function getClientIp(req: NextRequest): string {
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0]?.trim() || "unknown";
+  if (!req?.headers || typeof req.headers.get !== "function") {
+    return "unknown";
   }
-  const realIp = req.headers.get("x-real-ip");
-  return realIp || "unknown";
+
+  // 1) Cloudflare's CF-Connecting-IP is most trustworthy
+  const cfIp = req.headers.get("cf-connecting-ip");
+  if (cfIp && cfIp.trim()) return cfIp.trim();
+
+  // 2) X-Forwarded-For with trusted proxy counting
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded && forwarded.trim()) {
+    const ips = forwarded.split(",").map((ip) => ip.trim()).filter((ip) => ip);
+    if (ips.length) {
+      // Parse TRUSTED_PROXY_COUNT (default 0 = no proxy stripping)
+      const envValue = process.env.TRUSTED_PROXY_COUNT;
+      const trustedProxyCount = envValue ? Math.max(0, parseInt(envValue, 10) || 0) : 0;
+
+      // Skip trusted proxy hops from the right
+      const clientIPIndex = Math.max(0, ips.length - 1 - trustedProxyCount);
+      const hopSkippedIP = ips[clientIPIndex];
+
+      if (hopSkippedIP && !isPrivateIP(hopSkippedIP)) {
+        return hopSkippedIP;
+      }
+
+      // Fallback: find leftmost public IP
+      for (const ip of ips) {
+        if (!isPrivateIP(ip)) return ip;
+      }
+    }
+  }
+
+  // 3) X-Real-IP only if explicitly trusted
+  if (process.env.TRUST_X_REAL_IP === "true") {
+    const realIP = req.headers.get("x-real-ip");
+    if (realIP && realIP.trim()) return realIP.trim();
+  }
+
+  return "unknown";
 }
