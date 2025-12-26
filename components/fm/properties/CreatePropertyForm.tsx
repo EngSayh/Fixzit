@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem } from "@/components/ui/select";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { logger } from "@/lib/logger";
+import { Loader2 } from "lucide-react";
 
 export interface CreatePropertyFormProps {
   onCreated: () => void;
@@ -16,6 +17,7 @@ export interface CreatePropertyFormProps {
 
 export function CreatePropertyForm({ onCreated, orgId }: CreatePropertyFormProps) {
   const { t } = useTranslation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -80,6 +82,9 @@ export function CreatePropertyForm({ onCreated, orgId }: CreatePropertyFormProps
       return;
     }
 
+    if (isSubmitting) return; // Prevent double submission
+    setIsSubmitting(true);
+
     const toastId = toast.loading(t("fm.properties.toast.creating", "Creating property..."));
 
     try {
@@ -117,6 +122,8 @@ export function CreatePropertyForm({ onCreated, orgId }: CreatePropertyFormProps
         t("fm.properties.toast.createUnknown", "Error creating property. Please try again."),
         { id: toastId }
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -333,8 +340,20 @@ export function CreatePropertyForm({ onCreated, orgId }: CreatePropertyFormProps
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-success hover:bg-success/90">
-          {t("fm.properties.createProperty", "Create Property")}
+        <Button 
+          type="submit" 
+          className="bg-success hover:bg-success/90" 
+          disabled={isSubmitting}
+          aria-busy={isSubmitting}
+        >
+          {isSubmitting ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              {t("fm.properties.creating", "Creating...")}
+            </span>
+          ) : (
+            t("fm.properties.createProperty", "Create Property")
+          )}
         </Button>
       </div>
     </form>
