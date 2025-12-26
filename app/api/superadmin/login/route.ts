@@ -161,12 +161,14 @@ export async function POST(request: NextRequest) {
         success: true,
         message: "Authenticated successfully",
         role: "super_admin",
-        // Include signing diagnostics so client can compare with check-cookie
-        _debug: {
-          runtime: "nodejs",
-          signingSecretSource,
-          hasSigningSecret: !!signingSecretSource,
-        },
+        // Include signing diagnostics only in non-production (security: don't leak config sources)
+        ...(INCLUDE_ERROR_DETAILS ? {
+          _debug: {
+            runtime: "nodejs",
+            signingSecretSource,
+            hasSigningSecret: !!signingSecretSource,
+          },
+        } : {}),
       },
       { headers: ROBOTS_HEADER }
     );

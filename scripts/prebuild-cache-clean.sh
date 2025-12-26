@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+set -eu
 
 # Clear Next.js cache in Vercel preview builds to avoid occasional webpack pack rename warnings.
 # GitHub Actions uses its own cache layer via actions/cache, so we preserve .next/cache there.
