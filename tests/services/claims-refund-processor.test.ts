@@ -15,6 +15,7 @@ const mockRefundFindOne = vi.fn(async () => null);
 
 vi.mock("@/lib/mongodb-unified", () => {
   return {
+    connectToDatabase: vi.fn(async () => undefined),
     getDatabase: async () => ({
       collection: (name: string) => {
         if (name === "souq_orders") {
