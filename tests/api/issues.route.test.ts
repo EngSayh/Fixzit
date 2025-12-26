@@ -106,7 +106,9 @@ describe("Issues API route", () => {
 
     expect(res.status).toBe(401);
     const body = await res.json();
-    expect(body.error).toBe("Unauthorized");
+    expect(body.error.code).toBe("UNAUTHORIZED");
+    expect(body.error.message).toBe("Unauthorized");
+    expect(body.error.path).toBe("/api/issues");
   });
 
   it("returns 403 when role is not allowed", async () => {
@@ -124,7 +126,9 @@ describe("Issues API route", () => {
 
     expect(res.status).toBe(403);
     const body = await res.json();
-    expect(body.error).toBe("Forbidden");
+    expect(body.error.code).toBe("FORBIDDEN");
+    expect(body.error.message).toBe("Forbidden");
+    expect(body.error.path).toBe("/api/issues");
   });
 
   it("queries issues scoped by orgId for allowed roles", async () => {
@@ -194,5 +198,140 @@ describe("Issues API route", () => {
       body.location.lineStart,
     );
     expect(Issue.generateIssueId).toHaveBeenCalled();
+  });
+
+  it("returns 409 when E11000 duplicate key error occurs", async () => {
+    const orgId = "65e1a8bf2f0b8c0012345678";
+    vi.mocked(getSessionOrNull).mockResolvedValue({
+      ok: true,
+      session: {
+        id: "user-1",
+        role: "admin",
+        orgId,
+        email: "admin@example.com",
+      } as any,
+    });
+
+    // Mock Issue constructor to throw E11000 duplicate key error on save
+    const e11000Error = Object.assign(new Error("E11000 duplicate key error"), {
+      code: 11000,
+      keyPattern: { key: 1 },
+      keyValue: { key: "existing-key" },
+    });
+    vi.mocked(Issue).mockImplementation(() => ({
+      save: vi.fn().mockRejectedValue(e11000Error),
+    } as any));
+
+    const body = {
+      title: "Duplicate Issue",
+      description: "Will collide",
+      category: "BUG",
+      priority: "P1_HIGH",
+      effort: "S",
+      location: { filePath: "app/page.tsx", lineStart: 42 },
+      module: "core",
+      action: "fix",
+      definitionOfDone: "done",
+    };
+
+    const req = new NextRequest("http://localhost/api/issues", {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: { "content-type": "application/json" },
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(409);
+    const responseBody = await res.json();
+    expect(responseBody.code).toBe("DUPLICATE_ISSUE");
+    expect(responseBody.error).toBe("Issue with this key already exists");
+  });
+
+  it("uses ascending sort for priority by default", async () => {
+    const orgId = "65e1a8bf2f0b8c0012345678";
+    vi.mocked(getSessionOrNull).mockResolvedValue({
+      ok: true,
+      session: {
+        id: "user-1",
+        role: "admin",
+        orgId,
+      } as any,
+    });
+
+    const sortMock = vi.fn().mockReturnThis();
+    vi.mocked(Issue.find).mockReturnValue({
+      sort: sortMock,
+      skip: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockResolvedValue([]),
+    } as any);
+
+    // Request without sortOrder - should default to ascending for priority
+    const req = new NextRequest("http://localhost/api/issues?sortBy=priority");
+    await GET(req);
+
+    // Verify sort was called with ascending order (1) for priority
+    expect(sortMock).toHaveBeenCalledWith(
+      expect.objectContaining({ priority: 1 }),
+    );
+  });
+
+  it("uses descending sort for non-priority fields by default", async () => {
+    const orgId = "65e1a8bf2f0b8c0012345678";
+    vi.mocked(getSessionOrNull).mockResolvedValue({
+      ok: true,
+      session: {
+        id: "user-1",
+        role: "admin",
+        orgId,
+      } as any,
+    });
+
+    const sortMock = vi.fn().mockReturnThis();
+    vi.mocked(Issue.find).mockReturnValue({
+      sort: sortMock,
+      skip: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockResolvedValue([]),
+    } as any);
+
+    // Request with sortBy=created without sortOrder - should default to descending
+    const req = new NextRequest("http://localhost/api/issues?sortBy=created");
+    await GET(req);
+
+    // Verify sort was called with descending order (-1) for created
+    expect(sortMock).toHaveBeenCalledWith(
+      expect.objectContaining({ createdAt: -1 }),
+    );
+  });
+
+  it("ignores invalid sortBy values and defaults to priority", async () => {
+    const orgId = "65e1a8bf2f0b8c0012345678";
+    vi.mocked(getSessionOrNull).mockResolvedValue({
+      ok: true,
+      session: {
+        id: "user-1",
+        role: "admin",
+        orgId,
+      } as any,
+    });
+
+    const sortMock = vi.fn().mockReturnThis();
+    vi.mocked(Issue.find).mockReturnValue({
+      sort: sortMock,
+      skip: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockResolvedValue([]),
+    } as any);
+
+    // Request with invalid sortBy - should fallback to priority
+    const req = new NextRequest("http://localhost/api/issues?sortBy=invalid_field");
+    await GET(req);
+
+    // Verify sort was called with priority (default)
+    expect(sortMock).toHaveBeenCalledWith(
+      expect.objectContaining({ priority: 1 }),
+    );
   });
 });

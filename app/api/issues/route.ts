@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { createHash } from "crypto";
 import { logger } from "@/lib/logger";
+import { ERROR_CODES, createErrorResponse } from "@/lib/errors/ErrorResponse";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   Issue,
@@ -228,11 +229,21 @@ function buildFilterQuery(query: ListQuery, orgId: mongoose.Types.ObjectId) {
 
 type SortSpec = Record<string, 1 | -1>;
 
+const VALID_SORT_FIELDS = ['priority', 'status', 'created', 'updated', 'age', 'effort'] as const;
+const VALID_SORT_ORDERS = ['asc', 'desc'] as const;
+
 function buildSortQuery(query: ListQuery): SortSpec {
-  const sortBy = query.sortBy || 'priority';
+  // Validate sortBy - fallback to 'priority' if invalid
+  const sortBy = query.sortBy && VALID_SORT_FIELDS.includes(query.sortBy as typeof VALID_SORT_FIELDS[number]) 
+    ? query.sortBy 
+    : 'priority';
+  // Validate sortOrder - only accept 'asc' or 'desc', otherwise use field default
+  const validSortOrder = query.sortOrder && VALID_SORT_ORDERS.includes(query.sortOrder as typeof VALID_SORT_ORDERS[number])
+    ? query.sortOrder
+    : undefined;
   // For priority, default to ascending (P0 first); for other fields, default to descending
   const defaultOrder = sortBy === 'priority' ? 1 : -1;
-  const sortOrder = query.sortOrder ? (query.sortOrder === 'asc' ? 1 : -1) : defaultOrder;
+  const sortOrder = validSortOrder ? (validSortOrder === 'asc' ? 1 : -1) : defaultOrder;
   
   const sortMap: Record<string, SortSpec> = {
     priority: { priority: sortOrder, createdAt: -1 },
@@ -269,12 +280,22 @@ export async function GET(request: NextRequest) {
     const session = result.session;
     
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return createErrorResponse({
+        code: ERROR_CODES.UNAUTHORIZED,
+        message: 'Unauthorized',
+        path: '/api/issues',
+        statusCode: 401,
+      });
     }
     
     // Check for super admin or admin role (handles both lowercase superadmin and uppercase normal roles)
     if (!isAllowedRole(session.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return createErrorResponse({
+        code: ERROR_CODES.FORBIDDEN,
+        message: 'Forbidden',
+        path: '/api/issues',
+        statusCode: 403,
+      });
     }
     
     await connectToDatabase();
@@ -400,12 +421,22 @@ export async function POST(request: NextRequest) {
     const session = result.session;
     
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return createErrorResponse({
+        code: ERROR_CODES.UNAUTHORIZED,
+        message: 'Unauthorized',
+        path: '/api/issues',
+        statusCode: 401,
+      });
     }
     
     // Check for super admin or admin role (handles both lowercase superadmin and uppercase normal roles)
     if (!isAllowedRole(session.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return createErrorResponse({
+        code: ERROR_CODES.FORBIDDEN,
+        message: 'Forbidden',
+        path: '/api/issues',
+        statusCode: 403,
+      });
     }
     
     await connectToDatabase();
@@ -511,29 +542,33 @@ export async function POST(request: NextRequest) {
       const sourceHash = computeSourceHash(evidenceSnippet, body.location.filePath);
       const now = new Date();
 
-      await Issue.findByIdAndUpdate(existing._id, {
-        $inc: { mentionCount: 1 },
-        $set: { 
-          lastSeenAt: now,
-          key: existing.key || duplicateKey,
-          sourcePath: body.location.filePath,
-          sourceRef: body.module,
-          evidenceSnippet,
-          sourceHash,
-        },
-        $push: {
-          auditEntries: {
-            sessionId: `manual-${Date.now()}`,
-            timestamp: now,
-            findings: body.description,
+      const updatedIssue = await Issue.findByIdAndUpdate(
+        existing._id,
+        {
+          $inc: { mentionCount: 1 },
+          $set: { 
+            lastSeenAt: now,
+            key: existing.key || duplicateKey,
+            sourcePath: body.location.filePath,
+            sourceRef: body.module,
+            evidenceSnippet,
+            sourceHash,
+          },
+          $push: {
+            auditEntries: {
+              sessionId: `manual-${Date.now()}`,
+              timestamp: now,
+              findings: body.description,
+            },
           },
         },
-      });
+        { new: true } // Return the updated document
+      );
       
       return NextResponse.json({
         success: true,
         data: {
-          issue: existing,
+          issue: updatedIssue,
           duplicate: true,
           message: 'Existing issue updated with new mention',
         },
