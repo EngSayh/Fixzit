@@ -214,12 +214,14 @@ async function resolveSession(request: NextRequest) {
 /**
  * Canonical admin roles that can access the issue tracker
  * Uses uppercase values to match UserRole enum
+ * Includes DEVELOPER for issue creation/management workflow
  */
 const ISSUE_TRACKER_ALLOWED_ROLES = new Set([
   'SUPER_ADMIN',
   'ADMIN',
   'CORPORATE_ADMIN',
   'MANAGER',
+  'DEVELOPER',
 ]);
 
 /**
