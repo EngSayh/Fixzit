@@ -2,6 +2,43 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-28 16:00 (Asia/Riyadh) — ObjectId Handling Fix for Auto-Assignment
+
+**Agent Token:** [AGENT-001-A]
+**Context:** main | 59e8f470c
+**Session Summary:** Fixed critical ObjectId handling bug in auto-assignment-engine.ts. For "system" automated assignments, now stores null instead of raw string to prevent CastError. Previously flagged by Gemini in PR #609 reviews. PR #609 was already CLOSED; applied fix directly to main.
+**DB Sync:** created=0, updated=0, skipped=0, errors=0
+
+### ✅ VERIFICATION EVIDENCE
+
+| Gate | Result | Command |
+|------|--------|---------|
+| TypeScript | ✅ 0 errors | `pnpm typecheck` |
+| ESLint | ✅ 0 errors | `pnpm lint` |
+| Git Push | ✅ 750374dc4..59e8f470c main → main | `git push origin main` |
+
+### 🔧 FIX APPLIED
+
+| File | Before | After |
+|------|--------|-------|
+| `services/fm/auto-assignment-engine.ts:295` | `"assignment.assignedBy": assignedBy` | `"assignment.assignedBy": assignedBy === "system" ? null : new Types.ObjectId(assignedBy)` |
+
+### 📋 PR #609 Status
+
+| Status | Details |
+|--------|---------|
+| **State** | CLOSED (not merged) |
+| **Reason** | All 5 CI workflow improvements were already merged via PR #604 |
+| **ObjectId Issue** | Was flagged by Gemini - fixed directly on main in this session |
+| **scan-hex-prod.js** | Was part of PR #609 but never merged; only scan-hex.js exists on main |
+
+### 🎯 Next Steps
+
+- [ ] Monitor auto-assignment-engine for any runtime errors
+- [ ] Verify system-automated work orders create correctly with null assignedBy
+
+---
+
 ## 📅 2025-12-26 21:00 (Asia/Riyadh) — PR Cleanup & Verification Gate
 
 **Agent Token:** [AGENT-001-A]
