@@ -27,7 +27,7 @@ export const SystemStatusBar: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-7 bg-gray-900/95 dark:bg-gray-950/95 border-t border-gray-800 dark:border-gray-700 backdrop-blur-sm z-50">
+    <div className="fixed bottom-0 inset-x-0 h-7 bg-gray-900/95 dark:bg-gray-950/95 border-t border-gray-800 dark:border-gray-700 backdrop-blur-sm z-50">
       <div className="h-full px-4 flex items-center justify-between text-xs text-gray-400">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">

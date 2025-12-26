@@ -199,7 +199,8 @@ describe("POST /api/superadmin/login", () => {
 
       const response = await POST(request as any);
       expect(response.status).toBe(400);
-      expect(response.body?.code).toBe("MISSING_USERNAME");
+      const body = await response.json();
+      expect(body?.code).toBe("MISSING_USERNAME");
     });
 
     it("should return 400 for null username", async () => {
@@ -215,7 +216,8 @@ describe("POST /api/superadmin/login", () => {
 
       const response = await POST(request as any);
       expect(response.status).toBe(400);
-      expect(response.body?.code).toBe("MISSING_USERNAME");
+      const body = await response.json();
+      expect(body?.code).toBe("MISSING_USERNAME");
     });
 
     it("should return 400 for non-string password", async () => {
@@ -231,7 +233,8 @@ describe("POST /api/superadmin/login", () => {
 
       const response = await POST(request as any);
       expect(response.status).toBe(400);
-      expect(response.body?.code).toBe("MISSING_PASSWORD");
+      const body = await response.json();
+      expect(body?.code).toBe("MISSING_PASSWORD");
     });
 
     it("should return 400 for array password", async () => {
@@ -247,7 +250,8 @@ describe("POST /api/superadmin/login", () => {
 
       const response = await POST(request as any);
       expect(response.status).toBe(400);
-      expect(response.body?.code).toBe("MISSING_PASSWORD");
+      const body = await response.json();
+      expect(body?.code).toBe("MISSING_PASSWORD");
     });
 
     it("should handle non-string secretKey gracefully", async () => {
