@@ -4,7 +4,8 @@ import { handlePreflight } from '@/server/security/headers';
 import { isOriginAllowed } from '@/lib/security/cors-allowlist';
 import { logSecurityEvent } from '@/lib/monitoring/security-events';
 import { getClientIP } from '@/server/security/headers';
-import { getSuperadminSession, isIpAllowed as isSuperadminIpAllowed } from '@/lib/superadmin/auth';
+// Edge-safe imports - these don't use Node.js crypto module
+import { getSuperadminSession, isIpAllowed as isSuperadminIpAllowed } from '@/lib/superadmin/auth.edge';
 import {
   AUTH_ROUTES,
   MARKETING_ROUTES,

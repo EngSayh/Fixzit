@@ -1,25 +1,52 @@
+/**
+ * Superadmin Auth - Full Authentication Module
+ * 
+ * This module contains ALL superadmin auth functions including those
+ * that require Node.js-only modules (crypto, bcryptjs).
+ * 
+ * For Edge Runtime (middleware), use ./auth.edge.ts instead.
+ * 
+ * @module lib/superadmin/auth
+ */
+
 import { cookies } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
-import { SignJWT, jwtVerify } from "jose";
+import { NextResponse } from "next/server";
+import { SignJWT } from "jose";
 import bcrypt from "bcryptjs";
 import { timingSafeEqual } from "crypto";
 import { logger } from "@/lib/logger";
 
-export interface SuperadminSession {
-  username: string;
-  role: "super_admin";
-  orgId: string;
-  issuedAt: number;
-  expiresAt: number;
-}
+// Re-export edge-safe functions for backward compatibility
+// These are the functions that can run in Edge Runtime
+export {
+  type SuperadminSession,
+  SUPERADMIN_COOKIE_NAME,
+  decodeSuperadminToken,
+  getSuperadminSession,
+  isIpAllowed,
+  getClientIp,
+} from "./auth.edge";
+
+// Import for internal use
+import { SUPERADMIN_COOKIE_NAME as COOKIE_NAME, decodeSuperadminToken } from "./auth.edge";
+
+// ============================================================================
+// CONSTANTS (Node.js only - not exported to Edge)
+// ============================================================================
+
+const SUPERADMIN_COOKIE_PATH = "/";
+const LEGACY_COOKIE_PATHS = ["/superadmin", "/api/superadmin", "/api/issues"];
+
+const RATE_LIMIT_WINDOW_MS =
+  Number(process.env.SUPERADMIN_LOGIN_WINDOW_MS) || 60_000;
+const RATE_LIMIT_MAX =
+  Number(process.env.SUPERADMIN_LOGIN_MAX_ATTEMPTS) || 5;
+
+type RateEntry = { count: number; expiresAt: number };
+const rateLimiter = new Map<string, RateEntry>();
 
 /**
  * JWT Secret Resolution (module-level constant for stability)
- * 
- * IMPORTANT: This MUST be evaluated once at module load time to ensure
- * consistency across all requests within a serverless instance.
- * 
- * Priority: SUPERADMIN_JWT_SECRET > NEXTAUTH_SECRET > AUTH_SECRET > fallback
  */
 const SECRET_FALLBACK = (() => {
   const secret = 
@@ -29,8 +56,6 @@ const SECRET_FALLBACK = (() => {
   
   if (secret) return secret;
   
-  // In production/preview, log error but use a consistent fallback to avoid crashes
-  // The fallback is intentionally weak to make it obvious in testing
   const isProdLike = 
     process.env.NODE_ENV === "production" || 
     process.env.VERCEL_ENV === "production" || 
@@ -44,22 +69,17 @@ const SECRET_FALLBACK = (() => {
   return "change-me-superadmin-secret";
 })();
 
-export const SUPERADMIN_COOKIE_NAME = "superadmin_session";
-const SUPERADMIN_COOKIE_PATH = "/";
-const LEGACY_COOKIE_PATHS = ["/superadmin", "/api/superadmin", "/api/issues"];
-
-const RATE_LIMIT_WINDOW_MS =
-  Number(process.env.SUPERADMIN_LOGIN_WINDOW_MS) || 60_000;
-const RATE_LIMIT_MAX =
-  Number(process.env.SUPERADMIN_LOGIN_MAX_ATTEMPTS) || 5;
-
-type RateEntry = { count: number; expiresAt: number };
-const rateLimiter = new Map<string, RateEntry>();
-
 const encoder = new TextEncoder();
-// Module-level constant - evaluated ONCE at load time
 const jwtSecret = encoder.encode(SECRET_FALLBACK);
 
+// ============================================================================
+// INTERNAL HELPERS (Node.js only - uses crypto)
+// ============================================================================
+
+/**
+ * Timing-safe string comparison to prevent timing attacks
+ * Uses Node.js crypto - NOT Edge Runtime safe
+ */
 function timingSafeEquals(value: string, expected: string): boolean {
   const valueBuffer = Buffer.from(value);
   const expectedBuffer = Buffer.from(expected);
@@ -83,16 +103,14 @@ function resolveOrgId(): string | null {
   return orgId;
 }
 
-export function getClientIp(req: NextRequest): string {
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0]?.trim() || "unknown";
-  }
-  // NextRequest doesn't have .ip property - use headers only
-  const realIp = req.headers.get("x-real-ip");
-  return realIp || "unknown";
-}
+// ============================================================================
+// RATE LIMITING (Node.js only - uses in-memory Map)
+// ============================================================================
 
+/**
+ * Check if an IP has exceeded rate limits
+ * Uses in-memory rate limiting - suitable for serverless with short-lived instances
+ */
 export function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const entry = rateLimiter.get(ip);
@@ -111,8 +129,16 @@ export function isRateLimited(ip: string): boolean {
   return entry.count > RATE_LIMIT_MAX;
 }
 
+// ============================================================================
+// PASSWORD VERIFICATION (Node.js only - uses bcrypt + crypto)
+// ============================================================================
+
 export type PasswordVerifyResult = { ok: true } | { ok: false; reason: 'not_configured' | 'invalid' };
 
+/**
+ * Verify superadmin password against configured hash or plaintext
+ * Uses bcrypt for hash comparison, crypto for timing-safe plaintext comparison
+ */
 export async function verifySuperadminPassword(password: string): Promise<PasswordVerifyResult> {
   const configuredHash = process.env.SUPERADMIN_PASSWORD_HASH;
   const plainPassword = process.env.SUPERADMIN_PASSWORD;
@@ -130,12 +156,14 @@ export async function verifySuperadminPassword(password: string): Promise<Passwo
   }
 
   // Option 2: Plaintext password configured (development/testing only)
-  // Simple string equality - no hashing needed
-  // plainPassword is guaranteed to exist here (checked above)
   const match = timingSafeEquals(password, plainPassword!);
   return match ? { ok: true } : { ok: false, reason: 'invalid' };
 }
 
+/**
+ * Validate second factor (access key) if configured
+ * Uses timing-safe comparison
+ */
 export function validateSecondFactor(secretFromRequest?: string): boolean {
   const envSecret = process.env.SUPERADMIN_SECRET_KEY;
   if (!envSecret) return true;
@@ -143,6 +171,13 @@ export function validateSecondFactor(secretFromRequest?: string): boolean {
   return timingSafeEquals(secretFromRequest, envSecret);
 }
 
+// ============================================================================
+// TOKEN SIGNING (Node.js only - uses jose SignJWT)
+// ============================================================================
+
+/**
+ * Sign a new superadmin JWT token
+ */
 export async function signSuperadminToken(username: string): Promise<string> {
   const orgId = resolveOrgId();
   if (!orgId) {
@@ -163,52 +198,30 @@ export async function signSuperadminToken(username: string): Promise<string> {
     .sign(jwtSecret);
 }
 
-export async function decodeSuperadminToken(token?: string | null): Promise<SuperadminSession | null> {
-  if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, jwtSecret);
-    if (payload.role !== "super_admin" || !payload.sub || !payload.orgId) {
-      return null;
-    }
+// ============================================================================
+// SERVER-SIDE SESSION (Node.js only - uses next/headers cookies)
+// ============================================================================
 
-    if (typeof payload.exp !== "number") {
-      return null;
-    }
-
-    return {
-      username: String(payload.sub),
-      role: "super_admin",
-      orgId: String(payload.orgId),
-      issuedAt: (payload.iat || 0) * 1000,
-      expiresAt: payload.exp * 1000,
-    };
-  } catch (error) {
-    // Token verification failed - likely stale cookie or secret mismatch
-    logger.warn("[SUPERADMIN] Token verification failed", {
-      error: error instanceof Error ? error.message : String(error),
-      hint: "Clear browser cookies if secret was changed",
-    });
-    return null;
-  }
-}
-
-export async function getSuperadminSession(request: NextRequest): Promise<SuperadminSession | null> {
-  const cookieValue =
-    request.cookies.get(SUPERADMIN_COOKIE_NAME)?.value ||
-    request.cookies.get(`${SUPERADMIN_COOKIE_NAME}.legacy`)?.value;
-
-  return decodeSuperadminToken(cookieValue);
-}
-
-export async function getSuperadminSessionFromCookies(): Promise<SuperadminSession | null> {
+/**
+ * Get superadmin session from cookies() - for Server Components
+ * NOT for middleware - use getSuperadminSession from auth.edge.ts instead
+ */
+export async function getSuperadminSessionFromCookies(): Promise<import("./auth.edge").SuperadminSession | null> {
   const cookieStore = await cookies();
   const token =
-    cookieStore.get(SUPERADMIN_COOKIE_NAME)?.value ||
-    cookieStore.get(`${SUPERADMIN_COOKIE_NAME}.legacy`)?.value;
+    cookieStore.get(COOKIE_NAME)?.value ||
+    cookieStore.get(`${COOKIE_NAME}.legacy`)?.value;
 
   return decodeSuperadminToken(token);
 }
 
+// ============================================================================
+// COOKIE MANAGEMENT (Node.js only - uses NextResponse)
+// ============================================================================
+
+/**
+ * Apply superadmin session cookie to response
+ */
 export function applySuperadminCookies(
   response: NextResponse,
   token: string,
@@ -217,9 +230,7 @@ export function applySuperadminCookies(
   const secure = process.env.NODE_ENV === "production";
   const sameSite: "lax" | "strict" = "lax";
 
-  // Single root-scoped cookie so UI (/superadmin) and API (/api/superadmin, /api/issues) both receive it
-  // NextResponse.cookies.set() is the proper way to set cookies in Next.js 13+ App Router
-  response.cookies.set(SUPERADMIN_COOKIE_NAME, token, {
+  response.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure,
     sameSite,
@@ -229,8 +240,11 @@ export function applySuperadminCookies(
   });
 }
 
+/**
+ * Clear superadmin session cookies from response
+ */
 export function clearSuperadminCookies(response: NextResponse): void {
-  const cookieNames = [SUPERADMIN_COOKIE_NAME, `${SUPERADMIN_COOKIE_NAME}.legacy`];
+  const cookieNames = [COOKIE_NAME, `${COOKIE_NAME}.legacy`];
   const cookiePaths = Array.from(new Set([SUPERADMIN_COOKIE_PATH, ...LEGACY_COOKIE_PATHS]));
 
   for (const name of cookieNames) {
@@ -244,17 +258,4 @@ export function clearSuperadminCookies(response: NextResponse): void {
       });
     }
   }
-}
-
-export function isIpAllowed(ip: string): boolean {
-  const allowlist = process.env.SUPERADMIN_IP_ALLOWLIST
-    ?.split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  if (!allowlist || allowlist.length === 0) {
-    return true;
-  }
-
-  return allowlist.includes(ip);
 }
