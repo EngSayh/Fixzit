@@ -125,7 +125,7 @@ export function BulkActionsToolbar<T>({
         size="sm"
         onClick={onClearSelection}
         disabled={isProcessing}
-        className="ml-auto"
+        className="ms-auto"
       >
         Clear selection
       </Button>

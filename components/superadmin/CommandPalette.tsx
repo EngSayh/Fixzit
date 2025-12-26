@@ -98,7 +98,7 @@ export const CommandPalette: React.FC = () => {
             className="border-0 focus-visible:ring-0 text-base"
             autoFocus
           />
-          <kbd className="ml-auto px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 rounded">⌘K</kbd>
+          <kbd className="ms-auto px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 rounded">⌘K</kbd>
         </div>
         
         <div className="max-h-96 overflow-y-auto p-2">
