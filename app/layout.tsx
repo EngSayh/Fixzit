@@ -3,7 +3,8 @@ import Link from 'next/link';
 import './globals.css';
 import ConditionalProviders from '@/providers/ConditionalProviders';
 import { Toaster } from 'sonner';
-import { SpeedInsights } from '@vercel/speed-insights/next';
+// SpeedInsights disabled until enabled in Vercel Dashboard
+// import { SpeedInsights } from '@vercel/speed-insights/next';
 import { 
   Bricolage_Grotesque, 
   Space_Mono, 
@@ -156,7 +157,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               closeButton
               duration={4000}
             />
-            {process.env.VERCEL_ENV === 'production' && <SpeedInsights />}
+            {/* 
+              SpeedInsights disabled until enabled in Vercel Dashboard 
+              The 500 error on /_vercel/speed-insights/script.js indicates 
+              the feature is not enabled in project settings.
+              Re-enable after: Vercel Dashboard → Project → Speed Insights → Enable
+            */}
+            {/* {process.env.VERCEL_ENV === 'production' && <SpeedInsights />} */}
           </TooltipProvider>
         </ConditionalProviders>
         {isPlaywright && (
