@@ -1,9 +1,11 @@
 {
   "recommendations": [
-    "github.copilot"
+    "github.copilot",
+    "redhat.vscode-yaml"
   ],
   "unwantedRecommendations": [
     "ms-vscode.vscode-typescript-tslint-plugin",
-    "eg2.tslint"
+    "eg2.tslint",
+    "github.vscode-github-actions"
   ]
 }

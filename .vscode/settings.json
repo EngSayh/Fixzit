@@ -105,6 +105,11 @@
   "github-actions.workflows.pinned.refresh.enabled": false,
   "github-actions.remote-name": "origin",
   
+  // Disable GitHub Actions extension expression validation entirely
+  // The extension shows false warnings about secrets it can't verify
+  // Ref: https://github.com/github/vscode-github-actions/issues/278
+  "github-actions.org.slug": "",
+  
   // YAML extension settings - disable strict validation for GitHub workflows
   // The redhat.vscode-yaml extension conflicts with GitHub Actions syntax
   "[yaml]": {
