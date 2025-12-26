@@ -172,7 +172,7 @@ describe("Issues API route", () => {
       category: "BUG",
       priority: "P1_HIGH",
       effort: "S",
-      location: { filePath: "app/page.tsx" },
+      location: { filePath: "app/page.tsx", lineStart: 42 },
       module: "core",
       action: "fix",
       definitionOfDone: "done",

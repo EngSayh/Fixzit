@@ -91,8 +91,9 @@ function slugify(value: string): string {
 
 function deriveIssueKey(body: CreateIssueBody, issueId: string): string {
   if (body.legacyId) return slugify(body.legacyId);
-  const location = body.location?.filePath ? `|${body.location.filePath}` : "";
-  return slugify(`${body.title}|${body.category}${location}`) || slugify(issueId);
+  const filePath = body.location?.filePath ? `|${body.location.filePath}` : "";
+  const lineStart = body.location?.lineStart ? `|L${body.location.lineStart}` : "";
+  return slugify(`${body.title}|${body.category}${filePath}${lineStart}`) || slugify(issueId);
 }
 
 function computeSourceHash(snippet: string, location?: string): string {
@@ -112,12 +113,14 @@ function escapeRegex(str: string, maxLength = 200): string {
 /**
  * Canonical admin roles that can access the issue tracker
  * Uses uppercase values to match UserRole enum
+ * Includes DEVELOPER for issue creation/management workflow
  */
 const ISSUE_TRACKER_ALLOWED_ROLES = new Set([
   'SUPER_ADMIN',
   'ADMIN',
   'CORPORATE_ADMIN',
   'MANAGER',
+  'DEVELOPER',
 ]);
 
 /**
@@ -269,7 +272,7 @@ export async function GET(request: NextRequest) {
     
     // Check for super admin or admin role (handles both lowercase superadmin and uppercase normal roles)
     if (!isAllowedRole(session.role)) {
-      return NextResponse.json({ error: 'Forbidden - insufficient role' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
     await connectToDatabase();
@@ -400,7 +403,7 @@ export async function POST(request: NextRequest) {
     
     // Check for super admin or admin role (handles both lowercase superadmin and uppercase normal roles)
     if (!isAllowedRole(session.role)) {
-      return NextResponse.json({ error: 'Forbidden - insufficient role' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
     await connectToDatabase();
