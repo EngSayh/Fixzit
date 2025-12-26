@@ -7,7 +7,8 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("next/headers", () => ({
   headers: () => ({
-    get: () => null,
+    // Return a valid non-login path so pathDetectionFailed=false and isLoginPage=false
+    get: (key: string) => key === "x-pathname" ? "/superadmin/dashboard" : null,
   }),
 }));
 

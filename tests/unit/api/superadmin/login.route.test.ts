@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   mockIsIpAllowed: vi.fn().mockReturnValue(true),
   mockValidateSecondFactor: vi.fn().mockReturnValue(true),
   mockEnforceRateLimit: vi.fn().mockReturnValue(null),
+  mockApplyCookies: vi.fn(),
 }));
 
 // Mock NextResponse
@@ -33,7 +34,7 @@ vi.mock("next/server", () => ({
         status, 
         body, 
         headers,
-        cookies: { set: vi.fn() },
+        cookies: { set: vi.fn(), getAll: vi.fn().mockReturnValue([]) },
         async json() { return body; } 
       };
     },
@@ -51,7 +52,7 @@ vi.mock("@/lib/superadmin/auth", () => ({
   isRateLimited: mocks.mockIsRateLimited,
   isIpAllowed: mocks.mockIsIpAllowed,
   validateSecondFactor: mocks.mockValidateSecondFactor,
-  applySuperadminCookies: vi.fn(),
+  applySuperadminCookies: mocks.mockApplyCookies,
   SUPERADMIN_COOKIE_NAME: "superadmin_token",
 }));
 
@@ -64,21 +65,21 @@ vi.mock("@/server/security/headers", () => ({
   getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
 }));
 
-import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+// Import the route AFTER all mocks are set up - single import, mocks handle isolation
+import { POST } from "@/app/api/superadmin/login/route";
 
 describe("POST /api/superadmin/login", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
-    vi.resetModules();
+    // Reset default mock behaviors
     mocks.mockIsRateLimited.mockReturnValue(false);
     mocks.mockIsIpAllowed.mockReturnValue(true);
     mocks.mockEnforceRateLimit.mockReturnValue(null);
+    mocks.mockSignToken.mockResolvedValue("mock-jwt-token");
+    mocks.mockValidateSecondFactor.mockReturnValue(true);
   });
 
   it("should return 400 for missing credentials", async () => {
-    const { POST } = await import("@/app/api/superadmin/login/route");
-    
     const request = {
       url: "http://localhost:3000/api/superadmin/login",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
@@ -91,8 +92,6 @@ describe("POST /api/superadmin/login", () => {
 
   it("should return 401 for invalid password", async () => {
     mocks.mockVerifyPassword.mockResolvedValue({ ok: false, reason: 'invalid' });
-    
-    const { POST } = await import("@/app/api/superadmin/login/route");
     
     const request = {
       url: "http://localhost:3000/api/superadmin/login",
@@ -111,8 +110,6 @@ describe("POST /api/superadmin/login", () => {
   it("should return 429 when rate limited", async () => {
     mocks.mockIsRateLimited.mockReturnValue(true);
     
-    const { POST } = await import("@/app/api/superadmin/login/route");
-    
     const request = {
       url: "http://localhost:3000/api/superadmin/login",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
@@ -130,8 +127,6 @@ describe("POST /api/superadmin/login", () => {
   it("should return 403 when IP not allowed", async () => {
     mocks.mockIsIpAllowed.mockReturnValue(false);
     
-    const { POST } = await import("@/app/api/superadmin/login/route");
-    
     const request = {
       url: "http://localhost:3000/api/superadmin/login",
       headers: new Map([["x-forwarded-for", "192.168.1.100"]]),
@@ -147,13 +142,8 @@ describe("POST /api/superadmin/login", () => {
   });
 
   it("should return 200 with valid credentials", async () => {
-    vi.resetModules();
-    mocks.mockIsRateLimited.mockReturnValue(false);
-    mocks.mockIsIpAllowed.mockReturnValue(true);
     mocks.mockVerifyPassword.mockResolvedValue({ ok: true });
     mocks.mockValidateSecondFactor.mockReturnValue(true);
-    
-    const { POST } = await import("@/app/api/superadmin/login/route");
     
     const request = {
       url: "http://localhost:3000/api/superadmin/login",
@@ -173,8 +163,6 @@ describe("POST /api/superadmin/login", () => {
   it("should set noindex header", async () => {
     mocks.mockVerifyPassword.mockResolvedValue({ ok: false, reason: 'invalid' });
     
-    const { POST } = await import("@/app/api/superadmin/login/route");
-    
     const request = {
       url: "http://localhost:3000/api/superadmin/login",
       headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
@@ -193,14 +181,12 @@ describe("POST /api/superadmin/login", () => {
   describe("non-string input handling", () => {
     beforeEach(() => {
       vi.clearAllMocks();
-      vi.resetModules();
       mocks.mockIsRateLimited.mockReturnValue(false);
       mocks.mockIsIpAllowed.mockReturnValue(true);
+      mocks.mockEnforceRateLimit.mockReturnValue(null);
     });
 
     it("should return 400 for non-string username", async () => {
-      const { POST } = await import("@/app/api/superadmin/login/route");
-      
       const request = {
         url: "http://localhost:3000/api/superadmin/login",
         headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
@@ -217,8 +203,6 @@ describe("POST /api/superadmin/login", () => {
     });
 
     it("should return 400 for null username", async () => {
-      const { POST } = await import("@/app/api/superadmin/login/route");
-      
       const request = {
         url: "http://localhost:3000/api/superadmin/login",
         headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
@@ -235,8 +219,6 @@ describe("POST /api/superadmin/login", () => {
     });
 
     it("should return 400 for non-string password", async () => {
-      const { POST } = await import("@/app/api/superadmin/login/route");
-      
       const request = {
         url: "http://localhost:3000/api/superadmin/login",
         headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
@@ -253,8 +235,6 @@ describe("POST /api/superadmin/login", () => {
     });
 
     it("should return 400 for array password", async () => {
-      const { POST } = await import("@/app/api/superadmin/login/route");
-      
       const request = {
         url: "http://localhost:3000/api/superadmin/login",
         headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
@@ -273,8 +253,7 @@ describe("POST /api/superadmin/login", () => {
     it("should handle non-string secretKey gracefully", async () => {
       mocks.mockVerifyPassword.mockResolvedValue({ ok: true });
       mocks.mockValidateSecondFactor.mockReturnValue(true);
-      
-      const { POST } = await import("@/app/api/superadmin/login/route");
+      mocks.mockSignToken.mockResolvedValue("mock-jwt-token");
       
       const request = {
         url: "http://localhost:3000/api/superadmin/login",
