@@ -10,12 +10,15 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getSuperadminSession, SUPERADMIN_COOKIE_NAME, isIpAllowed, getClientIp } from "@/lib/superadmin/auth";
+import { getSuperadminSession, SUPERADMIN_COOKIE_NAME, isIpAllowed } from "@/lib/superadmin/auth";
+import { getClientIP } from "@/server/security/headers";
 
 export async function GET(request: NextRequest) {
-  // Security: Production = Vercel production only (not preview)
-  // Preview deployments (VERCEL_ENV=preview) should show full diagnostics
-  const isProduction = process.env.VERCEL_ENV === "production";
+  // Security: Production = Vercel production OR NODE_ENV=production without VERCEL_ENV
+  // This handles both Vercel and non-Vercel production deployments
+  const isProduction = 
+    process.env.VERCEL_ENV === "production" || 
+    (process.env.NODE_ENV === "production" && !process.env.VERCEL_ENV);
   
   // Security: In production, deny access if IP allowlist is not configured
   // This prevents accidental exposure when SUPERADMIN_IP_ALLOWLIST is unset
@@ -27,8 +30,8 @@ export async function GET(request: NextRequest) {
         { status: 403, headers: { "X-Robots-Tag": "noindex, nofollow" } }
       );
     }
-    // Verify IP is in allowlist
-    const clientIp = getClientIp(request);
+    // Verify IP is in allowlist using hardened IP extraction (same as middleware)
+    const clientIp = getClientIP(request);
     if (!isIpAllowed(clientIp)) {
       return NextResponse.json(
         { error: "Forbidden" },
