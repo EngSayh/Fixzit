@@ -174,7 +174,7 @@ export function AtsInterviewsTab({
             <div
               key={interview._id}
               className={`bg-card border rounded-lg p-6 hover:shadow-md transition-shadow ${
-                isToday ? "border-l-4 border-l-primary" : ""
+                isToday ? "border-s-4 border-s-primary" : ""
               }`}
             >
               <div className="flex items-start justify-between">

@@ -131,7 +131,7 @@ export function SellerReviewsDashboard({
                   </p>
                   <p className="text-2xl font-bold">{trend[trend.length - 1]}%</p>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <p className="text-sm text-muted-foreground">
                     {auto("Breach alerts", "stats.slaBreach")}
                   </p>
