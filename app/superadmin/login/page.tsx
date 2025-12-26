@@ -74,8 +74,34 @@ export default function SuperadminLoginPage() {
       // router.push() uses client-side navigation which doesn't properly
       // send the newly-set httpOnly cookie to the server on first request.
       // A full page reload ensures the browser includes the cookie.
-      // Small delay to ensure browser has processed Set-Cookie header
-      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Step 1: Wait for browser to process Set-Cookie header
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Step 2: Verify cookie was set by calling check-cookie endpoint
+      try {
+        const cookieCheck = await fetch("/api/superadmin/check-cookie", {
+          credentials: "include",
+        });
+        const cookieData = await cookieCheck.json();
+        
+        if (!cookieData.cookies?.hasSuperadminCookie) {
+          // Cookie wasn't set - show error instead of redirect loop
+          // eslint-disable-next-line no-console -- Critical auth debugging
+          console.error("[SUPERADMIN] Cookie not set after login", cookieData);
+          setError("Login succeeded but session cookie was not set. This may be a server configuration issue. Check browser console for details.");
+          return;
+        }
+        
+        // eslint-disable-next-line no-console -- Auth flow debugging
+        console.log("[SUPERADMIN] Cookie verified, redirecting...", cookieData);
+      } catch (checkError) {
+        // If check fails, proceed anyway - might work
+        // eslint-disable-next-line no-console -- Auth flow debugging
+        console.warn("[SUPERADMIN] Cookie check failed, proceeding with redirect", checkError);
+      }
+      
+      // Step 3: Redirect to issues page
       window.location.href = "/superadmin/issues";
     } catch (_err) {
       setError("Connection error. Please try again.");
