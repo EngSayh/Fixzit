@@ -54,6 +54,26 @@ async function resolveIssueSession(request: NextRequest) {
   return getSessionOrNull(request);
 }
 
+/**
+ * Canonical admin roles that can access the issue tracker
+ * Uses uppercase values to match UserRole enum
+ */
+const ISSUE_TRACKER_ALLOWED_ROLES = new Set([
+  'SUPER_ADMIN',
+  'ADMIN',
+  'CORPORATE_ADMIN',
+  'MANAGER',
+]);
+
+/**
+ * Check if a role is allowed to access the issue tracker
+ * Handles both lowercase (superadmin session) and uppercase (normal session)
+ */
+function isAllowedRole(role: string): boolean {
+  const normalized = role.toUpperCase();
+  return ISSUE_TRACKER_ALLOWED_ROLES.has(normalized);
+}
+
 // ============================================================================
 // GET /api/issues/[id]
 // ============================================================================
@@ -208,9 +228,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const allowedRoles = ['super_admin', 'admin', 'developer'];
-    if (!allowedRoles.includes(session.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Check for allowed roles (handles both lowercase superadmin and uppercase normal roles)
+    if (!isAllowedRole(session.role)) {
+      return NextResponse.json({ error: 'Forbidden - insufficient role' }, { status: 403 });
     }
     
     await connectToDatabase();

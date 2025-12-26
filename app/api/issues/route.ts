@@ -101,6 +101,49 @@ function computeSourceHash(snippet: string, location?: string): string {
     .digest("hex");
 }
 
+/**
+ * Escape special regex characters to prevent injection attacks
+ * Also caps input length to prevent ReDoS
+ */
+function escapeRegex(str: string, maxLength = 200): string {
+  return str.slice(0, maxLength).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Canonical admin roles that can access the issue tracker
+ * Uses uppercase values to match UserRole enum
+ */
+const ISSUE_TRACKER_ALLOWED_ROLES = new Set([
+  'SUPER_ADMIN',
+  'ADMIN',
+  'CORPORATE_ADMIN',
+  'MANAGER',
+]);
+
+/**
+ * Check if a role is allowed to access the issue tracker
+ * Handles both lowercase (superadmin session) and uppercase (normal session)
+ */
+function isAllowedRole(role: string): boolean {
+  const normalized = role.toUpperCase();
+  return ISSUE_TRACKER_ALLOWED_ROLES.has(normalized);
+}
+
+/**
+ * Validate and parse pagination params
+ * Returns positive integers or null if invalid
+ */
+function parsePaginationParams(pageStr?: string, limitStr?: string): { page: number; limit: number } | null {
+  const page = parseInt(pageStr || '1', 10);
+  const limit = parseInt(limitStr || '20', 10);
+  
+  if (!Number.isFinite(page) || page < 1 || !Number.isFinite(limit) || limit < 1) {
+    return null;
+  }
+  
+  return { page, limit: Math.min(limit, 100) };
+}
+
 async function resolveIssueSession(request: NextRequest) {
   const superadmin = await getSuperadminSession(request);
   if (superadmin) {
@@ -150,7 +193,8 @@ function buildFilterQuery(query: ListQuery, orgId: mongoose.Types.ObjectId) {
   }
   
   if (query.file) {
-    filter['location.filePath'] = { $regex: query.file, $options: 'i' };
+    // Escape regex special chars to prevent injection/ReDoS
+    filter['location.filePath'] = { $regex: escapeRegex(query.file), $options: 'i' };
   }
   
   if (query.sprintReady === 'true') {
@@ -223,10 +267,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Check for super admin or admin role
-    const allowedRoles = ['super_admin', 'admin', 'developer'];
-    if (!allowedRoles.includes(session.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Check for super admin or admin role (handles both lowercase superadmin and uppercase normal roles)
+    if (!isAllowedRole(session.role)) {
+      return NextResponse.json({ error: 'Forbidden - insufficient role' }, { status: 403 });
     }
     
     await connectToDatabase();
@@ -271,8 +314,15 @@ export async function GET(request: NextRequest) {
     const filter = buildFilterQuery(query, orgId);
     const sort = buildSortQuery(query);
     
-    const page = parseInt(query.page || '1', 10);
-    const limit = Math.min(parseInt(query.limit || '20', 10), 100);
+    // Validate pagination params
+    const pagination = parsePaginationParams(query.page, query.limit);
+    if (!pagination) {
+      return NextResponse.json(
+        { error: 'Invalid pagination parameters. page and limit must be positive integers.' },
+        { status: 400 }
+      );
+    }
+    const { page, limit } = pagination;
     const skip = (page - 1) * limit;
     
     const [issues, total, stats] = await Promise.all([
@@ -348,9 +398,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const allowedRoles = ['super_admin', 'admin', 'developer'];
-    if (!allowedRoles.includes(session.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Check for super admin or admin role (handles both lowercase superadmin and uppercase normal roles)
+    if (!isAllowedRole(session.role)) {
+      return NextResponse.json({ error: 'Forbidden - insufficient role' }, { status: 403 });
     }
     
     await connectToDatabase();
@@ -394,6 +444,14 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Validate location.filePath explicitly to return 400 instead of Mongoose 500
+    if (!body.location?.filePath || typeof body.location.filePath !== 'string' || body.location.filePath.trim() === '') {
+      return NextResponse.json(
+        { error: 'Missing or invalid location.filePath. Must be a non-empty string.' },
+        { status: 400 }
+      );
+    }
+    
     // Validate orgId before ObjectId conversion to prevent server crashes
     if (!session.orgId || !mongoose.isValidObjectId(session.orgId)) {
       logger.error("[FIXZIT-API-002] Invalid or missing orgId in session (POST)", {
@@ -412,12 +470,30 @@ export async function POST(request: NextRequest) {
     }
     
     // Check for duplicates
+    // When lineStart is missing, use title+filePath fingerprint to avoid false positives
     const orgId = new mongoose.Types.ObjectId(session.orgId);
-    const duplicates = await Issue.findDuplicates(
-      orgId,
-      body.location.filePath,
-      body.location.lineStart
-    );
+    let duplicates: IIssue[] = [];
+    
+    if (body.location.lineStart) {
+      // Precise duplicate: same file + same line
+      duplicates = await Issue.findDuplicates(
+        orgId,
+        body.location.filePath,
+        body.location.lineStart
+      );
+    } else {
+      // Fallback: match by title + filePath to avoid treating all issues in same file as duplicates
+      const titleSlug = slugify(body.title);
+      const found = await Issue.find({
+        orgId,
+        'location.filePath': body.location.filePath,
+        $or: [
+          { title: body.title },
+          { key: { $regex: `^${escapeRegex(titleSlug)}`, $options: 'i' } },
+        ],
+      }).lean();
+      duplicates = found as unknown as IIssue[];
+    }
     
     if (duplicates.length > 0) {
       // Update existing issue instead of creating duplicate

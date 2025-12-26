@@ -211,6 +211,26 @@ async function resolveSession(request: NextRequest) {
   return getSessionOrNull(request);
 }
 
+/**
+ * Canonical admin roles that can access the issue tracker
+ * Uses uppercase values to match UserRole enum
+ */
+const ISSUE_TRACKER_ALLOWED_ROLES = new Set([
+  'SUPER_ADMIN',
+  'ADMIN',
+  'CORPORATE_ADMIN',
+  'MANAGER',
+]);
+
+/**
+ * Check if a role is allowed to access the issue tracker
+ * Handles both lowercase (superadmin session) and uppercase (normal session)
+ */
+function isAllowedRole(role: string): boolean {
+  const normalized = role.toUpperCase();
+  return ISSUE_TRACKER_ALLOWED_ROLES.has(normalized);
+}
+
 export async function POST(request: NextRequest) {
   // Rate limit: 5 bulk imports per minute (sensitive operation)
   const rateLimitResponse = enforceRateLimit(request, {
@@ -231,9 +251,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: ROBOTS_HEADER });
     }
 
-    const allowedRoles = ["super_admin", "admin", "developer"];
-    if (!allowedRoles.includes(session.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: ROBOTS_HEADER });
+    // Check for allowed roles (handles both lowercase superadmin and uppercase normal roles)
+    if (!isAllowedRole(session.role)) {
+      return NextResponse.json({ error: "Forbidden - insufficient role" }, { status: 403, headers: ROBOTS_HEADER });
     }
 
     let body: ImportBody | null = null;

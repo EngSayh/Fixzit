@@ -93,5 +93,13 @@
 
   // Terminal rendering fixes (prevents white blocks)
   "terminal.integrated.fontFamily": "Consolas, 'Courier New', monospace",
-  "terminal.integrated.gpuAcceleration": "canvas"
+  "terminal.integrated.gpuAcceleration": "canvas",
+
+  // GitHub Actions extension - disable overzealous YAML validation
+  // The extension generates false positives for valid syntax like:
+  // - secrets.* in if: conditions
+  // - Multi-line run: blocks  
+  // - Complex ${{ }} expressions
+  // Workflows are validated by GitHub on push, so this is safe to disable.
+  "github-actions.workflows.pinned.refresh.enabled": false
 }
