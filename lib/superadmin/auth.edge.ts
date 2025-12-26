@@ -212,9 +212,19 @@ export function getClientIp(req: NextRequest): string {
   if (forwarded && forwarded.trim()) {
     const ips = forwarded.split(",").map((ip) => ip.trim()).filter((ip) => ip);
     if (ips.length) {
-      // Parse TRUSTED_PROXY_COUNT (default 0 = no proxy stripping)
+      // Parse TRUSTED_PROXY_COUNT - aligned with server/security/ip-utils.ts
       const envValue = process.env.TRUSTED_PROXY_COUNT;
-      const trustedProxyCount = envValue ? Math.max(0, parseInt(envValue, 10) || 0) : 0;
+      let trustedProxyCount = 0;
+      if (envValue) {
+        const count = parseInt(envValue, 10);
+        if (isNaN(count) || count < 0) {
+          // SECURITY: Fail loudly on invalid config to match Node behavior
+          // eslint-disable-next-line no-console -- Critical config error
+          console.error(`[EDGE] Invalid TRUSTED_PROXY_COUNT: "${envValue}". Must be a non-negative integer.`);
+          throw new Error(`Invalid TRUSTED_PROXY_COUNT: "${envValue}". Must be a non-negative integer.`);
+        }
+        trustedProxyCount = count;
+      }
 
       // Skip trusted proxy hops from the right
       const clientIPIndex = Math.max(0, ips.length - 1 - trustedProxyCount);
