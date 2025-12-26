@@ -83,20 +83,44 @@ export default function SuperadminLoginPage() {
         const cookieCheck = await fetch("/api/superadmin/check-cookie", {
           credentials: "include",
         });
-        const cookieData = await cookieCheck.json();
         
-        if (!cookieData.cookies?.hasSuperadminCookie) {
-          // Cookie wasn't set - show error instead of redirect loop
+        // Handle non-200 responses explicitly
+        if (!cookieCheck.ok) {
           // eslint-disable-next-line no-console -- Critical auth debugging
-          console.error("[SUPERADMIN] Cookie not set after login", cookieData);
-          setError("Login succeeded but session cookie was not set. This may be a server configuration issue. Check browser console for details.");
-          return;
+          console.error("[SUPERADMIN] Cookie check returned error", {
+            status: cookieCheck.status,
+            statusText: cookieCheck.statusText,
+          });
+          // Don't block redirect for check failures - the cookie might still work
+          // eslint-disable-next-line no-console -- Auth flow debugging
+          console.warn("[SUPERADMIN] Proceeding with redirect despite check-cookie error");
+        } else {
+          const cookieData = await cookieCheck.json();
+          
+          if (!cookieData.cookies?.hasSuperadminCookie) {
+            // Cookie wasn't set - show error instead of redirect loop
+            // eslint-disable-next-line no-console -- Critical auth debugging
+            console.error("[SUPERADMIN] Cookie not set after login", cookieData);
+            setError("Login succeeded but session cookie was not set. This may be a server configuration issue. Check browser console for details.");
+            return;
+          }
+          
+          // Check if session verification failed (cookie present but JWT invalid)
+          if (cookieData.session && !cookieData.session.valid) {
+            // eslint-disable-next-line no-console -- Critical auth debugging
+            console.error("[SUPERADMIN] Session verification failed", {
+              error: cookieData.session.error,
+              secrets: cookieData.secrets,
+            });
+            setError(`Session verification failed: ${cookieData.session.error || 'JWT decode error'}. This may indicate a secret mismatch between server runtimes.`);
+            return;
+          }
+          
+          // eslint-disable-next-line no-console -- Auth flow debugging
+          console.log("[SUPERADMIN] Cookie verified, redirecting...", cookieData);
         }
-        
-        // eslint-disable-next-line no-console -- Auth flow debugging
-        console.log("[SUPERADMIN] Cookie verified, redirecting...", cookieData);
       } catch (checkError) {
-        // If check fails, proceed anyway - might work
+        // If check fails entirely (network error), proceed anyway - might work
         // eslint-disable-next-line no-console -- Auth flow debugging
         console.warn("[SUPERADMIN] Cookie check failed, proceeding with redirect", checkError);
       }

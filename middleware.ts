@@ -309,8 +309,9 @@ export async function middleware(request: NextRequest) {
     const isLogin = pathname.startsWith('/superadmin/login') || pathname.startsWith('/api/superadmin/login');
     const isHealth = pathname === '/api/superadmin/health';
     const isDebug = pathname === '/api/superadmin/debug';
-    // Allow login, health, and debug endpoints pre-auth (for diagnostics)
-    if (isLogin || isHealth || isDebug) {
+    const isCheckCookie = pathname === '/api/superadmin/check-cookie';
+    // Allow login, health, debug, and check-cookie endpoints pre-auth (for diagnostics)
+    if (isLogin || isHealth || isDebug || isCheckCookie) {
       const res = NextResponse.next();
       res.headers.set('X-Robots-Tag', 'noindex, nofollow');
       res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');

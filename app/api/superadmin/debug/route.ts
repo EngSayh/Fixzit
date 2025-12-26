@@ -2,15 +2,40 @@
  * Superadmin Debug Endpoint
  * For diagnosing session/cookie issues
  * 
+ * Security: This endpoint is allowlisted pre-auth in middleware for diagnostics.
+ * In production, it returns redacted info only. In preview/development, full diagnostics.
+ * Access is controlled by SUPERADMIN_IP_ALLOWLIST (deny-by-default if unset in production).
+ * 
  * @module app/api/superadmin/debug/route
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getSuperadminSession, SUPERADMIN_COOKIE_NAME } from "@/lib/superadmin/auth";
+import { getSuperadminSession, SUPERADMIN_COOKIE_NAME, isIpAllowed, getClientIp } from "@/lib/superadmin/auth";
 
 export async function GET(request: NextRequest) {
-  // Security: Only allow in development/preview, not production
-  const isProduction = process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+  // Security: Production = Vercel production only (not preview)
+  // Preview deployments (VERCEL_ENV=preview) should show full diagnostics
+  const isProduction = process.env.VERCEL_ENV === "production";
+  
+  // Security: In production, deny access if IP allowlist is not configured
+  // This prevents accidental exposure when SUPERADMIN_IP_ALLOWLIST is unset
+  if (isProduction) {
+    const ipAllowlist = process.env.SUPERADMIN_IP_ALLOWLIST;
+    if (!ipAllowlist || ipAllowlist.trim() === '') {
+      return NextResponse.json(
+        { error: "Debug endpoint disabled in production. Configure SUPERADMIN_IP_ALLOWLIST to enable." },
+        { status: 403, headers: { "X-Robots-Tag": "noindex, nofollow" } }
+      );
+    }
+    // Verify IP is in allowlist
+    const clientIp = getClientIp(request);
+    if (!isIpAllowed(clientIp)) {
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403, headers: { "X-Robots-Tag": "noindex, nofollow" } }
+      );
+    }
+  }
   
   // Get diagnostic info
   const cookies = request.cookies.getAll();
