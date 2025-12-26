@@ -110,24 +110,18 @@
   // Ref: https://github.com/github/vscode-github-actions/issues/278
   "github-actions.org.slug": "",
   
-  // YAML extension settings - disable strict validation for GitHub workflows
-  // The redhat.vscode-yaml extension conflicts with GitHub Actions syntax
+  // YAML extension settings - disable validation for GitHub workflow files
+  // The redhat.vscode-yaml extension generates false positives for GitHub Actions syntax
+  // Workflows are validated by GitHub on push, so local validation is unnecessary
   "[yaml]": {
     "editor.defaultFormatter": "redhat.vscode-yaml"
   },
-  "yaml.validate": true,
-  "yaml.schemas": {
-    // Don't apply JSON schema to workflow files - it causes false positives
-    // GitHub validates workflows on push anyway
-  },
-  // Disable custom tags warnings that cause false positives  
+  "yaml.validate": false,
+  "yaml.schemaStore.enable": false,
+  "yaml.schemas": {},
   "yaml.customTags": [
     "!reference sequence"
   ],
-  
-  // Exclude GitHub Actions workflows from YAML validation entirely
-  // These files use GitHub-specific syntax that standard YAML validators reject
-  "yaml.schemaStore.enable": true,
   "files.associations": {
     ".github/workflows/*.yml": "yaml"
   }
