@@ -292,7 +292,7 @@ export class AutoAssignmentEngine {
               name: bestCandidate.name,
             },
             "assignment.assignedAt": new Date(),
-            "assignment.assignedBy": assignedBy,
+            "assignment.assignedBy": assignedBy === "system" ? null : new Types.ObjectId(assignedBy),
             "assignment.autoAssigned": true,
             updatedAt: new Date(),
           },
