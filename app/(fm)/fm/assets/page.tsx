@@ -285,7 +285,7 @@ function AssetCard({
   onUpdated: () => void;
   orgId: string;
 }) {
-  const auto = useAutoTranslator("fm.assets.card");
+  const auto = useAutoTranslator("fm.assets");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -392,19 +392,19 @@ function AssetCard({
         <div className="space-y-2">
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">
-              {auto("Type:", "type")}
+              {auto("Type:", "card.type")}
             </span>
             <span className="text-sm font-medium">{asset.type}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">
-              {auto("Category:", "category")}
+              {auto("Category:", "card.category")}
             </span>
             <span className="text-sm font-medium">{asset.category}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">
-              {auto("Criticality:", "criticality")}
+              {auto("Criticality:", "card.criticality")}
             </span>
             <Badge
               variant="outline"
@@ -424,17 +424,17 @@ function AssetCard({
           {asset.location && (
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">
-                {auto("Location:", "location")}
+                {auto("Location:", "card.location")}
               </span>
               <span className="text-sm font-medium">
                 {asset.location.building && `${asset.location.building}`}
                 {asset.location.floor &&
-                  `, ${auto("Floor {{floor}}", "floor").replace(
+                  `, ${auto("Floor {{floor}}", "card.floor").replace(
                     "{{floor}}",
                     asset.location.floor ?? "",
                   )}`}
                 {asset.location.room &&
-                  `, ${auto("Room {{room}}", "room").replace(
+                  `, ${auto("Room {{room}}", "card.room").replace(
                     "{{room}}",
                     asset.location.room ?? "",
                   )}`}
@@ -447,7 +447,7 @@ function AssetCard({
 
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">
-            {auto("Last Maintenance:", "lastMaintenance")}{" "}
+            {auto("Last Maintenance:", "card.lastMaintenance")}{" "}
             {asset.maintenanceHistory &&
             asset.maintenanceHistory.length > 0 &&
             asset.maintenanceHistory[asset.maintenanceHistory.length - 1]
@@ -460,7 +460,7 @@ function AssetCard({
                 format="date-only"
               />
             ) : (
-              auto("Never", "never")
+              auto("Never", "card.never")
             )}
           </span>
           <div className="flex space-x-2">
@@ -468,7 +468,7 @@ function AssetCard({
               variant="ghost" 
               size="sm" 
               onClick={handleView}
-              aria-label={auto("View asset {{name}}", "actions.viewLabel").replace("{{name}}", asset.name || "")}
+              aria-label={auto("View asset {{name}}", "card.actions.viewLabel").replace("{{name}}", asset.name || "")}
             >
               <Eye className="w-4 h-4" />
             </Button>
@@ -476,7 +476,7 @@ function AssetCard({
               variant="ghost" 
               size="sm" 
               onClick={handleEdit}
-              aria-label={auto("Edit asset {{name}}", "actions.editLabel").replace("{{name}}", asset.name || "")}
+              aria-label={auto("Edit asset {{name}}", "card.actions.editLabel").replace("{{name}}", asset.name || "")}
             >
               <Edit className="w-4 h-4" />
             </Button>
@@ -485,7 +485,7 @@ function AssetCard({
               size="sm"
               className="text-destructive hover:text-destructive"
               onClick={handleDelete}
-              aria-label={auto("Delete asset {{name}}", "actions.deleteLabel").replace("{{name}}", asset.name || "")}
+              aria-label={auto("Delete asset {{name}}", "card.actions.deleteLabel").replace("{{name}}", asset.name || "")}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -501,19 +501,19 @@ function AssetCard({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">{auto("Code", "view.code")}</p>
+                  <p className="text-sm text-muted-foreground">{auto("Code", "card.view.code")}</p>
                   <p className="font-medium">{asset.code || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{auto("Type", "view.type")}</p>
+                  <p className="text-sm text-muted-foreground">{auto("Type", "card.view.type")}</p>
                   <p className="font-medium">{asset.type || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{auto("Category", "view.category")}</p>
+                  <p className="text-sm text-muted-foreground">{auto("Category", "card.view.category")}</p>
                   <p className="font-medium">{asset.category || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{auto("Status", "view.status")}</p>
+                  <p className="text-sm text-muted-foreground">{auto("Status", "card.view.status")}</p>
                   <Badge className={getStatusColor(asset.status || "")}>
                     {asset.status && ASSET_STATUS_LABELS[asset.status as keyof typeof ASSET_STATUS_LABELS]
                       ? auto(
@@ -524,12 +524,12 @@ function AssetCard({
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{auto("Criticality", "view.criticality")}</p>
+                  <p className="text-sm text-muted-foreground">{auto("Criticality", "card.view.criticality")}</p>
                   <p className="font-medium">{asset.criticality || "-"}</p>
                 </div>
                 {asset.location && (
                   <div>
-                    <p className="text-sm text-muted-foreground">{auto("Location", "view.location")}</p>
+                    <p className="text-sm text-muted-foreground">{auto("Location", "card.view.location")}</p>
                     <p className="font-medium">
                       {asset.location.building}{asset.location.floor ? `, Floor ${asset.location.floor}` : ""}{asset.location.room ? `, Room ${asset.location.room}` : ""}
                     </p>
@@ -544,7 +544,7 @@ function AssetCard({
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{auto("Edit Asset", "edit.title")}</DialogTitle>
+              <DialogTitle>{auto("Edit Asset", "card.edit.title")}</DialogTitle>
             </DialogHeader>
             <EditAssetForm
               asset={asset}
