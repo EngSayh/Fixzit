@@ -1,4 +1,4 @@
-import { addMinutes, isWeekend as _isWeekend, setHours, setMinutes, addDays, getDay, getHours, getMinutes } from "date-fns";
+// date-fns imports removed - using native UTC Date methods for timezone-independent SLA calculations
 
 export type WorkOrderPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
@@ -26,6 +26,41 @@ export const DEFAULT_BUSINESS_HOURS: BusinessHoursConfig = {
   workDays: [0, 1, 2, 3, 4], // Sunday-Thursday (Saudi work week)
 };
 
+// UTC-safe date helpers for timezone-independent SLA calculations
+function getUTCDay(date: Date): number {
+  return date.getUTCDay();
+}
+
+function getUTCHours(date: Date): number {
+  return date.getUTCHours();
+}
+
+function getUTCMinutes(date: Date): number {
+  return date.getUTCMinutes();
+}
+
+function setUTCHours(date: Date, hours: number): Date {
+  const result = new Date(date);
+  result.setUTCHours(hours);
+  return result;
+}
+
+function setUTCMinutes(date: Date, minutes: number): Date {
+  const result = new Date(date);
+  result.setUTCMinutes(minutes);
+  return result;
+}
+
+function addUTCDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result;
+}
+
+function addUTCMinutes(date: Date, minutes: number): Date {
+  return new Date(date.getTime() + minutes * 60 * 1000);
+}
+
 /**
  * Returns the SLA resolution window in minutes for a work order priority.
  * This function is used server side when persisting records and in
@@ -36,14 +71,14 @@ export function computeSlaMinutes(priority: WorkOrderPriority): number {
 }
 
 /**
- * Checks if a given date/time falls within business hours
+ * Checks if a given date/time falls within business hours (UTC-based)
  */
 export function isBusinessHour(
   date: Date,
   config: BusinessHoursConfig = DEFAULT_BUSINESS_HOURS
 ): boolean {
-  const dayOfWeek = getDay(date);
-  const hour = getHours(date);
+  const dayOfWeek = getUTCDay(date);
+  const hour = getUTCHours(date);
   
   if (!config.workDays.includes(dayOfWeek)) return false;
   if (hour < config.startHour || hour >= config.endHour) return false;
@@ -52,7 +87,7 @@ export function isBusinessHour(
 }
 
 /**
- * Gets the next business hour start from a given date
+ * Gets the next business hour start from a given date (UTC-based)
  */
 export function getNextBusinessHourStart(
   date: Date,
@@ -68,32 +103,32 @@ export function getNextBusinessHourStart(
   // Find the next work day
   let daysChecked = 0;
   while (daysChecked < 7) {
-    const dayOfWeek = getDay(current);
-    const hour = getHours(current);
+    const dayOfWeek = getUTCDay(current);
+    const hour = getUTCHours(current);
     
     if (config.workDays.includes(dayOfWeek)) {
       // It's a work day
       if (hour < config.startHour) {
         // Before start - jump to start
-        return setMinutes(setHours(current, config.startHour), 0);
+        return setUTCMinutes(setUTCHours(current, config.startHour), 0);
       } else if (hour >= config.endHour) {
         // After end - go to next day
-        current = addDays(current, 1);
-        current = setMinutes(setHours(current, config.startHour), 0);
+        current = addUTCDays(current, 1);
+        current = setUTCMinutes(setUTCHours(current, config.startHour), 0);
       } else {
         // Within hours
         return current;
       }
     } else {
       // Not a work day - go to next day at start hour
-      current = addDays(current, 1);
-      current = setMinutes(setHours(current, config.startHour), 0);
+      current = addUTCDays(current, 1);
+      current = setUTCMinutes(setUTCHours(current, config.startHour), 0);
     }
     daysChecked++;
   }
   
   // Fallback (shouldn't happen with valid config)
-  return setMinutes(setHours(addDays(date, 1), config.startHour), 0);
+  return setUTCMinutes(setUTCHours(addUTCDays(date, 1), config.startHour), 0);
 }
 
 /**
@@ -103,11 +138,11 @@ export function getNextBusinessHourStart(
  * @deprecated Use computeDueAtBusinessHours for business-hours-aware calculation
  */
 export function computeDueAt(start: Date, slaMinutes: number): Date {
-  return addMinutes(start, slaMinutes);
+  return addUTCMinutes(start, slaMinutes);
 }
 
 /**
- * Calculates the due date accounting for business hours.
+ * Calculates the due date accounting for business hours (UTC-based).
  * Example: 4-hour SLA created Friday 4pm → Due Monday 12pm (skips weekend)
  */
 export function computeDueAtBusinessHours(
@@ -120,20 +155,20 @@ export function computeDueAtBusinessHours(
   let current = getNextBusinessHourStart(start, config);
   
   while (remainingMinutes > 0) {
-    const hour = getHours(current);
-    const minute = getMinutes(current);
+    const hour = getUTCHours(current);
+    const minute = getUTCMinutes(current);
     const currentMinuteOfDay = (hour - config.startHour) * 60 + minute;
     const remainingTodayMinutes = minutesPerDay - currentMinuteOfDay;
     
     if (remainingMinutes <= remainingTodayMinutes) {
       // Fits within today
-      return addMinutes(current, remainingMinutes);
+      return addUTCMinutes(current, remainingMinutes);
     }
     
     // Consume today's remaining time and move to next business day
     remainingMinutes -= remainingTodayMinutes;
-    current = addDays(current, 1);
-    current = setMinutes(setHours(current, config.startHour), 0);
+    current = addUTCDays(current, 1);
+    current = setUTCMinutes(setUTCHours(current, config.startHour), 0);
     current = getNextBusinessHourStart(current, config);
   }
   

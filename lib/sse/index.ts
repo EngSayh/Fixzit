@@ -1,18 +1,15 @@
 /**
  * FEATURE-001: Server-Sent Events (SSE) Module
  * 
- * @status IMPLEMENTED - Issue #293
+ * @status SCAFFOLDING - Q1 2026
  * @adr ADR-001-real-time-notifications.md
  * @decision SSE over WebSocket (see ADR-001)
  * 
- * Implementation:
+ * Implementation Plan:
  * 1. SSE endpoint: app/api/notifications/stream/route.ts
  * 2. Client hook: hooks/useNotificationStream.ts
- * 3. In-memory pub/sub with Redis-ready architecture
+ * 3. Redis pub/sub: For horizontal scaling across Vercel instances
  * 4. Tenant isolation: All streams scoped by org_id
- * 
- * For horizontal scaling across Vercel instances, integrate Redis pub/sub
- * by replacing the in-memory subscriptions Map with Redis channels.
  */
 
 import { Types } from 'mongoose';
@@ -67,152 +64,155 @@ export const SSE_CONFIG = {
 } as const;
 
 // ============================================================================
-// IN-MEMORY SUBSCRIPTION MANAGER
-// For single-instance deployment. For horizontal scaling, integrate Redis pub/sub.
+// SUBSCRIPTION STATE (In-Memory - will be replaced with Redis)
 // ============================================================================
 
-type SubscriptionCallback = (notification: NotificationPayload) => void;
-
-interface Subscription {
-  orgId: string;
-  userId: string;
-  callback: SubscriptionCallback;
-  connectionId: string;
+interface InternalSubscription {
+  orgId: Types.ObjectId;
+  userId: Types.ObjectId;
+  callback: (notification: NotificationPayload) => void;
   connectedAt: Date;
+  lastHeartbeat: Date;
 }
 
-// In-memory subscription store (single instance)
-// For production horizontal scaling, replace with Redis pub/sub
-const subscriptions = new Map<string, Subscription>();
+const subscriptions = new Map<string, InternalSubscription>();
+let subscriptionIdCounter = 0;
+let cleanupIntervalId: NodeJS.Timeout | null = null;
 
 /**
- * Generate unique connection ID
+ * Get the number of active connections for a specific user
  */
-function generateConnectionId(): string {
-  return `conn_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+export function getUserConnectionCount(userId: Types.ObjectId): number {
+  let count = 0;
+  for (const sub of subscriptions.values()) {
+    if (sub.userId.equals(userId)) {
+      count++;
+    }
+  }
+  return count;
 }
 
 /**
- * Get subscription key for lookup
+ * Start the connection cleanup interval
  */
-function getSubscriptionKey(connectionId: string): string {
-  return connectionId;
+export function startConnectionCleanup(): void {
+  if (cleanupIntervalId) return; // Already running
+  
+  cleanupIntervalId = setInterval(() => {
+    const now = Date.now();
+    const timeout = SSE_CONFIG.CONNECTION_TIMEOUT_MS;
+    
+    for (const [id, sub] of subscriptions.entries()) {
+      if (now - sub.lastHeartbeat.getTime() > timeout) {
+        subscriptions.delete(id);
+      }
+    }
+  }, 60_000); // Check every minute
+}
+
+/**
+ * Stop the connection cleanup interval
+ */
+export function stopConnectionCleanup(): void {
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+  }
+}
+
+/**
+ * Reset internal state for testing purposes only
+ * @internal
+ */
+export function _resetForTesting(): void {
+  subscriptions.clear();
+  subscriptionIdCounter = 0;
+  stopConnectionCleanup();
+}
+
+/**
+ * Get the count of active subscriptions (optionally filtered by org)
+ */
+export function getActiveSubscriptionCount(orgId?: Types.ObjectId): number {
+  if (!orgId) {
+    return subscriptions.size;
+  }
+  let count = 0;
+  for (const sub of subscriptions.values()) {
+    if (sub.orgId.equals(orgId)) {
+      count++;
+    }
+  }
+  return count;
 }
 
 // ============================================================================
-// IMPLEMENTED FUNCTIONS
+// SUBSCRIPTION FUNCTIONS
 // ============================================================================
 
 /**
  * Subscribe to tenant-scoped notifications
- * 
- * For single-instance deployments, uses in-memory subscriptions.
- * For horizontal scaling across Vercel instances, integrate Redis pub/sub:
- * 
- * Redis integration pattern:
- * ```typescript
- * import { createClient } from 'redis';
- * const redisClient = createClient({ url: process.env.REDIS_URL });
- * await redisClient.subscribe(`notifications:${orgId}`, (message) => {
- *   const notification = JSON.parse(message);
- *   if (!targetUserIds || targetUserIds.includes(userId)) {
- *     callback(notification);
- *   }
- * });
- * ```
- * 
- * @param orgId - Organization ID for tenant scoping
- * @param userId - User ID for optional user-specific filtering
- * @param callback - Function called when notification received
- * @returns Cleanup function to unsubscribe
+ * @todo Implement with Redis pub/sub for horizontal scaling
  */
 export function subscribeToNotifications(
   orgId: Types.ObjectId,
   userId: Types.ObjectId,
   callback: (notification: NotificationPayload) => void
 ): () => void {
-  const connectionId = generateConnectionId();
-  const subscription: Subscription = {
-    orgId: orgId.toString(),
-    userId: userId.toString(),
+  // Check connection limit
+  if (getUserConnectionCount(userId) >= SSE_CONFIG.MAX_CONNECTIONS_PER_USER) {
+    // eslint-disable-next-line no-console -- Intentional: log connection limit errors
+    console.error(`[SSE] User ${userId} exceeded max connections (${SSE_CONFIG.MAX_CONNECTIONS_PER_USER})`);
+    // Return a no-op cleanup to avoid breaking callers
+    return () => {};
+  }
+  
+  const subscriptionId = `sub_${++subscriptionIdCounter}`;
+  const now = new Date();
+  
+  subscriptions.set(subscriptionId, {
+    orgId,
+    userId,
     callback,
-    connectionId,
-    connectedAt: new Date(),
-  };
+    connectedAt: now,
+    lastHeartbeat: now,
+  });
   
-  subscriptions.set(getSubscriptionKey(connectionId), subscription);
+  // Start cleanup if not already running
+  startConnectionCleanup();
   
-  // Return cleanup function
+  // Return unsubscribe function
   return () => {
-    subscriptions.delete(getSubscriptionKey(connectionId));
+    subscriptions.delete(subscriptionId);
   };
 }
 
 /**
  * Publish notification to all subscribers in an org
- * 
- * For single-instance: Iterates in-memory subscriptions
- * For horizontal scaling: Publish to Redis channel
- * 
- * Redis integration pattern:
- * ```typescript
- * await redisClient.publish(`notifications:${orgId}`, JSON.stringify({
- *   notification,
- *   targetUserIds: targetUserIds?.map(id => id.toString()),
- * }));
- * ```
- * 
- * @param orgId - Organization ID for tenant scoping
- * @param notification - The notification payload to publish
- * @param targetUserIds - Optional: Only notify specific users
+ * @todo Implement with Redis pub/sub for horizontal scaling
  */
 export async function publishNotification(
   orgId: Types.ObjectId,
   notification: NotificationPayload,
   targetUserIds?: Types.ObjectId[]
 ): Promise<void> {
-  const orgIdStr = orgId.toString();
-  const targetUserIdStrs = targetUserIds?.map(id => id.toString());
-  
-  // Iterate all subscriptions for this org
-  for (const subscription of subscriptions.values()) {
-    // Tenant isolation: Only send to matching org
-    if (subscription.orgId !== orgIdStr) {
-      continue;
-    }
+  for (const sub of subscriptions.values()) {
+    // Tenant isolation check
+    if (!sub.orgId.equals(orgId)) continue;
     
-    // User filtering: If targetUserIds specified, only send to those users
-    if (targetUserIdStrs && !targetUserIdStrs.includes(subscription.userId)) {
-      continue;
+    // User targeting check
+    if (targetUserIds && targetUserIds.length > 0) {
+      if (!targetUserIds.some(id => id.equals(sub.userId))) continue;
     }
     
     // Deliver notification
     try {
-      subscription.callback(notification);
-    } catch {
-      // Silent fail - one failed callback shouldn't affect others
-      // In production, this would log to a monitoring service
+      sub.callback(notification);
+    } catch (err) {
+      // eslint-disable-next-line no-console -- Intentional: log subscriber callback errors
+      console.error('[SSE] Error in subscriber callback:', err);
     }
   }
-}
-
-/**
- * Get count of active subscriptions for an org
- * Useful for monitoring and debugging
- */
-export function getActiveSubscriptionCount(orgId?: Types.ObjectId): number {
-  if (!orgId) {
-    return subscriptions.size;
-  }
-  
-  const orgIdStr = orgId.toString();
-  let count = 0;
-  for (const subscription of subscriptions.values()) {
-    if (subscription.orgId === orgIdStr) {
-      count++;
-    }
-  }
-  return count;
 }
 
 /**
@@ -255,5 +255,9 @@ export default {
   formatSSEMessage,
   createHeartbeat,
   getActiveSubscriptionCount,
+  getUserConnectionCount,
+  startConnectionCleanup,
+  stopConnectionCleanup,
+  _resetForTesting,
   SSE_CONFIG,
 };
