@@ -103,6 +103,7 @@ vi.mock("@/lib/queues/setup", () => ({
 
 vi.mock("@/lib/mongodb-unified", () => {
   return {
+    connectToDatabase: vi.fn().mockResolvedValue(undefined),
     getDatabase: async () => ({
       collection: () => collection,
     }),
