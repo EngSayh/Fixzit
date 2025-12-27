@@ -306,17 +306,23 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/superadmin/login', sanitizedRequest.url));
     }
 
-    const isLogin = pathname.startsWith('/superadmin/login') || pathname.startsWith('/api/superadmin/login');
+    // Use exact regex match to align with layout.tsx and prevent auth bypass on routes like /superadmin/login-history
+    const isLoginPage = /^\/superadmin\/login\/?$/i.test(pathname);
+    const isLoginApi = /^\/api\/superadmin\/login\/?$/i.test(pathname);
+    const isLogin = isLoginPage || isLoginApi;
     const isHealth = pathname === '/api/superadmin/health';
     const isDebug = pathname === '/api/superadmin/debug';
     const isCheckCookie = pathname === '/api/superadmin/check-cookie';
     // Allow login, health, debug, and check-cookie endpoints pre-auth (for diagnostics)
     if (isLogin || isHealth || isDebug || isCheckCookie) {
-      const res = NextResponse.next();
+      // CRITICAL: Inject x-pathname into REQUEST headers (not response) so layout.tsx can read via headers()
+      const requestHeaders = new Headers(sanitizedRequest.headers);
+      requestHeaders.set('x-pathname', pathname);
+      const res = NextResponse.next({ request: { headers: requestHeaders } });
       res.headers.set('X-Robots-Tag', 'noindex, nofollow');
       res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-      // Set x-pathname for server components to detect current route
-      res.headers.set('x-pathname', pathname);
+      // Also set on response for debugging visibility
+      res.headers.set('X-Pathname', pathname);
       return res;
     }
 
@@ -342,15 +348,18 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    const res = NextResponse.next();
+    // CRITICAL: Inject x-pathname into REQUEST headers (not response) so layout.tsx can read via headers()
+    const requestHeaders = new Headers(sanitizedRequest.headers);
+    requestHeaders.set('x-pathname', pathname);
+    const res = NextResponse.next({ request: { headers: requestHeaders } });
     res.headers.set('X-Robots-Tag', 'noindex, nofollow');
     // Force fresh page loads for superadmin routes (prevent stale cache issues)
     res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
     res.headers.set('Pragma', 'no-cache');
     res.headers.set('Expires', '0');
     res.headers.set('X-Superadmin-Route', 'true');
-    // Set x-pathname for server components to detect current route
-    res.headers.set('x-pathname', pathname);
+    // Also set on response for debugging visibility
+    res.headers.set('X-Pathname', pathname);
     return res;
   }
 

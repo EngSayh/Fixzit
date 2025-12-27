@@ -2,6 +2,67 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-01-XX 11:30 (Asia/Riyadh) — Security Fix: x-pathname Header Injection + Auth Bypass Prevention
+
+**Agent Token:** [AGENT-001-A]
+**Context:** main | (pending commit)
+**Session Summary:** Critical security fix for superadmin black screen issue. Fixed x-pathname header injection (was on response headers, layout reads request headers) and login path matching (startsWith could allow auth bypass on /superadmin/login-history etc).
+**DB Sync:** created=0, updated=0, skipped=0, errors=0
+
+### ✅ VERIFICATION EVIDENCE
+
+| Gate | Result | Command |
+|------|--------|---------|
+| TypeScript | ✅ 0 errors | `pnpm typecheck` |
+| ESLint | ✅ 0 errors | `pnpm lint` |
+| Vitest (server) | ✅ 2915 passed (3 pre-existing timeout failures in S3 cleanup tests) | `pnpm vitest run --project=server` |
+| Local Login Flow | ✅ PASSED | Login 200, cookie set, dashboard 200 with username |
+
+### 🔧 SECURITY FIXES APPLIED
+
+#### HIGH: x-pathname Header Injection (Root Cause of Black Screen)
+**Problem:** `middleware.ts` was setting `x-pathname` on RESPONSE headers via `res.headers.set()`, but `app/superadmin/layout.tsx` reads from REQUEST headers via `headers()`. The header was never reaching the layout.
+
+**Fix:** Changed to inject `x-pathname` into REQUEST headers using `NextResponse.next({ request: { headers: requestHeaders } })` pattern.
+
+| File | Lines | Fix |
+|------|-------|-----|
+| `middleware.ts` | 314-323 | Pre-auth routes: Inject x-pathname into request headers |
+| `middleware.ts` | 344-355 | Authenticated routes: Inject x-pathname into request headers |
+
+#### MED: Login Path Auth Bypass Prevention
+**Problem:** `pathname.startsWith('/superadmin/login')` would match `/superadmin/login-history`, `/superadmin/login-audit`, etc. - potentially bypassing authentication for routes that should require it.
+
+**Fix:** Changed to exact regex match `/^\/superadmin\/login\/?$/i.test(pathname)`.
+
+| File | Line | Old | New |
+|------|------|-----|-----|
+| `middleware.ts` | 309 | `pathname.startsWith('/superadmin/login')` | `/^\/superadmin\/login\/?$/i.test(pathname)` |
+
+### 🧪 LOCAL TESTING EVIDENCE
+
+```
+Login API:     200 OK {"success":true,"message":"Authenticated successfully","role":"super_admin"}
+Session Cookie: superadmin_session ✅ Present
+Dashboard:     200 OK (1.6MB)
+HTML Contains: 'superadmin' ✅, 'EngSayh' ✅
+```
+
+### 📋 PRODUCTION STATUS
+
+**Rate Limiting (429):** User was seeing 429 errors in production due to repeated login attempts. This is expected behavior - rate limiter working correctly. Wait period or reset required.
+
+**NextAuth ClientFetchError:** Separate from superadmin auth system. Superadmin uses custom session cookies, not NextAuth.
+
+### 🎯 NEXT STEPS
+
+- [ ] Commit changes with `[AGENT-001-A]` token
+- [ ] Create PR for review
+- [ ] After Codex approval, deploy to production
+- [ ] Verify production login flow works (after rate limit resets)
+
+---
+
 ## 📅 2025-01-XX 15:45 (Asia/Riyadh) — Security: ReDoS Prevention
 
 **Agent Token:** [AGENT-001-A]
