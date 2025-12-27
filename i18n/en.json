@@ -838,6 +838,20 @@
       "syncSuccess": "Sync complete",
       "syncing": "Syncing..."
     },
+    "bulk": {
+      "selected": "{{count}} selected",
+      "selectedSingle": "1 selected",
+      "confirmAction": "Confirm Action",
+      "affectItems": "This will affect {{count}} item(s).",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "clearSelection": "Clear selection",
+      "approve": "Approve",
+      "reject": "Reject",
+      "assign": "Assign",
+      "delete": "Delete",
+      "assignRequiresSelection": "Assign requires assignee selection."
+    },
     "approvals": {
       "title": "Work Orders Approvals",
       "subtitle": "Manage your approvals",

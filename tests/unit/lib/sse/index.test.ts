@@ -12,6 +12,7 @@ import {
   createHeartbeat,
   getActiveSubscriptionCount,
   SSE_CONFIG,
+  _resetForTesting,
   type NotificationPayload,
   type SSEMessage,
 } from '@/lib/sse';
@@ -26,6 +27,11 @@ describe('sse', () => {
   beforeEach(() => {
     // Clear any existing subscriptions by unsubscribing all
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    // Reset SSE hub state to prevent cleanup interval leaking across tests
+    _resetForTesting();
   });
 
   describe('subscribeToNotifications', () => {

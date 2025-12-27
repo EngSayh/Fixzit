@@ -92,18 +92,57 @@ function parseTime(time: string): { hours: number; minutes: number } {
 }
 
 /**
- * Get day of week name from date
+ * Get date parts in a specific timezone using Intl.DateTimeFormat
+ * This ensures proper timezone handling for SLA calculations
  */
-function getDayName(date: Date): WeekDay {
-  const days: WeekDay[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  return days[date.getDay()];
+function getDatePartsInTimeZone(
+  date: Date,
+  timeZone: string
+): {
+  weekday: WeekDay;
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+} {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'long',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(date);
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return {
+    weekday: (lookup.weekday as string).toLowerCase() as WeekDay,
+    year: Number(lookup.year),
+    month: Number(lookup.month),
+    day: Number(lookup.day),
+    hour: Number(lookup.hour),
+    minute: Number(lookup.minute),
+  };
 }
 
 /**
- * Format date as ISO date string (YYYY-MM-DD)
+ * Get day of week name from date, respecting timezone
  */
-function formatDateOnly(date: Date): string {
-  return date.toISOString().split('T')[0];
+function getDayName(date: Date, timeZone: string): WeekDay {
+  return getDatePartsInTimeZone(date, timeZone).weekday;
+}
+
+/**
+ * Format date as ISO date string (YYYY-MM-DD), respecting timezone
+ */
+function formatDateOnly(date: Date, timeZone: string): string {
+  const parts = getDatePartsInTimeZone(date, timeZone);
+  const month = String(parts.month).padStart(2, '0');
+  const day = String(parts.day).padStart(2, '0');
+  return `${parts.year}-${month}-${day}`;
 }
 
 /**
@@ -125,13 +164,15 @@ function getBusinessHoursPerDay(config: BusinessHoursConfig): number {
  * Check if a date is a holiday
  * @param date - The date to check
  * @param holidays - List of holidays to check against
+ * @param timeZone - Timezone for date comparison (defaults to UTC)
  * @returns true if the date is a holiday
  */
 export function isHoliday(
   date: Date,
-  holidays: Holiday[]
+  holidays: Holiday[],
+  timeZone = 'UTC'
 ): boolean {
-  const dateStr = formatDateOnly(date);
+  const dateStr = formatDateOnly(date, timeZone);
   
   return holidays.some(holiday => {
     if (holiday.recurring) {
@@ -156,23 +197,25 @@ export function isBusinessHour(
   dateTime: Date,
   config: BusinessHoursConfig
 ): boolean {
-  // Check if it's a working day
-  const dayName = getDayName(dateTime);
+  // Check if it's a working day (using configured timezone)
+  const dayName = getDayName(dateTime, config.timezone);
   if (!config.workingDays.includes(dayName)) {
     return false;
   }
   
-  // Check if it's a holiday
-  if (isHoliday(dateTime, config.holidays)) {
+  // Check if it's a holiday (using configured timezone)
+  if (isHoliday(dateTime, config.holidays, config.timezone)) {
     return false;
   }
   
-  // Check if within working hours
+  // Check if within working hours (using configured timezone)
   const start = parseTime(config.workingHours.start);
   const end = parseTime(config.workingHours.end);
   
-  const currentHour = dateTime.getHours();
-  const currentMinute = dateTime.getMinutes();
+  const { hour: currentHour, minute: currentMinute } = getDatePartsInTimeZone(
+    dateTime,
+    config.timezone
+  );
   const currentTimeMinutes = currentHour * 60 + currentMinute;
   
   const startMinutes = start.hours * 60 + start.minutes;
@@ -201,12 +244,14 @@ export function getNextBusinessHourStart(
   
   while (iterations < maxIterations) {
     iterations++;
-    const dayName = getDayName(result);
+    const dayName = getDayName(result, config.timezone);
     
     // Check if it's a working day and not a holiday
-    if (config.workingDays.includes(dayName) && !isHoliday(result, config.holidays)) {
-      const currentHour = result.getHours();
-      const currentMinute = result.getMinutes();
+    if (config.workingDays.includes(dayName) && !isHoliday(result, config.holidays, config.timezone)) {
+      const { hour: currentHour, minute: currentMinute } = getDatePartsInTimeZone(
+        result,
+        config.timezone
+      );
       const currentTimeMinutes = currentHour * 60 + currentMinute;
       const startMinutes = start.hours * 60 + start.minutes;
       const endMinutes = end.hours * 60 + end.minutes;
@@ -248,7 +293,11 @@ export function getRemainingBusinessHoursToday(
   
   const end = parseTime(config.workingHours.end);
   const endMinutes = end.hours * 60 + end.minutes;
-  const currentMinutes = fromTime.getHours() * 60 + fromTime.getMinutes();
+  const { hour: currentHour, minute: currentMinute } = getDatePartsInTimeZone(
+    fromTime,
+    config.timezone
+  );
+  const currentMinutes = currentHour * 60 + currentMinute;
   
   return Math.max(0, (endMinutes - currentMinutes) / 60);
 }
@@ -285,10 +334,10 @@ export function calculateSLADeadline(
   
   while (remainingHours > 0 && daysProcessed < maxDays) {
     daysProcessed++;
-    const dayName = getDayName(currentDate);
-    const dateStr = formatDateOnly(currentDate);
+    const dayName = getDayName(currentDate, config.timezone);
+    const dateStr = formatDateOnly(currentDate, config.timezone);
     const isWorkDay = config.workingDays.includes(dayName);
-    const isHolidayDay = isHoliday(currentDate, config.holidays);
+    const isHolidayDay = isHoliday(currentDate, config.holidays, config.timezone);
     
     if (!isWorkDay || isHolidayDay) {
       // Non-working day

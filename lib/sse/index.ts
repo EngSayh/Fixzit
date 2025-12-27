@@ -196,6 +196,7 @@ export async function publishNotification(
   notification: NotificationPayload,
   targetUserIds?: Types.ObjectId[]
 ): Promise<void> {
+  const now = new Date();
   for (const sub of subscriptions.values()) {
     // Tenant isolation check
     if (!sub.orgId.equals(orgId)) continue;
@@ -208,6 +209,8 @@ export async function publishNotification(
     // Deliver notification
     try {
       sub.callback(notification);
+      // Refresh heartbeat on successful delivery to prevent cleanup eviction
+      sub.lastHeartbeat = now;
     } catch (err) {
       // eslint-disable-next-line no-console -- Intentional: log subscriber callback errors
       console.error('[SSE] Error in subscriber callback:', err);

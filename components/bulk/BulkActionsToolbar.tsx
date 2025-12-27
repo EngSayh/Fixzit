@@ -24,6 +24,7 @@ import {
   Trash2, 
   Loader2,
 } from '@/components/ui/icons';
+import { useI18n } from '@/i18n/useI18n';
 
 // ============================================================================
 // TYPES
@@ -63,6 +64,7 @@ export function BulkActionsToolbar<T>({
   onActionError,
   className = '',
 }: BulkActionsToolbarProps<T>) {
+  const { t } = useI18n();
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [processingAction, setProcessingAction] = React.useState<string | null>(null);
   const [confirmAction, setConfirmAction] = React.useState<BulkAction<T> | null>(null);
@@ -121,14 +123,14 @@ export function BulkActionsToolbar<T>({
       {confirmAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-background border rounded-lg p-6 max-w-md mx-4 shadow-lg">
-            <h3 className="text-lg font-semibold mb-2">Confirm Action</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('workOrders.bulk.confirmAction')}</h3>
             <p className="text-muted-foreground mb-4">{confirmAction.confirmMessage}</p>
             <p className="text-sm text-muted-foreground mb-4">
-              This will affect {selectedItems.length} item{selectedItems.length !== 1 ? 's' : ''}.
+              {t('workOrders.bulk.affectItems', { count: selectedItems.length })}
             </p>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={handleCancelConfirm} disabled={isProcessing}>
-                Cancel
+                {t('workOrders.bulk.cancel')}
               </Button>
               <Button 
                 variant={confirmAction.variant ?? 'default'} 
@@ -138,7 +140,7 @@ export function BulkActionsToolbar<T>({
                 {isProcessing ? (
                   <Loader2 className="h-4 w-4 animate-spin me-1" />
                 ) : null}
-                Confirm
+                {t('workOrders.bulk.confirm')}
               </Button>
             </div>
           </div>
@@ -148,7 +150,9 @@ export function BulkActionsToolbar<T>({
       {/* Main Toolbar */}
       <div className={`flex items-center gap-2 p-2 bg-muted rounded-lg ${className}`}>
         <span className="text-sm font-medium px-2">
-          {selectedItems.length} selected
+          {selectedItems.length === 1 
+            ? t('workOrders.bulk.selectedSingle')
+            : t('workOrders.bulk.selected', { count: selectedItems.length })}
         </span>
 
         <div className="flex items-center gap-1 flex-wrap">
@@ -178,7 +182,7 @@ export function BulkActionsToolbar<T>({
           disabled={isProcessing}
           className="ms-auto"
         >
-          Clear selection
+          {t('workOrders.bulk.clearSelection')}
         </Button>
       </div>
     </>
@@ -195,8 +199,19 @@ export function BulkActionsToolbar<T>({
 async function callBulkWorkOrderAPI(
   action: 'update_status' | 'update_priority' | 'assign' | 'archive' | 'delete',
   workOrderIds: string[],
-  params?: { status?: string; priority?: string; assigneeUserId?: string; reason?: string }
+  params?: {
+    status?: string;
+    priority?: string;
+    assigneeUserId?: string;
+    assigneeVendorId?: string;
+    reason?: string;
+  }
 ): Promise<{ affected: number; errors?: string[] }> {
+  // Guard: assign requires assignee selection
+  if (action === 'assign' && !params?.assigneeUserId && !params?.assigneeVendorId) {
+    return { affected: 0, errors: ['Assign requires assignee selection.'] };
+  }
+
   const response = await fetch('/api/work-orders/bulk', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -216,8 +231,10 @@ async function callBulkWorkOrderAPI(
     };
   }
   
+  // Use results.processed (API response) with fallback to results.success (legacy)
+  const processed = data.results?.processed ?? data.results?.success;
   return { 
-    affected: data.results?.success ?? workOrderIds.length,
+    affected: processed ?? workOrderIds.length,
     errors: data.results?.failed?.map((f: { id: string; error: string }) => `${f.id}: ${f.error}`) ?? [],
   };
 }
