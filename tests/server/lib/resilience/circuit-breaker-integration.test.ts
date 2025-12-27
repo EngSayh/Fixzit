@@ -57,8 +57,8 @@ describe("CircuitBreaker", () => {
 
       expect(breaker.isOpen()).toBe(true);
 
-      // Wait for cooldown
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      // Wait for cooldown (use 250ms for CI reliability, cooldownMs is 100)
+      await new Promise((resolve) => setTimeout(resolve, 250));
 
       // Should be ready to try again (half-open)
       expect(breaker.isOpen()).toBe(false);
