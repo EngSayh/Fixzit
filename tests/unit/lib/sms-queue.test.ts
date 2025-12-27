@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { decryptProviderToken, buildProviderCandidates, checkOrgRateLimit } from "@/lib/queues/sms-queue";
 import { getRedisClient } from "@/lib/redis";
+import type { ISMSSettings } from "@/server/models/SMSSettings";
 
 // Mock bullmq to avoid resolution errors
 vi.mock("bullmq", () => ({
@@ -67,7 +68,7 @@ describe("SMS Queue - Provider utilities", () => {
       const settings = {
         defaultProvider: "TAQNYAT",
         providers: [],
-      } as any;
+      } as Pick<ISMSSettings, "defaultProvider" | "providers">;
 
       const candidates = buildProviderCandidates(settings, "OTP");
       expect(candidates.length).toBeGreaterThan(0);
@@ -85,7 +86,7 @@ describe("SMS Queue - Provider utilities", () => {
         providers: [
           { provider: "TAQNYAT", enabled: true, priority: 1, fromNumber: "", encryptedApiKey: "" },
         ],
-      } as any;
+      } as Pick<ISMSSettings, "defaultProvider" | "providers">;
 
       const candidates = buildProviderCandidates(settings, "OTP");
       expect(candidates).toEqual([]);
@@ -95,6 +96,7 @@ describe("SMS Queue - Provider utilities", () => {
 
 describe("SMS Queue - Rate limiter", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     // Reset to default null (Redis not configured)
     (getRedisClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue(null);
   });
