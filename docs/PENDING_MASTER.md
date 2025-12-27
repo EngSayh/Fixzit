@@ -2,6 +2,64 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-27 12:15 (Asia/Riyadh) — Environment Fix: NextAuth ClientFetchError Resolution
+
+**Agent Token:** [AGENT-001-A]
+**Context:** main | 849aafbde
+**Session Summary:** Fixed NextAuth ClientFetchError by adding missing environment variables to `.env.local`. Cleaned worktree. Verified all systems working locally.
+**DB Sync:** created=0, updated=0, skipped=0, errors=0
+
+### ✅ VERIFICATION EVIDENCE
+
+| Gate | Result | Command |
+|------|--------|---------|
+| TypeScript | ✅ 0 errors | `pnpm typecheck` |
+| ESLint | ✅ 0 errors | `pnpm lint` |
+| Worktree | ✅ Clean | `git status -s` |
+| NextAuth Session | ✅ 200 OK | `GET /api/auth/session` |
+| Superadmin Login | ✅ 200 OK | `POST /api/superadmin/login` |
+| Dashboard Access | ✅ 200 OK | `GET /superadmin/issues` |
+
+### 🔧 FIXES APPLIED
+
+#### NextAuth ClientFetchError (UntrustedHost)
+**Problem:** NextAuth v5 requires `trustHost: true` or proper AUTH_URL for session endpoints. Without `AUTH_TRUST_HOST=true`, the `/api/auth/session` endpoint returns 500 with `UntrustedHost` error, causing SessionProvider to throw `ClientFetchError`.
+
+**Fix:** Added to `.env.local`:
+```
+NEXTAUTH_URL=http://localhost:3000
+AUTH_TRUST_HOST=true
+```
+
+#### Worktree Cleanup
+**Problem:** `scripts/test-superadmin.ps1` was untracked, violating clean worktree governance.
+
+**Fix:** Removed the file. Worktree is now clean.
+
+#### CRLF in prebuild-cache-clean.sh
+**Status:** VERIFIED - File already has LF endings locally (`git ls-files --eol` confirms `i/lf w/lf`). The Vercel build failure (`dpl_BnwjyxJRvCGezhLwdWA7cJhu5nAy`) was on an older deployment.
+
+### ⚠️ BLOCKERS REQUIRING USER ACTION
+
+| Blocker | Status | Required Action |
+|---------|--------|-----------------|
+| GitHub CI blocked | ❌ Blocked | Increase spending limit or resolve account payments |
+| MongoDB not running locally | ℹ️ Expected | Start MongoDB if database features needed |
+
+### 📋 FULL ACTION PLAN (From User's Security Analysis)
+
+| # | Issue | Status | Notes |
+|---|-------|--------|-------|
+| 1 | x-pathname on response headers | ✅ Fixed (commit 849aafbde) | Injected into request headers |
+| 2 | startsWith login path matching | ✅ Fixed (commit 849aafbde) | Changed to exact regex |
+| 3 | NextAuth ClientFetchError | ✅ Fixed | Added AUTH_TRUST_HOST=true |
+| 4 | CRLF in prebuild-cache-clean.sh | ✅ Verified OK | LF endings in git |
+| 5 | Untracked test-superadmin.ps1 | ✅ Cleaned | File removed |
+| 6 | GitHub CI billing block | ❌ User Action | Resolve payments/spending |
+| 7 | 429 Rate Limiting in production | ℹ️ Expected | Wait for rate limit reset |
+
+---
+
 ## 📅 2025-01-XX 11:30 (Asia/Riyadh) — Security Fix: x-pathname Header Injection + Auth Bypass Prevention
 
 **Agent Token:** [AGENT-001-A]
