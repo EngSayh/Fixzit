@@ -35,10 +35,19 @@ export default async function SuperadminLayout({
     hdrs.get("referer") ||
     "";
 
-  // Extract just the pathname from full URLs (referer may be full URL)
-  const pathname = currentPath.includes("://")
-    ? new URL(currentPath).pathname
-    : currentPath;
+  // Extract just the pathname from URLs (handles both full URLs and relative paths with query strings)
+  // Examples handled:
+  //   "https://fixzit.co/superadmin/login?reason=no_session" → "/superadmin/login"
+  //   "/superadmin/login?reason=no_session" → "/superadmin/login"
+  //   "/superadmin/login" → "/superadmin/login"
+  let pathname = currentPath;
+  if (currentPath.includes("://")) {
+    // Full URL - use URL parser
+    pathname = new URL(currentPath).pathname;
+  } else if (currentPath.includes("?") || currentPath.includes("#")) {
+    // Relative URL with query string or hash - strip them
+    pathname = currentPath.split(/[?#]/)[0];
+  }
 
   // Path detection status (for debugging)
   const pathDetectionFailed = !pathname || pathname === "";
