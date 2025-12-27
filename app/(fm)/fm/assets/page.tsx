@@ -378,7 +378,12 @@ function AssetCard({
           <div className="flex items-center space-x-2">
             {getStatusIcon(asset.status || "")}
             <Badge className={getStatusColor(asset.status || "")}>
-              {asset.status?.toLowerCase() || ""}
+              {asset.status && ASSET_STATUS_LABELS[asset.status as keyof typeof ASSET_STATUS_LABELS]
+                ? auto(
+                    ASSET_STATUS_LABELS[asset.status as keyof typeof ASSET_STATUS_LABELS].en,
+                    ASSET_STATUS_LABELS[asset.status as keyof typeof ASSET_STATUS_LABELS].tKey
+                  )
+                : ""}
             </Badge>
           </div>
         </div>
@@ -509,7 +514,14 @@ function AssetCard({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{auto("Status", "view.status")}</p>
-                  <Badge className={getStatusColor(asset.status || "")}>{asset.status || "-"}</Badge>
+                  <Badge className={getStatusColor(asset.status || "")}>
+                    {asset.status && ASSET_STATUS_LABELS[asset.status as keyof typeof ASSET_STATUS_LABELS]
+                      ? auto(
+                          ASSET_STATUS_LABELS[asset.status as keyof typeof ASSET_STATUS_LABELS].en,
+                          ASSET_STATUS_LABELS[asset.status as keyof typeof ASSET_STATUS_LABELS].tKey
+                        )
+                      : "-"}
+                  </Badge>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{auto("Criticality", "view.criticality")}</p>
@@ -704,6 +716,26 @@ function CreateAssetForm({
           )}
         </div>
         <div>
+          <label htmlFor="propertyId" className="block text-sm font-medium mb-1">
+            {auto("Property *", "form.labels.property")}
+          </label>
+          <Input
+            id="propertyId"
+            {...register("propertyId")}
+            aria-invalid={!!errors.propertyId}
+            aria-describedby={errors.propertyId ? "propertyId-error" : undefined}
+            disabled={isSubmitting}
+          />
+          {errors.propertyId && (
+            <p id="propertyId-error" className="text-sm text-destructive mt-1" role="alert">
+              {errors.propertyId.message}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
           <label htmlFor="manufacturer" className="block text-sm font-medium mb-1">
             {auto("Manufacturer", "form.labels.manufacturer")}
           </label>
@@ -713,9 +745,6 @@ function CreateAssetForm({
             disabled={isSubmitting}
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="model" className="block text-sm font-medium mb-1">
             {auto("Model", "form.labels.model")}
