@@ -96,7 +96,6 @@ describe("SMS Queue - Provider utilities", () => {
 
 describe("SMS Queue - Rate limiter", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     // Reset to default null (Redis not configured)
     (getRedisClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue(null);
   });
