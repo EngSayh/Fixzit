@@ -16,6 +16,7 @@
  */
 
 import { Types } from 'mongoose';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // TYPES
@@ -189,9 +190,20 @@ export async function publishNotification(
     // Deliver notification
     try {
       subscription.callback(notification);
-    } catch {
-      // Silent fail - one failed callback shouldn't affect others
-      // In production, this would log to a monitoring service
+    } catch (error) {
+      // Log callback errors for debugging and monitoring
+      // One failed callback shouldn't affect others, but we need visibility
+      logger.error(
+        '[SSE] Notification callback failed',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          orgId: subscription.orgId,
+          userId: subscription.userId,
+          connectionId: subscription.connectionId,
+          notificationType: notification.type,
+          notificationId: notification.id,
+        }
+      );
     }
   }
 }

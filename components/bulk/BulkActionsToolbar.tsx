@@ -197,29 +197,39 @@ async function callBulkWorkOrderAPI(
   workOrderIds: string[],
   params?: { status?: string; priority?: string; assigneeUserId?: string; reason?: string }
 ): Promise<{ affected: number; errors?: string[] }> {
-  const response = await fetch('/api/work-orders/bulk', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      action,
-      workOrderIds,
-      ...params,
-    }),
-  });
-  
-  const data = await response.json();
-  
-  if (!response.ok) {
+  try {
+    const response = await fetch('/api/work-orders/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action,
+        workOrderIds,
+        ...params,
+      }),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return { 
+        affected: 0, 
+        errors: [data.error || `Bulk ${action} failed`] 
+      };
+    }
+    
     return { 
-      affected: 0, 
-      errors: [data.error || `Bulk ${action} failed`] 
+      affected: data.results?.success ?? workOrderIds.length,
+      errors: data.results?.failed?.map((f: { id: string; error: string }) => `${f.id}: ${f.error}`) ?? [],
+    };
+  } catch (error) {
+    // Network error, timeout, or other fetch failure
+    return {
+      affected: 0,
+      errors: [
+        `Bulk ${action} request failed. Please check your connection and try again.`,
+      ],
     };
   }
-  
-  return { 
-    affected: data.results?.success ?? workOrderIds.length,
-    errors: data.results?.failed?.map((f: { id: string; error: string }) => `${f.id}: ${f.error}`) ?? [],
-  };
 }
 
 /**
@@ -257,13 +267,17 @@ export const WORK_ORDER_BULK_ACTIONS: BulkAction<{ id: string }>[] = [
     label: 'Assign',
     icon: <UserPlus className="h-4 w-4" />,
     handler: async (items) => {
-      // Note: In production, this would open a modal to select assignee
-      // For now, we return a placeholder that requires integration with a user picker
-      return callBulkWorkOrderAPI(
-        'assign',
-        items.map(i => i.id),
-        { reason: 'Bulk assignment' }
-      );
+      // NOTE: Bulk assignment requires selecting an assignee (user or vendor) via UI.
+      // The current implementation does NOT provide assigneeUserId/assigneeVendorId
+      // and would cause the /api/work-orders/bulk "assign" action to fail validation.
+      // Until the user/vendor picker is implemented and wired here, we explicitly
+      // return an error to avoid sending invalid API requests.
+      return {
+        affected: 0,
+        errors: [
+          'Bulk assignment is not yet implemented: this action requires a user/vendor picker to choose an assignee.',
+        ],
+      };
     },
   },
   {
