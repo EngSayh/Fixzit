@@ -44,25 +44,34 @@ describe("CircuitBreaker", () => {
     });
 
     it("should return false after cooldown expires", async () => {
-      // Open the breaker
-      for (let i = 0; i < 3; i++) {
-        try {
-          await breaker.run(async () => {
-            throw new Error("Test failure");
-          });
-        } catch {
-          // Expected
-        }
-      }
+      // Use fake timers for this test to avoid CI timeout issues
+      vi.useFakeTimers();
+      
+      // Create fresh breaker with fake timers active
+      const testBreaker = new CircuitBreaker({
+        name: "cooldown-test-breaker",
+        failureThreshold: 3,
+        successThreshold: 2,
+        cooldownMs: 100,
+      });
 
-      expect(breaker.isOpen()).toBe(true);
+      // Open the breaker by recording failures synchronously
+      // Use recordFailure directly to avoid async operations with fake timers
+      testBreaker.recordFailure();
+      testBreaker.recordFailure();
+      testBreaker.recordFailure();
 
-      // Wait for cooldown
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(testBreaker.isOpen()).toBe(true);
+
+      // Advance time past cooldown using fake timers
+      vi.advanceTimersByTime(150);
 
       // Should be ready to try again (half-open)
-      expect(breaker.isOpen()).toBe(false);
-    });
+      expect(testBreaker.isOpen()).toBe(false);
+      
+      // Restore real timers
+      vi.useRealTimers();
+    }, 5000); // 5 second timeout
   });
 
   describe("getState()", () => {
