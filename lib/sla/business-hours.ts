@@ -79,11 +79,31 @@ export const SAUDI_DEFAULTS: Omit<BusinessHoursConfig, 'orgId'> = {
 };
 
 // ============================================================================
+// NOT IMPLEMENTED ERROR
+// ============================================================================
+
+/**
+ * Error thrown when a stub function is called.
+ * AGENTS.md: Non-negotiable rule - no silent failures, no placeholder returns.
+ */
+export class SLANotImplementedError extends Error {
+  constructor(functionName: string) {
+    super(
+      `[FIXZIT-SLA-001] ${functionName} is not yet implemented. ` +
+      `Business hours SLA calculation is scheduled for Q1 2026. ` +
+      `For now, use 24/7 SLA calculation without business hours adjustment.`
+    );
+    this.name = 'SLANotImplementedError';
+  }
+}
+
+// ============================================================================
 // PLACEHOLDER FUNCTIONS (TO BE IMPLEMENTED Q1 2026)
 // ============================================================================
 
 /**
  * Calculate SLA deadline considering business hours
+ * @throws {SLANotImplementedError} Always - not yet implemented
  * @todo Implement with proper timezone handling (date-fns-tz)
  */
 export function calculateSLADeadline(
@@ -98,56 +118,51 @@ export function calculateSLADeadline(
   // 4. Skip holidays and weekends
   // 5. Return deadline in UTC
   
-  return {
-    deadline: new Date(), // Placeholder
-    businessHoursUsed: _slaHours,
-    calendarHoursUsed: 0,
-    breakdown: [],
-  };
+  throw new SLANotImplementedError('calculateSLADeadline');
 }
 
 /**
  * Check if a given time is within business hours
+ * @throws {SLANotImplementedError} Always - not yet implemented
  */
 export function isBusinessHour(
   _dateTime: Date,
   _config: BusinessHoursConfig
 ): boolean {
-  // TODO: Implement
-  return true;
+  throw new SLANotImplementedError('isBusinessHour');
 }
 
 /**
  * Get next business hour start time
+ * @throws {SLANotImplementedError} Always - not yet implemented
  */
 export function getNextBusinessHourStart(
   _fromDate: Date,
   _config: BusinessHoursConfig
 ): Date {
-  // TODO: Implement
-  return new Date();
+  throw new SLANotImplementedError('getNextBusinessHourStart');
 }
 
 /**
  * Check if a date is a holiday
+ * @throws {SLANotImplementedError} Always - not yet implemented
  */
 export function isHoliday(
   _date: Date,
   _holidays: Holiday[]
 ): boolean {
-  // TODO: Implement
-  return false;
+  throw new SLANotImplementedError('isHoliday');
 }
 
 /**
  * Get remaining business hours in current day
+ * @throws {SLANotImplementedError} Always - not yet implemented
  */
 export function getRemainingBusinessHoursToday(
   _fromTime: Date,
   _config: BusinessHoursConfig
 ): number {
-  // TODO: Implement
-  return 0;
+  throw new SLANotImplementedError('getRemainingBusinessHoursToday');
 }
 
 // ============================================================================
@@ -161,4 +176,5 @@ export default {
   isHoliday,
   getRemainingBusinessHoursToday,
   SAUDI_DEFAULTS,
+  SLANotImplementedError,
 };
