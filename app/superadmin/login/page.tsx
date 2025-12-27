@@ -87,76 +87,38 @@ export default function SuperadminLoginPage() {
       await new Promise(resolve => setTimeout(resolve, 200));
       
       // Step 2: Verify cookie was set by calling check-cookie endpoint
+      // NOTE: This is informational only - we proceed with redirect regardless
+      // because some browsers/extensions interfere with cookie checks
       try {
         const cookieCheck = await fetch("/api/superadmin/check-cookie", {
           credentials: "include",
         });
         
-        // Handle non-200 responses explicitly
-        if (!cookieCheck.ok) {
-          // eslint-disable-next-line no-console -- Critical auth debugging
-          console.error("[SUPERADMIN] Cookie check returned error", {
-            status: cookieCheck.status,
-            statusText: cookieCheck.statusText,
-          });
-          // Don't block redirect for check failures - the cookie might still work
-          // eslint-disable-next-line no-console -- Auth flow debugging
-          console.warn("[SUPERADMIN] Proceeding with redirect despite check-cookie error");
-        } else {
+        if (cookieCheck.ok) {
           const cookieData = await cookieCheck.json();
           
-          // Log full diagnostics for comparison
+          // Log diagnostics (informational only)
           // eslint-disable-next-line no-console -- Auth flow debugging
           console.log("[SUPERADMIN] Check-cookie response", {
             hasCookie: cookieData.cookies?.hasSuperadminCookie,
-            cookieLength: cookieData.cookies?.superadminCookieLength,
             sessionValid: cookieData.session?.valid,
-            sessionError: cookieData.session?.error,
-            jwt: cookieData.jwt, // Shows which secret Edge runtime is using
+            jwt: cookieData.jwt,
           });
           
+          // Warn if cookie wasn't detected, but don't block
           if (!cookieData.cookies?.hasSuperadminCookie) {
-            // Cookie wasn't set - show error instead of redirect loop
             // eslint-disable-next-line no-console -- Critical auth debugging
-            console.error("[SUPERADMIN] Cookie not set after login", cookieData);
-            setError("Login succeeded but session cookie was not set. This may be a server configuration issue. Check browser console for details.");
-            return;
+            console.warn("[SUPERADMIN] Cookie not detected by check-cookie, but proceeding with redirect. This may be a browser extension issue.");
           }
-          
-          // Check if session verification failed (cookie present but JWT invalid)
-          if (cookieData.session && !cookieData.session.valid) {
-            // eslint-disable-next-line no-console -- Critical auth debugging
-            console.error("[SUPERADMIN] Session verification failed", {
-              error: cookieData.session.error,
-              loginDebug: data._debug, // What the login API used
-              checkCookieJwt: cookieData.jwt, // What the Edge runtime has
-            });
-            
-            // Provide specific error message based on mismatch
-            const loginSource = data._debug?.signingSecretSource;
-            const edgeSource = cookieData.jwt?.secretSource;
-            if (loginSource && edgeSource && loginSource !== edgeSource) {
-              setError(`SECRET MISMATCH: Login signed with ${loginSource}, but Edge verifies with ${edgeSource}. Ensure both runtimes use the same secret.`);
-            } else if (!cookieData.jwt?.hasSecret) {
-              setError(`No JWT secret in Edge runtime. Set SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET in Vercel and redeploy.`);
-            } else {
-              setError(`Session verification failed: ${cookieData.session.error || 'JWT decode error'}. Check browser console for details.`);
-            }
-            return;
-          }
-          
-          // eslint-disable-next-line no-console -- Auth flow debugging
-          console.log("[SUPERADMIN] Cookie verified, redirecting...", {
-            sessionData: cookieData.session?.data,
-          });
         }
       } catch (checkError) {
-        // If check fails entirely (network error), proceed anyway - might work
+        // If check fails entirely, proceed anyway - the full page load will validate
         // eslint-disable-next-line no-console -- Auth flow debugging
         console.warn("[SUPERADMIN] Cookie check failed, proceeding with redirect", checkError);
       }
       
       // Step 3: Redirect to issues page
+      // The server-side layout will do the real validation
       window.location.href = "/superadmin/issues";
     } catch (_err) {
       setError("Connection error. Please try again.");
