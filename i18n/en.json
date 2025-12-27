@@ -3446,6 +3446,7 @@
       "selectType": "Select type",
       "title": "Properties",
       "create": "Add Property",
+      "creating": "Creating property...",
       "view": "View Properties",
       "edit": "Edit Property",
       "delete": "Delete Property",
