@@ -315,6 +315,8 @@ export async function middleware(request: NextRequest) {
       const res = NextResponse.next();
       res.headers.set('X-Robots-Tag', 'noindex, nofollow');
       res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      // Set x-pathname for server components to detect current route
+      res.headers.set('x-pathname', pathname);
       return res;
     }
 
@@ -347,6 +349,8 @@ export async function middleware(request: NextRequest) {
     res.headers.set('Pragma', 'no-cache');
     res.headers.set('Expires', '0');
     res.headers.set('X-Superadmin-Route', 'true');
+    // Set x-pathname for server components to detect current route
+    res.headers.set('x-pathname', pathname);
     return res;
   }
 
