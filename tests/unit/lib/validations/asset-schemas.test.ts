@@ -256,6 +256,54 @@ describe('AssetLocationSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('should reject partial coordinates (lat only)', () => {
+    const result = AssetLocationSchema.safeParse({
+      building: 'Building A',
+      coordinates: {
+        lat: 24.7136,
+      },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) => 
+        i.message === 'Both latitude and longitude are required when coordinates are provided'
+      )).toBe(true);
+    }
+  });
+
+  it('should reject partial coordinates (lng only)', () => {
+    const result = AssetLocationSchema.safeParse({
+      building: 'Building A',
+      coordinates: {
+        lng: 46.6753,
+      },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) => 
+        i.message === 'Both latitude and longitude are required when coordinates are provided'
+      )).toBe(true);
+    }
+  });
+
+  it('should accept coordinates with both lat and lng', () => {
+    const result = AssetLocationSchema.safeParse({
+      building: 'Building A',
+      coordinates: {
+        lat: 24.7136,
+        lng: 46.6753,
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept location without coordinates', () => {
+    const result = AssetLocationSchema.safeParse({
+      building: 'Building A',
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe('AssetPurchaseSchema', () => {
@@ -293,6 +341,28 @@ describe('AssetPurchaseSchema', () => {
       },
     });
     expect(result.success).toBe(true);
+  });
+
+  it('should keep cost as undefined when not provided', () => {
+    const result = AssetPurchaseSchema.safeParse({
+      date: '2024-01-15',
+      supplier: 'Supplier Inc',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.cost).toBeUndefined();
+    }
+  });
+
+  it('should accept cost of zero for free assets', () => {
+    const result = AssetPurchaseSchema.safeParse({
+      cost: 0,
+      supplier: 'Donated Equipment',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.cost).toBe(0);
+    }
   });
 });
 

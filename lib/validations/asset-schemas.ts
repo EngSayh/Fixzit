@@ -30,7 +30,16 @@ export const AssetLocationSchema = z.object({
   coordinates: z.object({
     lat: z.number().min(-90).max(90).optional(),
     lng: z.number().min(-180).max(180).optional(),
-  }).optional(),
+  })
+    .refine(
+      (coords) =>
+        (coords.lat == null && coords.lng == null) ||
+        (coords.lat != null && coords.lng != null),
+      {
+        message: 'Both latitude and longitude are required when coordinates are provided',
+      }
+    )
+    .optional(),
 });
 
 /**
@@ -73,8 +82,7 @@ export const AssetPurchaseSchema = z.object({
   cost: z.number()
     .min(0, 'Cost must be a positive number')
     .max(999999999.99, 'Cost exceeds maximum value')
-    .optional()
-    .transform((val) => val ?? 0),
+    .optional(),
   supplier: z.string().max(200, 'Supplier name too long').optional(),
   warranty: AssetWarrantySchema.optional(),
 });
@@ -197,7 +205,7 @@ export const createAssetFormDefaults: CreateAssetInput = {
   },
   purchase: {
     date: '',
-    cost: 0,
+    cost: undefined,
     supplier: '',
     warranty: {
       period: ASSET_DEFAULTS.warrantyPeriodMonths,
