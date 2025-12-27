@@ -5,7 +5,7 @@ import { I18nProvider } from "@/i18n/I18nProvider";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import type { Locale } from "@/i18n/config";
-import { type ReactNode, useEffect } from "react";
+import React, { type ReactNode, useEffect } from "react";
 import { SuperadminSidebar } from "./SuperadminSidebar";
 import { SuperadminHeader } from "./SuperadminHeader";
 import { SystemStatusBar } from "./SystemStatusBar";
@@ -31,12 +31,16 @@ export function SuperadminLayoutClient({
   const pathname = usePathname();
   const isLoginPage = pathname === "/superadmin/login";
   const isAuthenticated = initialSession?.authenticated ?? false;
+  const [showTimeout, setShowTimeout] = React.useState(false);
 
   useEffect(() => {
     if (isLoginPage) return;
     if (!isAuthenticated) {
+      // Set timeout to show helpful message if redirect takes too long
+      const timeout = setTimeout(() => setShowTimeout(true), 3000);
       // Force full page navigation to ensure cookies are sent
       window.location.href = "/superadmin/login";
+      return () => clearTimeout(timeout);
     }
   }, [isAuthenticated, isLoginPage]);
 
@@ -46,7 +50,17 @@ export function SuperadminLayoutClient({
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-slate-400">Verifying session...</p>
+          <p className="text-slate-400">
+            {showTimeout ? "Redirecting to login..." : "Verifying session..."}
+          </p>
+          {showTimeout && (
+            <a
+              href="/superadmin/login"
+              className="mt-4 inline-block text-blue-400 hover:text-blue-300 underline"
+            >
+              Click here if not redirected
+            </a>
+          )}
         </div>
       </div>
     );

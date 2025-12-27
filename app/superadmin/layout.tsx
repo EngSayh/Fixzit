@@ -40,15 +40,13 @@ export default async function SuperadminLayout({
     ? new URL(currentPath).pathname
     : currentPath;
 
-  // CRITICAL FIX: If we can't determine the path, check if this is a login page render
-  // by examining the __next_router_state_tree header or x-nextjs-data header
-  // When path detection fails, we must NOT redirect - let the client handle it
-  const pathDetectionFailed = !pathname || pathname === "";
-  
+  // Check if we're on the login page
   const isLoginPage =
-    (typeof pathname === "string" &&
-    pathname.toLowerCase().includes("/superadmin/login")) ||
-    pathDetectionFailed; // If path detection fails, assume login page to prevent redirect loop
+    typeof pathname === "string" &&
+    pathname.toLowerCase().includes("/superadmin/login");
+  
+  // Path detection status (for debugging)
+  const pathDetectionFailed = !pathname || pathname === "";
 
   const { locale: serverLocale } = await getServerI18n();
   const superadminSession = await getSuperadminSessionFromCookies();
@@ -56,15 +54,18 @@ export default async function SuperadminLayout({
   // Debug logging for troubleshooting auth issues
   if (!superadminSession && !isLoginPage) {
     // eslint-disable-next-line no-console -- Debug logging for auth troubleshooting
-    console.warn("[SUPERADMIN LAYOUT] No session found, will redirect to login", {
-      pathname,
+    console.warn("[SUPERADMIN LAYOUT] No session found", {
+      pathname: pathname || "<empty>",
       isLoginPage,
       pathDetectionFailed,
+      willRedirect: !isLoginPage,
     });
   }
 
   // BUG-002 FIX: Server-side auth enforcement
-  // Redirect to login if not authenticated or expired (prevents client-side polling race conditions)
+  // CRITICAL: Even if path detection fails, if we have no session and this isn't
+  // explicitly the login page, we must redirect. The middleware already allows
+  // login page access, so if we got here with no session, redirect to login.
   if (
     !isLoginPage &&
     (!superadminSession ||
