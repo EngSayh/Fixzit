@@ -354,4 +354,5 @@ export default {
   isHoliday,
   getRemainingBusinessHoursToday,
   SAUDI_DEFAULTS,
+  SLANotImplementedError,
 };

@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { SessionProvider } from "next-auth/react";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -67,38 +68,40 @@ export function SuperadminLayoutClient({
   }
 
   return (
-    <SuperadminSessionProvider value={initialSession}>
-      <ThemeProvider>
-        <I18nProvider initialLocale={initialLocale} initialDict={initialDict}>
-          <CurrencyProvider>
-            {isLoginPage ? (
-              <div className="min-h-screen bg-background">{children}</div>
-            ) : (
-              <>
-                <div className="min-h-screen bg-background flex pb-7">
-                  {/* Sidebar */}
-                  <SuperadminSidebar />
+    <SessionProvider>
+      <SuperadminSessionProvider value={initialSession}>
+        <ThemeProvider>
+          <I18nProvider initialLocale={initialLocale} initialDict={initialDict}>
+            <CurrencyProvider>
+              {isLoginPage ? (
+                <div className="min-h-screen bg-background">{children}</div>
+              ) : (
+                <>
+                  <div className="min-h-screen bg-background flex pb-7">
+                    {/* Sidebar */}
+                    <SuperadminSidebar />
 
-                  {/* Main Content Area */}
-                  <div className="flex-1 flex flex-col">
-                    {/* Header */}
-                    <SuperadminHeader />
+                    {/* Main Content Area */}
+                    <div className="flex-1 flex flex-col">
+                      {/* Header */}
+                      <SuperadminHeader />
 
-                    {/* Page Content */}
-                    <main className="flex-1 overflow-auto">{children}</main>
+                      {/* Page Content */}
+                      <main className="flex-1 overflow-auto">{children}</main>
+                    </div>
                   </div>
-                </div>
-                
-                {/* System Status Bar - Replaces marketing footer */}
-                <SystemStatusBar />
-                
-                {/* Command Palette (Cmd+K) */}
-                <CommandPalette />
-              </>
-            )}
-          </CurrencyProvider>
-        </I18nProvider>
-      </ThemeProvider>
-    </SuperadminSessionProvider>
+                  
+                  {/* System Status Bar - Replaces marketing footer */}
+                  <SystemStatusBar />
+                  
+                  {/* Command Palette (Cmd+K) */}
+                  <CommandPalette />
+                </>
+              )}
+            </CurrencyProvider>
+          </I18nProvider>
+        </ThemeProvider>
+      </SuperadminSessionProvider>
+    </SessionProvider>
   );
 }
