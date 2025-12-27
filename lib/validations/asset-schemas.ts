@@ -13,6 +13,7 @@ import {
   ASSET_TYPES,
   ASSET_STATUSES,
   ASSET_CRITICALITY_LEVELS,
+  ASSET_DEFAULTS,
 } from '@/lib/constants/asset-constants';
 
 // ============================================================================
@@ -49,7 +50,7 @@ export const AssetSpecsSchema = z.object({
  * Warranty schema
  */
 export const AssetWarrantySchema = z.object({
-  period: z.number().int().min(0, 'Warranty period must be positive').max(120, 'Warranty period too long').optional(),
+  period: z.number().int().min(0, 'Warranty period must be non-negative').max(120, 'Warranty period too long').optional(),
   expiry: z.string().optional().refine(
     (val) => !val || !isNaN(Date.parse(val)),
     { message: 'Invalid warranty expiry date' }
@@ -108,7 +109,7 @@ export const CreateAssetSchema = z.object({
       (val) => !val || /^[A-Za-z0-9\-_]+$/.test(val),
       { message: 'Serial number can only contain letters, numbers, hyphens, and underscores' }
     ),
-  propertyId: z.string().optional(),
+  propertyId: z.string().min(1, 'Property is required'),
   
   // Nested objects
   location: AssetLocationSchema.optional(),
@@ -183,7 +184,7 @@ export const createAssetFormDefaults: CreateAssetInput = {
     building: '',
     floor: '',
     room: '',
-    coordinates: { lat: 24.7136, lng: 46.6753 },
+    coordinates: ASSET_DEFAULTS.defaultCoordinates,
   },
   specs: {
     capacity: '',
@@ -199,7 +200,7 @@ export const createAssetFormDefaults: CreateAssetInput = {
     cost: 0,
     supplier: '',
     warranty: {
-      period: 12,
+      period: ASSET_DEFAULTS.warrantyPeriodMonths,
       expiry: '',
       terms: '',
     },

@@ -12,6 +12,7 @@ import {
   AssetPurchaseSchema,
   createAssetFormDefaults,
 } from '@/lib/validations/asset-schemas';
+import { ASSET_TYPES } from '@/lib/constants/asset-constants';
 
 describe('CreateAssetSchema', () => {
   describe('required fields', () => {
@@ -40,10 +41,23 @@ describe('CreateAssetSchema', () => {
         ...createAssetFormDefaults,
         name: 'Test Asset',
         category: '',
+        propertyId: 'property-1',
       });
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.issues.some((i) => i.path.includes('category'))).toBe(true);
+      }
+    });
+
+    it('should require propertyId', () => {
+      const result = CreateAssetSchema.safeParse({
+        ...createAssetFormDefaults,
+        name: 'Test Asset',
+        propertyId: '',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some((i) => i.path.includes('propertyId'))).toBe(true);
       }
     });
   });
@@ -54,6 +68,7 @@ describe('CreateAssetSchema', () => {
         name: 'Chiller Unit 1',
         type: 'HVAC',
         category: 'Cooling Equipment',
+        propertyId: 'property-1',
       });
       expect(result.success).toBe(true);
       if (result.success) {
@@ -67,6 +82,7 @@ describe('CreateAssetSchema', () => {
         name: 'Main Generator',
         type: 'GENERATOR',
         category: 'Power Supply',
+        propertyId: 'property-1',
         description: 'Primary backup power generator',
         manufacturer: 'Caterpillar',
         model: 'CAT 500',
@@ -90,12 +106,12 @@ describe('CreateAssetSchema', () => {
 
   describe('asset type validation', () => {
     it('should accept all valid asset types', () => {
-      const types = ['HVAC', 'ELECTRICAL', 'PLUMBING', 'SECURITY', 'ELEVATOR', 'GENERATOR', 'FIRE_SYSTEM', 'IT_EQUIPMENT', 'VEHICLE', 'OTHER'];
-      types.forEach((type) => {
+      ASSET_TYPES.forEach((type) => {
         const result = CreateAssetSchema.safeParse({
           name: 'Test',
           type,
           category: 'Test Category',
+          propertyId: 'property-1',
         });
         expect(result.success).toBe(true);
       });
@@ -106,6 +122,7 @@ describe('CreateAssetSchema', () => {
         name: 'Test',
         type: 'INVALID_TYPE',
         category: 'Test Category',
+        propertyId: 'property-1',
       });
       expect(result.success).toBe(false);
     });
@@ -119,6 +136,7 @@ describe('CreateAssetSchema', () => {
           name: 'Test',
           type: 'OTHER',
           category: 'Test',
+          propertyId: 'property-1',
           serialNumber,
         });
         expect(result.success).toBe(true);
@@ -130,6 +148,7 @@ describe('CreateAssetSchema', () => {
         name: 'Test',
         type: 'OTHER',
         category: 'Test',
+        propertyId: 'property-1',
         serialNumber: 'ABC@123#$%',
       });
       expect(result.success).toBe(false);
@@ -142,6 +161,7 @@ describe('CreateAssetSchema', () => {
         name: 'Test',
         type: 'HVAC',
         category: 'Test',
+        propertyId: 'property-1',
       });
       expect(result.success).toBe(true);
       if (result.success) {
@@ -154,6 +174,7 @@ describe('CreateAssetSchema', () => {
         name: 'Test',
         type: 'HVAC',
         category: 'Test',
+        propertyId: 'property-1',
       });
       expect(result.success).toBe(true);
       if (result.success) {

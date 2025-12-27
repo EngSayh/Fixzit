@@ -202,7 +202,7 @@ function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
                 </SelectItem>
                 {ASSET_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>
-                    {ASSET_TYPE_LABELS[type].en}
+                    {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -221,7 +221,7 @@ function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
                 </SelectItem>
                 {ASSET_STATUSES.map((status) => (
                   <SelectItem key={status} value={status}>
-                    {ASSET_STATUS_LABELS[status].en}
+                    {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -654,7 +654,7 @@ function CreateAssetForm({
                 <SelectContent>
                   {ASSET_TYPES.map((type) => (
                     <SelectItem key={type} value={type}>
-                      {ASSET_TYPE_LABELS[type].en}
+                      {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -766,7 +766,7 @@ function CreateAssetForm({
               <SelectContent>
                 {ASSET_STATUSES.map((status) => (
                   <SelectItem key={status} value={status}>
-                    {ASSET_STATUS_LABELS[status].en}
+                    {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -799,7 +799,7 @@ function CreateAssetForm({
               <SelectContent>
                 {ASSET_CRITICALITY_LEVELS.map((level) => (
                   <SelectItem key={level} value={level}>
-                    {ASSET_CRITICALITY_LABELS[level].en}
+                    {auto(ASSET_CRITICALITY_LABELS[level].en, ASSET_CRITICALITY_LABELS[level].tKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -926,7 +926,7 @@ function EditAssetForm({
                 <SelectContent>
                   {ASSET_TYPES.map((type) => (
                     <SelectItem key={type} value={type}>
-                      {ASSET_TYPE_LABELS[type].en}
+                      {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -977,7 +977,7 @@ function EditAssetForm({
                 <SelectContent>
                   {ASSET_STATUSES.map((status) => (
                     <SelectItem key={status} value={status}>
-                      {ASSET_STATUS_LABELS[status].en}
+                      {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1004,7 +1004,7 @@ function EditAssetForm({
                 <SelectContent>
                   {ASSET_CRITICALITY_LEVELS.map((level) => (
                     <SelectItem key={level} value={level}>
-                      {ASSET_CRITICALITY_LABELS[level].en}
+                      {auto(ASSET_CRITICALITY_LABELS[level].en, ASSET_CRITICALITY_LABELS[level].tKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
