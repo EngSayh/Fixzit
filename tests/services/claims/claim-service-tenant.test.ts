@@ -106,6 +106,11 @@ vi.mock("@/lib/mongodb-unified", () => {
     getDatabase: async () => ({
       collection: () => collection,
     }),
+    connectToDatabase: async () => undefined,
+    connectDb: async () => undefined,
+    dbConnect: async () => undefined,
+    connectMongo: async () => undefined,
+    default: async () => undefined,
   };
 });
 
@@ -116,6 +121,7 @@ let claimBId: string;
 
 describe("ClaimService tenant isolation", () => {
   beforeEach(async () => {
+    vi.clearAllMocks();
     claimsStore.length = 0;
     findOneCalls.length = 0;
     // Force ClaimService to use the in-memory collection to ensure tests don't hit real DB
