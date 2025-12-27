@@ -40,13 +40,14 @@ export default async function SuperadminLayout({
     ? new URL(currentPath).pathname
     : currentPath;
 
-  // Check if we're on the login page
-  const isLoginPage =
-    typeof pathname === "string" &&
-    pathname.toLowerCase().includes("/superadmin/login");
-  
   // Path detection status (for debugging)
   const pathDetectionFailed = !pathname || pathname === "";
+
+  // Check if we're on the login page (exact match with optional trailing slash)
+  // Using regex to avoid false positives like /superadmin/login-history
+  const isLoginPage =
+    typeof pathname === "string" &&
+    /^\/superadmin\/login\/?$/i.test(pathname);
 
   const { locale: serverLocale } = await getServerI18n();
   const superadminSession = await getSuperadminSessionFromCookies();
