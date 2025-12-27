@@ -142,6 +142,9 @@ describe('Work Order Status Race Conditions', () => {
 
   describe('Concurrent Update Handling', () => {
     it('should handle multiple simultaneous status updates', async () => {
+      // Use fake timers to avoid CI flakiness with real setTimeout
+      vi.useFakeTimers();
+      
       let currentStatus = 'PENDING';
       let updateCount = 0;
       let callOrder = 0;
@@ -162,12 +165,21 @@ describe('Work Order Status Race Conditions', () => {
         }
       );
 
-      // Simulate concurrent updates
-      const updates = await Promise.all([
+      // Simulate concurrent updates - start all promises
+      const updatePromises = [
         atomicUpdate('PENDING', 'SCHEDULED'),
         atomicUpdate('PENDING', 'CANCELLED'),
         atomicUpdate('PENDING', 'SCHEDULED'),
-      ]);
+      ];
+      
+      // Advance fake timers to let all setTimeout resolve
+      await vi.advanceTimersByTimeAsync(20);
+      
+      // Now await all results
+      const updates = await Promise.all(updatePromises);
+      
+      // Restore real timers
+      vi.useRealTimers();
 
       // Only one should succeed (the one with shortest delay wins)
       const successfulUpdates = updates.filter(u => u.success);
