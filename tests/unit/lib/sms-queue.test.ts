@@ -94,6 +94,11 @@ describe("SMS Queue - Provider utilities", () => {
 });
 
 describe("SMS Queue - Rate limiter", () => {
+  beforeEach(() => {
+    // Reset to default null (Redis not configured)
+    (getRedisClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue(null);
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -104,19 +109,27 @@ describe("SMS Queue - Rate limiter", () => {
   });
 
   it("allows when Redis is not configured", async () => {
-    (getRedisClient as unknown as any).mockReturnValue(null);
+    // Default mock returns null
     const result = await checkOrgRateLimit("org1");
     expect(result.ok).toBe(true);
   });
 
   it("enforces when count exceeds max", async () => {
-    const pttl = vi.fn().mockResolvedValue(5000);
-    const incr = vi.fn().mockResolvedValue(31); // max 30
-    const pexpire = vi.fn().mockResolvedValue(undefined);
-    (getRedisClient as unknown as any).mockReturnValue({ pttl, incr, pexpire });
+    const mockRedis = {
+      pttl: vi.fn().mockResolvedValue(5000),
+      incr: vi.fn().mockResolvedValue(31), // max is 30
+      pexpire: vi.fn().mockResolvedValue(undefined),
+    };
+    (getRedisClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockRedis);
 
     const result = await checkOrgRateLimit("org2");
+    
+    // Verify Redis was called
+    expect(mockRedis.pttl).toHaveBeenCalled();
+    expect(mockRedis.incr).toHaveBeenCalled();
+    
+    // Rate limit should be enforced (31 > 30)
     expect(result.ok).toBe(false);
-    expect(result.ttlMs).toBeGreaterThan(0);
+    expect((result as { ok: false; ttlMs: number }).ttlMs).toBeGreaterThan(0);
   });
 });
