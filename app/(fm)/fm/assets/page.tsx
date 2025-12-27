@@ -33,7 +33,7 @@ import {
   Search,
   Settings,
   Eye,
-  Edit,
+  Pencil,
   Trash2,
   AlertTriangle,
   CheckCircle,
@@ -478,7 +478,7 @@ function AssetCard({
               onClick={handleEdit}
               aria-label={auto("Edit asset {{name}}", "card.actions.editLabel").replace("{{name}}", asset.name || "")}
             >
-              <Edit className="w-4 h-4" />
+              <Pencil className="w-4 h-4" />
             </Button>
             <Button
               variant="ghost"
