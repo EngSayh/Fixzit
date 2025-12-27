@@ -4,7 +4,7 @@
  * @status IMPLEMENTED - Issue #152
  */
 
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CreateAssetSchema,
   UpdateAssetSchema,
@@ -13,6 +13,10 @@ import {
   createAssetFormDefaults,
 } from '@/lib/validations/asset-schemas';
 import { ASSET_TYPES } from '@/lib/constants/asset-constants';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('CreateAssetSchema', () => {
   describe('required fields', () => {
