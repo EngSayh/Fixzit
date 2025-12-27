@@ -23,20 +23,24 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 ### 🔧 FIXES APPLIED
 
 #### NextAuth ClientFetchError (UntrustedHost)
+
 **Problem:** NextAuth v5 requires `trustHost: true` or proper AUTH_URL for session endpoints. Without `AUTH_TRUST_HOST=true`, the `/api/auth/session` endpoint returns 500 with `UntrustedHost` error, causing SessionProvider to throw `ClientFetchError`.
 
 **Fix:** Added to `.env.local`:
-```
+
+```bash
 NEXTAUTH_URL=http://localhost:3000
 AUTH_TRUST_HOST=true
 ```
 
 #### Worktree Cleanup
+
 **Problem:** `scripts/test-superadmin.ps1` was untracked, violating clean worktree governance.
 
 **Fix:** Removed the file. Worktree is now clean.
 
 #### CRLF in prebuild-cache-clean.sh
+
 **Status:** VERIFIED - File already has LF endings locally (`git ls-files --eol` confirms `i/lf w/lf`). The Vercel build failure (`dpl_BnwjyxJRvCGezhLwdWA7cJhu5nAy`) was on an older deployment.
 
 ### ⚠️ BLOCKERS REQUIRING USER ACTION
