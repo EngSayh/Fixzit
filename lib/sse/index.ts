@@ -197,7 +197,7 @@ export async function publishNotification(
         action: 'publishNotification',
         orgId: orgIdStr,
         userId: subscription.userId,
-        eventType: notification.event,
+        eventType: notification.type,
         error,
       });
     }

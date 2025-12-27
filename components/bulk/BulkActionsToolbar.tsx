@@ -221,7 +221,7 @@ async function callBulkWorkOrderAPI(
       affected: data.results?.success ?? workOrderIds.length,
       errors: data.results?.failed?.map((f: { id: string; error: string }) => `${f.id}: ${f.error}`) ?? [],
     };
-  } catch (error) {
+  } catch (_error) {
     return {
       affected: 0,
       errors: [
@@ -265,7 +265,7 @@ export const WORK_ORDER_BULK_ACTIONS: BulkAction<{ id: string }>[] = [
     id: 'assign',
     label: 'Assign',
     icon: <UserPlus className="h-4 w-4" />,
-    handler: async (items) => {
+    handler: async (_items) => {
       // NOTE: Bulk assignment requires selecting an assignee (user or vendor) via UI.
       // The current implementation does NOT provide assigneeUserId/assigneeVendorId
       // and would cause the /api/work-orders/bulk "assign" action to fail validation.
