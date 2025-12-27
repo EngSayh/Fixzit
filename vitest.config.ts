@@ -121,6 +121,8 @@ export default defineConfig({
             "tests/api/auth/signup.validation.test.ts",
             "tests/unit/lib/auth/tenant-utils.test.ts",
             "tests/api/souq/claims-get-error.route.test.ts",
+            // Tests that mock Mongoose models - isolated from MongoMemoryServer
+            "tests/unit/lib/aqar/package-activation.test.ts",
           ],
         },
       }),
@@ -177,6 +179,8 @@ export default defineConfig({
             "tests/api/auth/signup.validation.test.ts",
             "tests/unit/lib/auth/tenant-utils.test.ts",
             "tests/api/souq/claims-get-error.route.test.ts",
+            // Tests that mock Mongoose models - isolated from MongoMemoryServer
+            "tests/unit/lib/aqar/package-activation.test.ts",
             // Playwright spec files (run via pnpm playwright test)
             "tests/e2e/**/*.spec.{ts,tsx}",
             "tests/smoke/**/*.spec.{ts,tsx}",
