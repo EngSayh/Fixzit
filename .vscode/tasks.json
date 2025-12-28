@@ -555,6 +555,56 @@
 			"label": "Add All Files",
 			"type": "shell",
 			"command": "git add -A; git status"
+		},
+		{
+			"label": "Commit TEST-TIMEOUT-001",
+			"type": "shell",
+			"command": "git commit -m 'fix(test): TEST-TIMEOUT-001 mock JobQueue in work-order tests [AGENT-001-A]'"
+		},
+		{
+			"label": "Check After Commit",
+			"type": "shell",
+			"command": "Write-Host 'Waiting 10s for commit...'; Start-Sleep 10; git log --oneline -5; Write-Host '---'; git status"
+		},
+		{
+			"label": "Check Commit Details",
+			"type": "shell",
+			"command": "git log --oneline -6; Write-Host '---'; git diff --stat HEAD~1"
+		},
+		{
+			"label": "Show HEAD",
+			"type": "shell",
+			"command": "git log --oneline -1; Write-Host '---'; git show --stat --name-only HEAD"
+		},
+		{
+			"label": "Push TEST-TIMEOUT-001",
+			"type": "shell",
+			"command": "git push origin HEAD"
+		},
+		{
+			"label": "Commit PENDING_MASTER",
+			"type": "shell",
+			"command": "git add docs/PENDING_MASTER.md; git commit -m 'docs: TEST-TIMEOUT-001 completed [AGENT-001-A]'"
+		},
+		{
+			"label": "Final Check",
+			"type": "shell",
+			"command": "git log --oneline -5; Write-Host '---'; git status -s"
+		},
+		{
+			"label": "Wait and Check",
+			"type": "shell",
+			"command": "Start-Sleep 15; git log --oneline -3; Write-Host '---'; git status"
+		},
+		{
+			"label": "Push Docs",
+			"type": "shell",
+			"command": "git push origin HEAD; git log --oneline -5"
+		},
+		{
+			"label": "Stage All",
+			"type": "shell",
+			"command": "git add -A; git status -s"
 		}
 	]
 }

@@ -13,6 +13,13 @@ git add "components/superadmin/SuperadminSidebar.tsx"
 git add "issue-tracker/app/api/issues/route.ts"
 git add "issue-tracker/app/api/issues/[id]/route.ts"
 
+# Check if there are any staged changes before committing
+$stagedFiles = git diff --cached --name-only
+if (-not $stagedFiles) {
+    Write-Host "`nNo staged changes to commit" -ForegroundColor Yellow
+    exit 0
+}
+
 Write-Host "`n=== Committing ===" -ForegroundColor Cyan
 $commitMessage = @"
 fix(api): TEST-004 JSON parse try-catch + PERF-001 maxTimeMS [AGENT-001-A]
