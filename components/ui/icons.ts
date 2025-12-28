@@ -13,6 +13,7 @@
 
 // Re-export all icons from lucide-react
 export * from "lucide-react";
+export { Edit, Grid } from "lucide-react";
 
 // Re-export our custom Icon components and types
 export { Icon, IconButton, iconSizeMap, iconColorMap } from "./Icon";

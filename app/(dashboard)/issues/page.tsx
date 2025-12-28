@@ -7,7 +7,7 @@
  * @module app/(dashboard)/issues/page
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bug,
@@ -116,6 +116,14 @@ const CATEGORY_ICONS: Record<string, typeof Bug> = {
 // ============================================================================
 
 export default function IssuesDashboardPage() {
+  return (
+    <Suspense fallback={<div className="p-8" />}>
+      <IssuesDashboardContent />
+    </Suspense>
+  );
+}
+
+function IssuesDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();

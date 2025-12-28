@@ -372,9 +372,16 @@ export default function SuperadminIssuesPage() {
         
         // Detect database connection issues
         if (response.status === 500 && (errorMessage.includes("database") || errorMessage.includes("MongoDB") || errorMessage.includes("connection"))) {
-          setConnectionError("Database connection failed. Please check your MONGODB_URI configuration.");
+          setConnectionError(
+            t(
+              "superadmin.issues.connection.dbFailed",
+              "Database connection failed. Please check your MongoDB configuration.",
+            ),
+          );
         } else if (response.status >= 500) {
-          setConnectionError(`Server error: ${errorMessage}`);
+          setConnectionError(
+            t("superadmin.issues.connection.serverError", { error: errorMessage }),
+          );
         }
         throw new Error(errorMessage);
       }
@@ -392,7 +399,12 @@ export default function SuperadminIssuesPage() {
         const errorMsg = error instanceof Error ? error.message : "Unknown error";
         // Check for network/fetch errors that indicate connection issues
         if (errorMsg.includes("fetch") || errorMsg.includes("network") || errorMsg.includes("Failed to fetch")) {
-          setConnectionError("Unable to connect to the server. Please check if the API is running.");
+          setConnectionError(
+            t(
+              "superadmin.issues.connection.fetchFailed",
+              "Unable to connect to the server. Please check if the API is running.",
+            ),
+          );
         }
       }
       toast({
@@ -991,7 +1003,9 @@ export default function SuperadminIssuesPage() {
           ) : connectionError ? (
             <div className="p-8 text-center">
               <AlertOctagon className="h-12 w-12 mx-auto mb-4 text-red-500" />
-              <p className="font-medium text-red-400 mb-2">Connection Error</p>
+              <p className="font-medium text-red-400 mb-2">
+                {t("superadmin.issues.connection.title")}
+              </p>
               <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
                 {connectionError}
               </p>
@@ -1003,16 +1017,18 @@ export default function SuperadminIssuesPage() {
                   className="me-2"
                 >
                   <RefreshCw className="h-4 w-4 me-2" />
-                  Retry Connection
+                  {t("superadmin.issues.connection.retry")}
                 </Button>
               </div>
               <div className="mt-6 p-4 bg-slate-800 rounded-lg text-start max-w-md mx-auto">
-                <p className="text-xs text-slate-400 mb-2">Troubleshooting:</p>
+                <p className="text-xs text-slate-400 mb-2">
+                  {t("superadmin.issues.connection.troubleshootingTitle")}
+                </p>
                 <ul className="text-xs text-slate-500 list-disc list-inside space-y-1">
-                  <li>Check that <code className="text-slate-300">MONGODB_URI</code> is set in <code className="text-slate-300">.env.local</code></li>
-                  <li>Verify MongoDB Atlas is accessible from your network</li>
-                  <li>Ensure your IP is whitelisted in MongoDB Atlas</li>
-                  <li>Check the terminal for detailed error logs</li>
+                  <li>{t("superadmin.issues.connection.troubleshooting.env")}</li>
+                  <li>{t("superadmin.issues.connection.troubleshooting.atlas")}</li>
+                  <li>{t("superadmin.issues.connection.troubleshooting.ip")}</li>
+                  <li>{t("superadmin.issues.connection.troubleshooting.logs")}</li>
                 </ul>
               </div>
             </div>

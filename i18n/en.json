@@ -839,17 +839,25 @@
       "syncing": "Syncing..."
     },
     "bulk": {
-      "selected": "{{count}} selected",
-      "selectedSingle": "1 selected",
-      "confirmAction": "Confirm Action",
-      "affectItems": "This will affect {{count}} item(s).",
+      "confirmAction": "Confirm action",
+      "affectItems": "This will affect {{count}} items.",
       "cancel": "Cancel",
       "confirm": "Confirm",
+      "selectedSingle": "1 item selected",
+      "selected": "{{count}} items selected",
       "clearSelection": "Clear selection",
       "approve": "Approve",
       "reject": "Reject",
       "assign": "Assign",
       "delete": "Delete",
+      "confirmMessage": {
+        "reject": "Are you sure you want to reject these items?",
+        "delete": "This action cannot be undone. Delete selected items?"
+      },
+      "errors": {
+        "assigneeRequired": "Assignee is required for this action.",
+        "bulkFailed": "Bulk {{action}} failed."
+      },
       "assignRequiresSelection": "Assign requires assignee selection."
     },
     "approvals": {

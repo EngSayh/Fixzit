@@ -69,6 +69,21 @@ export function BulkActionsToolbar<T>({
   const [processingAction, setProcessingAction] = React.useState<string | null>(null);
   const [confirmAction, setConfirmAction] = React.useState<BulkAction<T> | null>(null);
 
+  const translateBulkError = (error: string, actionId: string) => {
+    if (error === "BULK_ASSIGNEE_REQUIRED") {
+      return t(
+        "workOrders.bulk.errors.assigneeRequired",
+        "Assignee is required for this action.",
+      );
+    }
+    if (error === "BULK_ACTION_FAILED") {
+      return t("workOrders.bulk.errors.bulkFailed", {
+        action: t(`workOrders.bulk.${actionId}`, actionId),
+      });
+    }
+    return t(error, error);
+  };
+
   const executeAction = async (action: BulkAction<T>) => {
     setIsProcessing(true);
     setProcessingAction(action.id);
@@ -77,13 +92,17 @@ export function BulkActionsToolbar<T>({
       const result = await action.handler(selectedItems);
       
       if (result.errors && result.errors.length > 0) {
-        onActionError?.(action.id, result.errors);
+        const translatedErrors = result.errors.map((error) =>
+          translateBulkError(error, action.id),
+        );
+        onActionError?.(action.id, translatedErrors);
       } else {
         onActionComplete?.(action.id, { affected: result.affected });
         onClearSelection();
       }
     } catch (error) {
-      onActionError?.(action.id, [(error as Error).message]);
+      const message = error instanceof Error ? error.message : String(error);
+      onActionError?.(action.id, [translateBulkError(message, action.id)]);
     } finally {
       setIsProcessing(false);
       setProcessingAction(null);
@@ -117,6 +136,10 @@ export function BulkActionsToolbar<T>({
     return null;
   }
 
+  const confirmMessageKey = confirmAction
+    ? `workOrders.bulk.confirmMessage.${confirmAction.id}`
+    : null;
+
   return (
     <>
       {/* Confirmation Dialog */}
@@ -125,7 +148,9 @@ export function BulkActionsToolbar<T>({
           <div className="bg-background border rounded-lg p-6 max-w-md mx-4 shadow-lg">
             <h3 className="text-lg font-semibold mb-2">{t('workOrders.bulk.confirmAction')}</h3>
             <p className="text-muted-foreground mb-4">
-              {t(confirmAction.confirmMessage ?? 'workOrders.bulk.confirmAction')}
+              {confirmMessageKey
+                ? t(confirmMessageKey, confirmAction.confirmMessage)
+                : t('workOrders.bulk.confirmAction')}
             </p>
             <p className="text-sm text-muted-foreground mb-4">
               {t('workOrders.bulk.affectItems', { count: selectedItems.length })}
@@ -211,7 +236,7 @@ async function callBulkWorkOrderAPI(
 ): Promise<{ affected: number; errors?: string[] }> {
   // Guard: assign requires assignee selection
   if (action === 'assign' && !params?.assigneeUserId && !params?.assigneeVendorId) {
-    return { affected: 0, errors: ['Assignee is required for this action.'] };
+    return { affected: 0, errors: ['BULK_ASSIGNEE_REQUIRED'] };
   }
 
   const response = await fetch('/api/work-orders/bulk', {
@@ -229,7 +254,7 @@ async function callBulkWorkOrderAPI(
   if (!response.ok) {
     return { 
       affected: 0, 
-      errors: [data.error || `Bulk ${action} failed`] 
+      errors: [data.error || 'BULK_ACTION_FAILED'] 
     };
   }
   
@@ -262,7 +287,7 @@ export const WORK_ORDER_BULK_ACTIONS: BulkAction<{ id: string }>[] = [
     id: 'reject',
     label: 'Reject',
     icon: <X className="h-4 w-4" />,
-    confirmMessage: 'workOrders.bulk.confirmReject',
+    confirmMessage: 'Are you sure you want to reject these items?',
     handler: async (items) => {
       return callBulkWorkOrderAPI(
         'update_status',
@@ -290,7 +315,7 @@ export const WORK_ORDER_BULK_ACTIONS: BulkAction<{ id: string }>[] = [
     label: 'Delete',
     icon: <Trash2 className="h-4 w-4" />,
     variant: 'destructive',
-    confirmMessage: 'workOrders.bulk.confirmDelete',
+    confirmMessage: 'This action cannot be undone. Delete selected items?',
     handler: async (items) => {
       return callBulkWorkOrderAPI(
         'delete',

@@ -9,8 +9,10 @@
  */
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, RefreshCw, Home, Bug } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/i18n/useI18n";
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -18,6 +20,9 @@ interface ErrorProps {
 }
 
 export default function SuperadminError({ error, reset }: ErrorProps) {
+  const router = useRouter();
+  const { t } = useI18n();
+
   useEffect(() => {
     // Log the error to console for debugging
     // eslint-disable-next-line no-console -- Error boundary logging
@@ -34,23 +39,27 @@ export default function SuperadminError({ error, reset }: ErrorProps) {
         </div>
 
         <h1 className="text-xl font-semibold text-white mb-2">
-          Something went wrong
+          {t("superadmin.error.title", "Something went wrong")}
         </h1>
 
         <p className="text-slate-400 mb-4 text-sm">
-          An error occurred while loading the superadmin panel. This has been
-          logged for investigation.
+          {t(
+            "superadmin.error.message",
+            "An error occurred while loading the superadmin panel. This has been logged for investigation.",
+          )}
         </p>
 
         {/* Error details (collapsible for debugging) */}
         <details className="mb-4 text-start">
           <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400">
-            Technical details
+            {t("superadmin.error.details", "Technical details")}
           </summary>
           <div className="mt-2 p-3 bg-slate-900 rounded text-xs font-mono text-red-400 overflow-auto max-h-32">
             <p className="break-all">{error.message}</p>
             {error.digest && (
-              <p className="mt-1 text-slate-500">Digest: {error.digest}</p>
+              <p className="mt-1 text-slate-500">
+                {t("superadmin.error.digestLabel", "Digest")}: {error.digest}
+              </p>
             )}
           </div>
         </details>
@@ -63,32 +72,35 @@ export default function SuperadminError({ error, reset }: ErrorProps) {
             className="bg-blue-600 hover:bg-blue-700"
           >
             <RefreshCw className="h-4 w-4 me-2" />
-            Try Again
+            {t("superadmin.error.tryAgain", "Try Again")}
           </Button>
 
           <Button
-            onClick={() => (window.location.href = "/superadmin/login")}
+            onClick={() => router.push("/superadmin/login")}
             variant="outline"
             size="sm"
           >
             <Home className="h-4 w-4 me-2" />
-            Go to Login
+            {t("superadmin.error.goToLogin", "Go to Login")}
           </Button>
 
           <Button
-            onClick={() => (window.location.href = "/")}
+            onClick={() => router.push("/")}
             variant="ghost"
             size="sm"
             className="text-slate-400 hover:text-white"
           >
-            Exit Superadmin
+            {t("superadmin.error.exit", "Exit Superadmin")}
           </Button>
         </div>
 
         <div className="mt-6 pt-4 border-t border-slate-700">
           <p className="text-xs text-slate-500 flex items-center justify-center gap-1">
             <Bug className="h-3 w-3" />
-            If this persists, check the browser console for details
+            {t(
+              "superadmin.error.footer",
+              "If this persists, check the browser console for details",
+            )}
           </p>
         </div>
       </div>
