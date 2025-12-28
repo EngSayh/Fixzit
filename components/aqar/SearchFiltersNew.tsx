@@ -12,7 +12,7 @@
  * @module components/aqar/SearchFiltersNew
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { Suspense, useState, useEffect, useCallback, useMemo } from "react";
 import {
   Search,
   SlidersHorizontal,
@@ -141,7 +141,7 @@ function tableStateToFilters(state: TableState): PropertyFilters {
 // Component
 // ─────────────────────────────────────────────────────────────
 
-export default function SearchFiltersNew({
+function SearchFiltersNewContent({
   onFilterChange,
   initialFilters,
   syncToUrl: _syncToUrl = true,
@@ -513,5 +513,25 @@ export default function SearchFiltersNew({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * SearchFiltersNew wrapped in Suspense for useSearchParams() via useTableQueryState
+ */
+export default function SearchFiltersNew(props: SearchFiltersNewProps) {
+  return (
+    <Suspense fallback={
+      <div className="animate-pulse bg-card border border-border rounded-2xl p-4">
+        <div className="h-12 bg-muted rounded mb-4" />
+        <div className="grid grid-cols-3 gap-4">
+          <div className="h-10 bg-muted rounded" />
+          <div className="h-10 bg-muted rounded" />
+          <div className="h-10 bg-muted rounded" />
+        </div>
+      </div>
+    }>
+      <SearchFiltersNewContent {...props} />
+    </Suspense>
   );
 }
