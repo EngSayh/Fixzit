@@ -531,7 +531,7 @@ function AssetCard({
                   <div>
                     <p className="text-sm text-muted-foreground">{auto("Location", "card.view.location")}</p>
                     <p className="font-medium">
-                      {asset.location.building}{asset.location.floor ? `, Floor ${asset.location.floor}` : ""}{asset.location.room ? `, Room ${asset.location.room}` : ""}
+                      {asset.location.building}{asset.location.floor ? `, ${auto("Floor {{floor}}", "view.floor").replace("{{floor}}", asset.location.floor)}` : ""}{asset.location.room ? `, ${auto("Room {{room}}", "view.room").replace("{{room}}", asset.location.room)}` : ""}
                     </p>
                   </div>
                 )}
