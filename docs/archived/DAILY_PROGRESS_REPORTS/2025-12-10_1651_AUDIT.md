@@ -224,7 +224,7 @@ grep -rn "console\.log" lib/auth/**/*.ts
 
 **Current (WRONG)**:
 ```
-mongodb+srv://fixzitadmin:<Lp8p7A4aG4031Pln>@fixzit.vgfiiff.mongodb.net/?retryWrites=true&w=majority
+mongodb+srv://fixzitadmin:<[REDACTED]>@fixzit.vgfiiff.mongodb.net/?retryWrites=true&w=majority
 ```
 
 **Correct Format**:

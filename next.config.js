@@ -125,6 +125,10 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
   
   // 🚀 Modularize Imports - Tree-shake large libraries (moved from experimental in Next.js 15.5+)
+  // NOTE: lucide-react is NOT included here because it uses kebab-case filenames
+  // (e.g., "chevron-right.js") while modularizeImports transforms to PascalCase,
+  // causing build failures on case-sensitive filesystems (Linux/Vercel).
+  // lucide-react is handled by optimizePackageImports below instead.
   modularizeImports: {
     lodash: {
       transform: 'lodash/{{member}}',
@@ -137,9 +141,6 @@ const nextConfig = {
     },
     '@mui/icons-material': {
       transform: '@mui/icons-material/{{member}}',
-    },
-    'lucide-react': {
-      transform: 'lucide-react/dist/esm/icons/{{member}}',
     },
   },
   

@@ -1,8 +1,14 @@
-# 🔐 JWT SECRET ROTATION - IMMEDIATE ACTION REQUIRED
+# 🔐 JWT SECRET ROTATION - INSTRUCTIONS
 
-## NEW JWT SECRET GENERATED
+## HOW TO GENERATE A NEW JWT SECRET
 
-**New Secret**: `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
+**Generate a new secret** using this command:
+
+```bash
+# Generate a secure 256-bit secret
+openssl rand -hex 32
+# Output: [YOUR_NEW_SECRET_HERE]
+```
 
 ## CRITICAL ACTIONS - EXECUTE IMMEDIATELY
 
@@ -10,7 +16,7 @@
 
 ```bash
 # Set the new JWT_SECRET in your production environment
-export JWT_SECRET="6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267"
+export JWT_SECRET="[YOUR_NEW_SECRET_HERE]"
 ```
 
 ### 2. UPDATE DOCKER DEPLOYMENT
@@ -19,7 +25,7 @@ Your docker-compose.yml correctly uses environment variables. Update your .env f
 
 ```bash
 # In your deployment .env file (NOT IN REPO):
-JWT_SECRET=6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267
+JWT_SECRET=[YOUR_NEW_SECRET_HERE]
 ```
 
 ### 3. RESTART ALL SERVICES

@@ -43,11 +43,20 @@ export async function GET(request: NextRequest) {
 
     const user = await getSessionUser(request);
 
+    // SEC-FIX: Enforce tenant scoping for multi-tenant isolation
+    if (!user.orgId) {
+      return NextResponse.json(
+        { error: "Organization context is required" },
+        { status: 403 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get("active") === "true";
 
     const query: Record<string, unknown> = {
       userId: user.id,
+      orgId: user.orgId, // Multi-tenant isolation
     };
 
     if (activeOnly) {

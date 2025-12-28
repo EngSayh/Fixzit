@@ -6,7 +6,7 @@
 
 - **OLD EXPOSED SECRET**: `7314f0d39465a6e689b68bbc8053553f7fbcdc10f7ec2af0c987548f07190337`
 - **STATUS**: ❌ **PERMANENTLY REMOVED FROM GIT HISTORY**
-- **NEW SECRET**: `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
+- **NEW SECRET**: `[REDACTED-GENERATE-NEW-SECRET]`
 - **STATUS**: ✅ **SECURE & PRODUCTION READY**
 
 ### 🛡️ **SECURITY ACTIONS COMPLETED**
@@ -38,7 +38,7 @@ Your application is now secure and ready for production:
 
 ```bash
 # Production Environment Variable (secure)
-JWT_SECRET=6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267
+JWT_SECRET=[REDACTED-GENERATE-NEW-SECRET]
 
 # Deploy with confidence
 docker-compose -f deployment/docker-compose.yml --env-file deployment/.env.production up -d

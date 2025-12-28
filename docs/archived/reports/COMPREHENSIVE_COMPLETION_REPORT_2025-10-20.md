@@ -302,7 +302,7 @@ These require **user intervention** and cannot be completed by the agent:
 3. **JWT_SECRET Environment Variable** (HIGH PRIORITY)
    - **Issue:** Not set in environment
    - **Impact:** Ephemeral sessions, users logged out on restart
-   - **Solution Ready:** `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
+   - **Solution Ready:** `[REDACTED-GENERATE-NEW-SECRET]`
    - **Status:** User must set in `.env.local`
 
 4. **Delete OAuth JSON File from Downloads** (SECURITY)
@@ -423,7 +423,7 @@ These require **user intervention** and cannot be completed by the agent:
 3. **Set JWT_SECRET Environment Variable**
    - **Priority:** HIGH
    - **Impact:** Session persistence
-   - **Recommended Value:** `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
+   - **Recommended Value:** `[REDACTED-GENERATE-NEW-SECRET]`
    - **File:** `.env.local`
 
 ### SECURITY

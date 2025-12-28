@@ -1,8 +1,14 @@
 # 🔐 REMOTE KEY MANAGEMENT - JWT SECRET STORAGE
 
-## GENERATED JWT SECRET
+## GENERATING A JWT SECRET
 
-**Secret to Store**: `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
+**Generate your own secret** using this command:
+
+```bash
+openssl rand -hex 32
+```
+
+**Important**: Never commit actual secrets to the repository.
 
 ---
 
@@ -26,7 +32,7 @@ aws configure set default.region "me-south-1"
 aws secretsmanager create-secret \
     --name "fixzit/jwt-secret" \
     --description "JWT Secret for Fixzit Authentication" \
-    --secret-string "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267"
+    --secret-string "<YOUR_GENERATED_SECRET>"
 ```
 
 ### Update Application to Use AWS Secrets Manager
@@ -75,7 +81,7 @@ process.env.JWT_SECRET = jwtSecret;
 2. Navigate to **Settings** → **Secrets and variables** → **Actions**
 3. Click **New repository secret**
 4. Name: `JWT_SECRET`
-5. Value: `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
+5. Value: `<YOUR_GENERATED_SECRET>`
 
 ### Update GitHub Actions Workflow
 
@@ -107,7 +113,7 @@ jobs:
 
 ```bash
 # Create the secret file
-echo "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267" | docker secret create jwt_secret -
+echo "<YOUR_GENERATED_SECRET>" | docker secret create jwt_secret -
 ```
 
 ### Update docker-compose.yml
@@ -169,7 +175,7 @@ az keyvault create --name "fixzit-keyvault" --resource-group "your-resource-grou
 az keyvault secret set \
     --vault-name "fixzit-keyvault" \
     --name "jwt-secret" \
-    --value "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267"
+    --value "<YOUR_GENERATED_SECRET>"
 ```
 
 ---
@@ -191,7 +197,7 @@ vault server -dev
 export VAULT_ADDR='http://127.0.0.1:8200'
 
 # Store the secret
-vault kv put secret/fixzit jwt-secret="6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267"
+vault kv put secret/fixzit jwt-secret="<YOUR_GENERATED_SECRET>"
 ```
 
 ---
@@ -206,10 +212,11 @@ Based on your existing AWS configuration, I recommend **AWS Secrets Manager**.
 
 ```bash
 # Quick command to store in AWS Secrets Manager
+# First generate a secret: openssl rand -hex 32
 aws secretsmanager create-secret \
     --name "fixzit/production/jwt-secret" \
     --description "Production JWT Secret for Fixzit" \
-    --secret-string "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267"
+    --secret-string "<YOUR_GENERATED_SECRET>"
 ```
 
 ### 3. Update Application Configuration

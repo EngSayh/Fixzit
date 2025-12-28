@@ -84,7 +84,7 @@
 
 **Correct Format**:
 ```
-mongodb+srv://fixzitadmin:Lp8p7A4aG4031Pln@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
+mongodb+srv://fixzitadmin:[REDACTED]@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
 ```
 
 ---

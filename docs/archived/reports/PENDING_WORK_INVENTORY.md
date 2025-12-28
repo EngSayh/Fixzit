@@ -19,7 +19,7 @@
 
 - **Issue**: Environment variable not set
 - **Impact**: Ephemeral sessions, users logged out on restart
-- **Solution Ready**: `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
+- **Solution Ready**: `[REDACTED-GENERATE-NEW-SECRET]`
 - **Action**: Set in environment immediately
 
 ---
@@ -118,7 +118,7 @@
 ```bash
 # CRITICAL
 MONGODB_URI=mongodb+srv://... (NEED FROM USER)
-JWT_SECRET=6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267
+JWT_SECRET=[REDACTED-GENERATE-NEW-SECRET]
 
 # VERIFY EXIST
 MONGODB_DB=fixzit

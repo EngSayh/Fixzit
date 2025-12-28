@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import SearchBar from "@/components/souq/SearchBar";
 import SearchFilters from "@/components/souq/SearchFilters";
@@ -38,7 +38,7 @@ interface SearchResponse {
   processingTimeMs: number;
 }
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const params = searchParams ?? new URLSearchParams();
   const auto = useAutoTranslator("souq.search");
@@ -360,6 +360,26 @@ export default function SearchPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * SearchPage wrapped in Suspense for useSearchParams()
+ */
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse w-full max-w-6xl p-8 space-y-4">
+          <div className="h-12 bg-muted rounded" />
+          <div className="grid grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-48 bg-muted rounded" />)}
+          </div>
+        </div>
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
   );
 }
 

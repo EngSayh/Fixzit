@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { Suspense, useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Search as SearchIcon,
@@ -83,7 +83,7 @@ const DEFAULT_FILTERS: FilterState = {
   keywords: "",
 };
 
-export default function FiltersPage() {
+function FiltersPageContent() {
   const { t, isRTL } = useTranslation();
   const router = useRouter();
   const params = useSearchParams();
@@ -607,5 +607,24 @@ export default function FiltersPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * FiltersPage wrapped in Suspense for useSearchParams()
+ */
+export default function FiltersPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse w-full max-w-2xl p-8 space-y-4">
+          <div className="h-8 bg-muted rounded" />
+          <div className="h-12 bg-muted rounded" />
+          <div className="h-12 bg-muted rounded" />
+        </div>
+      </div>
+    }>
+      <FiltersPageContent />
+    </Suspense>
   );
 }

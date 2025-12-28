@@ -19,7 +19,7 @@ All critical security vulnerabilities identified in the background agent audit h
 **Previous Issue:**
 
 - JWT secret hardcoded in `lib/auth.ts` (lines 100-101, 121)
-- Value: `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
+- Value: `[REDACTED-GENERATE-NEW-SECRET]`
 - Risk: Anyone with repository access could forge authentication tokens
 
 **Resolution:**
@@ -35,7 +35,7 @@ All critical security vulnerabilities identified in the background agent audit h
 ```typescript
 // BEFORE (INSECURE):
 if (process.env.NODE_ENV === "production") {
-  return "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267";
+  return "[REDACTED-GENERATE-NEW-SECRET]";
 }
 
 // AFTER (SECURE):

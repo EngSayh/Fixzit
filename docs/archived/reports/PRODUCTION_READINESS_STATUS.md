@@ -76,7 +76,7 @@ JWT_SECRET=NOT_SET  # Environment variable empty
 **What Happened**:
 
 1. **September 29**: JWT_SECRET was exposed in git history
-2. **Fix Applied**: New secret generated: `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
+2. **Fix Applied**: New secret generated: `[REDACTED-GENERATE-NEW-SECRET]`
 3. **Instructions Given**: Update environment with new secret
 4. **Reality**: Secret was **NEVER SET** in Codespace environment
 
@@ -140,10 +140,10 @@ Reason: MongoDB User model not connected (using local MongoDB, not Atlas)
 
 ```bash
 # In Codespace terminal:
-export JWT_SECRET="6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267"
+export JWT_SECRET="[REDACTED-GENERATE-NEW-SECRET]"
 
 # Permanently add to .env.local:
-echo 'JWT_SECRET=6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267' >> .env.local
+echo 'JWT_SECRET=[REDACTED-GENERATE-NEW-SECRET]' >> .env.local
 ```
 
 **Option B: Generate New Secret**:

@@ -54,7 +54,7 @@
      ```typescript
      // SECURITY VULNERABILITY - Line 100-101
      jwtSecret =
-       "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267";
+       "[REDACTED-GENERATE-NEW-SECRET]";
      ```
 
 2. **.env.local IN REPOSITORY** 🚨

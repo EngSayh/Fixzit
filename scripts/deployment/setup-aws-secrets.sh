@@ -10,8 +10,16 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# JWT Secret (generated securely)
-JWT_SECRET="6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267"
+# JWT Secret (must be provided as environment variable or argument)
+# NEVER hardcode secrets in scripts - generate with: openssl rand -hex 32
+JWT_SECRET="${JWT_SECRET:-}"
+
+if [ -z "$JWT_SECRET" ]; then
+    echo -e "${RED}❌ JWT_SECRET environment variable is required${NC}"
+    echo -e "${YELLOW}Generate one with: openssl rand -hex 32${NC}"
+    echo -e "${YELLOW}Then run: JWT_SECRET=<your_secret> $0${NC}"
+    exit 1
+fi
 
 echo -e "${BLUE}🔐 AWS Secrets Manager JWT Secret Setup${NC}"
 echo -e "${BLUE}======================================${NC}"

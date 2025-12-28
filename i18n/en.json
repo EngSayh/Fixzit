@@ -5141,6 +5141,16 @@
     "goToLanding": "Go to Landing Page",
     "searchSuperadmin": "Search superadmin...",
     "switchTenant": "Switch Tenant",
+    "error": {
+      "title": "Something went wrong",
+      "message": "An unexpected error occurred in the superadmin panel. Our team has been notified.",
+      "details": "Technical details",
+      "digestLabel": "Digest",
+      "tryAgain": "Try Again",
+      "goToLogin": "Go to Login",
+      "exit": "Exit Superadmin",
+      "footer": "If this problem persists, please contact support."
+    },
     "nav": {
       "issues": "Issues",
       "ssot": "SSOT Viewer",
