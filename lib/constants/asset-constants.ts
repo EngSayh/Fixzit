@@ -110,17 +110,3 @@ export const ASSET_DEFAULTS = {
     lng: 46.6753,
   },
 } as const;
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  ASSET_TYPES,
-  ASSET_TYPE_LABELS,
-  ASSET_STATUSES,
-  ASSET_STATUS_LABELS,
-  ASSET_CRITICALITY_LEVELS,
-  ASSET_CRITICALITY_LABELS,
-  ASSET_DEFAULTS,
-};

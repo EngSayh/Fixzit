@@ -131,8 +131,14 @@ export type CreateAssetInput = z.infer<typeof CreateAssetSchema>;
 // ============================================================================
 
 /**
- * Schema for updating an existing asset
- * All fields are optional for partial updates
+ * Schema for updating an existing asset.
+ * All fields are optional for partial updates.
+ *
+ * NOTE: We intentionally do NOT use `CreateAssetSchema.partial()` here because:
+ * 1. Update operations have different validation rules (e.g., we don't require
+ *    propertyId on update since it's already associated with the asset)
+ * 2. Some fields have different constraints for updates vs creates
+ * 3. This explicit definition is clearer and more maintainable
  */
 export const UpdateAssetSchema = z.object({
   name: z.string()
@@ -169,9 +175,13 @@ export type UpdateAssetInput = z.infer<typeof UpdateAssetSchema>;
 // ============================================================================
 
 /**
- * Default values for the create asset form
+ * Default values for the create asset form.
+ *
+ * NOTE: `location` is intentionally omitted from defaults because it is optional
+ * and the schema requires location.building to have min(1) length when provided.
+ * Users must explicitly add location when needed.
  */
-export const createAssetFormDefaults: CreateAssetInput = {
+export const createAssetFormDefaults: Partial<CreateAssetInput> = {
   name: '',
   type: 'OTHER',
   category: '',
@@ -180,12 +190,7 @@ export const createAssetFormDefaults: CreateAssetInput = {
   model: '',
   serialNumber: '',
   propertyId: '',
-  location: {
-    building: '',
-    floor: '',
-    room: '',
-    coordinates: ASSET_DEFAULTS.defaultCoordinates,
-  },
+  // location intentionally omitted - optional field with required building when provided
   specs: {
     capacity: '',
     powerRating: '',
@@ -210,15 +215,3 @@ export const createAssetFormDefaults: CreateAssetInput = {
   tags: [],
 };
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  CreateAssetSchema,
-  UpdateAssetSchema,
-  AssetLocationSchema,
-  AssetPurchaseSchema,
-  AssetSpecsSchema,
-  createAssetFormDefaults,
-};

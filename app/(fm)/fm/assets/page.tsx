@@ -688,10 +688,12 @@ function CreateAssetForm({
         <Textarea
           id="description"
           {...register("description")}
+          aria-invalid={!!errors.description}
+          aria-describedby={errors.description ? "description-error" : undefined}
           disabled={isSubmitting}
         />
         {errors.description && (
-          <p className="text-sm text-destructive mt-1" role="alert">
+          <p id="description-error" className="text-sm text-destructive mt-1" role="alert">
             {errors.description.message}
           </p>
         )}
