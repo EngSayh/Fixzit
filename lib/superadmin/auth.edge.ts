@@ -31,8 +31,11 @@ export interface SuperadminSession {
  * 
  * SECURITY: Returns null if no secret is configured. This ensures the system
  * "fails closed" - no token verification is possible without a proper secret.
+ * 
+ * NOTE: This is now a function instead of a constant to handle Edge Runtime
+ * where env vars might not be available during module initialization.
  */
-const SECRET_FALLBACK: string | null = (() => {
+function getJwtSecret(): Uint8Array | null {
   const secret = 
     process.env.SUPERADMIN_JWT_SECRET ||
     process.env.NEXTAUTH_SECRET ||
@@ -40,19 +43,11 @@ const SECRET_FALLBACK: string | null = (() => {
     null;
   
   if (!secret) {
-    const isProdLike = 
-      process.env.NODE_ENV === "production" || 
-      process.env.VERCEL_ENV === "production" || 
-      process.env.VERCEL_ENV === "preview";
-    
-    if (isProdLike) {
-      // eslint-disable-next-line no-console -- Critical security warning must be visible
-      console.error("[SUPERADMIN] CRITICAL SECURITY: No JWT secret configured. Superadmin auth DISABLED. Set SUPERADMIN_JWT_SECRET, NEXTAUTH_SECRET, or AUTH_SECRET.");
-    }
+    return null;
   }
   
-  return secret;
-})();
+  return new TextEncoder().encode(secret);
+}
 
 export const SUPERADMIN_COOKIE_NAME = "superadmin_session";
 
@@ -61,12 +56,12 @@ export const SUPERADMIN_COOKIE_NAME = "superadmin_session";
  * Used by middleware for troubleshooting auth issues
  */
 export function hasJwtSecretConfigured(): boolean {
-  return !!SECRET_FALLBACK;
+  return !!(
+    process.env.SUPERADMIN_JWT_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    process.env.AUTH_SECRET
+  );
 }
-
-const encoder = new TextEncoder();
-// Only encode if secret exists - jwtSecret will be null if no secret configured
-const jwtSecret = SECRET_FALLBACK ? encoder.encode(SECRET_FALLBACK) : null;
 
 /**
  * Decode and verify a superadmin JWT token
@@ -77,6 +72,9 @@ const jwtSecret = SECRET_FALLBACK ? encoder.encode(SECRET_FALLBACK) : null;
  */
 export async function decodeSuperadminToken(token?: string | null): Promise<SuperadminSession | null> {
   if (!token) return null;
+  
+  // Get secret at runtime (not module load time) for Edge Runtime compatibility
+  const jwtSecret = getJwtSecret();
   
   // SECURITY: Fail closed if no secret configured
   if (!jwtSecret) {
@@ -158,6 +156,9 @@ export async function getSuperadminSessionWithDebug(request: NextRequest): Promi
     request.cookies.get(SUPERADMIN_COOKIE_NAME)?.value ||
     request.cookies.get(`${SUPERADMIN_COOKIE_NAME}.legacy`)?.value;
 
+  // Get secret at runtime (not module load time) for Edge Runtime compatibility
+  const jwtSecret = getJwtSecret();
+  
   const debug = {
     hasCookieValue: !!cookieValue,
     cookieLength: cookieValue?.length || 0,
