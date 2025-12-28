@@ -72,6 +72,17 @@ export default async function SuperadminLayout({
     });
   }
 
+  // FIX: If user is already authenticated and on login page, redirect to issues
+  // This prevents the confusing UX of seeing the login form while already logged in
+  if (
+    isLoginPage &&
+    superadminSession &&
+    superadminSession.username &&
+    superadminSession.expiresAt > Date.now()
+  ) {
+    redirect("/superadmin/issues");
+  }
+
   // BUG-002 FIX: Server-side auth enforcement
   // CRITICAL: Even if path detection fails, if we have no session and this isn't
   // explicitly the login page, we must redirect. The middleware already allows
