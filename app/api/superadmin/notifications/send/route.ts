@@ -58,7 +58,15 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const channels = rawChannels.filter((ch): ch is string => typeof ch === "string");
+    // Validate all channel elements are strings
+    const invalidChannels = rawChannels.filter((ch) => typeof ch !== "string").map((ch) => ({ index: rawChannels.indexOf(ch), value: ch, type: typeof ch }));
+    if (invalidChannels.length > 0) {
+      return NextResponse.json(
+        { success: false, error: "All channel values must be strings", invalidElements: invalidChannels },
+        { status: 400 }
+      );
+    }
+    const channels = rawChannels as string[];
     
     // Validate targetUserIds is an array if provided
     const rawUserIds = body.targetUserIds ?? body.userIds ?? [];
@@ -114,13 +122,23 @@ export async function POST(req: NextRequest) {
     
     if (isStubMode) {
       // Mark as queued - a background worker would process this
+      const queuedAt = new Date();
+      const queuedChannelResults = channels.map((ch: string) => ({
+        channel: ch,
+        status: "queued",
+        queuedAt,
+        attempts: 0,
+        succeeded: 0,
+        failedCount: 0,
+      }));
       // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide notification update
       await collection.updateOne(
         { _id: result.insertedId },
         {
           $set: {
             status: "queued",
-            queuedAt: new Date(),
+            queuedAt,
+            channelResults: queuedChannelResults,
           },
         }
       );
@@ -149,13 +167,23 @@ export async function POST(req: NextRequest) {
     // });
     
     // For now, mark as queued even in production until job queue is configured
+    const prodQueuedAt = new Date();
+    const prodQueuedChannelResults = channels.map((ch: string) => ({
+      channel: ch,
+      status: "queued",
+      queuedAt: prodQueuedAt,
+      attempts: 0,
+      succeeded: 0,
+      failedCount: 0,
+    }));
     // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide notification update
     await collection.updateOne(
       { _id: result.insertedId },
       {
         $set: {
           status: "queued",
-          queuedAt: new Date(),
+          queuedAt: prodQueuedAt,
+          channelResults: prodQueuedChannelResults,
         },
       }
     );

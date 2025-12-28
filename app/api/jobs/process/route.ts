@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const isAuthorized = session?.user?.isSuperAdmin || !!superadminSession || cronAuthorized;
 
     if (!isAuthorized) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Forbidden - Superadmin access required" }, { status: 403 });
     }
 
     const { data: body, error: parseError } = await parseBodySafe<{ type?: string; maxJobs?: number }>(request, { logPrefix: "[jobs:process]" });
