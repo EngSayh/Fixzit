@@ -1,6 +1,6 @@
 # Backlog Audit
 
-**Extracted At:** 28/12/2025 14:11 (Asia/Riyadh)
+**Extracted At:** 2025-12-28 14:11 (Asia/Riyadh)
 **Extracted By:** [AGENT-003-A]
 **Source:** docs/PENDING_MASTER.md
 
