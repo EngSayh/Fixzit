@@ -393,7 +393,7 @@ function AssetCard({
           <div className="flex items-center space-x-2">
             {getStatusIcon(asset.status || "")}
             <Badge className={getStatusColor(asset.status || "")}>
-              {asset.status?.toLowerCase() || ""}
+              {auto(asset.status?.toLowerCase() || "", `status.${asset.status?.toLowerCase() || "unknown"}`)}
             </Badge>
           </div>
         </div>
@@ -524,7 +524,7 @@ function AssetCard({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{auto("Status", "view.status")}</p>
-                  <Badge className={getStatusColor(asset.status || "")}>{asset.status || "-"}</Badge>
+                  <Badge className={getStatusColor(asset.status || "")}>{auto(asset.status || "-", `status.${asset.status?.toLowerCase() || "unknown"}`)}</Badge>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{auto("Criticality", "view.criticality")}</p>
@@ -534,7 +534,7 @@ function AssetCard({
                   <div>
                     <p className="text-sm text-muted-foreground">{auto("Location", "view.location")}</p>
                     <p className="font-medium">
-                      {asset.location.building}{asset.location.floor ? `, Floor ${asset.location.floor}` : ""}{asset.location.room ? `, Room ${asset.location.room}` : ""}
+                      {asset.location.building}{asset.location.floor ? `, ${auto("Floor {{floor}}", "view.floor").replace("{{floor}}", asset.location.floor)}` : ""}{asset.location.room ? `, ${auto("Room {{room}}", "view.room").replace("{{room}}", asset.location.room)}` : ""}
                     </p>
                   </div>
                 )}

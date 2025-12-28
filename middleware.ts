@@ -349,13 +349,16 @@ export async function middleware(request: NextRequest) {
       // Add debug headers to redirect for troubleshooting
       const redirectUrl = new URL('/superadmin/login', sanitizedRequest.url);
       redirectUrl.searchParams.set('reason', !session ? 'no_session' : 'expired');
-      redirectUrl.searchParams.set('had_cookie', hasCookie ? '1' : '0');
-      redirectUrl.searchParams.set('cookie_len', String(cookieLength));
-      redirectUrl.searchParams.set('hdr', hasCookieHeader ? '1' : '0');
-      redirectUrl.searchParams.set('sec', debug.hasJwtSecret ? '1' : '0');
-      if (debug.decodeError) {
-        // Truncate error to fit in URL (max 50 chars)
-        redirectUrl.searchParams.set('err', debug.decodeError.slice(0, 50));
+      // Only include detailed debug params in non-production environments
+      if (process.env.VERCEL_ENV !== 'production' && process.env.NODE_ENV !== 'production') {
+        redirectUrl.searchParams.set('had_cookie', hasCookie ? '1' : '0');
+        redirectUrl.searchParams.set('cookie_len', String(cookieLength));
+        redirectUrl.searchParams.set('hdr', hasCookieHeader ? '1' : '0');
+        redirectUrl.searchParams.set('sec', debug.hasJwtSecret ? '1' : '0');
+        if (debug.decodeError) {
+          // Truncate error to fit in URL (max 50 chars)
+          redirectUrl.searchParams.set('err', debug.decodeError.slice(0, 50));
+        }
       }
       return NextResponse.redirect(redirectUrl);
     }

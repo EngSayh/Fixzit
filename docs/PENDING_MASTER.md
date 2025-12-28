@@ -2243,7 +2243,7 @@ All P0/P1/P2 items resolved. Backlog is clean for MVP.
 | 15 | RESOLVED-ESLINT-CLEANUP | 79 ESLint errors fixed | 02475ba9f |
 | 16 | RESOLVED-AGGREGATE-WRAPPER | aggregateWithTenantScope utility | 283eaeb56 |
 
-### 🟠 DEFERRED (5 Post-MVP Items)
+### 🟠 DEFERRED (6 Post-MVP Items)
 
 | # | Key | Title | Target | Reason |
 |---|-----|-------|--------|--------|
@@ -2252,6 +2252,7 @@ All P0/P1/P2 items resolved. Backlog is clean for MVP.
 | 3 | LOGIC-001 | SLA business hours calculation | Q1 2026 | Requires calendar config |
 | 4 | COMP-001 | ZATCA Phase 2 E-Invoicing | Q2 2026 | Saudi regulatory deadline |
 | 5 | INFRA-SENTRY | Activate Sentry error tracking | Q1 2026 | Needs DSN configuration |
+| 6 | INFRA-OTP-001 | Re-enable OTP bypass env guard blocking | Q1 2026 | Fix false-positive detection in instrumentation-node.ts:67 |
 
 ### 📊 Quality Gates (Final Verification)
 

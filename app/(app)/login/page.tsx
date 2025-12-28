@@ -181,8 +181,11 @@ function LoginPageContent() {
       try {
         setLanguage(forceLocale as Language);
         setLocale(forceLocale);
-      } catch {
-        // ignore fallback errors
+      } catch (err) {
+        logger.warn(
+          'Login language sync failed',
+          { error: err instanceof Error ? err.message : String(err) }
+        );
       }
     }
 
@@ -387,8 +390,11 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
         if (result?.ok) {
         try {
           await fetch("/api/auth/post-login", { method: "POST", credentials: "include" });
-        } catch {
-          // ignore
+        } catch (err) {
+          logger.warn(
+            'Post-login hook failed',
+            { error: err instanceof Error ? err.message : String(err) }
+          );
         }
         setSuccess(true);
         const redirectTo = postLoginRedirect();
@@ -578,8 +584,11 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
       if (result?.ok) {
         try {
           await fetch("/api/auth/post-login", { method: "POST", credentials: "include" });
-        } catch {
-          // ignore
+        } catch (err) {
+          logger.warn(
+            'Post-OTP login hook failed',
+            { error: err instanceof Error ? err.message : String(err) }
+          );
         }
         setSuccess(true);
         const redirectTo = postLoginRedirect();
@@ -1067,6 +1076,32 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
                   </div>
                 )}
               </Button>
+
+              {/* SSO Buttons - Always visible under main sign-in per .cursorrules */}
+              {(GOOGLE_ENABLED || APPLE_ENABLED) && (
+                <>
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-2 bg-card text-muted-foreground">{t('login.orContinueWith', 'Or continue with')}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {GOOGLE_ENABLED && <GoogleSignInButton />}
+                    {APPLE_ENABLED && (
+                      <button 
+                        type="button"
+                        className={`flex items-center justify-center gap-3 w-full p-3 border border-border rounded-2xl hover:bg-muted transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+                      >
+                        <Apple className="h-5 w-5 text-foreground" />
+                        <span>{t('login.continueWith', 'Continue with')} Apple</span>
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </form>
           )}
 
