@@ -232,10 +232,10 @@ export default function SuperadminTenantsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
             {t("superadmin.nav.tenants")}
           </h1>
-          <p className="text-slate-400">
+          <p className="text-muted-foreground">
             Manage all organizations and tenant accounts
           </p>
         </div>
@@ -245,7 +245,7 @@ export default function SuperadminTenantsPage() {
             size="sm"
             onClick={fetchOrganizations}
             disabled={loading}
-            className="border-slate-700 text-slate-300"
+            className="border-input text-muted-foreground"
           >
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
             Refresh
@@ -258,23 +258,23 @@ export default function SuperadminTenantsPage() {
       </div>
 
       {/* Filters */}
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-card border-border">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name, code, or email..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="ps-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-40 bg-slate-800 border-slate-700 text-white">
+              <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="ACTIVE">Active</SelectItem>
                 <SelectItem value="TRIAL">Trial</SelectItem>
@@ -284,10 +284,10 @@ export default function SuperadminTenantsPage() {
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full sm:w-40 bg-slate-800 border-slate-700 text-white">
+              <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="CORPORATE">Corporate</SelectItem>
                 <SelectItem value="GOVERNMENT">Government</SelectItem>
@@ -301,13 +301,13 @@ export default function SuperadminTenantsPage() {
       </Card>
 
       {/* Table */}
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader className="border-b border-slate-800">
-          <CardTitle className="flex items-center gap-2 text-white">
+      <Card className="bg-card border-border">
+        <CardHeader className="border-b border-border">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <Building2 className="h-5 w-5" />
             Organizations
             {pagination && (
-              <span className="text-sm font-normal text-slate-400">
+              <span className="text-sm font-normal text-muted-foreground">
                 ({pagination.total} total)
               </span>
             )}
@@ -328,9 +328,9 @@ export default function SuperadminTenantsPage() {
             </div>
           ) : organizations.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center">
-              <Building2 className="h-12 w-12 text-slate-600 mb-4" />
-              <p className="text-slate-400">No organizations found</p>
-              <p className="text-sm text-slate-500 mt-1">
+              <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No organizations found</p>
+              <p className="text-sm text-muted-foreground mt-1">
                 Try adjusting your filters or create a new organization
               </p>
             </div>
@@ -338,32 +338,32 @@ export default function SuperadminTenantsPage() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-800 hover:bg-transparent">
-                    <TableHead className="text-slate-400">Organization</TableHead>
-                    <TableHead className="text-slate-400">Type</TableHead>
-                    <TableHead className="text-slate-400">Status</TableHead>
-                    <TableHead className="text-slate-400">Users</TableHead>
-                    <TableHead className="text-slate-400">Country</TableHead>
-                    <TableHead className="text-slate-400">Created</TableHead>
-                    <TableHead className="text-slate-400 text-end">Actions</TableHead>
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead className="text-muted-foreground">Organization</TableHead>
+                    <TableHead className="text-muted-foreground">Type</TableHead>
+                    <TableHead className="text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-muted-foreground">Users</TableHead>
+                    <TableHead className="text-muted-foreground">Country</TableHead>
+                    <TableHead className="text-muted-foreground">Created</TableHead>
+                    <TableHead className="text-muted-foreground text-end">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {organizations.map((org) => (
                     <TableRow
                       key={org._id}
-                      className="border-slate-800 hover:bg-slate-800/50"
+                      className="border-border hover:bg-muted/50"
                     >
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-medium text-white">{org.name}</span>
-                          <span className="text-xs text-slate-500">
+                          <span className="font-medium text-foreground">{org.name}</span>
+                          <span className="text-xs text-muted-foreground">
                             {org.code || org.slug || org._id.slice(-6)}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="text-slate-300">
+                        <span className="text-muted-foreground">
                           {TYPE_LABELS[org.type] || org.type}
                         </span>
                       </TableCell>
@@ -377,20 +377,20 @@ export default function SuperadminTenantsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className="text-slate-300">
+                        <span className="text-muted-foreground">
                           {org.usage?.currentUsers ?? 0}
                           {org.features?.maxUsers && (
-                            <span className="text-slate-500">
+                            <span className="text-muted-foreground">
                               /{org.features.maxUsers}
                             </span>
                           )}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-slate-300">{org.country || "—"}</span>
+                        <span className="text-muted-foreground">{org.country || "—"}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-slate-400 text-sm">
+                        <span className="text-muted-foreground text-sm">
                           {formatDate(org.createdAt)}
                         </span>
                       </TableCell>
@@ -399,7 +399,7 @@ export default function SuperadminTenantsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                             onClick={() => {
                               setSelectedOrg(org);
                               setViewDialogOpen(true);
@@ -410,14 +410,14 @@ export default function SuperadminTenantsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-blue-400"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-400"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400"
                             onClick={() => {
                               setSelectedOrg(org);
                               setDeleteDialogOpen(true);
@@ -436,8 +436,8 @@ export default function SuperadminTenantsPage() {
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between p-4 border-t border-slate-800">
-              <p className="text-sm text-slate-400">
+            <div className="flex items-center justify-between p-4 border-t border-border">
+              <p className="text-sm text-muted-foreground">
                 Page {pagination.page} of {pagination.totalPages}
               </p>
               <div className="flex gap-2">
@@ -446,7 +446,7 @@ export default function SuperadminTenantsPage() {
                   size="sm"
                   disabled={!pagination.hasPrev || loading}
                   onClick={() => setPage((p) => p - 1)}
-                  className="border-slate-700"
+                  className="border-input"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Previous
@@ -456,7 +456,7 @@ export default function SuperadminTenantsPage() {
                   size="sm"
                   disabled={!pagination.hasNext || loading}
                   onClick={() => setPage((p) => p + 1)}
-                  className="border-slate-700"
+                  className="border-input"
                 >
                   Next
                   <ChevronRight className="h-4 w-4" />
@@ -469,7 +469,7 @@ export default function SuperadminTenantsPage() {
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-lg">
+        <DialogContent className="bg-card border-border text-foreground max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
@@ -480,45 +480,45 @@ export default function SuperadminTenantsPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-slate-400">Name</p>
+                  <p className="text-sm text-muted-foreground">Name</p>
                   <p className="font-medium">{selectedOrg.name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Code</p>
+                  <p className="text-sm text-muted-foreground">Code</p>
                   <p className="font-medium">{selectedOrg.code || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Type</p>
+                  <p className="text-sm text-muted-foreground">Type</p>
                   <p className="font-medium">{TYPE_LABELS[selectedOrg.type]}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Status</p>
+                  <p className="text-sm text-muted-foreground">Status</p>
                   <Badge className={STATUS_COLORS[selectedOrg.subscriptionStatus]}>
                     {selectedOrg.subscriptionStatus}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Contact Email</p>
+                  <p className="text-sm text-muted-foreground">Contact Email</p>
                   <p className="font-medium">{selectedOrg.contactEmail || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Country</p>
+                  <p className="text-sm text-muted-foreground">Country</p>
                   <p className="font-medium">{selectedOrg.country || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Timezone</p>
+                  <p className="text-sm text-muted-foreground">Timezone</p>
                   <p className="font-medium">{selectedOrg.timezone || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Currency</p>
+                  <p className="text-sm text-muted-foreground">Currency</p>
                   <p className="font-medium">{selectedOrg.currency || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Created</p>
+                  <p className="text-sm text-muted-foreground">Created</p>
                   <p className="font-medium">{formatDate(selectedOrg.createdAt)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Users</p>
+                  <p className="text-sm text-muted-foreground">Users</p>
                   <p className="font-medium">
                     {selectedOrg.usage?.currentUsers ?? 0}
                     {selectedOrg.features?.maxUsers && ` / ${selectedOrg.features.maxUsers}`}
@@ -531,7 +531,7 @@ export default function SuperadminTenantsPage() {
             <Button
               variant="outline"
               onClick={() => setViewDialogOpen(false)}
-              className="border-slate-700"
+              className="border-input"
             >
               Close
             </Button>
@@ -541,13 +541,13 @@ export default function SuperadminTenantsPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white">
+        <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-400">
               <AlertCircle className="h-5 w-5" />
               Suspend Organization?
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               This will suspend the organization &quot;{selectedOrg?.name}&quot; and
               prevent all users from accessing the system. This action can be
               reversed by changing the status back to Active.
@@ -557,7 +557,7 @@ export default function SuperadminTenantsPage() {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-slate-700"
+              className="border-input"
               disabled={actionLoading}
             >
               Cancel

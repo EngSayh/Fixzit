@@ -400,10 +400,10 @@ export default function SuperadminUsersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
             {t("superadmin.nav.users")}
           </h1>
-          <p className="text-slate-400">
+          <p className="text-muted-foreground">
             Manage all system users across all tenants
           </p>
         </div>
@@ -416,25 +416,25 @@ export default function SuperadminUsersPage() {
                   Bulk Actions ({selectedIds.size})
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-slate-800 border-slate-700">
+              <DropdownMenuContent className="bg-muted border-input">
                 <DropdownMenuItem 
                   onClick={() => setBulkStatusDialogOpen(true)}
-                  className="text-slate-200 hover:bg-slate-700"
+                  className="text-muted-foreground hover:bg-muted/80"
                 >
                   <Edit className="h-4 w-4 me-2" />
                   Change Status
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => setNotificationDialogOpen(true)}
-                  className="text-slate-200 hover:bg-slate-700"
+                  className="text-muted-foreground hover:bg-muted/80"
                 >
                   <Bell className="h-4 w-4 me-2" />
                   Send Notification
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-slate-700" />
+                <DropdownMenuSeparator className="bg-input" />
                 <DropdownMenuItem 
                   onClick={() => setDeleteDialogOpen(true)}
-                  className="text-red-400 hover:bg-slate-700"
+                  className="text-red-400 hover:bg-muted/80"
                 >
                   <Trash2 className="h-4 w-4 me-2" />
                   Delete Users
@@ -447,7 +447,7 @@ export default function SuperadminUsersPage() {
             size="sm"
             onClick={fetchUsers}
             disabled={loading}
-            className="border-slate-700 text-slate-300"
+            className="border-input text-muted-foreground"
           >
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
             Refresh
@@ -456,17 +456,17 @@ export default function SuperadminUsersPage() {
       </div>
 
       {/* Filters */}
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-card border-border">
         <CardContent className="p-4">
           <div className="flex flex-col gap-4">
             {/* Search row */}
             <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by email, name, phone, or organization..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="ps-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
               />
             </div>
             {/* Filter row */}
@@ -475,7 +475,7 @@ export default function SuperadminUsersPage() {
                 value={statusFilter} 
                 onValueChange={setStatusFilter}
                 placeholder="Status"
-                className="w-full sm:w-40 bg-slate-800 border-slate-700 text-white"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="ACTIVE">Active</SelectItem>
@@ -488,7 +488,7 @@ export default function SuperadminUsersPage() {
                 value={orgFilter} 
                 onValueChange={setOrgFilter}
                 placeholder="Organization"
-                className="w-full sm:w-48 bg-slate-800 border-slate-700 text-white"
+                className="w-full sm:w-48 bg-muted border-input text-foreground"
               >
                 <SelectItem value="all">All Organizations</SelectItem>
                 {organizations.map((org) => (
@@ -502,7 +502,7 @@ export default function SuperadminUsersPage() {
                 value={userTypeFilter} 
                 onValueChange={setUserTypeFilter}
                 placeholder="User Type"
-                className="w-full sm:w-40 bg-slate-800 border-slate-700 text-white"
+                className="w-full sm:w-40 bg-muted border-input text-foreground"
               >
                 {USER_TYPES.map((type) => (
                   <SelectItem key={type.value} value={type.value}>
@@ -516,13 +516,13 @@ export default function SuperadminUsersPage() {
       </Card>
 
       {/* Table */}
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader className="border-b border-slate-800">
-          <CardTitle className="flex items-center gap-2 text-white">
+      <Card className="bg-card border-border">
+        <CardHeader className="border-b border-border">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <Users className="h-5 w-5" />
             Users
             {pagination && (
-              <span className="text-sm font-normal text-slate-400">
+              <span className="text-sm font-normal text-muted-foreground">
                 ({pagination.total} total)
               </span>
             )}
@@ -543,18 +543,18 @@ export default function SuperadminUsersPage() {
             </div>
           ) : users.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center">
-              <Users className="h-12 w-12 text-slate-600 mb-4" />
-              <p className="text-slate-400">No users found</p>
+              <Users className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No users found</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-800 hover:bg-transparent">
-                    <TableHead className="w-12 text-slate-400">
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead className="w-12 text-muted-foreground">
                       <button
                         onClick={toggleSelectAll}
-                        className="flex items-center justify-center w-5 h-5 text-slate-400 hover:text-white"
+                        className="flex items-center justify-center w-5 h-5 text-muted-foreground hover:text-foreground"
                         title={allSelected ? "Deselect all" : "Select all"}
                       >
                         {allSelected ? (
@@ -566,42 +566,42 @@ export default function SuperadminUsersPage() {
                         )}
                       </button>
                     </TableHead>
-                    <TableHead className="text-slate-400">User</TableHead>
-                    <TableHead className="text-slate-400">Role</TableHead>
-                    <TableHead className="text-slate-400">Status</TableHead>
-                    <TableHead className="text-slate-400">Organization</TableHead>
-                    <TableHead className="text-slate-400">Created</TableHead>
-                    <TableHead className="text-slate-400 text-end">Actions</TableHead>
+                    <TableHead className="text-muted-foreground">User</TableHead>
+                    <TableHead className="text-muted-foreground">Role</TableHead>
+                    <TableHead className="text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-muted-foreground">Organization</TableHead>
+                    <TableHead className="text-muted-foreground">Created</TableHead>
+                    <TableHead className="text-muted-foreground text-end">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => (
                     <TableRow
                       key={user._id}
-                      className={`border-slate-800 hover:bg-slate-800/50 ${selectedIds.has(user._id) ? "bg-blue-900/20" : ""}`}
+                      className={`border-border hover:bg-muted/50 ${selectedIds.has(user._id) ? "bg-blue-900/20" : ""}`}
                     >
                       <TableCell>
                         <Checkbox
                           checked={selectedIds.has(user._id)}
                           onCheckedChange={() => toggleSelect(user._id)}
-                          className="border-slate-600 data-[state=checked]:bg-blue-600"
+                          className="border-input data-[state=checked]:bg-blue-600"
                         />
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-white">{getUserName(user)}</span>
+                            <span className="font-medium text-foreground">{getUserName(user)}</span>
                             {user.isSuperAdmin && (
                               <span title="Super Admin">
                                 <Shield className="h-4 w-4 text-yellow-500" aria-hidden="true" />
                               </span>
                             )}
                           </div>
-                          <span className="text-xs text-slate-500">{user.email}</span>
+                          <span className="text-xs text-muted-foreground">{user.email}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-slate-300 border-slate-600">
+                        <Badge variant="outline" className="text-muted-foreground border-input">
                           {getUserRole(user)}
                         </Badge>
                       </TableCell>
@@ -615,13 +615,13 @@ export default function SuperadminUsersPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1 text-slate-300">
-                          <Building2 className="h-3 w-3 text-slate-500" />
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Building2 className="h-3 w-3 text-muted-foreground" />
                           {user.orgName || "—"}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="text-slate-400 text-sm">
+                        <span className="text-muted-foreground text-sm">
                           {formatDate(user.createdAt)}
                         </span>
                       </TableCell>
@@ -631,18 +631,18 @@ export default function SuperadminUsersPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                             >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                          <DropdownMenuContent align="end" className="bg-muted border-input">
                             <DropdownMenuItem
                               onClick={() => {
                                 setSelectedUser(user);
                                 setViewDialogOpen(true);
                               }}
-                              className="text-slate-200 hover:bg-slate-700"
+                              className="text-muted-foreground hover:bg-muted/80"
                             >
                               <Eye className="h-4 w-4 me-2" />
                               View Details
@@ -652,7 +652,7 @@ export default function SuperadminUsersPage() {
                                 setSelectedUser(user);
                                 setEditStatusDialogOpen(true);
                               }}
-                              className="text-slate-200 hover:bg-slate-700"
+                              className="text-muted-foreground hover:bg-muted/80"
                             >
                               <Edit className="h-4 w-4 me-2" />
                               Change Status
@@ -662,7 +662,7 @@ export default function SuperadminUsersPage() {
                                 setSelectedIds(new Set([user._id]));
                                 setNotificationDialogOpen(true);
                               }}
-                              className="text-slate-200 hover:bg-slate-700"
+                              className="text-muted-foreground hover:bg-muted/80"
                             >
                               <Mail className="h-4 w-4 me-2" />
                               Send Notification
@@ -679,8 +679,8 @@ export default function SuperadminUsersPage() {
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between p-4 border-t border-slate-800">
-              <p className="text-sm text-slate-400">
+            <div className="flex items-center justify-between p-4 border-t border-border">
+              <p className="text-sm text-muted-foreground">
                 Page {pagination.page} of {pagination.totalPages}
               </p>
               <div className="flex gap-2">
@@ -689,7 +689,7 @@ export default function SuperadminUsersPage() {
                   size="sm"
                   disabled={!pagination.hasPrev || loading}
                   onClick={() => setPage((p) => p - 1)}
-                  className="border-slate-700"
+                  className="border-input"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Previous
@@ -699,7 +699,7 @@ export default function SuperadminUsersPage() {
                   size="sm"
                   disabled={!pagination.hasNext || loading}
                   onClick={() => setPage((p) => p + 1)}
-                  className="border-slate-700"
+                  className="border-input"
                 >
                   Next
                   <ChevronRight className="h-4 w-4" />
@@ -712,7 +712,7 @@ export default function SuperadminUsersPage() {
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-lg">
+        <DialogContent className="bg-card border-border text-foreground max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -726,37 +726,37 @@ export default function SuperadminUsersPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-slate-400">Name</p>
+                  <p className="text-sm text-muted-foreground">Name</p>
                   <p className="font-medium">{getUserName(selectedUser)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Email</p>
+                  <p className="text-sm text-muted-foreground">Email</p>
                   <p className="font-medium">{selectedUser.email}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Role</p>
+                  <p className="text-sm text-muted-foreground">Role</p>
                   <p className="font-medium">{getUserRole(selectedUser)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Status</p>
+                  <p className="text-sm text-muted-foreground">Status</p>
                   <Badge className={STATUS_COLORS[selectedUser.status]}>
                     {selectedUser.status}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Organization</p>
+                  <p className="text-sm text-muted-foreground">Organization</p>
                   <p className="font-medium">{selectedUser.orgName || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Phone</p>
+                  <p className="text-sm text-muted-foreground">Phone</p>
                   <p className="font-medium">{selectedUser.personal?.phone || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Created</p>
+                  <p className="text-sm text-muted-foreground">Created</p>
                   <p className="font-medium">{formatDate(selectedUser.createdAt)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Last Login</p>
+                  <p className="text-sm text-muted-foreground">Last Login</p>
                   <p className="font-medium">{formatDate(selectedUser.lastLogin)}</p>
                 </div>
               </div>
@@ -766,7 +766,7 @@ export default function SuperadminUsersPage() {
             <Button
               variant="outline"
               onClick={() => setViewDialogOpen(false)}
-              className="border-slate-700"
+              className="border-input"
             >
               Close
             </Button>
@@ -779,7 +779,7 @@ export default function SuperadminUsersPage() {
         setEditStatusDialogOpen(open);
         if (!open) setSingleUserStatus(""); // Reset on close
       }}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md">
+        <DialogContent className="bg-card border-border text-foreground max-w-md">
           <DialogHeader>
             <DialogTitle>Change User Status</DialogTitle>
             <DialogDescription>
@@ -793,7 +793,7 @@ export default function SuperadminUsersPage() {
                 value={singleUserStatus} 
                 onValueChange={setSingleUserStatus}
                 placeholder="Select status"
-                className="w-full bg-slate-800 border-slate-700 text-white"
+                className="w-full bg-muted border-input text-foreground"
               >
                 <SelectItem value="ACTIVE">Active</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
@@ -803,7 +803,7 @@ export default function SuperadminUsersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditStatusDialogOpen(false)} className="border-slate-700">
+            <Button variant="outline" onClick={() => setEditStatusDialogOpen(false)} className="border-input">
               Cancel
             </Button>
             <Button 
@@ -823,7 +823,7 @@ export default function SuperadminUsersPage() {
         setBulkStatusDialogOpen(open);
         if (!open) setBulkStatus(""); // Reset on close
       }}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md">
+        <DialogContent className="bg-card border-border text-foreground max-w-md">
           <DialogHeader>
             <DialogTitle>Bulk Status Change</DialogTitle>
             <DialogDescription>
@@ -837,7 +837,7 @@ export default function SuperadminUsersPage() {
                 value={bulkStatus} 
                 onValueChange={setBulkStatus}
                 placeholder="Select status"
-                className="w-full bg-slate-800 border-slate-700 text-white"
+                className="w-full bg-muted border-input text-foreground"
               >
                 <SelectItem value="ACTIVE">Active</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
@@ -847,7 +847,7 @@ export default function SuperadminUsersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBulkStatusDialogOpen(false)} className="border-slate-700">
+            <Button variant="outline" onClick={() => setBulkStatusDialogOpen(false)} className="border-input">
               Cancel
             </Button>
             <Button 
@@ -864,7 +864,7 @@ export default function SuperadminUsersPage() {
 
       {/* Send Notification Dialog */}
       <Dialog open={notificationDialogOpen} onOpenChange={setNotificationDialogOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-lg">
+        <DialogContent className="bg-card border-border text-foreground max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
@@ -882,7 +882,7 @@ export default function SuperadminUsersPage() {
                 value={notificationSubject}
                 onChange={(e) => setNotificationSubject(e.target.value)}
                 placeholder="Enter email subject..."
-                className="bg-slate-800 border-slate-700 text-white"
+                className="bg-muted border-input text-foreground"
               />
             </div>
             <div className="space-y-2">
@@ -893,12 +893,12 @@ export default function SuperadminUsersPage() {
                 onChange={(e) => setNotificationMessage(e.target.value)}
                 placeholder="Enter your message..."
                 rows={5}
-                className="bg-slate-800 border-slate-700 text-white resize-none"
+                className="bg-muted border-input text-foreground resize-none"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNotificationDialogOpen(false)} className="border-slate-700">
+            <Button variant="outline" onClick={() => setNotificationDialogOpen(false)} className="border-input">
               Cancel
             </Button>
             <Button 
@@ -915,7 +915,7 @@ export default function SuperadminUsersPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md">
+        <DialogContent className="bg-card border-border text-foreground max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-400">
               <AlertCircle className="h-5 w-5" />
@@ -926,13 +926,13 @@ export default function SuperadminUsersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted-foreground">
               This will mark the selected user{selectedIds.size !== 1 ? "s" : ""} as deleted and remove them from active lists. 
               They can be restored from the deleted users view if needed.
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="border-slate-700">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="border-input">
               Cancel
             </Button>
             <Button 
