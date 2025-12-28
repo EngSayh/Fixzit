@@ -125,28 +125,28 @@ export default function SuperadminBillingPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.billing")}</h1>
-          <p className="text-slate-400">Manage subscription plans, pricing, and billing operations</p>
+          <p className="text-muted-foreground">Manage subscription plans, pricing, and billing operations</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="border-slate-700 text-slate-300">
+        <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="border-input text-muted-foreground">
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-blue-500/20"><Package className="h-5 w-5 text-blue-400" /></div>
-              <div><p className="text-2xl font-bold text-white">{priceBooks.length}</p><p className="text-sm text-slate-400">Price Books</p></div>
+              <div><p className="text-2xl font-bold text-foreground">{priceBooks.length}</p><p className="text-sm text-muted-foreground">Price Books</p></div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-slate-900 border-slate-800">
+<Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-green-500/20"><CheckCircle className="h-5 w-5 text-green-400" /></div>
-              <div><p className="text-2xl font-bold text-white">{priceBooks.filter(p => p.isActive).length}</p><p className="text-sm text-slate-400">Active</p></div>
+              <div><p className="text-2xl font-bold text-foreground">{priceBooks.filter(p => p.isActive).length}</p><p className="text-sm text-muted-foreground">Active</p></div>
             </div>
           </CardContent>
         </Card>

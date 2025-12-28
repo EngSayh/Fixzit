@@ -70,7 +70,7 @@ export default function SuperadminSecurityPage() {
       case "connected": return "text-green-400";
       case "disconnected": return "text-red-400";
       case "connecting": return "text-yellow-400";
-      default: return "text-slate-400";
+      default: return "text-muted-foreground";
     }
   };
 
@@ -237,7 +237,7 @@ export default function SuperadminSecurityPage() {
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Progress value={blockRate} className="w-16 h-2" />
-                              <span className="text-sm text-slate-400">{blockRate.toFixed(1)}%</span>
+                              <span className="text-sm text-muted-foreground">{blockRate.toFixed(1)}%</span>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -250,7 +250,7 @@ export default function SuperadminSecurityPage() {
           </Card>
 
           {/* Last Updated */}
-          <div className="text-center text-sm text-slate-500">
+          <div className="text-center text-sm text-muted-foreground/50">
             Last updated: {new Date(metrics.generatedAt).toLocaleString()}
           </div>
         </>

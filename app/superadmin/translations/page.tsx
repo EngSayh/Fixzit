@@ -221,7 +221,7 @@ export default function SuperadminTranslationsPage() {
                             </Button>
                           </div>
                         ) : (
-                          <span className={`${key.ar ? "text-slate-300" : "text-slate-500 italic"}`} dir="rtl">
+                          <span className={`${key.ar ? "text-muted-foreground" : "text-muted-foreground/50 italic"}`} dir="rtl">
                             {key.ar || "Not translated"}
                           </span>
                         )}
@@ -248,36 +248,36 @@ export default function SuperadminTranslationsPage() {
         </TabsContent>
 
         <TabsContent value="missing">
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="border-b border-slate-800">
-              <CardTitle className="flex items-center gap-2 text-white">
+          <Card className="bg-card border-border">
+            <CardHeader className="border-b border-border">
+              <CardTitle className="flex items-center gap-2 text-foreground">
                 <AlertTriangle className="h-5 w-5 text-yellow-400" />
                 Missing Translations
               </CardTitle>
-              <CardDescription className="text-slate-400">Keys that need Arabic translations</CardDescription>
+              <CardDescription className="text-muted-foreground">Keys that need Arabic translations</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-800">
-                    <TableHead className="text-slate-400">Key</TableHead>
-                    <TableHead className="text-slate-400">English</TableHead>
-                    <TableHead className="text-slate-400">Arabic</TableHead>
-                    <TableHead className="text-slate-400 w-[80px]">Edit</TableHead>
+                  <TableRow className="border-border">
+                    <TableHead className="text-muted-foreground">Key</TableHead>
+                    <TableHead className="text-muted-foreground">English</TableHead>
+                    <TableHead className="text-muted-foreground">Arabic</TableHead>
+                    <TableHead className="text-muted-foreground w-[80px]">Edit</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {keys.filter(k => k.status === "missing").map((key) => (
-                    <TableRow key={key.key} className="border-slate-800 hover:bg-slate-800/50">
-                      <TableCell className="font-mono text-white text-sm">{key.key}</TableCell>
-                      <TableCell className="text-slate-300">{key.en}</TableCell>
+                    <TableRow key={key.key} className="border-border hover:bg-muted/50">
+                      <TableCell className="font-mono text-foreground text-sm">{key.key}</TableCell>
+                      <TableCell className="text-muted-foreground">{key.en}</TableCell>
                       <TableCell>
                         {editingKey === key.key ? (
                           <div className="flex gap-2">
                             <Input
                               value={editValue}
                               onChange={(e) => setEditValue(e.target.value)}
-                              className="bg-slate-800 border-slate-700 text-white"
+                              className="bg-muted border-input text-foreground"
                               dir="rtl"
                               placeholder="Enter Arabic translation"
                             />
@@ -286,7 +286,7 @@ export default function SuperadminTranslationsPage() {
                             </Button>
                           </div>
                         ) : (
-                          <span className="text-slate-500 italic">Not translated</span>
+                          <span className="text-muted-foreground/50 italic">Not translated</span>
                         )}
                       </TableCell>
                       <TableCell>

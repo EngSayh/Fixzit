@@ -227,7 +227,7 @@ export default function SuperadminAuditPage() {
                 {logs.map((log) => (
                   <TableRow key={log._id} className="border-border hover:bg-muted/50">
                     <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" />{formatDate(log.createdAt)}</div></TableCell>
-                    <TableCell><Badge variant="outline" className={ACTION_COLORS[log.action] || "bg-slate-500/20 text-slate-400"}>{log.action}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className={ACTION_COLORS[log.action] || "bg-muted/50 text-muted-foreground"}>{log.action}</Badge></TableCell>
                     <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><Shield className="h-4 w-4 text-muted-foreground" />{log.entityType}{log.entityId && <span className="text-muted-foreground text-xs">({log.entityId.slice(-8)})</span>}</div></TableCell>
                     <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" />{log.userEmail || log.userName || log.userId?.slice(-8) || "System"}</div></TableCell>
                     <TableCell>{log.success !== false ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-red-500" />}</TableCell>
@@ -250,23 +250,23 @@ export default function SuperadminAuditPage() {
       </Card>
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border text-foreground max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Audit Log Details</DialogTitle>
-            <DialogDescription className="text-slate-400">Complete details for this audit event</DialogDescription>
+            <DialogDescription className="text-muted-foreground">Complete details for this audit event</DialogDescription>
           </DialogHeader>
           {selectedLog && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div><p className="text-sm text-slate-400">Action</p><Badge className={ACTION_COLORS[selectedLog.action] || ""}>{selectedLog.action}</Badge></div>
-                <div><p className="text-sm text-slate-400">Entity Type</p><p className="text-white">{selectedLog.entityType}</p></div>
-                <div><p className="text-sm text-slate-400">Entity ID</p><p className="text-white font-mono text-sm">{selectedLog.entityId || "—"}</p></div>
-                <div><p className="text-sm text-slate-400">Timestamp</p><p className="text-white">{formatDate(selectedLog.createdAt)}</p></div>
-                <div><p className="text-sm text-slate-400">User</p><p className="text-white">{selectedLog.userEmail || selectedLog.userId || "System"}</p></div>
-                <div><p className="text-sm text-slate-400">IP Address</p><p className="text-white font-mono text-sm">{selectedLog.ipAddress || "—"}</p></div>
+                <div><p className="text-sm text-muted-foreground">Action</p><Badge className={ACTION_COLORS[selectedLog.action] || ""}>{selectedLog.action}</Badge></div>
+                <div><p className="text-sm text-muted-foreground">Entity Type</p><p className="text-foreground">{selectedLog.entityType}</p></div>
+                <div><p className="text-sm text-muted-foreground">Entity ID</p><p className="text-foreground font-mono text-sm">{selectedLog.entityId || "—"}</p></div>
+                <div><p className="text-sm text-muted-foreground">Timestamp</p><p className="text-foreground">{formatDate(selectedLog.createdAt)}</p></div>
+                <div><p className="text-sm text-muted-foreground">User</p><p className="text-foreground">{selectedLog.userEmail || selectedLog.userId || "System"}</p></div>
+                <div><p className="text-sm text-muted-foreground">IP Address</p><p className="text-foreground font-mono text-sm">{selectedLog.ipAddress || "—"}</p></div>
               </div>
-              {selectedLog.description && (<div><p className="text-sm text-slate-400 mb-1">Description</p><p className="text-white bg-slate-800 p-3 rounded-lg">{selectedLog.description}</p></div>)}
-              {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (<div><p className="text-sm text-slate-400 mb-1">Metadata</p><pre className="text-xs text-slate-300 bg-slate-800 p-3 rounded-lg overflow-x-auto">{JSON.stringify(selectedLog.metadata, null, 2)}</pre></div>)}
+              {selectedLog.description && (<div><p className="text-sm text-muted-foreground mb-1">Description</p><p className="text-foreground bg-muted p-3 rounded-lg">{selectedLog.description}</p></div>)}
+              {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (<div><p className="text-sm text-muted-foreground mb-1">Metadata</p><pre className="text-xs text-muted-foreground bg-muted p-3 rounded-lg overflow-x-auto">{JSON.stringify(selectedLog.metadata, null, 2)}</pre></div>)}
             </div>
           )}
           <DialogFooter><Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button></DialogFooter>

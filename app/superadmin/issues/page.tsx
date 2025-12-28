@@ -1111,10 +1111,10 @@ export default function SuperadminIssuesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell onClick={() => handleIssueClick(issue)}>
-                        <span className="text-sm text-slate-300 capitalize">{getCategoryLabel(issue.category)}</span>
+                        <span className="text-sm text-muted-foreground capitalize">{getCategoryLabel(issue.category)}</span>
                       </TableCell>
                       <TableCell onClick={() => handleIssueClick(issue)}>
-                        <span className="text-sm font-mono text-slate-300">{issue.module}</span>
+                        <span className="text-sm font-mono text-muted-foreground">{issue.module}</span>
                       </TableCell>
                       <TableCell onClick={() => handleIssueClick(issue)}>
                         <div className="flex items-center gap-2">
@@ -1123,18 +1123,18 @@ export default function SuperadminIssuesPage() {
                               <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-xs text-white font-medium">
                                 {issue.assignedTo.charAt(0).toUpperCase()}
                               </div>
-                              <span className="text-sm text-slate-300">{issue.assignedTo}</span>
+                              <span className="text-sm text-muted-foreground">{issue.assignedTo}</span>
                             </>
                           ) : (
-                            <span className="text-xs text-slate-500 italic">Unassigned</span>
+                            <span className="text-xs text-muted-foreground/50 italic">Unassigned</span>
                           )}
                         </div>
                       </TableCell>
                       <TableCell onClick={() => handleIssueClick(issue)}>
-                        <span className="text-sm text-slate-300">{issue.mentionCount || 1}×</span>
+                        <span className="text-sm text-muted-foreground">{issue.mentionCount || 1}×</span>
                       </TableCell>
                       <TableCell onClick={() => handleIssueClick(issue)}>
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-muted-foreground">
                           {new Date(issue.updatedAt).toLocaleDateString()}
                         </span>
                       </TableCell>
