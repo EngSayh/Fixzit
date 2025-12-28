@@ -12,8 +12,10 @@
  */
 
 // Re-export all icons from lucide-react
+// NOTE: Do NOT add explicit named exports like `export { Edit, Grid } from "lucide-react"`
+// The `export *` already re-exports all icons, and explicit named exports conflict with
+// optimizePackageImports which tries to resolve paths like lucide-react/dist/esm/icons/Edit
 export * from "lucide-react";
-export { Edit, Grid } from "lucide-react";
 
 // Re-export our custom Icon components and types
 export { Icon, IconButton, iconSizeMap, iconColorMap } from "./Icon";
