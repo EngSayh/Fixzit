@@ -2,12 +2,28 @@
  * @description Sends a broadcast notification (superadmin).
  * @route POST /api/superadmin/notifications/send
  * @access Private - Superadmin session required
+ * 
+ * @notes
+ * - NOTIFICATIONS_STUB=true (or NODE_ENV=development): Marks as queued but doesn't send
+ * - Production: Queues job for background worker to process
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { COLLECTIONS } from "@/lib/db/collections";
+
+/** Request body interface for type safety */
+interface SendNotificationRequest {
+  title?: string;
+  subject?: string;
+  message: string;
+  channels?: string[];
+  type?: string;
+  targetTenantId?: string;
+  targetUserIds?: string[];
+  userIds?: string[];
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,20 +36,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body: SendNotificationRequest = await req.json();
+    
     // Accept both naming conventions for flexibility
     const title = body.title || body.subject;
     const message = body.message;
-    const channels = body.channels || (body.type ? [body.type] : ["email"]);
-    const targetTenantId = body.targetTenantId;
-    const targetUserIds = body.targetUserIds || body.userIds || [];
-
+    
+    // Validate required fields
     if (!title || !message) {
       return NextResponse.json(
         { success: false, error: "Title/subject and message are required" },
         { status: 400 }
       );
     }
+    
+    // Validate channels is an array if provided
+    const rawChannels = body.channels ?? (body.type !== undefined ? [body.type] : ["email"]);
+    if (!Array.isArray(rawChannels)) {
+      return NextResponse.json(
+        { success: false, error: "channels must be an array" },
+        { status: 400 }
+      );
+    }
+    const channels = rawChannels.filter((ch): ch is string => typeof ch === "string");
+    
+    // Validate targetUserIds is an array if provided
+    const rawUserIds = body.targetUserIds ?? body.userIds ?? [];
+    if (!Array.isArray(rawUserIds)) {
+      return NextResponse.json(
+        { success: false, error: "targetUserIds/userIds must be an array" },
+        { status: 400 }
+      );
+    }
+    const targetUserIds = rawUserIds.filter((id): id is string => typeof id === "string");
+    
+    const targetTenantId = body.targetTenantId;
 
     const db = await getDatabase();
     const collection = db.collection(COLLECTIONS.NOTIFICATIONS);
@@ -67,23 +104,63 @@ export async function POST(req: NextRequest) {
      
     const result = await collection.insertOne(notification);
 
-    // In production, this would trigger actual notification sending
-    // For now, mark as sent for demo purposes
+    // STUB MODE: In development or when NOTIFICATIONS_STUB=true, mark as queued
+    // but don't actually send. In production, a background worker would:
+    // 1. Poll for status:"queued" notifications
+    // 2. Call provider SDKs (SendGrid, Twilio, etc.)
+    // 3. Update channelResults, metrics, status, and sentAt on completion
+    const isStubMode = process.env.NODE_ENV === "development" || 
+                       process.env.NOTIFICATIONS_STUB === "true";
+    
+    if (isStubMode) {
+      // Mark as queued - a background worker would process this
+      // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide notification update
+      await collection.updateOne(
+        { _id: result.insertedId },
+        {
+          $set: {
+            status: "queued",
+            queuedAt: new Date(),
+          },
+        }
+      );
+      
+      logger.info("[SUPERADMIN] Notification queued (stub mode)", {
+        notificationId: result.insertedId,
+        title,
+        channels,
+        actor: session.username,
+        stubMode: true,
+      });
+
+      return NextResponse.json({
+        success: true,
+        notificationId: result.insertedId,
+        message: "Notification queued for delivery",
+        status: "queued",
+      });
+    }
+
+    // TODO: Production mode - enqueue to job queue for background processing
+    // Example: await JobQueue.enqueue("notification:send", { 
+    //   notificationId: result.insertedId,
+    //   tenantId: targetTenantId,
+    //   channels 
+    // });
+    
+    // For now, mark as queued even in production until job queue is configured
     // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide notification update
     await collection.updateOne(
       { _id: result.insertedId },
       {
         $set: {
-          status: "sent",
-          sentAt: new Date(),
-          "channelResults.$[].status": "sent",
-          "metrics.attempted": 1,
-          "metrics.succeeded": 1,
+          status: "queued",
+          queuedAt: new Date(),
         },
       }
     );
 
-    logger.info("[SUPERADMIN] Notification sent", {
+    logger.info("[SUPERADMIN] Notification queued", {
       notificationId: result.insertedId,
       title,
       channels,
@@ -93,7 +170,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       notificationId: result.insertedId,
-      message: "Notification sent successfully",
+      message: "Notification queued for delivery",
+      status: "queued",
     });
   } catch (error) {
     logger.error("[SUPERADMIN] Send notification error", error);

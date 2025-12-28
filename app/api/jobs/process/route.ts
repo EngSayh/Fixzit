@@ -249,12 +249,23 @@ async function processS3Cleanup(job: Job): Promise<void> {
  *
  * Get job queue statistics
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request, {
+    requests: 30,
+    windowMs: 60_000,
+    keyPrefix: "jobs:stats",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
+    const superadminSession = await getSuperadminSession(request);
 
-    if (!session?.user?.isSuperAdmin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Allow both regular SUPER_ADMIN role and superadmin portal session
+    const isAuthorized = session?.user?.isSuperAdmin || !!superadminSession;
+
+    if (!isAuthorized) {
+      return NextResponse.json({ error: "Forbidden - Superadmin access required" }, { status: 403 });
     }
 
     const stats = await JobQueue.getStats();

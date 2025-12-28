@@ -543,19 +543,16 @@
 			"detail": "Stage all, commit (opens editor for message), and push"
 		},
 		{
-			"label": "Git Commit TEST-003",
+			"label": "Git Commit & Status",
 			"type": "shell",
-			"command": "git add -A; if ($?) { git commit -F commit-msg-temp.txt }; git status -s; git log --oneline -3"
+			"command": "git add -A && git commit && git status -s && git log --oneline -3",
+			"problemMatcher": [],
+			"detail": "Stage all, commit (opens editor for message), show status"
 		},
 		{
 			"label": "Git Push",
 			"type": "shell",
 			"command": "git push origin HEAD"
-		},
-		{
-			"label": "Git Preflight",
-			"type": "shell",
-			"command": "git fetch origin; git status -s; Write-Host '---'; git log --oneline -5; Write-Host '---'; git branch --show-current"
 		},
 		{
 			"label": "Typecheck Verify",

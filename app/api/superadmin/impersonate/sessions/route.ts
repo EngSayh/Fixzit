@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
     const session = await getSuperadminSession(request);
     if (!session) {
       return NextResponse.json(
-        { error: "Unauthorized - Superadmin access required" },
-        { status: 401 }
+        { error: "Forbidden - Superadmin access required" },
+        { status: 403 }
       );
     }
 

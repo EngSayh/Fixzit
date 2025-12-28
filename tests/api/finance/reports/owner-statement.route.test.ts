@@ -51,6 +51,10 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
+vi.mock("@/config/rbac.config", () => ({
+  requirePermission: vi.fn(),
+}));
+
 // ============================================================================
 // IMPORTS
 // ============================================================================
@@ -58,6 +62,7 @@ vi.mock("@/lib/logger", () => ({
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { ownerStatement } from "@/server/finance/reporting.service";
+import { requirePermission } from "@/config/rbac.config";
 
 // Dynamic import to ensure mocks are applied
 const importRoute = () => import("@/app/api/finance/reports/owner-statement/route");
@@ -152,6 +157,21 @@ describe("GET /api/finance/reports/owner-statement", () => {
     expect(res.status).toBe(401);
     const data = await res.json();
     expect(data.error).toContain("Unauthorized");
+  });
+
+  it("should verify RBAC permission for finance.reports.owner-statement", async () => {
+    (getSessionUser as Mock).mockResolvedValue(mockFinanceUser);
+    (ownerStatement as Mock).mockResolvedValue(mockOwnerStatementData);
+
+    const { GET } = await importRoute();
+    const req = createRequest({ propertyId: TEST_PROPERTY_ID });
+    await GET(req);
+
+    // Verify that requirePermission was called with correct role and permission
+    expect(requirePermission).toHaveBeenCalledWith(
+      mockFinanceUser.role,
+      "finance.reports.owner-statement"
+    );
   });
 
   it("should return 400 when propertyId is missing", async () => {

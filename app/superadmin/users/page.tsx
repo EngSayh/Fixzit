@@ -153,6 +153,7 @@ export default function SuperadminUsersPage() {
   
   // Bulk action state
   const [bulkStatus, setBulkStatus] = useState<string>("");
+  const [singleUserStatus, setSingleUserStatus] = useState<string>("");
   const [notificationMessage, setNotificationMessage] = useState("");
   const [notificationSubject, setNotificationSubject] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
@@ -774,7 +775,10 @@ export default function SuperadminUsersPage() {
       </Dialog>
 
       {/* Edit Status Dialog (Single User) */}
-      <Dialog open={editStatusDialogOpen} onOpenChange={setEditStatusDialogOpen}>
+      <Dialog open={editStatusDialogOpen} onOpenChange={(open) => {
+        setEditStatusDialogOpen(open);
+        if (!open) setSingleUserStatus(""); // Reset on close
+      }}>
         <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md">
           <DialogHeader>
             <DialogTitle>Change User Status</DialogTitle>
@@ -786,8 +790,8 @@ export default function SuperadminUsersPage() {
             <div className="space-y-2">
               <Label>New Status</Label>
               <Select 
-                value={bulkStatus} 
-                onValueChange={setBulkStatus}
+                value={singleUserStatus} 
+                onValueChange={setSingleUserStatus}
                 placeholder="Select status"
                 className="w-full bg-slate-800 border-slate-700 text-white"
               >
@@ -803,8 +807,8 @@ export default function SuperadminUsersPage() {
               Cancel
             </Button>
             <Button 
-              onClick={() => selectedUser && handleSingleStatusChange(selectedUser._id, bulkStatus)}
-              disabled={!bulkStatus || actionLoading}
+              onClick={() => selectedUser && handleSingleStatusChange(selectedUser._id, singleUserStatus)}
+              disabled={!singleUserStatus || actionLoading}
               className="bg-blue-600 hover:bg-blue-700"
             >
               {actionLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
@@ -815,7 +819,10 @@ export default function SuperadminUsersPage() {
       </Dialog>
 
       {/* Bulk Status Dialog */}
-      <Dialog open={bulkStatusDialogOpen} onOpenChange={setBulkStatusDialogOpen}>
+      <Dialog open={bulkStatusDialogOpen} onOpenChange={(open) => {
+        setBulkStatusDialogOpen(open);
+        if (!open) setBulkStatus(""); // Reset on close
+      }}>
         <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md">
           <DialogHeader>
             <DialogTitle>Bulk Status Change</DialogTitle>
@@ -915,12 +922,13 @@ export default function SuperadminUsersPage() {
               Confirm Deletion
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete {selectedIds.size} user{selectedIds.size !== 1 ? "s" : ""}? This action cannot be undone.
+              Are you sure you want to delete {selectedIds.size} user{selectedIds.size !== 1 ? "s" : ""}?
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-slate-400">
-              This will permanently remove the selected users and all their associated data.
+              This will mark the selected user{selectedIds.size !== 1 ? "s" : ""} as deleted and remove them from active lists. 
+              They can be restored from the deleted users view if needed.
             </p>
           </div>
           <DialogFooter>

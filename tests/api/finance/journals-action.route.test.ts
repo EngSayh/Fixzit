@@ -109,17 +109,24 @@ const mockPostedJournal = {
   postedBy: TEST_USER_ID,
 };
 
+const mockNoPermissionUser = {
+  id: TEST_USER_ID,
+  orgId: TEST_ORG_ID,
+  role: "VIEWER",
+  permissions: [], // No finance permissions
+};
+
 // ============================================================================
 // HELPERS
 // ============================================================================
 
 function createRequest(
-  method: string,
+  endpoint: "post" | "void",
   body?: Record<string, unknown>,
 ): NextRequest {
-  const url = `http://localhost:3000/api/finance/journals/${TEST_JOURNAL_ID}/${method === "POST" ? "post" : "void"}`;
+  const url = `http://localhost:3000/api/finance/journals/${TEST_JOURNAL_ID}/${endpoint}`;
   const init: RequestInit = {
-    method,
+    method: "POST",
     headers: { "Content-Type": "application/json" },
   };
   if (body) {
@@ -156,7 +163,7 @@ describe("POST /api/finance/journals/[id]/post", () => {
     (enforceRateLimit as Mock).mockReturnValue(rateLimitResponse);
 
     const { POST } = await importPostRoute();
-    const req = createRequest("POST");
+    const req = createRequest("post");
     const res = await POST(req, createRouteContext());
 
     expect(res.status).toBe(429);
@@ -166,12 +173,27 @@ describe("POST /api/finance/journals/[id]/post", () => {
     (getSessionUser as Mock).mockResolvedValue(null);
 
     const { POST } = await importPostRoute();
-    const req = createRequest("POST");
+    const req = createRequest("post");
     const res = await POST(req, createRouteContext());
 
     expect(res.status).toBe(401);
     const data = await res.json();
     expect(data.error).toContain("Unauthorized");
+  });
+
+  it("should return 403 when user lacks FINANCE:POST permission", async () => {
+    (getSessionUser as Mock).mockResolvedValue(mockNoPermissionUser);
+    (Journal.findOne as Mock).mockReturnValue({
+      lean: vi.fn().mockResolvedValue(mockDraftJournal),
+    });
+
+    const { POST } = await importPostRoute();
+    const req = createRequest("post");
+    const res = await POST(req, createRouteContext());
+
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toContain("Forbidden");
   });
 
   it("should return 404 when journal not found", async () => {
@@ -181,7 +203,7 @@ describe("POST /api/finance/journals/[id]/post", () => {
     });
 
     const { POST } = await importPostRoute();
-    const req = createRequest("POST");
+    const req = createRequest("post");
     const res = await POST(req, createRouteContext());
 
     expect(res.status).toBe(404);
@@ -196,7 +218,7 @@ describe("POST /api/finance/journals/[id]/post", () => {
     });
 
     const { POST } = await importPostRoute();
-    const req = createRequest("POST");
+    const req = createRequest("post");
     const res = await POST(req, createRouteContext());
 
     expect(res.status).toBe(409);
@@ -215,7 +237,7 @@ describe("POST /api/finance/journals/[id]/post", () => {
     });
 
     const { POST } = await importPostRoute();
-    const req = createRequest("POST");
+    const req = createRequest("post");
     const res = await POST(req, createRouteContext());
 
     expect(res.status).toBe(200);
@@ -250,7 +272,7 @@ describe("POST /api/finance/journals/[id]/void", () => {
     (enforceRateLimit as Mock).mockReturnValue(rateLimitResponse);
 
     const { POST } = await importVoidRoute();
-    const req = createRequest("POST", { reason: "Error correction" });
+    const req = createRequest("void", { reason: "Error correction" });
     const res = await POST(req, createRouteContext());
 
     expect(res.status).toBe(429);
@@ -260,17 +282,32 @@ describe("POST /api/finance/journals/[id]/void", () => {
     (getSessionUser as Mock).mockResolvedValue(null);
 
     const { POST } = await importVoidRoute();
-    const req = createRequest("POST", { reason: "Error correction" });
+    const req = createRequest("void", { reason: "Error correction" });
     const res = await POST(req, createRouteContext());
 
     expect(res.status).toBe(401);
+  });
+
+  it("should return 403 when user lacks FINANCE:VOID permission", async () => {
+    (getSessionUser as Mock).mockResolvedValue(mockNoPermissionUser);
+    (Journal.findOne as Mock).mockReturnValue({
+      lean: vi.fn().mockResolvedValue(mockPostedJournal),
+    });
+
+    const { POST } = await importVoidRoute();
+    const req = createRequest("void", { reason: "Error correction" });
+    const res = await POST(req, createRouteContext());
+
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toContain("Forbidden");
   });
 
   it("should return 400 when void reason is missing", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockFinanceUser);
 
     const { POST } = await importVoidRoute();
-    const req = createRequest("POST", {});
+    const req = createRequest("void", {});
     const res = await POST(req, createRouteContext());
 
     expect(res.status).toBe(400);
@@ -285,7 +322,7 @@ describe("POST /api/finance/journals/[id]/void", () => {
     });
 
     const { POST } = await importVoidRoute();
-    const req = createRequest("POST", { reason: "Error correction" });
+    const req = createRequest("void", { reason: "Error correction" });
     const res = await POST(req, createRouteContext());
 
     expect(res.status).toBe(404);
@@ -298,7 +335,7 @@ describe("POST /api/finance/journals/[id]/void", () => {
     });
 
     const { POST } = await importVoidRoute();
-    const req = createRequest("POST", { reason: "Error correction" });
+    const req = createRequest("void", { reason: "Error correction" });
     const res = await POST(req, createRouteContext());
 
     expect(res.status).toBe(409);
@@ -325,7 +362,7 @@ describe("POST /api/finance/journals/[id]/void", () => {
     });
 
     const { POST } = await importVoidRoute();
-    const req = createRequest("POST", { reason: "Duplicate entry correction" });
+    const req = createRequest("void", { reason: "Duplicate entry correction" });
     const res = await POST(req, createRouteContext());
 
     expect(res.status).toBe(200);
@@ -359,7 +396,7 @@ describe("POST /api/finance/journals/[id]/void", () => {
     });
 
     const { POST } = await importVoidRoute();
-    const req = createRequest("POST", { reason: "Vendor refund adjustment" });
+    const req = createRequest("void", { reason: "Vendor refund adjustment" });
     const res = await POST(req, createRouteContext());
 
     expect(res.status).toBe(200);

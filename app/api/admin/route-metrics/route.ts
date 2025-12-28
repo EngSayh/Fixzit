@@ -4,7 +4,7 @@
  * detection, health status, and historical snapshots for maintenance.
  * 
  * @module api/admin/route-metrics
- * @requires SUPER_ADMIN or ADMIN role
+ * @requires SUPER_ADMIN role
  * 
  * @endpoints
  * - GET /api/admin/route-metrics - Get route alias metrics
