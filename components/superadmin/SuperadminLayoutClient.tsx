@@ -48,16 +48,16 @@ export function SuperadminLayoutClient({
   // Show loading state while redirecting to login
   if (!isLoginPage && !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-slate-400">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">
             {showTimeout ? "Redirecting to login..." : "Verifying session..."}
           </p>
           {showTimeout && (
             <a
               href="/superadmin/login"
-              className="mt-4 inline-block text-blue-400 hover:text-blue-300 underline"
+              className="mt-4 inline-block text-primary hover:text-primary/80 underline"
             >
               Click here if not redirected
             </a>

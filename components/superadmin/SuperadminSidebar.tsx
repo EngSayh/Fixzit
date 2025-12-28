@@ -189,13 +189,13 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
     <TooltipProvider delayDuration={0}>
       <aside 
         className={cn(
-          "bg-slate-900 border-e border-slate-800 flex flex-col transition-all duration-300",
+          "bg-card border-e border-border flex flex-col transition-all duration-300",
           collapsed ? "w-16" : "w-64"
         )}
       >
         {/* Logo/Header */}
         <div className={cn(
-          "border-b border-slate-800 flex items-center",
+          "border-b border-border flex items-center",
           collapsed ? "p-3 justify-center" : "p-4"
         )}>
           {collapsed ? (
@@ -204,23 +204,23 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
                 <button 
                   type="button"
                   onClick={() => router.push("/superadmin")}
-                  className="p-2 rounded-lg hover:bg-slate-800"
+                  className="p-2 rounded-lg hover:bg-muted"
                 >
-                  <Shield className="h-6 w-6 text-blue-500" />
+                  <Shield className="h-6 w-6 text-primary" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="right" className="bg-slate-800 text-white border-slate-700">
+              <TooltipContent side="right" className="bg-popover text-popover-foreground border-border">
                 {t("superadmin.title")}
               </TooltipContent>
             </Tooltip>
           ) : (
             <div className="flex items-center gap-3 flex-1">
-              <Shield className="h-7 w-7 text-blue-500 flex-shrink-0" />
+              <Shield className="h-7 w-7 text-primary flex-shrink-0" />
               <div className="min-w-0">
-                <h2 className="text-white font-bold text-base truncate">
+                <h2 className="text-foreground font-bold text-base truncate">
                   {t("superadmin.title")}
                 </h2>
-                <p className="text-slate-400 text-xs truncate">
+                <p className="text-muted-foreground text-xs truncate">
                   {t("superadmin.controlCenter")}
                 </p>
               </div>
@@ -250,17 +250,17 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
                         className={cn(
                           "w-full flex items-center justify-center p-3 rounded-lg transition-colors",
                           groupActive
-                            ? "bg-blue-600/20 text-blue-400"
-                            : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                            ? "bg-primary/20 text-primary"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         )}
                       >
                         <GroupIcon className="h-5 w-5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-slate-800 text-white border-slate-700">
+                    <TooltipContent side="right" className="bg-popover text-popover-foreground border-border">
                       <div className="space-y-1">
                         <p className="font-medium">{t(group.labelKey, group.id)}</p>
-                        <div className="text-xs text-slate-400">
+                        <div className="text-xs text-muted-foreground">
                           {group.items.map(item => t(item.labelKey)).join(", ")}
                         </div>
                       </div>
@@ -273,8 +273,8 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
                     className={cn(
                       "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                       groupActive
-                        ? "bg-slate-800/50 text-white"
-                        : "text-slate-400 hover:bg-slate-800/30 hover:text-slate-300"
+                        ? "bg-muted/50 text-foreground"
+                        : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
                     )}
                   >
                     <GroupIcon className="h-4 w-4 flex-shrink-0" />
@@ -291,7 +291,7 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
 
                 {/* Group Items */}
                 {!collapsed && isExpanded && (
-                  <div className="ms-4 border-s border-slate-800 ps-2 space-y-0.5">
+                  <div className="ms-4 border-s border-border ps-2 space-y-0.5">
                     {group.items.map((item) => {
                       const Icon = item.icon;
                       const isActive = pathname === item.href;
@@ -305,14 +305,14 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
                           className={cn(
                             "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
                             isActive
-                              ? "bg-blue-600 text-white"
-                              : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                              ? "bg-primary text-primary-foreground"
+                              : "text-foreground/80 hover:bg-muted hover:text-foreground"
                           )}
                         >
                           <Icon className="h-4 w-4 flex-shrink-0" />
                           <span className="truncate">{label}</span>
                           {item.badge && (
-                            <span className="ms-auto bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+                            <span className="ms-auto bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
                               {item.badge}
                             </span>
                           )}
@@ -327,11 +327,11 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
         </nav>
 
         {/* Collapse Toggle & Footer */}
-        <div className="border-t border-slate-800 p-2">
+        <div className="border-t border-border p-2">
           <button
             type="button"
             onClick={toggleCollapsed}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             {collapsed ? (
               <PanelLeft className="h-5 w-5" />
@@ -343,7 +343,7 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
             )}
           </button>
           {!collapsed && (
-            <p className="text-xs text-slate-500 text-center mt-2">
+            <p className="text-xs text-muted-foreground text-center mt-2">
               Fixzit Superadmin v2.0
             </p>
           )}

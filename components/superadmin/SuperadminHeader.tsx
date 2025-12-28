@@ -57,7 +57,7 @@ function SuperadminLanguageDropdown() {
       value={active.language}
       onValueChange={handleChange}
       wrapperClassName="min-w-[160px]"
-      className="h-10 bg-slate-900 text-slate-100 border-slate-700 pe-9 ps-3"
+      className="h-10 bg-card text-foreground border-border pe-9 ps-3"
       data-testid="superadmin-language-dropdown"
     >
       {ENABLED_LOCALES.map((option) => (
@@ -127,12 +127,12 @@ export function SuperadminHeader() {
   };
 
   return (
-    <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6">
+    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
       {/* Title */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push("/")}
-          className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 transition hover:border-slate-700 hover:bg-slate-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-600"
+          className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 transition hover:border-border hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-primary"
           aria-label={t("superadmin.goToLanding", "Go to landing")}
           type="button"
         >
@@ -144,10 +144,10 @@ export function SuperadminHeader() {
           />
         </button>
         <div>
-          <h1 className="text-white font-semibold text-lg">
+          <h1 className="text-foreground font-semibold text-lg">
             {t("superadmin.title")}
           </h1>
-          <p className="text-slate-400 text-xs">
+          <p className="text-muted-foreground text-xs">
             {t("superadmin.fullAccess")}
           </p>
         </div>
@@ -155,7 +155,7 @@ export function SuperadminHeader() {
           variant="ghost"
           size="sm"
           onClick={() => router.push("/superadmin/tenants")}
-          className="text-slate-300 hover:text-white ms-2"
+          className="text-muted-foreground hover:text-foreground ms-2"
         >
           {t("superadmin.switchTenant", "Switch tenant")}
         </Button>
@@ -164,7 +164,7 @@ export function SuperadminHeader() {
       {/* Center: Global Search with Cmd+K hint */}
       <div className="flex items-center gap-3">
         <div className="relative">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={searchInputRef}
             type="text"
@@ -173,9 +173,9 @@ export function SuperadminHeader() {
             onChange={(e) => setGlobalSearch(e.target.value)}
             onKeyDown={handleSearchKeyDown}
             aria-label={t("superadmin.searchSuperadmin", "Search superadmin")}
-            className="ps-10 pe-16 w-64 h-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+            className="ps-10 pe-16 w-64 h-10 bg-muted border-border text-foreground placeholder:text-muted-foreground"
           />
-          <kbd className="absolute end-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded border border-slate-600">
+          <kbd className="absolute end-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-muted text-muted-foreground rounded border border-border">
             <Command className="inline h-3 w-3" />K
           </kbd>
         </div>
@@ -191,7 +191,7 @@ export function SuperadminHeader() {
             const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light';
             setTheme(next);
           }}
-          className="text-slate-300 hover:text-white"
+          className="text-muted-foreground hover:text-foreground"
           title={`Theme: ${theme} (click to change)`}
         >
           {theme === 'light' ? <Sun className="h-4 w-4" /> : theme === 'dark' ? <Moon className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
@@ -202,7 +202,7 @@ export function SuperadminHeader() {
           variant="ghost"
           size="sm"
           onClick={() => router.push("/superadmin/notifications")}
-          className="text-slate-300 hover:text-white relative"
+          className="text-muted-foreground hover:text-foreground relative"
           title="Notifications"
         >
           <Bell className="h-4 w-4" />
@@ -212,14 +212,14 @@ export function SuperadminHeader() {
         <SuperadminLanguageDropdown />
 
         {/* Currency Selector */}
-        <div className="text-slate-300">
+        <div className="text-muted-foreground">
           <CurrencySelector variant="compact" />
         </div>
 
         {/* User Badge */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-slate-800 rounded-lg border border-slate-700">
-          <User className="h-4 w-4 text-slate-400" />
-          <span className="text-white text-sm">{displayName}</span>
+        <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg border border-border">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <span className="text-foreground text-sm">{displayName}</span>
         </div>
 
         {/* Settings */}
@@ -227,7 +227,7 @@ export function SuperadminHeader() {
           variant="ghost"
           size="sm"
           onClick={() => router.push("/superadmin/system")}
-          className="text-slate-300 hover:text-white"
+          className="text-muted-foreground hover:text-foreground"
         >
           <Settings className="h-4 w-4" />
         </Button>
