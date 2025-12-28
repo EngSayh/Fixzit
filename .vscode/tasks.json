@@ -522,89 +522,25 @@
 			"command": "gh pr list --state all --limit 8 --json number,title,state"
 		},
 		{
-			"label": "Check Current State",
+			"label": "Git: Status & Log",
 			"type": "shell",
-			"command": "git branch --show-current; git status -s | Select-Object -First 10; Write-Host '---'; git log --oneline -3"
+			"command": "git status -s && echo --- && git log --oneline -5 && echo --- && git branch --show-current",
+			"problemMatcher": [],
+			"detail": "Show git status, recent commits, and current branch"
 		},
 		{
-			"label": "Git Commit Fixes",
+			"label": "Git: Preflight",
 			"type": "shell",
-			"command": "git add -A; git commit -m 'fix(api): TEST-004 JSON parse try-catch + PERF-001 maxTimeMS [AGENT-001-A]'; git log --oneline -3"
+			"command": "git fetch origin && git rev-list --left-right --count origin/main...HEAD",
+			"problemMatcher": [],
+			"detail": "Check if branch is behind/ahead of origin/main"
 		},
 		{
-			"label": "Git Push",
+			"label": "Git: Commit & Push",
 			"type": "shell",
-			"command": "git push origin HEAD"
-		},
-		{
-			"label": "Git Preflight Check",
-			"type": "shell",
-			"command": "git log --oneline -5; Write-Host '---'; git status -s; Write-Host '---'; git branch --show-current"
-		},
-		{
-			"label": "Git Preflight",
-			"type": "shell",
-			"command": "git fetch origin; git rev-list --left-right --count origin/main...HEAD"
-		},
-		{
-			"label": "Git Status and Log",
-			"type": "shell",
-			"command": "Write-Host 'Git Status:'; git status; Write-Host '---'; Write-Host 'Recent commits:'; git log --oneline -5"
-		},
-		{
-			"label": "Add All Files",
-			"type": "shell",
-			"command": "git add -A; git status"
-		},
-		{
-			"label": "Commit TEST-TIMEOUT-001",
-			"type": "shell",
-			"command": "git commit -m 'fix(test): TEST-TIMEOUT-001 mock JobQueue in work-order tests [AGENT-001-A]'"
-		},
-		{
-			"label": "Check After Commit",
-			"type": "shell",
-			"command": "Write-Host 'Waiting 10s for commit...'; Start-Sleep 10; git log --oneline -5; Write-Host '---'; git status"
-		},
-		{
-			"label": "Check Commit Details",
-			"type": "shell",
-			"command": "git log --oneline -6; Write-Host '---'; git diff --stat HEAD~1"
-		},
-		{
-			"label": "Show HEAD",
-			"type": "shell",
-			"command": "git log --oneline -1; Write-Host '---'; git show --stat --name-only HEAD"
-		},
-		{
-			"label": "Push TEST-TIMEOUT-001",
-			"type": "shell",
-			"command": "git push origin HEAD"
-		},
-		{
-			"label": "Commit PENDING_MASTER",
-			"type": "shell",
-			"command": "git add docs/PENDING_MASTER.md; git commit -m 'docs: TEST-TIMEOUT-001 completed [AGENT-001-A]'"
-		},
-		{
-			"label": "Final Check",
-			"type": "shell",
-			"command": "git log --oneline -5; Write-Host '---'; git status -s"
-		},
-		{
-			"label": "Wait and Check",
-			"type": "shell",
-			"command": "Start-Sleep 15; git log --oneline -3; Write-Host '---'; git status"
-		},
-		{
-			"label": "Push Docs",
-			"type": "shell",
-			"command": "git push origin HEAD; git log --oneline -5"
-		},
-		{
-			"label": "Stage All",
-			"type": "shell",
-			"command": "git add -A; git status -s"
+			"command": "git add -A && git status -s && git commit && git push origin HEAD",
+			"problemMatcher": [],
+			"detail": "Stage all, commit (opens editor for message), and push"
 		}
 	]
 }

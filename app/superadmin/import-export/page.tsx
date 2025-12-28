@@ -190,8 +190,8 @@ export default function SuperadminImportExportPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-800 border-slate-700">
-                        <SelectItem value="json"><div className="flex items-center gap-2"><FileJson className="h-4 w-4" />JSON</div></SelectItem>
-                        <SelectItem value="csv"><div className="flex items-center gap-2"><FileSpreadsheet className="h-4 w-4" />CSV (ZIP)</div></SelectItem>
+                        <SelectItem value="json">JSON</SelectItem>
+                        <SelectItem value="csv">CSV (ZIP)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

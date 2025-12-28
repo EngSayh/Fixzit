@@ -15,6 +15,7 @@ import { PlatformSettings } from "@/server/models/PlatformSettings";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { revalidatePath } from "next/cache";
 import { validatePublicHttpsUrl } from "@/lib/security/validate-public-https-url";
+import { setSuperAdminTenantContext, clearTenantContext } from "@/server/plugins/tenantIsolation";
 import { z } from "zod";
 
 const HEX_COLOR_REGEX = /^#(?:[0-9a-fA-F]{3}){1,2}$/;
@@ -80,38 +81,47 @@ export async function GET(request: NextRequest) {
 
     await connectDb();
 
-    // Get default platform settings (no orgId = global)
-    // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document; SUPER_ADMIN: global platform settings
-    let settings = await PlatformSettings.findOne({ orgId: { $exists: false } });
-
-    // If no settings exist, create default
-    if (!settings) {
-      // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: global platform settings
-      settings = await PlatformSettings.create({
-        logoUrl: "/img/fixzit-logo.png",
-        brandName: "Fixzit Enterprise",
-        brandColor: "#0061A8",
-        // createdBy/updatedBy are set by auditPlugin
-      });
-      logger.info("Created default platform settings", { username: session.username });
-    }
-
-    const settingsWithAudit = settings as unknown as PlatformSettingsWithAudit;
-    return NextResponse.json({
-      success: true,
-      data: {
-        logoUrl: settings.logoUrl,
-        logoStorageKey: settings.logoStorageKey,
-        logoFileName: settings.logoFileName,
-        logoMimeType: settings.logoMimeType,
-        logoFileSize: settings.logoFileSize,
-        faviconUrl: settings.faviconUrl,
-        brandName: settings.brandName,
-        brandColor: settings.brandColor,
-        updatedAt: settings.updatedAt,
-        updatedBy: settingsWithAudit.updatedBy || "system",
-      },
+    // Set superadmin tenant context to bypass tenant isolation for global settings
+    setSuperAdminTenantContext("global", session.username || "superadmin", {
+      skipTenantFilter: true,
     });
+
+    try {
+      // Get default platform settings (no orgId = global)
+      // eslint-disable-next-line local/require-lean -- NO_LEAN: needs document; SUPER_ADMIN: global platform settings
+      let settings = await PlatformSettings.findOne({ orgId: { $exists: false } });
+
+      // If no settings exist, create default
+      if (!settings) {
+        // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: global platform settings
+        settings = await PlatformSettings.create({
+          logoUrl: "/img/fixzit-logo.png",
+          brandName: "Fixzit Enterprise",
+          brandColor: "#0061A8",
+          // createdBy/updatedBy are set by auditPlugin
+        });
+        logger.info("Created default platform settings", { username: session.username });
+      }
+
+      const settingsWithAudit = settings as unknown as PlatformSettingsWithAudit;
+      return NextResponse.json({
+        success: true,
+        data: {
+          logoUrl: settings.logoUrl,
+          logoStorageKey: settings.logoStorageKey,
+          logoFileName: settings.logoFileName,
+          logoMimeType: settings.logoMimeType,
+          logoFileSize: settings.logoFileSize,
+          faviconUrl: settings.faviconUrl,
+          brandName: settings.brandName,
+          brandColor: settings.brandColor,
+          updatedAt: settings.updatedAt,
+          updatedBy: settingsWithAudit.updatedBy || "system",
+        },
+      });
+    } finally {
+      clearTenantContext();
+    }
   } catch (error) {
     logger.error("Failed to fetch platform branding", { error });
     return NextResponse.json(
@@ -145,7 +155,13 @@ export async function PATCH(request: NextRequest) {
 
     await connectDb();
 
-    // Parse and validate request body
+    // Set superadmin tenant context to bypass tenant isolation for global settings
+    setSuperAdminTenantContext("global", session.username || "superadmin", {
+      skipTenantFilter: true,
+    });
+
+    try {
+      // Parse and validate request body
     let rawBody: any;
     try {
       rawBody = await request.json();
@@ -242,22 +258,25 @@ export async function PATCH(request: NextRequest) {
     }
 
     const settingsWithAudit = settings as unknown as PlatformSettingsWithAudit;
-    return NextResponse.json({
-      success: true,
-      data: {
-        logoUrl: settings.logoUrl,
-        logoStorageKey: settings.logoStorageKey,
-        logoFileName: settings.logoFileName,
-        logoMimeType: settings.logoMimeType,
-        logoFileSize: settings.logoFileSize,
-        faviconUrl: settings.faviconUrl,
-        brandName: settings.brandName,
-        brandColor: settings.brandColor,
-        updatedAt: settings.updatedAt,
-        updatedBy: settingsWithAudit.updatedBy || session.username,
-      },
-      message: "Branding settings updated successfully",
-    });
+      return NextResponse.json({
+        success: true,
+        data: {
+          logoUrl: settings.logoUrl,
+          logoStorageKey: settings.logoStorageKey,
+          logoFileName: settings.logoFileName,
+          logoMimeType: settings.logoMimeType,
+          logoFileSize: settings.logoFileSize,
+          faviconUrl: settings.faviconUrl,
+          brandName: settings.brandName,
+          brandColor: settings.brandColor,
+          updatedAt: settings.updatedAt,
+          updatedBy: settingsWithAudit.updatedBy || session.username,
+        },
+        message: "Branding settings updated successfully",
+      });
+    } finally {
+      clearTenantContext();
+    }
   } catch (error) {
     logger.error("Failed to update platform branding", { error });
     return NextResponse.json(
