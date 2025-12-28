@@ -1,0 +1,103 @@
+/**
+ * @fileoverview Superadmin Bulk User Delete API
+ * @description POST endpoint for deleting multiple users at once
+ * @route POST /api/superadmin/users/bulk-delete
+ * @access Superadmin only
+ * @module api/superadmin/users/bulk-delete
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSuperadminSession } from "@/lib/superadmin/auth";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+import { connectDb } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
+
+const BulkDeleteSchema = z.object({
+  userIds: z.array(z.string()).min(1, "At least one user ID is required"),
+});
+
+/**
+ * POST /api/superadmin/users/bulk-delete
+ * Delete multiple users (soft delete by setting status to DELETED)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Verify superadmin session
+    const session = await getSuperadminSession(request);
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized - Superadmin access required" },
+        { status: 401 }
+      );
+    }
+
+    // Parse and validate request body
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
+
+    const validation = BulkDeleteSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error.issues[0]?.message || "Invalid request" },
+        { status: 400 }
+      );
+    }
+
+    const { userIds } = validation.data;
+
+    // Connect to database
+    await connectDb();
+
+    // Prevent deleting superadmin users
+    const superadminCheck = await User.countDocuments({
+      _id: { $in: userIds },
+      isSuperAdmin: true,
+    });
+
+    if (superadminCheck > 0) {
+      return NextResponse.json(
+        { error: "Cannot delete superadmin users" },
+        { status: 400 }
+      );
+    }
+
+    // Soft delete - set status to DELETED (or hard delete if needed)
+    // Using soft delete for audit trail
+    const result = await User.updateMany(
+      { _id: { $in: userIds }, isSuperAdmin: { $ne: true } },
+      { 
+        $set: { 
+          status: "DELETED",
+          deletedAt: new Date(),
+          deletedBy: session.username,
+        } 
+      }
+    );
+
+    logger.info("Bulk user delete completed", {
+      superadminUsername: session.username,
+      requestedCount: userIds.length,
+      deletedCount: result.modifiedCount,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Deleted ${result.modifiedCount} users`,
+      deletedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    logger.error("Failed to bulk delete users", { error });
+    return NextResponse.json(
+      { error: "Failed to delete users" },
+      { status: 500 }
+    );
+  }
+}
