@@ -142,6 +142,67 @@ export async function getSuperadminSession(request: NextRequest): Promise<Supera
 }
 
 /**
+ * Debug version of getSuperadminSession that returns diagnostic info
+ * Used for troubleshooting auth issues in middleware
+ */
+export async function getSuperadminSessionWithDebug(request: NextRequest): Promise<{
+  session: SuperadminSession | null;
+  debug: {
+    hasCookieValue: boolean;
+    cookieLength: number;
+    hasJwtSecret: boolean;
+    decodeError?: string;
+  };
+}> {
+  const cookieValue =
+    request.cookies.get(SUPERADMIN_COOKIE_NAME)?.value ||
+    request.cookies.get(`${SUPERADMIN_COOKIE_NAME}.legacy`)?.value;
+
+  const debug = {
+    hasCookieValue: !!cookieValue,
+    cookieLength: cookieValue?.length || 0,
+    hasJwtSecret: !!jwtSecret,
+    decodeError: undefined as string | undefined,
+  };
+
+  if (!cookieValue) {
+    return { session: null, debug };
+  }
+
+  if (!jwtSecret) {
+    debug.decodeError = 'no_jwt_secret';
+    return { session: null, debug };
+  }
+
+  try {
+    const { payload } = await jwtVerify(cookieValue, jwtSecret);
+    if (payload.role !== "super_admin" || !payload.sub || !payload.orgId) {
+      debug.decodeError = 'payload_validation_failed';
+      return { session: null, debug };
+    }
+
+    if (typeof payload.exp !== "number") {
+      debug.decodeError = 'missing_expiration';
+      return { session: null, debug };
+    }
+
+    return {
+      session: {
+        username: String(payload.sub),
+        role: "super_admin",
+        orgId: String(payload.orgId),
+        issuedAt: (payload.iat || 0) * 1000,
+        expiresAt: payload.exp * 1000,
+      },
+      debug,
+    };
+  } catch (error) {
+    debug.decodeError = error instanceof Error ? error.message : String(error);
+    return { session: null, debug };
+  }
+}
+
+/**
  * Check if client IP is in the superadmin allowlist
  * Edge Runtime safe - no crypto needed
  */

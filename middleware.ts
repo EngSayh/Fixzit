@@ -5,7 +5,7 @@ import { isOriginAllowed } from '@/lib/security/cors-allowlist';
 import { logSecurityEvent } from '@/lib/monitoring/security-events';
 import { getClientIP } from '@/server/security/headers';
 // Edge-safe imports - these don't use Node.js crypto module
-import { getSuperadminSession, isIpAllowed as isSuperadminIpAllowed, hasJwtSecretConfigured } from '@/lib/superadmin/auth.edge';
+import { getSuperadminSessionWithDebug, isIpAllowed as isSuperadminIpAllowed } from '@/lib/superadmin/auth.edge';
 import {
   AUTH_ROUTES,
   MARKETING_ROUTES,
@@ -334,9 +334,9 @@ export async function middleware(request: NextRequest) {
     // Also check the Cookie header directly for debugging
     const cookieHeader = sanitizedRequest.headers.get('cookie') || '';
     const hasCookieHeader = cookieHeader.includes('superadmin_session');
-    const hasSecret = hasJwtSecretConfigured();
     
-    const session = await getSuperadminSession(sanitizedRequest);
+    // Use debug version to capture detailed error info
+    const { session, debug } = await getSuperadminSessionWithDebug(sanitizedRequest);
     const isExpired = session ? session.expiresAt < Date.now() : true;
 
     if (!session || isExpired) {
@@ -352,7 +352,11 @@ export async function middleware(request: NextRequest) {
       redirectUrl.searchParams.set('had_cookie', hasCookie ? '1' : '0');
       redirectUrl.searchParams.set('cookie_len', String(cookieLength));
       redirectUrl.searchParams.set('hdr', hasCookieHeader ? '1' : '0');
-      redirectUrl.searchParams.set('sec', hasSecret ? '1' : '0');
+      redirectUrl.searchParams.set('sec', debug.hasJwtSecret ? '1' : '0');
+      if (debug.decodeError) {
+        // Truncate error to fit in URL (max 50 chars)
+        redirectUrl.searchParams.set('err', debug.decodeError.slice(0, 50));
+      }
       return NextResponse.redirect(redirectUrl);
     }
 
