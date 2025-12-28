@@ -2,6 +2,313 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-28 15:30 (Asia/Riyadh) — SUPERADMIN ENHANCEMENT MASTER PLAN
+
+**Agent Token:** [AGENT-001-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 4da3354ff (pushed)
+**Session Summary:** Completed theme token conversion for ALL superadmin pages (zero remaining slate patterns). Created comprehensive Super Admin Enhancement Plan based on world-class FM platform benchmarking.
+**DB Sync:** created=24, updated=6, skipped=0, errors=0
+
+---
+
+### ✅ THEME TOKEN CONVERSION: COMPLETE
+
+**Status:** ✅ ALL DONE - Zero `slate-[0-9]` patterns remaining in superadmin pages.
+
+| Batch | Commit | Files Changed | Description |
+|-------|--------|---------------|-------------|
+| 1 | `6856c0b25` | 4 S-effort pages | Prior session |
+| 2 | `a66f256e4` | 7 M-effort pages | Prior session |
+| 3 | `eb189aa37` | 2 L-effort pages | Prior session |
+| 4 | `caf23615b` | integrations, vendors, billing | P3 pages |
+| 5 | `91ceadcb6` | analytics, support, issues | XL-effort pages |
+| 6 | `52d0b74c9` | audit, billing, issues, security, system, translations | Final cleanup |
+| API | `4da3354ff` | jobs/process, notifications | Error handling improvements |
+
+**Theme Token Reference (Centralized):**
+
+| Hardcoded (BANNED) | Theme Token (REQUIRED) | CSS Variable |
+|--------------------|------------------------|--------------|
+| `bg-slate-900` | `bg-card` | `--card` |
+| `bg-slate-800` | `bg-muted` | `--muted` |
+| `bg-slate-800/50` | `bg-muted/50` | `--muted` @50% |
+| `border-slate-800` | `border-border` | `--border` |
+| `border-slate-700` | `border-input` | `--input` |
+| `text-slate-400` | `text-muted-foreground` | `--muted-foreground` |
+| `text-slate-300` | `text-muted-foreground` | `--muted-foreground` |
+| `text-slate-500` | `text-muted-foreground/50` | `--muted-foreground` @50% |
+| `text-white` | `text-foreground` | `--foreground` |
+| `hover:bg-slate-700` | `hover:bg-muted` | `--muted` |
+| `hover:bg-slate-800/50` | `hover:bg-muted/50` | `--muted` @50% |
+
+**Admin Theme Reference:** Theme tokens are defined in:
+- `app/globals.css` - CSS variable definitions
+- `providers/theme-provider.tsx` - ThemeProvider context
+- `tailwind.config.js` - Tailwind theme extension
+
+---
+
+## 🎯 SUPERADMIN ENHANCEMENT MASTER PLAN
+
+### 1. CURRENT STATE SUMMARY
+
+| Category | Status | Notes |
+|----------|--------|-------|
+| Authentication | ✅ SECURE | Env-based login, OTP, IP allowlist, JWT session |
+| Theme System | ✅ COMPLETE | All pages use theme tokens |
+| Working Pages (4/15) | ✅ LIVE | Issues, System, Impersonate, Search |
+| Placeholder Pages (11/15) | ⏳ PLANNED | Tenants, Users, Audit, Roles, Features, Integrations, Jobs, Billing, Translations, Database, Security |
+| RTL Support | ✅ READY | Layout flips correctly for Arabic |
+| Multi-tenant | ✅ ISOLATED | Superadmin above tenant isolation |
+
+### 2. GAP ANALYSIS (By Priority)
+
+#### 2.1 P0 - CRITICAL SECURITY/COMPLIANCE
+
+| ID | Gap | Current | Target | Effort |
+|----|-----|---------|--------|--------|
+| SA-SEC-001 | Single superadmin account only | Env vars | Multi-account support | M |
+| SA-AUDIT-001 | Audit logs exist but no UI | DB only | Full UI viewer with filters | L |
+| SA-EXPORT-001 | No compliance data export | None | Export for GDPR/audits | M |
+
+#### 2.2 P1 - ESSENTIAL ADMIN OPERATIONS
+
+| ID | Gap | Current | Target | Effort |
+|----|-----|---------|--------|--------|
+| SA-TENANT-001 | Tenants page is placeholder | Placeholder | Full CRUD, suspend, tier mgmt | L |
+| SA-USER-001 | Users page is placeholder | Placeholder | Full CRUD, role change, bulk actions | L |
+| SA-DASH-001 | No superadmin dashboard | None | System health, metrics, alerts | XL |
+| SA-IMPERSONATE-002 | No user-level impersonation | Org only | Per-user impersonation option | M |
+| SA-BACKUP-001 | No backup visibility | None | Last backup status, trigger backup | S |
+
+#### 2.3 P2 - MONITORING & OPERATIONS
+
+| ID | Gap | Current | Target | Effort |
+|----|-----|---------|--------|--------|
+| SA-JOBS-001 | Jobs page simulated | Simulated | Real job queue monitoring | L |
+| SA-NOTIFY-001 | No system alerts | None | Alert center for failures/issues | M |
+| SA-ANALYTICS-001 | Analytics placeholder | Placeholder | Real platform metrics | XL |
+| SA-SECURITY-001 | No security settings UI | Hardcoded | IP allowlist, rate limits UI | M |
+| SA-MAINTAIN-001 | No maintenance mode | None | Toggle maintenance mode | S |
+
+#### 2.4 P3 - ADVANCED FEATURES
+
+| ID | Gap | Current | Target | Effort |
+|----|-----|---------|--------|--------|
+| SA-BILLING-001 | Billing placeholder | Placeholder | Stripe integration, subscriptions | XL |
+| SA-INTEGRATE-001 | Integrations placeholder | Placeholder | API keys, webhooks, test conn | L |
+| SA-FEATURE-001 | Feature flags basic | Basic | Per-tenant feature toggles | M |
+| SA-TRANSLATE-001 | Translations hardcoded | Hardcoded | Real i18n key management | L |
+| SA-DATABASE-001 | Database page simulated | Simulated | Real collection stats, indexes | M |
+
+---
+
+### 3. PHASED IMPLEMENTATION PLAN
+
+#### PHASE 1: QUICK WINS (Week 1-2) - Est. 40h
+
+| ID | Task | Files | Effort | Dependencies |
+|----|------|-------|--------|--------------|
+| P1-001 | Complete Tenants Management Page | `app/superadmin/tenants/page.tsx`, API routes | L (12h) | None |
+| P1-002 | Complete Users Management Page | `app/superadmin/users/page.tsx`, API routes | L (12h) | P1-001 |
+| P1-003 | Implement Audit Log Viewer | `app/superadmin/audit/page.tsx`, `api/superadmin/audit` | M (8h) | None |
+| P1-004 | Add Impersonation Banner & Exit | `components/superadmin/ImpersonationBanner.tsx` | S (4h) | None |
+| P1-005 | Add Bulk Actions to Tables | `components/ui/BulkActionsBar.tsx` | S (4h) | P1-001, P1-002 |
+
+**Deliverables:**
+- Tenants: List, search, filter, create, suspend/activate, change tier
+- Users: List, search, filter, role change, activate/deactivate, bulk actions
+- Audit: Filter by user/org/action/date, pagination, export CSV
+- UX: Clear impersonation indicator, one-click exit
+
+#### PHASE 2: COMMAND CENTER (Week 3-4) - Est. 60h
+
+| ID | Task | Files | Effort | Dependencies |
+|----|------|-------|--------|--------------|
+| P2-001 | Super Admin Dashboard Home | `app/superadmin/dashboard/page.tsx` | XL (16h) | P1-001, P1-002 |
+| P2-002 | System Health Indicators | `api/superadmin/health`, dashboard integration | M (8h) | P2-001 |
+| P2-003 | Security Settings Page | `app/superadmin/security/page.tsx` complete | M (8h) | None |
+| P2-004 | Jobs Queue Real Monitoring | `app/superadmin/jobs/page.tsx`, `api/superadmin/jobs` | L (12h) | None |
+| P2-005 | Notification/Alert Center | `app/superadmin/notifications/page.tsx` complete | M (8h) | None |
+| P2-006 | Command Palette (Cmd+K) | `components/superadmin/CommandPalette.tsx` | M (8h) | None |
+
+**Deliverables:**
+- Dashboard: Tenant count, active users, open WOs, system health, alerts
+- Monitoring: Real-time job status, error logs, API metrics
+- UX: Keyboard shortcuts, saved filters, inline editing
+
+#### PHASE 3: ENTERPRISE FEATURES (Week 5-8) - Est. 120h
+
+| ID | Task | Files | Effort | Dependencies |
+|----|------|-------|--------|--------------|
+| P3-001 | Billing & Stripe Integration | `app/superadmin/billing/page.tsx`, Stripe API | XL (24h) | P1-001 |
+| P3-002 | Multi-Account Super Admin | Auth system updates | L (12h) | P1-002 |
+| P3-003 | Integrations Management | `app/superadmin/integrations/page.tsx` complete | L (12h) | None |
+| P3-004 | Feature Flags Per-Tenant | `app/superadmin/features/page.tsx`, tenant config | M (8h) | P1-001 |
+| P3-005 | Translations CRUD | `app/superadmin/translations/page.tsx`, i18n API | L (12h) | None |
+| P3-006 | Database Tools | `app/superadmin/database/page.tsx`, MongoDB stats | L (12h) | None |
+| P3-007 | Import/Export Tools | `app/superadmin/import-export/page.tsx` | XL (16h) | P1-001 |
+| P3-008 | Analytics Platform Metrics | `app/superadmin/analytics/page.tsx` complete | XL (16h) | P2-001 |
+| P3-009 | Maintenance Mode Toggle | Security page, middleware update | S (4h) | P2-003 |
+| P3-010 | Backup Status & Trigger | Database page, MongoDB Atlas API | S (4h) | P3-006 |
+
+**Deliverables:**
+- Billing: Subscription management, plan changes, payment status
+- Security: Multi-admin, IP management, session control
+- Ops: Full monitoring, backup visibility, maintenance mode
+
+---
+
+### 4. TECHNICAL ARCHITECTURE UPDATES
+
+#### 4.1 New API Endpoints Required
+
+```
+POST /api/superadmin/tenants          - Create tenant
+PATCH /api/superadmin/tenants/[id]    - Update tenant (suspend/tier)
+DELETE /api/superadmin/tenants/[id]   - Archive tenant
+
+POST /api/superadmin/users            - Create user
+PATCH /api/superadmin/users/[id]      - Update user (role/status)
+DELETE /api/superadmin/users/[id]     - Deactivate user
+POST /api/superadmin/users/bulk       - Bulk actions
+
+GET /api/superadmin/audit             - List audit logs with filters
+GET /api/superadmin/audit/export      - Export audit logs CSV
+
+GET /api/superadmin/dashboard/stats   - Dashboard summary
+GET /api/superadmin/health/detailed   - Detailed health check
+
+POST /api/superadmin/impersonate/user - User-level impersonation
+DELETE /api/superadmin/impersonate    - Exit impersonation
+
+POST /api/superadmin/maintenance      - Toggle maintenance mode
+GET /api/superadmin/backup/status     - Backup status
+POST /api/superadmin/backup/trigger   - Trigger backup
+```
+
+#### 4.2 New Data Models Required
+
+```typescript
+// Add to existing models or create new
+
+interface TenantQuota {
+  tenantId: string;
+  storageUsedMB: number;
+  storageLimitMB: number;
+  userCount: number;
+  userLimit: number;
+  apiCallsMonth: number;
+  apiCallLimit: number;
+}
+
+interface SystemAlert {
+  _id: string;
+  type: 'error' | 'warning' | 'info';
+  source: string;
+  message: string;
+  metadata: Record<string, unknown>;
+  isRead: boolean;
+  createdAt: Date;
+}
+
+interface MaintenanceMode {
+  enabled: boolean;
+  message: string;
+  enabledBy: string;
+  enabledAt: Date;
+}
+```
+
+#### 4.3 Component Library Additions
+
+```
+components/superadmin/
+├── Dashboard/
+│   ├── StatCard.tsx
+│   ├── HealthIndicator.tsx
+│   ├── RecentActivityFeed.tsx
+│   └── AlertsPanel.tsx
+├── ImpersonationBanner.tsx
+├── CommandPalette.tsx
+├── BulkActionsBar.tsx
+├── SavedFiltersDropdown.tsx
+└── ExportButton.tsx
+```
+
+---
+
+### 5. VERIFICATION CHECKLIST (Per Phase)
+
+#### Phase 1 Verification
+
+```
+□ Tenants page lists all orgs with correct data
+□ Create tenant flow works (org + admin user + invite email)
+□ Suspend tenant prevents user login
+□ Change tier updates DB and UI
+□ Users page lists all users, filters work
+□ Role change persists and logs audit entry
+□ Deactivate user prevents login
+□ Audit log page shows all actions with filters
+□ Audit export downloads correct CSV
+□ Impersonation banner visible when active
+□ Exit impersonation works and logs
+□ Bulk actions apply to all selected
+□ All new APIs return 401 for non-superadmin
+□ RTL works on all new pages
+□ pnpm typecheck: 0 errors
+□ pnpm lint: 0 errors
+```
+
+#### Phase 2 Verification
+
+```
+□ Dashboard shows accurate counts
+□ Health indicators respond to errors
+□ Jobs page shows real queue status
+□ Notifications show system alerts
+□ Command palette navigates correctly
+□ Security settings save and apply
+□ Rate limit changes take effect
+□ All interactive elements keyboard accessible
+```
+
+#### Phase 3 Verification
+
+```
+□ Stripe integration syncs subscriptions
+□ Multiple superadmins can login
+□ Integrations can store/update API keys
+□ Feature flags toggle per-tenant
+□ Translations CRUD works
+□ Database shows real collection stats
+□ Import/Export handles large datasets
+□ Analytics shows real metrics
+□ Maintenance mode blocks non-admin users
+□ Backup status displays correctly
+```
+
+---
+
+### 6. BENCHMARKING: INDUSTRY BEST PRACTICES
+
+Based on analysis of IBM Maximo, Archibus, ServiceChannel, and UpKeep:
+
+| Capability | IBM Maximo | ServiceChannel | Fixzit Target |
+|------------|------------|----------------|---------------|
+| Multi-tenant impersonation | ✅ | ✅ | ✅ Phase 1 |
+| User-level impersonation | ✅ | ✅ | ✅ Phase 2 |
+| Comprehensive audit logs | ✅ | ✅ | ✅ Phase 1 |
+| Global dashboard | ✅ | ✅ | ✅ Phase 2 |
+| Tenant/user CRUD | ✅ | ✅ | ✅ Phase 1 |
+| Billing integration | ✅ | ✅ | ✅ Phase 3 |
+| Feature flags | ✅ | ⚠️ | ✅ Phase 3 |
+| SIEM integration | ✅ | ⚠️ | ⏳ Future |
+| E-signatures | ✅ | ❌ | ⏳ Future |
+
+---
+
 ## 📅 2025-12-29 02:00 (Asia/Riyadh) — AGENTS.MD UPDATE + THREE-PERSPECTIVE ANALYSIS
 
 **Agent Token:** [AGENT-001-A]
@@ -84,6 +391,7 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 | 20 | app/superadmin/impersonate/page.tsx | S | Low | P3 |
 
 **Theme Token Mapping (Reference):**
+
 | Hardcoded | Theme Token |
 |-----------|-------------|
 | bg-slate-900 | bg-card |
