@@ -38,16 +38,16 @@ export type AssetLabel = {
 
 /** Labels for asset types with fm.assets translation keys. */
 export const ASSET_TYPE_LABELS: Record<AssetType, AssetLabel> = {
-  HVAC: { en: 'HVAC', ar: 'تكييف وتبريد', tKey: 'assetType.HVAC' },
-  ELECTRICAL: { en: 'Electrical', ar: 'كهربائي', tKey: 'assetType.ELECTRICAL' },
-  PLUMBING: { en: 'Plumbing', ar: 'سباكة', tKey: 'assetType.PLUMBING' },
-  SECURITY: { en: 'Security', ar: 'أمن', tKey: 'assetType.SECURITY' },
-  ELEVATOR: { en: 'Elevator', ar: 'مصعد', tKey: 'assetType.ELEVATOR' },
-  GENERATOR: { en: 'Generator', ar: 'مولد', tKey: 'assetType.GENERATOR' },
-  FIRE_SYSTEM: { en: 'Fire System', ar: 'نظام إطفاء', tKey: 'assetType.FIRE_SYSTEM' },
-  IT_EQUIPMENT: { en: 'IT Equipment', ar: 'معدات تقنية', tKey: 'assetType.IT_EQUIPMENT' },
-  VEHICLE: { en: 'Vehicle', ar: 'مركبة', tKey: 'assetType.VEHICLE' },
-  OTHER: { en: 'Other', ar: 'أخرى', tKey: 'assetType.OTHER' },
+  HVAC: { en: 'HVAC', ar: 'تكييف وتبريد', tKey: 'filters.types.hvac' },
+  ELECTRICAL: { en: 'Electrical', ar: 'كهربائي', tKey: 'filters.types.electrical' },
+  PLUMBING: { en: 'Plumbing', ar: 'سباكة', tKey: 'filters.types.plumbing' },
+  SECURITY: { en: 'Security', ar: 'أمن', tKey: 'filters.types.security' },
+  ELEVATOR: { en: 'Elevator', ar: 'مصعد', tKey: 'filters.types.elevator' },
+  GENERATOR: { en: 'Generator', ar: 'مولد', tKey: 'filters.types.generator' },
+  FIRE_SYSTEM: { en: 'Fire System', ar: 'نظام إطفاء', tKey: 'filters.types.fireSystem' },
+  IT_EQUIPMENT: { en: 'IT Equipment', ar: 'معدات تقنية', tKey: 'filters.types.itEquipment' },
+  VEHICLE: { en: 'Vehicle', ar: 'مركبة', tKey: 'filters.types.vehicle' },
+  OTHER: { en: 'Other', ar: 'أخرى', tKey: 'filters.types.other' },
 };
 
 // ============================================================================
@@ -67,10 +67,10 @@ export type AssetStatus = (typeof ASSET_STATUSES)[number];
 
 /** Labels for asset statuses with fm.assets translation keys. */
 export const ASSET_STATUS_LABELS: Record<AssetStatus, AssetLabel> = {
-  ACTIVE: { en: 'Active', ar: 'نشط', tKey: 'status.ACTIVE' },
-  MAINTENANCE: { en: 'Maintenance', ar: 'صيانة', tKey: 'status.MAINTENANCE' },
-  OUT_OF_SERVICE: { en: 'Out of Service', ar: 'خارج الخدمة', tKey: 'status.OUT_OF_SERVICE' },
-  DECOMMISSIONED: { en: 'Decommissioned', ar: 'مسحوب', tKey: 'status.DECOMMISSIONED' },
+  ACTIVE: { en: 'Active', ar: 'نشط', tKey: 'status.active' },
+  MAINTENANCE: { en: 'Maintenance', ar: 'صيانة', tKey: 'status.maintenance' },
+  OUT_OF_SERVICE: { en: 'Out of Service', ar: 'خارج الخدمة', tKey: 'status.outOfService' },
+  DECOMMISSIONED: { en: 'Decommissioned', ar: 'مسحوب', tKey: 'status.decommissioned' },
 };
 
 // ============================================================================
@@ -90,10 +90,10 @@ export type AssetCriticality = (typeof ASSET_CRITICALITY_LEVELS)[number];
 
 /** Labels for asset criticality with fm.assets translation keys. */
 export const ASSET_CRITICALITY_LABELS: Record<AssetCriticality, AssetLabel> = {
-  LOW: { en: 'Low', ar: 'منخفض', tKey: 'criticality.LOW' },
-  MEDIUM: { en: 'Medium', ar: 'متوسط', tKey: 'criticality.MEDIUM' },
-  HIGH: { en: 'High', ar: 'عالي', tKey: 'criticality.HIGH' },
-  CRITICAL: { en: 'Critical', ar: 'حرج', tKey: 'criticality.CRITICAL' },
+  LOW: { en: 'Low', ar: 'منخفض', tKey: 'form.criticality.low' },
+  MEDIUM: { en: 'Medium', ar: 'متوسط', tKey: 'form.criticality.medium' },
+  HIGH: { en: 'High', ar: 'عالي', tKey: 'form.criticality.high' },
+  CRITICAL: { en: 'Critical', ar: 'حرج', tKey: 'form.criticality.critical' },
 };
 
 // ============================================================================

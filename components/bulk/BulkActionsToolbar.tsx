@@ -37,8 +37,10 @@ export interface BulkAction<T = unknown> {
   variant?: 'default' | 'destructive' | 'outline';
   /** Confirm dialog message. If provided, shows confirmation before action */
   confirmMessage?: string;
-  /** Handler receives selected items, returns count of affected items */
-  handler: (selectedItems: T[]) => Promise<{ affected: number; errors?: string[] }>;
+  /** If true, requires assignee selection before action */
+  requiresAssignee?: boolean;
+  /** Handler receives selected items and optional assigneeUserId, returns count of affected items */
+  handler: (selectedItems: T[], assigneeUserId?: string) => Promise<{ affected: number; errors?: string[] }>;
 }
 
 export interface BulkActionsToolbarProps<T> {
@@ -49,6 +51,8 @@ export interface BulkActionsToolbarProps<T> {
   onActionComplete?: (actionId: string, result: { affected: number }) => void;
   /** Called when an action fails */
   onActionError?: (actionId: string, errors: string[]) => void;
+  /** Resolver for assignee selection (required if any action has requiresAssignee=true) */
+  resolveAssigneeUserId?: () => Promise<string | null>;
   className?: string;
 }
 
@@ -62,6 +66,7 @@ export function BulkActionsToolbar<T>({
   onClearSelection,
   onActionComplete,
   onActionError,
+  resolveAssigneeUserId,
   className = '',
 }: BulkActionsToolbarProps<T>) {
   const { t } = useI18n();
@@ -89,7 +94,18 @@ export function BulkActionsToolbar<T>({
     setProcessingAction(action.id);
 
     try {
-      const result = await action.handler(selectedItems);
+      // Handle assignee resolution if required
+      let assigneeUserId: string | undefined;
+      if (action.requiresAssignee) {
+        const resolvedId = await resolveAssigneeUserId?.();
+        if (!resolvedId) {
+          onActionError?.(action.id, ['Assignee is required for this action.']);
+          return;
+        }
+        assigneeUserId = resolvedId;
+      }
+
+      const result = await action.handler(selectedItems, assigneeUserId);
       
       if (result.errors && result.errors.length > 0) {
         const translatedErrors = result.errors.map((error) =>
@@ -300,13 +316,15 @@ export const WORK_ORDER_BULK_ACTIONS: BulkAction<{ id: string }>[] = [
     id: 'assign',
     label: 'Assign',
     icon: <UserPlus className="h-4 w-4" />,
-    handler: async (items) => {
-      // Note: In production, this would open a modal to select assignee
-      // For now, we return a placeholder that requires integration with a user picker
+    requiresAssignee: true,
+    handler: async (items, assigneeUserId) => {
+      if (!assigneeUserId) {
+        return { affected: 0, errors: ['Assignee is required.'] };
+      }
       return callBulkWorkOrderAPI(
         'assign',
         items.map(i => i.id),
-        { reason: 'Bulk assignment' }
+        { assigneeUserId, reason: 'Bulk assignment' }
       );
     },
   },

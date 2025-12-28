@@ -19,7 +19,8 @@ import { Types } from 'mongoose';
 
 export interface BusinessHoursConfig {
   orgId: Types.ObjectId;
-  timezone: string; // e.g., 'Asia/Riyadh'
+  /** @todo Timezone support scheduled for Q1 2026 - calculations currently use local time */
+  // timezone: string; // e.g., 'Asia/Riyadh' - NOT YET IMPLEMENTED
   workingDays: WeekDay[];
   workingHours: {
     start: string; // e.g., '08:00'
@@ -59,9 +60,10 @@ export interface SLABreakdownItem {
  * - Sunday-Thursday working days
  * - Friday-Saturday weekend
  * - 8:00 AM - 5:00 PM
+ * @note Timezone support not yet implemented - calculations use local time
  */
 export const SAUDI_DEFAULTS: Omit<BusinessHoursConfig, 'orgId'> = {
-  timezone: 'Asia/Riyadh',
+  // timezone: 'Asia/Riyadh', // NOT YET IMPLEMENTED - scheduled for Q1 2026
   workingDays: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'],
   workingHours: {
     start: '08:00',
