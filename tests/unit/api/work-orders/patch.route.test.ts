@@ -39,6 +39,15 @@ vi.mock('@/lib/logger', () => ({
   },
 }));
 
+// Mock JobQueue to prevent Redis connection timeouts in tests
+vi.mock('@/lib/jobs/queue', () => ({
+  JobQueue: {
+    enqueue: vi.fn().mockResolvedValue('mock-job-id'),
+    getJob: vi.fn().mockResolvedValue(null),
+    processJobs: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 import { WorkOrder } from '@/server/models/WorkOrder';
 import { requireAbility } from '@/server/middleware/withAuthRbac';
 import { getDatabase } from '@/lib/mongodb-unified';

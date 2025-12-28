@@ -530,6 +530,31 @@
 			"label": "Git Commit Fixes",
 			"type": "shell",
 			"command": "git add -A; git commit -m 'fix(api): TEST-004 JSON parse try-catch + PERF-001 maxTimeMS [AGENT-001-A]'; git log --oneline -3"
+		},
+		{
+			"label": "Git Push",
+			"type": "shell",
+			"command": "git push origin HEAD"
+		},
+		{
+			"label": "Git Preflight Check",
+			"type": "shell",
+			"command": "git log --oneline -5; Write-Host '---'; git status -s; Write-Host '---'; git branch --show-current"
+		},
+		{
+			"label": "Git Preflight",
+			"type": "shell",
+			"command": "git fetch origin; git rev-list --left-right --count origin/main...HEAD"
+		},
+		{
+			"label": "Git Status and Log",
+			"type": "shell",
+			"command": "Write-Host 'Git Status:'; git status; Write-Host '---'; Write-Host 'Recent commits:'; git log --oneline -5"
+		},
+		{
+			"label": "Add All Files",
+			"type": "shell",
+			"command": "git add -A; git status"
 		}
 	]
 }
