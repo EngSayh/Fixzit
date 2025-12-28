@@ -12,7 +12,7 @@ import {
   AssetPurchaseSchema,
   createAssetFormDefaults,
 } from '@/lib/validations/asset-schemas';
-import { ASSET_TYPES } from '@/lib/constants/asset-constants';
+import { ASSET_TYPES, ASSET_DEFAULTS } from '@/lib/constants/asset-constants';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -305,9 +305,16 @@ describe('createAssetFormDefaults', () => {
     expect(createAssetFormDefaults).toHaveProperty('criticality');
   });
 
-  it('should have default Riyadh coordinates', () => {
-    expect(createAssetFormDefaults.location?.coordinates?.lat).toBe(24.7136);
-    expect(createAssetFormDefaults.location?.coordinates?.lng).toBe(46.6753);
+  it('should omit location from defaults (schema requires building)', () => {
+    // location is intentionally omitted because AssetLocationSchema requires
+    // building to have min(1) length. Forms should add location explicitly.
+    expect(createAssetFormDefaults.location).toBeUndefined();
+  });
+
+  it('should have default Riyadh coordinates in ASSET_DEFAULTS', () => {
+    // Coordinates are available in ASSET_DEFAULTS for forms to use when needed
+    expect(ASSET_DEFAULTS.defaultCoordinates.lat).toBe(24.7136);
+    expect(ASSET_DEFAULTS.defaultCoordinates.lng).toBe(46.6753);
   });
 
   it('should have default warranty period of 12 months', () => {

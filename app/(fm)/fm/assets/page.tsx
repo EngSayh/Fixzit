@@ -951,6 +951,7 @@ function EditAssetForm({
                 <SelectTrigger
                   id="edit-type"
                   aria-invalid={!!errors.type}
+                  aria-describedby={errors.type ? "edit-type-error" : undefined}
                 >
                   <SelectValue placeholder={auto("Select type", "form.placeholders.type")} />
                 </SelectTrigger>
@@ -965,7 +966,7 @@ function EditAssetForm({
             )}
           />
           {errors.type && (
-            <p className="text-sm text-destructive mt-1" role="alert">
+            <p id="edit-type-error" className="text-sm text-destructive mt-1" role="alert">
               {errors.type.message}
             </p>
           )}
@@ -978,10 +979,11 @@ function EditAssetForm({
             id="edit-category"
             {...register("category")}
             aria-invalid={!!errors.category}
+            aria-describedby={errors.category ? "edit-category-error" : undefined}
             disabled={isSubmitting}
           />
           {errors.category && (
-            <p className="text-sm text-destructive mt-1" role="alert">
+            <p id="edit-category-error" className="text-sm text-destructive mt-1" role="alert">
               {errors.category.message}
             </p>
           )}
