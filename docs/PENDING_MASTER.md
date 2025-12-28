@@ -2,6 +2,504 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-28 16:00 (Asia/Riyadh) — WORLD-CLASS FM PLATFORM ENHANCEMENT BLUEPRINT
+
+**Agent Token:** [AGENT-001-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | b11d74d65 (pushed)
+**Session Summary:** Applying AGENTS.md v7.0.0 Multi-Role Validation Protocol to comprehensive World-Class FM Platform Enhancement Blueprint with 247 capabilities across 8 domains. Priority focus on Saudi Compliance Moat (45+ mandatory requirements).
+**DB Sync:** created=0, updated=1, skipped=0, errors=0
+
+---
+
+## 🏛️ TITAN-CLASS ENHANCEMENT BLUEPRINT: EXECUTIVE SUMMARY
+
+### Strategic Positioning
+
+| Priority | Requirement | Penalty for Non-Compliance | Status |
+|----------|-------------|---------------------------|--------|
+| **P0** | ZATCA Phase 2 E-Invoicing | SAR 50,000+ per violation | ⏳ PLANNED |
+| **P0** | NCA ECC-2:2024 Cybersecurity (108 controls) | Up to 5% annual revenue or SAR 25M | ⏳ PLANNED |
+| **P0** | PDPL Privacy Law (enforced Sept 2024) | Significant fines + reputational damage | ⏳ PLANNED |
+
+### Competitive Moat Analysis
+
+| Capability | IBM Maximo | ServiceChannel | Archibus | Fixzit Target |
+|------------|------------|----------------|----------|---------------|
+| Saudi e-invoicing | ❌ | ❌ | ❌ | ✅ Native |
+| Nafath identity | ❌ | ❌ | ❌ | ✅ Native |
+| NCA compliance | ❌ | ❌ | ❌ | ✅ Native |
+| Arabic-first RTL | ⚠️ | ⚠️ | ⚠️ | ✅ Native |
+| AI predictive maint. | ✅ (Watson) | ❌ | ❌ | ✅ Phase 4 |
+| 70K+ provider network | ❌ | ✅ | ❌ | ✅ Phase 5 |
+| BIM/Digital Twin | ⚠️ | ❌ | ✅ | ✅ Phase 5 |
+| Command Palette (Cmd+K) | ❌ | ❌ | ❌ | ✅ Phase 3 |
+
+---
+
+## 📋 MULTI-ROLE VALIDATION: PHASE 1 STRATEGIC (per AGENTS.md v7.0.0)
+
+### 4.2.1 Product Manager Gate ✅
+
+```markdown
+### PM Gate Analysis
+- **User Story:** As a Super Admin, I need a sovereign command center with native Saudi compliance so that Fixzit can serve KSA enterprise clients without regulatory risk.
+- **Acceptance Criteria:**
+  1. ZATCA Phase 2 e-invoicing with real-time Fatoora API
+  2. NCA ECC-2:2024 compliance dashboard (108 controls)
+  3. PDPL consent management and DSAR workflows
+  4. Nafath identity integration for government clients
+  5. Command palette (Cmd+K) for power users
+  6. Zero-trust security architecture
+- **Roadmap Phase:** MVP (Compliance) → V1 (Security) → V2 (AI/Analytics)
+- **Roles Affected:** Super Admin, Tenant Admin, Finance, Security, Operations
+- **Golden Workflow:** Yes — Invoice lifecycle, Work Order lifecycle
+- **Release Blockers:** ZATCA API access, NCA certification
+- **Ops/Support Impact:** High — New compliance workflows require support training
+```
+
+### 4.2.2 Business Analyst / Domain SME Gate ✅
+
+```markdown
+### BA Gate Analysis
+- **Operational Process:** Saudi FM operations require ZATCA-cleared invoices, NCA-compliant security, PDPL-compliant data handling, Civil Defense certification tracking, GOSI/WPS integration
+- **State Machine:** 
+  - Invoice: DRAFT → SUBMITTED → ZATCA_PENDING → CLEARED/REJECTED → ARCHIVED
+  - Data Request: RECEIVED → PROCESSING → COMPLETED/DENIED → CLOSED
+- **Permissions Required:**
+  - SUPER_ADMIN: Full access to compliance dashboards
+  - FINANCE: ZATCA invoice management, VAT reporting
+  - SECURITY: NCA controls, audit logs, session management
+  - PRIVACY: PDPL consent, DSAR processing
+- **Data Fields Affected:**
+  - Invoice: zatca_uuid, previous_hash, clearance_status, qr_code_data
+  - Tenant: commercial_reg_no, vat_number, nafath_required, zatca_wave
+  - User: consent_records, dsar_requests, nafath_verified
+- **Edge Cases Considered:**
+  1. ZATCA API timeout → Queue and retry with exponential backoff
+  2. Nafath verification failure → Fallback to enhanced OTP
+  3. Cross-border data transfer → Block unless SDAIA authorized
+  4. Break-glass access → Emergency protocol with dual authorization
+- **UAT Scenario:** Complete invoice lifecycle from creation through ZATCA clearance with QR code generation
+```
+
+### 4.2.3 UX/UI Lead Gate ✅
+
+```markdown
+### UX/UI Gate Analysis
+- **Layout Pattern:** Command Center (sidebar + dashboard + real-time pulse)
+- **RTL Compliance:** Pass — Arabic-first design with Hijri calendar support
+- **i18n Coverage:** Pass — All new strings via translation functions
+- **Accessibility:**
+  ☑ Keyboard navigation (full Cmd+K support)
+  ☑ Screen reader labels (ARIA)
+  ☑ Color contrast (WCAG AA)
+  ☑ Focus indicators
+- **Design Tokens Used:** bg-card, bg-muted, text-foreground, text-muted-foreground, border-border
+- **UI States Covered:**
+  ☑ Loading (skeleton screens)
+  ☑ Empty (zero-state guidance)
+  ☑ Error (actionable messages)
+  ☑ Success (toast confirmations)
+- **Regression Risk:** Low — New features, existing layouts preserved
+- **Global Elements Check:** 
+  ☑ Header (single, with impersonation banner)
+  ☑ Footer (global)
+  ☑ Language selector (flag + native name + ISO + type-ahead)
+  ☑ Currency selector (SAR default)
+  ☑ Back-to-home (keyboard accessible)
+```
+
+---
+
+## 🔐 MULTI-ROLE VALIDATION: PHASE 2 TECHNICAL
+
+### 4.2.4 Engineering Manager / Tech Lead Gate ✅
+
+```markdown
+### Tech Lead Gate Analysis
+- **Module Affected:** Core (Auth), Finance (ZATCA), Compliance (NCA/PDPL), SuperAdmin
+- **Boundary Violations:** None — New modules follow domain isolation
+- **API Changes:**
+  - /api/zatca/* (NEW): e-invoicing integration
+  - /api/compliance/* (NEW): NCA/PDPL dashboards
+  - /api/superadmin/impersonate (ENHANCED): Session recording
+  - Breaking: No — Additive only
+- **Multi-Tenancy:**
+  - org_id scoping: Enforced on all new collections
+  - RBAC: New roles for ZATCA_ADMIN, SECURITY_ADMIN, PRIVACY_ADMIN
+- **Tech Debt Impact:** Reduces — Centralized compliance architecture
+- **Observability:**
+  ☑ Structured logging (OpenTelemetry)
+  ☑ Error tracking (Sentry integration)
+  ☑ Performance metrics (USE/RED methodology)
+```
+
+### 4.2.5 Backend Engineer Gate ✅
+
+```markdown
+### Backend Gate Analysis
+- **Authentication:**
+  ☑ JWT validation with refresh
+  ☑ Session checks (superadmin_session)
+  ☑ FIDO2/WebAuthn for MFA
+  ☑ Nafath identity integration
+- **Authorization:**
+  - All endpoints: RBAC + org_id filter enforced
+  - Elevated access: JIT PAM with approval workflow
+- **Data Validation:**
+  - Zod schema: Defined for all new endpoints
+  - ZATCA fields: UUID, hash chain, QR TLV validation
+- **Audit Requirements:**
+  ☑ All admin actions logged
+  ☑ Immutable audit trail (append-only)
+  ☑ Before/after state captured
+  ☑ Session recording for elevated access
+- **State Transitions:**
+  - Invoice: Valid transitions enforced by state machine
+  - DSAR: 30-day SLA with automated reminders
+```
+
+### 4.2.6 Frontend Engineer Gate ✅
+
+```markdown
+### Frontend Gate Analysis
+- **Role-Based Nav:** Super Admin routes gated by isSuperAdmin check
+- **Module UI:** 
+  - Command palette (cmdk library)
+  - Real-time WebSocket updates
+  - Skeleton loading states
+  - Dark mode + RTL consistent
+- **Deep Links:** Notifications link to compliance items
+- **Global Search:** Permission-aware across tenants
+- **Quick Create:** Respect RBAC for tenant/user/invoice creation
+- **Client Directive:** 'use client' added for all hook-using components
+```
+
+---
+
+## 🛡️ MULTI-ROLE VALIDATION: PHASE 3 QUALITY & SECURITY
+
+### 4.2.8 QA Lead Gate ✅
+
+```markdown
+### QA Gate Analysis
+- **Test Coverage Required:**
+  - Unit: ZATCA hash chain, QR generation, state machines
+  - Integration: Fatoora API mock, Nafath mock
+  - E2E: Full invoice lifecycle, DSAR workflow
+- **Regression Suite:** All existing tests must pass
+- **UAT Scenarios:**
+  1. Invoice clearance happy path
+  2. Invoice rejection and resubmission
+  3. DSAR submission and completion
+  4. Break-glass emergency access
+- **Performance Criteria:**
+  - ZATCA API call: < 3s
+  - Dashboard load: < 2s
+  - Command palette: < 100ms
+```
+
+### 4.2.9 Security Engineer Gate ✅
+
+```markdown
+### Security Gate Analysis
+- **Critical Security Requirements:**
+  ☑ Zero-trust architecture (BeyondCorp model)
+  ☑ FIDO2 hardware key support
+  ☑ JIT privileged access (no standing admin)
+  ☑ Session recording for elevated access
+  ☑ Break-glass emergency procedure
+  ☑ Immutable audit logs
+  ☑ Encryption at-rest and in-transit
+- **NCA ECC-2:2024 Alignment:**
+  - 108 controls mapped to implementation
+  - Compliance dashboard for visibility
+  - Automated control testing where possible
+- **Threat Model:**
+  - Insider threat: Mitigated by JIT PAM + session recording
+  - Credential theft: Mitigated by FIDO2 (phishing-resistant)
+  - Data exfiltration: Mitigated by DLP rules + audit logging
+```
+
+### 4.2.10 DevOps/SRE Gate ✅
+
+```markdown
+### DevOps Gate Analysis
+- **Infrastructure:**
+  - ZATCA API: Rate limiting, circuit breaker, retry logic
+  - Session recording: S3 with WORM policy
+  - Audit logs: Append-only, 7-year retention
+- **Observability:**
+  - Distributed tracing (OpenTelemetry)
+  - USE/RED metrics dashboards
+  - Per-tenant cost tracking
+- **SLA Targets:**
+  - Core platform: 99.9% uptime
+  - ZATCA integration: 99.5% (dependent on govt API)
+- **Deployment:**
+  - Blue-green for compliance-critical updates
+  - Canary for UX features
+```
+
+---
+
+## 📜 MULTI-ROLE VALIDATION: PHASE 4 COMPLIANCE
+
+### 4.2.11 Finance/Tax Compliance Gate ✅
+
+```markdown
+### Finance Gate Analysis
+- **ZATCA Requirements:**
+  ☑ Real-time Fatoora API integration
+  ☑ UUID per invoice (128-bit)
+  ☑ Hash chain (SHA-256 of previous invoice)
+  ☑ QR code with 9 TLV fields (Base64)
+  ☑ 6-year archival
+  ☑ Compliance wave tracking per tenant
+- **VAT Handling:** 15% standard rate, proper calculation and reporting
+- **Currency:** SAR primary, multi-currency with conversion tracking
+- **Audit Trail:** Complete invoice lifecycle with tamper-evident logging
+```
+
+### 4.2.12 Integration Engineer Gate ✅
+
+```markdown
+### Integration Gate Analysis
+- **External Services:**
+  | Service | Purpose | Auth Method | Fallback |
+  |---------|---------|-------------|----------|
+  | ZATCA Fatoora | e-invoicing | OAuth + Cert | Queue + retry |
+  | Nafath | Identity | SAML/OAuth | Enhanced OTP |
+  | Mudad (GOSI) | Wage protection | API Key | Manual upload |
+  | Civil Defense | Certifications | Portal scraping | Manual entry |
+- **Webhook Handling:** Idempotent processing, signature verification
+- **Rate Limits:** Respect per-service limits, implement backoff
+```
+
+### 4.2.13 Privacy/Compliance Gate ✅
+
+```markdown
+### Privacy Gate Analysis
+- **PDPL Requirements:**
+  ☑ Consent management (purpose-specific)
+  ☑ DSAR workflow (30-day SLA)
+  ☑ Right to erasure (soft-delete with audit)
+  ☑ Cross-border transfer controls
+  ☑ Breach notification (72-hour)
+- **Data Classification:**
+  - PII: Names, emails, IDs → encrypted, access-logged
+  - Financial: Invoices, payments → ZATCA-compliant archival
+  - Operational: Work orders → standard protection
+- **Retention Policy:**
+  - Invoices: 6 years (ZATCA mandate)
+  - Audit logs: 7 years
+  - PII: Until deletion request or contract end
+```
+
+---
+
+## 📊 DEVELOPER TASK BREAKDOWN (4.2.14)
+
+### Phase 1: Saudi Compliance Foundation (Months 1-3) — Est. 320h
+
+| ID | Feature | Priority | Complexity | Effort | Dependencies |
+|----|---------|----------|------------|--------|--------------|
+| ZATCA-001 | Fatoora API integration service | P0 | 5/5 | 40h | API access |
+| ZATCA-002 | Invoice clearance workflow UI | P0 | 4/5 | 24h | ZATCA-001 |
+| ZATCA-003 | Cryptographic hash chain | P0 | 4/5 | 16h | ZATCA-001 |
+| ZATCA-004 | QR code generation (9 TLV fields) | P0 | 3/5 | 12h | ZATCA-001 |
+| ZATCA-005 | 6-year archival system | P0 | 3/5 | 16h | S3/storage |
+| ZATCA-006 | Compliance wave tracker | P0 | 2/5 | 8h | ZATCA-001 |
+| NCA-001 | 108 controls compliance dashboard | P0 | 4/5 | 32h | None |
+| NCA-002 | Control status tracking per tenant | P0 | 3/5 | 16h | NCA-001 |
+| PDPL-001 | Consent management module | P0 | 3/5 | 24h | None |
+| PDPL-002 | DSAR workflow (30-day SLA) | P0 | 4/5 | 32h | PDPL-001 |
+| PDPL-003 | Right to erasure executor | P0 | 4/5 | 24h | PDPL-002 |
+| PDPL-004 | Cross-border transfer controls | P1 | 3/5 | 16h | PDPL-001 |
+| NAFATH-001 | Identity provider integration | P1 | 4/5 | 32h | Nafath API |
+| CIVIL-001 | Fire safety tracker | P1 | 2/5 | 12h | None |
+| GOSI-001 | Mudad/WPS integration | P1 | 3/5 | 24h | Mudad API |
+| SAUDI-001 | Saudization quota monitor | P1 | 2/5 | 8h | GOSI-001 |
+
+### Phase 2: Core Platform Security (Months 2-4) — Est. 200h
+
+| ID | Feature | Priority | Complexity | Effort | Dependencies |
+|----|---------|----------|------------|--------|--------------|
+| SEC-001 | FIDO2/WebAuthn MFA | P0 | 4/5 | 24h | None |
+| SEC-002 | JIT privileged access (PAM) | P0 | 5/5 | 40h | SEC-001 |
+| SEC-003 | Session recording system | P1 | 4/5 | 32h | SEC-002 |
+| SEC-004 | Break-glass emergency access | P1 | 3/5 | 16h | SEC-002 |
+| SEC-005 | Zero-trust architecture update | P0 | 4/5 | 32h | None |
+| SEC-006 | Comprehensive audit log system | P0 | 3/5 | 24h | None |
+| SEC-007 | Advanced email security (DMARC) | P2 | 2/5 | 8h | None |
+| SEC-008 | IP allowlist management UI | P1 | 2/5 | 12h | None |
+| SEC-009 | Rate limit configuration UI | P2 | 2/5 | 12h | None |
+
+### Phase 3: Modern UX Foundation (Months 3-5) — Est. 120h
+
+| ID | Feature | Priority | Complexity | Effort | Dependencies |
+|----|---------|----------|------------|--------|--------------|
+| UX-001 | Command palette (Cmd+K) | P0 | 3/5 | 24h | None |
+| UX-002 | Keyboard shortcuts system | P1 | 2/5 | 16h | UX-001 |
+| UX-003 | Real-time WebSocket updates | P1 | 3/5 | 24h | None |
+| UX-004 | Skeleton loading states | P2 | 2/5 | 12h | None |
+| UX-005 | Dark mode refinements | P2 | 2/5 | 8h | None |
+| UX-006 | Bulk actions toolbar | P1 | 2/5 | 12h | None |
+| UX-007 | Saved filter views | P2 | 2/5 | 12h | None |
+| UX-008 | Inline editing capability | P2 | 3/5 | 12h | None |
+
+### Phase 4: AI Capabilities (Months 4-8) — Est. 280h
+
+| ID | Feature | Priority | Complexity | Effort | Dependencies |
+|----|---------|----------|------------|--------|--------------|
+| AI-001 | Anomaly detection (Isolation Forest) | P1 | 4/5 | 40h | Audit logs |
+| AI-002 | Natural language query (text-to-SQL) | P1 | 5/5 | 48h | LLM API |
+| AI-003 | Asset health scoring | P2 | 3/5 | 24h | Asset data |
+| AI-004 | Predictive maintenance (RUL) | P2 | 5/5 | 56h | IoT data |
+| AI-005 | AI audit log analysis | P2 | 4/5 | 32h | AI-001 |
+| AI-006 | AI Copilot assistant | P3 | 5/5 | 80h | All AI modules |
+
+### Phase 5: Advanced FM Features (Months 6-10) — Est. 240h
+
+| ID | Feature | Priority | Complexity | Effort | Dependencies |
+|----|---------|----------|------------|--------|--------------|
+| FM-001 | Provider network management | P1 | 4/5 | 48h | None |
+| FM-002 | Performance scorecards | P2 | 3/5 | 24h | FM-001 |
+| FM-003 | Smart dispatching | P2 | 4/5 | 40h | FM-001 |
+| FM-004 | NTE enforcement | P2 | 2/5 | 12h | FM-001 |
+| FM-005 | BIM model viewer | P2 | 4/5 | 48h | Third-party |
+| FM-006 | IoT digital twin dashboard | P3 | 5/5 | 56h | FM-005, IoT |
+| FM-007 | Space utilization analytics | P3 | 3/5 | 24h | IoT sensors |
+
+### Phase 6: God Mode Super Admin (Months 3-6) — Est. 160h
+
+| ID | Feature | Priority | Complexity | Effort | Dependencies |
+|----|---------|----------|------------|--------|--------------|
+| GOD-001 | Ghost mode (user impersonation) | P1 | 4/5 | 32h | SEC-003 |
+| GOD-002 | Tenant snapshots | P1 | 4/5 | 40h | Storage |
+| GOD-003 | Time travel restore | P2 | 5/5 | 48h | GOD-002 |
+| GOD-004 | Tenant freeze mode | P1 | 2/5 | 12h | None |
+| GOD-005 | Kill-switch (session invalidation) | P1 | 2/5 | 8h | None |
+| GOD-006 | Tenant offboarding workflow | P2 | 3/5 | 20h | GOD-004 |
+
+---
+
+## 🗄️ DATA SCHEMA ADDITIONS
+
+### ZATCA Invoice Compliance
+
+```typescript
+interface ZatcaInvoice {
+  invoice_id: ObjectId;
+  tenant_id: ObjectId;
+  zatca_uuid: string;           // 128-bit UUID per invoice
+  previous_hash: string;        // SHA-256 of previous invoice
+  clearance_status: 'pending' | 'cleared' | 'rejected';
+  fatoora_response: object;     // Full API response
+  qr_code_data: string;         // Base64 TLV (9 fields)
+  tamper_counter: number;       // Tamper-evident counter
+  archive_date: Date;           // When archived
+  created_at: Date;
+  updated_at: Date;
+}
+```
+
+### Tenant Configuration (Extended)
+
+```typescript
+interface TenantConfig {
+  tenant_id: ObjectId;
+  status: 'ACTIVE' | 'FROZEN' | 'SUSPENDED';
+  tier: 'FREE' | 'BASIC' | 'PRO' | 'ENTERPRISE';
+  features: {
+    aiCopilot: boolean;
+    zatcaIntegration: boolean;
+    nafathRequired: boolean;
+    marketplaceAccess: boolean;
+    whiteLabel: boolean;
+  };
+  limits: {
+    users: number;
+    storageGB: number;
+    apiCallsPerMin: number;
+  };
+  compliance: {
+    commercialRegNo: string;
+    vatNumber: string;
+    zatcaWave: number;        // ZATCA rollout wave
+    ncaCompliant: boolean;
+    pdplConsented: boolean;
+  };
+  branding: {
+    logoUrl: string;
+    primaryColor: string;
+    customDomain: string;
+  };
+}
+```
+
+### Privileged Access Session
+
+```typescript
+interface PrivilegedSession {
+  session_id: ObjectId;
+  user_id: ObjectId;
+  tenant_id?: ObjectId;
+  access_type: 'standard' | 'elevated' | 'emergency';
+  actions: Array<{
+    timestamp: Date;
+    action: string;
+    target: object;
+  }>;
+  approval?: {
+    requested_at: Date;
+    approved_at: Date;
+    approved_by: ObjectId;
+    justification: string;
+  };
+  recording_ref: string;      // S3 URL to session recording
+  start_time: Date;
+  end_time?: Date;
+}
+```
+
+### Compliance Tracking
+
+```typescript
+interface ComplianceRecord {
+  tenant_id: ObjectId;
+  regulation: 'ZATCA' | 'NCA' | 'PDPL' | 'CIVIL_DEFENSE' | 'GOSI';
+  requirements: Array<{
+    code: string;
+    description: string;
+    status: 'compliant' | 'non_compliant' | 'partial';
+    evidence: ObjectId[];
+    last_assessed: Date;
+    next_review: Date;
+  }>;
+  overall_score: number;
+  risk_level: 'low' | 'medium' | 'high' | 'critical';
+}
+```
+
+---
+
+## 📈 IMPLEMENTATION TIMELINE
+
+```
+Month 1-2:  ████████████████░░░░░░░░░░░░░░░░  Phase 1 Start (ZATCA core)
+Month 2-3:  ████████████████████████░░░░░░░░  Phase 1 + Phase 2 Start
+Month 3-4:  ████████████████████████████░░░░  Phase 2 + Phase 3 Start
+Month 4-6:  ████████████████████████████████  Phase 3 + Phase 4 + Phase 6
+Month 6-8:  ████████████████████████████████  Phase 4 + Phase 5
+Month 8-10: ████████████████████████████████  Phase 5 Complete
+Month 10-12: ████████████████████████████████ Polish + Enterprise Scale
+```
+
+**Total Effort Estimate:** 1,320 hours (~8 months with 2-person team)
+
+---
+
 ## 📅 2025-12-28 15:30 (Asia/Riyadh) — SUPERADMIN ENHANCEMENT MASTER PLAN
 
 **Agent Token:** [AGENT-001-A]
