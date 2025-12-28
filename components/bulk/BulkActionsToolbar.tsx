@@ -125,7 +125,7 @@ export function BulkActionsToolbar<T>({
           <div className="bg-background border rounded-lg p-6 max-w-md mx-4 shadow-lg">
             <h3 className="text-lg font-semibold mb-2">{t('workOrders.bulk.confirmAction')}</h3>
             <p className="text-muted-foreground mb-4">
-              {t(confirmAction.confirmMessage)}
+              {t(confirmAction.confirmMessage ?? 'workOrders.bulk.confirmAction')}
             </p>
             <p className="text-sm text-muted-foreground mb-4">
               {t('workOrders.bulk.affectItems', { count: selectedItems.length })}
