@@ -5176,6 +5176,16 @@
       "support": "Support",
       "vendors": "Vendors"
     },
+    "groups": {
+      "ssot": "Issue Tracking",
+      "organization": "Organization",
+      "marketplace": "Marketplace",
+      "system": "System",
+      "data": "Data Management",
+      "security": "Security",
+      "finance": "Finance",
+      "communication": "Communication"
+    },
     "issues": {
       "title": "System Issue Tracker",
       "subtitle": "Full system access • Track and manage all issues",
