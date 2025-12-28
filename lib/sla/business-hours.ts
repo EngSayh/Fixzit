@@ -136,6 +136,44 @@ function getDayName(date: Date, timeZone: string): WeekDay {
 }
 
 /**
+ * Set the time portion of a Date to a specific hour/minute in the given timezone.
+ * This correctly accounts for timezone offset when setting the UTC time.
+ * 
+ * @param date - The Date to modify (mutates in place)
+ * @param hours - Target hour in the given timezone (0-23)
+ * @param minutes - Target minutes in the given timezone (0-59)
+ * @param timeZone - The timezone to interpret hours/minutes in
+ */
+function setTimeInTimeZone(
+  date: Date,
+  hours: number,
+  minutes: number,
+  timeZone: string
+): void {
+  // Get the current date parts in the target timezone
+  const parts = getDatePartsInTimeZone(date, timeZone);
+  
+  // Create an ISO string for the target time in the target timezone
+  // We use a temporary date to compute the correct UTC offset
+  const tempDate = new Date(
+    Date.UTC(parts.year, parts.month - 1, parts.day, hours, minutes, 0, 0)
+  );
+  
+  // Get what time this shows in the target timezone
+  const tempParts = getDatePartsInTimeZone(tempDate, timeZone);
+  
+  // The difference between what we wanted and what we got tells us the offset
+  const offsetHours = tempParts.hour - hours;
+  const offsetMinutes = tempParts.minute - minutes;
+  
+  // Adjust for the offset
+  const targetUTCHours = hours - offsetHours;
+  const targetUTCMinutes = minutes - offsetMinutes;
+  
+  date.setUTCHours(targetUTCHours, targetUTCMinutes, 0, 0);
+}
+
+/**
  * Format date as ISO date string (YYYY-MM-DD), respecting timezone
  */
 function formatDateOnly(date: Date, timeZone: string): string {
@@ -258,7 +296,7 @@ export function getNextBusinessHourStart(
       
       // If before business hours start, return start time today
       if (currentTimeMinutes < startMinutes) {
-        result.setHours(start.hours, start.minutes, 0, 0);
+        setTimeInTimeZone(result, start.hours, start.minutes, config.timezone);
         return result;
       }
       
@@ -269,8 +307,8 @@ export function getNextBusinessHourStart(
     }
     
     // Move to next day at business hours start
-    result.setDate(result.getDate() + 1);
-    result.setHours(start.hours, start.minutes, 0, 0);
+    result.setUTCDate(result.getUTCDate() + 1);
+    setTimeInTimeZone(result, start.hours, start.minutes, config.timezone);
   }
   
   // Fallback (should never reach here with valid config)
@@ -347,9 +385,9 @@ export function calculateSLADeadline(
         isWorkingDay: false,
         isHoliday: isHolidayDay,
       });
-      currentDate.setDate(currentDate.getDate() + 1);
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
       const start = parseTime(config.workingHours.start);
-      currentDate.setHours(start.hours, start.minutes, 0, 0);
+      setTimeInTimeZone(currentDate, start.hours, start.minutes, config.timezone);
       continue;
     }
     
@@ -370,15 +408,15 @@ export function calculateSLADeadline(
       if (remainingHours <= 0) {
         // SLA deadline reached
         const minutesToAdd = hoursToUse * 60;
-        currentDate.setMinutes(currentDate.getMinutes() + minutesToAdd);
+        currentDate.setUTCMinutes(currentDate.getUTCMinutes() + minutesToAdd);
         break;
       }
     }
     
     // Move to next day
-    currentDate.setDate(currentDate.getDate() + 1);
+    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     const start = parseTime(config.workingHours.start);
-    currentDate.setHours(start.hours, start.minutes, 0, 0);
+    setTimeInTimeZone(currentDate, start.hours, start.minutes, config.timezone);
   }
   
   // Calculate calendar hours elapsed

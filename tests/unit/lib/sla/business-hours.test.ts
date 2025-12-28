@@ -24,6 +24,21 @@ const testConfig: BusinessHoursConfig = {
 };
 
 /**
+ * Saudi Arabia timezone offset (UTC+03:00)
+ * Used to construct dates with explicit timezone so tests pass in any CI environment
+ */
+const SAUDI_TZ_OFFSET = '+03:00';
+
+/**
+ * Create a Date with explicit Saudi timezone offset
+ * This ensures the date represents the same instant regardless of the machine's local timezone
+ * @param isoLocal - ISO date string without timezone (e.g., '2026-01-04T10:00:00')
+ */
+function makeDateInSaudiTZ(isoLocal: string): Date {
+  return new Date(`${isoLocal}${SAUDI_TZ_OFFSET}`);
+}
+
+/**
  * Get time parts in the test config's timezone for assertions
  * This ensures tests pass regardless of the machine's local timezone
  */
@@ -59,26 +74,26 @@ describe('business-hours', () => {
     ];
 
     it('should return true for exact holiday match', () => {
-      const date = new Date('2026-04-01T10:00:00');
+      const date = makeDateInSaudiTZ('2026-04-01T10:00:00');
       expect(isHoliday(date, holidays)).toBe(true);
     });
 
     it('should return true for recurring holiday in any year', () => {
       // September 23 is Saudi National Day (recurring)
-      const date2025 = new Date('2025-09-23T10:00:00');
-      const date2027 = new Date('2027-09-23T10:00:00');
+      const date2025 = makeDateInSaudiTZ('2025-09-23T10:00:00');
+      const date2027 = makeDateInSaudiTZ('2027-09-23T10:00:00');
       expect(isHoliday(date2025, holidays)).toBe(true);
       expect(isHoliday(date2027, holidays)).toBe(true);
     });
 
     it('should return false for non-recurring holiday in different year', () => {
       // Eid al-Fitr 2026 is not recurring, so 2027 should be false
-      const date = new Date('2027-04-01T10:00:00');
+      const date = makeDateInSaudiTZ('2027-04-01T10:00:00');
       expect(isHoliday(date, holidays)).toBe(false);
     });
 
     it('should return false for regular working day', () => {
-      const date = new Date('2026-03-15T10:00:00'); // Random weekday
+      const date = makeDateInSaudiTZ('2026-03-15T10:00:00'); // Random weekday
       expect(isHoliday(date, holidays)).toBe(false);
     });
   });
@@ -86,50 +101,50 @@ describe('business-hours', () => {
   describe('isBusinessHour', () => {
     it('should return true during business hours on a working day', () => {
       // Sunday 10:00 AM (Sunday is a working day in Saudi Arabia)
-      const date = new Date('2026-01-04T10:00:00'); // Sunday
+      const date = makeDateInSaudiTZ('2026-01-04T10:00:00'); // Sunday
       expect(isBusinessHour(date, testConfig)).toBe(true);
     });
 
     it('should return false on Friday (weekend in Saudi Arabia)', () => {
-      const date = new Date('2026-01-09T10:00:00'); // Friday
+      const date = makeDateInSaudiTZ('2026-01-09T10:00:00'); // Friday
       expect(isBusinessHour(date, testConfig)).toBe(false);
     });
 
     it('should return false on Saturday (weekend in Saudi Arabia)', () => {
-      const date = new Date('2026-01-10T10:00:00'); // Saturday
+      const date = makeDateInSaudiTZ('2026-01-10T10:00:00'); // Saturday
       expect(isBusinessHour(date, testConfig)).toBe(false);
     });
 
     it('should return false before business hours start', () => {
-      const date = new Date('2026-01-04T07:30:00'); // Sunday 7:30 AM (before 8 AM)
+      const date = makeDateInSaudiTZ('2026-01-04T07:30:00'); // Sunday 7:30 AM (before 8 AM)
       expect(isBusinessHour(date, testConfig)).toBe(false);
     });
 
     it('should return false after business hours end', () => {
-      const date = new Date('2026-01-04T17:30:00'); // Sunday 5:30 PM (after 5 PM)
+      const date = makeDateInSaudiTZ('2026-01-04T17:30:00'); // Sunday 5:30 PM (after 5 PM)
       expect(isBusinessHour(date, testConfig)).toBe(false);
     });
 
     it('should return true at exactly 8:00 AM', () => {
-      const date = new Date('2026-01-04T08:00:00'); // Sunday 8:00 AM
+      const date = makeDateInSaudiTZ('2026-01-04T08:00:00'); // Sunday 8:00 AM
       expect(isBusinessHour(date, testConfig)).toBe(true);
     });
 
     it('should return false at exactly 5:00 PM (end of day)', () => {
-      const date = new Date('2026-01-04T17:00:00'); // Sunday 5:00 PM (17:00 is end, not included)
+      const date = makeDateInSaudiTZ('2026-01-04T17:00:00'); // Sunday 5:00 PM (17:00 is end, not included)
       expect(isBusinessHour(date, testConfig)).toBe(false);
     });
   });
 
   describe('getNextBusinessHourStart', () => {
     it('should return same time if already within business hours', () => {
-      const date = new Date('2026-01-04T10:00:00'); // Sunday 10 AM
+      const date = makeDateInSaudiTZ('2026-01-04T10:00:00'); // Sunday 10 AM
       const result = getNextBusinessHourStart(date, testConfig);
       expect(result.getTime()).toBe(date.getTime());
     });
 
     it('should return 8 AM same day if before business hours', () => {
-      const date = new Date('2026-01-04T06:00:00'); // Sunday 6 AM
+      const date = makeDateInSaudiTZ('2026-01-04T06:00:00'); // Sunday 6 AM
       const result = getNextBusinessHourStart(date, testConfig);
       const parts = getTimePartsInTestTZ(result);
       expect(parts.hour).toBe(8);
@@ -138,7 +153,7 @@ describe('business-hours', () => {
     });
 
     it('should return next working day 8 AM if after business hours', () => {
-      const date = new Date('2026-01-04T18:00:00'); // Sunday 6 PM
+      const date = makeDateInSaudiTZ('2026-01-04T18:00:00'); // Sunday 6 PM
       const result = getNextBusinessHourStart(date, testConfig);
       const parts = getTimePartsInTestTZ(result);
       expect(parts.hour).toBe(8);
@@ -147,7 +162,7 @@ describe('business-hours', () => {
     });
 
     it('should skip Friday/Saturday and return Sunday', () => {
-      const date = new Date('2026-01-08T18:00:00'); // Thursday 6 PM
+      const date = makeDateInSaudiTZ('2026-01-08T18:00:00'); // Thursday 6 PM
       const result = getNextBusinessHourStart(date, testConfig);
       const parts = getTimePartsInTestTZ(result);
       expect(parts.weekday).toBe('Sunday');
@@ -157,18 +172,18 @@ describe('business-hours', () => {
 
   describe('getRemainingBusinessHoursToday', () => {
     it('should return 0 outside business hours', () => {
-      const date = new Date('2026-01-09T10:00:00'); // Friday (weekend)
+      const date = makeDateInSaudiTZ('2026-01-09T10:00:00'); // Friday (weekend)
       expect(getRemainingBusinessHoursToday(date, testConfig)).toBe(0);
     });
 
     it('should return correct hours remaining during business hours', () => {
-      const date = new Date('2026-01-04T12:00:00'); // Sunday 12:00 PM
+      const date = makeDateInSaudiTZ('2026-01-04T12:00:00'); // Sunday 12:00 PM
       // From 12:00 to 17:00 = 5 hours
       expect(getRemainingBusinessHoursToday(date, testConfig)).toBe(5);
     });
 
     it('should return full day hours at start of business day', () => {
-      const date = new Date('2026-01-04T08:00:00'); // Sunday 8:00 AM
+      const date = makeDateInSaudiTZ('2026-01-04T08:00:00'); // Sunday 8:00 AM
       // From 08:00 to 17:00 = 9 hours
       expect(getRemainingBusinessHoursToday(date, testConfig)).toBe(9);
     });
@@ -177,7 +192,7 @@ describe('business-hours', () => {
   describe('calculateSLADeadline', () => {
     it('should calculate simple same-day SLA', () => {
       // Sunday 9 AM + 4 hours SLA = Sunday 1 PM
-      const createdAt = new Date('2026-01-04T09:00:00');
+      const createdAt = makeDateInSaudiTZ('2026-01-04T09:00:00');
       const result = calculateSLADeadline(createdAt, 4, testConfig);
       const parts = getTimePartsInTestTZ(result.deadline);
       
@@ -189,7 +204,7 @@ describe('business-hours', () => {
     it('should span multiple days when SLA exceeds remaining hours', () => {
       // Sunday 3 PM + 8 hours SLA (only 2 hours left today)
       // = 2 hours Sunday + 6 hours Monday = Monday 2 PM
-      const createdAt = new Date('2026-01-04T15:00:00');
+      const createdAt = makeDateInSaudiTZ('2026-01-04T15:00:00');
       const result = calculateSLADeadline(createdAt, 8, testConfig);
       const parts = getTimePartsInTestTZ(result.deadline);
       
@@ -201,7 +216,7 @@ describe('business-hours', () => {
     it('should skip weekends (Friday/Saturday)', () => {
       // Thursday 4 PM + 4 hours SLA
       // = 1 hour Thursday + skip Fri/Sat + 3 hours Sunday = Sunday 11 AM
-      const createdAt = new Date('2026-01-08T16:00:00'); // Thursday 4 PM
+      const createdAt = makeDateInSaudiTZ('2026-01-08T16:00:00'); // Thursday 4 PM
       const result = calculateSLADeadline(createdAt, 4, testConfig);
       const parts = getTimePartsInTestTZ(result.deadline);
       
@@ -211,7 +226,7 @@ describe('business-hours', () => {
 
     it('should start from next business hour if created outside business hours', () => {
       // Saturday 10 AM + 2 hours SLA = Sunday 10 AM (starts at 8 AM + 2 hours)
-      const createdAt = new Date('2026-01-03T10:00:00'); // Saturday
+      const createdAt = makeDateInSaudiTZ('2026-01-03T10:00:00'); // Saturday
       const result = calculateSLADeadline(createdAt, 2, testConfig);
       const parts = getTimePartsInTestTZ(result.deadline);
       
@@ -220,7 +235,7 @@ describe('business-hours', () => {
     });
 
     it('should track breakdown correctly', () => {
-      const createdAt = new Date('2026-01-04T14:00:00'); // Sunday 2 PM
+      const createdAt = makeDateInSaudiTZ('2026-01-04T14:00:00'); // Sunday 2 PM
       const result = calculateSLADeadline(createdAt, 12, testConfig);
       
       // Should have breakdown entries
@@ -232,7 +247,7 @@ describe('business-hours', () => {
     });
 
     it('should calculate calendar hours elapsed', () => {
-      const createdAt = new Date('2026-01-08T16:00:00'); // Thursday 4 PM
+      const createdAt = makeDateInSaudiTZ('2026-01-08T16:00:00'); // Thursday 4 PM
       const result = calculateSLADeadline(createdAt, 4, testConfig);
       
       // Should have calendar hours > business hours due to weekend
