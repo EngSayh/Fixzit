@@ -124,7 +124,9 @@ export function BulkActionsToolbar<T>({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-background border rounded-lg p-6 max-w-md mx-4 shadow-lg">
             <h3 className="text-lg font-semibold mb-2">{t('workOrders.bulk.confirmAction')}</h3>
-            <p className="text-muted-foreground mb-4">{confirmAction.confirmMessage}</p>
+            <p className="text-muted-foreground mb-4">
+              {t(confirmAction.confirmMessage)}
+            </p>
             <p className="text-sm text-muted-foreground mb-4">
               {t('workOrders.bulk.affectItems', { count: selectedItems.length })}
             </p>
@@ -260,7 +262,7 @@ export const WORK_ORDER_BULK_ACTIONS: BulkAction<{ id: string }>[] = [
     id: 'reject',
     label: 'Reject',
     icon: <X className="h-4 w-4" />,
-    confirmMessage: 'Are you sure you want to reject these items?',
+    confirmMessage: 'workOrders.bulk.confirmReject',
     handler: async (items) => {
       return callBulkWorkOrderAPI(
         'update_status',
@@ -288,7 +290,7 @@ export const WORK_ORDER_BULK_ACTIONS: BulkAction<{ id: string }>[] = [
     label: 'Delete',
     icon: <Trash2 className="h-4 w-4" />,
     variant: 'destructive',
-    confirmMessage: 'This action cannot be undone. Delete selected items?',
+    confirmMessage: 'workOrders.bulk.confirmDelete',
     handler: async (items) => {
       return callBulkWorkOrderAPI(
         'delete',
