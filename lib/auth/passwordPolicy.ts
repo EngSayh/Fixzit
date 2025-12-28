@@ -22,6 +22,7 @@
  */
 
 import { compare } from "bcryptjs";
+import crypto from "crypto";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
@@ -300,10 +301,18 @@ async function isPasswordInHistory(
 ): Promise<boolean> {
   try {
     const db = await getDatabase();
+    
+    // Get org's password policy for historyCount
+    const orgSettings = await db.collection("organizations").findOne({ orgId });
+    const historyCount = Math.min(
+      Math.max(1, orgSettings?.passwordPolicy?.historyCount ?? 5),
+      24 // max reasonable cap
+    );
+    
     const history = await db.collection("password_history")
       .find({ orgId, userId })
       .sort({ createdAt: -1 })
-      .limit(5)
+      .limit(historyCount)
       .toArray();
     
     for (const entry of history) {
@@ -581,21 +590,24 @@ export function generateStrongPassword(length: number = 16): string {
   
   const allChars = uppercase + lowercase + numbers + special;
   
-  // Ensure at least one of each type
+  // Ensure at least one of each type using CSPRNG
   let password = "";
-  password += uppercase[Math.floor(Math.random() * uppercase.length)];
-  password += lowercase[Math.floor(Math.random() * lowercase.length)];
-  password += numbers[Math.floor(Math.random() * numbers.length)];
-  password += special[Math.floor(Math.random() * special.length)];
+  password += uppercase[crypto.randomInt(uppercase.length)];
+  password += lowercase[crypto.randomInt(lowercase.length)];
+  password += numbers[crypto.randomInt(numbers.length)];
+  password += special[crypto.randomInt(special.length)];
   
-  // Fill the rest randomly
+  // Fill the rest randomly using CSPRNG
   for (let i = password.length; i < length; i++) {
-    password += allChars[Math.floor(Math.random() * allChars.length)];
+    password += allChars[crypto.randomInt(allChars.length)];
   }
   
-  // Shuffle the password
-  return password
-    .split("")
-    .sort(() => Math.random() - 0.5)
-    .join("");
+  // Fisher-Yates shuffle using CSPRNG
+  const chars = password.split("");
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  
+  return chars.join("");
 }

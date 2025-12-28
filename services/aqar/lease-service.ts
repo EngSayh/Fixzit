@@ -22,6 +22,21 @@ import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
 // ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Validate and convert a string to ObjectId
+ * @throws Error if the ID is invalid
+ */
+function _toObjectId(id: string, fieldName: string): ObjectId {
+  if (!ObjectId.isValid(id)) {
+    throw new Error(`Invalid ${fieldName}: ${id}`);
+  }
+  return new ObjectId(id);
+}
+
+// ============================================================================
 // Types & Interfaces
 // ============================================================================
 
@@ -480,13 +495,12 @@ export async function terminateLease(
       earlyTerminationFee = lease.terms.earlyTerminationFee;
     }
     
-    // Update lease
+    // Update lease - do NOT overwrite endDate, only store terminationDate in terminationDetails
     await db.collection("leases").updateOne(
       { _id: new ObjectId(leaseId), orgId },
       {
         $set: {
           status: LeaseStatus.TERMINATED,
-          endDate: terminationDate,
           updatedBy: terminatedBy,
           updatedAt: new Date(),
           terminationDetails: {
