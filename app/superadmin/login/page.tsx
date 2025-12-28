@@ -7,7 +7,8 @@
  * @module app/superadmin/login/page
  */
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Lock, AlertCircle, Shield, Eye, EyeOff } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,39 @@ type FieldErrors = {
   password?: string;
   secretKey?: string;
 };
+
+/**
+ * Debug info component - shows middleware redirect diagnostics
+ * Only visible when query params are present from failed auth
+ */
+function AuthDebugInfo() {
+  const searchParams = useSearchParams();
+  
+  // Handle null searchParams (shouldn't happen with Suspense but TypeScript requires check)
+  if (!searchParams) return null;
+  
+  const reason = searchParams.get('reason');
+  const hadCookie = searchParams.get('had_cookie');
+  const cookieLen = searchParams.get('cookie_len');
+  const hasHeader = searchParams.get('hdr');
+  const hasSecret = searchParams.get('sec');
+  const decodeError = searchParams.get('err');
+
+  // Only show if there's debug info
+  if (!reason && !hadCookie) return null;
+
+  return (
+    <div className="mb-4 p-3 rounded bg-amber-950/50 border border-amber-700 text-xs text-amber-200">
+      <div className="font-semibold mb-1">Auth Debug (middleware redirect):</div>
+      <div>reason: {reason || 'none'}</div>
+      <div>had_cookie: {hadCookie || '?'}</div>
+      <div>cookie_len: {cookieLen || '?'}</div>
+      <div>cookie_header: {hasHeader || '?'}</div>
+      <div>jwt_secret_available: {hasSecret === '1' ? '✅ yes' : hasSecret === '0' ? '❌ NO' : '?'}</div>
+      {decodeError && <div>decode_error: {decodeError}</div>}
+    </div>
+  );
+}
 
 export default function SuperadminLoginPage() {
   const [username, setUsername] = useState("");
@@ -141,6 +175,9 @@ export default function SuperadminLoginPage() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            <Suspense fallback={null}>
+              <AuthDebugInfo />
+            </Suspense>
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />

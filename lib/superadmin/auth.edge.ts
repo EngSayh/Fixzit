@@ -8,6 +8,7 @@
  * 
  * @module lib/superadmin/auth.edge
  * @see {@link ./auth.ts} for Node.js-only functions (password verification, 2FA)
+ * @version 2.0.1 - Lazy JWT secret getter for Edge Runtime env var timing (2024-12-28)
  */
 
 import { NextRequest } from "next/server";
@@ -36,6 +37,19 @@ export interface SuperadminSession {
  * where env vars might not be available during module initialization.
  */
 function getJwtSecret(): Uint8Array | null {
+  const hasSuper = !!process.env.SUPERADMIN_JWT_SECRET;
+  const hasNextAuth = !!process.env.NEXTAUTH_SECRET;
+  const hasAuth = !!process.env.AUTH_SECRET;
+  
+  // Log once per cold start for debugging Edge Runtime env var availability
+  // eslint-disable-next-line no-console -- Critical auth debugging
+  console.log("[SUPERADMIN EDGE] getJwtSecret called", {
+    hasSuper,
+    hasNextAuth,
+    hasAuth,
+    envKeys: Object.keys(process.env).filter(k => k.includes('SECRET') || k.includes('AUTH')).length,
+  });
+  
   const secret = 
     process.env.SUPERADMIN_JWT_SECRET ||
     process.env.NEXTAUTH_SECRET ||
