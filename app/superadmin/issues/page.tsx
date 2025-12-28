@@ -815,15 +815,15 @@ export default function SuperadminIssuesPage() {
       )}
 
       {/* Filters - Sticky */}
-      <Card className="bg-slate-800 border-slate-700 sticky top-0 z-10">
+      <Card className="bg-muted border-input sticky top-0 z-10">
         <CardContent className="p-4">
           {/* Quick Status Tabs */}
-          <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-slate-700">
+          <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-input">
             <Button
               variant={statusFilter === "all" ? "default" : "outline"}
               size="sm"
               onClick={() => setStatusFilter("all")}
-              className={statusFilter === "all" ? "" : "text-slate-300 border-slate-600"}
+              className={statusFilter === "all" ? "" : "text-muted-foreground border-input"}
             >
               All
             </Button>
@@ -831,7 +831,7 @@ export default function SuperadminIssuesPage() {
               variant={statusFilter === "open" ? "default" : "outline"}
               size="sm"
               onClick={() => setStatusFilter("open")}
-              className={statusFilter === "open" ? "" : "text-slate-300 border-slate-600"}
+              className={statusFilter === "open" ? "" : "text-muted-foreground border-input"}
             >
               Open
             </Button>
@@ -839,7 +839,7 @@ export default function SuperadminIssuesPage() {
               variant={statusFilter === "closed" ? "default" : "outline"}
               size="sm"
               onClick={() => setStatusFilter("closed")}
-              className={statusFilter === "closed" ? "" : "text-slate-300 border-slate-600"}
+              className={statusFilter === "closed" ? "" : "text-muted-foreground border-input"}
             >
               Closed
             </Button>
@@ -847,7 +847,7 @@ export default function SuperadminIssuesPage() {
               variant={statusFilter === "blocked" ? "default" : "outline"}
               size="sm"
               onClick={() => setStatusFilter("blocked")}
-              className={statusFilter === "blocked" ? "" : "text-slate-300 border-slate-600"}
+              className={statusFilter === "blocked" ? "" : "text-muted-foreground border-input"}
             >
               Blocked
             </Button>
@@ -855,7 +855,7 @@ export default function SuperadminIssuesPage() {
               variant={viewMode === "stale" ? "default" : "outline"}
               size="sm"
               onClick={() => { setViewMode("stale"); setStatusFilter("all"); }}
-              className={viewMode === "stale" ? "" : "text-slate-300 border-slate-600"}
+              className={viewMode === "stale" ? "" : "text-muted-foreground border-input"}
             >
               <Clock className="h-4 w-4 me-1" />
               Stale
@@ -864,7 +864,7 @@ export default function SuperadminIssuesPage() {
               variant="ghost"
               size="sm"
               onClick={clearFilters}
-              className="text-slate-400 hover:text-white ms-auto"
+              className="text-muted-foreground hover:text-foreground ms-auto"
             >
               Clear filters
             </Button>
@@ -973,7 +973,7 @@ export default function SuperadminIssuesPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedIssues(new Set())}
-                  className="text-slate-400 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   Clear selection
                 </Button>
@@ -1022,11 +1022,11 @@ export default function SuperadminIssuesPage() {
                   {t("superadmin.issues.connection.retry")}
                 </Button>
               </div>
-              <div className="mt-6 p-4 bg-slate-800 rounded-lg text-start max-w-md mx-auto">
-                <p className="text-xs text-slate-400 mb-2">
+              <div className="mt-6 p-4 bg-muted rounded-lg text-start max-w-md mx-auto">
+                <p className="text-xs text-muted-foreground mb-2">
                   {t("superadmin.issues.connection.troubleshootingTitle")}
                 </p>
-                <ul className="text-xs text-slate-500 list-disc list-inside space-y-1">
+                <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
                   <li>{t("superadmin.issues.connection.troubleshooting.env")}</li>
                   <li>{t("superadmin.issues.connection.troubleshooting.atlas")}</li>
                   <li>{t("superadmin.issues.connection.troubleshooting.ip")}</li>
@@ -1043,8 +1043,8 @@ export default function SuperadminIssuesPage() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                  <TableHead className="text-slate-300 w-[50px]">
+                <TableRow className="border-input hover:bg-muted/50">
+                  <TableHead className="text-muted-foreground w-[50px]">
                     <input
                       type="checkbox"
                       checked={selectedIssues.size === issues.length && issues.length > 0}
@@ -1052,15 +1052,15 @@ export default function SuperadminIssuesPage() {
                       className="w-4 h-4 cursor-pointer"
                     />
                   </TableHead>
-                  <TableHead className="text-slate-300 w-[80px]">{t("superadmin.issues.table.id")}</TableHead>
-                  <TableHead className="text-slate-300 w-[80px]">{t("superadmin.issues.table.priority")}</TableHead>
-                  <TableHead className="text-slate-300">{t("superadmin.issues.table.title")}</TableHead>
-                  <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.status")}</TableHead>
-                  <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.category")}</TableHead>
-                  <TableHead className="text-slate-300 w-[80px]">{t("superadmin.issues.table.module")}</TableHead>
-                  <TableHead className="text-slate-300 w-[120px]">Assignee</TableHead>
-                  <TableHead className="text-slate-300 w-[60px]">{t("superadmin.issues.table.seen")}</TableHead>
-                  <TableHead className="text-slate-300 w-[100px]">{t("superadmin.issues.table.updated")}</TableHead>
+                  <TableHead className="text-muted-foreground w-[80px]">{t("superadmin.issues.table.id")}</TableHead>
+                  <TableHead className="text-muted-foreground w-[80px]">{t("superadmin.issues.table.priority")}</TableHead>
+                  <TableHead className="text-muted-foreground">{t("superadmin.issues.table.title")}</TableHead>
+                  <TableHead className="text-muted-foreground w-[100px]">{t("superadmin.issues.table.status")}</TableHead>
+                  <TableHead className="text-muted-foreground w-[100px]">{t("superadmin.issues.table.category")}</TableHead>
+                  <TableHead className="text-muted-foreground w-[80px]">{t("superadmin.issues.table.module")}</TableHead>
+                  <TableHead className="text-muted-foreground w-[120px]">Assignee</TableHead>
+                  <TableHead className="text-muted-foreground w-[60px]">{t("superadmin.issues.table.seen")}</TableHead>
+                  <TableHead className="text-muted-foreground w-[100px]">{t("superadmin.issues.table.updated")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1070,7 +1070,7 @@ export default function SuperadminIssuesPage() {
                   return (
                     <TableRow
                       key={issue._id}
-                      className="cursor-pointer hover:bg-slate-700/50 border-slate-700"
+                      className="cursor-pointer hover:bg-muted/50 border-input"
                     >
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <input
@@ -1081,7 +1081,7 @@ export default function SuperadminIssuesPage() {
                         />
                       </TableCell>
                       <TableCell 
-                        className="font-mono text-xs text-slate-300"
+                        className="font-mono text-xs text-muted-foreground"
                         onClick={() => handleIssueClick(issue)}
                       >
                         {issue.issueId || issue.legacyId || issue._id.slice(-6)}
