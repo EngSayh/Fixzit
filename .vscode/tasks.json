@@ -515,6 +515,21 @@
 			"label": "Commit Merge Resolution",
 			"type": "shell",
 			"command": "git add -A; git commit -m 'chore: Merge main and resolve conflicts [AGENT-001-A]'"
+		},
+		{
+			"label": "Recent PRs",
+			"type": "shell",
+			"command": "gh pr list --state all --limit 8 --json number,title,state"
+		},
+		{
+			"label": "Check Current State",
+			"type": "shell",
+			"command": "git branch --show-current; git status -s | Select-Object -First 10; Write-Host '---'; git log --oneline -3"
+		},
+		{
+			"label": "Git Commit Fixes",
+			"type": "shell",
+			"command": "git add -A; git commit -m 'fix(api): TEST-004 JSON parse try-catch + PERF-001 maxTimeMS [AGENT-001-A]'; git log --oneline -3"
 		}
 	]
 }

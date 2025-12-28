@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     .limit(100)
     .lean();
 
-  // Get aggregated stats
+  // Get aggregated stats (AUDIT-2025-12-21: Added maxTimeMS for safety)
   const stats = await CustomerRequest.aggregate([
     { $match: filter },
     {
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
         high: { $sum: { $cond: [{ $eq: ['$severity', 'high'] }, 1, 0] } },
       },
     },
-  ]);
+  ], { maxTimeMS: 10_000 });
 
   return NextResponse.json({
     requests,

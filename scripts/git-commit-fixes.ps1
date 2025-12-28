@@ -1,0 +1,40 @@
+# Git commit script for TEST-004 and PERF-001 fixes
+# Run this to commit all pending changes
+
+Write-Host "=== Git Status ===" -ForegroundColor Cyan
+git status --short
+
+Write-Host "`n=== Staging files ===" -ForegroundColor Cyan
+git add ".vscode/tasks.json"
+git add "app/api/superadmin/customer-requests/route.ts"
+git add "app/api/superadmin/tenants/route.ts"
+git add "app/api/superadmin/tenants/[id]/route.ts"
+git add "components/superadmin/SuperadminSidebar.tsx"
+git add "issue-tracker/app/api/issues/route.ts"
+git add "issue-tracker/app/api/issues/[id]/route.ts"
+
+Write-Host "`n=== Committing ===" -ForegroundColor Cyan
+$commitMessage = @"
+fix(api): TEST-004 JSON parse try-catch + PERF-001 maxTimeMS [AGENT-001-A]
+
+TEST-004 Fixes (P2):
+- app/api/superadmin/tenants/route.ts: Added try-catch to request.json() in POST
+- app/api/superadmin/tenants/[id]/route.ts: Added try-catch to request.json() in PATCH
+- issue-tracker/app/api/issues/route.ts: Added try-catch to request.json() in POST
+- issue-tracker/app/api/issues/[id]/route.ts: Added try-catch to request.json() in PATCH
+
+PERF-001 Fix (P2):
+- app/api/superadmin/customer-requests/route.ts: Added maxTimeMS: 10_000 to aggregate
+
+chore: Updated .vscode/tasks.json with helper tasks
+chore: Updated SuperadminSidebar.tsx - removed comingSoon from working modules
+
+Verification: pnpm typecheck (0 errors), pnpm lint (0 warnings)
+"@
+
+git commit -m $commitMessage
+
+Write-Host "`n=== Recent commits ===" -ForegroundColor Cyan
+git log --oneline -3
+
+Write-Host "`n=== Done! ===" -ForegroundColor Green

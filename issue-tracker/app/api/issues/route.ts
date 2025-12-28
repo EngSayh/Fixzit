@@ -250,7 +250,12 @@ export async function POST(request: NextRequest) {
     
     await connectDB();
     
-    const body: CreateIssueBody = await request.json();
+    let body: CreateIssueBody;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     
     // Validation
     const requiredFields = ['title', 'description', 'category', 'priority', 'effort', 'location', 'module', 'action', 'definitionOfDone'];

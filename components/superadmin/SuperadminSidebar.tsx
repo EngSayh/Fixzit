@@ -59,43 +59,37 @@ const SUPERADMIN_NAV_ITEMS: NavItem[] = [
     href: "/superadmin/tenants",
     icon: Building2,
     labelKey: "superadmin.nav.tenants",
-    comingSoon: true,
   },
   {
     href: "/superadmin/users",
     icon: Users,
     labelKey: "superadmin.nav.users",
-    comingSoon: true,
   },
   {
     href: "/superadmin/roles",
     icon: Shield,
     labelKey: "superadmin.nav.roles",
-    comingSoon: true,
   },
   {
     href: "/superadmin/audit",
     icon: FileText,
     labelKey: "superadmin.nav.audit",
-    comingSoon: true,
   },
   {
     href: "/superadmin/features",
     icon: Zap,
     labelKey: "superadmin.nav.features",
-    comingSoon: true,
   },
   {
     href: "/superadmin/integrations",
     icon: Globe,
     labelKey: "superadmin.nav.integrations",
-    comingSoon: true,
   },
   {
     href: "/superadmin/jobs",
     icon: Activity,
     labelKey: "superadmin.nav.jobs",
-    comingSoon: true,
+    comingSoon: true, // Partial: job list is simulated
   },
   {
     href: "/superadmin/system",
@@ -106,37 +100,34 @@ const SUPERADMIN_NAV_ITEMS: NavItem[] = [
     href: "/superadmin/billing",
     icon: CreditCard,
     labelKey: "superadmin.nav.billing",
-    comingSoon: true,
   },
   {
     href: "/superadmin/translations",
     icon: Languages,
     labelKey: "superadmin.nav.translations",
-    comingSoon: true,
+    comingSoon: true, // Partial: uses hardcoded sample keys
   },
   {
     href: "/superadmin/database",
     icon: Database,
     labelKey: "superadmin.nav.database",
-    comingSoon: true,
+    comingSoon: true, // Partial: collection stats are simulated
   },
   {
     href: "/superadmin/security",
     icon: Lock,
     labelKey: "superadmin.nav.security",
-    comingSoon: true,
   },
   {
     href: "/superadmin/analytics",
     icon: BarChart3,
     labelKey: "superadmin.nav.analytics",
-    comingSoon: true,
+    comingSoon: true, // Partial: some stats calculated client-side
   },
   {
     href: "/superadmin/notifications",
     icon: Bell,
     labelKey: "superadmin.nav.notifications",
-    comingSoon: true,
   },
   // Additional modules (previously hidden)
   {
