@@ -4,7 +4,7 @@
  * @see Issue #293 - Technical Debt: Complete TODO Items
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   calculateSLADeadline,
   isBusinessHour,
@@ -16,6 +16,10 @@ import {
   type Holiday,
 } from '@/lib/sla/business-hours';
 import { Types } from 'mongoose';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 // Test config using Saudi defaults
 const testConfig: BusinessHoursConfig = {

@@ -429,8 +429,10 @@ export default function SuperadminIssuesPage() {
 
       const data = await response.json();
       setStats(data);
-    } catch (_error) {
-      // Stats loading failure is non-critical
+    } catch (error) {
+      // Stats loading failure is non-critical, but must be observable
+      // eslint-disable-next-line no-console -- surface non-critical stats errors
+      console.error("[superadmin:issues] Failed to fetch stats", error);
     } finally {
       setStatsLoading(false);
     }

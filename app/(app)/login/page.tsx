@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { Suspense, useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 // ⚡ PERFORMANCE OPTIMIZATION: Only import icons actually used in login page
@@ -98,7 +98,7 @@ interface DemoCredential {
   color: string;
 }
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [loginMethod, setLoginMethod] = useState<'personal' | 'corporate' | 'sso'>('personal');
   const [phoneMode, setPhoneMode] = useState(false);
   const [email, setEmail] = useState('');
@@ -1156,5 +1156,37 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
         </div>
       </div>
     </main>
+  );
+}
+
+/**
+ * Fallback component displayed during Suspense loading
+ */
+function LoginPageFallback() {
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-muted/20 p-4">
+      <div className="w-full max-w-lg mx-auto">
+        <div className="bg-card rounded-3xl border border-border shadow-2xl p-8 animate-pulse">
+          <div className="h-16 bg-muted rounded mb-6" />
+          <div className="space-y-4">
+            <div className="h-12 bg-muted rounded" />
+            <div className="h-12 bg-muted rounded" />
+            <div className="h-12 bg-muted rounded" />
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+/**
+ * LoginPage wrapped in Suspense boundary for useSearchParams()
+ * Required for Next.js 15+ static generation
+ */
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

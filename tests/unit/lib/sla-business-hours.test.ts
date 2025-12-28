@@ -2,7 +2,7 @@
  * @file SLA Business Hours Calculation Tests
  * Tests for LOGIC-001: Work Order SLA calculation with business hours
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   isBusinessHour,
   getNextBusinessHourStart,
@@ -13,6 +13,9 @@ import {
 } from "@/lib/sla";
 
 describe("SLA Business Hours", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
   // Saudi Arabia work week: Sunday-Thursday, 8am-6pm
   const saudiConfig: BusinessHoursConfig = {
     workDays: [0, 1, 2, 3, 4], // Sunday-Thursday

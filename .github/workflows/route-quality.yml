@@ -78,6 +78,9 @@ jobs:
           ALLOW_DASHBOARD_TEST_AUTH: "true"
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VERCEL_CRON_SECRET: ${{ secrets.VERCEL_CRON_SECRET }}
         run: |
           npx playwright test \
             tests/smoke/rtl-layout.smoke.spec.ts \

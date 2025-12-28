@@ -3,6 +3,7 @@
  * Tests for lib/sla.ts - SLA computation for work orders
  * Tests the ACTUAL production values used in the system
  */
+import { beforeEach, vi } from "vitest";
 import {
   computeSlaMinutes,
   computeDueAt,
@@ -14,6 +15,10 @@ import {
   WorkOrderPriority,
 } from "@/lib/sla";
 // Note: @ts-expect-error usages in this file intentionally feed invalid inputs to verify runtime behavior.
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe("computeSlaMinutes", () => {
   it("returns 4 hours (240 mins) for CRITICAL priority", () => {
