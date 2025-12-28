@@ -37,6 +37,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { getSuperadminSession } from "@/lib/superadmin/auth";
 import {
   generateRouteAliasMetrics,
   readRouteAliasMetrics,
@@ -97,14 +98,18 @@ export async function GET(request: NextRequest) {
 
   try {
     const session = await auth();
+    const superadminSession = await getSuperadminSession(request);
     const role = session?.user?.role;
 
-    if (!session?.user) {
+    // Allow both regular SUPER_ADMIN role and superadmin portal session
+    const isAuthorized = role === "SUPER_ADMIN" || !!superadminSession;
+
+    if (!session?.user && !superadminSession) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (role !== "SUPER_ADMIN") {
-      logger.warn("Route metrics access denied", { role });
+    if (!isAuthorized) {
+      logger.warn("Route metrics access denied", { role, hasSuperadminSession: !!superadminSession });
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

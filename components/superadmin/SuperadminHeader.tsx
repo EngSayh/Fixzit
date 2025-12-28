@@ -161,7 +161,8 @@ export function SuperadminHeader() {
         </Button>
       </div>
 
-      {/* AcGlobal Search with Cmd+K hint */}
+      {/* Center: Global Search with Cmd+K hint */}
+      <div className="flex items-center gap-3">
         <div className="relative">
           <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
@@ -178,7 +179,10 @@ export function SuperadminHeader() {
             <Command className="inline h-3 w-3" />K
           </kbd>
         </div>
+      </div>
 
+      {/* Right: Actions */}
+      <div className="flex items-center gap-3">
         {/* Theme Toggle - Cycles: light → dark → system */}
         <Button
           variant="ghost"
@@ -193,19 +197,17 @@ export function SuperadminHeader() {
           {theme === 'light' ? <Sun className="h-4 w-4" /> : theme === 'dark' ? <Moon className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
         </Button>
 
-        {/* Notifications Bell */}
+        {/* Notifications Bell - Badge hidden until we have notification count API */}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => router.push("/superadmin/notifications")}
           className="text-slate-300 hover:text-white relative"
+          title="Notifications"
         >
           <Bell className="h-4 w-4" />
-          <span className="absolute top-1 end-1 w-2 h-2 bg-red-500 rounded-full" />
+          {/* TODO: Add notification count badge when API is available */}
         </Button>
-
-        {/* tions */}
-      <div className="flex items-center gap-3">
         {/* Language Selector (dropdown with flags) */}
         <SuperadminLanguageDropdown />
 

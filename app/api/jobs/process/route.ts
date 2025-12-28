@@ -11,6 +11,7 @@ import { DOMAINS } from "@/lib/config/domains";
 import { joinUrl } from "@/lib/utils/url";
 import { verifySecretHeader } from "@/lib/security/verify-secret-header";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { getSuperadminSession } from "@/lib/superadmin/auth";
 
 /**
  * POST /api/jobs/process
@@ -24,14 +25,15 @@ export async function POST(request: NextRequest) {
   enforceRateLimit(request, { requests: 20, windowMs: 60_000, keyPrefix: "jobs:process" });
   try {
     const session = await auth();
+    const superadminSession = await getSuperadminSession(request);
 
-    // Allow both authenticated admins and cron jobs (with secret)
+    // Allow authenticated admins, superadmin portal users, and cron jobs (with secret)
     const cronAuthorized = verifySecretHeader(
       request,
       "x-cron-secret",
       process.env.CRON_SECRET,
     );
-    const isAuthorized = session?.user?.isSuperAdmin || cronAuthorized;
+    const isAuthorized = session?.user?.isSuperAdmin || !!superadminSession || cronAuthorized;
 
     if (!isAuthorized) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

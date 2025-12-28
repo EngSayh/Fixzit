@@ -12,7 +12,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
@@ -168,14 +168,14 @@ export default function SuperadminJobsPage() {
       <Card className="bg-slate-900 border-slate-800">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white">
-                <SelectValue placeholder="Job Type" />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
-                <SelectItem value="all">All Types</SelectItem>
-                {JOB_TYPES.map((type) => (<SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>))}
-              </SelectContent>
+            <Select 
+              value={typeFilter} 
+              onValueChange={setTypeFilter}
+              placeholder="Job Type"
+              className="w-[180px] bg-slate-800 border-slate-700 text-white"
+            >
+              <SelectItem value="all">All Types</SelectItem>
+              {JOB_TYPES.map((type) => (<SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>))}
             </Select>
             <Button onClick={handleProcessJobs} disabled={processing || stats.pending === 0} className="bg-green-600 hover:bg-green-700">
               {processing ? <><RefreshCw className="h-4 w-4 me-2 animate-spin" />Processing...</> : <><Play className="h-4 w-4 me-2" />Process Jobs</>}
