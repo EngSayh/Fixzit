@@ -170,7 +170,7 @@ export function BulkActionsToolbar<T>({
               ) : (
                 action.icon
               )}
-              <span className="ms-1">{action.label}</span>
+              <span className="ms-1">{t(`workOrders.bulk.${action.id}`, action.label)}</span>
             </Button>
           ))}
         </div>
@@ -209,7 +209,7 @@ async function callBulkWorkOrderAPI(
 ): Promise<{ affected: number; errors?: string[] }> {
   // Guard: assign requires assignee selection
   if (action === 'assign' && !params?.assigneeUserId && !params?.assigneeVendorId) {
-    return { affected: 0, errors: ['Assign requires assignee selection.'] };
+    return { affected: 0, errors: ['Assignee is required for this action.'] };
   }
 
   const response = await fetch('/api/work-orders/bulk', {

@@ -23,6 +23,34 @@ const testConfig: BusinessHoursConfig = {
   ...SAUDI_DEFAULTS,
 };
 
+/**
+ * Get time parts in the test config's timezone for assertions
+ * This ensures tests pass regardless of the machine's local timezone
+ */
+function getTimePartsInTestTZ(date: Date): {
+  weekday: string;
+  day: number;
+  hour: number;
+  minute: number;
+} {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: testConfig.timezone,
+    weekday: 'long',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(date);
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return {
+    weekday: String(lookup.weekday),
+    day: Number(lookup.day),
+    hour: Number(lookup.hour),
+    minute: Number(lookup.minute),
+  };
+}
+
 describe('business-hours', () => {
   describe('isHoliday', () => {
     const holidays: Holiday[] = [
@@ -103,24 +131,27 @@ describe('business-hours', () => {
     it('should return 8 AM same day if before business hours', () => {
       const date = new Date('2026-01-04T06:00:00'); // Sunday 6 AM
       const result = getNextBusinessHourStart(date, testConfig);
-      expect(result.getHours()).toBe(8);
-      expect(result.getMinutes()).toBe(0);
-      expect(result.getDate()).toBe(4);
+      const parts = getTimePartsInTestTZ(result);
+      expect(parts.hour).toBe(8);
+      expect(parts.minute).toBe(0);
+      expect(parts.day).toBe(4);
     });
 
     it('should return next working day 8 AM if after business hours', () => {
       const date = new Date('2026-01-04T18:00:00'); // Sunday 6 PM
       const result = getNextBusinessHourStart(date, testConfig);
-      expect(result.getHours()).toBe(8);
-      expect(result.getMinutes()).toBe(0);
-      expect(result.getDate()).toBe(5); // Monday
+      const parts = getTimePartsInTestTZ(result);
+      expect(parts.hour).toBe(8);
+      expect(parts.minute).toBe(0);
+      expect(parts.day).toBe(5); // Monday
     });
 
     it('should skip Friday/Saturday and return Sunday', () => {
       const date = new Date('2026-01-08T18:00:00'); // Thursday 6 PM
       const result = getNextBusinessHourStart(date, testConfig);
-      expect(result.getDay()).toBe(0); // Sunday
-      expect(result.getHours()).toBe(8);
+      const parts = getTimePartsInTestTZ(result);
+      expect(parts.weekday).toBe('Sunday');
+      expect(parts.hour).toBe(8);
     });
   });
 
@@ -148,10 +179,11 @@ describe('business-hours', () => {
       // Sunday 9 AM + 4 hours SLA = Sunday 1 PM
       const createdAt = new Date('2026-01-04T09:00:00');
       const result = calculateSLADeadline(createdAt, 4, testConfig);
+      const parts = getTimePartsInTestTZ(result.deadline);
       
       expect(result.businessHoursUsed).toBe(4);
-      expect(result.deadline.getHours()).toBe(13); // 1 PM
-      expect(result.deadline.getDate()).toBe(4); // Same day
+      expect(parts.hour).toBe(13); // 1 PM
+      expect(parts.day).toBe(4); // Same day
     });
 
     it('should span multiple days when SLA exceeds remaining hours', () => {
@@ -159,10 +191,11 @@ describe('business-hours', () => {
       // = 2 hours Sunday + 6 hours Monday = Monday 2 PM
       const createdAt = new Date('2026-01-04T15:00:00');
       const result = calculateSLADeadline(createdAt, 8, testConfig);
+      const parts = getTimePartsInTestTZ(result.deadline);
       
       expect(result.businessHoursUsed).toBe(8);
-      expect(result.deadline.getDate()).toBe(5); // Monday
-      expect(result.deadline.getHours()).toBe(14); // 2 PM
+      expect(parts.day).toBe(5); // Monday
+      expect(parts.hour).toBe(14); // 2 PM
     });
 
     it('should skip weekends (Friday/Saturday)', () => {
@@ -170,8 +203,9 @@ describe('business-hours', () => {
       // = 1 hour Thursday + skip Fri/Sat + 3 hours Sunday = Sunday 11 AM
       const createdAt = new Date('2026-01-08T16:00:00'); // Thursday 4 PM
       const result = calculateSLADeadline(createdAt, 4, testConfig);
+      const parts = getTimePartsInTestTZ(result.deadline);
       
-      expect(result.deadline.getDay()).toBe(0); // Sunday
+      expect(parts.weekday).toBe('Sunday');
       expect(result.breakdown.length).toBeGreaterThan(1);
     });
 
@@ -179,9 +213,10 @@ describe('business-hours', () => {
       // Saturday 10 AM + 2 hours SLA = Sunday 10 AM (starts at 8 AM + 2 hours)
       const createdAt = new Date('2026-01-03T10:00:00'); // Saturday
       const result = calculateSLADeadline(createdAt, 2, testConfig);
+      const parts = getTimePartsInTestTZ(result.deadline);
       
-      expect(result.deadline.getDay()).toBe(0); // Sunday
-      expect(result.deadline.getHours()).toBe(10); // 10 AM
+      expect(parts.weekday).toBe('Sunday');
+      expect(parts.hour).toBe(10); // 10 AM
     });
 
     it('should track breakdown correctly', () => {
