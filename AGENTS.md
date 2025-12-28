@@ -57,6 +57,7 @@ Maintain the Fixzit multi-tenant SaaS platform with zero tolerance for shortcuts
 │  • Bypassing Codex review gate                                          │
 │  • Editing files outside locked paths without Scope Expansion           │
 │  • Missing Agent Token in commits, PRs, or SSOT events                  │
+│  • Skipping Three-Perspective Analysis (Section 4.2) - quick wins only  │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -136,10 +137,104 @@ test(finance): add invoice validation tests [AGENT-002-A] [FM-089]
 ### 4.1 Lifecycle Phases
 
 ```
-CLAIM → WORK → VERIFY → REVIEW → SSOT → CLEANUP
+CLAIM → ANALYZE → WORK → VERIFY → REVIEW → SSOT → CLEANUP
 ```
 
-### 4.2 Pre-Start Checklist (9 items — MANDATORY)
+### 4.2 Three-Perspective Thinking Protocol (MANDATORY)
+
+**Every task MUST pass through three perspectives BEFORE implementation:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  THREE-PERSPECTIVE VALIDATION GATE                                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Before ANY implementation work, agent MUST complete:                  │
+│                                                                         │
+│  1. SYSTEM ARCHITECT ANALYSIS                                          │
+│     □ How does this change affect platform architecture?               │
+│     □ Module integration points impacted?                              │
+│     □ Data flow changes required?                                      │
+│     □ Multi-tenant implications?                                       │
+│     □ Cross-module dependencies?                                       │
+│                                                                         │
+│  2. SOFTWARE ENGINEER ANALYSIS                                         │
+│     □ Code patterns and conventions to follow?                         │
+│     □ Existing abstractions to reuse?                                  │
+│     □ Test coverage requirements?                                      │
+│     □ Performance considerations?                                      │
+│     □ Security implications?                                           │
+│                                                                         │
+│  3. DEVELOPER TASK BREAKDOWN                                           │
+│     □ Specific files to modify?                                        │
+│     □ Implementation steps (ordered)?                                  │
+│     □ Verification criteria?                                           │
+│     □ Dependencies on other tasks?                                     │
+│     □ Estimated effort per task?                                       │
+│                                                                         │
+│  VIOLATION = Superficial "quick wins" without understanding context    │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 4.2.1 System Architect Perspective
+
+Before coding, answer these questions and document in SSOT:
+
+| Question | Must Answer |
+|----------|-------------|
+| **Module Impact** | Which modules are affected? (Core, Souq, Aqar, Finance, HR, FM) |
+| **Data Model** | Schema changes needed? New collections? Field additions? |
+| **API Surface** | New endpoints? Changes to existing contracts? |
+| **Multi-Tenancy** | How is org_id scoping enforced? |
+| **Integration Points** | External services, webhooks, event buses affected? |
+| **Scalability** | Will this work at 10x current load? |
+| **Security Boundary** | Auth/RBAC changes? New permission requirements? |
+
+**Output:** Architecture Decision Record (ADR) summary in issue notes.
+
+#### 4.2.2 Software Engineer Perspective
+
+Evaluate implementation approach:
+
+| Question | Must Answer |
+|----------|-------------|
+| **Existing Patterns** | What similar code exists? Follow or improve pattern? |
+| **Abstractions** | Reusable hooks, utilities, services to leverage? |
+| **Code Quality** | TypeScript strict, ESLint clean, no shortcuts? |
+| **Test Strategy** | Unit, integration, E2E test requirements? |
+| **Error Handling** | Proper error codes, recovery paths, logging? |
+| **Performance** | Database indexes, query optimization, caching? |
+| **Maintainability** | Clear code, JSDoc, future extensibility? |
+
+**Output:** Implementation approach documented in issue notes.
+
+#### 4.2.3 Developer Perspective
+
+Create actionable task breakdown:
+
+| Field | Required |
+|-------|----------|
+| **File List** | Exact paths (no wildcards) |
+| **Change Type** | Create / Modify / Delete |
+| **Dependencies** | Must complete X before Y |
+| **Verification** | How to confirm success |
+| **Effort** | XS/S/M/L/XL per file |
+| **Risk** | What could go wrong? |
+
+**Output:** Detailed task list in todo system + SSOT sync.
+
+#### 4.2.4 Perspective Validation Checklist
+
+```
+□ 1. Architecture analysis complete (Section 4.2.1)
+□ 2. Engineering approach defined (Section 4.2.2)
+□ 3. Developer tasks created (Section 4.2.3)
+□ 4. All three perspectives recorded in SSOT
+□ 5. THEN and ONLY THEN: Begin implementation
+
+If ANY perspective is skipped → Task fails quality gate
+```
+
+### 4.3 Pre-Start Checklist (9 items — MANDATORY)
 
 Before starting ANY task:
 
@@ -157,7 +252,7 @@ Before starting ANY task:
 
 **Announce:** `[AGENT-XXX-Y] Claimed. Files: <list>`
 
-### 4.3 Post-Task Checklist (13 items — MANDATORY)
+### 4.4 Post-Task Checklist (13 items — MANDATORY)
 
 After completing ANY task:
 
@@ -1656,6 +1751,12 @@ gh secret list 2>&1 | Select-String "SENTRY"
 - Added Git preflight phase and tooling preference for SSOT validation (Section 6).
 - Added MongoDB SSOT schema alignment toolkit steps (Section 13.11).
 - Updated lockfile path to `.fixzit/agent-assignments.json` (gitignored).
+- **NEW: Three-Perspective Thinking Protocol (Section 4.2)** — MANDATORY analysis before implementation:
+  - System Architect perspective (architecture, data flow, multi-tenant)
+  - Software Engineer perspective (patterns, quality, testing)
+  - Developer perspective (tasks, files, verification)
+- Added "Skipping Three-Perspective Analysis" to forbidden actions (Section 1.2)
+- Updated lifecycle phases to: `CLAIM → ANALYZE → WORK → VERIFY → REVIEW → SSOT → CLEANUP`
 
 **Schema Updates:**
 - Added `priorityLabel`/`priorityRank` and made `priority` legacy optional; index updated to `priorityRank`.
@@ -1706,8 +1807,8 @@ gh secret list 2>&1 | Select-String "SENTRY"
 ---
 
 *Document maintained by Eng. Sultan Al Hassni*  
-*Last updated: 2025-12-21 (Asia/Riyadh)*
+*Last updated: 2025-12-29 (Asia/Riyadh)*
 
 ---
 
-END OF AGENTS.md v6.0
+END OF AGENTS.md v6.0.1

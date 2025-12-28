@@ -2,6 +2,100 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-29 02:00 (Asia/Riyadh) — AGENTS.MD UPDATE + THREE-PERSPECTIVE ANALYSIS
+
+**Agent Token:** [AGENT-001-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | pending commit
+**Session Summary:** Updated AGENTS.md v6.0.1 with mandatory Three-Perspective Thinking Protocol (System Architect → Software Engineer → Developer). Applied protocol to Superadmin module enhancement work.
+**DB Sync:** created=0, updated=1 (AGENTS.md), skipped=0, errors=0
+
+### ✅ AGENTS.MD v6.0.1 CHANGES
+
+| Section | Change | Purpose |
+|---------|--------|---------|
+| 1.2 | Added "Skipping Three-Perspective Analysis" to forbidden actions | Prevent quick-wins-only approach |
+| 4.1 | Updated lifecycle to: CLAIM → ANALYZE → WORK → VERIFY → REVIEW → SSOT → CLEANUP | Added ANALYZE phase |
+| 4.2 | **NEW: Three-Perspective Thinking Protocol** | Mandatory analysis before implementation |
+| 4.2.1 | System Architect Perspective | Architecture, data flow, multi-tenant |
+| 4.2.2 | Software Engineer Perspective | Patterns, quality, testing |
+| 4.2.3 | Developer Perspective | Tasks, files, verification |
+| 4.2.4 | Perspective Validation Checklist | Gate before implementation |
+| 4.3/4.4 | Renumbered Pre-Start/Post-Task checklists | Section alignment |
+| Changelog | Added v6.0.1 entry | Document history |
+
+### 📊 THREE-PERSPECTIVE ANALYSIS: SUPERADMIN MODULE
+
+#### 4.2.1 SYSTEM ARCHITECT PERSPECTIVE
+
+| Question | Answer |
+|----------|--------|
+| Module Impact | Core - Superadmin is platform control plane for ALL modules (FM, Souq, Aqar, Finance, HR) |
+| Data Model | Theme work: NO schema changes. P1 work: Quota, WebhookDelivery, ScheduledTask models needed |
+| API Surface | Theme work: NO API changes. P1 work: New endpoints needed |
+| Multi-Tenancy | Superadmin operates ABOVE tenant isolation - manages all tenants. SAHRECO (orgId=1) is owner |
+| Integration Points | ThemeProvider (global), all superadmin pages |
+| Scalability | CSS-only changes, no performance impact |
+| Security | Separate auth via superadmin_session cookie |
+
+**Architecture Decision:** Theme token conversion is safe - CSS-only, no data/API changes.
+
+#### 4.2.2 SOFTWARE ENGINEER PERSPECTIVE
+
+| Question | Answer |
+|----------|--------|
+| Existing Patterns | ThemeProvider at /providers/theme-provider.tsx, Card uses bg-card token |
+| Abstractions | Reuse Card, CardHeader, CardContent with built-in theme support |
+| Code Quality | TypeScript strict, pnpm typecheck + pnpm lint after each file |
+| Test Strategy | Visual changes - verify pages render without errors |
+| Error Handling | Theme fallbacks already exist in ThemeProvider |
+| Performance | CSS tokens resolved at runtime, no JS overhead |
+| Maintainability | Theme tokens = centralized future theme changes |
+
+**Engineering Approach:**
+1. Replace hardcoded Tailwind classes with theme tokens
+2. Use existing Card component variants where possible
+3. For custom styles, use CSS variables pattern
+
+#### 4.2.3 DEVELOPER PERSPECTIVE: TASK BREAKDOWN
+
+**Files Requiring Theme Conversion (20 remaining):**
+
+| # | File | Effort | Risk | Priority |
+|---|------|--------|------|----------|
+| 1 | app/superadmin/catalog/page.tsx | M | Low | P2 |
+| 2 | app/superadmin/database/page.tsx | S | Low | P2 |
+| 3 | app/superadmin/features/page.tsx | S | Low | P2 |
+| 4 | app/superadmin/import-export/page.tsx | M | Low | P2 |
+| 5 | app/superadmin/search/page.tsx | S | Low | P2 |
+| 6 | app/superadmin/security/page.tsx | M | Low | P2 |
+| 7 | app/superadmin/reports/page.tsx | M | Low | P2 |
+| 8 | app/superadmin/tenants/page.tsx | L | Low | P2 |
+| 9 | app/superadmin/translations/page.tsx | M | Low | P2 |
+| 10 | app/superadmin/support/page.tsx | M | Low | P2 |
+| 11 | app/superadmin/ssot/page.tsx | S | Low | P2 |
+| 12 | app/superadmin/users/page.tsx | L | Low | P2 |
+| 13 | app/superadmin/audit/page.tsx | M | Low | P2 |
+| 14 | app/superadmin/integrations/page.tsx | S | Low | P3 |
+| 15 | app/superadmin/vendors/page.tsx | M | Low | P3 |
+| 16 | app/superadmin/customer-requests/page.tsx | M | Low | P3 |
+| 17 | app/superadmin/issues/page.tsx | M | Low | P3 |
+| 18 | app/superadmin/billing/page.tsx | S | Low | P3 |
+| 19 | app/superadmin/analytics/page.tsx | M | Low | P3 |
+| 20 | app/superadmin/impersonate/page.tsx | S | Low | P3 |
+
+**Theme Token Mapping (Reference):**
+| Hardcoded | Theme Token |
+|-----------|-------------|
+| bg-slate-900 | bg-card |
+| bg-slate-800 | bg-muted |
+| border-slate-800 | border-border |
+| border-slate-700 | border-input |
+| text-slate-400 | text-muted-foreground |
+| text-white | text-foreground |
+| hover:bg-slate-800/50 | hover:bg-muted/50 |
+
+---
+
 ## 📅 2025-12-29 01:15 (Asia/Riyadh) — SUPERADMIN THEME TOKEN CONVERSION
 
 **Agent Token:** [AGENT-001-A]
