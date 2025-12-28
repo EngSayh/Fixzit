@@ -56,6 +56,14 @@ const SECRET_FALLBACK: string | null = (() => {
 
 export const SUPERADMIN_COOKIE_NAME = "superadmin_session";
 
+/**
+ * Debug helper to check if JWT secret is configured
+ * Used by middleware for troubleshooting auth issues
+ */
+export function hasJwtSecretConfigured(): boolean {
+  return !!SECRET_FALLBACK;
+}
+
 const encoder = new TextEncoder();
 // Only encode if secret exists - jwtSecret will be null if no secret configured
 const jwtSecret = SECRET_FALLBACK ? encoder.encode(SECRET_FALLBACK) : null;
