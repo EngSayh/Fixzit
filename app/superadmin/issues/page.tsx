@@ -162,6 +162,7 @@ export default function SuperadminIssuesPage() {
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importData, setImportData] = useState("");
@@ -365,14 +366,35 @@ export default function SuperadminIssuesPage() {
       const response = await fetch(`/api/issues?${params.toString()}`);
       
       if (!response.ok) {
-        throw new Error("Failed to fetch issues");
+        // Check for specific error types
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData?.error?.message || errorData?.message || "Failed to fetch issues";
+        
+        // Detect database connection issues
+        if (response.status === 500 && (errorMessage.includes("database") || errorMessage.includes("MongoDB") || errorMessage.includes("connection"))) {
+          setConnectionError("Database connection failed. Please check your MONGODB_URI configuration.");
+        } else if (response.status >= 500) {
+          setConnectionError(`Server error: ${errorMessage}`);
+        }
+        throw new Error(errorMessage);
       }
 
+      // Clear any previous connection error on success
+      setConnectionError(null);
+      
       const data = await response.json();
       const payload = data.data || data;
       setIssues(payload.issues || []);
       setTotalPages(payload.pagination?.totalPages || 1);
-    } catch (_error) {
+    } catch (error) {
+      // If we don't already have a connection error set, show generic error
+      if (!connectionError) {
+        const errorMsg = error instanceof Error ? error.message : "Unknown error";
+        // Check for network/fetch errors that indicate connection issues
+        if (errorMsg.includes("fetch") || errorMsg.includes("network") || errorMsg.includes("Failed to fetch")) {
+          setConnectionError("Unable to connect to the server. Please check if the API is running.");
+        }
+      }
       toast({
         title: t("superadmin.issues.toast.errorTitle"),
         description: t("superadmin.issues.toast.loadFailed"),
@@ -382,7 +404,7 @@ export default function SuperadminIssuesPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast, t]);
+  }, [page, statusFilter, priorityFilter, categoryFilter, search, viewMode, toast, t, connectionError]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -965,6 +987,34 @@ export default function SuperadminIssuesPage() {
               {Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} className="h-16 w-full bg-muted" />
               ))}
+            </div>
+          ) : connectionError ? (
+            <div className="p-8 text-center">
+              <AlertOctagon className="h-12 w-12 mx-auto mb-4 text-red-500" />
+              <p className="font-medium text-red-400 mb-2">Connection Error</p>
+              <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                {connectionError}
+              </p>
+              <div className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => { setConnectionError(null); handleRefresh(); }}
+                  className="me-2"
+                >
+                  <RefreshCw className="h-4 w-4 me-2" />
+                  Retry Connection
+                </Button>
+              </div>
+              <div className="mt-6 p-4 bg-slate-800 rounded-lg text-start max-w-md mx-auto">
+                <p className="text-xs text-slate-400 mb-2">Troubleshooting:</p>
+                <ul className="text-xs text-slate-500 list-disc list-inside space-y-1">
+                  <li>Check that <code className="text-slate-300">MONGODB_URI</code> is set in <code className="text-slate-300">.env.local</code></li>
+                  <li>Verify MongoDB Atlas is accessible from your network</li>
+                  <li>Ensure your IP is whitelisted in MongoDB Atlas</li>
+                  <li>Check the terminal for detailed error logs</li>
+                </ul>
+              </div>
             </div>
           ) : issues.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
