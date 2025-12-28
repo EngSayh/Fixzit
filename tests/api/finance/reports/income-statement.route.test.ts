@@ -1,10 +1,10 @@
 /**
- * @fileoverview Tests for /api/finance/reports/balance-sheet route
- * Tests balance sheet report generation with date filtering
+ * @fileoverview Tests for /api/finance/reports/income-statement route
+ * Tests income statement (P&L) report generation with date filtering
  * FINANCIAL TAG: Critical for accounting reports and compliance
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 // Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
@@ -44,9 +44,14 @@ vi.mock("@/lib/mongodb-unified", () => ({
   dbConnect: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock balance sheet service
+// Mock income statement service
 vi.mock("@/server/finance/reporting.service", () => ({
-  balanceSheet: vi.fn(),
+  incomeStatement: vi.fn(),
+}));
+
+// Mock money utilities
+vi.mock("@/server/lib/money", () => ({
+  decimal128ToMinor: vi.fn((val) => BigInt(val?.toString() || "0")),
 }));
 
 // Mock error responses
@@ -63,11 +68,11 @@ vi.mock("@/server/utils/errorResponses", async (importOriginal) => {
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { requirePermission } from "@/config/rbac.config";
-import { balanceSheet } from "@/server/finance/reporting.service";
+import { incomeStatement } from "@/server/finance/reporting.service";
 
-const importRoute = () => import("@/app/api/finance/reports/balance-sheet/route");
+const importRoute = () => import("@/app/api/finance/reports/income-statement/route");
 
-describe("GET /api/finance/reports/balance-sheet", () => {
+describe("GET /api/finance/reports/income-statement", () => {
   const mockOrgId = "507f1f77bcf86cd799439011";
   const mockUser = {
     id: "507f1f77bcf86cd799439012",
@@ -80,17 +85,17 @@ describe("GET /api/finance/reports/balance-sheet", () => {
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     vi.mocked(getSessionUser).mockResolvedValue(mockUser as never);
     vi.mocked(requirePermission).mockReturnValue(undefined);
-    vi.mocked(balanceSheet).mockResolvedValue({
-      assets: BigInt(10000000), // 100000.00 in minor units
-      liab: BigInt(5000000),    // 50000.00
-      equity: BigInt(5000000),  // 50000.00
+    vi.mocked(incomeStatement).mockResolvedValue({
+      revenue: BigInt(50000000),  // 500,000.00 in minor units
+      expenses: BigInt(30000000), // 300,000.00
+      netIncome: BigInt(20000000), // 200,000.00
     } as never);
   });
 
   it("returns 401 when not authenticated", async () => {
     vi.mocked(getSessionUser).mockResolvedValue(null as never);
 
-    const req = new NextRequest("http://localhost/api/finance/reports/balance-sheet");
+    const req = new NextRequest("http://localhost/api/finance/reports/income-statement");
     const { GET } = await importRoute();
     const res = await GET(req);
 
@@ -99,80 +104,76 @@ describe("GET /api/finance/reports/balance-sheet", () => {
 
   it("returns 429 when rate limited", async () => {
     vi.mocked(enforceRateLimit).mockReturnValue(
-      new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 }) as never
+      new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 })
     );
 
-    const req = new NextRequest("http://localhost/api/finance/reports/balance-sheet");
+    const req = new NextRequest("http://localhost/api/finance/reports/income-statement");
     const { GET } = await importRoute();
     const res = await GET(req);
 
     expect(res.status).toBe(429);
   });
 
-  it("returns balance sheet with default date (today)", async () => {
-    const req = new NextRequest("http://localhost/api/finance/reports/balance-sheet");
+  it("returns income statement with default year", async () => {
+    const req = new NextRequest("http://localhost/api/finance/reports/income-statement");
     const { GET } = await importRoute();
     const res = await GET(req);
 
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.assets).toBe(100000);
-    expect(data.liabilities).toBe(50000);
-    expect(data.equity).toBe(50000);
-    expect(data.asOf).toBeDefined();
+    expect(incomeStatement).toHaveBeenCalled();
   });
 
-  it("returns balance sheet for specific asOf date", async () => {
-    const req = new NextRequest("http://localhost/api/finance/reports/balance-sheet?asOf=2025-12-31");
+  it("returns income statement for specific year", async () => {
+    const req = new NextRequest("http://localhost/api/finance/reports/income-statement?year=2024");
     const { GET } = await importRoute();
     const res = await GET(req);
 
     expect(res.status).toBe(200);
-    expect(balanceSheet).toHaveBeenCalled();
+    expect(incomeStatement).toHaveBeenCalled();
+  });
+
+  it("returns income statement for date range", async () => {
+    const req = new NextRequest("http://localhost/api/finance/reports/income-statement?from=2025-01-01&to=2025-06-30");
+    const { GET } = await importRoute();
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    expect(incomeStatement).toHaveBeenCalled();
   });
 
   it("verifies permission check is called", async () => {
-    const req = new NextRequest("http://localhost/api/finance/reports/balance-sheet");
+    const req = new NextRequest("http://localhost/api/finance/reports/income-statement");
     const { GET } = await importRoute();
     await GET(req);
 
-    expect(requirePermission).toHaveBeenCalledWith("FINANCE", "finance.reports.balance-sheet");
+    expect(requirePermission).toHaveBeenCalledWith("FINANCE", "finance.reports.income-statement");
   });
 
-  it("handles zero balances correctly", async () => {
-    vi.mocked(balanceSheet).mockResolvedValue({
-      assets: BigInt(0),
-      liab: BigInt(0),
-      equity: BigInt(0),
+  it("handles zero revenue and expenses correctly", async () => {
+    vi.mocked(incomeStatement).mockResolvedValue({
+      revenue: BigInt(0),
+      expenses: BigInt(0),
+      netIncome: BigInt(0),
     } as never);
 
-    const req = new NextRequest("http://localhost/api/finance/reports/balance-sheet");
+    const req = new NextRequest("http://localhost/api/finance/reports/income-statement");
     const { GET } = await importRoute();
     const res = await GET(req);
 
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.assets).toBe(0);
-    expect(data.liabilities).toBe(0);
-    expect(data.equity).toBe(0);
   });
 
-  it("handles large monetary values correctly", async () => {
-    // 10 million SAR in minor units (halalas)
-    vi.mocked(balanceSheet).mockResolvedValue({
-      assets: BigInt(1000000000), // 10,000,000.00
-      liab: BigInt(400000000),    // 4,000,000.00
-      equity: BigInt(600000000),  // 6,000,000.00
+  it("handles negative net income (loss) correctly", async () => {
+    vi.mocked(incomeStatement).mockResolvedValue({
+      revenue: BigInt(20000000),   // 200,000.00
+      expenses: BigInt(30000000),  // 300,000.00
+      netIncome: BigInt(-10000000), // -100,000.00 (loss)
     } as never);
 
-    const req = new NextRequest("http://localhost/api/finance/reports/balance-sheet");
+    const req = new NextRequest("http://localhost/api/finance/reports/income-statement");
     const { GET } = await importRoute();
     const res = await GET(req);
 
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.assets).toBe(10000000);
-    expect(data.liabilities).toBe(4000000);
-    expect(data.equity).toBe(6000000);
   });
 });

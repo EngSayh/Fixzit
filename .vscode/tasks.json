@@ -541,6 +541,11 @@
 			"command": "git add -A && git status -s && git commit && git push origin HEAD",
 			"problemMatcher": [],
 			"detail": "Stage all, commit (opens editor for message), and push"
+		},
+		{
+			"label": "Git Commit TEST-003",
+			"type": "shell",
+			"command": "git add -A; if ($?) { git commit -F commit-msg-temp.txt }; git status -s; git log --oneline -3"
 		}
 	]
 }

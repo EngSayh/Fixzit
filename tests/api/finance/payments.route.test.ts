@@ -4,7 +4,7 @@
  * FINANCIAL TAG: Critical for payment processing and invoice allocation
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 // Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
@@ -123,7 +123,7 @@ describe("API /api/finance/payments", () => {
 
     it("returns 429 when rate limited", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 })
+        new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 }) as never
       );
 
       const req = new NextRequest("http://localhost/api/finance/payments");
@@ -296,7 +296,7 @@ describe("API /api/finance/payments", () => {
 
     it("returns 429 when rate limited", async () => {
       vi.mocked(enforceRateLimit).mockReturnValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 })
+        new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 }) as never
       );
 
       const req = new NextRequest("http://localhost/api/finance/payments", {
