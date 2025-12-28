@@ -8,6 +8,7 @@ import { TranslationProvider } from "@/contexts/TranslationContext";
 import PublicProviders from "./PublicProviders";
 import QueryProvider from "./QueryProvider";
 import { SupportOrgProvider } from "@/contexts/SupportOrgContext";
+import { CommandPaletteProvider } from "./CommandPaletteProvider";
 import type { Locale } from "@/i18n/config";
 
 /**
@@ -41,7 +42,9 @@ export default function AuthenticatedProviders({
       <SupportOrgProvider>
         <QueryProvider>
           <TranslationProvider initialLanguage={initialLocale}>
-            {children}
+            <CommandPaletteProvider>
+              {children}
+            </CommandPaletteProvider>
           </TranslationProvider>
         </QueryProvider>
       </SupportOrgProvider>
