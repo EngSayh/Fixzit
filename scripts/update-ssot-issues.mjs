@@ -45,8 +45,18 @@ const issuesToResolve = [
   },
   {
     searchField: 'legacyId',
-    searchValue: 'BUG-001',
-    comment: 'FALSE POSITIVE: Audited 35 process.env usages. All are either in Server Components (safe) or use NODE_ENV (inlined at build) or NEXT_PUBLIC_* prefix (designed for client). No server-only env vars exposed to client bundle.',
+    searchValue: 'bug-001',
+    comment: 'FIXED: vendor/apply/route.ts now creates Vendor record with PENDING status instead of just logging. Returns { success, applicationId, vendorCode }.',
+  },
+  {
+    searchField: 'legacyId',
+    searchValue: 'p0-001-security-assistant-query-route-ts-259-workorder-find-without-orgid-todo-a',
+    comment: 'FALSE POSITIVE: Line 259-261 shows WorkOrder.find({ orgId: user.orgId, ...}). Tenant scoping is already present.',
+  },
+  {
+    searchField: 'legacyId',
+    searchValue: 'p0-002-security-pm-plans-route-ts-42-68-189-fmpmplan-find-without-orgid-todo-add',
+    comment: 'FALSE POSITIVE: Line 40 shows "const query = { orgId }". FMPMPlan.find(query) is already tenant-scoped.',
   },
 ];
 

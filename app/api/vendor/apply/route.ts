@@ -20,6 +20,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { z } from "zod";
 import { APIParseError, parseBody } from "@/lib/api/parse-body";
+import { Vendor } from "@/server/models/Vendor";
 
 /**
  * Zod schema for vendor application validation
@@ -84,7 +85,41 @@ export async function POST(req: NextRequest) {
       hasNotes: !!notes,
     });
 
-    return NextResponse.json({ ok: true });
+    // Generate unique vendor code based on timestamp
+    const vendorCode = `VND-${Date.now().toString(36).toUpperCase()}`;
+
+    // Create vendor application record with PENDING status
+    // Note: Public applications don't have orgId yet - they're assigned during approval
+    const vendorApplication = await Vendor.create({
+      code: vendorCode,
+      name: company,
+      type: "SERVICE_PROVIDER", // Default type for applications
+      status: "PENDING",
+      contact: {
+        primary: {
+          name: contactName,
+          email: email,
+          phone: phone || undefined,
+        },
+      },
+      business: {
+        specializations: services ? [services] : [],
+      },
+      approval: {
+        reviewNotes: notes || undefined,
+      },
+    });
+
+    logger.info("[vendor-apply] Vendor application created", {
+      applicationId: vendorApplication._id.toString(),
+      vendorCode,
+    });
+
+    return NextResponse.json({
+      success: true,
+      applicationId: vendorApplication._id.toString(),
+      vendorCode,
+    });
   } catch (error) {
     if (error instanceof APIParseError) {
       return NextResponse.json(
