@@ -21,11 +21,16 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, message, channels = ["email"], targetTenantId, targetUserIds } = body;
+    // Accept both naming conventions for flexibility
+    const title = body.title || body.subject;
+    const message = body.message;
+    const channels = body.channels || (body.type ? [body.type] : ["email"]);
+    const targetTenantId = body.targetTenantId;
+    const targetUserIds = body.targetUserIds || body.userIds || [];
 
     if (!title || !message) {
       return NextResponse.json(
-        { success: false, error: "Title and message are required" },
+        { success: false, error: "Title/subject and message are required" },
         { status: 400 }
       );
     }
