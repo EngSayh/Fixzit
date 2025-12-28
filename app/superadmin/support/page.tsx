@@ -189,10 +189,10 @@ export default function SuperadminSupportPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.support") || "Support Tools"}</h1>
-          <p className="text-slate-400">User impersonation, session debugging, and support utilities</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.support") || "Support Tools"}</h1>
+          <p className="text-muted-foreground">User impersonation, session debugging, and support utilities</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { fetchUsers(); fetchSessions(); fetchTickets(); }} disabled={loading} className="border-slate-700 text-slate-300">
+        <Button variant="outline" size="sm" onClick={() => { fetchUsers(); fetchSessions(); fetchTickets(); }} disabled={loading} className="border-input text-muted-foreground">
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
       </div>
@@ -209,18 +209,18 @@ export default function SuperadminSupportPage() {
       </Card>
 
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="bg-slate-800 border-slate-700">
-          <TabsTrigger value="users" className="data-[state=active]:bg-slate-700"><Users className="h-4 w-4 me-2" />User Lookup</TabsTrigger>
-          <TabsTrigger value="sessions" className="data-[state=active]:bg-slate-700"><History className="h-4 w-4 me-2" />Session History</TabsTrigger>
-          <TabsTrigger value="tickets" className="data-[state=active]:bg-slate-700"><Ticket className="h-4 w-4 me-2" />Open Tickets</TabsTrigger>
+        <TabsList className="bg-muted border-input">
+          <TabsTrigger value="users" className="data-[state=active]:bg-muted/80"><Users className="h-4 w-4 me-2" />User Lookup</TabsTrigger>
+          <TabsTrigger value="sessions" className="data-[state=active]:bg-muted/80"><History className="h-4 w-4 me-2" />Session History</TabsTrigger>
+          <TabsTrigger value="tickets" className="data-[state=active]:bg-muted/80"><Ticket className="h-4 w-4 me-2" />Open Tickets</TabsTrigger>
         </TabsList>
 
         {/* User Lookup Tab */}
         <TabsContent value="users">
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="border-b border-slate-800">
-              <CardTitle className="text-white">User Search</CardTitle>
-              <CardDescription className="text-slate-400">Find users by email, name, or phone</CardDescription>
+          <Card className="bg-card border-border">
+            <CardHeader className="border-b border-border">
+              <CardTitle className="text-foreground">User Search</CardTitle>
+              <CardDescription className="text-muted-foreground">Find users by email, name, or phone</CardDescription>
             </CardHeader>
             <CardContent className="p-4">
               <div className="flex gap-2 mb-4">
@@ -229,7 +229,7 @@ export default function SuperadminSupportPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="bg-slate-800 border-slate-700 text-white"
+                  className="bg-muted border-input text-foreground"
                 />
                 <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700">
                   <Search className="h-4 w-4 me-2" />Search
@@ -238,29 +238,29 @@ export default function SuperadminSupportPage() {
               
               {users.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <Users className="h-12 w-12 text-slate-600 mb-4" />
-                  <p className="text-slate-400">No users found</p>
+                  <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No users found</p>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-slate-800">
-                      <TableHead className="text-slate-400">User</TableHead>
-                      <TableHead className="text-slate-400">Role</TableHead>
-                      <TableHead className="text-slate-400">Organization</TableHead>
-                      <TableHead className="text-slate-400">Last Login</TableHead>
-                      <TableHead className="text-slate-400">Status</TableHead>
-                      <TableHead className="text-slate-400 w-[120px]">Actions</TableHead>
+                    <TableRow className="border-border">
+                      <TableHead className="text-muted-foreground">User</TableHead>
+                      <TableHead className="text-muted-foreground">Role</TableHead>
+                      <TableHead className="text-muted-foreground">Organization</TableHead>
+                      <TableHead className="text-muted-foreground">Last Login</TableHead>
+                      <TableHead className="text-muted-foreground">Status</TableHead>
+                      <TableHead className="text-muted-foreground w-[120px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {users.map((user) => (
-                      <TableRow key={user._id} className="border-slate-800 hover:bg-slate-800/50">
+<TableRow key={user._id} className="border-border hover:bg-muted/50">
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="text-white font-medium">{user.name}</span>
-                            <span className="text-slate-400 text-sm flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>
-                            {user.phone && <span className="text-slate-500 text-sm flex items-center gap-1"><Phone className="h-3 w-3" />{user.phone}</span>}
+                            <span className="text-foreground font-medium">{user.name}</span>
+                            <span className="text-muted-foreground text-sm flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>
+                            {user.phone && <span className="text-muted-foreground text-sm flex items-center gap-1"><Phone className="h-3 w-3" />{user.phone}</span>})
                           </div>
                         </TableCell>
                         <TableCell>
@@ -268,12 +268,12 @@ export default function SuperadminSupportPage() {
                         </TableCell>
                         <TableCell>
                           {user.orgName ? (
-                            <span className="flex items-center gap-1 text-slate-300"><Building2 className="h-4 w-4 text-slate-500" />{user.orgName}</span>
+                            <span className="flex items-center gap-1 text-muted-foreground"><Building2 className="h-4 w-4 text-muted-foreground" />{user.orgName}</span>
                           ) : (
-                            <span className="text-slate-500">—</span>
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-slate-300">{user.lastLogin ? formatDate(user.lastLogin) : "Never"}</TableCell>
+                        <TableCell className="text-muted-foreground">{user.lastLogin ? formatDate(user.lastLogin) : "Never"}</TableCell>
                         <TableCell>
                           {user.status === "active" ? (
                             <Badge className="bg-green-500/20 text-green-400"><CheckCircle className="h-3 w-3 me-1" />Active</Badge>
@@ -287,7 +287,7 @@ export default function SuperadminSupportPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => { setSelectedUser(user); setImpersonateDialogOpen(true); }}
-                              className="border-slate-700"
+                              className="border-input"
                               disabled={user.role === "SUPER_ADMIN"}
                               title={user.role === "SUPER_ADMIN" ? "Cannot impersonate Super Admin" : "Impersonate User"}
                             >
