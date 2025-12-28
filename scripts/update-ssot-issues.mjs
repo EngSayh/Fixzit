@@ -84,10 +84,10 @@ async function main() {
     const eventsCollection = db.collection('issue_events');
     
     for (const issue of issuesToResolve) {
-      // Update the issue status
+      // Update the issue status - only if not already resolved (idempotency)
       const query = { [issue.searchField]: issue.searchValue };
       const result = await issuesCollection.updateOne(
-        query,
+        { ...query, status: { $ne: 'resolved' } },
         { 
           $set: { 
             status: 'resolved',
@@ -96,22 +96,33 @@ async function main() {
         }
       );
       
-      if (result.matchedCount > 0) {
+      // Only create audit event if we actually modified the document
+      if (result.modifiedCount > 0) {
         // Get the issue to find its key for the event
         const foundIssue = await issuesCollection.findOne(query);
         const issueKey = foundIssue?.legacyId || foundIssue?.issueId || issue.searchValue;
         
-        // Create audit event
-        await eventsCollection.insertOne({
-          issueId: foundIssue?._id,
-          type: 'status_change',
-          message: `Status changed to resolved - ${issue.comment}`,
-          actor: 'AGENT-001-A',
-          createdAt: new Date(),
-          meta: { newStatus: 'resolved' },
-        });
+        // Create audit event with error handling
+        try {
+          const eventResult = await eventsCollection.insertOne({
+            issueId: foundIssue?._id,
+            type: 'status_change',
+            message: `Status changed to resolved - ${issue.comment}`,
+            actor: 'AGENT-001-A',
+            createdAt: new Date(),
+            meta: { newStatus: 'resolved' },
+          });
+          if (!eventResult.insertedId) {
+            console.error(`⚠️  ${issue.searchValue}: Audit event insert returned no insertedId`);
+          }
+        } catch (eventError) {
+          console.error(`⚠️  ${issue.searchValue}: Failed to insert audit event - ${eventError.message}`);
+          // Continue with remaining updates, don't rethrow
+        }
         
         console.log(`✅ ${issue.searchValue}: Marked as resolved`);
+      } else if (result.matchedCount > 0) {
+        console.log(`⏭️  ${issue.searchValue}: Already resolved (skipped)`);
       } else {
         console.log(`⚠️  ${issue.searchValue}: Not found in database (searched by ${issue.searchField})`);
       }
@@ -130,8 +141,8 @@ async function main() {
     
     console.log(`\n✅ Total open issues: ${openIssues.length}`);
     
-    // Show ALL issues to debug
-    console.log('\n📋 ALL issues in database:');
+    // Show ALL issues to debug (limited for display)
+    console.log('\n📋 Issues in database (showing up to 30):');
     const allIssues = await issuesCollection.find({})
       .project({ key: 1, title: 1, priority: 1, status: 1 })
       .sort({ priority: 1 })
@@ -141,7 +152,9 @@ async function main() {
     for (const issue of allIssues) {
       console.log(`  ${issue.priority} ${issue.key} [${issue.status}]: ${issue.title?.substring(0, 50)}`);
     }
-    console.log(`\n📊 Total issues: ${allIssues.length}`);
+    const totalInDb = await issuesCollection.countDocuments({});
+    console.log(`\n📊 Displayed issues: ${allIssues.length} (showing up to 30)`);
+    console.log(`📊 Total issues in DB: ${totalInDb}`);
     
     
   } catch (error) {

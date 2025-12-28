@@ -260,7 +260,7 @@ export default function SuperadminSupportPage() {
                           <div className="flex flex-col">
                             <span className="text-foreground font-medium">{user.name}</span>
                             <span className="text-muted-foreground text-sm flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>
-                            {user.phone && <span className="text-muted-foreground text-sm flex items-center gap-1"><Phone className="h-3 w-3" />{user.phone}</span>})
+                            {user.phone && <span className="text-muted-foreground text-sm flex items-center gap-1"><Phone className="h-3 w-3" />{user.phone}</span>}
                           </div>
                         </TableCell>
                         <TableCell>

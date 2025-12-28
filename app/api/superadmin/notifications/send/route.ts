@@ -59,7 +59,12 @@ export async function POST(req: NextRequest) {
       );
     }
     // Validate all channel elements are strings
-    const invalidChannels = rawChannels.filter((ch) => typeof ch !== "string").map((ch) => ({ index: rawChannels.indexOf(ch), value: ch, type: typeof ch }));
+    const invalidChannels: Array<{ index: number; value: unknown; type: string }> = [];
+    rawChannels.forEach((ch, i) => {
+      if (typeof ch !== "string") {
+        invalidChannels.push({ index: i, value: ch, type: typeof ch });
+      }
+    });
     if (invalidChannels.length > 0) {
       return NextResponse.json(
         { success: false, error: "All channel values must be strings", invalidElements: invalidChannels },

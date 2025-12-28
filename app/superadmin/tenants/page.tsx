@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useI18n } from "@/i18n/useI18n";
 import {
   Building2,
@@ -250,9 +251,11 @@ export default function SuperadminTenantsPage() {
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 me-2" />
-            Add Organization
+          <Button size="sm" className="bg-blue-600 hover:bg-blue-700" asChild>
+            <Link href="/superadmin/tenants/new">
+              <Plus className="h-4 w-4 me-2" />
+              Add Organization
+            </Link>
           </Button>
         </div>
       </div>

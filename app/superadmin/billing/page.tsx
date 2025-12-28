@@ -124,7 +124,7 @@ export default function SuperadminBillingPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.billing")}</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.billing")}</h1>
           <p className="text-muted-foreground">Manage subscription plans, pricing, and billing operations</p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="border-input text-muted-foreground">

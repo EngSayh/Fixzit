@@ -37,6 +37,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeft,
+  LayoutDashboard,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -62,6 +63,7 @@ const SUPERADMIN_NAV_GROUPS: NavGroup[] = [
     labelKey: "superadmin.groups.ssot",
     icon: ScrollText,
     items: [
+      { href: "/superadmin/fm-dashboard", icon: LayoutDashboard, labelKey: "superadmin.nav.fmDashboard" },
       { href: "/superadmin/issues", icon: Bug, labelKey: "superadmin.nav.issues" },
       { href: "/superadmin/ssot", icon: ScrollText, labelKey: "superadmin.nav.ssot" },
     ],

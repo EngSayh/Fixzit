@@ -125,8 +125,8 @@ interface TlvField {
 function encodeTlvField(field: TlvField): Buffer {
   const valueBuffer = Buffer.from(field.value, "utf8");
   
-  if (valueBuffer.length > 256) {
-    throw new Error(`TLV field ${field.tag} exceeds 256 bytes`);
+  if (valueBuffer.length > 255) {
+    throw new Error(`TLV field ${field.tag} exceeds 255 bytes`);
   }
   
   return Buffer.concat([

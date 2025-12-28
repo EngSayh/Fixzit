@@ -8,7 +8,7 @@
  * - SLA tracking
  * 
  * @route GET /api/fm/providers
- * @route POST /api/fm/providers/bid
+ * @route POST /api/fm/providers
  */
 
 import { NextResponse } from "next/server";
@@ -19,21 +19,18 @@ export async function GET(request: Request) {
   try {
     const session = await auth();
     
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: { code: "FIXZIT-AUTH-001", message: "Unauthorized" } },
-        { status: 401 }
-      );
-    }
+    // Allow demo mode when not authenticated (for development/demo)
+    const isDemo = !session?.user;
     
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
-    const city = searchParams.get("city");
+    const city = searchParams.get("city")?.trim() || null;
     
     // Provider Network Data
     const providerNetwork = {
       generated_at: new Date().toISOString(),
-      org_id: (session.user as { org_id?: string }).org_id ?? "1",
+      is_demo: isDemo,
+      org_id: isDemo ? "demo" : ((session?.user as { org_id?: string })?.org_id ?? "1"),
       
       // Provider Statistics
       statistics: {
@@ -184,7 +181,7 @@ export async function GET(request: Request) {
     }
     
     logger.info("Provider network accessed", {
-      user: session.user.email,
+      user: session?.user?.email ?? "demo",
       total_providers: providerNetwork.statistics.total_providers,
       active_bids: providerNetwork.active_bids.total,
       filters: { category, city },

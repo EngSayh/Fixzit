@@ -25,8 +25,8 @@ import { logger } from "@/lib/logger";
 // CONFIGURATION
 // =============================================================================
 
-/** Countries with adequate data protection (GCC + EU) */
-const ADEQUATE_COUNTRIES: readonly string[] = ["SA", "AE", "BH", "OM", "KW", "QA", "EU"];
+/** Countries with adequate data protection (GCC countries formally recognized by SDAIA) */
+const ADEQUATE_COUNTRIES: readonly string[] = ["SA", "AE", "BH", "OM", "KW", "QA"];
 
 const PDPL_CONFIG = {
   /** Standard DSAR deadline (30 days) */

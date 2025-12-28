@@ -396,6 +396,11 @@ function calculatePriceCompetitiveness(criteria: MatchCriteria, provider: Servic
   // Assume 4 hour job for comparison
   const estimatedCost = avgProviderRate * 4;
   
+  // Handle edge case: budgetMidpoint is zero
+  if (budgetMidpoint === 0) {
+    return estimatedCost === 0 ? 100 : 0; // Free provider for free budget = perfect, otherwise bad
+  }
+  
   if (estimatedCost <= budgetMidpoint) {
     // Within budget - higher score
     const ratio = estimatedCost / budgetMidpoint;

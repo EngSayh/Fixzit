@@ -486,7 +486,7 @@ interface ComplianceRecord {
 
 ## 📈 IMPLEMENTATION TIMELINE
 
-```
+```plaintext
 Month 1-2:  ████████████████░░░░░░░░░░░░░░░░  Phase 1 Start (ZATCA core)
 Month 2-3:  ████████████████████████░░░░░░░░  Phase 1 + Phase 2 Start
 Month 3-4:  ████████████████████████████░░░░  Phase 2 + Phase 3 Start
@@ -661,7 +661,7 @@ Month 10-12: ██████████████████████�
 
 #### 4.1 New API Endpoints Required
 
-```
+```plaintext
 POST /api/superadmin/tenants          - Create tenant
 PATCH /api/superadmin/tenants/[id]    - Update tenant (suspend/tier)
 DELETE /api/superadmin/tenants/[id]   - Archive tenant
@@ -720,7 +720,7 @@ interface MaintenanceMode {
 
 #### 4.3 Component Library Additions
 
-```
+```plaintext
 components/superadmin/
 ├── Dashboard/
 │   ├── StatCard.tsx
@@ -740,7 +740,7 @@ components/superadmin/
 
 #### Phase 1 Verification
 
-```
+```plaintext
 □ Tenants page lists all orgs with correct data
 □ Create tenant flow works (org + admin user + invite email)
 □ Suspend tenant prevents user login
@@ -761,7 +761,7 @@ components/superadmin/
 
 #### Phase 2 Verification
 
-```
+```plaintext
 □ Dashboard shows accurate counts
 □ Health indicators respond to errors
 □ Jobs page shows real queue status
@@ -774,7 +774,7 @@ components/superadmin/
 
 #### Phase 3 Verification
 
-```
+```plaintext
 □ Stripe integration syncs subscriptions
 □ Multiple superadmins can login
 □ Integrations can store/update API keys

@@ -2,11 +2,11 @@
  * AI Analytics Service
  * 
  * Implements AI-powered analytics capabilities:
- * - Anomaly Detection (Isolation Forest algorithm)
+ * - Anomaly Detection (z-score based standard score approach)
  * - Natural Language Query (text-to-SQL/aggregation)
- * - Churn Prediction
+ * - Churn Prediction (multi-factor scoring)
  * - Asset Health Scoring
- * - Predictive Maintenance (RUL estimation)
+ * - Predictive Maintenance (RUL estimation with degradation modeling)
  * 
  * @module services/ai/analytics-service
  */
@@ -590,7 +590,7 @@ export function predictChurn(metrics: TenantMetrics): ChurnPrediction {
     factors: factors.sort((a, b) => a.impact - b.impact), // Most impactful first
     interventions,
     predicted_churn_date: predictedChurnDate,
-    confidence: 0.75 + (factors.length * 0.02), // More factors = more confident
+    confidence: Math.min(1.0, 0.75 + (factors.length * 0.02)), // More factors = more confident, clamped to 1.0
     predicted_at: new Date(),
   };
 }
@@ -808,8 +808,10 @@ export function predictMaintenance(
   const upperBound = Math.round(daysToThreshold * (1 + confidenceMargin));
   
   // Failure probability in next 30 days
+  // Ensure denominator is at least 1 to avoid division issues
+  const effectiveDenominator = Math.max(1, currentHealth.score - criticalThreshold + 1);
   const failureProbability30d = Math.min(1, Math.max(0, 
-    (30 * degradationRatePerDay) / (currentHealth.score - criticalThreshold + 1)
+    (30 * degradationRatePerDay) / effectiveDenominator
   ));
   
   // Recommended maintenance date (aim for 20% buffer before threshold)

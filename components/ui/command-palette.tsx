@@ -151,7 +151,33 @@ export function CommandPalette({
         }
         break;
       case "copy":
-        navigator.clipboard.writeText(action.value);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(action.value)
+            .then(() => {
+              // Success feedback - could integrate with toast system
+              // eslint-disable-next-line no-console -- User feedback for clipboard action
+              console.info("Copied to clipboard:", action.value?.substring(0, 20));
+            })
+            .catch((err) => {
+              // eslint-disable-next-line no-console -- Error feedback for clipboard failure
+              console.error("Clipboard copy failed:", err.message || "Permission denied");
+            });
+        } else {
+          // Fallback for environments without navigator.clipboard
+          try {
+            const textArea = document.createElement("textarea");
+            textArea.value = action.value;
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textArea);
+          } catch (_fallbackErr) {
+            // eslint-disable-next-line no-console -- Error feedback for fallback failure
+            console.error("Clipboard fallback failed");
+          }
+        }
         break;
       case "function":
         // Custom function handlers would be registered separately

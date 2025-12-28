@@ -85,8 +85,9 @@ export async function POST(req: NextRequest) {
       hasNotes: !!notes,
     });
 
-    // Generate unique vendor code based on timestamp
-    const vendorCode = `VND-${Date.now().toString(36).toUpperCase()}`;
+    // Generate unique vendor code with crypto randomness to avoid collisions
+    const randomSuffix = crypto.randomUUID().slice(0, 8).toUpperCase();
+    const vendorCode = `VND-${randomSuffix}`;
 
     // Create vendor application record with PENDING status
     // Note: Public applications don't have orgId yet - they're assigned during approval
