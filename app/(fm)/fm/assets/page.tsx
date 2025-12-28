@@ -4,6 +4,8 @@ import { useState, type ReactNode } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,7 +33,7 @@ import {
   Search,
   Settings,
   Eye,
-  Edit,
+  Pencil,
   Trash2,
   AlertTriangle,
   CheckCircle,
@@ -41,6 +43,21 @@ import ClientDate from "@/components/ClientDate";
 
 import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import {
+  ASSET_TYPES,
+  ASSET_STATUSES,
+  ASSET_CRITICALITY_LEVELS,
+  ASSET_TYPE_LABELS,
+  ASSET_STATUS_LABELS,
+  ASSET_CRITICALITY_LABELS,
+} from "@/lib/constants/asset-constants";
+import {
+  CreateAssetSchema,
+  UpdateAssetSchema,
+  createAssetFormDefaults,
+  type CreateAssetInput,
+  type UpdateAssetInput,
+} from "@/lib/validations/asset-schemas";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
 interface MaintenanceRecord {
   date?: string;
@@ -183,36 +200,11 @@ function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
                 <SelectItem value="">
                   {auto("All Types", "filters.allTypes")}
                 </SelectItem>
-                <SelectItem value="HVAC">
-                  {auto("HVAC", "filters.types.hvac")}
-                </SelectItem>
-                <SelectItem value="ELECTRICAL">
-                  {auto("Electrical", "filters.types.electrical")}
-                </SelectItem>
-                <SelectItem value="PLUMBING">
-                  {auto("Plumbing", "filters.types.plumbing")}
-                </SelectItem>
-                <SelectItem value="SECURITY">
-                  {auto("Security", "filters.types.security")}
-                </SelectItem>
-                <SelectItem value="ELEVATOR">
-                  {auto("Elevator", "filters.types.elevator")}
-                </SelectItem>
-                <SelectItem value="GENERATOR">
-                  {auto("Generator", "filters.types.generator")}
-                </SelectItem>
-                <SelectItem value="FIRE_SYSTEM">
-                  {auto("Fire System", "filters.types.fireSystem")}
-                </SelectItem>
-                <SelectItem value="IT_EQUIPMENT">
-                  {auto("IT Equipment", "filters.types.itEquipment")}
-                </SelectItem>
-                <SelectItem value="VEHICLE">
-                  {auto("Vehicle", "filters.types.vehicle")}
-                </SelectItem>
-                <SelectItem value="OTHER">
-                  {auto("Other", "filters.types.other")}
-                </SelectItem>
+                {ASSET_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select
@@ -227,18 +219,11 @@ function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
                 <SelectItem value="">
                   {auto("All Status", "filters.allStatus")}
                 </SelectItem>
-                <SelectItem value="ACTIVE">
-                  {auto("Active", "status.active")}
-                </SelectItem>
-                <SelectItem value="MAINTENANCE">
-                  {auto("Maintenance", "status.maintenance")}
-                </SelectItem>
-                <SelectItem value="OUT_OF_SERVICE">
-                  {auto("Out of Service", "status.outOfService")}
-                </SelectItem>
-                <SelectItem value="DECOMMISSIONED">
-                  {auto("Decommissioned", "status.decommissioned")}
-                </SelectItem>
+                {ASSET_STATUSES.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -300,7 +285,7 @@ function AssetCard({
   onUpdated: () => void;
   orgId: string;
 }) {
-  const auto = useAutoTranslator("fm.assets.card");
+  const auto = useAutoTranslator("fm.assets");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -393,7 +378,12 @@ function AssetCard({
           <div className="flex items-center space-x-2">
             {getStatusIcon(asset.status || "")}
             <Badge className={getStatusColor(asset.status || "")}>
-              {auto(asset.status?.toLowerCase() || "", `status.${asset.status?.toLowerCase() || "unknown"}`)}
+              {asset.status && ASSET_STATUS_LABELS[asset.status as keyof typeof ASSET_STATUS_LABELS]
+                ? auto(
+                    ASSET_STATUS_LABELS[asset.status as keyof typeof ASSET_STATUS_LABELS].en,
+                    ASSET_STATUS_LABELS[asset.status as keyof typeof ASSET_STATUS_LABELS].tKey
+                  )
+                : ""}
             </Badge>
           </div>
         </div>
@@ -402,19 +392,19 @@ function AssetCard({
         <div className="space-y-2">
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">
-              {auto("Type:", "type")}
+              {auto("Type:", "card.type")}
             </span>
             <span className="text-sm font-medium">{asset.type}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">
-              {auto("Category:", "category")}
+              {auto("Category:", "card.category")}
             </span>
             <span className="text-sm font-medium">{asset.category}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">
-              {auto("Criticality:", "criticality")}
+              {auto("Criticality:", "card.criticality")}
             </span>
             <Badge
               variant="outline"
@@ -434,17 +424,17 @@ function AssetCard({
           {asset.location && (
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">
-                {auto("Location:", "location")}
+                {auto("Location:", "card.location")}
               </span>
               <span className="text-sm font-medium">
                 {asset.location.building && `${asset.location.building}`}
                 {asset.location.floor &&
-                  `, ${auto("Floor {{floor}}", "floor").replace(
+                  `, ${auto("Floor {{floor}}", "card.floor").replace(
                     "{{floor}}",
                     asset.location.floor ?? "",
                   )}`}
                 {asset.location.room &&
-                  `, ${auto("Room {{room}}", "room").replace(
+                  `, ${auto("Room {{room}}", "card.room").replace(
                     "{{room}}",
                     asset.location.room ?? "",
                   )}`}
@@ -457,7 +447,7 @@ function AssetCard({
 
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">
-            {auto("Last Maintenance:", "lastMaintenance")}{" "}
+            {auto("Last Maintenance:", "card.lastMaintenance")}{" "}
             {asset.maintenanceHistory &&
             asset.maintenanceHistory.length > 0 &&
             asset.maintenanceHistory[asset.maintenanceHistory.length - 1]
@@ -470,7 +460,7 @@ function AssetCard({
                 format="date-only"
               />
             ) : (
-              auto("Never", "never")
+              auto("Never", "card.never")
             )}
           </span>
           <div className="flex space-x-2">
@@ -478,7 +468,7 @@ function AssetCard({
               variant="ghost" 
               size="sm" 
               onClick={handleView}
-              aria-label={auto("View asset {{name}}", "actions.viewLabel").replace("{{name}}", asset.name || "")}
+              aria-label={auto("View asset {{name}}", "card.actions.viewLabel").replace("{{name}}", asset.name || "")}
             >
               <Eye className="w-4 h-4" />
             </Button>
@@ -486,16 +476,16 @@ function AssetCard({
               variant="ghost" 
               size="sm" 
               onClick={handleEdit}
-              aria-label={auto("Edit asset {{name}}", "actions.editLabel").replace("{{name}}", asset.name || "")}
+              aria-label={auto("Edit asset {{name}}", "card.actions.editLabel").replace("{{name}}", asset.name || "")}
             >
-              <Edit className="w-4 h-4" />
+              <Pencil className="w-4 h-4" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
               className="text-destructive hover:text-destructive"
               onClick={handleDelete}
-              aria-label={auto("Delete asset {{name}}", "actions.deleteLabel").replace("{{name}}", asset.name || "")}
+              aria-label={auto("Delete asset {{name}}", "card.actions.deleteLabel").replace("{{name}}", asset.name || "")}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -511,28 +501,35 @@ function AssetCard({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">{auto("Code", "view.code")}</p>
+                  <p className="text-sm text-muted-foreground">{auto("Code", "card.view.code")}</p>
                   <p className="font-medium">{asset.code || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{auto("Type", "view.type")}</p>
+                  <p className="text-sm text-muted-foreground">{auto("Type", "card.view.type")}</p>
                   <p className="font-medium">{asset.type || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{auto("Category", "view.category")}</p>
+                  <p className="text-sm text-muted-foreground">{auto("Category", "card.view.category")}</p>
                   <p className="font-medium">{asset.category || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{auto("Status", "view.status")}</p>
-                  <Badge className={getStatusColor(asset.status || "")}>{auto(asset.status || "-", `status.${asset.status?.toLowerCase() || "unknown"}`)}</Badge>
+                  <p className="text-sm text-muted-foreground">{auto("Status", "card.view.status")}</p>
+                  <Badge className={getStatusColor(asset.status || "")}>
+                    {asset.status && ASSET_STATUS_LABELS[asset.status as keyof typeof ASSET_STATUS_LABELS]
+                      ? auto(
+                          ASSET_STATUS_LABELS[asset.status as keyof typeof ASSET_STATUS_LABELS].en,
+                          ASSET_STATUS_LABELS[asset.status as keyof typeof ASSET_STATUS_LABELS].tKey
+                        )
+                      : "-"}
+                  </Badge>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{auto("Criticality", "view.criticality")}</p>
+                  <p className="text-sm text-muted-foreground">{auto("Criticality", "card.view.criticality")}</p>
                   <p className="font-medium">{asset.criticality || "-"}</p>
                 </div>
                 {asset.location && (
                   <div>
-                    <p className="text-sm text-muted-foreground">{auto("Location", "view.location")}</p>
+                    <p className="text-sm text-muted-foreground">{auto("Location", "card.view.location")}</p>
                     <p className="font-medium">
                       {asset.location.building}{asset.location.floor ? `, ${auto("Floor {{floor}}", "view.floor").replace("{{floor}}", asset.location.floor)}` : ""}{asset.location.room ? `, ${auto("Room {{room}}", "view.room").replace("{{room}}", asset.location.room)}` : ""}
                     </p>
@@ -547,7 +544,7 @@ function AssetCard({
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{auto("Edit Asset", "edit.title")}</DialogTitle>
+              <DialogTitle>{auto("Edit Asset", "card.edit.title")}</DialogTitle>
             </DialogHeader>
             <EditAssetForm
               asset={asset}
@@ -573,48 +570,18 @@ function CreateAssetForm({
   orgId: string;
 }) {
   const auto = useAutoTranslator("fm.assets.form");
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    type: "",
-    category: "",
-    manufacturer: "",
-    model: "",
-    serialNumber: "",
-    propertyId: "",
-    location: {
-      building: "",
-      floor: "",
-      room: "",
-      coordinates: { lat: 24.7136, lng: 46.6753 }, // Default to Riyadh
-    },
-    specs: {
-      capacity: "",
-      powerRating: "",
-      voltage: "",
-      current: "",
-      frequency: "",
-      dimensions: "",
-      weight: "",
-    },
-    purchase: {
-      date: "",
-      cost: 0,
-      supplier: "",
-      warranty: {
-        period: 12,
-        expiry: "",
-        terms: "",
-      },
-    },
-    status: "ACTIVE",
-    criticality: "MEDIUM",
-    tags: [] as string[],
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<CreateAssetInput>({
+    resolver: zodResolver(CreateAssetSchema),
+    defaultValues: createAssetFormDefaults,
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = async (data: CreateAssetInput) => {
     const toastId = toast.loading(auto("Creating asset...", "loading"));
 
     try {
@@ -624,20 +591,22 @@ function CreateAssetForm({
           "Content-Type": "application/json",
           "x-tenant-id": orgId,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(data),
       });
 
       if (response.ok) {
         toast.success(auto("Asset created successfully", "success"), {
           id: toastId,
         });
+        reset();
         onCreated();
       } else {
-        const error = await response.json();
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || errorData.message || auto("Unknown error", "unknown");
         toast.error(
           auto("Failed to create asset: {{error}}", "failed").replace(
             "{{error}}",
-            error.error || auto("Unknown error", "unknown"),
+            errorMessage,
           ),
           { id: toastId },
         );
@@ -653,200 +622,226 @@ function CreateAssetForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label htmlFor="name" className="block text-sm font-medium mb-1">
             {auto("Asset Name *", "form.labels.name")}
           </label>
           <Input
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            required
+            id="name"
+            {...register("name")}
+            aria-invalid={!!errors.name}
+            aria-describedby={errors.name ? "name-error" : undefined}
+            disabled={isSubmitting}
           />
+          {errors.name && (
+            <p id="name-error" className="text-sm text-destructive mt-1" role="alert">
+              {errors.name.message}
+            </p>
+          )}
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label htmlFor="type" className="block text-sm font-medium mb-1">
             {auto("Type *", "form.labels.type")}
           </label>
-          <Select
-            value={formData.type}
-            onValueChange={(value) => setFormData({ ...formData, type: value })}
-          >
-            <SelectTrigger>
-              <SelectValue
-                placeholder={auto("Select type", "form.placeholders.type")}
+          <Controller
+            name="type"
+            control={control}
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={isSubmitting}
               >
-                {formData.type || ""}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="HVAC">
-                {auto("HVAC", "filters.types.hvac")}
-              </SelectItem>
-              <SelectItem value="ELECTRICAL">
-                {auto("Electrical", "filters.types.electrical")}
-              </SelectItem>
-              <SelectItem value="PLUMBING">
-                {auto("Plumbing", "filters.types.plumbing")}
-              </SelectItem>
-              <SelectItem value="SECURITY">
-                {auto("Security", "filters.types.security")}
-              </SelectItem>
-              <SelectItem value="ELEVATOR">
-                {auto("Elevator", "filters.types.elevator")}
-              </SelectItem>
-              <SelectItem value="GENERATOR">
-                {auto("Generator", "filters.types.generator")}
-              </SelectItem>
-              <SelectItem value="FIRE_SYSTEM">
-                {auto("Fire System", "filters.types.fireSystem")}
-              </SelectItem>
-              <SelectItem value="IT_EQUIPMENT">
-                {auto("IT Equipment", "filters.types.itEquipment")}
-              </SelectItem>
-              <SelectItem value="VEHICLE">
-                {auto("Vehicle", "filters.types.vehicle")}
-              </SelectItem>
-              <SelectItem value="OTHER">
-                {auto("Other", "filters.types.other")}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+                <SelectTrigger
+                  id="type"
+                  aria-invalid={!!errors.type}
+                  aria-describedby={errors.type ? "type-error" : undefined}
+                >
+                  <SelectValue
+                    placeholder={auto("Select type", "form.placeholders.type")}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {ASSET_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.type && (
+            <p id="type-error" className="text-sm text-destructive mt-1" role="alert">
+              {errors.type.message}
+            </p>
+          )}
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">
+        <label htmlFor="description" className="block text-sm font-medium mb-1">
           {auto("Description", "form.labels.description")}
         </label>
         <Textarea
-          value={formData.description}
-          onChange={(e) =>
-            setFormData({ ...formData, description: e.target.value })
-          }
+          id="description"
+          {...register("description")}
+          aria-invalid={!!errors.description}
+          aria-describedby={errors.description ? "description-error" : undefined}
+          disabled={isSubmitting}
         />
+        {errors.description && (
+          <p id="description-error" className="text-sm text-destructive mt-1" role="alert">
+            {errors.description.message}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label htmlFor="category" className="block text-sm font-medium mb-1">
             {auto("Category *", "form.labels.category")}
           </label>
           <Input
-            value={formData.category}
-            onChange={(e) =>
-              setFormData({ ...formData, category: e.target.value })
-            }
-            required
+            id="category"
+            {...register("category")}
+            aria-invalid={!!errors.category}
+            aria-describedby={errors.category ? "category-error" : undefined}
+            disabled={isSubmitting}
           />
+          {errors.category && (
+            <p id="category-error" className="text-sm text-destructive mt-1" role="alert">
+              {errors.category.message}
+            </p>
+          )}
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">
-            {auto("Manufacturer", "form.labels.manufacturer")}
+          <label htmlFor="propertyId" className="block text-sm font-medium mb-1">
+            {auto("Property *", "form.labels.property")}
           </label>
           <Input
-            value={formData.manufacturer}
-            onChange={(e) =>
-              setFormData({ ...formData, manufacturer: e.target.value })
-            }
+            id="propertyId"
+            {...register("propertyId")}
+            aria-invalid={!!errors.propertyId}
+            aria-describedby={errors.propertyId ? "propertyId-error" : undefined}
+            disabled={isSubmitting}
           />
+          {errors.propertyId && (
+            <p id="propertyId-error" className="text-sm text-destructive mt-1" role="alert">
+              {errors.propertyId.message}
+            </p>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">
-            {auto("Model", "form.labels.model")}
+          <label htmlFor="manufacturer" className="block text-sm font-medium mb-1">
+            {auto("Manufacturer", "form.labels.manufacturer")}
           </label>
           <Input
-            value={formData.model}
-            onChange={(e) =>
-              setFormData({ ...formData, model: e.target.value })
-            }
+            id="manufacturer"
+            {...register("manufacturer")}
+            disabled={isSubmitting}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label htmlFor="model" className="block text-sm font-medium mb-1">
+            {auto("Model", "form.labels.model")}
+          </label>
+          <Input
+            id="model"
+            {...register("model")}
+            disabled={isSubmitting}
+          />
+        </div>
+        <div>
+          <label htmlFor="serialNumber" className="block text-sm font-medium mb-1">
             {auto("Serial Number", "form.labels.serial")}
           </label>
           <Input
-            value={formData.serialNumber}
-            onChange={(e) =>
-              setFormData({ ...formData, serialNumber: e.target.value })
-            }
+            id="serialNumber"
+            {...register("serialNumber")}
+            aria-invalid={!!errors.serialNumber}
+            aria-describedby={errors.serialNumber ? "serial-error" : undefined}
+            disabled={isSubmitting}
           />
+          {errors.serialNumber && (
+            <p id="serial-error" className="text-sm text-destructive mt-1" role="alert">
+              {errors.serialNumber.message}
+            </p>
+          )}
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">
+        <label htmlFor="status" className="block text-sm font-medium mb-1">
           {auto("Status", "form.labels.status")}
         </label>
-        <Select
-          value={formData.status}
-          onValueChange={(value) => setFormData({ ...formData, status: value })}
-        >
-          <SelectTrigger>
-            <SelectValue
-              placeholder={auto("Select status", "form.placeholders.status")}
-            />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ACTIVE">
-              {auto("Active", "status.active")}
-            </SelectItem>
-            <SelectItem value="MAINTENANCE">
-              {auto("Maintenance", "status.maintenance")}
-            </SelectItem>
-            <SelectItem value="OUT_OF_SERVICE">
-              {auto("Out of Service", "status.outOfService")}
-            </SelectItem>
-            <SelectItem value="DECOMMISSIONED">
-              {auto("Decommissioned", "status.decommissioned")}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <Controller
+          name="status"
+          control={control}
+          render={({ field }) => (
+            <Select
+              value={field.value}
+              onValueChange={field.onChange}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger id="status">
+                <SelectValue
+                  placeholder={auto("Select status", "form.placeholders.status")}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {ASSET_STATUSES.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">
+        <label htmlFor="criticality" className="block text-sm font-medium mb-1">
           {auto("Criticality", "form.labels.criticality")}
         </label>
-        <Select
-          value={formData.criticality}
-          onValueChange={(value) =>
-            setFormData({ ...formData, criticality: value })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue
-              placeholder={auto(
-                "Select criticality",
-                "form.placeholders.criticality",
-              )}
-            />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="LOW">
-              {auto("Low", "form.criticality.low")}
-            </SelectItem>
-            <SelectItem value="MEDIUM">
-              {auto("Medium", "form.criticality.medium")}
-            </SelectItem>
-            <SelectItem value="HIGH">
-              {auto("High", "form.criticality.high")}
-            </SelectItem>
-            <SelectItem value="CRITICAL">
-              {auto("Critical", "form.criticality.critical")}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <Controller
+          name="criticality"
+          control={control}
+          render={({ field }) => (
+            <Select
+              value={field.value}
+              onValueChange={field.onChange}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger id="criticality">
+                <SelectValue
+                  placeholder={auto(
+                    "Select criticality",
+                    "form.placeholders.criticality",
+                  )}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {ASSET_CRITICALITY_LEVELS.map((level) => (
+                  <SelectItem key={level} value={level}>
+                    {auto(ASSET_CRITICALITY_LABELS[level].en, ASSET_CRITICALITY_LABELS[level].tKey)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-primary hover:bg-primary/90">
-          {auto("Create Asset", "form.actions.submit")}
+        <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+          {isSubmitting ? auto("Creating...", "form.actions.creating") : auto("Create Asset", "form.actions.submit")}
         </Button>
       </div>
     </form>
@@ -865,19 +860,23 @@ function EditAssetForm({
   orgId: string;
 }) {
   const auto = useAutoTranslator("fm.assets.form");
-  const [formData, setFormData] = useState({
-    name: asset.name || "",
-    type: asset.type || "",
-    category: asset.category || "",
-    status: asset.status || "ACTIVE",
-    criticality: asset.criticality || "MEDIUM",
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<UpdateAssetInput>({
+    resolver: zodResolver(UpdateAssetSchema),
+    defaultValues: {
+      name: asset.name || "",
+      type: (asset.type as UpdateAssetInput["type"]) || "OTHER",
+      category: asset.category || "",
+      status: (asset.status as UpdateAssetInput["status"]) || "ACTIVE",
+      criticality: (asset.criticality as UpdateAssetInput["criticality"]) || "MEDIUM",
+    },
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: UpdateAssetInput) => {
     const toastId = toast.loading(auto("Updating asset...", "edit.loading"));
 
     try {
@@ -887,7 +886,7 @@ function EditAssetForm({
           "Content-Type": "application/json",
           "x-tenant-id": orgId,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(data),
       });
 
       if (response.ok) {
@@ -896,11 +895,12 @@ function EditAssetForm({
         });
         onUpdated();
       } else {
-        const error = await response.json();
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || errorData.message || auto("Unknown error", "toast.unknown");
         toast.error(
           auto("Failed to update asset: {{error}}", "edit.failed").replace(
             "{{error}}",
-            error.error || auto("Unknown error", "toast.unknown"),
+            errorMessage,
           ),
           { id: toastId },
         );
@@ -911,105 +911,139 @@ function EditAssetForm({
       toast.error(auto("Error updating asset. Please try again.", "edit.error"), {
         id: toastId,
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1">
+        <label htmlFor="edit-name" className="block text-sm font-medium mb-1">
           {auto("Asset Name *", "form.labels.name")}
         </label>
         <Input
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          required
+          id="edit-name"
+          {...register("name")}
+          aria-invalid={!!errors.name}
+          aria-describedby={errors.name ? "edit-name-error" : undefined}
           disabled={isSubmitting}
         />
+        {errors.name && (
+          <p id="edit-name-error" className="text-sm text-destructive mt-1" role="alert">
+            {errors.name.message}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label htmlFor="edit-type" className="block text-sm font-medium mb-1">
             {auto("Type *", "form.labels.type")}
           </label>
-          <Select
-            value={formData.type}
-            onValueChange={(value) => setFormData({ ...formData, type: value })}
-            disabled={isSubmitting}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={auto("Select type", "form.placeholders.type")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="HVAC">{auto("HVAC", "filters.types.hvac")}</SelectItem>
-              <SelectItem value="ELECTRICAL">{auto("Electrical", "filters.types.electrical")}</SelectItem>
-              <SelectItem value="PLUMBING">{auto("Plumbing", "filters.types.plumbing")}</SelectItem>
-              <SelectItem value="SECURITY">{auto("Security", "filters.types.security")}</SelectItem>
-              <SelectItem value="ELEVATOR">{auto("Elevator", "filters.types.elevator")}</SelectItem>
-              <SelectItem value="GENERATOR">{auto("Generator", "filters.types.generator")}</SelectItem>
-              <SelectItem value="FIRE_SYSTEM">{auto("Fire System", "filters.types.fireSystem")}</SelectItem>
-              <SelectItem value="IT_EQUIPMENT">{auto("IT Equipment", "filters.types.itEquipment")}</SelectItem>
-              <SelectItem value="VEHICLE">{auto("Vehicle", "filters.types.vehicle")}</SelectItem>
-              <SelectItem value="OTHER">{auto("Other", "filters.types.other")}</SelectItem>
-            </SelectContent>
-          </Select>
+          <Controller
+            name="type"
+            control={control}
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger
+                  id="edit-type"
+                  aria-invalid={!!errors.type}
+                  aria-describedby={errors.type ? "edit-type-error" : undefined}
+                >
+                  <SelectValue placeholder={auto("Select type", "form.placeholders.type")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {ASSET_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {auto(ASSET_TYPE_LABELS[type].en, ASSET_TYPE_LABELS[type].tKey)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.type && (
+            <p id="edit-type-error" className="text-sm text-destructive mt-1" role="alert">
+              {errors.type.message}
+            </p>
+          )}
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label htmlFor="edit-category" className="block text-sm font-medium mb-1">
             {auto("Category *", "form.labels.category")}
           </label>
           <Input
-            value={formData.category}
-            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-            required
+            id="edit-category"
+            {...register("category")}
+            aria-invalid={!!errors.category}
+            aria-describedby={errors.category ? "edit-category-error" : undefined}
             disabled={isSubmitting}
           />
+          {errors.category && (
+            <p id="edit-category-error" className="text-sm text-destructive mt-1" role="alert">
+              {errors.category.message}
+            </p>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label htmlFor="edit-status" className="block text-sm font-medium mb-1">
             {auto("Status", "form.labels.status")}
           </label>
-          <Select
-            value={formData.status}
-            onValueChange={(value) => setFormData({ ...formData, status: value })}
-            disabled={isSubmitting}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={auto("Select status", "form.placeholders.status")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ACTIVE">{auto("Active", "status.active")}</SelectItem>
-              <SelectItem value="MAINTENANCE">{auto("Maintenance", "status.maintenance")}</SelectItem>
-              <SelectItem value="OUT_OF_SERVICE">{auto("Out of Service", "status.outOfService")}</SelectItem>
-              <SelectItem value="DECOMMISSIONED">{auto("Decommissioned", "status.decommissioned")}</SelectItem>
-            </SelectContent>
-          </Select>
+          <Controller
+            name="status"
+            control={control}
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger id="edit-status">
+                  <SelectValue placeholder={auto("Select status", "form.placeholders.status")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {ASSET_STATUSES.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {auto(ASSET_STATUS_LABELS[status].en, ASSET_STATUS_LABELS[status].tKey)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label htmlFor="edit-criticality" className="block text-sm font-medium mb-1">
             {auto("Criticality", "form.labels.criticality")}
           </label>
-          <Select
-            value={formData.criticality}
-            onValueChange={(value) => setFormData({ ...formData, criticality: value })}
-            disabled={isSubmitting}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={auto("Select criticality", "form.placeholders.criticality")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="LOW">{auto("Low", "form.criticality.low")}</SelectItem>
-              <SelectItem value="MEDIUM">{auto("Medium", "form.criticality.medium")}</SelectItem>
-              <SelectItem value="HIGH">{auto("High", "form.criticality.high")}</SelectItem>
-              <SelectItem value="CRITICAL">{auto("Critical", "form.criticality.critical")}</SelectItem>
-            </SelectContent>
-          </Select>
+          <Controller
+            name="criticality"
+            control={control}
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger id="edit-criticality">
+                  <SelectValue placeholder={auto("Select criticality", "form.placeholders.criticality")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {ASSET_CRITICALITY_LEVELS.map((level) => (
+                    <SelectItem key={level} value={level}>
+                      {auto(ASSET_CRITICALITY_LABELS[level].en, ASSET_CRITICALITY_LABELS[level].tKey)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
         </div>
       </div>
 

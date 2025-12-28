@@ -1,7 +1,7 @@
 # Fixzit Core Library (`lib/`)
 
-> **Version:** 2.0.26  
-> **Last Updated:** November 27, 2025
+> **Version:** 2.0.27  
+> **Last Updated:** January 26, 2025
 
 This directory contains the core utility modules, shared libraries, and infrastructure code used across the Fixzit platform.
 
@@ -26,6 +26,7 @@ lib/
 │
 ├── api/                 # API utilities
 ├── cache/               # Caching strategies
+├── constants/           # Domain-specific constants & labels (bilingual EN/AR)
 ├── errors/              # Custom error classes
 ├── finance/             # Financial calculations
 ├── hr/                  # HR utilities
@@ -42,7 +43,7 @@ lib/
 ├── storage/             # File storage (S3/local)
 ├── types/               # TypeScript type definitions
 ├── utils/               # General utilities
-├── validations/         # Input validation
+├── validations/         # Form & input validation with Zod schemas
 └── vendor/              # Vendor-specific integrations
 ```
 
@@ -131,6 +132,64 @@ await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
   template: 'welcome',
 });
 ```
+
+### Constants (`constants/`)
+
+Centralized domain-specific constants with bilingual labels (EN/AR):
+
+```typescript
+import {
+  ASSET_TYPES,
+  ASSET_STATUSES,
+  ASSET_CRITICALITY_LEVELS,
+  ASSET_TYPE_LABELS,
+  ASSET_DEFAULTS,
+  type AssetType,
+  type AssetStatus,
+} from '@/lib/constants/asset-constants';
+
+// Type-safe asset type
+const type: AssetType = 'HVAC';
+
+// Bilingual labels for dropdowns
+const label = ASSET_TYPE_LABELS['HVAC']; // { en: 'HVAC', ar: 'التكييف', tKey: 'assets.type.hvac' }
+
+// Default values for forms
+const defaults = ASSET_DEFAULTS; // { location coordinates, etc. }
+```
+
+**Modules:**
+- `asset-constants.ts` - Asset types, statuses, criticality levels with EN/AR labels
+
+### Validations (`validations/`)
+
+Zod-based form and input validation schemas:
+
+```typescript
+import {
+  CreateAssetSchema,
+  UpdateAssetSchema,
+  createAssetFormDefaults,
+  type CreateAssetInput,
+} from '@/lib/validations/asset-schemas';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+
+// Use with react-hook-form
+const form = useForm<CreateAssetInput>({
+  resolver: zodResolver(CreateAssetSchema),
+  defaultValues: createAssetFormDefaults,
+});
+
+// Validate input
+const result = CreateAssetSchema.safeParse(input);
+if (!result.success) {
+  console.error(result.error.flatten());
+}
+```
+
+**Schemas:**
+- `asset-schemas.ts` - Create/Update asset, location, purchase info schemas
 
 ---
 

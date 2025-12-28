@@ -495,6 +495,26 @@
 			"label": "Stage All Changes",
 			"type": "shell",
 			"command": "git status -s; git add -A; git status -s"
+		},
+		{
+			"label": "List Conflicts",
+			"type": "shell",
+			"command": "git diff --name-only --diff-filter=U"
+		},
+		{
+			"label": "Check Conflicts",
+			"type": "shell",
+			"command": "git diff --check"
+		},
+		{
+			"label": "Verify No Conflicts",
+			"type": "shell",
+			"command": "git diff --check"
+		},
+		{
+			"label": "Commit Merge Resolution",
+			"type": "shell",
+			"command": "git add -A; git commit -m 'chore: Merge main and resolve conflicts [AGENT-001-A]'"
 		}
 	]
 }

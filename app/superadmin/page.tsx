@@ -1,19 +1,20 @@
 /**
  * Superadmin Index Page
- * Redirects to login or issues based on session
+ * Redirects to login or issues based on VALIDATED session (not just cookie existence)
+ * 
+ * FIX: Previously only checked if cookie existed, now validates token is valid and not expired
  * 
  * @module app/superadmin/page
  */
 
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { SUPERADMIN_COOKIE_NAME } from "@/lib/superadmin/auth";
+import { getSuperadminSessionFromCookies } from "@/lib/superadmin/auth";
 
 export default async function SuperadminIndexPage() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SUPERADMIN_COOKIE_NAME);
+  // Validate the session token, not just check cookie existence
+  const session = await getSuperadminSessionFromCookies();
   
-  if (token) {
+  if (session && session.expiresAt > Date.now()) {
     redirect("/superadmin/issues");
   } else {
     redirect("/superadmin/login");

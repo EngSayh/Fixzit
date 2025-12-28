@@ -19,7 +19,8 @@ import { Types } from 'mongoose';
 
 export interface BusinessHoursConfig {
   orgId: Types.ObjectId;
-  timezone: string; // e.g., 'Asia/Riyadh'
+  /** Timezone used for SLA calculations (e.g., 'Asia/Riyadh'). */
+  timezone: string;
   workingDays: WeekDay[];
   workingHours: {
     start: string; // e.g., '08:00'
