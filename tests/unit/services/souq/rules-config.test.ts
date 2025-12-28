@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearSouqRuleOverrides, getSouqRuleConfig, setSouqRuleOverride } from "@/services/souq/rules-config";
 import { logger } from "@/lib/logger";
 
@@ -9,6 +9,10 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 describe("Souq rule config", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   afterEach(() => {
     clearSouqRuleOverrides();
     vi.clearAllMocks();

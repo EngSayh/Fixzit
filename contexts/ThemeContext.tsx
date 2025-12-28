@@ -191,10 +191,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     [theme, resolvedTheme, setTheme],
   );
 
-  if (!hydrated) {
-    return null;
-  }
-
+  // IMPORTANT: Always render children to avoid blank screen during hydration
+  // The theme will be corrected once hydration completes (< 100ms typically)
+  // Using a simple provider wrapper even before hydration ensures UI is visible
   return <ThemeCtx.Provider value={value}>{children}</ThemeCtx.Provider>;
 }
 

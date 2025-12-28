@@ -47,16 +47,18 @@ const importRoute = async () => {
 describe("GET /api/aqar/listings/search", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules(); // Reset module cache to ensure fresh imports with updated mocks
     vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
   });
 
   it("returns 429 when rate limit exceeded", async () => {
+    // Set up mock BEFORE importing the route
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false });
+
     const route = await importRoute();
     if (!route?.GET) {
       throw new Error("Route handler missing: GET");
     }
-
-    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false });
 
     const req = new NextRequest("http://localhost:3000/api/aqar/listings/search?city=Riyadh", {
       method: "GET",

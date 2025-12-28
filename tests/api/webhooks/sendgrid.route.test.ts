@@ -16,6 +16,36 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
   dbConnect: vi.fn().mockResolvedValue(undefined),
+  getDatabase: vi.fn().mockResolvedValue({
+    collection: vi.fn().mockReturnValue({
+      insertOne: vi.fn().mockResolvedValue({ insertedId: "test-id" }),
+      insertMany: vi.fn().mockResolvedValue({ insertedCount: 0 }),
+    }),
+  }),
+}));
+
+// Mock sendgrid config
+vi.mock("@/config/sendgrid.config", () => ({
+  verifyWebhookSignature: vi.fn().mockReturnValue(true),
+}));
+
+// Mock client IP
+vi.mock("@/lib/security/client-ip", () => ({
+  getClientIp: vi.fn().mockReturnValue("127.0.0.1"),
+}));
+
+// Mock secure response
+vi.mock("@/server/security/headers", () => ({
+  createSecureResponse: vi.fn().mockImplementation((body, status, _req) => {
+    return new Response(JSON.stringify(body), { status });
+  }),
+}));
+
+// Mock collections
+vi.mock("@/lib/db/collections", () => ({
+  COLLECTIONS: {
+    EMAIL_LOGS: "email_logs",
+  },
 }));
 
 // Mock logger

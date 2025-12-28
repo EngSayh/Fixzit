@@ -64,7 +64,90 @@ export const SSE_CONFIG = {
 } as const;
 
 // ============================================================================
-// PLACEHOLDER FUNCTIONS (TO BE IMPLEMENTED Q1 2026)
+// SUBSCRIPTION STATE (In-Memory - will be replaced with Redis)
+// ============================================================================
+
+interface InternalSubscription {
+  orgId: Types.ObjectId;
+  userId: Types.ObjectId;
+  callback: (notification: NotificationPayload) => void;
+  connectedAt: Date;
+  lastHeartbeat: Date;
+}
+
+const subscriptions = new Map<string, InternalSubscription>();
+let subscriptionIdCounter = 0;
+let cleanupIntervalId: NodeJS.Timeout | null = null;
+
+/**
+ * Get the number of active connections for a specific user
+ */
+export function getUserConnectionCount(userId: Types.ObjectId): number {
+  let count = 0;
+  for (const sub of subscriptions.values()) {
+    if (sub.userId.equals(userId)) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * Start the connection cleanup interval
+ */
+export function startConnectionCleanup(): void {
+  if (cleanupIntervalId) return; // Already running
+  
+  cleanupIntervalId = setInterval(() => {
+    const now = Date.now();
+    const timeout = SSE_CONFIG.CONNECTION_TIMEOUT_MS;
+    
+    for (const [id, sub] of subscriptions.entries()) {
+      if (now - sub.lastHeartbeat.getTime() > timeout) {
+        subscriptions.delete(id);
+      }
+    }
+  }, 60_000); // Check every minute
+}
+
+/**
+ * Stop the connection cleanup interval
+ */
+export function stopConnectionCleanup(): void {
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+  }
+}
+
+/**
+ * Reset internal state for testing purposes only
+ * @internal
+ */
+export function _resetForTesting(): void {
+  subscriptions.clear();
+  subscriptionIdCounter = 0;
+  stopConnectionCleanup();
+}
+
+/**
+ * Get the count of active subscriptions (optionally filtered by org)
+ */
+export function getActiveSubscriptionCount(orgId?: Types.ObjectId): number {
+  if (!orgId) {
+    return subscriptions.size;
+  }
+  let count = 0;
+  for (const sub of subscriptions.values()) {
+    if (sub.orgId.equals(orgId)) {
+      count++;
+    }
+  }
+  return count;
+}
+
+// ============================================================================
+// SUBSCRIPTION FUNCTIONS
 // ============================================================================
 
 /**
@@ -72,31 +155,67 @@ export const SSE_CONFIG = {
  * @todo Implement with Redis pub/sub for horizontal scaling
  */
 export function subscribeToNotifications(
-  _orgId: Types.ObjectId,
-  _userId: Types.ObjectId,
-  _callback: (notification: NotificationPayload) => void
+  orgId: Types.ObjectId,
+  userId: Types.ObjectId,
+  callback: (notification: NotificationPayload) => void
 ): () => void {
-  // TODO: Implement subscription logic
-  // - Connect to Redis pub/sub channel: `notifications:${orgId}`
-  // - Filter by userId if needed
-  // - Call callback on new messages
+  // Check connection limit
+  if (getUserConnectionCount(userId) >= SSE_CONFIG.MAX_CONNECTIONS_PER_USER) {
+    // eslint-disable-next-line no-console -- Intentional: log connection limit errors
+    console.error(`[SSE] User ${userId} exceeded max connections (${SSE_CONFIG.MAX_CONNECTIONS_PER_USER})`);
+    // Return a no-op cleanup to avoid breaking callers
+    return () => {};
+  }
+  
+  const subscriptionId = `sub_${++subscriptionIdCounter}`;
+  const now = new Date();
+  
+  subscriptions.set(subscriptionId, {
+    orgId,
+    userId,
+    callback,
+    connectedAt: now,
+    lastHeartbeat: now,
+  });
+  
+  // Start cleanup if not already running
+  startConnectionCleanup();
+  
+  // Return unsubscribe function
   return () => {
-    // Cleanup function
+    subscriptions.delete(subscriptionId);
   };
 }
 
 /**
  * Publish notification to all subscribers in an org
- * @todo Implement with Redis pub/sub
+ * @todo Implement with Redis pub/sub for horizontal scaling
  */
 export async function publishNotification(
-  _orgId: Types.ObjectId,
-  _notification: NotificationPayload,
-  _targetUserIds?: Types.ObjectId[]
+  orgId: Types.ObjectId,
+  notification: NotificationPayload,
+  targetUserIds?: Types.ObjectId[]
 ): Promise<void> {
-  // TODO: Implement publish logic
-  // - Publish to Redis channel: `notifications:${orgId}`
-  // - Include targetUserIds for filtering
+  const now = new Date();
+  for (const sub of subscriptions.values()) {
+    // Tenant isolation check
+    if (!sub.orgId.equals(orgId)) continue;
+    
+    // User targeting check
+    if (targetUserIds && targetUserIds.length > 0) {
+      if (!targetUserIds.some(id => id.equals(sub.userId))) continue;
+    }
+    
+    // Deliver notification
+    try {
+      sub.callback(notification);
+      // Refresh heartbeat on successful delivery to prevent cleanup eviction
+      sub.lastHeartbeat = now;
+    } catch (err) {
+      // eslint-disable-next-line no-console -- Intentional: log subscriber callback errors
+      console.error('[SSE] Error in subscriber callback:', err);
+    }
+  }
 }
 
 /**
@@ -138,5 +257,10 @@ export default {
   publishNotification,
   formatSSEMessage,
   createHeartbeat,
+  getActiveSubscriptionCount,
+  getUserConnectionCount,
+  startConnectionCleanup,
+  stopConnectionCleanup,
+  _resetForTesting,
   SSE_CONFIG,
 };

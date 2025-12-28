@@ -12,6 +12,7 @@ describe("CircuitBreaker", () => {
   let breaker: CircuitBreaker;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.useRealTimers(); // Reset any fake timers from other tests
     breaker = new CircuitBreaker({
       name: "test-breaker",
@@ -44,10 +45,18 @@ describe("CircuitBreaker", () => {
     });
 
     it("should return false after cooldown expires", async () => {
-      // Open the breaker
+      // Create fresh breaker with real timers first
+      const testBreaker = new CircuitBreaker({
+        name: "cooldown-test-breaker",
+        failureThreshold: 3,
+        successThreshold: 2,
+        cooldownMs: 100,
+      });
+
+      // Open the breaker using public API before switching to fake timers
       for (let i = 0; i < 3; i++) {
         try {
-          await breaker.run(async () => {
+          await testBreaker.run(async () => {
             throw new Error("Test failure");
           });
         } catch {
@@ -55,14 +64,20 @@ describe("CircuitBreaker", () => {
         }
       }
 
-      expect(breaker.isOpen()).toBe(true);
+      expect(testBreaker.isOpen()).toBe(true);
 
-      // Wait for cooldown
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      // Now switch to fake timers to control cooldown
+      vi.useFakeTimers();
+
+      // Advance time past cooldown using fake timers
+      vi.advanceTimersByTime(150);
 
       // Should be ready to try again (half-open)
-      expect(breaker.isOpen()).toBe(false);
-    });
+      expect(testBreaker.isOpen()).toBe(false);
+      
+      // Restore real timers
+      vi.useRealTimers();
+    }, 5000); // 5 second timeout
   });
 
   describe("getState()", () => {

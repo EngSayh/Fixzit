@@ -1,38 +1,41 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { ObjectId } from "mongodb";
 
-const claimsStore: any[] = [];
+const claimsStore: Record<string, unknown>[] = [];
 const findOneCalls: Record<string, unknown>[] = [];
 
 const { mockAddJob } = vi.hoisted(() => ({
   mockAddJob: vi.fn(async () => undefined),
 }));
 
+// Type guard to check if value is a record object
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 // Minimal matcher supporting $or, $in, and $lt for our claim filters
-const matches = (doc: any, filter: Record<string, any>): boolean => {
+const matches = (doc: Record<string, unknown>, filter: Record<string, unknown>): boolean => {
   const entries = Object.entries(filter || {});
   for (const [key, value] of entries) {
     if (key === "$or") {
-      return Array.isArray(value) && value.some((sub) => matches(doc, sub));
+      return Array.isArray(value) && value.some((sub) => isRecord(sub) && matches(doc, sub));
     }
 
     const docVal = doc[key];
 
-    if (value && typeof value === "object" && !Array.isArray(value)) {
-      if ("$in" in value) {
-        const arr = value.$in as any[];
-        if (!arr.some((candidate) => String(candidate) === String(docVal))) {
-          return false;
-        }
-        continue;
+    if (isRecord(value)) {
+      const inList = Array.isArray(value["$in"]) ? value["$in"] : null;
+      if (inList && !inList.some((candidate) => String(candidate) === String(docVal))) {
+        return false;
       }
+      if (inList) continue;
+
       if ("$lt" in value || "$lte" in value || "$gt" in value || "$gte" in value) {
         const docNum =
           docVal instanceof Date ? docVal.getTime() : Number(docVal);
-        const lt = "$lt" in value ? (value as any).$lt : undefined;
-        const lte = "$lte" in value ? (value as any).$lte : undefined;
-        const gt = "$gt" in value ? (value as any).$gt : undefined;
-        const gte = "$gte" in value ? (value as any).$gte : undefined;
+        const lt = value["$lt"];
+        const lte = value["$lte"];
+        const gt = value["$gt"];
+        const gte = value["$gte"];
         const ltNum = lt instanceof Date ? lt.getTime() : Number(lt);
         const lteNum = lte instanceof Date ? lte.getTime() : Number(lte);
         const gtNum = gt instanceof Date ? gt.getTime() : Number(gt);
@@ -53,7 +56,7 @@ const matches = (doc: any, filter: Record<string, any>): boolean => {
 };
 
 const collection = {
-  insertOne: async (doc: any) => {
+  insertOne: async (doc: Record<string, unknown>) => {
     claimsStore.push(doc);
     return { insertedId: doc._id ?? new ObjectId() };
   },
@@ -73,7 +76,7 @@ const collection = {
   },
   updateOne: async (
     filter: Record<string, unknown>,
-    update: { $set?: Record<string, unknown>; $push?: Record<string, any> },
+    update: { $set?: Record<string, unknown>; $push?: Record<string, unknown> },
   ) => {
     const doc = claimsStore.find((c) => matches(c, filter));
     if (!doc) return { matchedCount: 0, modifiedCount: 0 };
@@ -82,11 +85,13 @@ const collection = {
     }
     if (update.$push) {
       Object.entries(update.$push).forEach(([key, val]) => {
-        if (!Array.isArray(doc[key])) doc[key] = [];
-        if (val && typeof val === "object" && "$each" in val) {
-          doc[key].push(...(val as { $each: any[] }).$each);
+        const docArray = doc[key];
+        if (!Array.isArray(docArray)) doc[key] = [];
+        const arr = doc[key] as unknown[];
+        if (isRecord(val) && Array.isArray(val["$each"])) {
+          arr.push(...val["$each"]);
         } else {
-          (doc[key] as any[]).push(val);
+          arr.push(val);
         }
       });
     }
@@ -106,6 +111,11 @@ vi.mock("@/lib/mongodb-unified", () => {
     getDatabase: async () => ({
       collection: () => collection,
     }),
+    connectToDatabase: async () => undefined,
+    connectDb: async () => undefined,
+    dbConnect: async () => undefined,
+    connectMongo: async () => undefined,
+    default: async () => undefined,
   };
 });
 
@@ -116,6 +126,7 @@ let claimBId: string;
 
 describe("ClaimService tenant isolation", () => {
   beforeEach(async () => {
+    vi.clearAllMocks();
     claimsStore.length = 0;
     findOneCalls.length = 0;
     // Force ClaimService to use the in-memory collection to ensure tests don't hit real DB

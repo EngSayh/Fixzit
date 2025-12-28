@@ -838,6 +838,20 @@
       "syncSuccess": "تمت المزامنة بنجاح",
       "syncing": "جاري المزامنة..."
     },
+    "bulk": {
+      "selected": "{{count}} محدد",
+      "selectedSingle": "1 محدد",
+      "confirmAction": "تأكيد الإجراء",
+      "affectItems": "سيؤثر هذا على {{count}} عنصر.",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد",
+      "clearSelection": "مسح التحديد",
+      "approve": "موافقة",
+      "reject": "رفض",
+      "assign": "تعيين",
+      "delete": "حذف",
+      "assignRequiresSelection": "التعيين يتطلب اختيار المكلف."
+    },
     "approvals": {
       "title": "موافقات أوامر العمل",
       "subtitle": "إدارة الموافقات",
@@ -3446,6 +3460,7 @@
       "selectType": "اختر النوع",
       "title": "العقارات",
       "create": "إضافة عقار",
+      "creating": "جاري إنشاء العقار...",
       "view": "عرض العقارات",
       "edit": "تعديل عقار",
       "delete": "حذف عقار",
