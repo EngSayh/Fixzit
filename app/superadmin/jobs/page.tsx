@@ -56,7 +56,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function SuperadminJobsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [stats, setStats] = useState<JobStats>({ pending: 0, processing: 0, completed: 0, failed: 0 });
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,12 +66,12 @@ export default function SuperadminJobsPage() {
   const fetchJobs = useCallback(async () => {
     try {
       setLoading(true);
-      // Get job stats from processing endpoint
+      // Get job stats from processing endpoint (stats-only, no side effects)
       const response = await fetch("/api/jobs/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ maxJobs: 0 }), // Just get stats
+        body: JSON.stringify({ maxJobs: 0, retryStuckJobs: false }), // Stats only, no processing
       });
       if (response.ok) {
         const data = await response.json();
@@ -87,11 +87,11 @@ export default function SuperadminJobsPage() {
         { _id: "5", type: "report", status: "processing", priority: 2, attempts: 1, maxAttempts: 3, createdAt: new Date(Date.now() - 45000).toISOString() },
       ]);
     } catch {
-      // Use defaults
+      toast.error(t("superadmin.jobs.fetchError", "Failed to load job stats; showing defaults"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { fetchJobs(); const interval = setInterval(fetchJobs, 30000); return () => clearInterval(interval); }, [fetchJobs]);
 
@@ -121,7 +121,7 @@ export default function SuperadminJobsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ maxJobs: 0 }), // This also retries stuck jobs
+        body: JSON.stringify({ maxJobs: 0, retryStuckJobs: true }), // Explicitly retry stuck jobs
       });
       if (!response.ok) throw new Error("Failed to retry stuck jobs");
       toast.success("Stuck jobs reset for retry");
@@ -131,7 +131,7 @@ export default function SuperadminJobsPage() {
     }
   };
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString(locale ?? "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
   const total = stats.pending + stats.processing + stats.completed + stats.failed;
   const successRate = total > 0 ? ((stats.completed / total) * 100).toFixed(1) : "0";

@@ -678,13 +678,18 @@ async function calculateComplianceScore(
       licenseValid,
       score,
     };
-  } catch (_error) {
+  } catch (error) {
+    logger.error("Failed to calculate compliance score", {
+      error: error instanceof Error ? error.message : String(error),
+      component: "vendor-intelligence",
+    });
+    // Return fallback values when compliance data unavailable
     return {
       documentationComplete: false,
       policyViolations: 0,
       vatCompliant: false,
       licenseValid: false,
-      score: 50,
+      score: 50, // Default score when data unavailable
     };
   }
 }

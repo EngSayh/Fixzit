@@ -92,7 +92,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function SuperadminSubscriptionsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [tiers, setTiers] = useState<SubscriptionTier[]>([]);
   const [subscriptions, setSubscriptions] = useState<TenantSubscription[]>([]);
   const [stats, setStats] = useState<SubscriptionStats | null>(null);
@@ -129,7 +129,7 @@ export default function SuperadminSubscriptionsPage() {
         setTiers(Array.isArray(data) ? data : data.tiers || []);
       }
     } catch {
-      // May not have tiers API yet
+      toast.error(t("superadmin.subscriptions.fetchTiersError", "Failed to load tiers; showing defaults"));
       // Default tiers for demo
       setTiers([
         {
@@ -208,7 +208,7 @@ export default function SuperadminSubscriptionsPage() {
       }
       return [] as TenantSubscription[];
     } catch {
-      // Demo data
+      toast.error(t("superadmin.subscriptions.fetchError", "Failed to load subscriptions; showing demo data"));
       const fallbackSubscriptions: TenantSubscription[] = [
         {
           _id: "sub-1",
@@ -300,7 +300,7 @@ export default function SuperadminSubscriptionsPage() {
         return;
       }
     } catch {
-      // Fall through to refresh-based stats below
+      toast.error(t("superadmin.subscriptions.fetchStatsError", "Failed to load subscription stats; using derived values"));
     }
 
     const refreshedSubscriptions = latestSubscriptions ?? await fetchSubscriptions();
@@ -335,11 +335,11 @@ export default function SuperadminSubscriptionsPage() {
   });
 
   const formatCurrency = (value: number, currency = "SAR") => {
-    return new Intl.NumberFormat("en-SA", { style: "currency", currency }).format(value);
+    return new Intl.NumberFormat(locale ?? "en-SA", { style: "currency", currency }).format(value);
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    return new Date(dateStr).toLocaleDateString(locale ?? "en-US", { year: "numeric", month: "short", day: "numeric" });
   };
 
   const handleSaveTier = async () => {

@@ -42,12 +42,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden - Superadmin access required" }, { status: 403 });
     }
 
-    const { data: body, error: parseError } = await parseBodySafe<{ type?: string; maxJobs?: number }>(request, { logPrefix: "[jobs:process]" });
+    const { data: body, error: parseError } = await parseBodySafe<{ type?: string; maxJobs?: number; retryStuckJobs?: boolean }>(request, { logPrefix: "[jobs:process]" });
     if (parseError) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
     const jobType = body?.type as Parameters<typeof JobQueue.claimJob>[0]; // Optional: process specific job type only
-    const maxJobs = body?.maxJobs || 10;
+    const maxJobs = body?.maxJobs ?? 10;
+    const shouldRetryStuckJobs = body?.retryStuckJobs ?? maxJobs > 0;
 
     const processed: { success: string[]; failed: string[] } = {
       success: [],
@@ -71,8 +72,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Retry stuck jobs
-    const retriedCount = await JobQueue.retryStuckJobs();
+    // Retry stuck jobs only if explicitly requested or processing jobs
+    const retriedCount = shouldRetryStuckJobs ? await JobQueue.retryStuckJobs() : 0;
 
     // Get current stats
     const stats = await JobQueue.getStats();

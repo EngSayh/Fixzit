@@ -75,13 +75,15 @@ export async function GET(_req: NextRequest) {
     const db = await getDatabase();
     const collection = db.collection<ReportJobDocument>(COLLECTION);
     
-    // Cross-tenant query - no orgId filter for superadmin
+    // Cross-tenant query - superadmin reports require platform-wide access
     const [jobs, total] = await Promise.all([
+      // eslint-disable-next-line local/require-tenant-scope -- superadmin cross-tenant reports
       collection
         .find({})
         .sort({ createdAt: -1 })
         .limit(100)
         .toArray(),
+      // eslint-disable-next-line local/require-tenant-scope -- superadmin cross-tenant reports
       collection.countDocuments({}),
     ]);
 
