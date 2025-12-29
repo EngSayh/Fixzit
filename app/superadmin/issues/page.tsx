@@ -423,15 +423,21 @@ export default function SuperadminIssuesPage() {
       const response = await fetch("/api/issues/stats");
       
       if (!response.ok) {
-        throw new Error("Failed to fetch stats");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
       setStats(data);
     } catch (error) {
       // Stats loading failure is non-critical, but must be observable
+      const isNetworkError = error instanceof TypeError && (error.message === "Failed to fetch" || error.message.includes("NetworkError"));
       // eslint-disable-next-line no-console -- surface non-critical stats errors
-      console.error("[superadmin:issues] Failed to fetch stats", error);
+      console.error("[superadmin:issues] Failed to fetch stats", {
+        type: isNetworkError ? "NETWORK_ERROR" : "API_ERROR",
+        message: error instanceof Error ? error.message : "Unknown error",
+        hint: isNetworkError ? "Check if dev server is running and MongoDB is connected" : undefined,
+      });
     } finally {
       setStatsLoading(false);
     }
