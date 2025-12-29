@@ -19,8 +19,9 @@ let Asset: mongoose.Model<any>;
 /**
  * Wait for mongoose connection to be ready.
  * CI environments need more time due to MongoDB Memory Server download/startup.
+ * Increased to 120s for CI where MongoDB binary download can be slow.
  */
-async function waitForMongoConnection(maxWaitMs = 60000): Promise<void> {
+async function waitForMongoConnection(maxWaitMs = 120000): Promise<void> {
   const start = Date.now();
   while (mongoose.connection.readyState !== 1) {
     if (Date.now() - start > maxWaitMs) {
