@@ -25,6 +25,34 @@ type Props = {
 };
 
 /**
+ * Redirect loading state component - uses i18n for translated messages
+ */
+function SuperadminRedirectState({ showTimeout }: { showTimeout: boolean }) {
+  const { t } = useI18n();
+  
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto mb-4" />
+        <p className="text-muted-foreground">
+          {showTimeout 
+            ? t("superadmin.auth.redirectingToLogin", "Redirecting to login...") 
+            : t("superadmin.auth.verifyingSession", "Verifying session...")}
+        </p>
+        {showTimeout && (
+          <a
+            href="/superadmin/login"
+            className="mt-4 inline-block text-primary hover:text-primary/80 underline"
+          >
+            {t("superadmin.auth.clickHereIfNotRedirected", "Click here if not redirected")}
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Inner layout component that uses hooks inside I18nProvider context
  */
 function SuperadminLayoutInner({ children, isLoginPage }: { children: ReactNode; isLoginPage: boolean }) {
@@ -88,27 +116,17 @@ export function SuperadminLayoutClient({
     }
   }, [isAuthenticated, isLoginPage]);
 
-  // Show loading state while redirecting to login
-  if (!isLoginPage && !isAuthenticated) {
+  // Determine content to render based on auth state
+  const renderContent = () => {
+    if (!isLoginPage && !isAuthenticated) {
+      return <SuperadminRedirectState showTimeout={showTimeout} />;
+    }
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">
-            {showTimeout ? "Redirecting to login..." : "Verifying session..."}
-          </p>
-          {showTimeout && (
-            <a
-              href="/superadmin/login"
-              className="mt-4 inline-block text-primary hover:text-primary/80 underline"
-            >
-              Click here if not redirected
-            </a>
-          )}
-        </div>
-      </div>
+      <SuperadminLayoutInner isLoginPage={isLoginPage}>
+        {children}
+      </SuperadminLayoutInner>
     );
-  }
+  };
 
   return (
     <SessionProvider>
@@ -116,9 +134,7 @@ export function SuperadminLayoutClient({
         <ThemeProvider>
           <I18nProvider initialLocale={initialLocale} initialDict={initialDict}>
             <CurrencyProvider>
-              <SuperadminLayoutInner isLoginPage={isLoginPage}>
-                {children}
-              </SuperadminLayoutInner>
+              {renderContent()}
             </CurrencyProvider>
           </I18nProvider>
         </ThemeProvider>

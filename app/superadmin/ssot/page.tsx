@@ -48,14 +48,14 @@ export default function SSOTViewerPage() {
       const res = await fetch("/api/superadmin/ssot");
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to fetch SSOT");
+        throw new Error(data.error || t("superadmin.ssot.fetchFailed", "Failed to fetch SSOT"));
       }
       const data = await res.json();
       setSsotData(data);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
+      const message = err instanceof Error ? err.message : t("common.unknownError", "Unknown error");
       setError(message);
-      toast.error("Failed to load SSOT", { description: message });
+      toast.error(t("superadmin.ssot.loadFailed", "Failed to load SSOT"), { description: message });
     } finally {
       setLoading(false);
     }
@@ -88,7 +88,7 @@ export default function SSOTViewerPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("Downloaded SSOT file");
+    toast.success(t("superadmin.ssot.downloadSuccess", "Downloaded SSOT file"));
   };
 
   const formatBytes = (bytes: number): string => {
@@ -150,7 +150,7 @@ export default function SSOTViewerPage() {
             className="bg-muted border-input text-foreground hover:bg-muted/80"
           >
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {t("common.refresh", "Refresh")}
           </Button>
           <Button
             variant="outline"
@@ -160,7 +160,7 @@ export default function SSOTViewerPage() {
             className="bg-muted border-input text-foreground hover:bg-muted/80"
           >
             <Download className="h-4 w-4 me-2" />
-            Download
+            {t("common.download", "Download")}
           </Button>
         </div>
       </div>
@@ -248,7 +248,7 @@ export default function SSOTViewerPage() {
                 onClick={fetchSSOT}
                 className="mt-4 bg-muted border-input text-foreground"
               >
-                Retry
+                {t("common.retry", "Retry")}
               </Button>
             </div>
           ) : (

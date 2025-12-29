@@ -5161,6 +5161,18 @@
       "exit": "الخروج من لوحة المسؤول",
       "footer": "إذا استمرت هذه المشكلة، يرجى الاتصال بالدعم."
     },
+    "auth": {
+      "redirectingToLogin": "جاري التحويل لتسجيل الدخول...",
+      "verifyingSession": "جاري التحقق من الجلسة...",
+      "clickHereIfNotRedirected": "اضغط هنا إذا لم يتم التحويل"
+    },
+    "ssot": {
+      "title": "عارض SSOT",
+      "description": "عرض للقراءة فقط لملف PENDING_MASTER.md",
+      "fetchFailed": "فشل في جلب SSOT",
+      "loadFailed": "فشل في تحميل SSOT",
+      "downloadSuccess": "تم تنزيل ملف SSOT"
+    },
     "groups": {
       "ssot": "تتبع المشكلات",
       "organization": "إدارة المنظمة",

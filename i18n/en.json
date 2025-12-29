@@ -2886,6 +2886,10 @@
     "cancel": "Cancel",
     "filter": "Filter",
     "import": "Import",
+    "refresh": "Refresh",
+    "download": "Download",
+    "retry": "Retry",
+    "unknownError": "Unknown error",
     "error": {
       "loadData": "Load Data"
     },
@@ -5160,6 +5164,18 @@
       "goToLogin": "Go to Login",
       "exit": "Exit Superadmin",
       "footer": "If this problem persists, please contact support."
+    },
+    "auth": {
+      "redirectingToLogin": "Redirecting to login...",
+      "verifyingSession": "Verifying session...",
+      "clickHereIfNotRedirected": "Click here if not redirected"
+    },
+    "ssot": {
+      "title": "SSOT Viewer",
+      "description": "Read-only view of the canonical PENDING_MASTER.md file",
+      "fetchFailed": "Failed to fetch SSOT",
+      "loadFailed": "Failed to load SSOT",
+      "downloadSuccess": "Downloaded SSOT file"
     },
     "nav": {
       "fmDashboard": "FM Dashboard",
