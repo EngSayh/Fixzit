@@ -639,8 +639,12 @@ export async function getSecurityAlerts(
 
 /**
  * Acknowledge a security alert
+ * @param orgId - Organization ID for tenant isolation
+ * @param alertId - Alert ID to acknowledge
+ * @param acknowledgedBy - User who acknowledged
  */
 export async function acknowledgeAlert(
+  orgId: string,
   alertId: string,
   acknowledgedBy: string
 ): Promise<boolean> {
@@ -648,7 +652,7 @@ export async function acknowledgeAlert(
     const db = await getDatabase();
     
     const result = await db.collection("security_alerts").updateOne(
-      { _id: new ObjectId(alertId) },
+      { _id: new ObjectId(alertId), orgId },
       {
         $set: {
           acknowledged: true,
@@ -663,6 +667,7 @@ export async function acknowledgeAlert(
     logger.error("Failed to acknowledge alert", {
       error: error instanceof Error ? error.message : "Unknown error",
       alertId,
+      orgId,
     });
     return false;
   }
@@ -670,8 +675,13 @@ export async function acknowledgeAlert(
 
 /**
  * Resolve a security alert
+ * @param orgId - Organization ID for tenant isolation
+ * @param alertId - Alert ID to resolve
+ * @param resolvedBy - User who resolved
+ * @param resolutionNotes - Notes about the resolution
  */
 export async function resolveAlert(
+  orgId: string,
   alertId: string,
   resolvedBy: string,
   resolutionNotes: string
@@ -680,7 +690,7 @@ export async function resolveAlert(
     const db = await getDatabase();
     
     const result = await db.collection("security_alerts").updateOne(
-      { _id: new ObjectId(alertId) },
+      { _id: new ObjectId(alertId), orgId },
       {
         $set: {
           resolved: true,
@@ -696,6 +706,7 @@ export async function resolveAlert(
     logger.error("Failed to resolve alert", {
       error: error instanceof Error ? error.message : "Unknown error",
       alertId,
+      orgId,
     });
     return false;
   }
