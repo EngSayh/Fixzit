@@ -15,8 +15,20 @@
  */
 
 import { ObjectId, type WithId, type Document } from "mongodb";
+import crypto from "crypto";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+
+// ============================================================================
+// Environment Validation - Fail fast at startup
+// ============================================================================
+
+const AUDIT_HASH_SECRET = process.env.AUDIT_HASH_SECRET;
+if (!AUDIT_HASH_SECRET && process.env.NODE_ENV === "production") {
+  throw new Error(
+    "AUDIT_HASH_SECRET environment variable is required for audit log integrity in production"
+  );
+}
 
 // ============================================================================
 // Types & Interfaces
@@ -743,21 +755,30 @@ export async function exportAuditLogs(
     };
   }
   
-  // CSV format
+  // CSV format with proper escaping
+  const escapeCsvField = (value: unknown): string => {
+    const str = value == null ? "" : String(value);
+    // If contains comma, double quote, or newline, wrap in quotes and escape internal quotes
+    if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  };
+  
   const headers = ["Timestamp", "User", "Category", "Action", "Severity", "Resource Type", "Resource ID", "Success", "IP Address"];
   const rows = result.entries.map(e => [
-    e.timestamp.toISOString(),
-    e.userName || e.userId || "",
-    e.category,
-    e.action,
-    e.severity,
-    e.resource.type,
-    e.resource.id,
-    e.metadata.success ? "Yes" : "No",
-    e.metadata.ipAddress || "",
+    escapeCsvField(e.timestamp.toISOString()),
+    escapeCsvField(e.userName || e.userId || ""),
+    escapeCsvField(e.category),
+    escapeCsvField(e.action),
+    escapeCsvField(e.severity),
+    escapeCsvField(e.resource.type),
+    escapeCsvField(e.resource.id),
+    escapeCsvField(e.metadata.success ? "Yes" : "No"),
+    escapeCsvField(e.metadata.ipAddress || ""),
   ]);
   
-  const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+  const csv = [headers.map(escapeCsvField).join(","), ...rows.map(r => r.join(","))].join("\n");
   
   return {
     data: csv,
@@ -770,15 +791,30 @@ export async function exportAuditLogs(
 // ============================================================================
 
 function generateHash(data: Record<string, unknown>): string {
-  // Simple hash for demonstration - in production use crypto
-  const str = JSON.stringify(data, Object.keys(data).sort());
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
+  // Use HMAC-SHA256 for tamper-resistant audit hashing
+  // AUDIT_HASH_SECRET is validated at module load time
+  if (!AUDIT_HASH_SECRET) {
+    throw new Error("AUDIT_HASH_SECRET environment variable is required for audit log integrity");
   }
-  return Math.abs(hash).toString(16).padStart(16, "0");
+  const str = JSON.stringify(data, Object.keys(data).sort());
+  return crypto.createHmac("sha256", AUDIT_HASH_SECRET).update(str).digest("hex");
+}
+
+/**
+ * Verify hash using timing-safe comparison
+ */
+export function verifyAuditHash(data: Record<string, unknown>, storedHash: string): boolean {
+  // AUDIT_HASH_SECRET is validated at module load time
+  if (!AUDIT_HASH_SECRET) {
+    throw new Error("AUDIT_HASH_SECRET environment variable is required for audit log integrity");
+  }
+  const str = JSON.stringify(data, Object.keys(data).sort());
+  const computed = crypto.createHmac("sha256", AUDIT_HASH_SECRET).update(str).digest("hex");
+  try {
+    return crypto.timingSafeEqual(Buffer.from(storedHash, "hex"), Buffer.from(computed, "hex"));
+  } catch {
+    return false;
+  }
 }
 
 function redactSensitive(

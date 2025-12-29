@@ -156,7 +156,7 @@ export function CommandPalette({
             .then(() => {
               // Success feedback - could integrate with toast system
               // eslint-disable-next-line no-console -- User feedback for clipboard action
-              console.info("Copied to clipboard:", action.value?.substring(0, 20));
+              console.info("Copied to clipboard (length:", action.value?.length ?? 0, "chars)");
             })
             .catch((err) => {
               // eslint-disable-next-line no-console -- Error feedback for clipboard failure

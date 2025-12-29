@@ -19,7 +19,7 @@ export async function GET() {
     
     // Allow demo mode when not authenticated (for development/demo)
     const isDemo = !session?.user;
-    const tenantId = isDemo ? "demo" : (session.user as { org_id?: string }).org_id ?? "1";
+    const tenantId = isDemo ? "demo" : (session.user as { orgId?: string }).orgId ?? "1";
     
     // Compliance dashboard data
     const dashboard = {
@@ -34,7 +34,7 @@ export async function GET() {
         invoice_count_30d: 127,
         clearance_rate: 0.98,
         last_submission: new Date().toISOString(),
-        next_wave_deadline: "2025-01-01T00:00:00+03:00",
+        next_wave_deadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days from now
         features: {
           e_invoicing: true,
           qr_code: true,

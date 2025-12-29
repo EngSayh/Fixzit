@@ -15,6 +15,7 @@
  * @throws {429} If rate limit exceeded (5 requests/minute per IP)
  */
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Generate unique vendor code with full UUID to avoid collisions
-    const vendorCode = `VND-${crypto.randomUUID().toUpperCase()}`;
+    const vendorCode = `VND-${randomUUID().toUpperCase()}`;
 
     // Create vendor application record with PENDING status
     // Note: Public applications don't have orgId yet - they're assigned during approval

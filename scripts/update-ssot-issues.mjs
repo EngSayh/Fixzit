@@ -130,7 +130,7 @@ async function main() {
     
     // Show remaining open issues
     console.log('\n📋 Remaining open issues:');
-    const openIssues = await issuesCollection.find({ status: { $in: ['open', 'pending'] } })
+    const openIssues = await issuesCollection.find({ status: { $in: ['open', 'triaged', 'claimed', 'in_progress', 'blocked', 'handoff_pending'] } })
       .project({ key: 1, title: 1, priority: 1 })
       .sort({ priority: 1 })
       .toArray();
@@ -150,7 +150,7 @@ async function main() {
       .toArray();
     
     for (const issue of allIssues) {
-      const issueKey = issue.key || issue._id?.toString() || \"NO_KEY\";
+      const issueKey = issue.key || issue._id?.toString() || "NO_KEY";
       console.log(`  ${issue.priority} ${issueKey} [${issue.status}]: ${issue.title?.substring(0, 50)}`);
     }
     const totalInDb = await issuesCollection.countDocuments({});

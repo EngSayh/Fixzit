@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     const providerNetwork = {
       generated_at: new Date().toISOString(),
       is_demo: isDemo,
-      org_id: isDemo ? "demo" : ((session?.user as { org_id?: string })?.org_id ?? "1"),
+      org_id: isDemo ? "demo" : ((session?.user as { orgId?: string })?.orgId ?? "1"),
       
       // Provider Statistics
       statistics: {
@@ -188,7 +188,7 @@ export async function GET(request: Request) {
     }
     
     logger.info("Provider network accessed", {
-      user: session?.user?.email ?? "demo",
+      user_id: session?.user?.id ?? "demo",
       total_providers: providerNetwork.statistics.total_providers,
       active_bids: providerNetwork.active_bids.total,
       filters: { category, city },
@@ -251,7 +251,7 @@ export async function POST(request: Request) {
       notes: notes ?? null,
       submitted_at: new Date().toISOString(),
       status: "submitted",
-      submitted_by: session.user.email,
+      submitted_by: session.user.id, // Use user ID instead of email for PII protection
     };
     
     logger.info("Bid submitted", {
@@ -259,7 +259,7 @@ export async function POST(request: Request) {
       work_order_id,
       provider_id,
       bid_amount,
-      submitted_by: session.user.email,
+      submitted_by_id: session.user.id, // Log user ID instead of email
     });
     
     return NextResponse.json({

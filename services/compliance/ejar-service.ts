@@ -20,6 +20,20 @@ import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
 // ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Calculate the number of months between two dates
+ * Uses calendar-based calculation instead of fixed 30-day months
+ */
+function calculateMonthsDifference(start: Date, end: Date): number {
+  const months = (end.getFullYear() - start.getFullYear()) * 12 + 
+                 (end.getMonth() - start.getMonth());
+  return Math.max(0, months);
+}
+
+// ============================================================================
 // Types & Interfaces
 // ============================================================================
 
@@ -375,8 +389,12 @@ export async function registerContract(
       success: true,
       contractId: result.insertedId.toString(),
     };
-  } catch (_error) {
-    logger.error("Failed to register Ejar contract", { component: "ejar-service" });
+  } catch (error) {
+    logger.error("Failed to register Ejar contract", { 
+      component: "ejar-service",
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return { success: false, error: "Failed to register contract" };
   }
 }
@@ -433,8 +451,12 @@ export async function submitToEjar(
     });
     
     return { success: true, ejarNumber };
-  } catch (_error) {
-    logger.error("Failed to submit to Ejar", { component: "ejar-service" });
+  } catch (error) {
+    logger.error("Failed to submit to Ejar", { 
+      component: "ejar-service",
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return { success: false, error: "Failed to submit to Ejar" };
   }
 }
@@ -480,8 +502,12 @@ export async function verifyParty(
     await checkAndUpdatePendingSignatures(orgId, contractId);
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to verify party", { component: "ejar-service" });
+  } catch (error) {
+    logger.error("Failed to verify party", { 
+      component: "ejar-service",
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return { success: false, error: "Failed to verify party" };
   }
 }
@@ -518,8 +544,12 @@ export async function recordSignature(
     await checkAndActivateContract(orgId, contractId);
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to record signature", { component: "ejar-service" });
+  } catch (error) {
+    logger.error("Failed to record signature", { 
+      component: "ejar-service",
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return { success: false, error: "Failed to record signature" };
   }
 }
@@ -555,9 +585,7 @@ export async function initiateRenewal(
         ...contract.terms,
         startDate: contract.terms.endDate,
         endDate: newTerms.endDate,
-        durationMonths: Math.round(
-          (newTerms.endDate.getTime() - contract.terms.endDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
-        ),
+        durationMonths: calculateMonthsDifference(contract.terms.endDate, newTerms.endDate),
       },
       financial: {
         ...contract.financial,
@@ -655,8 +683,12 @@ export async function terminateContract(
     });
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to terminate contract", { component: "ejar-service" });
+  } catch (error) {
+    logger.error("Failed to terminate contract", { 
+      component: "ejar-service",
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return { success: false, error: "Failed to terminate contract" };
   }
 }
@@ -785,8 +817,12 @@ export async function runComplianceCheck(
     );
     
     return { compliant, issues };
-  } catch (_error) {
-    logger.error("Failed to run compliance check", { component: "ejar-service" });
+  } catch (error) {
+    logger.error("Failed to run compliance check", { 
+      component: "ejar-service",
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return { compliant: false, issues: [] };
   }
 }
@@ -811,7 +847,12 @@ export async function getContract(
     }) as WithId<Document> | null;
     
     return contract as unknown as EjarContract | null;
-  } catch (_error) {
+  } catch (error) {
+    logger.error("Failed to get contract", { 
+      component: "ejar-service",
+      contractId,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
     return null;
   }
 }
@@ -832,7 +873,12 @@ export async function getContractByEjarNumber(
     }) as WithId<Document> | null;
     
     return contract as unknown as EjarContract | null;
-  } catch (_error) {
+  } catch (error) {
+    logger.error("Failed to get contract by Ejar number", { 
+      component: "ejar-service",
+      ejarNumber,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
     return null;
   }
 }
@@ -891,8 +937,12 @@ export async function listContracts(
       contracts: contracts as unknown as EjarContract[],
       total,
     };
-  } catch (_error) {
-    logger.error("Failed to list contracts", { component: "ejar-service" });
+  } catch (error) {
+    logger.error("Failed to list contracts", { 
+      component: "ejar-service",
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return { contracts: [], total: 0 };
   }
 }
@@ -958,8 +1008,12 @@ export async function getComplianceSummary(
       expiringSoon: data.expiringSoon || 0,
       pendingVerification: data.pendingVerification || 0,
     };
-  } catch (_error) {
-    logger.error("Failed to get compliance summary", { component: "ejar-service" });
+  } catch (error) {
+    logger.error("Failed to get compliance summary", { 
+      component: "ejar-service",
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return {
       total: 0,
       compliant: 0,
@@ -1047,8 +1101,12 @@ async function updateContractStatus(
       { _id: new ObjectId(contractId), orgId },
       updateOp
     );
-  } catch (_error) {
-    logger.error("Failed to update contract status", { component: "ejar-service" });
+  } catch (error) {
+    logger.error("Failed to update contract status", { 
+      component: "ejar-service",
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
   }
 }
 

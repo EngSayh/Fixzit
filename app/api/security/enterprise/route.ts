@@ -18,10 +18,20 @@ export async function GET() {
   try {
     const session = await auth();
     
-    // Allow demo mode when not authenticated (for development/demo)
-    const isDemo = !session?.user;
+    // Demo mode requires explicit environment flag AND no auth
+    const isDemoEnabled = process.env.ENABLE_SECURITY_DEMO === "true";
+    const isDemo = isDemoEnabled && !session?.user;
     
-    // Skip authorization in demo mode
+    // Require authentication unless demo mode is explicitly enabled
+    if (!session?.user && !isDemo) {
+      logger.warn("[security/enterprise] Unauthenticated access attempt", { reason: isDemoEnabled ? "demo_enabled_but_no_session" : "demo_disabled" });
+      return NextResponse.json(
+        { error: { code: "FIXZIT-AUTH-001", message: "Authentication required" } },
+        { status: 401 }
+      );
+    }
+    
+    // Skip authorization only in explicit demo mode
     if (!isDemo) {
       // Authorization: require admin role or isSuperAdmin for security data
       const user = session?.user as { role?: string; roles?: string[]; isSuperAdmin?: boolean };
@@ -39,7 +49,7 @@ export async function GET() {
     const securityDashboard = {
       generated_at: new Date().toISOString(),
       is_demo: isDemo,
-      org_id: isDemo ? "demo" : ((session?.user as { org_id?: string })?.org_id ?? "1"),
+      org_id: isDemo ? "demo" : ((session?.user as { orgId?: string })?.orgId ?? "1"),
       
       // Zero-Trust Status
       zero_trust: {

@@ -62,10 +62,38 @@ export async function POST(request: NextRequest) {
     // Connect to database
     await connectDb();
 
-    // Perform bulk update
+    // Protect SUPERADMIN accounts from bulk updates
+    const superadminUsers = await User.find({
+      _id: { $in: userIds },
+      role: "SUPERADMIN",
+    }).select("_id").lean();
+
+    if (superadminUsers.length > 0) {
+      const superadminIds = superadminUsers.map((u) => u._id.toString());
+      logger.warn("Attempted bulk update on SUPERADMIN accounts blocked", {
+        superadminUsername: session.username,
+        blockedIds: superadminIds,
+      });
+      return NextResponse.json(
+        {
+          error: "Cannot bulk update SUPERADMIN accounts",
+          blockedIds: superadminIds,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Add audit trail fields
+    const auditedUpdates = {
+      ...updates,
+      updatedBy: session.username,
+      updatedAt: new Date(),
+    };
+
+    // Perform bulk update with audit trail
     const result = await User.updateMany(
       { _id: { $in: userIds } },
-      { $set: updates }
+      { $set: auditedUpdates }
     );
 
     logger.info("Bulk user update completed", {
