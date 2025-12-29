@@ -120,6 +120,30 @@ if (typeof setInterval !== 'undefined') {
 }
 
 // ---------- Route helpers ----------
+
+// SECURITY FIX: Supported locales for pathname normalization
+// Duplicated from i18n/config.ts to avoid edge-runtime compatibility issues
+// When adding new locales, update both files
+const SUPPORTED_LOCALE_PREFIXES = ['/en', '/ar'];
+
+/**
+ * Strip locale prefix from pathname for route matching
+ * /en/admin/dashboard → /admin/dashboard
+ * /ar/admin/fm-dashboard → /admin/fm-dashboard
+ * /admin/dashboard → /admin/dashboard (unchanged)
+ */
+function stripLocalePrefix(pathname: string): string {
+  for (const localePrefix of SUPPORTED_LOCALE_PREFIXES) {
+    if (pathname === localePrefix) {
+      return '/';
+    }
+    if (pathname.startsWith(localePrefix + '/')) {
+      return pathname.slice(localePrefix.length);
+    }
+  }
+  return pathname;
+}
+
 function matchesRoute(pathname: string, route: string): boolean {
   if (pathname === route) return true;
   if (pathname.startsWith(route)) {
@@ -280,6 +304,9 @@ export async function middleware(request: NextRequest) {
   const sanitizedRequest = new NextRequest(request, { headers: sanitizedHeaders });
 
   const pathname = sanitizedRequest.nextUrl.pathname;
+  // SECURITY: Normalize pathname for route matching by stripping locale prefix
+  // This ensures /ar/admin/* and /en/admin/* are treated as /admin/* for protection checks
+  const normalizedPathname = stripLocalePrefix(pathname);
   const method = sanitizedRequest.method;
   const isApiRequest = pathname.startsWith('/api');
   const isUnitTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
@@ -520,8 +547,8 @@ export async function middleware(request: NextRequest) {
       // Allow rest of middleware (auth header injection) for tests with session
     } else {
       const isProtectedRoute =
-        matchesAnyRoute(pathname, PROTECTED_ROUTE_PREFIXES) ||
-        matchesAnyRoute(pathname, protectedMarketplaceActions);
+        matchesAnyRoute(normalizedPathname, PROTECTED_ROUTE_PREFIXES) ||
+        matchesAnyRoute(normalizedPathname, protectedMarketplaceActions);
       if (isProtectedRoute && !hasTestSession) {
         return NextResponse.redirect(new URL('/login', sanitizedRequest.url));
       }
@@ -652,8 +679,8 @@ export async function middleware(request: NextRequest) {
   // Unauthenticated flows → redirect for protected zones
   if (!user) {
     const isProtectedRoute =
-      matchesAnyRoute(pathname, PROTECTED_ROUTE_PREFIXES) ||
-      matchesAnyRoute(pathname, protectedMarketplaceActions);
+      matchesAnyRoute(normalizedPathname, PROTECTED_ROUTE_PREFIXES) ||
+      matchesAnyRoute(normalizedPathname, protectedMarketplaceActions);
 
     if (isProtectedRoute) {
       return NextResponse.redirect(new URL('/login', sanitizedRequest.url));
@@ -662,7 +689,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Admin RBAC for /admin and /admin/* (consistent with API RBAC)
-  if (matchesRoute(pathname, '/admin')) {
+  if (matchesRoute(normalizedPathname, '/admin')) {
     // Super Admin always has access
     if (user.isSuperAdmin) {
       return attachUserHeaders(sanitizedRequest, user);
@@ -690,7 +717,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Optional org requirement for FM
-  if (matchesAnyRoute(pathname, fmRoutes)) {
+  if (matchesAnyRoute(normalizedPathname, fmRoutes)) {
     // 🔒 IMPERSONATION GUARD: Superadmin accessing tenant modules requires impersonation context (F5)
     // Check for support_org_id cookie before allowing access to /fm/*, /finance/*, /hr/*, /properties/*, /work-orders/*
     if (user.isSuperAdmin) {
@@ -726,7 +753,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Attach x-user headers for FM and protected marketplace actions
-  if (matchesAnyRoute(pathname, fmRoutes) || matchesAnyRoute(pathname, protectedMarketplaceActions)) {
+  if (matchesAnyRoute(normalizedPathname, fmRoutes) || matchesAnyRoute(normalizedPathname, protectedMarketplaceActions)) {
     return attachUserHeaders(sanitizedRequest, user);
   }
 
