@@ -7,7 +7,7 @@
  * @module app/superadmin/permissions/page
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { useI18n } from "@/i18n/useI18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -454,7 +454,7 @@ export default function SuperadminPermissionsPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredModules.map(module => (
-                      <>
+                      <Fragment key={module.id}>
                         {/* Module Header */}
                         <TableRow key={`header-${module.id}`} className="bg-muted/30 border-border">
                           <TableCell colSpan={roles.length + 1} className="py-2">
@@ -522,7 +522,7 @@ export default function SuperadminPermissionsPage() {
                             })}
                           </TableRow>
                         ))}
-                      </>
+                      </Fragment>
                     ))}
                   </TableBody>
                 </Table>

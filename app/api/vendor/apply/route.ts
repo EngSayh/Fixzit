@@ -35,7 +35,7 @@ const VendorApplicationSchema = z.object({
     .string()
     .regex(/^\+?[0-9]{7,15}$/, "Invalid phone number format")
     .optional(),
-  services: z.string().max(1000).optional(),
+  services: z.array(z.string().max(200)).max(20).optional(),
   notes: z.string().max(2000).optional(),
 });
 
@@ -104,10 +104,10 @@ export async function POST(req: NextRequest) {
         },
       },
       business: {
-        specializations: services ? [services] : [],
+        specializations: services ?? [],
       },
       approval: {
-        reviewNotes: notes || undefined,
+        applicantNotes: notes || undefined, // Applicant notes separate from admin reviewNotes
       },
     });
 

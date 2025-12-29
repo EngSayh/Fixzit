@@ -236,7 +236,7 @@ export default function FMDashboardPage() {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Compliance Score</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                {compliance?.nca.score ?? "--"}%
+                {compliance?.nca?.score ?? "--"}%
               </p>
             </div>
             <div className="h-12 w-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -244,7 +244,7 @@ export default function FMDashboardPage() {
             </div>
           </div>
           <p className="text-sm text-gray-500 mt-2">
-            {compliance?.nca.controls_implemented ?? 0}/{compliance?.nca.controls_total ?? 108} NCA controls
+            {compliance?.nca?.controls_implemented ?? 0}/{compliance?.nca?.controls_total ?? 108} NCA controls
           </p>
         </div>
 
@@ -254,7 +254,7 @@ export default function FMDashboardPage() {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">AI Alerts</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                {analytics?.anomalies.active_count ?? 0}
+                {analytics?.anomalies?.active_count ?? 0}
               </p>
             </div>
             <div className="h-12 w-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
@@ -262,7 +262,7 @@ export default function FMDashboardPage() {
             </div>
           </div>
           <p className="text-sm text-gray-500 mt-2">
-            {analytics?.anomalies.items?.filter(a => a.severity === "high").length ?? 0} high severity
+            {analytics?.anomalies?.items?.filter(a => a.severity === "high").length ?? 0} high severity
           </p>
         </div>
 
@@ -272,7 +272,7 @@ export default function FMDashboardPage() {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Security Score</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                {security?.zero_trust.score ?? "--"}
+                {security?.zero_trust?.score ?? "--"}
               </p>
             </div>
             <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
@@ -280,7 +280,7 @@ export default function FMDashboardPage() {
             </div>
           </div>
           <p className="text-sm text-gray-500 mt-2">
-            {security?.authentication.mfa_enrollment_rate ?? 0}% MFA enrolled
+            {security?.authentication?.mfa_enrollment_rate ?? 0}% MFA enrolled
           </p>
         </div>
 
@@ -290,7 +290,7 @@ export default function FMDashboardPage() {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Provider Network</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                {providers?.statistics.total_providers ?? 0}
+                {providers?.statistics?.total_providers ?? 0}
               </p>
             </div>
             <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
@@ -298,7 +298,7 @@ export default function FMDashboardPage() {
             </div>
           </div>
           <p className="text-sm text-gray-500 mt-2">
-            {providers?.active_bids.total ?? 0} active bids
+            {providers?.active_bids?.total ?? 0} active bids
           </p>
         </div>
       </div>
@@ -317,16 +317,16 @@ export default function FMDashboardPage() {
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium">ZATCA Phase 2</span>
                 <span className={`px-2 py-1 text-xs rounded-full ${
-                  compliance?.zatca.status === "compliant" 
+                  compliance?.zatca?.status === "compliant" 
                     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                     : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
                 }`}>
-                  {compliance?.zatca.status ?? "Loading..."}
+                  {compliance?.zatca?.status ?? "Loading..."}
                 </span>
               </div>
               <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                <span>{compliance?.zatca.invoices_submitted_24h ?? 0} invoices (24h)</span>
-                <span>{compliance?.zatca.compliance_rate ?? 0}% compliant</span>
+                <span>{compliance?.zatca?.invoices_submitted_24h ?? 0} invoices (24h)</span>
+                <span>{compliance?.zatca?.compliance_rate ?? 0}% compliant</span>
               </div>
             </div>
             
@@ -335,13 +335,13 @@ export default function FMDashboardPage() {
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium">NCA ECC-2:2024</span>
                 <span className="text-sm font-semibold text-brand-blue">
-                  {compliance?.nca.score ?? 0}%
+                  {compliance?.nca?.score ?? 0}%
                 </span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                 <div 
                   className="bg-brand-blue h-2 rounded-full transition-all"
-                  style={{ width: `${compliance?.nca.score ?? 0}%` }}
+                  style={{ width: `${compliance?.nca?.score ?? 0}%` }}
                 />
               </div>
             </div>

@@ -329,7 +329,8 @@ async function isPasswordInHistory(
       orgId,
       userId,
     });
-    return false;
+    // Fail closed: throw error to prevent bypassing password history check
+    throw new Error("Failed to verify password history - operation blocked for security");
   }
 }
 
@@ -483,6 +484,8 @@ export async function lockAccount(
       orgId,
       userId,
     });
+    // Propagate error to prevent further execution if lock fails
+    throw new Error("Failed to lock account - security operation blocked");
   }
 }
 
@@ -546,7 +549,8 @@ export async function recordFailedAttempt(
       orgId,
       userId,
     });
-    return { shouldLock: false, attemptCount: 0 };
+    // Fail closed: throw error to block login when tracking fails
+    throw new Error("Failed to record login attempt - security operation blocked");
   }
 }
 
@@ -584,6 +588,12 @@ function escapeRegex(str: string): string {
  * Generate a strong random password
  */
 export function generateStrongPassword(length: number = 16): string {
+  // Minimum length is 4 to guarantee at least one char from each category
+  const minLength = 4;
+  if (length < minLength) {
+    throw new RangeError(`Password length must be at least ${minLength} to include required character types`);
+  }
+  
   const uppercase = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // Removed I, O (confusing)
   const lowercase = "abcdefghjkmnpqrstuvwxyz"; // Removed i, l, o (confusing)
   const numbers = "23456789"; // Removed 0, 1 (confusing)

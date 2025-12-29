@@ -22,7 +22,10 @@ import { getSuperadminSession } from "@/lib/superadmin/auth";
  * Can be triggered manually or by a cron job
  */
 export async function POST(request: NextRequest) {
-  enforceRateLimit(request, { requests: 20, windowMs: 60_000, keyPrefix: "jobs:process" });
+  const rateLimitResponse = await enforceRateLimit(request, { requests: 20, windowMs: 60_000, keyPrefix: "jobs:process" });
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
   try {
     const session = await auth();
     const superadminSession = await getSuperadminSession(request);

@@ -57,7 +57,8 @@ interface FooterLink {
 interface ChatbotSettings {
   enabled: boolean;
   provider: "internal" | "openai" | "anthropic" | "custom";
-  apiKey?: string;
+  hasApiKey?: boolean; // Server returns this instead of the actual key
+  newApiKey?: string;  // Only sent when user enters a new key
   model?: string;
   welcomeMessage: string;
   welcomeMessageAr?: string;
@@ -345,6 +346,27 @@ export default function SuperadminFooterContentPage() {
     setPolicyDialogOpen(true);
   };
 
+  const handleDeletePolicy = async (policyId: string) => {
+    if (!confirm("Are you sure you want to delete this policy? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/admin/content/policies/${policyId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (response.ok) {
+        toast.success("Policy deleted successfully");
+        fetchPolicies();
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error || "Failed to delete policy");
+      }
+    } catch {
+      toast.error("Error deleting policy");
+    }
+  };
+
   const handleSaveLink = async () => {
     try {
       const url = editingLink 
@@ -531,7 +553,7 @@ export default function SuperadminFooterContentPage() {
                               <Button variant="ghost" size="sm" onClick={() => handleEditPolicy(policy)}>
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300">
+                              <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300" onClick={() => handleDeletePolicy(policy._id)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>

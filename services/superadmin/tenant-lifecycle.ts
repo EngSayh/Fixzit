@@ -12,6 +12,7 @@
  */
 
 import { logger } from "@/lib/logger";
+import { getDatabase } from "@/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
 import crypto from "crypto";
 
@@ -294,6 +295,12 @@ export async function restoreFromSnapshot(
   let snapshot: TenantSnapshot | null = null;
   if (getSnapshot) {
     snapshot = await getSnapshot(snapshotId);
+  } else {
+    // Fallback to database lookup if getSnapshot not provided
+    const db = await getDatabase();
+    snapshot = await db.collection("tenant_snapshots").findOne({
+      _id: snapshotId,
+    }) as TenantSnapshot | null;
   }
   
   if (!snapshot) {

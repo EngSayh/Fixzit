@@ -84,6 +84,7 @@ export interface Goal {
   type: "goal" | "okr";
   weight: number; // Percentage weight in overall score
   status: GoalStatus;
+  startDate?: Date | string | null; // Optional start date for progress tracking
   targetDate: Date;
   progress: number; // 0-100
   keyResults?: KeyResult[];
@@ -850,7 +851,13 @@ export async function submitManagerAssessment(
       return { success: false, error: "Review not found" };
     }
     
-    const existingRatings = (review as unknown as PerformanceReview).competencyRatings || [];
+    // Validate review is in correct status for manager submission
+    const reviewData = review as unknown as PerformanceReview;
+    if (reviewData.status !== ReviewStatus.MANAGER_REVIEW) {
+      return { success: false, error: "Review is not ready for manager assessment" };
+    }
+    
+    const existingRatings = reviewData.competencyRatings || [];
     
     // Merge manager ratings with existing self ratings
     const mergedRatings = existingRatings.map(r => {

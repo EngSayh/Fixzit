@@ -100,24 +100,30 @@ async function main() {
       if (result.modifiedCount > 0) {
         // Get the issue to find its key for the event
         const foundIssue = await issuesCollection.findOne(query);
-        const issueKey = foundIssue?.legacyId || foundIssue?.issueId || issue.searchValue;
         
-        // Create audit event with error handling
-        try {
-          const eventResult = await eventsCollection.insertOne({
-            issueId: foundIssue?._id,
-            type: 'status_change',
-            message: `Status changed to resolved - ${issue.comment}`,
-            actor: 'AGENT-001-A',
-            createdAt: new Date(),
-            meta: { newStatus: 'resolved' },
-          });
-          if (!eventResult.insertedId) {
-            console.error(`⚠️  ${issue.searchValue}: Audit event insert returned no insertedId`);
+        // Only create audit event if foundIssue exists
+        if (!foundIssue) {
+          console.warn(`⚠️  ${issue.searchValue}: Issue modified but could not find it for audit event`);
+        } else {
+          const issueKey = foundIssue?.legacyId || foundIssue?.issueId || issue.searchValue;
+          
+          // Create audit event with error handling
+          try {
+            const eventResult = await eventsCollection.insertOne({
+              issueId: foundIssue._id,
+              type: 'status_change',
+              message: `Status changed to resolved - ${issue.comment}`,
+              actor: 'AGENT-001-A',
+              createdAt: new Date(),
+              meta: { newStatus: 'resolved', issueKey },
+            });
+            if (!eventResult.insertedId) {
+              console.error(`⚠️  ${issue.searchValue}: Audit event insert returned no insertedId`);
+            }
+          } catch (eventError) {
+            console.error(`⚠️  ${issue.searchValue}: Failed to insert audit event - ${eventError.message}`);
+            // Continue with remaining updates, don't rethrow
           }
-        } catch (eventError) {
-          console.error(`⚠️  ${issue.searchValue}: Failed to insert audit event - ${eventError.message}`);
-          // Continue with remaining updates, don't rethrow
         }
         
         console.log(`✅ ${issue.searchValue}: Marked as resolved`);

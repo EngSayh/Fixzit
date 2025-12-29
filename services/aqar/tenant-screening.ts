@@ -251,7 +251,7 @@ export async function createScreeningApplication(
       });
       if (!existingApplicant?._id) {
         throw new Error(
-          `Failed to find or create applicant for orgId=${request.orgId}, nationalId=${request.applicant.nationalId}`
+          `Failed to find or create applicant for orgId=${request.orgId}`
         );
       }
       applicantId = existingApplicant._id.toString();
@@ -338,10 +338,19 @@ export async function addDocument(
       $set: { updatedAt: new Date() },
     };
     
-    await db.collection("screening_applications").updateOne(
+    const result = await db.collection("screening_applications").updateOne(
       { _id: new ObjectId(applicationId), orgId },
       updateDoc
     );
+    
+    // Validate that the document was actually found and updated
+    if (result.matchedCount === 0) {
+      logger.error("Document not found for screening update", {
+        applicationId,
+        orgId,
+      });
+      return { success: false, error: "Application not found" };
+    }
     
     logger.info("Document added to screening", {
       applicationId,
@@ -480,7 +489,7 @@ export async function calculateScreeningScore(
     let isAffordable: boolean;
     
     if (!applicant.monthlyIncome || applicant.monthlyIncome <= 0) {
-      rentToIncomeRatio = Number.POSITIVE_INFINITY;
+      rentToIncomeRatio = -1; // Sentinel value indicating "unable to calculate"
       isAffordable = false;
       redFlags.push("Monthly income is zero or not provided - affordability cannot be calculated");
     } else {

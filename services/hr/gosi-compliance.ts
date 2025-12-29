@@ -4,7 +4,7 @@
  * 
  * Saudi Arabia GOSI compliance management:
  * - Employee registration and updates
- * - Contribution calculation (11% employer + 9.75% employee)
+ * - Contribution calculation (11.75% employer: 9% annuities + 2% hazards + 0.75% unemployment, 9.75% employee)
  * - Monthly reporting generation
  * - Annuities and hazard coverage
  * - Compliance monitoring and alerts

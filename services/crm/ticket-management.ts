@@ -488,9 +488,19 @@ export async function addMessage(
       newStatus = TicketStatus.PENDING_CUSTOMER;
     }
     
-    // Check if this is first response (only if ticket exists)
+    // Check if ticket exists first
     const ticket = await getTicket(ticketId, orgId);
-    const isFirstResponse = message.authorType === "agent" && ticket && !ticket.firstResponseAt;
+    if (!ticket) {
+      logger.error("Ticket not found for adding message", {
+        component: "ticket-management",
+        ticketId,
+        orgId,
+      });
+      return { success: false, error: "Ticket not found" };
+    }
+    
+    // Check if this is first response
+    const isFirstResponse = message.authorType === "agent" && !ticket.firstResponseAt;
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateOp: any = {
@@ -502,7 +512,7 @@ export async function addMessage(
       updateOp.$set.status = newStatus;
     }
     
-    if (isFirstResponse && ticket) {
+    if (isFirstResponse) {
       updateOp.$set.firstResponseAt = new Date();
       // Guard against missing sla or responseDeadline
       if (ticket.sla?.responseDeadline) {

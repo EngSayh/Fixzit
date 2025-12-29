@@ -367,7 +367,7 @@ export async function activateBudget(
       const budget = await db.collection(BUDGETS_COLLECTION).findOne({
         _id: new ObjectId(budgetId),
         orgId,
-      }) as WithId<Document> | null;
+      }, { session }) as WithId<Document> | null;
       
       if (!budget) {
         result = { success: false, error: "Budget not found" };
@@ -390,7 +390,8 @@ export async function activateBudget(
             status: BudgetStatus.CLOSED,
             updatedAt: new Date(),
           },
-        }
+        },
+        { session }
       );
       
       // Activate this budget
@@ -401,7 +402,8 @@ export async function activateBudget(
             status: BudgetStatus.ACTIVE,
             updatedAt: new Date(),
           },
-        }
+        },
+        { session }
       );
       
       if (updateResult.modifiedCount === 0) {

@@ -40,7 +40,7 @@ export async function GET() {
     // God Mode Dashboard
     const dashboard = {
       generated_at: new Date().toISOString(),
-      operator: session.user.email,
+      operator_id: session.user.id, // Use ID instead of email for PII protection
       
       // System Health
       system_health: {

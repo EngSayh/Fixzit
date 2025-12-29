@@ -61,9 +61,9 @@ const mapJob = (doc: ReportJobDocument) => ({
  * GET /api/superadmin/reports
  * Returns all report jobs across all tenants (superadmin only)
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
-    const session = await getSuperadminSession(req);
+    const session = await getSuperadminSession(_req);
     
     if (!session) {
       return NextResponse.json(

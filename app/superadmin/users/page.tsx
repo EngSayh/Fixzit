@@ -277,7 +277,9 @@ export default function SuperadminUsersPage() {
         throw new Error(err.error || "Failed to update users");
       }
 
-      toast.success(`Updated ${selectedIds.size} users`);
+      const result = await response.json();
+      const updatedCount = result.modifiedCount ?? selectedIds.size;
+      toast.success(`Updated ${updatedCount} users`);
       setBulkStatusDialogOpen(false);
       setBulkStatus("");
       setSelectedIds(new Set());
@@ -343,7 +345,9 @@ export default function SuperadminUsersPage() {
         throw new Error(err.error || "Failed to delete users");
       }
 
-      toast.success(`Deleted ${selectedIds.size} users`);
+      const result = await response.json();
+      const deletedCount = result.deletedCount ?? result.modifiedCount ?? selectedIds.size;
+      toast.success(`Deleted ${deletedCount} users`);
       setDeleteDialogOpen(false);
       setSelectedIds(new Set());
       fetchUsers();

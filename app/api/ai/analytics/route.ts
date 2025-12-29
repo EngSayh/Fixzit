@@ -17,13 +17,23 @@ export async function GET() {
   try {
     const session = await auth();
     
-    // Allow demo mode when not authenticated (for development/demo)
-    const isDemo = !session?.user;
-    const tenantId = isDemo ? "demo" : ((session?.user as { org_id?: string })?.org_id ?? "1");
+    // Demo mode requires ENABLE_DEMO_MODE env flag - never enable in production
+    const demoEnabled = process.env.ENABLE_DEMO_MODE === 'true';
+    const isDemo = demoEnabled && !session?.user;
+    
+    // Require authentication if demo mode is disabled
+    if (!session?.user && !isDemo) {
+      return NextResponse.json(
+        { error: { code: 'FIXZIT-AUTH-001', message: 'Unauthorized' } },
+        { status: 401 }
+      );
+    }
+    
+    const orgId = isDemo ? 'demo' : ((session?.user as { orgId?: string })?.orgId ?? '1');
     
     // AI Analytics summary
     const analytics = {
-      tenant_id: tenantId,
+      orgId,
       is_demo: isDemo,
       generated_at: new Date().toISOString(),
       
@@ -155,7 +165,7 @@ export async function GET() {
     };
     
     logger.info("AI analytics retrieved", {
-      tenant_id: tenantId,
+      orgId,
       anomalies: analytics.anomalies.active_count,
       at_risk_tenants: analytics.churn.at_risk_tenants,
       critical_assets: analytics.asset_health.critical,

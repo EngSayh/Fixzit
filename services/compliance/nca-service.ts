@@ -16,7 +16,7 @@ import type {
 import type { ObjectId } from "mongodb";
 
 // =============================================================================
-// NCA CONTROL DEFINITIONS (108 CONTROLS)
+// NCA CONTROL DEFINITIONS (69 CONTROLS)
 // =============================================================================
 
 /**

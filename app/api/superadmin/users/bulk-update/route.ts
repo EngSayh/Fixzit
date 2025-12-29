@@ -62,10 +62,10 @@ export async function POST(request: NextRequest) {
     // Connect to database
     await connectDb();
 
-    // Protect SUPERADMIN accounts from bulk updates
+    // Protect SUPERADMIN accounts from bulk updates (use isSuperAdmin flag like bulk-delete)
     const superadminUsers = await User.find({
       _id: { $in: userIds },
-      role: "SUPERADMIN",
+      isSuperAdmin: true,
     }).select("_id").lean();
 
     if (superadminUsers.length > 0) {

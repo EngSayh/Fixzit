@@ -281,8 +281,8 @@ export default function SuperadminNotificationsPage() {
             <DialogDescription>Send a system-wide notification</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div><Label>Title</Label><Input value={sendForm.title} onChange={(e) => setSendForm(f => ({ ...f, title: e.target.value }))} /></div>
-            <div><Label>Message</Label><Textarea value={sendForm.message} onChange={(e) => setSendForm(f => ({ ...f, message: e.target.value }))} rows={4} /></div>
+            <div><Label htmlFor="notification-title">Title</Label><Input id="notification-title" value={sendForm.title} onChange={(e) => setSendForm(f => ({ ...f, title: e.target.value }))} /></div>
+            <div><Label htmlFor="notification-message">Message</Label><Textarea id="notification-message" value={sendForm.message} onChange={(e) => setSendForm(f => ({ ...f, message: e.target.value }))} rows={4} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSendDialogOpen(false)}>Cancel</Button>

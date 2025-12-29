@@ -13,6 +13,7 @@
 
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { randomUUID } from "crypto";
 import { logger } from "@/lib/logger";
 
 export async function GET(request: Request) {
@@ -241,9 +242,9 @@ export async function POST(request: Request) {
       );
     }
     
-    // Create bid
+    // Create bid with UUID to prevent collisions
     const bid = {
-      id: `bid-${Date.now()}`,
+      id: `bid-${randomUUID()}`,
       work_order_id,
       provider_id,
       bid_amount_sar: bid_amount,

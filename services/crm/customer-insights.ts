@@ -243,16 +243,19 @@ export async function upsertCustomerProfile(
   try {
     const db = await getDatabase();
     
+    // Destructure to exclude orgId and userId from incoming data to prevent override
+    const { orgId: _orgId, userId: _userId, ...safeData } = data as Partial<CustomerProfile> & { orgId?: string; userId?: string };
+    
     await db.collection(PROFILES_COLLECTION).updateOne(
       { orgId, userId },
       {
         $set: {
-          ...data,
+          ...safeData,
+          orgId,  // Explicitly use function parameter
+          userId, // Explicitly use function parameter
           updatedAt: new Date(),
         },
         $setOnInsert: {
-          orgId,
-          userId,
           createdAt: new Date(),
           healthScore: 50,
           healthStatus: CustomerHealthStatus.GOOD,

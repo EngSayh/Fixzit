@@ -17,13 +17,23 @@ export async function GET() {
   try {
     const session = await auth();
     
-    // Allow demo mode when not authenticated (for development/demo)
-    const isDemo = !session?.user;
-    const tenantId = isDemo ? "demo" : (session.user as { orgId?: string }).orgId ?? "1";
+    // Demo mode requires ENABLE_DEMO_MODE env flag - never enable in production
+    const demoEnabled = process.env.ENABLE_DEMO_MODE === 'true';
+    const isDemo = demoEnabled && !session?.user;
+    
+    // Require authentication if demo mode is disabled
+    if (!session?.user && !isDemo) {
+      return NextResponse.json(
+        { error: { code: 'FIXZIT-AUTH-001', message: 'Unauthorized' } },
+        { status: 401 }
+      );
+    }
+    
+    const orgId = isDemo ? 'demo' : ((session?.user as { orgId?: string })?.orgId ?? '1');
     
     // Compliance dashboard data
     const dashboard = {
-      tenant_id: tenantId,
+      orgId,
       generated_at: new Date().toISOString(),
       
       // ZATCA Phase 2 Status
@@ -88,7 +98,7 @@ export async function GET() {
     };
     
     logger.info("Compliance dashboard retrieved", {
-      tenant_id: tenantId,
+      orgId,
       zatca_status: dashboard.zatca.status,
       nca_score: dashboard.nca.overall_score,
       pdpl_score: dashboard.pdpl.compliance_score,

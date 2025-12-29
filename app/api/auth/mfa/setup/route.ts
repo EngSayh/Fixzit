@@ -77,7 +77,11 @@ export async function POST(request: NextRequest) {
                       "unknown";
     
     if (action === "init") {
-      const method = (body.method as MFAMethod) || MFAMethod.TOTP;
+      // Validate MFA method against enum to prevent invalid values
+      const validMethods = Object.values(MFAMethod);
+      const method = validMethods.includes(body.method as MFAMethod) 
+        ? (body.method as MFAMethod) 
+        : MFAMethod.TOTP;
       
       const result = await initMFASetup(orgId, userId, email, method);
       

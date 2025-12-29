@@ -301,12 +301,14 @@ export default function SuperadminUserLogsPage() {
         setStats(await response.json());
       }
     } catch {
-      // Demo stats
+      // Demo stats - guard against division by zero
+      const errorCount = logs.filter(l => l.status === "error").length;
+      const errorRate = logs.length > 0 ? (errorCount / logs.length) * 100 : 0;
       setStats({
         totalLogs: logs.length,
         todayLogs: logs.filter(l => new Date(l.timestamp).toDateString() === new Date().toDateString()).length,
         uniqueUsers: new Set(logs.map(l => l.userId)).size,
-        errorRate: (logs.filter(l => l.status === "error").length / logs.length) * 100,
+        errorRate,
         avgSessionDuration: 45,
         topActions: [
           { action: "View Dashboard", count: 145 },
@@ -721,7 +723,9 @@ export default function SuperadminUserLogsPage() {
                 )}
               </div>
               {selectedSession.isActive && (
-                <Button variant="destructive" className="w-full">Terminate Session</Button>
+                <Button variant="destructive" className="w-full" disabled title="Session termination not yet implemented">
+                  Terminate Session
+                </Button>
               )}
             </div>
           )}

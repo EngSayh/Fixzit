@@ -443,14 +443,8 @@ export async function assessFraudRisk(
     return assessment;
   } catch (_error) {
     logger.error("Failed to assess fraud risk", { component: "vendor-intelligence" });
-    return {
-      riskLevel: FraudRiskLevel.MEDIUM,
-      riskScore: 25,
-      signals: [],
-      recommendedActions: ["Manual review required"],
-      assessedAt: new Date(),
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    };
+    // Fail-closed: Return error state instead of defaulting to MEDIUM which hides the failure
+    throw new Error("Failed to assess fraud risk - manual review required");
   }
 }
 
@@ -934,8 +928,9 @@ async function updateVendorScore(
     
     await db.collection(VENDORS_COLLECTION).updateOne(
       { orgId, vendorId },
-      updateOp,
-      { upsert: true }
+      updateOp
+      // Removed upsert: true - vendor document must exist before updating score
+      // to prevent creating incomplete records
     );
   } catch (_error) {
     logger.error("Failed to update vendor score", { component: "vendor-intelligence" });

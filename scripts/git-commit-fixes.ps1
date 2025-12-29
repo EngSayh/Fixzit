@@ -1,11 +1,27 @@
 # Git commit script for TEST-004 and PERF-001 fixes
 # Run this to commit all pending changes
 
+# Check for --force flag
+param(
+    [switch]$Force
+)
+
 Write-Host "=== Git Status ===" -ForegroundColor Cyan
 git status --short
 
-Write-Host "`n=== Resetting staging area ===" -ForegroundColor Cyan
-git reset HEAD
+# Confirm before reset unless --force is provided
+if (-not $Force) {
+    $confirm = Read-Host "`nReset staging area? This will unstage all files. (y/N)"
+    if ($confirm -ne 'y' -and $confirm -ne 'Y' -and $confirm -ne 'yes') {
+        Write-Host "Skipping reset. Continuing with current staging area..." -ForegroundColor Yellow
+    } else {
+        Write-Host "`n=== Resetting staging area ===" -ForegroundColor Cyan
+        git reset HEAD
+    }
+} else {
+    Write-Host "`n=== Resetting staging area (--force) ===" -ForegroundColor Cyan
+    git reset HEAD
+}
 
 Write-Host "`n=== Staging files ===" -ForegroundColor Cyan
 git add ".vscode/tasks.json"

@@ -557,7 +557,7 @@ export default function SuperadminSubscriptionsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {tiers.sort((a, b) => a.sortOrder - b.sortOrder).map((tier) => {
+            {[...tiers].sort((a, b) => a.sortOrder - b.sortOrder).map((tier) => {
               const TierIcon = TIER_ICONS[tier.name] || Star;
               return (
                 <Card key={tier._id} className={`bg-card border-border relative ${tier.isPopular ? "ring-2 ring-primary" : ""}`}>
@@ -660,7 +660,7 @@ export default function SuperadminSubscriptionsPage() {
             </div>
             <div className="space-y-2">
               <Label>Features (one per line)</Label>
-              <Textarea value={tierForm.features} onChange={(e) => setTierForm({ ...tierForm, features: e.target.value })} placeholder="Feature 1&#10;Feature 2&#10;Feature 3" className="bg-muted border-input min-h-[100px]" />
+              <Textarea value={tierForm.features} onChange={(e) => setTierForm({ ...tierForm, features: e.target.value })} placeholder={"Feature 1\nFeature 2\nFeature 3"} className="bg-muted border-input min-h-[100px]" />
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">

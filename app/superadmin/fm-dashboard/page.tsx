@@ -26,24 +26,26 @@ import {
   RefreshCw
 } from "lucide-react";
 
-// Types
+// Types matching actual API response shapes
 interface ComplianceDashboard {
   zatca: {
-    phase: string;
+    phase: number;
     status: string;
-    invoices_submitted_24h: number;
-    compliance_rate: number;
+    invoice_count_30d: number;
+    clearance_rate: number;
   };
   nca: {
-    framework: string;
-    score: number;
-    controls_implemented: number;
-    controls_total: number;
+    overall_score: number;
+    risk_level: string;
+    domains: Array<{
+      name: string;
+      score: number;
+    }>;
   };
   pdpl: {
-    consent_collection_rate: number;
-    active_dsar_requests: number;
-    data_breach_incidents: number;
+    consent_rate: number;
+    dsar_requests: number;
+    breach_incidents: number;
   };
 }
 
@@ -57,12 +59,12 @@ interface AIAnalytics {
       description: string;
     }>;
   };
-  churn_predictions: {
+  churn: {
     at_risk_tenants: number;
-    items: Array<{
+    predictions: Array<{
       tenant_name: string;
-      risk_score: number;
-      risk_factors: string[];
+      probability: number;
+      primary_factor: string;
     }>;
   };
   asset_health: {
@@ -204,7 +206,7 @@ export default function SuperadminFMDashboardPage() {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Compliance Score</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {compliance?.nca?.score ?? "--"}%
+                {compliance?.nca?.overall_score ?? "--"}%
               </p>
             </div>
             <div className="h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -212,7 +214,7 @@ export default function SuperadminFMDashboardPage() {
             </div>
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            {compliance?.nca?.controls_implemented ?? 0}/{compliance?.nca?.controls_total ?? 108} NCA controls
+            {compliance?.nca?.domains?.length ?? 0} NCA domains tracked
           </p>
         </div>
 
@@ -293,8 +295,8 @@ export default function SuperadminFMDashboardPage() {
                 </span>
               </div>
               <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
-                <span>{compliance?.zatca?.invoices_submitted_24h ?? 0} invoices (24h)</span>
-                <span>{compliance?.zatca?.compliance_rate ?? 0}% compliant</span>
+                <span>{compliance?.zatca?.invoice_count_30d ?? 0} invoices (30d)</span>
+                <span>{((compliance?.zatca?.clearance_rate ?? 0) * 100).toFixed(0)}% clearance</span>
               </div>
             </div>
             
@@ -303,13 +305,13 @@ export default function SuperadminFMDashboardPage() {
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-sm">NCA ECC-2:2024</span>
                 <span className="text-sm font-semibold text-blue-600">
-                  {compliance?.nca?.score ?? 0}%
+                  {compliance?.nca?.overall_score ?? 0}%
                 </span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
                 <div 
                   className="bg-blue-600 h-1.5 rounded-full transition-all"
-                  style={{ width: `${compliance?.nca?.score ?? 0}%` }}
+                  style={{ width: `${compliance?.nca?.overall_score ?? 0}%` }}
                 />
               </div>
             </div>
@@ -319,15 +321,15 @@ export default function SuperadminFMDashboardPage() {
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-sm">PDPL Compliance</span>
                 <span className="text-xs text-gray-600 dark:text-gray-400">
-                  {compliance?.pdpl?.consent_collection_rate ?? 0}% consent rate
+                  {compliance?.pdpl?.consent_rate ?? 0}% consent rate
                 </span>
               </div>
               <div className="flex items-center gap-4 text-xs">
                 <span className="text-yellow-600 dark:text-yellow-400">
-                  {compliance?.pdpl?.active_dsar_requests ?? 0} DSAR requests
+                  {compliance?.pdpl?.dsar_requests ?? 0} DSAR requests
                 </span>
                 <span className="text-green-600 dark:text-green-400">
-                  {compliance?.pdpl?.data_breach_incidents ?? 0} breaches
+                  {compliance?.pdpl?.breach_incidents ?? 0} breaches
                 </span>
               </div>
             </div>
@@ -356,19 +358,19 @@ export default function SuperadminFMDashboardPage() {
               </div>
             ))}
             
-            {/* Churn Risk */}
-            {analytics?.churn_predictions?.items?.slice(0, 2).map((tenant, i) => (
+            {/* Churn Risk - use churn.predictions to match API */}
+            {analytics?.churn?.predictions?.slice(0, 2).map((tenant, i) => (
               <div key={i} className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                 <div className="flex items-center gap-3">
                   <TrendingUp className="h-4 w-4 text-orange-500" />
                   <span className="font-medium text-sm">{tenant.tenant_name}</span>
                 </div>
                 <span className={`px-2 py-0.5 text-xs rounded-full ${
-                  tenant.risk_score > 70 
+                  tenant.probability > 0.7 
                     ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                     : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
                 }`}>
-                  {tenant.risk_score}% risk
+                  {Math.round(tenant.probability * 100)}% risk
                 </span>
               </div>
             ))}

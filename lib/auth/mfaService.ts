@@ -384,6 +384,8 @@ export async function completeMFASetup(
 
 /**
  * Disable MFA for a user
+ * @param adminOverride - Required when disabledBy !== userId (admin disabling for user)
+ * @param approvalToken - Required for admin override operations for audit trail
  */
 export async function disableMFA(
   orgId: string,
@@ -391,7 +393,9 @@ export async function disableMFA(
   email: string,
   verificationCode: string,
   disabledBy: string,
-  ipAddress?: string
+  ipAddress?: string,
+  adminOverride?: boolean,
+  approvalToken?: string
 ): Promise<MFAVerifyResponse> {
   try {
     const db = await getDatabase();
@@ -402,12 +406,27 @@ export async function disableMFA(
       return { success: false, error: "MFA is not enabled" };
     }
     
-    // Verify code (unless admin is disabling)
+    // Verify code (unless admin is disabling with proper authorization)
     if (disabledBy === userId) {
       const secret = decryptField(user.security.mfa.secret, "mfa.secret");
       if (!secret || !verifyTOTPCode(secret, verificationCode)) {
         return { success: false, error: "Invalid verification code" };
       }
+    } else {
+      // Admin override requires explicit flag and approval token
+      if (!adminOverride) {
+        return { success: false, error: "Admin override flag required when disabling MFA for another user" };
+      }
+      if (!approvalToken) {
+        return { success: false, error: "Approval token required for admin MFA disable operation" };
+      }
+      // Note: In production, validate approvalToken against a secure approval system
+      logger.warn("Admin MFA disable initiated", {
+        targetUserId: userId,
+        adminId: disabledBy,
+        hasApprovalToken: !!approvalToken,
+        ipAddress,
+      });
     }
     
     // Disable MFA
@@ -426,6 +445,9 @@ export async function disableMFA(
       }
     );
     
+    // Revoke all sessions for the user after MFA disable (security measure)
+    await db.collection("sessions").deleteMany({ userId: new ObjectId(userId) });
+    
     // Audit log
     await logAuthEvent({
       orgId,
@@ -436,7 +458,11 @@ export async function disableMFA(
       timestamp: new Date(),
       ipAddress,
       riskLevel: RiskLevel.HIGH,
-      metadata: { disabledBy },
+      metadata: { 
+        disabledBy,
+        adminOverride: disabledBy !== userId,
+        sessionsRevoked: true,
+      },
     });
     
     return { success: true };
