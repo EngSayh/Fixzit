@@ -8,7 +8,7 @@ import { NextRequest } from "next/server";
 // Async factory pattern for UnauthorizedError instanceof checks
 vi.mock("@/server/middleware/withAuthRbac", async () => {
   class UnauthorizedError extends Error {
-    constructor(message = "Authentication required") {
+    constructor(message = "Unauthenticated") {
       super(message);
       this.name = "UnauthorizedError";
     }
@@ -102,9 +102,8 @@ describe("API /api/subscribe/owner", () => {
       );
       const res = await POST(req);
 
-      // Route may return 401 (proper auth error) or 500 (throws before auth middleware)
-      // depending on how the mock auth flows. Both indicate auth rejection.
-      expect([401, 500]).toContain(res.status);
+      // Route returns 401 when auth fails
+      expect(res.status).toBe(401);
     });
   });
 

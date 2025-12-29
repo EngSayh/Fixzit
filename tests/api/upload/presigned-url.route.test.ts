@@ -39,19 +39,26 @@ vi.mock("@/server/security/rateLimitKey", () => ({
 
 // Mock S3 config
 let s3Configured = true;
-vi.mock("@/lib/storage/s3-config", () => ({
-  assertS3Configured: vi.fn(() => {
-    if (!s3Configured) {
-      const error = new Error("S3 not configured");
-      (error as Error & { name: string }).name = "S3NotConfiguredError";
-      throw error;
-    }
-  }),
-  S3NotConfiguredError: class S3NotConfiguredError extends Error {
+vi.mock("@/lib/storage/s3-config", () => {
+  class S3NotConfiguredError extends Error {
     name = "S3NotConfiguredError";
-  },
-  buildS3Key: vi.fn(() => "test-org/uploads/test-file.pdf"),
-}));
+    constructor(message = "S3 not configured") {
+      super(message);
+    }
+    toJSON() {
+      return { error: this.message };
+    }
+  }
+  return {
+    assertS3Configured: vi.fn(() => {
+      if (!s3Configured) {
+        throw new S3NotConfiguredError("S3 not configured");
+      }
+    }),
+    S3NotConfiguredError,
+    buildS3Key: vi.fn(() => "test-org/uploads/test-file.pdf"),
+  };
+});
 
 // Mock S3 presigned URL
 vi.mock("@/lib/storage/s3", () => ({
@@ -215,9 +222,7 @@ describe("API /api/upload/presigned-url", () => {
       const res = await POST(req);
 
       // Expected: 501 when S3 is not configured
-      // Mock limitation: The S3NotConfiguredError mock class may not match the instanceof check
-      // in the route, causing it to throw and return 500 instead of the expected 501
-      expect([500, 501]).toContain(res.status);
+      expect(res.status).toBe(501);
     });
   });
 
@@ -257,8 +262,7 @@ describe("API /api/upload/presigned-url", () => {
       const res = await POST(req);
 
       // Expected: 400 for validation error (unsupported content type)
-      // Mock limitation: parseBodySafe mock may not trigger validation path correctly
-      expect([400, 500]).toContain(res.status);
+      expect(res.status).toBe(400);
     });
   });
 
@@ -287,8 +291,7 @@ describe("API /api/upload/presigned-url", () => {
       const res = await POST(req);
 
       // Expected: 200 for success with presigned URL
-      // Mock limitation: Full S3 mock chain may not be complete, causing 500
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
   });
 });

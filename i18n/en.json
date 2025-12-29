@@ -2916,6 +2916,11 @@
       "nextRefresh": "Next refresh in {{time}}",
       "secondsAgo": "{{count}} seconds ago"
     },
+    "timeUnits": {
+      "secondsShort": "{{count}}s",
+      "minutesShort": "{{count}}m",
+      "hoursMinutesShort": "{{hours}}h {{minutes}}m"
+    },
     "unknown": "Unknown",
     "yes": "Yes",
     "no": "No",
@@ -5204,6 +5209,7 @@
       "errorRate": "Error Rate",
       "avgSession": "Avg Session",
       "activityLogs": "Activity Logs",
+      "activityLogsDescription": "Real-time user activity and request history",
       "activeSessions": "Active Sessions",
       "searchPlaceholder": "Search by user, email, action, or tenant...",
       "noLogsFound": "No activity logs found",
@@ -5216,6 +5222,38 @@
       "sessionDetails": "Session Details",
       "terminateSession": "Terminate Session",
       "terminateNotImplemented": "Session termination not yet implemented",
+      "filters": {
+        "allCategories": "All Categories",
+        "allStatus": "All Status",
+        "categories": {
+          "auth": "Authentication",
+          "navigation": "Navigation",
+          "crud": "CRUD",
+          "settings": "Settings",
+          "api": "API",
+          "error": "Error"
+        },
+        "status": {
+          "success": "Success",
+          "warning": "Warning",
+          "error": "Error"
+        },
+        "dateRange": {
+          "today": "Today",
+          "week": "This Week",
+          "month": "This Month",
+          "all": "All Time"
+        }
+      },
+      "table": {
+        "time": "Time",
+        "user": "User",
+        "tenant": "Tenant",
+        "action": "Action",
+        "category": "Category",
+        "status": "Status",
+        "details": "Details"
+      },
       "fields": {
         "user": "User",
         "email": "Email",

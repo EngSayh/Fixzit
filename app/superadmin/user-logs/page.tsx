@@ -411,9 +411,25 @@ export default function SuperadminUserLogsPage() {
   };
 
   const formatDuration = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-    return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+    // Use locale-aware duration formatting via Intl.NumberFormat
+    try {
+      if (seconds < 60) {
+        return new Intl.NumberFormat(locale ?? undefined, { style: "unit", unit: "second" }).format(seconds);
+      }
+      if (seconds < 3600) {
+        return new Intl.NumberFormat(locale ?? undefined, { style: "unit", unit: "minute" }).format(Math.floor(seconds / 60));
+      }
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const hoursStr = new Intl.NumberFormat(locale ?? undefined, { style: "unit", unit: "hour" }).format(hours);
+      const minsStr = new Intl.NumberFormat(locale ?? undefined, { style: "unit", unit: "minute" }).format(mins);
+      return `${hoursStr} ${minsStr}`;
+    } catch {
+      // Fallback for older browsers - use simple format
+      if (seconds < 60) return `${seconds}s`;
+      if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+      return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+    }
   };
 
   const handleViewLog = (log: UserActivityLog) => {
@@ -545,38 +561,38 @@ export default function SuperadminUserLogsPage() {
               </div>
               <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category">
                 <SelectTrigger className="w-[150px] bg-muted border-input">
-                  {categoryFilter === "all" ? "All Categories" : categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}
+                  {categoryFilter === "all" ? t("superadmin.userLogs.filters.allCategories", "All Categories") : t(`superadmin.userLogs.filters.categories.${categoryFilter}`, categoryFilter)}
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="auth">Authentication</SelectItem>
-                  <SelectItem value="navigation">Navigation</SelectItem>
-                  <SelectItem value="crud">CRUD</SelectItem>
-                  <SelectItem value="settings">Settings</SelectItem>
-                  <SelectItem value="api">API</SelectItem>
-                  <SelectItem value="error">Error</SelectItem>
+                  <SelectItem value="all">{t("superadmin.userLogs.filters.allCategories", "All Categories")}</SelectItem>
+                  <SelectItem value="auth">{t("superadmin.userLogs.filters.categories.auth", "Authentication")}</SelectItem>
+                  <SelectItem value="navigation">{t("superadmin.userLogs.filters.categories.navigation", "Navigation")}</SelectItem>
+                  <SelectItem value="crud">{t("superadmin.userLogs.filters.categories.crud", "CRUD")}</SelectItem>
+                  <SelectItem value="settings">{t("superadmin.userLogs.filters.categories.settings", "Settings")}</SelectItem>
+                  <SelectItem value="api">{t("superadmin.userLogs.filters.categories.api", "API")}</SelectItem>
+                  <SelectItem value="error">{t("superadmin.userLogs.filters.categories.error", "Error")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status">
                 <SelectTrigger className="w-[130px] bg-muted border-input">
-                  {statusFilter === "all" ? "All Status" : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                  {statusFilter === "all" ? t("superadmin.userLogs.filters.allStatus", "All Status") : t(`superadmin.userLogs.filters.status.${statusFilter}`, statusFilter)}
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="success">Success</SelectItem>
-                  <SelectItem value="warning">Warning</SelectItem>
-                  <SelectItem value="error">Error</SelectItem>
+                  <SelectItem value="all">{t("superadmin.userLogs.filters.allStatus", "All Status")}</SelectItem>
+                  <SelectItem value="success">{t("superadmin.userLogs.filters.status.success", "Success")}</SelectItem>
+                  <SelectItem value="warning">{t("superadmin.userLogs.filters.status.warning", "Warning")}</SelectItem>
+                  <SelectItem value="error">{t("superadmin.userLogs.filters.status.error", "Error")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={dateRange} onValueChange={setDateRange} placeholder="Date Range">
                 <SelectTrigger className="w-[130px] bg-muted border-input">
-                  {dateRange === "today" ? "Today" : dateRange === "week" ? "This Week" : dateRange === "month" ? "This Month" : "All Time"}
+                  {dateRange === "today" ? t("superadmin.userLogs.filters.dateRange.today", "Today") : dateRange === "week" ? t("superadmin.userLogs.filters.dateRange.week", "This Week") : dateRange === "month" ? t("superadmin.userLogs.filters.dateRange.month", "This Month") : t("superadmin.userLogs.filters.dateRange.all", "All Time")}
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="today">{t("superadmin.userLogs.filters.dateRange.today", "Today")}</SelectItem>
+                  <SelectItem value="week">{t("superadmin.userLogs.filters.dateRange.week", "This Week")}</SelectItem>
+                  <SelectItem value="month">{t("superadmin.userLogs.filters.dateRange.month", "This Month")}</SelectItem>
+                  <SelectItem value="all">{t("superadmin.userLogs.filters.dateRange.all", "All Time")}</SelectItem>
                 </SelectContent>
               </Select>
             </CardContent>
@@ -584,8 +600,8 @@ export default function SuperadminUserLogsPage() {
 
           <Card className="bg-card border-border">
             <CardHeader className="border-b border-border">
-              <CardTitle className="flex items-center gap-2 text-foreground"><History className="h-5 w-5" />Activity Logs</CardTitle>
-              <CardDescription className="text-muted-foreground">Real-time user activity and request history</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-foreground"><History className="h-5 w-5" />{t("superadmin.userLogs.activityLogs", "Activity Logs")}</CardTitle>
+              <CardDescription className="text-muted-foreground">{t("superadmin.userLogs.activityLogsDescription", "Real-time user activity and request history")}</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {loading ? (
@@ -596,13 +612,13 @@ export default function SuperadminUserLogsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border">
-                      <TableHead className="text-muted-foreground">Time</TableHead>
-                      <TableHead className="text-muted-foreground">User</TableHead>
-                      <TableHead className="text-muted-foreground">Tenant</TableHead>
-                      <TableHead className="text-muted-foreground">Action</TableHead>
-                      <TableHead className="text-muted-foreground">Category</TableHead>
-                      <TableHead className="text-muted-foreground">Status</TableHead>
-                      <TableHead className="text-muted-foreground w-[80px]">Details</TableHead>
+                      <TableHead className="text-muted-foreground">{t("superadmin.userLogs.table.time", "Time")}</TableHead>
+                      <TableHead className="text-muted-foreground">{t("superadmin.userLogs.table.user", "User")}</TableHead>
+                      <TableHead className="text-muted-foreground">{t("superadmin.userLogs.table.tenant", "Tenant")}</TableHead>
+                      <TableHead className="text-muted-foreground">{t("superadmin.userLogs.table.action", "Action")}</TableHead>
+                      <TableHead className="text-muted-foreground">{t("superadmin.userLogs.table.category", "Category")}</TableHead>
+                      <TableHead className="text-muted-foreground">{t("superadmin.userLogs.table.status", "Status")}</TableHead>
+                      <TableHead className="text-muted-foreground w-[80px]">{t("superadmin.userLogs.table.details", "Details")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

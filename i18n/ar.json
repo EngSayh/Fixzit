@@ -2992,6 +2992,11 @@
       "nextRefresh": "التحديث التالي: {{time}}",
       "secondsAgo": "منذ {{count}} ثانية"
     },
+    "timeUnits": {
+      "secondsShort": "{{count}}ث",
+      "minutesShort": "{{count}}د",
+      "hoursMinutesShort": "{{hours}}س {{minutes}}د"
+    },
     "pages": {
       "dashboard": "لوحة التحكم",
       "properties": "العقارات",
@@ -5189,6 +5194,7 @@
       "errorRate": "معدل الأخطاء",
       "avgSession": "متوسط الجلسة",
       "activityLogs": "سجلات النشاط",
+      "activityLogsDescription": "نشاط المستخدمين والطلبات في الوقت الفعلي",
       "activeSessions": "الجلسات النشطة",
       "searchPlaceholder": "البحث بالمستخدم أو البريد أو الإجراء أو المستأجر...",
       "noLogsFound": "لا توجد سجلات نشاط",
@@ -5201,6 +5207,38 @@
       "sessionDetails": "تفاصيل الجلسة",
       "terminateSession": "إنهاء الجلسة",
       "terminateNotImplemented": "إنهاء الجلسة غير مطبق بعد",
+      "filters": {
+        "allCategories": "جميع الفئات",
+        "allStatus": "جميع الحالات",
+        "categories": {
+          "auth": "المصادقة",
+          "navigation": "التنقل",
+          "crud": "العمليات",
+          "settings": "الإعدادات",
+          "api": "API",
+          "error": "خطأ"
+        },
+        "status": {
+          "success": "نجاح",
+          "warning": "تحذير",
+          "error": "خطأ"
+        },
+        "dateRange": {
+          "today": "اليوم",
+          "week": "هذا الأسبوع",
+          "month": "هذا الشهر",
+          "all": "كل الوقت"
+        }
+      },
+      "table": {
+        "time": "الوقت",
+        "user": "المستخدم",
+        "tenant": "المستأجر",
+        "action": "الإجراء",
+        "category": "الفئة",
+        "status": "الحالة",
+        "details": "التفاصيل"
+      },
       "fields": {
         "user": "المستخدم",
         "email": "البريد الإلكتروني",
