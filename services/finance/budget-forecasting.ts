@@ -519,7 +519,7 @@ export async function syncActuals(
     const totals = calculateTotals(updatedLineItems);
     
     await db.collection(BUDGETS_COLLECTION).updateOne(
-      { _id: new ObjectId(budgetId) },
+      { _id: new ObjectId(budgetId), orgId },
       {
         $set: {
           lineItems: updatedLineItems,

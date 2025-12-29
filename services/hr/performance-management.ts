@@ -630,8 +630,8 @@ export async function createReviewCycle(
   try {
     const db = await getDatabase();
     
-    // Add default competencies if none provided
-    const competencies = data.competencies.length > 0
+    // Add default competencies if none provided (with null safety)
+    const competencies = data.competencies && data.competencies.length > 0
       ? data.competencies
       : DEFAULT_COMPETENCIES.map(c => ({ ...c, id: new ObjectId().toString() }));
     
