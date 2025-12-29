@@ -526,7 +526,7 @@ async function deliverNotification(
         nextAttempt.setMinutes(nextAttempt.getMinutes() + delayMinutes);
         
         await db.collection(NOTIFICATIONS_COLLECTION).updateOne(
-          { _id: id },
+          { _id: id, orgId: notification.orgId },
           {
             $set: {
               status: NotificationStatus.QUEUED,
@@ -538,7 +538,7 @@ async function deliverNotification(
         );
       } else {
         await db.collection(NOTIFICATIONS_COLLECTION).updateOne(
-          { _id: id },
+          { _id: id, orgId: notification.orgId },
           {
             $set: {
               status: NotificationStatus.FAILED,

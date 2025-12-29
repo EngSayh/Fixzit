@@ -724,7 +724,7 @@ export async function archiveOldLogs(
     
     // Delete from main collection
     const ids = expired.map(e => e._id);
-    await db.collection(AUDIT_COLLECTION).deleteMany({ _id: { $in: ids } });
+    await db.collection(AUDIT_COLLECTION).deleteMany({ _id: { $in: ids }, orgId });
     
     logger.info("Audit logs archived", {
       component: "audit-logging",
