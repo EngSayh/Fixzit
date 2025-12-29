@@ -708,13 +708,20 @@ export async function generateSpendingInsights(
       if (category.transactionCount >= 3) {
         const avgAmount = category.averageAmount;
         
-        // Find expenses 3x higher than average
-        const highExpenses = await db.collection(EXPENSES_COLLECTION).find({
+        // Build query filter - include propertyId when specified
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const anomalyFilter: any = {
           orgId,
           category: category.category,
           amountSAR: { $gte: avgAmount * 3 },
           date: { $gte: thisMonthStart },
-        }).toArray();
+        };
+        if (options?.propertyId) {
+          anomalyFilter.propertyId = options.propertyId;
+        }
+        
+        // Find expenses 3x higher than average
+        const highExpenses = await db.collection(EXPENSES_COLLECTION).find(anomalyFilter).toArray();
         
         if (highExpenses.length > 0) {
           insights.push({

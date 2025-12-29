@@ -288,7 +288,7 @@ export default function FMDashboardPage() {
             </div>
           </div>
           <p className="text-sm text-gray-500 mt-2">
-            {analytics?.anomalies?.items?.filter(a => a.severity === "high").length ?? 0} high severity
+            {(analytics?.anomalies?.items ?? []).filter(a => a.severity === "high").length} high severity
           </p>
         </div>
 
@@ -400,7 +400,7 @@ export default function FMDashboardPage() {
           </h2>
           <div className="space-y-4">
             {/* Anomalies */}
-            {analytics?.anomalies?.items?.map((anomaly) => (
+            {(analytics?.anomalies?.items ?? []).map((anomaly) => (
               <div key={anomaly.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <AlertTriangle className={`h-5 w-5 mt-0.5 ${
                   anomaly.severity === "critical" ? "text-pink-500" :
@@ -415,7 +415,7 @@ export default function FMDashboardPage() {
             ))}
             
             {/* Churn Risk */}
-            {analytics?.churn_predictions?.items?.slice(0, 2).map((tenant) => (
+            {(analytics?.churn_predictions?.items ?? []).slice(0, 2).map((tenant) => (
               <div key={tenant.tenant_name} className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                 <div className="flex items-center gap-3">
                   <TrendingUp className="h-5 w-5 text-orange-500" />

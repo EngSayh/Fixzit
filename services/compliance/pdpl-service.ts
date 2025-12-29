@@ -25,7 +25,12 @@ import { logger } from "@/lib/logger";
 // CONFIGURATION
 // =============================================================================
 
-/** Countries with adequate data protection (GCC countries formally recognized by SDAIA) */
+/** 
+ * Countries commonly treated as having adequate data protection for PDPL purposes.
+ * Note: SDAIA has not published an official adequacy list. Cross-border transfers
+ * should rely on SDAIA-approved safeguards (SCCs, BCRs, accredited certificates)
+ * where applicable. This list is for internal reference only.
+ */
 const ADEQUATE_COUNTRIES: readonly string[] = ["SA", "AE", "BH", "OM", "KW", "QA"];
 
 const PDPL_CONFIG = {

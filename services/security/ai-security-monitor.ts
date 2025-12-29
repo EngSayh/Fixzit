@@ -817,6 +817,7 @@ export async function isIPBlocked(
       orgId,
       ipAddress,
     });
-    return { blocked: false };
+    // Fail-closed: Block on DB errors to maintain security
+    return { blocked: true, reason: "db-error" };
   }
 }

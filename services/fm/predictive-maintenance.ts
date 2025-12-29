@@ -347,7 +347,7 @@ export async function recordMaintenanceEvent(
   equipmentId: string,
   orgId: string,
   event: Omit<MaintenanceEvent, "date">
-): Promise<{ success: boolean; newHealthScore?: number; error?: string }> {
+): Promise<{ success: boolean; newHealthScore?: number; error?: string; partialFailure?: boolean; predictionError?: string }> {
   try {
     const db = await getDatabase();
     const now = new Date();

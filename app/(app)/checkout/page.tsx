@@ -168,8 +168,18 @@ function CheckoutContent() {
         throw new Error(data.error || "Failed to create subscription");
       }
 
-      // Simulate payment processing (in production, integrate with TAP or Stripe)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Simulate payment processing delay (only in non-production or when explicitly enabled)
+      const shouldSimulatePayment = 
+        process.env.NODE_ENV !== 'production' || 
+        process.env.FEATURE_SIMULATE_PAYMENTS === 'true';
+      
+      if (shouldSimulatePayment) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      } else {
+        // In production without simulation flag, skip delay
+        // eslint-disable-next-line no-console -- Production logging for payment flow
+        console.warn('[checkout] Payment simulation disabled in production - integrate with TAP/Stripe');
+      }
 
       setStep("success");
     } catch (err) {

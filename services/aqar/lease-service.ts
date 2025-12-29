@@ -277,9 +277,6 @@ export async function createLease(
     }
     
     // Calculate annual rent
-    const _monthsDuration = Math.ceil(
-      (request.endDate.getTime() - request.startDate.getTime()) / (30 * 24 * 60 * 60 * 1000)
-    ); // Reserved for pro-rated rent calculations
     const annualRent = request.monthlyRent * 12;
     
     // Generate lease number

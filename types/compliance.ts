@@ -61,6 +61,8 @@ export interface ZatcaInvoice {
   last_error?: string;
   /** When invoice was archived */
   archive_date?: Date;
+  /** Invoice issue date (ISO string) - used for archive calculation per ZATCA requirements */
+  issue_date?: string;
   /** Metadata timestamps */
   created_at: Date;
   updated_at: Date;

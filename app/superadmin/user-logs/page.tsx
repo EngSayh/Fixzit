@@ -673,8 +673,8 @@ export default function SuperadminUserLogsPage() {
         <TabsContent value="sessions" className="space-y-4">
           <Card className="bg-card border-border">
             <CardHeader className="border-b border-border">
-              <CardTitle className="flex items-center gap-2 text-foreground"><User className="h-5 w-5" />Active Sessions</CardTitle>
-              <CardDescription className="text-muted-foreground">Currently active user sessions</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-foreground"><User className="h-5 w-5" />{t("superadmin.userLogs.activeSessions", "Active Sessions")}</CardTitle>
+              <CardDescription className="text-muted-foreground">{t("superadmin.userLogs.activeSessionsDescription", "Currently active user sessions")}</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {(() => {
@@ -685,14 +685,14 @@ export default function SuperadminUserLogsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border">
-                      <TableHead className="text-muted-foreground">User</TableHead>
-                      <TableHead className="text-muted-foreground">Tenant</TableHead>
-                      <TableHead className="text-muted-foreground">Device</TableHead>
-                      <TableHead className="text-muted-foreground">Location</TableHead>
-                      <TableHead className="text-muted-foreground">Started</TableHead>
-                      <TableHead className="text-muted-foreground">Activity</TableHead>
-                      <TableHead className="text-muted-foreground">Status</TableHead>
-                      <TableHead className="text-muted-foreground w-[80px]">Details</TableHead>
+                      <TableHead className="text-muted-foreground">{t("superadmin.userLogs.fields.user", "User")}</TableHead>
+                      <TableHead className="text-muted-foreground">{t("superadmin.userLogs.fields.tenant", "Tenant")}</TableHead>
+                      <TableHead className="text-muted-foreground">{t("superadmin.userLogs.fields.device", "Device")}</TableHead>
+                      <TableHead className="text-muted-foreground">{t("superadmin.userLogs.fields.location", "Location")}</TableHead>
+                      <TableHead className="text-muted-foreground">{t("superadmin.userLogs.fields.started", "Started")}</TableHead>
+                      <TableHead className="text-muted-foreground">{t("superadmin.userLogs.fields.activity", "Activity")}</TableHead>
+                      <TableHead className="text-muted-foreground">{t("superadmin.userLogs.fields.status", "Status")}</TableHead>
+                      <TableHead className="text-muted-foreground w-[80px]">{t("superadmin.userLogs.details", "Details")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -766,7 +766,7 @@ export default function SuperadminUserLogsPage() {
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.tenant", "Tenant")}</p><p className="text-foreground">{selectedLog.tenantName}</p></div>
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.category", "Category")}</p><p className="text-foreground capitalize">{selectedLog.category}</p></div>
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.status", "Status")}</p><Badge className={STATUS_COLORS[selectedLog.status]}>{selectedLog.status}</Badge></div>
-                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.timestamp", "Timestamp")}</p><p className="text-foreground">{new Intl.DateTimeFormat(locale ?? undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(selectedLog.timestamp))}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.timestamp", "Timestamp")}</p><p className="text-foreground">{formatTimestamp(selectedLog.timestamp)}</p></div>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-2">{t("superadmin.userLogs.fields.details", "Details")}</p>
@@ -810,7 +810,7 @@ export default function SuperadminUserLogsPage() {
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.os", "OS")}</p><p className="text-foreground">{selectedSession.os}</p></div>
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.ipAddress", "IP Address")}</p><p className="text-foreground">{selectedSession.ip}</p></div>
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.location", "Location")}</p><p className="text-foreground">{selectedSession.location || t("common.unknown", "Unknown")}</p></div>
-                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.started", "Started")}</p><p className="text-foreground">{new Intl.DateTimeFormat(locale ?? undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(selectedSession.startedAt))}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.started", "Started")}</p><p className="text-foreground">{formatTimestamp(selectedSession.startedAt)}</p></div>
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.pagesVisited", "Pages Visited")}</p><p className="text-foreground">{selectedSession.pagesVisited}</p></div>
                 <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.actions", "Actions")}</p><p className="text-foreground">{selectedSession.actionsPerformed}</p></div>
                 {selectedSession.duration && (

@@ -191,8 +191,12 @@ export async function logAuthEvent(entry: AuthLogEntry): Promise<string | null> 
     const anomalies = await detectAnomalies(enrichedEntry);
     if (anomalies.length > 0) {
       enrichedEntry.anomalyFlags = anomalies;
-      // Only set to HIGH if current level is undefined or lower than HIGH (preserve CRITICAL)
-      if (!enrichedEntry.riskLevel || enrichedEntry.riskLevel === RiskLevel.LOW) {
+      // Escalate to HIGH if current level is undefined, LOW, or MEDIUM (preserve CRITICAL)
+      if (
+        !enrichedEntry.riskLevel ||
+        enrichedEntry.riskLevel === RiskLevel.LOW ||
+        enrichedEntry.riskLevel === RiskLevel.MEDIUM
+      ) {
         enrichedEntry.riskLevel = RiskLevel.HIGH;
       }
     }

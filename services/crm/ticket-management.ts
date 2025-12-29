@@ -553,7 +553,15 @@ export async function resolveTicket(
     }
     
     const now = new Date();
-    const resolutionMet = now <= ticket.sla.resolutionDeadline;
+    
+    // Defensively check for SLA and valid resolutionDeadline
+    let resolutionMet = false;
+    if (ticket.sla?.resolutionDeadline) {
+      const deadline = ticket.sla.resolutionDeadline instanceof Date
+        ? ticket.sla.resolutionDeadline
+        : new Date(ticket.sla.resolutionDeadline);
+      resolutionMet = !isNaN(deadline.getTime()) && now <= deadline;
+    }
     
     // Add resolution message
     const resolutionMessage: TicketMessage = {
@@ -1227,7 +1235,8 @@ async function generateTicketNumber(orgId: string): Promise<string> {
     { upsert: true, returnDocument: "after" }
   );
   
-  const sequence = result?.seq || 1;
+  // Read sequence from result directly (MongoDB driver v6+ returns document directly)
+  const sequence = result?.seq ?? 1;
   return `TKT-${year}-${String(sequence).padStart(6, "0")}`;
 }
 

@@ -238,7 +238,15 @@ export async function submitToFatoora(
       
       if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`ZATCA API error: ${response.status} - ${errorBody}`);
+        const status = response.status;
+        
+        // 4xx client errors are non-retryable - fail immediately
+        if (status >= 400 && status < 500) {
+          throw new Error(`ZATCA API client error (non-retryable): ${status} - ${errorBody}`);
+        }
+        
+        // 5xx server errors are retryable
+        throw new Error(`ZATCA API server error: ${status} - ${errorBody}`);
       }
       
       const result = await response.json() as ZatcaFatooraResponse;
@@ -252,6 +260,23 @@ export async function submitToFatoora(
       
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // Check if error is retryable (network errors, timeout, 5xx)
+      const isRetryable = 
+        lastError.name === "AbortError" ||
+        lastError.message.includes("server error") ||
+        lastError.message.includes("network") ||
+        lastError.message.includes("ECONNREFUSED") ||
+        lastError.message.includes("ETIMEDOUT");
+      
+      // Non-retryable errors (4xx, validation) - fail immediately
+      if (!isRetryable || lastError.message.includes("non-retryable")) {
+        logger.error("ZATCA submission failed with non-retryable error", {
+          uuid: submission.uuid,
+          error: lastError.message,
+        });
+        throw lastError;
+      }
       
       if (attempt < ZATCA_CONFIG.MAX_RETRIES) {
         const delay = ZATCA_CONFIG.RETRY_DELAY_MS * Math.pow(2, attempt - 1);
@@ -453,16 +478,20 @@ export function shouldArchive(invoice: ZatcaInvoice): boolean {
     return false;
   }
   
-  // Guard against missing created_at (newly created invoices)
-  if (!invoice.created_at) {
+  // Prefer issue_date for archive calculation (ZATCA requirement)
+  // Fall back to created_at if issue_date is missing
+  const dateToUse = invoice.issue_date || invoice.created_at;
+  
+  // Guard against missing date
+  if (!dateToUse) {
     return false;
   }
   
-  const createdAtDate = new Date(invoice.created_at);
-  if (isNaN(createdAtDate.getTime())) {
+  const invoiceDate = new Date(dateToUse);
+  if (isNaN(invoiceDate.getTime())) {
     return false;
   }
   
-  const archiveDate = calculateArchiveDate(createdAtDate);
+  const archiveDate = calculateArchiveDate(invoiceDate);
   return new Date() >= archiveDate;
 }

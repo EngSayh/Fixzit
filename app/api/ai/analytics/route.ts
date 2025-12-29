@@ -17,8 +17,12 @@ export async function GET() {
   try {
     const session = await auth();
     
-    // Demo mode requires ENABLE_DEMO_MODE env flag - never enable in production
-    const demoEnabled = process.env.ENABLE_DEMO_MODE === 'true';
+    // Demo mode requires ENABLE_DEMO_MODE env flag - strictly disallowed in production
+    let demoEnabled = process.env.ENABLE_DEMO_MODE === 'true';
+    if (demoEnabled && process.env.NODE_ENV === 'production') {
+      logger.error('[AI Analytics] ENABLE_DEMO_MODE is true in production - forcing to false for security');
+      demoEnabled = false;
+    }
     const isDemo = demoEnabled && !session?.user;
     
     // Require authentication if demo mode is disabled

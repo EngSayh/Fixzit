@@ -372,6 +372,8 @@ export async function addToPasswordHistory(
       orgId,
       userId,
     });
+    // Propagate failure to caller so password change can be aborted when history can't be recorded
+    throw error;
   }
 }
 

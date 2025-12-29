@@ -1516,7 +1516,8 @@ async function generateContractNumber(orgId: string, type: ContractType): Promis
     { upsert: true, returnDocument: "after" }
   );
   
-  const sequence = result?.seq || 1;
+  // Read sequence from result directly (MongoDB driver v6+ returns document directly)
+  const sequence = result?.seq ?? 1;
   return `${prefix}-${year}-${String(sequence).padStart(5, "0")}`;
 }
 

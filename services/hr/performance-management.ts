@@ -84,7 +84,7 @@ export interface Goal {
   type: "goal" | "okr";
   weight: number; // Percentage weight in overall score
   status: GoalStatus;
-  startDate?: Date | string | null; // Optional start date for progress tracking
+  startDate?: Date | null; // Optional start date for progress tracking (string conversion at API boundary)
   targetDate: Date;
   progress: number; // 0-100
   keyResults?: KeyResult[];
@@ -449,8 +449,9 @@ const DEFAULT_COMPETENCIES: Omit<Competency, "id">[] = [
 // Validate DEFAULT_COMPETENCIES weights sum to 100%
 const totalWeight = DEFAULT_COMPETENCIES.reduce((sum, c) => sum + c.weight, 0);
 if (totalWeight !== 100) {
-  // eslint-disable-next-line no-console -- Startup validation warning
-  console.warn(`[performance-management] DEFAULT_COMPETENCIES weights sum to ${totalWeight}%, expected 100%`);
+  throw new Error(
+    `[performance-management] DEFAULT_COMPETENCIES weights sum to ${totalWeight}%, expected 100%. Fix configuration before startup.`
+  );
 }
 
 // ============================================================================
@@ -485,8 +486,11 @@ export async function createGoal(
     });
     
     return { success: true, goalId: result.insertedId.toString() };
-  } catch (_error) {
-    logger.error("Failed to create goal", { component: "performance-management" });
+  } catch (error) {
+    logger.error("Failed to create goal", { 
+      component: "performance-management",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { success: false, error: "Failed to create goal" };
   }
 }
@@ -499,6 +503,7 @@ export async function updateGoalProgress(
   orgId: string,
   progress: number,
   userId: string,
+  userName: string,
   comment?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -553,7 +558,7 @@ export async function updateGoalProgress(
         comments: {
           id: new ObjectId().toString(),
           userId,
-          userName: "User", // Would be resolved from session
+          userName: userName || "Unknown User", // Resolved from session/context
           content: comment,
           createdAt: new Date(),
         },
@@ -578,8 +583,11 @@ export async function updateGoalProgress(
     });
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to update progress", { component: "performance-management" });
+  } catch (error) {
+    logger.error("Failed to update progress", { 
+      component: "performance-management",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { success: false, error: "Failed to update progress" };
   }
 }
@@ -609,8 +617,11 @@ export async function getEmployeeGoals(
       .toArray();
     
     return goals as unknown as Goal[];
-  } catch (_error) {
-    logger.error("Failed to get goals", { component: "performance-management" });
+  } catch (error) {
+    logger.error("Failed to get goals", { 
+      component: "performance-management",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return [];
   }
 }
@@ -655,8 +666,11 @@ export async function createReviewCycle(
     });
     
     return { success: true, cycleId: result.insertedId.toString() };
-  } catch (_error) {
-    logger.error("Failed to create cycle", { component: "performance-management" });
+  } catch (error) {
+    logger.error("Failed to create cycle", { 
+      component: "performance-management",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { success: false, error: "Failed to create review cycle" };
   }
 }
@@ -741,8 +755,11 @@ export async function launchReviewCycle(
     });
     
     return { success: true, reviewsCreated: reviews.length };
-  } catch (_error) {
-    logger.error("Failed to launch cycle", { component: "performance-management" });
+  } catch (error) {
+    logger.error("Failed to launch cycle", { 
+      component: "performance-management",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { success: false, reviewsCreated: 0, error: "Failed to launch cycle" };
   }
 }
@@ -822,8 +839,11 @@ export async function submitSelfAssessment(
     });
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to submit self assessment", { component: "performance-management" });
+  } catch (error) {
+    logger.error("Failed to submit self assessment", { 
+      component: "performance-management",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { success: false, error: "Failed to submit self assessment" };
   }
 }
@@ -903,8 +923,11 @@ export async function submitManagerAssessment(
     });
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to submit manager assessment", { component: "performance-management" });
+  } catch (error) {
+    logger.error("Failed to submit manager assessment", { 
+      component: "performance-management",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { success: false, error: "Failed to submit manager assessment" };
   }
 }
@@ -956,8 +979,11 @@ export async function finalizeReview(
     });
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to finalize review", { component: "performance-management" });
+  } catch (error) {
+    logger.error("Failed to finalize review", { 
+      component: "performance-management",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { success: false, error: "Failed to finalize review" };
   }
 }
@@ -1067,8 +1093,11 @@ export async function generatePerformanceInsights(
     });
     
     return insights;
-  } catch (_error) {
-    logger.error("Failed to generate insights", { component: "performance-management" });
+  } catch (error) {
+    logger.error("Failed to generate insights", { 
+      component: "performance-management",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return [];
   }
 }
@@ -1159,8 +1188,11 @@ export async function getTeamPerformanceSummary(
       topPerformers,
       needsAttention,
     };
-  } catch (_error) {
-    logger.error("Failed to get team summary", { component: "performance-management" });
+  } catch (error) {
+    logger.error("Failed to get team summary", { 
+      component: "performance-management",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return {
       totalEmployees: 0,
       completed: 0,

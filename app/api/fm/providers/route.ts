@@ -42,7 +42,14 @@ export async function GET(request: Request) {
     const providerNetwork = {
       generated_at: new Date().toISOString(),
       is_demo: isDemo,
-      org_id: isDemo ? "demo" : ((session?.user as { orgId?: string })?.orgId ?? "1"),
+      org_id: (() => {
+        if (isDemo) return "demo";
+        const sessionOrgId = (session?.user as { orgId?: string })?.orgId;
+        if (sessionOrgId) return sessionOrgId;
+        // Authenticated users without orgId should not receive data scoped to arbitrary org
+        logger.error("[FM Providers] Authenticated user missing orgId - rejecting request");
+        throw new Error("Organization ID required for authenticated users");
+      })(),
       
       // Provider Statistics
       statistics: {

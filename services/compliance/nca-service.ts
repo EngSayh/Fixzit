@@ -1,8 +1,11 @@
 /**
  * NCA ECC-2:2024 Compliance Dashboard Service
  * 
- * Implements the 69 cybersecurity controls from NCA's
+ * Implements ~68 cybersecurity controls from NCA's
  * Essential Cybersecurity Controls framework.
+ * 
+ * Note: The actual count may vary as controls are added/updated.
+ * Run a count verification if precise numbers are required.
  * 
  * @module services/compliance/nca-service
  */

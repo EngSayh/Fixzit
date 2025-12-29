@@ -38,7 +38,15 @@ export async function GET() {
     }
     const userId = session.user.id;
     
-    const status = await getMFAStatus(orgId, userId);
+    if (!userId || typeof userId !== "string" || userId.trim() === "") {
+      logger.warn("MFA status request with missing user ID", { orgId });
+      return NextResponse.json(
+        { error: { code: "FIXZIT-AUTH-003", message: "User ID required" } },
+        { status: 400 }
+      );
+    }
+    
+    const status = await getMFAStatus(orgId, userId as string);
     
     return NextResponse.json({
       success: true,

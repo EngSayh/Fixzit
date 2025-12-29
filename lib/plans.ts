@@ -98,7 +98,20 @@ export function calculatePlanPrice(planId: string, users: number): {
   plan: Plan;
 } {
   const plan = getPlan(planId);
-  const validUsers = Math.max(1, Math.min(users, plan.maxUsers || 1000));
+  
+  // Normalize users input to a finite positive integer, fallback to 1
+  let normalizedUsers = Number(users);
+  if (!Number.isFinite(normalizedUsers) || normalizedUsers <= 0 || isNaN(normalizedUsers)) {
+    normalizedUsers = 1;
+  }
+  normalizedUsers = Math.floor(normalizedUsers);
+  
+  // If plan.maxUsers is undefined, treat as unlimited (no cap)
+  // Otherwise clamp to the defined maximum
+  const validUsers = plan.maxUsers !== undefined
+    ? Math.min(normalizedUsers, plan.maxUsers)
+    : normalizedUsers;
+  
   const subtotal = plan.pricePerUser * validUsers;
   const vat = subtotal * 0.15; // 15% VAT
   const total = subtotal + vat;
