@@ -158,8 +158,7 @@ describe("API /api/subscribe/owner", () => {
       const res = await POST(req);
 
       // 400 for validation error (missing required fields)
-      // Route may return 403 if authorization check runs before validation
-      expect([400, 403]).toContain(res.status);
+      expect(res.status).toBe(400);
     });
   });
 

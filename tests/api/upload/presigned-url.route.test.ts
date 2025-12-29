@@ -198,7 +198,7 @@ describe("API /api/upload/presigned-url", () => {
   });
 
   describe("S3 Configuration", () => {
-    it("returns 501 or 500 when S3 is not configured", async () => {
+    it("returns 501 when S3 is not configured", async () => {
       s3Configured = false;
       setMockUser({
         id: "user-123",
