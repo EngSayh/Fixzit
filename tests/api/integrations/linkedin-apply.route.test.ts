@@ -2,7 +2,7 @@
  * @fileoverview Tests for /api/integrations/linkedin/apply route
  * Tests rate limiting, feature flag, and LinkedIn application flow
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // Deterministic rate limit mock

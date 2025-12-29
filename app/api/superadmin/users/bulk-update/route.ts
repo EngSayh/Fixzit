@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
     await connectDb();
 
     // Protect SUPERADMIN accounts from bulk updates (use isSuperAdmin flag like bulk-delete)
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant superadmin check
     const superadminUsers = await User.find({
       _id: { $in: userIds },
       isSuperAdmin: true,
@@ -107,6 +108,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Perform bulk update with audit trail (defense-in-depth: exclude superadmins again)
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant bulk update
     const result = await User.updateMany(
       { _id: { $in: userIds }, isSuperAdmin: { $ne: true } },
       { $set: auditedUpdates }

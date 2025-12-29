@@ -256,14 +256,19 @@ export async function analyzeLoginAttempt(params: {
       userId, // Use userId instead of email for logs (PII protection)
     });
     
-    // Return safe defaults on error
+    // FAIL-CLOSED: On security analysis error, block to prevent potential threats
+    // This is security best practice - assume the worst if we can't verify safety
     return {
-      riskScore: 0,
-      riskLevel: RiskLevel.LOW,
-      threats: [],
-      recommendations: [],
-      shouldBlock: false,
-      shouldNotify: false,
+      riskScore: 100,
+      riskLevel: RiskLevel.CRITICAL,
+      threats: [{
+        type: AlertType.SUSPICIOUS_IP,
+        score: 100,
+        evidence: ["Security analysis failed - treating as potential threat"],
+      }],
+      recommendations: ["Retry request - security analysis temporarily unavailable"],
+      shouldBlock: true,
+      shouldNotify: true,
     };
   }
 }

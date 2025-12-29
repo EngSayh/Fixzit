@@ -584,7 +584,8 @@ export async function getSpendingByCategory(
     if (options?.propertyId) match.propertyId = options.propertyId;
     if (options?.dateFrom) match.date = { $gte: options.dateFrom };
     if (options?.dateTo) {
-      match.date = { ...match.date, $lte: options.dateTo };
+      // Initialize match.date if it doesn't exist to avoid spreading undefined
+      match.date = match.date ? { ...match.date, $lte: options.dateTo } : { $lte: options.dateTo };
     }
     
     const pipeline = [

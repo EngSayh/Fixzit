@@ -608,6 +608,14 @@ export async function initiateRenewal(
         landlordSigned: false,
         tenantSigned: false,
       },
+      // Reset verification state for renewal - requires fresh verification
+      verification: {
+        landlordVerified: false,
+        tenantVerified: false,
+        propertyVerified: false,
+        documentsVerified: false,
+        nationalAddressVerified: false,
+      },
       createdAt: new Date(),
       updatedAt: new Date(),
       submittedAt: undefined,

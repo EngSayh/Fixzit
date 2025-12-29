@@ -51,12 +51,17 @@ export async function POST(req: NextRequest) {
     }
     
     // Validate channels is an array if provided
-    const rawChannels = body.channels ?? (body.type !== undefined ? [body.type] : ["email"]);
-    if (!Array.isArray(rawChannels)) {
-      return NextResponse.json(
-        { success: false, error: "channels must be an array" },
-        { status: 400 }
-      );
+    let rawChannels: unknown[];
+    if (body.channels !== undefined) {
+      if (!Array.isArray(body.channels)) {
+        return NextResponse.json(
+          { success: false, error: "channels must be an array" },
+          { status: 400 }
+        );
+      }
+      rawChannels = body.channels;
+    } else {
+      rawChannels = body.type !== undefined ? [body.type] : ["email"];
     }
     // Validate all channel elements are strings
     const invalidChannels: Array<{ index: number; value: unknown; type: string }> = [];
@@ -123,7 +128,7 @@ export async function POST(req: NextRequest) {
         action: "send",
       });
       return NextResponse.json(
-        { error: { code: "FIXZIT-DB-001", message: "Failed to create notification" } },
+        { success: false, error: "Failed to create notification (FIXZIT-DB-001)" },
         { status: 500 }
       );
     }

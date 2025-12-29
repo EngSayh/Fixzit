@@ -12,7 +12,6 @@
  */
 
 import crypto from "crypto";
-import mongoose from "mongoose";
 import { ObjectId, type ClientSession } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
@@ -591,7 +590,8 @@ export async function createAuditLogEntry(
 ): Promise<AuditLogEntry> {
   const timestamp = new Date();
   const db = await getDatabase();
-  const session = await mongoose.startSession();
+  const client = db.client;
+  const session = client.startSession();
   let persistedEntry: AuditLogEntry | null = null;
   
   try {

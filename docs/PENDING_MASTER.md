@@ -1,6 +1,194 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
 ---
+### 2025-12-29 15:04 (Asia/Riyadh) - Code Review Update [AGENT-003-A]
+**Agent Token:** [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 1f786284a | (no PR)
+**DB Sync:** created=3, updated=3, skipped=0, errors=0
+
+**Resolved Today (DB SSOT):**
+- None
+
+**In Progress:**
+- None
+
+**Blocked:**
+- None
+
+**New Findings Added to DB (with evidence):**
+- TENANT-SCOPE-BULK-DELETE - Bulk delete users lacks orgId scope (sourceRef: code-review:app/api/superadmin/users/bulk-delete/route.ts:82-82)
+- TENANT-SCOPE-BULK-UPDATE - Bulk update users lacks orgId scope (sourceRef: code-review:app/api/superadmin/users/bulk-update/route.ts:110-110)
+- TENANT-SCOPE-VENDOR-APPLY - Vendor apply creates records without orgId (sourceRef: code-review:app/api/vendor/apply/route.ts:94-94)
+- e2e-runner-requires-bash-wsl-on-windows-bug-package-json-l117 - E2E runner requires bash/WSL on Windows (sourceRef: code-review:package.json:117-117)
+
+**Next Steps (ONLY from DB items above):**
+- TENANT-SCOPE-BULK-DELETE - add orgId scope or SUPER_ADMIN lint suppression (AGENT-001-A)
+- TENANT-SCOPE-BULK-UPDATE - add orgId scope or SUPER_ADMIN lint suppression (AGENT-001-A)
+- TENANT-SCOPE-VENDOR-APPLY - add PUBLIC/APPROVAL lint suppression or orgId assignment
+- e2e-runner-requires-bash-wsl-on-windows-bug-package-json-l117 - add Windows runner fallback (AGENT-006-A)
+
+
+
+### 2025-12-29 15:02 (Asia/Riyadh) - Code Review Update
+**Agent Token:** [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | (no PR)
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (dry-run bisect failed: /api/issues/import 500; missing ../chunks/ssr/[turbopack]_runtime.js)
+
+**Resolved Today (DB SSOT):**
+- None
+
+**In Progress:**
+- None
+
+**Blocked:**
+- Import blocked: Next dev server error "Cannot find module '../chunks/ssr/[turbopack]_runtime.js'" (see _artifacts/ssot-import-failure-batch-small.json)
+
+**New Findings Added to DB (with evidence):**
+- None
+
+**Next Steps (ONLY from DB items above):**
+- None
+
+### 2025-12-29 15:02 (Asia/Riyadh) ? Code Review Update [AGENT-003-A]
+**Agent Token:** [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | f547fda2e | PR #618 https://github.com/EngSayh/Fixzit/pull/618
+**DB Sync:** created=0, updated=113, skipped=0, errors=45 (import-backlog.mjs; duplicate issueId errors)
+
+**? Resolved Today (DB SSOT):**
+- None
+
+**?? In Progress:**
+- None
+
+**?? Blocked:**
+- None (DB sync completed with 45 duplicate issueId errors)
+
+**?? New Findings Added to DB (with evidence):**
+- None
+
+**Next Steps (ONLY from DB items above):**
+- None
+
+
+
+### 2025-12-29 14:53 (Asia/Riyadh) - Code Review Update
+**Agent Token:** [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | (no PR)
+**DB Sync:** created=87, updated=26, skipped=0, errors=45 (duplicate issueId index conflicts during import-backlog.mjs)
+
+**Resolved Today (DB SSOT):**
+- None
+
+**In Progress:**
+- None
+
+**Blocked:**
+- Import blocked for 45 items due to duplicate issueId index conflicts (see import-backlog.mjs output)
+
+**New Findings Added to DB (with evidence):**
+- None
+
+**Next Steps (ONLY from DB items above):**
+- None
+
+### 2025-12-29 14:47 (Asia/Riyadh) - Code Review Update
+**Agent Token:** [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | (no PR)
+**DB Sync:** created=0, updated=14, skipped=286, errors=1 (batch 4/11 failed: 500; failing batch saved to _artifacts/ssot-import-failure-batch.json)
+
+**Resolved Today (DB SSOT):**
+- None
+
+**In Progress:**
+- None
+
+**Blocked:**
+- None
+
+**New Findings Added to DB (with evidence):**
+- None
+
+**Next Steps (ONLY from DB items above):**
+- None
+### 2025-12-29 14:08 (Asia/Riyadh) â€” Code Review Update [AGENT-003-A]
+**Agent Token:** [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 6aa1abdbc | (no PR)
+**DB Sync:** created=74, updated=44, skipped=1068, errors=0
+
+**âœ… Resolved Today (DB SSOT):**
+- BUG-0004 â€” Command palette shortcut crash when event.key is undefined (files: services/ux/command-palette.ts, components/topbar/GlobalSearch.tsx)
+
+**ðŸŸ  In Progress:**
+- None
+
+**ðŸ”´ Blocked:**
+- None
+
+**ðŸ†• New Findings Added to DB (with evidence):**
+- None
+
+**Next Steps (ONLY from DB items above):**
+- None
+
+### 2025-12-29 14:07 (Asia/Riyadh) - Code Review Update [AGENT-003-A]
+**Agent Token:** [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 6aa1abdbc | PR #618 https://github.com/EngSayh/Fixzit/pull/618
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (Unauthorized: /api/issues/import; prior 429 Too many requests)
+
+**âœ… Resolved Today (DB SSOT):**
+- None
+
+**ðŸŸ  In Progress:**
+- None
+
+**ðŸ”´ Blocked:**
+- BACKLOG_AUDIT.json import blocked â€” /api/issues/import unauthorized (requires superadmin session)
+
+**ðŸ†• New Findings Added to DB (with evidence):**
+- None (staged in docs/BACKLOG_AUDIT.json; import pending)
+
+**Next Steps (ONLY from DB items above):**
+- Authenticate as superadmin and re-run `pnpm exec tsx scripts/issue-log.ts import docs/BACKLOG_AUDIT.json`
+
+### 2025-12-29 14:02 (Asia/Riyadh) - Code Review Update [AGENT-003-A]
+**Agent Token:** [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | f547fda2e | PR #618 https://github.com/EngSayh/Fixzit/pull/618
+**DB Sync:** created=0, updated=113, skipped=0, errors=45 (import-backlog.mjs; duplicate issueId errors)
+
+**âœ… Resolved Today (DB SSOT):**
+- None
+
+**ðŸŸ  In Progress:**
+- None
+
+**ðŸ”´ Blocked:**
+- None
+
+**ðŸ†• New Findings Added to DB (with evidence):**
+- None (no new DB issues created)
+
+**Next Steps (ONLY from DB items above):**
+- None
+
+### 2025-12-29 14:17 (Asia/Riyadh) â€” Code Review Update
+**Agent Token:** [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | (no PR)
+**DB Sync:** created=25, updated=24, skipped=109, errors=1 (full 1278-item import failed: 500 from /api/issues/import)
+
+**âœ… Resolved Today (DB SSOT):**
+- None
+
+**ðŸŸ  In Progress:**
+- None
+
+**ðŸ”´ Blocked:**
+- None
+
+**ðŸ†• New Findings Added to DB (with evidence):**
+- None
+
+**Next Steps (ONLY from DB items above):**
+- None
 
 ## 2025-12-29 10:22 (Asia/Riyadh) â€” Command Palette Shortcut Guard [AGENT-003-A]
 
@@ -30867,3 +31055,98 @@ No critical blockers remaining. Production is fully operational.
 
 **Next Steps (ONLY from DB items above):**
 - Start API and re-run /api/issues/import with docs/BACKLOG_AUDIT.json
+
+
+### 2025-12-29 14:34 (Asia/Riyadh) — Code Review Update [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | (no PR)
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (429 Too many requests from /api/issues/import)
+
+**? Resolved Today (DB SSOT):**
+- None
+
+**?? In Progress:**
+- None
+
+**?? Blocked:**
+- BACKLOG_AUDIT.json import blocked — 429 Too many requests from /api/issues/import
+
+**?? New Findings Added to DB (with evidence):**
+- None
+
+**Next Steps (ONLY from DB items above):**
+- Retry BACKLOG_AUDIT.json import after rate limit clears
+
+**Files Modified:**
+- docs/AGENTS.md — added v7.0.0 agreement
+- AGENTS.md — removed root copy
+- .fixzit/agent-assignments.json — scope expansion lock update
+- BACKLOG_AUDIT.json — regenerated extraction payload
+- BACKLOG_AUDIT.md — regenerated audit report
+
+**Commands Executed:**
+- pnpm issue-log import BACKLOG_AUDIT.json
+- curl.exe -s http://localhost:3000/api/issues/stats
+
+### 2025-12-29 14:35 (Asia/Riyadh) — Verification Addendum [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | (no PR)
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (429 Too many requests from /api/issues/import)
+
+**Commands Executed:**
+- pnpm lint (warnings: local/require-tenant-scope in superadmin routes)
+- pnpm test (FAILED: WSL not installed for playwright e2e)
+
+### 2025-12-29 14:41 (Asia/Riyadh) — Import Retry [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | (no PR)
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (Unauthorized: /api/issues/import)
+
+**Commands Executed:**
+- pnpm issue-log import BACKLOG_AUDIT.json
+
+### 2025-12-29 14:45 (Asia/Riyadh) — Import Retry [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | (no PR)
+**DB Sync:** created=0, updated=0, skipped=0, errors=1 (Unauthorized: /api/issues/import)
+
+**Commands Executed:**
+- pnpm issue-log import BACKLOG_AUDIT.json
+
+### 2025-12-29 14:49 (Asia/Riyadh) — Code Review Update [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc
+**DB Sync:** created=3, updated=49, skipped=109, errors=0
+
+**? Resolved Today (DB SSOT):**
+- None
+
+**?? In Progress:**
+- None
+
+**?? Blocked:**
+- None
+
+**?? New Findings Added to DB (with evidence):**
+- CR-2025-12-29-001 — Superadmin jobs page swallows fetch/process errors without logging context — sourceRef: code-review:app/superadmin/jobs/page.tsx:111-112
+- CR-2025-12-29-002 — Superadmin subscriptions page swallows tier save errors without logging context — sourceRef: code-review:app/superadmin/subscriptions/page.tsx:396-397
+- CR-2025-12-29-003 — Vendor intelligence alert creation logs omit error details — sourceRef: code-review:services/souq/vendor-intelligence.ts:877-878
+
+**Next Steps (ONLY from DB items above):**
+- CR-2025-12-29-001 — Add error logging context for jobs page catch blocks.
+- CR-2025-12-29-002 — Add error logging context for subscriptions page catch blocks.
+- CR-2025-12-29-003 — Include error details when vendor alert creation fails.
+
+### 2025-12-29 14:52 (Asia/Riyadh) — Code Review Update [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | PR: N/A
+**DB Sync:** created=0, updated=63, skipped=95, errors=0
+
+**? Resolved Today (DB SSOT):**
+- None
+
+**?? In Progress:**
+- None
+
+**?? Blocked:**
+- None
+
+**?? New Findings Added to DB (with evidence):**
+- None
+
+**Next Steps (ONLY from DB items above):**
+- None

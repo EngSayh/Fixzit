@@ -2,7 +2,7 @@
  * @fileoverview Tests for /api/qa/health route
  * Tests SUPER_ADMIN authorization and health check response
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // Deterministic rate limit mock

@@ -179,9 +179,14 @@ export default function FMDashboardPage() {
   }, []);
 
   useEffect(() => {
-    // Fetch data regardless of auth status for demo purposes
+    // Only bypass auth in demo mode when explicitly enabled
+    const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.NODE_ENV === "development";
+    if (!isDemoMode && status !== "authenticated") {
+      // In production without demo mode, require authentication
+      return;
+    }
     fetchDashboardData();
-  }, [fetchDashboardData]);
+  }, [fetchDashboardData, status]);
 
   if (status === "loading" || loading) {
     return (
@@ -377,6 +382,7 @@ export default function FMDashboardPage() {
             {analytics?.anomalies?.items?.map((anomaly) => (
               <div key={anomaly.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <AlertTriangle className={`h-5 w-5 mt-0.5 ${
+                  anomaly.severity === "critical" ? "text-pink-500" :
                   anomaly.severity === "high" ? "text-red-500" : 
                   anomaly.severity === "medium" ? "text-yellow-500" : "text-blue-500"
                 }`} />

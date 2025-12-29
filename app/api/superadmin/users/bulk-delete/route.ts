@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
     await connectDb();
 
     // Prevent deleting superadmin users
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant superadmin check
     const superadmins = await User.find({
       _id: { $in: userIds },
       isSuperAdmin: true,
@@ -79,6 +80,7 @@ export async function POST(request: NextRequest) {
 
     // Soft delete - set status to DELETED (or hard delete if needed)
     // Using soft delete for audit trail
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant bulk delete
     const result = await User.updateMany(
       { _id: { $in: userIds }, isSuperAdmin: { $ne: true } },
       { 

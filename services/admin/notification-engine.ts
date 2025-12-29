@@ -415,6 +415,8 @@ export async function processDeliveryQueue(): Promise<{ processed: number; deliv
     const db = await getDatabase();
     
     // Get pending notifications
+    // Add 1 second buffer to handle clock drift for newly created notifications
+    const cutoffTime = new Date(Date.now() + 1000);
     const pending = await db.collection(NOTIFICATIONS_COLLECTION)
       .find({
         status: { $in: [NotificationStatus.PENDING, NotificationStatus.QUEUED] },
@@ -423,7 +425,10 @@ export async function processDeliveryQueue(): Promise<{ processed: number; deliv
           { "scheduling.scheduledFor": { $exists: false } },
         ],
         $and: [
-          { "delivery.nextAttemptAt": { $lte: new Date() } },
+          { $or: [
+            { "delivery.attempts": 0 }, // Always include new notifications
+            { "delivery.nextAttemptAt": { $lte: cutoffTime } },
+          ]},
         ],
       })
       .sort({ priority: 1, createdAt: 1 })
@@ -513,10 +518,9 @@ async function deliverNotification(
       );
       return { delivered: true };
     } else {
-      // Check if should retry - use the current stored attempt count (already incremented above)
-      // Fetch the updated notification to get the actual attempts value
-      const updatedNotification = await db.collection(NOTIFICATIONS_COLLECTION).findOne({ _id: id, orgId: notification.orgId });
-      const attempts = updatedNotification?.delivery?.attempts ?? 1;
+      // Compute expected attempts locally to avoid race condition
+      // The attempts value was already incremented above, so use that known value
+      const attempts = (notification.delivery?.attempts ?? 0) + 1;
       const maxAttempts = notification.delivery.maxAttempts;
       
       if (attempts < maxAttempts) {
@@ -801,7 +805,7 @@ export async function unsubscribe(
     const updateOp: any = {
       $addToSet: { unsubscribedFrom: category },
       $set: { updatedAt: new Date() },
-      $setOnInsert: { createdAt: new Date() },
+      $setOnInsert: { orgId, userId, createdAt: new Date() },
     };
     
     await db.collection(PREFERENCES_COLLECTION).updateOne(
@@ -955,16 +959,25 @@ export async function getUserNotifications(
 
 /**
  * Mark notification as read
+ * @param notificationId - The notification ID to mark
+ * @param orgId - The organization ID
+ * @param userId - The user ID (owner of the notification)
  */
 export async function markAsRead(
   notificationId: string,
-  orgId: string
+  orgId: string,
+  userId: string
 ): Promise<{ success: boolean }> {
   try {
+    if (!userId || typeof userId !== "string" || userId.trim() === "") {
+      logger.warn("markAsRead called without valid userId", { notificationId, orgId });
+      return { success: false };
+    }
+    
     const db = await getDatabase();
     
-    await db.collection(NOTIFICATIONS_COLLECTION).updateOne(
-      { _id: new ObjectId(notificationId), orgId },
+    const result = await db.collection(NOTIFICATIONS_COLLECTION).updateOne(
+      { _id: new ObjectId(notificationId), orgId, userId },
       {
         $set: {
           status: NotificationStatus.READ,
@@ -975,6 +988,11 @@ export async function markAsRead(
         $inc: { "tracking.openCount": 1 },
       }
     );
+    
+    if (result.matchedCount === 0) {
+      logger.warn("markAsRead: notification not found or not owned by user", { notificationId, orgId, userId });
+      return { success: false };
+    }
     
     return { success: true };
   } catch (_error) {

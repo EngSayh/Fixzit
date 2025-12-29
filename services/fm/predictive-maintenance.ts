@@ -14,7 +14,6 @@
  */
 
 import { ObjectId, type WithId, type Document } from "mongodb";
-import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
@@ -521,8 +520,10 @@ export async function generatePredictions(
     }
     
     // Store predictions atomically in both equipment and predictions collection
+    // Note: Using native MongoDB driver, not mongoose sessions
     const db = await getDatabase();
-    const session = await mongoose.startSession();
+    const client = db.client;
+    const session = client.startSession();
     
     try {
       await session.withTransaction(async () => {

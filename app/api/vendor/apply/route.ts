@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
 
     // Create vendor application record with PENDING status
     // Note: Public applications don't have orgId yet - they're assigned during approval
+    // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Public vendor application before org assignment
     const vendorApplication = await Vendor.create({
       code: vendorCode,
       name: company,
