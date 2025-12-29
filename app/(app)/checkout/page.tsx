@@ -57,6 +57,9 @@ function CheckoutContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [step, setStep] = useState<"account" | "payment" | "success">("account");
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [cvv, setCvv] = useState("");
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -72,7 +75,9 @@ function CheckoutContent() {
       setError(t("checkout.errors.lastNameRequired", "Last name is required"));
       return false;
     }
-    if (!formData.email.trim() || !formData.email.includes("@")) {
+    const emailTrimmed = formData.email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailTrimmed || !emailRegex.test(emailTrimmed)) {
       setError(t("checkout.errors.validEmail", "Please enter a valid email"));
       return false;
     }
@@ -364,16 +369,36 @@ function CheckoutContent() {
                         <CreditCard className="h-4 w-4" />
                         {t("checkout.cardNumber", "Card Number")}
                       </Label>
-                      <Input placeholder="4111 1111 1111 1111" />
+                      <Input
+                        placeholder="4111 1111 1111 1111"
+                        value={cardNumber}
+                        onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, "").slice(0, 16))}
+                        maxLength={19}
+                      />
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
                         <Label>{t("checkout.expiry", "Expiry Date")}</Label>
-                        <Input placeholder="MM/YY" />
+                        <Input
+                          placeholder="MM/YY"
+                          value={expiry}
+                          onChange={(e) => {
+                            let val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                            if (val.length >= 2) val = val.slice(0, 2) + "/" + val.slice(2);
+                            setExpiry(val);
+                          }}
+                          maxLength={5}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>{t("checkout.cvv", "CVV")}</Label>
-                        <Input placeholder="123" type="password" maxLength={4} />
+                        <Input
+                          placeholder="123"
+                          type="password"
+                          value={cvv}
+                          onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                          maxLength={4}
+                        />
                       </div>
                     </div>
                   </div>

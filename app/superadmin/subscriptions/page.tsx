@@ -434,6 +434,29 @@ export default function SuperadminSubscriptionsPage() {
     setTierDialogOpen(true);
   };
 
+  const handleDeleteTier = async (tier: SubscriptionTier) => {
+    if (!window.confirm(`Are you sure you want to delete the "${tier.displayName}" tier? This action cannot be undone.`)) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/admin/subscriptions/tiers/${tier._id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      
+      if (response.ok) {
+        toast.success("Tier deleted successfully");
+        fetchTiers();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || "Failed to delete tier");
+      }
+    } catch {
+      toast.error("Error deleting tier");
+    }
+  };
+
   const handleViewSubscription = (sub: TenantSubscription) => {
     setSelectedSubscription(sub);
     setSubscriptionDialogOpen(true);
@@ -646,7 +669,7 @@ export default function SuperadminSubscriptionsPage() {
                         <Button variant="ghost" size="sm" onClick={() => handleEditTier(tier)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300">
+                        <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300" onClick={() => handleDeleteTier(tier)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

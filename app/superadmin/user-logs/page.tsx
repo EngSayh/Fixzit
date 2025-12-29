@@ -257,7 +257,12 @@ export default function SuperadminUserLogsPage() {
         const errorText = await response.text().catch(() => "");
         // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
         console.error("Failed to fetch sessions:", response.status, errorText);
-        // Fall through to demo data
+        if (response.status === 401 || response.status === 403) {
+          setSessions([]);
+          // Could redirect to login or show unauthorized state
+          return; // Don't fall through to demo data on auth failures
+        }
+        // Fall through to demo data for other errors
       }
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors
@@ -329,7 +334,12 @@ export default function SuperadminUserLogsPage() {
         const errorText = await response.text().catch(() => "");
         // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
         console.error("Failed to fetch stats:", response.status, errorText);
-        // Fall through to demo data
+        if (response.status === 401 || response.status === 403) {
+          setStats(null);
+          // Could redirect to login or show unauthorized state
+          return; // Don't fall through to demo data on auth failures
+        }
+        // Fall through to demo data for other errors
       }
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors

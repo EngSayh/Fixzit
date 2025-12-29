@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       
       if (!result.success) {
         return NextResponse.json(
-          { error: { code: "FIXZIT-AUTH-002", message: result.error } },
+          { error: { code: "FIXZIT-AUTH-002", message: result.error ?? "Unknown error initializing MFA setup" } },
           { status: 400 }
         );
       }
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
       
       if (!result.success) {
         return NextResponse.json(
-          { error: { code: "FIXZIT-AUTH-004", message: result.error } },
+          { error: { code: "FIXZIT-AUTH-004", message: result.error ?? "Unknown error while completing MFA setup" } },
           { status: 400 }
         );
       }

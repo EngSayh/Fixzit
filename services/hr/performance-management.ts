@@ -538,8 +538,8 @@ export async function updateGoalProgress(
       }
     }
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const update: any = {
+    // Build update document - using conditional structure to properly type $push
+    const baseUpdate = {
       $set: {
         progress: Math.min(100, Math.max(0, progress)),
         status,
@@ -547,8 +547,9 @@ export async function updateGoalProgress(
       },
     };
     
-    if (comment) {
-      update.$push = {
+    const updateWithComment = comment ? {
+      ...baseUpdate,
+      $push: {
         comments: {
           id: new ObjectId().toString(),
           userId,
@@ -556,12 +557,12 @@ export async function updateGoalProgress(
           content: comment,
           createdAt: new Date(),
         },
-      };
-    }
+      },
+    } : baseUpdate;
     
     const result = await db.collection(GOALS_COLLECTION).updateOne(
       { _id: new ObjectId(goalId), orgId },
-      update
+      updateWithComment as Document
     );
     
     if (result.matchedCount === 0) {

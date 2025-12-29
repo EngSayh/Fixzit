@@ -228,6 +228,11 @@ export default function SuperadminUsersPage() {
     return () => clearTimeout(timeout);
   }, [search]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, orgFilter, userTypeFilter]);
+
   // Selection helpers
   const allSelected = useMemo(() => {
     if (users.length === 0) return false;

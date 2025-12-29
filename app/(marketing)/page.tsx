@@ -117,52 +117,53 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+    <div className="flex flex-col">
       <section className="fxz-hero">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 flex flex-col lg:flex-row items-center gap-10">
-          <div className="flex-1 space-y-6">
-            <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20 flex flex-col lg:flex-row items-center gap-8 lg:gap-16">
+          <div className="flex-1 space-y-6 max-w-2xl">
+            <p className="text-xs font-semibold tracking-[0.2em] text-white/90 uppercase">
               {translate(
                 "Facility Management · Marketplaces · Saudi-first",
                 "hero.tagline",
               )}
             </p>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight text-foreground">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight text-white">
               {translate("Operate properties with calm.", "hero.title.line1")}{" "}
               <br />
               {translate("Move money with confidence.", "hero.title.line2")}
             </h1>
-            <p className="text-sm sm:text-base text-muted-foreground max-w-xl">
+            <p className="text-base sm:text-lg text-white/80 max-w-xl">
               {translate(
                 "A unified platform for Work Orders, Properties, Finance, HR and Souq — designed for Saudi facility management teams with Vision 2030 standards.",
                 "hero.description",
               )}
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-center gap-4">
               <Link
                 href="/pricing"
                 role="button"
-                className="fxz-btn-primary px-4 py-2 text-sm font-medium"
+                className="fxz-btn-primary px-6 py-3 text-base font-semibold rounded-lg shadow-lg hover:shadow-xl transition-shadow"
               >
                 {translate("Get Started", "hero.actions.getStarted")}
               </Link>
               <Link
-                href="/login"
-                className="fxz-btn-primary px-4 py-2 text-sm font-medium"
+                href="/contact"
+                className="fxz-btn-outline px-5 py-3 text-base font-medium rounded-lg"
               >
-                {translate("Sign in", "hero.actions.signIn")}
-              </Link>
-              <Link
-                href="/help"
-                className="fxz-btn-outline px-4 py-2 text-sm font-medium"
-              >
-                {translate("Book a live demo", "hero.actions.bookDemo")}
+                {translate("Book a Demo", "hero.actions.bookDemo")}
               </Link>
               <Link
                 href="/vendor/apply"
-                className="fxz-btn-ghost px-4 py-2 text-sm font-medium border border-secondary text-secondary hover:bg-secondary/10"
+                className="bg-white/10 hover:bg-white/20 text-white border border-white/30 px-5 py-3 text-base font-medium rounded-lg transition-colors"
               >
                 {translate("Apply as Vendor", "hero.actions.vendorApply")}
+              </Link>
+              <Link
+                href="/login"
+                className="text-white/90 hover:text-white underline-offset-4 hover:underline text-base font-medium transition-colors"
+                aria-label={translate("Sign in to your account", "hero.actions.signInLabel")}
+              >
+                {translate("Sign in", "hero.actions.signIn")}
               </Link>
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-3 text-sm font-semibold">
@@ -177,8 +178,8 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="flex-1 w-full">
-            <div className="fxz-card p-4 sm:p-5">
+          <div className="flex-1 w-full max-w-lg lg:max-w-xl">
+            <div className="fxz-card p-6 sm:p-8 shadow-xl">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">

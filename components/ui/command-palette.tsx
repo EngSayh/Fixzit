@@ -180,8 +180,11 @@ export function CommandPalette({
         }
         break;
       case "function":
-        // Custom function handlers would be registered separately
-        // Function execution is handled by registered handlers
+        // Function handlers are identified by string name
+        // They should be registered and looked up from a handler registry
+        // For now, log unimplemented handler usage
+        // eslint-disable-next-line no-console -- Debug logging for unimplemented handlers
+        console.info("Function command invoked:", action.handler);
         break;
     }
   }, [router, onOpenModal, onToggleTheme]);

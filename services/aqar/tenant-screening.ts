@@ -17,7 +17,7 @@
  * @created 2025-12-28
  */
 
-import { ObjectId } from "mongodb";
+import { ObjectId, type Document as MongoDocument } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
@@ -326,21 +326,19 @@ export async function addDocument(
   try {
     const db = await getDatabase();
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateDoc: any = {
-      $push: {
-        documents: {
-          type: document.type,
-          status: "pending",
-          url: document.url,
-        },
-      },
-      $set: { updatedAt: new Date() },
-    };
-    
+    // MongoDB update operators for adding document to array
     const result = await db.collection("screening_applications").updateOne(
       { _id: new ObjectId(applicationId), orgId },
-      updateDoc
+      {
+        $push: {
+          documents: {
+            type: document.type,
+            status: "pending",
+            url: document.url,
+          },
+        },
+        $set: { updatedAt: new Date() },
+      } as MongoDocument
     );
     
     // Validate that the document was actually found and updated

@@ -19,7 +19,8 @@ export async function GET() {
     const session = await auth();
     
     // Demo mode requires explicit environment flag AND no auth
-    const isDemoEnabled = process.env.ENABLE_SECURITY_DEMO === "true";
+    // Note: Using ENABLE_DEMO_MODE for consistency with other routes (also accepts ENABLE_SECURITY_DEMO for backwards compatibility)
+    const isDemoEnabled = process.env.ENABLE_DEMO_MODE === "true" || process.env.ENABLE_SECURITY_DEMO === "true";
     const isDemo = isDemoEnabled && !session?.user;
     
     // Require authentication unless demo mode is explicitly enabled

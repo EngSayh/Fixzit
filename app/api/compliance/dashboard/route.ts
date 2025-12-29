@@ -29,7 +29,14 @@ export async function GET() {
       );
     }
     
-    const orgId = isDemo ? 'demo' : ((session?.user as { orgId?: string })?.orgId ?? '1');
+    const userOrgId = (session?.user as { orgId?: string })?.orgId;
+    if (!isDemo && !userOrgId) {
+      return NextResponse.json(
+        { error: { code: 'FIXZIT-API-001', message: 'Missing orgId for authenticated user' } },
+        { status: 400 }
+      );
+    }
+    const orgId = isDemo ? 'demo' : userOrgId!;
     
     // Compliance dashboard data
     const dashboard = {

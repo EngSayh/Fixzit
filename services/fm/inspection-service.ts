@@ -525,20 +525,18 @@ export async function completeInspectionItem(
   try {
     const db = await getDatabase();
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateOp: any = {
-      $push: { completedItems: item },
-      $pull: { incompleteItems: item.itemId },
-      $set: { updatedAt: new Date() },
-    };
-    
+    // MongoDB update operators for adding completed items and removing from incomplete
     const result = await db.collection(INSPECTIONS_COLLECTION).updateOne(
       {
         _id: new ObjectId(inspectionId),
         orgId,
         status: InspectionStatus.IN_PROGRESS,
       },
-      updateOp
+      {
+        $push: { completedItems: item },
+        $pull: { incompleteItems: item.itemId },
+        $set: { updatedAt: new Date() },
+      } as Document
     );
     
     if (result.matchedCount === 0) {
@@ -547,11 +545,9 @@ export async function completeInspectionItem(
     
     // If item has findings, add them
     if (item.findings && item.findings.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pushOp: any = { $push: { findings: { $each: item.findings } } };
       await db.collection(INSPECTIONS_COLLECTION).updateOne(
         { _id: new ObjectId(inspectionId), orgId },
-        pushOp
+        { $push: { findings: { $each: item.findings } } } as Document
       );
     }
     
@@ -579,19 +575,16 @@ export async function addFinding(
       workOrderCreated: false,
     };
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateOp: any = {
-      $push: { findings: findingWithId },
-      $set: { updatedAt: new Date() },
-    };
-    
     const result = await db.collection(INSPECTIONS_COLLECTION).updateOne(
       {
         _id: new ObjectId(inspectionId),
         orgId,
         status: { $in: [InspectionStatus.IN_PROGRESS, InspectionStatus.PENDING_REVIEW] },
       },
-      updateOp
+      {
+        $push: { findings: findingWithId },
+        $set: { updatedAt: new Date() },
+      } as Document
     );
     
     if (result.matchedCount === 0) {

@@ -116,6 +116,17 @@ export async function POST(req: NextRequest) {
 
      
     const result = await collection.insertOne(notification);
+    
+    if (!result.insertedId) {
+      logger.error("Failed to insert notification - no insertedId returned", {
+        component: "superadmin-notifications",
+        action: "send",
+      });
+      return NextResponse.json(
+        { error: { code: "FIXZIT-DB-001", message: "Failed to create notification" } },
+        { status: 500 }
+      );
+    }
 
     // STUB MODE: In development or when NOTIFICATIONS_STUB=true, mark as queued
     // but don't actually send. In production, a background worker would:

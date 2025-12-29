@@ -24,6 +24,48 @@ type Props = {
   initialSession?: SuperadminSessionState;
 };
 
+/**
+ * Inner layout component that uses hooks inside I18nProvider context
+ */
+function SuperadminLayoutInner({ children, isLoginPage }: { children: ReactNode; isLoginPage: boolean }) {
+  const { t } = useI18n();
+  
+  if (isLoginPage) {
+    return <div className="min-h-screen bg-background">{children}</div>;
+  }
+  
+  return (
+    <>
+      {/* Skip to main content link for keyboard navigation */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:start-4 focus:z-50 focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:ring-2 focus:ring-primary focus:rounded-md"
+      >
+        {t("accessibility.skipToMainContent")}
+      </a>
+      <div className="min-h-screen bg-background flex pb-7">
+        {/* Sidebar */}
+        <SuperadminSidebar />
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <SuperadminHeader />
+
+          {/* Page Content */}
+          <main id="main-content" className="flex-1 overflow-auto" tabIndex={-1}>{children}</main>
+        </div>
+      </div>
+      
+      {/* System Status Bar - Replaces marketing footer */}
+      <SystemStatusBar />
+      
+      {/* Command Palette (Cmd+K) */}
+      <CommandPalette />
+    </>
+  );
+}
+
 export function SuperadminLayoutClient({
   children,
   initialLocale,
@@ -31,7 +73,6 @@ export function SuperadminLayoutClient({
   initialSession = null,
 }: Props) {
   const pathname = usePathname();
-  const { t } = useI18n();
   const isLoginPage = pathname === "/superadmin/login";
   const isAuthenticated = initialSession?.authenticated ?? false;
   const [showTimeout, setShowTimeout] = React.useState(false);
@@ -75,38 +116,9 @@ export function SuperadminLayoutClient({
         <ThemeProvider>
           <I18nProvider initialLocale={initialLocale} initialDict={initialDict}>
             <CurrencyProvider>
-              {isLoginPage ? (
-                <div className="min-h-screen bg-background">{children}</div>
-              ) : (
-                <>
-                  {/* Skip to main content link for keyboard navigation */}
-                  <a
-                    href="#main-content"
-                    className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:start-4 focus:z-50 focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:ring-2 focus:ring-primary focus:rounded-md"
-                  >
-                    {t("accessibility.skipToMainContent")}
-                  </a>
-                  <div className="min-h-screen bg-background flex pb-7">
-                    {/* Sidebar */}
-                    <SuperadminSidebar />
-
-                    {/* Main Content Area */}
-                    <div className="flex-1 flex flex-col">
-                      {/* Header */}
-                      <SuperadminHeader />
-
-                      {/* Page Content */}
-                      <main id="main-content" className="flex-1 overflow-auto" tabIndex={-1}>{children}</main>
-                    </div>
-                  </div>
-                  
-                  {/* System Status Bar - Replaces marketing footer */}
-                  <SystemStatusBar />
-                  
-                  {/* Command Palette (Cmd+K) */}
-                  <CommandPalette />
-                </>
-              )}
+              <SuperadminLayoutInner isLoginPage={isLoginPage}>
+                {children}
+              </SuperadminLayoutInner>
             </CurrencyProvider>
           </I18nProvider>
         </ThemeProvider>
