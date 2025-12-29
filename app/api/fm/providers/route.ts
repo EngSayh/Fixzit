@@ -15,9 +15,20 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { randomUUID } from "crypto";
 import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
 
 export async function GET(request: Request) {
   try {
+    // Rate limiting - 60 requests per minute for GET
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const rl = await smartRateLimit(`fm:providers:get:${ip}`, 60, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt ?? 60000) / 1000)) } }
+      );
+    }
+
     const session = await auth();
     
     // Allow demo mode only when not authenticated AND demo mode is explicitly enabled
@@ -208,6 +219,16 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting - stricter for POST (bid submissions): 10 requests per minute
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const rl = await smartRateLimit(`fm:providers:post:${ip}`, 10, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt ?? 60000) / 1000)) } }
+      );
+    }
+
     const session = await auth();
     
     if (!session?.user) {

@@ -195,9 +195,13 @@ export default function OnboardingWizard({
         }
       }
     } catch (_error) {
-      // Silent fail - case data will be loaded on retry
+      toast.error(
+        isRTL
+          ? "تعذر تحميل بيانات الحالة. يرجى المحاولة مرة أخرى."
+          : "Unable to load onboarding case. Please retry.",
+      );
     }
-  }, [session?.user]);
+  }, [session?.user, isRTL]);
 
   useEffect(() => {
     if (existingCaseId) {

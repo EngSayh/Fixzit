@@ -153,12 +153,6 @@ export default function LandingPage() {
                 {translate("Book a Demo", "hero.actions.bookDemo")}
               </Link>
               <Link
-                href="/vendor/apply"
-                className="bg-white/10 hover:bg-white/20 text-white border border-white/30 px-5 py-3 text-base font-medium rounded-lg transition-colors"
-              >
-                {translate("Apply as Vendor", "hero.actions.vendorApply")}
-              </Link>
-              <Link
                 href="/login"
                 className="text-white/90 hover:text-white underline-offset-4 hover:underline text-base font-medium transition-colors"
                 aria-label={translate("Sign in to your account", "hero.actions.signInLabel")}

@@ -195,7 +195,7 @@ export default function SuperadminSubscriptionsPage() {
         },
       ]);
     }
-  }, []);
+  }, [t]);
 
   const fetchSubscriptions = useCallback(async () => {
     try {
@@ -206,6 +206,9 @@ export default function SuperadminSubscriptionsPage() {
         setSubscriptions(list);
         return list as TenantSubscription[];
       }
+      // Handle non-ok responses
+      const _errorText = await response.text().catch(() => "");
+      toast.error(t("superadmin.subscriptions.fetchError", "Failed to load subscriptions; showing demo data"));
       return [] as TenantSubscription[];
     } catch {
       toast.error(t("superadmin.subscriptions.fetchError", "Failed to load subscriptions; showing demo data"));
@@ -309,7 +312,7 @@ export default function SuperadminSubscriptionsPage() {
     }
 
     setStats(buildStatsFromSubscriptions(refreshedSubscriptions));
-  }, [fetchSubscriptions, buildStatsFromSubscriptions]);
+  }, [t, fetchSubscriptions, buildStatsFromSubscriptions]);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);

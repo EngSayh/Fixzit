@@ -24,8 +24,10 @@ import {
   Mail,
   User,
   Lock,
+  Phone,
 } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const PLANS: Record<string, { name: string; pricePerUser: number }> = {
   standard: { name: "Standard", pricePerUser: 99 },
@@ -51,17 +53,18 @@ function CheckoutContent() {
     lastName: "",
     email: "",
     companyName: "",
+    phone: "",
     password: "",
     confirmPassword: "",
+    termsAccepted: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [step, setStep] = useState<"account" | "payment" | "success">("account");
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
+  // Card payment fields removed - payment integration pending
+  // When Stripe/TAP is integrated, use their tokenized input components
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (error) setError("");
   };
@@ -85,12 +88,20 @@ function CheckoutContent() {
       setError(t("checkout.errors.companyRequired", "Company name is required"));
       return false;
     }
+    if (!formData.phone.trim()) {
+      setError(t("checkout.errors.phoneRequired", "Phone number is required"));
+      return false;
+    }
     if (formData.password.length < 8) {
       setError(t("checkout.errors.passwordLength", "Password must be at least 8 characters"));
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
       setError(t("checkout.errors.passwordMatch", "Passwords do not match"));
+      return false;
+    }
+    if (!formData.termsAccepted) {
+      setError(t("checkout.errors.termsRequired", "You must accept the terms and conditions"));
       return false;
     }
     return true;
@@ -117,8 +128,11 @@ function CheckoutContent() {
           lastName: formData.lastName,
           fullName: `${formData.firstName} ${formData.lastName}`,
           email: formData.email,
+          phone: formData.phone,
           password: formData.password,
+          confirmPassword: formData.confirmPassword,
           companyName: formData.companyName,
+          termsAccepted: formData.termsAccepted,
           userType: "corporate",
         }),
       });
@@ -129,13 +143,20 @@ function CheckoutContent() {
       }
 
       // Create subscription
-      const subscriptionResponse = await fetch("/api/subscriptions/create", {
+      const subscriptionResponse = await fetch("/api/checkout/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          planId,
+          subscriberType: "CORPORATE",
+          modules: ["FM", "PROPERTIES"],
           seats: users,
-          billing_cycle: "monthly",
+          billingCycle: "MONTHLY",
+          currency: "SAR",
+          customer: {
+            name: `${formData.firstName} ${formData.lastName}`,
+            email: formData.email,
+            phone: formData.phone,
+          },
         }),
       });
 
@@ -323,6 +344,19 @@ function CheckoutContent() {
                       required
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      {t("checkout.phone", "Phone Number")}
+                    </Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleChange("phone", e.target.value)}
+                      required
+                    />
+                  </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="password" className="flex items-center gap-2">
@@ -348,6 +382,16 @@ function CheckoutContent() {
                       />
                     </div>
                   </div>
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="termsAccepted"
+                      checked={formData.termsAccepted}
+                      onCheckedChange={(checked) => handleChange("termsAccepted", !!checked)}
+                    />
+                    <Label htmlFor="termsAccepted" className="text-sm leading-relaxed cursor-pointer">
+                      {t("checkout.terms", "I agree to the terms and conditions and privacy policy")}
+                    </Label>
+                  </div>
                   <Button type="submit" className="w-full">
                     {t("checkout.continueToPayment", "Continue to Payment")}
                   </Button>
@@ -364,42 +408,22 @@ function CheckoutContent() {
                   </div>
 
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4" />
-                        {t("checkout.cardNumber", "Card Number")}
-                      </Label>
-                      <Input
-                        placeholder="4111 1111 1111 1111"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, "").slice(0, 16))}
-                        maxLength={19}
-                      />
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>{t("checkout.expiry", "Expiry Date")}</Label>
-                        <Input
-                          placeholder="MM/YY"
-                          value={expiry}
-                          onChange={(e) => {
-                            let val = e.target.value.replace(/\D/g, "").slice(0, 4);
-                            if (val.length >= 2) val = val.slice(0, 2) + "/" + val.slice(2);
-                            setExpiry(val);
-                          }}
-                          maxLength={5}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{t("checkout.cvv", "CVV")}</Label>
-                        <Input
-                          placeholder="123"
-                          type="password"
-                          value={cvv}
-                          onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                          maxLength={4}
-                        />
-                      </div>
+                    {/* Payment Integration Pending Notice */}
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+                      <p className="font-medium text-yellow-800 dark:text-yellow-200 mb-2">
+                        {t("checkout.paymentPending", "Payment Integration Pending")}
+                      </p>
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-3">
+                        {t("checkout.paymentPendingDesc", "Secure payment processing via Stripe/TAP will be available soon. For testing, use the demo flow.")}
+                      </p>
+                      <a 
+                        href="https://docs.stripe.com/testing#cards" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        {t("checkout.testCardLink", "View test card numbers →")}
+                      </a>
                     </div>
                   </div>
 

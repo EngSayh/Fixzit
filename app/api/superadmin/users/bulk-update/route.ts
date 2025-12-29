@@ -13,6 +13,7 @@ import { z } from "zod";
 import { connectDb } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
 import { isValidObjectId } from "mongoose";
+import { smartRateLimit } from "@/server/security/rateLimit";
 
 const BulkUpdateSchema = z.object({
   userIds: z.array(z.string()).min(1, "At least one user ID is required")
@@ -34,6 +35,16 @@ const BulkUpdateSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting for bulk operations - 5 requests per minute
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const rl = await smartRateLimit(`superadmin:bulk-update:${ip}`, 5, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt ?? 60000) / 1000)) } }
+      );
+    }
+
     // Verify superadmin session
     const session = await getSuperadminSession(request);
     if (!session) {
