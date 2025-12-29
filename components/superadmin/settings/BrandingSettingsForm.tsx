@@ -70,9 +70,17 @@ export function BrandingSettingsForm() {
         setOriginalData(data);
         setLastAudit({ updatedAt: data.updatedAt, updatedBy: data.updatedBy });
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Unknown error";
-        logger.error("Failed to load branding settings", { error: errorMessage });
-        setError(`Failed to load branding settings: ${errorMessage}`);
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        logger.error("Failed to load branding settings", { 
+          error: errorMessage,
+          errorType: err instanceof Error ? err.name : typeof err,
+        });
+        // Don't show error for 401 (expected when not logged in as superadmin)
+        if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
+          logger.info("Branding settings require superadmin session");
+        } else {
+          setError(`Failed to load branding settings: ${errorMessage}`);
+        }
       } finally {
         setLoading(false);
       }
