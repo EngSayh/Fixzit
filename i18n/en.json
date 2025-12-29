@@ -3008,7 +3008,11 @@
   },
   "accessibility": {
     "skipToContent": "Skip to main content",
-    "skipToMainContent": "Skip to main content"
+    "skipToMainContent": "Skip to main content",
+    "scrollToTop": "Scroll to top",
+    "searchSuperadmin": "Search superadmin",
+    "hideAccessKey": "Hide access key",
+    "showAccessKey": "Show access key"
   },
   "app": {
     "fm": "Facility Management",

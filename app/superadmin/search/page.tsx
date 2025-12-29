@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Suspense } from "react";
+import { useI18n } from "@/i18n/useI18n";
 import { Search as SearchIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -97,6 +98,7 @@ function Results({ query }: { query: string }) {
 }
 
 function SuperadminSearchClient({ initialQuery }: { initialQuery: string }) {
+  const { t } = useI18n();
   const [q, setQ] = React.useState(initialQuery);
 
   const submit = (evt?: React.FormEvent) => {
@@ -131,7 +133,7 @@ function SuperadminSearchClient({ initialQuery }: { initialQuery: string }) {
             }}
             placeholder="Search users, tenants, jobs, vendors…"
             className="ps-10 bg-card border-border text-foreground placeholder:text-muted-foreground"
-            aria-label="Search superadmin"
+            aria-label={t("accessibility.searchSuperadmin")}
           />
         </div>
         <Button type="submit" variant="default">

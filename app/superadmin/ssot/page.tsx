@@ -265,7 +265,7 @@ export default function SSOTViewerPage() {
           onClick={scrollToTop}
           className="fixed bottom-6 end-6 rounded-full p-3 bg-blue-600 hover:bg-blue-700 shadow-lg"
           size="icon"
-          aria-label="Scroll to top"
+          aria-label={t("accessibility.scrollToTop")}
         >
           <ChevronUp className="h-5 w-5" />
         </Button>

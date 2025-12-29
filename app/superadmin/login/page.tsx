@@ -9,6 +9,7 @@
 
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { useI18n } from "@/i18n/useI18n";
 import { Lock, AlertCircle, Shield, Eye, EyeOff } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +64,7 @@ function AuthDebugInfo() {
 }
 
 export default function SuperadminLoginPage() {
+  const { t } = useI18n();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [secretKey, setSecretKey] = useState("");
@@ -223,7 +225,7 @@ export default function SuperadminLoginPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute end-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -249,7 +251,7 @@ export default function SuperadminLoginPage() {
                   type="button"
                   onClick={() => setShowSecretKey(!showSecretKey)}
                   className="absolute end-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
-                  aria-label={showSecretKey ? "Hide access key" : "Show access key"}
+                  aria-label={showSecretKey ? t("accessibility.hideAccessKey") : t("accessibility.showAccessKey")}
                 >
                   {showSecretKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>

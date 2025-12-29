@@ -7,6 +7,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import type { Locale } from "@/i18n/config";
 import React, { type ReactNode, useEffect } from "react";
+import { useI18n } from "@/i18n/useI18n";
 import { SuperadminSidebar } from "./SuperadminSidebar";
 import { SuperadminHeader } from "./SuperadminHeader";
 import { SystemStatusBar } from "./SystemStatusBar";
@@ -30,6 +31,7 @@ export function SuperadminLayoutClient({
   initialSession = null,
 }: Props) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const isLoginPage = pathname === "/superadmin/login";
   const isAuthenticated = initialSession?.authenticated ?? false;
   const [showTimeout, setShowTimeout] = React.useState(false);
@@ -82,7 +84,7 @@ export function SuperadminLayoutClient({
                     href="#main-content"
                     className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:start-4 focus:z-50 focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:ring-2 focus:ring-primary focus:rounded-md"
                   >
-                    Skip to main content
+                    {t("accessibility.skipToMainContent")}
                   </a>
                   <div className="min-h-screen bg-background flex pb-7">
                     {/* Sidebar */}

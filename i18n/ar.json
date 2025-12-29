@@ -3008,7 +3008,11 @@
   },
   "accessibility": {
     "skipToContent": "انتقل إلى المحتوى الرئيسي",
-    "skipToMainContent": "انتقل إلى المحتوى الرئيسي"
+    "skipToMainContent": "انتقل إلى المحتوى الرئيسي",
+    "scrollToTop": "الانتقال إلى الأعلى",
+    "searchSuperadmin": "البحث في لوحة المشرف",
+    "hideAccessKey": "إخفاء مفتاح الوصول",
+    "showAccessKey": "عرض مفتاح الوصول"
   },
   "app": {
     "fm": "إدارة المرافق",
