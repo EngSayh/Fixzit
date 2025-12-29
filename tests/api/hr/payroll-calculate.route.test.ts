@@ -90,7 +90,11 @@ import { PayrollService } from "@/server/services/hr/payroll.service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { Employee, AttendanceRecord } from "@/server/models/hr.models";
 
-const importRoute = () => import("@/app/api/hr/payroll/runs/[id]/calculate/route");
+// Use vi.resetModules() to ensure fresh imports in CI (avoids mock isolation issues)
+const importRoute = async () => {
+  vi.resetModules();
+  return import("@/app/api/hr/payroll/runs/[id]/calculate/route");
+};
 
 describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
   const mockOrgId = "507f1f77bcf86cd799439011";
@@ -105,6 +109,7 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Re-mock after resetModules to ensure mocks are fresh
     vi.mocked(auth).mockResolvedValue(mockSession as never);
     vi.mocked(hasAllowedRole).mockReturnValue(true);
     vi.mocked(enforceRateLimit).mockReturnValue(null);
