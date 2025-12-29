@@ -218,7 +218,8 @@ async function generateLeaseNumber(orgId: string): Promise<string> {
  * Create a new lease
  */
 export async function createLease(
-  request: CreateLeaseRequest
+  request: CreateLeaseRequest,
+  session?: mongoose.ClientSession
 ): Promise<{ success: boolean; lease?: LeaseDocument; error?: string }> {
   try {
     const db = await getDatabase();
@@ -319,7 +320,10 @@ export async function createLease(
       expiryNotificationsSent: 0,
     };
     
-    const result = await db.collection("leases").insertOne(lease);
+    const result = await db.collection("leases").insertOne(
+      lease,
+      session ? { session } : undefined
+    );
     
     logger.info("Lease created", {
       leaseId: result.insertedId.toString(),
@@ -466,7 +470,7 @@ export async function renewLease(
           terms: currentLease.terms,
           autoRenew: currentLease.autoRenew,
           createdBy: renewedBy,
-        });
+        }, session); // Pass session for transactional insert
         
         if (!createResult.success) {
           throw new Error(createResult.error || "Failed to create renewal lease");
