@@ -482,9 +482,9 @@ export async function addMessage(
       updateOp.$set.status = newStatus;
     }
     
-    if (isFirstResponse) {
+    if (isFirstResponse && ticket) {
       updateOp.$set.firstResponseAt = new Date();
-      updateOp.$set["sla.firstResponseMet"] = new Date() <= ticket!.sla.responseDeadline;
+      updateOp.$set["sla.firstResponseMet"] = new Date() <= ticket.sla.responseDeadline;
     }
     
     await db.collection(TICKETS_COLLECTION).updateOne(
@@ -1157,28 +1157,22 @@ export async function getSatisfactionStats(
 // ============================================================================
 
 /**
- * Generate unique ticket number
+ * Generate unique ticket number atomically using a counter collection
  */
 async function generateTicketNumber(orgId: string): Promise<string> {
   const db = await getDatabase();
-  
-  // Get the last ticket number for this org
-  const lastTicket = await db.collection(TICKETS_COLLECTION)
-    .find({ orgId })
-    .sort({ createdAt: -1 })
-    .limit(1)
-    .toArray();
-  
-  let sequence = 1;
-  if (lastTicket.length > 0) {
-    const lastNumber = lastTicket[0].ticketNumber as string;
-    const match = lastNumber.match(/-(\d+)$/);
-    if (match) {
-      sequence = parseInt(match[1], 10) + 1;
-    }
-  }
-  
   const year = new Date().getFullYear().toString().slice(-2);
+  const counterKey = `ticket-${orgId}-${year}`;
+  
+  // Atomic increment on counter document
+  // Note: counters collection uses string _id (not ObjectId) as counter keys
+  const result = await db.collection("counters").findOneAndUpdate(
+    { _id: counterKey as unknown as ObjectId },
+    { $inc: { seq: 1 } },
+    { upsert: true, returnDocument: "after" }
+  );
+  
+  const sequence = (result?.seq as number) || 1;
   return `TKT-${year}-${String(sequence).padStart(6, "0")}`;
 }
 
