@@ -178,9 +178,30 @@ export default function FMDashboardPage() {
     }
   }, []);
 
+  // Keyboard shortcut: ⌘K / Ctrl+K for quick actions/search
   useEffect(() => {
-    // Only bypass auth in demo mode when explicitly enabled
-    const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.NODE_ENV === "development";
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Cmd+K (Mac) or Ctrl+K (Windows/Linux)
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        // Trigger refresh as primary quick action
+        // In future: Could open a command palette
+        fetchDashboardData();
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [fetchDashboardData]);
+
+  useEffect(() => {
+    // Only bypass auth in demo mode when explicitly enabled via NEXT_PUBLIC_DEMO_MODE
+    // SECURITY: Do not use NODE_ENV - that would enable unauthenticated access in development
+    const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+    if (isDemoMode) {
+      // eslint-disable-next-line no-console -- Demo mode warning for debugging
+      console.warn("[FM Dashboard] Demo mode enabled - authentication bypassed");
+    }
     if (!isDemoMode && status !== "authenticated") {
       // In production without demo mode, require authentication
       return;

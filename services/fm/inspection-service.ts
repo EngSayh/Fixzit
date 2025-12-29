@@ -277,14 +277,6 @@ export async function createTemplate(
   try {
     const db = await getDatabase();
     
-    // If setting as default, unset other defaults
-    if (data.isDefault) {
-      await db.collection(TEMPLATES_COLLECTION).updateMany(
-        { orgId: data.orgId, type: data.type, isDefault: true },
-        { $set: { isDefault: false, updatedAt: new Date() } }
-      );
-    }
-    
     const template: Omit<InspectionTemplate, "_id"> = {
       ...data,
       createdAt: new Date(),
@@ -292,13 +284,27 @@ export async function createTemplate(
     };
     
     const result = await db.collection(TEMPLATES_COLLECTION).insertOne(template);
+    const templateId = result.insertedId.toString();
+    
+    // If setting as default, atomically unset other defaults (after insert to ensure we have the new ID)
+    if (data.isDefault) {
+      await db.collection(TEMPLATES_COLLECTION).updateMany(
+        { 
+          orgId: data.orgId, 
+          type: data.type, 
+          isDefault: true,
+          _id: { $ne: result.insertedId } 
+        },
+        { $set: { isDefault: false, updatedAt: new Date() } }
+      );
+    }
     
     logger.info("Inspection template created", {
       component: "inspection-service",
       action: "createTemplate",
     });
     
-    return { success: true, templateId: result.insertedId.toString() };
+    return { success: true, templateId };
   } catch (_error) {
     logger.error("Failed to create inspection template", { component: "inspection-service" });
     return { success: false, error: "Failed to create template" };
@@ -525,30 +531,31 @@ export async function completeInspectionItem(
   try {
     const db = await getDatabase();
     
-    // MongoDB update operators for adding completed items and removing from incomplete
+    // Atomic update: push completed item, pull from incomplete, and add findings all in one operation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateDoc: any = {
+      $push: { completedItems: item },
+      $pull: { incompleteItems: item.itemId },
+      $set: { updatedAt: new Date() },
+    };
+    
+    // If item has findings, include them in the same atomic operation
+    if (item.findings && item.findings.length > 0) {
+      // Use $each to push multiple findings atomically with the item completion
+      updateDoc.$push.findings = { $each: item.findings };
+    }
+    
     const result = await db.collection(INSPECTIONS_COLLECTION).updateOne(
       {
         _id: new ObjectId(inspectionId),
         orgId,
         status: InspectionStatus.IN_PROGRESS,
       },
-      {
-        $push: { completedItems: item },
-        $pull: { incompleteItems: item.itemId },
-        $set: { updatedAt: new Date() },
-      } as Document
+      updateDoc as Document
     );
     
     if (result.matchedCount === 0) {
       return { success: false, error: "Inspection not found or not in progress" };
-    }
-    
-    // If item has findings, add them
-    if (item.findings && item.findings.length > 0) {
-      await db.collection(INSPECTIONS_COLLECTION).updateOne(
-        { _id: new ObjectId(inspectionId), orgId },
-        { $push: { findings: { $each: item.findings } } } as Document
-      );
     }
     
     return { success: true };

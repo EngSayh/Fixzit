@@ -55,11 +55,21 @@ export async function GET() {
       }
     }
     
+    // Validate orgId when not in demo mode
+    const userOrgId = (session?.user as { orgId?: string })?.orgId;
+    if (!isDemo && !userOrgId) {
+      logger.warn("[security/enterprise] Missing orgId for authenticated user", { userId: (session?.user as { id?: string })?.id });
+      return NextResponse.json(
+        { error: { code: "FIXZIT-ORG-001", message: "Organization context required - orgId missing" } },
+        { status: 400 }
+      );
+    }
+
     // Enterprise Security Dashboard
     const securityDashboard = {
       generated_at: new Date().toISOString(),
       is_demo: isDemo,
-      org_id: isDemo ? "demo" : ((session?.user as { orgId?: string })?.orgId ?? "1"),
+      org_id: isDemo ? "demo" : userOrgId,
       
       // Zero-Trust Status
       zero_trust: {

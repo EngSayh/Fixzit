@@ -110,11 +110,12 @@ export default function PricingPage() {
 
   const handleProceedToCheckout = () => {
     if (!selectedPlan || !selectedPlanDetails) return;
-    // Navigate to checkout with plan details
+    // Navigate to checkout with plan and users - amount is calculated server-side
+    // Do NOT pass amount in URL to prevent price tampering
     const params = new URLSearchParams({
       plan: selectedPlan,
       users: userCount.toString(),
-      amount: totalPrice.toString(),
+      // Amount is calculated server-side from plan + users to prevent tampering
     });
     router.push(`/checkout?${params.toString()}`);
   };

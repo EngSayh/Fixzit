@@ -813,7 +813,7 @@ export async function autoGenerateWorkOrders(
 ): Promise<{ created: number; workOrderIds: string[] }> {
   try {
     const db = await getDatabase();
-    const minProb = options?.minProbability || 0.7;
+    const minConfidence = options?.minProbability || 0.7; // Threshold for confidence level
     const workOrderIds: string[] = [];
     
     const recommendations = await getMaintenanceRecommendations(orgId, {
@@ -834,7 +834,7 @@ export async function autoGenerateWorkOrders(
     
     const highPriorityRecs = recommendations.filter(r => 
       (r.priority === MaintenancePriority.IMMEDIATE || r.priority === MaintenancePriority.URGENT) &&
-      confidenceToNumber(r.confidence) >= minProb
+      confidenceToNumber(r.confidence) >= minConfidence
     );
     
     for (const rec of highPriorityRecs) {
@@ -1017,6 +1017,9 @@ function getComponentPredictions(
   const MAX_DAYS = 3650; // Cap at 10 years
   const safeProbability = Math.max(baseFailureProbability, MIN_PROBABILITY);
   
+  // Helper to clamp probability to valid 0-1 range
+  const clampProbability = (p: number): number => Math.max(0, Math.min(1, p));
+  
   const calculateDaysToFailure = (factor: number): number => {
     const days = Math.round(factor / safeProbability);
     return Math.min(days, MAX_DAYS);
@@ -1028,7 +1031,7 @@ function getComponentPredictions(
         {
           name: "Compressor",
           failureType: "Refrigerant leak",
-          probability: baseFailureProbability * 0.8,
+          probability: clampProbability(baseFailureProbability * 0.8),
           daysToFailure: calculateDaysToFailure(60),
           recommendedAction: "Check refrigerant levels and inspect for leaks",
           estimatedCost: 1500,
@@ -1037,7 +1040,7 @@ function getComponentPredictions(
         {
           name: "Fan Motor",
           failureType: "Bearing wear",
-          probability: baseFailureProbability * 0.6,
+          probability: clampProbability(baseFailureProbability * 0.6),
           daysToFailure: calculateDaysToFailure(45),
           recommendedAction: "Inspect fan motor bearings and lubricate",
           estimatedCost: 800,
@@ -1046,7 +1049,7 @@ function getComponentPredictions(
         {
           name: "Filters",
           failureType: "Clogging",
-          probability: baseFailureProbability * 1.2,
+          probability: clampProbability(baseFailureProbability * 1.2),
           daysToFailure: calculateDaysToFailure(30),
           recommendedAction: "Replace air filters",
           estimatedCost: 150,

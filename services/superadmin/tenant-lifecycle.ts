@@ -215,6 +215,7 @@ export async function createSnapshot(
   createdBy: ObjectId,
   options: SnapshotOptions
 ): Promise<TenantSnapshot> {
+  const db = await getDatabase();
   const snapshotId = new ObjectId();
   const timestamp = new Date();
   
@@ -263,6 +264,9 @@ export async function createSnapshot(
     expires_at: expiresAt,
     restore_count: 0,
   };
+  
+  // Persist snapshot to database
+  await db.collection("tenant_snapshots").insertOne(snapshot);
   
   logger.info("Tenant snapshot creation initiated", {
     snapshot_id: snapshotId.toString(),
@@ -317,6 +321,7 @@ export async function restoreFromSnapshot(
     throw new Error(`Snapshot ${snapshotId.toString()} is not ready (status: ${snapshot.status})`);
   }
   
+  const db = await getDatabase();
   const jobId = new ObjectId();
   
   const restoreJob: RestoreJob = {
@@ -334,6 +339,9 @@ export async function restoreFromSnapshot(
     started_at: new Date(),
     initiated_by: initiatedBy,
   };
+  
+  // Persist restore job to database
+  await db.collection("restore_jobs").insertOne(restoreJob);
   
   logger.info("Tenant restore initiated", {
     job_id: jobId.toString(),
@@ -388,6 +396,7 @@ export async function activateKillSwitch(
   activatedBy: ObjectId,
   options: KillSwitchOptions
 ): Promise<KillSwitchEvent> {
+  const db = await getDatabase();
   const eventId = new ObjectId();
   const timestamp = new Date();
   
@@ -417,6 +426,22 @@ export async function activateKillSwitch(
     ],
   };
   
+  // Persist kill switch event to database
+  await db.collection("kill_switch_events").insertOne(event);
+  
+  // Update tenant status
+  await db.collection("organizations").updateOne(
+    { _id: tenantId },
+    { 
+      $set: { 
+        status: "suspended",
+        kill_switch_active: true,
+        kill_switch_event_id: eventId,
+        updatedAt: timestamp,
+      }
+    }
+  );
+  
   logger.warn("Kill switch activated", {
     event_id: eventId.toString(),
     tenant_id: tenantId.toString(),
@@ -426,10 +451,9 @@ export async function activateKillSwitch(
   });
   
   // In production:
-  // 1. Update tenant status in database
-  // 2. Invalidate all active sessions
-  // 3. Send notifications if requested
-  // 4. Trigger compliance logging
+  // 1. Invalidate all active sessions
+  // 2. Send notifications if requested
+  // 3. Trigger compliance logging
   
   return event;
 }
@@ -442,7 +466,13 @@ export async function deactivateKillSwitch(
   deactivatedBy: ObjectId,
   notes?: string
 ): Promise<KillSwitchEvent> {
+  const db = await getDatabase();
   const timestamp = new Date();
+  
+  // Validate the kill switch is currently active (not already deactivated)
+  if (event.deactivated_at) {
+    throw new Error(`Kill switch event ${event._id.toString()} is already deactivated`);
+  }
   
   const updatedEvent: KillSwitchEvent = {
     ...event,
@@ -458,6 +488,41 @@ export async function deactivateKillSwitch(
       },
     ],
   };
+  
+  // Persist deactivation to database
+  await db.collection("kill_switch_events").updateOne(
+    { _id: event._id },
+    {
+      $set: {
+        deactivated_at: timestamp,
+        deactivated_by: deactivatedBy,
+      },
+      $push: {
+        audit_trail: {
+          timestamp,
+          action: "kill_switch_deactivated",
+          actor_id: deactivatedBy,
+          details: notes ?? "Kill switch deactivated",
+        },
+      },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any
+  );
+  
+  // Restore tenant status
+  await db.collection("organizations").updateOne(
+    { _id: event.tenant_id },
+    {
+      $set: {
+        status: "active",
+        kill_switch_active: false,
+        updatedAt: timestamp,
+      },
+      $unset: {
+        kill_switch_event_id: "",
+      },
+    }
+  );
   
   logger.info("Kill switch deactivated", {
     event_id: event._id.toString(),
@@ -506,6 +571,7 @@ export async function initiateTimeTravel(
   requestedBy: ObjectId,
   options: TimeTravelOptions
 ): Promise<TimeTravelRequest> {
+  const db = await getDatabase();
   const requestId = new ObjectId();
   const timestamp = new Date();
   
@@ -538,6 +604,9 @@ export async function initiateTimeTravel(
     requested_by: requestedBy,
     preview_expires_at: previewExpiry,
   };
+  
+  // Persist time travel request to database
+  await db.collection("time_travel_requests").insertOne(request);
   
   logger.info("Time travel initiated", {
     request_id: requestId.toString(),

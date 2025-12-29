@@ -711,9 +711,11 @@ export async function verifyChainIntegrity(
       }
       
       // Verify current hash
-      const { hash: _storedHash, _id, ...entryWithoutHash } = log as AuditLogEntry & { _id: unknown };
+      // Exclude _id and expiresAt when recomputing hash to match original computation
+      const { hash: _storedHash, _id, expiresAt: _expiresAt, ...entryWithoutHashAndMeta } = log as AuditLogEntry & { _id: unknown; expiresAt?: unknown };
       const expectedHash = generateHash({
-        ...entryWithoutHash,
+        ...entryWithoutHashAndMeta,
+        timestamp: log.timestamp,
         previousHash: log.previousHash,
       });
       

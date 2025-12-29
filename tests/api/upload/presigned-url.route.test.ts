@@ -142,7 +142,7 @@ describe("API /api/upload/presigned-url", () => {
       expect(res.status).toBe(401);
     });
 
-    it("returns 403 when user has no orgId", async () => {
+    it("returns 400 when user has no orgId (tenant context required)", async () => {
       setMockUser({
         id: "user-123",
         orgId: undefined,

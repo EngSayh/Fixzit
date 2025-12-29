@@ -937,7 +937,8 @@ export async function getUserNotifications(
       orgId,
       userId,
       channel: NotificationChannel.IN_APP,
-      status: NotificationStatus.DELIVERED,
+      // Include both delivered and read notifications (read items should appear in inbox when unreadOnly=false)
+      status: { $in: [NotificationStatus.DELIVERED, NotificationStatus.READ] },
     };
     
     if (options?.unreadOnly) {

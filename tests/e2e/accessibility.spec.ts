@@ -52,8 +52,11 @@ test.describe("Accessibility & Keyboard Navigation", () => {
         expect(hasMainContent).toBe(true);
       } else {
         // Skip link may be sr-only until focused - verify it exists in DOM
+        // Note: Some pages may not have skip links (e.g., minimal layouts)
+        // This is informational logging rather than a test failure
         const skipLinkInDom = await page.locator('a[href="#main-content"]').count();
-        expect(skipLinkInDom).toBeGreaterThanOrEqual(0); // May not exist on all pages
+        // Log for debugging - skip link presence is recommended but not required on all pages
+        console.log(`Skip link count in DOM: ${skipLinkInDom}`);
       }
     });
 

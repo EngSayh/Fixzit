@@ -395,6 +395,11 @@ export async function updateEmployeeWage(
   housingAllowance: number
 ): Promise<{ success: boolean; newContribution?: number; error?: string }> {
   try {
+    // Validate ObjectId format
+    if (!ObjectId.isValid(employeeId)) {
+      return { success: false, error: "Invalid employee ID format" };
+    }
+    
     const db = await getDatabase();
     
     const totalGosiWage = calculateGosiWage(basicSalary, housingAllowance);

@@ -57,7 +57,7 @@ if ($stagingFailed) {
 }
 
 # Check if there are any staged changes before committing
-$stagedFiles = git diff --cached --name-only
+$stagedFiles = @(git diff --cached --name-only)
 if (-not $stagedFiles -or $stagedFiles.Count -eq 0) {
     Write-Host "`nNo staged changes to commit" -ForegroundColor Yellow
     exit 0

@@ -31,6 +31,7 @@ vi.mock("@/server/services/hr/payroll.service", () => ({
   PayrollService: {
     getById: vi.fn(),
     calculatePayrollRun: vi.fn(),
+    updateCalculation: vi.fn(),
   },
 }));
 
@@ -43,20 +44,36 @@ vi.mock("@/services/hr/ksaPayrollService", () => ({
     gosiEmployee: 975,
     gosiEmployer: 1175,
     netPay: 12025,
+    totalDeductions: 975,
+    earnings: [
+      { code: "BASIC", amount: 10000 },
+      { code: "HOUSING", amount: 2500 },
+      { code: "TRANSPORT", amount: 500 },
+      { code: "OVERTIME", amount: 0 },
+    ],
+    deductions: [],
+    gosi: {
+      employerContribution: 1175,
+      breakdown: {},
+    },
   }),
 }));
 
-// Mock HR models
-vi.mock("@/server/models/hr.models", () => ({
-  Employee: {
-    find: vi.fn(),
-    findOne: vi.fn(),
-  },
-  AttendanceRecord: {
-    find: vi.fn(),
-    aggregate: vi.fn(),
-  },
-}));
+// Mock HR models - need chainable mock for Mongoose queries
+vi.mock("@/server/models/hr.models", () => {
+  return {
+    Employee: {
+      find: vi.fn().mockReturnValue({
+        lean: vi.fn().mockResolvedValue([]),
+      }),
+      findOne: vi.fn(),
+    },
+    AttendanceRecord: {
+      find: vi.fn(),
+      aggregate: vi.fn().mockResolvedValue([]),
+    },
+  };
+});
 
 // Mock logger
 vi.mock("@/lib/logger", () => ({
@@ -71,6 +88,7 @@ import { auth } from "@/auth";
 import { hasAllowedRole } from "@/lib/auth/role-guards";
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { Employee, AttendanceRecord } from "@/server/models/hr.models";
 
 const importRoute = () => import("@/app/api/hr/payroll/runs/[id]/calculate/route");
 
@@ -164,23 +182,39 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
     vi.mocked(auth).mockResolvedValue({
       user: { id: "user123", orgId: mockOrgId, role: "SUPER_ADMIN" },
     } as never);
+    
+    // Mock payroll run with periodStart and periodEnd (required for aggregate query)
     vi.mocked(PayrollService.getById).mockResolvedValue({
       _id: mockPayrollRunId,
       status: "DRAFT",
       orgId: mockOrgId,
+      periodStart: new Date("2024-01-01"),
+      periodEnd: new Date("2024-01-31"),
     } as never);
     
-    // Mock successful payroll calculation
-    const mockCalculationResult = {
-      success: true,
-      calculatedLines: [
-        { employeeId: "emp1", basicSalary: 10000, netPay: 9025 },
-        { employeeId: "emp2", basicSalary: 12000, netPay: 10830 },
-      ],
-      totalGross: 22000,
-      totalNet: 19855,
+    // Mock employees - must have active employees for calculation
+    const mockEmployees = [
+      { _id: "emp1", employeeCode: "E001", firstName: "John", lastName: "Doe", compensation: { baseSalary: 10000 }, bankDetails: {} },
+      { _id: "emp2", employeeCode: "E002", firstName: "Jane", lastName: "Smith", compensation: { baseSalary: 12000 }, bankDetails: {} },
+    ];
+    vi.mocked(Employee.find).mockReturnValue({
+      lean: vi.fn().mockResolvedValue(mockEmployees),
+    } as never);
+    
+    // Mock attendance aggregate
+    vi.mocked(AttendanceRecord.aggregate).mockResolvedValue([
+      { _id: "emp1", totalMinutes: 120 },
+      { _id: "emp2", totalMinutes: 60 },
+    ] as never);
+    
+    // Mock successful payroll update
+    const mockUpdatedRun = {
+      _id: mockPayrollRunId,
+      status: "IN_REVIEW",
+      orgId: mockOrgId,
+      totals: { grossPay: 22000, netPay: 19855 },
     };
-    vi.mocked(PayrollService.calculatePayrollRun).mockResolvedValue(mockCalculationResult as never);
+    vi.mocked(PayrollService.updateCalculation).mockResolvedValue(mockUpdatedRun as never);
 
     const req = new NextRequest(`http://localhost/api/hr/payroll/runs/${mockPayrollRunId}/calculate`, {
       method: "POST",
@@ -191,33 +225,46 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
     // Verify authorization passed and calculation succeeded
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.success).toBe(true);
-    expect(PayrollService.calculatePayrollRun).toHaveBeenCalledWith(
-      expect.objectContaining({ _id: mockPayrollRunId }),
-      expect.any(Object)
-    );
+    expect(data.run).toBeDefined();
+    expect(data.summary).toBeDefined();
+    expect(PayrollService.updateCalculation).toHaveBeenCalled();
   });
 
   it("allows HR_OFFICER subRole to calculate payroll", async () => {
     vi.mocked(auth).mockResolvedValue({
       user: { id: "user123", orgId: mockOrgId, role: "STAFF", subRole: "HR_OFFICER" },
     } as never);
+    
+    // Mock payroll run with periodStart and periodEnd
     vi.mocked(PayrollService.getById).mockResolvedValue({
       _id: mockPayrollRunId,
       status: "DRAFT",
       orgId: mockOrgId,
+      periodStart: new Date("2024-01-01"),
+      periodEnd: new Date("2024-01-31"),
     } as never);
     
-    // Mock successful payroll calculation
-    const mockCalculationResult = {
-      success: true,
-      calculatedLines: [
-        { employeeId: "emp1", basicSalary: 8000, netPay: 7220 },
-      ],
-      totalGross: 8000,
-      totalNet: 7220,
+    // Mock employees - must have active employees for calculation
+    const mockEmployees = [
+      { _id: "emp1", employeeCode: "E001", firstName: "John", lastName: "Doe", compensation: { baseSalary: 8000 }, bankDetails: {} },
+    ];
+    vi.mocked(Employee.find).mockReturnValue({
+      lean: vi.fn().mockResolvedValue(mockEmployees),
+    } as never);
+    
+    // Mock attendance aggregate
+    vi.mocked(AttendanceRecord.aggregate).mockResolvedValue([
+      { _id: "emp1", totalMinutes: 90 },
+    ] as never);
+    
+    // Mock successful payroll update
+    const mockUpdatedRun = {
+      _id: mockPayrollRunId,
+      status: "IN_REVIEW",
+      orgId: mockOrgId,
+      totals: { grossPay: 8000, netPay: 7220 },
     };
-    vi.mocked(PayrollService.calculatePayrollRun).mockResolvedValue(mockCalculationResult as never);
+    vi.mocked(PayrollService.updateCalculation).mockResolvedValue(mockUpdatedRun as never);
 
     const req = new NextRequest(`http://localhost/api/hr/payroll/runs/${mockPayrollRunId}/calculate`, {
       method: "POST",
@@ -228,7 +275,8 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
     // Verify authorization passed and calculation succeeded
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.success).toBe(true);
-    expect(PayrollService.calculatePayrollRun).toHaveBeenCalled();
+    expect(data.run).toBeDefined();
+    expect(data.summary).toBeDefined();
+    expect(PayrollService.updateCalculation).toHaveBeenCalled();
   });
 });

@@ -659,7 +659,8 @@ export async function updateContract(
       return { success: false, error: "Cannot edit contract in current status" };
     }
     
-    const newVersion = contract.version + 1;
+    const currentVersion = contract.version;
+    const newVersion = currentVersion + 1;
     
     const versionEntry: VersionEntry = {
       version: newVersion,
@@ -680,10 +681,15 @@ export async function updateContract(
       $push: { versionHistory: versionEntry },
     };
     
-    await db.collection(CONTRACTS_COLLECTION).updateOne(
-      { _id: new ObjectId(contractId), orgId },
+    // Optimistic locking: ensure version hasn't changed since read
+    const result = await db.collection(CONTRACTS_COLLECTION).updateOne(
+      { _id: new ObjectId(contractId), orgId, version: currentVersion },
       updateOp
     );
+    
+    if (result.matchedCount === 0) {
+      return { success: false, error: "Contract was modified by another user. Please refresh and try again." };
+    }
     
     logger.info("Contract updated", {
       component: "contract-lifecycle",
@@ -1008,8 +1014,13 @@ export async function activateContract(
   try {
     const db = await getDatabase();
     
-    await db.collection(CONTRACTS_COLLECTION).updateOne(
-      { _id: new ObjectId(contractId), orgId },
+    // Validate pre-activation status atomically - only PENDING_SIGNATURES can be activated
+    const result = await db.collection(CONTRACTS_COLLECTION).updateOne(
+      { 
+        _id: new ObjectId(contractId), 
+        orgId,
+        status: ContractStatus.PENDING_SIGNATURES 
+      },
       {
         $set: {
           status: ContractStatus.ACTIVE,
@@ -1019,6 +1030,14 @@ export async function activateContract(
         },
       }
     );
+    
+    if (result.matchedCount === 0) {
+      const contract = await getContract(orgId, contractId);
+      if (!contract) {
+        return { success: false, error: "Contract not found" };
+      }
+      return { success: false, error: `Cannot activate contract in ${contract.status} status. Must be ${ContractStatus.PENDING_SIGNATURES}` };
+    }
     
     await updateWorkflowStep(orgId, contractId, "complete", activatedBy);
     
@@ -1490,14 +1509,14 @@ async function generateContractNumber(orgId: string, type: ContractType): Promis
   const prefix = type.substring(0, 3).toUpperCase();
   const counterKey = `contract-${orgId}-${prefix}-${year}`;
   
-  // Atomic counter using counters collection
-  const result = await db.collection("counters").findOneAndUpdate(
-    { _id: counterKey as unknown as ObjectId },
-    { $inc: { seq: 1 } },
+  // Atomic counter using counters collection - use string _id directly
+  const result = await db.collection<{ _id: string; seq: number }>("counters").findOneAndUpdate(
+    { _id: counterKey },
+    { $inc: { seq: 1 }, $setOnInsert: { _id: counterKey } },
     { upsert: true, returnDocument: "after" }
   );
   
-  const sequence = (result?.seq as number) || 1;
+  const sequence = result?.seq || 1;
   return `${prefix}-${year}-${String(sequence).padStart(5, "0")}`;
 }
 
@@ -1640,6 +1659,19 @@ async function updateWorkflowStep(
     const contract = await getContract(orgId, contractId);
     if (!contract) return;
     
+    // Validate stepId exists in workflow
+    const stepExists = contract.workflow.steps.some(step => step.id === stepId);
+    if (!stepExists) {
+      logger.warn("Invalid workflow stepId", {
+        component: "contract-lifecycle",
+        action: "updateWorkflowStep",
+        contractId,
+        stepId,
+        validSteps: contract.workflow.steps.map(s => s.id),
+      });
+      return;
+    }
+    
     const updatedSteps = contract.workflow.steps.map(step => {
       if (step.id === stepId) {
         return { ...step, status: "in_progress" as const };
@@ -1650,8 +1682,13 @@ async function updateWorkflowStep(
       return step;
     });
     
-    await db.collection(CONTRACTS_COLLECTION).updateOne(
-      { _id: new ObjectId(contractId), orgId },
+    // Use atomic update with currentStep check to prevent race conditions
+    const result = await db.collection(CONTRACTS_COLLECTION).updateOne(
+      { 
+        _id: new ObjectId(contractId), 
+        orgId,
+        "workflow.currentStep": contract.workflow.currentStep // Ensure step hasn't changed
+      },
       {
         $set: {
           "workflow.currentStep": stepId,
@@ -1660,6 +1697,15 @@ async function updateWorkflowStep(
         },
       }
     );
+    
+    if (result.matchedCount === 0) {
+      logger.warn("Workflow step update failed - concurrent modification", {
+        component: "contract-lifecycle",
+        action: "updateWorkflowStep",
+        contractId,
+        stepId,
+      });
+    }
   } catch (error) {
     logError("update workflow step", error);
   }

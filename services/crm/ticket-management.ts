@@ -1220,14 +1220,14 @@ async function generateTicketNumber(orgId: string): Promise<string> {
   const counterKey = `ticket-${orgId}-${year}`;
   
   // Atomic increment on counter document
-  // Note: counters collection uses string _id (not ObjectId) as counter keys
-  const result = await db.collection("counters").findOneAndUpdate(
-    { _id: counterKey as unknown as ObjectId },
-    { $inc: { seq: 1 } },
+  // Use string _id directly for counter keys (not ObjectId)
+  const result = await db.collection<{ _id: string; seq: number }>("counters").findOneAndUpdate(
+    { _id: counterKey },
+    { $inc: { seq: 1 }, $setOnInsert: { _id: counterKey } },
     { upsert: true, returnDocument: "after" }
   );
   
-  const sequence = (result?.seq as number) || 1;
+  const sequence = result?.seq || 1;
   return `TKT-${year}-${String(sequence).padStart(6, "0")}`;
 }
 

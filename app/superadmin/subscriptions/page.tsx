@@ -91,6 +91,74 @@ const STATUS_COLORS: Record<string, string> = {
   expired: "bg-gray-500/20 text-gray-400",
 };
 
+// Helper function to get default tiers for fallback
+function getDefaultTiers(): SubscriptionTier[] {
+  const now = new Date().toISOString();
+  return [
+    {
+      _id: "tier-free",
+      name: "free",
+      displayName: "Free",
+      description: "Perfect for getting started",
+      monthlyPrice: 0,
+      annualPrice: 0,
+      currency: "SAR",
+      features: ["Up to 3 users", "Basic features", "Community support"],
+      limits: { users: 3, storage: 1, apiCalls: 1000 },
+      isActive: true,
+      sortOrder: 1,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      _id: "tier-starter",
+      name: "starter",
+      displayName: "Starter",
+      description: "For small teams",
+      monthlyPrice: 99,
+      annualPrice: 999,
+      currency: "SAR",
+      features: ["Up to 10 users", "All basic features", "Email support", "API access"],
+      limits: { users: 10, storage: 10, apiCalls: 10000 },
+      isActive: true,
+      sortOrder: 2,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      _id: "tier-professional",
+      name: "professional",
+      displayName: "Professional",
+      description: "For growing businesses",
+      monthlyPrice: 299,
+      annualPrice: 2999,
+      currency: "SAR",
+      features: ["Up to 50 users", "All features", "Priority support", "Advanced analytics", "Custom integrations"],
+      limits: { users: 50, storage: 100, apiCalls: 100000 },
+      isActive: true,
+      isPopular: true,
+      sortOrder: 3,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      _id: "tier-enterprise",
+      name: "enterprise",
+      displayName: "Enterprise",
+      description: "For large organizations",
+      monthlyPrice: 999,
+      annualPrice: 9999,
+      currency: "SAR",
+      features: ["Unlimited users", "All features", "Dedicated support", "SLA guarantee", "Custom development", "On-premise option"],
+      limits: { users: -1, storage: -1, apiCalls: -1 },
+      isActive: true,
+      sortOrder: 4,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+}
+
 export default function SuperadminSubscriptionsPage() {
   const { t, locale } = useI18n();
   const [tiers, setTiers] = useState<SubscriptionTier[]>([]);
@@ -127,73 +195,17 @@ export default function SuperadminSubscriptionsPage() {
       if (response.ok) {
         const data = await response.json();
         setTiers(Array.isArray(data) ? data : data.tiers || []);
+      } else {
+        // Handle non-ok responses - read error and show fallback
+        const errorText = await response.text().catch(() => "");
+        // eslint-disable-next-line no-console -- Admin debugging for tier fetch failures
+        console.error("Failed to fetch tiers:", response.status, errorText);
+        toast.error(t("superadmin.subscriptions.fetchTiersError", "Failed to load tiers; showing defaults"));
+        setTiers(getDefaultTiers());
       }
     } catch {
       toast.error(t("superadmin.subscriptions.fetchTiersError", "Failed to load tiers; showing defaults"));
-      // Default tiers for demo
-      setTiers([
-        {
-          _id: "tier-free",
-          name: "free",
-          displayName: "Free",
-          description: "Perfect for getting started",
-          monthlyPrice: 0,
-          annualPrice: 0,
-          currency: "SAR",
-          features: ["Up to 3 users", "Basic features", "Community support"],
-          limits: { users: 3, storage: 1, apiCalls: 1000 },
-          isActive: true,
-          sortOrder: 1,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          _id: "tier-starter",
-          name: "starter",
-          displayName: "Starter",
-          description: "For small teams",
-          monthlyPrice: 99,
-          annualPrice: 999,
-          currency: "SAR",
-          features: ["Up to 10 users", "All basic features", "Email support", "API access"],
-          limits: { users: 10, storage: 10, apiCalls: 10000 },
-          isActive: true,
-          sortOrder: 2,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          _id: "tier-professional",
-          name: "professional",
-          displayName: "Professional",
-          description: "For growing businesses",
-          monthlyPrice: 299,
-          annualPrice: 2999,
-          currency: "SAR",
-          features: ["Up to 50 users", "All features", "Priority support", "Advanced analytics", "Custom integrations"],
-          limits: { users: 50, storage: 100, apiCalls: 100000 },
-          isActive: true,
-          isPopular: true,
-          sortOrder: 3,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          _id: "tier-enterprise",
-          name: "enterprise",
-          displayName: "Enterprise",
-          description: "For large organizations",
-          monthlyPrice: 999,
-          annualPrice: 9999,
-          currency: "SAR",
-          features: ["Unlimited users", "All features", "Dedicated support", "SLA guarantee", "Custom development", "On-premise option"],
-          limits: { users: -1, storage: -1, apiCalls: -1 },
-          isActive: true,
-          sortOrder: 4,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ]);
+      setTiers(getDefaultTiers());
     }
   }, [t]);
 
@@ -275,7 +287,7 @@ export default function SuperadminSubscriptionsPage() {
       setSubscriptions(fallbackSubscriptions);
       return fallbackSubscriptions;
     }
-  }, []);
+  }, [t]);
 
   const buildStatsFromSubscriptions = useCallback((list: TenantSubscription[]): SubscriptionStats => {
     const activeCount = list.filter(s => s.status === "active").length;
@@ -411,7 +423,11 @@ export default function SuperadminSubscriptionsPage() {
       annualPrice: tier.annualPrice,
       currency: tier.currency,
       features: tier.features.join("\n"),
-      limits: tier.limits as { users: number; storage: number; apiCalls: number },
+      limits: {
+        users: tier.limits?.users ?? 0,
+        storage: tier.limits?.storage ?? 0,
+        apiCalls: tier.limits?.apiCalls ?? 0,
+      },
       isActive: tier.isActive,
       isPopular: tier.isPopular || false,
       sortOrder: tier.sortOrder,

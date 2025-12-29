@@ -489,7 +489,7 @@ export async function verifyParty(
       ? "verification.landlordVerifiedAt"
       : "verification.tenantVerifiedAt";
     
-    await db.collection(EJAR_COLLECTION).updateOne(
+    const result = await db.collection(EJAR_COLLECTION).updateOne(
       { _id: new ObjectId(contractId), orgId },
       {
         $set: {
@@ -502,6 +502,10 @@ export async function verifyParty(
         },
       }
     );
+    
+    if (result.matchedCount === 0) {
+      return { success: false, error: "Contract not found" };
+    }
     
     // Check if both parties verified to update status
     await checkAndUpdatePendingSignatures(orgId, contractId);
@@ -533,7 +537,7 @@ export async function recordSignature(
     const signedAtField = `signatures.${partyType}SignedAt`;
     const methodField = `signatures.${partyType}SignatureMethod`;
     
-    await db.collection(EJAR_COLLECTION).updateOne(
+    const result = await db.collection(EJAR_COLLECTION).updateOne(
       { _id: new ObjectId(contractId), orgId },
       {
         $set: {
@@ -544,6 +548,10 @@ export async function recordSignature(
         },
       }
     );
+    
+    if (result.matchedCount === 0) {
+      return { success: false, error: "Contract not found" };
+    }
     
     // Check if all required signatures collected
     await checkAndActivateContract(orgId, contractId);

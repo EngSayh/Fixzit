@@ -417,7 +417,8 @@ export async function assessFraudRisk(
     
     const assessment: FraudAssessment = {
       riskLevel,
-      riskScore: Math.round(riskScore * 100),
+      // Clamp riskScore to 0-100 range (score can accumulate beyond 1.0 with multiple signals)
+      riskScore: Math.round(Math.min(1, Math.max(0, riskScore)) * 100),
       signals,
       recommendedActions,
       assessedAt: new Date(),
@@ -1023,7 +1024,8 @@ export async function getVendorDashboard(
         [VendorTier.SUSPENDED]: data.suspended || 0,
       },
       averageScore: Math.round(data.avgScore || 0),
-      atRiskVendors: (data.probation || 0) + (data.suspended || 0),
+      // Include high-risk fraud vendors in atRiskVendors count
+      atRiskVendors: (data.probation || 0) + (data.suspended || 0) + (data.highRisk || 0),
       fraudAlerts,
     };
   } catch (_error) {

@@ -129,6 +129,14 @@ describe("GET /api/finance/reports/balance-sheet", () => {
 
     expect(res.status).toBe(200);
     expect(balanceSheet).toHaveBeenCalled();
+    // Verify asOf parameter was passed to the service
+    const callArgs = vi.mocked(balanceSheet).mock.calls[0];
+    expect(callArgs).toBeDefined();
+    // The service should receive a Date object for asOf
+    const asOfArg = callArgs?.[1];
+    if (asOfArg instanceof Date) {
+      expect(asOfArg.toISOString().startsWith("2025-12-31")).toBe(true);
+    }
   });
 
   it("verifies permission check is called", async () => {

@@ -28,12 +28,7 @@ import {
 } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-
-const PLANS: Record<string, { name: string; pricePerUser: number }> = {
-  standard: { name: "Standard", pricePerUser: 99 },
-  premium: { name: "Premium", pricePerUser: 199 },
-  enterprise: { name: "Enterprise", pricePerUser: 299 },
-};
+import { getPlan } from "@/lib/plans";
 
 function CheckoutContent() {
   const { t } = useTranslation();
@@ -42,7 +37,7 @@ function CheckoutContent() {
 
   const planId = searchParams?.get("plan") || "standard";
   const users = parseInt(searchParams?.get("users") || "1", 10);
-  const plan = PLANS[planId] || PLANS.standard;
+  const plan = getPlan(planId);
 
   const subtotal = plan.pricePerUser * users;
   const vat = subtotal * 0.15;
@@ -118,6 +113,10 @@ function CheckoutContent() {
     setLoading(true);
     setError("");
 
+    // Track account creation for orphan prevention
+    let accountCreated = false;
+    const userEmail = formData.email;
+
     try {
       // Create account first
       const signupResponse = await fetch("/api/auth/signup", {
@@ -134,6 +133,8 @@ function CheckoutContent() {
           companyName: formData.companyName,
           termsAccepted: formData.termsAccepted,
           userType: "corporate",
+          // Flag as pending subscription to allow cleanup
+          pendingSubscription: true,
         }),
       });
 
@@ -141,6 +142,8 @@ function CheckoutContent() {
         const data = await signupResponse.json();
         throw new Error(data.error || "Failed to create account");
       }
+
+      accountCreated = true;
 
       // Create subscription
       const subscriptionResponse = await fetch("/api/checkout/session", {
@@ -170,6 +173,20 @@ function CheckoutContent() {
 
       setStep("success");
     } catch (err) {
+      // If account was created but subscription failed, cleanup to prevent orphan
+      if (accountCreated) {
+        try {
+          await fetch("/api/auth/cleanup-pending", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: userEmail }),
+          });
+        } catch {
+          // Cleanup failure is non-fatal, account will be cleaned by scheduled job
+          // eslint-disable-next-line no-console -- Cleanup warning for debugging
+          console.warn("Failed to cleanup pending account - will be handled by scheduled job");
+        }
+      }
       setError(err instanceof Error ? err.message : "Payment failed");
     } finally {
       setLoading(false);
