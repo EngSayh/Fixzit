@@ -5162,17 +5162,21 @@
       "footer": "إذا استمرت هذه المشكلة، يرجى الاتصال بالدعم."
     },
     "nav": {
+      "fmDashboard": "لوحة إدارة المرافق",
       "issues": "المشاكل",
       "ssot": "عارض SSOT",
       "tenants": "المستأجرون",
       "users": "المستخدمون",
       "roles": "الأدوار",
+      "permissions": "مصفوفة الصلاحيات",
+      "userLogs": "سجلات نشاط المستخدمين",
       "audit": "سجلات التدقيق",
       "features": "الميزات",
       "integrations": "التكاملات",
       "jobs": "المهام",
       "system": "النظام",
       "billing": "الفواتير",
+      "subscriptions": "الاشتراكات",
       "translations": "الترجمات",
       "database": "قاعدة البيانات",
       "security": "الأمان",
@@ -5184,7 +5188,9 @@
       "import-export": "استيراد/تصدير",
       "reports": "التقارير",
       "support": "الدعم",
-      "vendors": "الموردون"
+      "vendors": "الموردون",
+      "footerContent": "محتوى التذييل",
+      "progress": "التقدم"
     },
     "userLogs": {
       "subtitle": "مراقبة نشاط المستخدمين والجلسات والتفاعلات للدعم",
