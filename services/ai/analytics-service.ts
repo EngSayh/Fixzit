@@ -522,12 +522,28 @@ const _CHURN_WEIGHTS: Record<keyof Omit<TenantMetrics, "tenant_id">, number> = {
  */
 export function predictChurn(metrics: TenantMetrics): ChurnPrediction {
   const factors: ChurnFactor[] = [];
-  let riskScore = 0.5; // Base risk
+  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+  const normalizedMetrics: Record<keyof Omit<TenantMetrics, "tenant_id">, number> = {
+    days_since_signup: clamp(metrics.days_since_signup / 365, 0, 1),
+    days_since_last_activity: clamp(metrics.days_since_last_activity / 30, 0, 1),
+    active_users_ratio: clamp(metrics.active_users_ratio, 0, 1),
+    feature_adoption_rate: clamp(metrics.feature_adoption_rate, 0, 1),
+    support_tickets_30d: clamp(metrics.support_tickets_30d / 10, 0, 1),
+    nps_score: metrics.nps_score === undefined ? 0.5 : clamp(metrics.nps_score / 10, 0, 1),
+    payment_failures_90d: clamp(metrics.payment_failures_90d / 5, 0, 1),
+    login_frequency_trend: clamp(metrics.login_frequency_trend, -1, 1),
+    work_orders_trend: clamp(metrics.work_orders_trend, -1, 1),
+    api_usage_trend: clamp(metrics.api_usage_trend, -1, 1),
+  };
+  
+  const weightedScore = (Object.keys(_CHURN_WEIGHTS) as Array<keyof typeof _CHURN_WEIGHTS>)
+    .reduce((sum, key) => sum + normalizedMetrics[key] * _CHURN_WEIGHTS[key], 0);
+  
+  const riskScore = 0.5 + weightedScore; // Base risk adjusted by weighted metrics
   
   // Days since last activity
   if (metrics.days_since_last_activity > 14) {
     const impact = Math.min(0.3, metrics.days_since_last_activity * 0.01);
-    riskScore += impact;
     factors.push({
       factor: "Inactivity",
       impact: -impact,
@@ -540,7 +556,6 @@ export function predictChurn(metrics: TenantMetrics): ChurnPrediction {
   // Active users ratio
   if (metrics.active_users_ratio < 0.3) {
     const impact = (0.3 - metrics.active_users_ratio) * 0.5;
-    riskScore += impact;
     factors.push({
       factor: "Low user engagement",
       impact: -impact,
@@ -553,7 +568,6 @@ export function predictChurn(metrics: TenantMetrics): ChurnPrediction {
   // Feature adoption
   if (metrics.feature_adoption_rate < 0.2) {
     const impact = (0.2 - metrics.feature_adoption_rate) * 0.3;
-    riskScore += impact;
     factors.push({
       factor: "Low feature adoption",
       impact: -impact,
@@ -566,7 +580,6 @@ export function predictChurn(metrics: TenantMetrics): ChurnPrediction {
   // Payment failures
   if (metrics.payment_failures_90d > 0) {
     const impact = Math.min(0.2, metrics.payment_failures_90d * 0.05);
-    riskScore += impact;
     factors.push({
       factor: "Payment issues",
       impact: -impact,
@@ -579,7 +592,6 @@ export function predictChurn(metrics: TenantMetrics): ChurnPrediction {
   // NPS score
   if (metrics.nps_score !== undefined && metrics.nps_score < 7) {
     const impact = (7 - metrics.nps_score) * 0.03;
-    riskScore += impact;
     factors.push({
       factor: "Low satisfaction",
       impact: -impact,
@@ -592,7 +604,6 @@ export function predictChurn(metrics: TenantMetrics): ChurnPrediction {
   // Usage trends
   if (metrics.login_frequency_trend < 0) {
     const impact = Math.abs(metrics.login_frequency_trend) * 0.1;
-    riskScore += impact;
     factors.push({
       factor: "Declining login frequency",
       impact: -impact,

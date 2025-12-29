@@ -123,8 +123,23 @@ export default function SuperadminUserLogsPage() {
       if (response.ok) {
         const data = await response.json();
         setLogs(Array.isArray(data) ? data : data.logs || []);
+      } else {
+        // Handle non-OK responses
+        const errorText = await response.text().catch(() => "");
+        // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
+        console.error("Failed to fetch logs:", response.status, errorText);
+        if (response.status === 401 || response.status === 403) {
+          setLogs([]);
+          // Could redirect to login or show unauthorized state
+        } else {
+          setLogs([]);
+        }
+        return; // Don't fall through to demo data
       }
-    } catch {
+      return; // Success - don't use demo data
+    } catch (error) {
+      // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors
+      console.error("Network error fetching logs:", error);
       // Demo data
       const now = new Date();
       setLogs([
@@ -236,8 +251,17 @@ export default function SuperadminUserLogsPage() {
       if (response.ok) {
         const data = await response.json();
         setSessions(Array.isArray(data) ? data : data.sessions || []);
+        return; // Success - don't use demo data
+      } else {
+        // Handle non-OK responses like errors
+        const errorText = await response.text().catch(() => "");
+        // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
+        console.error("Failed to fetch sessions:", response.status, errorText);
+        // Fall through to demo data
       }
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors
+      console.error("Network error fetching sessions:", error);
       // Demo data
       const now = new Date();
       setSessions([
@@ -299,8 +323,17 @@ export default function SuperadminUserLogsPage() {
       const response = await fetch("/api/admin/user-logs/stats", { credentials: "include" });
       if (response.ok) {
         setStats(await response.json());
+        return; // Success - don't use demo data
+      } else {
+        // Handle non-OK responses
+        const errorText = await response.text().catch(() => "");
+        // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
+        console.error("Failed to fetch stats:", response.status, errorText);
+        // Fall through to demo data
       }
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors
+      console.error("Network error fetching stats:", error);
       // Demo stats - guard against division by zero
       const errorCount = logs.filter(l => l.status === "error").length;
       const errorRate = logs.length > 0 ? (errorCount / logs.length) * 100 : 0;
@@ -367,18 +400,30 @@ export default function SuperadminUserLogsPage() {
     setSessionDialogOpen(true);
   };
 
+  // CSV escape helper to prevent injection and handle special characters
+  const escapeCsvField = (value: unknown): string => {
+    const str = String(value ?? "");
+    // Prevent CSV injection by prefixing dangerous characters
+    const sanitized = str.replace(/^([=+\-@])/, "'$1");
+    // Escape quotes and wrap in quotes if contains comma, quote, newline, or CR
+    if (/[,"\n\r]/.test(sanitized)) {
+      return `"${sanitized.replace(/"/g, '""')}"`;
+    }
+    return sanitized;
+  };
+
   const handleExport = () => {
     const csvContent = [
       ["Timestamp", "User", "Email", "Tenant", "Action", "Category", "Status", "Details"].join(","),
       ...filteredLogs.map(log => [
         new Date(log.timestamp).toISOString(),
-        log.userName,
-        log.userEmail,
-        log.tenantName,
-        log.action,
-        log.category,
-        log.status,
-        `"${log.details.replace(/"/g, '""')}"`,
+        escapeCsvField(log.userName),
+        escapeCsvField(log.userEmail),
+        escapeCsvField(log.tenantName),
+        escapeCsvField(log.action),
+        escapeCsvField(log.category),
+        escapeCsvField(log.status),
+        escapeCsvField(log.details),
       ].join(","))
     ].join("\n");
     
@@ -387,7 +432,12 @@ export default function SuperadminUserLogsPage() {
     const a = document.createElement("a");
     a.href = url;
     a.download = `user-activity-logs-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(a);
     a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      a.remove();
+    }, 0);
   };
 
   return (
@@ -585,9 +635,11 @@ export default function SuperadminUserLogsPage() {
               <CardDescription className="text-muted-foreground">Currently active user sessions</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              {sessions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12"><User className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No active sessions</p></div>
-              ) : (
+              {(() => {
+                const activeSessions = sessions.filter(s => s.isActive);
+                return activeSessions.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12"><User className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No active sessions</p></div>
+                ) : (
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border">
@@ -602,7 +654,7 @@ export default function SuperadminUserLogsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sessions.map((session) => {
+                    {activeSessions.map((session) => {
                       const DeviceIcon = DEVICE_ICONS[session.device] || Monitor;
                       return (
                         <TableRow key={session._id} className="border-border hover:bg-muted/50">
@@ -650,7 +702,8 @@ export default function SuperadminUserLogsPage() {
                     })}
                   </TableBody>
                 </Table>
-              )}
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
