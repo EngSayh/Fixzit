@@ -745,20 +745,20 @@ export default function SuperadminUserLogsPage() {
           {selectedLog && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div><p className="text-sm text-muted-foreground">User</p><p className="text-foreground">{selectedLog.userName}</p></div>
-                <div><p className="text-sm text-muted-foreground">Email</p><p className="text-foreground">{selectedLog.userEmail}</p></div>
-                <div><p className="text-sm text-muted-foreground">Tenant</p><p className="text-foreground">{selectedLog.tenantName}</p></div>
-                <div><p className="text-sm text-muted-foreground">Category</p><p className="text-foreground capitalize">{selectedLog.category}</p></div>
-                <div><p className="text-sm text-muted-foreground">Status</p><Badge className={STATUS_COLORS[selectedLog.status]}>{selectedLog.status}</Badge></div>
-                <div><p className="text-sm text-muted-foreground">Timestamp</p><p className="text-foreground">{new Intl.DateTimeFormat(locale ?? undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(selectedLog.timestamp))}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.user", "User")}</p><p className="text-foreground">{selectedLog.userName}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.email", "Email")}</p><p className="text-foreground">{selectedLog.userEmail}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.tenant", "Tenant")}</p><p className="text-foreground">{selectedLog.tenantName}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.category", "Category")}</p><p className="text-foreground capitalize">{selectedLog.category}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.status", "Status")}</p><Badge className={STATUS_COLORS[selectedLog.status]}>{selectedLog.status}</Badge></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.timestamp", "Timestamp")}</p><p className="text-foreground">{new Intl.DateTimeFormat(locale ?? undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(selectedLog.timestamp))}</p></div>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Details</p>
+                <p className="text-sm text-muted-foreground mb-2">{t("superadmin.userLogs.fields.details", "Details")}</p>
                 <p className="text-foreground bg-muted p-3 rounded-lg">{selectedLog.details}</p>
               </div>
               {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Metadata</p>
+                  <p className="text-sm text-muted-foreground mb-2">{t("superadmin.userLogs.fields.metadata", "Metadata")}</p>
                   <div className="bg-muted p-3 rounded-lg space-y-1">
                     {Object.entries(selectedLog.metadata).map(([key, value]) => (
                       <div key={key} className="flex items-center justify-between">
@@ -785,20 +785,20 @@ export default function SuperadminUserLogsPage() {
           {selectedSession && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div><p className="text-sm text-muted-foreground">User</p><p className="text-foreground">{selectedSession.userName}</p></div>
-                <div><p className="text-sm text-muted-foreground">Email</p><p className="text-foreground">{selectedSession.userEmail}</p></div>
-                <div><p className="text-sm text-muted-foreground">Tenant</p><p className="text-foreground">{selectedSession.tenantName}</p></div>
-                <div><p className="text-sm text-muted-foreground">Status</p><Badge className={selectedSession.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>{selectedSession.isActive ? t("superadmin.userLogs.statusActive", "Active") : t("superadmin.userLogs.statusEnded", "Ended")}</Badge></div>
-                <div><p className="text-sm text-muted-foreground">Device</p><p className="text-foreground capitalize">{selectedSession.device}</p></div>
-                <div><p className="text-sm text-muted-foreground">Browser</p><p className="text-foreground">{selectedSession.browser}</p></div>
-                <div><p className="text-sm text-muted-foreground">OS</p><p className="text-foreground">{selectedSession.os}</p></div>
-                <div><p className="text-sm text-muted-foreground">IP Address</p><p className="text-foreground">{selectedSession.ip}</p></div>
-                <div><p className="text-sm text-muted-foreground">Location</p><p className="text-foreground">{selectedSession.location || t("common.unknown", "Unknown")}</p></div>
-                <div><p className="text-sm text-muted-foreground">Started</p><p className="text-foreground">{new Intl.DateTimeFormat(locale ?? undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(selectedSession.startedAt))}</p></div>
-                <div><p className="text-sm text-muted-foreground">Pages Visited</p><p className="text-foreground">{selectedSession.pagesVisited}</p></div>
-                <div><p className="text-sm text-muted-foreground">Actions</p><p className="text-foreground">{selectedSession.actionsPerformed}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.user", "User")}</p><p className="text-foreground">{selectedSession.userName}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.email", "Email")}</p><p className="text-foreground">{selectedSession.userEmail}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.tenant", "Tenant")}</p><p className="text-foreground">{selectedSession.tenantName}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.status", "Status")}</p><Badge className={selectedSession.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>{selectedSession.isActive ? t("superadmin.userLogs.statusActive", "Active") : t("superadmin.userLogs.statusEnded", "Ended")}</Badge></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.device", "Device")}</p><p className="text-foreground capitalize">{selectedSession.device}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.browser", "Browser")}</p><p className="text-foreground">{selectedSession.browser}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.os", "OS")}</p><p className="text-foreground">{selectedSession.os}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.ipAddress", "IP Address")}</p><p className="text-foreground">{selectedSession.ip}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.location", "Location")}</p><p className="text-foreground">{selectedSession.location || t("common.unknown", "Unknown")}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.started", "Started")}</p><p className="text-foreground">{new Intl.DateTimeFormat(locale ?? undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(selectedSession.startedAt))}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.pagesVisited", "Pages Visited")}</p><p className="text-foreground">{selectedSession.pagesVisited}</p></div>
+                <div><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.actions", "Actions")}</p><p className="text-foreground">{selectedSession.actionsPerformed}</p></div>
                 {selectedSession.duration && (
-                  <div className="col-span-2"><p className="text-sm text-muted-foreground">Duration</p><p className="text-foreground">{formatDuration(selectedSession.duration)}</p></div>
+                  <div className="col-span-2"><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.fields.duration", "Duration")}</p><p className="text-foreground">{formatDuration(selectedSession.duration)}</p></div>
                 )}
               </div>
               {selectedSession.isActive && (
