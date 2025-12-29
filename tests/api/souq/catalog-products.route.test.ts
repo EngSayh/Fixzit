@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 
-// === Module-scoped mutable state (survives vi.resetModules) ===
+// === Module-scoped mutable state (survives vi.clearAllMocks) ===
 type SessionUser = { id?: string; orgId?: string; role?: string };
 let sessionUser: SessionUser | null = null;
 let mockRateLimitResponse: Response | null = null;
@@ -35,7 +35,12 @@ vi.mock("@/lib/redis", () => ({
   getCache: vi.fn().mockResolvedValue(null),
   setCache: vi.fn().mockResolvedValue(undefined),
   invalidateCache: vi.fn().mockResolvedValue(undefined),
-  CacheTTL: { SHORT: 60, MEDIUM: 300, LONG: 3600 },
+  CacheTTL: { SHORT: 60, MEDIUM: 300, LONG: 3600, FIVE_MINUTES: 300 },
+}));
+
+// Mock cache headers utility
+vi.mock("@/lib/api/cache-headers", () => ({
+  applyCacheHeaders: vi.fn((res: Response) => res),
 }));
 
 // Mock models
@@ -50,6 +55,7 @@ vi.mock("@/server/models/souq/Product", () => {
     save: saveMock,
   }));
   souqProductCtor.find = vi.fn().mockReturnValue({
+    select: vi.fn().mockReturnThis(),
     skip: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     sort: vi.fn().mockReturnThis(),
@@ -92,54 +98,27 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-// Dynamic import helper to ensure fresh module state
-// Must set up mocks before calling this function
-const importModules = async () => {
-  const [sessionModule, rateLimitModule, categoryModule, brandModule, productModule, route] =
-    await Promise.all([
-      import("@/lib/auth/getServerSession"),
-      import("@/lib/middleware/rate-limit"),
-      import("@/server/models/souq/Category"),
-      import("@/server/models/souq/Brand"),
-      import("@/server/models/souq/Product"),
-      import("@/app/api/souq/catalog/products/route"),
-    ]);
-  return {
-    getServerSession: vi.mocked(sessionModule.getServerSession),
-    enforceRateLimit: vi.mocked(rateLimitModule.enforceRateLimit),
-    SouqCategory: vi.mocked(categoryModule.SouqCategory),
-    SouqBrand: vi.mocked(brandModule.SouqBrand),
-    SouqProduct: vi.mocked(productModule.SouqProduct),
-    GET: route.GET,
-    POST: route.POST,
-  };
-};
-
-// Helper to set up rate limit mock before importing
-const setupRateLimitMock = async (mockResponse: Response | null) => {
-  const rateLimitModule = await import("@/lib/middleware/rate-limit");
-  vi.mocked(rateLimitModule.enforceRateLimit).mockReturnValue(mockResponse as never);
-};
-
-// Helper to set up authenticated session mock
-const setupSessionMock = async (session: { user: { orgId: string; id: string; role?: string } } | null = null) => {
-  const sessionModule = await import("@/lib/auth/getServerSession");
-  vi.mocked(sessionModule.getServerSession).mockResolvedValue(session as never);
-};
+// Dynamic import helper - forces fresh module load with mocks applied
+async function importRoute() {
+  vi.resetModules();
+  const mod = await import("@/app/api/souq/catalog/products/route");
+  return { GET: mod.GET, POST: mod.POST };
+}
 
 describe("API /api/souq/catalog/products", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
+    sessionUser = null;
+    mockRateLimitResponse = null;
     vi.clearAllMocks();
-    vi.resetModules();
   });
 
   describe("GET - List Products", () => {
     it("returns 429 when rate limit exceeded", async () => {
-      // Set up rate limit mock BEFORE importing the route
-      await setupRateLimitMock(
-        NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
+      mockRateLimitResponse = NextResponse.json(
+        { error: "Rate limit exceeded" },
+        { status: 429 }
       );
-      const { GET } = await importModules();
+      const { GET } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products");
       const res = await GET(req);
@@ -148,9 +127,8 @@ describe("API /api/souq/catalog/products", () => {
     });
 
     it("returns products list for GET request", async () => {
-      await setupRateLimitMock(null);
-      await setupSessionMock({ user: { orgId: "507f1f77bcf86cd799439011", id: "user123", role: "SELLER" } });
-      const { GET } = await importModules();
+      sessionUser = { id: "user123", orgId: "507f1f77bcf86cd799439011", role: "SELLER" };
+      const { GET } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products");
       const res = await GET(req);
@@ -159,12 +137,11 @@ describe("API /api/souq/catalog/products", () => {
     });
 
     it("supports pagination parameters", async () => {
-      await setupRateLimitMock(null);
-      await setupSessionMock({ user: { orgId: "507f1f77bcf86cd799439011", id: "user123", role: "SELLER" } });
-      const { GET } = await importModules();
+      sessionUser = { id: "user123", orgId: "507f1f77bcf86cd799439011", role: "SELLER" };
+      const { GET } = await importRoute();
 
       const req = new NextRequest(
-        "http://localhost:3000/api/souq/catalog/products?page=2&limit=20",
+        "http://localhost:3000/api/souq/catalog/products?page=2&limit=20"
       );
       const res = await GET(req);
 
@@ -172,9 +149,8 @@ describe("API /api/souq/catalog/products", () => {
     });
 
     it("supports search query parameter", async () => {
-      await setupRateLimitMock(null);
-      await setupSessionMock({ user: { orgId: "507f1f77bcf86cd799439011", id: "user123", role: "SELLER" } });
-      const { GET } = await importModules();
+      sessionUser = { id: "user123", orgId: "507f1f77bcf86cd799439011", role: "SELLER" };
+      const { GET } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products?q=test");
       const res = await GET(req);
@@ -183,9 +159,8 @@ describe("API /api/souq/catalog/products", () => {
     });
 
     it("supports language parameter for localization", async () => {
-      await setupRateLimitMock(null);
-      await setupSessionMock({ user: { orgId: "507f1f77bcf86cd799439011", id: "user123", role: "SELLER" } });
-      const { GET } = await importModules();
+      sessionUser = { id: "user123", orgId: "507f1f77bcf86cd799439011", role: "SELLER" };
+      const { GET } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products?lang=ar");
       const res = await GET(req);
@@ -196,9 +171,8 @@ describe("API /api/souq/catalog/products", () => {
 
   describe("POST - Create Product", () => {
     it("returns 401 when user is not authenticated", async () => {
-      await setupRateLimitMock(null);
-      const { getServerSession, POST } = await importModules();
-      getServerSession.mockResolvedValue(null);
+      sessionUser = null; // No session
+      const { POST } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products", {
         method: "POST",
@@ -217,11 +191,8 @@ describe("API /api/souq/catalog/products", () => {
     });
 
     it("returns 400 when orgId is missing", async () => {
-      await setupRateLimitMock(null);
-      const { getServerSession, POST } = await importModules();
-      getServerSession.mockResolvedValue({
-        user: { id: "user-123" },
-      } as never);
+      sessionUser = { id: "user-123" }; // No orgId
+      const { POST } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products", {
         method: "POST",
@@ -240,10 +211,11 @@ describe("API /api/souq/catalog/products", () => {
     });
 
     it("returns 429 when rate limit exceeded", async () => {
-      await setupRateLimitMock(
-        NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
+      mockRateLimitResponse = NextResponse.json(
+        { error: "Rate limit exceeded" },
+        { status: 429 }
       );
-      const { POST } = await importModules();
+      const { POST } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products", {
         method: "POST",
@@ -257,11 +229,8 @@ describe("API /api/souq/catalog/products", () => {
     });
 
     it("validates required fields with Zod", async () => {
-      await setupRateLimitMock(null);
-      const { getServerSession, POST } = await importModules();
-      getServerSession.mockResolvedValue({
-        user: { id: "user-123", orgId: "507f1f77bcf86cd799439011" },
-      } as never);
+      sessionUser = { id: "user-123", orgId: "507f1f77bcf86cd799439011" };
+      const { POST } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products", {
         method: "POST",
@@ -280,27 +249,8 @@ describe("API /api/souq/catalog/products", () => {
     });
 
     it("validates images array is not empty", async () => {
-      await setupRateLimitMock(null);
-      const { getServerSession, SouqCategory, SouqBrand, SouqProduct, POST } =
-        await importModules();
-      getServerSession.mockResolvedValue({
-        user: { id: "user-123", orgId: "507f1f77bcf86cd799439011" },
-      } as never);
-      SouqCategory.findOne.mockResolvedValue({
-        _id: "507f1f77bcf86cd799439012",
-        categoryId: "cat-123",
-        isRestricted: false,
-        isActive: true,
-        orgId: "507f1f77bcf86cd799439011",
-      } as never);
-      SouqBrand.findOne.mockResolvedValue({
-        _id: "507f1f77bcf86cd799439013",
-        brandId: "brand-123",
-        isGated: false,
-        isActive: true,
-        orgId: "507f1f77bcf86cd799439011",
-      } as never);
-      SouqProduct.findOne.mockResolvedValue(null);
+      sessionUser = { id: "user-123", orgId: "507f1f77bcf86cd799439011" };
+      const { POST } = await importRoute();
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products", {
         method: "POST",
