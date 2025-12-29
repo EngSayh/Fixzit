@@ -134,8 +134,8 @@ describe("API /api/souq/settlements", () => {
       );
       const res = await GET(req);
 
-      // Should return 200, 404 (not found), or handle gracefully
-      expect([200, 400, 404, 500]).toContain(res.status);
+      // TODO(TG-005): Fix mock setup - needs settlement DB mocks (returns 404 when empty)
+      expect([200, 404, 500]).toContain(res.status);
     });
 
     it("requires targetOrgId for super admin without session org", async () => {
@@ -167,7 +167,8 @@ describe("API /api/souq/settlements", () => {
       );
       const res = await GET(req);
 
-      expect([200, 400, 404, 500]).toContain(res.status);
+      // TODO(TG-005): Fix mock setup - needs settlement DB mocks
+      expect([200, 404, 500]).toContain(res.status);
     });
 
     it("supports status filter", async () => {
@@ -183,7 +184,8 @@ describe("API /api/souq/settlements", () => {
       );
       const res = await GET(req);
 
-      expect([200, 400, 404, 500]).toContain(res.status);
+      // TODO(TG-005): Fix mock setup - needs settlement DB mocks
+      expect([200, 404, 500]).toContain(res.status);
     });
   });
 });

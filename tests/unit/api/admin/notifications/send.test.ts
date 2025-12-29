@@ -155,8 +155,9 @@ describe("/api/admin/notifications/send", () => {
           priority: "normal",
         }),
       );
-      // Should proceed to send (may fail due to incomplete mock but won't be 401/403)
-      expect([200, 400, 500]).toContain(res.status);
+      // TODO(TG-005): Fix mock setup - currently returns 500 due to incomplete notification mocks
+      // Auth verified (not 401/403) - send operation needs full mock setup
+      expect([200, 500]).toContain(res.status);
     });
   });
 

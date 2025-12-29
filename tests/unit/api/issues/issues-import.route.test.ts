@@ -192,6 +192,7 @@ describe("Issues Import API Route", () => {
 
       const req = makeRequest();
       const res = await POST(req);
+      // TODO(TG-005): Fix mock setup - needs complete DB mocks
       expect([200, 500]).toContain(res.status);
     });
 
@@ -212,7 +213,7 @@ describe("Issues Import API Route", () => {
         ],
       });
       const res = await POST(req);
-      expect([400, 500]).toContain(res.status);
+      expect(res.status).toBe(400);
     });
 
     it("skips duplicates when option is enabled", async () => {
@@ -223,6 +224,7 @@ describe("Issues Import API Route", () => {
 
       const req = makeRequest();
       const res = await POST(req);
+      // TODO(TG-005): Fix mock setup - currently returns 500 due to incomplete DB mocks
       expect([200, 500]).toContain(res.status);
     });
 
@@ -233,6 +235,7 @@ describe("Issues Import API Route", () => {
 
       const req = makeRequest({ ...defaultPayload, dryRun: true });
       const res = await POST(req);
+      // TODO(TG-005): Fix mock setup - currently returns 500 due to incomplete DB mocks
       expect([200, 500]).toContain(res.status);
     });
 
@@ -244,6 +247,7 @@ describe("Issues Import API Route", () => {
         issues: [defaultPayload.issues[0]],
       });
       const res = await POST(req);
+      // TODO(TG-005): Fix mock setup - currently returns 500 due to incomplete DB mocks
       expect([200, 500]).toContain(res.status);
     });
 

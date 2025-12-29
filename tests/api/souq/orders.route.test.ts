@@ -157,7 +157,7 @@ describe("API /api/souq/orders", () => {
       const req = new NextRequest("http://localhost:3000/api/souq/orders");
       const res = await GET(req);
 
-      // Should return 200 or handle gracefully
+      // TODO(TG-005): Fix mock setup - needs complete session/DB mocks
       expect([200, 500]).toContain(res.status);
     });
 
@@ -173,6 +173,7 @@ describe("API /api/souq/orders", () => {
       );
       const res = await GET(req);
 
+      // TODO(TG-005): Fix mock setup - needs complete session/DB mocks
       expect([200, 500]).toContain(res.status);
     });
 
@@ -188,6 +189,7 @@ describe("API /api/souq/orders", () => {
       );
       const res = await GET(req);
 
+      // TODO(TG-005): Fix mock setup - needs complete session/DB mocks
       expect([200, 500]).toContain(res.status);
     });
 
@@ -203,6 +205,7 @@ describe("API /api/souq/orders", () => {
       );
       const res = await GET(req);
 
+      // TODO(TG-005): Fix mock setup - needs complete session/DB mocks
       expect([200, 500]).toContain(res.status);
     });
   });

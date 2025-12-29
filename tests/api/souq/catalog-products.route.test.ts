@@ -1,13 +1,23 @@
 /**
  * @fileoverview Tests for /api/souq/catalog/products route
  * Tests product catalog operations including authentication, validation, and rate limiting
+ * 
+ * Pattern: Module-scoped mutable state for mocks (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 
-// Mock authentication
+// === Module-scoped mutable state (survives vi.resetModules) ===
+type SessionUser = { id?: string; orgId?: string; role?: string };
+let sessionUser: SessionUser | null = null;
+let mockRateLimitResponse: Response | null = null;
+
+// Mock authentication with module-scoped state
 vi.mock("@/lib/auth/getServerSession", () => ({
-  getServerSession: vi.fn(),
+  getServerSession: vi.fn(async () => {
+    if (!sessionUser) return null;
+    return { user: sessionUser };
+  }),
 }));
 
 // Mock database connection
@@ -15,9 +25,17 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectDb: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock rate limiting
+// Mock rate limiting with module-scoped state
 vi.mock("@/lib/middleware/rate-limit", () => ({
-  enforceRateLimit: vi.fn().mockReturnValue(null),
+  enforceRateLimit: () => mockRateLimitResponse,
+}));
+
+// Mock redis cache
+vi.mock("@/lib/redis", () => ({
+  getCache: vi.fn().mockResolvedValue(null),
+  setCache: vi.fn().mockResolvedValue(undefined),
+  invalidateCache: vi.fn().mockResolvedValue(undefined),
+  CacheTTL: { SHORT: 60, MEDIUM: 300, LONG: 3600 },
 }));
 
 // Mock models
@@ -103,6 +121,12 @@ const setupRateLimitMock = async (mockResponse: Response | null) => {
   vi.mocked(rateLimitModule.enforceRateLimit).mockReturnValue(mockResponse as never);
 };
 
+// Helper to set up authenticated session mock
+const setupSessionMock = async (session: { user: { orgId: string; id: string; role?: string } } | null = null) => {
+  const sessionModule = await import("@/lib/auth/getServerSession");
+  vi.mocked(sessionModule.getServerSession).mockResolvedValue(session as never);
+};
+
 describe("API /api/souq/catalog/products", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -125,17 +149,18 @@ describe("API /api/souq/catalog/products", () => {
 
     it("returns products list for GET request", async () => {
       await setupRateLimitMock(null);
+      await setupSessionMock({ user: { orgId: "507f1f77bcf86cd799439011", id: "user123", role: "SELLER" } });
       const { GET } = await importModules();
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products");
       const res = await GET(req);
 
-      // Should return 200, 403 (no org), or handle gracefully
-      expect([200, 403, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("supports pagination parameters", async () => {
       await setupRateLimitMock(null);
+      await setupSessionMock({ user: { orgId: "507f1f77bcf86cd799439011", id: "user123", role: "SELLER" } });
       const { GET } = await importModules();
 
       const req = new NextRequest(
@@ -143,27 +168,29 @@ describe("API /api/souq/catalog/products", () => {
       );
       const res = await GET(req);
 
-      expect([200, 403, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("supports search query parameter", async () => {
       await setupRateLimitMock(null);
+      await setupSessionMock({ user: { orgId: "507f1f77bcf86cd799439011", id: "user123", role: "SELLER" } });
       const { GET } = await importModules();
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products?q=test");
       const res = await GET(req);
 
-      expect([200, 403, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
 
     it("supports language parameter for localization", async () => {
       await setupRateLimitMock(null);
+      await setupSessionMock({ user: { orgId: "507f1f77bcf86cd799439011", id: "user123", role: "SELLER" } });
       const { GET } = await importModules();
 
       const req = new NextRequest("http://localhost:3000/api/souq/catalog/products?lang=ar");
       const res = await GET(req);
 
-      expect([200, 403, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
   });
 
