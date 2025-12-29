@@ -12,9 +12,14 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { connectDb } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
+import { isValidObjectId } from "mongoose";
 
 const BulkUpdateSchema = z.object({
-  userIds: z.array(z.string()).min(1, "At least one user ID is required"),
+  userIds: z.array(z.string()).min(1, "At least one user ID is required")
+    .refine(
+      (ids) => ids.every((id) => isValidObjectId(id)),
+      "All user IDs must be valid MongoDB ObjectIds"
+    ),
   updates: z.object({
     status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"]).optional(),
   }).refine(
@@ -90,9 +95,9 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date(),
     };
 
-    // Perform bulk update with audit trail
+    // Perform bulk update with audit trail (defense-in-depth: exclude superadmins again)
     const result = await User.updateMany(
-      { _id: { $in: userIds } },
+      { _id: { $in: userIds }, isSuperAdmin: { $ne: true } },
       { $set: auditedUpdates }
     );
 

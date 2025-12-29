@@ -29,7 +29,7 @@ type ReportJobDocument = {
   startDate?: string;
   endDate?: string;
   notes?: string;
-  status: 'queued' | 'processing' | 'ready' | 'failed';
+  status: 'queued' | 'processing' | 'completed' | 'failed';
   fileKey?: string;
   fileMime?: string;
   createdBy?: string;

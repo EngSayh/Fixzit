@@ -10,37 +10,25 @@
  * @route GET /api/superadmin/god-mode
  */
 
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
+    const session = await getSuperadminSession(req);
     
-    if (!session?.user) {
+    if (!session) {
       return NextResponse.json(
-        { error: { code: "FIXZIT-AUTH-001", message: "Unauthorized" } },
+        { error: { code: "FIXZIT-AUTH-001", message: "Superadmin access required" } },
         { status: 401 }
-      );
-    }
-    
-    // Check for superadmin role
-    const user = session.user as { role?: string; roles?: string[] };
-    const roles = user.roles ?? (user.role ? [user.role] : []);
-    const isSuperAdmin = roles.includes("superadmin") || roles.includes("platform_admin");
-    
-    if (!isSuperAdmin) {
-      return NextResponse.json(
-        { error: { code: "FIXZIT-AUTH-002", message: "Forbidden - SuperAdmin access required" } },
-        { status: 403 }
       );
     }
     
     // God Mode Dashboard
     const dashboard = {
       generated_at: new Date().toISOString(),
-      operator_id: session.user.id, // Use ID instead of email for PII protection
+      operator_id: session.username, // Use username for audit trail
       
       // System Health
       system_health: {
@@ -145,7 +133,7 @@ export async function GET() {
     };
     
     logger.info("God Mode dashboard accessed", {
-      operator: session.user.email,
+      operatorId: session.username,
       tenants_count: dashboard.tenants.total,
       system_status: dashboard.system_health.status,
     });

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Grid3x3, RefreshCw, Search, Edit, Plus, Shield,
@@ -328,6 +328,12 @@ export default function SuperadminPermissionsPage() {
   };
 
   const handleSaveRole = async () => {
+    // Validate required fields
+    if (!roleForm.name.trim() || !roleForm.displayName.trim()) {
+      toast.error("Role name and display name are required");
+      return;
+    }
+    
     try {
       const url = editingRole 
         ? `/api/admin/roles/${editingRole._id}`
@@ -411,7 +417,7 @@ export default function SuperadminPermissionsPage() {
           </div>
           <Select value={selectedModule} onValueChange={setSelectedModule} placeholder="Filter by module">
             <SelectTrigger className="w-[200px] bg-muted border-input">
-              {selectedModule === "all" ? "All Modules" : MODULES.find(m => m.id === selectedModule)?.name || selectedModule}
+              <SelectValue placeholder="All Modules" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Modules</SelectItem>

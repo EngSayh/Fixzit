@@ -388,8 +388,8 @@ export default function FMDashboardPage() {
             ))}
             
             {/* Churn Risk */}
-            {analytics?.churn_predictions?.items?.slice(0, 2).map((tenant, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+            {analytics?.churn_predictions?.items?.slice(0, 2).map((tenant) => (
+              <div key={tenant.tenant_name} className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                 <div className="flex items-center gap-3">
                   <TrendingUp className="h-5 w-5 text-orange-500" />
                   <span className="font-medium text-sm">{tenant.tenant_name}</span>

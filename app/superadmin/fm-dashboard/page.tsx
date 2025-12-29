@@ -359,8 +359,8 @@ export default function SuperadminFMDashboardPage() {
             ))}
             
             {/* Churn Risk - use churn.predictions to match API */}
-            {analytics?.churn?.predictions?.slice(0, 2).map((tenant, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+            {analytics?.churn?.predictions?.slice(0, 2).map((tenant) => (
+              <div key={tenant.tenant_name} className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                 <div className="flex items-center gap-3">
                   <TrendingUp className="h-4 w-4 text-orange-500" />
                   <span className="font-medium text-sm">{tenant.tenant_name}</span>
