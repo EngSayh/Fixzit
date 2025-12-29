@@ -2,18 +2,30 @@
  * @fileoverview Tests for /api/hr/payroll/runs/[id]/calculate route
  * Tests payroll calculation with KSA labor law compliance
  * HR TAG: Critical for salary calculations and GOSI deductions
+ * 
+ * Pattern: Module-scoped mutable state for mocks (per TESTING_STRATEGY.md)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+
+// === Module-scoped mutable state (survives vi.clearAllMocks) ===
+type SessionUser = {
+  id?: string;
+  orgId?: string;
+  role?: string;
+  subRole?: string | null;
+};
+let mockSession: { user: SessionUser } | null = null;
+let mockHasAllowedRole: boolean = true;
 
 // Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
   enforceRateLimit: vi.fn().mockReturnValue(null),
 }));
 
-// Mock auth
+// Mock auth with module-scoped state
 vi.mock("@/auth", () => ({
-  auth: vi.fn(),
+  auth: vi.fn(async () => mockSession),
 }));
 
 // Mock database connection
@@ -21,9 +33,9 @@ vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock role guards
+// Mock role guards with module-scoped state
 vi.mock("@/lib/auth/role-guards", () => ({
-  hasAllowedRole: vi.fn().mockReturnValue(true),
+  hasAllowedRole: vi.fn(() => mockHasAllowedRole),
 }));
 
 // Mock PayrollService
@@ -90,33 +102,32 @@ import { PayrollService } from "@/server/services/hr/payroll.service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { Employee, AttendanceRecord } from "@/server/models/hr.models";
 
-// Use vi.resetModules() to ensure fresh imports in CI (avoids mock isolation issues)
-const importRoute = async () => {
+// Dynamic import helper - forces fresh module load with mocks applied
+async function importRoute() {
   vi.resetModules();
-  return import("@/app/api/hr/payroll/runs/[id]/calculate/route");
-};
+  const mod = await import("@/app/api/hr/payroll/runs/[id]/calculate/route");
+  return { POST: mod.POST };
+}
 
 describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
   const mockOrgId = "507f1f77bcf86cd799439011";
   const mockPayrollRunId = "507f1f77bcf86cd799439012";
-  const mockSession = {
-    user: {
-      id: "user123",
-      orgId: mockOrgId,
-      role: "HR",
-    },
-  };
 
   beforeEach(() => {
+    // Reset module-scoped state
+    mockSession = {
+      user: {
+        id: "user123",
+        orgId: mockOrgId,
+        role: "HR",
+      },
+    };
+    mockHasAllowedRole = true;
     vi.clearAllMocks();
-    // Re-mock after resetModules to ensure mocks are fresh
-    vi.mocked(auth).mockResolvedValue(mockSession as never);
-    vi.mocked(hasAllowedRole).mockReturnValue(true);
-    vi.mocked(enforceRateLimit).mockReturnValue(null);
   });
 
   it("returns 401 when not authenticated", async () => {
-    vi.mocked(auth).mockResolvedValue(null as never);
+    mockSession = null;
 
     const req = new NextRequest(`http://localhost/api/hr/payroll/runs/${mockPayrollRunId}/calculate`, {
       method: "POST",
@@ -128,7 +139,7 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
   });
 
   it("returns 401 when session has no orgId", async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: "user123" } } as never);
+    mockSession = { user: { id: "user123" } };
 
     const req = new NextRequest(`http://localhost/api/hr/payroll/runs/${mockPayrollRunId}/calculate`, {
       method: "POST",
@@ -140,7 +151,7 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
   });
 
   it("returns 403 when user lacks HR role", async () => {
-    vi.mocked(hasAllowedRole).mockReturnValue(false);
+    mockHasAllowedRole = false;
 
     const req = new NextRequest(`http://localhost/api/hr/payroll/runs/${mockPayrollRunId}/calculate`, {
       method: "POST",
@@ -184,9 +195,9 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
   });
 
   it("allows SUPER_ADMIN role to calculate payroll", async () => {
-    vi.mocked(auth).mockResolvedValue({
+    mockSession = {
       user: { id: "user123", orgId: mockOrgId, role: "SUPER_ADMIN" },
-    } as never);
+    };
     
     // Mock payroll run with periodStart and periodEnd (required for aggregate query)
     vi.mocked(PayrollService.getById).mockResolvedValue({
@@ -236,9 +247,9 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
   });
 
   it("allows HR_OFFICER subRole to calculate payroll", async () => {
-    vi.mocked(auth).mockResolvedValue({
+    mockSession = {
       user: { id: "user123", orgId: mockOrgId, role: "STAFF", subRole: "HR_OFFICER" },
-    } as never);
+    };
     
     // Mock payroll run with periodStart and periodEnd
     vi.mocked(PayrollService.getById).mockResolvedValue({

@@ -39,10 +39,7 @@ function CheckoutContent() {
   const users = parseInt(searchParams?.get("users") || "1", 10);
   const plan = getPlan(planId);
 
-  const subtotal = plan.pricePerUser * users;
-  const vat = subtotal * 0.15;
-  const total = subtotal + vat;
-
+  // All hooks must be called before any early returns (React Hook rules)
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -58,6 +55,23 @@ function CheckoutContent() {
   const [step, setStep] = useState<"account" | "payment" | "success">("account");
   // Card payment fields removed - payment integration pending
   // When Stripe/TAP is integrated, use their tokenized input components
+
+  // Guard against undefined plan (invalid planId)
+  if (!plan) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground mb-2">{t("checkout.invalidPlan") || "Invalid Plan"}</h1>
+          <p className="text-muted-foreground mb-4">{t("checkout.invalidPlanDescription") || "The selected plan does not exist."}</p>
+          <Button onClick={() => router.push("/pricing")}>{t("checkout.backToPricing") || "Back to Pricing"}</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const subtotal = plan.pricePerUser * users;
+  const vat = subtotal * 0.15;
+  const total = subtotal + vat;
 
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

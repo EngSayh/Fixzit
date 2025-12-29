@@ -173,6 +173,7 @@ export default function OnboardingWizard({
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>({});
 
   // Load existing case data
+  // Note: isRTL is captured at call time for error message display
   const loadCaseData = useCallback(async (id: string) => {
     try {
       const res = await fetch(`/api/onboarding/${id}`);
@@ -195,13 +196,14 @@ export default function OnboardingWizard({
         }
       }
     } catch (_error) {
+      // Use current isRTL value at time of error
       toast.error(
         isRTL
           ? "تعذر تحميل بيانات الحالة. يرجى المحاولة مرة أخرى."
           : "Unable to load onboarding case. Please retry.",
       );
     }
-  }, [session?.user, isRTL]);
+  }, []);
 
   useEffect(() => {
     if (existingCaseId) {

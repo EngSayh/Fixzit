@@ -74,9 +74,11 @@ export async function POST(request: NextRequest) {
       );
     }
     const email = session.user.email || "";
-    const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || 
+    // Note: request.ip is only available in Edge runtime; Node.js runtime uses headers
+    const ipAddress = (request as unknown as { ip?: string }).ip ??
+                      (request.headers.get("x-forwarded-for")?.split(",")[0] || 
                       request.headers.get("x-real-ip") || 
-                      "unknown";
+                      "unknown");
     
     const mfaMethod = method === "RECOVERY" ? MFAMethod.RECOVERY : MFAMethod.TOTP;
     

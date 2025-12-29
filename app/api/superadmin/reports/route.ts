@@ -18,6 +18,7 @@ import { ObjectId } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import { getSuperadminSession } from '@/lib/superadmin/auth';
+import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 
 type ReportJobDocument = {
   _id: ObjectId;
@@ -62,6 +63,10 @@ const mapJob = (doc: ReportJobDocument) => ({
  * Returns all report jobs across all tenants (superadmin only)
  */
 export async function GET(_req: NextRequest) {
+  const rateLimitResponse = await enforceRateLimit(_req, { requests: 30, windowMs: 60_000, keyPrefix: "superadmin:reports" });
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
   try {
     const session = await getSuperadminSession(_req);
     
