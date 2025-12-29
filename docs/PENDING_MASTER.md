@@ -2,6 +2,91 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 📅 2025-12-29 18:30 (Asia/Riyadh) — 27 Bug Fixes Session
+
+**Agent Token:** [AGENT-001-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 03c3a2009 (pushed)
+**Session Summary:** Comprehensive bug fix session addressing race conditions, validation logic, transactions, and type safety across 27 files. All fixes verified with 0 TypeScript errors and 0 ESLint errors.
+**DB Sync:** created=0, updated=27, skipped=0, errors=0
+
+### ✅ Fixes Completed (27 files)
+
+#### Race Condition Fixes
+| File | Fix |
+|------|-----|
+| `services/crm/ticket-management.ts` | Atomic counter with retry logic for duplicate key errors (code 11000) |
+| `services/finance/expense-categorization.ts` | `$setUnion` for atomic keyword merging in aggregation pipeline |
+| `services/aqar/lease-service.ts` | MongoDB transaction for lease renewals |
+| `services/compliance/contract-lifecycle.ts` | Atomic counter for contract number generation |
+
+#### Validation & Logic Fixes
+| File | Fix |
+|------|-----|
+| `services/reports/automated-reports.ts` | HH:MM regex validation, config._id check, recursion→iteration |
+| `services/reports/bi-dashboard.ts` | lower_better formula, duplicate widget check, LAST_WEEK/MONTH/QUARTER/YEAR |
+| `services/security/enterprise-security.ts` | Duplicate trust factor type prevention |
+| `services/souq/vendor-intelligence.ts` | Division guard for totalOrders > 0 |
+| `services/fm/predictive-maintenance.ts` | Division by zero guards, maintenance history sorting |
+| `services/hr/performance-management.ts` | AT_RISK goal status detection |
+| `services/compliance/contract-lifecycle.ts` | Status validation before signatures, "contract" entityType |
+| `services/fm/inspection-service.ts` | Status validation, offline sync conflict detection |
+| `services/hr/gosi-compliance.ts` | Phased GOSI rates for July 2024+ registrants |
+| `services/ai/analytics-service.ts` | Age/lifecycle condition order fix |
+| `services/aqar/tenant-screening.ts` | Rent-to-income ratio percentage formatting |
+
+#### Security & Error Handling
+| File | Fix |
+|------|-----|
+| Multiple files | Regex escape for search inputs (ReDoS prevention) |
+| `services/admin/notification-engine.ts` | Opt-in defaults for missing preferences |
+| `services/crm/customer-insights.ts` | NPS profile upsert with defaults |
+| `services/security/ai-security-monitor.ts` | PII protection in error logs (email→userId) |
+| `lib/auth/auditLogger.ts` | Risk level preservation, CRITICAL severity for suspicious activity |
+
+#### Type & Schema Fixes
+| File | Fix |
+|------|-----|
+| `services/aqar/lease-service.ts` | unitId type consistency |
+| `services/superadmin/tenant-lifecycle.ts` | preview_expired status type |
+| `types/superadmin.ts` | past_due_cents field rename |
+
+### 📊 Verification Results
+```bash
+pnpm typecheck  # ✅ 0 errors
+pnpm lint       # ✅ 0 errors, 5 warnings (expected superadmin tenant scope)
+```
+
+### 📁 Files Modified (27)
+- app/[locale]/admin/fm-dashboard/page.tsx
+- app/api/auth/mfa/setup/route.ts
+- app/api/auth/mfa/status/route.ts
+- app/api/auth/mfa/verify/route.ts
+- docs/MARKETPLACE_SERVICES_ARCHITECTURE.md
+- lib/auth/auditLogger.ts
+- scripts/git-commit-fixes.ps1
+- scripts/update-ssot-issues.mjs
+- services/admin/notification-engine.ts
+- services/ai/analytics-service.ts
+- services/aqar/lease-service.ts
+- services/aqar/tenant-screening.ts
+- services/compliance/contract-lifecycle.ts
+- services/crm/customer-insights.ts
+- services/crm/ticket-management.ts
+- services/finance/expense-categorization.ts
+- services/fm/inspection-service.ts
+- services/fm/predictive-maintenance.ts
+- services/hr/gosi-compliance.ts
+- services/hr/performance-management.ts
+- services/reports/automated-reports.ts
+- services/reports/bi-dashboard.ts
+- services/security/ai-security-monitor.ts
+- services/security/enterprise-security.ts
+- services/souq/vendor-intelligence.ts
+- services/superadmin/tenant-lifecycle.ts
+- types/superadmin.ts
+
+---
+
 ## 📅 2025-12-28 16:00 (Asia/Riyadh) — WORLD-CLASS FM PLATFORM ENHANCEMENT BLUEPRINT
 
 **Agent Token:** [AGENT-001-A]
