@@ -34,7 +34,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Table,
@@ -273,9 +272,9 @@ export default function SuperadminTenantsPage() {
                 className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status">
               <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
-                <SelectValue placeholder="Status" />
+                {statusFilter === "all" ? "All Status" : statusFilter}
               </SelectTrigger>
               <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Status</SelectItem>
@@ -286,9 +285,9 @@ export default function SuperadminTenantsPage() {
                 <SelectItem value="EXPIRED">Expired</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type">
               <SelectTrigger className="w-full sm:w-40 bg-muted border-input text-foreground">
-                <SelectValue placeholder="Type" />
+                {typeFilter === "all" ? "All Types" : typeFilter}
               </SelectTrigger>
               <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Types</SelectItem>

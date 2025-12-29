@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -175,8 +175,8 @@ export default function SuperadminNotificationsPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex gap-4">
-                <Select value={channelFilter} onValueChange={setChannelFilter}>
-                  <SelectTrigger className="w-[160px]"><SelectValue placeholder="Channel" /></SelectTrigger>
+                <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel">
+                  <SelectTrigger className="w-[160px]">{channelFilter === "all" ? "All Channels" : channelFilter.charAt(0).toUpperCase() + channelFilter.slice(1)}</SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Channels</SelectItem>
                     <SelectItem value="email">Email</SelectItem>

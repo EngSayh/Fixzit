@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -117,8 +117,8 @@ export default function SuperadminVendorsPage() {
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[200px]"><Input placeholder="Search vendors..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="bg-muted border-input text-foreground" /></div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger className="w-[180px] bg-muted border-input text-foreground"><SelectValue placeholder="Type" /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">All Types</SelectItem>{VENDOR_TYPES.map((type) => (<SelectItem key={type} value={type}>{type.replace("_", " ")}</SelectItem>))}</SelectContent></Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">All Status</SelectItem><SelectItem value="ACTIVE">Active</SelectItem><SelectItem value="INACTIVE">Inactive</SelectItem><SelectItem value="SUSPENDED">Suspended</SelectItem></SelectContent></Select>
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Type"><SelectTrigger className="w-[180px] bg-muted border-input text-foreground">{typeFilter === "all" ? "All Types" : typeFilter.replace("_", " ")}</SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">All Types</SelectItem>{VENDOR_TYPES.map((type) => (<SelectItem key={type} value={type}>{type.replace("_", " ")}</SelectItem>))}</SelectContent></Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status"><SelectTrigger className="w-[160px] bg-muted border-input text-foreground">{statusFilter === "all" ? "All Status" : statusFilter}</SelectTrigger><SelectContent className="bg-muted border-input"><SelectItem value="all">All Status</SelectItem><SelectItem value="ACTIVE">Active</SelectItem><SelectItem value="INACTIVE">Inactive</SelectItem><SelectItem value="SUSPENDED">Suspended</SelectItem></SelectContent></Select>
             <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700"><Search className="h-4 w-4 me-2" />Search</Button>
           </div>
         </CardContent>

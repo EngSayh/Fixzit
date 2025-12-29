@@ -42,7 +42,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Table,
@@ -884,9 +883,9 @@ export default function SuperadminIssuesPage() {
               </div>
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t("superadmin.issues.filters.status")}>
               <SelectTrigger className="w-[180px] bg-muted border-input text-white">
-                <SelectValue placeholder={t("superadmin.issues.filters.status")} />
+                {statusOptions.find(o => o.value === statusFilter)?.label || t("superadmin.issues.filters.status")}
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((option) => (
@@ -897,9 +896,9 @@ export default function SuperadminIssuesPage() {
               </SelectContent>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} placeholder={t("superadmin.issues.filters.priority")}>
               <SelectTrigger className="w-[180px] bg-muted border-input text-white">
-                <SelectValue placeholder={t("superadmin.issues.filters.priority")} />
+                {priorityOptions.find(o => o.value === priorityFilter)?.label || t("superadmin.issues.filters.priority")}
               </SelectTrigger>
               <SelectContent>
                 {priorityOptions.map((option) => (
@@ -910,9 +909,9 @@ export default function SuperadminIssuesPage() {
               </SelectContent>
             </Select>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder={t("superadmin.issues.filters.category")}>
               <SelectTrigger className="w-[180px] bg-muted border-input text-white">
-                <SelectValue placeholder={t("superadmin.issues.filters.category")} />
+                {categoryOptions.find(o => o.value === categoryFilter)?.label || t("superadmin.issues.filters.category")}
               </SelectTrigger>
               <SelectContent>
                 {categoryOptions.map((option) => (

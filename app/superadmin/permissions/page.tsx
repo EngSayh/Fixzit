@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Grid3x3, RefreshCw, Search, Edit, Plus, Shield,
@@ -409,9 +409,9 @@ export default function SuperadminPermissionsPage() {
             <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search permissions..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
           </div>
-          <Select value={selectedModule} onValueChange={setSelectedModule}>
+          <Select value={selectedModule} onValueChange={setSelectedModule} placeholder="Filter by module">
             <SelectTrigger className="w-[200px] bg-muted border-input">
-              <SelectValue placeholder="Filter by module" />
+              {selectedModule === "all" ? "All Modules" : MODULES.find(m => m.id === selectedModule)?.name || selectedModule}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Modules</SelectItem>

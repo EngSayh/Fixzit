@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -472,9 +472,9 @@ export default function SuperadminSubscriptionsPage() {
                 <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search subscriptions..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Filter by status">
                 <SelectTrigger className="w-[180px] bg-muted border-input">
-                  <SelectValue placeholder="Filter by status" />
+                  {statusFilter === "all" ? "All Statuses" : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
@@ -648,8 +648,8 @@ export default function SuperadminSubscriptionsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Currency</Label>
-                <Select value={tierForm.currency} onValueChange={(v) => setTierForm({ ...tierForm, currency: v })}>
-                  <SelectTrigger className="bg-muted border-input"><SelectValue /></SelectTrigger>
+                <Select value={tierForm.currency} onValueChange={(v) => setTierForm({ ...tierForm, currency: v })} placeholder="Currency">
+                  <SelectTrigger className="bg-muted border-input">{tierForm.currency}</SelectTrigger>
                   <SelectContent>
                     <SelectItem value="SAR">SAR</SelectItem>
                     <SelectItem value="USD">USD</SelectItem>
