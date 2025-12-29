@@ -153,7 +153,7 @@ export default function SuperadminAuditPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.audit")}</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.audit")}</h1>
           <p className="text-muted-foreground">System-wide audit trail and security events</p>
         </div>
         <div className="flex gap-2">

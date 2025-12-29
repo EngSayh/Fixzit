@@ -253,7 +253,7 @@ async function processS3Cleanup(job: Job): Promise<void> {
  * Get job queue statistics
  */
 export async function GET(request: NextRequest) {
-  const rateLimitResponse = enforceRateLimit(request, {
+  const rateLimitResponse = await enforceRateLimit(request, {
     requests: 30,
     windowMs: 60_000,
     keyPrefix: "jobs:stats",

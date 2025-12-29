@@ -261,12 +261,21 @@ export async function initMFASetup(
     // Store encrypted pending secret
     const encryptedSecret = encryptField(secret, "mfa.secret");
     
+    // Generate recovery codes and hash them for storage
+    const recoveryCodes = generateRecoveryCodes();
+    const hashedRecoveryCodes = recoveryCodes.map(code => ({
+      hash: hashRecoveryCode(code),
+      used: false,
+      createdAt: new Date(),
+    }));
+    
     await db.collection("mfa_pending").updateOne(
       { orgId, userId },
       {
         $set: {
           secret: encryptedSecret,
           method,
+          hashedRecoveryCodes, // Store server-generated hashes
           createdAt: new Date(),
           expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 min expiry
         },
@@ -278,9 +287,6 @@ export async function initMFASetup(
     const qrCodeUrl = method === MFAMethod.TOTP
       ? generateOTPAuthURI(secret, email)
       : undefined;
-    
-    // Generate recovery codes
-    const recoveryCodes = generateRecoveryCodes();
     
     return {
       success: true,
@@ -303,13 +309,14 @@ export async function initMFASetup(
 
 /**
  * Complete MFA setup after user verifies first code
+ * Recovery codes are loaded from the pending document (server-generated)
  */
 export async function completeMFASetup(
   orgId: string,
   userId: string,
   email: string,
   verificationCode: string,
-  recoveryCodes: string[],
+  _recoveryCodes: string[], // Ignored - use server-generated codes from pending doc
   ipAddress?: string
 ): Promise<MFAVerifyResponse> {
   try {
@@ -332,12 +339,11 @@ export async function completeMFASetup(
       return { success: false, error: "Invalid verification code" };
     }
     
-    // Hash recovery codes
-    const hashedRecoveryCodes = recoveryCodes.map(code => ({
-      hash: hashRecoveryCode(code),
-      used: false,
-      createdAt: new Date(),
-    }));
+    // Use server-generated hashed recovery codes from pending document
+    const hashedRecoveryCodes = pending.hashedRecoveryCodes ?? [];
+    if (hashedRecoveryCodes.length === 0) {
+      logger.warn("No recovery codes found in pending MFA setup", { orgId, userId });
+    }
     
     // Store MFA config on user
     await db.collection("users").updateOne(
@@ -382,6 +388,23 @@ export async function completeMFASetup(
   }
 }
 
+async function validateAdminApprovalToken(params: {
+  approvalToken: string;
+  orgId: string;
+  adminId: string;
+  targetUserId: string;
+  action: "disable_mfa";
+}): Promise<{ valid: boolean; errorCode?: string; error?: string }> {
+  void params;
+  // TODO: Integrate with centralized approval system to validate signature/expiry/scope.
+  // Return explicit error code so UI can detect and hide/disable admin override flows
+  return {
+    valid: false,
+    errorCode: "APPROVAL_NOT_CONFIGURED",
+    error: "Admin approval system not configured",
+  };
+}
+
 /**
  * Disable MFA for a user
  * @param adminOverride - Required when disabledBy !== userId (admin disabling for user)
@@ -420,13 +443,23 @@ export async function disableMFA(
       if (!approvalToken) {
         return { success: false, error: "Approval token required for admin MFA disable operation" };
       }
-      // Note: In production, validate approvalToken against a secure approval system
-      logger.warn("Admin MFA disable initiated", {
-        targetUserId: userId,
+      const approvalValidation = await validateAdminApprovalToken({
+        approvalToken,
+        orgId,
         adminId: disabledBy,
-        hasApprovalToken: !!approvalToken,
-        ipAddress,
+        targetUserId: userId,
+        action: "disable_mfa",
       });
+      if (!approvalValidation.valid) {
+        logger.warn("Admin MFA disable denied - invalid approval token", {
+          targetUserId: userId,
+          adminId: disabledBy,
+          orgId,
+          reason: approvalValidation.error,
+          ipAddress,
+        });
+        return { success: false, error: approvalValidation.error || "Invalid approval token" };
+      }
     }
     
     // Disable MFA

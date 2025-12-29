@@ -12,9 +12,12 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { connectDb } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
+import { isValidObjectId } from "mongoose";
 
 const BulkDeleteSchema = z.object({
-  userIds: z.array(z.string()).min(1, "At least one user ID is required"),
+  userIds: z.array(
+    z.string().refine((id) => isValidObjectId(id), { message: "Invalid ObjectId" })
+  ).min(1, "At least one user ID is required"),
 });
 
 /**
@@ -57,14 +60,19 @@ export async function POST(request: NextRequest) {
     await connectDb();
 
     // Prevent deleting superadmin users
-    const superadminCheck = await User.countDocuments({
+    const superadmins = await User.find({
       _id: { $in: userIds },
       isSuperAdmin: true,
-    });
+    }).select({ _id: 1 }).lean();
 
-    if (superadminCheck > 0) {
+    if (superadmins.length > 0) {
+      const blockedIds = superadmins.map((user) => user._id.toString());
+      logger.warn("Blocked bulk delete of superadmin users", {
+        superadminUsername: session.username,
+        blockedUserIds: blockedIds,
+      });
       return NextResponse.json(
-        { error: "Cannot delete superadmin users" },
+        { error: "Cannot delete superadmin users", blockedUserIds: blockedIds },
         { status: 400 }
       );
     }

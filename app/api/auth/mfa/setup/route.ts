@@ -70,7 +70,17 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-    const userId = session.user.id;
+    const userId = typeof session.user.id === "string" ? session.user.id.trim() : "";
+    if (!userId) {
+      logger.warn("[MFA Setup] Missing or invalid userId on session", {
+        hasUser: !!session.user,
+        orgId,
+      });
+      return NextResponse.json(
+        { error: { code: "FIXZIT-AUTH-400", message: "User ID required" } },
+        { status: 400 }
+      );
+    }
     const email = session.user.email || "";
     const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || 
                       request.headers.get("x-real-ip") || 

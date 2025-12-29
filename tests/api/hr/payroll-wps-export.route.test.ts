@@ -35,13 +35,17 @@ vi.mock("@/server/services/hr/payroll.service", () => ({
 
 // Mock WPS service
 vi.mock("@/services/hr/wpsService", () => ({
-  generateWPSFile: vi.fn().mockReturnValue({
-    content: "IBAN,Amount,Name\nSA0000000000000000000001,10000,Test Employee\n",
-    checksum: "abc123def456",
-    recordCount: 1,
-    totalAmount: 10000,
+  generateWPSFile: vi.fn().mockResolvedValue({
+    file: {
+      content: "IBAN,Amount,Name\nSA0000000000000000000001,10000,Test Employee\n",
+      checksum: "abc123def456",
+      recordCount: 1,
+      totalNetSalary: 10000,
+      filename: "WPS_2025-02.csv",
+    },
+    errors: [],
   }),
-  validateWPSFile: vi.fn().mockReturnValue({ valid: true, errors: [] }),
+  validateWPSFile: vi.fn().mockReturnValue({ isValid: true, errors: [], warnings: [] }),
 }));
 
 // Mock logger
@@ -57,6 +61,7 @@ import { auth } from "@/auth";
 import { hasAllowedRole } from "@/lib/auth/role-guards";
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { generateWPSFile } from "@/services/hr/wpsService";
 
 const importRoute = () => import("@/app/api/hr/payroll/runs/[id]/export/wps/route");
 
@@ -138,29 +143,70 @@ describe("GET /api/hr/payroll/runs/[id]/export/wps", () => {
     vi.mocked(auth).mockResolvedValue({
       user: { id: "user123", orgId: mockOrgId, role: "SUPER_ADMIN" },
     } as never);
-    vi.mocked(PayrollService.getById).mockResolvedValue({
+    const payrollRun = {
       _id: mockPayrollRunId,
       status: "APPROVED",
       orgId: mockOrgId,
+      periodEnd: "2025-02-28T00:00:00.000Z",
       lines: [{ employeeId: "emp1", netPay: 10000 }],
+    };
+    vi.mocked(PayrollService.getById).mockResolvedValue({
+      ...payrollRun,
     } as never);
 
     const req = new NextRequest(`http://localhost/api/hr/payroll/runs/${mockPayrollRunId}/export/wps`);
     const { GET } = await importRoute();
     const res = await GET(req, { params: Promise.resolve({ id: mockPayrollRunId }) });
 
-    // Should not return 403
-    expect(res.status).not.toBe(403);
+    expect(res.status).toBe(200);
+    const content = await res.text();
+    expect(content).toContain("IBAN,Amount,Name");
+    expect(res.headers.get("X-Record-Count")).toBe("1");
+    expect(res.headers.get("X-File-Checksum")).toBe("abc123def456");
+    expect(res.headers.get("X-Total-Net-Salary")).toBe("10000");
+    expect(generateWPSFile).toHaveBeenCalledWith(
+      payrollRun.lines,
+      mockOrgId,
+      "2025-02"
+    );
   });
 
   it("allows HR_OFFICER subRole to export WPS", async () => {
     vi.mocked(auth).mockResolvedValue({
       user: { id: "user123", orgId: mockOrgId, role: "STAFF", subRole: "HR_OFFICER" },
     } as never);
-    vi.mocked(PayrollService.getById).mockResolvedValue({
+    const payrollRun = {
       _id: mockPayrollRunId,
       status: "APPROVED",
       orgId: mockOrgId,
+      periodEnd: "2025-02-28T00:00:00.000Z",
+      lines: [{ employeeId: "emp1", netPay: 10000 }],
+    };
+    vi.mocked(PayrollService.getById).mockResolvedValue({
+      ...payrollRun,
+    } as never);
+
+    const req = new NextRequest(`http://localhost/api/hr/payroll/runs/${mockPayrollRunId}/export/wps`);
+    const { GET } = await importRoute();
+    const res = await GET(req, { params: Promise.resolve({ id: mockPayrollRunId }) });
+
+    expect(res.status).toBe(200);
+    const content = await res.text();
+    expect(content).toContain("IBAN,Amount,Name");
+    expect(res.headers.get("X-Record-Count")).toBe("1");
+    expect(generateWPSFile).toHaveBeenCalledWith(
+      payrollRun.lines,
+      mockOrgId,
+      "2025-02"
+    );
+  });
+
+  it("returns 403 when payroll run belongs to a different org", async () => {
+    vi.mocked(PayrollService.getById).mockResolvedValue({
+      _id: mockPayrollRunId,
+      status: "APPROVED",
+      orgId: "other-org",
+      periodEnd: "2025-02-28T00:00:00.000Z",
       lines: [{ employeeId: "emp1", netPay: 10000 }],
     } as never);
 
@@ -168,7 +214,7 @@ describe("GET /api/hr/payroll/runs/[id]/export/wps", () => {
     const { GET } = await importRoute();
     const res = await GET(req, { params: Promise.resolve({ id: mockPayrollRunId }) });
 
-    expect(res.status).not.toBe(403);
+    expect(res.status).toBe(403);
   });
 
   it("logs access denial for audit trail", async () => {

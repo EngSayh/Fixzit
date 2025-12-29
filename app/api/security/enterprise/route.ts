@@ -33,13 +33,22 @@ export async function GET() {
     
     // Skip authorization only in explicit demo mode
     if (!isDemo) {
-      // Authorization: require admin role or isSuperAdmin for security data
-      const user = session?.user as { role?: string; roles?: string[]; isSuperAdmin?: boolean };
-      const isAdmin = user?.isSuperAdmin || user?.role === "ADMIN" || user?.role === "SUPER_ADMIN" || user?.roles?.includes("admin") || user?.roles?.includes("security:read");
-      if (!isAdmin) {
+      // Authorization: require super-admin privileges OR explicit security:read permission
+      const user = session?.user as { role?: string; roles?: string[]; isSuperAdmin?: boolean } | undefined;
+      if (!user) {
+        return NextResponse.json(
+          { error: { code: "FIXZIT-AUTH-002", message: "Forbidden - User not found" } },
+          { status: 403 }
+        );
+      }
+      const isSuperAdmin = user.isSuperAdmin === true || user.role === "SUPER_ADMIN";
+      const roles = (user.roles ?? []).map(r => r.toLowerCase());
+      const hasSecurityPermission = roles.includes("security:read");
+      const isAuthorized = isSuperAdmin || hasSecurityPermission;
+      if (!isAuthorized) {
         logger.warn("[security/enterprise] Unauthorized access attempt", { userId: (session?.user as { id?: string })?.id });
         return NextResponse.json(
-          { error: { code: "FIXZIT-AUTH-002", message: "Forbidden - Admin access required" } },
+          { error: { code: "FIXZIT-AUTH-002", message: "Forbidden - Super admin or security:read permission required" } },
           { status: 403 }
         );
       }
@@ -179,7 +188,7 @@ export async function GET() {
     };
     
     logger.info("Enterprise security dashboard accessed", {
-      user: session?.user?.email ?? "demo",
+      userId: session?.user?.id ?? "demo",
       zero_trust_score: securityDashboard.zero_trust.score,
       threats_high: securityDashboard.threats.severity_high,
     });

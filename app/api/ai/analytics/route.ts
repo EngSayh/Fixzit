@@ -29,7 +29,23 @@ export async function GET() {
       );
     }
     
-    const orgId = isDemo ? 'demo' : ((session?.user as { orgId?: string })?.orgId ?? '1');
+    const sessionOrgId = (session?.user as { orgId?: string })?.orgId;
+    if (!sessionOrgId || typeof sessionOrgId !== "string" || sessionOrgId.trim() === "") {
+      if (!isDemo) {
+        return NextResponse.json(
+          { error: { code: "FIXZIT-TENANT-001", message: "Organization required" } },
+          { status: 400 }
+        );
+      }
+    }
+    
+    const orgId = isDemo ? "demo" : sessionOrgId;
+    if (isDemo) {
+      logger.warn("[AI Analytics] Demo org fallback used", {
+        demoEnabled,
+        hasSessionUser: !!session?.user,
+      });
+    }
     
     // AI Analytics summary
     const analytics = {

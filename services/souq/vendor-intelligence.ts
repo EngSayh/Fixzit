@@ -277,8 +277,11 @@ export async function getVendorProfile(
     }) as WithId<Document> | null;
     
     return profile as unknown as VendorProfile | null;
-  } catch (_error) {
-    logger.error("Failed to get vendor profile", { component: "vendor-intelligence" });
+  } catch (error) {
+    logger.error("Failed to get vendor profile", { 
+      component: "vendor-intelligence",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -337,8 +340,11 @@ export async function calculateVendorScore(
     }
     
     return scoreBreakdown;
-  } catch (_error) {
-    logger.error("Failed to calculate vendor score", { component: "vendor-intelligence" });
+  } catch (error) {
+    logger.error("Failed to calculate vendor score", { 
+      component: "vendor-intelligence",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return getDefaultScoreBreakdown();
   }
 }
@@ -493,8 +499,11 @@ export async function suspendVendor(
     });
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to suspend vendor", { component: "vendor-intelligence" });
+  } catch (error) {
+    logger.error("Failed to suspend vendor", { 
+      component: "vendor-intelligence",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { success: false, error: "Failed to suspend vendor" };
   }
 }
@@ -527,8 +536,11 @@ export async function reinstateVendor(
     );
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to reinstate vendor", { component: "vendor-intelligence" });
+  } catch (error) {
+    logger.error("Failed to reinstate vendor", { 
+      component: "vendor-intelligence",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { success: false, error: "Failed to reinstate vendor" };
   }
 }

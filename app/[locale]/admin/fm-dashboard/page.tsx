@@ -351,15 +351,15 @@ export default function FMDashboardPage() {
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium">PDPL Compliance</span>
                 <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {compliance?.pdpl.consent_collection_rate ?? 0}% consent rate
+                  {compliance?.pdpl?.consent_collection_rate ?? 0}% consent rate
                 </span>
               </div>
               <div className="flex items-center gap-4 text-sm">
                 <span className="text-yellow-600 dark:text-yellow-400">
-                  {compliance?.pdpl.active_dsar_requests ?? 0} DSAR requests
+                  {compliance?.pdpl?.active_dsar_requests ?? 0} DSAR requests
                 </span>
                 <span className="text-green-600 dark:text-green-400">
-                  {compliance?.pdpl.data_breach_incidents ?? 0} breaches
+                  {compliance?.pdpl?.data_breach_incidents ?? 0} breaches
                 </span>
               </div>
             </div>
@@ -415,25 +415,25 @@ export default function FMDashboardPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
               <p className="text-3xl font-bold text-brand-blue">
-                {security?.zero_trust.score ?? 0}
+                {security?.zero_trust?.score ?? 0}
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400">Zero Trust Score</p>
             </div>
             <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
               <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                {security?.authentication.mfa_enrollment_rate ?? 0}%
+                {security?.authentication?.mfa_enrollment_rate ?? 0}%
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400">MFA Enrolled</p>
             </div>
             <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
               <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                {security?.authentication.webauthn_enrolled_users ?? 0}
+                {security?.authentication?.webauthn_enrolled_users ?? 0}
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400">WebAuthn Users</p>
             </div>
             <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
               <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                {security?.threats.severity_high ?? 0}
+                {security?.threats?.severity_high ?? 0}
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400">High Threats</p>
             </div>
@@ -451,13 +451,13 @@ export default function FMDashboardPage() {
               <div>
                 <p className="font-medium">Total Providers</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {providers?.statistics.total_providers ?? 0}
+                  {providers?.statistics?.total_providers ?? 0}
                 </p>
               </div>
               <div className="text-end">
                 <p className="text-sm text-gray-600 dark:text-gray-400">Verified</p>
                 <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                  {providers?.statistics.verified_providers ?? 0}
+                  {providers?.statistics?.verified_providers ?? 0}
                 </p>
               </div>
             </div>
@@ -469,10 +469,10 @@ export default function FMDashboardPage() {
               </div>
               <div className="text-end">
                 <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                  {providers?.active_bids.total ?? 0}
+                  {providers?.active_bids?.total ?? 0}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {providers?.active_bids.pending_review ?? 0} pending review
+                  {providers?.active_bids?.pending_review ?? 0} pending review
                 </p>
               </div>
             </div>
@@ -484,7 +484,7 @@ export default function FMDashboardPage() {
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
-                  {providers?.statistics.avg_rating ?? 0}
+                  {providers?.statistics?.avg_rating ?? 0}
                 </span>
                 <span className="text-yellow-500">★</span>
               </div>

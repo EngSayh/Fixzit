@@ -13,6 +13,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from "vitest";
 import { NextRequest } from "next/server";
+import { Types } from "mongoose";
 
 // ============================================================================
 // MOCKS
@@ -83,30 +84,37 @@ const mockFinanceUser = {
   permissions: ["finance.reports.owner-statement"],
 };
 
+// Mock data matching the actual service response format
 const mockOwnerStatementData = {
   propertyId: TEST_PROPERTY_ID,
-  ownerId: TEST_OWNER_ID,
-  period: {
-    from: new Date("2024-01-01"),
-    to: new Date("2024-01-31"),
-  },
-  income: {
-    rent: 5000_00, // 5000.00 in minor units
-    utilities: 200_00,
-    parking: 100_00,
-    total: 5300_00,
-  },
-  expenses: {
-    maintenance: 300_00,
-    management: 530_00, // 10% management fee
-    insurance: 100_00,
-    total: 930_00,
-  },
-  distributions: [
-    { date: new Date("2024-01-15"), amount: 2000_00, reference: "DIST-001" },
+  from: new Date("2024-01-01"),
+  to: new Date("2024-01-31"),
+  opening: 0n, // bigint opening balance
+  charges: 5300n, // Revenue credits (in minor units scaled by route)
+  receipts: 1000n, // Asset receipts
+  ending: 6300n, // opening + charges + receipts
+  lines: [
+    {
+      accountId: new Types.ObjectId(),
+      code: "4001",
+      accountCode: "4001",
+      name: "Rental Income",
+      accountName: "Rental Income",
+      type: "REVENUE",
+      debit: Types.Decimal128.fromString("0"),
+      credit: Types.Decimal128.fromString("5300"),
+    },
+    {
+      accountId: new Types.ObjectId(),
+      code: "1101",
+      accountCode: "1101",
+      name: "Cash",
+      accountName: "Cash",
+      type: "ASSET",
+      debit: Types.Decimal128.fromString("1000"),
+      credit: Types.Decimal128.fromString("0"),
+    },
   ],
-  netIncome: 4370_00,
-  balance: 2370_00, // Net income - distributions
 };
 
 // ============================================================================
@@ -156,7 +164,7 @@ describe("GET /api/finance/reports/owner-statement", () => {
 
     expect(res.status).toBe(401);
     const data = await res.json();
-    expect(data.error).toContain("Unauthorized");
+    expect(data.error).toContain("Authentication required");
   });
 
   it("should verify RBAC permission for finance.reports.owner-statement", async () => {
@@ -197,9 +205,11 @@ describe("GET /api/finance/reports/owner-statement", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.propertyId).toBe(TEST_PROPERTY_ID);
-    expect(data.income).toBeDefined();
-    expect(data.expenses).toBeDefined();
-    expect(data.netIncome).toBeDefined();
+    expect(data.opening).toBeDefined();
+    expect(data.charges).toBeDefined();
+    expect(data.receipts).toBeDefined();
+    expect(data.ending).toBeDefined();
+    expect(data.lines).toBeDefined();
   });
 
   it("should accept custom date range parameters", async () => {
@@ -215,14 +225,18 @@ describe("GET /api/finance/reports/owner-statement", () => {
     const res = await GET(req);
 
     expect(res.status).toBe(200);
+    // ownerStatement is called with context, propertyId, from, to
     expect(ownerStatement).toHaveBeenCalledWith(
       expect.objectContaining({
-        propertyId: TEST_PROPERTY_ID,
+        orgId: TEST_ORG_ID,
       }),
+      TEST_PROPERTY_ID,
+      expect.any(Date),
+      expect.any(Date),
     );
   });
 
-  it("should include income breakdown by category", async () => {
+  it("should include line items with account details", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockFinanceUser);
     (ownerStatement as Mock).mockResolvedValue(mockOwnerStatementData);
 
@@ -232,11 +246,14 @@ describe("GET /api/finance/reports/owner-statement", () => {
 
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.income.rent).toBeDefined();
-    expect(data.income.total).toBeDefined();
+    expect(data.lines).toBeDefined();
+    expect(Array.isArray(data.lines)).toBe(true);
+    expect(data.lines.length).toBeGreaterThan(0);
+    expect(data.lines[0].accountCode).toBeDefined();
+    expect(data.lines[0].accountName).toBeDefined();
   });
 
-  it("should include expense breakdown by category", async () => {
+  it("should include opening and ending balances", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockFinanceUser);
     (ownerStatement as Mock).mockResolvedValue(mockOwnerStatementData);
 
@@ -246,12 +263,11 @@ describe("GET /api/finance/reports/owner-statement", () => {
 
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.expenses.maintenance).toBeDefined();
-    expect(data.expenses.management).toBeDefined();
-    expect(data.expenses.total).toBeDefined();
+    expect(typeof data.opening).toBe("number");
+    expect(typeof data.ending).toBe("number");
   });
 
-  it("should include distributions to owner", async () => {
+  it("should include charges and receipts", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockFinanceUser);
     (ownerStatement as Mock).mockResolvedValue(mockOwnerStatementData);
 
@@ -261,11 +277,11 @@ describe("GET /api/finance/reports/owner-statement", () => {
 
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.distributions).toBeDefined();
-    expect(Array.isArray(data.distributions)).toBe(true);
+    expect(typeof data.charges).toBe("number");
+    expect(typeof data.receipts).toBe("number");
   });
 
-  it("should calculate net income correctly", async () => {
+  it("should return date range in response", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockFinanceUser);
     (ownerStatement as Mock).mockResolvedValue(mockOwnerStatementData);
 
@@ -275,7 +291,7 @@ describe("GET /api/finance/reports/owner-statement", () => {
 
     expect(res.status).toBe(200);
     const data = await res.json();
-    // Net = Total Income - Total Expenses = 5300 - 930 = 4370
-    expect(data.netIncome).toBe(mockOwnerStatementData.netIncome);
+    expect(data.from).toBeDefined();
+    expect(data.to).toBeDefined();
   });
 });

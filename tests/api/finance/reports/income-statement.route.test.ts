@@ -5,6 +5,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { Types } from "mongoose";
 
 // Mock rate limiting
 vi.mock("@/lib/middleware/rate-limit", () => ({
@@ -85,10 +86,33 @@ describe("GET /api/finance/reports/income-statement", () => {
     vi.mocked(enforceRateLimit).mockReturnValue(null);
     vi.mocked(getSessionUser).mockResolvedValue(mockUser as never);
     vi.mocked(requirePermission).mockReturnValue(undefined);
+    // Mock data must match the service return format: { revenue, expense, net, rows }
     vi.mocked(incomeStatement).mockResolvedValue({
-      revenue: BigInt(50000000),  // 500,000.00 in minor units
-      expenses: BigInt(30000000), // 300,000.00
-      netIncome: BigInt(20000000), // 200,000.00
+      revenue: 50000000n,  // 500,000.00 in minor units (bigint)
+      expense: 30000000n,  // 300,000.00
+      net: 20000000n,      // 200,000.00
+      rows: [
+        {
+          accountId: new Types.ObjectId(),
+          code: "4001",
+          accountCode: "4001",
+          name: "Revenue",
+          accountName: "Revenue",
+          type: "REVENUE",
+          debit: Types.Decimal128.fromString("0"),
+          credit: Types.Decimal128.fromString("50000000"),
+        },
+        {
+          accountId: new Types.ObjectId(),
+          code: "5001",
+          accountCode: "5001",
+          name: "Expenses",
+          accountName: "Expenses",
+          type: "EXPENSE",
+          debit: Types.Decimal128.fromString("30000000"),
+          credit: Types.Decimal128.fromString("0"),
+        },
+      ],
     } as never);
   });
 
@@ -151,9 +175,10 @@ describe("GET /api/finance/reports/income-statement", () => {
 
   it("handles zero revenue and expenses correctly", async () => {
     vi.mocked(incomeStatement).mockResolvedValue({
-      revenue: BigInt(0),
-      expenses: BigInt(0),
-      netIncome: BigInt(0),
+      revenue: 0n,
+      expense: 0n,
+      net: 0n,
+      rows: [],
     } as never);
 
     const req = new NextRequest("http://localhost/api/finance/reports/income-statement");
@@ -165,9 +190,10 @@ describe("GET /api/finance/reports/income-statement", () => {
 
   it("handles negative net income (loss) correctly", async () => {
     vi.mocked(incomeStatement).mockResolvedValue({
-      revenue: BigInt(20000000),   // 200,000.00
-      expenses: BigInt(30000000),  // 300,000.00
-      netIncome: BigInt(-10000000), // -100,000.00 (loss)
+      revenue: 20000000n,   // 200,000.00
+      expense: 30000000n,   // 300,000.00
+      net: -10000000n,      // -100,000.00 (loss)
+      rows: [],
     } as never);
 
     const req = new NextRequest("http://localhost/api/finance/reports/income-statement");

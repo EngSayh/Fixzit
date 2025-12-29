@@ -296,8 +296,11 @@ export async function getEquipmentById(
     }) as WithId<Document> | null;
     
     return equipment as unknown as EquipmentRecord;
-  } catch (_error) {
-    logger.error("Failed to get equipment", { component: "predictive-maintenance" });
+  } catch (error) {
+    logger.error("Failed to get equipment", { 
+      component: "predictive-maintenance",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -329,8 +332,11 @@ export async function getEquipmentByProperty(
       .toArray();
     
     return equipment as unknown as EquipmentRecord[];
-  } catch (_error) {
-    logger.error("Failed to get equipment by property", { component: "predictive-maintenance" });
+  } catch (error) {
+    logger.error("Failed to get equipment by property", { 
+      component: "predictive-maintenance",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return [];
   }
 }

@@ -124,7 +124,7 @@ export interface ScreeningApplication {
     affordability: {
       monthlyRent: number;
       monthlyIncome: number;
-      rentToIncomeRatio: number;
+      rentToIncomeRatio: number | null;
       isAffordable: boolean;
     };
   };
@@ -282,7 +282,7 @@ export async function createScreeningApplication(
         affordability: {
           monthlyRent: 0,
           monthlyIncome: request.applicant.monthlyIncome,
-          rentToIncomeRatio: 0,
+          rentToIncomeRatio: null,
           isAffordable: false,
         },
       },
@@ -485,11 +485,11 @@ export async function calculateScreeningScore(
     }
     
     // Calculate affordability - guard against zero/negative income
-    let rentToIncomeRatio: number;
+    let rentToIncomeRatio: number | null;
     let isAffordable: boolean;
     
     if (!applicant.monthlyIncome || applicant.monthlyIncome <= 0) {
-      rentToIncomeRatio = -1; // Sentinel value indicating "unable to calculate"
+      rentToIncomeRatio = null;
       isAffordable = false;
       redFlags.push("Monthly income is zero or not provided - affordability cannot be calculated");
     } else {
@@ -645,7 +645,12 @@ async function calculateCreditScore(
     
     // No history - neutral score
     return 60;
-  } catch {
+  } catch (error) {
+    logger.error("Failed to calculate payment history score", {
+      component: "tenant-screening",
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return 60; // Default neutral score on error
   }
 }
@@ -692,7 +697,12 @@ async function calculateRentalHistoryScore(
     
     // No rental history - neutral
     return 50;
-  } catch {
+  } catch (error) {
+    logger.error("Failed to calculate rental history score", {
+      component: "tenant-screening",
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return 50;
   }
 }
@@ -865,7 +875,9 @@ export async function getScreeningSummary(
           {
             name: "Rent-to-Income Ratio",
             points: results.affordability.isAffordable ? 30 : 10,
-            explanation: `${Math.round(results.affordability.rentToIncomeRatio * 100)}% of income`,
+            explanation: typeof results.affordability.rentToIncomeRatio === "number" && results.affordability.rentToIncomeRatio >= 0
+              ? `${Math.round(results.affordability.rentToIncomeRatio * 100)}% of income`
+              : "Unverifiable",
           },
         ],
       },

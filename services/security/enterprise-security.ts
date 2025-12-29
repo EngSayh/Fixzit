@@ -12,6 +12,8 @@
  */
 
 import crypto from "crypto";
+import mongoose from "mongoose";
+import { ObjectId, type ClientSession } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import type {
@@ -27,7 +29,6 @@ import type {
   GhostModeSession,
   ElevatedAccessType,
 } from "@/types/security";
-import type { ObjectId } from "mongodb";
 
 // =============================================================================
 // CONFIGURATION
@@ -556,11 +557,14 @@ export function refreshSession(session: ZeroTrustSession): ZeroTrustSession {
  * Get the previous audit log hash from the database for chain integrity
  * In serverless/multi-instance deployments, we must fetch from DB each time
  */
-async function getPreviousAuditHash(db: Awaited<ReturnType<typeof getDatabase>>): Promise<string> {
+async function getPreviousAuditHash(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  session?: ClientSession
+): Promise<string> {
   try {
     const lastAudit = await db.collection("audit_logs").findOne(
       {},
-      { sort: { timestamp: -1 }, projection: { integrity_hash: 1 } }
+      { sort: { timestamp: -1 }, projection: { integrity_hash: 1 }, session }
     );
     return lastAudit?.integrity_hash || "0".repeat(64);
   } catch {
@@ -584,59 +588,109 @@ export async function createAuditLogEntry(
   before?: Record<string, unknown>,
   after?: Record<string, unknown>,
   correlationId?: string
-): Promise<Omit<AuditLogEntry, "log_id">> {
+): Promise<AuditLogEntry> {
   const timestamp = new Date();
-  
-  // Fetch previous hash from database for chain integrity (serverless-safe)
   const db = await getDatabase();
-  const previousHash = await getPreviousAuditHash(db);
+  const session = await mongoose.startSession();
+  let persistedEntry: AuditLogEntry | null = null;
   
-  // Calculate integrity hash
-  const dataToHash = JSON.stringify({
-    timestamp: timestamp.toISOString(),
-    category,
-    action,
-    actor,
-    resource,
-    details,
-    previous_hash: previousHash,
-  });
-  
-  const integrityHash = crypto
-    .createHash(SECURITY_CONFIG.AUDIT_HASH_ALGORITHM)
-    .update(dataToHash)
-    .digest("hex");
-  
-  const entry: Omit<AuditLogEntry, "log_id"> = {
-    timestamp,
-    actor,
-    tenant_id: tenantId,
-    category,
-    action,
-    severity,
-    resource,
-    before,
-    after,
-    details,
-    result,
-    correlation_id: correlationId,
-    tags: [],
-    integrity_hash: integrityHash,
-    previous_hash: previousHash,
-  };
-  
-  // Log to structured logger as well
-  logger.info(`Audit: ${category}/${action}`, {
-    audit: true,
-    category,
-    action,
-    severity,
-    result,
-    actor: actor.type === "user" ? actor.user_id?.toString() : actor.service_name,
-    resource: `${resource.type}:${resource.id || resource.name}`,
-  });
-  
-  return entry;
+  try {
+    await session.withTransaction(async () => {
+      const previousHash = await getPreviousAuditHash(db, session);
+      
+      // Calculate integrity hash
+      const dataToHash = JSON.stringify({
+        timestamp: timestamp.toISOString(),
+        category,
+        action,
+        actor,
+        resource,
+        details,
+        previous_hash: previousHash,
+      });
+      
+      const integrityHash = crypto
+        .createHash(SECURITY_CONFIG.AUDIT_HASH_ALGORITHM)
+        .update(dataToHash)
+        .digest("hex");
+      
+      const logId = new ObjectId();
+      const entry: AuditLogEntry = {
+        log_id: logId,
+        timestamp,
+        actor,
+        tenant_id: tenantId,
+        category,
+        action,
+        severity,
+        resource,
+        before,
+        after,
+        details,
+        result,
+        correlation_id: correlationId,
+        tags: [],
+        integrity_hash: integrityHash,
+        previous_hash: previousHash,
+      };
+      
+      await db.collection("audit_logs").insertOne(
+        { _id: logId, ...entry },
+        { session }
+      );
+      
+      persistedEntry = entry;
+    });
+    
+    if (!persistedEntry) {
+      throw new Error("Audit log entry was not persisted");
+    }
+    
+    // Log to structured logger as well
+    logger.info(`Audit: ${category}/${action}`, {
+      audit: true,
+      category,
+      action,
+      severity,
+      result,
+      actor: actor.type === "user" ? actor.user_id?.toString() : actor.service_name,
+      resource: `${resource.type}:${resource.id || resource.name}`,
+    });
+    
+    return persistedEntry;
+  } catch (error) {
+    logger.error("Failed to create audit log entry", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      category,
+      action,
+    });
+    
+    const fallbackHash = "0".repeat(64);
+    return {
+      log_id: new ObjectId(),
+      timestamp,
+      actor,
+      tenant_id: tenantId,
+      category,
+      action,
+      severity,
+      resource,
+      before,
+      after,
+      details,
+      result,
+      correlation_id: correlationId,
+      tags: [],
+      integrity_hash: fallbackHash,
+      previous_hash: fallbackHash,
+      error: {
+        code: "AUDIT_PERSIST_FAILURE",
+        message: error instanceof Error ? error.message : "Audit persistence failed",
+      },
+    };
+  } finally {
+    await session.endSession();
+  }
 }
 
 /**

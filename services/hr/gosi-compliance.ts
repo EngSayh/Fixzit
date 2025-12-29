@@ -296,6 +296,29 @@ export const CURRENT_GOSI_RATES: GosiRates = LEGACY_GOSI_RATES;
 // Employee Management
 // ============================================================================
 
+type GosiRateOptions = {
+  rates?: GosiRates;
+  registrationDate?: Date | string;
+};
+
+function resolveGosiRates(options?: GosiRateOptions): GosiRates {
+  if (options?.rates) {
+    return options.rates;
+  }
+  if (options?.registrationDate) {
+    const dateValue = typeof options.registrationDate === "string"
+      ? new Date(options.registrationDate)
+      : options.registrationDate;
+    if (!Number.isNaN(dateValue.getTime())) {
+      return getGosiRates(dateValue);
+    }
+    logger.warn("Invalid registrationDate provided for GOSI rates; using default rates", {
+      registrationDate: options.registrationDate,
+    });
+  }
+  return CURRENT_GOSI_RATES;
+}
+
 /**
  * Register employee for GOSI
  */
@@ -414,6 +437,15 @@ export async function setGosiNumber(
   gosiNumber: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Validate ObjectId before construction
+    if (!ObjectId.isValid(employeeId)) {
+      logger.warn("Invalid employeeId format in setGosiNumber", { 
+        component: "gosi-compliance", 
+        employeeId 
+      });
+      return { success: false, error: "Invalid employee ID format" };
+    }
+    
     const db = await getDatabase();
     
     const result = await db.collection(GOSI_EMPLOYEES_COLLECTION).updateOne(
@@ -453,6 +485,15 @@ export async function terminateEmployee(
   terminationDate: Date
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Validate ObjectId before construction
+    if (!ObjectId.isValid(employeeId)) {
+      logger.warn("Invalid employeeId format in terminateEmployee", { 
+        component: "gosi-compliance", 
+        employeeId 
+      });
+      return { success: false, error: "Invalid employee ID format" };
+    }
+    
     const db = await getDatabase();
     
     const result = await db.collection(GOSI_EMPLOYEES_COLLECTION).updateOne(
@@ -476,8 +517,11 @@ export async function terminateEmployee(
     });
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to terminate employee", { component: "gosi-compliance" });
+  } catch (error) {
+    logger.error("Failed to terminate employee", { 
+      component: "gosi-compliance",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { success: false, error: "Failed to terminate employee" };
   }
 }
@@ -491,9 +535,10 @@ export async function terminateEmployee(
  */
 export function calculateGosiWage(
   basicSalary: number,
-  housingAllowance: number
+  housingAllowance: number,
+  options?: GosiRateOptions
 ): number {
-  const rates = CURRENT_GOSI_RATES;
+  const rates = resolveGosiRates(options);
   let wage = 0;
   
   if (rates.wageComponents.basicSalary) wage += basicSalary;
@@ -506,7 +551,7 @@ export function calculateGosiWage(
 /**
  * Calculate contribution breakdown
  */
-export function calculateContribution(gosiWage: number): {
+export function calculateContribution(gosiWage: number, options?: GosiRateOptions): {
   employer: {
     annuities: number;
     hazards: number;
@@ -520,7 +565,7 @@ export function calculateContribution(gosiWage: number): {
   };
   total: number;
 } {
-  const rates = CURRENT_GOSI_RATES;
+  const rates = resolveGosiRates(options);
   
   const employer = {
     annuities: Math.round(gosiWage * rates.annuities.employer * 100) / 100,
@@ -547,8 +592,8 @@ export function calculateContribution(gosiWage: number): {
 /**
  * Calculate annual employer GOSI cost for an employee
  */
-export function calculateAnnualEmployerCost(gosiWage: number): number {
-  const rates = CURRENT_GOSI_RATES;
+export function calculateAnnualEmployerCost(gosiWage: number, options?: GosiRateOptions): number {
+  const rates = resolveGosiRates(options);
   const monthlyRate = rates.annuities.employer + rates.hazards.employer + rates.unemployment.employer;
   return Math.round(gosiWage * monthlyRate * 12 * 100) / 100;
 }
@@ -601,7 +646,9 @@ export async function generateMonthlyReport(
     for (const emp of employees) {
       const employee = emp as unknown as GosiEmployee;
       const gosiWage = employee.totalGosiWage;
-      const contrib = calculateContribution(gosiWage);
+      const contrib = calculateContribution(gosiWage, {
+        registrationDate: employee.registrationDate,
+      });
       
       totalWages += gosiWage;
       totalEmployer += contrib.employer.total;

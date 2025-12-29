@@ -148,7 +148,8 @@ export interface LeaseDocument {
   // Automation flags
   autoRenew: boolean;
   renewalReminderSent: boolean;
-  expiryNotificationsSent: number;
+  expiryNotificationsSentDays: number[];
+  expiryNotificationsSent?: number;
 }
 
 /**
@@ -222,14 +223,22 @@ export async function createLease(
   session?: mongoose.ClientSession
 ): Promise<{ success: boolean; lease?: LeaseDocument; error?: string }> {
   try {
+    // Validate paymentDueDay is within 1-28 range
+    if (request.paymentDueDay !== undefined) {
+      if (!Number.isInteger(request.paymentDueDay) || request.paymentDueDay < 1 || request.paymentDueDay > 28) {
+        return { success: false, error: "paymentDueDay must be an integer between 1 and 28" };
+      }
+    }
+    
     const db = await getDatabase();
+    const sessionOpts = session ? { session } : {};
     
     // Validate property and unit exist and are available
     const unit = await db.collection("units").findOne({
       _id: new ObjectId(request.unitId),
       propertyId: request.propertyId,
       orgId: request.orgId,
-    });
+    }, sessionOpts);
     
     if (!unit) {
       return { success: false, error: "Unit not found" };
@@ -243,28 +252,25 @@ export async function createLease(
     const tenant = await db.collection("tenants").findOne({
       _id: new ObjectId(request.tenantId),
       orgId: request.orgId,
-    });
+    }, sessionOpts);
     
     if (!tenant) {
       return { success: false, error: "Tenant not found" };
     }
     
     // Check for overlapping leases
-    // Convert unitId to ObjectId for proper matching
-    let unitObjectId: ObjectId;
-    try {
-      unitObjectId = new ObjectId(request.unitId);
-    } catch {
+    // Validate unitId format but use string for query since leases store unitId as string
+    if (!ObjectId.isValid(request.unitId)) {
       return { success: false, error: "Invalid unit ID format" };
     }
     
     const overlapping = await db.collection("leases").findOne({
       orgId: request.orgId,
-      unitId: unitObjectId,
+      unitId: request.unitId, // Use string - leases store unitId as string
       status: { $in: [LeaseStatus.ACTIVE, LeaseStatus.PENDING_APPROVAL] },
       startDate: { $lte: request.endDate },
       endDate: { $gte: request.startDate },
-    });
+    }, sessionOpts);
     
     if (overlapping) {
       return { success: false, error: "Overlapping lease exists for this unit" };
@@ -317,7 +323,7 @@ export async function createLease(
       createdAt: new Date(),
       autoRenew: request.autoRenew ?? false,
       renewalReminderSent: false,
-      expiryNotificationsSent: 0,
+      expiryNotificationsSentDays: [],
     };
     
     const result = await db.collection("leases").insertOne(
@@ -339,7 +345,10 @@ export async function createLease(
   } catch (error) {
     logger.error("Failed to create lease", {
       error: error instanceof Error ? error.message : "Unknown error",
-      request,
+      orgId: request.orgId,
+      propertyId: request.propertyId,
+      unitId: request.unitId,
+      tenantId: request.tenantId,
     });
     return { success: false, error: "Failed to create lease" };
   }
@@ -348,20 +357,25 @@ export async function createLease(
 /**
  * Activate a lease (move from draft to active)
  * Uses MongoDB transaction for atomicity
+ * @param existingSession - Optional session to use (to avoid nested transactions)
  */
 export async function activateLease(
   orgId: string,
   leaseId: string,
-  activatedBy: string
+  activatedBy: string,
+  existingSession?: mongoose.ClientSession
 ): Promise<{ success: boolean; error?: string }> {
-  const session = await mongoose.startSession();
+  // Use existing session if provided (for nested calls), otherwise create new one
+  const ownSession = !existingSession;
+  const session = existingSession ?? await mongoose.startSession();
   try {
     const db = await getDatabase();
+    const sessionOpts = { session };
     
     const lease = await db.collection("leases").findOne({
       _id: new ObjectId(leaseId),
       orgId,
-    });
+    }, sessionOpts);
     
     if (!lease) {
       return { success: false, error: "Lease not found" };
@@ -371,8 +385,8 @@ export async function activateLease(
       return { success: false, error: `Cannot activate lease in ${lease.status} status` };
     }
     
-    // Use transaction for atomic updates
-    await session.withTransaction(async () => {
+    // Helper function to perform activation updates
+    const performActivation = async () => {
       // Update lease status
       await db.collection("leases").updateOne(
         { _id: new ObjectId(leaseId), orgId },
@@ -383,7 +397,7 @@ export async function activateLease(
             updatedAt: new Date(),
           },
         },
-        { session }
+        sessionOpts
       );
       
       // Update unit status to occupied
@@ -397,9 +411,16 @@ export async function activateLease(
             updatedAt: new Date(),
           },
         },
-        { session }
+        sessionOpts
       );
-    });
+    };
+    
+    // If we own the session, use transaction; otherwise assume caller has transaction
+    if (ownSession) {
+      await session.withTransaction(performActivation);
+    } else {
+      await performActivation();
+    }
     
     logger.info("Lease activated", {
       leaseId,
@@ -415,7 +436,9 @@ export async function activateLease(
     });
     return { success: false, error: "Failed to activate lease" };
   } finally {
-    await session.endSession();
+    if (ownSession) {
+      await session.endSession();
+    }
   }
 }
 
@@ -492,9 +515,9 @@ export async function renewLease(
           { session }
         );
         
-        // Activate the new lease
+        // Activate the new lease (pass session to avoid nested transaction)
         if (newLease) {
-          await activateLease(orgId, newLease._id!.toString(), renewedBy);
+          await activateLease(orgId, newLease._id!.toString(), renewedBy, session);
         }
       });
       
@@ -740,9 +763,15 @@ export async function getRentOptimization(
         },
       },
       {
+        // Convert string unitId to ObjectId for lookup
+        $addFields: {
+          unitIdAsObjectId: { $toObjectId: "$unitId" },
+        },
+      },
+      {
         $lookup: {
           from: "units",
-          localField: "unitId",
+          localField: "unitIdAsObjectId",
           foreignField: "_id",
           as: "unitDetails",
         },
@@ -981,40 +1010,46 @@ export async function processLeaseExpiryNotifications(
       const nextDay = new Date(targetDate);
       nextDay.setDate(nextDay.getDate() + 1);
       
+      // Find leases that haven't been notified for this specific days value
       const leases = await db.collection("leases")
         .find({
           orgId,
           status: LeaseStatus.ACTIVE,
           endDate: { $gte: targetDate, $lt: nextDay },
-          expiryNotificationsSent: { $lt: notificationDays.indexOf(days) + 1 },
+          expiryNotificationsSentDays: { $nin: [days] }, // Use days array instead of counter
         })
         .toArray();
       
       for (const lease of leases) {
-        // Queue notification (would integrate with notification service)
-        await db.collection("notification_queue").insertOne({
-          orgId,
-          type: "LEASE_EXPIRY_REMINDER",
-          recipientId: lease.tenantId,
-          recipientType: "tenant",
-          data: {
-            leaseId: lease._id.toString(),
-            leaseNumber: lease.leaseNumber,
-            daysUntilExpiry: days,
-            endDate: lease.endDate,
-            autoRenew: lease.autoRenew,
+        // Atomic update with $addToSet to prevent duplicates if job runs concurrently
+        const updateResult = await db.collection("leases").updateOne(
+          { 
+            _id: lease._id, 
+            orgId,
+            expiryNotificationsSentDays: { $nin: [days] }, // Double-check in filter
           },
-          status: "pending",
-          createdAt: new Date(),
-        });
-        
-        // Update notification count
-        await db.collection("leases").updateOne(
-          { _id: lease._id, orgId },
-          { $inc: { expiryNotificationsSent: 1 } }
+          { $addToSet: { expiryNotificationsSentDays: days } }
         );
         
-        notifications++;
+        // Only queue notification if we actually updated the document
+        if (updateResult.modifiedCount > 0) {
+          await db.collection("notification_queue").insertOne({
+            orgId,
+            type: "LEASE_EXPIRY_REMINDER",
+            recipientId: lease.tenantId,
+            recipientType: "tenant",
+            data: {
+              leaseId: lease._id.toString(),
+              leaseNumber: lease.leaseNumber,
+              daysUntilExpiry: days,
+              endDate: lease.endDate,
+              autoRenew: lease.autoRenew,
+            },
+            status: "pending",
+            createdAt: new Date(),
+          });
+          notifications++;
+        }
       }
       
       processed += leases.length;
@@ -1072,6 +1107,18 @@ export async function processAutoRenewals(
       const newEndDate = new Date(lease.endDate);
       newEndDate.setFullYear(newEndDate.getFullYear() + 1);
       
+      // Use atomic state transition: mark as renewalInProgress before attempting renewal
+      const stateUpdate = await db.collection("leases").updateOne(
+        { _id: lease._id, orgId, renewalReminderSent: { $ne: true } },
+        { $set: { renewalReminderSent: true, renewalAttemptedAt: new Date() } }
+      );
+      
+      // Skip if another process already claimed this lease
+      if (stateUpdate.modifiedCount === 0) {
+        logger.debug("Lease already being processed for renewal, skipping", { leaseId: lease._id.toString() });
+        continue;
+      }
+      
       const result = await renewLease(
         orgId,
         lease._id.toString(),
@@ -1082,14 +1129,14 @@ export async function processAutoRenewals(
       
       if (result.success) {
         renewed++;
-        
-        // Mark original lease as reminder sent
-        await db.collection("leases").updateOne(
-          { _id: lease._id, orgId },
-          { $set: { renewalReminderSent: true } }
-        );
+        // renewalReminderSent already set atomically above
       } else {
         failed++;
+        // Rollback the renewalReminderSent flag on failure so it can be retried
+        await db.collection("leases").updateOne(
+          { _id: lease._id, orgId },
+          { $set: { renewalReminderSent: false }, $unset: { renewalAttemptedAt: "" } }
+        );
         logger.warn("Auto-renewal failed", {
           leaseId: lease._id.toString(),
           error: result.error,

@@ -520,6 +520,19 @@ let mongoServer: MongoMemoryServer | undefined;
 let mongoUriRef: string | undefined;
 let shuttingDownMongo = false;
 const mongoStartAttempts = Number(process.env.MONGO_MEMORY_ATTEMPTS || "3");
+const handleMongoDisconnected = async () => {
+  if (shuttingDownMongo) return;
+  if (!mongoUriRef) return;
+  try {
+    await mongoose.connect(mongoUriRef, {
+      autoCreate: true,
+      autoIndex: true,
+    });
+    logger.debug("[MongoMemory] Reconnected after disconnect");
+  } catch (err) {
+    logger.error("[MongoMemory] Reconnect failed after disconnect", err as Error);
+  }
+};
 
 async function getAvailablePort(): Promise<number> {
   return await new Promise((resolve, reject) => {
@@ -627,19 +640,9 @@ beforeAll(async () => {
 
     // Reconnect guard: if the in-memory server drops the connection mid-suite,
     // attempt a single reconnect to keep long-running server tests stable.
-    mongoose.connection.on("disconnected", async () => {
-      if (shuttingDownMongo) return;
-      if (!mongoUriRef) return;
-      try {
-        await mongoose.connect(mongoUriRef, {
-          autoCreate: true,
-          autoIndex: true,
-        });
-        logger.debug("[MongoMemory] Reconnected after disconnect");
-      } catch (err) {
-        logger.error("[MongoMemory] Reconnect failed after disconnect", err as Error);
-      }
-    });
+    if (mongoose.connection.listenerCount("disconnected") === 0) {
+      mongoose.connection.on("disconnected", handleMongoDisconnected);
+    }
 
     logger.debug("✅ MongoDB Memory Server started:", { mongoUri });
   } catch (error) {

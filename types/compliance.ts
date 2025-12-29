@@ -161,7 +161,7 @@ export interface NcaControl {
 
 export interface NcaComplianceRecord {
   tenant_id: ObjectId;
-  /** All 108 controls status */
+  /** All NCA controls status */
   controls: NcaControl[];
   /** Overall compliance score (0-100) */
   overall_score: number;

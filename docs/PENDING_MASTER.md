@@ -2,6 +2,28 @@ NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not
 
 ---
 
+## 2025-12-29 10:22 (Asia/Riyadh) — Command Palette Shortcut Guard [AGENT-003-A]
+
+**Agent Token:** [AGENT-003-A]
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | (no commit)
+**Session Summary:** Guarded keyboard shortcut handlers against undefined event.key in command palette and global search. Logged SSOT issue BUG-0004 with analysis.
+**DB Sync:** created=1, updated=1, skipped=0, errors=0
+**Issue:** BUG-0004
+
+| Timestamp | Type | File | Description | Status | SSOT Key | Owner Agent |
+|-----------|------|------|-------------|--------|----------|-------------|
+| 10:22:00 | Bug | services/ux/command-palette.ts:598 | event.key undefined crash in matchesShortcut | Fixed | BUG-0004 | [AGENT-003-A] |
+| 10:22:00 | Bug | components/topbar/GlobalSearch.tsx:154 | event.key undefined crash in shortcut handler | Fixed | BUG-0004 | [AGENT-003-A] |
+
+**Verification:**
+- pnpm typecheck: FAILED (pre-existing TS2322 errors in services/compliance/contract-lifecycle.ts and services/compliance/ejar-service.ts).
+- pnpm lint: FAILED (pre-existing no-console + tenant-scope warnings).
+- pnpm vitest run: TIMED OUT after ~123s; existing finance/jobs test failures observed.
+
+**Files Modified (2):**
+- services/ux/command-palette.ts
+- components/topbar/GlobalSearch.tsx
+
 ## 📅 2025-12-29 21:30 (Asia/Riyadh) — Console Error Fixes + PAY-001 Verified
 
 **Agent Token:** [AGENT-001-A]

@@ -113,7 +113,7 @@ describe("API /api/subscribe/owner", () => {
         id: "user-123",
         orgId: "org-123",
         email: "user@example.com",
-        role: "admin",
+        role: "ADMIN",
       });
 
       const req = new NextRequest(
@@ -167,7 +167,7 @@ describe("API /api/subscribe/owner", () => {
         id: "user-123",
         orgId: "org-123",
         email: "user@example.com",
-        role: "admin",
+        role: "ADMIN",
       });
 
       const req = new NextRequest(

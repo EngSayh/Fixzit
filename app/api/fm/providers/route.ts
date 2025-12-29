@@ -20,8 +20,8 @@ export async function GET(request: Request) {
   try {
     const session = await auth();
     
-    // Allow demo mode when not authenticated (for development/demo)
-    const isDemo = !session?.user;
+    // Allow demo mode only when not authenticated AND demo mode is explicitly enabled
+    const isDemo = !session?.user && process.env.ENABLE_DEMO_MODE === "true";
     
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
@@ -235,9 +235,17 @@ export async function POST(request: Request) {
       notes?: string;
     };
     
-    if (!work_order_id || !provider_id || !bid_amount) {
+    if (work_order_id == null || provider_id == null || bid_amount == null) {
       return NextResponse.json(
         { error: { code: "FIXZIT-API-400", message: "Missing required fields: work_order_id, provider_id, bid_amount" } },
+        { status: 400 }
+      );
+    }
+    
+    const normalizedBidAmount = Number(bid_amount);
+    if (!Number.isFinite(normalizedBidAmount) || normalizedBidAmount < 0) {
+      return NextResponse.json(
+        { error: { code: "FIXZIT-API-400", message: "bid_amount must be a valid non-negative number" } },
         { status: 400 }
       );
     }
@@ -247,7 +255,7 @@ export async function POST(request: Request) {
       id: `bid-${randomUUID()}`,
       work_order_id,
       provider_id,
-      bid_amount_sar: bid_amount,
+      bid_amount_sar: normalizedBidAmount,
       estimated_hours: estimated_hours ?? null,
       notes: notes ?? null,
       submitted_at: new Date().toISOString(),
@@ -259,7 +267,7 @@ export async function POST(request: Request) {
       bid_id: bid.id,
       work_order_id,
       provider_id,
-      bid_amount,
+      bid_amount: normalizedBidAmount,
       submitted_by_id: session.user.id, // Log user ID instead of email
     });
     

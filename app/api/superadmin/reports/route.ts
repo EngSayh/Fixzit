@@ -76,21 +76,26 @@ export async function GET(_req: NextRequest) {
     const collection = db.collection<ReportJobDocument>(COLLECTION);
     
     // Cross-tenant query - no orgId filter for superadmin
-    const jobs = await collection
-      .find({})
-      .sort({ createdAt: -1 })
-      .limit(100)
-      .toArray();
+    const [jobs, total] = await Promise.all([
+      collection
+        .find({})
+        .sort({ createdAt: -1 })
+        .limit(100)
+        .toArray(),
+      collection.countDocuments({}),
+    ]);
 
     logger.info('[SUPERADMIN] Reports fetched', {
       userId: session.username,
-      count: jobs.length,
+      returned: jobs.length,
+      total,
     });
 
     return NextResponse.json({ 
       success: true, 
       reports: jobs.map(mapJob),
-      total: jobs.length,
+      returned: jobs.length,
+      total,
     });
   } catch (error) {
     logger.error('[SUPERADMIN] Failed to fetch reports', { error });

@@ -54,29 +54,6 @@
 			"detail": "Verify and auto-fix AI memory system configuration"
 		},
 		{
-			"label": "Build: Typecheck",
-			"type": "shell",
-			"command": "pnpm typecheck",
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": [
-				"$tsc"
-			],
-			"detail": "Run TypeScript type checking"
-		},
-		{
-			"label": "Build: Lint",
-			"type": "shell",
-			"command": "pnpm lint",
-			"group": "build",
-			"problemMatcher": [
-				"$eslint-stylish"
-			],
-			"detail": "Run ESLint on the codebase"
-		},
-		{
 			"label": "Test: Unit Tests",
 			"type": "shell",
 			"command": "pnpm test",
@@ -99,12 +76,25 @@
 		{
 			"label": "TypeCheck",
 			"type": "shell",
-			"command": "pnpm typecheck"
+			"command": "pnpm typecheck",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$tsc"
+			],
+			"detail": "Run TypeScript type checking"
 		},
 		{
 			"label": "ESLint",
 			"type": "shell",
-			"command": "pnpm lint"
+			"command": "pnpm lint",
+			"group": "build",
+			"problemMatcher": [
+				"$eslint-stylish"
+			],
+			"detail": "Run ESLint on the codebase"
 		},
 		{
 			"label": "Git Status & PRs",
@@ -135,11 +125,6 @@
 			"label": "Create PR",
 			"type": "shell",
 			"command": "gh pr create --title 'docs: Update PENDING_MASTER to v14.4 with verification audit' --body '## Summary\n\nUpdated PENDING_MASTER.md to v14.4 with comprehensive verification audit.\n\n## Changes\n\n- Added SESSION 2025-12-12T03:30 verification audit\n- Cross-referenced all code quality patterns:\n  - Console statements: 1 justified (error boundary)\n  - Empty catches: 20+ all intentional (graceful degradation)\n  - TypeScript escapes: 4 production (documented)\n  - eslint-disable: 2 (both justified)\n  - dangerouslySetInnerHTML: 10 uses, all sanitized via rehype-sanitize\n- Identified placeholder phone numbers for future update\n- Confirmed production readiness status\n\n## Verification\n\n- [x] `pnpm typecheck` - 0 errors\n- [x] `pnpm lint` - 0 errors\n- [x] Git: Clean on main\n- [x] Open PRs: 0' --draft"
-		},
-		{
-			"label": "TypeCheck",
-			"type": "shell",
-			"command": "pnpm typecheck 2>&1 | tail -20"
 		},
 		{
 			"label": "Commit Fix",
@@ -538,31 +523,21 @@
 		{
 			"label": "Git: Commit & Push",
 			"type": "shell",
-			"command": "git add -A && git status -s && git commit && git push origin HEAD",
+			"command": "git add -u && git status -s && git commit && git push origin HEAD",
 			"problemMatcher": [],
-			"detail": "Stage all, commit (opens editor for message), and push"
+			"detail": "Stage tracked/modified files only, commit (opens editor for message), and push"
 		},
 		{
 			"label": "Git Commit & Status",
 			"type": "shell",
-			"command": "git add -A && git commit && git status -s && git log --oneline -3",
+			"command": "git add -u && git commit && git status -s && git log --oneline -3",
 			"problemMatcher": [],
-			"detail": "Stage all, commit (opens editor for message), show status"
+			"detail": "Stage tracked/modified files only, commit (opens editor for message), show status"
 		},
 		{
 			"label": "Git Push",
 			"type": "shell",
 			"command": "git push origin HEAD"
-		},
-		{
-			"label": "Typecheck Verify",
-			"type": "shell",
-			"command": "pnpm typecheck"
-		},
-		{
-			"label": "Lint Verify",
-			"type": "shell",
-			"command": "pnpm lint"
 		}
 	]
 }

@@ -19,7 +19,7 @@ interface CommandPaletteProviderProps {
 }
 
 export function CommandPaletteProvider({ children }: CommandPaletteProviderProps) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { theme, setTheme } = useThemeCtx();
   
   // Extract permissions and roles from session
@@ -44,14 +44,19 @@ export function CommandPaletteProvider({ children }: CommandPaletteProviderProps
   }, [theme, setTheme]);
   
   // Modal handler (can be extended to integrate with modal system)
-  const handleOpenModal = React.useCallback((modalId: string, _props?: Record<string, unknown>) => {
+  const handleOpenModal = React.useCallback((modalId: string, props?: Record<string, unknown>) => {
     // This can be connected to a global modal system
     // For now, we'll dispatch a custom event that modals can listen to
     const event = new CustomEvent("open-modal", {
-      detail: { modalId, props: _props },
+      detail: { modalId, props },
     });
     window.dispatchEvent(event);
   }, []);
+  
+  // Don't render CommandPalette until session is resolved
+  if (status === "loading") {
+    return <>{children}</>;
+  }
   
   return (
     <>

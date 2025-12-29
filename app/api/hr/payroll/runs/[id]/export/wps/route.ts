@@ -79,6 +79,18 @@ export async function GET(
         { status: 404 },
       );
     }
+    
+    if (run.orgId?.toString?.() !== session.user.orgId) {
+      logger.warn("WPS export org mismatch", {
+        userId: session.user.id,
+        orgId: session.user.orgId,
+        payrollOrgId: run.orgId?.toString?.(),
+      });
+      return NextResponse.json(
+        { error: "Forbidden: payroll run belongs to another organization" },
+        { status: 403 },
+      );
+    }
 
     if (run.status === "DRAFT") {
       return NextResponse.json(

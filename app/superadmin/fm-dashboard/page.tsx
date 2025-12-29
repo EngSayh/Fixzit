@@ -128,17 +128,34 @@ export default function SuperadminFMDashboardPage() {
         fetch("/api/fm/providers", { credentials: "include" }),
       ]);
       
+      const failures: string[] = [];
+      
       if (complianceRes.ok) {
         setCompliance(await complianceRes.json());
+      } else {
+        failures.push(`compliance (${complianceRes.status})`);
       }
+      
       if (analyticsRes.ok) {
         setAnalytics(await analyticsRes.json());
+      } else {
+        failures.push(`analytics (${analyticsRes.status})`);
       }
+      
       if (securityRes.ok) {
         setSecurity(await securityRes.json());
+      } else {
+        failures.push(`security (${securityRes.status})`);
       }
+      
       if (providersRes.ok) {
         setProviders(await providersRes.json());
+      } else {
+        failures.push(`providers (${providersRes.status})`);
+      }
+      
+      if (failures.length > 0) {
+        setError(`Failed to load: ${failures.join(", ")}`);
       }
       
       setLastRefresh(new Date());

@@ -206,6 +206,32 @@ const CHURN_RISK_THRESHOLDS = {
   high: 0.75,
 };
 
+const buildProfileDefaults = (): Omit<CustomerProfile, "_id" | "orgId" | "userId" | "updatedAt"> => ({
+  email: "",
+  name: "Unknown",
+  preferredLanguage: "en",
+  accountType: "tenant",
+  healthScore: 50,
+  healthStatus: CustomerHealthStatus.GOOD,
+  healthFactors: [],
+  lifecycleStage: CustomerLifecycleStage.ONBOARDING,
+  lifetimeValue: 0,
+  predictedChurnRisk: 0,
+  churnPredictionFactors: [],
+  engagementScore: 0,
+  totalActivities: 0,
+  activitiesLast30Days: 0,
+  totalTickets: 0,
+  openTickets: 0,
+  monthlyRevenue: 0,
+  totalRevenue: 0,
+  paymentIssues: 0,
+  totalProperties: 0,
+  totalUnits: 0,
+  occupancyRate: 0,
+  createdAt: new Date(),
+});
+
 // ============================================================================
 // Core Functions
 // ============================================================================
@@ -225,9 +251,18 @@ export async function getCustomerProfile(
       userId,
     }) as WithId<Document> | null;
     
-    return profile as unknown as CustomerProfile | null;
-  } catch (_error) {
-    logger.error("Failed to get customer profile", { component: "customer-insights" });
+    // Basic runtime validation for required CustomerProfile fields
+    if (profile && typeof profile.orgId === "string" && typeof profile.userId === "string") {
+      return profile as unknown as CustomerProfile;
+    }
+    
+    return null;
+  } catch (error) {
+    logger.error("Failed to get customer profile", { 
+      component: "customer-insights",
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return null;
   }
 }
@@ -255,34 +290,18 @@ export async function upsertCustomerProfile(
           userId, // Explicitly use function parameter
           updatedAt: new Date(),
         },
-        $setOnInsert: {
-          createdAt: new Date(),
-          healthScore: 50,
-          healthStatus: CustomerHealthStatus.GOOD,
-          healthFactors: [],
-          lifecycleStage: CustomerLifecycleStage.ONBOARDING,
-          lifetimeValue: 0,
-          predictedChurnRisk: 0,
-          churnPredictionFactors: [],
-          engagementScore: 0,
-          totalActivities: 0,
-          activitiesLast30Days: 0,
-          totalTickets: 0,
-          openTickets: 0,
-          monthlyRevenue: 0,
-          totalRevenue: 0,
-          paymentIssues: 0,
-          totalProperties: 0,
-          totalUnits: 0,
-          occupancyRate: 0,
-        },
+        $setOnInsert: buildProfileDefaults(),
       },
       { upsert: true }
     );
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to upsert customer profile", { component: "customer-insights" });
+  } catch (error) {
+    logger.error("Failed to upsert customer profile", { 
+      component: "customer-insights",
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return { success: false, error: "Failed to upsert profile" };
   }
 }
@@ -316,6 +335,7 @@ export async function trackEngagement(
           updatedAt: new Date(),
         },
         $inc: { totalActivities: 1 },
+        $setOnInsert: buildProfileDefaults(),
       },
       { upsert: true }
     );
@@ -404,18 +424,18 @@ export async function recordNPSResponse(
           lastNpsSurveyAt: new Date(),
           updatedAt: new Date(),
         },
-        $setOnInsert: {
-          createdAt: new Date(),
-          healthScore: 50, // Default health score
-          healthStatus: "at_risk" as const,
-        },
+        $setOnInsert: buildProfileDefaults(),
       },
       { upsert: true }
     );
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to record NPS response", { component: "customer-insights" });
+  } catch (error) {
+    logger.error("Failed to record NPS response", { 
+      component: "customer-insights",
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return { success: false, error: "Failed to record NPS" };
   }
 }

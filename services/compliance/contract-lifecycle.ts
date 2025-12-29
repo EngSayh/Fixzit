@@ -791,36 +791,49 @@ export async function respondToApproval(
   try {
     const db = await getDatabase();
     
-    const contract = await getContract(orgId, contractId);
-    if (!contract) {
-      return { success: false, error: "Contract not found" };
-    }
-    
-    // Find and update approval
-    const approvalIndex = contract.workflow.approvals.findIndex(
-      a => a.approverId === approverId && a.status === "pending"
-    );
-    
-    if (approvalIndex === -1) {
-      return { success: false, error: "No pending approval found for this approver" };
-    }
-    
-    await db.collection(CONTRACTS_COLLECTION).updateOne(
-      { _id: new ObjectId(contractId), orgId },
+    // Use atomic update with array filters to avoid stale data race condition
+    // This prevents the issue where approval array could change between read and write
+    const newStatus = approved ? "approved" : "rejected";
+    const result = await db.collection(CONTRACTS_COLLECTION).updateOne(
+      { 
+        _id: new ObjectId(contractId), 
+        orgId,
+        "workflow.approvals": {
+          $elemMatch: { approverId, status: "pending" }
+        }
+      },
       {
         $set: {
-          [`workflow.approvals.${approvalIndex}.status`]: approved ? "approved" : "rejected",
-          [`workflow.approvals.${approvalIndex}.respondedAt`]: new Date(),
-          [`workflow.approvals.${approvalIndex}.comments`]: comments,
+          "workflow.approvals.$[approval].status": newStatus,
+          "workflow.approvals.$[approval].respondedAt": new Date(),
+          "workflow.approvals.$[approval].comments": comments,
           updatedAt: new Date(),
         },
+      },
+      {
+        arrayFilters: [{ "approval.approverId": approverId, "approval.status": "pending" }]
       }
     );
     
+    if (result.matchedCount === 0) {
+      // Either contract not found or no pending approval
+      const contract = await getContract(orgId, contractId);
+      if (!contract) {
+        return { success: false, error: "Contract not found" };
+      }
+      return { success: false, error: "No pending approval found for this approver" };
+    }
+    
+    // Fetch fresh contract state for subsequent status updates
+    const contract = await getContract(orgId, contractId);
+    if (!contract) {
+      return { success: false, error: "Contract not found after update" };
+    }
+    
     if (approved) {
-      // Check if all approvals are complete
+      // Check if all approvals are complete using fresh data
       const allApproved = contract.workflow.approvals.every(
-        (a, i) => i === approvalIndex || a.status === "approved"
+        a => a.status === "approved"
       );
       
       if (allApproved) {

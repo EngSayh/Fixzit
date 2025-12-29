@@ -25,6 +25,11 @@ vi.mock("@/server/lib/authContext", () => ({
   runWithContext: vi.fn((_user, fn) => fn()),
 }));
 
+// Mock database connection
+vi.mock("@/lib/mongodb-unified", () => ({
+  dbConnect: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock RBAC
 vi.mock("@/config/rbac.config", () => ({
   requirePermission: vi.fn(),

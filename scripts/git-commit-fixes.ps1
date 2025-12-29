@@ -16,25 +16,49 @@ if (-not $Force) {
         Write-Host "Skipping reset. Continuing with current staging area..." -ForegroundColor Yellow
     } else {
         Write-Host "`n=== Resetting staging area ===" -ForegroundColor Cyan
-        git reset HEAD
+        git restore --staged .
     }
 } else {
     Write-Host "`n=== Resetting staging area (--force) ===" -ForegroundColor Cyan
-    git reset HEAD
+    git restore --staged .
 }
 
 Write-Host "`n=== Staging files ===" -ForegroundColor Cyan
-git add ".vscode/tasks.json"
-git add "app/api/superadmin/customer-requests/route.ts"
-git add "app/api/superadmin/tenants/route.ts"
-git add "app/api/superadmin/tenants/[id]/route.ts"
-git add "components/superadmin/SuperadminSidebar.tsx"
-git add "issue-tracker/app/api/issues/route.ts"
-git add "issue-tracker/app/api/issues/[id]/route.ts"
+
+# List of files to stage
+$filesToStage = @(
+    ".vscode/tasks.json",
+    "app/api/superadmin/customer-requests/route.ts",
+    "app/api/superadmin/tenants/route.ts",
+    "app/api/superadmin/tenants/[id]/route.ts",
+    "components/superadmin/SuperadminSidebar.tsx",
+    "issue-tracker/app/api/issues/route.ts",
+    "issue-tracker/app/api/issues/[id]/route.ts"
+)
+
+$stagingFailed = $false
+foreach ($file in $filesToStage) {
+    if (Test-Path $file) {
+        git add $file
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "ERROR: Failed to stage $file" -ForegroundColor Red
+            $stagingFailed = $true
+        } else {
+            Write-Host "Staged: $file" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "WARNING: File not found, skipping: $file" -ForegroundColor Yellow
+    }
+}
+
+if ($stagingFailed) {
+    Write-Host "`nERROR: One or more git add operations failed" -ForegroundColor Red
+    exit 1
+}
 
 # Check if there are any staged changes before committing
 $stagedFiles = git diff --cached --name-only
-if (-not $stagedFiles) {
+if (-not $stagedFiles -or $stagedFiles.Count -eq 0) {
     Write-Host "`nNo staged changes to commit" -ForegroundColor Yellow
     exit 0
 }

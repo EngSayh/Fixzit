@@ -246,8 +246,24 @@ export default function SuperadminPermissionsPage() {
       if (response.ok) {
         const data = await response.json();
         setRoles(Array.isArray(data) ? data : data.roles || DEFAULT_ROLES);
+      } else {
+        // Handle non-OK responses
+        const errorText = await response.text().catch(() => "");
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorJson.message || errorMessage;
+        } catch {
+          if (errorText) errorMessage = errorText;
+        }
+        // eslint-disable-next-line no-console -- Provide visibility for failed role fetches in admin UI.
+        console.error("Failed to fetch roles:", response.status, errorMessage);
+        toast.error(`Failed to load roles: ${errorMessage}`);
+        setRoles(DEFAULT_ROLES);
       }
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console -- Provide visibility for fetch errors in admin UI.
+      console.error("Network error fetching roles:", error);
       setRoles(DEFAULT_ROLES);
     }
   }, []);

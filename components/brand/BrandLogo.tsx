@@ -210,7 +210,6 @@ export function BrandLogo({
       width={finalWidth}
       height={finalHeight}
       className={imageClassName}
-      style={{ width: 'auto', height: 'auto' }}
       onError={handleError}
       priority={priority}
       data-testid={testId}

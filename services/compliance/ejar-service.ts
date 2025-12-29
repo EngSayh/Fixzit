@@ -635,8 +635,11 @@ export async function initiateRenewal(
       success: true,
       renewalContractId: result.insertedId.toString(),
     };
-  } catch (_error) {
-    logger.error("Failed to initiate renewal", { component: "ejar-service" });
+  } catch (error) {
+    logger.error("Failed to initiate renewal", { 
+      component: "ejar-service",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { success: false, error: "Failed to initiate renewal" };
   }
 }

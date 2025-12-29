@@ -202,11 +202,14 @@ export default function SuperadminSubscriptionsPage() {
       const response = await fetch("/api/admin/subscriptions", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
-        setSubscriptions(Array.isArray(data) ? data : data.subscriptions || []);
+        const list = Array.isArray(data) ? data : data.subscriptions || [];
+        setSubscriptions(list);
+        return list as TenantSubscription[];
       }
+      return [] as TenantSubscription[];
     } catch {
       // Demo data
-      setSubscriptions([
+      const fallbackSubscriptions: TenantSubscription[] = [
         {
           _id: "sub-1",
           tenantId: "tenant-1",
@@ -265,44 +268,63 @@ export default function SuperadminSubscriptionsPage() {
           autoRenew: true,
           createdAt: new Date().toISOString(),
         },
-      ]);
+      ];
+      setSubscriptions(fallbackSubscriptions);
+      return fallbackSubscriptions;
     }
   }, []);
 
-  const fetchStats = useCallback(async () => {
+  const buildStatsFromSubscriptions = useCallback((list: TenantSubscription[]): SubscriptionStats => {
+    const activeCount = list.filter(s => s.status === "active").length;
+    const trialCount = list.filter(s => s.status === "trial").length;
+    const pastDueCount = list.filter(s => s.status === "past_due").length;
+    const monthlyRevenue = list
+      .filter(s => s.status === "active")
+      .reduce((sum, s) => sum + (s.billingCycle === "monthly" ? s.amount : s.amount / 12), 0);
+
+    return {
+      totalSubscriptions: list.length,
+      activeSubscriptions: activeCount,
+      trialSubscriptions: trialCount,
+      pastDueSubscriptions: pastDueCount,
+      mrr: Math.round(monthlyRevenue),
+      arr: Math.round(monthlyRevenue * 12),
+    };
+  }, []);
+
+  const fetchStats = useCallback(async (latestSubscriptions?: TenantSubscription[]) => {
     try {
       const response = await fetch("/api/admin/subscriptions/stats", { credentials: "include" });
       if (response.ok) {
         setStats(await response.json());
+        return;
       }
     } catch {
-      // Calculate from demo data
-      const activeCount = subscriptions.filter(s => s.status === "active").length;
-      const trialCount = subscriptions.filter(s => s.status === "trial").length;
-      const pastDueCount = subscriptions.filter(s => s.status === "past_due").length;
-      const monthlyRevenue = subscriptions
-        .filter(s => s.status === "active")
-        .reduce((sum, s) => sum + (s.billingCycle === "monthly" ? s.amount : s.amount / 12), 0);
-      
-      setStats({
-        totalSubscriptions: subscriptions.length,
-        activeSubscriptions: activeCount,
-        trialSubscriptions: trialCount,
-        pastDueSubscriptions: pastDueCount,
-        mrr: Math.round(monthlyRevenue),
-        arr: Math.round(monthlyRevenue * 12),
-      });
+      // Fall through to refresh-based stats below
     }
-  }, [subscriptions]);
+
+    const refreshedSubscriptions = latestSubscriptions ?? await fetchSubscriptions();
+    if (!refreshedSubscriptions || refreshedSubscriptions.length === 0) {
+      return;
+    }
+
+    setStats(buildStatsFromSubscriptions(refreshedSubscriptions));
+  }, [fetchSubscriptions, buildStatsFromSubscriptions]);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    await Promise.all([fetchTiers(), fetchSubscriptions()]);
-    setLoading(false);
-  }, [fetchTiers, fetchSubscriptions]);
+    try {
+      const [, refreshedSubscriptions] = await Promise.all([
+        fetchTiers(),
+        fetchSubscriptions(),
+      ]);
+      await fetchStats(refreshedSubscriptions);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchTiers, fetchSubscriptions, fetchStats]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
-  useEffect(() => { if (subscriptions.length > 0) fetchStats(); }, [subscriptions, fetchStats]);
 
   const filteredSubscriptions = subscriptions.filter((sub) => {
     const matchesSearch = !search || 
@@ -321,10 +343,35 @@ export default function SuperadminSubscriptionsPage() {
   };
 
   const handleSaveTier = async () => {
+    const name = tierForm.name.trim();
+    if (!name) {
+      toast.error("Tier name is required");
+      return;
+    }
+    const displayName = tierForm.displayName.trim();
+    if (!displayName) {
+      toast.error("Display name is required");
+      return;
+    }
+    const monthlyPrice = Number(tierForm.monthlyPrice);
+    const annualPrice = Number(tierForm.annualPrice);
+    if (!Number.isFinite(monthlyPrice) || monthlyPrice < 0 || !Number.isFinite(annualPrice) || annualPrice < 0) {
+      toast.error("Monthly and annual prices must be 0 or greater");
+      return;
+    }
+
     try {
+      const features = tierForm.features
+        .split("\n")
+        .map((feature) => feature.trim())
+        .filter(Boolean);
       const tierData = {
         ...tierForm,
-        features: tierForm.features.split("\n").filter(Boolean),
+        name,
+        displayName,
+        monthlyPrice,
+        annualPrice,
+        features,
       };
       
       const url = editingTier 
@@ -534,9 +581,6 @@ export default function SuperadminSubscriptionsPage() {
                             <Button variant="ghost" size="sm" onClick={() => handleViewSubscription(sub)}>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -718,8 +762,14 @@ export default function SuperadminSubscriptionsPage() {
                 )}
               </div>
               <div className="flex gap-2 pt-4">
-                <Button variant="outline" className="flex-1">Change Plan</Button>
-                <Button variant="outline" className="flex-1">Cancel Subscription</Button>
+                {/* TODO: FIXZIT-SUB-001 - Implement plan change modal/flow */}
+                <Button variant="outline" className="flex-1" disabled title="Plan change flow not yet implemented">
+                  Change Plan
+                </Button>
+                {/* TODO: FIXZIT-SUB-002 - Implement subscription cancellation flow */}
+                <Button variant="outline" className="flex-1" disabled title="Cancellation flow not yet implemented">
+                  Cancel Subscription
+                </Button>
               </div>
             </div>
           )}

@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({
+      ok: true,
       success: true,
       applicationId: vendorApplication._id.toString(),
       vendorCode,

@@ -396,7 +396,7 @@ export async function activateBudget(
       
       // Activate this budget
       const updateResult = await db.collection(BUDGETS_COLLECTION).updateOne(
-        { _id: new ObjectId(budgetId) },
+        { _id: new ObjectId(budgetId), orgId },
         {
           $set: {
             status: BudgetStatus.ACTIVE,

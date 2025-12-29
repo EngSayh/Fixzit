@@ -593,9 +593,10 @@ export function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean
     : false;
   
   const modKey = isMac ? event.metaKey : event.ctrlKey;
+  const normalizedKey = typeof event.key === "string" ? event.key.toLowerCase() : "";
   
   return (
-    event.key.toLowerCase() === parsed.key &&
+    normalizedKey === parsed.key &&
     modKey === parsed.mod &&
     event.shiftKey === parsed.shift &&
     event.altKey === parsed.alt

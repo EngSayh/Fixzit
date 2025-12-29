@@ -151,7 +151,8 @@ export default function GlobalSearch({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      const normalizedKey = typeof event.key === "string" ? event.key.toLowerCase() : "";
+      if ((event.metaKey || event.ctrlKey) && normalizedKey === "k") {
         event.preventDefault();
         setCommandOpen(true);
         return;
