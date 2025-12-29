@@ -72,8 +72,10 @@ describe("notification-engine", () => {
       
       // Verify notification was created with orgId
       expect(mockCollection.insertMany).toHaveBeenCalled();
-      const insertedData = mockCollection.insertMany.mock.calls[0][0];
-      expect(insertedData[0].orgId).toBe("org-123");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const calls = mockCollection.insertMany.mock.calls as any[][];
+      const insertedData = calls[0]?.[0] as Array<{ orgId: string; channel: string; priority?: string }> | undefined;
+      expect(insertedData?.[0]?.orgId).toBe("org-123");
     });
 
     it("should default to IN_APP channel when no channels specified", async () => {
@@ -87,8 +89,10 @@ describe("notification-engine", () => {
 
       await sendNotification(request);
       
-      const insertedData = mockCollection.insertMany.mock.calls[0][0];
-      expect(insertedData[0].channel).toBe(NotificationChannel.IN_APP);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const calls = mockCollection.insertMany.mock.calls as any[][];
+      const insertedData = calls[0]?.[0] as Array<{ channel: string }> | undefined;
+      expect(insertedData?.[0]?.channel).toBe(NotificationChannel.IN_APP);
     });
 
     it("should respect user preferences and filter channels", async () => {
@@ -114,9 +118,11 @@ describe("notification-engine", () => {
       await sendNotification(request);
       
       // Should only create IN_APP notification since EMAIL is disabled
-      const insertedData = mockCollection.insertMany.mock.calls[0][0];
-      expect(insertedData.length).toBe(1);
-      expect(insertedData[0].channel).toBe(NotificationChannel.IN_APP);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const calls = mockCollection.insertMany.mock.calls as any[][];
+      const insertedData = calls[0]?.[0] as Array<{ channel: string }> | undefined;
+      expect(insertedData?.length).toBe(1);
+      expect(insertedData?.[0]?.channel).toBe(NotificationChannel.IN_APP);
     });
 
     it("should return error when user unsubscribed from all channels", async () => {
@@ -156,8 +162,10 @@ describe("notification-engine", () => {
 
       await sendNotification(request);
       
-      const insertedData = mockCollection.insertMany.mock.calls[0][0];
-      expect(insertedData[0].priority).toBe(NotificationPriority.CRITICAL);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const calls = mockCollection.insertMany.mock.calls as any[][];
+      const insertedData = calls[0]?.[0] as Array<{ priority: string }> | undefined;
+      expect(insertedData?.[0]?.priority).toBe(NotificationPriority.CRITICAL);
     });
 
     it("should return notificationIds on success", async () => {
@@ -219,10 +227,11 @@ describe("notification-engine", () => {
       await sendBulkNotifications(requests);
       
       // Verify all insertions have orgId
-      const calls = mockCollection.insertMany.mock.calls;
-      calls.forEach(call => {
-        const notifications = call[0];
-        notifications.forEach((notif: { orgId: string }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const calls = mockCollection.insertMany.mock.calls as any[][];
+      calls.forEach((call) => {
+        const notifications = call[0] as Array<{ orgId: string }> | undefined;
+        notifications?.forEach((notif) => {
           expect(notif.orgId).toBe("org-123");
         });
       });

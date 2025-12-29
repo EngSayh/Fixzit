@@ -53,23 +53,20 @@ vi.mock("@/lib/logger", () => ({
 import { POST } from "@/app/api/sms/test/route";
 
 describe("API /api/sms/test", () => {
-  const originalEnv = process.env;
-
   beforeEach(() => {
     mockSession = null;
     rateLimitAllowed = true;
     vi.clearAllMocks();
-    process.env = { ...originalEnv };
-    process.env.NODE_ENV = "development"; // SMS test only works in dev
+    vi.stubEnv("NODE_ENV", "development"); // SMS test only works in dev
   });
 
   afterEach(() => {
-    process.env = originalEnv;
+    vi.unstubAllEnvs();
   });
 
   describe("Production Protection", () => {
     it("returns 404 in production environment", async () => {
-      process.env.NODE_ENV = "production";
+      vi.stubEnv("NODE_ENV", "production");
       mockSession = { user: { id: "user-123", role: "SUPER_ADMIN" } };
 
       const req = new NextRequest("http://localhost:3000/api/sms/test", {
@@ -86,7 +83,7 @@ describe("API /api/sms/test", () => {
   describe("Rate Limiting", () => {
     it("returns 429 when rate limited", async () => {
       rateLimitAllowed = false;
-      process.env.NODE_ENV = "development";
+      vi.stubEnv("NODE_ENV", "development");
 
       const req = new NextRequest("http://localhost:3000/api/sms/test", {
         method: "POST",

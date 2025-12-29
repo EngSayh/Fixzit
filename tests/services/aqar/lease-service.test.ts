@@ -20,7 +20,12 @@ const mockFindOneAndUpdate = vi.fn();
 const mockFindOne = vi.fn();
 const mockInsertOne = vi.fn();
 const mockUpdateOne = vi.fn();
-const mockFind = vi.fn(() => ({ toArray: vi.fn(() => []) }));
+const mockFind = vi.fn(() => ({
+  sort: vi.fn().mockReturnThis(),
+  skip: vi.fn().mockReturnThis(),
+  limit: vi.fn().mockReturnThis(),
+  toArray: vi.fn(() => []),
+}));
 
 const mockCollection = vi.fn(() => ({
   findOne: mockFindOne,
@@ -87,6 +92,7 @@ describe("lease-service", () => {
         endDate: new Date("2025-12-31"),
         monthlyRent: 5000,
         securityDeposit: 10000,
+        createdBy: "user-123",
       };
 
       const result = await createLease(request);
@@ -109,6 +115,7 @@ describe("lease-service", () => {
         endDate: new Date("2025-12-31"),
         monthlyRent: 5000,
         securityDeposit: 10000,
+        createdBy: "user-123",
       };
 
       const result = await createLease(request);
@@ -134,6 +141,7 @@ describe("lease-service", () => {
         endDate: new Date("2025-12-31"),
         monthlyRent: 5000,
         securityDeposit: 10000,
+        createdBy: "user-123",
       };
 
       const result = await createLease(request);
@@ -156,6 +164,7 @@ describe("lease-service", () => {
         endDate: new Date("2025-12-31"),
         monthlyRent: 5000,
         securityDeposit: 10000,
+        createdBy: "user-123",
       };
 
       const result = await createLease(request);
@@ -179,6 +188,7 @@ describe("lease-service", () => {
         endDate: new Date("2025-12-31"),
         monthlyRent: 5000,
         securityDeposit: 10000,
+        createdBy: "user-123",
       };
 
       const result = await createLease(request);
@@ -202,6 +212,7 @@ describe("lease-service", () => {
         endDate: new Date("2025-12-31"),
         monthlyRent: 5000,
         securityDeposit: 10000,
+        createdBy: "user-123",
         // No paymentFrequency specified - should default to MONTHLY
       };
 
