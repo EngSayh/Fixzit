@@ -123,7 +123,58 @@
       "benefits": "المزايا"
     }
   },
+  "checkout": {
+    "accountDesc": "أنشئ حسابك للبدء",
+    "accountInfo": "معلومات الحساب",
+    "back": "رجوع",
+    "companyName": "اسم الشركة",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "continueToPayment": "المتابعة للدفع",
+    "createAccount": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "firstName": "الاسم الأول",
+    "lastName": "اسم العائلة",
+    "monthly": "شهرياً",
+    "orderSummary": "ملخص الطلب",
+    "password": "كلمة المرور",
+    "pay": "إتمام الدفع",
+    "paymentDesc": "أدخل بيانات الدفع",
+    "paymentDetails": "تفاصيل الدفع",
+    "paymentPending": "جاري معالجة الدفع",
+    "paymentPendingDesc": "جاري معالجة الدفع. يرجى الانتظار...",
+    "phone": "الهاتف",
+    "plan": "الخطة",
+    "processing": "جاري المعالجة...",
+    "securePayment": "دفع آمن",
+    "steps": {
+      "account": "الحساب",
+      "payment": "الدفع"
+    },
+    "subtotal": "المجموع الفرعي",
+    "success": {
+      "description": "حسابك في فيكسيت جاهز. تحقق من بريدك الإلكتروني لتفاصيل تسجيل الدخول.",
+      "login": "الذهاب لتسجيل الدخول",
+      "title": "تم تفعيل الاشتراك!"
+    },
+    "terms": "أوافق على الشروط والأحكام",
+    "testCardLink": "استخدم بطاقة اختبار",
+    "total": "المجموع",
+    "users": "المستخدمون",
+    "vat": "ضريبة القيمة المضافة (15%)",
+    "errors": {
+      "companyRequired": "اسم الشركة مطلوب",
+      "firstNameRequired": "الاسم الأول مطلوب",
+      "lastNameRequired": "اسم العائلة مطلوب",
+      "passwordLength": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل",
+      "passwordMatch": "كلمتا المرور غير متطابقتين",
+      "phoneRequired": "رقم الهاتف مطلوب",
+      "termsRequired": "يجب الموافقة على الشروط والأحكام",
+      "validEmail": "يرجى إدخال بريد إلكتروني صحيح"
+    }
+  },
   "auth": {
+    "hidePassword": "إخفاء كلمة المرور",
+    "showPassword": "إظهار كلمة المرور",
     "login": {
       "title": "تسجيل الدخول",
       "email": "البريد الإلكتروني",
@@ -2867,6 +2918,7 @@
     "skipToContent": "انتقل إلى المحتوى",
     "unsavedChanges": "تغييرات غير محفوظة",
     "unsavedChangesMessage": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد مغادرة هذه الصفحة؟",
+    "unknownError": "خطأ غير معروف",
     "discard": "تجاهل التغييرات",
     "allCaughtUp": "لا توجد إشعارات جديدة!",
     "noNotifications": "لا توجد إشعارات",
@@ -2877,6 +2929,7 @@
     "cancel": "إلغاء",
     "filter": "تصفية",
     "import": "استيراد",
+    "collapse": "طي",
     "error": {
       "loadData": "تحميل البيانات"
     },
@@ -4526,6 +4579,21 @@
     }
   },
   "pricing": {
+    "checkout": {
+      "back": "العودة للأسعار",
+      "maxUsers": "الحد الأقصى {{max}} مستخدم",
+      "proceed": "المتابعة للدفع",
+      "subtitle": "راجع تفاصيل خطتك",
+      "title": "الدفع",
+      "total": "المجموع",
+      "users": "عدد المستخدمين",
+      "vatNote": "شامل ضريبة القيمة المضافة (15%)"
+    },
+    "custom": "مخصص",
+    "free": "مجاني",
+    "perUser": "لكل مستخدم",
+    "plan": "الخطة",
+    "selected": "محدد",
     "tagline": "الشعار",
     "title": "التسعير",
     "subtitle": "إدارة العنوان الفرعي",
@@ -5224,6 +5292,8 @@
       "activityLogs": "سجلات النشاط",
       "activityLogsDescription": "نشاط المستخدمين والطلبات في الوقت الفعلي",
       "activeSessions": "الجلسات النشطة",
+      "activeSessionsDescription": "الجلسات النشطة حالياً عبر جميع المستأجرين",
+      "details": "التفاصيل",
       "searchPlaceholder": "البحث بالمستخدم أو البريد أو الإجراء أو المستأجر...",
       "noLogsFound": "لا توجد سجلات نشاط",
       "noSessions": "لا توجد جلسات نشطة",
@@ -5284,8 +5354,17 @@
         "started": "بدأت",
         "pagesVisited": "الصفحات المزارة",
         "actions": "الإجراءات",
-        "duration": "المدة"
+        "duration": "المدة",
+        "activity": "النشاط"
       }
+    },
+    "jobs": {
+      "fetchError": "فشل تحميل المهام الخلفية"
+    },
+    "subscriptions": {
+      "fetchError": "فشل تحميل الاشتراكات",
+      "fetchStatsError": "فشل تحميل إحصائيات الاشتراكات",
+      "fetchTiersError": "فشل تحميل مستويات الاشتراكات"
     },
     "issues": {
       "title": "متتبع مشاكل النظام",
@@ -5301,6 +5380,20 @@
       "importing": "جارٍ الاستيراد...",
       "add": "إضافة مشكلة",
       "search": "بحث في المشاكل...",
+      "connection": {
+        "dbFailed": "فشل الاتصال بقاعدة البيانات",
+        "fetchFailed": "فشل جلب المشاكل من قاعدة البيانات",
+        "retry": "إعادة محاولة الاتصال",
+        "serverError": "حدث خطأ في الخادم",
+        "title": "خطأ في الاتصال",
+        "troubleshooting": {
+          "atlas": "تحقق من حالة MongoDB Atlas والوصول إلى الشبكة",
+          "env": "تحقق من متغير البيئة MONGODB_URI",
+          "ip": "تأكد من أن القائمة البيضاء لـ IP تتضمن خادم النشر",
+          "logs": "تحقق من سجلات الخادم للحصول على رسائل خطأ مفصلة"
+        },
+        "troubleshootingTitle": "خطوات استكشاف الأخطاء"
+      },
       "actions": {
         "deleteConfirm": "هل أنت متأكد من حذف هذه المشكلة؟",
         "deleteWarning": "لا يمكن التراجع عن هذا الإجراء"

@@ -123,7 +123,58 @@
       "benefits": "Benefits"
     }
   },
+  "checkout": {
+    "accountDesc": "Create your account to get started",
+    "accountInfo": "Account Information",
+    "back": "Back",
+    "companyName": "Company Name",
+    "confirmPassword": "Confirm Password",
+    "continueToPayment": "Continue to Payment",
+    "createAccount": "Create Account",
+    "email": "Email",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "monthly": "per month",
+    "orderSummary": "Order Summary",
+    "password": "Password",
+    "pay": "Complete Payment",
+    "paymentDesc": "Enter your payment details",
+    "paymentDetails": "Payment Details",
+    "paymentPending": "Payment Processing",
+    "paymentPendingDesc": "Your payment is being processed. Please wait...",
+    "phone": "Phone",
+    "plan": "Plan",
+    "processing": "Processing...",
+    "securePayment": "Secure Payment",
+    "steps": {
+      "account": "Account",
+      "payment": "Payment"
+    },
+    "subtotal": "Subtotal",
+    "success": {
+      "description": "Your Fixzit account is ready. Check your email for login details.",
+      "login": "Go to Login",
+      "title": "Subscription Activated!"
+    },
+    "terms": "I accept the Terms and Conditions",
+    "testCardLink": "Use test card",
+    "total": "Total",
+    "users": "Users",
+    "vat": "VAT (15%)",
+    "errors": {
+      "companyRequired": "Company name is required",
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "passwordLength": "Password must be at least 8 characters",
+      "passwordMatch": "Passwords do not match",
+      "phoneRequired": "Phone number is required",
+      "termsRequired": "You must accept the terms and conditions",
+      "validEmail": "Please enter a valid email"
+    }
+  },
   "auth": {
+    "hidePassword": "Hide password",
+    "showPassword": "Show password",
     "login": {
       "title": "Sign In",
       "email": "Email",
@@ -2890,6 +2941,7 @@
     "download": "Download",
     "retry": "Retry",
     "unknownError": "Unknown error",
+    "collapse": "Collapse",
     "error": {
       "loadData": "Load Data"
     },
@@ -4530,6 +4582,21 @@
     }
   },
   "pricing": {
+    "checkout": {
+      "back": "Back to Pricing",
+      "maxUsers": "Maximum {{max}} users",
+      "proceed": "Proceed to Checkout",
+      "subtitle": "Review your plan details",
+      "title": "Checkout",
+      "total": "Total",
+      "users": "Number of Users",
+      "vatNote": "VAT (15%) included"
+    },
+    "custom": "Custom",
+    "free": "Free",
+    "perUser": "per user",
+    "plan": "Plan",
+    "selected": "Selected",
     "tagline": "Tagline",
     "title": "Pricing",
     "subtitle": "Manage your subtitle",
@@ -5227,6 +5294,8 @@
       "activityLogs": "Activity Logs",
       "activityLogsDescription": "Real-time user activity and request history",
       "activeSessions": "Active Sessions",
+      "activeSessionsDescription": "Currently active user sessions across all tenants",
+      "details": "Details",
       "searchPlaceholder": "Search by user, email, action, or tenant...",
       "noLogsFound": "No activity logs found",
       "noSessions": "No active sessions",
@@ -5287,8 +5356,17 @@
         "started": "Started",
         "pagesVisited": "Pages Visited",
         "actions": "Actions",
-        "duration": "Duration"
+        "duration": "Duration",
+        "activity": "Activity"
       }
+    },
+    "jobs": {
+      "fetchError": "Failed to load background jobs"
+    },
+    "subscriptions": {
+      "fetchError": "Failed to load subscriptions",
+      "fetchStatsError": "Failed to load subscription statistics",
+      "fetchTiersError": "Failed to load subscription tiers"
     },
     "issues": {
       "title": "System Issue Tracker",
@@ -5304,6 +5382,20 @@
       "importing": "Importing...",
       "add": "Add Issue",
       "search": "Search issues...",
+      "connection": {
+        "dbFailed": "Database connection failed",
+        "fetchFailed": "Failed to fetch issues from database",
+        "retry": "Retry Connection",
+        "serverError": "Server error occurred",
+        "title": "Connection Error",
+        "troubleshooting": {
+          "atlas": "Check MongoDB Atlas status and network access",
+          "env": "Verify MONGODB_URI environment variable",
+          "ip": "Ensure IP whitelist includes deployment server",
+          "logs": "Check server logs for detailed error messages"
+        },
+        "troubleshootingTitle": "Troubleshooting Steps"
+      },
       "actions": {
         "deleteConfirm": "Are you sure you want to delete this issue?",
         "deleteWarning": "This action cannot be undone"
