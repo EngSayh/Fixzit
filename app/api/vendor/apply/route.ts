@@ -85,9 +85,8 @@ export async function POST(req: NextRequest) {
       hasNotes: !!notes,
     });
 
-    // Generate unique vendor code with crypto randomness to avoid collisions
-    const randomSuffix = crypto.randomUUID().slice(0, 8).toUpperCase();
-    const vendorCode = `VND-${randomSuffix}`;
+    // Generate unique vendor code with full UUID to avoid collisions
+    const vendorCode = `VND-${crypto.randomUUID().toUpperCase()}`;
 
     // Create vendor application record with PENDING status
     // Note: Public applications don't have orgId yet - they're assigned during approval

@@ -121,10 +121,10 @@ export default function SuperadminFMDashboardPage() {
     try {
       // Fetch all data in parallel
       const [complianceRes, analyticsRes, securityRes, providersRes] = await Promise.all([
-        fetch("/api/compliance/dashboard"),
-        fetch("/api/ai/analytics"),
-        fetch("/api/security/enterprise"),
-        fetch("/api/fm/providers"),
+        fetch("/api/compliance/dashboard", { credentials: "include" }),
+        fetch("/api/ai/analytics", { credentials: "include" }),
+        fetch("/api/security/enterprise", { credentials: "include" }),
+        fetch("/api/fm/providers", { credentials: "include" }),
       ]);
       
       if (complianceRes.ok) {

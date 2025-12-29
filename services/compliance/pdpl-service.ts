@@ -215,7 +215,8 @@ export function grantDsarExtension(dsar: DsarRequest, reason: string): DsarReque
   }
   
   const extendedDeadline = new Date(dsar.deadline);
-  extendedDeadline.setDate(extendedDeadline.getDate() + 30); // Additional 30 days
+  const extensionDays = PDPL_CONFIG.DSAR_EXTENDED_DEADLINE_DAYS - PDPL_CONFIG.DSAR_DEADLINE_DAYS;
+  extendedDeadline.setDate(extendedDeadline.getDate() + extensionDays);
   
   return {
     ...dsar,
@@ -309,23 +310,26 @@ export async function executeErasure(
     // Note: Financial records must be retained for 6 years (ZATCA)
     // Only anonymize PII, don't delete invoices
     
-    for (const collection of collectionsToProcess) {
-      void collection;
-      // TODO: Implement actual deletion logic
-      // Example:
-      // await db.collection(collection).updateMany(
-      //   { user_id: userId, tenant_id: tenantId },
-      //   { $set: { email: 'deleted@deleted.com', name: 'DELETED', ... } }
-      // );
-      result.collections_processed.push(collection);
-    }
+    // TODO: Implement actual deletion logic
+    // Example:
+    // for (const collection of collectionsToProcess) {
+    //   await db.collection(collection).updateMany(
+    //     { user_id: userId, tenant_id: tenantId },
+    //     { $set: { email: 'deleted@deleted.com', name: 'DELETED', ... } }
+    //   );
+    // }
     
-    result.success = true;
+    // Mark as not implemented - do not falsely report success
+    result.errors.push(
+      `PDPL erasure not yet implemented for user ${userId.toString()}. Collections pending: ${collectionsToProcess.join(", ")}`
+    );
+    result.collections_processed = []; // None actually processed
+    result.success = false;
     
-    logger.info("PDPL erasure executed", {
+    logger.warn("PDPL erasure requested but not implemented", {
       userId: userId.toString(),
       tenantId: tenantId?.toString(),
-      collectionsProcessed: result.collections_processed,
+      collectionsToProcess,
     });
     
   } catch (error) {

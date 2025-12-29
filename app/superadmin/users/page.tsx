@@ -156,6 +156,7 @@ export default function SuperadminUsersPage() {
   const [singleUserStatus, setSingleUserStatus] = useState<string>("");
   const [notificationMessage, setNotificationMessage] = useState("");
   const [notificationSubject, setNotificationSubject] = useState("");
+  const [singleNotificationUserId, setSingleNotificationUserId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   // Fetch users
@@ -289,7 +290,8 @@ export default function SuperadminUsersPage() {
   };
 
   const handleSendNotification = async () => {
-    if (!notificationSubject || !notificationMessage || selectedIds.size === 0) return;
+    const targetIds = singleNotificationUserId ? [singleNotificationUserId] : Array.from(selectedIds);
+    if (!notificationSubject || !notificationMessage || targetIds.length === 0) return;
     
     setActionLoading(true);
     try {
@@ -298,7 +300,7 @@ export default function SuperadminUsersPage() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          userIds: Array.from(selectedIds),
+          userIds: targetIds,
           subject: notificationSubject,
           message: notificationMessage,
           type: "email",
@@ -310,10 +312,11 @@ export default function SuperadminUsersPage() {
         throw new Error(err.error || "Failed to send notifications");
       }
 
-      toast.success(`Sent notification to ${selectedIds.size} users`);
+      toast.success(`Sent notification to ${targetIds.length} user${targetIds.length !== 1 ? "s" : ""}`);
       setNotificationDialogOpen(false);
       setNotificationSubject("");
       setNotificationMessage("");
+      setSingleNotificationUserId(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send notifications");
     } finally {
@@ -659,7 +662,7 @@ export default function SuperadminUsersPage() {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
-                                setSelectedIds(new Set([user._id]));
+                                setSingleNotificationUserId(user._id);
                                 setNotificationDialogOpen(true);
                               }}
                               className="text-muted-foreground hover:bg-muted/80"
@@ -863,7 +866,14 @@ export default function SuperadminUsersPage() {
       </Dialog>
 
       {/* Send Notification Dialog */}
-      <Dialog open={notificationDialogOpen} onOpenChange={setNotificationDialogOpen}>
+      <Dialog open={notificationDialogOpen} onOpenChange={(open) => {
+        setNotificationDialogOpen(open);
+        if (!open) {
+          setNotificationSubject("");
+          setNotificationMessage("");
+          setSingleNotificationUserId(null);
+        }
+      }}>
         <DialogContent className="bg-card border-border text-foreground max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -871,7 +881,7 @@ export default function SuperadminUsersPage() {
               Send Notification
             </DialogTitle>
             <DialogDescription>
-              Send an email notification to {selectedIds.size} selected user{selectedIds.size !== 1 ? "s" : ""}
+              Send an email notification to {singleNotificationUserId ? "1" : selectedIds.size} selected user{(singleNotificationUserId || selectedIds.size === 1) ? "" : "s"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

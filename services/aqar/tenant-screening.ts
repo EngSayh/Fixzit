@@ -240,18 +240,29 @@ export async function createScreeningApplication(
       { upsert: true }
     );
     
-    const applicantId = applicantResult.upsertedId?.toString() || 
-      (await db.collection("applicants").findOne({ 
+    // Validate that we have a valid applicantId
+    let applicantId: string;
+    if (applicantResult.upsertedId) {
+      applicantId = applicantResult.upsertedId.toString();
+    } else {
+      const existingApplicant = await db.collection("applicants").findOne({ 
         orgId: request.orgId, 
         nationalId: request.applicant.nationalId 
-      }))?._id.toString();
+      });
+      if (!existingApplicant?._id) {
+        throw new Error(
+          `Failed to find or create applicant for orgId=${request.orgId}, nationalId=${request.applicant.nationalId}`
+        );
+      }
+      applicantId = existingApplicant._id.toString();
+    }
     
     // Create screening application
     const application: Omit<ScreeningApplication, "_id"> = {
       orgId: request.orgId,
       propertyId: request.propertyId,
       unitId: request.unitId,
-      applicantId: applicantId!,
+      applicantId,
       status: ScreeningStatus.PENDING,
       createdAt: new Date(),
       updatedAt: new Date(),

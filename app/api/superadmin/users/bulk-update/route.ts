@@ -17,7 +17,10 @@ const BulkUpdateSchema = z.object({
   userIds: z.array(z.string()).min(1, "At least one user ID is required"),
   updates: z.object({
     status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"]).optional(),
-  }),
+  }).refine(
+    (data) => Object.values(data).some((v) => v !== undefined),
+    { message: "At least one update field is required" }
+  ),
 });
 
 /**

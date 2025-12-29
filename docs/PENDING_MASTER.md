@@ -994,6 +994,7 @@ Based on analysis of IBM Maximo, Archibus, ServiceChannel, and UpKeep:
 4. Update all superadmin pages to use Card variants with theme support
 
 **Token Mapping:**
+
 | Hardcoded | Theme Token |
 |-----------|-------------|
 | `bg-slate-900` | `bg-background` or `bg-card` |

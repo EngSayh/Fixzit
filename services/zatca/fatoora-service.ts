@@ -11,6 +11,7 @@
  */
 
 import crypto from "crypto";
+import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import type {
   ZatcaInvoice,
@@ -323,9 +324,17 @@ export function createZatcaInvoice(
   // Generate UUID v4 for ZATCA
   const zatcaUuid = crypto.randomUUID();
   
+  // Validate and convert IDs to proper ObjectIds
+  if (!ObjectId.isValid(invoiceId)) {
+    throw new Error(`Invalid invoiceId: ${invoiceId}`);
+  }
+  if (!ObjectId.isValid(tenantId)) {
+    throw new Error(`Invalid tenantId: ${tenantId}`);
+  }
+  
   return {
-    invoice_id: invoiceId as unknown as import("mongodb").ObjectId,
-    tenant_id: tenantId as unknown as import("mongodb").ObjectId,
+    invoice_id: new ObjectId(invoiceId),
+    tenant_id: new ObjectId(tenantId),
     zatca_uuid: zatcaUuid,
     invoice_type: invoiceType,
     previous_hash: previousHash,
@@ -444,6 +453,16 @@ export function shouldArchive(invoice: ZatcaInvoice): boolean {
     return false;
   }
   
-  const archiveDate = calculateArchiveDate(invoice.created_at);
+  // Guard against missing created_at (newly created invoices)
+  if (!invoice.created_at) {
+    return false;
+  }
+  
+  const createdAtDate = new Date(invoice.created_at);
+  if (isNaN(createdAtDate.getTime())) {
+    return false;
+  }
+  
+  const archiveDate = calculateArchiveDate(createdAtDate);
   return new Date() >= archiveDate;
 }

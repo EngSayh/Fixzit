@@ -71,10 +71,19 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    const body = await request.json();
-    const { code } = body;
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: { code: "FIXZIT-AUTH-003", message: "Invalid JSON body" } },
+        { status: 400 }
+      );
+    }
     
-    if (!code) {
+    const { code } = body as { code?: string };
+    
+    if (!code || typeof code !== "string") {
       return NextResponse.json(
         { error: { code: "FIXZIT-AUTH-002", message: "Verification code required" } },
         { status: 400 }
@@ -141,10 +150,19 @@ export async function PATCH(request: NextRequest) {
       );
     }
     
-    const body = await request.json();
-    const { code } = body;
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: { code: "FIXZIT-AUTH-003", message: "Invalid JSON body" } },
+        { status: 400 }
+      );
+    }
     
-    if (!code) {
+    const { code } = body as { code?: string };
+    
+    if (!code || typeof code !== "string") {
       return NextResponse.json(
         { error: { code: "FIXZIT-AUTH-002", message: "Verification code required" } },
         { status: 400 }

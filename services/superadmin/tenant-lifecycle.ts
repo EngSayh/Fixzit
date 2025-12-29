@@ -12,7 +12,7 @@
  */
 
 import { logger } from "@/lib/logger";
-import type { ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
 import crypto from "crypto";
 
 // =============================================================================
@@ -213,7 +213,7 @@ export async function createSnapshot(
   createdBy: ObjectId,
   options: SnapshotOptions
 ): Promise<TenantSnapshot> {
-  const snapshotId = crypto.randomUUID() as unknown as ObjectId;
+  const snapshotId = new ObjectId();
   const timestamp = new Date();
   
   // Default collections if not specified
@@ -286,7 +286,7 @@ export async function restoreFromSnapshot(
     create_backup_first?: boolean;
   } = {}
 ): Promise<RestoreJob> {
-  const jobId = crypto.randomUUID() as unknown as ObjectId;
+  const jobId = new ObjectId();
   
   const restoreJob: RestoreJob = {
     _id: jobId,
@@ -357,7 +357,7 @@ export async function activateKillSwitch(
   activatedBy: ObjectId,
   options: KillSwitchOptions
 ): Promise<KillSwitchEvent> {
-  const eventId = crypto.randomUUID() as unknown as ObjectId;
+  const eventId = new ObjectId();
   const timestamp = new Date();
   
   // Determine blocked features based on action
@@ -475,7 +475,7 @@ export async function initiateTimeTravel(
   requestedBy: ObjectId,
   options: TimeTravelOptions
 ): Promise<TimeTravelRequest> {
-  const requestId = crypto.randomUUID() as unknown as ObjectId;
+  const requestId = new ObjectId();
   const timestamp = new Date();
   
   // Validate target timestamp
@@ -625,7 +625,7 @@ export async function startGhostSession(
     user_agent: string;
   }
 ): Promise<GhostSession> {
-  const sessionId = crypto.randomUUID() as unknown as ObjectId;
+  const sessionId = new ObjectId();
   const sessionToken = crypto.randomBytes(32).toString("hex");
   
   const session: GhostSession = {

@@ -88,7 +88,7 @@ export async function GET() {
         recent_sessions: [
           {
             id: "pam-001",
-            user: "admin@example.com",
+            user: "user-001",
             resource: "Production Database",
             started_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
             expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
@@ -96,7 +96,7 @@ export async function GET() {
           },
           {
             id: "pam-002",
-            user: "devops@example.com",
+            user: "user-002",
             resource: "Kubernetes Cluster",
             started_at: new Date(Date.now() - 120 * 60 * 1000).toISOString(),
             expires_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
@@ -115,7 +115,7 @@ export async function GET() {
             id: "threat-001",
             type: "suspicious_login",
             severity: "medium",
-            description: "Login from new location (Jeddah) for user finance@example.com",
+            description: "Login from new location (Jeddah) for user user-003",
             detected_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
             status: "investigating",
             ip_address: "41.xxx.xxx.xxx",

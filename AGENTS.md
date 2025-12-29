@@ -144,7 +144,7 @@ CLAIM → ANALYZE → WORK → VERIFY → REVIEW → SSOT → CLEANUP
 
 **Every task MUST pass through three perspectives BEFORE implementation:**
 
-```
+```plaintext
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  THREE-PERSPECTIVE VALIDATION GATE                                     │
 ├─────────────────────────────────────────────────────────────────────────┤
@@ -224,7 +224,7 @@ Create actionable task breakdown:
 
 #### 4.2.4 Perspective Validation Checklist
 
-```
+```plaintext
 □ 1. Architecture analysis complete (Section 4.2.1)
 □ 2. Engineering approach defined (Section 4.2.2)
 □ 3. Developer tasks created (Section 4.2.3)
@@ -238,7 +238,7 @@ If ANY perspective is skipped → Task fails quality gate
 
 Before starting ANY task:
 
-```
+```text
 □ 1. Run git preflight (Section 5.4) - repo up to date with origin/main
 □ 2. Read .fixzit/agent-assignments.json - check for conflicts
 □ 3. Execute Pre-Claim SSOT Validation (Section 6)

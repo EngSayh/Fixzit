@@ -682,8 +682,10 @@ export function calculateAssetHealth(metrics: AssetMetrics): AssetHealthScore {
   // Work orders frequency (max 20 point deduction)
   // Higher than expected work orders indicate problems
   const expectedWoPerYear = 4; // baseline
-  const actualWoPerYear = (metrics.work_orders_count / metrics.age_days) * 365;
-  const woRatio = actualWoPerYear / expectedWoPerYear;
+  const actualWoPerYear = metrics.age_days > 0 
+    ? (metrics.work_orders_count / metrics.age_days) * 365 
+    : 0;
+  const woRatio = expectedWoPerYear > 0 ? actualWoPerYear / expectedWoPerYear : 0;
   const woDeduction = Math.min(20, (woRatio - 1) * 10);
   if (woDeduction > 0) {
     score -= woDeduction;

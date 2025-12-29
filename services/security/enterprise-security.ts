@@ -185,16 +185,13 @@ export function approvePamRequest(
   }
   
   const now = new Date();
-  const accessEnd = new Date(now);
-  accessEnd.setMinutes(accessEnd.getMinutes() + request.requested_duration);
   
   return {
     ...request,
     status: "approved",
     approved_by: approverId,
     approved_at: now,
-    access_start: now,
-    access_end: accessEnd,
+    // access_start and access_end are set when session actually starts
     updated_at: now,
   };
 }
@@ -231,10 +228,15 @@ export function startPamSession(
     throw new Error("Cannot start session for non-approved request");
   }
   
+  const sessionStart = new Date();
+  const accessEnd = new Date(sessionStart);
+  accessEnd.setMinutes(accessEnd.getMinutes() + request.requested_duration);
+  
   return {
     ...request,
     status: "in_use",
-    access_start: new Date(),
+    access_start: sessionStart,
+    access_end: accessEnd,
     session_recording_ref: recordingRef,
     updated_at: new Date(),
   };

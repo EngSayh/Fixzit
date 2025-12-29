@@ -545,7 +545,16 @@ export function getRecentCommandObjects(
  * Format keyboard shortcut for display
  */
 export function formatShortcut(shortcut: string): string {
-  const isMac = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+  // Use User-Agent Client Hints if available, fallback to navigator.platform
+  let isMac = false;
+  if (typeof navigator !== "undefined") {
+    const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
+    if (uaData?.platform) {
+      isMac = uaData.platform.toLowerCase() === "macos";
+    } else {
+      isMac = /Mac|iPod|iPhone|iPad/i.test(navigator.platform);
+    }
+  }
   
   return shortcut
     .replace(/mod/g, isMac ? "⌘" : "Ctrl")
@@ -579,7 +588,9 @@ export function parseShortcut(shortcut: string): {
  */
 export function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean {
   const parsed = parseShortcut(shortcut);
-  const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+  const isMac = typeof navigator !== "undefined" 
+    ? /Mac|iPod|iPhone|iPad/.test(navigator.platform) 
+    : false;
   
   const modKey = isMac ? event.metaKey : event.ctrlKey;
   

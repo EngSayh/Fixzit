@@ -150,7 +150,8 @@ async function main() {
       .toArray();
     
     for (const issue of allIssues) {
-      console.log(`  ${issue.priority} ${issue.key} [${issue.status}]: ${issue.title?.substring(0, 50)}`);
+      const issueKey = issue.key || issue._id?.toString() || \"NO_KEY\";
+      console.log(`  ${issue.priority} ${issueKey} [${issue.status}]: ${issue.title?.substring(0, 50)}`);
     }
     const totalInDb = await issuesCollection.countDocuments({});
     console.log(`\n📊 Displayed issues: ${allIssues.length} (showing up to 30)`);

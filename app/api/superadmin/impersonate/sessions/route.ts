@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
     // TODO: Implement actual session history from audit logs
     // For now, return empty array - this is a placeholder until audit logging is implemented
     logger.debug("Impersonation sessions requested", {
-      superadminUsername: session.username,
+      superadminRole: session.role,
+      requestedAt: new Date().toISOString(),
     });
 
     return NextResponse.json({

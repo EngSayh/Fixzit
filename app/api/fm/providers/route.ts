@@ -180,11 +180,19 @@ export async function GET(request: Request) {
       );
     }
     
+    // Filter by city if provided
+    if (city) {
+      providerNetwork.featured = providerNetwork.featured.filter(
+        (p) => p.coverage?.some?.((c) => c.toLowerCase() === city.toLowerCase())
+      );
+    }
+    
     logger.info("Provider network accessed", {
       user: session?.user?.email ?? "demo",
       total_providers: providerNetwork.statistics.total_providers,
       active_bids: providerNetwork.active_bids.total,
       filters: { category, city },
+      cityFilterApplied: !!city,
     });
     
     return NextResponse.json(providerNetwork);
