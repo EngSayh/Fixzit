@@ -376,7 +376,17 @@ export function assessCrossBorderTransfer(
     reasons: [],
   };
   
-  // Check if destination has adequacy
+  // Check for sensitive data FIRST - blocks auto-allowance even for adequate destinations
+  const sensitiveTypes = ["health", "biometric", "genetic", "religion", "criminal"];
+  const hasSensitiveData = dataTypes.some(t => sensitiveTypes.includes(t));
+  
+  if (hasSensitiveData) {
+    assessment.reasons.push("Contains sensitive personal data - requires SDAIA approval for cross-border transfer");
+    assessment.allowed = false;
+    return assessment;
+  }
+  
+  // Check if destination has adequacy (only if no sensitive data)
   if (assessment.has_adequacy) {
     assessment.allowed = true;
     assessment.reasons.push(`${destinationCountry} has adequate data protection recognized by SDAIA`);
@@ -391,16 +401,6 @@ export function assessCrossBorderTransfer(
   // Check if contractual safeguards exist
   if (!hasContractualSafeguards) {
     assessment.reasons.push("Standard contractual clauses not in place");
-  }
-  
-  // Special handling for sensitive data
-  const sensitiveTypes = ["health", "biometric", "genetic", "religion", "criminal"];
-  const hasSensitiveData = dataTypes.some(t => sensitiveTypes.includes(t));
-  
-  if (hasSensitiveData) {
-    assessment.reasons.push("Contains sensitive personal data - requires SDAIA approval");
-    assessment.allowed = false;
-    return assessment;
   }
   
   // Allow if both consent and contract are in place

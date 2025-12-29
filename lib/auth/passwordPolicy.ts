@@ -302,10 +302,10 @@ async function isPasswordInHistory(
   try {
     const db = await getDatabase();
     
-    // Get org's password policy for historyCount
-    const orgSettings = await db.collection("organizations").findOne({ orgId });
+    // Get org's password policy from canonical source
+    const policy = await getPasswordPolicy(orgId);
     const historyCount = Math.min(
-      Math.max(1, orgSettings?.passwordPolicy?.historyCount ?? 5),
+      Math.max(1, policy.historyCount ?? 5),
       24 // max reasonable cap
     );
     
@@ -439,12 +439,13 @@ export async function isAccountLocked(
       reason: lockout.reason,
     };
   } catch (error) {
-    logger.error("Failed to check account lockout", {
+    logger.error("Failed to check account lockout - failing closed", {
       error: error instanceof Error ? error.message : "Unknown error",
       orgId,
       userId,
     });
-    return { locked: false, remainingMinutes: 0 };
+    // Fail closed: treat DB errors as locked to prevent bypass
+    throw error;
   }
 }
 

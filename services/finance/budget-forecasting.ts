@@ -15,6 +15,7 @@
  */
 
 import { ObjectId, type WithId, type Document } from "mongodb";
+import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { ExpenseCategory } from "./expense-categorization";
@@ -355,58 +356,75 @@ export async function activateBudget(
   budgetId: string,
   orgId: string
 ): Promise<{ success: boolean; error?: string }> {
+  const session = await mongoose.startSession();
   try {
     const db = await getDatabase();
     
-    // Deactivate other active budgets for same period
-    const budget = await db.collection(BUDGETS_COLLECTION).findOne({
-      _id: new ObjectId(budgetId),
-      orgId,
-    }) as WithId<Document> | null;
+    let result: { success: boolean; error?: string } = { success: false };
     
-    if (!budget) {
-      return { success: false, error: "Budget not found" };
-    }
-    
-    const record = budget as unknown as BudgetRecord;
-    
-    // Close other active budgets for same property/period
-    await db.collection(BUDGETS_COLLECTION).updateMany(
-      {
+    await session.withTransaction(async () => {
+      // Get the budget to find its period info
+      const budget = await db.collection(BUDGETS_COLLECTION).findOne({
+        _id: new ObjectId(budgetId),
         orgId,
-        propertyId: record.propertyId,
-        fiscalYear: record.fiscalYear,
-        status: BudgetStatus.ACTIVE,
-        _id: { $ne: new ObjectId(budgetId) },
-      },
-      {
-        $set: {
-          status: BudgetStatus.CLOSED,
-          updatedAt: new Date(),
-        },
+      }) as WithId<Document> | null;
+      
+      if (!budget) {
+        result = { success: false, error: "Budget not found" };
+        return;
       }
-    );
-    
-    // Activate this budget
-    await db.collection(BUDGETS_COLLECTION).updateOne(
-      { _id: new ObjectId(budgetId) },
-      {
-        $set: {
+      
+      const record = budget as unknown as BudgetRecord;
+      
+      // Close other active budgets for same property/period
+      await db.collection(BUDGETS_COLLECTION).updateMany(
+        {
+          orgId,
+          propertyId: record.propertyId,
+          fiscalYear: record.fiscalYear,
           status: BudgetStatus.ACTIVE,
-          updatedAt: new Date(),
+          _id: { $ne: new ObjectId(budgetId) },
         },
+        {
+          $set: {
+            status: BudgetStatus.CLOSED,
+            updatedAt: new Date(),
+          },
+        }
+      );
+      
+      // Activate this budget
+      const updateResult = await db.collection(BUDGETS_COLLECTION).updateOne(
+        { _id: new ObjectId(budgetId) },
+        {
+          $set: {
+            status: BudgetStatus.ACTIVE,
+            updatedAt: new Date(),
+          },
+        }
+      );
+      
+      if (updateResult.modifiedCount === 0) {
+        result = { success: false, error: "Failed to activate budget" };
+        return;
       }
-    );
-    
-    logger.info("Budget activated", {
-      component: "budget-forecasting",
-      action: "activateBudget",
+      
+      result = { success: true };
     });
     
-    return { success: true };
+    if (result.success) {
+      logger.info("Budget activated", {
+        component: "budget-forecasting",
+        action: "activateBudget",
+      });
+    }
+    
+    return result;
   } catch (_error) {
     logger.error("Failed to activate budget", { component: "budget-forecasting" });
     return { success: false, error: "Failed to activate budget" };
+  } finally {
+    await session.endSession();
   }
 }
 
@@ -652,7 +670,8 @@ function calculateCategoryForecast(
     sumX2 += i * i;
   }
   
-  const slope = n > 1 ? (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX) : 0;
+  const denominator = n * sumX2 - sumX * sumX;
+  const slope = n > 1 && denominator !== 0 ? (n * sumXY - sumX * sumY) / denominator : 0;
   const trendPercent = avg > 0 ? (slope / avg) * 100 : 0;
   
   // Determine confidence

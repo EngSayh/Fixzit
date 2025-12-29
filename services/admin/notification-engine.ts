@@ -506,8 +506,10 @@ async function deliverNotification(
       );
       return { delivered: true };
     } else {
-      // Check if should retry
-      const attempts = notification.delivery.attempts + 1;
+      // Check if should retry - use the current stored attempt count (already incremented above)
+      // Fetch the updated notification to get the actual attempts value
+      const updatedNotification = await db.collection(NOTIFICATIONS_COLLECTION).findOne({ _id: id });
+      const attempts = updatedNotification?.delivery?.attempts ?? 1;
       const maxAttempts = notification.delivery.maxAttempts;
       
       if (attempts < maxAttempts) {

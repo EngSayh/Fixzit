@@ -145,17 +145,15 @@ function base32Decode(encoded: string): Buffer {
 }
 
 /**
- * Timing-safe string comparison
+ * Timing-safe string comparison using fixed-size hashes
+ * Hashes both inputs to prevent length-based timing leaks
  */
 function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
+  // Hash both inputs to fixed-size SHA-256 digests
+  const hashA = crypto.createHash("sha256").update(a, "utf8").digest();
+  const hashB = crypto.createHash("sha256").update(b, "utf8").digest();
   
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  
-  return crypto.timingSafeEqual(bufA, bufB);
+  return crypto.timingSafeEqual(hashA, hashB);
 }
 
 // ============================================================================

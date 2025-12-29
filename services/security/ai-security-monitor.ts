@@ -414,24 +414,58 @@ async function detectImpossibleTravel(
   db: Awaited<ReturnType<typeof getDatabase>>,
   orgId: string,
   userId: string,
-  _ipAddress: string
+  ipAddress: string
 ): Promise<DetectionResult> {
   // Get last successful login
   const lastLogin = await db.collection("auth_logs").findOne(
     { orgId, userId, action: "LOGIN_SUCCESS" },
     { sort: { timestamp: -1 } }
-  );
+  ) as { timestamp: Date; ipAddress?: string } | null;
   
-  if (!lastLogin) {
+  if (!lastLogin || !lastLogin.ipAddress) {
     return { detected: false, score: 0, evidence: [] };
   }
   
-  // For MVP: Just check if IPs are very different (would need GeoIP for real implementation)
-  // In production, use a GeoIP service to calculate distance and time
+  // If same IP, no impossible travel
+  if (lastLogin.ipAddress === ipAddress) {
+    return { detected: false, score: 0, evidence: [] };
+  }
   
-  // Placeholder: Could integrate with MaxMind GeoIP or similar
-  // For now, just flag if IP changes significantly
+  // Calculate time since last login
+  const timeDeltaMs = Date.now() - new Date(lastLogin.timestamp).getTime();
+  const timeDeltaHours = timeDeltaMs / (1000 * 60 * 60);
   
+  // If less than 1 hour since last login from different IP, flag as suspicious
+  // This is a simplified heuristic - production would use GeoIP to calculate actual distance
+  if (timeDeltaHours < 1) {
+    return {
+      detected: true,
+      score: 70, // High score for very short time window
+      evidence: [
+        `IP changed from ${lastLogin.ipAddress} to ${ipAddress} within ${Math.round(timeDeltaHours * 60)} minutes`,
+        "Possible account sharing or credential theft",
+      ],
+    };
+  }
+  
+  // If less than 6 hours, moderate suspicion (would need GeoIP for distance)
+  if (timeDeltaHours < 6) {
+    // Flag IP change within 6 hours as moderate risk
+    // In production, integrate MaxMind GeoIP to calculate:
+    // - Distance between IPs (Haversine formula)
+    // - Required travel speed = distance / timeDeltaHours
+    // - Flag if speed > 800 km/h (impossible by land travel)
+    return {
+      detected: true,
+      score: 40, // Moderate score for shorter time window
+      evidence: [
+        `IP changed from ${lastLogin.ipAddress} to ${ipAddress} within ${Math.round(timeDeltaHours)} hours`,
+        "Consider verifying user identity - GeoIP distance check recommended",
+      ],
+    };
+  }
+  
+  // Normal IP change after reasonable time
   return { detected: false, score: 0, evidence: [] };
 }
 

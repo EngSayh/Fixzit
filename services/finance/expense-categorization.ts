@@ -449,23 +449,37 @@ async function learnFromCorrection(
     }) as WithId<Document> | null;
     
     if (existingRule) {
-      // Update existing rule
-      const rule = existingRule as unknown as CategorizationRule;
-      const newCorrectCount = rule.correctCount + (wasWrong ? 0 : 1);
-      const newUsageCount = rule.usageCount + 1;
-      const newAccuracy = newCorrectCount / newUsageCount;
+      // Atomic update: increment counts and recalculate accuracy using aggregation pipeline
+      const correctIncrement = wasWrong ? 0 : 1;
       
       await db.collection(RULES_COLLECTION).updateOne(
         { _id: existingRule._id },
+        [
+          {
+            $set: {
+              usageCount: { $add: ["$usageCount", 1] },
+              correctCount: { $add: ["$correctCount", correctIncrement] },
+              updatedAt: new Date(),
+            },
+          },
+          {
+            $set: {
+              accuracy: {
+                $cond: {
+                  if: { $gt: ["$usageCount", 0] },
+                  then: { $divide: ["$correctCount", "$usageCount"] },
+                  else: 0,
+                },
+              },
+            },
+          },
+        ]
+      );
+      
+      // Add keywords separately (can't combine $addToSet with aggregation pipeline)
+      await db.collection(RULES_COLLECTION).updateOne(
+        { _id: existingRule._id },
         {
-          $set: {
-            accuracy: newAccuracy,
-            updatedAt: new Date(),
-          },
-          $inc: {
-            usageCount: 1,
-            correctCount: wasWrong ? 0 : 1,
-          },
           $addToSet: {
             descriptionKeywords: { $each: keywords },
           },
@@ -635,6 +649,24 @@ export async function generateSpendingInsights(
       const previous = lastMonth.find(p => p.category === current.category);
       
       if (previous) {
+        // Guard against division by zero
+        if (previous.totalAmount === 0) {
+          // Previous was zero - this is a new spending category
+          if (current.totalAmount > 0) {
+            insights.push({
+              type: "warning",
+              category: current.category,
+              message: `${current.category} is a new spending category this month`,
+              value: current.totalAmount,
+              previousValue: 0,
+              changePercent: undefined,
+              recommendation: `Review new ${current.category} expenses`,
+              priority: current.totalAmount > 1000 ? "high" : "medium",
+            });
+          }
+          continue; // Skip percentage-based comparisons
+        }
+        
         const changePercent = ((current.totalAmount - previous.totalAmount) / previous.totalAmount) * 100;
         
         // Significant increase

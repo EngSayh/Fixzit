@@ -765,7 +765,7 @@ export async function getComplianceDashboard(
     
     // Calculate contributions
     const monthlyContrib = calculateContribution(totalWage);
-    const annualCost = totalWage * 0.1175 * 12; // 11.75% employer rate
+    const annualCost = calculateAnnualEmployerCost(totalWage); // Use centralized rate calculation
     
     // Get alerts
     const alerts = await runComplianceCheck(orgId);

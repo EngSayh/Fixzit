@@ -1267,7 +1267,10 @@ export async function listContracts(
     }
     if (filters?.expiringBefore) {
       query.expiryDate = { $lte: filters.expiringBefore };
-      query.status = ContractStatus.ACTIVE;
+      // Only set status to ACTIVE if no status filter was provided
+      if (!filters?.status?.length) {
+        query.status = ContractStatus.ACTIVE;
+      }
     }
     if (filters?.search) {
       query.$or = [

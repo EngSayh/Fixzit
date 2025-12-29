@@ -164,12 +164,26 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // TODO: Production mode - enqueue to job queue for background processing
-    // Example: await JobQueue.enqueue("notification:send", { 
-    //   notificationId: result.insertedId,
-    //   tenantId: targetTenantId,
-    //   channels 
-    // });
+    // FIXME: Job queue integration pending - tracked in ISSUE-JQ-001
+    // When BullMQ/Redis is configured, replace the code below with:
+    // try {
+    //   await JobQueue.enqueue(\"notification:send\", { 
+    //     notificationId: result.insertedId.toString(),
+    //     tenantId: targetTenantId,
+    //     channels,
+    //     createdAt: new Date().toISOString(),
+    //   });
+    // } catch (queueError) {
+    //   logger.error(\"[SUPERADMIN] Failed to enqueue notification\", { 
+    //     notificationId: result.insertedId, 
+    //     error: queueError 
+    //   });
+    //   return NextResponse.json(
+    //     { error: \"Failed to queue notification for delivery\" },
+    //     { status: 503 }
+    //   );
+    // }
+    // Priority: P1 | Acceptance: Notification delivery via background worker
     
     // For now, mark as queued even in production until job queue is configured
     const prodQueuedAt = new Date();

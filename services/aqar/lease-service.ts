@@ -18,6 +18,7 @@
  */
 
 import { ObjectId } from "mongodb";
+import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
@@ -135,6 +136,15 @@ export interface LeaseDocument {
   updatedBy?: string;
   updatedAt?: Date;
   
+  // Termination details (populated when terminated)
+  terminationDetails?: {
+    date: Date;
+    terminatedBy: string;
+    reason: string;
+    notes?: string;
+    earlyTerminationFee?: number;
+  };
+  
   // Automation flags
   autoRenew: boolean;
   renewalReminderSent: boolean;
@@ -239,12 +249,19 @@ export async function createLease(
     }
     
     // Check for overlapping leases
+    // Convert unitId to ObjectId for proper matching
+    let unitObjectId: ObjectId;
+    try {
+      unitObjectId = new ObjectId(request.unitId);
+    } catch {
+      return { success: false, error: "Invalid unit ID format" };
+    }
+    
     const overlapping = await db.collection("leases").findOne({
-      unitId: request.unitId,
+      unitId: unitObjectId,
       status: { $in: [LeaseStatus.ACTIVE, LeaseStatus.PENDING_APPROVAL] },
-      $or: [
-        { startDate: { $lte: request.endDate }, endDate: { $gte: request.startDate } },
-      ],
+      startDate: { $lte: request.endDate },
+      endDate: { $gte: request.startDate },
     });
     
     if (overlapping) {
@@ -325,12 +342,14 @@ export async function createLease(
 
 /**
  * Activate a lease (move from draft to active)
+ * Uses MongoDB transaction for atomicity
  */
 export async function activateLease(
   orgId: string,
   leaseId: string,
   activatedBy: string
 ): Promise<{ success: boolean; error?: string }> {
+  const session = await mongoose.startSession();
   try {
     const db = await getDatabase();
     
@@ -347,30 +366,35 @@ export async function activateLease(
       return { success: false, error: `Cannot activate lease in ${lease.status} status` };
     }
     
-    // Update lease status
-    await db.collection("leases").updateOne(
-      { _id: new ObjectId(leaseId), orgId },
-      {
-        $set: {
-          status: LeaseStatus.ACTIVE,
-          updatedBy: activatedBy,
-          updatedAt: new Date(),
+    // Use transaction for atomic updates
+    await session.withTransaction(async () => {
+      // Update lease status
+      await db.collection("leases").updateOne(
+        { _id: new ObjectId(leaseId), orgId },
+        {
+          $set: {
+            status: LeaseStatus.ACTIVE,
+            updatedBy: activatedBy,
+            updatedAt: new Date(),
+          },
         },
-      }
-    );
-    
-    // Update unit status to occupied
-    await db.collection("units").updateOne(
-      { _id: new ObjectId(lease.unitId), orgId },
-      {
-        $set: {
-          status: "occupied",
-          currentTenantId: lease.tenantId,
-          currentLeaseId: leaseId,
-          updatedAt: new Date(),
+        { session }
+      );
+      
+      // Update unit status to occupied
+      await db.collection("units").updateOne(
+        { _id: new ObjectId(lease.unitId), orgId },
+        {
+          $set: {
+            status: "occupied",
+            currentTenantId: lease.tenantId,
+            currentLeaseId: leaseId,
+            updatedAt: new Date(),
+          },
         },
-      }
-    );
+        { session }
+      );
+    });
     
     logger.info("Lease activated", {
       leaseId,
@@ -385,6 +409,8 @@ export async function activateLease(
       leaseId,
     });
     return { success: false, error: "Failed to activate lease" };
+  } finally {
+    await session.endSession();
   }
 }
 
@@ -411,20 +437,7 @@ export async function renewLease(
       return { success: false, error: "Active lease not found" };
     }
     
-    // Mark current lease as renewed
-    await db.collection("leases").updateOne(
-      { _id: new ObjectId(leaseId), orgId },
-      {
-        $set: {
-          status: LeaseStatus.RENEWED,
-          renewalDate: new Date(),
-          updatedBy: renewedBy,
-          updatedAt: new Date(),
-        },
-      }
-    );
-    
-    // Create new lease starting from current end date
+    // Create new lease FIRST to ensure tenant always has valid lease
     const createResult = await createLease({
       orgId,
       propertyId: currentLease.propertyId,
@@ -444,6 +457,19 @@ export async function renewLease(
     if (!createResult.success) {
       return { success: false, error: createResult.error };
     }
+    
+    // Only mark current lease as renewed AFTER new lease is created
+    await db.collection("leases").updateOne(
+      { _id: new ObjectId(leaseId), orgId },
+      {
+        $set: {
+          status: LeaseStatus.RENEWED,
+          renewalDate: new Date(),
+          updatedBy: renewedBy,
+          updatedAt: new Date(),
+        },
+      }
+    );
     
     // Activate the new lease
     if (createResult.lease) {
@@ -476,6 +502,7 @@ export async function terminateLease(
   reason: string,
   terminatedBy: string
 ): Promise<{ success: boolean; earlyTerminationFee?: number; error?: string }> {
+  const session = await mongoose.startSession();
   try {
     const db = await getDatabase();
     
@@ -495,36 +522,41 @@ export async function terminateLease(
       earlyTerminationFee = lease.terms.earlyTerminationFee;
     }
     
-    // Update lease - do NOT overwrite endDate, only store terminationDate in terminationDetails
-    await db.collection("leases").updateOne(
-      { _id: new ObjectId(leaseId), orgId },
-      {
-        $set: {
-          status: LeaseStatus.TERMINATED,
-          updatedBy: terminatedBy,
-          updatedAt: new Date(),
-          terminationDetails: {
-            date: terminationDate,
-            reason,
-            terminatedBy,
-            earlyTerminationFee,
+    // Use transaction for atomic updates
+    await session.withTransaction(async () => {
+      // Update lease - do NOT overwrite endDate, only store terminationDate in terminationDetails
+      await db.collection("leases").updateOne(
+        { _id: new ObjectId(leaseId), orgId },
+        {
+          $set: {
+            status: LeaseStatus.TERMINATED,
+            updatedBy: terminatedBy,
+            updatedAt: new Date(),
+            terminationDetails: {
+              date: terminationDate,
+              reason,
+              terminatedBy,
+              earlyTerminationFee,
+            },
           },
         },
-      }
-    );
-    
-    // Update unit status
-    await db.collection("units").updateOne(
-      { _id: new ObjectId(lease.unitId), orgId },
-      {
-        $set: {
-          status: "vacant",
-          currentTenantId: null,
-          currentLeaseId: null,
-          updatedAt: new Date(),
+        { session }
+      );
+      
+      // Update unit status
+      await db.collection("units").updateOne(
+        { _id: new ObjectId(lease.unitId), orgId },
+        {
+          $set: {
+            status: "vacant",
+            currentTenantId: null,
+            currentLeaseId: null,
+            updatedAt: new Date(),
+          },
         },
-      }
-    );
+        { session }
+      );
+    });
     
     logger.info("Lease terminated", {
       leaseId,
@@ -540,6 +572,8 @@ export async function terminateLease(
       leaseId,
     });
     return { success: false, error: "Failed to terminate lease" };
+  } finally {
+    await session.endSession();
   }
 }
 
@@ -693,7 +727,10 @@ export async function getRentOptimization(
       },
       {
         $match: {
-          "unitDetails.bedrooms": { $gte: (unit.bedrooms || 1) - 1, $lte: (unit.bedrooms || 1) + 1 },
+          "unitDetails.bedrooms": { 
+            $gte: Math.max(0, (unit.bedrooms ?? 1) - 1), 
+            $lte: (unit.bedrooms ?? 1) + 1 
+          },
           "unitDetails.type": unit.type,
         },
       },

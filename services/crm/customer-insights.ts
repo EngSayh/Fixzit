@@ -554,7 +554,7 @@ function calculateEngagementFactor(profile: CustomerProfile): HealthFactor {
 
 async function calculatePaymentFactor(
   orgId: string,
-  _userId: string
+  userId: string
 ): Promise<HealthFactor> {
   // In production, would query payment/billing data
   // Simulating based on profile data
@@ -563,6 +563,7 @@ async function calculatePaymentFactor(
     
     const profile = await db.collection(PROFILES_COLLECTION).findOne({
       orgId,
+      userId,
     }) as WithId<Document> | null;
     
     const data = profile as unknown as CustomerProfile | null;

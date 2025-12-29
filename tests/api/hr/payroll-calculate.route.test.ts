@@ -169,6 +169,18 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
       status: "DRAFT",
       orgId: mockOrgId,
     } as never);
+    
+    // Mock successful payroll calculation
+    const mockCalculationResult = {
+      success: true,
+      calculatedLines: [
+        { employeeId: "emp1", basicSalary: 10000, netPay: 9025 },
+        { employeeId: "emp2", basicSalary: 12000, netPay: 10830 },
+      ],
+      totalGross: 22000,
+      totalNet: 19855,
+    };
+    vi.mocked(PayrollService.calculatePayrollRun).mockResolvedValue(mockCalculationResult as never);
 
     const req = new NextRequest(`http://localhost/api/hr/payroll/runs/${mockPayrollRunId}/calculate`, {
       method: "POST",
@@ -176,9 +188,14 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
     const { POST } = await importRoute();
     const res = await POST(req, { params: Promise.resolve({ id: mockPayrollRunId }) });
 
-    // The route continues to calculation logic, which may return 200 or other status
-    // We just verify the role check passed (not 403)
-    expect(res.status).not.toBe(403);
+    // Verify authorization passed and calculation succeeded
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(PayrollService.calculatePayrollRun).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: mockPayrollRunId }),
+      expect.any(Object)
+    );
   });
 
   it("allows HR_OFFICER subRole to calculate payroll", async () => {
@@ -190,6 +207,17 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
       status: "DRAFT",
       orgId: mockOrgId,
     } as never);
+    
+    // Mock successful payroll calculation
+    const mockCalculationResult = {
+      success: true,
+      calculatedLines: [
+        { employeeId: "emp1", basicSalary: 8000, netPay: 7220 },
+      ],
+      totalGross: 8000,
+      totalNet: 7220,
+    };
+    vi.mocked(PayrollService.calculatePayrollRun).mockResolvedValue(mockCalculationResult as never);
 
     const req = new NextRequest(`http://localhost/api/hr/payroll/runs/${mockPayrollRunId}/calculate`, {
       method: "POST",
@@ -197,6 +225,10 @@ describe("POST /api/hr/payroll/runs/[id]/calculate", () => {
     const { POST } = await importRoute();
     const res = await POST(req, { params: Promise.resolve({ id: mockPayrollRunId }) });
 
-    expect(res.status).not.toBe(403);
+    // Verify authorization passed and calculation succeeded
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(PayrollService.calculatePayrollRun).toHaveBeenCalled();
   });
 });

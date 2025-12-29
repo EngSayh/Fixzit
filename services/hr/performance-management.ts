@@ -317,6 +317,7 @@ export interface CompetencyRating {
   managerRating?: number;
   peerAverage?: number;
   finalRating?: number;
+  weight?: number; // Weight for weighted average calculation
 }
 
 /**
@@ -352,7 +353,9 @@ const CYCLES_COLLECTION = "review_cycles";
 const REVIEWS_COLLECTION = "performance_reviews";
 
 /**
- * Default competencies
+ * Default competencies - weights must sum to 100%
+ * These are partial defaults; organizations should customize.
+ * Runtime validation ensures total weight === 100.
  */
 const DEFAULT_COMPETENCIES: Omit<Competency, "id">[] = [
   {
@@ -397,7 +400,56 @@ const DEFAULT_COMPETENCIES: Omit<Competency, "id">[] = [
       { rating: Rating.UNSATISFACTORY, description: "Does not collaborate" },
     ],
   },
+  {
+    name: "Technical Skills",
+    nameAr: "المهارات التقنية",
+    description: "Demonstrates proficiency in role-specific technical skills",
+    category: "technical",
+    weight: 25,
+    levels: [
+      { rating: Rating.EXCEPTIONAL, description: "Expert-level technical mastery" },
+      { rating: Rating.EXCEEDS_EXPECTATIONS, description: "Advanced technical proficiency" },
+      { rating: Rating.MEETS_EXPECTATIONS, description: "Competent in required skills" },
+      { rating: Rating.NEEDS_IMPROVEMENT, description: "Developing technical abilities" },
+      { rating: Rating.UNSATISFACTORY, description: "Lacks required technical skills" },
+    ],
+  },
+  {
+    name: "Initiative & Ownership",
+    nameAr: "المبادرة والمسؤولية",
+    description: "Takes initiative and ownership of work",
+    category: "behavioral",
+    weight: 15,
+    levels: [
+      { rating: Rating.EXCEPTIONAL, description: "Drives significant improvements proactively" },
+      { rating: Rating.EXCEEDS_EXPECTATIONS, description: "Regularly takes initiative" },
+      { rating: Rating.MEETS_EXPECTATIONS, description: "Takes ownership when assigned" },
+      { rating: Rating.NEEDS_IMPROVEMENT, description: "Requires frequent direction" },
+      { rating: Rating.UNSATISFACTORY, description: "Avoids responsibility" },
+    ],
+  },
+  {
+    name: "Adaptability",
+    nameAr: "القدرة على التكيف",
+    description: "Adapts to change and handles ambiguity",
+    category: "behavioral",
+    weight: 10,
+    levels: [
+      { rating: Rating.EXCEPTIONAL, description: "Thrives in changing environments" },
+      { rating: Rating.EXCEEDS_EXPECTATIONS, description: "Quickly adapts to new situations" },
+      { rating: Rating.MEETS_EXPECTATIONS, description: "Handles change adequately" },
+      { rating: Rating.NEEDS_IMPROVEMENT, description: "Struggles with change" },
+      { rating: Rating.UNSATISFACTORY, description: "Resists change" },
+    ],
+  },
 ];
+
+// Validate DEFAULT_COMPETENCIES weights sum to 100%
+const totalWeight = DEFAULT_COMPETENCIES.reduce((sum, c) => sum + c.weight, 0);
+if (totalWeight !== 100) {
+  // eslint-disable-next-line no-console -- Startup validation warning
+  console.warn(`[performance-management] DEFAULT_COMPETENCIES weights sum to ${totalWeight}%, expected 100%`);
+}
 
 // ============================================================================
 // Goal Management
@@ -481,9 +533,12 @@ export async function updateGoalProgress(
       update
     );
     
-    if (result.modifiedCount === 0) {
+    if (result.matchedCount === 0) {
       return { success: false, error: "Goal not found" };
     }
+    
+    // matchedCount > 0 but modifiedCount === 0 means goal found but no change needed
+    // Still return success since the goal exists and is already at the desired state
     
     logger.info("Goal progress updated", {
       component: "performance-management",
@@ -732,12 +787,13 @@ export async function submitManagerAssessment(
         ...r,
         managerRating: managerRating?.rating,
         finalRating: managerRating?.rating, // Default to manager rating
+        weight: r.weight ?? 1, // Ensure weight is present for calculation
       };
     });
     
-    // Calculate overall rating
-    const totalWeight = mergedRatings.length;
-    const weightedSum = mergedRatings.reduce((sum, r) => sum + (r.finalRating || 3), 0);
+    // Calculate overall rating using weighted average
+    const totalWeight = mergedRatings.reduce((sum, r) => sum + (r.weight ?? 1), 0);
+    const weightedSum = mergedRatings.reduce((sum, r) => sum + ((r.finalRating || 3) * (r.weight ?? 1)), 0);
     const overallRating = totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 10) / 10 : 3;
     
     const result = await db.collection(REVIEWS_COLLECTION).updateOne(

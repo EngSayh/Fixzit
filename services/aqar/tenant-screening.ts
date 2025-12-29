@@ -304,7 +304,9 @@ export async function createScreeningApplication(
   } catch (error) {
     logger.error("Failed to create screening application", {
       error: error instanceof Error ? error.message : "Unknown error",
-      request,
+      orgId: request.orgId,
+      unitId: request.unitId,
+      // PII redacted - do not log nationalId, email, phone, income
     });
     return { success: false, error: "Failed to create screening application" };
   }
@@ -370,7 +372,7 @@ export async function verifyDocument(
   try {
     const db = await getDatabase();
     
-    await db.collection("screening_applications").updateOne(
+    const result = await db.collection("screening_applications").updateOne(
       { 
         _id: new ObjectId(applicationId), 
         orgId,
@@ -386,6 +388,10 @@ export async function verifyDocument(
         },
       }
     );
+    
+    if (result.matchedCount === 0) {
+      return { success: false, error: `Document type '${documentType}' not found in application` };
+    }
     
     return { success: true };
   } catch (error) {
@@ -469,9 +475,18 @@ export async function calculateScreeningScore(
       riskLevel = RiskLevel.VERY_HIGH;
     }
     
-    // Calculate affordability
-    const rentToIncomeRatio = monthlyRent / applicant.monthlyIncome;
-    const isAffordable = rentToIncomeRatio <= SCORING_CONFIG.affordabilityRatio.acceptable;
+    // Calculate affordability - guard against zero/negative income
+    let rentToIncomeRatio: number;
+    let isAffordable: boolean;
+    
+    if (!applicant.monthlyIncome || applicant.monthlyIncome <= 0) {
+      rentToIncomeRatio = Number.POSITIVE_INFINITY;
+      isAffordable = false;
+      redFlags.push("Monthly income is zero or not provided - affordability cannot be calculated");
+    } else {
+      rentToIncomeRatio = monthlyRent / applicant.monthlyIncome;
+      isAffordable = rentToIncomeRatio <= SCORING_CONFIG.affordabilityRatio.acceptable;
+    }
     
     // Generate recommendations
     if (!isAffordable) {
@@ -501,7 +516,7 @@ export async function calculateScreeningScore(
       affordability: {
         monthlyRent,
         monthlyIncome: applicant.monthlyIncome,
-        rentToIncomeRatio: Math.round(rentToIncomeRatio * 100),
+        rentToIncomeRatio, // Store as decimal (e.g., 0.33 for 33%) - consistent with isAffordable comparison
         isAffordable,
       },
     };
@@ -544,6 +559,12 @@ function calculateIncomeScore(
   positiveIndicators: string[]
 ): number {
   let score = 50; // Base score
+  
+  // Guard against zero/negative income
+  if (!applicant.monthlyIncome || applicant.monthlyIncome <= 0) {
+    redFlags.push("Zero or missing monthly income - cannot assess affordability");
+    return 0; // Minimum score for unverifiable income
+  }
   
   const rentToIncome = monthlyRent / applicant.monthlyIncome;
   
@@ -762,7 +783,7 @@ export async function makeDecision(
       ? ScreeningStatus.CONDITIONALLY_APPROVED
       : ScreeningStatus.REJECTED;
     
-    await db.collection("screening_applications").updateOne(
+    const result = await db.collection("screening_applications").updateOne(
       { _id: new ObjectId(applicationId), orgId },
       {
         $set: {
@@ -779,6 +800,10 @@ export async function makeDecision(
         },
       }
     );
+    
+    if (result.matchedCount === 0) {
+      return { success: false, error: `Application ${applicationId} not found in org ${orgId}` };
+    }
     
     logger.info("Screening decision made", {
       applicationId,

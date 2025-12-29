@@ -49,12 +49,11 @@ interface ComplianceDashboard {
 
 interface AIAnalytics {
   anomalies: {
-    total: number;
-    high_severity: number;
+    active_count: number;
     items: Array<{
       id: string;
       type: string;
-      severity: string;
+      severity: "low" | "medium" | "high" | "critical";
       description: string;
     }>;
   };
@@ -223,7 +222,7 @@ export default function SuperadminFMDashboardPage() {
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">AI Alerts</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {analytics?.anomalies?.total ?? 0}
+                {analytics?.anomalies?.active_count ?? 0}
               </p>
             </div>
             <div className="h-10 w-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
@@ -231,7 +230,7 @@ export default function SuperadminFMDashboardPage() {
             </div>
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            {analytics?.anomalies?.high_severity ?? 0} high severity
+            {analytics?.anomalies?.items?.filter(i => i.severity === "high" || i.severity === "critical").length ?? 0} high severity
           </p>
         </div>
 
@@ -346,6 +345,7 @@ export default function SuperadminFMDashboardPage() {
             {analytics?.anomalies?.items?.map((anomaly) => (
               <div key={anomaly.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <AlertTriangle className={`h-4 w-4 mt-0.5 ${
+                  anomaly.severity === "critical" ? "text-pink-600" :
                   anomaly.severity === "high" ? "text-red-500" : 
                   anomaly.severity === "medium" ? "text-yellow-500" : "text-blue-500"
                 }`} />

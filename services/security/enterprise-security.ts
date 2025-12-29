@@ -13,6 +13,7 @@
 
 import crypto from "crypto";
 import { logger } from "@/lib/logger";
+import { getDatabase } from "@/lib/mongodb-unified";
 import type {
   WebAuthnCredential,
   WebAuthnChallenge,
@@ -544,12 +545,27 @@ export function refreshSession(session: ZeroTrustSession): ZeroTrustSession {
 // AUDIT LOGGING
 // =============================================================================
 
-let previousAuditHash: string = "0".repeat(64);
+/**
+ * Get the previous audit log hash from the database for chain integrity
+ * In serverless/multi-instance deployments, we must fetch from DB each time
+ */
+async function getPreviousAuditHash(db: Awaited<ReturnType<typeof getDatabase>>): Promise<string> {
+  try {
+    const lastAudit = await db.collection("audit_logs").findOne(
+      {},
+      { sort: { timestamp: -1 }, projection: { integrity_hash: 1 } }
+    );
+    return lastAudit?.integrity_hash || "0".repeat(64);
+  } catch {
+    return "0".repeat(64);
+  }
+}
 
 /**
  * Create audit log entry with chain integrity
+ * Note: For atomic chain integrity, caller should use a transaction
  */
-export function createAuditLogEntry(
+export async function createAuditLogEntry(
   category: AuditCategory,
   action: string,
   severity: AuditSeverity,
@@ -561,8 +577,12 @@ export function createAuditLogEntry(
   before?: Record<string, unknown>,
   after?: Record<string, unknown>,
   correlationId?: string
-): Omit<AuditLogEntry, "log_id"> {
+): Promise<Omit<AuditLogEntry, "log_id">> {
   const timestamp = new Date();
+  
+  // Fetch previous hash from database for chain integrity (serverless-safe)
+  const db = await getDatabase();
+  const previousHash = await getPreviousAuditHash(db);
   
   // Calculate integrity hash
   const dataToHash = JSON.stringify({
@@ -572,7 +592,7 @@ export function createAuditLogEntry(
     actor,
     resource,
     details,
-    previous_hash: previousAuditHash,
+    previous_hash: previousHash,
   });
   
   const integrityHash = crypto
@@ -595,11 +615,8 @@ export function createAuditLogEntry(
     correlation_id: correlationId,
     tags: [],
     integrity_hash: integrityHash,
-    previous_hash: previousAuditHash,
+    previous_hash: previousHash,
   };
-  
-  // Update previous hash for chain
-  previousAuditHash = integrityHash;
   
   // Log to structured logger as well
   logger.info(`Audit: ${category}/${action}`, {

@@ -44,8 +44,24 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const body = await request.json();
+    let body: { action?: string; method?: string; code?: string; recoveryCodes?: string[] };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: { code: "FIXZIT-AUTH-400", message: "Invalid JSON body" } },
+        { status: 400 }
+      );
+    }
+    
     const { action } = body;
+    
+    if (!action) {
+      return NextResponse.json(
+        { error: { code: "FIXZIT-AUTH-400", message: "Missing required field: action" } },
+        { status: 400 }
+      );
+    }
     
     const orgId = session.user.orgId || "default";
     const userId = session.user.id;

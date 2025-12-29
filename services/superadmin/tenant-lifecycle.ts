@@ -33,8 +33,8 @@ export interface TenantSnapshot {
   
   /** Storage info */
   storage_location: string;
-  size_bytes: number;
-  checksum: string;
+  size_bytes?: number; // Optional for pending snapshots, set when completed
+  checksum?: string; // Optional for pending snapshots, set when completed
   encryption_key_id?: string;
   
   /** Contents */
@@ -248,8 +248,10 @@ export async function createSnapshot(
     type: options.type ?? "manual",
     status: "pending",
     storage_location: storageLocation,
-    size_bytes: 0,
-    checksum: "",
+    // size_bytes and checksum are undefined for pending snapshots
+    // They will be set by the background job when snapshot completes
+    size_bytes: undefined,
+    checksum: undefined,
     encryption_key_id: options.encrypt ? `key-${snapshotId.toString()}` : undefined,
     collections_included: collectionsToInclude,
     files_included: options.include_files ?? false,
@@ -284,8 +286,29 @@ export async function restoreFromSnapshot(
     mode?: RestoreJob["restore_mode"];
     collections?: string[];
     create_backup_first?: boolean;
-  } = {}
+  } = {},
+  getSnapshot?: (id: ObjectId) => Promise<TenantSnapshot | null>
 ): Promise<RestoreJob> {
+  // Validate snapshot exists and belongs to tenant
+  let snapshot: TenantSnapshot | null = null;
+  if (getSnapshot) {
+    snapshot = await getSnapshot(snapshotId);
+  }
+  
+  if (!snapshot) {
+    throw new Error(`Snapshot ${snapshotId.toString()} not found`);
+  }
+  
+  // Verify snapshot belongs to the target tenant
+  if (!snapshot.tenant_id.equals(tenantId)) {
+    throw new Error(`Snapshot ${snapshotId.toString()} does not belong to tenant ${tenantId.toString()}`);
+  }
+  
+  // Verify snapshot is in completed status
+  if (snapshot.status !== "completed") {
+    throw new Error(`Snapshot ${snapshotId.toString()} is not ready (status: ${snapshot.status})`);
+  }
+  
   const jobId = new ObjectId();
   
   const restoreJob: RestoreJob = {
@@ -534,6 +557,17 @@ export async function executeTimeTravel(
     throw new Error(`Cannot execute time travel in status: ${request.status}`);
   }
   
+  // Validate preview window has not expired
+  if (request.preview_expires_at) {
+    const expiresAt = new Date(request.preview_expires_at);
+    if (expiresAt <= new Date()) {
+      return {
+        ...request,
+        status: "preview_expired" as TimeTravelRequest["status"],
+      };
+    }
+  }
+  
   const timestamp = new Date();
   
   // Create rollback snapshot first
@@ -624,9 +658,11 @@ export async function startGhostSession(
     ip_address: string;
     user_agent: string;
   }
-): Promise<GhostSession> {
+): Promise<{ session: GhostSession; token: string }> {
   const sessionId = new ObjectId();
-  const sessionToken = crypto.randomBytes(32).toString("hex");
+  const plaintextToken = crypto.randomBytes(32).toString("hex");
+  // Store only the hash of the token, not the plaintext
+  const hashedToken = crypto.createHash("sha256").update(plaintextToken).digest("hex");
   
   const session: GhostSession = {
     _id: sessionId,
@@ -638,20 +674,23 @@ export async function startGhostSession(
     active: true,
     started_at: new Date(),
     actions_performed: [],
-    session_token: sessionToken,
+    session_token: hashedToken, // Store hash, not plaintext
     ip_address: options.ip_address,
     user_agent: options.user_agent,
   };
   
+  // Log without exposing token
   logger.warn("Ghost mode session started", {
     session_id: sessionId.toString(),
     admin_id: adminId.toString(),
     tenant_id: tenantId.toString(),
     mode: options.mode,
     permissions: options.permissions,
+    // session_token intentionally excluded from logs
   });
   
-  return session;
+  // Return session and plaintext token separately (token only returned once)
+  return { session, token: plaintextToken };
 }
 
 /**

@@ -36,7 +36,16 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const body = await request.json();
+    let body: { code?: string; method?: string; trustDevice?: boolean; deviceId?: string; deviceName?: string };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: { code: "FIXZIT-AUTH-002", message: "Invalid or malformed JSON body" } },
+        { status: 400 }
+      );
+    }
+    
     const { code, method = "TOTP" } = body;
     
     if (!code) {

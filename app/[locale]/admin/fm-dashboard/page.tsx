@@ -118,6 +118,7 @@ export default function FMDashboardPage() {
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const errors: string[] = [];
     
     try {
       // Fetch all data in parallel
@@ -130,15 +131,39 @@ export default function FMDashboardPage() {
       
       if (complianceRes.ok) {
         setCompliance(await complianceRes.json());
+      } else {
+        const errorText = await complianceRes.text().catch(() => "Unknown error");
+        // eslint-disable-next-line no-console -- Error logging for dashboard debugging
+        console.error("Compliance API failed:", complianceRes.status, errorText);
+        errors.push(`Compliance: ${complianceRes.status}`);
       }
       if (analyticsRes.ok) {
         setAnalytics(await analyticsRes.json());
+      } else {
+        const errorText = await analyticsRes.text().catch(() => "Unknown error");
+        // eslint-disable-next-line no-console -- Error logging for dashboard debugging
+        console.error("Analytics API failed:", analyticsRes.status, errorText);
+        errors.push(`Analytics: ${analyticsRes.status}`);
       }
       if (securityRes.ok) {
         setSecurity(await securityRes.json());
+      } else {
+        const errorText = await securityRes.text().catch(() => "Unknown error");
+        // eslint-disable-next-line no-console -- Error logging for dashboard debugging
+        console.error("Security API failed:", securityRes.status, errorText);
+        errors.push(`Security: ${securityRes.status}`);
       }
       if (providersRes.ok) {
         setProviders(await providersRes.json());
+      } else {
+        const errorText = await providersRes.text().catch(() => "Unknown error");
+        // eslint-disable-next-line no-console -- Error logging for dashboard debugging
+        console.error("Providers API failed:", providersRes.status, errorText);
+        errors.push(`Providers: ${providersRes.status}`);
+      }
+      
+      if (errors.length > 0) {
+        setError(`Partial data load failure: ${errors.join(", ")}`);
       }
       
       setLastRefresh(new Date());

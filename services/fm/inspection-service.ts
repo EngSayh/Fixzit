@@ -230,7 +230,7 @@ export interface InspectionAnalytics {
   byCondition: Record<string, number>;
   averageScore: number;
   averageDuration: number; // minutes
-  findingsByServerity: Record<string, number>;
+  findingsBySeverity: Record<string, number>;
   unresolvedFindings: number;
   complianceRate: number; // percentage
 }
@@ -997,7 +997,7 @@ export async function getInspectionAnalytics(
       byCondition: {},
       averageScore: 0,
       averageDuration: 0,
-      findingsByServerity: {},
+      findingsBySeverity: {},
       unresolvedFindings: 0,
       complianceRate: 0,
     };
@@ -1045,8 +1045,8 @@ export async function getInspectionAnalytics(
       
       // Findings
       for (const finding of inspection.findings) {
-        analytics.findingsByServerity[finding.severity] = 
-          (analytics.findingsByServerity[finding.severity] || 0) + 1;
+        analytics.findingsBySeverity[finding.severity] = 
+          (analytics.findingsBySeverity[finding.severity] || 0) + 1;
         
         if (!finding.resolvedAt) {
           analytics.unresolvedFindings++;
@@ -1078,7 +1078,7 @@ export async function getInspectionAnalytics(
       byCondition: {},
       averageScore: 0,
       averageDuration: 0,
-      findingsByServerity: {},
+      findingsBySeverity: {},
       unresolvedFindings: 0,
       complianceRate: 0,
     };

@@ -300,45 +300,85 @@ const QUERY_PATTERNS: Array<{
   // Top N patterns
   {
     pattern: /(?:top|best|highest) (\d+) (.*?) by (.*)/i,
-    template: (matches) => ({
-      type: "aggregation",
-      pipeline: [
-        { $sort: { [matches[3]]: -1 } },
-        { $limit: parseInt(matches[1]) },
-      ],
-    }),
+    template: (matches) => {
+      // Validate and sanitize limit - must be a safe positive integer
+      const rawLimit = parseInt(matches[1], 10);
+      const limit = Number.isFinite(rawLimit) && rawLimit > 0 && rawLimit <= 1000 ? rawLimit : 10;
+      
+      // Sanitize field name - allow only alphanumeric, underscore, and dot
+      // Reject dangerous tokens like __proto__, constructor, $
+      let rawField = matches[3] || "";
+      rawField = rawField.replace(/[^a-zA-Z0-9_.]/g, "");
+      const dangerousTokens = ["__proto__", "constructor", "prototype", "$"];
+      if (dangerousTokens.some(t => rawField.toLowerCase().includes(t)) || !rawField) {
+        rawField = "createdAt"; // Safe fallback
+      }
+      const sortField = rawField;
+      
+      return {
+        type: "aggregation",
+        pipeline: [
+          { $sort: { [sortField]: -1 } },
+          { $limit: limit },
+        ],
+      };
+    },
   },
   // Sum/total patterns
   {
     pattern: /(?:total|sum of) (.*?) (?:for|by|grouped by) (.*)/i,
-    template: (matches) => ({
-      type: "aggregation",
-      pipeline: [
-        {
-          $group: {
-            _id: `$${matches[2]}`,
-            total: { $sum: `$${matches[1]}` },
+    template: (matches) => {
+      // Sanitize field names to prevent injection
+      let sumField = (matches[1] || "").replace(/[^a-zA-Z0-9_]/g, "");
+      let groupField = (matches[2] || "").replace(/[^a-zA-Z0-9_]/g, "");
+      const dangerousTokens = ["__proto__", "constructor", "prototype"];
+      if (dangerousTokens.some(t => sumField.toLowerCase().includes(t)) || !sumField) {
+        sumField = "amount"; // Safe fallback
+      }
+      if (dangerousTokens.some(t => groupField.toLowerCase().includes(t)) || !groupField) {
+        groupField = "category"; // Safe fallback
+      }
+      return {
+        type: "aggregation",
+        pipeline: [
+          {
+            $group: {
+              _id: `$${groupField}`,
+              total: { $sum: `$${sumField}` },
+            },
           },
-        },
-        { $sort: { total: -1 } },
-      ],
-    }),
+          { $sort: { total: -1 } },
+        ],
+      };
+    },
   },
   // Average patterns
   {
     pattern: /(?:average|avg|mean) (.*?) (?:for|by|grouped by) (.*)/i,
-    template: (matches) => ({
-      type: "aggregation",
-      pipeline: [
-        {
-          $group: {
-            _id: `$${matches[2]}`,
-            average: { $avg: `$${matches[1]}` },
+    template: (matches) => {
+      // Sanitize field names to prevent injection
+      let avgField = (matches[1] || "").replace(/[^a-zA-Z0-9_]/g, "");
+      let groupField = (matches[2] || "").replace(/[^a-zA-Z0-9_]/g, "");
+      const dangerousTokens = ["__proto__", "constructor", "prototype"];
+      if (dangerousTokens.some(t => avgField.toLowerCase().includes(t)) || !avgField) {
+        avgField = "amount"; // Safe fallback
+      }
+      if (dangerousTokens.some(t => groupField.toLowerCase().includes(t)) || !groupField) {
+        groupField = "category"; // Safe fallback
+      }
+      return {
+        type: "aggregation",
+        pipeline: [
+          {
+            $group: {
+              _id: `$${groupField}`,
+              average: { $avg: `$${avgField}` },
+            },
           },
-        },
-        { $sort: { average: -1 } },
-      ],
-    }),
+          { $sort: { average: -1 } },
+        ],
+      };
+    },
   },
 ];
 
