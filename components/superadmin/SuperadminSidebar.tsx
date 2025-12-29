@@ -38,6 +38,10 @@ import {
   PanelLeftClose,
   PanelLeft,
   LayoutDashboard,
+  History,
+  Grid3x3,
+  FileCheck,
+  Wallet,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -75,7 +79,9 @@ const SUPERADMIN_NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/superadmin/tenants", icon: Building2, labelKey: "superadmin.nav.tenants" },
       { href: "/superadmin/users", icon: Users, labelKey: "superadmin.nav.users" },
+      { href: "/superadmin/user-logs", icon: History, labelKey: "superadmin.nav.userLogs" },
       { href: "/superadmin/roles", icon: Shield, labelKey: "superadmin.nav.roles" },
+      { href: "/superadmin/permissions", icon: Grid3x3, labelKey: "superadmin.nav.permissions" },
       { href: "/superadmin/impersonate", icon: UserCheck, labelKey: "superadmin.nav.impersonate" },
     ],
   },
@@ -107,6 +113,7 @@ const SUPERADMIN_NAV_GROUPS: NavGroup[] = [
       { href: "/superadmin/database", icon: Database, labelKey: "superadmin.nav.database" },
       { href: "/superadmin/import-export", icon: Upload, labelKey: "superadmin.nav.importExport" },
       { href: "/superadmin/translations", icon: Languages, labelKey: "superadmin.nav.translations" },
+      { href: "/superadmin/footer-content", icon: FileCheck, labelKey: "superadmin.nav.footerContent" },
     ],
   },
   {
@@ -124,6 +131,7 @@ const SUPERADMIN_NAV_GROUPS: NavGroup[] = [
     icon: CreditCard,
     items: [
       { href: "/superadmin/billing", icon: CreditCard, labelKey: "superadmin.nav.billing" },
+      { href: "/superadmin/subscriptions", icon: Wallet, labelKey: "superadmin.nav.subscriptions" },
       { href: "/superadmin/reports", icon: PieChart, labelKey: "superadmin.nav.reports" },
       { href: "/superadmin/analytics", icon: BarChart3, labelKey: "superadmin.nav.analytics" },
     ],
