@@ -19,6 +19,18 @@ import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
 // ============================================================================
+// Error Logging Helper
+// ============================================================================
+
+function logError(action: string, error: unknown): void {
+  logger.error(`Failed to ${action}`, {
+    component: "bi-dashboard",
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+  });
+}
+
+// ============================================================================
 // Types & Interfaces
 // ============================================================================
 
@@ -391,6 +403,9 @@ export async function getExecutiveKPIs(
 }> {
   try {
     const dateRange = getDateRange(timeRange);
+    if (!dateRange) {
+      throw new Error("Custom time range requires AnalyticsQuery.customDateRange");
+    }
     const previousRange = getPreviousPeriodRange(timeRange);
     
     const [revenue, occupancy, collections, maintenance, satisfaction] = await Promise.all([
@@ -420,9 +435,9 @@ export async function getExecutiveKPIs(
       maintenanceCost: maintenance,
       tenantSatisfaction: satisfaction,
     };
-  } catch (_error) {
-    logger.error("Failed to get executive KPIs", { component: "bi-dashboard" });
-    throw _error;
+  } catch (error) {
+    logError("get executive KPIs", error);
+    throw error;
   }
 }
 
@@ -443,6 +458,9 @@ export async function getFinanceKPIs(
   try {
     const db = await getDatabase();
     const dateRange = getDateRange(timeRange);
+    if (!dateRange) {
+      throw new Error("Custom time range requires AnalyticsQuery.customDateRange");
+    }
     const previousRange = getPreviousPeriodRange(timeRange);
     
     // Total revenue
@@ -510,9 +528,9 @@ export async function getFinanceKPIs(
       ),
       vatCollected: createKPIResult(totalRevenueValue * 0.15 / 1.15, prevRevenueValue * 0.15 / 1.15),
     };
-  } catch (_error) {
-    logger.error("Failed to get finance KPIs", { component: "bi-dashboard" });
-    throw _error;
+  } catch (error) {
+    logError("get finance KPIs", error);
+    throw error;
   }
 }
 
@@ -533,6 +551,9 @@ export async function getOperationsKPIs(
   try {
     const db = await getDatabase();
     const dateRange = getDateRange(timeRange);
+    if (!dateRange) {
+      throw new Error("Custom time range requires AnalyticsQuery.customDateRange");
+    }
     const previousRange = getPreviousPeriodRange(timeRange);
     
     // Work orders created
@@ -615,9 +636,9 @@ export async function getOperationsKPIs(
       preventiveMaintenance: createKPIResult(preventiveRatio, 0, "higher_better", 30),
       firstTimeFixRate: createKPIResult(85, 82, "higher_better", 90),
     };
-  } catch (_error) {
-    logger.error("Failed to get operations KPIs", { component: "bi-dashboard" });
-    throw _error;
+  } catch (error) {
+    logError("get operations KPIs", error);
+    throw error;
   }
 }
 
@@ -638,6 +659,9 @@ export async function getPropertyKPIs(
   try {
     const db = await getDatabase();
     const dateRange = getDateRange(timeRange);
+    if (!dateRange) {
+      throw new Error("Custom time range requires AnalyticsQuery.customDateRange");
+    }
     
     // Property counts
     const propertyCount = await db.collection("properties").countDocuments({
@@ -714,9 +738,9 @@ export async function getPropertyKPIs(
       turnoverRate: createKPIResult(turnoverRate, 0, "lower_better", 10),
       avgRentPerSqm: createKPIResult(avgRentPerSqm, 0),
     };
-  } catch (_error) {
-    logger.error("Failed to get property KPIs", { component: "bi-dashboard" });
-    throw _error;
+  } catch (error) {
+    logError("get property KPIs", error);
+    throw error;
   }
 }
 
@@ -737,6 +761,9 @@ export async function getHRKPIs(
   try {
     const db = await getDatabase();
     const dateRange = getDateRange(timeRange);
+    if (!dateRange) {
+      throw new Error("Custom time range requires AnalyticsQuery.customDateRange");
+    }
     
     // Employee count
     const employeeCount = await db.collection("employees").countDocuments({
@@ -786,7 +813,7 @@ export async function getHRKPIs(
       },
       {
         $project: {
-          tenure: { $subtract: [new Date(), "$joiningDate"] },
+          tenure: { $subtract: ["$$NOW", "$joiningDate"] },
         },
       },
       {
@@ -827,9 +854,9 @@ export async function getHRKPIs(
       trainingHours: createKPIResult(40, 35), // Placeholder
       payrollCost: createKPIResult(payrollResult[0]?.total || 0, 0),
     };
-  } catch (_error) {
-    logger.error("Failed to get HR KPIs", { component: "bi-dashboard" });
-    throw _error;
+  } catch (error) {
+    logError("get HR KPIs", error);
+    throw error;
   }
 }
 
@@ -860,8 +887,8 @@ export async function createDashboard(
     });
     
     return { success: true, dashboardId: result.insertedId.toString() };
-  } catch (_error) {
-    logger.error("Failed to create dashboard", { component: "bi-dashboard" });
+  } catch (error) {
+    logError("create dashboard", error);
     return { success: false, error: "Failed to create dashboard" };
   }
 }
@@ -875,6 +902,14 @@ export async function getDashboard(
 ): Promise<Dashboard | null> {
   try {
     const db = await getDatabase();
+    
+    if (!ObjectId.isValid(dashboardId)) {
+      logger.warn("Invalid dashboardId format", {
+        component: "bi-dashboard",
+        dashboardId,
+      });
+      return null;
+    }
     
     const dashboard = await db.collection(DASHBOARDS_COLLECTION).findOne({
       _id: new ObjectId(dashboardId),
@@ -890,7 +925,8 @@ export async function getDashboard(
     }
     
     return dashboard as unknown as Dashboard | null;
-  } catch (_error) {
+  } catch (error) {
+    logError("get dashboard", error);
     return null;
   }
 }
@@ -916,16 +952,21 @@ export async function listDashboards(
       query.module = filters.module;
     }
     
-    if (filters?.visibility) {
-      query.visibility = filters.visibility;
-    }
-    
     // Include public, role-based (if user has role), or owned by user
+    // Note: visibility filter and userId filter are mutually exclusive
+    // If userId is provided, use $or for access control; otherwise use direct visibility filter
     if (filters?.userId) {
-      query.$or = [
+      const accessConditions: object[] = [
         { visibility: "public" },
         { ownerId: filters.userId },
       ];
+      // If specific visibility requested, add it to the conditions
+      if (filters?.visibility) {
+        accessConditions.push({ visibility: filters.visibility, ownerId: filters.userId });
+      }
+      query.$or = accessConditions;
+    } else if (filters?.visibility) {
+      query.visibility = filters.visibility;
     }
     
     const dashboards = await db.collection(DASHBOARDS_COLLECTION)
@@ -934,8 +975,8 @@ export async function listDashboards(
       .toArray();
     
     return dashboards as unknown as Dashboard[];
-  } catch (_error) {
-    logger.error("Failed to list dashboards", { component: "bi-dashboard" });
+  } catch (error) {
+    logError("list dashboards", error);
     return [];
   }
 }
@@ -957,7 +998,8 @@ export async function getDefaultDashboard(
     }) as WithId<Document> | null;
     
     return dashboard as unknown as Dashboard | null;
-  } catch (_error) {
+  } catch (error) {
+    logError("get default dashboard", error);
     return null;
   }
 }
@@ -994,8 +1036,8 @@ export async function addWidget(
     );
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to add widget", { component: "bi-dashboard" });
+  } catch (error) {
+    logError("add widget", error);
     return { success: false, error: "Failed to add widget" };
   }
 }
@@ -1023,8 +1065,8 @@ export async function removeWidget(
     );
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to remove widget", { component: "bi-dashboard" });
+  } catch (error) {
+    logError("remove widget", error);
     return { success: false, error: "Failed to remove widget" };
   }
 }
@@ -1045,6 +1087,9 @@ export async function getTrendData(
   try {
     const db = await getDatabase();
     const dateRange = getDateRange(timeRange);
+    if (!dateRange) {
+      throw new Error("Custom time range requires AnalyticsQuery.customDateRange");
+    }
     
     const dateFormat = granularity === "monthly" 
       ? "%Y-%m" 
@@ -1078,8 +1123,8 @@ export async function getTrendData(
       value: r.value,
       count: r.count,
     }));
-  } catch (_error) {
-    logger.error("Failed to get trend data", { component: "bi-dashboard" });
+  } catch (error) {
+    logError("get trend data", error);
     return [];
   }
 }
@@ -1094,6 +1139,9 @@ export async function getComparisonData(
 ): Promise<Record<string, { current: number; previous: number; change: number }>> {
   try {
     const dateRange = getDateRange(timeRange);
+    if (!dateRange) {
+      throw new Error("Custom time range requires AnalyticsQuery.customDateRange");
+    }
     const previousRange = getPreviousPeriodRange(timeRange);
     
     const results: Record<string, { current: number; previous: number; change: number }> = {};
@@ -1112,8 +1160,8 @@ export async function getComparisonData(
     }
     
     return results;
-  } catch (_error) {
-    logger.error("Failed to get comparison data", { component: "bi-dashboard" });
+  } catch (error) {
+    logError("get comparison data", error);
     return {};
   }
 }
@@ -1147,7 +1195,11 @@ interface DateRange {
 // Helper Functions
 // ============================================================================
 
-function getDateRange(timeRange: TimeRange): DateRange {
+/**
+ * Get date range for predefined time ranges.
+ * Returns null for TimeRange.CUSTOM; callers should use AnalyticsQuery.customDateRange.
+ */
+function getDateRange(timeRange: TimeRange): DateRange | null {
   const now = new Date();
   const end = new Date(now);
   const start = new Date(now);
@@ -1222,6 +1274,8 @@ function getDateRange(timeRange: TimeRange): DateRange {
     case TimeRange.LAST_365_DAYS:
       start.setDate(start.getDate() - 365);
       break;
+    case TimeRange.CUSTOM:
+      return null;
     default:
       start.setDate(1);
       start.setHours(0, 0, 0, 0);
@@ -1232,6 +1286,9 @@ function getDateRange(timeRange: TimeRange): DateRange {
 
 function getPreviousPeriodRange(timeRange: TimeRange): DateRange {
   const current = getDateRange(timeRange);
+  if (!current) {
+    throw new Error("Custom time range requires AnalyticsQuery.customDateRange");
+  }
   const duration = current.end.getTime() - current.start.getTime();
   
   return {

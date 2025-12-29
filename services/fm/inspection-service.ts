@@ -1237,6 +1237,11 @@ function calculateInspectionScore(completedItems: CompletedItem[]): {
   
   const score = scoredItems > 0 ? Math.round(totalScore / scoredItems) : 0;
   
+  // If no items were scored (all NOT_APPLICABLE), return NOT_APPLICABLE
+  if (scoredItems === 0) {
+    return { overallCondition: ConditionRating.NOT_APPLICABLE, score: 0 };
+  }
+  
   let overallCondition: ConditionRating;
   if (score >= 90) overallCondition = ConditionRating.EXCELLENT;
   else if (score >= 70) overallCondition = ConditionRating.GOOD;

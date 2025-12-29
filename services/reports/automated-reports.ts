@@ -19,6 +19,18 @@ import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
 // ============================================================================
+// Error Logging Helper
+// ============================================================================
+
+function logError(action: string, error: unknown): void {
+  logger.error(`Failed to ${action}`, {
+    component: "automated-reports",
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+  });
+}
+
+// ============================================================================
 // Types & Interfaces
 // ============================================================================
 
@@ -476,8 +488,8 @@ export async function createReportConfig(
     });
     
     return { success: true, configId: result.insertedId.toString() };
-  } catch (_error) {
-    logger.error("Failed to create report config", { component: "automated-reports" });
+  } catch (error) {
+    logError("create report config", error);
     return { success: false, error: "Failed to create report config" };
   }
 }
@@ -498,7 +510,8 @@ export async function getReportConfig(
     }) as WithId<Document> | null;
     
     return config as unknown as ReportConfig | null;
-  } catch (_error) {
+  } catch (error) {
+    logError("get report config", error);
     return null;
   }
 }
@@ -536,8 +549,8 @@ export async function listReportConfigs(
       .toArray();
     
     return configs as unknown as ReportConfig[];
-  } catch (_error) {
-    logger.error("Failed to list report configs", { component: "automated-reports" });
+  } catch (error) {
+    logError("list report configs", error);
     return [];
   }
 }
@@ -577,8 +590,8 @@ export async function updateReportConfig(
     );
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to update report config", { component: "automated-reports" });
+  } catch (error) {
+    logError("update report config", error);
     return { success: false, error: "Failed to update report config" };
   }
 }
@@ -599,8 +612,8 @@ export async function deleteReportConfig(
     });
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to delete report config", { component: "automated-reports" });
+  } catch (error) {
+    logError("delete report config", error);
     return { success: false, error: "Failed to delete report config" };
   }
 }
@@ -660,8 +673,8 @@ export async function generateReport(
     });
     
     return { success: true, instanceId };
-  } catch (_error) {
-    logger.error("Failed to generate report", { component: "automated-reports" });
+  } catch (error) {
+    logError("generate report", error);
     return { success: false, error: "Failed to generate report" };
   }
 }
@@ -918,7 +931,8 @@ export async function getReportInstance(
     }) as WithId<Document> | null;
     
     return instance as unknown as ReportInstance | null;
-  } catch (_error) {
+  } catch (error) {
+    logError("get report instance", error);
     return null;
   }
 }
@@ -976,8 +990,8 @@ export async function listReportInstances(
       instances: instances as unknown as ReportInstance[],
       total,
     };
-  } catch (_error) {
-    logger.error("Failed to list report instances", { component: "automated-reports" });
+  } catch (error) {
+    logError("list report instances", error);
     return { instances: [], total: 0 };
   }
 }
@@ -1000,7 +1014,8 @@ export async function getReportHistory(
       .toArray();
     
     return instances as unknown as ReportInstance[];
-  } catch (_error) {
+  } catch (error) {
+    logError("get report history", error);
     return [];
   }
 }
@@ -1030,8 +1045,8 @@ export async function getDueReports(
       .toArray();
     
     return configs as unknown as ReportConfig[];
-  } catch (_error) {
-    logger.error("Failed to get due reports", { component: "automated-reports" });
+  } catch (error) {
+    logError("get due reports", error);
     return [];
   }
 }
@@ -1065,7 +1080,8 @@ export async function processScheduledReports(): Promise<{
       } else {
         failed++;
       }
-    } catch (_error) {
+    } catch (error) {
+      logError(`process scheduled report ${config._id}`, error);
       processed++;
       failed++;
     }
@@ -1399,26 +1415,37 @@ function calculateNextRun(schedule: ReportSchedule): Date | null {
       next.setHours(hours, minutes, 0, 0);
       break;
       
-    case ScheduleFrequency.MONTHLY:
+    case ScheduleFrequency.MONTHLY: {
+      next.setDate(1); // Prevent rollover when changing month
       next.setMonth(next.getMonth() + 1);
-      next.setDate(schedule.dayOfMonth || 1);
-      next.setHours(hours, minutes, 0, 0);
-      break;
-      
-    case ScheduleFrequency.QUARTERLY: {
-      const currentQuarter = Math.floor(next.getMonth() / 3);
-      next.setMonth((currentQuarter + 1) * 3);
-      next.setDate(schedule.dayOfMonth || 1);
+      const desiredDay = schedule.dayOfMonth || 1;
+      const daysInMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+      next.setDate(Math.min(desiredDay, daysInMonth));
       next.setHours(hours, minutes, 0, 0);
       break;
     }
       
-    case ScheduleFrequency.ANNUALLY:
-      next.setFullYear(next.getFullYear() + 1);
-      next.setMonth((schedule.monthOfYear || 1) - 1);
-      next.setDate(schedule.dayOfMonth || 1);
+    case ScheduleFrequency.QUARTERLY: {
+      next.setDate(1); // Prevent rollover when changing month
+      const currentQuarter = Math.floor(next.getMonth() / 3);
+      next.setMonth((currentQuarter + 1) * 3);
+      const desiredDayQ = schedule.dayOfMonth || 1;
+      const daysInQuarterMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+      next.setDate(Math.min(desiredDayQ, daysInQuarterMonth));
       next.setHours(hours, minutes, 0, 0);
       break;
+    }
+      
+    case ScheduleFrequency.ANNUALLY: {
+      next.setDate(1); // Prevent rollover when changing month
+      next.setFullYear(next.getFullYear() + 1);
+      next.setMonth((schedule.monthOfYear || 1) - 1);
+      const desiredDayA = schedule.dayOfMonth || 1;
+      const daysInAnnualMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+      next.setDate(Math.min(desiredDayA, daysInAnnualMonth));
+      next.setHours(hours, minutes, 0, 0);
+      break;
+    }
   }
   
   // Ensure next run is in the future using iteration instead of recursion

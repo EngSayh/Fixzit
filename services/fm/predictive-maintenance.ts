@@ -240,6 +240,10 @@ export async function registerEquipment(
   try {
     const db = await getDatabase();
     
+    if (!Number.isFinite(data.expectedLifespan) || data.expectedLifespan <= 0) {
+      return { success: false, error: "Expected lifespan must be a positive number" };
+    }
+    
     // Calculate initial health score based on age
     const ageMonths = Math.floor(
       (Date.now() - data.installDate.getTime()) / (30 * 24 * 60 * 60 * 1000)
@@ -282,6 +286,9 @@ export async function getEquipmentById(
   orgId: string
 ): Promise<EquipmentRecord | null> {
   try {
+    if (!ObjectId.isValid(equipmentId)) {
+      return null;
+    }
     const db = await getDatabase();
     const equipment = await db.collection(COLLECTION).findOne({
       _id: new ObjectId(equipmentId),
@@ -338,11 +345,7 @@ export async function recordMaintenanceEvent(
 ): Promise<{ success: boolean; newHealthScore?: number; error?: string }> {
   try {
     const db = await getDatabase();
-    
-    const equipment = await getEquipmentById(equipmentId, orgId);
-    if (!equipment) {
-      return { success: false, error: "Equipment not found" };
-    }
+    const now = new Date();
     
     // Calculate health improvement based on maintenance type
     let healthImprovement = 0;
@@ -361,36 +364,68 @@ export async function recordMaintenanceEvent(
         break;
     }
     
-    const newHealthScore = Math.min(100, equipment.healthScore + healthImprovement);
     const maintenanceEvent: MaintenanceEvent = {
       ...event,
-      date: new Date(),
+      date: now,
     };
     
-    // Calculate next scheduled maintenance
-    const nextMaintenance = new Date();
-    nextMaintenance.setDate(nextMaintenance.getDate() + equipment.maintenanceIntervalDays);
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateOp: any = {
-      $push: { maintenanceHistory: maintenanceEvent },
-      $set: {
-        healthScore: newHealthScore,
-        healthStatus: getHealthStatus(newHealthScore),
-        lastMaintenanceDate: new Date(),
-        nextScheduledMaintenance: nextMaintenance,
-        updatedAt: new Date(),
+    const updatePipeline = [
+      {
+        $set: {
+          maintenanceHistory: { $concatArrays: ["$maintenanceHistory", [maintenanceEvent]] },
+          healthScore: { $min: [100, { $add: ["$healthScore", healthImprovement] }] },
+          lastMaintenanceDate: now,
+          nextScheduledMaintenance: {
+            $dateAdd: {
+              startDate: now,
+              unit: "day",
+              amount: "$maintenanceIntervalDays",
+            },
+          },
+          updatedAt: now,
+          totalMaintenanceCost: { $add: ["$totalMaintenanceCost", event.cost] },
+        },
       },
-      $inc: { totalMaintenanceCost: event.cost },
-    };
+      {
+        $set: {
+          healthStatus: {
+            $switch: {
+              branches: [
+                { case: { $gte: ["$healthScore", 90] }, then: HealthStatus.EXCELLENT },
+                { case: { $gte: ["$healthScore", 70] }, then: HealthStatus.GOOD },
+                { case: { $gte: ["$healthScore", 50] }, then: HealthStatus.FAIR },
+                { case: { $gte: ["$healthScore", 30] }, then: HealthStatus.POOR },
+              ],
+              default: HealthStatus.CRITICAL,
+            },
+          },
+        },
+      },
+    ];
     
-    await db.collection(COLLECTION).updateOne(
+    const updateResult = await db.collection(COLLECTION).findOneAndUpdate(
       { _id: new ObjectId(equipmentId), orgId },
-      updateOp
+      updatePipeline,
+      { returnDocument: "after" }
     );
     
-    // Recalculate predictions after maintenance
-    await generatePredictions(equipmentId, orgId);
+    const updatedEquipment = updateResult?.value as EquipmentRecord | null;
+    if (!updatedEquipment) {
+      return { success: false, error: "Equipment not found" };
+    }
+    
+    const newHealthScore = updatedEquipment.healthScore;
+    
+    try {
+      // Recalculate predictions after maintenance
+      await generatePredictions(equipmentId, orgId);
+    } catch (error) {
+      logger.error("Failed to update predictions after maintenance", {
+        component: "predictive-maintenance",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return { success: false, error: "Failed to update predictions" };
+    }
     
     logger.info("Maintenance event recorded", {
       component: "predictive-maintenance",
@@ -418,6 +453,15 @@ export async function generatePredictions(
   try {
     const equipment = await getEquipmentById(equipmentId, orgId);
     if (!equipment) return [];
+    
+    if (!Number.isFinite(equipment.expectedLifespan) || equipment.expectedLifespan <= 0) {
+      logger.error("Invalid expected lifespan on equipment", {
+        component: "predictive-maintenance",
+        equipmentId,
+        expectedLifespan: equipment.expectedLifespan,
+      });
+      return [];
+    }
     
     const predictions: FailurePrediction[] = [];
     const now = new Date();
@@ -518,18 +562,49 @@ export async function runOrgPredictionCycle(
 ): Promise<{ processed: number; predictions: number }> {
   try {
     const db = await getDatabase();
+    const batchSize = 200;
+    const concurrencyLimit = 6;
+    const cursor = db.collection(COLLECTION).find({ orgId }).batchSize(batchSize);
     
-    const equipment = await db.collection(COLLECTION)
-      .find({ orgId })
-      .toArray() as unknown as EquipmentRecord[];
-    
+    let processed = 0;
     let totalPredictions = 0;
+    const batch: EquipmentRecord[] = [];
     
-    for (const eq of equipment) {
-      if (eq._id) {
-        const predictions = await generatePredictions(eq._id.toString(), orgId);
-        totalPredictions += predictions.length;
+    const processBatch = async (items: EquipmentRecord[]) => {
+      let index = 0;
+      const workers = Array.from({ length: Math.min(concurrencyLimit, items.length) }, async () => {
+        while (index < items.length) {
+          const current = items[index];
+          index += 1;
+          processed += 1;
+          if (!current._id) {
+            continue;
+          }
+          
+          try {
+            const predictions = await generatePredictions(current._id.toString(), orgId);
+            totalPredictions += predictions.length;
+          } catch (error) {
+            logger.warn("Prediction generation failed for equipment", {
+              component: "predictive-maintenance",
+              equipmentId: current._id.toString(),
+              error: error instanceof Error ? error.message : "Unknown error",
+            });
+          }
+        }
+      });
+      await Promise.all(workers);
+    };
+    
+    for await (const doc of cursor) {
+      batch.push(doc as EquipmentRecord);
+      if (batch.length >= batchSize) {
+        await processBatch(batch.splice(0, batch.length));
       }
+    }
+    
+    if (batch.length > 0) {
+      await processBatch(batch.splice(0, batch.length));
     }
     
     logger.info("Org prediction cycle complete", {
@@ -537,7 +612,7 @@ export async function runOrgPredictionCycle(
       action: "runOrgPredictionCycle",
     });
     
-    return { processed: equipment.length, predictions: totalPredictions };
+    return { processed, predictions: totalPredictions };
   } catch (_error) {
     logger.error("Failed to run org prediction cycle", { component: "predictive-maintenance" });
     return { processed: 0, predictions: 0 };
@@ -707,7 +782,7 @@ export async function getEquipmentAnalytics(
     logger.error("Failed to get equipment analytics", { component: "predictive-maintenance" });
     return {
       totalEquipment: 0,
-      byHealth: {} as Record<HealthStatus, number>,
+      byHealth: getEmptyHealthDistribution(),
       byType: {},
       upcomingMaintenanceCount: 0,
       overdueMaintenanceCount: 0,
@@ -816,6 +891,16 @@ function getHealthStatus(score: number): HealthStatus {
   if (score >= 50) return HealthStatus.FAIR;
   if (score >= 30) return HealthStatus.POOR;
   return HealthStatus.CRITICAL;
+}
+
+function getEmptyHealthDistribution(): Record<HealthStatus, number> {
+  return {
+    [HealthStatus.EXCELLENT]: 0,
+    [HealthStatus.GOOD]: 0,
+    [HealthStatus.FAIR]: 0,
+    [HealthStatus.POOR]: 0,
+    [HealthStatus.CRITICAL]: 0,
+  };
 }
 
 function calculateBaseFailureProbability(type: EquipmentType, lifespanRatio: number): number {
@@ -969,7 +1054,7 @@ function getComponentPredictions(
           name: "Control Board",
           failureType: "Electronic failure",
           probability: baseFailureProbability * 0.5,
-          daysToFailure: Math.round(90 / baseFailureProbability),
+          daysToFailure: calculateDaysToFailure(90),
           recommendedAction: "Diagnostic check and firmware update",
           estimatedCost: 3000,
           impact: "Elevator shutdown, accessibility issues",
@@ -978,7 +1063,7 @@ function getComponentPredictions(
           name: "Door Mechanism",
           failureType: "Sensor misalignment",
           probability: baseFailureProbability * 0.9,
-          daysToFailure: Math.round(30 / baseFailureProbability),
+          daysToFailure: calculateDaysToFailure(30),
           recommendedAction: "Adjust door sensors and clean tracks",
           estimatedCost: 500,
           impact: "Door malfunctions, safety concerns",
@@ -987,7 +1072,7 @@ function getComponentPredictions(
           name: "Cables",
           failureType: "Wear and fraying",
           probability: baseFailureProbability * 0.3,
-          daysToFailure: Math.round(180 / baseFailureProbability),
+          daysToFailure: calculateDaysToFailure(180),
           recommendedAction: "Cable inspection and tension adjustment",
           estimatedCost: 5000,
           impact: "Critical safety risk, mandatory shutdown",
@@ -1001,7 +1086,7 @@ function getComponentPredictions(
           name: "Pipes",
           failureType: "Corrosion/leak",
           probability: baseFailureProbability * 0.7,
-          daysToFailure: Math.round(60 / baseFailureProbability),
+          daysToFailure: calculateDaysToFailure(60),
           recommendedAction: "Pipe inspection and pressure test",
           estimatedCost: 1000,
           impact: "Water damage, tenant disruption",
@@ -1010,7 +1095,7 @@ function getComponentPredictions(
           name: "Water Heater",
           failureType: "Element failure",
           probability: baseFailureProbability * 0.8,
-          daysToFailure: Math.round(45 / baseFailureProbability),
+          daysToFailure: calculateDaysToFailure(45),
           recommendedAction: "Inspect heating elements and anode rod",
           estimatedCost: 400,
           impact: "No hot water, tenant complaints",
@@ -1023,7 +1108,7 @@ function getComponentPredictions(
         name: "General",
         failureType: "Component wear",
         probability: baseFailureProbability,
-        daysToFailure: Math.round(60 / baseFailureProbability),
+        daysToFailure: calculateDaysToFailure(60),
         recommendedAction: "General inspection and maintenance",
         estimatedCost: 500,
         impact: "Equipment downtime",

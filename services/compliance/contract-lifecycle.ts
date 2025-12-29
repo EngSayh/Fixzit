@@ -19,6 +19,15 @@ import { ObjectId, type WithId, type Document } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
+// Helper for consistent error logging
+function logError(action: string, error: unknown): void {
+  logger.error(`Failed to ${action}`, {
+    component: "contract-lifecycle",
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+  });
+}
+
 // ============================================================================
 // Types & Interfaces
 // ============================================================================
@@ -622,8 +631,8 @@ export async function createContract(
       contractId: result.insertedId.toString(),
       contractNumber,
     };
-  } catch (_error) {
-    logger.error("Failed to create contract", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("create contract", error);
     return { success: false, error: "Failed to create contract" };
   }
 }
@@ -682,8 +691,8 @@ export async function updateContract(
     });
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to update contract", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("update contract", error);
     return { success: false, error: "Failed to update contract" };
   }
 }
@@ -716,8 +725,8 @@ export async function submitForReview(
     await updateWorkflowStep(orgId, contractId, "review", submittedBy);
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to submit for review", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("submit for review", error);
     return { success: false, error: "Failed to submit for review" };
   }
 }
@@ -763,8 +772,8 @@ export async function requestApproval(
     // In production, would send notification to approver
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to request approval", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("request approval", error);
     return { success: false, error: "Failed to request approval" };
   }
 }
@@ -823,8 +832,8 @@ export async function respondToApproval(
     }
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to respond to approval", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("respond to approval", error);
     return { success: false, error: "Failed to respond to approval" };
   }
 }
@@ -846,7 +855,11 @@ export async function sendForSignatures(
     }
     
     // Validate contract status before sending signatures
-    const allowedStatuses = [ContractStatus.PENDING_APPROVAL, ContractStatus.DRAFT];
+    const allowedStatuses = [
+      ContractStatus.PENDING_APPROVAL,
+      ContractStatus.DRAFT,
+      ContractStatus.PENDING_SIGNATURES,
+    ];
     if (!allowedStatuses.includes(contract.status)) {
       logger.warn("Invalid contract status for sending signatures", {
         component: "contract-lifecycle",
@@ -864,10 +877,11 @@ export async function sendForSignatures(
     
     // Update signature statuses
     const updatedSignatures = contract.signatures.map((sig, index) => {
-      if (contract.signatureConfig.method === "parallel" || index === 0) {
-        return { ...sig, status: SignatureStatus.SENT, sentAt: new Date() };
+      const shouldSend = contract.signatureConfig.method === "parallel" || index === 0;
+      if (!shouldSend || sig.status !== SignatureStatus.PENDING) {
+        return sig;
       }
-      return sig;
+      return { ...sig, status: SignatureStatus.SENT, sentAt: new Date() };
     });
     
     await db.collection(CONTRACTS_COLLECTION).updateOne(
@@ -889,8 +903,8 @@ export async function sendForSignatures(
     });
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to send for signatures", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("send for signatures", error);
     return { success: false, error: "Failed to send for signatures" };
   }
 }
@@ -964,8 +978,8 @@ export async function recordSignature(
     });
     
     return { success: true, allSigned };
-  } catch (_error) {
-    logger.error("Failed to record signature", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("record signature", error);
     return { success: false, error: "Failed to record signature" };
   }
 }
@@ -986,7 +1000,7 @@ export async function activateContract(
       {
         $set: {
           status: ContractStatus.ACTIVE,
-          effectiveDate: new Date(),
+          activatedAt: new Date(), // Track when activated, preserve original effectiveDate
           updatedAt: new Date(),
           "document.signedAt": new Date(),
         },
@@ -1003,8 +1017,8 @@ export async function activateContract(
     });
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to activate contract", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("activate contract", error);
     return { success: false, error: "Failed to activate contract" };
   }
 }
@@ -1077,8 +1091,8 @@ export async function initiateRenewal(
       renewalContractId: result.contractId,
       error: result.error,
     };
-  } catch (_error) {
-    logger.error("Failed to initiate renewal", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("initiate renewal", error);
     return { success: false, error: "Failed to initiate renewal" };
   }
 }
@@ -1112,19 +1126,29 @@ export async function terminateContract(
       return { success: false, error: "Early termination not allowed" };
     }
     
+    // Atomic update: set termination fields and status in single operation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateOp: any = {
+      $set: {
+        status: ContractStatus.TERMINATED,
+        terminatedAt: terminationDate,
+        updatedAt: new Date(),
+        updatedBy: terminatedBy,
+      },
+      $push: {
+        statusHistory: {
+          status: ContractStatus.TERMINATED,
+          changedAt: new Date(),
+          changedBy: terminatedBy,
+          reason,
+        },
+      },
+    };
+    
     await db.collection(CONTRACTS_COLLECTION).updateOne(
       { _id: new ObjectId(contractId), orgId },
-      {
-        $set: {
-          terminatedAt: terminationDate,
-          updatedAt: new Date(),
-          updatedBy: terminatedBy,
-        },
-      }
+      updateOp
     );
-    
-    // Let updateContractStatus be solely responsible for changing status and history
-    await updateContractStatus(orgId, contractId, ContractStatus.TERMINATED, terminatedBy, reason);
     
     logger.info("Contract terminated", {
       component: "contract-lifecycle",
@@ -1132,8 +1156,8 @@ export async function terminateContract(
     });
     
     return { success: true };
-  } catch (_error) {
-    logger.error("Failed to terminate contract", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("terminate contract", error);
     return { success: false, error: "Failed to terminate contract" };
   }
 }
@@ -1162,8 +1186,8 @@ export async function createTemplate(
     const result = await db.collection(TEMPLATES_COLLECTION).insertOne(fullTemplate);
     
     return { success: true, templateId: result.insertedId.toString() };
-  } catch (_error) {
-    logger.error("Failed to create template", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("create template", error);
     return { success: false, error: "Failed to create template" };
   }
 }
@@ -1184,7 +1208,8 @@ export async function getTemplate(
     }) as WithId<Document> | null;
     
     return template as unknown as ContractTemplate | null;
-  } catch (_error) {
+  } catch (error) {
+    logError("get template", error);
     return null;
   }
 }
@@ -1218,7 +1243,8 @@ export async function listTemplates(
       .toArray();
     
     return templates as unknown as ContractTemplate[];
-  } catch (_error) {
+  } catch (error) {
+    logError("list templates", error);
     return [];
   }
 }
@@ -1243,7 +1269,8 @@ export async function getContract(
     }) as WithId<Document> | null;
     
     return contract as unknown as Contract | null;
-  } catch (_error) {
+  } catch (error) {
+    logError("get contract", error);
     return null;
   }
 }
@@ -1313,8 +1340,8 @@ export async function listContracts(
       contracts: contracts as unknown as Contract[],
       total,
     };
-  } catch (_error) {
-    logger.error("Failed to list contracts", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("list contracts", error);
     return { contracts: [], total: 0 };
   }
 }
@@ -1398,8 +1425,8 @@ export async function getContractStats(
       expiringSoon: summary.expiringSoon || 0,
       totalValue: summary.totalValue || 0,
     };
-  } catch (_error) {
-    logger.error("Failed to get contract stats", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("get contract stats", error);
     return {
       total: 0,
       byStatus: {},
@@ -1433,8 +1460,8 @@ export async function getExpiringContracts(
       .toArray();
     
     return contracts as unknown as Contract[];
-  } catch (_error) {
-    logger.error("Failed to get expiring contracts", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("get expiring contracts", error);
     return [];
   }
 }
@@ -1583,8 +1610,8 @@ async function updateContractStatus(
       { _id: new ObjectId(contractId), orgId },
       updateOp
     );
-  } catch (_error) {
-    logger.error("Failed to update contract status", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("update contract status", error);
   }
 }
 
@@ -1620,8 +1647,8 @@ async function updateWorkflowStep(
         },
       }
     );
-  } catch (_error) {
-    logger.error("Failed to update workflow step", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("update workflow step", error);
   }
 }
 
@@ -1645,8 +1672,8 @@ async function generateContractDocument(
         },
       }
     );
-  } catch (_error) {
-    logger.error("Failed to generate contract document", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("generate contract document", error);
   }
 }
 
@@ -1676,8 +1703,8 @@ async function sendToNextSigner(
       
       // In production, would send notification to next signer
     }
-  } catch (_error) {
-    logger.error("Failed to send to next signer", { component: "contract-lifecycle" });
+  } catch (error) {
+    logError("send to next signer", error);
   }
 }
 

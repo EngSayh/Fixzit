@@ -334,7 +334,7 @@ export async function registerContract(
     const existing = await db.collection(EJAR_COLLECTION).findOne({
       orgId: request.orgId,
       leaseId: request.leaseId,
-      status: { $nin: [EjarContractStatus.CANCELLED, EjarContractStatus.TERMINATED] },
+      status: { $nin: [EjarContractStatus.CANCELLED, EjarContractStatus.TERMINATED, EjarContractStatus.EXPIRED] },
     });
     
     if (existing) {
@@ -425,24 +425,29 @@ export async function submitToEjar(
     // Simulating successful submission
     const ejarNumber = generateEjarNumber();
     
-    await updateContractStatus(
-      orgId,
-      contractId,
-      EjarContractStatus.PENDING_VERIFICATION,
-      "system",
-      "Submitted to Ejar platform"
-    );
+    // Single atomic update: status + ejarNumber + timestamps + history
+    const historyEntry = {
+      status: EjarContractStatus.PENDING_VERIFICATION,
+      changedAt: new Date(),
+      changedBy: "system",
+      reason: "Submitted to Ejar platform",
+    };
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateOp: any = {
+      $set: {
+        status: EjarContractStatus.PENDING_VERIFICATION,
+        ejarNumber,
+        ejarRegistrationDate: new Date(),
+        submittedAt: new Date(),
+        updatedAt: new Date(),
+      },
+      $push: { statusHistory: historyEntry },
+    };
     
     await db.collection(EJAR_COLLECTION).updateOne(
       { _id: new ObjectId(contractId), orgId },
-      {
-        $set: {
-          ejarNumber,
-          ejarRegistrationDate: new Date(),
-          submittedAt: new Date(),
-          updatedAt: new Date(),
-        },
-      }
+      updateOp
     );
     
     logger.info("Contract submitted to Ejar", {
@@ -727,27 +732,30 @@ export async function runComplianceCheck(
       });
     }
     
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(now);
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    const expiresAt = contract.expiresAt ? new Date(contract.expiresAt) : null;
+    
     // Check expiration
-    if (contract.expiresAt && new Date(contract.expiresAt) < new Date()) {
+    if (expiresAt && expiresAt < now) {
       issues.push({
         code: "CONTRACT_EXPIRED",
         severity: "error",
         message: "Contract has expired",
         messageAr: "العقد منتهي الصلاحية",
-        detectedAt: new Date(),
+        detectedAt: now,
       });
     }
     
     // Check upcoming expiration
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-    if (contract.expiresAt && new Date(contract.expiresAt) < thirtyDaysFromNow) {
+    if (expiresAt && expiresAt > now && expiresAt < thirtyDaysFromNow) {
       issues.push({
         code: "EXPIRING_SOON",
         severity: "warning",
         message: "Contract expires within 30 days",
         messageAr: "العقد ينتهي خلال 30 يوم",
-        detectedAt: new Date(),
+        detectedAt: now,
       });
     }
     
