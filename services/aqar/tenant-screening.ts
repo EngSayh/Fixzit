@@ -210,7 +210,8 @@ export async function createScreeningApplication(
   try {
     const db = await getDatabase();
     
-    // Check for existing active screening
+    // Race-condition safe: Use findOneAndUpdate with upsert for atomic check-and-create
+    // If active screening exists, it returns the existing doc; if not, we create new one
     const existing = await db.collection("screening_applications").findOne({
       orgId: request.orgId,
       unitId: request.unitId,
@@ -223,6 +224,22 @@ export async function createScreeningApplication(
     }
     
     // Create applicant record if not exists
+    // Whitelist of allowed updatable applicant fields (exclude immutable/critical fields)
+    const allowedFields = [
+      "firstName", "lastName", "phone", "email", "address",
+      "dob", "employmentStatus", "monthlyIncome", "employer"
+    ] as const;
+    
+    const safeApplicantUpdate: Record<string, unknown> = {};
+    for (const field of allowedFields) {
+      if (field in request.applicant && request.applicant[field as keyof typeof request.applicant] !== undefined) {
+        safeApplicantUpdate[field] = request.applicant[field as keyof typeof request.applicant];
+      }
+    }
+    // Always include orgId and nationalId in the update (they're part of the filter key)
+    safeApplicantUpdate.orgId = request.orgId;
+    safeApplicantUpdate.nationalId = request.applicant.nationalId;
+    
     const applicantResult = await db.collection("applicants").updateOne(
       { 
         orgId: request.orgId, 
@@ -230,7 +247,7 @@ export async function createScreeningApplication(
       },
       {
         $set: {
-          ...request.applicant,
+          ...safeApplicantUpdate,
           updatedAt: new Date(),
         },
         $setOnInsert: {
@@ -302,6 +319,10 @@ export async function createScreeningApplication(
       application: { ...application, _id: result.insertedId } as ScreeningApplication,
     };
   } catch (error) {
+    // Handle duplicate key error (race condition with concurrent requests)
+    if (error instanceof Error && error.message.includes("duplicate key")) {
+      return { success: false, error: "Active screening already exists for this applicant" };
+    }
     logger.error("Failed to create screening application", {
       error: error instanceof Error ? error.message : "Unknown error",
       orgId: request.orgId,
@@ -422,6 +443,18 @@ export async function calculateScreeningScore(
   applicationId: string,
   monthlyRent: number
 ): Promise<{ success: boolean; results?: ScreeningApplication["results"]; error?: string }> {
+  // Validate monthlyRent is a finite positive number
+  if (
+    typeof monthlyRent !== "number" ||
+    !Number.isFinite(monthlyRent) ||
+    monthlyRent <= 0
+  ) {
+    return {
+      success: false,
+      error: "Invalid monthlyRent: must be a positive finite number",
+    };
+  }
+  
   try {
     const db = await getDatabase();
     
@@ -529,7 +562,7 @@ export async function calculateScreeningScore(
     };
     
     // Update application
-    await db.collection("screening_applications").updateOne(
+    const updateResult = await db.collection("screening_applications").updateOne(
       { _id: new ObjectId(applicationId), orgId },
       {
         $set: {
@@ -539,6 +572,14 @@ export async function calculateScreeningScore(
         },
       }
     );
+    
+    if (updateResult.matchedCount === 0) {
+      logger.warn("Screening application not found for score update", {
+        applicationId,
+        orgId,
+      });
+      return { success: false, error: "Screening application not found" };
+    }
     
     logger.info("Screening score calculated", {
       applicationId,

@@ -167,8 +167,8 @@ const DEFAULT_ROLES: Role[] = [
     description: "Full system access with all permissions",
     isSystem: true,
     permissions: Object.fromEntries(MODULES.flatMap(m => m.permissions.map(p => [p.id, ["create", "read", "update", "delete", "manage"]]))),
-    userCount: 2,
-    createdAt: new Date().toISOString(),
+    userCount: 0,
+    createdAt: "2024-01-01T00:00:00.000Z",
   },
   {
     _id: "role-admin",
@@ -183,8 +183,8 @@ const DEFAULT_ROLES: Role[] = [
       "finance.invoices.view": ["read"], "finance.payments.view": ["read"],
       "reports.view": ["read"], "reports.export": ["read"],
     },
-    userCount: 5,
-    createdAt: new Date().toISOString(),
+    userCount: 0,
+    createdAt: "2024-01-01T00:00:00.000Z",
   },
   {
     _id: "role-manager",
@@ -197,8 +197,8 @@ const DEFAULT_ROLES: Role[] = [
       "fm.dashboard": ["read"], "fm.workorders.view": ["read"], "fm.workorders.create": ["create"], "fm.workorders.edit": ["update"],
       "reports.view": ["read"],
     },
-    userCount: 12,
-    createdAt: new Date().toISOString(),
+    userCount: 0,
+    createdAt: "2024-01-01T00:00:00.000Z",
   },
   {
     _id: "role-technician",
@@ -209,8 +209,8 @@ const DEFAULT_ROLES: Role[] = [
     permissions: {
       "fm.dashboard": ["read"], "fm.workorders.view": ["read"], "fm.workorders.edit": ["update"],
     },
-    userCount: 35,
-    createdAt: new Date().toISOString(),
+    userCount: 0,
+    createdAt: "2024-01-01T00:00:00.000Z",
   },
   {
     _id: "role-viewer",
@@ -222,8 +222,8 @@ const DEFAULT_ROLES: Role[] = [
       "fm.dashboard": ["read"], "fm.workorders.view": ["read"],
       "reports.view": ["read"],
     },
-    userCount: 20,
-    createdAt: new Date().toISOString(),
+    userCount: 0,
+    createdAt: "2024-01-01T00:00:00.000Z",
   },
 ];
 
@@ -264,6 +264,7 @@ export default function SuperadminPermissionsPage() {
     } catch (error) {
       // eslint-disable-next-line no-console -- Provide visibility for fetch errors in admin UI.
       console.error("Network error fetching roles:", error);
+      toast.error("Failed to load roles: Network error");
       setRoles(DEFAULT_ROLES);
     }
   }, []);

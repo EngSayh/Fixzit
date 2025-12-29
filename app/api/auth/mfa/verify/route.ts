@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
-import { verifyMFACode, MFAMethod } from "@/lib/auth/mfaService";
+import { verifyMFACode, MFAMethod, trustDevice as trustDeviceFn } from "@/lib/auth/mfaService";
 
 /**
  * POST /api/auth/mfa/verify
@@ -98,7 +98,6 @@ export async function POST(request: NextRequest) {
     
     // Optionally trust device
     if (body.trustDevice && body.deviceId) {
-      const { trustDevice: trustDeviceFn } = await import("@/lib/auth/mfaService");
       await trustDeviceFn(
         orgId,
         userId,

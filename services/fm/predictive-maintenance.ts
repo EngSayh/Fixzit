@@ -429,7 +429,13 @@ export async function recordMaintenanceEvent(
         component: "predictive-maintenance",
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      return { success: false, error: "Failed to update predictions" };
+      // Maintenance record was already saved - return partial success to avoid duplicate retries
+      return { 
+        success: true, 
+        newHealthScore,
+        partialFailure: true,
+        predictionError: error instanceof Error ? error.message : "Prediction update failed",
+      };
     }
     
     logger.info("Maintenance event recorded", {
@@ -578,11 +584,20 @@ export async function runOrgPredictionCycle(
     const batch: EquipmentRecord[] = [];
     
     const processBatch = async (items: EquipmentRecord[]) => {
-      let index = 0;
+      // Use atomic counter pattern to prevent race condition with shared index
+      let nextIndex = 0;
+      const getNextIndex = () => {
+        const idx = nextIndex;
+        nextIndex += 1;
+        return idx;
+      };
+      
       const workers = Array.from({ length: Math.min(concurrencyLimit, items.length) }, async () => {
-        while (index < items.length) {
-          const current = items[index];
-          index += 1;
+        while (true) {
+          const currentIndex = getNextIndex();
+          if (currentIndex >= items.length) break;
+          
+          const current = items[currentIndex];
           processed += 1;
           if (!current._id) {
             continue;
@@ -1063,7 +1078,7 @@ function getComponentPredictions(
         {
           name: "Control Board",
           failureType: "Electronic failure",
-          probability: baseFailureProbability * 0.5,
+          probability: clampProbability(baseFailureProbability * 0.5),
           daysToFailure: calculateDaysToFailure(90),
           recommendedAction: "Diagnostic check and firmware update",
           estimatedCost: 3000,
@@ -1072,7 +1087,7 @@ function getComponentPredictions(
         {
           name: "Door Mechanism",
           failureType: "Sensor misalignment",
-          probability: baseFailureProbability * 0.9,
+          probability: clampProbability(baseFailureProbability * 0.9),
           daysToFailure: calculateDaysToFailure(30),
           recommendedAction: "Adjust door sensors and clean tracks",
           estimatedCost: 500,
@@ -1081,7 +1096,7 @@ function getComponentPredictions(
         {
           name: "Cables",
           failureType: "Wear and fraying",
-          probability: baseFailureProbability * 0.3,
+          probability: clampProbability(baseFailureProbability * 0.3),
           daysToFailure: calculateDaysToFailure(180),
           recommendedAction: "Cable inspection and tension adjustment",
           estimatedCost: 5000,
@@ -1095,7 +1110,7 @@ function getComponentPredictions(
         {
           name: "Pipes",
           failureType: "Corrosion/leak",
-          probability: baseFailureProbability * 0.7,
+          probability: clampProbability(baseFailureProbability * 0.7),
           daysToFailure: calculateDaysToFailure(60),
           recommendedAction: "Pipe inspection and pressure test",
           estimatedCost: 1000,
@@ -1104,7 +1119,7 @@ function getComponentPredictions(
         {
           name: "Water Heater",
           failureType: "Element failure",
-          probability: baseFailureProbability * 0.8,
+          probability: clampProbability(baseFailureProbability * 0.8),
           daysToFailure: calculateDaysToFailure(45),
           recommendedAction: "Inspect heating elements and anode rod",
           estimatedCost: 400,

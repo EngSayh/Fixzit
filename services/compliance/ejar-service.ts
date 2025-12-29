@@ -850,7 +850,17 @@ export async function runComplianceCheck(
       error: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
     });
-    return { compliant: false, issues: [] };
+    // Return a clear error indicator instead of hiding the failure
+    return { 
+      compliant: false, 
+      issues: [{
+        code: "SYSTEM_ERROR",
+        severity: "error",
+        message: "Compliance check failed due to internal error - please retry",
+        messageAr: "فشل فحص الامتثال بسبب خطأ داخلي - يرجى إعادة المحاولة",
+        detectedAt: new Date(),
+      }],
+    };
   }
 }
 

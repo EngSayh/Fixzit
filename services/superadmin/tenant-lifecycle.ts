@@ -460,14 +460,25 @@ export async function activateKillSwitch(
 
 /**
  * Deactivate kill switch
+ * @param event - The kill switch event to deactivate
+ * @param deactivatedBy - The user deactivating the kill switch
+ * @param callerTenantId - The tenant ID of the caller (for ownership validation)
+ * @param notes - Optional notes for the deactivation
  */
 export async function deactivateKillSwitch(
   event: KillSwitchEvent,
   deactivatedBy: ObjectId,
+  callerTenantId?: string,
   notes?: string
 ): Promise<KillSwitchEvent> {
   const db = await getDatabase();
   const timestamp = new Date();
+  
+  // Validate tenant ownership: caller must either be superadmin (no callerTenantId) 
+  // or must belong to the same tenant as the kill switch event
+  if (callerTenantId && event.tenant_id.toString() !== callerTenantId) {
+    throw new Error(`Access denied: Cannot deactivate kill switch for different tenant`);
+  }
   
   // Validate the kill switch is currently active (not already deactivated)
   if (event.deactivated_at) {

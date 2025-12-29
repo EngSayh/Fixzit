@@ -471,7 +471,7 @@ export async function suspendVendor(
       ? new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000)
       : undefined;
     
-    await db.collection(VENDORS_COLLECTION).updateOne(
+    const result = await db.collection(VENDORS_COLLECTION).updateOne(
       { orgId, vendorId },
       {
         $set: {
@@ -485,9 +485,20 @@ export async function suspendVendor(
       }
     );
     
-    // Create alert
+    // Check if vendor was actually found and updated
+    if (result.matchedCount === 0) {
+      logger.warn("Vendor not found for suspension", {
+        component: "vendor-intelligence",
+        action: "suspendVendor",
+        orgId,
+        vendorId,
+      });
+      return { success: false, error: "Vendor not found" };
+    }
+    
+    // Only create alert if vendor was matched
     await createVendorAlert(orgId, vendorId, {
-      type: "performance_warning",
+      type: "tier_change",
       severity: "critical",
       title: "Vendor Suspended",
       description: reason,

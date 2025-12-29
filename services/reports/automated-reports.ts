@@ -598,6 +598,7 @@ export async function updateReportConfig(
 
 /**
  * Delete report configuration
+ * Cascades deletion to associated report instances
  */
 export async function deleteReportConfig(
   orgId: string,
@@ -606,8 +607,19 @@ export async function deleteReportConfig(
   try {
     const db = await getDatabase();
     
-    await db.collection(REPORT_CONFIGS_COLLECTION).deleteOne({
+    // First delete the config
+    const result = await db.collection(REPORT_CONFIGS_COLLECTION).deleteOne({
       _id: new ObjectId(configId),
+      orgId,
+    });
+    
+    if (result.deletedCount === 0) {
+      return { success: false, error: "Report configuration not found" };
+    }
+    
+    // Cascade delete all instances for this config
+    await db.collection(REPORT_INSTANCES_COLLECTION).deleteMany({
+      configId,
       orgId,
     });
     
@@ -882,31 +894,35 @@ async function applyRetentionPolicy(
 ): Promise<void> {
   const db = await getDatabase();
   
-  // Get all instances for this config, sorted by date
+  // Get all instances for this config, sorted by date (newest first)
   const instances = await db.collection(REPORT_INSTANCES_COLLECTION)
     .find({ orgId, configId })
     .sort({ requestedAt: -1 })
     .toArray();
   
-  // Keep only latest N
-  if (policy.keepLatest && instances.length > policy.keepLatest) {
-    const toDelete = instances.slice(policy.keepLatest);
-    const ids = toDelete.map(i => i._id);
-    
-    await db.collection(REPORT_INSTANCES_COLLECTION).deleteMany({
-      _id: { $in: ids },
-    });
-  }
+  if (instances.length === 0) return;
   
-  // Delete older than N days
-  if (policy.deleteAfterDays) {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - policy.deleteAfterDays);
+  // Compute which instances to delete based on BOTH policies
+  // An instance is kept if: (within keepLatest count) AND (not older than deleteAfterDays)
+  const cutoffDate = policy.deleteAfterDays 
+    ? new Date(Date.now() - policy.deleteAfterDays * 24 * 60 * 60 * 1000)
+    : null;
+  
+  const idsToDelete: ObjectId[] = [];
+  
+  instances.forEach((instance, index) => {
+    const exceedsKeepLatest = policy.keepLatest && index >= policy.keepLatest;
+    const isOlderThanCutoff = cutoffDate && instance.requestedAt < cutoffDate;
     
+    // Delete if EITHER policy says to delete (union of deletion criteria)
+    if (exceedsKeepLatest || isOlderThanCutoff) {
+      idsToDelete.push(instance._id);
+    }
+  });
+  
+  if (idsToDelete.length > 0) {
     await db.collection(REPORT_INSTANCES_COLLECTION).deleteMany({
-      orgId,
-      configId,
-      requestedAt: { $lt: cutoffDate },
+      _id: { $in: idsToDelete },
     });
   }
 }

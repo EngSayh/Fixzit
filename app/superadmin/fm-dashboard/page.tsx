@@ -345,7 +345,7 @@ export default function SuperadminFMDashboardPage() {
                 <span className="text-yellow-600 dark:text-yellow-400">
                   {compliance?.pdpl?.dsar_requests ?? 0} DSAR requests
                 </span>
-                <span className="text-green-600 dark:text-green-400">
+                <span className="text-red-600 dark:text-red-400">
                   {compliance?.pdpl?.breach_incidents ?? 0} breaches
                 </span>
               </div>
