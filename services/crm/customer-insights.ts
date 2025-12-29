@@ -391,7 +391,7 @@ export async function recordNPSResponse(
     
     await db.collection(NPS_COLLECTION).insertOne(response);
     
-    // Update profile
+    // Update profile (upsert to handle missing profiles)
     await db.collection(PROFILES_COLLECTION).updateOne(
       { orgId, userId },
       {
@@ -401,7 +401,13 @@ export async function recordNPSResponse(
           lastNpsSurveyAt: new Date(),
           updatedAt: new Date(),
         },
-      }
+        $setOnInsert: {
+          createdAt: new Date(),
+          healthScore: 50, // Default health score
+          healthStatus: "at_risk" as const,
+        },
+      },
+      { upsert: true }
     );
     
     return { success: true };

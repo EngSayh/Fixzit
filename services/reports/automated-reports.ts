@@ -704,7 +704,12 @@ async function processReportGeneration(
     // Process distribution
     await processDistribution(orgId, instanceId, config, outputs);
     
-    // Update config last run
+    // Update config last run (validate _id exists first)
+    if (!config._id) {
+      logger.error("Report config missing _id", { component: "automated-reports" });
+      throw new Error("Report config missing _id");
+    }
+    
     await db.collection(REPORT_CONFIGS_COLLECTION).updateOne(
       { _id: new ObjectId(config._id) },
       {
@@ -716,7 +721,7 @@ async function processReportGeneration(
     );
     
     // Apply retention policy
-    await applyRetentionPolicy(orgId, config._id!.toString(), config.retention);
+    await applyRetentionPolicy(orgId, config._id.toString(), config.retention);
     
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -1356,13 +1361,22 @@ function calculateNextRun(schedule: ReportSchedule): Date | null {
   const now = new Date();
   const next = new Date(now);
   
-  // Parse time if set
+  // Parse time if set (validate HH:MM format)
   let hours = 6; // Default 6 AM
   let minutes = 0;
   if (schedule.time) {
-    const [h, m] = schedule.time.split(":").map(Number);
-    hours = h;
-    minutes = m;
+    const timeRegex = /^([0-1]?\d|2[0-3]):([0-5]\d)$/;
+    const match = schedule.time.match(timeRegex);
+    if (match) {
+      hours = parseInt(match[1], 10);
+      minutes = parseInt(match[2], 10);
+    } else {
+      // Invalid format, use defaults
+      logger.warn("Invalid schedule time format, using default 06:00", {
+        component: "automated-reports",
+        time: schedule.time,
+      });
+    }
   }
   
   switch (schedule.frequency) {
@@ -1407,11 +1421,40 @@ function calculateNextRun(schedule: ReportSchedule): Date | null {
       break;
   }
   
-  // Ensure next run is in the future
-  if (next <= now) {
-    return calculateNextRun({
-      ...schedule,
-      // Add one more period
+  // Ensure next run is in the future using iteration instead of recursion
+  let iterations = 0;
+  const MAX_ITERATIONS = 100;
+  
+  while (next <= now && iterations < MAX_ITERATIONS) {
+    iterations++;
+    
+    // Advance by one period based on frequency
+    switch (schedule.frequency) {
+      case ScheduleFrequency.DAILY:
+        next.setDate(next.getDate() + 1);
+        break;
+      case ScheduleFrequency.WEEKLY:
+        next.setDate(next.getDate() + 7);
+        break;
+      case ScheduleFrequency.BI_WEEKLY:
+        next.setDate(next.getDate() + 14);
+        break;
+      case ScheduleFrequency.MONTHLY:
+        next.setMonth(next.getMonth() + 1);
+        break;
+      case ScheduleFrequency.QUARTERLY:
+        next.setMonth(next.getMonth() + 3);
+        break;
+      case ScheduleFrequency.ANNUALLY:
+        next.setFullYear(next.getFullYear() + 1);
+        break;
+    }
+  }
+  
+  if (iterations >= MAX_ITERATIONS) {
+    logger.error("calculateNextRun exceeded max iterations", {
+      component: "automated-reports",
+      frequency: schedule.frequency,
     });
   }
   

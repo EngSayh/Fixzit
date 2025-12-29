@@ -356,90 +356,110 @@ const CATEGORY_KEYWORDS: Record<TicketCategory, string[]> = {
 
 /**
  * Create a new support ticket
+ * 
+ * Note: Ensure a unique index exists on the tickets collection:
+ *   db.tickets.createIndex({ orgId: 1, ticketNumber: 1 }, { unique: true })
  */
 export async function createTicket(
   request: CreateTicketRequest
 ): Promise<{ success: boolean; ticketId?: string; ticketNumber?: string; error?: string }> {
-  try {
-    const db = await getDatabase();
-    
-    // Generate ticket number
-    const ticketNumber = await generateTicketNumber(request.orgId);
-    
-    // Run AI analysis
-    const aiAnalysis = await analyzeTicket(request.subject, request.description);
-    
-    // Determine category and priority
-    const category = request.category || aiAnalysis.suggestedCategory;
-    const priority = request.priority || aiAnalysis.suggestedPriority;
-    
-    // Calculate SLA deadlines
-    const now = new Date();
-    const sla: SLAInfo = {
-      responseDeadline: new Date(now.getTime() + SLA_RESPONSE_TIMES[priority] * 60 * 1000),
-      resolutionDeadline: new Date(now.getTime() + SLA_RESOLUTION_TIMES[priority] * 60 * 1000),
-      pausedDuration: 0,
-    };
-    
-    // Create initial message
-    const initialMessage: TicketMessage = {
-      id: new ObjectId().toString(),
-      type: "customer",
-      content: request.description,
-      authorId: request.customer.userId,
-      authorName: request.customer.name,
-      authorType: "customer",
-      attachments: request.attachments,
-      isPrivate: false,
-      createdAt: now,
-    };
-    
-    const ticket: Omit<SupportTicket, "_id"> = {
-      orgId: request.orgId,
-      ticketNumber,
-      subject: request.subject,
-      description: request.description,
-      category,
-      priority,
-      status: TicketStatus.NEW,
-      channel: request.channel,
-      customer: request.customer,
-      escalationLevel: 0,
-      aiAnalysis,
-      sla,
-      messages: [initialMessage],
-      relatedEntities: request.relatedEntities || [],
-      tags: request.tags || [],
-      customFields: request.customFields || {},
-      internalNotes: [],
-      createdAt: now,
-      updatedAt: now,
-    };
-    
-    // Auto-assign if AI suggests
-    if (aiAnalysis.suggestedAssignee) {
-      ticket.assignedTo = aiAnalysis.suggestedAssignee;
+  const MAX_RETRIES = 3;
+  
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const db = await getDatabase();
+      
+      // Generate ticket number atomically
+      const ticketNumber = await generateTicketNumber(request.orgId);
+      
+      // Run AI analysis
+      const aiAnalysis = await analyzeTicket(request.subject, request.description);
+      
+      // Determine category and priority
+      const category = request.category || aiAnalysis.suggestedCategory;
+      const priority = request.priority || aiAnalysis.suggestedPriority;
+      
+      // Calculate SLA deadlines
+      const now = new Date();
+      const sla: SLAInfo = {
+        responseDeadline: new Date(now.getTime() + SLA_RESPONSE_TIMES[priority] * 60 * 1000),
+        resolutionDeadline: new Date(now.getTime() + SLA_RESOLUTION_TIMES[priority] * 60 * 1000),
+        pausedDuration: 0,
+      };
+      
+      // Create initial message
+      const initialMessage: TicketMessage = {
+        id: new ObjectId().toString(),
+        type: "customer",
+        content: request.description,
+        authorId: request.customer.userId,
+        authorName: request.customer.name,
+        authorType: "customer",
+        attachments: request.attachments,
+        isPrivate: false,
+        createdAt: now,
+      };
+      
+      const ticket: Omit<SupportTicket, "_id"> = {
+        orgId: request.orgId,
+        ticketNumber,
+        subject: request.subject,
+        description: request.description,
+        category,
+        priority,
+        status: TicketStatus.NEW,
+        channel: request.channel,
+        customer: request.customer,
+        escalationLevel: 0,
+        aiAnalysis,
+        sla,
+        messages: [initialMessage],
+        relatedEntities: request.relatedEntities || [],
+        tags: request.tags || [],
+        customFields: request.customFields || {},
+        internalNotes: [],
+        createdAt: now,
+        updatedAt: now,
+      };
+      
+      // Auto-assign if AI suggests
+      if (aiAnalysis.suggestedAssignee) {
+        ticket.assignedTo = aiAnalysis.suggestedAssignee;
+      }
+      if (aiAnalysis.suggestedTeam) {
+        ticket.assignedTeam = aiAnalysis.suggestedTeam;
+      }
+      
+      const result = await db.collection(TICKETS_COLLECTION).insertOne(ticket);
+      
+      logger.info("Support ticket created", {
+        component: "ticket-management",
+        action: "createTicket",
+      });
+      
+      return {
+        success: true,
+        ticketId: result.insertedId.toString(),
+        ticketNumber,
+      };
+    } catch (error) {
+      // Check for duplicate key error (code 11000) and retry
+      const mongoError = error as { code?: number };
+      if (mongoError.code === 11000 && attempt < MAX_RETRIES) {
+        logger.warn("Duplicate ticket number, retrying", {
+          component: "ticket-management",
+          attempt,
+        });
+        continue; // Retry with new ticket number
+      }
+      
+      logger.error("Failed to create ticket", { component: "ticket-management" });
+      return { success: false, error: "Failed to create ticket" };
     }
-    if (aiAnalysis.suggestedTeam) {
-      ticket.assignedTeam = aiAnalysis.suggestedTeam;
-    }
-    
-    const result = await db.collection(TICKETS_COLLECTION).insertOne(ticket);
-    
-    logger.info("Support ticket created", {
-      component: "ticket-management",
-      action: "createTicket",
-    });
-    
-    return {
-      success: true,
-      ticketId: result.insertedId.toString(),
-      ticketNumber,
-    };
-  } catch (_error) {
-    logger.error("Failed to create ticket", { component: "ticket-management" });
-    return { success: false, error: "Failed to create ticket" };
   }
+  
+  // Should not reach here, but guard against it
+  return { success: false, error: "Failed to create ticket after retries" };
 }
 
 /**
@@ -468,9 +488,9 @@ export async function addMessage(
       newStatus = TicketStatus.PENDING_CUSTOMER;
     }
     
-    // Check if this is first response
+    // Check if this is first response (only if ticket exists)
     const ticket = await getTicket(ticketId, orgId);
-    const isFirstResponse = message.authorType === "agent" && !ticket?.firstResponseAt;
+    const isFirstResponse = message.authorType === "agent" && ticket && !ticket.firstResponseAt;
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateOp: any = {
@@ -484,7 +504,12 @@ export async function addMessage(
     
     if (isFirstResponse && ticket) {
       updateOp.$set.firstResponseAt = new Date();
-      updateOp.$set["sla.firstResponseMet"] = new Date() <= ticket.sla.responseDeadline;
+      // Guard against missing sla or responseDeadline
+      if (ticket.sla?.responseDeadline) {
+        updateOp.$set["sla.firstResponseMet"] = new Date() <= ticket.sla.responseDeadline;
+      } else {
+        updateOp.$set["sla.firstResponseMet"] = false;
+      }
     }
     
     await db.collection(TICKETS_COLLECTION).updateOne(
@@ -651,10 +676,19 @@ export async function assignTicket(
       updateData.assignedTeam = teamId;
     }
     
-    await db.collection(TICKETS_COLLECTION).updateOne(
+    const result = await db.collection(TICKETS_COLLECTION).updateOne(
       { _id: new ObjectId(ticketId), orgId },
       { $set: updateData }
     );
+    
+    if (result.matchedCount === 0) {
+      logger.warn("Ticket not found for assignment", {
+        component: "ticket-management",
+        ticketId,
+        orgId,
+      });
+      return { success: false, error: "Ticket not found" };
+    }
     
     return { success: true };
   } catch (_error) {
@@ -685,7 +719,7 @@ export async function rateSatisfaction(
       ratedAt: new Date(),
     };
     
-    await db.collection(TICKETS_COLLECTION).updateOne(
+    const result = await db.collection(TICKETS_COLLECTION).updateOne(
       { _id: new ObjectId(ticketId), orgId },
       {
         $set: {
@@ -694,6 +728,15 @@ export async function rateSatisfaction(
         },
       }
     );
+    
+    if (result.matchedCount === 0) {
+      logger.warn("Ticket not found for satisfaction rating", {
+        component: "ticket-management",
+        ticketId,
+        orgId,
+      });
+      return { success: false, error: "Ticket not found" };
+    }
     
     return { success: true };
   } catch (_error) {
@@ -979,9 +1022,11 @@ export async function listTickets(
       query["customer.userId"] = filters.customerId;
     }
     if (filters.search) {
+      // Escape regex special characters to prevent injection/ReDoS
+      const escapedSearch = filters.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
-        { subject: { $regex: filters.search, $options: "i" } },
-        { ticketNumber: { $regex: filters.search, $options: "i" } },
+        { subject: { $regex: escapedSearch, $options: "i" } },
+        { ticketNumber: { $regex: escapedSearch, $options: "i" } },
       ];
     }
     if (filters.dateFrom || filters.dateTo) {

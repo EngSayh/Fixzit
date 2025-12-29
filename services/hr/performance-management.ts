@@ -15,6 +15,7 @@
  */
 
 import { ObjectId, type WithId, type Document } from "mongodb";
+import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
@@ -502,10 +503,39 @@ export async function updateGoalProgress(
   try {
     const db = await getDatabase();
     
-    // Determine status based on progress
+    // First, fetch the goal to check for AT_RISK status
+    const goal = await db.collection(GOALS_COLLECTION).findOne({
+      _id: new ObjectId(goalId),
+      orgId,
+    }) as WithId<Document> | null;
+    
+    if (!goal) {
+      return { success: false, error: "Goal not found" };
+    }
+    
+    // Determine status based on progress and time remaining
     let status = GoalStatus.IN_PROGRESS;
-    if (progress === 0) status = GoalStatus.NOT_STARTED;
-    if (progress >= 100) status = GoalStatus.COMPLETED;
+    if (progress === 0) {
+      status = GoalStatus.NOT_STARTED;
+    } else if (progress >= 100) {
+      status = GoalStatus.COMPLETED;
+    } else {
+      // Check if goal is at risk based on time vs progress
+      const targetDate = goal.targetDate ? new Date(goal.targetDate) : null;
+      const startDate = goal.startDate ? new Date(goal.startDate) : (goal.createdAt ? new Date(goal.createdAt) : null);
+      const now = new Date();
+      
+      if (targetDate && startDate && targetDate > startDate) {
+        const totalDuration = targetDate.getTime() - startDate.getTime();
+        const elapsed = now.getTime() - startDate.getTime();
+        const expectedProgress = Math.min(100, (elapsed / totalDuration) * 100);
+        
+        // At risk if expected progress exceeds actual by more than 20%
+        if (expectedProgress - progress > 20) {
+          status = GoalStatus.AT_RISK;
+        }
+      }
+    }
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const update: any = {
@@ -653,13 +683,16 @@ export async function launchReviewCycle(
     const reviews: Omit<PerformanceReview, "_id">[] = [];
     
     for (const employeeId of employeeIds) {
-      // In production, would fetch employee and manager details
+      // TODO: In production, fetch employee and manager details from employees collection
+      // For now, using placeholder values - this should be enhanced to:
+      // const employee = await db.collection("employees").findOne({ _id: employeeId, orgId });
+      // const manager = employee?.managerId ? await db.collection("employees").findOne({ _id: employee.managerId, orgId }) : null;
       const review: Omit<PerformanceReview, "_id"> = {
         orgId,
         employeeId,
-        employeeName: "Employee", // Would be resolved
-        managerId: "manager", // Would be resolved
-        managerName: "Manager", // Would be resolved
+        employeeName: "Employee", // TODO: Resolve from employee directory
+        managerId: "manager", // TODO: Resolve from employee.managerId
+        managerName: "Manager", // TODO: Resolve from manager record
         reviewCycleId: cycleId,
         status: ReviewStatus.SELF_ASSESSMENT,
         feedbackResponses: [],
@@ -674,21 +707,31 @@ export async function launchReviewCycle(
       reviews.push(review);
     }
     
-    if (reviews.length > 0) {
-      await db.collection(REVIEWS_COLLECTION).insertMany(reviews);
-    }
+    // Wrap insertMany and cycle update in transaction for atomicity
+    const session = await mongoose.startSession();
     
-    // Update cycle status
-    await db.collection(CYCLES_COLLECTION).updateOne(
-      { _id: new ObjectId(cycleId) },
-      {
-        $set: {
-          status: "active",
-          participantCount: employeeIds.length,
-          updatedAt: new Date(),
-        },
-      }
-    );
+    try {
+      await session.withTransaction(async () => {
+        if (reviews.length > 0) {
+          await db.collection(REVIEWS_COLLECTION).insertMany(reviews, { session });
+        }
+        
+        // Update cycle status
+        await db.collection(CYCLES_COLLECTION).updateOne(
+          { _id: new ObjectId(cycleId) },
+          {
+            $set: {
+              status: "active",
+              participantCount: employeeIds.length,
+              updatedAt: new Date(),
+            },
+          },
+          { session }
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
     
     logger.info("Review cycle launched", {
       component: "performance-management",
@@ -718,10 +761,37 @@ export async function submitSelfAssessment(
   try {
     const db = await getDatabase();
     
-    // Build competency ratings with self-rating
+    // Get review to find cycle
+    const review = await db.collection(REVIEWS_COLLECTION).findOne({
+      _id: new ObjectId(reviewId),
+      orgId,
+      status: ReviewStatus.SELF_ASSESSMENT,
+    }) as WithId<Document> | null;
+    
+    if (!review) {
+      return { success: false, error: "Review not found or not in self-assessment phase" };
+    }
+    
+    // Fetch cycle to get competency names
+    const cycle = await db.collection(CYCLES_COLLECTION).findOne({
+      _id: new ObjectId((review as unknown as PerformanceReview).reviewCycleId),
+      orgId,
+    }) as WithId<Document> | null;
+    
+    // Build competency id -> name map
+    const competencyMap = new Map<string, string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cycleData = cycle as Record<string, any> | null;
+    if (cycleData && cycleData.competencies) {
+      for (const comp of cycleData.competencies) {
+        competencyMap.set(comp.id || comp._id?.toString(), comp.name || "Unknown");
+      }
+    }
+    
+    // Build competency ratings with self-rating and resolved names
     const ratings = competencyRatings.map(cr => ({
       competencyId: cr.competencyId,
-      competencyName: "", // Would be resolved from cycle
+      competencyName: competencyMap.get(cr.competencyId) || "Unknown",
       selfRating: cr.rating,
     }));
     
@@ -764,6 +834,8 @@ export async function submitManagerAssessment(
   orgId: string,
   assessment: Omit<ManagerAssessment, "completedAt">,
   competencyRatings: { competencyId: string; rating: number }[],
+  // Note: goalRatings is reserved for future goal-based performance tracking
+  // Currently unused - goal ratings are tracked separately via updateGoalProgress
   _goalRatings: { goalId: string; rating: number }[]
 ): Promise<{ success: boolean; error?: string }> {
   try {

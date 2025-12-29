@@ -121,12 +121,13 @@ export default function FMDashboardPage() {
     const errors: string[] = [];
     
     try {
-      // Fetch all data in parallel
+      // Fetch all data in parallel with credentials for authentication
+      const fetchOptions: RequestInit = { credentials: "include" };
       const [complianceRes, analyticsRes, securityRes, providersRes] = await Promise.all([
-        fetch("/api/compliance/dashboard"),
-        fetch("/api/ai/analytics"),
-        fetch("/api/security/enterprise"),
-        fetch("/api/fm/providers"),
+        fetch("/api/compliance/dashboard", fetchOptions),
+        fetch("/api/ai/analytics", fetchOptions),
+        fetch("/api/security/enterprise", fetchOptions),
+        fetch("/api/fm/providers", fetchOptions),
       ]);
       
       if (complianceRes.ok) {

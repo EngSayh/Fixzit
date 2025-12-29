@@ -705,7 +705,7 @@ export function calculateAssetHealth(metrics: AssetMetrics): AssetHealthScore {
   components.push({
     name: "Age/Lifecycle",
     score: Math.max(0, 100 - ageDeduction * 3),
-    status: ageRatio > 0.8 ? "degraded" : ageRatio > 1 ? "failing" : "healthy",
+    status: ageRatio > 1 ? "failing" : ageRatio > 0.8 ? "degraded" : "healthy",
   });
   
   // Maintenance compliance (max 25 point deduction)

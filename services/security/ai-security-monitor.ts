@@ -253,7 +253,7 @@ export async function analyzeLoginAttempt(params: {
     logger.error("Security analysis failed", {
       error: error instanceof Error ? error.message : "Unknown error",
       orgId,
-      email,
+      userId, // Use userId instead of email for logs (PII protection)
     });
     
     // Return safe defaults on error
@@ -495,6 +495,7 @@ async function checkIPReputation(
   
   // Check recent suspicious activity from this IP
   const suspiciousCount = await db.collection("auth_logs").countDocuments({
+    orgId,
     ipAddress,
     $or: [
       { action: "SUSPICIOUS_ACTIVITY" },

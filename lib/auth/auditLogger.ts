@@ -191,7 +191,10 @@ export async function logAuthEvent(entry: AuthLogEntry): Promise<string | null> 
     const anomalies = await detectAnomalies(enrichedEntry);
     if (anomalies.length > 0) {
       enrichedEntry.anomalyFlags = anomalies;
-      enrichedEntry.riskLevel = RiskLevel.HIGH;
+      // Only set to HIGH if current level is undefined or lower than HIGH (preserve CRITICAL)
+      if (!enrichedEntry.riskLevel || enrichedEntry.riskLevel === RiskLevel.LOW) {
+        enrichedEntry.riskLevel = RiskLevel.HIGH;
+      }
     }
     
     const result = await collection.insertOne(enrichedEntry);
@@ -670,7 +673,7 @@ export async function logSuspiciousActivity(
     success: false,
     timestamp: new Date(),
     ipAddress,
-    riskLevel: RiskLevel.HIGH,
+    riskLevel: RiskLevel.CRITICAL, // Suspicious activity should be CRITICAL severity
     errorMessage: description,
     metadata,
   });

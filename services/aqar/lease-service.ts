@@ -258,6 +258,7 @@ export async function createLease(
     }
     
     const overlapping = await db.collection("leases").findOne({
+      orgId: request.orgId,
       unitId: unitObjectId,
       status: { $in: [LeaseStatus.ACTIVE, LeaseStatus.PENDING_APPROVAL] },
       startDate: { $lte: request.endDate },
@@ -281,7 +282,7 @@ export async function createLease(
     const lease: Omit<LeaseDocument, "_id"> = {
       orgId: request.orgId,
       propertyId: request.propertyId,
-      unitId: request.unitId,
+      unitId: request.unitId, // Keep as string to match interface
       tenantId: request.tenantId,
       leaseNumber,
       status: LeaseStatus.DRAFT,
@@ -437,52 +438,72 @@ export async function renewLease(
       return { success: false, error: "Active lease not found" };
     }
     
-    // Create new lease FIRST to ensure tenant always has valid lease
-    const createResult = await createLease({
-      orgId,
-      propertyId: currentLease.propertyId,
-      unitId: currentLease.unitId,
-      tenantId: currentLease.tenantId,
-      startDate: currentLease.endDate,
-      endDate: newEndDate,
-      monthlyRent: newMonthlyRent,
-      securityDeposit: currentLease.securityDeposit,
-      paymentFrequency: currentLease.paymentFrequency,
-      paymentDueDay: currentLease.paymentDueDay,
-      terms: currentLease.terms,
-      autoRenew: currentLease.autoRenew,
-      createdBy: renewedBy,
-    });
+    // Start MongoDB transaction for atomicity
+    const session = await mongoose.startSession();
     
-    if (!createResult.success) {
-      return { success: false, error: createResult.error };
+    try {
+      let newLease: LeaseDocument | undefined;
+      
+      await session.withTransaction(async () => {
+        // Calculate startDate: use the later of currentLease.endDate or now
+        // This ensures the new lease never starts before the present
+        const now = new Date();
+        const leaseEndDate = new Date(currentLease.endDate);
+        const newStartDate = leaseEndDate.getTime() < now.getTime() ? now : leaseEndDate;
+        
+        // Create new lease FIRST to ensure tenant always has valid lease
+        const createResult = await createLease({
+          orgId,
+          propertyId: currentLease.propertyId,
+          unitId: currentLease.unitId.toString(),
+          tenantId: currentLease.tenantId,
+          startDate: newStartDate,
+          endDate: newEndDate,
+          monthlyRent: newMonthlyRent,
+          securityDeposit: currentLease.securityDeposit,
+          paymentFrequency: currentLease.paymentFrequency,
+          paymentDueDay: currentLease.paymentDueDay,
+          terms: currentLease.terms,
+          autoRenew: currentLease.autoRenew,
+          createdBy: renewedBy,
+        });
+        
+        if (!createResult.success) {
+          throw new Error(createResult.error || "Failed to create renewal lease");
+        }
+        
+        newLease = createResult.lease;
+        
+        // Only mark current lease as renewed AFTER new lease is created
+        await db.collection("leases").updateOne(
+          { _id: new ObjectId(leaseId), orgId },
+          {
+            $set: {
+              status: LeaseStatus.RENEWED,
+              renewalDate: new Date(),
+              updatedBy: renewedBy,
+              updatedAt: new Date(),
+            },
+          },
+          { session }
+        );
+        
+        // Activate the new lease
+        if (newLease) {
+          await activateLease(orgId, newLease._id!.toString(), renewedBy);
+        }
+      });
+      
+      logger.info("Lease renewed", {
+        oldLeaseId: leaseId,
+        newLeaseId: newLease?._id?.toString(),
+        orgId,
+      });
+      
+      return { success: true, newLease };
+    } finally {
+      await session.endSession();
     }
-    
-    // Only mark current lease as renewed AFTER new lease is created
-    await db.collection("leases").updateOne(
-      { _id: new ObjectId(leaseId), orgId },
-      {
-        $set: {
-          status: LeaseStatus.RENEWED,
-          renewalDate: new Date(),
-          updatedBy: renewedBy,
-          updatedAt: new Date(),
-        },
-      }
-    );
-    
-    // Activate the new lease
-    if (createResult.lease) {
-      await activateLease(orgId, createResult.lease._id.toString(), renewedBy);
-    }
-    
-    logger.info("Lease renewed", {
-      oldLeaseId: leaseId,
-      newLeaseId: createResult.lease?._id.toString(),
-      orgId,
-    });
-    
-    return { success: true, newLease: createResult.lease };
   } catch (error) {
     logger.error("Failed to renew lease", {
       error: error instanceof Error ? error.message : "Unknown error",
@@ -985,7 +1006,7 @@ export async function processLeaseExpiryNotifications(
         
         // Update notification count
         await db.collection("leases").updateOne(
-          { _id: lease._id },
+          { _id: lease._id, orgId },
           { $inc: { expiryNotificationsSent: 1 } }
         );
         
@@ -1060,7 +1081,7 @@ export async function processAutoRenewals(
         
         // Mark original lease as reminder sent
         await db.collection("leases").updateOne(
-          { _id: lease._id },
+          { _id: lease._id, orgId },
           { $set: { renewalReminderSent: true } }
         );
       } else {

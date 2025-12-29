@@ -372,7 +372,7 @@ export interface VersionEntry {
  * Related entity
  */
 export interface RelatedEntity {
-  entityType: "property" | "unit" | "tenant" | "vendor" | "employee" | "project" | "work_order";
+  entityType: "property" | "unit" | "tenant" | "vendor" | "employee" | "project" | "work_order" | "contract";
   entityId: string;
   relationship: string;
 }
@@ -845,6 +845,18 @@ export async function sendForSignatures(
       return { success: false, error: "Contract not found" };
     }
     
+    // Validate contract status before sending signatures
+    const allowedStatuses = [ContractStatus.PENDING_APPROVAL, ContractStatus.DRAFT];
+    if (!allowedStatuses.includes(contract.status)) {
+      logger.warn("Invalid contract status for sending signatures", {
+        component: "contract-lifecycle",
+        action: "sendForSignatures",
+        contractId,
+        currentStatus: contract.status,
+      });
+      return { success: false, error: "Invalid contract status for sending signatures" };
+    }
+    
     // Generate document if not already generated
     if (!contract.document.generatedUrl) {
       await generateContractDocument(orgId, contractId);
@@ -1048,7 +1060,7 @@ export async function initiateRenewal(
         : undefined,
       relatedEntities: [
         ...contract.relatedEntities,
-        { entityType: "property", entityId: contractId, relationship: "renewed_from" },
+        { entityType: "contract", entityId: contractId, relationship: "renewed_from" },
       ],
       createdBy: initiatedBy,
     };
@@ -1104,7 +1116,6 @@ export async function terminateContract(
       { _id: new ObjectId(contractId), orgId },
       {
         $set: {
-          status: ContractStatus.TERMINATED,
           terminatedAt: terminationDate,
           updatedAt: new Date(),
           updatedBy: terminatedBy,
@@ -1112,6 +1123,7 @@ export async function terminateContract(
       }
     );
     
+    // Let updateContractStatus be solely responsible for changing status and history
     await updateContractStatus(orgId, contractId, ContractStatus.TERMINATED, terminatedBy, reason);
     
     logger.info("Contract terminated", {
@@ -1273,10 +1285,12 @@ export async function listContracts(
       }
     }
     if (filters?.search) {
+      // Escape regex special characters to prevent injection/ReDoS
+      const escapedSearch = filters.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
-        { title: { $regex: filters.search, $options: "i" } },
-        { titleAr: { $regex: filters.search, $options: "i" } },
-        { contractNumber: { $regex: filters.search, $options: "i" } },
+        { title: { $regex: escapedSearch, $options: "i" } },
+        { titleAr: { $regex: escapedSearch, $options: "i" } },
+        { contractNumber: { $regex: escapedSearch, $options: "i" } },
       ];
     }
     
@@ -1434,14 +1448,17 @@ async function generateContractNumber(orgId: string, type: ContractType): Promis
   
   const year = new Date().getFullYear();
   const prefix = type.substring(0, 3).toUpperCase();
+  const counterKey = `contract-${orgId}-${prefix}-${year}`;
   
-  const count = await db.collection(CONTRACTS_COLLECTION).countDocuments({
-    orgId,
-    contractNumber: { $regex: `^${prefix}-${year}` },
-  });
+  // Atomic counter using counters collection
+  const result = await db.collection("counters").findOneAndUpdate(
+    { _id: counterKey as unknown as ObjectId },
+    { $inc: { seq: 1 } },
+    { upsert: true, returnDocument: "after" }
+  );
   
-  const sequence = String(count + 1).padStart(5, "0");
-  return `${prefix}-${year}-${sequence}`;
+  const sequence = (result?.seq as number) || 1;
+  return `${prefix}-${year}-${String(sequence).padStart(5, "0")}`;
 }
 
 function createDefaultWorkflow(type: ContractType): WorkflowStep[] {

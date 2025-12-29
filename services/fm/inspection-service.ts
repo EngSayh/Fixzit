@@ -192,6 +192,8 @@ export interface InspectionRecord {
   notes?: string;
   internalNotes?: string;
   reportUrl?: string;
+  approvedBy?: string;
+  approvedAt?: Date;
   syncedFromOffline: boolean;
   offlineId?: string;
   lastSyncAt?: Date;
@@ -630,6 +632,17 @@ export async function completeInspection(
     
     const record = inspection as unknown as InspectionRecord;
     
+    // Validate inspection is in progress before completing
+    if (record.status !== InspectionStatus.IN_PROGRESS) {
+      logger.warn("Cannot complete inspection not in progress", {
+        component: "inspection-service",
+        action: "completeInspection",
+        inspectionId,
+        currentStatus: record.status,
+      });
+      return { success: false, error: "Inspection not in progress" };
+    }
+    
     // Calculate overall condition and score
     const { overallCondition, score } = calculateInspectionScore(record.completedItems);
     
@@ -877,6 +890,27 @@ export async function syncOfflineInspection(
     });
     
     if (existing) {
+      // Check for conflicts: if server version is newer than offline data
+      const existingRecord = existing as unknown as InspectionRecord;
+      const serverUpdatedAt = existingRecord.updatedAt?.getTime() || 0;
+      const offlineLastSync = offlineData.lastSyncAt?.getTime() || 0;
+      
+      // If server has been updated after the offline data was last synced, report conflict
+      if (serverUpdatedAt > offlineLastSync) {
+        logger.warn("Offline sync conflict detected", {
+          component: "inspection-service",
+          action: "syncOfflineInspection",
+          inspectionId: existing._id.toString(),
+          serverUpdatedAt: new Date(serverUpdatedAt).toISOString(),
+          offlineLastSync: new Date(offlineLastSync).toISOString(),
+        });
+        return { 
+          success: false, 
+          error: "Conflict: server data is newer than offline data",
+          inspectionId: existing._id.toString(),
+        };
+      }
+      
       // Merge updates
       await db.collection(INSPECTIONS_COLLECTION).updateOne(
         { _id: existing._id },

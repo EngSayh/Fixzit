@@ -655,6 +655,7 @@ async function calculateRentalHistoryScore(
     
     // Check for evictions
     const evictions = await db.collection("eviction_records").countDocuments({
+      orgId,
       tenantNationalId: nationalId,
     });
     
@@ -665,6 +666,7 @@ async function calculateRentalHistoryScore(
     
     // Check previous leases in our system
     const previousLeases = await db.collection("leases").find({
+      orgId,
       "tenantSnapshot.nationalId": nationalId,
       status: { $in: ["RENEWED", "EXPIRED"] }, // Completed leases
     }).toArray();
@@ -854,7 +856,7 @@ export async function getScreeningSummary(
           {
             name: "Rent-to-Income Ratio",
             points: results.affordability.isAffordable ? 30 : 10,
-            explanation: `${results.affordability.rentToIncomeRatio}% of income`,
+            explanation: `${Math.round(results.affordability.rentToIncomeRatio * 100)}% of income`,
           },
         ],
       },

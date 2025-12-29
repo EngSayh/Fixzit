@@ -317,11 +317,18 @@ export async function sendNotification(
       }
     }
     
-    // Filter by user preferences
+    // Filter by user preferences (missing preferences = opt-in by default)
     channels = channels.filter(ch => {
-      const pref = preferences?.channels?.[ch];
-      if (!pref?.enabled) return false;
-      if (preferences?.unsubscribedFrom?.includes(request.category)) return false;
+      // If no preferences exist, allow all channels (opt-in default)
+      if (!preferences) return true;
+      
+      const pref = preferences.channels?.[ch];
+      // If channel preference is missing, default to enabled
+      const isEnabled = pref?.enabled ?? true;
+      if (!isEnabled) return false;
+      
+      // Check unsubscribe list (guard against undefined)
+      if (preferences.unsubscribedFrom?.includes(request.category)) return false;
       return true;
     });
     
@@ -457,7 +464,7 @@ async function deliverNotification(
     
     // Update status to sending
     await db.collection(NOTIFICATIONS_COLLECTION).updateOne(
-      { _id: id },
+      { _id: id, orgId: notification.orgId },
       {
         $set: {
           status: NotificationStatus.SENDING,
@@ -493,7 +500,7 @@ async function deliverNotification(
     
     if (deliveryResult.success) {
       await db.collection(NOTIFICATIONS_COLLECTION).updateOne(
-        { _id: id },
+        { _id: id, orgId: notification.orgId },
         {
           $set: {
             status: NotificationStatus.DELIVERED,
@@ -508,7 +515,7 @@ async function deliverNotification(
     } else {
       // Check if should retry - use the current stored attempt count (already incremented above)
       // Fetch the updated notification to get the actual attempts value
-      const updatedNotification = await db.collection(NOTIFICATIONS_COLLECTION).findOne({ _id: id });
+      const updatedNotification = await db.collection(NOTIFICATIONS_COLLECTION).findOne({ _id: id, orgId: notification.orgId });
       const attempts = updatedNotification?.delivery?.attempts ?? 1;
       const maxAttempts = notification.delivery.maxAttempts;
       
@@ -794,6 +801,7 @@ export async function unsubscribe(
     const updateOp: any = {
       $addToSet: { unsubscribedFrom: category },
       $set: { updatedAt: new Date() },
+      $setOnInsert: { createdAt: new Date() },
     };
     
     await db.collection(PREFERENCES_COLLECTION).updateOne(

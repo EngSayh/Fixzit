@@ -973,6 +973,15 @@ export async function addWidget(
   try {
     const db = await getDatabase();
     
+    // Check for duplicate widget ID
+    const existingDashboard = await db.collection(DASHBOARDS_COLLECTION).findOne(
+      { _id: new ObjectId(dashboardId), orgId, "widgets.id": widget.id }
+    );
+    
+    if (existingDashboard) {
+      return { success: false, error: "Widget with this ID already exists" };
+    }
+    
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateOp: any = {
       $push: { widgets: widget },
@@ -1159,9 +1168,23 @@ function getDateRange(timeRange: TimeRange): DateRange {
       start.setHours(0, 0, 0, 0);
       break;
     }
+    case TimeRange.LAST_WEEK: {
+      const dayOfWeek = start.getDay();
+      start.setDate(start.getDate() - dayOfWeek - 7);
+      start.setHours(0, 0, 0, 0);
+      end.setDate(end.getDate() - end.getDay() - 1);
+      end.setHours(23, 59, 59, 999);
+      break;
+    }
     case TimeRange.THIS_MONTH:
       start.setDate(1);
       start.setHours(0, 0, 0, 0);
+      break;
+    case TimeRange.LAST_MONTH:
+      start.setMonth(start.getMonth() - 1, 1);
+      start.setHours(0, 0, 0, 0);
+      end.setDate(0); // Last day of previous month
+      end.setHours(23, 59, 59, 999);
       break;
     case TimeRange.THIS_QUARTER: {
       const quarter = Math.floor(start.getMonth() / 3);
@@ -1169,9 +1192,23 @@ function getDateRange(timeRange: TimeRange): DateRange {
       start.setHours(0, 0, 0, 0);
       break;
     }
+    case TimeRange.LAST_QUARTER: {
+      const quarter = Math.floor(start.getMonth() / 3);
+      start.setMonth((quarter - 1) * 3, 1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(quarter * 3, 0); // Last day of previous quarter
+      end.setHours(23, 59, 59, 999);
+      break;
+    }
     case TimeRange.THIS_YEAR:
       start.setMonth(0, 1);
       start.setHours(0, 0, 0, 0);
+      break;
+    case TimeRange.LAST_YEAR:
+      start.setFullYear(start.getFullYear() - 1, 0, 1);
+      start.setHours(0, 0, 0, 0);
+      end.setFullYear(end.getFullYear() - 1, 11, 31);
+      end.setHours(23, 59, 59, 999);
       break;
     case TimeRange.LAST_7_DAYS:
       start.setDate(start.getDate() - 7);
@@ -1227,9 +1264,11 @@ function createKPIResult(
   
   if (target !== undefined) {
     result.target = target;
+    // For lower_better metrics (like costs), being under target is good
+    // Formula: lower_better uses target/value (lower value = higher achievement)
     result.targetAchievement = direction === "higher_better"
       ? (value / target) * 100
-      : ((target - (value - target)) / target) * 100;
+      : target > 0 ? (target / Math.max(value, 0.01)) * 100 : 100;
   }
   
   return result;

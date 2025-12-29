@@ -465,6 +465,13 @@ export function addTrustFactor(
   factorType: TrustFactor["type"],
   scoreContribution: number = 25
 ): ZeroTrustSession {
+  // Check for duplicate factor type - don't add if already exists
+  const existingFactor = session.trust_factors.find(f => f.type === factorType);
+  if (existingFactor) {
+    // Already has this factor type, return unchanged
+    return session;
+  }
+  
   const now = new Date();
   const expiresAt = new Date(now);
   

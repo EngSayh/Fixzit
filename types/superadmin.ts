@@ -184,8 +184,8 @@ export interface TenantBilling {
   mrr_cents: number;
   /** Past due */
   is_past_due: boolean;
-  /** Past due amount */
-  past_due_amount?: number;
+  /** Past due amount in cents */
+  past_due_cents?: number;
 }
 
 // =============================================================================

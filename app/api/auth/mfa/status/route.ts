@@ -29,7 +29,13 @@ export async function GET() {
       );
     }
     
-    const orgId = session.user.orgId || "default";
+    const orgId = session.user.orgId;
+    if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
+      return NextResponse.json(
+        { error: { code: "FIXZIT-TENANT-001", message: "Organization required" } },
+        { status: 403 }
+      );
+    }
     const userId = session.user.id;
     
     const status = await getMFAStatus(orgId, userId);
@@ -90,7 +96,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    const orgId = session.user.orgId || "default";
+    const orgId = session.user.orgId;
+    if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
+      return NextResponse.json(
+        { error: { code: "FIXZIT-TENANT-001", message: "Organization required" } },
+        { status: 403 }
+      );
+    }
     const userId = session.user.id;
     const email = session.user.email || "";
     const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || 
@@ -169,7 +181,13 @@ export async function PATCH(request: NextRequest) {
       );
     }
     
-    const orgId = session.user.orgId || "default";
+    const orgId = session.user.orgId;
+    if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
+      return NextResponse.json(
+        { error: { code: "FIXZIT-TENANT-001", message: "Organization required" } },
+        { status: 403 }
+      );
+    }
     const userId = session.user.id;
     const email = session.user.email || "";
     const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || 

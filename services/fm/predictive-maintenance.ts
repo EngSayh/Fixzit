@@ -14,6 +14,7 @@
  */
 
 import { ObjectId, type WithId, type Document } from "mongodb";
+import mongoose from "mongoose";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
@@ -469,28 +470,37 @@ export async function generatePredictions(
       }
     }
     
-    // Store predictions
+    // Store predictions atomically in both equipment and predictions collection
     const db = await getDatabase();
-    await db.collection(COLLECTION).updateOne(
-      { _id: new ObjectId(equipmentId), orgId },
-      {
-        $set: {
-          predictions,
-          failureProbability,
-          updatedAt: now,
-        },
-      }
-    );
+    const session = await mongoose.startSession();
     
-    // Store in predictions collection for analytics
-    if (predictions.length > 0) {
-      await db.collection(PREDICTIONS_COLLECTION).insertOne({
-        orgId,
-        equipmentId,
-        propertyId: equipment.propertyId,
-        predictions,
-        generatedAt: now,
+    try {
+      await session.withTransaction(async () => {
+        await db.collection(COLLECTION).updateOne(
+          { _id: new ObjectId(equipmentId), orgId },
+          {
+            $set: {
+              predictions,
+              failureProbability,
+              updatedAt: now,
+            },
+          },
+          { session }
+        );
+        
+        // Store in predictions collection for analytics
+        if (predictions.length > 0) {
+          await db.collection(PREDICTIONS_COLLECTION).insertOne({
+            orgId,
+            equipmentId,
+            propertyId: equipment.propertyId,
+            predictions,
+            generatedAt: now,
+          }, { session });
+        }
       });
+    } finally {
+      await session.endSession();
     }
     
     return predictions;
@@ -721,7 +731,7 @@ export async function autoGenerateWorkOrders(
 ): Promise<{ created: number; workOrderIds: string[] }> {
   try {
     const db = await getDatabase();
-    const _minProb = options?.minProbability || 0.7;
+    const minProb = options?.minProbability || 0.7;
     const workOrderIds: string[] = [];
     
     const recommendations = await getMaintenanceRecommendations(orgId, {
@@ -729,8 +739,20 @@ export async function autoGenerateWorkOrders(
       daysAhead: 14,
     });
     
+    // Filter by priority AND minimum confidence level
+    // Map confidence level to a numeric value for comparison
+    const confidenceToNumber = (c: ConfidenceLevel): number => {
+      switch (c) {
+        case ConfidenceLevel.HIGH: return 0.9;
+        case ConfidenceLevel.MEDIUM: return 0.7;
+        case ConfidenceLevel.LOW: return 0.5;
+        default: return 0.5;
+      }
+    };
+    
     const highPriorityRecs = recommendations.filter(r => 
-      (r.priority === MaintenancePriority.IMMEDIATE || r.priority === MaintenancePriority.URGENT)
+      (r.priority === MaintenancePriority.IMMEDIATE || r.priority === MaintenancePriority.URGENT) &&
+      confidenceToNumber(r.confidence) >= minProb
     );
     
     for (const rec of highPriorityRecs) {
@@ -822,20 +844,25 @@ function analyzeMaintenanceHistory(equipment: EquipmentRecord): HistoryAnalysis 
     };
   }
   
+  // Sort history by date (ascending) to ensure correct diff calculation
+  const sortedHistory = [...history].sort((a, b) => 
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+  
   // Calculate average days between maintenance
   let totalDays = 0;
-  for (let i = 1; i < history.length; i++) {
-    const diff = history[i].date.getTime() - history[i - 1].date.getTime();
+  for (let i = 1; i < sortedHistory.length; i++) {
+    const diff = new Date(sortedHistory[i].date).getTime() - new Date(sortedHistory[i - 1].date).getTime();
     totalDays += diff / (24 * 60 * 60 * 1000);
   }
-  const avgDays = totalDays / (history.length - 1);
+  const avgDays = totalDays / (sortedHistory.length - 1);
   
   // Calculate emergency ratio
-  const emergencies = history.filter(h => h.type === "emergency").length;
-  const emergencyRatio = emergencies / history.length;
+  const emergencies = sortedHistory.filter(h => h.type === "emergency").length;
+  const emergencyRatio = emergencies / sortedHistory.length;
   
   // Determine trend from last 3 events
-  const recent = history.slice(-3);
+  const recent = sortedHistory.slice(-3);
   const recentEmergencies = recent.filter(h => h.type === "emergency").length;
   let recentTrend: "improving" | "stable" | "declining" = "stable";
   if (recentEmergencies >= 2) recentTrend = "declining";
@@ -893,6 +920,16 @@ function getComponentPredictions(
   // Component-specific predictions based on equipment type
   const predictions: ComponentPrediction[] = [];
   
+  // Guard against division by zero/small values and cap days
+  const MIN_PROBABILITY = 1e-6;
+  const MAX_DAYS = 3650; // Cap at 10 years
+  const safeProbability = Math.max(baseFailureProbability, MIN_PROBABILITY);
+  
+  const calculateDaysToFailure = (factor: number): number => {
+    const days = Math.round(factor / safeProbability);
+    return Math.min(days, MAX_DAYS);
+  };
+  
   switch (type) {
     case EquipmentType.HVAC:
       predictions.push(
@@ -900,7 +937,7 @@ function getComponentPredictions(
           name: "Compressor",
           failureType: "Refrigerant leak",
           probability: baseFailureProbability * 0.8,
-          daysToFailure: Math.round(60 / baseFailureProbability),
+          daysToFailure: calculateDaysToFailure(60),
           recommendedAction: "Check refrigerant levels and inspect for leaks",
           estimatedCost: 1500,
           impact: "Complete cooling failure, tenant discomfort",
@@ -909,7 +946,7 @@ function getComponentPredictions(
           name: "Fan Motor",
           failureType: "Bearing wear",
           probability: baseFailureProbability * 0.6,
-          daysToFailure: Math.round(45 / baseFailureProbability),
+          daysToFailure: calculateDaysToFailure(45),
           recommendedAction: "Inspect fan motor bearings and lubricate",
           estimatedCost: 800,
           impact: "Reduced airflow, increased energy consumption",
@@ -918,7 +955,7 @@ function getComponentPredictions(
           name: "Filters",
           failureType: "Clogging",
           probability: baseFailureProbability * 1.2,
-          daysToFailure: Math.round(30 / baseFailureProbability),
+          daysToFailure: calculateDaysToFailure(30),
           recommendedAction: "Replace air filters",
           estimatedCost: 150,
           impact: "Poor air quality, reduced efficiency",

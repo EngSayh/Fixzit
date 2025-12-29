@@ -184,6 +184,7 @@ export type TimeTravelScope =
 export type TimeTravelStatus =
   | "analyzing"
   | "preview_ready"
+  | "preview_expired"
   | "pending_approval"
   | "executing"
   | "completed"
@@ -563,7 +564,7 @@ export async function executeTimeTravel(
     if (expiresAt <= new Date()) {
       return {
         ...request,
-        status: "preview_expired" as TimeTravelRequest["status"],
+        status: "preview_expired",
       };
     }
   }

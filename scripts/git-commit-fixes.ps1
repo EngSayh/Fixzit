@@ -4,6 +4,9 @@
 Write-Host "=== Git Status ===" -ForegroundColor Cyan
 git status --short
 
+Write-Host "`n=== Resetting staging area ===" -ForegroundColor Cyan
+git reset HEAD
+
 Write-Host "`n=== Staging files ===" -ForegroundColor Cyan
 git add ".vscode/tasks.json"
 git add "app/api/superadmin/customer-requests/route.ts"

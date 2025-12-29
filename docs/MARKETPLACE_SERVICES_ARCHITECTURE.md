@@ -44,6 +44,10 @@ This document clarifies the distinction between **Marketplace (Souq)** and **FM 
 - **Marketplace**: (Future) Individuals resell items to other individuals
 - **FM Services**: Not applicable
 
+### B2B2C (Business-to-Business-to-Consumer)
+- **Marketplace**: Vendors sell to resellers/distributors who then sell to end consumers
+- **FM Services**: Service providers can serve organizations and end consumers through reseller partnerships
+
 ## Required Changes
 
 ### 1. Product Model Enhancement

@@ -189,10 +189,10 @@ const GOSI_EMPLOYEES_COLLECTION = "gosi_employees";
 const GOSI_REPORTS_COLLECTION = "gosi_reports";
 
 /**
- * Current GOSI rates (2024)
+ * Legacy GOSI rates (employees registered before July 3, 2024)
  * Source: GOSI official rates
  */
-export const CURRENT_GOSI_RATES: GosiRates = {
+export const LEGACY_GOSI_RATES: GosiRates = {
   annuities: {
     employer: 0.09,    // 9%
     employee: 0.09,    // 9%
@@ -214,6 +214,83 @@ export const CURRENT_GOSI_RATES: GosiRates = {
   maxWage: 45000,  // SAR - Maximum contributable wage
   minWage: 4000,   // SAR - Minimum wage for Saudis (2024)
 };
+
+/**
+ * Phased annuities rates for NEW registrants (July 3, 2024+)
+ * Rates increase gradually over 5 years:
+ * - 2024: 9.0%
+ * - 2025: 9.5%
+ * - 2026: 10.0%
+ * - 2027: 10.5%
+ * - 2028+: 11.0%
+ */
+const NEW_REGISTRANT_ANNUITIES_BY_YEAR: Record<number, number> = {
+  2024: 0.09,
+  2025: 0.095,
+  2026: 0.10,
+  2027: 0.105,
+  2028: 0.11,
+};
+
+/**
+ * Get annuity rate for new registrants based on effective year
+ */
+function getNewRegistrantAnnuityRate(effectiveYear: number): number {
+  if (effectiveYear >= 2028) return 0.11;
+  return NEW_REGISTRANT_ANNUITIES_BY_YEAR[effectiveYear] || 0.11;
+}
+
+/**
+ * Cutover date for new GOSI registration rules
+ */
+const NEW_GOSI_RULES_CUTOVER = new Date('2024-07-03');
+
+/**
+ * Get appropriate GOSI rates based on employee registration date
+ * @param registrationDate - Date when employee was registered with GOSI
+ * @param effectiveYear - Year for which to calculate rates (defaults to current year)
+ * @returns GosiRates - The applicable rate set
+ */
+export function getGosiRates(registrationDate: Date, effectiveYear?: number): GosiRates {
+  const year = effectiveYear || new Date().getFullYear();
+  
+  // Legacy employees: registered before July 3, 2024
+  if (registrationDate < NEW_GOSI_RULES_CUTOVER) {
+    return LEGACY_GOSI_RATES;
+  }
+  
+  // New registrants: use phased annuity rates
+  const annuityRate = getNewRegistrantAnnuityRate(year);
+  
+  return {
+    annuities: {
+      employer: annuityRate,
+      employee: annuityRate,
+    },
+    hazards: {
+      employer: 0.02,    // 2% (unchanged)
+      employee: 0,       // 0% (employer only)
+    },
+    unemployment: {
+      employer: 0.0075,  // 0.75% SANED (unchanged)
+      employee: 0.0075,  // 0.75% SANED (unchanged)
+    },
+    wageComponents: {
+      basicSalary: true,
+      housingAllowance: true,
+      transportAllowance: false,
+      otherAllowances: false,
+    },
+    maxWage: 45000,  // SAR - Maximum contributable wage
+    minWage: 4000,   // SAR - Minimum wage for Saudis
+  };
+}
+
+/**
+ * Current GOSI rates (default to legacy rates for backward compatibility)
+ * @deprecated Use getGosiRates(registrationDate) for accurate rate selection
+ */
+export const CURRENT_GOSI_RATES: GosiRates = LEGACY_GOSI_RATES;
 
 // ============================================================================
 // Employee Management

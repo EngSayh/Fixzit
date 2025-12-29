@@ -544,8 +544,8 @@ export async function reinstateVendor(
 // ============================================================================
 
 function calculatePerformanceScore(metrics: VendorMetrics): VendorScoreBreakdown["performance"] {
-  // Order fulfillment rate (weight: 35%)
-  const fulfillmentScore = metrics.completedOrders > 0
+  // Order fulfillment rate (weight: 35%) - guard against division by zero
+  const fulfillmentScore = metrics.totalOrders > 0
     ? (metrics.completedOrders / metrics.totalOrders) * 100
     : 100;
   

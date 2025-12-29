@@ -372,6 +372,11 @@ export async function overrideCategory(
   try {
     const db = await getDatabase();
     
+    // Validate expenseId before parsing
+    if (!ObjectId.isValid(expenseId)) {
+      return { success: false, error: "Invalid expenseId" };
+    }
+    
     // Get original expense
     const expense = await db.collection(EXPENSES_COLLECTION).findOne({
       _id: new ObjectId(expenseId),
@@ -449,7 +454,7 @@ async function learnFromCorrection(
     }) as WithId<Document> | null;
     
     if (existingRule) {
-      // Atomic update: increment counts and recalculate accuracy using aggregation pipeline
+      // Atomic update: increment counts, merge keywords, and recalculate accuracy using aggregation pipeline
       const correctIncrement = wasWrong ? 0 : 1;
       
       await db.collection(RULES_COLLECTION).updateOne(
@@ -459,6 +464,13 @@ async function learnFromCorrection(
             $set: {
               usageCount: { $add: ["$usageCount", 1] },
               correctCount: { $add: ["$correctCount", correctIncrement] },
+              // Merge keywords atomically using $setUnion (deduplicates)
+              descriptionKeywords: {
+                $setUnion: [
+                  { $ifNull: ["$descriptionKeywords", []] },
+                  keywords,
+                ],
+              },
               updatedAt: new Date(),
             },
           },
@@ -474,16 +486,6 @@ async function learnFromCorrection(
             },
           },
         ]
-      );
-      
-      // Add keywords separately (can't combine $addToSet with aggregation pipeline)
-      await db.collection(RULES_COLLECTION).updateOne(
-        { _id: existingRule._id },
-        {
-          $addToSet: {
-            descriptionKeywords: { $each: keywords },
-          },
-        }
       );
     } else {
       // Create new rule
@@ -532,11 +534,13 @@ async function findDuplicate(
     const threeDaysAfter = new Date(date);
     threeDaysAfter.setDate(threeDaysAfter.getDate() + 3);
     
+    // Escape regex special characters and truncate for safety
+    const vendorPrefix = vendorName.substring(0, 5).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const similar = await db.collection(EXPENSES_COLLECTION).findOne({
       orgId,
       amountSAR: amount,
       date: { $gte: threeDaysBefore, $lte: threeDaysAfter },
-      vendorName: { $regex: new RegExp(vendorName.substring(0, 5), "i") },
+      vendorName: { $regex: new RegExp(vendorPrefix, "i") },
       status: { $ne: ExpenseStatus.DUPLICATE },
     }) as WithId<Document> | null;
     

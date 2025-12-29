@@ -136,7 +136,8 @@ async function main() {
       .toArray();
     
     for (const issue of openIssues) {
-      console.log(`  ${issue.priority} ${issue.key}: ${issue.title}`);
+      const issueKey = issue.key ?? '—';
+      console.log(`  ${issue.priority} ${issueKey}: ${issue.title}`);
     }
     
     console.log(`\n✅ Total open issues: ${openIssues.length}`);
