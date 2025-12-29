@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ArrowRight, Send, Phone, Mail, Building2 } from "@/components/ui/icons";
+import { useRouter } from "next/navigation";
+import { Check, ArrowRight, Send, Phone, Mail, Building2, Users, CreditCard, Minus, Plus } from "@/components/ui/icons";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 type TrialFormState = {
   name: string;
@@ -18,17 +21,28 @@ type TrialFormState = {
 
 const plans = [
   {
+    id: "starter",
+    name: "Starter",
+    pricePerUser: 0,
+    description: "Free trial for small teams",
+    features: ["Work Orders", "Properties & Units", "Basic Reports", "Email support"],
+    maxUsers: 3,
+    cta: "Start Free Trial",
+    isTrial: true,
+  },
+  {
     id: "standard",
     name: "Standard",
-    price: "SR 0 / trial",
+    pricePerUser: 99,
     description: "Core FM, Work Orders, Properties",
-    features: ["Work Orders", "Properties & Units", "Basic Reports", "Email support"],
-    cta: "Start free trial",
+    features: ["Work Orders", "Properties & Units", "Basic Reports", "Email support", "Up to 10 users"],
+    maxUsers: 10,
+    cta: "Subscribe Now",
   },
   {
     id: "premium",
     name: "Premium",
-    price: "SR 899 / month",
+    pricePerUser: 199,
     description: "Finance + HR + Approvals + Analytics",
     features: [
       "All Standard features",
@@ -36,27 +50,35 @@ const plans = [
       "HR & Technicians",
       "Approvals & Audit trail",
       "Priority support",
+      "Up to 50 users",
     ],
+    maxUsers: 50,
     highlight: true,
-    cta: "Book a demo",
+    cta: "Subscribe Now",
   },
   {
     id: "enterprise",
     name: "Enterprise",
-    price: "Talk to us",
+    pricePerUser: 299,
     description: "SSO, Advanced compliance, Custom SLAs",
     features: [
       "All Premium features",
       "SSO & SCIM",
       "Dedicated onboarding",
       "Custom SLAs & training",
+      "Unlimited users",
     ],
-    cta: "Talk to sales",
+    maxUsers: 999,
+    cta: "Contact Sales",
+    isEnterprise: true,
   },
 ];
 
 export default function PricingPage() {
   const { t } = useTranslation();
+  const router = useRouter();
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [userCount, setUserCount] = useState(1);
   const [form, setForm] = useState<TrialFormState>({
     name: "",
     email: "",
@@ -67,6 +89,35 @@ export default function PricingPage() {
   });
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+
+  const selectedPlanDetails = plans.find(p => p.id === selectedPlan);
+  const totalPrice = selectedPlanDetails ? selectedPlanDetails.pricePerUser * userCount : 0;
+
+  const handleSelectPlan = (planId: string) => {
+    const plan = plans.find(p => p.id === planId);
+    if (plan?.isEnterprise) {
+      // For enterprise, scroll to contact form
+      document.getElementById("contact-form")?.scrollIntoView({ behavior: "smooth" });
+      setForm(prev => ({ ...prev, plan: planId }));
+    } else if (plan?.isTrial) {
+      // For trial, go to signup
+      router.push("/signup?plan=starter&trial=true");
+    } else {
+      setSelectedPlan(planId);
+      setUserCount(1);
+    }
+  };
+
+  const handleProceedToCheckout = () => {
+    if (!selectedPlan || !selectedPlanDetails) return;
+    // Navigate to checkout with plan details
+    const params = new URLSearchParams({
+      plan: selectedPlan,
+      users: userCount.toString(),
+      amount: totalPrice.toString(),
+    });
+    router.push(`/checkout?${params.toString()}`);
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +161,7 @@ export default function PricingPage() {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan) => (
             <div
               key={plan.id}
@@ -131,7 +182,15 @@ export default function PricingPage() {
                   </span>
                 )}
               </div>
-              <div className="text-2xl font-semibold mb-4">{plan.price}</div>
+              <div className="text-2xl font-semibold mb-4">
+                {plan.isTrial ? (
+                  t("pricing.free", "Free")
+                ) : plan.isEnterprise ? (
+                  t("pricing.custom", "Custom pricing")
+                ) : (
+                  <>SR {plan.pricePerUser} <span className="text-sm font-normal text-muted-foreground">/ {t("pricing.perUser", "user / month")}</span></>
+                )}
+              </div>
               <ul className="space-y-2 mb-6 text-sm">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-center gap-2">
@@ -143,7 +202,7 @@ export default function PricingPage() {
               <Button
                 className="w-full flex items-center justify-center gap-2"
                 variant={plan.highlight ? "default" : "outline"}
-                onClick={() => update("plan", plan.id)}
+                onClick={() => handleSelectPlan(plan.id)}
               >
                 {plan.cta}
                 <ArrowRight className="h-4 w-4" />
@@ -152,7 +211,94 @@ export default function PricingPage() {
           ))}
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-2 items-start">
+        {/* User Selection & Checkout Panel */}
+        {selectedPlan && selectedPlanDetails && !selectedPlanDetails.isTrial && !selectedPlanDetails.isEnterprise && (
+          <Card className="border-primary shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                {t("pricing.checkout.title", "Complete Your Subscription")}
+              </CardTitle>
+              <CardDescription>
+                {t("pricing.checkout.subtitle", "Select the number of users and proceed to payment")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <div>
+                  <h3 className="font-semibold">{selectedPlanDetails.name} {t("pricing.plan", "Plan")}</h3>
+                  <p className="text-sm text-muted-foreground">SR {selectedPlanDetails.pricePerUser} / {t("pricing.perUser", "user / month")}</p>
+                </div>
+                <Badge variant="secondary">{t("pricing.selected", "Selected")}</Badge>
+              </div>
+              
+              <div className="space-y-3">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  {t("pricing.checkout.users", "Number of Users")}
+                </label>
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setUserCount(Math.max(1, userCount - 1))}
+                    disabled={userCount <= 1}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={selectedPlanDetails.maxUsers}
+                    value={userCount}
+                    onChange={(e) => setUserCount(Math.min(selectedPlanDetails.maxUsers, Math.max(1, parseInt(e.target.value) || 1)))}
+                    className="w-24 text-center"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setUserCount(Math.min(selectedPlanDetails.maxUsers, userCount + 1))}
+                    disabled={userCount >= selectedPlanDetails.maxUsers}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {t("pricing.checkout.maxUsers", "Max")}: {selectedPlanDetails.maxUsers}
+                  </span>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="flex justify-between items-center text-lg font-semibold">
+                  <span>{t("pricing.checkout.total", "Monthly Total")}:</span>
+                  <span className="text-primary">SR {totalPrice.toLocaleString()}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("pricing.checkout.vatNote", "VAT (15%) will be added at checkout")}
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedPlan(null)}
+                  className="flex-1"
+                >
+                  {t("pricing.checkout.back", "Back to Plans")}
+                </Button>
+                <Button
+                  onClick={handleProceedToCheckout}
+                  className="flex-1 flex items-center justify-center gap-2"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  {t("pricing.checkout.proceed", "Proceed to Payment")}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div id="contact-form" className="grid gap-8 lg:grid-cols-2 items-start">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             <h2 className="text-xl font-semibold mb-2">
               {t("pricing.trial.title", "Request a free trial or demo")}

@@ -140,7 +140,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
-                href="/signup"
+                href="/pricing"
                 role="button"
                 className="fxz-btn-primary px-4 py-2 text-sm font-medium"
               >
@@ -157,12 +157,6 @@ export default function LandingPage() {
                 className="fxz-btn-outline px-4 py-2 text-sm font-medium"
               >
                 {translate("Book a live demo", "hero.actions.bookDemo")}
-              </Link>
-              <Link
-                href="/pricing"
-                className="fxz-btn-ghost px-4 py-2 text-sm font-medium border border-primary text-primary hover:bg-primary/10"
-              >
-                {translate("Pricing & Free Trial", "hero.actions.pricing")}
               </Link>
               <Link
                 href="/vendor/apply"
