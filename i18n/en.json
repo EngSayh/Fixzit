@@ -3012,7 +3012,8 @@
     "scrollToTop": "Scroll to top",
     "searchSuperadmin": "Search superadmin",
     "hideAccessKey": "Hide access key",
-    "showAccessKey": "Show access key"
+    "showAccessKey": "Show access key",
+    "backToIssuesList": "Go back to issues list"
   },
   "app": {
     "fm": "Facility Management",

@@ -3012,7 +3012,8 @@
     "scrollToTop": "الانتقال إلى الأعلى",
     "searchSuperadmin": "البحث في لوحة المشرف",
     "hideAccessKey": "إخفاء مفتاح الوصول",
-    "showAccessKey": "عرض مفتاح الوصول"
+    "showAccessKey": "عرض مفتاح الوصول",
+    "backToIssuesList": "العودة إلى قائمة المشاكل"
   },
   "app": {
     "fm": "إدارة المرافق",
