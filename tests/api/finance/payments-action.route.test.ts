@@ -180,6 +180,9 @@ describe("POST /api/finance/payments/[id]/[action]", () => {
 
     it("returns 400 when bounce reason is missing", async () => {
       vi.mocked(parseBodyOrNull).mockResolvedValue({ bounceDate: new Date().toISOString() });
+      vi.mocked(Payment.findOne).mockResolvedValue({
+        paymentMethod: "CHEQUE",
+      } as never);
 
       const req = new NextRequest(`http://localhost/api/finance/payments/${mockPaymentId}/bounce`, {
         method: "POST",

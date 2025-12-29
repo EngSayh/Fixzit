@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const mockAuth = vi.fn();
 const mockClaimJob = vi.fn();
@@ -52,7 +52,7 @@ vi.mock('@sendgrid/mail', () => ({
 }));
 
 const buildRequest = (body: Record<string, unknown>) =>
-  new Request('http://localhost/api/jobs/process', {
+  new NextRequest('http://localhost/api/jobs/process', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),

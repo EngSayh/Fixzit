@@ -102,6 +102,8 @@ describe("API /api/subscribe/owner", () => {
       );
       const res = await POST(req);
 
+      // Route may return 401 (proper auth error) or 500 (throws before auth middleware)
+      // depending on how the mock auth flows. Both indicate auth rejection.
       expect([401, 500]).toContain(res.status);
     });
   });
@@ -141,7 +143,7 @@ describe("API /api/subscribe/owner", () => {
         id: "user-123",
         orgId: "org-123",
         email: "user@example.com",
-        role: "admin",
+        role: "ADMIN",
       });
 
       const req = new NextRequest(
@@ -156,8 +158,9 @@ describe("API /api/subscribe/owner", () => {
       );
       const res = await POST(req);
 
-      // Accept 400 (validation error), 403 (forbidden), or 500 (mock issues)
-      expect([400, 403, 500]).toContain(res.status);
+      // 400 for validation error (missing required fields)
+      // Route may return 403 if authorization check runs before validation
+      expect([400, 403]).toContain(res.status);
     });
   });
 
@@ -185,8 +188,8 @@ describe("API /api/subscribe/owner", () => {
       );
       const res = await POST(req);
 
-      // Accept 200 (success) or 403/500 (mock issues)
-      expect([200, 403, 500]).toContain(res.status);
+      // 200 for successful subscription checkout creation
+      expect(res.status).toBe(200);
     });
   });
 });

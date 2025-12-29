@@ -130,9 +130,9 @@ export async function POST(
         if (journal.status !== "POSTED") {
           return NextResponse.json(
             {
-              error: `Cannot void journal with status ${journal.status}. Only POSTED journals can be voided.`,
+              error: `Only POSTED journals can be voided. Current status: ${journal.status}.`,
             },
-            { status: 400 },
+            { status: 409 },
           );
         }
 

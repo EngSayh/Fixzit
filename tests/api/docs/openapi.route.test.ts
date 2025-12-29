@@ -42,7 +42,11 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { GET } from "@/app/api/docs/openapi/route";
+// Helper to dynamically load route after env changes
+const loadRoute = async () => {
+  vi.resetModules();
+  return import("@/app/api/docs/openapi/route");
+};
 
 describe("API /api/docs/openapi", () => {
   const originalEnv = process.env;
@@ -50,6 +54,9 @@ describe("API /api/docs/openapi", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env = { ...originalEnv };
+    // Default to enabled state
+    process.env.SWAGGER_UI_ENABLED = "true";
+    process.env.NEXT_PUBLIC_SWAGGER_UI_ENABLED = "true";
   });
 
   afterEach(() => {
@@ -61,20 +68,22 @@ describe("API /api/docs/openapi", () => {
       process.env.SWAGGER_UI_ENABLED = "false";
       process.env.NEXT_PUBLIC_SWAGGER_UI_ENABLED = "false";
 
-      // Need to re-import to get the new env values
-      // Since the module is already cached, we'll test with enabled mode
+      // Re-import after env change to get fresh module
+      const { GET } = await loadRoute();
+      
       const req = new NextRequest("http://localhost:3000/api/docs/openapi", {
         method: "GET",
       });
       
-      // The current module is cached with enabled=true, so just test that it works
       const res = await GET(req);
-      expect([200, 404]).toContain(res.status);
+      expect(res.status).toBe(404);
     });
   });
 
   describe("Success Cases", () => {
     it("returns OpenAPI spec as JSON", async () => {
+      const { GET } = await loadRoute();
+      
       const req = new NextRequest("http://localhost:3000/api/docs/openapi", {
         method: "GET",
       });
@@ -87,6 +96,8 @@ describe("API /api/docs/openapi", () => {
     });
 
     it("includes cache headers", async () => {
+      const { GET } = await loadRoute();
+      
       const req = new NextRequest("http://localhost:3000/api/docs/openapi", {
         method: "GET",
       });

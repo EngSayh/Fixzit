@@ -78,15 +78,14 @@ const importVoidRoute = () => import("@/app/api/finance/journals/[id]/void/route
 // TEST DATA
 // ============================================================================
 
-const TEST_ORG_ID = "org_test_123";
-const TEST_USER_ID = "user_test_456";
+const TEST_ORG_ID = new Types.ObjectId().toString();
+const TEST_USER_ID = new Types.ObjectId().toString();
 const TEST_JOURNAL_ID = new Types.ObjectId().toString();
 
 const mockFinanceUser = {
   id: TEST_USER_ID,
   orgId: TEST_ORG_ID,
-  role: "FINANCE_MANAGER",
-  permissions: ["FINANCE:POST", "FINANCE:VOID"],
+  role: "FINANCE",
 };
 
 const mockDraftJournal = {
@@ -178,14 +177,11 @@ describe("POST /api/finance/journals/[id]/post", () => {
 
     expect(res.status).toBe(401);
     const data = await res.json();
-    expect(data.error).toContain("Unauthorized");
+    expect(data.error).toContain("Authentication");
   });
 
   it("should return 403 when user lacks FINANCE:POST permission", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockNoPermissionUser);
-    (Journal.findOne as Mock).mockReturnValue({
-      lean: vi.fn().mockResolvedValue(mockDraftJournal),
-    });
 
     const { POST } = await importPostRoute();
     const req = createRequest("post");
@@ -193,14 +189,12 @@ describe("POST /api/finance/journals/[id]/post", () => {
 
     expect(res.status).toBe(403);
     const data = await res.json();
-    expect(data.error).toContain("Forbidden");
+    expect(data.error).toContain("Access denied");
   });
 
   it("should return 404 when journal not found", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockFinanceUser);
-    (Journal.findOne as Mock).mockReturnValue({
-      lean: vi.fn().mockResolvedValue(null),
-    });
+    (Journal.findOne as Mock).mockResolvedValue(null);
 
     const { POST } = await importPostRoute();
     const req = createRequest("post");
@@ -213,9 +207,7 @@ describe("POST /api/finance/journals/[id]/post", () => {
 
   it("should return 409 when journal is not in DRAFT status", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockFinanceUser);
-    (Journal.findOne as Mock).mockReturnValue({
-      lean: vi.fn().mockResolvedValue(mockPostedJournal),
-    });
+    (Journal.findOne as Mock).mockResolvedValue(mockPostedJournal);
 
     const { POST } = await importPostRoute();
     const req = createRequest("post");
@@ -228,9 +220,7 @@ describe("POST /api/finance/journals/[id]/post", () => {
 
   it("should post journal successfully", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockFinanceUser);
-    (Journal.findOne as Mock).mockReturnValue({
-      lean: vi.fn().mockResolvedValue(mockDraftJournal),
-    });
+    (Journal.findOne as Mock).mockResolvedValue(mockDraftJournal);
     (postingService.postJournal as Mock).mockResolvedValue({
       journal: mockPostedJournal,
       ledgerEntries: [{ _id: "ledger1" }, { _id: "ledger2" }],
@@ -242,11 +232,9 @@ describe("POST /api/finance/journals/[id]/post", () => {
 
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.journal).toBeDefined();
-    expect(postingService.postJournal).toHaveBeenCalledWith(
-      expect.objectContaining({ _id: TEST_JOURNAL_ID }),
-      expect.objectContaining({ userId: TEST_USER_ID }),
-    );
+    expect(data.data.journal).toBeDefined();
+    const [postedJournalId] = (postingService.postJournal as Mock).mock.calls[0];
+    expect(postedJournalId.toString()).toBe(TEST_JOURNAL_ID);
   });
 });
 
@@ -290,9 +278,6 @@ describe("POST /api/finance/journals/[id]/void", () => {
 
   it("should return 403 when user lacks FINANCE:VOID permission", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockNoPermissionUser);
-    (Journal.findOne as Mock).mockReturnValue({
-      lean: vi.fn().mockResolvedValue(mockPostedJournal),
-    });
 
     const { POST } = await importVoidRoute();
     const req = createRequest("void", { reason: "Error correction" });
@@ -300,7 +285,7 @@ describe("POST /api/finance/journals/[id]/void", () => {
 
     expect(res.status).toBe(403);
     const data = await res.json();
-    expect(data.error).toContain("Forbidden");
+    expect(data.error).toContain("Access denied");
   });
 
   it("should return 400 when void reason is missing", async () => {
@@ -312,14 +297,12 @@ describe("POST /api/finance/journals/[id]/void", () => {
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toContain("reason");
+    expect(data.error).toContain("Validation");
   });
 
   it("should return 404 when journal not found", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockFinanceUser);
-    (Journal.findOne as Mock).mockReturnValue({
-      lean: vi.fn().mockResolvedValue(null),
-    });
+    (Journal.findOne as Mock).mockResolvedValue(null);
 
     const { POST } = await importVoidRoute();
     const req = createRequest("void", { reason: "Error correction" });
@@ -330,9 +313,7 @@ describe("POST /api/finance/journals/[id]/void", () => {
 
   it("should return 409 when journal is not in POSTED status", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockFinanceUser);
-    (Journal.findOne as Mock).mockReturnValue({
-      lean: vi.fn().mockResolvedValue(mockDraftJournal), // DRAFT, not POSTED
-    });
+    (Journal.findOne as Mock).mockResolvedValue(mockDraftJournal); // DRAFT, not POSTED
 
     const { POST } = await importVoidRoute();
     const req = createRequest("void", { reason: "Error correction" });
@@ -345,9 +326,7 @@ describe("POST /api/finance/journals/[id]/void", () => {
 
   it("should void journal with reversal entries", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockFinanceUser);
-    (Journal.findOne as Mock).mockReturnValue({
-      lean: vi.fn().mockResolvedValue(mockPostedJournal),
-    });
+    (Journal.findOne as Mock).mockResolvedValue(mockPostedJournal);
 
     const voidedJournal = { ...mockPostedJournal, status: "VOIDED" };
     const reversalJournal = {
@@ -357,8 +336,8 @@ describe("POST /api/finance/journals/[id]/void", () => {
     };
 
     (postingService.voidJournal as Mock).mockResolvedValue({
-      journal: voidedJournal,
-      reversalJournal,
+      originalJournal: voidedJournal,
+      reversingJournal: reversalJournal,
     });
 
     const { POST } = await importVoidRoute();
@@ -367,20 +346,17 @@ describe("POST /api/finance/journals/[id]/void", () => {
 
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.journal.status).toBe("VOIDED");
-    expect(data.reversalJournal).toBeDefined();
-    expect(postingService.voidJournal).toHaveBeenCalledWith(
-      expect.objectContaining({ _id: TEST_JOURNAL_ID }),
-      expect.objectContaining({ userId: TEST_USER_ID }),
-      "Duplicate entry correction",
-    );
+    expect(data.data.originalJournal.status).toBe("VOIDED");
+    expect(data.data.reversingJournal).toBeDefined();
+    const [voidJournalId, voidUserId, voidReason] = (postingService.voidJournal as Mock).mock.calls[0];
+    expect(voidJournalId.toString()).toBe(TEST_JOURNAL_ID);
+    expect(voidUserId.toString()).toBe(TEST_USER_ID);
+    expect(voidReason).toBe("Duplicate entry correction");
   });
 
   it("should audit void reason for compliance", async () => {
     (getSessionUser as Mock).mockResolvedValue(mockFinanceUser);
-    (Journal.findOne as Mock).mockReturnValue({
-      lean: vi.fn().mockResolvedValue(mockPostedJournal),
-    });
+    (Journal.findOne as Mock).mockResolvedValue(mockPostedJournal);
 
     const voidedJournal = {
       ...mockPostedJournal,
@@ -391,8 +367,8 @@ describe("POST /api/finance/journals/[id]/void", () => {
     };
 
     (postingService.voidJournal as Mock).mockResolvedValue({
-      journal: voidedJournal,
-      reversalJournal: { _id: "rev1" },
+      originalJournal: voidedJournal,
+      reversingJournal: { _id: "rev1" },
     });
 
     const { POST } = await importVoidRoute();
@@ -401,8 +377,8 @@ describe("POST /api/finance/journals/[id]/void", () => {
 
     expect(res.status).toBe(200);
     expect(postingService.voidJournal).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
+      expect.any(Types.ObjectId),
+      expect.any(Types.ObjectId),
       "Vendor refund adjustment",
     );
   });

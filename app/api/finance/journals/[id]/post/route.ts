@@ -110,9 +110,9 @@ export async function POST(
         if (journal.status !== "DRAFT") {
           return NextResponse.json(
             {
-              error: `Cannot post journal with status ${journal.status}`,
+              error: `Only DRAFT journals can be posted. Current status: ${journal.status}.`,
             },
-            { status: 400 },
+            { status: 409 },
           );
         }
 

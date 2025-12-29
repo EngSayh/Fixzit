@@ -185,8 +185,8 @@ describe("API /api/benchmarks/compare", () => {
       );
       const res = await POST(req);
 
-      // Accept 200 (success) or 500 (mock issues)
-      expect([200, 500]).toContain(res.status);
+      // 200 for successful benchmark comparison
+      expect(res.status).toBe(200);
     });
   });
 });

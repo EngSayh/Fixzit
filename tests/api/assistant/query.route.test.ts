@@ -119,7 +119,7 @@ describe("API /api/assistant/query", () => {
       const res = await POST(req);
 
       // Route allows public queries - returns 200 for help queries
-      expect([200, 500]).toContain(res.status);
+      expect(res.status).toBe(200);
     });
   });
 
@@ -210,8 +210,8 @@ describe("API /api/assistant/query", () => {
       );
       const res = await POST(req);
 
-      // Accept 200 (success) or 500 (mock setup issues)
-      expect([200, 500]).toContain(res.status);
+      // 200 for successful query processing
+      expect(res.status).toBe(200);
     });
   });
 });

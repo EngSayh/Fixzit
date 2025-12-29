@@ -101,7 +101,7 @@ const DEVICE_ICONS: Record<string, typeof Monitor> = {
 };
 
 export default function SuperadminUserLogsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [logs, setLogs] = useState<UserActivityLog[]>([]);
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [stats, setStats] = useState<ActivityStats | null>(null);
@@ -376,12 +376,28 @@ export default function SuperadminUserLogsPage() {
   const formatTimestamp = (ts: string) => {
     const date = new Date(ts);
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
+    const diffMs = now.getTime() - date.getTime();
     
-    if (diff < 60000) return "Just now";
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    // Use Intl.RelativeTimeFormat for relative times
+    try {
+      const rtf = new Intl.RelativeTimeFormat(locale ?? undefined, { numeric: "auto" });
+      if (diffMs < 60000) return rtf.format(0, "minute"); // "now" or equivalent
+      if (diffMs < 3600000) return rtf.format(-Math.floor(diffMs / 60000), "minute");
+      if (diffMs < 86400000) return rtf.format(-Math.floor(diffMs / 3600000), "hour");
+    } catch {
+      // Fallback if RelativeTimeFormat fails
+      if (diffMs < 60000) return t("common.justNow", "Just now");
+      if (diffMs < 3600000) return `${Math.floor(diffMs / 60000)}m`;
+      if (diffMs < 86400000) return `${Math.floor(diffMs / 3600000)}h`;
+    }
+    
+    // Use locale-aware date formatting
+    return new Intl.DateTimeFormat(locale ?? undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
   };
 
   const formatDuration = (seconds: number) => {
@@ -445,14 +461,14 @@ export default function SuperadminUserLogsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.userLogs")}</h1>
-          <p className="text-muted-foreground">Monitor user activity, sessions, and interactions for support</p>
+          <p className="text-muted-foreground">{t("superadmin.userLogs.subtitle", "Monitor user activity, sessions, and interactions for support")}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleExport} className="border-input text-muted-foreground">
-            <Download className="h-4 w-4 me-2" />Export
+            <Download className="h-4 w-4 me-2" />{t("common.export", "Export")}
           </Button>
           <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="border-input text-muted-foreground">
-            <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
+            <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />{t("common.refresh", "Refresh")}
           </Button>
         </div>
       </div>
@@ -464,7 +480,7 @@ export default function SuperadminUserLogsPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-blue-500/20"><Activity className="h-5 w-5 text-blue-400" /></div>
-                <div><p className="text-2xl font-bold text-foreground">{stats.totalLogs}</p><p className="text-sm text-muted-foreground">Total Logs</p></div>
+                <div><p className="text-2xl font-bold text-foreground">{stats.totalLogs}</p><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.totalLogs", "Total Logs")}</p></div>
               </div>
             </CardContent>
           </Card>
@@ -472,7 +488,7 @@ export default function SuperadminUserLogsPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-green-500/20"><Clock className="h-5 w-5 text-green-400" /></div>
-                <div><p className="text-2xl font-bold text-foreground">{stats.todayLogs}</p><p className="text-sm text-muted-foreground">Today</p></div>
+                <div><p className="text-2xl font-bold text-foreground">{stats.todayLogs}</p><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.today", "Today")}</p></div>
               </div>
             </CardContent>
           </Card>
@@ -480,7 +496,7 @@ export default function SuperadminUserLogsPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-purple-500/20"><User className="h-5 w-5 text-purple-400" /></div>
-                <div><p className="text-2xl font-bold text-foreground">{stats.uniqueUsers}</p><p className="text-sm text-muted-foreground">Unique Users</p></div>
+                <div><p className="text-2xl font-bold text-foreground">{stats.uniqueUsers}</p><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.uniqueUsers", "Unique Users")}</p></div>
               </div>
             </CardContent>
           </Card>
@@ -488,7 +504,7 @@ export default function SuperadminUserLogsPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-red-500/20"><AlertCircle className="h-5 w-5 text-red-400" /></div>
-                <div><p className="text-2xl font-bold text-foreground">{stats.errorRate.toFixed(1)}%</p><p className="text-sm text-muted-foreground">Error Rate</p></div>
+                <div><p className="text-2xl font-bold text-foreground">{stats.errorRate.toFixed(1)}%</p><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.errorRate", "Error Rate")}</p></div>
               </div>
             </CardContent>
           </Card>
@@ -496,7 +512,7 @@ export default function SuperadminUserLogsPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-yellow-500/20"><History className="h-5 w-5 text-yellow-400" /></div>
-                <div><p className="text-2xl font-bold text-foreground">{stats.avgSessionDuration}m</p><p className="text-sm text-muted-foreground">Avg Session</p></div>
+                <div><p className="text-2xl font-bold text-foreground">{stats.avgSessionDuration}m</p><p className="text-sm text-muted-foreground">{t("superadmin.userLogs.avgSession", "Avg Session")}</p></div>
               </div>
             </CardContent>
           </Card>
@@ -505,8 +521,8 @@ export default function SuperadminUserLogsPage() {
 
       <Tabs defaultValue="logs" className="space-y-4">
         <TabsList className="bg-muted border-input">
-          <TabsTrigger value="logs" className="data-[state=active]:bg-muted">Activity Logs</TabsTrigger>
-          <TabsTrigger value="sessions" className="data-[state=active]:bg-muted">Active Sessions</TabsTrigger>
+          <TabsTrigger value="logs" className="data-[state=active]:bg-muted">{t("superadmin.userLogs.activityLogs", "Activity Logs")}</TabsTrigger>
+          <TabsTrigger value="sessions" className="data-[state=active]:bg-muted">{t("superadmin.userLogs.activeSessions", "Active Sessions")}</TabsTrigger>
         </TabsList>
 
         {/* Activity Logs Tab */}
@@ -515,7 +531,7 @@ export default function SuperadminUserLogsPage() {
             <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
                 <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search by user, email, action, or tenant..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
+                <Input placeholder={t("superadmin.userLogs.searchPlaceholder", "Search by user, email, action, or tenant...")} value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
               </div>
               <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category">
                 <SelectTrigger className="w-[150px] bg-muted border-input">
@@ -565,7 +581,7 @@ export default function SuperadminUserLogsPage() {
               {loading ? (
                 <div className="flex items-center justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" /></div>
               ) : filteredLogs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12"><History className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No activity logs found</p></div>
+                <div className="flex flex-col items-center justify-center py-12"><History className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">{t("superadmin.userLogs.noLogsFound", "No activity logs found")}</p></div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -638,7 +654,7 @@ export default function SuperadminUserLogsPage() {
               {(() => {
                 const activeSessions = sessions.filter(s => s.isActive);
                 return activeSessions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12"><User className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No active sessions</p></div>
+                  <div className="flex flex-col items-center justify-center py-12"><User className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">{t("superadmin.userLogs.noSessions", "No active sessions")}</p></div>
                 ) : (
                 <Table>
                   <TableHeader>
@@ -683,13 +699,13 @@ export default function SuperadminUserLogsPage() {
                           <TableCell className="text-muted-foreground">{formatTimestamp(session.startedAt)}</TableCell>
                           <TableCell>
                             <div className="text-sm">
-                              <p className="text-foreground">{session.pagesVisited} pages</p>
-                              <p className="text-muted-foreground">{session.actionsPerformed} actions</p>
+                              <p className="text-foreground">{session.pagesVisited} {t("superadmin.userLogs.pages", "pages")}</p>
+                              <p className="text-muted-foreground">{session.actionsPerformed} {t("superadmin.userLogs.actions", "actions")}</p>
                             </div>
                           </TableCell>
                           <TableCell>
                             <Badge className={session.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
-                              {session.isActive ? "Active" : "Ended"}
+                              {session.isActive ? t("superadmin.userLogs.statusActive", "Active") : t("superadmin.userLogs.statusEnded", "Ended")}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -713,7 +729,7 @@ export default function SuperadminUserLogsPage() {
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
         <DialogContent className="bg-card border-border text-foreground max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Activity Log Details</DialogTitle>
+            <DialogTitle>{t("superadmin.userLogs.logDetails", "Activity Log Details")}</DialogTitle>
             <DialogDescription className="text-muted-foreground">{selectedLog?.action}</DialogDescription>
           </DialogHeader>
           {selectedLog && (
@@ -724,7 +740,7 @@ export default function SuperadminUserLogsPage() {
                 <div><p className="text-sm text-muted-foreground">Tenant</p><p className="text-foreground">{selectedLog.tenantName}</p></div>
                 <div><p className="text-sm text-muted-foreground">Category</p><p className="text-foreground capitalize">{selectedLog.category}</p></div>
                 <div><p className="text-sm text-muted-foreground">Status</p><Badge className={STATUS_COLORS[selectedLog.status]}>{selectedLog.status}</Badge></div>
-                <div><p className="text-sm text-muted-foreground">Timestamp</p><p className="text-foreground">{new Date(selectedLog.timestamp).toLocaleString()}</p></div>
+                <div><p className="text-sm text-muted-foreground">Timestamp</p><p className="text-foreground">{new Intl.DateTimeFormat(locale ?? undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(selectedLog.timestamp))}</p></div>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Details</p>
@@ -745,7 +761,7 @@ export default function SuperadminUserLogsPage() {
               )}
             </div>
           )}
-          <DialogFooter><Button variant="outline" onClick={() => setDetailDialogOpen(false)}>Close</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setDetailDialogOpen(false)}>{t("common.close", "Close")}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -753,7 +769,7 @@ export default function SuperadminUserLogsPage() {
       <Dialog open={sessionDialogOpen} onOpenChange={setSessionDialogOpen}>
         <DialogContent className="bg-card border-border text-foreground max-w-lg">
           <DialogHeader>
-            <DialogTitle>Session Details</DialogTitle>
+            <DialogTitle>{t("superadmin.userLogs.sessionDetails", "Session Details")}</DialogTitle>
             <DialogDescription className="text-muted-foreground">{selectedSession?.userName}</DialogDescription>
           </DialogHeader>
           {selectedSession && (
@@ -762,13 +778,13 @@ export default function SuperadminUserLogsPage() {
                 <div><p className="text-sm text-muted-foreground">User</p><p className="text-foreground">{selectedSession.userName}</p></div>
                 <div><p className="text-sm text-muted-foreground">Email</p><p className="text-foreground">{selectedSession.userEmail}</p></div>
                 <div><p className="text-sm text-muted-foreground">Tenant</p><p className="text-foreground">{selectedSession.tenantName}</p></div>
-                <div><p className="text-sm text-muted-foreground">Status</p><Badge className={selectedSession.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>{selectedSession.isActive ? "Active" : "Ended"}</Badge></div>
+                <div><p className="text-sm text-muted-foreground">Status</p><Badge className={selectedSession.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>{selectedSession.isActive ? t("superadmin.userLogs.statusActive", "Active") : t("superadmin.userLogs.statusEnded", "Ended")}</Badge></div>
                 <div><p className="text-sm text-muted-foreground">Device</p><p className="text-foreground capitalize">{selectedSession.device}</p></div>
                 <div><p className="text-sm text-muted-foreground">Browser</p><p className="text-foreground">{selectedSession.browser}</p></div>
                 <div><p className="text-sm text-muted-foreground">OS</p><p className="text-foreground">{selectedSession.os}</p></div>
                 <div><p className="text-sm text-muted-foreground">IP Address</p><p className="text-foreground">{selectedSession.ip}</p></div>
-                <div><p className="text-sm text-muted-foreground">Location</p><p className="text-foreground">{selectedSession.location || "Unknown"}</p></div>
-                <div><p className="text-sm text-muted-foreground">Started</p><p className="text-foreground">{new Date(selectedSession.startedAt).toLocaleString()}</p></div>
+                <div><p className="text-sm text-muted-foreground">Location</p><p className="text-foreground">{selectedSession.location || t("common.unknown", "Unknown")}</p></div>
+                <div><p className="text-sm text-muted-foreground">Started</p><p className="text-foreground">{new Intl.DateTimeFormat(locale ?? undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(selectedSession.startedAt))}</p></div>
                 <div><p className="text-sm text-muted-foreground">Pages Visited</p><p className="text-foreground">{selectedSession.pagesVisited}</p></div>
                 <div><p className="text-sm text-muted-foreground">Actions</p><p className="text-foreground">{selectedSession.actionsPerformed}</p></div>
                 {selectedSession.duration && (
@@ -776,13 +792,13 @@ export default function SuperadminUserLogsPage() {
                 )}
               </div>
               {selectedSession.isActive && (
-                <Button variant="destructive" className="w-full" disabled title="Session termination not yet implemented">
-                  Terminate Session
+                <Button variant="destructive" className="w-full" disabled title={t("superadmin.userLogs.terminateNotImplemented", "Session termination not yet implemented")}>
+                  {t("superadmin.userLogs.terminateSession", "Terminate Session")}
                 </Button>
               )}
             </div>
           )}
-          <DialogFooter><Button variant="outline" onClick={() => setSessionDialogOpen(false)}>Close</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setSessionDialogOpen(false)}>{t("common.close", "Close")}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

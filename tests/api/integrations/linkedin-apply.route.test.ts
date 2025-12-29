@@ -169,8 +169,8 @@ describe("API /api/integrations/linkedin/apply", () => {
       );
       const res = await POST(req);
 
-      // 404 for job not found or 400 for validation error
-      expect([400, 404]).toContain(res.status);
+      // 404 for job not found
+      expect(res.status).toBe(404);
     });
   });
 });

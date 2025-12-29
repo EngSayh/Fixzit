@@ -26,9 +26,11 @@ let isSuperAdmin = false;
 vi.mock("@/lib/authz", () => ({
   requireSuperAdmin: vi.fn(async () => {
     if (!isSuperAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+      // Route catches errors that are Response instances
+      throw new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
-    return null;
+    // Return auth context with required fields when super admin
+    return { id: "admin-123", tenantId: "org-123" };
   }),
 }));
 
@@ -52,10 +54,21 @@ describe("API /api/qa/health", () => {
     isSuperAdmin = false;
     vi.clearAllMocks();
     process.env = { ...originalEnv };
+    // Set up database mock for health check
+    (globalThis as Record<string, unknown>).__connectToDatabaseMock = async () => ({
+      connection: { 
+        db: { 
+          listCollections: () => ({ 
+            toArray: async () => [{ name: "test_collection" }] 
+          }) 
+        } 
+      },
+    });
   });
 
   afterEach(() => {
     process.env = originalEnv;
+    delete (globalThis as Record<string, unknown>).__connectToDatabaseMock;
   });
 
   describe("Playwright Test Mode", () => {
@@ -75,22 +88,22 @@ describe("API /api/qa/health", () => {
   });
 
   describe("Rate Limiting", () => {
-    it("returns 429 or other status when rate limited", async () => {
+    it("returns 429 when rate limited", async () => {
       rateLimitAllowed = false;
+      isSuperAdmin = true; // Must be super admin first, then rate limit kicks in
 
       const req = new NextRequest("http://localhost:3000/api/qa/health", {
         method: "GET",
       });
       const res = await GET(req);
 
-      // When not in Playwright mode, rate limiting should apply
-      // But mock setup may cause 400 due to missing dependencies
-      expect([200, 400, 429]).toContain(res.status);
+      // Rate limiting applies after auth check
+      expect(res.status).toBe(429);
     });
   });
 
   describe("Authorization", () => {
-    it("returns 403 or other status for non-SUPER_ADMIN users", async () => {
+    it("returns 403 for non-SUPER_ADMIN users", async () => {
       isSuperAdmin = false;
       delete process.env.PLAYWRIGHT_TESTS;
 
@@ -99,8 +112,7 @@ describe("API /api/qa/health", () => {
       });
       const res = await GET(req);
 
-      // 403 for non-superadmin, or 400/200 if route has mock issues
-      expect([200, 400, 401, 403]).toContain(res.status);
+      expect(res.status).toBe(403);
     });
   });
 
@@ -114,8 +126,11 @@ describe("API /api/qa/health", () => {
       });
       const res = await GET(req);
 
-      // Accept various responses (400 can happen due to mock setup issues)
-      expect([200, 400, 500]).toContain(res.status);
+      // With proper mocks in place, expect 200 success
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.status).toBeDefined();
+      expect(data.database).toBeDefined();
     });
   });
 });
