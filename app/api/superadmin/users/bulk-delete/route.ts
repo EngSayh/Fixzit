@@ -12,13 +12,17 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { connectDb } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
-import { isValidObjectId } from "mongoose";
+import { isValidObjectId, Types } from "mongoose";
 import { smartRateLimit } from "@/server/security/rateLimit";
 
 const BulkDeleteSchema = z.object({
   userIds: z.array(
     z.string().refine((id) => isValidObjectId(id), { message: "Invalid ObjectId" })
   ).min(1, "At least one user ID is required"),
+  orgId: z.string().optional().refine(
+    (value) => !value || isValidObjectId(value),
+    { message: "orgId must be a valid MongoDB ObjectId" }
+  ),
 });
 
 /**
@@ -70,17 +74,36 @@ export async function POST(request: NextRequest) {
     }
 
     const { userIds } = validation.data;
+    const requestedOrgId = validation.data.orgId?.trim();
 
     // Connect to database
     await connectDb();
 
     // Prevent deleting superadmin users
-    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant superadmin check
-    const superadmins = await User.find({
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant validation for bulk scope
+    const matchedUsers = await User.find({
       _id: { $in: userIds },
-      isSuperAdmin: true,
-    }).select({ _id: 1 }).lean();
+    }).select("_id orgId isSuperAdmin").lean() as Array<{
+      _id: Types.ObjectId;
+      orgId?: Types.ObjectId;
+      isSuperAdmin?: boolean;
+    }>;
 
+    if (matchedUsers.length === 0) {
+      return NextResponse.json(
+        { error: "No matching users found" },
+        { status: 404 }
+      );
+    }
+
+    if (matchedUsers.some((user) => !user.orgId)) {
+      return NextResponse.json(
+        { error: "All users must have an organization scope" },
+        { status: 400 }
+      );
+    }
+
+    const superadmins = matchedUsers.filter((user) => user.isSuperAdmin);
     if (superadmins.length > 0) {
       const blockedIds = superadmins.map((user) => user._id.toString());
       logger.warn("Blocked bulk delete of superadmin users", {
@@ -93,11 +116,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const orgIds = new Set(
+      matchedUsers.map((user) => user.orgId?.toString()).filter(Boolean),
+    );
+
+    if (requestedOrgId) {
+      if (orgIds.size !== 1 || !orgIds.has(requestedOrgId)) {
+        return NextResponse.json(
+          { error: "Selected users do not match the requested organization" },
+          { status: 400 }
+        );
+      }
+    } else if (orgIds.size !== 1) {
+      return NextResponse.json(
+        { error: "Bulk delete requires users from a single organization" },
+        { status: 400 }
+      );
+    }
+
+    const targetOrgId = requestedOrgId ?? Array.from(orgIds)[0];
+    const targetOrgObjectId = new Types.ObjectId(targetOrgId);
+
     // Soft delete - set status to DELETED (or hard delete if needed)
     // Using soft delete for audit trail
-    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant bulk delete
     const result = await User.updateMany(
-      { _id: { $in: userIds }, isSuperAdmin: { $ne: true } },
+      { _id: { $in: userIds }, orgId: targetOrgObjectId, isSuperAdmin: { $ne: true } },
       { 
         $set: { 
           status: "DELETED",
@@ -109,6 +152,7 @@ export async function POST(request: NextRequest) {
 
     logger.info("Bulk user delete completed", {
       superadminUsername: session.username,
+      orgId: targetOrgId,
       requestedCount: userIds.length,
       deletedCount: result.modifiedCount,
     });

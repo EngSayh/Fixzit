@@ -2,7 +2,7 @@
 
 /**
  * Superadmin Audit Logs
- * Real-time audit trail viewer using /api/admin/audit-logs
+ * Real-time audit trail viewer using /api/superadmin/audit-logs
  * 
  * @module app/superadmin/audit/page
  */
@@ -106,7 +106,7 @@ export default function SuperadminAuditPage() {
       if (actionFilter !== "all") params.set("action", actionFilter);
       if (entityFilter !== "all") params.set("entityType", entityFilter);
 
-      const response = await fetch(`/api/admin/audit-logs?${params}`, { credentials: "include" });
+      const response = await fetch(`/api/superadmin/audit-logs?${params}`, { credentials: "include" });
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         throw new Error(err.error || `HTTP ${response.status}`);
@@ -130,7 +130,7 @@ export default function SuperadminAuditPage() {
       const params = new URLSearchParams();
       if (actionFilter !== "all") params.set("action", actionFilter);
       if (entityFilter !== "all") params.set("entityType", entityFilter);
-      const response = await fetch(`/api/admin/audit/export?${params}`, { credentials: "include" });
+      const response = await fetch(`/api/superadmin/audit/export?${params}`, { credentials: "include" });
       if (!response.ok) throw new Error("Export failed");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);

@@ -109,7 +109,7 @@ export default function SuperadminReportsPage() {
 
   const handleExport = async (format: string) => {
     try {
-      const response = await fetch(`/api/admin/export?format=${format}`, { credentials: "include" });
+      const response = await fetch(`/api/superadmin/export?format=${format}`, { credentials: "include" });
       if (!response.ok) throw new Error("Export failed");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);

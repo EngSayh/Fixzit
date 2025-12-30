@@ -12,7 +12,7 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { connectDb } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
-import { isValidObjectId } from "mongoose";
+import { isValidObjectId, Types } from "mongoose";
 import { smartRateLimit } from "@/server/security/rateLimit";
 
 const BulkUpdateSchema = z.object({
@@ -21,6 +21,10 @@ const BulkUpdateSchema = z.object({
       (ids) => ids.every((id) => isValidObjectId(id)),
       "All user IDs must be valid MongoDB ObjectIds"
     ),
+  orgId: z.string().optional().refine(
+    (value) => !value || isValidObjectId(value),
+    { message: "orgId must be a valid MongoDB ObjectId" }
+  ),
   updates: z.object({
     status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"]).optional(),
   }).refine(
@@ -77,17 +81,36 @@ export async function POST(request: NextRequest) {
     }
 
     const { userIds, updates } = validation.data;
+    const requestedOrgId = validation.data.orgId?.trim();
 
     // Connect to database
     await connectDb();
 
-    // Protect SUPERADMIN accounts from bulk updates (use isSuperAdmin flag like bulk-delete)
-    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant superadmin check
-    const superadminUsers = await User.find({
+    // Resolve org scope from selected users (superadmin can see all tenants)
+    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant validation for bulk scope
+    const matchedUsers = await User.find({
       _id: { $in: userIds },
-      isSuperAdmin: true,
-    }).select("_id").lean();
+    }).select("_id orgId isSuperAdmin").lean() as Array<{
+      _id: Types.ObjectId;
+      orgId?: Types.ObjectId;
+      isSuperAdmin?: boolean;
+    }>;
 
+    if (matchedUsers.length === 0) {
+      return NextResponse.json(
+        { error: "No matching users found" },
+        { status: 404 }
+      );
+    }
+
+    if (matchedUsers.some((user) => !user.orgId)) {
+      return NextResponse.json(
+        { error: "All users must have an organization scope" },
+        { status: 400 }
+      );
+    }
+
+    const superadminUsers = matchedUsers.filter((user) => user.isSuperAdmin);
     if (superadminUsers.length > 0) {
       const superadminIds = superadminUsers.map((u) => u._id.toString());
       logger.warn("Attempted bulk update on SUPERADMIN accounts blocked", {
@@ -103,6 +126,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const orgIds = new Set(
+      matchedUsers.map((user) => user.orgId?.toString()).filter(Boolean),
+    );
+
+    if (requestedOrgId) {
+      if (orgIds.size !== 1 || !orgIds.has(requestedOrgId)) {
+        return NextResponse.json(
+          { error: "Selected users do not match the requested organization" },
+          { status: 400 }
+        );
+      }
+    } else if (orgIds.size !== 1) {
+      return NextResponse.json(
+        { error: "Bulk update requires users from a single organization" },
+        { status: 400 }
+      );
+    }
+
+    const targetOrgId = requestedOrgId ?? Array.from(orgIds)[0];
+    const targetOrgObjectId = new Types.ObjectId(targetOrgId);
+
     // Add audit trail fields
     const auditedUpdates = {
       ...updates,
@@ -111,14 +155,14 @@ export async function POST(request: NextRequest) {
     };
 
     // Perform bulk update with audit trail (defense-in-depth: exclude superadmins again)
-    // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Cross-tenant bulk update
     const result = await User.updateMany(
-      { _id: { $in: userIds }, isSuperAdmin: { $ne: true } },
+      { _id: { $in: userIds }, orgId: targetOrgObjectId, isSuperAdmin: { $ne: true } },
       { $set: auditedUpdates }
     );
 
     logger.info("Bulk user update completed", {
       superadminUsername: session.username,
+      orgId: targetOrgId,
       userCount: userIds.length,
       modifiedCount: result.modifiedCount,
       updates,

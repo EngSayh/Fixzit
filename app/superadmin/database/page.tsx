@@ -2,7 +2,7 @@
 
 /**
  * Superadmin Database Management
- * MongoDB status, collections, and maintenance using /api/admin/export and health endpoints
+ * MongoDB status, collections, and maintenance using /api/superadmin/export and health endpoints
  * 
  * @module app/superadmin/database/page
  */
@@ -88,7 +88,7 @@ export default function SuperadminDatabasePage() {
   const handleExport = async (collection: string) => {
     try {
       setExporting(collection);
-      const response = await fetch("/api/admin/export", {
+      const response = await fetch("/api/superadmin/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

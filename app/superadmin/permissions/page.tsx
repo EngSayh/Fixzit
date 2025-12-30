@@ -242,7 +242,7 @@ export default function SuperadminPermissionsPage() {
 
   const fetchRoles = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/roles", { credentials: "include" });
+      const response = await fetch("/api/superadmin/roles", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setRoles(Array.isArray(data) ? data : data.roles || DEFAULT_ROLES);
@@ -310,7 +310,7 @@ export default function SuperadminPermissionsPage() {
 
   const handleSaveChanges = async () => {
     try {
-      const response = await fetch("/api/admin/roles/bulk-update", {
+      const response = await fetch("/api/superadmin/roles/bulk-update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -353,8 +353,8 @@ export default function SuperadminPermissionsPage() {
     
     try {
       const url = editingRole 
-        ? `/api/admin/roles/${editingRole._id}`
-        : "/api/admin/roles";
+        ? `/api/superadmin/roles/${editingRole._id}`
+        : "/api/superadmin/roles";
       
       const response = await fetch(url, {
         method: editingRole ? "PUT" : "POST",

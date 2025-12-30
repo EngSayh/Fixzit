@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     await connectDb();
 
     // Aggregate subscription stats
+    /* eslint-disable local/require-tenant-scope -- SUPER_ADMIN: Platform-wide subscription stats */
     const [
       totalSubscriptions,
       activeSubscriptions,
@@ -65,6 +66,7 @@ export async function GET(request: NextRequest) {
         },
       ]),
     ]);
+    /* eslint-enable local/require-tenant-scope */
 
     const mrr = mrrResult[0]?.totalMrr || 0;
     const arr = mrr * 12;

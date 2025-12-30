@@ -2,7 +2,7 @@
 
 /**
  * Superadmin Security Center
- * Real security monitoring using /api/admin/security/*
+ * Real security monitoring using /api/superadmin/security/*
  * 
  * @module app/superadmin/security/page
  */
@@ -39,7 +39,7 @@ export default function SuperadminSecurityPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/admin/security/rate-limits", { credentials: "include" });
+      const response = await fetch("/api/superadmin/security/rate-limits", { credentials: "include" });
       if (!response.ok) throw new Error("Failed to load security metrics");
       const data = await response.json();
       setMetrics(data);

@@ -105,7 +105,7 @@ export default function SuperadminSupportPage() {
 
   const fetchTickets = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/support-tickets?status=open", { credentials: "include" });
+      const response = await fetch("/api/superadmin/support-tickets?status=open", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setTickets(data.tickets || []);

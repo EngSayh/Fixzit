@@ -332,7 +332,7 @@ export default function SuperadminUserLogsPage() {
 
   const fetchStats = useCallback(async (currentLogs: typeof logs) => {
     try {
-      const response = await fetch("/api/admin/user-logs/stats", { credentials: "include" });
+      const response = await fetch("/api/superadmin/user-logs/stats", { credentials: "include" });
       if (response.ok) {
         setStats(await response.json());
         return; // Success - don't use demo data
@@ -477,7 +477,7 @@ export default function SuperadminUserLogsPage() {
     
     try {
       // Log export action for audit trail
-      await fetch("/api/admin/audit-log", {
+      await fetch("/api/superadmin/audit-log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

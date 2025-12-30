@@ -2,7 +2,7 @@
 
 /**
  * Superadmin Feature Flags Management
- * Real feature flag management using /api/admin/feature-flags
+ * Real feature flag management using /api/superadmin/feature-flags
  * 
  * @module app/superadmin/features/page
  */
@@ -61,7 +61,7 @@ export default function SuperadminFeaturesPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/admin/feature-flags", { credentials: "include" });
+      const response = await fetch("/api/superadmin/feature-flags", { credentials: "include" });
       if (!response.ok) throw new Error("Failed to load feature flags");
       const data = await response.json();
       setFlags(data.flags || []);
@@ -78,7 +78,7 @@ export default function SuperadminFeaturesPage() {
   const handleToggle = async (flag: FeatureFlag) => {
     try {
       setUpdating(flag.id);
-      const response = await fetch("/api/admin/feature-flags", {
+      const response = await fetch("/api/superadmin/feature-flags", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

@@ -2,7 +2,7 @@
 
 /**
  * Superadmin Analytics Dashboard
- * Real analytics using /api/admin/route-metrics and aggregated data
+ * Real analytics using /api/superadmin/route-metrics and aggregated data
  * 
  * @module app/superadmin/analytics/page
  */
@@ -63,7 +63,7 @@ export default function SuperadminAnalyticsPage() {
       const [tenantsRes, usersRes, routeMetricsRes] = await Promise.all([
         fetch("/api/superadmin/tenants?limit=1", { credentials: "include" }).catch(() => null),
         fetch("/api/superadmin/users?limit=1", { credentials: "include" }).catch(() => null),
-        fetch("/api/admin/route-metrics", { credentials: "include" }).catch(() => null),
+        fetch("/api/superadmin/route-metrics", { credentials: "include" }).catch(() => null),
       ]);
 
       const tenantsData = tenantsRes?.ok ? await tenantsRes.json() : null;

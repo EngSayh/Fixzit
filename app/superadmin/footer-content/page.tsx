@@ -169,7 +169,7 @@ export default function SuperadminFooterContentPage() {
 
   const fetchPolicies = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/content/policies", { credentials: "include" });
+      const response = await fetch("/api/superadmin/content/policies", { credentials: "include" });
       if (!response.ok) {
         // Handle non-OK HTTP responses (4xx/5xx)
         const errorText = await response.text().catch(() => "Unknown error");
@@ -247,7 +247,7 @@ export default function SuperadminFooterContentPage() {
 
   const fetchFooterLinks = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/content/footer-links", { credentials: "include" });
+      const response = await fetch("/api/superadmin/content/footer-links", { credentials: "include" });
       if (!response.ok) {
         const errorText = await response.text().catch(() => "Unknown error");
         // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
@@ -280,7 +280,7 @@ export default function SuperadminFooterContentPage() {
 
   const fetchChatbotSettings = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/content/chatbot", { credentials: "include" });
+      const response = await fetch("/api/superadmin/content/chatbot", { credentials: "include" });
       if (!response.ok) {
         const errorText = await response.text().catch(() => "Unknown error");
         // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
@@ -300,7 +300,7 @@ export default function SuperadminFooterContentPage() {
 
   const fetchCompanyInfo = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/content/company", { credentials: "include" });
+      const response = await fetch("/api/superadmin/content/company", { credentials: "include" });
       if (!response.ok) {
         const errorText = await response.text().catch(() => "Unknown error");
         // eslint-disable-next-line no-console -- SuperAdmin debug logging for API failures
@@ -374,8 +374,8 @@ export default function SuperadminFooterContentPage() {
     
     try {
       const url = editingPolicy 
-        ? `/api/admin/content/policies/${editingPolicy._id}`
-        : "/api/admin/content/policies";
+        ? `/api/superadmin/content/policies/${editingPolicy._id}`
+        : "/api/superadmin/content/policies";
       
       const response = await fetch(url, {
         method: editingPolicy ? "PUT" : "POST",
@@ -430,7 +430,7 @@ export default function SuperadminFooterContentPage() {
       return;
     }
     try {
-      const response = await fetch(`/api/admin/content/policies/${policyId}`, {
+      const response = await fetch(`/api/superadmin/content/policies/${policyId}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -474,8 +474,8 @@ export default function SuperadminFooterContentPage() {
     
     try {
       const url = editingLink 
-        ? `/api/admin/content/footer-links/${editingLink._id}`
-        : "/api/admin/content/footer-links";
+        ? `/api/superadmin/content/footer-links/${editingLink._id}`
+        : "/api/superadmin/content/footer-links";
       
       const response = await fetch(url, {
         method: editingLink ? "PUT" : "POST",
@@ -551,7 +551,7 @@ export default function SuperadminFooterContentPage() {
 
     setSaving(true);
     try {
-      const response = await fetch("/api/admin/content/chatbot", {
+      const response = await fetch("/api/superadmin/content/chatbot", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -598,7 +598,7 @@ export default function SuperadminFooterContentPage() {
     }
     
     try {
-      const response = await fetch("/api/admin/content/company", {
+      const response = await fetch("/api/superadmin/content/company", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

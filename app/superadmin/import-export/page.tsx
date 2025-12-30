@@ -2,7 +2,7 @@
 
 /**
  * Superadmin Import/Export
- * Bulk data import/export using /api/admin/export endpoints
+ * Bulk data import/export using /api/superadmin/export endpoints
  * 
  * @module app/superadmin/import-export/page
  */
@@ -73,7 +73,7 @@ export default function SuperadminImportExportPage() {
       setExporting(true);
       setExportProgress(10);
 
-      const response = await fetch("/api/admin/export", {
+      const response = await fetch("/api/superadmin/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
