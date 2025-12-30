@@ -30,6 +30,7 @@ interface IssueImport {
   title: string;
   category?: string;
   priority?: string;
+  priorityLabel?: string;
   status?: string;
   effort?: string;
   location?: string;
@@ -73,6 +74,182 @@ function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);
+}
+
+const EXTERNAL_ID_PATTERN = /\b[A-Z][A-Z0-9]+(?:-[A-Z0-9]+)*-\d+\b/;
+
+function stripDecorations(value: string): string {
+  return value.replace(/[*_`]/g, '').replace(/[^\w\s:./-]+/g, '').trim();
+}
+
+function isPlaceholderTitle(value: string): boolean {
+  const cleaned = stripDecorations(value).toUpperCase();
+  if (!cleaned) return true;
+  if (/^P[0-3]$/.test(cleaned)) return true;
+  if (/^\d+$/.test(cleaned)) return true;
+  return ['OPEN', 'PENDING', 'DONE', 'RESOLVED', 'CLOSED', 'DEFERRED'].includes(cleaned);
+}
+
+function parseSnippetColumns(snippet: string): string[] {
+  if (!snippet.includes('|')) return [];
+  return snippet
+    .split('|')
+    .map((col) => col.trim())
+    .filter(Boolean);
+}
+
+function isStatusToken(value: string): boolean {
+  const cleaned = stripDecorations(value).toLowerCase();
+  return (
+    cleaned.includes('open') ||
+    cleaned.includes('pending') ||
+    cleaned.includes('in_progress') ||
+    cleaned.includes('in-progress') ||
+    cleaned.includes('blocked') ||
+    cleaned.includes('resolved') ||
+    cleaned.includes('closed') ||
+    cleaned.includes('deferred')
+  );
+}
+
+function isEffortToken(value: string): boolean {
+  const cleaned = stripDecorations(value).toLowerCase();
+  if (/^\d+\s*(m|h|d)$/.test(cleaned)) return true;
+  return ['xs', 's', 'm', 'l', 'xl'].includes(cleaned);
+}
+
+function extractExternalIdFromText(text: string): string | null {
+  const match = text.match(EXTERNAL_ID_PATTERN);
+  return match ? match[0] : null;
+}
+
+function resolveExternalId(raw: IssueImport): string | undefined {
+  if (raw.externalId && EXTERNAL_ID_PATTERN.test(raw.externalId)) {
+    return raw.externalId;
+  }
+  const fromSnippet = extractExternalIdFromText(raw.evidenceSnippet || '');
+  return fromSnippet || undefined;
+}
+
+function extractTitleFromSnippet(snippet: string, externalId?: string): string | null {
+  const columns = parseSnippetColumns(snippet);
+  if (columns.length === 0) return null;
+
+  const candidates = columns.filter((col) => {
+    if (!col) return false;
+    if (isPlaceholderTitle(col)) return false;
+    if (isStatusToken(col)) return false;
+    if (isEffortToken(col)) return false;
+    return true;
+  });
+
+  if (externalId) {
+    const withId = candidates.find((col) => col.includes(externalId) && stripDecorations(col).length > externalId.length);
+    if (withId) return stripDecorations(withId);
+  }
+
+  const nonSummary = candidates.filter((col) => !/open prs/i.test(col));
+  const pick = (nonSummary.length ? nonSummary : candidates).sort(
+    (a, b) => stripDecorations(b).length - stripDecorations(a).length
+  )[0];
+  return pick ? stripDecorations(pick) : null;
+}
+
+function resolveTitle(raw: IssueImport, externalId?: string): string {
+  const rawTitle = raw.title?.trim() || '';
+  if (rawTitle && !isPlaceholderTitle(rawTitle)) {
+    return rawTitle;
+  }
+
+  const action = raw.action?.trim() || '';
+  if (action && !isPlaceholderTitle(action)) {
+    return action;
+  }
+
+  const fromSnippet = extractTitleFromSnippet(raw.evidenceSnippet || '', externalId);
+  if (fromSnippet) return fromSnippet;
+
+  return externalId || rawTitle || 'Pending item';
+}
+
+function shouldSkipImport(raw: IssueImport, externalId?: string): boolean {
+  const title = raw.title?.trim() || '';
+  if (!isPlaceholderTitle(title)) return false;
+  if (externalId) return false;
+  if (!raw.evidenceSnippet?.includes('|')) return false;
+  const snippet = raw.evidenceSnippet.toLowerCase();
+  if (snippet.includes('open prs') || snippet.includes('status summary') || snippet.includes('metrics overview')) {
+    return true;
+  }
+  return true;
+}
+
+function normalizeCategory(category?: string, externalId?: string): string {
+  const normalized = (category || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '_');
+
+  const externalPrefix = externalId ? externalId.split('-')[0] : '';
+  const externalMap: Record<string, string> = {
+    BUG: 'bug',
+    LOGIC: 'logic_error',
+    TEST: 'missing_test',
+    PERF: 'efficiency',
+    SEC: 'security',
+    FEAT: 'feature',
+    REFAC: 'refactor',
+    DOC: 'documentation',
+    TASK: 'next_step',
+    OTP: 'bug',
+  };
+  const fromExternal = externalMap[externalPrefix];
+
+  switch (normalized) {
+    case 'logic':
+    case 'logic_error':
+    case 'logic_errors':
+      return 'logic_error';
+    case 'missing_test':
+    case 'missing_tests':
+    case 'test':
+    case 'tests':
+      return 'missing_test';
+    case 'efficiency':
+    case 'performance':
+    case 'perf':
+      return 'efficiency';
+    case 'security':
+      return 'security';
+    case 'feature':
+      return 'feature';
+    case 'refactor':
+      return 'refactor';
+    case 'documentation':
+    case 'docs':
+      return 'documentation';
+    case 'next_step':
+    case 'next_steps':
+    case 'task':
+      return 'next_step';
+    default:
+      return fromExternal || 'bug';
+  }
+}
+
+function normalizePriority(raw: IssueImport): string {
+  const value = String(raw.priority || raw.priorityLabel || 'P2').toUpperCase();
+  if (/^P[0-3]$/.test(value)) return value;
+  return 'P2';
+}
+
+function normalizeStatus(raw: IssueImport): string {
+  const value = String(raw.status || 'open').toLowerCase();
+  if (value === 'pending') return 'open';
+  if (['open', 'in_progress', 'in_review', 'blocked', 'resolved', 'closed', 'wont_fix'].includes(value)) {
+    return value;
+  }
+  return 'open';
 }
 
 function maskUri(uri: string): string {
@@ -154,16 +331,35 @@ async function importBacklog() {
 
   for (const raw of backlogData.issues as IssueImport[]) {
     try {
-      // Prefer explicit externalId (canonical ID like "SA-IMPERSONATE-001") over slugified title
-      // Fall back to slugified key/title only if externalId is missing
-      const key = raw.externalId?.trim() || raw.key?.trim() || slugify(raw.title);
+      const normalizedExternalId = resolveExternalId(raw);
+      if (shouldSkipImport(raw, normalizedExternalId)) {
+        summary.skipped++;
+        continue;
+      }
+
+      const normalizedTitle = resolveTitle(raw, normalizedExternalId);
+      const normalizedDescription = (raw.description || normalizedTitle || raw.evidenceSnippet || raw.title || '')
+        .trim()
+        .slice(0, 2000);
+      const normalizedCategory = normalizeCategory(raw.category, normalizedExternalId);
+      const normalizedPriority = normalizePriority(raw);
+      const normalizedStatus = normalizeStatus(raw);
+      const rawAction = raw.action?.trim() || '';
+      const normalizedAction =
+        rawAction && !isPlaceholderTitle(rawAction) ? rawAction : `Fix: ${normalizedTitle}`;
+
+      const key = normalizedExternalId?.trim() || raw.key?.trim() || slugify(normalizedTitle);
       if (!key) {
         summary.errors.push(`Invalid key: ${raw.key || raw.title}`);
         summary.skipped++;
         continue;
       }
-
       const existing = await Issue.findOne({ orgId: SUPER_ADMIN_ORG, key });
+      const issueId =
+        normalizedExternalId ||
+        existing?.issueId ||
+        (await Issue.generateIssueId(normalizedCategory as any));
+      const externalId = normalizedExternalId || raw.externalId || undefined;
 
       const locationObj =
         typeof raw.location === 'string' ? { filePath: raw.location } : raw.location;
@@ -176,14 +372,15 @@ async function importBacklog() {
       const issueData = {
         orgId: SUPER_ADMIN_ORG,
         key,
-        issueId: key,
-        externalId: raw.externalId || raw.key,
-        title: raw.title,
-        description: raw.description || raw.evidenceSnippet || raw.title,
-        category: (raw.category === 'missing_tests' ? 'missing_test' : raw.category) || 'bug',
-        priority: raw.priority || 'P2',
-        status: raw.status || 'open',
-        effort: raw.effort || 'M',
+        issueId,
+        externalId,
+        legacyId: externalId,
+        title: normalizedTitle,
+        description: normalizedDescription,
+        category: normalizedCategory,
+        priority: normalizedPriority,
+        status: normalizedStatus,
+        effort: ['XS', 'S', 'M', 'L', 'XL'].includes(raw.effort?.toUpperCase() || '') ? raw.effort?.toUpperCase() : 'M',
         location: locationObj,
         sourcePath: raw.sourcePath,
         sourceRef: raw.sourceRef,
@@ -204,7 +401,7 @@ async function importBacklog() {
           : [],
         resolution: resolutionStr,
         module: raw.module || 'general',
-        action: raw.action || 'Review and fix',
+        action: normalizedAction,
         reportedBy: raw.reportedBy || 'system',
         definitionOfDone: raw.definitionOfDone || 'Fix implemented and tested',
         source: 'import' as const,
@@ -267,7 +464,7 @@ async function importBacklog() {
         }
       }
 
-      issueIds.push(key);
+      issueIds.push(issueId);
     } catch (error) {
       const err = error instanceof Error ? error.message : String(error);
       summary.errors.push(`${raw.key}: ${err}`);
