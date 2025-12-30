@@ -39,10 +39,12 @@ export async function GET(request: NextRequest) {
 
     await connectDb();
 
-    // Parse query params
+    // Parse query params with safe NaN handling
     const { searchParams } = new URL(request.url);
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
+    const parsedPage = parseInt(searchParams.get("page") || "1", 10);
+    const parsedLimit = parseInt(searchParams.get("limit") || "50", 10);
+    const page = Number.isNaN(parsedPage) ? 1 : Math.max(1, parsedPage);
+    const limit = Number.isNaN(parsedLimit) ? 50 : Math.min(100, Math.max(1, parsedLimit));
     const skip = (page - 1) * limit;
 
     // Query audit logs for impersonation events

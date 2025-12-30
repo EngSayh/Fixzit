@@ -12,9 +12,10 @@ import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { SubscriptionTier } from "@/server/models/SubscriptionTier";
 import Subscription from "@/server/models/Subscription";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { z } from "zod";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { isValidObjectId } from "mongoose";
+import { isValidObjectId } from "@/lib/utils/objectid";
 
 export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
@@ -132,12 +133,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
+    const { data: body, error: parseError } = await parseBodySafe(request, {
+      logPrefix: "[Superadmin:Tier:Update]",
+    });
+    if (parseError || !body) {
       return NextResponse.json(
-        { error: "Invalid JSON body" },
+        { error: parseError || "Invalid JSON body" },
         { status: 400, headers: ROBOTS_HEADER }
       );
     }
@@ -231,6 +232,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     // Check if any active subscriptions use this tier
     // eslint-disable-next-line local/require-tenant-scope -- SUPER_ADMIN: Platform-wide subscription check
     const activeSubscriptionsCount = await Subscription.countDocuments({
+      tierId: id,
       status: "ACTIVE",
     });
 

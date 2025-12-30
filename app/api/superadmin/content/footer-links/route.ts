@@ -12,17 +12,21 @@ import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { FooterLink } from "@/server/models/FooterLink";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
 const CreateFooterLinkSchema = z.object({
-  label: z.string().min(1).max(100),
-  labelAr: z.string().max(100).optional(),
-  url: z.string().min(1),
+  label: z.string().trim().min(1).max(100),
+  labelAr: z.string().trim().max(100).optional(),
+  url: z.string().trim().min(1).refine(
+    (val) => val.startsWith('/') || val.startsWith('http://') || val.startsWith('https://'),
+    { message: "URL must be a valid relative path or absolute URL" }
+  ),
   section: z.enum(["company", "support", "legal", "social"]),
-  icon: z.string().optional(),
+  icon: z.string().trim().optional(),
   isExternal: z.boolean().default(false),
   isActive: z.boolean().default(true),
   sortOrder: z.number().default(0),
@@ -108,6 +112,7 @@ export async function GET(request: NextRequest) {
       filter.section = section;
     }
 
+    // Platform-wide footer links (no tenant scope required - singleton content)
     const links = await FooterLink.find(filter)
       .sort({ section: 1, sortOrder: 1 })
       .lean();
@@ -152,12 +157,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
+    const { data: body, error: parseError } = await parseBodySafe(request, {
+      logPrefix: "[Superadmin:FooterLinks]",
+    });
+    if (parseError || !body) {
       return NextResponse.json(
-        { error: "Invalid JSON body" },
+        { error: parseError || "Invalid JSON body" },
         { status: 400, headers: ROBOTS_HEADER }
       );
     }
@@ -172,6 +177,7 @@ export async function POST(request: NextRequest) {
 
     await connectDb();
 
+    // Platform-wide footer links (no tenant scope required - singleton content)
     const link = await FooterLink.create(validation.data);
 
     logger.info("[Superadmin:FooterLinks] Link created", {

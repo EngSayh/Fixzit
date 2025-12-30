@@ -12,8 +12,9 @@ import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectDb } from "@/lib/mongodb-unified";
 import { FooterLink } from "@/server/models/FooterLink";
+import { parseBodySafe } from "@/lib/api/parse-body";
 import { z } from "zod";
-import { isValidObjectId } from "mongoose";
+import { isValidObjectId } from "@/lib/utils/objectid";
 
 export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
@@ -23,11 +24,14 @@ interface RouteContext {
 }
 
 const UpdateFooterLinkSchema = z.object({
-  label: z.string().min(1).max(100).optional(),
-  labelAr: z.string().max(100).optional(),
-  url: z.string().min(1).optional(),
+  label: z.string().trim().min(1).max(100).optional(),
+  labelAr: z.string().trim().max(100).optional(),
+  url: z.string().trim().min(1).refine(
+    (val) => val.startsWith('/') || val.startsWith('http://') || val.startsWith('https://'),
+    { message: "URL must be a valid relative path or absolute URL" }
+  ).optional(),
   section: z.enum(["company", "support", "legal", "social"]).optional(),
-  icon: z.string().optional(),
+  icon: z.string().trim().optional(),
   isExternal: z.boolean().optional(),
   isActive: z.boolean().optional(),
   sortOrder: z.number().optional(),
@@ -65,6 +69,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     await connectDb();
 
+    // Platform-wide footer links (no tenant scope required - singleton content)
     const link = await FooterLink.findById(id).lean();
 
     if (!link) {
@@ -117,12 +122,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
+    const { data: body, error: parseError } = await parseBodySafe(request, {
+      logPrefix: "[Superadmin:FooterLink]",
+    });
+    if (parseError || !body) {
       return NextResponse.json(
-        { error: "Invalid JSON body" },
+        { error: parseError || "Invalid JSON body" },
         { status: 400, headers: ROBOTS_HEADER }
       );
     }
@@ -137,6 +142,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     await connectDb();
 
+    // Platform-wide footer links (no tenant scope required - singleton content)
     const link = await FooterLink.findByIdAndUpdate(
       id,
       { $set: validation.data },
@@ -201,6 +207,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     await connectDb();
 
+    // Platform-wide footer links (no tenant scope required - singleton content)
     const link = await FooterLink.findByIdAndDelete(id).lean();
 
     if (!link) {

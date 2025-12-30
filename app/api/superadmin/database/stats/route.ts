@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSuperadminSession } from "@/lib/superadmin/auth";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
-import { connectDb, getMongoClient } from "@/lib/mongodb-unified";
+import { connectDb } from "@/lib/mongodb-unified";
 import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
@@ -95,8 +95,7 @@ export async function GET(request: NextRequest) {
     // Sort by size descending
     collectionStats.sort((a, b) => b.size - a.size);
 
-    // Connection pool info - ensure client is connected
-    const _client = getMongoClient();
+    // Server status info (connection pool, memory, ops counters)
     const serverStatus = await db.command({ serverStatus: 1 });
 
     const connectionInfo = {
