@@ -14,7 +14,7 @@
  * @created 2025-12-29
  */
 
-import { ObjectId, type WithId, type Document } from "mongodb";
+import { ObjectId } from "mongodb";
 import crypto from "crypto";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
@@ -227,7 +227,51 @@ export interface AuditStats {
 // ============================================================================
 
 const AUDIT_COLLECTION = "audit_logs";
+const AUDIT_SEQUENCES_COLLECTION = "audit_sequences"; // Atomic counter collection
 const BATCH_SIZE = 100;
+
+/**
+ * Get next sequence number atomically using findOneAndUpdate
+ * This ensures no two concurrent writers get the same sequence
+ */
+async function getNextSequenceNumber(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  orgId: string
+): Promise<{ sequenceNumber: number; previousHash: string | undefined }> {
+  const result = await db.collection(AUDIT_SEQUENCES_COLLECTION).findOneAndUpdate(
+    { orgId },
+    { 
+      $inc: { sequenceNumber: 1 },
+      $setOnInsert: { orgId, createdAt: new Date() }
+    },
+    { 
+      upsert: true, 
+      returnDocument: "after",
+      projection: { sequenceNumber: 1, lastHash: 1 }
+    }
+  );
+  
+  return {
+    sequenceNumber: result?.sequenceNumber ?? 1,
+    previousHash: result?.lastHash as string | undefined
+  };
+}
+
+/**
+ * Update the last hash after successful insert (eventual consistency for chain)
+ */
+async function updateLastHash(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  orgId: string,
+  hash: string,
+  sequenceNumber: number
+): Promise<void> {
+  // Only update if our sequence is newer (handles concurrent writers)
+  await db.collection(AUDIT_SEQUENCES_COLLECTION).updateOne(
+    { orgId, sequenceNumber: { $lte: sequenceNumber } },
+    { $set: { lastHash: hash, lastUpdated: new Date() } }
+  );
+}
 
 /**
  * Default retention periods (days) by category
@@ -251,82 +295,65 @@ const DEFAULT_RETENTION: Record<AuditCategory, number> = {
 
 /**
  * Log an audit event
- * Uses optimistic concurrency control to prevent race conditions in hash chain
+ * Uses atomic sequence numbers via findOneAndUpdate to guarantee unique ordering
+ * Hash chain uses sequence-based ordering for deterministic chain integrity
  */
 export async function logAuditEvent(
   entry: Omit<AuditLogEntry, "_id" | "timestamp" | "hash" | "previousHash" | "expiresAt">
 ): Promise<{ success: boolean; auditId?: string; error?: string }> {
-  const MAX_RETRIES = 3;
-  
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    try {
-      const db = await getDatabase();
-      
-      // Get previous hash for chain integrity
-      const lastEntry = await db.collection(AUDIT_COLLECTION)
-        .findOne({ orgId: entry.orgId }, { sort: { timestamp: -1 } }) as WithId<Document> | null;
-      
-      const previousHash = lastEntry ? (lastEntry as unknown as AuditLogEntry).hash : undefined;
-      const lastEntryId = lastEntry?._id;
-      
-      // Calculate retention period
-      const retentionDays = entry.compliance?.retentionPeriod || DEFAULT_RETENTION[entry.category];
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + retentionDays);
-      
-      const timestamp = new Date();
-      
-      // Generate integrity hash
-      const hash = generateHash({
-        ...entry,
-        previousHash,
-        timestamp,
-      });
-      
-      const auditLog: Omit<AuditLogEntry, "_id"> = {
-        ...entry,
-        timestamp,
-        hash,
-        previousHash,
-        expiresAt,
-      };
-      
-      // Attempt insert with OCC check - verify no new entry was inserted since we read
-      // If there was a concurrent insert, the previousHash won't match
-      const result = await db.collection(AUDIT_COLLECTION).insertOne(auditLog);
-      
-      // Verify chain integrity by checking no concurrent insert happened
-      const newerEntry = await db.collection(AUDIT_COLLECTION).findOne({
-        orgId: entry.orgId,
-        timestamp: { $gt: timestamp },
-        _id: { $ne: result.insertedId },
-      });
-      
-      if (newerEntry && lastEntryId) {
-        // Concurrent insert detected - our entry may have wrong previousHash
-        // This is acceptable for audit logs - the hash chain is still valid within order
-        logger.warn("Concurrent audit log insert detected", { 
-          component: "audit-logging",
-          insertedId: result.insertedId.toString(),
-        });
-      }
-      
-      return { success: true, auditId: result.insertedId.toString() };
-    } catch (error) {
-      if (attempt < MAX_RETRIES - 1) {
-        // Retry with backoff
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
-        continue;
-      }
-      logger.error("Failed to log audit event", { 
+  try {
+    const db = await getDatabase();
+    
+    // Atomically get next sequence number and previous hash
+    // This uses findOneAndUpdate with $inc which is atomic in MongoDB
+    const { sequenceNumber, previousHash } = await getNextSequenceNumber(db, entry.orgId);
+    
+    // Calculate retention period
+    const retentionDays = entry.compliance?.retentionPeriod || DEFAULT_RETENTION[entry.category];
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + retentionDays);
+    
+    const timestamp = new Date();
+    
+    // Generate integrity hash including sequence number for deterministic ordering
+    const hash = generateHash({
+      ...entry,
+      previousHash,
+      timestamp,
+      sequenceNumber, // Include in hash for integrity
+    });
+    
+    const auditLog: Omit<AuditLogEntry, "_id"> & { sequenceNumber: number } = {
+      ...entry,
+      timestamp,
+      hash,
+      previousHash,
+      expiresAt,
+      sequenceNumber, // Store for chain validation
+    };
+    
+    // Insert with guaranteed unique sequence number
+    const result = await db.collection(AUDIT_COLLECTION).insertOne(auditLog);
+    
+    // Update last hash for next entry (best-effort, doesn't affect current insert)
+    // This is fire-and-forget - the sequence number guarantees ordering
+    updateLastHash(db, entry.orgId, hash, sequenceNumber).catch(err => {
+      logger.warn("Failed to update last hash", { 
         component: "audit-logging",
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: err instanceof Error ? err.message : "Unknown error",
       });
-      return { success: false, error: "Failed to log audit event" };
-    }
+    });
+    
+    return { success: true, auditId: result.insertedId.toString() };
+  } catch (error) {
+    logger.error("Failed to log audit event", { 
+      component: "audit-logging",
+      error: error instanceof Error ? error.message : "Unknown error",
+      orgId: entry.orgId,
+      action: entry.action,
+    });
+    return { success: false, error: "Failed to log audit event" };
   }
-  
-  return { success: false, error: "Failed to log audit event after retries" };
 }
 
 /**

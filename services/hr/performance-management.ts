@@ -698,17 +698,65 @@ export async function launchReviewCycle(
     // Create reviews for each employee
     const reviews: Omit<PerformanceReview, "_id">[] = [];
     
+    // Batch fetch all employees and their managers for efficiency
+    const employeeRecords = await db.collection("employees").find({
+      $or: [
+        { _id: { $in: employeeIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id)) } },
+        { employeeId: { $in: employeeIds } }, // Support string-based IDs
+      ],
+      orgId,
+    }).toArray();
+    
+    // Build lookup map: id -> employee record
+    const employeeMap = new Map<string, { name: string; managerId?: string }>();
+    const managerIds = new Set<string>();
+    
+    for (const emp of employeeRecords) {
+      const key = emp._id?.toString() || emp.employeeId;
+      const name = emp.name || emp.fullName || emp.firstName 
+        ? `${emp.firstName || ""} ${emp.lastName || ""}`.trim() 
+        : "Unknown Employee";
+      employeeMap.set(key, { name, managerId: emp.managerId?.toString() });
+      if (emp.managerId) {
+        managerIds.add(emp.managerId.toString());
+      }
+    }
+    
+    // Fetch manager records
+    const managerRecords = managerIds.size > 0 
+      ? await db.collection("employees").find({
+          $or: [
+            { _id: { $in: Array.from(managerIds).filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id)) } },
+            { employeeId: { $in: Array.from(managerIds) } },
+          ],
+          orgId,
+        }).toArray()
+      : [];
+    
+    // Build manager lookup map
+    const managerMap = new Map<string, string>();
+    for (const mgr of managerRecords) {
+      const key = mgr._id?.toString() || mgr.employeeId;
+      const name = mgr.name || mgr.fullName || mgr.firstName 
+        ? `${mgr.firstName || ""} ${mgr.lastName || ""}`.trim() 
+        : "Unknown Manager";
+      managerMap.set(key, name);
+    }
+    
     for (const employeeId of employeeIds) {
-      // TODO: In production, fetch employee and manager details from employees collection
-      // For now, using placeholder values - this should be enhanced to:
-      // const employee = await db.collection("employees").findOne({ _id: employeeId, orgId });
-      // const manager = employee?.managerId ? await db.collection("employees").findOne({ _id: employee.managerId, orgId }) : null;
+      // Look up employee and manager names from fetched records
+      const employeeData = employeeMap.get(employeeId);
+      const managerId = employeeData?.managerId || "unassigned";
+      const managerName = managerId !== "unassigned" && managerMap.has(managerId)
+        ? managerMap.get(managerId)!
+        : "Unassigned";
+      
       const review: Omit<PerformanceReview, "_id"> = {
         orgId,
         employeeId,
-        employeeName: "Employee", // TODO: Resolve from employee directory
-        managerId: "manager", // TODO: Resolve from employee.managerId
-        managerName: "Manager", // TODO: Resolve from manager record
+        employeeName: employeeData?.name || "Unknown Employee",
+        managerId,
+        managerName,
         reviewCycleId: cycleId,
         status: ReviewStatus.SELF_ASSESSMENT,
         feedbackResponses: [],

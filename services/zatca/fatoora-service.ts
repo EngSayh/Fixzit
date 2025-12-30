@@ -76,42 +76,128 @@ export function generateInvoiceHash(invoiceData: {
     .digest("hex");
 }
 
+import { getDatabase } from "@/lib/mongodb-unified";
+
+const ZATCA_INVOICES_COLLECTION = "zatca_invoices";
+const GENESIS_HASH = "0".repeat(64);
+
 /**
  * Get the previous invoice hash for chain continuity
  */
 export async function getPreviousInvoiceHash(
   tenantId: string,
-  _db: unknown
+  _db?: unknown // Deprecated parameter, kept for backward compatibility
 ): Promise<string> {
-  // In production, fetch the last invoice hash from DB
-  // For initial invoice, return genesis hash
-  const GENESIS_HASH = "0".repeat(64);
+  void _db; // Unused - we fetch our own DB connection
   
-  // TODO: Implement actual DB lookup
-  // const lastInvoice = await db.collection('zatca_invoices')
-  //   .findOne({ tenant_id: tenantId }, { sort: { created_at: -1 } });
-  // return lastInvoice?.current_hash || GENESIS_HASH;
-  
-  void tenantId;
-  return GENESIS_HASH;
+  try {
+    const db = await getDatabase();
+    
+    // Fetch the most recent cleared invoice for this tenant
+    const lastInvoice = await db.collection(ZATCA_INVOICES_COLLECTION).findOne(
+      { 
+        tenant_id: ObjectId.isValid(tenantId) ? new ObjectId(tenantId) : tenantId,
+        clearance_status: { $in: ["cleared", "submitted"] },
+      },
+      { 
+        sort: { created_at: -1 },
+        projection: { current_hash: 1 }
+      }
+    );
+    
+    return (lastInvoice?.current_hash as string) || GENESIS_HASH;
+  } catch (error) {
+    logger.error("Failed to fetch previous invoice hash", {
+      tenantId,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    // Return genesis hash on error - invoice creation should not fail
+    // The hash chain can be validated/repaired later
+    return GENESIS_HASH;
+  }
 }
 
 /**
  * Validate hash chain integrity
+ * Fetches invoices and verifies each invoice's previous_hash matches prior invoice's current_hash
  */
 export async function validateHashChain(
   tenantId: string,
   limit: number = 100
-): Promise<{ valid: boolean; brokenAt?: number; error?: string }> {
-  void tenantId;
-  void limit;
-  
-  // TODO: Implement chain validation
-  // 1. Fetch last N invoices
-  // 2. Verify each invoice's previous_hash matches prior invoice's current_hash
-  // 3. Return first broken link if any
-  
-  return { valid: true };
+): Promise<{ valid: boolean; brokenAt?: number; brokenInvoiceId?: string; expectedHash?: string; actualHash?: string; error?: string }> {
+  try {
+    const db = await getDatabase();
+    
+    // Fetch last N invoices ordered by creation date (oldest first for chain validation)
+    const invoices = await db.collection(ZATCA_INVOICES_COLLECTION).find(
+      { 
+        tenant_id: ObjectId.isValid(tenantId) ? new ObjectId(tenantId) : tenantId,
+        clearance_status: { $in: ["cleared", "submitted", "draft"] },
+      },
+      {
+        sort: { created_at: 1 }, // Oldest first
+        limit,
+        projection: { 
+          _id: 1, 
+          invoice_id: 1,
+          current_hash: 1, 
+          previous_hash: 1, 
+          created_at: 1,
+          invoice_number: 1
+        }
+      }
+    ).toArray();
+    
+    if (invoices.length === 0) {
+      return { valid: true }; // No invoices to validate
+    }
+    
+    // Validate chain: each invoice's previous_hash should match prior invoice's current_hash
+    let expectedPreviousHash = GENESIS_HASH;
+    
+    for (let i = 0; i < invoices.length; i++) {
+      const invoice = invoices[i];
+      const actualPreviousHash = invoice.previous_hash as string;
+      
+      if (actualPreviousHash !== expectedPreviousHash) {
+        logger.warn("Hash chain break detected", {
+          tenantId,
+          position: i,
+          invoiceId: invoice._id?.toString(),
+          expectedHash: expectedPreviousHash,
+          actualHash: actualPreviousHash,
+        });
+        
+        return {
+          valid: false,
+          brokenAt: i,
+          brokenInvoiceId: (invoice.invoice_id || invoice._id)?.toString(),
+          expectedHash: expectedPreviousHash,
+          actualHash: actualPreviousHash,
+        };
+      }
+      
+      // Next invoice should have this invoice's current_hash as its previous_hash
+      expectedPreviousHash = invoice.current_hash as string;
+    }
+    
+    logger.info("Hash chain validation successful", {
+      tenantId,
+      invoicesValidated: invoices.length,
+    });
+    
+    return { valid: true };
+  } catch (error) {
+    logger.error("Hash chain validation failed", {
+      tenantId,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    
+    return {
+      valid: false,
+      error: error instanceof Error ? error.message : "Unknown validation error",
+    };
+  }
 }
 
 // =============================================================================
