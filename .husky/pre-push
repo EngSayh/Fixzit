@@ -1,6 +1,14 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+# Block direct pushes to protected branches (use PRs instead)
+while read local_ref local_sha remote_ref remote_sha; do
+  if echo "$remote_ref" | grep -Eq "^refs/heads/(main|master)$"; then
+    echo "ERROR: Direct pushes to '$remote_ref' are blocked. Create a PR and merge to main."
+    exit 1
+  fi
+done
+
 # Pre-push hook: Fast test validation
 # Runs UI component and list tests (~30s vs 283s full suite)
 # Helps catch regressions before pushing to remote
