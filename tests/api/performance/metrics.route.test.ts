@@ -36,6 +36,9 @@ vi.mock("@/lib/middleware/rate-limit", () => ({
 }));
 
 // Mock performance functions
+const mockGetRecentMetrics = vi.fn().mockReturnValue([
+  { timestamp: Date.now(), latency: 45, path: "/api/test" },
+]);
 vi.mock("@/lib/performance", () => ({
   getPerformanceStats: vi.fn().mockReturnValue({
     totalRequests: 1000,
@@ -43,9 +46,7 @@ vi.mock("@/lib/performance", () => ({
     p95Latency: 150,
     errorRate: 0.01,
   }),
-  getRecentMetrics: vi.fn().mockReturnValue([
-    { timestamp: Date.now(), latency: 45, path: "/api/test" },
-  ]),
+  getRecentMetrics: mockGetRecentMetrics,
   getExceededMetrics: vi.fn().mockReturnValue([]),
 }));
 
@@ -157,6 +158,7 @@ describe("API /api/performance/metrics", () => {
         role: "SUPER_ADMIN",
         email: "admin@example.com",
       });
+      mockGetRecentMetrics.mockClear();
 
       const req = new NextRequest(
         "http://localhost:3000/api/performance/metrics?type=recent&limit=10",
@@ -170,6 +172,8 @@ describe("API /api/performance/metrics", () => {
       expect(Array.isArray(data.data)).toBe(true);
       // Verify limit is respected - should have at most 10 items
       expect(data.data.length).toBeLessThanOrEqual(10);
+      // Verify getRecentMetrics was called with the correct limit parameter
+      expect(mockGetRecentMetrics).toHaveBeenCalledWith(10);
     });
   });
 });

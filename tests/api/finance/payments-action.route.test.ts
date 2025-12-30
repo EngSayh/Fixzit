@@ -193,5 +193,126 @@ describe("POST /api/finance/payments/[id]/[action]", () => {
 
       expect(res.status).toBe(400);
     });
+
+    it("returns 200 when bounce action succeeds", async () => {
+      const bounceBody = {
+        bounceReason: "Insufficient funds",
+        bounceDate: new Date().toISOString(),
+        bounceCharges: 50,
+      };
+      vi.mocked(parseBodyOrNull).mockResolvedValue(bounceBody);
+      vi.mocked(Payment.findOne).mockResolvedValue({
+        _id: mockPaymentId,
+        paymentMethod: "CHEQUE",
+        status: "PENDING",
+        notes: "",
+        save: vi.fn().mockResolvedValue(undefined),
+      } as never);
+
+      const req = new NextRequest(`http://localhost/api/finance/payments/${mockPaymentId}/bounce`, {
+        method: "POST",
+        body: JSON.stringify(bounceBody),
+      });
+      const { POST } = await importRoute();
+      const res = await POST(req, { params: Promise.resolve({ id: mockPaymentId, action: "bounce" }) });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.message).toContain("bounced");
+    });
+
+    it("returns 404 when payment not found", async () => {
+      vi.mocked(parseBodyOrNull).mockResolvedValue({
+        bounceReason: "Insufficient funds",
+        bounceDate: new Date().toISOString(),
+      });
+      vi.mocked(Payment.findOne).mockResolvedValue(null);
+
+      const req = new NextRequest(`http://localhost/api/finance/payments/${mockPaymentId}/bounce`, {
+        method: "POST",
+        body: JSON.stringify({
+          bounceReason: "Insufficient funds",
+          bounceDate: new Date().toISOString(),
+        }),
+      });
+      const { POST } = await importRoute();
+      const res = await POST(req, { params: Promise.resolve({ id: mockPaymentId, action: "bounce" }) });
+
+      expect(res.status).toBe(404);
+    });
+
+    it("returns 403 when lacking permission", async () => {
+      vi.mocked(requirePermission).mockImplementation(() => {
+        const err = new Error("Permission denied");
+        (err as Error & { name: string }).name = "ForbiddenError";
+        throw err;
+      });
+      // Mock isForbidden to return true for ForbiddenError
+      const { isForbidden } = await import("@/server/utils/errorResponses");
+      vi.mocked(isForbidden).mockReturnValue(true);
+
+      const req = new NextRequest(`http://localhost/api/finance/payments/${mockPaymentId}/bounce`, {
+        method: "POST",
+        body: JSON.stringify({
+          bounceReason: "Insufficient funds",
+          bounceDate: new Date().toISOString(),
+        }),
+      });
+      const { POST } = await importRoute();
+      const res = await POST(req, { params: Promise.resolve({ id: mockPaymentId, action: "bounce" }) });
+
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("Action: clear - success", () => {
+    it("returns 200 when clear action succeeds", async () => {
+      vi.mocked(Payment.findOne).mockResolvedValue({
+        _id: mockPaymentId,
+        status: "PENDING",
+        save: vi.fn().mockResolvedValue(undefined),
+      } as never);
+
+      const req = new NextRequest(`http://localhost/api/finance/payments/${mockPaymentId}/clear`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      const { POST } = await importRoute();
+      const res = await POST(req, { params: Promise.resolve({ id: mockPaymentId, action: "clear" }) });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.message).toContain("cleared");
+    });
+  });
+
+  describe("Action: reconcile - success", () => {
+    it("returns 200 when reconcile action succeeds", async () => {
+      const reconcileBody = {
+        bankStatementDate: new Date().toISOString(),
+        bankStatementReference: "STMT-2025-001",
+        clearedAmount: 1000,
+      };
+      vi.mocked(parseBodyOrNull).mockResolvedValue(reconcileBody);
+      vi.mocked(Payment.findOne).mockResolvedValue({
+        _id: mockPaymentId,
+        status: "PENDING",
+        reconcile: vi.fn().mockResolvedValue(undefined),
+      } as never);
+
+      const req = new NextRequest(`http://localhost/api/finance/payments/${mockPaymentId}/reconcile`, {
+        method: "POST",
+        body: JSON.stringify(reconcileBody),
+      });
+      const { POST } = await importRoute();
+      const res = await POST(req, { params: Promise.resolve({ id: mockPaymentId, action: "reconcile" }) });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.message).toContain("reconciled");
+    });
   });
 });
