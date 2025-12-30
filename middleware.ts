@@ -354,16 +354,33 @@ export async function middleware(request: NextRequest) {
     }
 
     // Debug: Check if cookie is present before session decode
-    const rawCookie = sanitizedRequest.cookies.get('superadmin_session')?.value;
+    // Note: Use original request for cookie access to avoid NextRequest cloning issues
+    const rawCookie = request.cookies.get('superadmin_session')?.value;
     const hasCookie = !!rawCookie;
     const cookieLength = rawCookie?.length || 0;
     
     // Also check the Cookie header directly for debugging
-    const cookieHeader = sanitizedRequest.headers.get('cookie') || '';
+    const cookieHeader = request.headers.get('cookie') || '';
     const hasCookieHeader = cookieHeader.includes('superadmin_session');
     
     // Use debug version to capture detailed error info
-    const { session, debug } = await getSuperadminSessionWithDebug(sanitizedRequest);
+    // IMPORTANT: Pass original request, not sanitizedRequest, to preserve cookies
+    const { session, debug } = await getSuperadminSessionWithDebug(request);
+    
+    // Server-side logging for auth debugging (visible in Vercel logs)
+    // eslint-disable-next-line no-console -- Critical auth flow debugging
+    console.log('[SUPERADMIN-MW]', {
+      path: pathname,
+      hasCookie,
+      cookieLength,
+      hasCookieHeader,
+      hasSession: !!session,
+      isExpired: session ? session.expiresAt < Date.now() : null,
+      debug: {
+        hasJwtSecret: debug.hasJwtSecret,
+        decodeError: debug.decodeError?.slice(0, 50),
+      },
+    });
     const isExpired = session ? session.expiresAt < Date.now() : true;
 
     if (!session || isExpired) {
