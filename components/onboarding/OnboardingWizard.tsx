@@ -196,14 +196,13 @@ export default function OnboardingWizard({
         }
       }
     } catch (_error) {
-      // Use current isRTL value at time of error
       toast.error(
         isRTL
           ? "تعذر تحميل بيانات الحالة. يرجى المحاولة مرة أخرى."
           : "Unable to load onboarding case. Please retry.",
       );
     }
-  }, []);
+  }, [isRTL]);
 
   useEffect(() => {
     if (existingCaseId) {

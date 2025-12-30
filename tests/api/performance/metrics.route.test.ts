@@ -163,8 +163,8 @@ describe("API /api/performance/metrics", () => {
         email: "admin@example.com",
       });
       
-      // Mock returns more items than the limit to test that limit is enforced
-      mockGetRecentMetrics.mockReturnValue([
+      // Create a mock store with 12 items
+      const mockStore = [
         { timestamp: Date.now() - 1000, latency: 41, path: "/api/test1" },
         { timestamp: Date.now() - 2000, latency: 42, path: "/api/test2" },
         { timestamp: Date.now() - 3000, latency: 43, path: "/api/test3" },
@@ -177,7 +177,10 @@ describe("API /api/performance/metrics", () => {
         { timestamp: Date.now() - 10000, latency: 50, path: "/api/test10" },
         { timestamp: Date.now() - 11000, latency: 51, path: "/api/test11" },
         { timestamp: Date.now() - 12000, latency: 52, path: "/api/test12" },
-      ]);
+      ];
+      
+      // Mock implementation that applies the limit (mimics real getRecentMetrics behavior)
+      mockGetRecentMetrics.mockImplementation((limit: number) => mockStore.slice(-limit));
 
       const req = new NextRequest(
         "http://localhost:3000/api/performance/metrics?type=recent&limit=10",

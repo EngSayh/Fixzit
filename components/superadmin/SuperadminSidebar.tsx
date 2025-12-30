@@ -280,6 +280,8 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
                   <button
                     type="button"
                     onClick={() => toggleGroup(group.id)}
+                    aria-expanded={isExpanded}
+                    aria-controls={`group-${group.id}-items`}
                     className={cn(
                       "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                       groupActive
@@ -301,7 +303,7 @@ export function SuperadminSidebar({ collapsed: controlledCollapsed, onCollapsedC
 
                 {/* Group Items */}
                 {!collapsed && isExpanded && (
-                  <div className="ms-4 border-s border-border ps-2 space-y-0.5">
+                  <div id={`group-${group.id}-items`} className="ms-4 border-s border-border ps-2 space-y-0.5">
                     {group.items.map((item) => {
                       const Icon = item.icon;
                       const isActive = pathname === item.href;

@@ -36,8 +36,9 @@ export async function POST(request: NextRequest) {
       "x-cron-secret",
       process.env.CRON_SECRET,
     );
-    const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
-    const isAuthorized = session?.user?.isSuperAdmin || isAdmin || !!superadminSession || cronAuthorized;
+    // Simplified auth: check role directly (SUPER_ADMIN role implies isSuperAdmin)
+    const userRole = session?.user?.role;
+    const isAuthorized = userRole === "SUPER_ADMIN" || userRole === "ADMIN" || !!superadminSession || cronAuthorized;
 
     if (!isAuthorized) {
       return NextResponse.json({ error: "Forbidden - Superadmin access required" }, { status: 403 });

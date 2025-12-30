@@ -27,9 +27,18 @@ const BulkDeleteSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting for bulk operations - 5 requests per minute (matches bulk-update)
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const rl = await smartRateLimit(`superadmin:bulk-delete:${ip}`, 5, 60_000);
+    // Verify superadmin session first (needed for rate limit key)
+    const session = await getSuperadminSession(request);
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized - Superadmin access required" },
+        { status: 401 }
+      );
+    }
+    
+    // Rate limiting for bulk operations - 5 requests per minute per superadmin user
+    // Use username instead of IP to prevent false positives from shared office IPs
+    const rl = await smartRateLimit(`superadmin:bulk-delete:${session.username}`, 5, 60_000);
     if (!rl.allowed) {
       // Calculate remaining seconds until reset (resetAt is epoch timestamp)
       const retryAfterSeconds = rl.resetAt 
@@ -38,15 +47,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Rate limit exceeded. Please try again later." },
         { status: 429, headers: { "Retry-After": String(Math.max(1, retryAfterSeconds)) } }
-      );
-    }
-
-    // Verify superadmin session
-    const session = await getSuperadminSession(request);
-    if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized - Superadmin access required" },
-        { status: 401 }
       );
     }
 

@@ -35,7 +35,7 @@ const VendorApplicationSchema = z.object({
     .string()
     .regex(/^\+?[0-9]{7,15}$/, "Invalid phone number format")
     .optional(),
-  services: z.array(z.string().max(200)).max(20).optional(),
+  services: z.array(z.string().min(1, "Service name cannot be empty").max(200)).max(20).optional(),
   notes: z.string().max(2000).optional(),
 });
 

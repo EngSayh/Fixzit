@@ -347,9 +347,13 @@ export default function WebhooksPage() {
     }
   };
 
-  const copySecret = (secret: string) => {
-    navigator.clipboard.writeText(secret);
-    toast.success("Secret copied to clipboard");
+  const copySecret = async (secret: string) => {
+    try {
+      await navigator.clipboard.writeText(secret);
+      toast.success("Secret copied to clipboard");
+    } catch {
+      toast.error("Failed to copy to clipboard");
+    }
   };
 
   const viewLogs = (webhook: WebhookConfig) => {
@@ -544,6 +548,7 @@ export default function WebhooksPage() {
                           className="h-8 w-8"
                           onClick={() => handleTest(webhook)}
                           disabled={testingId === webhook.id}
+                          aria-label="Test webhook"
                         >
                           <Play className={`h-4 w-4 ${testingId === webhook.id ? "animate-pulse" : ""}`} />
                         </Button>
@@ -552,6 +557,7 @@ export default function WebhooksPage() {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => viewLogs(webhook)}
+                          aria-label="View logs"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -560,6 +566,7 @@ export default function WebhooksPage() {
                           size="icon"
                           className="h-8 w-8 text-destructive"
                           onClick={() => handleDelete(webhook.id)}
+                          aria-label="Delete webhook"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

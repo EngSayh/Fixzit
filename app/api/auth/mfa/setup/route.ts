@@ -111,14 +111,22 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      return NextResponse.json({
-        success: true,
-        data: {
-          secret: result.secret,
-          qrCodeUrl: result.qrCodeUrl,
-          recoveryCodes: result.recoveryCodes,
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            secret: result.secret,
+            qrCodeUrl: result.qrCodeUrl,
+            recoveryCodes: result.recoveryCodes,
+          },
         },
-      });
+        {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, private",
+            "Pragma": "no-cache",
+          },
+        }
+      );
     }
     
     if (action === "complete") {
