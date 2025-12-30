@@ -12,17 +12,23 @@ const isWindows = os.platform() === 'win32';
 const scriptsDir = path.join(__dirname);
 const args = process.argv.slice(2);
 
-// Check for WSL availability on Windows
+// Check for WSL availability on Windows (must have a distribution installed)
 async function hasWSL() {
   if (!isWindows) return false;
   
   return new Promise((resolve) => {
-    const proc = spawn('wsl', ['--status'], { 
+    const proc = spawn('wsl', ['--list', '--quiet'], { 
       stdio: 'pipe',
       shell: true 
     });
+    let stdout = '';
+    proc.stdout?.on('data', (data) => { stdout += data.toString(); });
     proc.on('error', () => resolve(false));
-    proc.on('close', (code) => resolve(code === 0));
+    proc.on('close', (code) => {
+      // Check if there's actually a distribution listed
+      const hasDistro = code === 0 && stdout.trim().length > 0;
+      resolve(hasDistro);
+    });
   });
 }
 
