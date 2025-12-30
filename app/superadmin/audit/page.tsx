@@ -153,36 +153,36 @@ export default function SuperadminAuditPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.audit")}</h1>
-          <p className="text-slate-400">System-wide audit trail and security events</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.audit")}</h1>
+          <p className="text-muted-foreground">System-wide audit trail and security events</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport} className="border-slate-700 text-slate-300">
+          <Button variant="outline" size="sm" onClick={handleExport} className="border-input text-muted-foreground">
             <Download className="h-4 w-4 me-2" />Export
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading} className="border-slate-700 text-slate-300">
+          <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading} className="border-input text-muted-foreground">
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
           </Button>
         </div>
       </div>
 
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-card border-border">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <Input placeholder="Search by user ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-slate-800 border-slate-700 text-white" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search by user ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
             </div>
             <Select value={actionFilter} onValueChange={setActionFilter}>
-              <SelectTrigger className="w-[160px] bg-slate-800 border-slate-700 text-white"><SelectValue placeholder="Action" /></SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder="Action" /></SelectTrigger>
+              <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Actions</SelectItem>
                 {ACTION_TYPES.map((action) => (<SelectItem key={action} value={action}>{action}</SelectItem>))}
               </SelectContent>
             </Select>
             <Select value={entityFilter} onValueChange={setEntityFilter}>
-              <SelectTrigger className="w-[160px] bg-slate-800 border-slate-700 text-white"><SelectValue placeholder="Entity" /></SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder="Entity" /></SelectTrigger>
+              <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Entities</SelectItem>
                 {ENTITY_TYPES.map((entity) => (<SelectItem key={entity} value={entity}>{entity}</SelectItem>))}
               </SelectContent>
@@ -191,17 +191,17 @@ export default function SuperadminAuditPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader className="border-b border-slate-800">
-          <CardTitle className="flex items-center gap-2 text-white">
+      <Card className="bg-card border-border">
+        <CardHeader className="border-b border-border">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <FileText className="h-5 w-5" />Audit Logs
-            {pagination && <Badge variant="outline" className="ms-2 text-slate-400 border-slate-700">{pagination.total.toLocaleString()} total</Badge>}
+            {pagination && <Badge variant="outline" className="ms-2 text-muted-foreground border-input">{pagination.total.toLocaleString()} total</Badge>}
           </CardTitle>
-          <CardDescription className="text-slate-400">Complete audit trail of all system actions</CardDescription>
+          <CardDescription className="text-muted-foreground">Complete audit trail of all system actions</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {loading && logs.length === 0 ? (
-            <div className="flex items-center justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-slate-500" /></div>
+            <div className="flex items-center justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" /></div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mb-4" /><p className="text-red-400">{error}</p>
@@ -209,40 +209,40 @@ export default function SuperadminAuditPage() {
             </div>
           ) : logs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <FileText className="h-12 w-12 text-slate-600 mb-4" /><p className="text-slate-400">No audit logs found</p>
+              <FileText className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No audit logs found</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-800 hover:bg-transparent">
-                  <TableHead className="text-slate-400">Timestamp</TableHead>
-                  <TableHead className="text-slate-400">Action</TableHead>
-                  <TableHead className="text-slate-400">Entity</TableHead>
-                  <TableHead className="text-slate-400">User</TableHead>
-                  <TableHead className="text-slate-400">Status</TableHead>
-                  <TableHead className="text-slate-400 w-[80px]">Details</TableHead>
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-muted-foreground">Timestamp</TableHead>
+                  <TableHead className="text-muted-foreground">Action</TableHead>
+                  <TableHead className="text-muted-foreground">Entity</TableHead>
+                  <TableHead className="text-muted-foreground">User</TableHead>
+                  <TableHead className="text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-muted-foreground w-[80px]">Details</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {logs.map((log) => (
-                  <TableRow key={log._id} className="border-slate-800 hover:bg-slate-800/50">
-                    <TableCell className="text-slate-300"><div className="flex items-center gap-2"><Clock className="h-4 w-4 text-slate-500" />{formatDate(log.createdAt)}</div></TableCell>
-                    <TableCell><Badge variant="outline" className={ACTION_COLORS[log.action] || "bg-slate-500/20 text-slate-400"}>{log.action}</Badge></TableCell>
-                    <TableCell className="text-slate-300"><div className="flex items-center gap-2"><Shield className="h-4 w-4 text-slate-500" />{log.entityType}{log.entityId && <span className="text-slate-500 text-xs">({log.entityId.slice(-8)})</span>}</div></TableCell>
-                    <TableCell className="text-slate-300"><div className="flex items-center gap-2"><User className="h-4 w-4 text-slate-500" />{log.userEmail || log.userName || log.userId?.slice(-8) || "System"}</div></TableCell>
+                  <TableRow key={log._id} className="border-border hover:bg-muted/50">
+                    <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" />{formatDate(log.createdAt)}</div></TableCell>
+                    <TableCell><Badge variant="outline" className={ACTION_COLORS[log.action] || "bg-muted/50 text-muted-foreground"}>{log.action}</Badge></TableCell>
+                    <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><Shield className="h-4 w-4 text-muted-foreground" />{log.entityType}{log.entityId && <span className="text-muted-foreground text-xs">({log.entityId.slice(-8)})</span>}</div></TableCell>
+                    <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" />{log.userEmail || log.userName || log.userId?.slice(-8) || "System"}</div></TableCell>
                     <TableCell>{log.success !== false ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-red-500" />}</TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => { setSelectedLog(log); setViewDialogOpen(true); }} className="text-slate-400 hover:text-white"><Eye className="h-4 w-4" /></Button></TableCell>
+                    <TableCell><Button variant="ghost" size="sm" onClick={() => { setSelectedLog(log); setViewDialogOpen(true); }} className="text-muted-foreground hover:text-foreground"><Eye className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
           {pagination && pagination.pages > 1 && (
-            <div className="flex items-center justify-between p-4 border-t border-slate-800">
-              <p className="text-sm text-slate-400">Page {pagination.page} of {pagination.pages}</p>
+            <div className="flex items-center justify-between p-4 border-t border-border">
+              <p className="text-sm text-muted-foreground">Page {pagination.page} of {pagination.pages}</p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={pagination.page <= 1} className="border-slate-700"><ChevronLeft className="h-4 w-4" /></Button>
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))} disabled={pagination.page >= pagination.pages} className="border-slate-700"><ChevronRight className="h-4 w-4" /></Button>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={pagination.page <= 1} className="border-input"><ChevronLeft className="h-4 w-4" /></Button>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))} disabled={pagination.page >= pagination.pages} className="border-input"><ChevronRight className="h-4 w-4" /></Button>
               </div>
             </div>
           )}
@@ -250,23 +250,23 @@ export default function SuperadminAuditPage() {
       </Card>
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border text-foreground max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Audit Log Details</DialogTitle>
-            <DialogDescription className="text-slate-400">Complete details for this audit event</DialogDescription>
+            <DialogDescription className="text-muted-foreground">Complete details for this audit event</DialogDescription>
           </DialogHeader>
           {selectedLog && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div><p className="text-sm text-slate-400">Action</p><Badge className={ACTION_COLORS[selectedLog.action] || ""}>{selectedLog.action}</Badge></div>
-                <div><p className="text-sm text-slate-400">Entity Type</p><p className="text-white">{selectedLog.entityType}</p></div>
-                <div><p className="text-sm text-slate-400">Entity ID</p><p className="text-white font-mono text-sm">{selectedLog.entityId || "—"}</p></div>
-                <div><p className="text-sm text-slate-400">Timestamp</p><p className="text-white">{formatDate(selectedLog.createdAt)}</p></div>
-                <div><p className="text-sm text-slate-400">User</p><p className="text-white">{selectedLog.userEmail || selectedLog.userId || "System"}</p></div>
-                <div><p className="text-sm text-slate-400">IP Address</p><p className="text-white font-mono text-sm">{selectedLog.ipAddress || "—"}</p></div>
+                <div><p className="text-sm text-muted-foreground">Action</p><Badge className={ACTION_COLORS[selectedLog.action] || ""}>{selectedLog.action}</Badge></div>
+                <div><p className="text-sm text-muted-foreground">Entity Type</p><p className="text-foreground">{selectedLog.entityType}</p></div>
+                <div><p className="text-sm text-muted-foreground">Entity ID</p><p className="text-foreground font-mono text-sm">{selectedLog.entityId || "—"}</p></div>
+                <div><p className="text-sm text-muted-foreground">Timestamp</p><p className="text-foreground">{formatDate(selectedLog.createdAt)}</p></div>
+                <div><p className="text-sm text-muted-foreground">User</p><p className="text-foreground">{selectedLog.userEmail || selectedLog.userId || "System"}</p></div>
+                <div><p className="text-sm text-muted-foreground">IP Address</p><p className="text-foreground font-mono text-sm">{selectedLog.ipAddress || "—"}</p></div>
               </div>
-              {selectedLog.description && (<div><p className="text-sm text-slate-400 mb-1">Description</p><p className="text-white bg-slate-800 p-3 rounded-lg">{selectedLog.description}</p></div>)}
-              {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (<div><p className="text-sm text-slate-400 mb-1">Metadata</p><pre className="text-xs text-slate-300 bg-slate-800 p-3 rounded-lg overflow-x-auto">{JSON.stringify(selectedLog.metadata, null, 2)}</pre></div>)}
+              {selectedLog.description && (<div><p className="text-sm text-muted-foreground mb-1">Description</p><p className="text-foreground bg-muted p-3 rounded-lg">{selectedLog.description}</p></div>)}
+              {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (<div><p className="text-sm text-muted-foreground mb-1">Metadata</p><pre className="text-xs text-muted-foreground bg-muted p-3 rounded-lg overflow-x-auto">{JSON.stringify(selectedLog.metadata, null, 2)}</pre></div>)}
             </div>
           )}
           <DialogFooter><Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button></DialogFooter>

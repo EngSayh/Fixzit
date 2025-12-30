@@ -188,14 +188,14 @@ export default function AdminIssueDetailPage({
       if (!response.ok) {
         if (response.status === 404) {
           toast({
-            title: "Not Found",
-            description: "Issue not found",
+            title: t("common.notFound", "Not Found"),
+            description: t("issues.notFound", "Issue not found"),
             variant: "destructive",
           });
           router.push("/admin/issues");
           return;
         }
-        throw new Error("Failed to fetch issue");
+        throw new Error(t("issues.fetchFailed", "Failed to fetch issue"));
       }
 
       const data = await response.json();
@@ -212,8 +212,8 @@ export default function AdminIssueDetailPage({
       setProposedFix(data.proposedFix || "");
     } catch (_error) {
       toast({
-        title: "Error",
-        description: "Failed to load issue",
+        title: t("common.error", "Error"),
+        description: t("issues.loadFailed", "Failed to load issue"),
         variant: "destructive",
       });
     } finally {
@@ -246,20 +246,20 @@ export default function AdminIssueDetailPage({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save");
+        throw new Error(t("issues.saveFailed", "Failed to save"));
       }
 
       const updated = await response.json();
       setIssue(updated);
 
       toast({
-        title: "Saved",
-        description: "Issue updated successfully",
+        title: t("common.saved", "Saved"),
+        description: t("issues.updateSuccess", "Issue updated successfully"),
       });
     } catch (_error) {
       toast({
-        title: "Error",
-        description: "Failed to save changes",
+        title: t("common.error", "Error"),
+        description: t("issues.saveFailedChanges", "Failed to save changes"),
         variant: "destructive",
       });
     } finally {
@@ -276,18 +276,18 @@ export default function AdminIssueDetailPage({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete");
+        throw new Error(t("issues.deleteFailed", "Failed to delete"));
       }
 
       toast({
-        title: "Deleted",
-        description: "Issue deleted successfully",
+        title: t("common.deleted", "Deleted"),
+        description: t("issues.deleteSuccess", "Issue deleted successfully"),
       });
       router.push("/admin/issues");
     } catch (_error) {
       toast({
-        title: "Error",
-        description: "Failed to delete issue",
+        title: t("common.error", "Error"),
+        description: t("issues.deleteFailedIssue", "Failed to delete issue"),
         variant: "destructive",
       });
     } finally {
@@ -309,8 +309,8 @@ export default function AdminIssueDetailPage({
       if (!response.ok) {
         // Comments endpoint might not exist yet - show info
         toast({
-          title: "Note",
-          description: "Comments API not implemented yet",
+          title: t("common.note", "Note"),
+          description: t("issues.comments.apiMissing", "Comments API not implemented yet"),
         });
         return;
       }
@@ -319,8 +319,8 @@ export default function AdminIssueDetailPage({
       fetchIssue();
     } catch (_error) {
       toast({
-        title: "Note",
-        description: "Comments feature coming soon",
+        title: t("common.note", "Note"),
+        description: t("issues.comments.comingSoon", "Comments feature coming soon"),
       });
     }
   };
@@ -359,7 +359,7 @@ export default function AdminIssueDetailPage({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/admin/issues")}>
+          <Button variant="ghost" size="icon" onClick={() => router.push("/admin/issues")} aria-label={t("accessibility.backToIssuesList", "Go back to issues list")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -379,25 +379,25 @@ export default function AdminIssueDetailPage({
               </Badge>
             </div>
             <p className="text-muted-foreground text-sm">
-              Created {new Date(issue.createdAt).toLocaleDateString()} • 
-              Last updated {new Date(issue.updatedAt).toLocaleDateString()}
+              {t("common.created", "Created")} {new Date(issue.createdAt).toLocaleDateString()} • 
+              {t("common.lastUpdated", "Last updated")} {new Date(issue.updatedAt).toLocaleDateString()}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={fetchIssue}>
             <RefreshCw className="h-4 w-4 me-2" />
-            Refresh
+            {t("common.refresh", "Refresh")}
           </Button>
           <Button size="sm" onClick={handleSave} disabled={saving}>
             <Save className="h-4 w-4 me-2" />
-            {saving ? "Saving..." : "Save"}
+            {saving ? t("common.saving", "Saving...") : t("common.save", "Save")}
           </Button>
           <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="destructive" size="sm" disabled={deleting}>
                 <Trash2 className="h-4 w-4 me-2" />
-                Delete
+                {t("common.delete", "Delete")}
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -479,7 +479,7 @@ export default function AdminIssueDetailPage({
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <FileCode className="h-5 w-5" />
-                      Location
+                      {t("issues.details.location", "Location")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -501,7 +501,7 @@ export default function AdminIssueDetailPage({
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Properties</CardTitle>
+                  <CardTitle>{t("issues.details.properties", "Properties")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -569,7 +569,7 @@ export default function AdminIssueDetailPage({
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Metadata</CardTitle>
+                  <CardTitle>{t("issues.details.metadata", "Metadata")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div className="flex justify-between">
@@ -600,7 +600,7 @@ export default function AdminIssueDetailPage({
               {issue.labels && issue.labels.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Labels</CardTitle>
+                    <CardTitle>{t("issues.details.labels", "Labels")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
@@ -619,7 +619,7 @@ export default function AdminIssueDetailPage({
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                      Risk Tags
+                      {t("issues.details.riskTags", "Risk Tags")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -643,16 +643,16 @@ export default function AdminIssueDetailPage({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <History className="h-5 w-5" />
-                Audit History
+                {t("issues.details.auditHistory", "Audit History")}
               </CardTitle>
               <CardDescription>
-                Timeline of all changes and agent mentions
+                {t("issues.details.auditDescription", "Timeline of all changes and agent mentions")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {!issue.auditEntries || issue.auditEntries.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  No activity recorded yet
+                  {t("issues.details.noActivity", "No activity recorded yet")}
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -694,7 +694,7 @@ export default function AdminIssueDetailPage({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
-                Comments
+                {t("issues.details.comments", "Comments")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -703,19 +703,19 @@ export default function AdminIssueDetailPage({
                 <Textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Add a comment..."
+                  placeholder={t("issues.details.addComment", "Add a comment...")}
                   rows={2}
                   className="flex-1"
                 />
                 <Button onClick={handleAddComment} disabled={!newComment.trim()}>
-                  Post
+                  {t("issues.details.postComment", "Post")}
                 </Button>
               </div>
 
               {/* Comments List */}
               {!issue.comments || issue.comments.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  No comments yet
+                  {t("issues.details.noComments", "No comments yet")}
                 </p>
               ) : (
                 <div className="space-y-4">

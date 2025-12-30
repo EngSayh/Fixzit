@@ -30,19 +30,19 @@ export default function SuperadminError({ error, reset }: ErrorProps) {
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-slate-800 rounded-lg shadow-xl p-6 text-center">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-card rounded-lg shadow-xl p-6 text-center border border-border">
         <div className="flex justify-center mb-4">
           <div className="rounded-full bg-red-500/20 p-3">
             <AlertTriangle className="h-8 w-8 text-red-500" />
           </div>
         </div>
 
-        <h1 className="text-xl font-semibold text-white mb-2">
+        <h1 className="text-xl font-semibold text-foreground mb-2">
           {t("superadmin.error.title", "Something went wrong")}
         </h1>
 
-        <p className="text-slate-400 mb-4 text-sm">
+        <p className="text-muted-foreground mb-4 text-sm">
           {t(
             "superadmin.error.message",
             "An error occurred while loading the superadmin panel. This has been logged for investigation.",
@@ -51,13 +51,13 @@ export default function SuperadminError({ error, reset }: ErrorProps) {
 
         {/* Error details (collapsible for debugging) */}
         <details className="mb-4 text-start">
-          <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400">
+          <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
             {t("superadmin.error.details", "Technical details")}
           </summary>
-          <div className="mt-2 p-3 bg-slate-900 rounded text-xs font-mono text-red-400 overflow-auto max-h-32">
+          <div className="mt-2 p-3 bg-muted rounded text-xs font-mono text-red-400 overflow-auto max-h-32">
             <p className="break-all">{error.message}</p>
             {error.digest && (
-              <p className="mt-1 text-slate-500">
+              <p className="mt-1 text-muted-foreground">
                 {t("superadmin.error.digestLabel", "Digest")}: {error.digest}
               </p>
             )}
@@ -69,7 +69,6 @@ export default function SuperadminError({ error, reset }: ErrorProps) {
             onClick={reset}
             variant="default"
             size="sm"
-            className="bg-blue-600 hover:bg-blue-700"
           >
             <RefreshCw className="h-4 w-4 me-2" />
             {t("superadmin.error.tryAgain", "Try Again")}
@@ -88,14 +87,13 @@ export default function SuperadminError({ error, reset }: ErrorProps) {
             onClick={() => router.push("/")}
             variant="ghost"
             size="sm"
-            className="text-slate-400 hover:text-white"
           >
             {t("superadmin.error.exit", "Exit Superadmin")}
           </Button>
         </div>
 
-        <div className="mt-6 pt-4 border-t border-slate-700">
-          <p className="text-xs text-slate-500 flex items-center justify-center gap-1">
+        <div className="mt-6 pt-4 border-t border-border">
+          <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
             <Bug className="h-3 w-3" />
             {t(
               "superadmin.error.footer",

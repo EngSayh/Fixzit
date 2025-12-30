@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Suspense } from "react";
+import { useI18n } from "@/i18n/useI18n";
 import { Search as SearchIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -78,17 +79,17 @@ function Results({ query }: { query: string }) {
   return (
     <div className="space-y-3">
       {results.map((r, idx) => (
-        <Card key={`${r.href}-${idx}`} className="border-slate-800 bg-slate-900/60">
+        <Card key={`${r.href}-${idx}`} className="border-border bg-card/60">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base text-white flex items-center gap-2">
-              <span className="text-xs uppercase text-slate-400">{r.entity || "Result"}</span>
-              <a href={r.href} className="hover:underline text-white">
+            <CardTitle className="text-base text-foreground flex items-center gap-2">
+              <span className="text-xs uppercase text-muted-foreground">{r.entity || "Result"}</span>
+              <a href={r.href} className="hover:underline text-foreground">
                 {r.title}
               </a>
             </CardTitle>
           </CardHeader>
           {r.snippet ? (
-            <CardContent className="text-sm text-slate-300">{r.snippet}</CardContent>
+            <CardContent className="text-sm text-muted-foreground">{r.snippet}</CardContent>
           ) : null}
         </Card>
       ))}
@@ -97,6 +98,7 @@ function Results({ query }: { query: string }) {
 }
 
 function SuperadminSearchClient({ initialQuery }: { initialQuery: string }) {
+  const { t } = useI18n();
   const [q, setQ] = React.useState(initialQuery);
 
   const submit = (evt?: React.FormEvent) => {
@@ -115,14 +117,14 @@ function SuperadminSearchClient({ initialQuery }: { initialQuery: string }) {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Search</h1>
+          <h1 className="text-3xl font-bold text-foreground">Search</h1>
           <p className="text-muted-foreground mt-1">Find entities across superadmin modules</p>
         </div>
       </div>
 
       <form onSubmit={submit} className="flex items-center gap-3">
         <div className="relative w-full max-w-xl">
-          <SearchIcon className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <SearchIcon className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -130,8 +132,8 @@ function SuperadminSearchClient({ initialQuery }: { initialQuery: string }) {
               if (e.key === "Enter") submit(e);
             }}
             placeholder="Search users, tenants, jobs, vendors…"
-            className="ps-10 bg-slate-900 border-slate-800 text-white placeholder:text-slate-500"
-            aria-label="Search superadmin"
+            className="ps-10 bg-card border-border text-foreground placeholder:text-muted-foreground"
+            aria-label={t("accessibility.searchSuperadmin")}
           />
         </div>
         <Button type="submit" variant="default">

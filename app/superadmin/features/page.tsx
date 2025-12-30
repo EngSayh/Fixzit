@@ -111,61 +111,61 @@ export default function SuperadminFeaturesPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.features")}</h1>
-          <p className="text-slate-400">Manage feature toggles system-wide</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.features")}</h1>
+          <p className="text-muted-foreground">Manage feature toggles system-wide</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchFlags} disabled={loading} className="border-slate-700 text-slate-300">
+        <Button variant="outline" size="sm" onClick={fetchFlags} disabled={loading} className="border-input text-muted-foreground">
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-slate-800"><Zap className="h-5 w-5 text-slate-400" /></div>
-              <div><p className="text-2xl font-bold text-white">{flags.length}</p><p className="text-sm text-slate-400">Total Flags</p></div>
+              <div className="p-2 rounded-lg bg-muted"><Zap className="h-5 w-5 text-muted-foreground" /></div>
+              <div><p className="text-2xl font-bold text-foreground">{flags.length}</p><p className="text-sm text-muted-foreground">Total Flags</p></div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-green-500/20"><CheckCircle className="h-5 w-5 text-green-400" /></div>
-              <div><p className="text-2xl font-bold text-white">{enabledCount}</p><p className="text-sm text-slate-400">Enabled</p></div>
+              <div><p className="text-2xl font-bold text-foreground">{enabledCount}</p><p className="text-sm text-muted-foreground">Enabled</p></div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-yellow-500/20"><Beaker className="h-5 w-5 text-yellow-400" /></div>
-              <div><p className="text-2xl font-bold text-white">{betaCount}</p><p className="text-sm text-slate-400">Beta</p></div>
+              <div><p className="text-2xl font-bold text-foreground">{betaCount}</p><p className="text-sm text-muted-foreground">Beta</p></div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-gray-500/20"><XCircle className="h-5 w-5 text-gray-400" /></div>
-              <div><p className="text-2xl font-bold text-white">{flags.length - enabledCount}</p><p className="text-sm text-slate-400">Disabled</p></div>
+              <div><p className="text-2xl font-bold text-foreground">{flags.length - enabledCount}</p><p className="text-sm text-muted-foreground">Disabled</p></div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-card border-border">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <Input placeholder="Search flags..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-slate-800 border-slate-700 text-white" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search flags..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10 bg-muted border-input text-foreground" />
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[160px] bg-slate-800 border-slate-700 text-white"><SelectValue placeholder="Category" /></SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectTrigger className="w-[160px] bg-muted border-input text-foreground"><SelectValue placeholder="Category" /></SelectTrigger>
+              <SelectContent className="bg-muted border-input">
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((cat) => (<SelectItem key={cat} value={cat!}>{cat}</SelectItem>))}
               </SelectContent>
@@ -175,41 +175,41 @@ export default function SuperadminFeaturesPage() {
       </Card>
 
       {/* Flags Table */}
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader className="border-b border-slate-800">
-          <CardTitle className="flex items-center gap-2 text-white"><Zap className="h-5 w-5" />Feature Flags</CardTitle>
-          <CardDescription className="text-slate-400">Toggle features on/off across the platform</CardDescription>
+      <Card className="bg-card border-border">
+        <CardHeader className="border-b border-border">
+          <CardTitle className="flex items-center gap-2 text-foreground"><Zap className="h-5 w-5" />Feature Flags</CardTitle>
+          <CardDescription className="text-muted-foreground">Toggle features on/off across the platform</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex items-center justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-slate-500" /></div>
+            <div className="flex items-center justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" /></div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-12"><AlertCircle className="h-12 w-12 text-red-500 mb-4" /><p className="text-red-400">{error}</p></div>
           ) : filteredFlags.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12"><Zap className="h-12 w-12 text-slate-600 mb-4" /><p className="text-slate-400">No feature flags found</p></div>
+            <div className="flex flex-col items-center justify-center py-12"><Zap className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No feature flags found</p></div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-800">
-                  <TableHead className="text-slate-400">Flag</TableHead>
-                  <TableHead className="text-slate-400">Category</TableHead>
-                  <TableHead className="text-slate-400">Status</TableHead>
-                  <TableHead className="text-slate-400">Environments</TableHead>
-                  <TableHead className="text-slate-400 text-end">Enabled</TableHead>
+                <TableRow className="border-border">
+                  <TableHead className="text-muted-foreground">Flag</TableHead>
+                  <TableHead className="text-muted-foreground">Category</TableHead>
+                  <TableHead className="text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-muted-foreground">Environments</TableHead>
+                  <TableHead className="text-muted-foreground text-end">Enabled</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredFlags.map((flag) => (
-                  <TableRow key={flag.id} className="border-slate-800 hover:bg-slate-800/50">
+                  <TableRow key={flag.id} className="border-border hover:bg-muted/50">
                     <TableCell>
                       <div>
-                        <p className="text-white font-medium">{flag.name}</p>
-                        <p className="text-xs text-slate-500 font-mono">{flag.id}</p>
-                        {flag.description && <p className="text-sm text-slate-400 mt-1">{flag.description}</p>}
+                        <p className="text-foreground font-medium">{flag.name}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{flag.id}</p>
+                        {flag.description && <p className="text-sm text-muted-foreground mt-1">{flag.description}</p>}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2 text-slate-300">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         {CATEGORY_ICONS[flag.category || ""] || <Settings className="h-4 w-4" />}
                         {flag.category || "—"}
                       </div>

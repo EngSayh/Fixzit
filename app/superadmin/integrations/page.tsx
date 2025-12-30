@@ -128,24 +128,24 @@ export default function SuperadminIntegrationsPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.integrations") || "Integrations"}</h1>
-          <p className="text-slate-400">Manage third-party service connections</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.integrations") || "Integrations"}</h1>
+          <p className="text-muted-foreground">Manage third-party service connections</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchIntegrations} disabled={loading} className="border-slate-700 text-slate-300">
+        <Button variant="outline" size="sm" onClick={fetchIntegrations} disabled={loading} className="border-input text-muted-foreground">
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-slate-900 border-slate-800"><CardContent className="p-4"><div className="flex items-center gap-3"><Plug className="h-8 w-8 text-blue-400" /><div><p className="text-2xl font-bold text-white">{stats.total}</p><p className="text-slate-400 text-sm">Total Integrations</p></div></div></CardContent></Card>
-        <Card className="bg-slate-900 border-slate-800"><CardContent className="p-4"><div className="flex items-center gap-3"><CheckCircle className="h-8 w-8 text-green-400" /><div><p className="text-2xl font-bold text-white">{stats.connected}</p><p className="text-slate-400 text-sm">Connected</p></div></div></CardContent></Card>
-        <Card className="bg-slate-900 border-slate-800"><CardContent className="p-4"><div className="flex items-center gap-3"><XCircle className="h-8 w-8 text-yellow-400" /><div><p className="text-2xl font-bold text-white">{stats.pending}</p><p className="text-slate-400 text-sm">Pending Setup</p></div></div></CardContent></Card>
+        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><Plug className="h-8 w-8 text-blue-400" /><div><p className="text-2xl font-bold text-foreground">{stats.total}</p><p className="text-muted-foreground text-sm">Total Integrations</p></div></div></CardContent></Card>
+        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><CheckCircle className="h-8 w-8 text-green-400" /><div><p className="text-2xl font-bold text-foreground">{stats.connected}</p><p className="text-muted-foreground text-sm">Connected</p></div></div></CardContent></Card>
+        <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center gap-3"><XCircle className="h-8 w-8 text-yellow-400" /><div><p className="text-2xl font-bold text-foreground">{stats.pending}</p><p className="text-muted-foreground text-sm">Pending Setup</p></div></div></CardContent></Card>
       </div>
 
       {Object.entries(groupedIntegrations).map(([category, items]) => (
-        <Card key={category} className="bg-slate-900 border-slate-800">
-          <CardHeader className="border-b border-slate-800">
-            <CardTitle className="flex items-center gap-2 text-white">
+        <Card key={category} className="bg-card border-border">
+          <CardHeader className="border-b border-border">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               <Badge variant="outline" className={CATEGORY_COLORS[category] || ""}>{category}</Badge>
             </CardTitle>
           </CardHeader>
@@ -154,23 +154,23 @@ export default function SuperadminIntegrationsPage() {
               {items.map((integration) => {
                 const Icon = ICONS[integration.icon] || Plug;
                 return (
-                  <div key={integration.id} className="flex items-center justify-between p-4 bg-slate-800 rounded-lg">
+                  <div key={integration.id} className="flex items-center justify-between p-4 bg-muted rounded-lg">
                     <div className="flex items-center gap-4">
-                      <div className="p-2 bg-slate-700 rounded-lg"><Icon className="h-6 w-6 text-white" /></div>
+                      <div className="p-2 bg-muted/80 rounded-lg"><Icon className="h-6 w-6 text-foreground" /></div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-white font-medium">{integration.name}</span>
+                          <span className="text-foreground font-medium">{integration.name}</span>
                           <Badge variant="outline" className={STATUS_COLORS[integration.status] || ""}>
                             {integration.status === "connected" ? <CheckCircle className="h-3 w-3 me-1" /> : null}
                             {integration.status}
                           </Badge>
                         </div>
-                        <p className="text-slate-400 text-sm">{integration.description}</p>
-                        {integration.lastSync && <p className="text-slate-500 text-xs mt-1">Last sync: {formatDate(integration.lastSync)}</p>}
+                        <p className="text-muted-foreground text-sm">{integration.description}</p>
+                        {integration.lastSync && <p className="text-muted-foreground text-xs mt-1">Last sync: {formatDate(integration.lastSync)}</p>}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Button variant="outline" size="sm" onClick={() => handleConfigure(integration)} className="border-slate-700"><Settings className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="sm" onClick={() => handleConfigure(integration)} className="border-input"><Settings className="h-4 w-4" /></Button>
                       <Switch checked={integration.enabled} onCheckedChange={() => handleToggle(integration)} disabled={toggling === integration.id} />
                     </div>
                   </div>
@@ -182,17 +182,17 @@ export default function SuperadminIntegrationsPage() {
       ))}
 
       <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
-        <DialogContent className="bg-slate-900 border-slate-700">
-          <DialogHeader><DialogTitle className="text-white flex items-center gap-2"><Settings className="h-5 w-5" />Configure {selectedIntegration?.name}</DialogTitle></DialogHeader>
+        <DialogContent className="bg-card border-input">
+          <DialogHeader><DialogTitle className="text-foreground flex items-center gap-2"><Settings className="h-5 w-5" />Configure {selectedIntegration?.name}</DialogTitle></DialogHeader>
           {selectedIntegration && (
             <div className="space-y-4">
-              <div className="bg-slate-800 p-4 rounded-lg">
-                <p className="text-slate-400 text-sm mb-2">Status</p>
+              <div className="bg-muted p-4 rounded-lg">
+                <p className="text-muted-foreground text-sm mb-2">Status</p>
                 <Badge variant="outline" className={STATUS_COLORS[selectedIntegration.status] || ""}>{selectedIntegration.status}</Badge>
               </div>
-              <div className="bg-slate-800 p-4 rounded-lg">
-                <p className="text-slate-400 text-sm mb-2">Description</p>
-                <p className="text-white">{selectedIntegration.description}</p>
+              <div className="bg-muted p-4 rounded-lg">
+                <p className="text-muted-foreground text-sm mb-2">Description</p>
+                <p className="text-foreground">{selectedIntegration.description}</p>
               </div>
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
                 <p className="text-yellow-200 text-sm">Configuration settings are managed via environment variables. Update .env to configure API keys and secrets.</p>
@@ -200,7 +200,7 @@ export default function SuperadminIntegrationsPage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfigDialogOpen(false)} className="border-slate-700">Close</Button>
+            <Button variant="outline" onClick={() => setConfigDialogOpen(false)} className="border-input">Close</Button>
             <Button asChild className="bg-blue-600 hover:bg-blue-700"><a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4 me-2" />Manage in Vercel</a></Button>
           </DialogFooter>
         </DialogContent>

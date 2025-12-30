@@ -123,7 +123,61 @@
       "benefits": "Benefits"
     }
   },
+  "checkout": {
+    "accountDesc": "Create your account to get started",
+    "accountInfo": "Account Information",
+    "back": "Back",
+    "backToPricing": "Back to Pricing",
+    "companyName": "Company Name",
+    "confirmPassword": "Confirm Password",
+    "continueToPayment": "Continue to Payment",
+    "createAccount": "Create Account",
+    "email": "Email",
+    "firstName": "First Name",
+    "invalidPlan": "Invalid Plan",
+    "invalidPlanDescription": "The selected plan does not exist. Please choose a valid plan.",
+    "lastName": "Last Name",
+    "monthly": "per month",
+    "orderSummary": "Order Summary",
+    "password": "Password",
+    "pay": "Complete Payment",
+    "paymentDesc": "Enter your payment details",
+    "paymentDetails": "Payment Details",
+    "paymentPending": "Payment Processing",
+    "paymentPendingDesc": "Your payment is being processed. Please wait...",
+    "phone": "Phone",
+    "plan": "Plan",
+    "processing": "Processing...",
+    "securePayment": "Secure Payment",
+    "steps": {
+      "account": "Account",
+      "payment": "Payment"
+    },
+    "subtotal": "Subtotal",
+    "success": {
+      "description": "Your Fixzit account is ready. Check your email for login details.",
+      "login": "Go to Login",
+      "title": "Subscription Activated!"
+    },
+    "terms": "I accept the Terms and Conditions",
+    "testCardLink": "Use test card",
+    "total": "Total",
+    "users": "Users",
+    "vat": "VAT (15%)",
+    "errors": {
+      "companyRequired": "Company name is required",
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "passwordLength": "Password must be at least 8 characters",
+      "passwordMatch": "Passwords do not match",
+      "phoneRequired": "Phone number is required",
+      "termsRequired": "You must accept the terms and conditions",
+      "validEmail": "Please enter a valid email"
+    }
+  },
   "auth": {
+    "hidePassword": "Hide password",
+    "showPassword": "Show password",
     "login": {
       "title": "Sign In",
       "email": "Email",
@@ -2115,9 +2169,9 @@
     },
     "recentlyViewed": {
       "itemFallback": "Product",
-      "signInCta": "Sign in to see your history",
-      "subtitle": "Products you've recently viewed",
-      "title": "Recently Viewed"
+      "signInCta": "Sign in",
+      "subtitle": "Pick up where you left off. Sign in to sync across devices.",
+      "title": "Recently viewed"
     }
   },
   "vendors": {
@@ -2886,6 +2940,11 @@
     "cancel": "Cancel",
     "filter": "Filter",
     "import": "Import",
+    "refresh": "Refresh",
+    "download": "Download",
+    "retry": "Retry",
+    "unknownError": "Unknown error",
+    "collapse": "Collapse",
     "error": {
       "loadData": "Load Data"
     },
@@ -2916,6 +2975,11 @@
       "nextRefresh": "Next refresh in {{time}}",
       "secondsAgo": "{{count}} seconds ago"
     },
+    "timeUnits": {
+      "secondsShort": "{{count}}s",
+      "minutesShort": "{{count}}m",
+      "hoursMinutesShort": "{{hours}}h {{minutes}}m"
+    },
     "unknown": "Unknown",
     "yes": "Yes",
     "no": "No",
@@ -2923,8 +2987,6 @@
     "reset": "Reset",
     "clear": "Clear",
     "apply": "Apply",
-    "refresh": "Refresh",
-    "download": "Download",
     "upload": "Upload",
     "create": "Create",
     "update": "Update",
@@ -2963,7 +3025,6 @@
     "email": "Email",
     "viewDetails": "View Details",
     "vendors": "Vendors",
-    "retry": "Retry",
     "na": "Na",
     "approve": "Approve",
     "reject": "Reject",
@@ -3008,7 +3069,12 @@
   },
   "accessibility": {
     "skipToContent": "Skip to main content",
-    "skipToMainContent": "Skip to main content"
+    "skipToMainContent": "Skip to main content",
+    "scrollToTop": "Scroll to top",
+    "searchSuperadmin": "Search superadmin",
+    "hideAccessKey": "Hide access key",
+    "showAccessKey": "Show access key",
+    "backToIssuesList": "Go back to issues list"
   },
   "app": {
     "fm": "Facility Management",
@@ -4516,6 +4582,21 @@
     }
   },
   "pricing": {
+    "checkout": {
+      "back": "Back to Pricing",
+      "maxUsers": "Maximum {{max}} users",
+      "proceed": "Proceed to Checkout",
+      "subtitle": "Review your plan details",
+      "title": "Checkout",
+      "total": "Total",
+      "users": "Number of Users",
+      "vatNote": "VAT (15%) included"
+    },
+    "custom": "Custom",
+    "free": "Free",
+    "perUser": "per user",
+    "plan": "Plan",
+    "selected": "Selected",
     "tagline": "Tagline",
     "title": "Pricing",
     "subtitle": "Manage your subtitle",
@@ -5140,7 +5221,12 @@
     "verifyingAccess": "Verifying access...",
     "goToLanding": "Go to Landing Page",
     "searchSuperadmin": "Search superadmin...",
+    "searchPlaceholder": "Search...",
     "switchTenant": "Switch Tenant",
+    "themeTitle": "Theme: {{theme}} (click to change)",
+    "notificationsTitle": "Notifications",
+    "fullAccess": "Full platform access",
+    "version": "Fixzit Superadmin v2.0",
     "error": {
       "title": "Something went wrong",
       "message": "An unexpected error occurred in the superadmin panel. Our team has been notified.",
@@ -5151,30 +5237,141 @@
       "exit": "Exit Superadmin",
       "footer": "If this problem persists, please contact support."
     },
+    "auth": {
+      "redirectingToLogin": "Redirecting to login...",
+      "verifyingSession": "Verifying session...",
+      "clickHereIfNotRedirected": "Click here if not redirected"
+    },
+    "ssot": {
+      "title": "SSOT Viewer",
+      "description": "Read-only view of the canonical PENDING_MASTER.md file",
+      "fetchFailed": "Failed to fetch SSOT",
+      "loadFailed": "Failed to load SSOT",
+      "downloadSuccess": "Downloaded SSOT file"
+    },
     "nav": {
+      "fmDashboard": "FM Dashboard",
       "issues": "Issues",
       "ssot": "SSOT Viewer",
       "tenants": "Tenants",
       "users": "Users",
-      "roles": "Roles",
+      "roles": "Roles & Permissions",
+      "permissions": "Authority Matrix",
+      "userLogs": "User Activity Logs",
       "audit": "Audit Logs",
-      "features": "Features",
+      "features": "Feature Flags",
       "integrations": "Integrations",
-      "jobs": "Jobs",
-      "system": "System",
-      "billing": "Billing",
+      "jobs": "Background Jobs",
+      "system": "System Settings",
+      "billing": "Billing & Plans",
+      "subscriptions": "Subscriptions",
       "translations": "Translations",
       "database": "Database",
-      "security": "Security",
+      "security": "Security Settings",
       "analytics": "Analytics",
       "notifications": "Notifications",
-      "catalog": "Catalog",
-      "impersonate": "Impersonate",
-      "importExport": "Import/Export",
-      "import-export": "Import/Export",
+      "catalog": "Product Catalog",
+      "impersonate": "Impersonate User",
+      "importExport": "Import / Export",
+      "import-export": "Import / Export",
       "reports": "Reports",
-      "support": "Support",
-      "vendors": "Vendors"
+      "support": "Support Tickets",
+      "vendors": "Vendors",
+      "footerContent": "Footer & Policies"
+    },
+    "groups": {
+      "ssot": "Issue Tracking",
+      "organization": "Organization Management",
+      "marketplace": "Marketplace",
+      "system": "System Configuration",
+      "data": "Data Management",
+      "security": "Security & Compliance",
+      "finance": "Finance & Billing",
+      "communication": "Communication"
+    },
+    "userLogs": {
+      "subtitle": "Monitor user activity, sessions, and interactions for support",
+      "totalLogs": "Total Logs",
+      "today": "Today",
+      "uniqueUsers": "Unique Users",
+      "errorRate": "Error Rate",
+      "avgSession": "Avg Session",
+      "activityLogs": "Activity Logs",
+      "activityLogsDescription": "Real-time user activity and request history",
+      "activeSessions": "Active Sessions",
+      "activeSessionsDescription": "Currently active user sessions across all tenants",
+      "details": "Details",
+      "searchPlaceholder": "Search by user, email, action, or tenant...",
+      "noLogsFound": "No activity logs found",
+      "noSessions": "No active sessions",
+      "pages": "pages",
+      "actions": "actions",
+      "statusActive": "Active",
+      "statusEnded": "Ended",
+      "logDetails": "Activity Log Details",
+      "sessionDetails": "Session Details",
+      "terminateSession": "Terminate Session",
+      "terminateNotImplemented": "Session termination not yet implemented",
+      "filters": {
+        "allCategories": "All Categories",
+        "allStatus": "All Status",
+        "categories": {
+          "auth": "Authentication",
+          "navigation": "Navigation",
+          "crud": "CRUD",
+          "settings": "Settings",
+          "api": "API",
+          "error": "Error"
+        },
+        "status": {
+          "success": "Success",
+          "warning": "Warning",
+          "error": "Error"
+        },
+        "dateRange": {
+          "today": "Today",
+          "week": "This Week",
+          "month": "This Month",
+          "all": "All Time"
+        }
+      },
+      "table": {
+        "time": "Time",
+        "user": "User",
+        "tenant": "Tenant",
+        "action": "Action",
+        "category": "Category",
+        "status": "Status",
+        "details": "Details"
+      },
+      "fields": {
+        "user": "User",
+        "email": "Email",
+        "tenant": "Tenant",
+        "category": "Category",
+        "status": "Status",
+        "timestamp": "Timestamp",
+        "details": "Details",
+        "metadata": "Metadata",
+        "device": "Device",
+        "browser": "Browser",
+        "os": "OS",
+        "ipAddress": "IP Address",
+        "location": "Location",
+        "started": "Started",
+        "pagesVisited": "Pages Visited",
+        "actions": "Actions",
+        "duration": "Duration",
+        "activity": "Activity"
+      }
+    },
+    "jobs": {
+      "fetchError": "Failed to load background jobs"
+    },
+    "subscriptions": {
+      "fetchError": "Failed to load subscriptions",
+      "fetchStatsError": "Failed to load subscription statistics",
+      "fetchTiersError": "Failed to load subscription tiers"
     },
     "issues": {
       "title": "System Issue Tracker",
@@ -5190,6 +5387,20 @@
       "importing": "Importing...",
       "add": "Add Issue",
       "search": "Search issues...",
+      "connection": {
+        "dbFailed": "Database connection failed",
+        "fetchFailed": "Failed to fetch issues from database",
+        "retry": "Retry Connection",
+        "serverError": "Server error occurred",
+        "title": "Connection Error",
+        "troubleshooting": {
+          "atlas": "Check MongoDB Atlas status and network access",
+          "env": "Verify MONGODB_URI environment variable",
+          "ip": "Ensure IP whitelist includes deployment server",
+          "logs": "Check server logs for detailed error messages"
+        },
+        "troubleshootingTitle": "Troubleshooting Steps"
+      },
       "actions": {
         "deleteConfirm": "Are you sure you want to delete this issue?",
         "deleteWarning": "This action cannot be undone"
@@ -5300,6 +5511,43 @@
         "next": "Next",
         "pageOf": "Page {page} of {total}"
       }
+    },
+    "catalog": {
+      "title": "Product Catalog",
+      "subtitle": "Manage Fixzit Souq marketplace products",
+      "searchPlaceholder": "Search products...",
+      "categoryPlaceholder": "Category",
+      "allCategories": "All Categories",
+      "statusPlaceholder": "Status",
+      "allStatus": "All Status",
+      "modelPlaceholder": "Model",
+      "allModels": "All Models",
+      "totalProducts": "Total Products",
+      "active": "Active",
+      "lowStock": "Low Stock",
+      "inventoryValue": "Inventory Value",
+      "products": "Products",
+      "marketplaceCatalog": "Marketplace catalog",
+      "noProducts": "No products found",
+      "search": "Search",
+      "refresh": "Refresh"
+    },
+    "vendors": {
+      "title": "Vendor Management",
+      "subtitle": "Manage suppliers, contractors, and service providers",
+      "searchPlaceholder": "Search vendors...",
+      "typePlaceholder": "Type",
+      "allTypes": "All Types",
+      "statusPlaceholder": "Status",
+      "allStatus": "All Status",
+      "totalVendors": "Total Vendors",
+      "active": "Active",
+      "avgRating": "Avg Rating",
+      "categories": "Categories",
+      "allVendors": "All vendors across tenants",
+      "noVendors": "No vendors found",
+      "search": "Search",
+      "refresh": "Refresh"
     }
   }
 }

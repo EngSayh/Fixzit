@@ -49,8 +49,11 @@ export async function GET(
   _req: NextRequest,
   props: { params: Promise<RouteParams> },
 ) {
-  enforceRateLimit(_req, { requests: 10, windowMs: 60_000, keyPrefix: "hr:payroll:wps" });
   try {
+    // Rate limit check - return 429 if exceeded (inside try block for error handling)
+    const rateLimited = enforceRateLimit(_req, { requests: 10, windowMs: 60_000, keyPrefix: "hr:payroll:wps" });
+    if (rateLimited) return rateLimited;
+
     const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -77,6 +80,18 @@ export async function GET(
       return NextResponse.json(
         { error: "Payroll run not found" },
         { status: 404 },
+      );
+    }
+    
+    if (run.orgId?.toString?.() !== session.user.orgId) {
+      logger.warn("WPS export org mismatch", {
+        userId: session.user.id,
+        orgId: session.user.orgId,
+        payrollOrgId: run.orgId?.toString?.(),
+      });
+      return NextResponse.json(
+        { error: "Forbidden: payroll run belongs to another organization" },
+        { status: 403 },
       );
     }
 

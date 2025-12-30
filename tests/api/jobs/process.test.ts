@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const mockAuth = vi.fn();
+const mockGetSuperadminSession = vi.fn();
 const mockClaimJob = vi.fn();
 const mockCompleteJob = vi.fn();
 const mockFailJob = vi.fn();
@@ -13,6 +14,10 @@ const mockSetApiKey = vi.fn();
 
 vi.mock('@/auth', () => ({
   auth: mockAuth,
+}));
+
+vi.mock('@/lib/superadmin/auth', () => ({
+  getSuperadminSession: (...args: unknown[]) => mockGetSuperadminSession(...args),
 }));
 
 vi.mock('@/lib/logger', () => ({
@@ -37,6 +42,14 @@ vi.mock('@/lib/storage/s3', () => ({
   deleteObject: (...args: unknown[]) => mockDeleteObject(...args),
 }));
 
+vi.mock('@/lib/middleware/rate-limit', () => ({
+  enforceRateLimit: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('@/lib/security/verify-secret-header', () => ({
+  verifySecretHeader: vi.fn().mockReturnValue(false),
+}));
+
 vi.mock('@/config/sendgrid.config', () => ({
   getSendGridConfig: () => ({
     apiKey: 'sendgrid-key',
@@ -52,7 +65,7 @@ vi.mock('@sendgrid/mail', () => ({
 }));
 
 const buildRequest = (body: Record<string, unknown>) =>
-  new Request('http://localhost/api/jobs/process', {
+  new NextRequest('http://localhost/api/jobs/process', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
@@ -61,7 +74,8 @@ const buildRequest = (body: Record<string, unknown>) =>
 describe('/api/jobs/process POST', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAuth.mockResolvedValue({ user: { isSuperAdmin: true } });
+    mockAuth.mockResolvedValue({ user: { role: 'SUPER_ADMIN' } });
+    mockGetSuperadminSession.mockResolvedValue(null);
     mockClaimJob.mockReset();
     mockDeleteObject.mockReset();
     mockRetryStuckJobs.mockResolvedValue(0);

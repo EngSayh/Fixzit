@@ -123,7 +123,58 @@
       "benefits": "المزايا"
     }
   },
+  "checkout": {
+    "accountDesc": "أنشئ حسابك للبدء",
+    "accountInfo": "معلومات الحساب",
+    "back": "رجوع",
+    "companyName": "اسم الشركة",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "continueToPayment": "المتابعة للدفع",
+    "createAccount": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "firstName": "الاسم الأول",
+    "lastName": "اسم العائلة",
+    "monthly": "شهرياً",
+    "orderSummary": "ملخص الطلب",
+    "password": "كلمة المرور",
+    "pay": "إتمام الدفع",
+    "paymentDesc": "أدخل بيانات الدفع",
+    "paymentDetails": "تفاصيل الدفع",
+    "paymentPending": "جاري معالجة الدفع",
+    "paymentPendingDesc": "جاري معالجة الدفع. يرجى الانتظار...",
+    "phone": "الهاتف",
+    "plan": "الخطة",
+    "processing": "جاري المعالجة...",
+    "securePayment": "دفع آمن",
+    "steps": {
+      "account": "الحساب",
+      "payment": "الدفع"
+    },
+    "subtotal": "المجموع الفرعي",
+    "success": {
+      "description": "حسابك في فيكسيت جاهز. تحقق من بريدك الإلكتروني لتفاصيل تسجيل الدخول.",
+      "login": "الذهاب لتسجيل الدخول",
+      "title": "تم تفعيل الاشتراك!"
+    },
+    "terms": "أوافق على الشروط والأحكام",
+    "testCardLink": "استخدم بطاقة اختبار",
+    "total": "المجموع",
+    "users": "المستخدمون",
+    "vat": "ضريبة القيمة المضافة (15%)",
+    "errors": {
+      "companyRequired": "اسم الشركة مطلوب",
+      "firstNameRequired": "الاسم الأول مطلوب",
+      "lastNameRequired": "اسم العائلة مطلوب",
+      "passwordLength": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل",
+      "passwordMatch": "كلمتا المرور غير متطابقتين",
+      "phoneRequired": "رقم الهاتف مطلوب",
+      "termsRequired": "يجب الموافقة على الشروط والأحكام",
+      "validEmail": "يرجى إدخال بريد إلكتروني صحيح"
+    }
+  },
   "auth": {
+    "hidePassword": "إخفاء كلمة المرور",
+    "showPassword": "إظهار كلمة المرور",
     "login": {
       "title": "تسجيل الدخول",
       "email": "البريد الإلكتروني",
@@ -2035,9 +2086,9 @@
       "viewDeal": "عرض العرض"
     },
     "recentlyViewed": {
-      "itemFallback": "عنصر",
-      "signInCta": "سجل الدخول لعرض سجلك",
-      "subtitle": "المنتجات التي شاهدتها مؤخراً",
+      "itemFallback": "منتج",
+      "signInCta": "تسجيل الدخول",
+      "subtitle": "استكمل من حيث توقفت. سجّل الدخول للمزامنة عبر الأجهزة.",
       "title": "شوهد مؤخراً"
     },
     "home": {
@@ -2867,6 +2918,7 @@
     "skipToContent": "انتقل إلى المحتوى",
     "unsavedChanges": "تغييرات غير محفوظة",
     "unsavedChangesMessage": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد مغادرة هذه الصفحة؟",
+    "unknownError": "خطأ غير معروف",
     "discard": "تجاهل التغييرات",
     "allCaughtUp": "لا توجد إشعارات جديدة!",
     "noNotifications": "لا توجد إشعارات",
@@ -2877,6 +2929,7 @@
     "cancel": "إلغاء",
     "filter": "تصفية",
     "import": "استيراد",
+    "collapse": "طي",
     "error": {
       "loadData": "تحميل البيانات"
     },
@@ -2992,6 +3045,11 @@
       "nextRefresh": "التحديث التالي: {{time}}",
       "secondsAgo": "منذ {{count}} ثانية"
     },
+    "timeUnits": {
+      "secondsShort": "{{count}}ث",
+      "minutesShort": "{{count}}د",
+      "hoursMinutesShort": "{{hours}}س {{minutes}}د"
+    },
     "pages": {
       "dashboard": "لوحة التحكم",
       "properties": "العقارات",
@@ -3008,7 +3066,12 @@
   },
   "accessibility": {
     "skipToContent": "انتقل إلى المحتوى الرئيسي",
-    "skipToMainContent": "انتقل إلى المحتوى الرئيسي"
+    "skipToMainContent": "انتقل إلى المحتوى الرئيسي",
+    "scrollToTop": "الانتقال إلى الأعلى",
+    "searchSuperadmin": "البحث في لوحة المشرف",
+    "hideAccessKey": "إخفاء مفتاح الوصول",
+    "showAccessKey": "عرض مفتاح الوصول",
+    "backToIssuesList": "العودة إلى قائمة المشاكل"
   },
   "app": {
     "fm": "إدارة المرافق",
@@ -4516,6 +4579,21 @@
     }
   },
   "pricing": {
+    "checkout": {
+      "back": "العودة للأسعار",
+      "maxUsers": "الحد الأقصى",
+      "proceed": "المتابعة للدفع",
+      "subtitle": "راجع تفاصيل خطتك",
+      "title": "الدفع",
+      "total": "المجموع",
+      "users": "عدد المستخدمين",
+      "vatNote": "سيتم إضافة ضريبة القيمة المضافة (15%) عند الدفع"
+    },
+    "custom": "مخصص",
+    "free": "مجاني",
+    "perUser": "لكل مستخدم",
+    "plan": "الخطة",
+    "selected": "محدد",
     "tagline": "الشعار",
     "title": "التسعير",
     "subtitle": "إدارة العنوان الفرعي",
@@ -5140,7 +5218,12 @@
     "verifyingAccess": "جاري التحقق من الصلاحيات...",
     "goToLanding": "الذهاب للصفحة الرئيسية",
     "searchSuperadmin": "بحث في المسؤول الأعلى",
+    "searchPlaceholder": "بحث...",
     "switchTenant": "تبديل المستأجر",
+    "themeTitle": "المظهر: {{theme}} (اضغط للتغيير)",
+    "notificationsTitle": "الإشعارات",
+    "fullAccess": "وصول كامل للمنصة",
+    "version": "Fixzit المسؤول الأعلى v2.0",
     "error": {
       "title": "حدث خطأ",
       "message": "حدث خطأ غير متوقع في لوحة المسؤول الأعلى. تم إخطار فريقنا.",
@@ -5151,18 +5234,44 @@
       "exit": "الخروج من لوحة المسؤول",
       "footer": "إذا استمرت هذه المشكلة، يرجى الاتصال بالدعم."
     },
+    "auth": {
+      "redirectingToLogin": "جاري التحويل لتسجيل الدخول...",
+      "verifyingSession": "جاري التحقق من الجلسة...",
+      "clickHereIfNotRedirected": "اضغط هنا إذا لم يتم التحويل"
+    },
+    "ssot": {
+      "title": "عارض SSOT",
+      "description": "عرض للقراءة فقط لملف PENDING_MASTER.md",
+      "fetchFailed": "فشل في جلب SSOT",
+      "loadFailed": "فشل في تحميل SSOT",
+      "downloadSuccess": "تم تنزيل ملف SSOT"
+    },
+    "groups": {
+      "ssot": "تتبع المشكلات",
+      "organization": "إدارة المنظمة",
+      "marketplace": "السوق",
+      "system": "إعدادات النظام",
+      "data": "إدارة البيانات",
+      "security": "الأمان والامتثال",
+      "finance": "المالية والفواتير",
+      "communication": "الاتصالات"
+    },
     "nav": {
+      "fmDashboard": "لوحة إدارة المرافق",
       "issues": "المشاكل",
       "ssot": "عارض SSOT",
       "tenants": "المستأجرون",
       "users": "المستخدمون",
       "roles": "الأدوار",
+      "permissions": "مصفوفة الصلاحيات",
+      "userLogs": "سجلات نشاط المستخدمين",
       "audit": "سجلات التدقيق",
       "features": "الميزات",
       "integrations": "التكاملات",
       "jobs": "المهام",
       "system": "النظام",
       "billing": "الفواتير",
+      "subscriptions": "الاشتراكات",
       "translations": "الترجمات",
       "database": "قاعدة البيانات",
       "security": "الأمان",
@@ -5174,7 +5283,93 @@
       "import-export": "استيراد/تصدير",
       "reports": "التقارير",
       "support": "الدعم",
-      "vendors": "الموردون"
+      "vendors": "الموردون",
+      "footerContent": "محتوى التذييل",
+      "progress": "التقدم"
+    },
+    "userLogs": {
+      "subtitle": "مراقبة نشاط المستخدمين والجلسات والتفاعلات للدعم",
+      "totalLogs": "إجمالي السجلات",
+      "today": "اليوم",
+      "uniqueUsers": "المستخدمون الفريدون",
+      "errorRate": "معدل الأخطاء",
+      "avgSession": "متوسط الجلسة",
+      "activityLogs": "سجلات النشاط",
+      "activityLogsDescription": "نشاط المستخدمين والطلبات في الوقت الفعلي",
+      "activeSessions": "الجلسات النشطة",
+      "activeSessionsDescription": "الجلسات النشطة حالياً عبر جميع المستأجرين",
+      "details": "التفاصيل",
+      "searchPlaceholder": "البحث بالمستخدم أو البريد أو الإجراء أو المستأجر...",
+      "noLogsFound": "لا توجد سجلات نشاط",
+      "noSessions": "لا توجد جلسات نشطة",
+      "pages": "صفحات",
+      "actions": "إجراءات",
+      "statusActive": "نشط",
+      "statusEnded": "منتهي",
+      "logDetails": "تفاصيل سجل النشاط",
+      "sessionDetails": "تفاصيل الجلسة",
+      "terminateSession": "إنهاء الجلسة",
+      "terminateNotImplemented": "إنهاء الجلسة غير مطبق بعد",
+      "filters": {
+        "allCategories": "جميع الفئات",
+        "allStatus": "جميع الحالات",
+        "categories": {
+          "auth": "المصادقة",
+          "navigation": "التنقل",
+          "crud": "العمليات",
+          "settings": "الإعدادات",
+          "api": "API",
+          "error": "خطأ"
+        },
+        "status": {
+          "success": "نجاح",
+          "warning": "تحذير",
+          "error": "خطأ"
+        },
+        "dateRange": {
+          "today": "اليوم",
+          "week": "هذا الأسبوع",
+          "month": "هذا الشهر",
+          "all": "كل الوقت"
+        }
+      },
+      "table": {
+        "time": "الوقت",
+        "user": "المستخدم",
+        "tenant": "المستأجر",
+        "action": "الإجراء",
+        "category": "الفئة",
+        "status": "الحالة",
+        "details": "التفاصيل"
+      },
+      "fields": {
+        "user": "المستخدم",
+        "email": "البريد الإلكتروني",
+        "tenant": "المستأجر",
+        "category": "الفئة",
+        "status": "الحالة",
+        "timestamp": "الوقت",
+        "details": "التفاصيل",
+        "metadata": "البيانات الوصفية",
+        "device": "الجهاز",
+        "browser": "المتصفح",
+        "os": "نظام التشغيل",
+        "ipAddress": "عنوان IP",
+        "location": "الموقع",
+        "started": "بدأت",
+        "pagesVisited": "الصفحات المزارة",
+        "actions": "الإجراءات",
+        "duration": "المدة",
+        "activity": "النشاط"
+      }
+    },
+    "jobs": {
+      "fetchError": "فشل تحميل المهام الخلفية"
+    },
+    "subscriptions": {
+      "fetchError": "فشل تحميل الاشتراكات",
+      "fetchStatsError": "فشل تحميل إحصائيات الاشتراكات",
+      "fetchTiersError": "فشل تحميل مستويات الاشتراكات"
     },
     "issues": {
       "title": "متتبع مشاكل النظام",
@@ -5190,6 +5385,20 @@
       "importing": "جارٍ الاستيراد...",
       "add": "إضافة مشكلة",
       "search": "بحث في المشاكل...",
+      "connection": {
+        "dbFailed": "فشل الاتصال بقاعدة البيانات",
+        "fetchFailed": "فشل جلب المشاكل من قاعدة البيانات",
+        "retry": "إعادة محاولة الاتصال",
+        "serverError": "حدث خطأ في الخادم",
+        "title": "خطأ في الاتصال",
+        "troubleshooting": {
+          "atlas": "تحقق من حالة MongoDB Atlas والوصول إلى الشبكة",
+          "env": "تحقق من متغير البيئة MONGODB_URI",
+          "ip": "تأكد من أن القائمة البيضاء لـ IP تتضمن خادم النشر",
+          "logs": "تحقق من سجلات الخادم للحصول على رسائل خطأ مفصلة"
+        },
+        "troubleshootingTitle": "خطوات استكشاف الأخطاء"
+      },
       "actions": {
         "deleteConfirm": "هل أنت متأكد من حذف هذه المشكلة؟",
         "deleteWarning": "لا يمكن التراجع عن هذا الإجراء"
@@ -5300,6 +5509,43 @@
         "next": "التالي",
         "pageOf": "الصفحة {page} من {total}"
       }
+    },
+    "catalog": {
+      "title": "كتالوج المنتجات",
+      "subtitle": "إدارة منتجات سوق Fixzit",
+      "searchPlaceholder": "بحث عن المنتجات...",
+      "categoryPlaceholder": "الفئة",
+      "allCategories": "جميع الفئات",
+      "statusPlaceholder": "الحالة",
+      "allStatus": "جميع الحالات",
+      "modelPlaceholder": "النموذج",
+      "allModels": "جميع النماذج",
+      "totalProducts": "إجمالي المنتجات",
+      "active": "نشط",
+      "lowStock": "مخزون منخفض",
+      "inventoryValue": "قيمة المخزون",
+      "products": "المنتجات",
+      "marketplaceCatalog": "كتالوج السوق",
+      "noProducts": "لم يتم العثور على منتجات",
+      "search": "بحث",
+      "refresh": "تحديث"
+    },
+    "vendors": {
+      "title": "إدارة الموردين",
+      "subtitle": "إدارة الموردين والمقاولين ومقدمي الخدمات",
+      "searchPlaceholder": "بحث عن الموردين...",
+      "typePlaceholder": "النوع",
+      "allTypes": "جميع الأنواع",
+      "statusPlaceholder": "الحالة",
+      "allStatus": "جميع الحالات",
+      "totalVendors": "إجمالي الموردين",
+      "active": "نشط",
+      "avgRating": "متوسط التقييم",
+      "categories": "الفئات",
+      "allVendors": "جميع الموردين عبر المستأجرين",
+      "noVendors": "لم يتم العثور على موردين",
+      "search": "بحث",
+      "refresh": "تحديث"
     }
   }
 }

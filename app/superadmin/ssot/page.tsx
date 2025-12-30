@@ -48,14 +48,14 @@ export default function SSOTViewerPage() {
       const res = await fetch("/api/superadmin/ssot");
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to fetch SSOT");
+        throw new Error(data.error || t("superadmin.ssot.fetchFailed", "Failed to fetch SSOT"));
       }
       const data = await res.json();
       setSsotData(data);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
+      const message = err instanceof Error ? err.message : t("common.unknownError", "Unknown error");
       setError(message);
-      toast.error("Failed to load SSOT", { description: message });
+      toast.error(t("superadmin.ssot.loadFailed", "Failed to load SSOT"), { description: message });
     } finally {
       setLoading(false);
     }
@@ -88,7 +88,7 @@ export default function SSOTViewerPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("Downloaded SSOT file");
+    toast.success(t("superadmin.ssot.downloadSuccess", "Downloaded SSOT file"));
   };
 
   const formatBytes = (bytes: number): string => {
@@ -133,11 +133,11 @@ export default function SSOTViewerPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <FileText className="h-6 w-6 text-blue-500" />
             {t("superadmin.ssot.title") || "SSOT Viewer"}
           </h1>
-          <p className="text-slate-400 mt-1">
+          <p className="text-muted-foreground mt-1">
             {t("superadmin.ssot.description") || "Read-only view of the canonical PENDING_MASTER.md file"}
           </p>
         </div>
@@ -147,20 +147,20 @@ export default function SSOTViewerPage() {
             size="sm"
             onClick={fetchSSOT}
             disabled={loading}
-            className="bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700"
+            className="bg-muted border-input text-foreground hover:bg-muted/80"
           >
             <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {t("common.refresh", "Refresh")}
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleDownload}
             disabled={!ssotData}
-            className="bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700"
+            className="bg-muted border-input text-foreground hover:bg-muted/80"
           >
             <Download className="h-4 w-4 me-2" />
-            Download
+            {t("common.download", "Download")}
           </Button>
         </div>
       </div>
@@ -168,40 +168,40 @@ export default function SSOTViewerPage() {
       {/* Metadata Cards */}
       {ssotData && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-muted/50 border-input">
             <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-slate-400 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <FileText className="h-4 w-4" />
-                File
+                {t("superadmin.ssot.metadata.file", "File")}
               </div>
-              <p className="text-white font-mono text-sm mt-1">{ssotData.path}</p>
+              <p className="text-foreground font-mono text-sm mt-1">{ssotData.path}</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-muted/50 border-input">
             <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-slate-400 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Clock className="h-4 w-4" />
-                Last Modified
+                {t("superadmin.ssot.metadata.lastModified", "Last Modified")}
               </div>
-              <p className="text-white text-sm mt-1">{formatDate(ssotData.lastModified)}</p>
+              <p className="text-foreground text-sm mt-1">{formatDate(ssotData.lastModified)}</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-muted/50 border-input">
             <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-slate-400 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <HardDrive className="h-4 w-4" />
-                Size
+                {t("superadmin.ssot.metadata.size", "Size")}
               </div>
-              <p className="text-white text-sm mt-1">{formatBytes(ssotData.sizeBytes)}</p>
+              <p className="text-foreground text-sm mt-1">{formatBytes(ssotData.sizeBytes)}</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-muted/50 border-input">
             <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-slate-400 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <FileText className="h-4 w-4" />
-                Lines
+                {t("superadmin.ssot.metadata.lines", "Lines")}
               </div>
-              <p className="text-white text-sm mt-1">{getLineCount().toLocaleString()}</p>
+              <p className="text-foreground text-sm mt-1">{getLineCount().toLocaleString()}</p>
             </CardContent>
           </Card>
         </div>
@@ -210,28 +210,30 @@ export default function SSOTViewerPage() {
       {/* Search */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search in SSOT..."
+            placeholder={t("superadmin.ssot.search.placeholder", "Search in SSOT...")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="ps-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+            className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
           />
         </div>
         {searchTerm && (
           <Badge variant="secondary" className="bg-blue-500/20 text-blue-400">
-            {getMatchCount()} matches
+            {t("superadmin.ssot.search.matches", "{count} matches").replace("{count}", String(getMatchCount()))}
           </Badge>
         )}
       </div>
 
       {/* Content */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader className="border-b border-slate-700">
-          <CardTitle className="text-white text-lg">PENDING_MASTER.md</CardTitle>
-          <CardDescription className="text-slate-400">
-            Canonical Single Source of Truth for Fixzit backlog and session logs
+      <Card className="bg-muted/50 border-input">
+        <CardHeader className="border-b border-input">
+          <CardTitle className="text-foreground text-lg">
+            {t("superadmin.ssot.fileName", "PENDING_MASTER.md")}
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
+            {t("superadmin.ssot.canonicalDescription", "Canonical Single Source of Truth for Fixzit backlog and session logs")}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -246,13 +248,13 @@ export default function SSOTViewerPage() {
                 variant="outline"
                 size="sm"
                 onClick={fetchSSOT}
-                className="mt-4 bg-slate-800 border-slate-700 text-slate-200"
+                className="mt-4 bg-muted border-input text-foreground"
               >
-                Retry
+                {t("common.retry", "Retry")}
               </Button>
             </div>
           ) : (
-            <pre className="p-6 overflow-x-auto text-sm text-slate-300 font-mono whitespace-pre-wrap break-words max-h-[70vh] overflow-y-auto">
+            <pre className="p-6 overflow-x-auto text-sm text-muted-foreground font-mono whitespace-pre-wrap break-words max-h-[70vh] overflow-y-auto">
               {getFilteredContent()}
             </pre>
           )}
@@ -265,6 +267,7 @@ export default function SSOTViewerPage() {
           onClick={scrollToTop}
           className="fixed bottom-6 end-6 rounded-full p-3 bg-blue-600 hover:bg-blue-700 shadow-lg"
           size="icon"
+          aria-label={t("accessibility.scrollToTop")}
         >
           <ChevronUp className="h-5 w-5" />
         </Button>

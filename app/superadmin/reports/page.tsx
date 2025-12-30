@@ -12,7 +12,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { 
@@ -68,7 +68,7 @@ export default function SuperadminReportsPage() {
   const fetchReports = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/fm/reports", { credentials: "include" });
+      const response = await fetch("/api/superadmin/reports", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setReports(data.reports || []);
@@ -85,11 +85,17 @@ export default function SuperadminReportsPage() {
   const handleGenerate = async (reportId: string) => {
     try {
       setGenerating(reportId);
-      const response = await fetch("/api/fm/reports/process", {
+      const reportDef = REPORT_DEFINITIONS.find(r => r.id === reportId);
+      const response = await fetch("/api/superadmin/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ reportType: reportId }),
+        body: JSON.stringify({ 
+          title: reportDef?.name || reportId,
+          reportType: reportId,
+          dateRange: "month",
+          format: "csv",
+        }),
       });
       if (!response.ok) throw new Error("Failed to generate report");
       toast.success("Report generation started");
@@ -132,27 +138,27 @@ export default function SuperadminReportsPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.reports")}</h1>
-          <p className="text-slate-400">Generate and view cross-tenant reports</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.reports")}</h1>
+          <p className="text-muted-foreground">Generate and view cross-tenant reports</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => handleExport("csv")} className="border-slate-700 text-slate-300">
+          <Button variant="outline" size="sm" onClick={() => handleExport("csv")} className="border-input text-muted-foreground">
             <Download className="h-4 w-4 me-2" />Export CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchReports} disabled={loading} className="border-slate-700 text-slate-300">
+          <Button variant="outline" size="sm" onClick={fetchReports} disabled={loading} className="border-input text-muted-foreground">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
 
       {/* Filter */}
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-card border-border">
         <CardContent className="p-4">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[160px] bg-slate-800 border-slate-700 text-white">
-              <SelectValue placeholder="Category" />
+          <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category">
+            <SelectTrigger className="w-[160px] bg-muted border-input text-foreground">
+              {categoryFilter === "all" ? "All Categories" : categoryFilter}
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectContent className="bg-muted border-input">
               <SelectItem value="all">All Categories</SelectItem>
               {categories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
             </SelectContent>
@@ -161,41 +167,41 @@ export default function SuperadminReportsPage() {
       </Card>
 
       {/* Available Reports */}
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader className="border-b border-slate-800">
-          <CardTitle className="flex items-center gap-2 text-white"><BarChart3 className="h-5 w-5" />Available Reports</CardTitle>
-          <CardDescription className="text-slate-400">Generate reports on demand</CardDescription>
+      <Card className="bg-card border-border">
+        <CardHeader className="border-b border-border">
+          <CardTitle className="flex items-center gap-2 text-foreground"><BarChart3 className="h-5 w-5" />Available Reports</CardTitle>
+          <CardDescription className="text-muted-foreground">Generate reports on demand</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="border-slate-800">
-                <TableHead className="text-slate-400">Report</TableHead>
-                <TableHead className="text-slate-400">Category</TableHead>
-                <TableHead className="text-slate-400">Description</TableHead>
-                <TableHead className="text-slate-400 w-[120px]">Action</TableHead>
+              <TableRow className="border-border">
+                <TableHead className="text-muted-foreground">Report</TableHead>
+                <TableHead className="text-muted-foreground">Category</TableHead>
+                <TableHead className="text-muted-foreground">Description</TableHead>
+                <TableHead className="text-muted-foreground w-[120px]">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredDefinitions.map((report) => (
-                <TableRow key={report.id} className="border-slate-800 hover:bg-slate-800/50">
+                <TableRow key={report.id} className="border-border hover:bg-muted/50">
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-slate-500" />
-                      <span className="text-white font-medium">{report.name}</span>
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-foreground font-medium">{report.name}</span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={CATEGORY_COLORS[report.category]}>{report.category}</Badge>
                   </TableCell>
-                  <TableCell className="text-slate-400">{report.description}</TableCell>
+                  <TableCell className="text-muted-foreground">{report.description}</TableCell>
                   <TableCell>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleGenerate(report.id)}
                       disabled={generating === report.id}
-                      className="border-slate-700"
+                      className="border-input"
                     >
                       {generating === report.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Generate"}
                     </Button>
@@ -208,35 +214,35 @@ export default function SuperadminReportsPage() {
       </Card>
 
       {/* Generated Reports History */}
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader className="border-b border-slate-800">
-          <CardTitle className="flex items-center gap-2 text-white"><Clock className="h-5 w-5" />Recent Reports</CardTitle>
-          <CardDescription className="text-slate-400">Previously generated reports</CardDescription>
+      <Card className="bg-card border-border">
+        <CardHeader className="border-b border-border">
+          <CardTitle className="flex items-center gap-2 text-foreground"><Clock className="h-5 w-5" />Recent Reports</CardTitle>
+          <CardDescription className="text-muted-foreground">Previously generated reports</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {reports.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <FileText className="h-12 w-12 text-slate-600 mb-4" />
-              <p className="text-slate-400">No reports generated yet</p>
+              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No reports generated yet</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-800">
-                  <TableHead className="text-slate-400">Report</TableHead>
-                  <TableHead className="text-slate-400">Type</TableHead>
-                  <TableHead className="text-slate-400">Generated</TableHead>
-                  <TableHead className="text-slate-400">Status</TableHead>
-                  <TableHead className="text-slate-400">Rows</TableHead>
-                  <TableHead className="text-slate-400 w-[100px]">Download</TableHead>
+                <TableRow className="border-border">
+                  <TableHead className="text-muted-foreground">Report</TableHead>
+                  <TableHead className="text-muted-foreground">Type</TableHead>
+                  <TableHead className="text-muted-foreground">Generated</TableHead>
+                  <TableHead className="text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-muted-foreground">Rows</TableHead>
+                  <TableHead className="text-muted-foreground w-[100px]">Download</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {reports.map((report) => (
-                  <TableRow key={report._id} className="border-slate-800 hover:bg-slate-800/50">
-                    <TableCell className="text-white font-medium">{report.name}</TableCell>
-                    <TableCell className="text-slate-300">{report.type}</TableCell>
-                    <TableCell className="text-slate-300"><div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-slate-500" />{formatDate(report.generatedAt)}</div></TableCell>
+                  <TableRow key={report._id} className="border-border hover:bg-muted/50">
+                    <TableCell className="text-foreground font-medium">{report.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{report.type}</TableCell>
+                    <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-muted-foreground" />{formatDate(report.generatedAt)}</div></TableCell>
                     <TableCell>
                       {report.status === "completed" ? (
                         <Badge className="bg-green-500/20 text-green-400"><CheckCircle className="h-3 w-3 me-1" />Completed</Badge>
@@ -246,7 +252,7 @@ export default function SuperadminReportsPage() {
                         <Badge className="bg-yellow-500/20 text-yellow-400"><RefreshCw className="h-3 w-3 me-1 animate-spin" />Processing</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-slate-300">{report.rowCount?.toLocaleString() || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{report.rowCount?.toLocaleString() || "—"}</TableCell>
                     <TableCell>
                       {report.downloadUrl && (
                         <Button variant="ghost" size="sm" asChild>

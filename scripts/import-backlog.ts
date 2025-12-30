@@ -154,7 +154,9 @@ async function importBacklog() {
 
   for (const raw of backlogData.issues as IssueImport[]) {
     try {
-      const key = slugify(raw.key || raw.externalId || raw.title);
+      // Prefer explicit externalId (canonical ID like "SA-IMPERSONATE-001") over slugified title
+      // Fall back to slugified key/title only if externalId is missing
+      const key = raw.externalId?.trim() || raw.key?.trim() || slugify(raw.title);
       if (!key) {
         summary.errors.push(`Invalid key: ${raw.key || raw.title}`);
         summary.skipped++;

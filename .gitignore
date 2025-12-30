@@ -130,3 +130,5 @@ ai-memory/outputs/*.json
 docs/analysis/comment-analysis.json
 docs/analysis/system-errors-detailed.json
 .cursor/
+
+commit-msg-temp.txt

@@ -120,6 +120,30 @@ if (typeof setInterval !== 'undefined') {
 }
 
 // ---------- Route helpers ----------
+
+// SECURITY FIX: Supported locales for pathname normalization
+// Duplicated from i18n/config.ts to avoid edge-runtime compatibility issues
+// When adding new locales, update both files
+const SUPPORTED_LOCALE_PREFIXES = ['/en', '/ar'];
+
+/**
+ * Strip locale prefix from pathname for route matching
+ * /en/admin/dashboard → /admin/dashboard
+ * /ar/admin/fm-dashboard → /admin/fm-dashboard
+ * /admin/dashboard → /admin/dashboard (unchanged)
+ */
+function stripLocalePrefix(pathname: string): string {
+  for (const localePrefix of SUPPORTED_LOCALE_PREFIXES) {
+    if (pathname === localePrefix) {
+      return '/';
+    }
+    if (pathname.startsWith(localePrefix + '/')) {
+      return pathname.slice(localePrefix.length);
+    }
+  }
+  return pathname;
+}
+
 function matchesRoute(pathname: string, route: string): boolean {
   if (pathname === route) return true;
   if (pathname.startsWith(route)) {
@@ -280,6 +304,9 @@ export async function middleware(request: NextRequest) {
   const sanitizedRequest = new NextRequest(request, { headers: sanitizedHeaders });
 
   const pathname = sanitizedRequest.nextUrl.pathname;
+  // SECURITY: Normalize pathname for route matching by stripping locale prefix
+  // This ensures /ar/admin/* and /en/admin/* are treated as /admin/* for protection checks
+  const normalizedPathname = stripLocalePrefix(pathname);
   const method = sanitizedRequest.method;
   const isApiRequest = pathname.startsWith('/api');
   const isUnitTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
@@ -327,16 +354,33 @@ export async function middleware(request: NextRequest) {
     }
 
     // Debug: Check if cookie is present before session decode
-    const rawCookie = sanitizedRequest.cookies.get('superadmin_session')?.value;
+    // Note: Use original request for cookie access to avoid NextRequest cloning issues
+    const rawCookie = request.cookies.get('superadmin_session')?.value;
     const hasCookie = !!rawCookie;
     const cookieLength = rawCookie?.length || 0;
     
     // Also check the Cookie header directly for debugging
-    const cookieHeader = sanitizedRequest.headers.get('cookie') || '';
+    const cookieHeader = request.headers.get('cookie') || '';
     const hasCookieHeader = cookieHeader.includes('superadmin_session');
     
     // Use debug version to capture detailed error info
-    const { session, debug } = await getSuperadminSessionWithDebug(sanitizedRequest);
+    // IMPORTANT: Pass original request, not sanitizedRequest, to preserve cookies
+    const { session, debug } = await getSuperadminSessionWithDebug(request);
+    
+    // Server-side logging for auth debugging (visible in Vercel logs)
+    // eslint-disable-next-line no-console -- Critical auth flow debugging
+    console.log('[SUPERADMIN-MW]', {
+      path: pathname,
+      hasCookie,
+      cookieLength,
+      hasCookieHeader,
+      hasSession: !!session,
+      isExpired: session ? session.expiresAt < Date.now() : null,
+      debug: {
+        hasJwtSecret: debug.hasJwtSecret,
+        decodeError: debug.decodeError?.slice(0, 50),
+      },
+    });
     const isExpired = session ? session.expiresAt < Date.now() : true;
 
     if (!session || isExpired) {
@@ -348,7 +392,11 @@ export async function middleware(request: NextRequest) {
       }
       // Add debug headers to redirect for troubleshooting
       const redirectUrl = new URL('/superadmin/login', sanitizedRequest.url);
-      redirectUrl.searchParams.set('reason', !session ? 'no_session' : 'expired');
+      // Always include reason - this is safe for production
+      const reason = !session 
+        ? (hasCookie ? 'decode_failed' : 'no_cookie') 
+        : 'expired';
+      redirectUrl.searchParams.set('reason', reason);
       // Only include detailed debug params in non-production environments
       if (process.env.VERCEL_ENV !== 'production' && process.env.NODE_ENV !== 'production') {
         redirectUrl.searchParams.set('had_cookie', hasCookie ? '1' : '0');
@@ -520,8 +568,8 @@ export async function middleware(request: NextRequest) {
       // Allow rest of middleware (auth header injection) for tests with session
     } else {
       const isProtectedRoute =
-        matchesAnyRoute(pathname, PROTECTED_ROUTE_PREFIXES) ||
-        matchesAnyRoute(pathname, protectedMarketplaceActions);
+        matchesAnyRoute(normalizedPathname, PROTECTED_ROUTE_PREFIXES) ||
+        matchesAnyRoute(normalizedPathname, protectedMarketplaceActions);
       if (isProtectedRoute && !hasTestSession) {
         return NextResponse.redirect(new URL('/login', sanitizedRequest.url));
       }
@@ -652,8 +700,8 @@ export async function middleware(request: NextRequest) {
   // Unauthenticated flows → redirect for protected zones
   if (!user) {
     const isProtectedRoute =
-      matchesAnyRoute(pathname, PROTECTED_ROUTE_PREFIXES) ||
-      matchesAnyRoute(pathname, protectedMarketplaceActions);
+      matchesAnyRoute(normalizedPathname, PROTECTED_ROUTE_PREFIXES) ||
+      matchesAnyRoute(normalizedPathname, protectedMarketplaceActions);
 
     if (isProtectedRoute) {
       return NextResponse.redirect(new URL('/login', sanitizedRequest.url));
@@ -662,7 +710,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Admin RBAC for /admin and /admin/* (consistent with API RBAC)
-  if (matchesRoute(pathname, '/admin')) {
+  if (matchesRoute(normalizedPathname, '/admin')) {
     // Super Admin always has access
     if (user.isSuperAdmin) {
       return attachUserHeaders(sanitizedRequest, user);
@@ -690,7 +738,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Optional org requirement for FM
-  if (matchesAnyRoute(pathname, fmRoutes)) {
+  if (matchesAnyRoute(normalizedPathname, fmRoutes)) {
     // 🔒 IMPERSONATION GUARD: Superadmin accessing tenant modules requires impersonation context (F5)
     // Check for support_org_id cookie before allowing access to /fm/*, /finance/*, /hr/*, /properties/*, /work-orders/*
     if (user.isSuperAdmin) {
@@ -726,7 +774,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Attach x-user headers for FM and protected marketplace actions
-  if (matchesAnyRoute(pathname, fmRoutes) || matchesAnyRoute(pathname, protectedMarketplaceActions)) {
+  if (matchesAnyRoute(normalizedPathname, fmRoutes) || matchesAnyRoute(normalizedPathname, protectedMarketplaceActions)) {
     return attachUserHeaders(sanitizedRequest, user);
   }
 

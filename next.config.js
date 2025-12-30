@@ -162,6 +162,8 @@ const nextConfig = {
       '@hookform/resolvers',
       'clsx',
       'tailwind-merge',
+      // 🔧 PERF FIX: Add recharts to reduce bundle size (~150KB)
+      'recharts',
     ],
     // Use 1 CPU for build to prevent OOM kills in memory-constrained environments
     // Root Cause: Limited RAM - Multi-threaded builds cause memory spikes

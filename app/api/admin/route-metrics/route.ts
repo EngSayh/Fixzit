@@ -4,7 +4,12 @@
  * detection, health status, and historical snapshots for maintenance.
  * 
  * @module api/admin/route-metrics
- * @requires SUPER_ADMIN or ADMIN role
+ * @requires SUPER_ADMIN role OR superadmin portal session
+ * 
+ * @security
+ * This route accepts authentication via either:
+ * - Standard auth session with SUPER_ADMIN role
+ * - Superadmin portal session (getSuperadminSession)
  * 
  * @endpoints
  * - GET /api/admin/route-metrics - Get route alias metrics
@@ -37,6 +42,7 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { getSuperadminSession } from "@/lib/superadmin/auth";
 import {
   generateRouteAliasMetrics,
   readRouteAliasMetrics,
@@ -97,14 +103,18 @@ export async function GET(request: NextRequest) {
 
   try {
     const session = await auth();
+    const superadminSession = await getSuperadminSession(request);
     const role = session?.user?.role;
 
-    if (!session?.user) {
+    // Allow both regular SUPER_ADMIN role and superadmin portal session
+    const isAuthorized = role === "SUPER_ADMIN" || !!superadminSession;
+
+    if (!session?.user && !superadminSession) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (role !== "SUPER_ADMIN") {
-      logger.warn("Route metrics access denied", { role });
+    if (!isAuthorized) {
+      logger.warn("Route metrics access denied", { role, hasSuperadminSession: !!superadminSession });
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

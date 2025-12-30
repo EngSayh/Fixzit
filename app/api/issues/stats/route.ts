@@ -313,7 +313,14 @@ export async function GET(request: NextRequest) {
     
     logger.info('[Issues Stats] Generated stats', { orgId: session.orgId, total });
     
-    return NextResponse.json(stats, { headers: ROBOTS_HEADER });
+    // Cache stats for 30 seconds (stale-while-revalidate for 60s)
+    // Stats are expensive to compute but don't need real-time accuracy
+    const cacheHeaders = {
+      ...ROBOTS_HEADER,
+      'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+    };
+    
+    return NextResponse.json(stats, { headers: cacheHeaders });
     
   } catch (error) {
     const correlationId =

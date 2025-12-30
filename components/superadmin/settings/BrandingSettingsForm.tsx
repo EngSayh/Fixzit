@@ -48,9 +48,16 @@ export function BrandingSettingsForm() {
       try {
         const response = await fetch("/api/superadmin/branding");
         if (!response.ok) {
-          throw new Error("Failed to fetch branding settings");
+          const errorData = await response.json().catch(() => ({}));
+          const message = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+          throw new Error(message);
         }
         const result = await response.json();
+        if (!result.data) {
+          // Use defaults if no data returned
+          setLoading(false);
+          return;
+        }
         const data: BrandingData = {
           logoUrl: result.data.logoUrl || "/img/fixzit-logo.png",
           brandName: result.data.brandName || "Fixzit Enterprise",
@@ -63,8 +70,17 @@ export function BrandingSettingsForm() {
         setOriginalData(data);
         setLastAudit({ updatedAt: data.updatedAt, updatedBy: data.updatedBy });
       } catch (err) {
-        logger.error("Failed to load branding settings", { error: err });
-        setError("Failed to load branding settings. Please refresh the page.");
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        logger.error("Failed to load branding settings", { 
+          error: errorMessage,
+          errorType: err instanceof Error ? err.name : typeof err,
+        });
+        // Don't show error for 401 (expected when not logged in as superadmin)
+        if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
+          logger.info("Branding settings require superadmin session");
+        } else {
+          setError(`Failed to load branding settings: ${errorMessage}`);
+        }
       } finally {
         setLoading(false);
       }

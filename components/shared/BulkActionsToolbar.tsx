@@ -13,6 +13,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckSquare, Trash2, Download, X } from '@/components/ui/icons';
+import { toast } from 'sonner';
 
 export interface BulkAction<T> {
   id: string;
@@ -61,8 +62,10 @@ export function BulkActionsToolbar<T>({
     try {
       await action.onExecute(selectedItems);
       onClearSelection();
-    } catch (_error) {
-      // TODO: Show toast notification for bulk action failures
+      toast.success(`Bulk action "${action.label}" completed successfully`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Bulk action failed: ${message}`);
     }
   };
 

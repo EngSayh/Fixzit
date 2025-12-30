@@ -11,6 +11,7 @@ import { DOMAINS } from "@/lib/config/domains";
 import { joinUrl } from "@/lib/utils/url";
 import { verifySecretHeader } from "@/lib/security/verify-secret-header";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { getSuperadminSession } from "@/lib/superadmin/auth";
 
 /**
  * POST /api/jobs/process
@@ -21,28 +22,35 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
  * Can be triggered manually or by a cron job
  */
 export async function POST(request: NextRequest) {
-  enforceRateLimit(request, { requests: 20, windowMs: 60_000, keyPrefix: "jobs:process" });
+  const rateLimitResponse = await enforceRateLimit(request, { requests: 20, windowMs: 60_000, keyPrefix: "jobs:process" });
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
   try {
     const session = await auth();
+    const superadminSession = await getSuperadminSession(request);
 
-    // Allow both authenticated admins and cron jobs (with secret)
+    // Allow authenticated admins, superadmin portal users, and cron jobs (with secret)
     const cronAuthorized = verifySecretHeader(
       request,
       "x-cron-secret",
       process.env.CRON_SECRET,
     );
-    const isAuthorized = session?.user?.isSuperAdmin || cronAuthorized;
+    // Simplified auth: check role directly (SUPER_ADMIN role implies isSuperAdmin)
+    const userRole = session?.user?.role;
+    const isAuthorized = userRole === "SUPER_ADMIN" || userRole === "ADMIN" || !!superadminSession || cronAuthorized;
 
     if (!isAuthorized) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Forbidden - Superadmin access required" }, { status: 403 });
     }
 
-    const { data: body, error: parseError } = await parseBodySafe<{ type?: string; maxJobs?: number }>(request, { logPrefix: "[jobs:process]" });
+    const { data: body, error: parseError } = await parseBodySafe<{ type?: string; maxJobs?: number; retryStuckJobs?: boolean }>(request, { logPrefix: "[jobs:process]" });
     if (parseError) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
     const jobType = body?.type as Parameters<typeof JobQueue.claimJob>[0]; // Optional: process specific job type only
-    const maxJobs = body?.maxJobs || 10;
+    const maxJobs = body?.maxJobs ?? 10;
+    const shouldRetryStuckJobs = body?.retryStuckJobs ?? maxJobs > 0;
 
     const processed: { success: string[]; failed: string[] } = {
       success: [],
@@ -66,8 +74,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Retry stuck jobs
-    const retriedCount = await JobQueue.retryStuckJobs();
+    // Retry stuck jobs only if explicitly requested or processing jobs
+    const retriedCount = shouldRetryStuckJobs ? await JobQueue.retryStuckJobs() : 0;
 
     // Get current stats
     const stats = await JobQueue.getStats();
@@ -247,12 +255,23 @@ async function processS3Cleanup(job: Job): Promise<void> {
  *
  * Get job queue statistics
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
+  const rateLimitResponse = await enforceRateLimit(request, {
+    requests: 30,
+    windowMs: 60_000,
+    keyPrefix: "jobs:stats",
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
+    const superadminSession = await getSuperadminSession(request);
 
-    if (!session?.user?.isSuperAdmin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Allow both regular SUPER_ADMIN role and superadmin portal session
+    const isAuthorized = session?.user?.isSuperAdmin || !!superadminSession;
+
+    if (!isAuthorized) {
+      return NextResponse.json({ error: "Forbidden - Superadmin access required" }, { status: 403 });
     }
 
     const stats = await JobQueue.getStats();

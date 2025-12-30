@@ -15,11 +15,13 @@
  * @throws {429} If rate limit exceeded (5 requests/minute per IP)
  */
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { z } from "zod";
 import { APIParseError, parseBody } from "@/lib/api/parse-body";
+import { Vendor } from "@/server/models/Vendor";
 
 /**
  * Zod schema for vendor application validation
@@ -33,7 +35,7 @@ const VendorApplicationSchema = z.object({
     .string()
     .regex(/^\+?[0-9]{7,15}$/, "Invalid phone number format")
     .optional(),
-  services: z.string().max(1000).optional(),
+  services: z.array(z.string().min(1, "Service name cannot be empty").max(200)).max(20).optional(),
   notes: z.string().max(2000).optional(),
 });
 
@@ -84,7 +86,84 @@ export async function POST(req: NextRequest) {
       hasNotes: !!notes,
     });
 
-    return NextResponse.json({ ok: true });
+    // Generate unique vendor code with full UUID to avoid collisions
+    const vendorCode = `VND-${randomUUID().toUpperCase()}`;
+
+    // Create vendor application record with PENDING status
+    // Note: Public applications don't have orgId yet - they're assigned during approval
+    let vendorApplication;
+    try {
+      // eslint-disable-next-line local/require-tenant-scope -- PLATFORM-WIDE: Public vendor application before org assignment
+      vendorApplication = await Vendor.create({
+        code: vendorCode,
+        name: company,
+        type: "SERVICE_PROVIDER", // Default type for applications
+        status: "PENDING",
+        contact: {
+          primary: {
+            name: contactName,
+            email: email,
+            phone: phone || undefined,
+          },
+        },
+        business: {
+          specializations: services ?? [],
+        },
+        approval: {
+          applicantNotes: notes || undefined, // Applicant notes separate from admin reviewNotes
+        },
+      });
+    } catch (createError) {
+      // Handle validation/duplicate vs system errors distinctly
+      const err = createError as Error & { code?: number; name?: string };
+      
+      // MongoDB duplicate key error (code 11000) or Mongoose validation error
+      if (err.code === 11000) {
+        logger.warn("[vendor-apply] Duplicate vendor application", {
+          emailDomain: email.split("@")[1],
+          company,
+        });
+        return NextResponse.json(
+          { error: "An application with this information already exists" },
+          { status: 409 }
+        );
+      }
+      
+      if (err.name === "ValidationError") {
+        logger.warn("[vendor-apply] Validation failed", {
+          error: err.message,
+          company,
+        });
+        return NextResponse.json(
+          { error: "Invalid application data. Please check your submission." },
+          { status: 400 }
+        );
+      }
+      
+      // Unexpected DB/system error - log full details
+      logger.error("[vendor-apply] Failed to create vendor application", {
+        error: err.message,
+        stack: err.stack,
+        company,
+        emailDomain: email.split("@")[1],
+      });
+      return NextResponse.json(
+        { error: "Unable to process application. Please try again later." },
+        { status: 503 }
+      );
+    }
+
+    logger.info("[vendor-apply] Vendor application created", {
+      applicationId: vendorApplication._id.toString(),
+      vendorCode,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      success: true,
+      applicationId: vendorApplication._id.toString(),
+      vendorCode,
+    });
   } catch (error) {
     if (error instanceof APIParseError) {
       return NextResponse.json(

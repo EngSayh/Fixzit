@@ -15,7 +15,7 @@ export default async function SuperadminIndexPage() {
   const session = await getSuperadminSessionFromCookies();
   
   if (session && session.expiresAt > Date.now()) {
-    redirect("/superadmin/issues");
+    redirect("/superadmin/dashboard");
   } else {
     redirect("/superadmin/login");
   }

@@ -189,10 +189,10 @@ export default function SuperadminSupportPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.support") || "Support Tools"}</h1>
-          <p className="text-slate-400">User impersonation, session debugging, and support utilities</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.support") || "Support Tools"}</h1>
+          <p className="text-muted-foreground">User impersonation, session debugging, and support utilities</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { fetchUsers(); fetchSessions(); fetchTickets(); }} disabled={loading} className="border-slate-700 text-slate-300">
+        <Button variant="outline" size="sm" onClick={() => { fetchUsers(); fetchSessions(); fetchTickets(); }} disabled={loading} className="border-input text-muted-foreground">
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
       </div>
@@ -209,18 +209,18 @@ export default function SuperadminSupportPage() {
       </Card>
 
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="bg-slate-800 border-slate-700">
-          <TabsTrigger value="users" className="data-[state=active]:bg-slate-700"><Users className="h-4 w-4 me-2" />User Lookup</TabsTrigger>
-          <TabsTrigger value="sessions" className="data-[state=active]:bg-slate-700"><History className="h-4 w-4 me-2" />Session History</TabsTrigger>
-          <TabsTrigger value="tickets" className="data-[state=active]:bg-slate-700"><Ticket className="h-4 w-4 me-2" />Open Tickets</TabsTrigger>
+        <TabsList className="bg-muted border-input">
+          <TabsTrigger value="users" className="data-[state=active]:bg-muted/80"><Users className="h-4 w-4 me-2" />User Lookup</TabsTrigger>
+          <TabsTrigger value="sessions" className="data-[state=active]:bg-muted/80"><History className="h-4 w-4 me-2" />Session History</TabsTrigger>
+          <TabsTrigger value="tickets" className="data-[state=active]:bg-muted/80"><Ticket className="h-4 w-4 me-2" />Open Tickets</TabsTrigger>
         </TabsList>
 
         {/* User Lookup Tab */}
         <TabsContent value="users">
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="border-b border-slate-800">
-              <CardTitle className="text-white">User Search</CardTitle>
-              <CardDescription className="text-slate-400">Find users by email, name, or phone</CardDescription>
+          <Card className="bg-card border-border">
+            <CardHeader className="border-b border-border">
+              <CardTitle className="text-foreground">User Search</CardTitle>
+              <CardDescription className="text-muted-foreground">Find users by email, name, or phone</CardDescription>
             </CardHeader>
             <CardContent className="p-4">
               <div className="flex gap-2 mb-4">
@@ -229,7 +229,7 @@ export default function SuperadminSupportPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="bg-slate-800 border-slate-700 text-white"
+                  className="bg-muted border-input text-foreground"
                 />
                 <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700">
                   <Search className="h-4 w-4 me-2" />Search
@@ -238,42 +238,42 @@ export default function SuperadminSupportPage() {
               
               {users.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <Users className="h-12 w-12 text-slate-600 mb-4" />
-                  <p className="text-slate-400">No users found</p>
+                  <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No users found</p>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-slate-800">
-                      <TableHead className="text-slate-400">User</TableHead>
-                      <TableHead className="text-slate-400">Role</TableHead>
-                      <TableHead className="text-slate-400">Organization</TableHead>
-                      <TableHead className="text-slate-400">Last Login</TableHead>
-                      <TableHead className="text-slate-400">Status</TableHead>
-                      <TableHead className="text-slate-400 w-[120px]">Actions</TableHead>
+                    <TableRow className="border-border">
+                      <TableHead className="text-muted-foreground">User</TableHead>
+                      <TableHead className="text-muted-foreground">Role</TableHead>
+                      <TableHead className="text-muted-foreground">Organization</TableHead>
+                      <TableHead className="text-muted-foreground">Last Login</TableHead>
+                      <TableHead className="text-muted-foreground">Status</TableHead>
+                      <TableHead className="text-muted-foreground w-[120px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {users.map((user) => (
-                      <TableRow key={user._id} className="border-slate-800 hover:bg-slate-800/50">
+<TableRow key={user._id} className="border-border hover:bg-muted/50">
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="text-white font-medium">{user.name}</span>
-                            <span className="text-slate-400 text-sm flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>
-                            {user.phone && <span className="text-slate-500 text-sm flex items-center gap-1"><Phone className="h-3 w-3" />{user.phone}</span>}
+                            <span className="text-foreground font-medium">{user.name}</span>
+                            <span className="text-muted-foreground text-sm flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>
+                            {user.phone && <span className="text-muted-foreground text-sm flex items-center gap-1"><Phone className="h-3 w-3" />{user.phone}</span>}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={roleColors[user.role] || "bg-slate-500/20 text-slate-400"}>{user.role}</Badge>
+                          <Badge variant="outline" className={roleColors[user.role] || "bg-muted/50 text-muted-foreground"}>{user.role}</Badge>
                         </TableCell>
                         <TableCell>
                           {user.orgName ? (
-                            <span className="flex items-center gap-1 text-slate-300"><Building2 className="h-4 w-4 text-slate-500" />{user.orgName}</span>
+                            <span className="flex items-center gap-1 text-muted-foreground"><Building2 className="h-4 w-4 text-muted-foreground" />{user.orgName}</span>
                           ) : (
-                            <span className="text-slate-500">—</span>
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-slate-300">{user.lastLogin ? formatDate(user.lastLogin) : "Never"}</TableCell>
+                        <TableCell className="text-muted-foreground">{user.lastLogin ? formatDate(user.lastLogin) : "Never"}</TableCell>
                         <TableCell>
                           {user.status === "active" ? (
                             <Badge className="bg-green-500/20 text-green-400"><CheckCircle className="h-3 w-3 me-1" />Active</Badge>
@@ -287,7 +287,7 @@ export default function SuperadminSupportPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => { setSelectedUser(user); setImpersonateDialogOpen(true); }}
-                              className="border-slate-700"
+                              className="border-input"
                               disabled={user.role === "SUPER_ADMIN"}
                               title={user.role === "SUPER_ADMIN" ? "Cannot impersonate Super Admin" : "Impersonate User"}
                             >
@@ -306,38 +306,38 @@ export default function SuperadminSupportPage() {
 
         {/* Session History Tab */}
         <TabsContent value="sessions">
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="border-b border-slate-800">
-              <CardTitle className="flex items-center gap-2 text-white"><Shield className="h-5 w-5" />Impersonation History</CardTitle>
-              <CardDescription className="text-slate-400">Audit log of all impersonation sessions</CardDescription>
+          <Card className="bg-card border-border">
+            <CardHeader className="border-b border-border">
+              <CardTitle className="flex items-center gap-2 text-foreground"><Shield className="h-5 w-5" />Impersonation History</CardTitle>
+              <CardDescription className="text-muted-foreground">Audit log of all impersonation sessions</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {sessions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <History className="h-12 w-12 text-slate-600 mb-4" />
-                  <p className="text-slate-400">No impersonation sessions recorded</p>
+                  <History className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No impersonation sessions recorded</p>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-slate-800">
-                      <TableHead className="text-slate-400">Admin</TableHead>
-                      <TableHead className="text-slate-400">Target User</TableHead>
-                      <TableHead className="text-slate-400">Reason</TableHead>
-                      <TableHead className="text-slate-400">Started</TableHead>
-                      <TableHead className="text-slate-400">Ended</TableHead>
-                      <TableHead className="text-slate-400">IP Address</TableHead>
+                    <TableRow className="border-border">
+                      <TableHead className="text-muted-foreground">Admin</TableHead>
+                      <TableHead className="text-muted-foreground">Target User</TableHead>
+                      <TableHead className="text-muted-foreground">Reason</TableHead>
+                      <TableHead className="text-muted-foreground">Started</TableHead>
+                      <TableHead className="text-muted-foreground">Ended</TableHead>
+                      <TableHead className="text-muted-foreground">IP Address</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {sessions.map((session) => (
-                      <TableRow key={session._id} className="border-slate-800 hover:bg-slate-800/50">
-                        <TableCell className="text-white">{session.adminEmail}</TableCell>
-                        <TableCell className="text-slate-300">{session.targetUserEmail}</TableCell>
-                        <TableCell className="text-slate-400 max-w-[200px] truncate">{session.reason}</TableCell>
-                        <TableCell className="text-slate-300">{formatDate(session.startedAt)}</TableCell>
+                      <TableRow key={session._id} className="border-border hover:bg-muted/50">
+                        <TableCell className="text-foreground">{session.adminEmail}</TableCell>
+                        <TableCell className="text-muted-foreground">{session.targetUserEmail}</TableCell>
+                        <TableCell className="text-muted-foreground max-w-[200px] truncate">{session.reason}</TableCell>
+                        <TableCell className="text-muted-foreground">{formatDate(session.startedAt)}</TableCell>
                         <TableCell>{session.endedAt ? <span className="text-green-400">{formatDate(session.endedAt)}</span> : <Badge className="bg-yellow-500/20 text-yellow-400">Active</Badge>}</TableCell>
-                        <TableCell className="text-slate-500 font-mono text-sm">{session.ipAddress || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground font-mono text-sm">{session.ipAddress || "—"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -349,40 +349,40 @@ export default function SuperadminSupportPage() {
 
         {/* Tickets Tab */}
         <TabsContent value="tickets">
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="border-b border-slate-800">
-              <CardTitle className="flex items-center gap-2 text-white"><Ticket className="h-5 w-5" />Open Support Tickets</CardTitle>
-              <CardDescription className="text-slate-400">Tickets requiring attention</CardDescription>
+          <Card className="bg-card border-border">
+            <CardHeader className="border-b border-border">
+              <CardTitle className="flex items-center gap-2 text-foreground"><Ticket className="h-5 w-5" />Open Support Tickets</CardTitle>
+              <CardDescription className="text-muted-foreground">Tickets requiring attention</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {tickets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
-                  <p className="text-slate-400">No open support tickets</p>
+                  <p className="text-muted-foreground">No open support tickets</p>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-slate-800">
-                      <TableHead className="text-slate-400">Subject</TableHead>
-                      <TableHead className="text-slate-400">User</TableHead>
-                      <TableHead className="text-slate-400">Priority</TableHead>
-                      <TableHead className="text-slate-400">Created</TableHead>
-                      <TableHead className="text-slate-400">Last Update</TableHead>
+                    <TableRow className="border-border">
+                      <TableHead className="text-muted-foreground">Subject</TableHead>
+                      <TableHead className="text-muted-foreground">User</TableHead>
+                      <TableHead className="text-muted-foreground">Priority</TableHead>
+                      <TableHead className="text-muted-foreground">Created</TableHead>
+                      <TableHead className="text-muted-foreground">Last Update</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {tickets.map((ticket) => (
-                      <TableRow key={ticket._id} className="border-slate-800 hover:bg-slate-800/50">
-                        <TableCell className="text-white font-medium">{ticket.subject}</TableCell>
-                        <TableCell className="text-slate-300">{ticket.userEmail}</TableCell>
+                      <TableRow key={ticket._id} className="border-border hover:bg-muted/50">
+                        <TableCell className="text-foreground font-medium">{ticket.subject}</TableCell>
+                        <TableCell className="text-muted-foreground">{ticket.userEmail}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className={ticket.priority === "high" ? "bg-red-500/20 text-red-400" : ticket.priority === "medium" ? "bg-yellow-500/20 text-yellow-400" : "bg-blue-500/20 text-blue-400"}>
                             {ticket.priority}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-slate-300">{formatDate(ticket.createdAt)}</TableCell>
-                        <TableCell className="text-slate-300">{formatDate(ticket.lastUpdate)}</TableCell>
+                        <TableCell className="text-muted-foreground">{formatDate(ticket.createdAt)}</TableCell>
+                        <TableCell className="text-muted-foreground">{formatDate(ticket.lastUpdate)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -395,18 +395,18 @@ export default function SuperadminSupportPage() {
 
       {/* Impersonation Dialog */}
       <Dialog open={impersonateDialogOpen} onOpenChange={setImpersonateDialogOpen}>
-        <DialogContent className="bg-slate-900 border-slate-700">
+        <DialogContent className="bg-card border-input">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+            <DialogTitle className="text-foreground flex items-center gap-2">
               <Shield className="h-5 w-5 text-yellow-400" />
               Impersonate User
             </DialogTitle>
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-4">
-              <div className="bg-slate-800 p-4 rounded-lg">
-                <p className="text-white font-medium">{selectedUser.name}</p>
-                <p className="text-slate-400 text-sm">{selectedUser.email}</p>
+              <div className="bg-muted p-4 rounded-lg">
+                <p className="text-foreground font-medium">{selectedUser.name}</p>
+                <p className="text-muted-foreground text-sm">{selectedUser.email}</p>
                 <Badge variant="outline" className={`mt-2 ${roleColors[selectedUser.role] || ""}`}>{selectedUser.role}</Badge>
               </div>
               
@@ -418,19 +418,19 @@ export default function SuperadminSupportPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="reason" className="text-slate-300">Reason for Impersonation *</Label>
+                <Label htmlFor="reason" className="text-muted-foreground">Reason for Impersonation *</Label>
                 <Input
                   id="reason"
                   placeholder="e.g., Customer reported billing issue..."
                   value={impersonationReason}
                   onChange={(e) => setImpersonationReason(e.target.value)}
-                  className="bg-slate-800 border-slate-700 text-white"
+                  className="bg-muted border-input text-foreground"
                 />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setImpersonateDialogOpen(false)} className="border-slate-700">Cancel</Button>
+            <Button variant="outline" onClick={() => setImpersonateDialogOpen(false)} className="border-input">Cancel</Button>
             <Button onClick={handleImpersonate} disabled={isImpersonating || !impersonationReason.trim()} className="bg-yellow-600 hover:bg-yellow-700 text-black">
               {isImpersonating ? <RefreshCw className="h-4 w-4 animate-spin me-2" /> : <LogIn className="h-4 w-4 me-2" />}
               Start Impersonation

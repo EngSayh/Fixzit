@@ -7,6 +7,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import type { Locale } from "@/i18n/config";
 import React, { type ReactNode, useEffect } from "react";
+import { useI18n } from "@/i18n/useI18n";
 import { SuperadminSidebar } from "./SuperadminSidebar";
 import { SuperadminHeader } from "./SuperadminHeader";
 import { SystemStatusBar } from "./SystemStatusBar";
@@ -22,6 +23,76 @@ type Props = {
   initialDict: Record<string, unknown>;
   initialSession?: SuperadminSessionState;
 };
+
+/**
+ * Redirect loading state component - uses i18n for translated messages
+ */
+function SuperadminRedirectState({ showTimeout }: { showTimeout: boolean }) {
+  const { t } = useI18n();
+  
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto mb-4" />
+        <p className="text-muted-foreground">
+          {showTimeout 
+            ? t("superadmin.auth.redirectingToLogin", "Redirecting to login...") 
+            : t("superadmin.auth.verifyingSession", "Verifying session...")}
+        </p>
+        {showTimeout && (
+          <a
+            href="/superadmin/login"
+            className="mt-4 inline-block text-primary hover:text-primary/80 underline"
+          >
+            {t("superadmin.auth.clickHereIfNotRedirected", "Click here if not redirected")}
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Inner layout component that uses hooks inside I18nProvider context
+ */
+function SuperadminLayoutInner({ children, isLoginPage }: { children: ReactNode; isLoginPage: boolean }) {
+  const { t } = useI18n();
+  
+  if (isLoginPage) {
+    return <div className="min-h-screen bg-background">{children}</div>;
+  }
+  
+  return (
+    <>
+      {/* Skip to main content link for keyboard navigation */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:start-4 focus:z-50 focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:ring-2 focus:ring-primary focus:rounded-md"
+      >
+        {t("accessibility.skipToMainContent")}
+      </a>
+      <div className="min-h-screen bg-background flex pb-7">
+        {/* Sidebar */}
+        <SuperadminSidebar />
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <SuperadminHeader />
+
+          {/* Page Content */}
+          <main id="main-content" className="flex-1 overflow-auto" tabIndex={-1}>{children}</main>
+        </div>
+      </div>
+      
+      {/* System Status Bar - Replaces marketing footer */}
+      <SystemStatusBar />
+      
+      {/* Command Palette (Cmd+K) */}
+      <CommandPalette />
+    </>
+  );
+}
 
 export function SuperadminLayoutClient({
   children,
@@ -45,27 +116,17 @@ export function SuperadminLayoutClient({
     }
   }, [isAuthenticated, isLoginPage]);
 
-  // Show loading state while redirecting to login
-  if (!isLoginPage && !isAuthenticated) {
+  // Determine content to render based on auth state
+  const renderContent = () => {
+    if (!isLoginPage && !isAuthenticated) {
+      return <SuperadminRedirectState showTimeout={showTimeout} />;
+    }
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-slate-400">
-            {showTimeout ? "Redirecting to login..." : "Verifying session..."}
-          </p>
-          {showTimeout && (
-            <a
-              href="/superadmin/login"
-              className="mt-4 inline-block text-blue-400 hover:text-blue-300 underline"
-            >
-              Click here if not redirected
-            </a>
-          )}
-        </div>
-      </div>
+      <SuperadminLayoutInner isLoginPage={isLoginPage}>
+        {children}
+      </SuperadminLayoutInner>
     );
-  }
+  };
 
   return (
     <SessionProvider>
@@ -73,31 +134,7 @@ export function SuperadminLayoutClient({
         <ThemeProvider>
           <I18nProvider initialLocale={initialLocale} initialDict={initialDict}>
             <CurrencyProvider>
-              {isLoginPage ? (
-                <div className="min-h-screen bg-background">{children}</div>
-              ) : (
-                <>
-                  <div className="min-h-screen bg-background flex pb-7">
-                    {/* Sidebar */}
-                    <SuperadminSidebar />
-
-                    {/* Main Content Area */}
-                    <div className="flex-1 flex flex-col">
-                      {/* Header */}
-                      <SuperadminHeader />
-
-                      {/* Page Content */}
-                      <main className="flex-1 overflow-auto">{children}</main>
-                    </div>
-                  </div>
-                  
-                  {/* System Status Bar - Replaces marketing footer */}
-                  <SystemStatusBar />
-                  
-                  {/* Command Palette (Cmd+K) */}
-                  <CommandPalette />
-                </>
-              )}
+              {renderContent()}
             </CurrencyProvider>
           </I18nProvider>
         </ThemeProvider>

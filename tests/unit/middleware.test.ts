@@ -199,6 +199,39 @@ describe('Middleware', () => {
       expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
     });
+
+    // Locale-prefixed route protection tests (SECURITY: prevent RBAC bypass via /[locale]/...)
+    it('should redirect to /login when accessing /ar/admin/fm-dashboard without token', async () => {
+      const request = createMockRequest('/ar/admin/fm-dashboard');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      expect(response?.headers.get('location')).toContain('/login');
+    });
+
+    it('should redirect to /login when accessing /en/admin/fm-dashboard without token', async () => {
+      const request = createMockRequest('/en/admin/fm-dashboard');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      expect(response?.headers.get('location')).toContain('/login');
+    });
+
+    it('should protect /ar/fm/dashboard (locale-prefixed FM route)', async () => {
+      const request = createMockRequest('/ar/fm/dashboard');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      expect(response?.headers.get('location')).toContain('/login');
+    });
+
+    it('should protect /en/finance/invoices (locale-prefixed finance route)', async () => {
+      const request = createMockRequest('/en/finance/invoices');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      expect(response?.headers.get('location')).toContain('/login');
+    });
   });
 
   describe('Role-Based Access Control (RBAC)', () => {

@@ -124,29 +124,29 @@ export default function SuperadminImportExportPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.import-export") || "Import / Export"}</h1>
-          <p className="text-slate-400">Bulk data import and export operations</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.import-export") || "Import / Export"}</h1>
+          <p className="text-muted-foreground">Bulk data import and export operations</p>
         </div>
       </div>
 
       <Tabs defaultValue="export" className="w-full">
-        <TabsList className="bg-slate-800 border-slate-700">
-          <TabsTrigger value="export" className="data-[state=active]:bg-slate-700"><Download className="h-4 w-4 me-2" />Export</TabsTrigger>
-          <TabsTrigger value="import" className="data-[state=active]:bg-slate-700"><Upload className="h-4 w-4 me-2" />Import</TabsTrigger>
-          <TabsTrigger value="history" className="data-[state=active]:bg-slate-700"><FileText className="h-4 w-4 me-2" />History</TabsTrigger>
+        <TabsList className="bg-muted border-input">
+          <TabsTrigger value="export" className="data-[state=active]:bg-muted/80"><Download className="h-4 w-4 me-2" />Export</TabsTrigger>
+          <TabsTrigger value="import" className="data-[state=active]:bg-muted/80"><Upload className="h-4 w-4 me-2" />Import</TabsTrigger>
+          <TabsTrigger value="history" className="data-[state=active]:bg-muted/80"><FileText className="h-4 w-4 me-2" />History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="export">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <Card className="bg-slate-900 border-slate-800">
-                <CardHeader className="border-b border-slate-800">
+              <Card className="bg-card border-border">
+                <CardHeader className="border-b border-border">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-white">Select Collections</CardTitle>
-                      <CardDescription className="text-slate-400">Choose up to 5 collections to export</CardDescription>
+                      <CardTitle className="text-foreground">Select Collections</CardTitle>
+                      <CardDescription className="text-muted-foreground">Choose up to 5 collections to export</CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={selectAll} className="border-slate-700">
+                    <Button variant="outline" size="sm" onClick={selectAll} className="border-input">
                       {selectedCollections.length === EXPORTABLE_COLLECTIONS.length ? "Deselect All" : "Select All"}
                     </Button>
                   </div>
@@ -158,15 +158,15 @@ export default function SuperadminImportExportPage() {
                       return (
                         <div
                           key={collection.id}
-                          className={`flex items-center justify-between p-4 rounded-lg cursor-pointer transition-colors ${selectedCollections.includes(collection.id) ? "bg-blue-500/20 border border-blue-500/50" : "bg-slate-800 border border-transparent hover:border-slate-700"}`}
+                          className={`flex items-center justify-between p-4 rounded-lg cursor-pointer transition-colors ${selectedCollections.includes(collection.id) ? "bg-blue-500/20 border border-blue-500/50" : "bg-muted border border-transparent hover:border-input"}`}
                           onClick={() => toggleCollection(collection.id)}
                         >
                           <div className="flex items-center gap-3">
                             <Checkbox checked={selectedCollections.includes(collection.id)} onCheckedChange={() => toggleCollection(collection.id)} />
-                            <Icon className="h-5 w-5 text-slate-400" />
+                            <Icon className="h-5 w-5 text-muted-foreground" />
                             <div>
-                              <p className="text-white font-medium">{collection.name}</p>
-                              <p className="text-slate-500 text-sm">{collection.count.toLocaleString()} records</p>
+                              <p className="text-foreground font-medium">{collection.name}</p>
+                              <p className="text-muted-foreground text-sm">{collection.count.toLocaleString()} records</p>
                             </div>
                           </div>
                         </div>
@@ -178,33 +178,33 @@ export default function SuperadminImportExportPage() {
             </div>
 
             <div>
-              <Card className="bg-slate-900 border-slate-800">
-                <CardHeader className="border-b border-slate-800">
-                  <CardTitle className="text-white">Export Options</CardTitle>
+              <Card className="bg-card border-border">
+                <CardHeader className="border-b border-border">
+                  <CardTitle className="text-foreground">Export Options</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-4">
                   <div>
-                    <Label className="text-slate-300 mb-2 block">Format</Label>
+                    <Label className="text-muted-foreground mb-2 block">Format</Label>
                     <Select value={exportFormat} onValueChange={setExportFormat}>
-                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                      <SelectTrigger className="bg-muted border-input text-foreground">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
-                        <SelectItem value="json"><div className="flex items-center gap-2"><FileJson className="h-4 w-4" />JSON</div></SelectItem>
-                        <SelectItem value="csv"><div className="flex items-center gap-2"><FileSpreadsheet className="h-4 w-4" />CSV (ZIP)</div></SelectItem>
+                      <SelectContent className="bg-muted border-input">
+                        <SelectItem value="json">JSON</SelectItem>
+                        <SelectItem value="csv">CSV (ZIP)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="bg-slate-800 p-3 rounded-lg">
-                    <p className="text-slate-400 text-sm mb-1">Selected</p>
-                    <p className="text-white font-medium">{selectedCollections.length} collection(s)</p>
+                  <div className="bg-muted p-3 rounded-lg">
+                    <p className="text-muted-foreground text-sm mb-1">Selected</p>
+                    <p className="text-foreground font-medium">{selectedCollections.length} collection(s)</p>
                   </div>
 
                   {exporting && (
                     <div className="space-y-2">
                       <Progress value={exportProgress} className="h-2" />
-                      <p className="text-slate-400 text-sm text-center">{exportProgress}% complete</p>
+                      <p className="text-muted-foreground text-sm text-center">{exportProgress}% complete</p>
                     </div>
                   )}
 
@@ -225,12 +225,12 @@ export default function SuperadminImportExportPage() {
         </TabsContent>
 
         <TabsContent value="import">
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-card border-border">
             <CardContent className="p-8">
-              <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-slate-700 rounded-lg">
-                <Upload className="h-16 w-16 text-slate-600 mb-4" />
-                <h3 className="text-xl font-medium text-white mb-2">Import Data</h3>
-                <p className="text-slate-400 text-center mb-4 max-w-md">Import functionality requires validation rules and dry-run preview. Contact support for bulk imports.</p>
+              <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-input rounded-lg">
+                <Upload className="h-16 w-16 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-medium text-foreground mb-2">Import Data</h3>
+                <p className="text-muted-foreground text-center mb-4 max-w-md">Import functionality requires validation rules and dry-run preview. Contact support for bulk imports.</p>
                 <Badge className="bg-yellow-500/20 text-yellow-400">Coming Soon</Badge>
               </div>
             </CardContent>
@@ -238,28 +238,28 @@ export default function SuperadminImportExportPage() {
         </TabsContent>
 
         <TabsContent value="history">
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="border-b border-slate-800">
-              <CardTitle className="text-white">Recent Exports</CardTitle>
-              <CardDescription className="text-slate-400">Your export history (this session)</CardDescription>
+          <Card className="bg-card border-border">
+            <CardHeader className="border-b border-border">
+              <CardTitle className="text-foreground">Recent Exports</CardTitle>
+              <CardDescription className="text-muted-foreground">Your export history (this session)</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {recentExports.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <FileText className="h-12 w-12 text-slate-600 mb-4" />
-                  <p className="text-slate-400">No exports yet</p>
+                  <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No exports yet</p>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-800">
+                <div className="divide-y divide-border">
                   {recentExports.map((job) => (
                     <div key={job.id} className="flex items-center justify-between p-4">
                       <div className="flex items-center gap-4">
-                        <div className="p-2 bg-slate-800 rounded-lg">
+                        <div className="p-2 bg-muted rounded-lg">
                           {job.format === "csv" ? <FileSpreadsheet className="h-5 w-5 text-green-400" /> : <FileJson className="h-5 w-5 text-blue-400" />}
                         </div>
                         <div>
-                          <p className="text-white font-medium">{job.collections.join(", ")}</p>
-                          <p className="text-slate-400 text-sm">{formatDate(job.createdAt)} · {job.format.toUpperCase()}</p>
+                          <p className="text-foreground font-medium">{job.collections.join(", ")}</p>
+                          <p className="text-muted-foreground text-sm">{formatDate(job.createdAt)} · {job.format.toUpperCase()}</p>
                         </div>
                       </div>
                       <Badge className="bg-green-500/20 text-green-400"><CheckCircle className="h-3 w-3 me-1" />Completed</Badge>

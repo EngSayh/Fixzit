@@ -19,11 +19,11 @@ export default function SuperadminSystemPage() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <Palette className="h-8 w-8 text-[var(--color-sparkline-blue)]" />
-          <h1 className="text-3xl font-bold text-white">
+          <h1 className="text-3xl font-bold text-foreground">
             Platform Branding
           </h1>
         </div>
-        <p className="text-slate-400">
+        <p className="text-muted-foreground">
           Configure global branding including logo, colors, and platform name
         </p>
       </div>

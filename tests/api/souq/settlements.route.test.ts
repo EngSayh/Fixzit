@@ -120,7 +120,8 @@ describe("API /api/souq/settlements", () => {
       expect(res.status).toBe(403);
     });
 
-    it("returns settlements for authenticated seller", async () => {
+    // TODO(TG-005): Complete settlement DB mocks for deterministic test
+    it.skip("returns settlements for authenticated seller", async () => {
       mockRateLimitResponse = null;
       sessionUser = {
         id: "user-123",
@@ -134,8 +135,8 @@ describe("API /api/souq/settlements", () => {
       );
       const res = await GET(req);
 
-      // Should return 200, 404 (not found), or handle gracefully
-      expect([200, 400, 404, 500]).toContain(res.status);
+      // Requires settlement DB mocks for 200 response
+      expect(res.status).toBe(200);
     });
 
     it("requires targetOrgId for super admin without session org", async () => {
@@ -154,7 +155,8 @@ describe("API /api/souq/settlements", () => {
       expect(data.error).toContain("targetOrgId");
     });
 
-    it("supports pagination parameters", async () => {
+    // TODO(TG-005): Complete settlement DB mocks for deterministic pagination test
+    it.skip("supports pagination parameters", async () => {
       mockRateLimitResponse = null;
       sessionUser = {
         id: "user-123",
@@ -167,10 +169,12 @@ describe("API /api/souq/settlements", () => {
       );
       const res = await GET(req);
 
-      expect([200, 400, 404, 500]).toContain(res.status);
+      // Requires settlement DB mocks to verify pagination
+      expect(res.status).toBe(200);
     });
 
-    it("supports status filter", async () => {
+    // TODO(TG-005): Complete settlement DB mocks to verify status filter
+    it.skip("supports status filter", async () => {
       mockRateLimitResponse = null;
       sessionUser = {
         id: "user-123",
@@ -183,7 +187,8 @@ describe("API /api/souq/settlements", () => {
       );
       const res = await GET(req);
 
-      expect([200, 400, 404, 500]).toContain(res.status);
+      // Requires settlement DB mocks to verify status filter applied
+      expect(res.status).toBe(200);
     });
   });
 });

@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -152,32 +152,32 @@ export default function SuperadminNotificationsPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.notifications")}</h1>
-          <p className="text-slate-400">System-wide notification management and history</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.notifications")}</h1>
+          <p className="text-muted-foreground">System-wide notification management and history</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setSendDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => setSendDialogOpen(true)}>
             <Send className="h-4 w-4 me-2" />Send Notification
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchNotifications} disabled={loading} className="border-slate-700 text-slate-300">
+          <Button variant="outline" size="sm" onClick={fetchNotifications} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="history" className="space-y-4">
-        <TabsList className="bg-slate-800 border-slate-700">
-          <TabsTrigger value="history" className="data-[state=active]:bg-slate-700">History</TabsTrigger>
-          <TabsTrigger value="config" className="data-[state=active]:bg-slate-700">Configuration</TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="config">Configuration</TabsTrigger>
         </TabsList>
 
         <TabsContent value="history" className="space-y-4">
-          <Card className="bg-slate-900 border-slate-800">
+          <Card>
             <CardContent className="p-4">
               <div className="flex gap-4">
-                <Select value={channelFilter} onValueChange={setChannelFilter}>
-                  <SelectTrigger className="w-[160px] bg-slate-800 border-slate-700 text-white"><SelectValue placeholder="Channel" /></SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                <Select value={channelFilter} onValueChange={setChannelFilter} placeholder="Channel">
+                  <SelectTrigger className="w-[160px]">{channelFilter === "all" ? "All Channels" : channelFilter.charAt(0).toUpperCase() + channelFilter.slice(1)}</SelectTrigger>
+                  <SelectContent>
                     <SelectItem value="all">All Channels</SelectItem>
                     <SelectItem value="email">Email</SelectItem>
                     <SelectItem value="sms">SMS</SelectItem>
@@ -189,38 +189,38 @@ export default function SuperadminNotificationsPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="border-b border-slate-800">
-              <CardTitle className="flex items-center gap-2 text-white"><Bell className="h-5 w-5" />Notification History</CardTitle>
-              <CardDescription className="text-slate-400">All sent notifications and their delivery status</CardDescription>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5" />Notification History</CardTitle>
+              <CardDescription>All sent notifications and their delivery status</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {loading ? (
-                <div className="flex items-center justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-slate-500" /></div>
+                <div className="flex items-center justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" /></div>
               ) : error ? (
-                <div className="flex flex-col items-center justify-center py-12"><AlertCircle className="h-12 w-12 text-red-500 mb-4" /><p className="text-red-400">{error}</p></div>
+                <div className="flex flex-col items-center justify-center py-12"><AlertCircle className="h-12 w-12 text-destructive mb-4" /><p className="text-destructive">{error}</p></div>
               ) : notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12"><Bell className="h-12 w-12 text-slate-600 mb-4" /><p className="text-slate-400">No notifications found</p></div>
+                <div className="flex flex-col items-center justify-center py-12"><Bell className="h-12 w-12 text-muted-foreground/50 mb-4" /><p className="text-muted-foreground">No notifications found</p></div>
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-slate-800">
-                      <TableHead className="text-slate-400">Timestamp</TableHead>
-                      <TableHead className="text-slate-400">Title</TableHead>
-                      <TableHead className="text-slate-400">Channels</TableHead>
-                      <TableHead className="text-slate-400">Status</TableHead>
-                      <TableHead className="text-slate-400">Metrics</TableHead>
-                      <TableHead className="text-slate-400 w-[80px]">Details</TableHead>
+                    <TableRow>
+                      <TableHead>Timestamp</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Channels</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Metrics</TableHead>
+                      <TableHead className="w-[80px]">Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {notifications.map((n) => (
-                      <TableRow key={n._id} className="border-slate-800 hover:bg-slate-800/50">
-                        <TableCell className="text-slate-300"><div className="flex items-center gap-2"><Clock className="h-4 w-4 text-slate-500" />{formatDate(n.createdAt)}</div></TableCell>
-                        <TableCell className="text-white font-medium">{n.title}</TableCell>
-                        <TableCell><div className="flex gap-1">{n.channelResults?.map((ch) => (<span key={ch.channel} className="text-slate-400">{CHANNEL_ICONS[ch.channel]}</span>))}</div></TableCell>
+                      <TableRow key={n._id}>
+                        <TableCell className="text-muted-foreground"><div className="flex items-center gap-2"><Clock className="h-4 w-4" />{formatDate(n.createdAt)}</div></TableCell>
+                        <TableCell className="font-medium">{n.title}</TableCell>
+                        <TableCell><div className="flex gap-1">{n.channelResults?.map((ch) => (<span key={ch.channel} className="text-muted-foreground">{CHANNEL_ICONS[ch.channel]}</span>))}</div></TableCell>
                         <TableCell><Badge variant="outline" className={STATUS_COLORS[n.status] || ""}>{n.status}</Badge></TableCell>
-                        <TableCell className="text-slate-300">{n.metrics ? `${n.metrics.succeeded}/${n.metrics.attempted}` : "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{n.metrics ? `${n.metrics.succeeded}/${n.metrics.attempted}` : "—"}</TableCell>
                         <TableCell><Button variant="ghost" size="sm" onClick={() => { setSelectedNotification(n); setViewDialogOpen(true); }}><Eye className="h-4 w-4" /></Button></TableCell>
                       </TableRow>
                     ))}
@@ -228,8 +228,8 @@ export default function SuperadminNotificationsPage() {
                 </Table>
               )}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between p-4 border-t border-slate-800">
-                  <p className="text-sm text-slate-400">Page {page} of {totalPages}</p>
+                <div className="flex items-center justify-between p-4 border-t">
+                  <p className="text-sm text-muted-foreground">Page {page} of {totalPages}</p>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}><ChevronLeft className="h-4 w-4" /></Button>
                     <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}><ChevronRight className="h-4 w-4" /></Button>
@@ -243,10 +243,10 @@ export default function SuperadminNotificationsPage() {
         <TabsContent value="config" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {["email", "sms", "push", "whatsapp"].map((channel) => (
-              <Card key={channel} className="bg-slate-900 border-slate-800">
+              <Card key={channel}>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-white capitalize">{CHANNEL_ICONS[channel]}{channel}</CardTitle>
-                  <CardDescription className="text-slate-400">
+                  <CardTitle className="flex items-center gap-2 capitalize">{CHANNEL_ICONS[channel]}{channel}</CardTitle>
+                  <CardDescription>
                     {config?.[channel as keyof NotificationConfig]?.enabled ? "Enabled" : "Disabled"}
                   </CardDescription>
                 </CardHeader>
@@ -256,9 +256,9 @@ export default function SuperadminNotificationsPage() {
                       {config?.[channel as keyof NotificationConfig]?.enabled ? (
                         <CheckCircle className="h-5 w-5 text-green-500" />
                       ) : (
-                        <XCircle className="h-5 w-5 text-red-500" />
+                        <XCircle className="h-5 w-5 text-destructive" />
                       )}
-                      <span className="text-slate-300">
+                      <span className="text-muted-foreground">
                         {config?.[channel as keyof NotificationConfig]?.enabled ? "Active" : "Inactive"}
                       </span>
                     </div>
@@ -275,14 +275,14 @@ export default function SuperadminNotificationsPage() {
 
       {/* Send Dialog */}
       <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Send Notification</DialogTitle>
-            <DialogDescription className="text-slate-400">Send a system-wide notification</DialogDescription>
+            <DialogDescription>Send a system-wide notification</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div><Label>Title</Label><Input value={sendForm.title} onChange={(e) => setSendForm(f => ({ ...f, title: e.target.value }))} className="bg-slate-800 border-slate-700" /></div>
-            <div><Label>Message</Label><Textarea value={sendForm.message} onChange={(e) => setSendForm(f => ({ ...f, message: e.target.value }))} className="bg-slate-800 border-slate-700" rows={4} /></div>
+            <div><Label htmlFor="notification-title">Title</Label><Input id="notification-title" value={sendForm.title} onChange={(e) => setSendForm(f => ({ ...f, title: e.target.value }))} /></div>
+            <div><Label htmlFor="notification-message">Message</Label><Textarea id="notification-message" value={sendForm.message} onChange={(e) => setSendForm(f => ({ ...f, message: e.target.value }))} rows={4} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSendDialogOpen(false)}>Cancel</Button>
@@ -293,27 +293,27 @@ export default function SuperadminNotificationsPage() {
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Notification Details</DialogTitle>
           </DialogHeader>
           {selectedNotification && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div><p className="text-sm text-slate-400">Title</p><p className="text-white">{selectedNotification.title}</p></div>
-                <div><p className="text-sm text-slate-400">Status</p><Badge className={STATUS_COLORS[selectedNotification.status]}>{selectedNotification.status}</Badge></div>
-                <div><p className="text-sm text-slate-400">Sent At</p><p className="text-white">{formatDate(selectedNotification.createdAt)}</p></div>
-                <div><p className="text-sm text-slate-400">Recipients</p><p className="text-white">{selectedNotification.recipients?.length || 0}</p></div>
+                <div><p className="text-sm text-muted-foreground">Title</p><p>{selectedNotification.title}</p></div>
+                <div><p className="text-sm text-muted-foreground">Status</p><Badge className={STATUS_COLORS[selectedNotification.status]}>{selectedNotification.status}</Badge></div>
+                <div><p className="text-sm text-muted-foreground">Sent At</p><p>{formatDate(selectedNotification.createdAt)}</p></div>
+                <div><p className="text-sm text-muted-foreground">Recipients</p><p>{selectedNotification.recipients?.length || 0}</p></div>
               </div>
-              {selectedNotification.message && (<div><p className="text-sm text-slate-400 mb-1">Message</p><p className="text-white bg-slate-800 p-3 rounded-lg">{selectedNotification.message}</p></div>)}
+              {selectedNotification.message && (<div><p className="text-sm text-muted-foreground mb-1">Message</p><p className="bg-muted p-3 rounded-lg">{selectedNotification.message}</p></div>)}
               {selectedNotification.channelResults && (
                 <div>
-                  <p className="text-sm text-slate-400 mb-2">Channel Results</p>
+                  <p className="text-sm text-muted-foreground mb-2">Channel Results</p>
                   <div className="space-y-2">
                     {selectedNotification.channelResults.map((ch, i) => (
-                      <div key={i} className="flex items-center justify-between bg-slate-800 p-3 rounded-lg">
+                      <div key={i} className="flex items-center justify-between bg-muted p-3 rounded-lg">
                         <div className="flex items-center gap-2">{CHANNEL_ICONS[ch.channel]}<span className="capitalize">{ch.channel}</span></div>
-                        <div className="text-sm"><span className="text-green-400">{ch.succeeded}</span>/<span className="text-slate-400">{ch.attempts}</span></div>
+                        <div className="text-sm"><span className="text-green-500">{ch.succeeded}</span>/<span className="text-muted-foreground">{ch.attempts}</span></div>
                       </div>
                     ))}
                   </div>

@@ -118,14 +118,14 @@ export default function SuperadminTranslationsPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t("superadmin.nav.translations") || "Translations"}</h1>
-          <p className="text-slate-400">Manage i18n translations for all locales</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.translations") || "Translations"}</h1>
+          <p className="text-muted-foreground">Manage i18n translations for all locales</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => handleExport("all")} className="border-slate-700 text-slate-300">
+          <Button variant="outline" size="sm" onClick={() => handleExport("all")} className="border-input text-muted-foreground">
             <Download className="h-4 w-4 me-2" />Export All
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchLocales} disabled={loading} className="border-slate-700 text-slate-300">
+          <Button variant="outline" size="sm" onClick={fetchLocales} disabled={loading} className="border-input text-muted-foreground">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
@@ -134,14 +134,14 @@ export default function SuperadminTranslationsPage() {
       {/* Locale Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {locales.map((loc) => (
-          <Card key={loc.locale} className="bg-slate-900 border-slate-800">
+          <Card key={loc.locale} className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <span className="text-3xl">{loc.flag}</span>
                   <div>
-                    <p className="text-white font-medium">{loc.name}</p>
-                    <p className="text-slate-500 text-sm">{loc.locale.toUpperCase()}</p>
+                    <p className="text-foreground font-medium">{loc.name}</p>
+                    <p className="text-muted-foreground text-sm">{loc.locale.toUpperCase()}</p>
                   </div>
                 </div>
                 <Badge variant="outline" className={loc.coverage === 100 ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}>
@@ -150,11 +150,11 @@ export default function SuperadminTranslationsPage() {
               </div>
               <Progress value={loc.coverage} className="h-2 mb-2" />
               <div className="flex justify-between text-sm">
-                <span className="text-slate-400">{loc.translated} translated</span>
+                <span className="text-muted-foreground">{loc.translated} translated</span>
                 {loc.missing > 0 && <span className="text-yellow-400">{loc.missing} missing</span>}
               </div>
               <div className="flex gap-2 mt-4">
-                <Button variant="outline" size="sm" onClick={() => handleExport(loc.locale)} className="flex-1 border-slate-700">
+                <Button variant="outline" size="sm" onClick={() => handleExport(loc.locale)} className="flex-1 border-input">
                   <Download className="h-4 w-4 me-2" />Export
                 </Button>
               </div>
@@ -164,18 +164,18 @@ export default function SuperadminTranslationsPage() {
       </div>
 
       <Tabs defaultValue="keys" className="w-full">
-        <TabsList className="bg-slate-800 border-slate-700">
-          <TabsTrigger value="keys" className="data-[state=active]:bg-slate-700"><Languages className="h-4 w-4 me-2" />Translation Keys</TabsTrigger>
-          <TabsTrigger value="missing" className="data-[state=active]:bg-slate-700"><AlertTriangle className="h-4 w-4 me-2" />Missing ({missingCount})</TabsTrigger>
+        <TabsList className="bg-muted border-input">
+          <TabsTrigger value="keys" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"><Languages className="h-4 w-4 me-2" />Translation Keys</TabsTrigger>
+          <TabsTrigger value="missing" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"><AlertTriangle className="h-4 w-4 me-2" />Missing ({missingCount})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="keys">
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="border-b border-slate-800">
+          <Card className="bg-card border-border">
+            <CardHeader className="border-b border-border">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <CardTitle className="text-white">Translation Keys</CardTitle>
-                  <CardDescription className="text-slate-400">All translation strings</CardDescription>
+                  <CardTitle className="text-foreground">Translation Keys</CardTitle>
+                  <CardDescription className="text-muted-foreground">All translation strings</CardDescription>
                 </div>
                 <div className="flex gap-2">
                   <Input
@@ -183,7 +183,7 @@ export default function SuperadminTranslationsPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                    className="w-[200px] bg-slate-800 border-slate-700 text-white"
+                    className="w-[200px] bg-muted border-input text-foreground"
                   />
                   <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700">
                     <Search className="h-4 w-4" />
@@ -194,26 +194,26 @@ export default function SuperadminTranslationsPage() {
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-800">
-                    <TableHead className="text-slate-400">Key</TableHead>
-                    <TableHead className="text-slate-400">English</TableHead>
-                    <TableHead className="text-slate-400">Arabic</TableHead>
-                    <TableHead className="text-slate-400">Status</TableHead>
-                    <TableHead className="text-slate-400 w-[80px]">Edit</TableHead>
+                  <TableRow className="border-border">
+                    <TableHead className="text-muted-foreground">Key</TableHead>
+                    <TableHead className="text-muted-foreground">English</TableHead>
+                    <TableHead className="text-muted-foreground">Arabic</TableHead>
+                    <TableHead className="text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-muted-foreground w-[80px]">Edit</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredKeys.map((key) => (
-                    <TableRow key={key.key} className="border-slate-800 hover:bg-slate-800/50">
-                      <TableCell className="font-mono text-white text-sm">{key.key}</TableCell>
-                      <TableCell className="text-slate-300">{key.en}</TableCell>
+                    <TableRow key={key.key} className="border-border hover:bg-muted/50">
+                      <TableCell className="font-mono text-foreground text-sm">{key.key}</TableCell>
+                      <TableCell className="text-muted-foreground">{key.en}</TableCell>
                       <TableCell>
                         {editingKey === key.key ? (
                           <div className="flex gap-2">
                             <Input
                               value={editValue}
                               onChange={(e) => setEditValue(e.target.value)}
-                              className="bg-slate-800 border-slate-700 text-white"
+                              className="bg-muted border-input text-foreground"
                               dir="rtl"
                             />
                             <Button size="sm" onClick={() => handleSaveEdit(key.key)} className="bg-green-600">
@@ -221,7 +221,7 @@ export default function SuperadminTranslationsPage() {
                             </Button>
                           </div>
                         ) : (
-                          <span className={`${key.ar ? "text-slate-300" : "text-slate-500 italic"}`} dir="rtl">
+                          <span className={`${key.ar ? "text-muted-foreground" : "text-muted-foreground/50 italic"}`} dir="rtl">
                             {key.ar || "Not translated"}
                           </span>
                         )}
@@ -248,36 +248,36 @@ export default function SuperadminTranslationsPage() {
         </TabsContent>
 
         <TabsContent value="missing">
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader className="border-b border-slate-800">
-              <CardTitle className="flex items-center gap-2 text-white">
+          <Card className="bg-card border-border">
+            <CardHeader className="border-b border-border">
+              <CardTitle className="flex items-center gap-2 text-foreground">
                 <AlertTriangle className="h-5 w-5 text-yellow-400" />
                 Missing Translations
               </CardTitle>
-              <CardDescription className="text-slate-400">Keys that need Arabic translations</CardDescription>
+              <CardDescription className="text-muted-foreground">Keys that need Arabic translations</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-800">
-                    <TableHead className="text-slate-400">Key</TableHead>
-                    <TableHead className="text-slate-400">English</TableHead>
-                    <TableHead className="text-slate-400">Arabic</TableHead>
-                    <TableHead className="text-slate-400 w-[80px]">Edit</TableHead>
+                  <TableRow className="border-border">
+                    <TableHead className="text-muted-foreground">Key</TableHead>
+                    <TableHead className="text-muted-foreground">English</TableHead>
+                    <TableHead className="text-muted-foreground">Arabic</TableHead>
+                    <TableHead className="text-muted-foreground w-[80px]">Edit</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {keys.filter(k => k.status === "missing").map((key) => (
-                    <TableRow key={key.key} className="border-slate-800 hover:bg-slate-800/50">
-                      <TableCell className="font-mono text-white text-sm">{key.key}</TableCell>
-                      <TableCell className="text-slate-300">{key.en}</TableCell>
+                    <TableRow key={key.key} className="border-border hover:bg-muted/50">
+                      <TableCell className="font-mono text-foreground text-sm">{key.key}</TableCell>
+                      <TableCell className="text-muted-foreground">{key.en}</TableCell>
                       <TableCell>
                         {editingKey === key.key ? (
                           <div className="flex gap-2">
                             <Input
                               value={editValue}
                               onChange={(e) => setEditValue(e.target.value)}
-                              className="bg-slate-800 border-slate-700 text-white"
+                              className="bg-muted border-input text-foreground"
                               dir="rtl"
                               placeholder="Enter Arabic translation"
                             />
@@ -286,7 +286,7 @@ export default function SuperadminTranslationsPage() {
                             </Button>
                           </div>
                         ) : (
-                          <span className="text-slate-500 italic">Not translated</span>
+                          <span className="text-muted-foreground/50 italic">Not translated</span>
                         )}
                       </TableCell>
                       <TableCell>

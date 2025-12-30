@@ -173,6 +173,7 @@ export default function OnboardingWizard({
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>({});
 
   // Load existing case data
+  // Note: isRTL is captured at mount time due to empty dependency array below
   const loadCaseData = useCallback(async (id: string) => {
     try {
       const res = await fetch(`/api/onboarding/${id}`);
@@ -195,9 +196,13 @@ export default function OnboardingWizard({
         }
       }
     } catch (_error) {
-      // Silent fail - case data will be loaded on retry
+      toast.error(
+        isRTL
+          ? "تعذر تحميل بيانات الحالة. يرجى المحاولة مرة أخرى."
+          : "Unable to load onboarding case. Please retry.",
+      );
     }
-  }, [session?.user]);
+  }, [isRTL]);
 
   useEffect(() => {
     if (existingCaseId) {
@@ -207,7 +212,8 @@ export default function OnboardingWizard({
 
   const progress = (currentStep / STEPS.length) * 100;
 
-  const validateProfileStep = useCallback(() => {
+  const validateProfileStep = useCallback((options: { requireCompanyName?: boolean } = {}) => {
+    const requireCompanyName = options.requireCompanyName ?? true;
     if (!basicInfo.name.trim()) {
       toast.error(isRTL ? "الرجاء إدخال الاسم" : "Please enter your name");
       return false;
@@ -218,6 +224,7 @@ export default function OnboardingWizard({
       return false;
     }
     if (
+      requireCompanyName &&
       (selectedRole === "OWNER" || selectedRole === "VENDOR") &&
       !basicInfo.companyName.trim()
     ) {
@@ -257,7 +264,7 @@ export default function OnboardingWizard({
     }
 
     if (currentStep === 1 && !caseId) {
-      if (!validateProfileStep()) return;
+      if (!validateProfileStep({ requireCompanyName: false })) return;
       // Create case on first step completion
       setIsLoading(true);
       try {

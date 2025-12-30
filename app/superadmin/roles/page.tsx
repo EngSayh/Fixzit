@@ -59,10 +59,10 @@ export default function SuperadminRolesPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white mb-2">
+        <h1 className="text-3xl font-bold text-foreground mb-2">
           {t("superadmin.nav.roles")}
         </h1>
-        <p className="text-slate-400">
+        <p className="text-muted-foreground">
           RBAC role matrix reference (14-role system)
         </p>
       </div>
@@ -72,15 +72,15 @@ export default function SuperadminRolesPage() {
         {["Administrative", "FM", "Staff", "External"].map((category) => {
           const count = ROLES.filter((r) => r.category === category).length;
           return (
-            <Card key={category} className="bg-slate-900 border-slate-800">
+            <Card key={category}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg ${CATEGORY_COLORS[category]}`}>
                     {CATEGORY_ICONS[category]}
                   </div>
                   <div>
-                    <p className="text-sm text-slate-400">{category}</p>
-                    <p className="text-xl font-bold text-white">{count} roles</p>
+                    <p className="text-sm text-muted-foreground">{category}</p>
+                    <p className="text-xl font-bold text-foreground">{count} roles</p>
                   </div>
                 </div>
               </CardContent>
@@ -90,32 +90,32 @@ export default function SuperadminRolesPage() {
       </div>
 
       {/* Roles Table */}
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader className="border-b border-slate-800">
-          <CardTitle className="flex items-center gap-2 text-white">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
             Role Definitions
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription>
             System-wide RBAC configuration (read-only)
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-slate-400">Role</TableHead>
-                <TableHead className="text-slate-400">Category</TableHead>
-                <TableHead className="text-slate-400">Description</TableHead>
-                <TableHead className="text-slate-400">Modules</TableHead>
+              <TableRow>
+                <TableHead>Role</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Modules</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {ROLES.map((role) => (
-                <TableRow key={role.name} className="border-slate-800 hover:bg-slate-800/50">
+                <TableRow key={role.name}>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-white">{role.name}</span>
+                      <span className="font-mono">{role.name}</span>
                       {role.permissions.includes("*") && (
                         <span title="Full Access">
                           <CheckCircle className="h-4 w-4 text-green-500" aria-hidden="true" />
@@ -129,16 +129,16 @@ export default function SuperadminRolesPage() {
                       <span className="ms-1">{role.category}</span>
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-slate-300">{role.description}</TableCell>
+                  <TableCell className="text-muted-foreground">{role.description}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {role.permissions.slice(0, 4).map((perm) => (
-                        <Badge key={perm} variant="outline" className="text-xs text-slate-400 border-slate-700">
+                        <Badge key={perm} variant="outline" className="text-xs">
                           {perm}
                         </Badge>
                       ))}
                       {role.permissions.length > 4 && (
-                        <Badge variant="outline" className="text-xs text-slate-500 border-slate-700">
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
                           +{role.permissions.length - 4} more
                         </Badge>
                       )}
