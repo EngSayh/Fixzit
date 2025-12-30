@@ -12,31 +12,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
 import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
+import { waitForMongoConnection } from '@/tests/utils/mongo-helpers';
 
 // Model will be imported AFTER mongoose connection is ready
 let Asset: mongoose.Model<any>;
 
-/**
- * Wait for mongoose connection to be ready.
- * CI environments need more time due to MongoDB Memory Server download/startup.
- * Increased to 120s for CI where MongoDB binary download can be slow.
- */
-async function waitForMongoConnection(maxWaitMs = 120000): Promise<void> {
-  const start = Date.now();
-  while (mongoose.connection.readyState !== 1) {
-    if (Date.now() - start > maxWaitMs) {
-      throw new Error(
-        `Mongoose not connected after ${maxWaitMs}ms - readyState: ${mongoose.connection.readyState}`
-      );
-    }
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-}
-
 beforeEach(async () => {
   // Wait for mongoose connection from vitest.setup.ts beforeAll
-  // CI environments may take longer due to cold start and MongoDB binary download
-  await waitForMongoConnection(120000);
+  // Uses shared utility with 180s timeout and retry logic
+  await waitForMongoConnection();
   
   // Clear tenant context first
   clearTenantContext();
