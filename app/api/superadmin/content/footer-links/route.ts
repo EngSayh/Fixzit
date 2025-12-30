@@ -19,11 +19,11 @@ export const dynamic = "force-dynamic";
 const ROBOTS_HEADER = { "X-Robots-Tag": "noindex, nofollow" };
 
 const FooterLinkSchema = z.object({
-  label: z.string().min(1, "Label is required"),
-  labelAr: z.string().optional(),
-  url: z.string().min(1, "URL is required"),
+  label: z.string().trim().min(1, "Label is required"),
+  labelAr: z.string().trim().optional(),
+  url: z.string().trim().min(1, "URL is required"),
   section: z.enum(["company", "support", "legal", "social"]),
-  icon: z.string().optional(),
+  icon: z.string().trim().optional(),
   isExternal: z.boolean().default(false),
   isActive: z.boolean().default(true),
   sortOrder: z.number().default(0),

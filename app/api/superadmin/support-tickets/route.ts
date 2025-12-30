@@ -42,30 +42,36 @@ export async function GET(request: NextRequest) {
 
     await connectDb();
 
-    // Parse query params
+    // Parse query params with safe defaults for NaN handling
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status");
-    const priority = searchParams.get("priority");
-    const ticketModule = searchParams.get("module");
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
+    const status = searchParams.get("status")?.toLowerCase();
+    const priority = searchParams.get("priority")?.toLowerCase();
+    const ticketModule = searchParams.get("module")?.toLowerCase();
+    
+    const parsedPage = parseInt(searchParams.get("page") || "1", 10);
+    const parsedLimit = parseInt(searchParams.get("limit") || "50", 10);
+    const page = Number.isNaN(parsedPage) ? 1 : Math.max(1, parsedPage);
+    const limit = Number.isNaN(parsedLimit) ? 50 : Math.min(100, Math.max(1, parsedLimit));
     const skip = (page - 1) * limit;
 
-    // Build query filter
+    // Build query filter - use case-insensitive regex for text fields
     const filter: Record<string, unknown> = {};
     if (status && status !== "all") {
       // Map "open" to active statuses
       if (status === "open") {
         filter.status = { $in: ["New", "Open", "Waiting"] };
       } else {
-        filter.status = status;
+        // Case-insensitive match for status
+        filter.status = { $regex: new RegExp(`^${status}$`, "i") };
       }
     }
     if (priority && priority !== "all") {
-      filter.priority = priority;
+      // Case-insensitive match for priority
+      filter.priority = { $regex: new RegExp(`^${priority}$`, "i") };
     }
     if (ticketModule && ticketModule !== "all") {
-      filter.module = ticketModule;
+      // Case-insensitive match for module
+      filter.module = { $regex: new RegExp(`^${ticketModule}$`, "i") };
     }
 
     const [tickets, total] = await Promise.all([
