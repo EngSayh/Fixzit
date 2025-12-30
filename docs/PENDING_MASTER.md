@@ -18,6 +18,72 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
 ---
+### 2025-12-30 22:00 (Asia/Riyadh) - SSOT Reconciliation Audit: Last 20 Merged PRs [AGENT-001-A]
+**Agent Token:** [AGENT-001-A]
+**Issue Keys:** SSOT-RECONCILE-001
+**Context:** main | eeb471dfb | Post-merge audit
+**DB Sync:** Required (status updates from 20 PRs)
+
+#### Audit Summary
+Cross-referenced comments and bodies from last 20 merged PRs against SSOT entries to identify status discrepancies.
+
+#### Issue Status Reconciliation Table:
+
+| Issue ID | PR(s) | Status in PR | SSOT Status | Action Required |
+|----------|-------|--------------|-------------|-----------------|
+| BUG-001 | #618, #558 | ✅ FIXED (Client polling) | ⚠️ open | Update to RESOLVED |
+| BUG-002 | #618, #558, #534 | ✅ FIXED (JSON.parse woClient) | ⚠️ open | Update to RESOLVED |
+| SEC-001 (XSS app.js) | #618 | ✅ FIXED (escapeHtml) | ⚠️ open | Update to RESOLVED |
+| SEC-002 (XSS prayer) | #618 | ✅ FIXED (escapeHtmlPrayer) | ⚠️ open | Update to RESOLVED |
+| SEC-003 (XSS search) | #618 | ✅ FIXED (Critical innerHTML) | ⚠️ open | Update to RESOLVED |
+| DOC-001 | #618 | ✅ CLOSED (SSOT pattern correct) | ⚠️ open | Update to CLOSED |
+| DOC-002 | #618 | ✅ CLOSED (README modernized) | ⚠️ open | Update to CLOSED |
+| QUOTA-001 | #618 | ⛔ BLOCKED (GitHub billing) | ✅ Correct | No action |
+| TODO-003 | #618, #604 | ✅ FIXED (FSM impl) | ⚠️ pending | Update to RESOLVED |
+| DEDUPE-001 | #618, #604 | ✅ FIXED (26 files removed) | ⚠️ pending | Update to RESOLVED |
+| Issue #152 | #611 | ✅ CLOSED | N/A | GitHub Issue |
+| Issue #293 | #610 | ✅ COMPLETED | N/A | GitHub Issue |
+| SEC-ONB-ORGID-001 | #596 | ✅ FIXED | ⚠️ missing | Create + RESOLVED |
+| ISSUE-TEST-001 | #599, #584 | ⏸️ SKIPPED (deferred) | ✅ Correct | No action |
+| GHSA-mwv6-3258-q52c | #538 | ✅ FIXED (Next.js 15.5.9) | ✅ Correct | No action |
+| F2 (aggregateWithTenant) | #558 | ✅ IMPLEMENTED | ⚠️ missing | Create + RESOLVED |
+
+#### Status Update Summary:
+- **Needs Update to RESOLVED**: BUG-001, BUG-002, SEC-001, SEC-002, SEC-003, TODO-003, DEDUPE-001
+- **Needs Update to CLOSED**: DOC-001, DOC-002
+- **Needs Creation + RESOLVED**: SEC-ONB-ORGID-001, F2
+- **Already Correct**: QUOTA-001, ISSUE-TEST-001, GHSA-mwv6-3258-q52c
+
+#### PRs Audited (20):
+| PR# | Title | Key Issues | Status |
+|-----|-------|------------|--------|
+| #618 | fix: Comprehensive security + UI fixes | BUG-001/002, SEC-001/002/003, DOC-001/002 | ✅ Merged |
+| #611 | feat(assets): Form management | Issue #152 | ✅ Merged |
+| #610 | fix: TODO items Issue #293 | Issue #293 | ✅ Merged |
+| #604 | chore: AGENTS.md compliance | TODO-003, DEDUPE-001 | ✅ Merged |
+| #601 | fix(test): Suite isolation | Theme tokens | ✅ Merged |
+| #599 | fix(tenancy+test): P0 Security | ISSUE-TEST-001 | ✅ Merged |
+| #598 | feat(P248): 101.9% coverage | P248 | ✅ Merged |
+| #597 | chore(P247): Dependencies | 9 packages | ✅ Merged |
+| #596 | feat(P235): Production readiness | SEC-ONB-ORGID-001 | ✅ Merged |
+| #594 | test(P232): Coverage expansion | P232 | ✅ Merged |
+| #584 | fix(P225): SSRF regex | P225 | ✅ Merged |
+| #579 | docs(ssot): Master pending P228 | P228 | ✅ Merged |
+| #558 | feat: Superadmin Auth | BUG-001/002, F2 | ✅ Merged |
+| #556 | Add Vercel Speed Insights | - | ✅ Merged |
+| #555 | feat(ops): Env standardization | - | ✅ Merged |
+| #550 | docs: orgId audit v60.0 | 7 orgId issues | ✅ Merged |
+| #548 | test(marketplace): API tests | P0/P1 rate limiting | ✅ Merged |
+| #538 | fix(security): Next.js 15.5.9 | GHSA-mwv6 | ✅ Merged |
+| #537 | docs: PayTabs cleanup | 37 files deferred | ✅ Merged |
+| #534 | agent/process efficiency | BUG-002 | ✅ Merged |
+
+#### Next Steps:
+1. Run `import-backlog.ts` with status overrides for issues above
+2. Re-extract BACKLOG_AUDIT.json after PENDING_MASTER sync
+3. Verify MongoDB Issue Tracker reflects accurate status
+
+---
 ### 2025-12-31 00:00 (Asia/Riyadh) - PR #618 Review Findings Audit [AGENT-001-A]
 **Agent Token:** [AGENT-001-A]
 **Issue Keys:** PR-REVIEW-618
