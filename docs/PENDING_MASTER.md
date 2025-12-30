@@ -1,6 +1,150 @@
 NOTE: SSOT is MongoDB Issue Tracker. This file is a derived log/snapshot. Do not create tasks here without also creating/updating DB issues.
 
 ---
+### 2025-12-30 07:54 (Asia/Riyadh) - Code Quality Fixes [AGENT-001-A]
+**Agent Token:** [AGENT-001-A]
+**Issue Key:** CODE-QUALITY-2025-12-30
+**Context:** fix/superadmin-auth-sidebar-AGENT-001-A | dc13ac16b | (no PR yet)
+**DB Sync:** pending (retroactive entry)
+
+---
+#### MULTI-ROLE VALIDATION RECORD (MRDR)
+**Issue Type:** Bug Fix (Multi-tenant) + Refactor/Tech Debt
+**Required Gates:** 4.2.1, 4.2.4, 4.2.5, 4.2.8, 4.2.9, 4.2.14
+
+---
+
+### PM Gate Analysis (4.2.1)
+- **User Story:** As a platform operator, I need code quality issues fixed so that the platform is secure, maintainable, and follows best practices
+- **Acceptance Criteria:**
+  1. All validation gaps addressed (null checks, input validation)
+  2. Race conditions fixed with DB transactions
+  3. Logging added to catch blocks
+  4. Test assertions strengthened
+  5. TypeScript/ESLint checks pass
+- **Roadmap Phase:** MVP (code quality)
+- **Roles Affected:** All (platform-wide fixes)
+- **Golden Workflow:** No direct impact
+- **Release Blockers:** None
+- **Ops/Support Impact:** None
+
+### Tech Lead Gate Analysis (4.2.4)
+- **Modules Affected:** Core, Superadmin, Services (aqar, fm, hr, finance, souq, zatca, ux)
+- **Boundary Violations:** None - fixes are within existing module boundaries
+- **API Changes:** None (internal logic only)
+- **Multi-Tenancy:**
+  - org_id scoping: enforced (god-mode now queries DB with proper scoping)
+  - RBAC: maintained
+- **Tech Debt Impact:** Reduces (addresses 55 code quality issues)
+- **Observability:**
+  âœ… Structured logging added to catch blocks
+  âœ… Error tracking maintained
+  âœ… Performance metrics unchanged
+
+### Backend Engineer Gate Analysis (4.2.5)
+- **Query Safety:**
+  âœ… All god-mode queries use proper collection scoping
+  âœ… Transactions added to kill-switch operations
+  âœ… Ghost sessions now persisted to DB
+- **Data Isolation:**
+  âœ… Top tenants query obfuscates real IDs
+  âœ… Kill switch events show partial IDs only
+- **Race Condition Handling:**
+  âœ… activateKillSwitch: wrapped in transaction
+  âœ… deactivateKillSwitch: wrapped in transaction
+  âœ… Pre-restore backup: non-blocking with .catch()
+- **Input Validation:**
+  âœ… handleSaveLink: validates label, URL, section, format
+  âœ… handleSaveCompany: validates name, email, phone, URLs
+  âœ… fatoora-service: fixed is_sandbox === false check
+
+### QA Lead Gate Analysis (4.2.8)
+- **Test Coverage:**
+  âœ… metrics.route.test.ts: Added limit assertion
+  âœ… accessibility.spec.ts: Added WCAG contrast calculation
+  âœ… send.test.ts: Fixed mock setup, asserts 200
+  âœ… vitest.setup.ts: Added reconnect limiting (max 3 attempts)
+- **Regression Testing:**
+  âœ… pnpm typecheck: 0 errors
+  âœ… pnpm lint: 0 errors, 0 warnings
+- **Edge Cases:**
+  âœ… Empty search handling with locale-aware normalization
+  âœ… Division by zero protected in lease-service
+  âœ… Date rollover fixed in automated-reports
+
+### Security Gate Analysis (4.2.9)
+- **Threat Assessment:**
+  - Attack surface: Superadmin dashboard, API routes
+  - Threat actors: Internal (superadmin users)
+  - Assets at risk: Tenant data (protected via obfuscation)
+- **OWASP Compliance:**
+  âœ… A01 Broken Access Control: Superadmin session check maintained
+  âœ… A03 Injection: Input validation added
+  âœ… A07 XSS: URL format validation added
+- **Security Controls:**
+  - Input validation: Client-side + server-side
+  - Auth check: getSuperadminSession() enforced
+- **Risk Rating:** Low
+- **Mitigations Required:** None
+
+### Developer Task Breakdown (4.2.14)
+| Task | Files | Status |
+|------|-------|--------|
+| Footer-content validation/logging | footer-content/page.tsx | âœ… Done |
+| Tenant-lifecycle transactions | tenant-lifecycle.ts | âœ… Done |
+| Ghost session DB persistence | tenant-lifecycle.ts | âœ… Done |
+| Platform detection helper | command-palette.ts | âœ… Done |
+| is_sandbox check fix | fatoora-service.ts | âœ… Done |
+| God-mode real DB queries | god-mode/route.ts | âœ… Done |
+| Test improvements | 4 test files | âœ… Done |
+
+---
+
+**Files Modified (55 total):**
+- app/[locale]/admin/fm-dashboard/page.tsx
+- app/api/auth/mfa/status/route.ts
+- app/api/compliance/dashboard/route.ts
+- app/api/jobs/process/route.ts
+- app/api/security/enterprise/route.ts
+- app/api/superadmin/branding/route.ts
+- app/api/superadmin/god-mode/route.ts
+- app/superadmin/database/page.tsx
+- app/superadmin/fm-dashboard/page.tsx
+- app/superadmin/footer-content/page.tsx
+- app/superadmin/translations/page.tsx
+- app/superadmin/user-logs/page.tsx
+- components/ui/command-palette.tsx
+- services/admin/notification-engine.ts
+- services/aqar/lease-service.ts
+- services/aqar/tenant-screening.ts
+- services/compliance/ejar-service.ts
+- services/finance/expense-categorization.ts
+- services/fm/inspection-service.ts
+- services/fm/predictive-maintenance.ts
+- services/hr/gosi-compliance.ts
+- services/hr/performance-management.ts
+- services/reports/automated-reports.ts
+- services/souq/vendor-intelligence.ts
+- services/superadmin/tenant-lifecycle.ts
+- services/ux/command-palette.ts
+- services/zatca/fatoora-service.ts
+- tests/api/performance/metrics.route.test.ts
+- tests/e2e/accessibility.spec.ts
+- tests/unit/api/admin/notifications/send.test.ts
+- vitest.setup.ts
+- (+ 24 additional files from earlier session)
+
+**Verification Evidence:**
+- pnpm typecheck: 0 errors
+- pnpm lint: 0 errors, 0 warnings
+- Commit: dc13ac16b
+
+**Next Steps:**
+- Amend commit with proper ISSUE-KEY
+- Push amended commit
+- Create PR for review
+
+---
 ### 2025-12-29 15:04 (Asia/Riyadh) - Code Review Update [AGENT-003-A]
 **Agent Token:** [AGENT-003-A]
 **Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 1f786284a | (no PR)
@@ -31057,7 +31201,7 @@ No critical blockers remaining. Production is fully operational.
 - Start API and re-run /api/issues/import with docs/BACKLOG_AUDIT.json
 
 
-### 2025-12-29 14:34 (Asia/Riyadh) — Code Review Update [AGENT-003-A]
+### 2025-12-29 14:34 (Asia/Riyadh) ï¿½ Code Review Update [AGENT-003-A]
 **Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | (no PR)
 **DB Sync:** created=0, updated=0, skipped=0, errors=1 (429 Too many requests from /api/issues/import)
 
@@ -31068,7 +31212,7 @@ No critical blockers remaining. Production is fully operational.
 - None
 
 **?? Blocked:**
-- BACKLOG_AUDIT.json import blocked — 429 Too many requests from /api/issues/import
+- BACKLOG_AUDIT.json import blocked ï¿½ 429 Too many requests from /api/issues/import
 
 **?? New Findings Added to DB (with evidence):**
 - None
@@ -31077,17 +31221,17 @@ No critical blockers remaining. Production is fully operational.
 - Retry BACKLOG_AUDIT.json import after rate limit clears
 
 **Files Modified:**
-- docs/AGENTS.md — added v7.0.0 agreement
-- AGENTS.md — removed root copy
-- .fixzit/agent-assignments.json — scope expansion lock update
-- BACKLOG_AUDIT.json — regenerated extraction payload
-- BACKLOG_AUDIT.md — regenerated audit report
+- docs/AGENTS.md ï¿½ added v7.0.0 agreement
+- AGENTS.md ï¿½ removed root copy
+- .fixzit/agent-assignments.json ï¿½ scope expansion lock update
+- BACKLOG_AUDIT.json ï¿½ regenerated extraction payload
+- BACKLOG_AUDIT.md ï¿½ regenerated audit report
 
 **Commands Executed:**
 - pnpm issue-log import BACKLOG_AUDIT.json
 - curl.exe -s http://localhost:3000/api/issues/stats
 
-### 2025-12-29 14:35 (Asia/Riyadh) — Verification Addendum [AGENT-003-A]
+### 2025-12-29 14:35 (Asia/Riyadh) ï¿½ Verification Addendum [AGENT-003-A]
 **Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | (no PR)
 **DB Sync:** created=0, updated=0, skipped=0, errors=1 (429 Too many requests from /api/issues/import)
 
@@ -31095,21 +31239,21 @@ No critical blockers remaining. Production is fully operational.
 - pnpm lint (warnings: local/require-tenant-scope in superadmin routes)
 - pnpm test (FAILED: WSL not installed for playwright e2e)
 
-### 2025-12-29 14:41 (Asia/Riyadh) — Import Retry [AGENT-003-A]
+### 2025-12-29 14:41 (Asia/Riyadh) ï¿½ Import Retry [AGENT-003-A]
 **Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | (no PR)
 **DB Sync:** created=0, updated=0, skipped=0, errors=1 (Unauthorized: /api/issues/import)
 
 **Commands Executed:**
 - pnpm issue-log import BACKLOG_AUDIT.json
 
-### 2025-12-29 14:45 (Asia/Riyadh) — Import Retry [AGENT-003-A]
+### 2025-12-29 14:45 (Asia/Riyadh) ï¿½ Import Retry [AGENT-003-A]
 **Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | (no PR)
 **DB Sync:** created=0, updated=0, skipped=0, errors=1 (Unauthorized: /api/issues/import)
 
 **Commands Executed:**
 - pnpm issue-log import BACKLOG_AUDIT.json
 
-### 2025-12-29 14:49 (Asia/Riyadh) — Code Review Update [AGENT-003-A]
+### 2025-12-29 14:49 (Asia/Riyadh) ï¿½ Code Review Update [AGENT-003-A]
 **Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc
 **DB Sync:** created=3, updated=49, skipped=109, errors=0
 
@@ -31123,16 +31267,16 @@ No critical blockers remaining. Production is fully operational.
 - None
 
 **?? New Findings Added to DB (with evidence):**
-- CR-2025-12-29-001 — Superadmin jobs page swallows fetch/process errors without logging context — sourceRef: code-review:app/superadmin/jobs/page.tsx:111-112
-- CR-2025-12-29-002 — Superadmin subscriptions page swallows tier save errors without logging context — sourceRef: code-review:app/superadmin/subscriptions/page.tsx:396-397
-- CR-2025-12-29-003 — Vendor intelligence alert creation logs omit error details — sourceRef: code-review:services/souq/vendor-intelligence.ts:877-878
+- CR-2025-12-29-001 ï¿½ Superadmin jobs page swallows fetch/process errors without logging context ï¿½ sourceRef: code-review:app/superadmin/jobs/page.tsx:111-112
+- CR-2025-12-29-002 ï¿½ Superadmin subscriptions page swallows tier save errors without logging context ï¿½ sourceRef: code-review:app/superadmin/subscriptions/page.tsx:396-397
+- CR-2025-12-29-003 ï¿½ Vendor intelligence alert creation logs omit error details ï¿½ sourceRef: code-review:services/souq/vendor-intelligence.ts:877-878
 
 **Next Steps (ONLY from DB items above):**
-- CR-2025-12-29-001 — Add error logging context for jobs page catch blocks.
-- CR-2025-12-29-002 — Add error logging context for subscriptions page catch blocks.
-- CR-2025-12-29-003 — Include error details when vendor alert creation fails.
+- CR-2025-12-29-001 ï¿½ Add error logging context for jobs page catch blocks.
+- CR-2025-12-29-002 ï¿½ Add error logging context for subscriptions page catch blocks.
+- CR-2025-12-29-003 ï¿½ Include error details when vendor alert creation fails.
 
-### 2025-12-29 14:52 (Asia/Riyadh) — Code Review Update [AGENT-003-A]
+### 2025-12-29 14:52 (Asia/Riyadh) ï¿½ Code Review Update [AGENT-003-A]
 **Context:** fix/superadmin-auth-sidebar-AGENT-001-A | 934306bfc | PR: N/A
 **DB Sync:** created=0, updated=63, skipped=95, errors=0
 
