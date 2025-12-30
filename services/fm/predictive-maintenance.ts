@@ -248,8 +248,16 @@ export async function registerEquipment(
     if (!data.name || typeof data.name !== "string" || data.name.trim() === "") {
       return { success: false, error: "name is required and must be a non-empty string" };
     }
-    if (!data.type || typeof data.type !== "string" || data.type.trim() === "") {
-      return { success: false, error: "type is required and must be a non-empty string" };
+    // Validate type is a valid EquipmentType enum member
+    if (!data.type || !Object.values(EquipmentType).includes(data.type as EquipmentType)) {
+      return { success: false, error: `type must be one of: ${Object.values(EquipmentType).join(", ")}` };
+    }
+    // Validate installDate is a valid Date and not in the future
+    if (!(data.installDate instanceof Date) || isNaN(data.installDate.getTime())) {
+      return { success: false, error: "installDate must be a valid Date" };
+    }
+    if (data.installDate.getTime() > Date.now()) {
+      return { success: false, error: "installDate cannot be in the future" };
     }
     
     const db = await getDatabase();
@@ -258,11 +266,11 @@ export async function registerEquipment(
       return { success: false, error: "Expected lifespan must be a positive number" };
     }
     
-    // Calculate initial health score based on age
-    const ageMonths = Math.floor(
+    // Calculate initial health score based on age (clamp to prevent negative values)
+    const ageMonths = Math.max(0, Math.floor(
       (Date.now() - data.installDate.getTime()) / (30 * 24 * 60 * 60 * 1000)
-    );
-    const lifespanRatio = ageMonths / data.expectedLifespan;
+    ));
+    const lifespanRatio = Math.max(0, ageMonths / data.expectedLifespan);
     const initialHealthScore = Math.max(0, Math.min(100, 100 - (lifespanRatio * 50)));
     
     const equipment: Omit<EquipmentRecord, "_id"> = {

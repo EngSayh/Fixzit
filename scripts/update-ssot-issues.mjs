@@ -152,10 +152,10 @@ async function main() {
       console.log(`  ${issue.priority} ${issueKey}: ${issue.title}`);
     }
     
-    console.log(`\\n✅ Total open issues: ${openIssues.length}`);
+    console.log(`\n✅ Total open issues: ${openIssues.length}`);
     
     // Show ALL issues to debug (limited for display)
-    console.log('\\n📋 Issues in database (showing up to 30):');
+    console.log('\n📋 Issues in database (showing up to 30):');
     const allIssues = await issuesCollection.find({})
       .project({ key: 1, legacyId: 1, issueId: 1, title: 1, priority: 1, status: 1 })
       .sort({ priority: 1 })

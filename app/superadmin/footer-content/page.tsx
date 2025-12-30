@@ -332,13 +332,14 @@ export default function SuperadminFooterContentPage() {
       toast.error("Policy type is required");
       return;
     }
-    // Check for duplicate slug (only for new policies)
-    if (!editingPolicy) {
-      const existingSlug = policies.find(p => p.slug === policyForm.slug.toLowerCase());
-      if (existingSlug) {
-        toast.error("A policy with this slug already exists");
-        return;
-      }
+    // Check for duplicate slug (for both new and edited policies)
+    const conflictingPolicy = policies.find(p => 
+      p.slug.toLowerCase() === policyForm.slug.toLowerCase() && 
+      p._id !== editingPolicy?._id
+    );
+    if (conflictingPolicy) {
+      toast.error("A policy with this slug already exists");
+      return;
     }
     
     try {

@@ -123,6 +123,7 @@ export default function SuperadminUserLogsPage() {
       if (response.ok) {
         const data = await response.json();
         setLogs(Array.isArray(data) ? data : data.logs || []);
+        return; // Success - don't use demo data
       } else {
         // Handle non-OK responses
         const errorText = await response.text().catch(() => "");
@@ -131,18 +132,18 @@ export default function SuperadminUserLogsPage() {
         if (response.status === 401 || response.status === 403) {
           setLogs([]);
           // Could redirect to login or show unauthorized state
-        } else {
-          setLogs([]);
+          return; // Don't fall through to demo data on auth failures
         }
-        return; // Don't fall through to demo data
+        // For other errors (500, network, etc.), fall through to demo data
       }
-      return; // Success - don't use demo data
     } catch (error) {
       // eslint-disable-next-line no-console -- SuperAdmin debug logging for network errors
       console.error("Network error fetching logs:", error);
-      // Demo data
-      const now = new Date();
-      setLogs([
+      // Fall through to demo data
+    }
+    // Demo data fallback for non-auth errors
+    const now = new Date();
+    setLogs([
         {
           _id: "log-1",
           userId: "user-1",
@@ -242,7 +243,6 @@ export default function SuperadminUserLogsPage() {
           timestamp: new Date(now.getTime() - 30 * 60 * 1000).toISOString(),
         },
       ]);
-    }
   }, [dateRange]);
 
   const fetchSessions = useCallback(async () => {

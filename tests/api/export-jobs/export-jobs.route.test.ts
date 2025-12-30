@@ -299,5 +299,42 @@ describe("API /api/export-jobs", () => {
         expect(res.status).toBe(400);
       });
     });
+    
+    describe("Success", () => {
+      it("creates and enqueues export job with valid request", async () => {
+        setMockUser({
+          id: "user-123",
+          orgId: "org-123",
+          role: "ADMIN",
+          email: "test@example.com",
+        });
+
+        const { ExportJob } = await import("@/server/models/ExportJob");
+        const { enqueueExportJob } = await import("@/lib/export/export-queue");
+
+        const req = new NextRequest("http://localhost:3000/api/export-jobs", {
+          method: "POST",
+          body: JSON.stringify({
+            entity_type: "work-orders",
+            format: "csv",
+          }),
+          headers: { "Content-Type": "application/json" },
+        });
+        const res = await POST(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(201);
+        expect(data).toHaveProperty("jobId");
+        expect(ExportJob.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            org_id: "org-123",
+            user_id: "user-123",
+            entity_type: "work-orders",
+            format: "csv",
+          })
+        );
+        expect(enqueueExportJob).toHaveBeenCalled();
+      });
+    });
   });
 });

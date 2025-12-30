@@ -643,9 +643,13 @@ export async function generateForecast(
     });
     
     return results;
-  } catch (_error) {
-    logger.error("Failed to generate forecast", { component: "budget-forecasting" });
-    return [];
+  } catch (error) {
+    logger.error("Failed to generate forecast", { 
+      component: "budget-forecasting",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    // Rethrow to let callers distinguish failure from empty result
+    throw error;
   }
 }
 
@@ -699,8 +703,8 @@ function calculateCategoryForecast(
     confidence = ForecastConfidence.LOW;
   }
   
-  // Calculate forecasts
-  const currentMonthForecast = Math.round(avg + slope * n);
+  // Calculate forecasts (clamp to non-negative to prevent nonsensical projections)
+  const currentMonthForecast = Math.max(0, Math.round(avg + slope * n));
   const remainingPeriodForecast = Math.round(currentMonthForecast * horizonMonths);
   
   // End of year (remaining months in calendar year)
@@ -970,10 +974,13 @@ function calculateTotals(lineItems: BudgetLineItem[]): BudgetTotals {
     ? totalForecast - totalBudgeted
     : 0;
   
-  // Health score (simplified)
+  // Health score (simplified) - guard against division by zero
   let healthScore = 100;
   if (utilizationPercent > 100) healthScore -= Math.min(50, utilizationPercent - 100);
-  if (projectedOverrun > 0) healthScore -= Math.min(30, (projectedOverrun / totalBudgeted) * 100);
+  if (projectedOverrun > 0 && totalBudgeted > 0) {
+    const overrunPercent = (projectedOverrun / totalBudgeted) * 100;
+    healthScore -= Math.min(30, overrunPercent);
+  }
   
   return {
     totalBudgeted,

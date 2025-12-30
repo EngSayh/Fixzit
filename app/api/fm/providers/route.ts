@@ -254,6 +254,16 @@ export async function POST(request: Request) {
       );
     }
     
+    // Validate orgId for tenant isolation (same pattern as GET handler)
+    const sessionOrgId = (session.user as { orgId?: string })?.orgId;
+    if (!sessionOrgId) {
+      logger.error("[FM Providers] Authenticated user missing orgId - rejecting request");
+      return NextResponse.json(
+        { error: { code: "FIXZIT-TENANT-001", message: "Organization ID required for authenticated users" } },
+        { status: 401 }
+      );
+    }
+    
     let body: unknown;
     try {
       body = await request.json();

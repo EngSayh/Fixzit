@@ -900,13 +900,13 @@ export async function endGhostSession(session: GhostSession): Promise<GhostSessi
   };
   
   // Persist session end to database
+  // Note: Do NOT set actions_performed here - it would overwrite concurrent logGhostAction updates
   await db.collection("ghost_sessions").updateOne(
     { _id: session._id },
     {
       $set: {
         active: false,
         ended_at: endedAt,
-        actions_performed: session.actions_performed,
       },
     }
   );

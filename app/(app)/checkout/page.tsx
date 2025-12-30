@@ -184,17 +184,13 @@ function CheckoutContent() {
         throw new Error(data.error || "Failed to create subscription");
       }
 
-      // Simulate payment processing delay (only in non-production or when explicitly enabled)
+      // Simulate payment processing delay (only when feature flag is enabled)
+      // Note: NEXT_PUBLIC_FEATURE_SIMULATE_PAYMENTS is a runtime-safe env var
       const shouldSimulatePayment = 
-        process.env.NODE_ENV !== 'production' || 
-        process.env.FEATURE_SIMULATE_PAYMENTS === 'true';
+        process.env.NEXT_PUBLIC_FEATURE_SIMULATE_PAYMENTS === 'true';
       
       if (shouldSimulatePayment) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
-      } else {
-        // In production without simulation flag, skip delay
-        // eslint-disable-next-line no-console -- Production logging for payment flow
-        console.warn('[checkout] Payment simulation disabled in production - integrate with TAP/Stripe');
       }
 
       setStep("success");

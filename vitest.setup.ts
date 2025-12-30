@@ -520,11 +520,17 @@ let mongoServer: MongoMemoryServer | undefined;
 let mongoUriRef: string | undefined;
 let shuttingDownMongo = false;
 let reconnectAttempts = 0;
+let reconnectionInProgress = false; // Guard against concurrent reconnections
 const MAX_RECONNECT_ATTEMPTS = 3;
 const mongoStartAttempts = Number(process.env.MONGO_MEMORY_ATTEMPTS || "3");
 const handleMongoDisconnected = async () => {
   if (shuttingDownMongo) return;
   if (!mongoUriRef) return;
+  
+  // Guard against concurrent reconnection attempts (TOCTOU fix)
+  if (reconnectionInProgress) {
+    return; // Another reconnection is already in progress
+  }
   
   // Check if already connected or connecting - skip reconnection
   const readyState = mongoose.connection.readyState;
@@ -539,6 +545,7 @@ const handleMongoDisconnected = async () => {
     return;
   }
   
+  reconnectionInProgress = true;
   reconnectAttempts++;
   
   try {
@@ -550,6 +557,8 @@ const handleMongoDisconnected = async () => {
     reconnectAttempts = 0; // Reset on successful reconnect
   } catch (err) {
     logger.error(`[MongoMemory] Reconnect attempt ${reconnectAttempts} failed`, err as Error);
+  } finally {
+    reconnectionInProgress = false; // Always reset guard
   }
 };
 

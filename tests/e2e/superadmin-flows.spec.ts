@@ -78,8 +78,8 @@ test.describe("Superadmin Dashboard Flows", () => {
       expect(isBlocked).toBe(true);
     });
 
-    test("superadmin routes block non-superadmin users", async ({ page }) => {
-      // This test verifies RBAC - non-superadmin should be blocked
+    test("superadmin routes block unauthenticated users", async ({ page }) => {
+      // This test verifies unauthenticated access is blocked (no login performed)
       // Try accessing superadmin area
       await page.goto("/superadmin", { waitUntil: "domcontentloaded" });
 

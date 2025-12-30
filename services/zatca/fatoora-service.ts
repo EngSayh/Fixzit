@@ -61,13 +61,33 @@ export function generateInvoiceHash(invoiceData: {
   seller_vat: string;
   previous_hash: string;
 }): string {
-  const dataToHash = [
+  // Escape function to prevent delimiter collisions:
+  // Replace \ with \\ first, then | with \|
+  const escapeField = (value: string): string => {
+    return value.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
+  };
+  
+  // Validate fields don't contain control characters
+  const fields = [
     invoiceData.invoice_number,
     invoiceData.issue_date,
-    invoiceData.total.toFixed(2),
-    invoiceData.vat_amount.toFixed(2),
     invoiceData.seller_vat,
     invoiceData.previous_hash,
+  ];
+  for (const field of fields) {
+    // eslint-disable-next-line no-control-regex
+    if (/[\x00-\x1f]/.test(field)) {
+      throw new Error(`Invalid control character in invoice field: ${field.substring(0, 20)}`);
+    }
+  }
+  
+  const dataToHash = [
+    escapeField(invoiceData.invoice_number),
+    escapeField(invoiceData.issue_date),
+    invoiceData.total.toFixed(2),
+    invoiceData.vat_amount.toFixed(2),
+    escapeField(invoiceData.seller_vat),
+    escapeField(invoiceData.previous_hash),
   ].join("|");
 
   return crypto
@@ -524,26 +544,72 @@ export function validateTenantConfig(config: Partial<ZatcaTenantConfig>): string
 
 /**
  * Determine if tenant is in their ZATCA compliance wave
+ * Wave dates are loaded from environment configuration for easy updates
  */
 export function isTenantInActiveWave(
   tenantWave: number,
   currentDate: Date = new Date()
 ): boolean {
-  // ZATCA wave rollout dates (approximate)
-  const waveStartDates: Record<number, Date> = {
-    1: new Date("2024-01-01"),
-    2: new Date("2024-04-01"),
-    3: new Date("2024-07-01"),
-    4: new Date("2024-10-01"),
-    5: new Date("2025-01-01"),
-    6: new Date("2025-04-01"),
-    7: new Date("2025-07-01"),
-    8: new Date("2025-10-01"),
-    9: new Date("2026-01-01"),
-  };
+  // Load wave dates from environment or use defaults
+  // Expected format: ZATCA_WAVE_DATES={"1":"2024-01-01","2":"2024-04-01",...}
+  let waveStartDates: Record<number, Date>;
+  
+  try {
+    const configuredDates = process.env.ZATCA_WAVE_DATES;
+    if (configuredDates) {
+      const parsed = JSON.parse(configuredDates) as Record<string, string>;
+      waveStartDates = {};
+      for (const [wave, dateStr] of Object.entries(parsed)) {
+        const waveNum = parseInt(wave, 10);
+        const date = new Date(dateStr);
+        if (isNaN(waveNum) || waveNum < 1 || waveNum > 99) {
+          logger.warn(`Invalid wave number in ZATCA_WAVE_DATES: ${wave}`);
+          continue;
+        }
+        if (isNaN(date.getTime())) {
+          logger.warn(`Invalid date format in ZATCA_WAVE_DATES for wave ${wave}: ${dateStr}`);
+          continue;
+        }
+        waveStartDates[waveNum] = date;
+      }
+    } else {
+      // Default ZATCA Phase 2 wave dates (approximate - update via env config)
+      waveStartDates = {
+        1: new Date("2024-01-01"),
+        2: new Date("2024-04-01"),
+        3: new Date("2024-07-01"),
+        4: new Date("2024-10-01"),
+        5: new Date("2025-01-01"),
+        6: new Date("2025-04-01"),
+        7: new Date("2025-07-01"),
+        8: new Date("2025-10-01"),
+        9: new Date("2026-01-01"),
+      };
+    }
+  } catch (error) {
+    logger.error("Failed to parse ZATCA_WAVE_DATES, using defaults", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    // Fallback to defaults on parse error
+    waveStartDates = {
+      1: new Date("2024-01-01"),
+      2: new Date("2024-04-01"),
+      3: new Date("2024-07-01"),
+      4: new Date("2024-10-01"),
+      5: new Date("2025-01-01"),
+      6: new Date("2025-04-01"),
+      7: new Date("2025-07-01"),
+      8: new Date("2025-10-01"),
+      9: new Date("2026-01-01"),
+    };
+  }
   
   const waveStart = waveStartDates[tenantWave];
-  return waveStart ? currentDate >= waveStart : false;
+  if (!waveStart) {
+    logger.warn(`Unknown ZATCA wave: ${tenantWave}`);
+    return false;
+  }
+  return currentDate >= waveStart;
 }
 
 // =============================================================================

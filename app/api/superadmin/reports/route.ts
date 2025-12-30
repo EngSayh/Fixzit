@@ -152,9 +152,50 @@ export async function POST(req: NextRequest) {
 
     const { title, reportType, dateRange, format = 'csv', notes } = body;
 
+    // Validate required fields
     if (!title || !reportType || !dateRange) {
       return NextResponse.json(
         { error: { code: 'FIXZIT-API-003', message: 'Missing required fields: title, reportType, dateRange' } },
+        { status: 400 }
+      );
+    }
+    
+    // Validate format is allowed
+    const allowedFormats = ['csv', 'pdf'];
+    if (!allowedFormats.includes(format)) {
+      return NextResponse.json(
+        { error: { code: 'FIXZIT-API-004', message: `Invalid format. Allowed: ${allowedFormats.join(', ')}` } },
+        { status: 400 }
+      );
+    }
+    
+    // Validate field lengths (trim and check)
+    const trimmedTitle = String(title).trim();
+    const trimmedReportType = String(reportType).trim();
+    const trimmedDateRange = String(dateRange).trim();
+    const trimmedNotes = notes ? String(notes).trim() : undefined;
+    
+    if (trimmedTitle.length > 255) {
+      return NextResponse.json(
+        { error: { code: 'FIXZIT-API-005', message: 'title exceeds maximum length of 255 characters' } },
+        { status: 400 }
+      );
+    }
+    if (trimmedReportType.length > 100) {
+      return NextResponse.json(
+        { error: { code: 'FIXZIT-API-005', message: 'reportType exceeds maximum length of 100 characters' } },
+        { status: 400 }
+      );
+    }
+    if (trimmedDateRange.length > 100) {
+      return NextResponse.json(
+        { error: { code: 'FIXZIT-API-005', message: 'dateRange exceeds maximum length of 100 characters' } },
+        { status: 400 }
+      );
+    }
+    if (trimmedNotes && trimmedNotes.length > 2000) {
+      return NextResponse.json(
+        { error: { code: 'FIXZIT-API-005', message: 'notes exceeds maximum length of 2000 characters' } },
         { status: 400 }
       );
     }

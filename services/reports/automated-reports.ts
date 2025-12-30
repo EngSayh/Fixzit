@@ -1512,6 +1512,8 @@ function calculateNextRun(schedule: ReportSchedule): Date | null {
       component: "automated-reports",
       frequency: schedule.frequency,
     });
+    // Return null to indicate failure rather than potentially invalid date
+    return null;
   }
   
   return next;

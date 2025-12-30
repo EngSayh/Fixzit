@@ -416,12 +416,24 @@ export async function getExecutiveKPIs(
       calculateSatisfactionKPI(orgId, dateRange),
     ]);
     
+    // Calculate profit margin with proper previous period comparison
+    const currentMargin = revenue.value > 0 
+      ? ((revenue.value - maintenance.value) / revenue.value) * 100 
+      : 0;
+    const previousMargin = revenue.previousValue > 0 
+      ? ((revenue.previousValue - maintenance.previousValue) / revenue.previousValue) * 100 
+      : 0;
+    const marginChange = currentMargin - previousMargin;
+    const marginChangePercent = previousMargin > 0 
+      ? (marginChange / Math.abs(previousMargin)) * 100 
+      : (currentMargin !== 0 ? 100 : 0);
+    
     const profitMargin = {
-      value: revenue.value > 0 ? ((revenue.value - maintenance.value) / revenue.value) * 100 : 0,
-      previousValue: 0,
-      change: 0,
-      changePercent: 0,
-      trend: "stable" as const,
+      value: currentMargin,
+      previousValue: previousMargin,
+      change: marginChange,
+      changePercent: marginChangePercent,
+      trend: (marginChange > 0.5 ? "up" : marginChange < -0.5 ? "down" : "stable") as "up" | "down" | "stable",
       target: 25,
       targetAchievement: 0,
     };
@@ -949,6 +961,7 @@ export async function listDashboards(
     module?: DashboardModule;
     visibility?: string;
     userId?: string;
+    userRoles?: string[]; // For role-based access control
   }
 ): Promise<Dashboard[]> {
   try {
@@ -969,6 +982,13 @@ export async function listDashboards(
         { visibility: "public" },
         { ownerId: filters.userId },
       ];
+      // Add role-based access if userRoles is provided
+      if (filters?.userRoles && Array.isArray(filters.userRoles) && filters.userRoles.length > 0) {
+        accessConditions.push({
+          visibility: "role_based",
+          allowedRoles: { $in: filters.userRoles },
+        });
+      }
       // If specific visibility requested, add it to the conditions
       if (filters?.visibility) {
         accessConditions.push({ visibility: filters.visibility, ownerId: filters.userId });
@@ -1081,6 +1101,11 @@ export async function removeWidget(
     // Verify update was successful
     if (result.matchedCount === 0) {
       return { success: false, error: "Dashboard not found" };
+    }
+    
+    // Check if widget was actually removed
+    if (result.modifiedCount === 0) {
+      return { success: false, error: "Widget not found" };
     }
     
     return { success: true };

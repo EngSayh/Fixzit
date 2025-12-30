@@ -963,22 +963,24 @@ export async function recordSignature(
       return { success: false, error: "Already signed" };
     }
     
-    // Update signature
+    // Update signature using arrayFilters for safe concurrent updates
+    // This targets the specific signature element by partyId rather than index
     const updates = {
-      [`signatures.${sigIndex}.status`]: SignatureStatus.SIGNED,
-      [`signatures.${sigIndex}.signedAt`]: new Date(),
-      [`signatures.${sigIndex}.signatureMethod`]: signatureData.method,
-      [`signatures.${sigIndex}.signatureImageUrl`]: signatureData.signatureImageUrl,
-      [`signatures.${sigIndex}.ipAddress`]: signatureData.ipAddress,
-      [`signatures.${sigIndex}.deviceInfo`]: signatureData.deviceInfo,
-      [`signatures.${sigIndex}.legalConsent`]: true,
-      [`signatures.${sigIndex}.consentTimestamp`]: new Date(),
+      "signatures.$[sig].status": SignatureStatus.SIGNED,
+      "signatures.$[sig].signedAt": new Date(),
+      "signatures.$[sig].signatureMethod": signatureData.method,
+      "signatures.$[sig].signatureImageUrl": signatureData.signatureImageUrl,
+      "signatures.$[sig].ipAddress": signatureData.ipAddress,
+      "signatures.$[sig].deviceInfo": signatureData.deviceInfo,
+      "signatures.$[sig].legalConsent": true,
+      "signatures.$[sig].consentTimestamp": new Date(),
       updatedAt: new Date(),
     };
     
     await db.collection(CONTRACTS_COLLECTION).updateOne(
       { _id: new ObjectId(contractId), orgId },
-      { $set: updates }
+      { $set: updates },
+      { arrayFilters: [{ "sig.partyId": partyId }] }
     );
     
     // Check if all signatures complete

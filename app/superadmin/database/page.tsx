@@ -126,8 +126,8 @@ export default function SuperadminDatabasePage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.database") || "Database"}</h1>
-          <p className="text-muted-foreground">{t("superadmin.database.description") || "MongoDB Atlas connection status and collection management"}</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("superadmin.nav.database", { defaultValue: "Database" })}</h1>
+          <p className="text-muted-foreground">{t("superadmin.database.description", { defaultValue: "MongoDB Atlas connection status and collection management" })}</p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchHealth} disabled={loading} className="border-input text-muted-foreground">
           <RefreshCw className={`h-4 w-4 me-2 ${loading ? "animate-spin" : ""}`} />Refresh

@@ -233,14 +233,12 @@ export async function createLease(
       }
     }
     
-    // Validate monthlyRent is a positive number
-    if (request.monthlyRent !== undefined) {
-      if (!Number.isFinite(request.monthlyRent) || request.monthlyRent <= 0) {
-        return { success: false, error: "monthlyRent must be a positive number" };
-      }
+    // Validate monthlyRent is a positive number (required field)
+    if (!Number.isFinite(request.monthlyRent) || request.monthlyRent <= 0) {
+      return { success: false, error: "monthlyRent must be a positive number" };
     }
     
-    // Validate securityDeposit is a non-negative number
+    // Validate securityDeposit is a non-negative number (optional)
     if (request.securityDeposit !== undefined) {
       if (!Number.isFinite(request.securityDeposit) || request.securityDeposit < 0) {
         return { success: false, error: "securityDeposit must be a non-negative number" };
@@ -262,6 +260,14 @@ export async function createLease(
     
     const db = await getDatabase();
     const sessionOpts = session ? { session } : {};
+    
+    // Validate ObjectId formats before DB query
+    if (!ObjectId.isValid(request.unitId)) {
+      return { success: false, error: "Invalid unitId format" };
+    }
+    if (!ObjectId.isValid(request.tenantId)) {
+      return { success: false, error: "Invalid tenantId format" };
+    }
     
     // Validate property and unit exist and are available
     const unit = await db.collection("units").findOne({
@@ -496,24 +502,32 @@ export async function renewLease(
 ): Promise<{ success: boolean; newLease?: LeaseDocument; error?: string }> {
   try {
     const db = await getDatabase();
+    const client = db.client;
     
-    const currentLease = await db.collection("leases").findOne({
-      _id: new ObjectId(leaseId),
-      orgId,
-      status: LeaseStatus.ACTIVE,
-    });
-    
-    if (!currentLease) {
-      return { success: false, error: "Active lease not found" };
+    // Validate leaseId format before any DB operations
+    if (!ObjectId.isValid(leaseId)) {
+      return { success: false, error: "Invalid leaseId format" };
     }
     
-    // Start MongoDB transaction for atomicity
-    const session = await mongoose.startSession();
+    // Use native MongoDB client session for proper transaction support
+    const session = client.startSession();
     
     try {
       let newLease: LeaseDocument | undefined;
+      let renewalError: string | undefined;
       
       await session.withTransaction(async () => {
+        // Read current lease INSIDE transaction to prevent TOCTOU
+        const currentLease = await db.collection("leases").findOne({
+          _id: new ObjectId(leaseId),
+          orgId,
+          status: LeaseStatus.ACTIVE,
+        }, { session });
+        
+        if (!currentLease) {
+          renewalError = "Active lease not found";
+          throw new Error(renewalError);
+        }
         // Calculate startDate: use the later of currentLease.endDate or now
         // This ensures the new lease never starts before the present
         const now = new Date();
