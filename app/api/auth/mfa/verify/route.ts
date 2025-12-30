@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { verifyMFACode, MFAMethod, trustDevice as trustDeviceFn } from "@/lib/auth/mfaService";
 
 /**
@@ -26,6 +27,14 @@ import { verifyMFACode, MFAMethod, trustDevice as trustDeviceFn } from "@/lib/au
  * }
  */
 export async function POST(request: NextRequest) {
+  // Rate limit: 5 requests per minute per IP to prevent brute-force code guessing
+  const rateLimited = enforceRateLimit(request, {
+    keyPrefix: "auth:mfa:verify",
+    requests: 5,
+    windowMs: 60_000,
+  });
+  if (rateLimited) return rateLimited;
+
   try {
     const session = await auth();
     

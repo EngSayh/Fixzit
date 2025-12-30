@@ -510,6 +510,8 @@ export async function unlockAccount(
       orgId,
       userId,
     });
+    // Propagate error to caller - security operations must not fail silently
+    throw error;
   }
 }
 

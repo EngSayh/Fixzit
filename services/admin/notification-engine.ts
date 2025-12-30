@@ -418,21 +418,41 @@ export async function processDeliveryQueue(): Promise<{ processed: number; deliv
     // Add 1 second buffer to handle clock drift for newly created notifications
     const cutoffTime = new Date(Date.now() + 1000);
     const pending = await db.collection(NOTIFICATIONS_COLLECTION)
-      .find({
-        status: { $in: [NotificationStatus.PENDING, NotificationStatus.QUEUED] },
-        $or: [
-          { "scheduling.scheduledFor": { $lte: new Date() } },
-          { "scheduling.scheduledFor": { $exists: false } },
-        ],
-        $and: [
-          { $or: [
-            { "delivery.attempts": 0 }, // Always include new notifications
-            { "delivery.nextAttemptAt": { $lte: cutoffTime } },
-          ]},
-        ],
-      })
-      .sort({ priority: 1, createdAt: 1 })
-      .limit(BATCH_SIZE)
+      .aggregate([
+        {
+          $match: {
+            status: { $in: [NotificationStatus.PENDING, NotificationStatus.QUEUED] },
+            $or: [
+              { "scheduling.scheduledFor": { $lte: new Date() } },
+              { "scheduling.scheduledFor": { $exists: false } },
+            ],
+            $and: [
+              { $or: [
+                { "delivery.attempts": 0 },
+                { "delivery.nextAttemptAt": { $lte: cutoffTime } },
+              ]},
+            ],
+          },
+        },
+        // Map priority strings to numeric weights for correct sorting
+        {
+          $addFields: {
+            priorityWeight: {
+              $switch: {
+                branches: [
+                  { case: { $eq: ["$priority", "critical"] }, then: 0 },
+                  { case: { $eq: ["$priority", "high"] }, then: 1 },
+                  { case: { $eq: ["$priority", "normal"] }, then: 2 },
+                  { case: { $eq: ["$priority", "low"] }, then: 3 },
+                ],
+                default: 2, // Default to normal priority
+              },
+            },
+          },
+        },
+        { $sort: { priorityWeight: 1, createdAt: 1 } },
+        { $limit: BATCH_SIZE },
+      ])
       .toArray();
     
     let processed = 0;
@@ -521,7 +541,8 @@ async function deliverNotification(
       // Compute expected attempts locally to avoid race condition
       // The attempts value was already incremented above, so use that known value
       const attempts = (notification.delivery?.attempts ?? 0) + 1;
-      const maxAttempts = notification.delivery.maxAttempts;
+      // Safely access maxAttempts with default fallback
+      const maxAttempts = notification.delivery?.maxAttempts ?? 3;
       
       if (attempts < maxAttempts) {
         // Schedule retry with exponential backoff

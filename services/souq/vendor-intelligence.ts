@@ -18,6 +18,23 @@ import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
 // ============================================================================
+// Validation Helpers
+// ============================================================================
+
+/**
+ * Validate orgId and vendorId are non-empty strings
+ * @throws Error if validation fails
+ */
+function validateIds(orgId: string, vendorId: string): void {
+  if (typeof orgId !== "string" || orgId.trim().length === 0) {
+    throw new Error("orgId must be a non-empty string");
+  }
+  if (typeof vendorId !== "string" || vendorId.trim().length === 0) {
+    throw new Error("vendorId must be a non-empty string");
+  }
+}
+
+// ============================================================================
 // Types & Interfaces
 // ============================================================================
 
@@ -269,6 +286,7 @@ export async function getVendorProfile(
   vendorId: string
 ): Promise<VendorProfile | null> {
   try {
+    validateIds(orgId, vendorId);
     const db = await getDatabase();
     
     const profile = await db.collection(VENDORS_COLLECTION).findOne({
@@ -278,8 +296,10 @@ export async function getVendorProfile(
     
     return profile as unknown as VendorProfile | null;
   } catch (error) {
+    // Never log full profile object - contains PII
     logger.error("Failed to get vendor profile", { 
       component: "vendor-intelligence",
+      vendorId, // Only log safe identifiers
       error: error instanceof Error ? error.message : String(error),
     });
     return null;
@@ -294,6 +314,7 @@ export async function calculateVendorScore(
   vendorId: string
 ): Promise<VendorScoreBreakdown> {
   try {
+    validateIds(orgId, vendorId);
     // Get vendor metrics
     const profile = await getVendorProfile(orgId, vendorId);
     const metrics = profile?.metrics || getDefaultMetrics();
@@ -444,9 +465,11 @@ export async function assessFraudRisk(
         orgId,
         vendorId,
       });
+      // Do not create fraud alert for non-existent vendor
+      return assessment;
     }
     
-    // Create alert for high/critical risk
+    // Create alert for high/critical risk (only when vendor exists)
     if (riskLevel === FraudRiskLevel.HIGH || riskLevel === FraudRiskLevel.CRITICAL) {
       await createFraudAlert(orgId, vendorId, assessment);
     }
@@ -754,8 +777,11 @@ function calculateActivityScore(
   }
   
   // Login frequency (weight: 20%)
-  // Would query actual login data in production
-  const loginScore = 70;
+  // TODO: [VENDOR-LOGIN-001] Query actual login data from user/vendor analytics
+  // Implementation: Query login_events collection for last 30 days,
+  // calculate frequency, normalize to 0-100 scale based on expected logins
+  // Fallback: 50 (neutral score) when data unavailable
+  const loginScore = 50; // Neutral fallback - production should query real data
   
   const score = Math.round(
     listingsScore * 0.30 +
@@ -787,39 +813,65 @@ function determineTier(score: number): VendorTier {
 // Fraud Detection Helpers
 // ============================================================================
 
+/**
+ * @deprecated STUB - Not implemented for production
+ * TODO: [FRAUD-SPIKE-001] Implement activity spike detection
+ * - Compare recent order/listing rate vs historical baseline (7-day avg)
+ * - Threshold: > 3x normal activity triggers signal
+ * - Add unit tests with mock data
+ */
 async function checkActivitySpike(
   _orgId: string,
   _vendorId: string
 ): Promise<FraudSignal | null> {
-  // Check for unusual activity patterns
-  // In production, would analyze order/listing velocity
+  // STUB: Returns null - not executed in production fraud assessment
+  // See TODO above for implementation requirements
   return null;
 }
 
+/**
+ * @deprecated STUB - Not implemented for production
+ * TODO: [FRAUD-DUP-001] Implement duplicate listings detection
+ * - Fingerprint titles/descriptions using hashing or similarity
+ * - Detect high similarity (> 90%) across vendor listings
+ * - Add unit tests with sample listings
+ */
 async function checkDuplicateListings(
   _orgId: string,
   _vendorId: string
 ): Promise<FraudSignal | null> {
-  // Check for duplicate product listings
-  // In production, would use similarity matching
+  // STUB: Returns null - not executed in production fraud assessment
   return null;
 }
 
+/**
+ * @deprecated STUB - Not implemented for production
+ * TODO: [FRAUD-PRICE-001] Implement price manipulation detection
+ * - Detect rapid price swings (> 50% change in 24h) vs median
+ * - Track price history for last 30 days
+ * - Add unit tests with price history mock
+ */
 async function checkPriceManipulation(
   _orgId: string,
   _vendorId: string
 ): Promise<FraudSignal | null> {
-  // Check for price manipulation patterns
-  // In production, would analyze price history
+  // STUB: Returns null - not executed in production fraud assessment
   return null;
 }
 
+/**
+ * @deprecated STUB - Not implemented for production
+ * TODO: [FRAUD-REVIEW-001] Implement fake review detection
+ * - Flag abnormal review velocity (> 5 reviews in 1 hour)
+ * - Detect duplicate reviewer IDs across products
+ * - Analyze review text for patterns
+ * - Add unit tests with mock reviews
+ */
 async function checkFakeReviews(
   _orgId: string,
   _vendorId: string
 ): Promise<FraudSignal | null> {
-  // Check for fake review patterns
-  // In production, would analyze review text and timing
+  // STUB: Returns null - not executed in production fraud assessment
   return null;
 }
 
@@ -887,7 +939,7 @@ async function createVendorAlert(
   orgId: string,
   vendorId: string,
   alert: Omit<VendorAlert, "_id" | "orgId" | "vendorId" | "acknowledged" | "createdAt">
-): Promise<void> {
+): Promise<boolean> {
   try {
     const db = await getDatabase();
     
@@ -900,8 +952,16 @@ async function createVendorAlert(
     };
     
     await db.collection(ALERTS_COLLECTION).insertOne(alertRecord);
-  } catch (_error) {
-    logger.error("Failed to create vendor alert", { component: "vendor-intelligence" });
+    return true;
+  } catch (error) {
+    // Never log full profile object - contains PII
+    logger.error("Failed to create vendor alert", { 
+      component: "vendor-intelligence",
+      vendorId, // Only safe identifier
+      alertType: alert.type,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
   }
 }
 

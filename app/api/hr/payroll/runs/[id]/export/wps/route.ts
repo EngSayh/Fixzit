@@ -49,7 +49,10 @@ export async function GET(
   _req: NextRequest,
   props: { params: Promise<RouteParams> },
 ) {
-  enforceRateLimit(_req, { requests: 10, windowMs: 60_000, keyPrefix: "hr:payroll:wps" });
+  // Rate limit check - return 429 if exceeded
+  const rateLimited = enforceRateLimit(_req, { requests: 10, windowMs: 60_000, keyPrefix: "hr:payroll:wps" });
+  if (rateLimited) return rateLimited;
+
   try {
     const session = await auth();
     if (!session?.user?.orgId) {

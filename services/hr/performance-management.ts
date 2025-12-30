@@ -713,9 +713,9 @@ export async function launchReviewCycle(
     
     for (const emp of employeeRecords) {
       const key = emp._id?.toString() || emp.employeeId;
-      const name = emp.name || emp.fullName || emp.firstName 
-        ? `${emp.firstName || ""} ${emp.lastName || ""}`.trim() 
-        : "Unknown Employee";
+      // Use proper fallback chain: name > fullName > firstName/lastName > default
+      const combinedName = `${emp.firstName || ""} ${emp.lastName || ""}`.trim();
+      const name = emp.name || emp.fullName || (combinedName || "Unknown Employee");
       employeeMap.set(key, { name, managerId: emp.managerId?.toString() });
       if (emp.managerId) {
         managerIds.add(emp.managerId.toString());
@@ -737,9 +737,9 @@ export async function launchReviewCycle(
     const managerMap = new Map<string, string>();
     for (const mgr of managerRecords) {
       const key = mgr._id?.toString() || mgr.employeeId;
-      const name = mgr.name || mgr.fullName || mgr.firstName 
-        ? `${mgr.firstName || ""} ${mgr.lastName || ""}`.trim() 
-        : "Unknown Manager";
+      // Use proper fallback chain: name > fullName > firstName/lastName > default
+      const combinedName = `${mgr.firstName || ""} ${mgr.lastName || ""}`.trim();
+      const name = mgr.name || mgr.fullName || (combinedName || "Unknown Manager");
       managerMap.set(key, name);
     }
     

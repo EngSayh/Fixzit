@@ -13,7 +13,7 @@
  * @created 2025-12-29
  */
 
-import { ObjectId, type WithId, type Document } from "mongodb";
+import { ObjectId, type WithId, type Document, type Filter } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 
@@ -391,6 +391,23 @@ export async function overrideCategory(
       return { success: false, error: "Expense not found" };
     }
     
+    // Runtime validation for required ExpenseRecord fields before type assertion
+    const expenseDoc = expense as Record<string, unknown>;
+    if (
+      typeof expenseDoc.orgId !== "string" ||
+      typeof expenseDoc.vendorName !== "string" ||
+      typeof expenseDoc.description !== "string" ||
+      typeof expenseDoc.amountSAR !== "number"
+    ) {
+      logger.error("Invalid expense record structure", {
+        component: "expense-categorization",
+        expenseId,
+        hasOrgId: typeof expenseDoc.orgId,
+        hasVendorName: typeof expenseDoc.vendorName,
+      });
+      return { success: false, error: "Invalid expense record structure" };
+    }
+    
     const record = expense as unknown as ExpenseRecord;
     
     // Update expense
@@ -592,8 +609,8 @@ export async function getSpendingByCategory(
   try {
     const db = await getDatabase();
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const match: any = {
+    // Build typed filter for expense query
+    const match: Filter<Document> = {
       orgId,
       status: { $in: [ExpenseStatus.CATEGORIZED, ExpenseStatus.APPROVED] },
     };
@@ -731,8 +748,7 @@ export async function generateSpendingInsights(
         const avgAmount = category.averageAmount;
         
         // Build query filter - include propertyId when specified
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const anomalyFilter: any = {
+        const anomalyFilter: Filter<Document> = {
           orgId,
           category: category.category,
           amountSAR: { $gte: avgAmount * 3 },
@@ -767,7 +783,8 @@ export async function generateSpendingInsights(
       component: "expense-categorization",
       error: error instanceof Error ? error.message : "Unknown error",
     });
-    return [];
+    // Rethrow to match getSpendingByCategory error handling pattern
+    throw error;
   }
 }
 

@@ -16,6 +16,8 @@ import { auth } from "@/auth";
 import { randomUUID } from "crypto";
 import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { ObjectId } from "mongodb";
 
 export async function GET(request: Request) {
   try {
@@ -270,7 +272,7 @@ export async function POST(request: Request) {
       logger.error("[FM Providers] Authenticated user missing orgId - rejecting request");
       return NextResponse.json(
         { error: { code: "FIXZIT-TENANT-001", message: "Organization ID required for authenticated users" } },
-        { status: 401 }
+        { status: 400 }
       );
     }
     
@@ -299,17 +301,43 @@ export async function POST(request: Request) {
       );
     }
     
-    // TODO: [ISSUE-FM-001] Tenant isolation - verify work_order_id belongs to user's organization
-    // Before accepting bid, query WorkOrder model to confirm workOrder.orgId === sessionOrgId
-    // Current implementation trusts client-provided work_order_id without ownership verification
-    // Priority: P1 - Required before production use of bidding system
-    // Acceptance: Query WorkOrderModel.findOne({ _id: work_order_id, orgId: sessionOrgId })
-    // If not found, return 403 with error code FIXZIT-TENANT-002
-    logger.warn("[FM Providers] Work order ownership not verified - TODO: add tenant isolation", {
-      work_order_id,
-      orgId: sessionOrgId,
-      userId: session.user.id,
-    });
+    // Tenant isolation: verify work_order_id belongs to user's organization
+    try {
+      const db = await getDatabase();
+      const workOrderObjectId = ObjectId.isValid(work_order_id) ? new ObjectId(work_order_id) : null;
+      if (!workOrderObjectId) {
+        return NextResponse.json(
+          { error: { code: "FIXZIT-API-400", message: "Invalid work_order_id format" } },
+          { status: 400 }
+        );
+      }
+      const workOrder = await db.collection("work_orders").findOne({
+        _id: workOrderObjectId,
+        orgId: sessionOrgId,
+      });
+      
+      if (!workOrder) {
+        logger.warn("[FM Providers] Work order not found or not owned by org", {
+          work_order_id,
+          orgId: sessionOrgId,
+          userId: session.user.id,
+        });
+        return NextResponse.json(
+          { error: { code: "FIXZIT-TENANT-002", message: "Work order not found or access denied" } },
+          { status: 403 }
+        );
+      }
+    } catch (dbError) {
+      logger.error("[FM Providers] Failed to verify work order ownership", { 
+        error: dbError instanceof Error ? dbError.message : "Unknown error",
+        work_order_id,
+        orgId: sessionOrgId,
+      });
+      return NextResponse.json(
+        { error: { code: "FIXZIT-API-500", message: "Failed to verify work order" } },
+        { status: 500 }
+      );
+    }
     
     const normalizedBidAmount = Number(bid_amount);
     if (!Number.isFinite(normalizedBidAmount) || normalizedBidAmount < 0) {
@@ -333,26 +361,34 @@ export async function POST(request: Request) {
       orgId: sessionOrgId, // Include for tenant isolation
     };
     
-    // TODO: [ISSUE-FM-003] Persist bid to database
-    // Current implementation creates bid object but does NOT save to database.
-    // All submitted bids are lost after response is sent.
-    // Priority: P1 - Required before production use of bidding system
-    // Implementation:
-    //   1. Import Bid model from models/fm/Bid
-    //   2. await BidModel.create(bid)
-    //   3. Handle database errors with proper error responses
-    // Note: This was flagged by CodeRabbit as a critical issue
-    logger.warn("[FM Providers] Bid created but NOT persisted to database - TODO: add persistence", {
-      bid_id: bid.id,
-    });
-    
-    logger.info("Bid submitted", {
-      bid_id: bid.id,
-      work_order_id,
-      provider_id,
-      bid_amount: normalizedBidAmount,
-      submitted_by_id: session.user.id, // Log user ID instead of email
-    });
+    // Persist bid to database
+    try {
+      const db = await getDatabase();
+      await db.collection("fm_bids").insertOne({
+        ...bid,
+        _id: new ObjectId(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      
+      logger.info("Bid submitted and persisted", {
+        bid_id: bid.id,
+        work_order_id,
+        provider_id,
+        bid_amount: normalizedBidAmount,
+        submitted_by_id: session.user.id,
+      });
+    } catch (persistError) {
+      logger.error("[FM Providers] Failed to persist bid to database", {
+        error: persistError instanceof Error ? persistError.message : "Unknown error",
+        bid_id: bid.id,
+        work_order_id,
+      });
+      return NextResponse.json(
+        { error: { code: "FIXZIT-API-500", message: "Failed to save bid" } },
+        { status: 500 }
+      );
+    }
     
     return NextResponse.json({
       success: true,

@@ -252,9 +252,11 @@ async function getNextSequenceNumber(
     }
   );
   
+  // MongoDB findOneAndUpdate returns { value: Document | null } shape
+  const doc = result?.value ?? result; // Handle both direct and wrapped responses
   return {
-    sequenceNumber: result?.sequenceNumber ?? 1,
-    previousHash: result?.lastHash as string | undefined
+    sequenceNumber: (doc as { sequenceNumber?: number })?.sequenceNumber ?? 1,
+    previousHash: (doc as { lastHash?: string })?.lastHash as string | undefined
   };
 }
 

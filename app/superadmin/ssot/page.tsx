@@ -172,7 +172,7 @@ export default function SSOTViewerPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <FileText className="h-4 w-4" />
-                File
+                {t("superadmin.ssot.metadata.file", "File")}
               </div>
               <p className="text-foreground font-mono text-sm mt-1">{ssotData.path}</p>
             </CardContent>
@@ -181,7 +181,7 @@ export default function SSOTViewerPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Clock className="h-4 w-4" />
-                Last Modified
+                {t("superadmin.ssot.metadata.lastModified", "Last Modified")}
               </div>
               <p className="text-foreground text-sm mt-1">{formatDate(ssotData.lastModified)}</p>
             </CardContent>
@@ -190,7 +190,7 @@ export default function SSOTViewerPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <HardDrive className="h-4 w-4" />
-                Size
+                {t("superadmin.ssot.metadata.size", "Size")}
               </div>
               <p className="text-foreground text-sm mt-1">{formatBytes(ssotData.sizeBytes)}</p>
             </CardContent>
@@ -199,7 +199,7 @@ export default function SSOTViewerPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <FileText className="h-4 w-4" />
-                Lines
+                {t("superadmin.ssot.metadata.lines", "Lines")}
               </div>
               <p className="text-foreground text-sm mt-1">{getLineCount().toLocaleString()}</p>
             </CardContent>
@@ -213,7 +213,7 @@ export default function SSOTViewerPage() {
           <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search in SSOT..."
+            placeholder={t("superadmin.ssot.search.placeholder", "Search in SSOT...")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="ps-10 bg-muted border-input text-foreground placeholder:text-muted-foreground"
@@ -221,7 +221,7 @@ export default function SSOTViewerPage() {
         </div>
         {searchTerm && (
           <Badge variant="secondary" className="bg-blue-500/20 text-blue-400">
-            {getMatchCount()} matches
+            {t("superadmin.ssot.search.matches", "{count} matches").replace("{count}", String(getMatchCount()))}
           </Badge>
         )}
       </div>
@@ -229,9 +229,11 @@ export default function SSOTViewerPage() {
       {/* Content */}
       <Card className="bg-muted/50 border-input">
         <CardHeader className="border-b border-input">
-          <CardTitle className="text-foreground text-lg">PENDING_MASTER.md</CardTitle>
+          <CardTitle className="text-foreground text-lg">
+            {t("superadmin.ssot.fileName", "PENDING_MASTER.md")}
+          </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Canonical Single Source of Truth for Fixzit backlog and session logs
+            {t("superadmin.ssot.canonicalDescription", "Canonical Single Source of Truth for Fixzit backlog and session logs")}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">

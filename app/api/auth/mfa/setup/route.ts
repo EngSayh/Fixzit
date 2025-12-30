@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   initMFASetup,
   completeMFASetup,
@@ -34,6 +35,14 @@ import {
  * }
  */
 export async function POST(request: NextRequest) {
+  // Rate limit: 10 requests per minute per IP to prevent brute-force
+  const rateLimited = enforceRateLimit(request, {
+    keyPrefix: "auth:mfa:setup",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (rateLimited) return rateLimited;
+
   try {
     const session = await auth();
     
@@ -122,12 +131,31 @@ export async function POST(request: NextRequest) {
         );
       }
       
+      // Validate recovery codes array is non-empty and contains only valid strings
+      if (recoveryCodes.length === 0) {
+        return NextResponse.json(
+          { error: { code: "FIXZIT-AUTH-003", message: "Recovery codes array cannot be empty" } },
+          { status: 400 }
+        );
+      }
+      
+      const invalidCodes = recoveryCodes.some(c => typeof c !== "string" || c.trim().length === 0);
+      if (invalidCodes) {
+        return NextResponse.json(
+          { error: { code: "FIXZIT-AUTH-003", message: "All recovery codes must be non-empty strings" } },
+          { status: 400 }
+        );
+      }
+      
+      // Sanitize recovery codes (trim whitespace)
+      const sanitizedRecoveryCodes = recoveryCodes.map(c => c.trim());
+      
       const result = await completeMFASetup(
         orgId,
         userId,
         email,
         code,
-        recoveryCodes,
+        sanitizedRecoveryCodes,
         ipAddress
       );
       

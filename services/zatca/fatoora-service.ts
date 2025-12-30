@@ -32,6 +32,8 @@ const ZATCA_CONFIG = {
   MAX_RETRIES: 3,
   RETRY_DELAY_MS: 1000,
   HASH_ALGORITHM: "sha256",
+  // Maximum wave number supported (can be overridden via ZATCA_WAVE_MAX env)
+  MAX_WAVE: parseInt(process.env.ZATCA_WAVE_MAX || "9", 10),
   TLV_TAGS: {
     SELLER_NAME: 1,
     VAT_NUMBER: 2,
@@ -134,11 +136,13 @@ export async function getPreviousInvoiceHash(
   } catch (error) {
     logger.error("Failed to fetch previous invoice hash", {
       tenantId,
+      operation: "getPreviousInvoiceHash",
       error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
     });
-    // Return genesis hash on error - invoice creation should not fail
-    // The hash chain can be validated/repaired later
-    return GENESIS_HASH;
+    // Rethrow to abort invoice creation - hash chain integrity is critical
+    // Returning GENESIS_HASH silently would corrupt the chain
+    throw new Error(`Cannot fetch previous invoice hash for tenant ${tenantId}: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
 
@@ -242,8 +246,13 @@ interface TlvField {
 function encodeTlvField(field: TlvField): Buffer {
   const valueBuffer = Buffer.from(field.value, "utf8");
   
+  // TLV length field is 1 byte, max value 255
+  // For long values (e.g., Arabic seller names), truncation or error is required
   if (valueBuffer.length > 255) {
-    throw new Error(`TLV field ${field.tag} exceeds 255 bytes`);
+    throw new Error(
+      `TLV field tag=${field.tag} exceeds 255 bytes (actual: ${valueBuffer.length}). ` +
+      "Truncate the field value to fit TLV format or use shorter text."
+    );
   }
   
   return Buffer.concat([
@@ -329,10 +338,10 @@ export async function submitToFatoora(
   let lastError: Error | null = null;
   
   for (let attempt = 1; attempt <= ZATCA_CONFIG.MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), ZATCA_CONFIG.TIMEOUT_MS);
+    
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), ZATCA_CONFIG.TIMEOUT_MS);
-      
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -349,8 +358,6 @@ export async function submitToFatoora(
         }),
         signal: controller.signal,
       });
-      
-      clearTimeout(timeoutId);
       
       if (!response.ok) {
         const errorBody = await response.text();
@@ -414,6 +421,9 @@ export async function submitToFatoora(
         });
         await new Promise(resolve => setTimeout(resolve, delay));
       }
+    } finally {
+      // Always clear timeout to prevent timer leak on exceptions
+      clearTimeout(timeoutId);
     }
   }
   
@@ -561,8 +571,8 @@ export function validateTenantConfig(config: Partial<ZatcaTenantConfig>): string
     }
   }
   
-  if (config.zatca_wave && (config.zatca_wave < 1 || config.zatca_wave > 9)) {
-    errors.push("ZATCA wave must be between 1 and 9");
+  if (config.zatca_wave && (config.zatca_wave < 1 || config.zatca_wave > ZATCA_CONFIG.MAX_WAVE)) {
+    errors.push(`ZATCA wave must be between 1 and ${ZATCA_CONFIG.MAX_WAVE}`);
   }
   
   if (config.is_sandbox === false) {
@@ -594,8 +604,9 @@ export function isTenantInActiveWave(
       for (const [wave, dateStr] of Object.entries(parsed)) {
         const waveNum = parseInt(wave, 10);
         const date = new Date(dateStr);
-        if (isNaN(waveNum) || waveNum < 1 || waveNum > 99) {
-          logger.warn(`Invalid wave number in ZATCA_WAVE_DATES: ${wave}`);
+        // Use same MAX_WAVE constant as validateTenantConfig for consistency
+        if (isNaN(waveNum) || waveNum < 1 || waveNum > ZATCA_CONFIG.MAX_WAVE) {
+          logger.warn(`Invalid wave number in ZATCA_WAVE_DATES: ${wave} (max: ${ZATCA_CONFIG.MAX_WAVE})`);
           continue;
         }
         if (isNaN(date.getTime())) {

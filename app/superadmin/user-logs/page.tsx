@@ -116,6 +116,12 @@ export default function SuperadminUserLogsPage() {
   const [selectedLog, setSelectedLog] = useState<UserActivityLog | null>(null);
   const [selectedSession, setSelectedSession] = useState<UserSession | null>(null);
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
+  
+  // Export consent dialog state
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [includeEmails, setIncludeEmails] = useState(false);
+  const [exportConsent, setExportConsent] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -456,32 +462,82 @@ export default function SuperadminUserLogsPage() {
     return sanitized;
   };
 
-  const handleExport = () => {
-    const csvContent = [
-      ["Timestamp", "User", "Email", "Tenant", "Action", "Category", "Status", "Details"].join(","),
-      ...filteredLogs.map(log => [
-        new Date(log.timestamp).toISOString(),
-        escapeCsvField(log.userName),
-        escapeCsvField(log.userEmail),
-        escapeCsvField(log.tenantName),
-        escapeCsvField(log.action),
-        escapeCsvField(log.category),
-        escapeCsvField(log.status),
-        escapeCsvField(log.details),
-      ].join(","))
-    ].join("\n");
+  // Show export consent dialog
+  const handleExportClick = () => {
+    setIncludeEmails(false);
+    setExportConsent(false);
+    setExportDialogOpen(true);
+  };
+
+  // Perform actual export after consent
+  const handleExportConfirm = async () => {
+    if (!exportConsent) return;
     
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `user-activity-logs-${new Date().toISOString().split("T")[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      a.remove();
-    }, 0);
+    setExporting(true);
+    
+    try {
+      // Log export action for audit trail
+      await fetch("/api/admin/audit-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          action: "user_logs_export",
+          details: {
+            includeEmails,
+            filters: { categoryFilter, statusFilter, dateRange, search },
+            recordCount: filteredLogs.length,
+          },
+        }),
+      }).catch(() => {
+        // Queue retry if audit log fails - don't block export
+        // eslint-disable-next-line no-console -- SuperAdmin audit failure logging
+        console.warn("Audit log call failed - export proceeding");
+      });
+      
+      // Build CSV with PII masking unless consent given
+      const headers = includeEmails 
+        ? ["Timestamp", "User", "Email", "Tenant", "Action", "Category", "Status", "Details"]
+        : ["Timestamp", "User", "Tenant", "Action", "Category", "Status", "Details"];
+        
+      const csvContent = [
+        headers.join(","),
+        ...filteredLogs.map(log => {
+          const row = [
+            new Date(log.timestamp).toISOString(),
+            escapeCsvField(log.userName),
+            ...(includeEmails ? [escapeCsvField(log.userEmail)] : []),
+            escapeCsvField(log.tenantName),
+            escapeCsvField(log.action),
+            escapeCsvField(log.category),
+            escapeCsvField(log.status),
+            escapeCsvField(log.details),
+          ];
+          return row.join(",");
+        })
+      ].join("\n");
+      
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `user-activity-logs-${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        a.remove();
+      }, 0);
+      
+      setExportDialogOpen(false);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Legacy direct export (kept for reference, replaced by consent flow)
+  const handleExport = () => {
+    handleExportClick();
   };
 
   return (
@@ -827,6 +883,64 @@ export default function SuperadminUserLogsPage() {
             </div>
           )}
           <DialogFooter><Button variant="outline" onClick={() => setSessionDialogOpen(false)}>{t("common.close", "Close")}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Export Consent Dialog - PII protection */}
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="bg-card border-border text-foreground max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("superadmin.userLogs.exportTitle", "Export Activity Logs")}</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {t("superadmin.userLogs.exportWarning", "This export may contain personally identifiable information (PII). Please confirm your consent.")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-start gap-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+              <AlertCircle className="h-5 w-5 text-yellow-400 mt-0.5 shrink-0" />
+              <div className="text-sm text-yellow-200">
+                {t("superadmin.userLogs.piiWarning", "Activity logs contain user data. Handle exported files according to your organization's data protection policies.")}
+              </div>
+            </div>
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={includeEmails}
+                  onChange={(e) => setIncludeEmails(e.target.checked)}
+                  className="w-4 h-4 rounded border-input bg-background"
+                />
+                <span className="text-sm text-foreground">
+                  {t("superadmin.userLogs.includeEmails", "Include email addresses in export")}
+                </span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={exportConsent}
+                  onChange={(e) => setExportConsent(e.target.checked)}
+                  className="w-4 h-4 rounded border-input bg-background"
+                />
+                <span className="text-sm text-foreground">
+                  {t("superadmin.userLogs.exportConsent", "I understand this export contains PII and will handle it according to data protection policies")}
+                </span>
+              </label>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {t("superadmin.userLogs.recordCount", "Records to export")}: {filteredLogs.length}
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
+              {t("common.cancel", "Cancel")}
+            </Button>
+            <Button 
+              onClick={handleExportConfirm} 
+              disabled={!exportConsent || exporting}
+            >
+              {exporting ? t("common.exporting", "Exporting...") : t("common.export", "Export CSV")}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -161,16 +161,25 @@ function CheckoutContent() {
 
       accountCreated = true;
 
-      // Create subscription
+      // Create subscription with plan details and computed totals for backend validation
       const subscriptionResponse = await fetch("/api/checkout/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           subscriberType: "CORPORATE",
+          // Include explicit plan identifier for backend validation
+          planId: planId,
+          priceId: (plan as { priceId?: string }).priceId, // Optional Stripe/payment price ID if available
           modules: ["FM", "PROPERTIES"],
           seats: users,
           billingCycle: "MONTHLY",
           currency: "SAR",
+          // Include computed totals for backend verification
+          amounts: {
+            subtotal,
+            vat,
+            total,
+          },
           customer: {
             name: `${formData.firstName} ${formData.lastName}`,
             email: formData.email,

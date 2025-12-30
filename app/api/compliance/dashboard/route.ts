@@ -17,8 +17,18 @@ export async function GET() {
   try {
     const session = await auth();
     
-    // Demo mode requires ENABLE_DEMO_MODE env flag - never enable in production
-    const demoEnabled = process.env.ENABLE_DEMO_MODE === 'true';
+    // Demo mode requires ENABLE_DEMO_MODE env flag - NEVER enable in production
+    let demoEnabled = process.env.ENABLE_DEMO_MODE === 'true';
+    
+    // Explicitly disable demo mode in production regardless of env flag
+    if (process.env.NODE_ENV === 'production' && demoEnabled) {
+      logger.warn('Demo mode env flag ignored in production environment', {
+        component: 'compliance-dashboard',
+        envFlag: 'ENABLE_DEMO_MODE',
+      });
+      demoEnabled = false;
+    }
+    
     const isDemo = demoEnabled && !session?.user;
     
     // Require authentication if demo mode is disabled

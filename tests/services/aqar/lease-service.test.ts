@@ -69,8 +69,8 @@ describe("lease-service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Default mocks
-    mockFindOneAndUpdate.mockResolvedValue({ seq: 1 });
+    // Default mocks - findOneAndUpdate returns { value: { seq: N } } shape
+    mockFindOneAndUpdate.mockResolvedValue({ value: { seq: 1 } });
     mockFindOne.mockResolvedValue(null);
     mockInsertOne.mockResolvedValue({ insertedId: new ObjectId() });
   });

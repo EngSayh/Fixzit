@@ -265,7 +265,6 @@ test.describe("Accessibility & Keyboard Navigation", () => {
         const modal = page.locator('[role="dialog"], [aria-modal="true"]').first();
         if (await modal.isVisible({ timeout: 3000 }).catch(() => false)) {
           // Tab multiple times - should stay within modal
-          const initialUrl = page.url();
           for (let i = 0; i < 20; i++) {
             await page.keyboard.press("Tab");
           }

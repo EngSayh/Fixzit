@@ -89,8 +89,12 @@ export function CommandPalette({
     [customCommands]
   );
   
-  // Get recent commands
-  const recentIds = React.useMemo(() => getRecentCommands(), [open]);
+  // Get recent commands - use state + effect for reliable localStorage reads
+  const [recentIds, setRecentIds] = React.useState<string[]>([]);
+  React.useEffect(() => {
+    // Read fresh from localStorage whenever palette opens
+    setRecentIds(getRecentCommands());
+  }, [open]);
   const recentCommands = React.useMemo(
     () => getRecentCommandObjects(allCommands, recentIds),
     [allCommands, recentIds]

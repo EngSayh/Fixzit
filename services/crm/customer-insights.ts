@@ -251,8 +251,27 @@ export async function getCustomerProfile(
       userId,
     }) as WithId<Document> | null;
     
-    // Basic runtime validation for required CustomerProfile fields
-    if (profile && typeof profile.orgId === "string" && typeof profile.userId === "string") {
+    // Runtime validation for required CustomerProfile fields
+    if (profile) {
+      // Check required string fields
+      if (typeof profile.orgId !== "string" || typeof profile.userId !== "string") {
+        logger.warn("Invalid customer profile: missing orgId or userId", {
+          component: "customer-insights",
+          profileId: profile._id?.toString(),
+        });
+        return null;
+      }
+      // Check that numeric fields exist and are valid if present
+      const numericFields = ["healthScore", "engagementScore", "totalActivities", "totalTickets"];
+      for (const field of numericFields) {
+        if (field in profile && typeof (profile as Record<string, unknown>)[field] !== "number") {
+          logger.warn(`Invalid customer profile: ${field} is not a number`, {
+            component: "customer-insights",
+            profileId: profile._id?.toString(),
+          });
+          // Don't fail - the field may just be missing and we can use defaults
+        }
+      }
       return profile as unknown as CustomerProfile;
     }
     
@@ -327,8 +346,9 @@ export async function trackEngagement(
     await db.collection(EVENTS_COLLECTION).insertOne(engagementEvent);
     
     // Update profile activity count
-    // Note: activitiesLast30Days is computed on-demand or via scheduled job
-    // since maintaining it accurately requires tracking activity timestamps
+    // Note: activitiesLast30Days is computed on-demand by counting events
+    // with createdAt >= now-30d in getCustomerProfile or via scheduled job.
+    // We only update lastActivityAt and totalActivities here.
     await db.collection(PROFILES_COLLECTION).updateOne(
       { orgId, userId },
       {
@@ -338,10 +358,6 @@ export async function trackEngagement(
         },
         $inc: { 
           totalActivities: 1,
-          // Note: activitiesLast30Days increment is a heuristic - actual value
-          // should be recomputed periodically by a scheduled job that checks
-          // activity timestamps. This increment assumes the new activity is within 30 days.
-          activitiesLast30Days: 1,
         },
         $setOnInsert: buildProfileDefaults(),
       },
@@ -1059,10 +1075,11 @@ export async function getNPSSummary(
     const data = results[0] || { total: 0, promoters: 0, passives: 0, detractors: 0 };
     
     // Calculate NPS: % Promoters - % Detractors
-    const total = data.total || 1;
-    const npsScore = Math.round(
-      ((data.promoters / total) - (data.detractors / total)) * 100
-    );
+    // Only compute when we have responses to avoid division by zero
+    const total = data.total || 0;
+    const npsScore = total > 0 
+      ? Math.round(((data.promoters / total) - (data.detractors / total)) * 100)
+      : 0;
     
     return {
       npsScore: data.total > 0 ? npsScore : 0,

@@ -358,11 +358,46 @@ export async function addDocument(
       if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
         return { success: false, error: "Document URL must use http or https protocol" };
       }
-      // Reject localhost/private IPs to prevent SSRF
+      // Comprehensive SSRF protection: reject localhost, private IPs, metadata endpoints
       const hostname = parsedUrl.hostname.toLowerCase();
-      if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168.") || hostname.startsWith("10.") || hostname.startsWith("172.")) {
-        return { success: false, error: "Document URL cannot point to private/local addresses" };
+      
+      // Check for localhost variations
+      if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "0.0.0.0") {
+        return { success: false, error: "Document URL cannot point to localhost addresses" };
       }
+      
+      // Check for cloud metadata endpoints
+      if (hostname === "169.254.169.254" || hostname === "metadata.google.internal") {
+        return { success: false, error: "Document URL cannot point to cloud metadata endpoints" };
+      }
+      
+      // Check for private IPv4 ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+      const ipv4Match = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+      if (ipv4Match) {
+        const [, octet1, octet2] = ipv4Match.map(Number);
+        const isPrivate = 
+          octet1 === 10 || // 10.0.0.0/8
+          (octet1 === 172 && octet2 >= 16 && octet2 <= 31) || // 172.16.0.0/12
+          (octet1 === 192 && octet2 === 168) || // 192.168.0.0/16
+          (octet1 === 169 && octet2 === 254) || // 169.254.0.0/16 link-local
+          octet1 === 127; // 127.0.0.0/8 loopback
+        if (isPrivate) {
+          return { success: false, error: "Document URL cannot point to private/local addresses" };
+        }
+      }
+      
+      // Check for IPv6 private/local (simplified check for common patterns)
+      if (hostname.includes(":")) {
+        // Link-local (fe80::), unique local (fc00::, fd00::), loopback (::1)
+        if (hostname.startsWith("fe80:") || hostname.startsWith("fc") || hostname.startsWith("fd") || hostname === "::1") {
+          return { success: false, error: "Document URL cannot point to private IPv6 addresses" };
+        }
+        // IPv4-mapped IPv6 (::ffff:127.0.0.1)
+        if (hostname.includes("::ffff:")) {
+          return { success: false, error: "Document URL cannot point to IPv4-mapped private addresses" };
+        }
+      }
+      
       validatedUrl = parsedUrl.toString();
     } catch (_urlError) {
       return { success: false, error: "Invalid document URL format" };

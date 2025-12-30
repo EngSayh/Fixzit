@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { getMFAStatus, disableMFA, regenerateRecoveryCodes } from "@/lib/auth/mfaService";
 
 // ============================================================================
@@ -84,7 +85,15 @@ async function parseAndValidateCode(request: NextRequest): Promise<NextResponse 
  * 
  * Returns the MFA status for the current user.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Rate limit: 30 requests per minute for status checks
+  const rateLimited = enforceRateLimit(request, {
+    keyPrefix: "auth:mfa:status",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimited) return rateLimited;
+
   try {
     const sessionResult = await validateSessionAndUser();
     if (sessionResult instanceof NextResponse) {
@@ -121,6 +130,14 @@ export async function GET() {
  * }
  */
 export async function DELETE(request: NextRequest) {
+  // Rate limit: 5 requests per minute for MFA disable (sensitive operation)
+  const rateLimited = enforceRateLimit(request, {
+    keyPrefix: "auth:mfa:disable",
+    requests: 5,
+    windowMs: 60_000,
+  });
+  if (rateLimited) return rateLimited;
+
   try {
     const sessionResult = await validateSessionAndUser();
     if (sessionResult instanceof NextResponse) {
@@ -181,6 +198,14 @@ export async function DELETE(request: NextRequest) {
  * }
  */
 export async function PATCH(request: NextRequest) {
+  // Rate limit: 5 requests per minute for recovery code regeneration
+  const rateLimited = enforceRateLimit(request, {
+    keyPrefix: "auth:mfa:recovery",
+    requests: 5,
+    windowMs: 60_000,
+  });
+  if (rateLimited) return rateLimited;
+
   try {
     const sessionResult = await validateSessionAndUser();
     if (sessionResult instanceof NextResponse) {

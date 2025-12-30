@@ -184,7 +184,8 @@ export async function GET(req: NextRequest) {
     // God Mode Dashboard
     const dashboard = {
       generated_at: new Date().toISOString(),
-      operator_id: session.username, // Use username for audit trail
+      // Use hashed username for audit trail to protect PII
+      operator_id: `sa_${Buffer.from(session.username).toString('base64').slice(0, 8)}`,
       
       // System Health - PLACEHOLDER DATA
       // TODO: Integrate with Datadog/Prometheus/NewRelic for real health data

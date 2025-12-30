@@ -210,7 +210,8 @@ async function generateLeaseNumber(orgId: string): Promise<string> {
   );
   
   // Access seq from result.value for findOneAndUpdate return type
-  const seq = result?.value?.seq ?? result?.seq ?? 1;
+  // Use nullish fallback of 0 (not 1) to handle legitimate 0 values
+  const seq = result?.value?.seq ?? 0;
   return `LSE-${year}-${seq.toString().padStart(5, "0")}`;
 }
 
@@ -499,15 +500,15 @@ export async function renewLease(
 ): Promise<{ success: boolean; newLease?: LeaseDocument; error?: string }> {
   try {
     const db = await getDatabase();
-    const client = db.client;
+    // Note: db.client available if needed for native transactions
     
     // Validate leaseId format before any DB operations
     if (!ObjectId.isValid(leaseId)) {
       return { success: false, error: "Invalid leaseId format" };
     }
     
-    // Use native MongoDB client session for proper transaction support
-    const session = client.startSession();
+    // Use Mongoose session for proper transaction support with Mongoose models
+    const session = await mongoose.startSession();
     
     try {
       let newLease: LeaseDocument | undefined;

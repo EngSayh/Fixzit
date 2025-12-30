@@ -431,8 +431,8 @@ export default function SuperadminFooterContentPage() {
       toast.error("Section is required");
       return;
     }
-    // Validate URL format
-    const isValidUrl = /^(\/[a-zA-Z0-9\-/]*|https?:\/\/.+)$/.test(linkForm.url);
+    // Validate URL format - relative paths must have at least one character after '/'
+    const isValidUrl = /^(\/[a-zA-Z0-9\-/]+|https?:\/\/.+)$/.test(linkForm.url);
     if (!isValidUrl) {
       toast.error("URL must be a valid relative path (e.g., /about) or absolute URL");
       return;
