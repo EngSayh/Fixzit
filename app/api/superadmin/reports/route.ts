@@ -55,7 +55,8 @@ const mapJob = (doc: ReportJobDocument) => ({
   fileMime: doc.fileMime,
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
-  generatedAt: doc.createdAt,
+  // generatedAt only set when report is actually completed with a file
+  generatedAt: doc.status === "completed" && doc.fileKey ? doc.updatedAt : undefined,
 });
 
 /**

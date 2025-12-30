@@ -657,7 +657,7 @@ export default function SuperadminUserLogsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="sm" onClick={() => handleViewLog(log)}>
+                            <Button variant="ghost" size="sm" onClick={() => handleViewLog(log)} aria-label={t("superadmin.userLogs.viewDetails", "View details")}>
                               <Eye className="h-4 w-4" />
                             </Button>
                           </TableCell>

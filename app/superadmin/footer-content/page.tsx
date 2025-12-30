@@ -137,6 +137,7 @@ export default function SuperadminFooterContentPage() {
   const [chatbotSettings, setChatbotSettings] = useState<ChatbotSettings>(DEFAULT_CHATBOT_SETTINGS);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(DEFAULT_COMPANY_INFO);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   
   // Dialogs
@@ -498,6 +499,28 @@ export default function SuperadminFooterContentPage() {
   };
 
   const handleSaveChatbot = async () => {
+    // Validate required fields per CodeRabbit review
+    if (!chatbotSettings.welcomeMessage?.trim()) {
+      toast.error("Welcome message is required");
+      return;
+    }
+    if (chatbotSettings.maxTokens < 1) {
+      toast.error("Max tokens must be at least 1");
+      return;
+    }
+    if (chatbotSettings.temperature < 0 || chatbotSettings.temperature > 1) {
+      toast.error("Temperature must be between 0 and 1");
+      return;
+    }
+    // Validate external providers have required fields
+    if (chatbotSettings.provider !== "internal") {
+      if (!chatbotSettings.model?.trim()) {
+        toast.error(`Model name is required for ${chatbotSettings.provider}`);
+        return;
+      }
+    }
+
+    setSaving(true);
     try {
       const response = await fetch("/api/admin/content/chatbot", {
         method: "PUT",
@@ -513,6 +536,8 @@ export default function SuperadminFooterContentPage() {
       }
     } catch {
       toast.error("Error saving chatbot settings");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -854,8 +879,8 @@ export default function SuperadminFooterContentPage() {
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={handleSaveChatbot} className="bg-primary text-primary-foreground">
-                  <Save className="h-4 w-4 me-2" />Save Chatbot Settings
+                <Button onClick={handleSaveChatbot} disabled={saving} className="bg-primary text-primary-foreground">
+                  <Save className="h-4 w-4 me-2" />{saving ? "Saving..." : "Save Chatbot Settings"}
                 </Button>
               </div>
             </CardContent>

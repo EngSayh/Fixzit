@@ -98,7 +98,20 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const targetUserIds = rawUserIds.filter((id): id is string => typeof id === "string");
+    // Strict validation: reject if any element is not a string (don't silently filter)
+    const invalidUserIds: Array<{ index: number; value: unknown; type: string }> = [];
+    rawUserIds.forEach((id, i) => {
+      if (typeof id !== "string") {
+        invalidUserIds.push({ index: i, value: id, type: typeof id });
+      }
+    });
+    if (invalidUserIds.length > 0) {
+      return NextResponse.json(
+        { success: false, error: "All targetUserIds must be strings", invalidElements: invalidUserIds },
+        { status: 400 }
+      );
+    }
+    const targetUserIds = rawUserIds as string[];
     
     const targetTenantId = body.targetTenantId;
 

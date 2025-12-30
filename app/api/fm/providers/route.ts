@@ -54,7 +54,17 @@ export async function GET(request: Request) {
       org_id = sessionOrgId;
     }
     
-    // Provider Network Data
+    // TODO: [ISSUE-FM-002] Replace hardcoded mock data with real database queries
+    // Current implementation returns static provider data for all tenants.
+    // Priority: P2 - Required for production FM Provider marketplace
+    // Implementation:
+    //   1. Import ServiceProvider model and provider-network service
+    //   2. Query providers filtered by org_id, category, city
+    //   3. Calculate real statistics from ServiceProvider collection
+    //   4. Return actual bid data from Bid collection
+    // See: services/fm/provider-network.ts for service layer
+    
+    // Provider Network Data (DEMO/STUB - replace with real queries per TODO above)
     const providerNetwork = {
       generated_at: new Date().toISOString(),
       is_demo: isDemo,
@@ -289,6 +299,18 @@ export async function POST(request: Request) {
       );
     }
     
+    // TODO: [ISSUE-FM-001] Tenant isolation - verify work_order_id belongs to user's organization
+    // Before accepting bid, query WorkOrder model to confirm workOrder.orgId === sessionOrgId
+    // Current implementation trusts client-provided work_order_id without ownership verification
+    // Priority: P1 - Required before production use of bidding system
+    // Acceptance: Query WorkOrderModel.findOne({ _id: work_order_id, orgId: sessionOrgId })
+    // If not found, return 403 with error code FIXZIT-TENANT-002
+    logger.warn("[FM Providers] Work order ownership not verified - TODO: add tenant isolation", {
+      work_order_id,
+      orgId: sessionOrgId,
+      userId: session.user.id,
+    });
+    
     const normalizedBidAmount = Number(bid_amount);
     if (!Number.isFinite(normalizedBidAmount) || normalizedBidAmount < 0) {
       return NextResponse.json(
@@ -308,7 +330,21 @@ export async function POST(request: Request) {
       submitted_at: new Date().toISOString(),
       status: "submitted",
       submitted_by: session.user.id, // Use user ID instead of email for PII protection
+      orgId: sessionOrgId, // Include for tenant isolation
     };
+    
+    // TODO: [ISSUE-FM-003] Persist bid to database
+    // Current implementation creates bid object but does NOT save to database.
+    // All submitted bids are lost after response is sent.
+    // Priority: P1 - Required before production use of bidding system
+    // Implementation:
+    //   1. Import Bid model from models/fm/Bid
+    //   2. await BidModel.create(bid)
+    //   3. Handle database errors with proper error responses
+    // Note: This was flagged by CodeRabbit as a critical issue
+    logger.warn("[FM Providers] Bid created but NOT persisted to database - TODO: add persistence", {
+      bid_id: bid.id,
+    });
     
     logger.info("Bid submitted", {
       bid_id: bid.id,

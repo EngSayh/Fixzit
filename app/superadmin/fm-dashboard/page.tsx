@@ -43,9 +43,14 @@ interface ComplianceDashboard {
     }>;
   };
   pdpl: {
-    consent_rate: number;
-    dsar_requests: number;
-    breach_incidents: number;
+    compliance_score: number;
+    status: string;
+    certifications: string[];
+    metrics: {
+      active_consents: number;
+      pending_dsars: number;
+      data_breaches_ytd: number;
+    };
   };
 }
 
@@ -339,15 +344,15 @@ export default function SuperadminFMDashboardPage() {
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-sm">PDPL Compliance</span>
                 <span className="text-xs text-gray-600 dark:text-gray-400">
-                  {compliance?.pdpl?.consent_rate ?? 0}% consent rate
+                  {compliance?.pdpl?.compliance_score ?? 0}% compliance score
                 </span>
               </div>
               <div className="flex items-center gap-4 text-xs">
                 <span className="text-yellow-600 dark:text-yellow-400">
-                  {compliance?.pdpl?.dsar_requests ?? 0} DSAR requests
+                  {compliance?.pdpl?.metrics?.pending_dsars ?? 0} DSAR requests
                 </span>
                 <span className="text-red-600 dark:text-red-400">
-                  {compliance?.pdpl?.breach_incidents ?? 0} breaches
+                  {compliance?.pdpl?.metrics?.data_breaches_ytd ?? 0} breaches
                 </span>
               </div>
             </div>
@@ -377,7 +382,7 @@ export default function SuperadminFMDashboardPage() {
             ))}
             
             {/* Churn Risk - use churn.predictions to match API */}
-            {analytics?.churn?.predictions?.slice(0, 2).map((tenant, index) => (
+            {(analytics?.churn?.predictions ?? []).slice(0, 2).map((tenant, index) => (
               <div key={tenant.tenant_id ?? `${tenant.tenant_name}-${index}`} className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                 <div className="flex items-center gap-3">
                   <TrendingUp className="h-4 w-4 text-orange-500" />
